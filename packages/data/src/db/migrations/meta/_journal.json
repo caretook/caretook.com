@@ -22,6 +22,13 @@
       "when": 1794947159771,
       "tag": "0002_timeline_entry",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794947484344,
+      "tag": "0003_auth",
+      "breakpoints": true
     }
   ]
 }

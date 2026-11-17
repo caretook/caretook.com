@@ -65,6 +65,16 @@ const MANAGERS = GROUP_MANAGER_ROLES;
 const OWNERS: readonly GroupRoleName[] = ["owner"];
 const WRITERS: readonly GroupRoleName[] = ["owner", "admin", "caretaker"];
 
+const SYSTEM_ONLY_ENTRY = { ...NO_ACCESS, system: ["all"] } as const satisfies PermissionEntry<DbSchemaName>;
+
+const SYSTEM_ONLY_SCHEMA = {
+  create: SYSTEM_ONLY_ENTRY,
+  read: SYSTEM_ONLY_ENTRY,
+  list: SYSTEM_ONLY_ENTRY,
+  update: SYSTEM_ONLY_ENTRY,
+  delete: SYSTEM_ONLY_ENTRY,
+} as const;
+
 // ---------------------------------------------------------------------------
 // The permission map. Every table must have an entry (enforced by the type).
 // ---------------------------------------------------------------------------
@@ -154,6 +164,13 @@ export const PERMISSIONS: Permissions = {
     },
     delete: groupEntry(MANAGERS),
   },
+
+  // Better Auth's tables: it uses them through its own adapter, never our
+  // models, so only the system may touch them here.
+  sessionSchema: SYSTEM_ONLY_SCHEMA,
+  accountSchema: SYSTEM_ONLY_SCHEMA,
+  verificationSchema: SYSTEM_ONLY_SCHEMA,
+  jwksSchema: SYSTEM_ONLY_SCHEMA,
 
   // Any writer may edit or delete any entry (not just their own). Deletes
   // are soft (timelineEntryModel.remove sets deletedAt under this delete

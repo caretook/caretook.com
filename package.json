@@ -18,7 +18,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run --project data:unit",
-    "test:integration": "vitest run --project data:integration",
+    "test:integration": "vitest run --project integration",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
     "datastore:start": "pnpm datastore:up && pnpm datastore:migrate && pnpm datastore:seed",
     "datastore:up": "docker compose up -d --wait",

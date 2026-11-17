@@ -10,3 +10,4 @@ export * from "./careGroupMember";
 export * from "./careRecipient";
 export * from "./careGroupInvite";
 export * from "./timelineEntry";
+export * from "./auth";

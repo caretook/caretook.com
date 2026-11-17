@@ -1,5 +1,6 @@
 import { newError } from "../../errors";
 import { dbMayFail } from "../client";
+import * as accounts from "./accounts";
 import * as careGroups from "./careGroups";
 import * as timelineEntries from "./timelineEntries";
 import * as users from "./users";
@@ -14,6 +15,7 @@ export const seed = async () => {
 
   return dbMayFail(async () => {
     await users.seed();
+    await accounts.seed();
     await careGroups.seed();
     await timelineEntries.seed();
   }, "db:seed");

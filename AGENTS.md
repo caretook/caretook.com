@@ -36,7 +36,7 @@ Planned feature areas, listed only to inform stack decisions:
 - ✅ Lint, format and test tooling, all installed at the root:
   - **ESLint 10**, flat config in `eslint.config.js`. It uses `typescript-eslint` **type-aware** rules (`recommendedTypeChecked` with `projectService`), which catch floating promises and unsafe `any`. Also `consistent-type-imports` (separate `import type` lines) and `react-hooks` for `apps/web`.
   - **Prettier 3** (`.prettierrc.json`: `printWidth` 110), run on its own, with `eslint-config-prettier` turning off conflicting lint rules. We don't use `eslint-plugin-prettier`.
-  - **Vitest 5**: projects are declared in the root `vitest.config.ts`. `data:unit` runs `*.test.ts` with no database. `data:integration` runs `*.int.test.ts` against the test Postgres (port 5435). Its `globalSetup` clears and migrates that database once per run, refuses any other host or port, and runs files one at a time. Tests build their own fixtures (`packages/data/test/fixtures.ts`), not seed data. No `apps/web` test project yet.
+  - **Vitest 5**: projects are declared in the root `vitest.config.ts`. `data:unit` runs `*.test.ts` with no database. `integration` runs every package's `*.int.test.ts` against the test Postgres (port 5435), as one project because they share that database. Its `globalSetup` clears and migrates that database once per run, refuses any other host or port, and runs files one at a time. Tests build their own fixtures (`packages/data/test/fixtures.ts`), not seed data. Its env sets a test-only `BETTER_AUTH_SECRET`. No `apps/web` test project yet.
 - ❓ Turborepo is still undecided.
 
 ### Web framework: React Router v8
@@ -175,11 +175,7 @@ The first full vertical slice: a seeded user signs in, picks one of their care g
   - `occurredAt` is read back as Postgres text (`2026-11-17 10:00:00.000+00`), not ISO. Normalise it at the API layer if clients need ISO.
 - 🟡 Phases:
   1. ✅ Timeline data layer (schema, permissions, model, service, seeds, independent integration tests).
-  2. Auth in `packages/auth`. Better Auth adopts the existing `user` table and adds `session`, `account` and `verification`. Plugins: `bearer` and `jwt`/JWKS.
-     - **Sign-up is disabled** (`disableSignUp: true`); accounts come from seeds. `role` is still declared with `input: false`, so a future sign-up can't set it.
-     - A `databaseHooks.user.create.before` hook fills `created_by`/`updated_by`, using a pre-generated UUID id.
-     - `getAuthUser(headers)` resolves the session to `AuthUser`.
-     - Web-only routes: `/api/auth/*` and `/sign-in`, plus sign-out.
+  2. ✅ Auth (`packages/auth`, Better Auth 1.7.25, pinned exactly). See _Auth_ below.
   3. `packages/api` (oRPC) with context `{ authUser }`, mapping `AppError` to `ORPCError`. Procedures: `me.get`, `careGroup.listMine` and `timeline.list`/`create`/`update`/`remove`. It's mounted at `/rpc/*`, with a client in `app/lib/rpc.ts`.
   4. Screens: sign in, a plain list of my groups (skipped when there's only one), and `/app/groups/:groupId/timeline`.
 - Out of scope: sign-up and create-group UI, invite accept and consent, email verification and reset, PowerSync, appointments, attachments, Playwright, deploy.
@@ -187,6 +183,51 @@ The first full vertical slice: a seeded user signs in, picks one of their care g
 - 🟡 **Resend** is coming in a near-term follow-up iteration. It brings email verification, password reset, invite emails, and possibly magic link or email OTP. Keep that path cheap:
   - All outgoing email goes through `packages/notifications` (see _Notifications_), never through Better Auth callbacks calling a provider directly.
   - Leave `requireEmailVerification` off until Resend lands, and don't build UI that assumes passwords are the only sign-in method.
+
+### Auth (`packages/auth`, `@caretook/auth`)
+
+- ✅ **Better Auth 1.7.25** with its drizzle adapter, over our own tables:
+  - it adopts the existing `user` table;
+  - `session`, `account`, `verification` and `jwks` are in `packages/data/src/db/schema/auth.ts` (migration `0003`).
+- ✅ The auth tables are exceptions to the table conventions:
+  - **no `audits`**, because Better Auth writes them, not our models;
+  - **date-mode timestamps**, because Better Auth compares them with `Date` objects, and string mode would silently break session expiry;
+  - `PERMISSIONS` gives them to `system` only.
+- ✅ Ids: `generateId: "uuid"` lets Postgres's `gen_random_uuid()` default fill them.
+- ✅ Extra user fields, declared as `user.additionalFields` with `input: false`, so requests can't set them:
+  - `role`;
+  - `createdBy`/`updatedBy`, defaulting to `SYSTEM_USER` (the auth flow creates accounts as the system).
+- ✅ Settings:
+  - `emailAndPassword` with `disableSignUp: true` and a 12-character minimum;
+  - telemetry explicitly off;
+  - `trustedOrigins` holds Capacitor's origins plus `AUTH_TRUSTED_ORIGINS`.
+- ✅ Plugins:
+  - `bearer()`, for the native app;
+  - `jwt()`: 15-minute EdDSA tokens with `sub` and `role`, keys at `/api/auth/jwks`, and the private key encrypted with the secret. This is for PowerSync and workers later.
+- ✅ Entry points:
+  - `@caretook/auth` (server only): `getAuth()` (lazy, like the db) and `getAuthUser(headers)`. The latter turns a cookie or bearer session into `AuthUser`, with `groupRoles` loaded from memberships as `system`.
+  - `@caretook/auth/client`: `createCaretookAuthClient(baseURL?)`, built on `better-auth/client` (no React dependency).
+  - In apps/web, server code imports through `app/.server/auth.ts`, and browser code through `app/lib/auth-client.ts`.
+- ✅ Routes:
+  - `/api/auth/*` is a web-only resource route (the native app calls the deployed server's copy).
+  - `/sign-in` and `/sign-out` are **shared and client-only**, because the native app needs them too; sign-out is POST only.
+  - `/app/layout.tsx` checks the session in `clientLoader` and redirects to `/sign-in?redirectTo=…` (checked by `safeRedirect`: same-site paths only).
+  - On the web, `/app` server-renders an empty shell, and the browser then loads the session.
+- ✅ Env:
+  - `apps/web/.env` (copy `.env.example`): `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `AUTH_TRUSTED_ORIGINS` and `VITE_API_ORIGIN` (native only).
+  - `vite.config.ts` loads it, then `packages/data/.env` (for `DATABASE_URL`), into `process.env`.
+- ✅ Dev sign-in: `pnpm datastore:seed` gives every `@example.com` user a password account using `SEED_USER_PASSWORD` from `packages/data/.env`. It's hashed with `better-auth/crypto`, a **dev dependency** of `packages/data` used only by the seeds. Without that variable, the accounts are skipped with a warning.
+- Verified in a real browser (headless Chrome):
+  - `/app` redirects to sign-in, and a wrong password shows one generic message;
+  - signing in lands on `/app`, and `/sign-in` bounces a signed-in user back;
+  - sign-out ends the session.
+
+  Also verified: cross-site origins get a 403, and sign-up is refused.
+
+- ❓ Open questions:
+  - **Rate limiting** uses Better Auth's in-memory default, which is per instance on serverless. Move it to database or Redis storage before launch.
+  - **Native:** bearer token storage in Capacitor (secure storage), and pointing the client at `VITE_API_ORIGIN`.
+  - **Deleting an account** cascades to its sessions and accounts. A sole owner's group is still left ownerless (see _Care groups_).
 
 ### Notifications (Resend iteration, planned)
 
@@ -248,7 +289,7 @@ The design starts from the user's cn-time-by-project `app/.server/notifications`
 
 ### Other proposed choices (not installed)
 
-- ✅ **Auth:** Better Auth (works with Drizzle, issues JWTs that PowerSync can verify, bearer tokens for Capacitor). Email + password first; Resend follows soon (see _Shared timeline_). Not installed yet.
+- ✅ **Auth:** Better Auth, installed (see _Auth_). Email + password first; Resend follows soon.
 - 🟡 **Email:** Resend, in a near-term follow-up iteration (see _Notifications_).
 - ✅ **UI:** Tailwind v4 (`tailwindcss` + `@tailwindcss/vite`), **daisyUI 5** for styling, and **React Aria Components** for accessible behavior. Mobile-first. Not installed yet; it arrives with the timeline slice. We considered shadcn/ui (more dependencies and copied code) and Preline (its vanilla-JS plugins run outside React and clash with re-renders). Three layers:
   1. Native elements styled with daisyUI by default: buttons, inputs, cards, alerts, `<details>`, and `<dialog>` opened with `showModal()` for simple confirms. No JS.
@@ -269,7 +310,7 @@ The design starts from the user's cn-time-by-project `app/.server/notifications`
 docker-compose.yml     dev Postgres (port 5434); docker-compose.test.yml → test (5435)
 package.json           root scripts; packageManager pnpm@12.21.0
 eslint.config.js       ESLint flat config (type-aware); .prettierrc.json, .prettierignore
-vitest.config.ts       Vitest projects (data:unit, data:integration)
+vitest.config.ts       Vitest projects (data:unit, integration)
 pnpm-workspace.yaml    apps/*, packages/*; allowBuilds
 tsconfig.base.json     strict shared compiler settings
 apps/web/              @caretook/web: React Router 8, Vite 8
@@ -280,7 +321,12 @@ apps/web/              @caretook/web: React Router 8, Vite 8
   app/routes/app/          shared screens (no server loaders/actions)
   app/routes/marketing/    web-only pages
   app/routes/native-index.tsx  native-only "/" → "/app" redirect
-apps/web/app/.server/data.ts  re-exports @caretook/data (server-only door)
+apps/web/app/.server/data.ts  re-exports @caretook/data (server-only door); auth.ts → @caretook/auth
+  app/lib/             auth-client.ts (browser auth), redirect.ts (safeRedirect), form.ts
+  app/routes/api/auth.ts  Better Auth handler at /api/auth/* (web only)
+  app/routes/sign-in.tsx, sign-out.tsx  shared, client-only
+  .env.example         auth env (BETTER_AUTH_SECRET, BETTER_AUTH_URL, …)
+packages/auth/         @caretook/auth: Better Auth config, getAuthUser, browser client
 packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
   drizzle.config.ts    drizzle-kit config
   scripts/             tsx CLI runners: migrate, seed, clear
@@ -305,7 +351,7 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
 | `pnpm --filter @caretook/web dev:native`                                     | dev server in native (SPA) mode                                                                                                                                                                      |
 | `pnpm build`                                                                 | web build → `apps/web/build/web/`                                                                                                                                                                    |
 | `pnpm build:native`                                                          | native SPA build → `apps/web/build/native/client/`                                                                                                                                                   |
-| `pnpm datastore:start`                                                       | first-time setup or daily start: starts Postgres (waits for healthy), migrates, seeds. Needs `packages/data/.env` (copy `.env.example`).                                                             |
+| `pnpm datastore:start`                                                       | first-time setup or daily start: starts Postgres (waits for healthy), migrates, seeds. Needs `packages/data/.env` and `apps/web/.env` (copy each `.env.example`; set `BETTER_AUTH_SECRET`).          |
 | `pnpm datastore:up` / `datastore:stop` / `datastore:logs`                    | start, stop or tail the dev Postgres container                                                                                                                                                       |
 | `pnpm datastore:generate`                                                    | generate a migration from schema changes (no database needed)                                                                                                                                        |
 | `pnpm datastore:migrate`                                                     | apply pending migrations                                                                                                                                                                             |

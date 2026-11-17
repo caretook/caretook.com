@@ -47,6 +47,10 @@ export default defineConfig(
     files: ["apps/web/**/*.{ts,tsx}"],
     extends: [reactHooks.configs.flat.recommended],
     languageOptions: { globals: globals.browser },
+    rules: {
+      // React Router's idiom: `throw redirect(...)` (a Response) from loaders and actions.
+      "@typescript-eslint/only-throw-error": ["error", { allow: [{ from: "lib", name: "Response" }] }],
+    },
   },
 
   // Plain JS config files aren't in any tsconfig.

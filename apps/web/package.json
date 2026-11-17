@@ -11,6 +11,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@caretook/auth": "workspace:*",
     "@caretook/data": "workspace:*",
     "@react-router/node": "^8.5.1",
     "@react-router/serve": "^8.5.1",
