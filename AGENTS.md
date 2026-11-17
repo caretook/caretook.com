@@ -33,7 +33,11 @@ Planned feature areas, listed only to inform stack decisions:
   - Build scripts must be approved in `allowBuilds`, otherwise the install fails. Only `esbuild` (needed by drizzle-kit) is approved so far.
   - Vercel: the lockfile still says `lockfileVersion: '9.0'`. Check that the first deploy actually runs pnpm 12.
 - ✅ TypeScript **5.9**, matching the official React Router template. TS 7 exists, but tooling support for it is still uneven.
-- ✅ The repository starts minimal. ❓ Turborepo, linting/formatting and testing tools are all still to be decided.
+- ✅ Lint, format and test tooling, all installed at the root:
+  - **ESLint 10**, flat config in `eslint.config.js`. It uses `typescript-eslint` **type-aware** rules (`recommendedTypeChecked` with `projectService`), which catch floating promises and unsafe `any`. Also `consistent-type-imports` (separate `import type` lines) and `react-hooks` for `apps/web`.
+  - **Prettier 3** (`.prettierrc.json`: `printWidth` 110), run on its own, with `eslint-config-prettier` turning off conflicting lint rules. We don't use `eslint-plugin-prettier`.
+  - **Vitest 5**: projects are declared in the root `vitest.config.ts`. `data:unit` runs `*.test.ts` with no database. `data:integration` runs `*.int.test.ts` against the test Postgres (port 5435). Its `globalSetup` clears and migrates that database once per run, refuses any other host or port, and runs files one at a time. Tests build their own fixtures (`packages/data/test/fixtures.ts`), not seed data. No `apps/web` test project yet.
+- ❓ Turborepo is still undecided.
 
 ### Web framework: React Router v8
 
@@ -166,7 +170,7 @@ The shared space care data belongs to: the caretakers looking after one care rec
 - 🟡 **Printing:** print-specific CSS first, `@react-pdf/renderer` if we need real PDFs.
 - 🟡 **AI:** the Vercel AI SDK with Claude, run as server or worker jobs.
 - 🟡 **Calendar:** an iCal feed endpoint and Google Calendar OAuth sync.
-- 🟡 **Testing:** Vitest and Playwright.
+- 🟡 **Testing:** Playwright for end-to-end tests (Vitest is ✅, see _Language and repository_).
 - 🟡 **Mobile:** Capacitor, with `webDir` set to `apps/web/build/native/client`.
 
 ## Current layout
@@ -175,6 +179,8 @@ The shared space care data belongs to: the caretakers looking after one care rec
 .nvmrc                 Node 24.22.3
 docker-compose.yml     dev Postgres (port 5434); docker-compose.test.yml → test (5435)
 package.json           root scripts; packageManager pnpm@12.21.0
+eslint.config.js       ESLint flat config (type-aware); .prettierrc.json, .prettierignore
+vitest.config.ts       Vitest projects (data:unit, data:integration)
 pnpm-workspace.yaml    apps/*, packages/*; allowBuilds
 tsconfig.base.json     strict shared compiler settings
 apps/web/              @caretook/web: React Router 8, Vite 8
@@ -189,6 +195,7 @@ apps/web/app/.server/data.ts  re-exports @caretook/data (server-only door)
 packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
   drizzle.config.ts    drizzle-kit config
   scripts/             tsx CLI runners: migrate, seed, clear
+  test/                integration test env guard, globalSetup, setup, fixtures
   .env.example, .env.test
   src/constants/       roles, SYSTEM_USER, page sizes
   src/errors/          typescript-errors codes + helpers
@@ -218,11 +225,16 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
 | `pnpm datastore:reset`                                                       | clear, migrate and seed                                                                                                                                                                              |
 | `pnpm datastore:studio`                                                      | Drizzle Studio                                                                                                                                                                                       |
 | `pnpm datastore:start:test` / `datastore:reset:test` / `datastore:stop:test` | the test database on port 5435 (migrated, not seeded)                                                                                                                                                |
+| `pnpm lint` / `lint:fix`                                                     | ESLint over the whole repo                                                                                                                                                                           |
+| `pnpm format` / `format:check`                                               | Prettier write / check                                                                                                                                                                               |
+| `pnpm test`                                                                  | every Vitest project. Integration tests need `pnpm datastore:up:test` first                                                                                                                          |
+| `pnpm test:unit` / `test:integration` / `test:watch`                         | a single project, or watch mode                                                                                                                                                                      |
+| `pnpm check`                                                                 | typecheck, lint, format check and tests: run before committing                                                                                                                                       |
 | `pnpm typecheck`                                                             | runs tsc on every package. For apps/web it runs typegen and tsc on the **web** target only. The native typegen pass overwrites the web types, and the web target already includes every shared file. |
 
 ## Likely next steps
 
-1. Pick a test setup (🟡 Vitest) and turn the care group permission scenarios into integration tests: every role against every table, plus the owner rules.
+1. Make the integration tests independent of each other. `careGroup.int.test.ts` shares one group across `describe` blocks, so a single failure cascades into others. Then widen coverage to every role against every table.
 2. Choose the hosted database (it must be in the same region as the Vercel functions, with pooling) and decide how production migrations run.
 3. `packages/api` (oRPC) calling the services, mounted in a React Router resource route.
 4. Auth (Better Auth, against the existing `user` table), then invite accept and consent, then a test PowerSync round trip (sync rules by group membership).

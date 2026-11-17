@@ -11,6 +11,15 @@
     "build": "pnpm -r build",
     "build:native": "pnpm --filter @caretook/web build:native",
     "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --project data:unit",
+    "test:integration": "vitest run --project data:integration",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
     "datastore:start": "pnpm datastore:up && pnpm datastore:migrate && pnpm datastore:seed",
     "datastore:up": "docker compose up -d --wait",
     "datastore:stop": "docker compose down",
@@ -25,5 +34,17 @@
     "datastore:up:test": "docker compose -p caretook-test -f docker-compose.test.yml up -d --wait",
     "datastore:stop:test": "docker compose -p caretook-test -f docker-compose.test.yml down",
     "datastore:reset:test": "NODE_ENV=test pnpm datastore:clear && NODE_ENV=test pnpm datastore:migrate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.0"
   }
 }

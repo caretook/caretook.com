@@ -1,0 +1,6 @@
+build/
+coverage/
+.react-router/
+.postgres/
+pnpm-lock.yaml
+packages/data/src/db/migrations/

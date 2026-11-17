@@ -1,10 +1,5 @@
 import type { DbSchemaName, Tx } from "../db";
-import type {
-  QueryCommonArgs,
-  QueryCreateArgs,
-  QuerySelectArgs,
-  QueryUpdateArgs,
-} from "../models";
+import type { QueryCommonArgs, QueryCreateArgs, QuerySelectArgs, QueryUpdateArgs } from "../models";
 import type { AuthUser } from "../permissions";
 
 /**

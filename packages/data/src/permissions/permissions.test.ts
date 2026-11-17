@@ -1,0 +1,138 @@
+import type { AuthUser } from "./types";
+
+import { describe, expect, it } from "vitest";
+import { SYSTEM_USER } from "../constants";
+import { isError } from "../errors";
+import { getPermissionScope, getUnauthorizedFields, hasPermission } from "./permissions";
+
+const member: AuthUser = { id: "u-member", roleNames: ["member"] };
+const staff: AuthUser = { id: "u-staff", roleNames: ["admin"] };
+
+describe("getPermissionScope", () => {
+  it("gives the system unrestricted access everywhere", () => {
+    expect(getPermissionScope("careRecipientSchema", "update", SYSTEM_USER)).toEqual({ type: "all" });
+  });
+
+  it("rejects unauthenticated callers with a 401 code", () => {
+    const scope = getPermissionScope("userSchema", "read", null);
+    expect(isError(scope) && scope.code).toBe("permissions:unauthenticated");
+  });
+
+  it("scopes a member's user reads to themselves OR co-members", () => {
+    expect(getPermissionScope("userSchema", "read", member)).toEqual({
+      type: "rules",
+      rules: [
+        { type: "owned", field: "id", userId: "u-member" },
+        {
+          type: "groupUser",
+          field: "id",
+          userId: "u-member",
+          groupRoles: ["owner", "admin", "caretaker", "viewer"],
+        },
+      ],
+    });
+  });
+
+  it("gives staff all users, but only membership-based access to care data", () => {
+    expect(getPermissionScope("userSchema", "list", staff)).toEqual({ type: "all" });
+    expect(getPermissionScope("careRecipientSchema", "read", staff)).toEqual({
+      type: "rules",
+      rules: [
+        {
+          type: "group",
+          field: "groupId",
+          userId: "u-staff",
+          groupRoles: ["owner", "admin", "caretaker", "viewer"],
+        },
+      ],
+    });
+  });
+
+  it("limits recipient updates to writers and group deletes to owners", () => {
+    const update = getPermissionScope("careRecipientSchema", "update", member);
+    const remove = getPermissionScope("careGroupSchema", "delete", member);
+    expect(!isError(update) && update.type === "rules" && update.rules[0]).toMatchObject({
+      groupRoles: ["owner", "admin", "caretaker"],
+    });
+    expect(!isError(remove) && remove.type === "rules" && remove.rules[0]).toMatchObject({
+      field: "id",
+      groupRoles: ["owner"],
+    });
+  });
+
+  it("lets members delete their own membership (leave) or manage others'", () => {
+    const scope = getPermissionScope("careGroupMemberSchema", "delete", member);
+    expect(!isError(scope) && scope.type === "rules" && scope.rules.map((r) => r.type)).toEqual([
+      "owned",
+      "group",
+    ]);
+  });
+
+  it("lets any signed-in user create a group", () => {
+    expect(getPermissionScope("careGroupSchema", "create", member)).toEqual({ type: "all" });
+    expect(isError(getPermissionScope("careGroupSchema", "create", null))).toBe(true);
+  });
+});
+
+describe("getUnauthorizedFields", () => {
+  it("blocks members from escalating their global role", () => {
+    expect(
+      getUnauthorizedFields({
+        schemaName: "userSchema",
+        permission: "update",
+        authUser: member,
+        data: { name: "New", role: "admin" },
+      }),
+    ).toEqual(["role"]);
+  });
+
+  it("ignores restricted fields that are undefined", () => {
+    expect(
+      getUnauthorizedFields({
+        schemaName: "userSchema",
+        permission: "update",
+        authUser: member,
+        data: { name: "New", role: undefined },
+      }),
+    ).toEqual([]);
+  });
+
+  it("keeps membership group/user ids system-only on update", () => {
+    expect(
+      getUnauthorizedFields({
+        schemaName: "careGroupMemberSchema",
+        permission: "update",
+        authUser: staff,
+        data: { role: "viewer", groupId: "g2", userId: "u2" },
+      }),
+    ).toEqual(["groupId", "userId"]);
+  });
+});
+
+describe("hasPermission", () => {
+  const withGroups: AuthUser = { ...member, groupRoles: { g1: "caretaker", g2: "viewer" } };
+
+  it("decides group rules from authUser.groupRoles", () => {
+    const can = (groupId: string) =>
+      hasPermission({
+        authUser: withGroups,
+        schemaName: "careRecipientSchema",
+        permission: "update",
+        target: { groupId },
+      });
+    expect(can("g1")).toBe(true);
+    expect(can("g2")).toBe(false);
+    expect(can("g3")).toBe(false);
+  });
+
+  it("decides owned rules from the target", () => {
+    const args = { authUser: member, schemaName: "userSchema", permission: "update" } as const;
+    expect(hasPermission({ ...args, target: { id: "u-member" } })).toBe(true);
+    expect(hasPermission({ ...args, target: { id: "someone-else" } })).toBe(false);
+  });
+
+  it("is false without a target unless access is unrestricted", () => {
+    expect(hasPermission({ authUser: member, schemaName: "userSchema", permission: "read" })).toBe(false);
+    expect(hasPermission({ authUser: staff, schemaName: "userSchema", permission: "read" })).toBe(true);
+  });
+});
