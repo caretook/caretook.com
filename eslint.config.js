@@ -4,6 +4,7 @@ import prettier from "eslint-config-prettier";
 import reactHooks from "eslint-plugin-react-hooks";
 import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
@@ -45,11 +46,20 @@ export default defineConfig(
 
   {
     files: ["apps/web/**/*.{ts,tsx}"],
-    extends: [reactHooks.configs.flat.recommended],
+    // jsx-a11y 6.10 declares ESLint ≤9 as its peer; it runs on 10 (checked by `pnpm lint`).
+    extends: [reactHooks.configs.flat.recommended, jsxA11y.flatConfigs.recommended],
     languageOptions: { globals: globals.browser },
     rules: {
       // React Router's idiom: `throw redirect(...)` (a Response) from loaders and actions.
-      "@typescript-eslint/only-throw-error": ["error", { allow: [{ from: "lib", name: "Response" }] }],
+      "@typescript-eslint/only-throw-error": [
+        "error",
+        {
+          allow: [
+            { from: "lib", name: "Response" },
+            { from: "package", package: "react-router", name: "DataWithResponseInit" },
+          ],
+        },
+      ],
     },
   },
 

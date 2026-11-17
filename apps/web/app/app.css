@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* daisyUI themes follow the device: light by default, dark when preferred. */
+@plugin "daisyui" {
+  themes:
+    light --default,
+    dark --prefersdark;
+}
+
+/* React Aria marks state with data attributes; Tailwind v4 styles them as
+   data-[focused]:…, data-[selected]:… without a plugin. */
+
+/* Keyboard focus is always visible (WCAG 2.4.7). */
+:where(button, a, input, textarea, select, [role="menuitem"], [role="spinbutton"]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

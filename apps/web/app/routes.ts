@@ -4,7 +4,12 @@ import { isNative } from "../build-target";
 
 // Shared app screens: client-only data (local DB + oRPC). Present in both targets.
 const appRoutes = [
-  ...prefix("app", [layout("routes/app/layout.tsx", [index("routes/app/home.tsx")])]),
+  ...prefix("app", [
+    layout("routes/app/layout.tsx", [
+      index("routes/app/home.tsx"),
+      route("groups/:groupId/timeline", "routes/app/timeline.tsx"),
+    ]),
+  ]),
   route("sign-in", "routes/sign-in.tsx"),
   route("sign-out", "routes/sign-out.tsx"),
 ];

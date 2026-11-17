@@ -162,7 +162,7 @@ The shared space care data belongs to: the caretakers looking after one care rec
 - ❓ How a membership removal propagates to devices that have already synced the group's data offline (PowerSync sync rules plus local data wipe).
 - 🟡 Co-members can read each other's full user row in the data layer, including `role` and `emailVerified`. The API exposes only public profiles (`careGroup.members`: name, image, role), so keep it that way for any new procedure.
 
-### Shared timeline (iteration 1, in progress)
+### Shared timeline (iteration 1, done)
 
 The first full vertical slice: a seeded user signs in, picks one of their care groups, then can add, edit, delete and view timeline entries on the web target. It's online only (oRPC from `clientLoader`/`clientAction`). PowerSync comes next, so the API reuses the same services its upload endpoint will call.
 
@@ -181,11 +181,21 @@ The first full vertical slice: a seeded user signs in, picks one of their care g
   - The Zod schemas live in the schema file and are client-safe: `timelineEntryContentZSchema` (a union on `kind`), `timelineEntryCreateZSchema`, and `timelineEntryUpdateZSchema` (strict, content only). `update` validates the **merged** row, so a note can't lose its body.
   - Model: `get`/`getById`/`listPage` hide soft-deleted rows unless `includeDeleted` is set; `update` refuses deleted rows; `remove` is the soft delete; `purge` (hard delete) is system only. `listPage` returns `{ data, nextCursor }` with an opaque base64url cursor. There's no unvalidated `upsert`: the PowerSync upload endpoint will need one that goes through the service's validation.
   - `occurredAt` is read back as Postgres text (`2026-11-17 10:00:00.000+00`), not ISO. Normalise it at the API layer if clients need ISO.
-- 🟡 Phases:
+- ✅ Phases:
   1. ✅ Timeline data layer (schema, permissions, model, service, seeds, independent integration tests).
   2. ✅ Auth (`packages/auth`, Better Auth 1.7.25, pinned exactly). See _Auth_ below.
   3. ✅ API (`packages/api`, oRPC 1.16.2). See _API: oRPC_.
-  4. Screens: sign in, a plain list of my groups (skipped when there's only one), and `/app/groups/:groupId/timeline`.
+  4. ✅ Screens (all shared and client-only):
+     - `/sign-in`.
+     - `/app`: your groups, which redirects straight to the timeline when there's only one. A user with no group sees an empty state.
+     - `/app/groups/:groupId/timeline`:
+       - the recipient's name, then entries grouped by the viewer's calendar day, with "Show older entries" (keyset cursor);
+       - times in the viewer's zone, plus the entry's own zone when it differs ("11:27 AM in Los Angeles");
+       - authors' names from `careGroup.members`.
+     - Writers get the add form (note, symptom or event; React Aria `DateField` for "When"), and a ⋯ menu per entry (React Aria `Menu`) with Edit (inline form) and Delete (native `<dialog>` confirm). Viewers get the timeline only.
+     - Mutations go through the route's `clientAction` (`intent` = create, update or remove), then React Router revalidates. Field errors map API issue paths to plain-language messages.
+     - `/app` has its own `ErrorBoundary` (Not found, or Something went wrong). It keeps the frame, and avoids React's "script tag" warning that the root boundary triggers when it replaces the whole page in the browser.
+     - Verified in headless Chrome at phone width (19 checks: add, validate, edit, delete, viewer read-only, someone else's group is a 404, staff empty state, no console errors) and by screenshots.
 - Out of scope: sign-up and create-group UI, invite accept and consent, email verification and reset, PowerSync, appointments, attachments, Playwright, deploy.
 - ✅ Sign-in: **email + password** in iteration 1, so no email provider is needed yet. Better Auth's `emailAndPassword` hashes passwords into `account`. Seeds create password accounts for the `@example.com` dev users (a shared dev password from `.env`, hashed with Better Auth's own hasher). The seeds also hold the only care group (Dev Family), so there's no sign-up or create-group UI in this iteration; both come with Resend and invites.
 - 🟡 **Resend** is coming in a near-term follow-up iteration. It brings email verification, password reset, invite emails, and possibly magic link or email OTP. Keep that path cheap:
@@ -299,10 +309,10 @@ The design starts from the user's cn-time-by-project `app/.server/notifications`
 
 - ✅ **Auth:** Better Auth, installed (see _Auth_). Email + password first; Resend follows soon.
 - 🟡 **Email:** Resend, in a near-term follow-up iteration (see _Notifications_).
-- ✅ **UI:** Tailwind v4 (`tailwindcss` + `@tailwindcss/vite`), **daisyUI 5** for styling, and **React Aria Components** for accessible behavior. Mobile-first. Not installed yet; it arrives with the timeline slice. We considered shadcn/ui (more dependencies and copied code) and Preline (its vanilla-JS plugins run outside React and clash with re-renders). Three layers:
+- ✅ **UI:** Tailwind v4 (`tailwindcss` + `@tailwindcss/vite`), **daisyUI 5** for styling, and **React Aria Components** for accessible behavior. Mobile-first. Installed: `tailwindcss`/`@tailwindcss/vite` 4.3.5, `daisyui` 5.8.1 (dev dependencies), `react-aria-components` 1.22.1 and `@internationalized/date` 3.12.4. We considered shadcn/ui (more dependencies and copied code) and Preline (its vanilla-JS plugins run outside React and clash with re-renders). Three layers:
   1. Native elements styled with daisyUI by default: buttons, inputs, cards, alerts, `<details>`, and `<dialog>` opened with `showModal()` for simple confirms. No JS.
   2. React Aria Components only where HTML falls short: DatePicker/TimeField (time-zone aware through `@internationalized/date`, which matches `occurred_at` + `time_zone`), ComboBox, Menu, Select, Tabs and Toast. Style them with daisyUI classes plus Tailwind `data-[focused]:`-style variants on RAC's state attributes.
-  3. `eslint-plugin-jsx-a11y` for apps/web (check it supports ESLint 10 flat config before adding it), and `@axe-core/playwright` once Playwright lands.
+  3. ✅ `eslint-plugin-jsx-a11y` 6.10.2 (`flatConfigs.recommended`) for apps/web. Its declared peer range stops at ESLint 9, but it runs on 10: a test file with known violations was caught. Avoid the unofficial `eslint-plugin-jsx-a11y-x` fork unless the user agrees. `@axe-core/playwright` comes once Playwright lands.
 - Wrap repeated daisyUI + RAC pairings in small components in `apps/web/app/components/` (e.g. `<Field>`, `<DateTimeField>`, `<EntryActions>`). Expect small CSS overrides where daisyUI's `modal`/`dropdown` classes meet RAC overlays.
 - Theming uses daisyUI themes (`data-theme`), which also gives us a later large-text or high-contrast option.
 - 🟡 **Printing:** print-specific CSS first, `@react-pdf/renderer` if we need real PDFs.
@@ -330,7 +340,10 @@ apps/web/              @caretook/web: React Router 8, Vite 8
   app/routes/marketing/    web-only pages
   app/routes/native-index.tsx  native-only "/" → "/app" redirect
 apps/web/app/.server/data.ts  re-exports @caretook/data (server-only door); auth.ts → @caretook/auth
-  app/lib/             auth-client.ts (browser auth), redirect.ts (safeRedirect), form.ts
+  app/app.css          Tailwind + daisyUI (light/dark themes follow the device)
+  app/components/      EntryForm, TimelineEntryCard, EntryActions (RAC Menu), DateTimeField (RAC DateField), ConfirmDialog
+  app/lib/             auth-client.ts, rpc.ts (typed client + output types), api.ts (load/toActionResult),
+                       entryForm.ts, format.ts, redirect.ts (safeRedirect), form.ts
   app/routes/api/auth.ts  Better Auth handler at /api/auth/* (web only)
   app/routes/rpc.ts    oRPC at /rpc/* (web only); app/lib/rpc.ts is the typed client
   app/routes/sign-in.tsx, sign-out.tsx  shared, client-only
@@ -381,4 +394,4 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
 
 1. Make the integration tests independent of each other, as `timelineEntry.int.test.ts` already is (a `setup()` per test). `careGroup.int.test.ts` shares one group across `describe` blocks, so a single failure cascades into others. Then widen coverage to every role against every table.
 2. Choose the hosted database (it must be in the same region as the Vercel functions, with pooling) and decide how production migrations run.
-3. Finish the timeline slice (Phase 4 screens), then the Resend iteration (invites, accept and consent), then a test PowerSync round trip (sync rules by group membership).
+3. The Resend iteration (sign-up, invites with accept and consent, email verification and reset), then a test PowerSync round trip (sync rules by group membership), then Capacitor (bearer token storage, `VITE_API_ORIGIN`).

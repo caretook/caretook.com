@@ -32,25 +32,49 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
 export default function SignIn({ loaderData, actionData }: Route.ComponentProps) {
   const submitting = useNavigation().state === "submitting";
   return (
-    <main>
-      <h1>Sign in</h1>
-      <Form method="post">
-        <input type="hidden" name="redirectTo" value={loaderData.redirectTo} />
-        <p>
-          <label>
-            Email <input type="email" name="email" autoComplete="email" required />
-          </label>
-        </p>
-        <p>
-          <label>
-            Password <input type="password" name="password" autoComplete="current-password" required />
-          </label>
-        </p>
-        {actionData?.error && <p role="alert">{actionData.error}</p>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Signing in…" : "Sign in"}
-        </button>
-      </Form>
+    <main className="flex min-h-dvh items-center justify-center px-4">
+      <div className="card bg-base-100 w-full max-w-sm shadow-md">
+        <div className="card-body">
+          <h1 className="card-title text-2xl">Sign in to Caretook</h1>
+          <Form method="post" className="space-y-1">
+            <input type="hidden" name="redirectTo" value={loaderData.redirectTo} />
+            <fieldset className="fieldset">
+              <label className="fieldset-legend" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                className="input w-full"
+                type="email"
+                name="email"
+                autoComplete="email"
+                required
+              />
+            </fieldset>
+            <fieldset className="fieldset">
+              <label className="fieldset-legend" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                className="input w-full"
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                required
+              />
+            </fieldset>
+            {actionData?.error && (
+              <p role="alert" className="text-error text-sm">
+                {actionData.error}
+              </p>
+            )}
+            <button type="submit" className="btn btn-primary btn-block mt-2" disabled={submitting}>
+              {submitting ? "Signing in…" : "Sign in"}
+            </button>
+          </Form>
+        </div>
+      </div>
     </main>
   );
 }

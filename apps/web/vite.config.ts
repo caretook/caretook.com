@@ -1,4 +1,5 @@
 import { reactRouter } from "@react-router/dev/vite";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
 // Server-side env for dev and builds: apps/web/.env (auth), then
@@ -13,6 +14,6 @@ for (const file of [".env", "../../packages/data/.env"]) {
 }
 
 export default defineConfig({
-  plugins: [reactRouter()],
+  plugins: [tailwindcss(), reactRouter()],
   resolve: { tsconfigPaths: true },
 });

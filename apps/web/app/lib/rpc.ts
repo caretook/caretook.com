@@ -1,5 +1,5 @@
 import type { Router } from "@caretook/api";
-import type { RouterClient } from "@orpc/server";
+import type { InferRouterOutputs, RouterClient } from "@orpc/server";
 
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -16,3 +16,8 @@ const link = new RPCLink({
 });
 
 export const rpc: RouterClient<Router> = createORPCClient(link);
+
+export type ApiOutputs = InferRouterOutputs<Router>;
+export type TimelineEntry = ApiOutputs["timeline"]["list"]["data"][number];
+export type GroupMember = ApiOutputs["careGroup"]["members"][number];
+export type MyGroup = ApiOutputs["careGroup"]["listMine"][number];
