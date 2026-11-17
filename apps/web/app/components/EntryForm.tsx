@@ -1,13 +1,15 @@
-import type { TimelineEntryKind } from "@caretook/data/schema";
+import type { TimelineEntryKind, UnitChoices, VitalType } from "@caretook/data/schema";
 import type { ActionResult, FieldIssue } from "~/lib/api";
 import type { TimelineEntry } from "~/lib/rpc";
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { TIMELINE_LIMITS } from "@caretook/data/schema";
+import { isKnownReading, isSymptomDetails, isVitalDetails, TIMELINE_LIMITS } from "@caretook/data/schema";
 import { DateTimeField } from "./DateTimeField";
+import { VitalReadingsFields } from "./VitalReadingsFields";
+import { VitalTypeMenu } from "./VitalTypeMenu";
 
-const KINDS: { value: TimelineEntryKind; label: string }[] = [
+const KINDS: { value: Exclude<TimelineEntryKind, "vital">; label: string }[] = [
   { value: "note", label: "Note" },
   { value: "symptom", label: "Symptom" },
   { value: "event", label: "Event" },
@@ -30,16 +32,19 @@ const issueFor = (issues: FieldIssue[], ...paths: string[]) => {
 
 /**
  * Add or edit a timeline entry. Each kind asks for what it requires: a note
- * its text, a symptom its name, an event its title. Posts to the timeline
- * route's clientAction.
+ * its text, a symptom its name, an event its title, vitals their readings
+ * (picked from the Vitals menu, shown in the user's `units`). Posts to the
+ * timeline route's clientAction.
  */
 export function EntryForm({
   entry,
+  units,
   onDone,
   onCancel,
 }: {
   /** Editing this entry; omit to add a new one. */
   entry?: TimelineEntry;
+  units: UnitChoices;
   onDone?: () => void;
   onCancel?: () => void;
 }) {
@@ -47,8 +52,19 @@ export function EntryForm({
   const formRef = useRef<HTMLFormElement>(null);
   const id = useId();
   const [kind, setKind] = useState<TimelineEntryKind>(entry?.kind ?? "note");
+  const storedReadings = isVitalDetails(entry?.details) ? entry.details.readings.filter(isKnownReading) : [];
+  const [vitalTypes, setVitalTypes] = useState<VitalType[]>(storedReadings.map((r) => r.type));
+  // Bumped after each new entry is saved, so the reading fields remount
+  // empty (and drop their warnings). Adjusted during render, not in an effect.
+  const [resetKey, setResetKey] = useState(0);
+  const [savedResult, setSavedResult] = useState<ActionResult | undefined>(undefined);
+  const symptom = isSymptomDetails(entry?.details) ? entry.details : undefined;
 
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
+  if (!entry && result?.ok && result !== savedResult) {
+    setSavedResult(result);
+    setResetKey((k) => k + 1);
+  }
   const issues = result && !result.ok ? result.issues : [];
 
   // After a successful save: clear the add form for the next entry, or
@@ -69,6 +85,7 @@ export function EntryForm({
   return (
     <fetcher.Form method="post" ref={formRef} className="space-y-1" noValidate>
       <input type="hidden" name="intent" value={entry ? "update" : "create"} />
+      <input type="hidden" name="units" value={JSON.stringify(units)} />
       {entry && <input type="hidden" name="id" value={entry.id} />}
 
       {entry ? (
@@ -89,8 +106,29 @@ export function EntryForm({
                 className="join-item btn btn-sm"
               />
             ))}
+            <VitalTypeMenu
+              className={`join-item btn btn-sm ${kind === "vital" ? "btn-neutral" : ""}`}
+              onSelect={(type) => {
+                setKind("vital");
+                setVitalTypes([type]);
+              }}
+            >
+              Vitals <span aria-hidden="true">▾</span>
+            </VitalTypeMenu>
           </div>
+          {kind === "vital" && <input type="hidden" name="kind" value="vital" />}
         </fieldset>
+      )}
+
+      {kind === "vital" && (
+        <VitalReadingsFields
+          key={resetKey}
+          types={vitalTypes}
+          onChange={setVitalTypes}
+          initial={storedReadings}
+          units={units}
+          issues={issues}
+        />
       )}
 
       {kind === "symptom" && (
@@ -104,7 +142,7 @@ export function EntryForm({
               name="symptomName"
               className="input w-full"
               maxLength={TIMELINE_LIMITS.symptomName}
-              defaultValue={entry?.details?.name ?? ""}
+              defaultValue={symptom?.name ?? ""}
               placeholder="e.g. Knee pain"
               aria-invalid={!!nameIssue}
               aria-describedby={nameIssue ? `${id}-name-error` : undefined}
@@ -123,7 +161,7 @@ export function EntryForm({
               id={`${id}-severity`}
               name="severity"
               className="select"
-              defaultValue={entry?.details?.severity ?? ""}
+              defaultValue={symptom?.severity ?? ""}
             >
               <option value="">Not rated</option>
               {Array.from({ length: TIMELINE_LIMITS.severityMax + 1 }, (_, n) => (
@@ -136,7 +174,7 @@ export function EntryForm({
         </div>
       )}
 
-      {kind !== "symptom" && (
+      {(kind === "note" || kind === "event") && (
         <fieldset className="fieldset">
           <label className="fieldset-legend" htmlFor={`${id}-title`}>
             {kind === "event" ? "Title" : "Title (optional)"}

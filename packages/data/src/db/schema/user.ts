@@ -1,8 +1,9 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
+import type { UserPreferences } from "./userPreferences";
 
 import { sql } from "drizzle-orm";
-import { boolean, check, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, check, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import { USER_ROLE_NAMES } from "../../constants/roles";
@@ -19,6 +20,9 @@ export const userSchema = pgTable(
     name: text("name"),
     image: text("image"),
     role: text("role", { enum: USER_ROLE_NAMES }).notNull().default("member"),
+    // Display settings (units…), validated by userPreferencesZSchema. Read
+    // through its resolvers, which fill in defaults.
+    preferences: jsonb("preferences").$type<UserPreferences>().notNull().default({}),
     ...timestamps,
     ...audits,
   },

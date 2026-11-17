@@ -8,6 +8,7 @@ const appRoutes = [
     layout("routes/app/layout.tsx", [
       index("routes/app/home.tsx"),
       route("groups/:groupId/timeline", "routes/app/timeline.tsx"),
+      route("settings", "routes/app/settings.tsx"),
     ]),
   ]),
   route("sign-in", "routes/sign-in.tsx"),

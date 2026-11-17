@@ -24,6 +24,9 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-base-content/70 hidden text-sm sm:inline">{user.name ?? user.email}</span>
+          <Link to="/app/settings" className="btn btn-ghost btn-sm">
+            Settings
+          </Link>
           <Form method="post" action="/sign-out">
             <button type="submit" className="btn btn-ghost btn-sm">
               Sign out

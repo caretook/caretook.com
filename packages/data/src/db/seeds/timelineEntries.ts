@@ -86,9 +86,71 @@ const ENTRIES: SeedEntry[] = [
   },
   { hoursAgo: 170, author: "member@example.com", kind: "event", title: "Eye exam" },
   { hoursAgo: 190, author: "caretaker@example.com", kind: "note", body: "Started the new puzzle." },
+  // Vitals (stored in canonical units: °C, kg, mg/dL, mL).
+  {
+    hoursAgo: 2,
+    author: "caretaker@example.com",
+    kind: "vital",
+    details: {
+      readings: [
+        { type: "bloodPressure", systolic: 132, diastolic: 84 },
+        { type: "heartRate", value: 74 },
+        { type: "spo2", value: 96 },
+      ],
+    },
+  },
+  {
+    hoursAgo: 8,
+    author: "caretaker@example.com",
+    kind: "vital",
+    details: {
+      readings: [{ type: "temperature", value: 37.4 }],
+    },
+    body: "Took it after the walk.",
+  },
+  {
+    hoursAgo: 9,
+    author: "caretaker@example.com",
+    kind: "vital",
+    details: {
+      readings: [
+        { type: "bowelMovement", bristol: 4 },
+        { type: "urineOutput", value: 300 },
+      ],
+    },
+  },
+  {
+    hoursAgo: 28,
+    author: "member@example.com",
+    kind: "vital",
+    details: {
+      readings: [
+        { type: "weight", value: 61.7 },
+        { type: "bloodGlucose", value: 112 },
+      ],
+    },
+  },
+  {
+    hoursAgo: 32,
+    author: "member@example.com",
+    kind: "vital",
+    details: {
+      readings: [
+        { type: "respiratoryRate", value: 18 },
+        { type: "heartRate", value: 81 },
+      ],
+    },
+  },
+  {
+    hoursAgo: 19,
+    author: "member@example.com",
+    kind: "vital",
+    details: { readings: [{ type: "sleep", value: 7.5 }] },
+  },
 ];
 
-// Fixed ids keep the seed idempotent: ...c1001, ...c1002, …
+// Fixed ids keep the seed idempotent: ...c1001, ...c1002, … They follow
+// list order, so add new entries at the end.
 const entryId = (index: number) => `0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c${String(1001 + index).padStart(4, "0")}`;
 
 export const seed = async () => {

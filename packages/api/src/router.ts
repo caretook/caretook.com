@@ -7,6 +7,8 @@ import {
   timelineEntryCreateZSchema,
   timelineEntryService,
   timelineEntryUpdateZSchema,
+  resolveUnits,
+  userPreferencesZSchema,
   userService,
 } from "@caretook/data";
 import { toTimelineEntry } from "./dto";
@@ -33,7 +35,24 @@ const me = {
       name: user.name,
       image: user.image,
       groupRoles: context.authUser.groupRoles ?? {},
+      preferences: user.preferences,
+      /** Display units with defaults filled in: what screens should use. */
+      units: resolveUnits(user.preferences),
     };
+  }),
+
+  /** Change your own settings. Fields left out keep their current value. */
+  updatePreferences: authedProcedure.input(userPreferencesZSchema).handler(async ({ context, input }) => {
+    const self = { id: { type: "eq" as const, value: context.authUser.id } };
+    const user = unwrap(await userService.getById(context, context.authUser.id));
+    if (!user) throw new ORPCError("UNAUTHORIZED");
+    const preferences = {
+      ...user.preferences,
+      ...input,
+      units: { ...user.preferences.units, ...input.units },
+    };
+    unwrap(await userService.update(context, { filter: self, data: { preferences } }));
+    return { preferences, units: resolveUnits(preferences) };
   }),
 };
 

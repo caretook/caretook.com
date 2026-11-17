@@ -1,5 +1,6 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
+import type { VitalDetails } from "./vitals";
 
 import { foreignKey, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createSelectSchema } from "drizzle-zod";
@@ -7,18 +8,25 @@ import { z } from "zod";
 import { careGroupSchema } from "./careGroup";
 import { careRecipientSchema } from "./careRecipient";
 import { audits, enumCheck, id, timestamps } from "./columns";
+import { vitalDetailsZSchema } from "./vitals";
 
-export const TIMELINE_ENTRY_KINDS = ["note", "symptom", "event"] as const;
+export const TIMELINE_ENTRY_KINDS = ["note", "symptom", "event", "vital"] as const;
 export type TimelineEntryKind = (typeof TIMELINE_ENTRY_KINDS)[number];
 
-/** Kind-specific fields. Only symptoms have any so far. */
+/** Kind-specific fields: a symptom's name and severity, a vital's readings. */
 export type SymptomDetails = { name: string; severity?: number | null };
-export type TimelineEntryDetails = SymptomDetails;
+export type TimelineEntryDetails = SymptomDetails | VitalDetails;
+
+export const isSymptomDetails = (d: TimelineEntryDetails | null | undefined): d is SymptomDetails =>
+  !!d && "name" in d;
+export const isVitalDetails = (d: TimelineEntryDetails | null | undefined): d is VitalDetails =>
+  !!d && "readings" in d;
 
 const timestampColumn = (name: string) =>
   timestamp(name, { precision: 3, mode: "string", withTimezone: true });
 
-// One entry on a care group's shared timeline: a note, a symptom or an event.
+// One entry on a care group's shared timeline: a note, a symptom, an event,
+// or vitals (one sitting's readings; see vitals.ts).
 //
 // Shaped for PowerSync: `group_id` sits on the row (sync rules filter by
 // column, not by join), ids are client-generated, and deletes are soft
@@ -106,7 +114,7 @@ const noDetails = z.null().optional();
 
 /**
  * The content of an entry, by kind: a note needs a body, an event a title,
- * a symptom a name. Used on create, and on update against the merged row.
+ * a symptom a name, vitals at least one reading. Used on create, and on update against the merged row.
  */
 export const timelineEntryContentZSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -122,6 +130,7 @@ export const timelineEntryContentZSchema = z.discriminatedUnion("kind", [
     title: requiredText(TIMELINE_LIMITS.title),
     details: noDetails,
   }),
+  z.object({ ...entryFields, kind: z.literal("vital"), details: vitalDetailsZSchema }),
 ]);
 export type TimelineEntryContent = z.infer<typeof timelineEntryContentZSchema>;
 
@@ -138,7 +147,8 @@ export const timelineEntryUpdateZSchema = z.strictObject({
   body: entryFields.body,
   occurredAt: occurredAt.optional(),
   timeZone: timeZone.optional(),
-  details: symptomDetailsZSchema.nullish(),
+  // Checked against the entry's kind once merged with the stored row.
+  details: z.union([symptomDetailsZSchema, vitalDetailsZSchema]).nullish(),
 });
 export type TimelineEntryUpdateInput = z.input<typeof timelineEntryUpdateZSchema>;
 

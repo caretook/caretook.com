@@ -234,6 +234,54 @@ describe("updating", () => {
   });
 });
 
+describe("vitals", () => {
+  const readings = [
+    { type: "bloodPressure", systolic: 128, diastolic: 82 },
+    { type: "heartRate", value: 71 },
+  ] as const;
+
+  it("stores a sitting's readings, and lets a writer change them", async () => {
+    const { u, addNote } = await setup();
+    const vital = await addNote({ kind: "vital", body: undefined, details: { readings: [...readings] } });
+    expect(vital).toMatchObject({ kind: "vital", details: { readings } });
+
+    const updated = ok(
+      await timelineEntryService.update(u.admin.ctx, vital.id, {
+        details: { readings: [{ type: "temperature", value: 38.1 }] },
+      }),
+    );
+    expect(updated).toMatchObject({ details: { readings: [{ type: "temperature", value: 38.1 }] } });
+  });
+
+  it("rejects impossible values, no readings, or symptom details", async () => {
+    const { u, note, addNote } = await setup();
+    const bad = (details: unknown) =>
+      timelineEntryService.create(
+        u.caretaker.ctx,
+        note({ kind: "vital", body: undefined, details } as never),
+      );
+    expect(codeOf(await bad({ readings: [{ type: "heartRate", value: 999 }] }))).toBe(
+      "timelineEntryService:invalid",
+    );
+    expect(codeOf(await bad({ readings: [] }))).toBe("timelineEntryService:invalid");
+    expect(codeOf(await bad({ name: "Pain" }))).toBe("timelineEntryService:invalid");
+
+    const vital = await addNote({ kind: "vital", body: undefined, details: { readings: [...readings] } });
+    expect(
+      codeOf(await timelineEntryService.update(u.caretaker.ctx, vital.id, { details: { name: "Pain" } })),
+    ).toBe("timelineEntryService:invalid");
+    expect(codeOf(await timelineEntryService.update(u.caretaker.ctx, vital.id, { details: null }))).toBe(
+      "timelineEntryService:invalid",
+    );
+  });
+
+  it("is read-only for viewers", async () => {
+    const { u, note } = await setup();
+    const input = note({ kind: "vital", body: undefined, details: { readings: [...readings] } } as never);
+    expect(codeOf(await timelineEntryService.create(u.viewer.ctx, input))).toBe("permissions:unauthorized");
+  });
+});
+
 describe("deleting", () => {
   it("soft-deletes for writers: hidden by default, visible on request", async () => {
     const { u, group, addNote } = await setup();

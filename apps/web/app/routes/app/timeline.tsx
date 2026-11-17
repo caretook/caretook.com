@@ -2,6 +2,7 @@ import type { Route } from "./+types/timeline";
 import type { ActionResult } from "~/lib/api";
 import type { TimelineEntry } from "~/lib/rpc";
 
+import { DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
 import { useState } from "react";
 import { data } from "react-router";
 import { EntryForm } from "~/components/EntryForm";
@@ -23,24 +24,27 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 export async function clientLoader({ request, params }: Route.ClientLoaderArgs) {
   const { groupId } = params;
-  const [groups, page, members] = await Promise.all([
+  const [groups, page, members, me] = await Promise.all([
     load(request, rpc.careGroup.listMine()),
     load(request, rpc.timeline.list({ groupId, limit: PAGE_SIZE })),
     load(request, rpc.careGroup.members({ groupId })),
+    load(request, rpc.me.get()),
   ]);
   const group = groups.find((g) => g.id === groupId);
   if (!group) throw data("Not found", { status: 404 });
-  return { group, page, members };
+  return { group, page, members, units: me.units };
 }
 
 export async function clientAction({ request, params }: Route.ClientActionArgs): Promise<ActionResult> {
   const form = await request.formData();
   const intent = formString(form, "intent");
   const id = formString(form, "id");
+  // The units the form displayed, so vitals convert back the way they were typed.
+  const units = parseUnits(formString(form, "units"));
   try {
     if (intent === "create")
-      await rpc.timeline.create({ groupId: params.groupId, ...entryContentFromForm(form) });
-    else if (intent === "update") await rpc.timeline.update({ id, data: entryUpdateFromForm(form) });
+      await rpc.timeline.create({ groupId: params.groupId, ...entryContentFromForm(form, units) });
+    else if (intent === "update") await rpc.timeline.update({ id, data: entryUpdateFromForm(form, units) });
     else if (intent === "remove") await rpc.timeline.remove({ id });
     else throw new Error(`Unknown intent: ${intent}`);
     return { ok: true };
@@ -48,6 +52,15 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
     return toActionResult(e);
   }
 }
+
+const parseUnits = (json: string) => {
+  try {
+    const parsed = unitChoicesZSchema.safeParse(JSON.parse(json));
+    return parsed.success ? parsed.data : DEFAULT_UNITS;
+  } catch {
+    return DEFAULT_UNITS;
+  }
+};
 
 /** Consecutive entries grouped by the viewer's calendar day. */
 const byDay = (entries: TimelineEntry[]) => {
@@ -62,7 +75,7 @@ const byDay = (entries: TimelineEntry[]) => {
 };
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { group, page, members } = loaderData;
+  const { group, page, members, units } = loaderData;
   const canWrite = !!group.role && WRITERS.includes(group.role);
   const nameOf = (userId: string) => members.find((m) => m.userId === userId)?.name ?? "Former member";
 
@@ -113,7 +126,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
             <h2 id="add-entry" className="card-title text-lg">
               Add to the timeline
             </h2>
-            <EntryForm />
+            <EntryForm units={units} />
           </div>
         </section>
       )}
@@ -138,6 +151,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
                   entry={entry}
                   authorName={nameOf(entry.createdBy)}
                   canWrite={canWrite}
+                  units={units}
                 />
               ))}
             </ol>

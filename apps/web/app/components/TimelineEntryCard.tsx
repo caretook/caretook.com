@@ -1,24 +1,38 @@
+import type { UnitChoices } from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/rpc";
 
 import { useCallback, useState } from "react";
 import { useFetcher } from "react-router";
-import { TIMELINE_LIMITS } from "@caretook/data/schema";
+import {
+  formatReading,
+  isKnownReading,
+  isSymptomDetails,
+  isVitalDetails,
+  TIMELINE_LIMITS,
+} from "@caretook/data/schema";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EntryActions } from "./EntryActions";
 import { EntryForm } from "./EntryForm";
 
-const KIND_LABEL = { note: "Note", symptom: "Symptom", event: "Event" } as const;
-const KIND_BADGE = { note: "badge-ghost", symptom: "badge-warning", event: "badge-info" } as const;
+const KIND_LABEL = { note: "Note", symptom: "Symptom", event: "Event", vital: "Vitals" } as const;
+const KIND_BADGE = {
+  note: "badge-ghost",
+  symptom: "badge-warning",
+  event: "badge-info",
+  vital: "badge-success",
+} as const;
 
 export function TimelineEntryCard({
   entry,
   authorName,
   canWrite,
+  units,
 }: {
   entry: TimelineEntry;
   authorName: string;
   canWrite: boolean;
+  units: UnitChoices;
 }) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -27,14 +41,16 @@ export function TimelineEntryCard({
 
   const removing = remover.state !== "idle";
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
-  const heading = entry.kind === "symptom" ? entry.details?.name : entry.title;
+  const symptom = isSymptomDetails(entry.details) ? entry.details : undefined;
+  const readings = isVitalDetails(entry.details) ? entry.details.readings.filter(isKnownReading) : [];
+  const heading = entry.kind === "symptom" ? symptom?.name : entry.title;
 
   if (editing) {
     return (
       <li className="card bg-base-100 shadow-sm">
         <div className="card-body">
           <h3 className="font-semibold">Edit {KIND_LABEL[entry.kind].toLowerCase()}</h3>
-          <EntryForm entry={entry} onDone={stopEditing} onCancel={stopEditing} />
+          <EntryForm entry={entry} units={units} onDone={stopEditing} onCancel={stopEditing} />
         </div>
       </li>
     );
@@ -57,13 +73,20 @@ export function TimelineEntryCard({
         {heading && (
           <h3 className="font-semibold">
             {heading}
-            {entry.kind === "symptom" && entry.details?.severity != null && (
+            {symptom?.severity != null && (
               <span className="text-base-content/70 font-normal">
                 {" "}
-                · severity {entry.details.severity}/{TIMELINE_LIMITS.severityMax}
+                · severity {symptom.severity}/{TIMELINE_LIMITS.severityMax}
               </span>
             )}
           </h3>
+        )}
+        {readings.length > 0 && (
+          <ul className="flex flex-wrap gap-x-3 gap-y-1 font-semibold tabular-nums">
+            {readings.map((r) => (
+              <li key={r.type}>{formatReading(r, units)}</li>
+            ))}
+          </ul>
         )}
         {entry.body && <p className="whitespace-pre-wrap">{entry.body}</p>}
         <p className="text-base-content/60 text-xs">{authorName}</p>

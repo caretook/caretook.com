@@ -171,7 +171,7 @@ The first full vertical slice: a seeded user signs in, picks one of their care g
   - `occurred_at` (when it happened, as opposed to `created_at`, the upload time) plus the device's IANA `time_zone`.
   - `title` (optional) and `body`, with kind-specific fields in a `details` jsonb validated by a Zod discriminated union.
   - Index on `(group_id, occurred_at desc, id)`.
-- ✅ Kinds: `note | symptom | event`. **No appointments in iteration 1.** Symptoms are a free-text `name` with optional `severity` 0–10; suggested names are a later UX addition.
+- ✅ Kinds in iteration 1: `note | symptom | event`. Iteration 2 added `vital`; see _Entry kinds: what goes where_. **No appointments yet.**
 - ✅ Permissions: read/list for any member; create, update and delete for `owner`, `admin` and `caretaker` (any writer may edit any entry). "Only the author or managers edit" may come later as a per-group option. `groupId`, `recipientId` and `kind` are `system`-only on update.
 - ✅ **Soft delete** (`deleted_at`): the service's `remove` sets it, checked against the **delete** permission, and `list` hides deleted rows. Group or account deletion still hard-deletes through the cascade.
 - ✅ Keyset pagination on `(occurred_at, id)`, not offset: offline devices insert older entries.
@@ -201,6 +201,131 @@ The first full vertical slice: a seeded user signs in, picks one of their care g
 - 🟡 **Resend** is coming in a near-term follow-up iteration. It brings email verification, password reset, invite emails, and possibly magic link or email OTP. Keep that path cheap:
   - All outgoing email goes through `packages/notifications` (see _Notifications_), never through Better Auth callbacks calling a provider directly.
   - Leave `requireEmailVerification` off until Resend lands, and don't build UI that assumes passwords are the only sign-in method.
+
+### Timeline iteration 2 (in progress, before Resend)
+
+The user chose to do this feature work before the Resend iteration. There are four phases, in order. **Phase 1 is done; phase 2 is next.** New dependencies still need the user's approval as each phase starts.
+
+#### Entry kinds: what goes where
+
+Every timeline entry is one of four kinds. When someone proposes a new type of thing to log, place it with these definitions before writing code.
+
+- ✅ **Note:** free text about the day ("Ate most of lunch"). A body is required. A live document can be attached to a note or an event (phase 4); the note itself stays plain text.
+- ✅ **Symptom:** something the care recipient **feels or reports**, or a problem a caretaker describes in words: pain, nausea, dizziness, fatigue, confusion, low mood.
+  - A free-text `name`, plus an optional `severity` from 0 to 10.
+  - **Pain is a symptom** ("Knee pain", severity 4), never a vital. That's why it was removed from vitals.
+  - Suggested names (from the group's history) are a later UX addition.
+- ✅ **Vital:** something **measured, counted or observed**, with a fixed type and a unit or scale. It covers the classic vital signs and also body output and routine.
+  - Typed values, stored in canonical units, which later makes them chartable.
+  - The 10 types: blood pressure, heart rate, temperature, SpO₂, breathing rate, weight, blood sugar, bowel movement (Bristol scale), urine output, sleep (hours).
+- ✅ **Event:** something that happened: a visit, a fall, a pharmacy pickup. A title is required. Appointments (with time, place and provider) come later as a richer kind.
+- **Rule of thumb: if you measure or count it, it's a vital. If they feel it, or it's a problem described in words, it's a symptom.** A new vital must have a fixed unit or an agreed scale. Without one (mood, confusion), it's a symptom.
+- Gray areas settled: pain → symptom; bowel movement and urine output → vital (observed output); sleep → vital (hours slept).
+
+#### Phases
+
+1. ✅ **Vital signs** (built 2026-11-17; no new dependencies; migration `0004`):
+   - The `vital` kind. `details` = `{ readings: [...] }`, at most one reading per type, as a Zod discriminated union on `type`. The types are:
+     - `bloodPressure`: systolic and diastolic, and diastolic must be lower;
+     - `heartRate`, `temperature`, `spo2`, `respiratoryRate`, `weight`, `bloodGlucose`;
+     - `bowelMovement`: Bristol type 1–7, optional;
+     - `urineOutput`: volume, optional;
+     - `sleep`: hours, in 0.25 steps.
+     - `painScore` existed briefly and was removed (pain is a symptom).
+   - **One spec drives everything:** `db/schema/vitals.ts`. `VITALS` holds the labels, fields, hard limits and typical ranges, and the Zod schemas, form fields, error messages and card text all come from it. Adding a type means a `VITAL_TYPES` entry, a `VITALS` entry and one `reading(...)` line. Any new field `key` also goes in `VitalFieldSpec["key"]`.
+   - **Units:**
+     - Values are stored in **one canonical unit per measure** (°C, kg, mg/dL, mL) at full precision.
+     - Display and entry follow the **per-user unit setting**: `user.preferences` (jsonb, default `{}`), validated by `userPreferencesZSchema` and read through `resolveUnits()`. Defaults: °F, lb, mg/dL, mL.
+     - The form converts typed values with `fromDisplay`, and the card converts for display with `toDisplay` and `formatReading`.
+     - The form posts the units it displayed (a hidden `units` field), so the clientAction converts back with the same units.
+     - `user.preferences` is the place for future per-user settings (e.g. time zone). Every field is optional, so new settings need no migration.
+   - **API:** `me.get` returns `preferences` and the resolved `units`; `me.updatePreferences` merges into your own preferences. The `/app/settings` screen (Units) is linked from the header.
+   - **Validation:**
+     - Hard limits reject impossible values, with a message naming the range in the user's units.
+     - A value outside the typical range gets the warning "That's unusual. Double-check it", but still saves.
+     - The typical ranges are adult guesses, easy to tune in `VITALS`.
+   - **UI:**
+     - A **Vitals ▾** menu in the kind picker (`VitalTypeMenu`, a RAC `MenuTrigger`). The user asked for a "submenu"; a single dropdown was chosen as better on phones.
+     - "+ Add a reading" uses the same menu, leaving out types already added. Each reading can be removed.
+     - The fields are in `VitalReadingsFields`. Cards show one compact line ("BP 128/82 mmHg · HR 71 bpm").
+   - **Forward compatibility:** `isKnownReading()` filters out reading types this build doesn't know, so screens skip them instead of crashing. This matters once PowerSync syncs rows from newer or older app versions.
+   - **Storage:** jsonb rather than a child table. Groups hold thousands of entries, and charts can read local SQLite (`json_extract`) after PowerSync.
+   - **Tests:**
+     - `vitals.test.ts`: conversion round trips, limits, formatting;
+     - vitals in `timelineEntry.int.test.ts`;
+     - preferences in `router.int.test.ts`;
+     - a headless Chrome run (see _Browser checks_ below).
+   - **Seeds:** ids follow list position, so add new seed entries at the **end** of `ENTRIES`. Changing an existing seed doesn't update rows already seeded; fix those by hand or run `datastore:reset`.
+   - Out of scope: alert thresholds, per-recipient baselines, charts.
+
+2. 🟡 **Timeline layout and scanning. NEXT.** The user's main complaints are **quick scanning and general layout**. Problems seen in phone-width screenshots so far:
+   - Cards are tall for one line of content: the badge and time row, then the heading, then the author, each on its own line, with `p-4` padding and a shadow.
+   - "(… in Los Angeles)" repeats on almost every entry. Seeds use `America/Los_Angeles` and the browser was in another zone. In real use it's rarer, but still noisy: show it less often (e.g. in the edit view or a tooltip, or once per day).
+   - The add form is always open at the top, so on a phone the timeline starts below the fold.
+   - Kind is shown only as a colored text badge, with no icon. The vitals badge uses `badge-success`, which reads as "good".
+   - Day headers aren't sticky, and there's no sense of position in a long list.
+
+   Steps:
+   1. Screenshot `/app/groups/:id/timeline` at 420px and 1280px, in light and dark themes, and list the problems.
+   2. **Show the user 2–3 layout options before building** (ASCII mockups through AskUserQuestion previews).
+   3. Build the chosen one.
+
+   Candidates:
+   - a dense row layout: an icon, the time, a one-line summary, the author's initials;
+   - an icon and color per kind;
+   - sticky day headers;
+   - a quick-add button that opens a bottom sheet on phones (React Aria `Modal`/`Dialog`), instead of the always-open form;
+   - a "latest vitals" summary strip;
+   - author avatars or initials.
+
+   Constraints:
+   - Icons: inline SVG unless the user approves an icon package (e.g. `lucide-react`).
+   - Display components take entries as props, so they survive the move to PowerSync.
+   - Keep `jsx-a11y` clean.
+   - Verify in headless Chrome.
+
+3. 🟡 **PowerSync round trip.** It moved ahead of Resend because collaborative notes need it.
+   - ❓ Decisions for the user:
+     - PowerSync Cloud or self-hosted (Docker for local dev in either case);
+     - the packages: `@powersync/web` plus the Drizzle driver (`@powersync/drizzle-driver`) or Kysely;
+     - where the upload endpoint lives (an oRPC procedure or a dedicated route).
+   - Auth: Better Auth's `jwt()` plugin already issues 15-minute EdDSA tokens (`sub`, `role`), with JWKS at `/api/auth/jwks`. PowerSync verifies them.
+   - Sync rules: one bucket per care group, for members only (by `care_group_member`). Synced tables: `timeline_entry` (soft-deleted rows included, so deletes reach other devices), `care_group`, `care_recipient`, and members' public profiles. **Never sync emails or account tables.**
+   - Upload endpoint:
+     - receives the client's CRUD batch and calls the **services**, never the models, so RBAC and validation still apply;
+     - needs an idempotent `timelineEntryService.upsert` keyed by the client-generated id, with per-kind validation (there's deliberately no unvalidated upsert today);
+     - replays are no-ops.
+   - Client: the timeline reads local SQLite with watched queries, replacing `clientLoader` and the oRPC `timeline.list`. Writes are local and instant (optimistic), and the "Show older" keyset paging becomes a local query.
+   - ❓ Still open (see _Care groups_): when someone is removed from a group, wipe that group's data from their devices.
+
+4. 🟡 **Collaborative notes.** Several people edit the same note at once, and viewers watch live, so it needs a CRDT.
+   - **Yjs** with the **Tiptap** editor (the user's choice), through `@tiptap/extension-collaboration`. Packages to approve: `yjs`, `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-collaboration`.
+   - Tables:
+     - `note_document`: `group_id`, `entry_id` (unique: at most one per entry), a compacted Yjs snapshot, and derived plain text for previews, search and AI;
+     - `note_update`: append-only Yjs updates, with `group_id` on the row, synced by PowerSync. That covers offline editing and merging between users.
+   - ✅ **A live document is something you add to an entry** (decided by the user, 2026-11-17):
+     - Only **event** and **note** entries can have one: e.g. live appointment notes on an event, or a running write-up on a note. Symptoms and vitals can't.
+     - It's created on demand ("Add live notes" on the entry), at most one per entry.
+     - The entry keeps its own `title`/`body`; the document sits alongside it, and the card shows a preview from the plain text plus an "Open" link.
+     - The service checks the entry's kind and group when creating a document, and `group_id` must match the entry's. Deleting the entry (soft) hides its document; group deletion cascades.
+   - Permissions: writers edit; viewers watch the live document, read-only.
+   - ❓ **Live latency:** PowerSync's round trip (upload → Postgres → replication → stream) may feel slow for live co-editing, and it carries no presence or cursors. Plan: build on PowerSync, measure the latency, then add a websocket relay for low-latency updates and awareness if needed (e.g. Hocuspocus on AWS, since Vercel can't hold websockets open). Postgres plus PowerSync stays the durable store either way.
+   - The server compacts updates into the snapshot and refreshes the plain text.
+
+#### Browser checks
+
+UI work is verified in headless Chrome over CDP, with a plain Node script (no Playwright yet). The pattern:
+
+- Launch Chrome with `--headless=new --remote-debugging-port`, at a 420×900 window.
+- Sign in as the `@example.com` seed users (password: `SEED_USER_PASSWORD`).
+- Drive the page with `Runtime.evaluate`.
+  - React Aria buttons and menu items need a `pointerdown` before `.click()`.
+  - Set inputs through the native value setter, then dispatch an `input` event.
+- Collect console errors and take screenshots.
+
+The scripts live in the session scratchpad, not the repo. Write a new one per check, or add Playwright when the user approves it.
+
+Port 5173 may already be in use. Better Auth only trusts `BETTER_AUTH_URL` and `AUTH_TRUSTED_ORIGINS`, so on another port start the dev server as `BETTER_AUTH_URL=http://localhost:5176 AUTH_TRUSTED_ORIGINS=http://localhost:5176 pnpm --filter @caretook/web dev --port 5176 --strictPort`. Real env vars win over `.env`.
 
 ### Auth (`packages/auth`, `@caretook/auth`)
 
@@ -336,12 +461,13 @@ apps/web/              @caretook/web: React Router 8, Vite 8
   react-router.config.ts
   app/root.tsx
   app/routes.ts
-  app/routes/app/          shared screens (no server loaders/actions)
+  app/routes/app/          shared screens (no server loaders/actions): home, timeline, settings (units)
   app/routes/marketing/    web-only pages
   app/routes/native-index.tsx  native-only "/" → "/app" redirect
 apps/web/app/.server/data.ts  re-exports @caretook/data (server-only door); auth.ts → @caretook/auth
   app/app.css          Tailwind + daisyUI (light/dark themes follow the device)
-  app/components/      EntryForm, TimelineEntryCard, EntryActions (RAC Menu), DateTimeField (RAC DateField), ConfirmDialog
+  app/components/      EntryForm, TimelineEntryCard, EntryActions (RAC Menu), DateTimeField (RAC DateField), ConfirmDialog,
+                       VitalTypeMenu (RAC Menu of vital types), VitalReadingsFields
   app/lib/             auth-client.ts, rpc.ts (typed client + output types), api.ts (load/toActionResult),
                        entryForm.ts, format.ts, redirect.ts (safeRedirect), form.ts
   app/routes/api/auth.ts  Better Auth handler at /api/auth/* (web only)
@@ -360,7 +486,8 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
   src/permissions/     RBAC map + helpers (client-safe)
   src/db/              client (lazy pool, txOrDb, dbMayFail, withTransaction), types,
                        migrate.ts, clear.ts, seeds/, migrations/
-  src/db/schema/       tables + Zod schemas (client-safe)
+  src/db/schema/       tables + Zod schemas (client-safe); vitals.ts (vital spec, units, conversion),
+                       userPreferences.ts (per-user settings, resolveUnits)
   src/models/          base/ (CRUD + query helpers), user/, careGroup/, careGroupMember/,
                        careRecipient/, careGroupInvite/, timelineEntry/
   src/services/        baseService, userService, careGroup*, careRecipientService, timelineEntryService
@@ -394,4 +521,5 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
 
 1. Make the integration tests independent of each other, as `timelineEntry.int.test.ts` already is (a `setup()` per test). `careGroup.int.test.ts` shares one group across `describe` blocks, so a single failure cascades into others. Then widen coverage to every role against every table.
 2. Choose the hosted database (it must be in the same region as the Vercel functions, with pooling) and decide how production migrations run.
-3. The Resend iteration (sign-up, invites with accept and consent, email verification and reset), then a test PowerSync round trip (sync rules by group membership), then Capacitor (bearer token storage, `VITE_API_ORIGIN`).
+3. **Timeline iteration 2** (see that section). Vitals are done. **Start the next session at phase 2, layout:** screenshot the timeline, then show the user layout options before building. After that, PowerSync (decisions first), then collaborative notes with Tiptap and Yjs.
+4. The Resend iteration (sign-up, invites with accept and consent, email verification and reset), then Capacitor (bearer token storage, `VITE_API_ORIGIN`).
