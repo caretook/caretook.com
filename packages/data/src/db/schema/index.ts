@@ -9,3 +9,4 @@ export * from "./careGroup";
 export * from "./careGroupMember";
 export * from "./careRecipient";
 export * from "./careGroupInvite";
+export * from "./timelineEntry";

@@ -91,7 +91,7 @@ Planned feature areas, listed only to inform stack decisions:
   - InstantDB, Triplit and Jazz: less control over the data.
 - 🟡 Sharing model: a **care group**, where users sync only the groups they belong to. See _Care groups_.
 - 🟡 Conflicts: last write wins per row by default. Timeline entries are mostly append-only.
-- ✅ **Drizzle ORM 0.45** (latest stable; 1.0 is still RC) with the `pg` driver, and `drizzle-zod` + **Zod 4** for schemas shared by client and server. Migrations are generated into `packages/data/src/db/migrations/` and applied in-process with drizzle-orm's migrator (`src/db/migrate.ts`). `0000` creates `user`; `0001` the care group tables. **Until the first deploy, it's fine to delete and regenerate migrations** rather than stacking up early ones.
+- ✅ **Drizzle ORM 0.45** (latest stable; 1.0 is still RC) with the `pg` driver, and `drizzle-zod` + **Zod 4** for schemas shared by client and server. Migrations are generated into `packages/data/src/db/migrations/` and applied in-process with drizzle-orm's migrator (`src/db/migrate.ts`). `0000` creates `user`; `0001` the care group tables; `0002` `timeline_entry`. drizzle-kit doesn't always order statements by dependency (in `0002` it emitted a unique constraint after the FK that needs it), so read generated SQL before applying it. **Until the first deploy, it's fine to delete and regenerate migrations** rather than stacking up early ones.
 - ✅ **UUID primary keys** on every table (`id()` in `db/schema/columns.ts`). PowerSync clients create rows offline, so ids must be generatable on the client; `create`/`upsert` accept a caller-supplied `id`.
 - ✅ Every table spreads `timestamps` (`created_at`, `updated_at`, timestamptz in string mode) and `audits` (`created_by`, `updated_by`, set by the model layer, not FKs).
 
@@ -154,6 +154,89 @@ The shared space care data belongs to: the caretakers looking after one care rec
 - ❓ How a membership removal propagates to devices that have already synced the group's data offline (PowerSync sync rules plus local data wipe).
 - ❓ Co-members can read each other's full user row, including `role` and `emailVerified`. Expose a narrower public profile at the API layer.
 
+### Shared timeline (iteration 1, in progress)
+
+The first full vertical slice: a seeded user signs in, picks one of their care groups, then can add, edit, delete and view timeline entries on the web target. It's online only (oRPC from `clientLoader`/`clientAction`). PowerSync comes next, so the API reuses the same services its upload endpoint will call.
+
+- ✅ One `timeline_entry` table with a `kind` column:
+  - `group_id` is stored directly on the row, because PowerSync sync rules filter by column, not by join. `recipient_id` is stored too, ready for several recipients per group.
+  - `occurred_at` (when it happened, as opposed to `created_at`, the upload time) plus the device's IANA `time_zone`.
+  - `title` (optional) and `body`, with kind-specific fields in a `details` jsonb validated by a Zod discriminated union.
+  - Index on `(group_id, occurred_at desc, id)`.
+- ✅ Kinds: `note | symptom | event`. **No appointments in iteration 1.** Symptoms are a free-text `name` with optional `severity` 0–10; suggested names are a later UX addition.
+- ✅ Permissions: read/list for any member; create, update and delete for `owner`, `admin` and `caretaker` (any writer may edit any entry). "Only the author or managers edit" may come later as a per-group option. `groupId`, `recipientId` and `kind` are `system`-only on update.
+- ✅ **Soft delete** (`deleted_at`): the service's `remove` sets it, checked against the **delete** permission, and `list` hides deleted rows. Group or account deletion still hard-deletes through the cascade.
+- ✅ Keyset pagination on `(occurred_at, id)`, not offset: offline devices insert older entries.
+- ✅ **Phase 1 is built** (`db/schema/timelineEntry.ts`, `models/timelineEntry/`, `services/timelineEntryService.ts`, seeds, `timelineEntry.int.test.ts`). Details settled while building it:
+  - A composite FK `(group_id, recipient_id) → care_recipient(group_id, id)` makes the database guarantee an entry's recipient is in its group. It's `NO ACTION`: deleting a recipient fails while entries exist, but deleting the group still cascades.
+  - `create` defaults `recipientId` to the group's recipient. It checks the group first (as the actor), so non-members get `unauthorized` and learn nothing about the group.
+  - The Zod schemas live in the schema file and are client-safe: `timelineEntryContentZSchema` (a union on `kind`), `timelineEntryCreateZSchema`, and `timelineEntryUpdateZSchema` (strict, content only). `update` validates the **merged** row, so a note can't lose its body.
+  - Model: `get`/`getById`/`listPage` hide soft-deleted rows unless `includeDeleted` is set; `update` refuses deleted rows; `remove` is the soft delete; `purge` (hard delete) is system only. `listPage` returns `{ data, nextCursor }` with an opaque base64url cursor. There's no unvalidated `upsert`: the PowerSync upload endpoint will need one that goes through the service's validation.
+  - `occurredAt` is read back as Postgres text (`2026-11-17 10:00:00.000+00`), not ISO. Normalise it at the API layer if clients need ISO.
+- 🟡 Phases:
+  1. ✅ Timeline data layer (schema, permissions, model, service, seeds, independent integration tests).
+  2. Auth in `packages/auth`. Better Auth adopts the existing `user` table and adds `session`, `account` and `verification`. Plugins: `bearer` and `jwt`/JWKS.
+     - **Sign-up is disabled** (`disableSignUp: true`); accounts come from seeds. `role` is still declared with `input: false`, so a future sign-up can't set it.
+     - A `databaseHooks.user.create.before` hook fills `created_by`/`updated_by`, using a pre-generated UUID id.
+     - `getAuthUser(headers)` resolves the session to `AuthUser`.
+     - Web-only routes: `/api/auth/*` and `/sign-in`, plus sign-out.
+  3. `packages/api` (oRPC) with context `{ authUser }`, mapping `AppError` to `ORPCError`. Procedures: `me.get`, `careGroup.listMine` and `timeline.list`/`create`/`update`/`remove`. It's mounted at `/rpc/*`, with a client in `app/lib/rpc.ts`.
+  4. Screens: sign in, a plain list of my groups (skipped when there's only one), and `/app/groups/:groupId/timeline`.
+- Out of scope: sign-up and create-group UI, invite accept and consent, email verification and reset, PowerSync, appointments, attachments, Playwright, deploy.
+- ✅ Sign-in: **email + password** in iteration 1, so no email provider is needed yet. Better Auth's `emailAndPassword` hashes passwords into `account`. Seeds create password accounts for the `@example.com` dev users (a shared dev password from `.env`, hashed with Better Auth's own hasher). The seeds also hold the only care group (Dev Family), so there's no sign-up or create-group UI in this iteration; both come with Resend and invites.
+- 🟡 **Resend** is coming in a near-term follow-up iteration. It brings email verification, password reset, invite emails, and possibly magic link or email OTP. Keep that path cheap:
+  - All outgoing email goes through `packages/notifications` (see _Notifications_), never through Better Auth callbacks calling a provider directly.
+  - Leave `requireEmailVerification` off until Resend lands, and don't build UI that assumes passwords are the only sign-in method.
+
+### Notifications (Resend iteration, planned)
+
+The design starts from the user's cn-time-by-project `app/.server/notifications` system (a registry of named notifications, React Email templates, a shared wrapper, batch sends for cron digests, services deciding recipients) and fixes its known gaps. Nothing is built yet: iteration 1 sends no email.
+
+**Design**
+
+- 🟡 A server-only `packages/notifications`, usable from `packages/api`, Better Auth callbacks and the AWS worker.
+- 🟡 **A typed registry:** `defineNotification({ name, data: zodSchema, email: (data, { recipient }) => ({ subject, react }), push? })`, collected in `NOTIFICATIONS = { … } as const`.
+  - `notify(name, { to, actor?, data })` infers `data` from `name`. Never type the registry as `Record<string, …>`: that makes every string a valid name and loses the link between name and data.
+  - Recipient, actor and data are separate fields; never one `user` meaning both.
+  - Data is validated before rendering. Templates never throw on the wrong shape.
+- 🟡 **One function per channel** (`email`, later `push`), not one React tree wrapped per channel, because push can't render React.
+- 🟡 **Templates get plain data plus a configured `APP_URL`.** Never build links from the request's Host header (a spoofed header makes emailed links point elsewhere: password-reset poisoning), and never read `formData`. Always send a plain-text version, generated by React Email's `render(…, { plainText: true })`, never `text: ''`.
+- 🟡 **A pluggable sender**, chosen by environment: `resend` (production), `log` (dev: prints the email and a preview), `memory` (tests capture what would be sent).
+  - A failed send returns an `AppError`. Resend's SDK returns `{ data, error }` rather than throwing, so check `error` explicitly.
+  - Production refuses to start without `RESEND_API_KEY`; never return `null` and carry on.
+  - Outside production, only allowlisted recipients get real email, so `@example.com` seeds never reach Resend.
+- 🟡 **An outbox for anything beyond auth emails.** A `notification_outbox` row is written in the same `withTransaction` as the change that caused it. Columns:
+  - `name`, recipient, `data`;
+  - a unique `idempotency_key` (e.g. `careGroup:invite:<inviteId>`), which is also passed to Resend;
+  - status `queued | sent | failed | suppressed`, `attempts`, `send_after`, provider message id, error, `sent_at`.
+
+  Delivery happens right after the response via Vercel's `waitUntil`, plus a cron sweep (checking `CRON_SECRET`) that retries with backoff. That cron is idempotent and sends batches of at most 100 (Resend's limit). The AWS worker takes over later. Purge sent rows after a few days.
+
+- 🟡 **Previews:** the `react-email` dev server, and one snapshot test per template rendered with sample data.
+- Current versions: `resend` 6.x, `@react-email/components` 1.x, `react-email` 6.x. Dependencies are still to be approved when the iteration starts.
+
+**Caveats for a health app**
+
+- 🟡 **No health details in subjects or bodies.** Default to content-free alerts ("New update in Dev Family's timeline") with a link that requires signing in. Any content in email is opt-in per person, with consent recorded (see _Compliance_).
+- 🟡 **Turn off Resend open and click tracking.** The pixel is third-party analytics, and click tracking routes invite and reset tokens through Resend's redirect servers.
+- 🟡 **Tokens:** single-use and short-lived, stored only as a hash. Never put a raw token in outbox `data`; generate the link at send time or encrypt it.
+- 🟡 **Better Auth `sendResetPassword` / `sendVerificationEmail`:** don't wait on the send, because response timing would reveal whether an email has an account. But never just leave the promise running on Vercel, which can cut it off after the response; use `waitUntil` or the outbox.
+- 🟡 **Bounces and complaints:** verify Resend webhooks (Svix signatures) and mark the address undeliverable.
+- 🟡 **Domain setup:** send from a subdomain (e.g. `mail.caretook.com`) with SPF, DKIM and DMARC, so email problems don't affect the main domain.
+- 🟡 **Recipient preferences:**
+  - Account emails (reset, verification, invites) always send.
+  - Optional ones (digests) need per-group preferences and one-click unsubscribe (`List-Unsubscribe` and `List-Unsubscribe-Post`, which Gmail and Yahoo require from bulk senders).
+- 🟡 **Times in the recipient's time zone,** which needs a time-zone field on the user's profile.
+
+**Order**
+
+1. Resend iteration:
+   1. Registry and sender interface, with all three senders.
+   2. Better Auth password reset and email verification.
+   3. Invite emails through the outbox.
+   4. Tracking off, the bounce webhook, and domain DNS.
+2. Later: digests, preferences, push notifications through Capacitor, and moving delivery to the AWS worker.
+
 ### Compliance
 
 - ✅ **We are deliberately staying out of HIPAA scope.** That means no BAAs and no working on behalf of providers, insurers or agencies (covered entities).
@@ -165,8 +248,14 @@ The shared space care data belongs to: the caretakers looking after one care rec
 
 ### Other proposed choices (not installed)
 
-- 🟡 **Auth:** Better Auth (works with Drizzle, issues JWTs that PowerSync can verify, bearer tokens for Capacitor).
-- 🟡 **UI:** Tailwind v4 and shadcn/ui, mobile-first.
+- ✅ **Auth:** Better Auth (works with Drizzle, issues JWTs that PowerSync can verify, bearer tokens for Capacitor). Email + password first; Resend follows soon (see _Shared timeline_). Not installed yet.
+- 🟡 **Email:** Resend, in a near-term follow-up iteration (see _Notifications_).
+- ✅ **UI:** Tailwind v4 (`tailwindcss` + `@tailwindcss/vite`), **daisyUI 5** for styling, and **React Aria Components** for accessible behavior. Mobile-first. Not installed yet; it arrives with the timeline slice. We considered shadcn/ui (more dependencies and copied code) and Preline (its vanilla-JS plugins run outside React and clash with re-renders). Three layers:
+  1. Native elements styled with daisyUI by default: buttons, inputs, cards, alerts, `<details>`, and `<dialog>` opened with `showModal()` for simple confirms. No JS.
+  2. React Aria Components only where HTML falls short: DatePicker/TimeField (time-zone aware through `@internationalized/date`, which matches `occurred_at` + `time_zone`), ComboBox, Menu, Select, Tabs and Toast. Style them with daisyUI classes plus Tailwind `data-[focused]:`-style variants on RAC's state attributes.
+  3. `eslint-plugin-jsx-a11y` for apps/web (check it supports ESLint 10 flat config before adding it), and `@axe-core/playwright` once Playwright lands.
+- Wrap repeated daisyUI + RAC pairings in small components in `apps/web/app/components/` (e.g. `<Field>`, `<DateTimeField>`, `<EntryActions>`). Expect small CSS overrides where daisyUI's `modal`/`dropdown` classes meet RAC overlays.
+- Theming uses daisyUI themes (`data-theme`), which also gives us a later large-text or high-contrast option.
 - 🟡 **Printing:** print-specific CSS first, `@react-pdf/renderer` if we need real PDFs.
 - 🟡 **AI:** the Vercel AI SDK with Claude, run as server or worker jobs.
 - 🟡 **Calendar:** an iCal feed endpoint and Google Calendar OAuth sync.
@@ -204,8 +293,8 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
                        migrate.ts, clear.ts, seeds/, migrations/
   src/db/schema/       tables + Zod schemas (client-safe)
   src/models/          base/ (CRUD + query helpers), user/, careGroup/, careGroupMember/,
-                       careRecipient/, careGroupInvite/
-  src/services/        baseService, userService, careGroup*, careRecipientService
+                       careRecipient/, careGroupInvite/, timelineEntry/
+  src/services/        baseService, userService, careGroup*, careRecipientService, timelineEntryService
 ```
 
 ## Commands (run from the repo root after `nvm use`)
@@ -234,7 +323,7 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
 
 ## Likely next steps
 
-1. Make the integration tests independent of each other. `careGroup.int.test.ts` shares one group across `describe` blocks, so a single failure cascades into others. Then widen coverage to every role against every table.
+1. Make the integration tests independent of each other, as `timelineEntry.int.test.ts` already is (a `setup()` per test). `careGroup.int.test.ts` shares one group across `describe` blocks, so a single failure cascades into others. Then widen coverage to every role against every table.
 2. Choose the hosted database (it must be in the same region as the Vercel functions, with pooling) and decide how production migrations run.
 3. `packages/api` (oRPC) calling the services, mounted in a React Router resource route.
 4. Auth (Better Auth, against the existing `user` table), then invite accept and consent, then a test PowerSync round trip (sync rules by group membership).

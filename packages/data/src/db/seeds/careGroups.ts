@@ -9,7 +9,7 @@ const seedAudits = { createdBy: SYSTEM_USER.id, updatedBy: SYSTEM_USER.id };
 
 // Fixed ids keep the seed idempotent and easy to reference in dev.
 export const DEV_GROUP_ID = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
-const DEV_RECIPIENT_ID = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0002";
+export const DEV_RECIPIENT_ID = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0002";
 
 // One member per role. admin@example.com (Caretook staff) is deliberately
 // not a member: staff get no access to care data by default.

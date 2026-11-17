@@ -27,3 +27,7 @@ export type * from "./careRecipient/types";
 import * as careGroupInviteModel from "./careGroupInvite";
 export { careGroupInviteModel };
 export type * from "./careGroupInvite/types";
+
+import * as timelineEntryModel from "./timelineEntry";
+export { timelineEntryModel };
+export type * from "./timelineEntry/types";

@@ -16,6 +16,9 @@ export { careRecipientService };
 import * as careGroupInviteService from "./careGroupInviteService";
 export { careGroupInviteService };
 
+import * as timelineEntryService from "./timelineEntryService";
+export { timelineEntryService };
+
 export type * from "./types";
 
 export const services = {
@@ -24,6 +27,7 @@ export const services = {
   careGroupMember: careGroupMemberService,
   careRecipient: careRecipientService,
   careGroupInvite: careGroupInviteService,
+  timelineEntry: timelineEntryService,
 };
 
 export type ServiceTypeMap = typeof services;

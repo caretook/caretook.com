@@ -85,6 +85,16 @@ export const MODEL_ERRORS = {
   "careGroupMemberModel:insertFirstOwner": {
     message: "Failed to add the group's first owner",
   },
+  "timelineEntryModel:badCursor": {
+    message: "Invalid page cursor",
+    statusCode: 400,
+  },
+  "timelineEntryModel:list": {
+    message: "Failed to list timeline entries",
+  },
+  "timelineEntryModel:remove": {
+    message: "Failed to delete the timeline entry",
+  },
   "userModel:notFound": {
     message: "User not found",
     statusCode: 404,
@@ -115,6 +125,22 @@ export const SERVICE_ERRORS = {
   "careGroupInviteService:ownerOnly": {
     message: "Only an owner can invite someone as an owner",
     statusCode: 403,
+  },
+  "timelineEntryService:invalid": {
+    message: "The timeline entry is invalid",
+    statusCode: 400,
+  },
+  "timelineEntryService:notFound": {
+    message: "Timeline entry not found",
+    statusCode: 404,
+  },
+  "timelineEntryService:noRecipient": {
+    message: "This care group has no care recipient yet",
+    statusCode: 409,
+  },
+  "timelineEntryService:recipientNotInGroup": {
+    message: "That care recipient isn't in this care group",
+    statusCode: 400,
   },
   "careGroupInviteService:notFound": {
     message: "Invitation not found, or no longer pending",

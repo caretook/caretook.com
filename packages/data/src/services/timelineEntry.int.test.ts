@@ -1,0 +1,377 @@
+import type { TimelineEntryCreateInput } from "../db";
+
+import { describe, expect, it } from "vitest";
+import { createGroup, createUser, ok, system } from "../../test/fixtures";
+import { isError } from "../errors";
+import { timelineEntryModel } from "../models";
+import { careGroupService, careRecipientService, timelineEntryService } from ".";
+
+// Every test builds its own group and users, so tests never depend on each other.
+
+const ROLES = ["owner", "admin", "caretaker", "viewer"] as const;
+const WRITERS = ["owner", "admin", "caretaker"] as const;
+
+const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
+
+const setup = async () => {
+  const u = {
+    owner: await createUser("owner"),
+    admin: await createUser("admin"),
+    caretaker: await createUser("caretaker"),
+    viewer: await createUser("viewer"),
+    outsider: await createUser("outsider"),
+    staff: await createUser("staff", "admin"),
+  };
+  const { group, recipient } = await createGroup(u.owner, [
+    { user: u.admin.user, role: "admin" },
+    { user: u.caretaker.user, role: "caretaker" },
+    { user: u.viewer.user, role: "viewer" },
+  ]);
+  const note = (overrides: Partial<TimelineEntryCreateInput> = {}) =>
+    ({
+      groupId: group.id,
+      kind: "note",
+      body: "Ate lunch",
+      occurredAt: "2026-11-17T12:00:00.000Z",
+      timeZone: "America/Los_Angeles",
+      ...overrides,
+    }) as TimelineEntryCreateInput;
+  const addNote = async (overrides: Partial<TimelineEntryCreateInput> = {}) => {
+    const entry = ok(await timelineEntryService.create(u.caretaker.ctx, note(overrides)));
+    if (!entry) throw new Error("entry not readable");
+    return entry;
+  };
+  return { u, group, recipient, note, addNote };
+};
+
+describe("reading", () => {
+  it("shows entries to every member, and nobody else", async () => {
+    const { u, group, addNote } = await setup();
+    const entry = await addNote();
+
+    for (const role of ROLES) {
+      expect(await timelineEntryService.getById(u[role].ctx, entry.id)).toMatchObject({ id: entry.id });
+      const page = ok(await timelineEntryService.list(u[role].ctx, { groupId: group.id }));
+      expect(page.data.map((e) => e.id)).toEqual([entry.id]);
+    }
+    for (const role of ["outsider", "staff"] as const) {
+      expect(await timelineEntryService.getById(u[role].ctx, entry.id)).toBeNull();
+      expect(ok(await timelineEntryService.list(u[role].ctx, { groupId: group.id })).data).toEqual([]);
+    }
+  });
+
+  it("rejects unauthenticated callers", async () => {
+    const { group } = await setup();
+    expect(codeOf(await timelineEntryService.list({ authUser: null }, { groupId: group.id }))).toBe(
+      "permissions:unauthenticated",
+    );
+  });
+});
+
+describe("creating", () => {
+  it("lets writers add entries, but not viewers or outsiders", async () => {
+    const { u, recipient, note } = await setup();
+    for (const role of WRITERS) {
+      const entry = ok(await timelineEntryService.create(u[role].ctx, note()));
+      expect(entry).toMatchObject({ recipientId: recipient.id, createdBy: u[role].user.id, deletedAt: null });
+    }
+    for (const role of ["viewer", "outsider", "staff"] as const) {
+      expect(codeOf(await timelineEntryService.create(u[role].ctx, note()))).toBe("permissions:unauthorized");
+    }
+    expect(codeOf(await timelineEntryService.create({ authUser: null }, note()))).toBe(
+      "permissions:unauthenticated",
+    );
+  });
+
+  it("keeps a client-supplied id (offline clients generate their own)", async () => {
+    const { addNote } = await setup();
+    const id = crypto.randomUUID();
+    expect((await addNote({ id })).id).toBe(id);
+  });
+
+  it("only accepts a recipient from the entry's group", async () => {
+    const { u, recipient, note } = await setup();
+    const other = await createGroup(u.caretaker);
+
+    expect(
+      codeOf(await timelineEntryService.create(u.caretaker.ctx, note({ recipientId: other.recipient.id }))),
+    ).toBe("timelineEntryService:recipientNotInGroup");
+    expect(
+      ok(await timelineEntryService.create(u.caretaker.ctx, note({ recipientId: recipient.id }))),
+    ).toMatchObject({ recipientId: recipient.id });
+  });
+
+  it("explains when the group has no recipient yet", async () => {
+    const { u, note } = await setup();
+    const { group } = ok(await careGroupService.create(u.caretaker.ctx, { name: "No recipient" }));
+    expect(codeOf(await timelineEntryService.create(u.caretaker.ctx, note({ groupId: group!.id })))).toBe(
+      "timelineEntryService:noRecipient",
+    );
+  });
+
+  it("validates content per kind", async () => {
+    const { u, note } = await setup();
+    const invalid = [
+      note({ body: "  " }), // a note needs a body
+      note({ kind: "event", body: "x" }), // an event needs a title
+      note({ kind: "symptom", body: "x" }), // a symptom needs details.name
+      note({ kind: "symptom", details: { name: "Pain", severity: 11 } }),
+      note({ kind: "symptom", details: { name: "Pain", extra: true } as never }),
+      note({ details: { name: "Pain" } }), // notes have no details
+      note({ timeZone: "Mars/Olympus_Mons" }),
+      note({ occurredAt: "yesterday" }),
+      note({ kind: "appointment" as never }),
+    ];
+    for (const input of invalid) {
+      expect(codeOf(await timelineEntryService.create(u.caretaker.ctx, input))).toBe(
+        "timelineEntryService:invalid",
+      );
+    }
+
+    expect(
+      ok(
+        await timelineEntryService.create(
+          u.caretaker.ctx,
+          note({ kind: "symptom", body: undefined, details: { name: " Knee pain ", severity: 0 } }),
+        ),
+      ),
+    ).toMatchObject({ kind: "symptom", details: { name: "Knee pain", severity: 0 } });
+  });
+
+  it("can't create an entry that's already deleted", async () => {
+    const { u, recipient, group } = await setup();
+    const res = await timelineEntryModel.create({
+      ...u.caretaker.ctx,
+      data: {
+        groupId: group.id,
+        recipientId: recipient.id,
+        kind: "note",
+        body: "x",
+        occurredAt: "2026-11-17T12:00:00.000Z",
+        timeZone: "UTC",
+        deletedAt: "2026-11-17T12:00:00.000Z",
+      },
+    });
+    expect(codeOf(res)).toBe("permissions:fieldUnauthorized");
+  });
+});
+
+describe("updating", () => {
+  it("lets any writer edit any entry, but not viewers or outsiders", async () => {
+    const { u, addNote } = await setup();
+    const entry = await addNote(); // written by the caretaker
+
+    for (const role of ["owner", "admin"] as const) {
+      const updated = ok(
+        await timelineEntryService.update(u[role].ctx, entry.id, { body: `Edited by ${role}` }),
+      );
+      expect(updated).toMatchObject({ body: `Edited by ${role}`, updatedBy: u[role].user.id });
+    }
+    expect(codeOf(await timelineEntryService.update(u.viewer.ctx, entry.id, { body: "x" }))).toBe(
+      "baseModel:update:nothingUpdated",
+    );
+    expect(codeOf(await timelineEntryService.update(u.outsider.ctx, entry.id, { body: "x" }))).toBe(
+      "timelineEntryService:notFound",
+    );
+  });
+
+  it("never changes the group, recipient or kind", async () => {
+    const { u, addNote } = await setup();
+    const entry = await addNote();
+    const other = await createGroup(u.caretaker);
+
+    for (const patch of [
+      { kind: "event" },
+      { groupId: other.group.id },
+      { recipientId: other.recipient.id },
+    ]) {
+      expect(codeOf(await timelineEntryService.update(u.caretaker.ctx, entry.id, patch as never))).toBe(
+        "timelineEntryService:invalid",
+      );
+    }
+    // The model layer refuses too, for callers that skip the service.
+    expect(
+      codeOf(
+        await timelineEntryModel.update({
+          ...u.caretaker.ctx,
+          filter: { id: { type: "eq", value: entry.id } },
+          data: { groupId: other.group.id },
+        }),
+      ),
+    ).toBe("permissions:fieldUnauthorized");
+  });
+
+  it("keeps the merged entry valid for its kind", async () => {
+    const { u, addNote } = await setup();
+    const note = await addNote();
+    expect(codeOf(await timelineEntryService.update(u.caretaker.ctx, note.id, { body: null }))).toBe(
+      "timelineEntryService:invalid",
+    );
+    expect(
+      codeOf(await timelineEntryService.update(u.caretaker.ctx, note.id, { details: { name: "Pain" } })),
+    ).toBe("timelineEntryService:invalid");
+
+    const symptom = await addNote({
+      kind: "symptom",
+      body: undefined,
+      details: { name: "Pain", severity: 2 },
+    });
+    expect(
+      codeOf(
+        await timelineEntryService.update(u.caretaker.ctx, symptom.id, {
+          details: { name: "Pain", severity: 11 },
+        }),
+      ),
+    ).toBe("timelineEntryService:invalid");
+    expect(
+      ok(
+        await timelineEntryService.update(u.caretaker.ctx, symptom.id, {
+          details: { name: "Pain", severity: 5 },
+          occurredAt: "2026-11-16T08:30:00-08:00",
+        }),
+      ),
+    ).toMatchObject({ details: { name: "Pain", severity: 5 } });
+  });
+});
+
+describe("deleting", () => {
+  it("soft-deletes for writers: hidden by default, visible on request", async () => {
+    const { u, group, addNote } = await setup();
+    for (const role of WRITERS) {
+      const entry = await addNote();
+      expect(ok(await timelineEntryService.remove(u[role].ctx, entry.id))).toEqual({ ids: [entry.id] });
+
+      expect(await timelineEntryService.getById(u.viewer.ctx, entry.id)).toBeNull();
+      expect(ok(await timelineEntryService.list(u.viewer.ctx, { groupId: group.id })).data).toEqual([]);
+
+      const deleted = ok(
+        await timelineEntryService.getById(u.viewer.ctx, entry.id, { includeDeleted: true }),
+      );
+      expect(deleted).toMatchObject({ id: entry.id, updatedBy: u[role].user.id });
+      expect(deleted?.deletedAt).toBeTruthy();
+    }
+  });
+
+  it("won't delete for viewers or outsiders, or delete twice", async () => {
+    const { u, addNote } = await setup();
+    const entry = await addNote();
+    for (const role of ["viewer", "outsider", "staff"] as const) {
+      expect(codeOf(await timelineEntryService.remove(u[role].ctx, entry.id))).toBe(
+        "timelineEntryService:notFound",
+      );
+    }
+    ok(await timelineEntryService.remove(u.caretaker.ctx, entry.id));
+    expect(codeOf(await timelineEntryService.remove(u.caretaker.ctx, entry.id))).toBe(
+      "timelineEntryService:notFound",
+    );
+  });
+
+  it("can't edit a deleted entry", async () => {
+    const { u, addNote } = await setup();
+    const entry = await addNote();
+    ok(await timelineEntryService.remove(u.caretaker.ctx, entry.id));
+    expect(codeOf(await timelineEntryService.update(u.caretaker.ctx, entry.id, { body: "x" }))).toBe(
+      "timelineEntryService:notFound",
+    );
+  });
+
+  it("only lets the system purge", async () => {
+    const { u, addNote } = await setup();
+    const entry = await addNote();
+    const byId = { filter: { id: { type: "eq", value: entry.id } } } as const;
+
+    expect(codeOf(await timelineEntryModel.purge({ ...u.owner.ctx, ...byId }))).toBe(
+      "permissions:unauthorized",
+    );
+    expect(ok(await timelineEntryModel.purge({ ...system, ...byId }))).toEqual({ ids: [entry.id] });
+    expect(await timelineEntryService.getById(system, entry.id, { includeDeleted: true })).toBeNull();
+  });
+
+  it("keeps a recipient with entries from being deleted, but group deletion cascades", async () => {
+    const { u, group, recipient, addNote } = await setup();
+    const entry = await addNote();
+
+    expect(
+      isError(
+        await careRecipientService.remove(u.owner.ctx, {
+          filter: { id: { type: "eq", value: recipient.id } },
+        }),
+      ),
+    ).toBe(true);
+
+    ok(await careGroupService.remove(u.owner.ctx, { filter: { id: { type: "eq", value: group.id } } }));
+    expect(await timelineEntryService.getById(system, entry.id, { includeDeleted: true })).toBeNull();
+  });
+});
+
+describe("listing", () => {
+  const hour = (h: number) => `2026-11-17T${String(h).padStart(2, "0")}:00:00.000Z`;
+
+  it("pages newest first with a stable cursor, ties broken by id", async () => {
+    const { u, group, addNote } = await setup();
+    // Two entries share 10:00 to exercise the id tiebreak.
+    for (const h of [8, 9, 10, 10, 11]) await addNote({ occurredAt: hour(h) });
+
+    const seen: { id: string; occurredAt: string }[] = [];
+    let cursor: string | null = null;
+    do {
+      const page: { data: typeof seen; nextCursor: string | null } = ok(
+        await timelineEntryService.list(u.viewer.ctx, { groupId: group.id, limit: 2, cursor }),
+      );
+      expect(page.data.length).toBeLessThanOrEqual(2);
+      seen.push(...page.data);
+      cursor = page.nextCursor;
+    } while (cursor);
+
+    expect(seen).toHaveLength(5);
+    expect(new Set(seen.map((e) => e.id)).size).toBe(5);
+    const times = seen.map((e) => new Date(e.occurredAt).getTime());
+    expect(times).toEqual([...times].sort((a, b) => b - a));
+    const tied = seen.filter((e) => new Date(e.occurredAt).toISOString() === hour(10)).map((e) => e.id);
+    expect(tied).toEqual([...tied].sort().reverse());
+  });
+
+  it("doesn't skip older entries added between page loads", async () => {
+    const { u, group, addNote } = await setup();
+    for (const h of [9, 10, 11]) await addNote({ occurredAt: hour(h) });
+
+    const first = ok(await timelineEntryService.list(u.viewer.ctx, { groupId: group.id, limit: 2 }));
+    const late = await addNote({ occurredAt: hour(8) }); // an offline device catches up
+    const second = ok(
+      await timelineEntryService.list(u.viewer.ctx, {
+        groupId: group.id,
+        limit: 2,
+        cursor: first.nextCursor,
+      }),
+    );
+    expect(second.data.map((e) => e.id)).toContain(late.id);
+    expect(second.data).toHaveLength(2);
+  });
+
+  it("filters by kind and time range", async () => {
+    const { u, group, addNote } = await setup();
+    await addNote({ occurredAt: hour(8) });
+    const symptom = await addNote({
+      occurredAt: hour(9),
+      kind: "symptom",
+      body: undefined,
+      details: { name: "Pain" },
+    });
+    const event = await addNote({ occurredAt: hour(10), kind: "event", title: "Visit" });
+
+    const ids = async (opts: Parameters<typeof timelineEntryService.list>[1]) =>
+      ok(await timelineEntryService.list(u.viewer.ctx, opts)).data.map((e) => e.id);
+
+    expect(await ids({ groupId: group.id, kinds: ["symptom", "event"] })).toEqual([event.id, symptom.id]);
+    expect(await ids({ groupId: group.id, from: hour(9), to: hour(10) })).toEqual([symptom.id]);
+  });
+
+  it("rejects a malformed cursor", async () => {
+    const { u, group } = await setup();
+    for (const cursor of ["not-a-cursor", Buffer.from('["x","y"]').toString("base64url")]) {
+      expect(codeOf(await timelineEntryService.list(u.viewer.ctx, { groupId: group.id, cursor }))).toBe(
+        "timelineEntryModel:badCursor",
+      );
+    }
+  });
+});

@@ -1,7 +1,7 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
 
-import { date, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { date, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import { careGroupSchema } from "./careGroup";
@@ -10,19 +10,27 @@ import { audits, id, timestamps } from "./columns";
 // The person a care group looks after: a profile, not an account. Exactly
 // one per group for now (the unique group_id); dropping that constraint is
 // all it takes to allow several later.
-export const careRecipientSchema = pgTable("care_recipient", {
-  id: id(),
-  groupId: uuid("group_id")
-    .notNull()
-    .unique()
-    .references(() => careGroupSchema.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  preferredName: text("preferred_name"),
-  dateOfBirth: date("date_of_birth", { mode: "string" }),
-  notes: text("notes"),
-  ...timestamps,
-  ...audits,
-});
+export const careRecipientSchema = pgTable(
+  "care_recipient",
+  {
+    id: id(),
+    groupId: uuid("group_id")
+      .notNull()
+      .unique()
+      .references(() => careGroupSchema.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    preferredName: text("preferred_name"),
+    dateOfBirth: date("date_of_birth", { mode: "string" }),
+    notes: text("notes"),
+    ...timestamps,
+    ...audits,
+  },
+  (t) => [
+    // Target of composite FKs (e.g. timeline_entry), so the database itself
+    // guarantees a row's recipient belongs to the row's group.
+    unique("care_recipient_group_id_id_unique").on(t.groupId, t.id),
+  ],
+);
 
 export type CareRecipientSchema = typeof careRecipientSchema;
 export type CareRecipientSelect = InferSelectModel<CareRecipientSchema>;
