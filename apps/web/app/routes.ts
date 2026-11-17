@@ -10,7 +10,11 @@ const appRoutes = [
 ];
 
 // Web-only: marketing, auth callbacks, anything needing server loaders.
-const webRoutes = [index("routes/marketing/home.tsx"), route("api/auth/*", "routes/api/auth.ts")];
+const webRoutes = [
+  index("routes/marketing/home.tsx"),
+  route("api/auth/*", "routes/api/auth.ts"),
+  route("rpc/*", "routes/rpc.ts"),
+];
 
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.
 const nativeRoutes = [index("routes/native-index.tsx")];

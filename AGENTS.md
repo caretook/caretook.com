@@ -61,11 +61,19 @@ Planned feature areas, listed only to inform stack decisions:
 ### API: oRPC
 
 - ✅ **oRPC** over tRPC. It has built-in OpenAPI output (useful later for AI tool calls, MCP and third-party integrations), an optional contract-first mode, native file and blob support, streaming, and adapters for fetch, Node and Lambda. Trade-offs: it's younger and has a smaller community than tRPC.
-- 🟡 The API logic lives in its own package (planned as `packages/api`), with no dependency on any runtime, so it can be mounted in several places:
+- ✅ The API logic lives in its own package (`packages/api`, `@caretook/api`), with no dependency on any runtime, so it can be mounted in several places:
   - in a React Router **resource route** on Vercel (e.g. `/rpc/*`), called over HTTP by the web and native apps;
   - called **directly on the server** from web-only server loaders, with no HTTP hop;
   - in an **AWS worker** for long-running jobs.
 - `/app` routes call the oRPC client from `clientLoader`, so they run the same way on web and native.
+- ✅ Built as follows:
+  - **Procedures:** `publicProcedure` and `authedProcedure` (`procedures.ts`). The context is `{ authUser }`, resolved by the mount point with `getAuthUser`; procedures never read requests.
+  - **Errors:** handlers call services and `unwrap()` the results. `toORPCError` maps an `AppError`'s `statusCode` to an oRPC code (400 `BAD_REQUEST`, 401, 403, 404, 409), with `data: { code, issues? }`. Anything else becomes a generic 500 and is logged, never leaked.
+  - **Procedures so far:** `me.get`, `careGroup.listMine`, `careGroup.members` (public profiles only: name, image, role, **no email**), and `timeline.list`/`create`/`update`/`remove`.
+  - **Responses:** `dto.ts` turns Postgres timestamps into ISO 8601. Inputs reuse the client-safe Zod schemas from `@caretook/data/schema`.
+  - **HTTP:** `createRpcHandler({ prefix, allowedOrigins })` returns a fetch-style `(request, authUser) => Response`. CSRF protection comes from oRPC's `SimpleCsrfProtection` plugins: every call needs `x-csrf-token`, which the client link adds. CORS allows only listed origins (Capacitor's plus `AUTH_TRUSTED_ORIGINS`), and GET is refused.
+  - **Mounting:** apps/web mounts it at `/rpc/*` (`routes/rpc.ts`, web only) through `app/.server/api.ts`. The browser client is `app/lib/rpc.ts` (`RouterClient<Router>`, a **type-only** import of the router), which sends cookies.
+  - **Tests:** `router.int.test.ts` calls procedures through `createRouterClient` and tests the HTTP handler with real `Request`s (CSRF, CORS, 401 and 404).
 
 ### Hosting
 
@@ -152,7 +160,7 @@ The shared space care data belongs to: the caretakers looking after one care rec
 - ❓ Consent: inviting someone shares health data. What does the inviter or recipient confirm, and where is it recorded? Probably a field on the invite, or an audit row, at accept time.
 - ❓ Account deletion by a group's last owner: today the cascade leaves the group without an owner. Block deletion until ownership is handed over, delete their sole-owner groups, or promote someone automatically?
 - ❓ How a membership removal propagates to devices that have already synced the group's data offline (PowerSync sync rules plus local data wipe).
-- ❓ Co-members can read each other's full user row, including `role` and `emailVerified`. Expose a narrower public profile at the API layer.
+- 🟡 Co-members can read each other's full user row in the data layer, including `role` and `emailVerified`. The API exposes only public profiles (`careGroup.members`: name, image, role), so keep it that way for any new procedure.
 
 ### Shared timeline (iteration 1, in progress)
 
@@ -176,7 +184,7 @@ The first full vertical slice: a seeded user signs in, picks one of their care g
 - 🟡 Phases:
   1. ✅ Timeline data layer (schema, permissions, model, service, seeds, independent integration tests).
   2. ✅ Auth (`packages/auth`, Better Auth 1.7.25, pinned exactly). See _Auth_ below.
-  3. `packages/api` (oRPC) with context `{ authUser }`, mapping `AppError` to `ORPCError`. Procedures: `me.get`, `careGroup.listMine` and `timeline.list`/`create`/`update`/`remove`. It's mounted at `/rpc/*`, with a client in `app/lib/rpc.ts`.
+  3. ✅ API (`packages/api`, oRPC 1.16.2). See _API: oRPC_.
   4. Screens: sign in, a plain list of my groups (skipped when there's only one), and `/app/groups/:groupId/timeline`.
 - Out of scope: sign-up and create-group UI, invite accept and consent, email verification and reset, PowerSync, appointments, attachments, Playwright, deploy.
 - ✅ Sign-in: **email + password** in iteration 1, so no email provider is needed yet. Better Auth's `emailAndPassword` hashes passwords into `account`. Seeds create password accounts for the `@example.com` dev users (a shared dev password from `.env`, hashed with Better Auth's own hasher). The seeds also hold the only care group (Dev Family), so there's no sign-up or create-group UI in this iteration; both come with Resend and invites.
@@ -324,9 +332,11 @@ apps/web/              @caretook/web: React Router 8, Vite 8
 apps/web/app/.server/data.ts  re-exports @caretook/data (server-only door); auth.ts → @caretook/auth
   app/lib/             auth-client.ts (browser auth), redirect.ts (safeRedirect), form.ts
   app/routes/api/auth.ts  Better Auth handler at /api/auth/* (web only)
+  app/routes/rpc.ts    oRPC at /rpc/* (web only); app/lib/rpc.ts is the typed client
   app/routes/sign-in.tsx, sign-out.tsx  shared, client-only
   .env.example         auth env (BETTER_AUTH_SECRET, BETTER_AUTH_URL, …)
 packages/auth/         @caretook/auth: Better Auth config, getAuthUser, browser client
+packages/api/          @caretook/api: oRPC router, procedures, error mapping, HTTP handler
 packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
   drizzle.config.ts    drizzle-kit config
   scripts/             tsx CLI runners: migrate, seed, clear
@@ -371,5 +381,4 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
 
 1. Make the integration tests independent of each other, as `timelineEntry.int.test.ts` already is (a `setup()` per test). `careGroup.int.test.ts` shares one group across `describe` blocks, so a single failure cascades into others. Then widen coverage to every role against every table.
 2. Choose the hosted database (it must be in the same region as the Vercel functions, with pooling) and decide how production migrations run.
-3. `packages/api` (oRPC) calling the services, mounted in a React Router resource route.
-4. Auth (Better Auth, against the existing `user` table), then invite accept and consent, then a test PowerSync round trip (sync rules by group membership).
+3. Finish the timeline slice (Phase 4 screens), then the Resend iteration (invites, accept and consent), then a test PowerSync round trip (sync rules by group membership).

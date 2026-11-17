@@ -11,8 +11,11 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@caretook/api": "workspace:*",
     "@caretook/auth": "workspace:*",
     "@caretook/data": "workspace:*",
+    "@orpc/client": "1.16.2",
+    "@orpc/server": "1.16.2",
     "@react-router/node": "^8.5.1",
     "@react-router/serve": "^8.5.1",
     "isbot": "^5.1.40",
