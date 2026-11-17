@@ -5,3 +5,7 @@
 // and by the permissions map); Zod schemas are `<name><Select|Insert|Update>ZSchema`.
 export * from "./columns";
 export * from "./user";
+export * from "./careGroup";
+export * from "./careGroupMember";
+export * from "./careRecipient";
+export * from "./careGroupInvite";

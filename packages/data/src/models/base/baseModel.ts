@@ -1,26 +1,17 @@
 import type { SQL } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { DbQueryWith, DbSchemaName, DbSelect, Tx } from "../../db";
-import type { AuthUser } from "../../permissions";
-import type {
-  Filter,
-  QueryCreateArgs,
-  QuerySelectArgs,
-  QueryUpdateArgs,
-} from "./queryHelpers";
+import type { AppError } from "../../errors";
+import type { AuthUser, PermissionScope } from "../../permissions";
+import type { Filter, QueryCreateArgs, QuerySelectArgs, QueryUpdateArgs } from "./queryHelpers";
 
-import { count, eq } from "drizzle-orm";
+import { count, eq, or, sql } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { dbMayFail, getSchema, txOrDb } from "../../db";
 import { PROTECTED_FIELDS } from "../../db/schema";
 import { isError, newError } from "../../errors";
 import { getPermissionScope, getUnauthorizedFields, rejectError } from "../../permissions";
-import {
-  generateOrderBy,
-  generateQueryWhere,
-  isFilterEmpty,
-  paginate,
-} from "./queryHelpers";
+import { generateOrderBy, generateQueryWhere, isFilterEmpty, paginate, scopeRuleToSql } from "./queryHelpers";
 
 export type BaseModelArgs<K extends DbSchemaName, TRow, TModel> = {
   schemaName: K;
@@ -60,8 +51,32 @@ const actorId = (authUser: AuthUser | null) => authUser?.id ?? SYSTEM_USER.id;
 const omitFields = (data: Row, fields: readonly string[]): Row =>
   Object.fromEntries(Object.entries(data).filter(([key]) => !fields.includes(key)));
 
-const idFilter = <K extends DbSchemaName>(id: string) =>
-  ({ id: { type: "eq", value: id } }) as Filter<K>;
+/**
+ * Whether `data` (a row about to be written) satisfies at least one of the
+ * scope's rules whose field it sets. `owned` is checked here; group rules
+ * ask the database, since they depend on membership.
+ */
+const dataInScope = async (scope: PermissionScope, data: Row, tx?: Tx): Promise<boolean | AppError> => {
+  if (scope.type === "all") return true;
+  const rules = scope.rules.filter((rule) => data[rule.field] !== undefined);
+
+  if (rules.some((rule) => rule.type === "owned" && data[rule.field] === rule.userId)) return true;
+
+  const groupRules = rules.filter((rule) => rule.type !== "owned");
+  if (!groupRules.length) return false;
+
+  const res = await dbMayFail(
+    () =>
+      txOrDb(tx).execute<{ ok: boolean }>(
+        sql`SELECT (${or(...groupRules.map((rule) => scopeRuleToSql(sql`${data[rule.field]}::uuid`, rule)))}) AS ok`,
+      ),
+    "baseModel:scopeCheck",
+  );
+  if (isError(res)) return res;
+  return res.rows[0]?.ok === true;
+};
+
+const idFilter = <K extends DbSchemaName>(id: string) => ({ id: { type: "eq", value: id } }) as Filter<K>;
 
 const idsFilter = <K extends DbSchemaName>(ids: string[]) =>
   ({ id: { type: "inArray", value: ids } }) as Filter<K>;
@@ -71,7 +86,11 @@ const idsFilter = <K extends DbSchemaName>(ids: string[]) =>
 // ---------------------------------------------------------------------------
 
 export const get =
-  <K extends DbSchemaName, TRow, TModel>({ schemaName, dbToModel, getWith }: BaseModelArgs<K, TRow, TModel>) =>
+  <K extends DbSchemaName, TRow, TModel>({
+    schemaName,
+    dbToModel,
+    getWith,
+  }: BaseModelArgs<K, TRow, TModel>) =>
   async (args: QuerySelectArgs<K>) => {
     const where = generateQueryWhere(schemaName, "read", args);
     if (isError(where)) return where;
@@ -92,7 +111,11 @@ export const getById =
     get(model)({ ...args, filter: idFilter<K>(id) });
 
 export const list =
-  <K extends DbSchemaName, TRow, TModel>({ schemaName, dbToModel, getWith }: BaseModelArgs<K, TRow, TModel>) =>
+  <K extends DbSchemaName, TRow, TModel>({
+    schemaName,
+    dbToModel,
+    getWith,
+  }: BaseModelArgs<K, TRow, TModel>) =>
   async (args: QuerySelectArgs<K>) => {
     const where = generateQueryWhere(schemaName, "list", args);
     if (isError(where)) return where;
@@ -139,17 +162,18 @@ export const create =
     const scope = getPermissionScope(schemaName, "create", authUser);
     if (isError(scope)) return scope;
 
-    const data = omitFields(args.data as Row, PROTECTED_FIELDS);
+    const data = omitFields(args.data, PROTECTED_FIELDS);
 
     const unauthorizedFields = getUnauthorizedFields({ schemaName, permission: "create", authUser, data });
     if (unauthorizedFields.length) {
       return newError({ code: "permissions:fieldUnauthorized", meta: { fields: unauthorizedFields } });
     }
 
-    // `owned` create: the new row must belong to the acting user.
-    if (scope.type === "owned" && data[scope.ownerField] !== scope.ownerId) {
-      return rejectError(authUser);
-    }
+    // A scoped create must land inside the scope: an `owned` row belongs to
+    // the actor, a `group` row to a group where the actor has a granting role.
+    const inScope = await dataInScope(scope, data, args.tx);
+    if (isError(inScope)) return inScope;
+    if (!inScope) return rejectError(authUser);
 
     // `id` may be supplied: offline clients generate their own UUIDs.
     const table = getTable(schemaName);
@@ -183,16 +207,19 @@ export const update =
     const scope = getPermissionScope(schemaName, "update", authUser);
     if (isError(scope)) return scope;
 
-    const data = omitFields(args.data as Row, ["id", ...PROTECTED_FIELDS]);
+    const data = omitFields(args.data, ["id", ...PROTECTED_FIELDS]);
 
     const unauthorizedFields = getUnauthorizedFields({ schemaName, permission: "update", authUser, data });
     if (unauthorizedFields.length) {
       return newError({ code: "permissions:fieldUnauthorized", meta: { fields: unauthorizedFields } });
     }
 
-    // `owned` update: rows can't be handed to another user.
-    if (scope.type === "owned" && scope.ownerField in data && data[scope.ownerField] !== scope.ownerId) {
-      return rejectError(authUser);
+    // Rows can't be moved out of the actor's scope (handed to another user
+    // or another group). Only checked when the update sets a scoped field.
+    if (scope.type === "rules" && scope.rules.some((rule) => data[rule.field] !== undefined)) {
+      const inScope = await dataInScope(scope, data, args.tx);
+      if (isError(inScope)) return inScope;
+      if (!inScope) return rejectError(authUser);
     }
 
     const where = generateQueryWhere(schemaName, "update", args);

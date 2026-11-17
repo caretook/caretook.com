@@ -10,6 +10,8 @@ const seedAudits = { createdBy: SYSTEM_USER.id, updatedBy: SYSTEM_USER.id };
 export const USERS: UserInsert[] = [
   { email: "admin@example.com", name: "Dev Admin", role: "admin", emailVerified: true },
   { email: "member@example.com", name: "Dev Member", role: "member", emailVerified: true },
+  { email: "caretaker@example.com", name: "Dev Caretaker", role: "member", emailVerified: true },
+  { email: "viewer@example.com", name: "Dev Viewer", role: "member", emailVerified: true },
 ];
 
 export const seed = async () => {

@@ -73,6 +73,18 @@ export const MODEL_ERRORS = {
   "baseModel:upsert": {
     message: "Failed to upsert. Do you have permission?",
   },
+  "baseModel:scopeCheck": {
+    message: "Failed to check permissions for the data being written",
+  },
+  "careGroupMemberModel:getRole": {
+    message: "Failed to look up group role",
+  },
+  "careGroupMemberModel:lockOwners": {
+    message: "Failed to lock group owners",
+  },
+  "careGroupMemberModel:insertFirstOwner": {
+    message: "Failed to add the group's first owner",
+  },
   "userModel:notFound": {
     message: "User not found",
     statusCode: 404,
@@ -82,6 +94,30 @@ export const MODEL_ERRORS = {
 export const SERVICE_ERRORS = {
   "userService:notFound": {
     message: "No user found",
+    statusCode: 404,
+  },
+  "careGroupService:notFound": {
+    message: "Care group not found",
+    statusCode: 404,
+  },
+  "careGroupMemberService:notFound": {
+    message: "Group member not found",
+    statusCode: 404,
+  },
+  "careGroupMemberService:ownerOnly": {
+    message: "Only an owner can add, change or remove owners",
+    statusCode: 403,
+  },
+  "careGroupMemberService:lastOwner": {
+    message: "A care group needs at least one owner. Make someone else an owner first.",
+    statusCode: 409,
+  },
+  "careGroupInviteService:ownerOnly": {
+    message: "Only an owner can invite someone as an owner",
+    statusCode: 403,
+  },
+  "careGroupInviteService:notFound": {
+    message: "Invitation not found, or no longer pending",
     statusCode: 404,
   },
 } as const;

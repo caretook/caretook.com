@@ -11,3 +11,19 @@ export type * from "./base/queryHelpers";
 import * as userModel from "./user";
 export { userModel };
 export type * from "./user/types";
+
+import * as careGroupModel from "./careGroup";
+export { careGroupModel };
+export type * from "./careGroup/types";
+
+import * as careGroupMemberModel from "./careGroupMember";
+export { careGroupMemberModel };
+export type * from "./careGroupMember/types";
+
+import * as careRecipientModel from "./careRecipient";
+export { careRecipientModel };
+export type * from "./careRecipient/types";
+
+import * as careGroupInviteModel from "./careGroupInvite";
+export { careGroupInviteModel };
+export type * from "./careGroupInvite/types";

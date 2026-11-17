@@ -4,10 +4,26 @@ export { baseService };
 import * as userService from "./userService";
 export { userService };
 
+import * as careGroupService from "./careGroupService";
+export { careGroupService };
+
+import * as careGroupMemberService from "./careGroupMemberService";
+export { careGroupMemberService };
+
+import * as careRecipientService from "./careRecipientService";
+export { careRecipientService };
+
+import * as careGroupInviteService from "./careGroupInviteService";
+export { careGroupInviteService };
+
 export type * from "./types";
 
 export const services = {
   user: userService,
+  careGroup: careGroupService,
+  careGroupMember: careGroupMemberService,
+  careRecipient: careRecipientService,
+  careGroupInvite: careGroupInviteService,
 };
 
 export type ServiceTypeMap = typeof services;

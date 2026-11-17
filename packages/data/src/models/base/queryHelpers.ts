@@ -10,7 +10,7 @@ import type {
 } from "../../db";
 import type { ProtectedField } from "../../db/schema";
 import type { AppError } from "../../errors";
-import type { AuthUser, PermissionScope, SchemaPermission } from "../../permissions";
+import type { AuthUser, PermissionScope, SchemaPermission, ScopeRule } from "../../permissions";
 
 import {
   and,
@@ -31,9 +31,12 @@ import {
   notInArray,
   notLike,
   or,
+  sql,
 } from "drizzle-orm";
+import { alias, QueryBuilder } from "drizzle-orm/pg-core";
 import { MAX_PAGE_SIZE } from "../../constants";
 import { getSchema } from "../../db";
+import { careGroupMemberSchema } from "../../db/schema";
 import { isError, newError } from "../../errors";
 import { getPermissionScope } from "../../permissions";
 
@@ -56,12 +59,19 @@ export type QuerySelectArgs<K extends DbSchemaName> = QueryCommonArgs & {
   with?: DbQueryWith<K>;
 };
 
+/**
+ * `T` without the fields callers may never write. Not `Omit`: on a generic
+ * `DbInsert<K>`, `Omit` drops optional columns (`id`, anything with a
+ * default) once K is instantiated. Key remapping keeps them.
+ */
+export type WithoutProtected<T> = { [P in keyof T as P extends ProtectedField ? never : P]: T[P] };
+
 export type QueryCreateArgs<K extends DbSchemaName> = QueryCommonArgs & {
-  data: Omit<DbInsert<K>, ProtectedField>;
+  data: WithoutProtected<DbInsert<K>>;
 };
 
 export type QueryUpdateArgs<K extends DbSchemaName> = QuerySelectArgs<K> & {
-  data: Omit<DbUpdate<K>, ProtectedField>;
+  data: WithoutProtected<DbUpdate<K>>;
 };
 
 // ---------------------------------------------------------------------------
@@ -170,13 +180,56 @@ export const filterToSql = <K extends DbSchemaName>(
   return and(...parts);
 };
 
+// ---------------------------------------------------------------------------
+// Permission scopes
+// ---------------------------------------------------------------------------
+
+// Aliased so the subqueries never collide with the outer table (queries on
+// care_group_member itself are scoped by a subquery on care_group_member).
+const scopeMember = alias(careGroupMemberSchema, "scope_member");
+const scopePeer = alias(careGroupMemberSchema, "scope_peer");
+const qb = new QueryBuilder();
+
+/** Ids of the groups `userId` belongs to with one of `roles`. */
+const actorGroupIds = (userId: string, roles: readonly string[]) =>
+  qb
+    .select({ groupId: scopeMember.groupId })
+    .from(scopeMember)
+    .where(and(eq(scopeMember.userId, userId), inArray(scopeMember.role, roles as never[])));
+
+/**
+ * The condition one rule puts on `operand`: a column of the scoped table, or
+ * a bound value when checking data about to be written.
+ */
+export const scopeRuleToSql = (operand: SQL, rule: ScopeRule): SQL => {
+  switch (rule.type) {
+    case "owned":
+      return eq(operand, rule.userId);
+    case "group":
+      return inArray(operand, actorGroupIds(rule.userId, rule.groupRoles));
+    case "groupUser":
+      return inArray(
+        operand,
+        qb
+          .select({ userId: scopePeer.userId })
+          .from(scopePeer)
+          .where(inArray(scopePeer.groupId, actorGroupIds(rule.userId, rule.groupRoles))),
+      );
+  }
+};
+
 /** The WHERE clause a permission scope requires (`undefined` = unrestricted). */
 export const scopeToSql = (schemaName: DbSchemaName, scope: PermissionScope): SQL | undefined => {
   if (scope.type === "all") return undefined;
-  const column = getColumns(schemaName)[scope.ownerField];
-  // A misconfigured ownerField must never widen access.
-  if (!column) throw new Error(`ownerField "${scope.ownerField}" not found on ${schemaName}`);
-  return eq(column, scope.ownerId);
+  const columns = getColumns(schemaName);
+  const parts = scope.rules.map((rule) => {
+    const column = columns[rule.field];
+    // A misconfigured field must never widen access.
+    if (!column) throw new Error(`Permission field "${rule.field}" not found on ${schemaName}`);
+    return scopeRuleToSql(sql`${column}`, rule);
+  });
+  // An empty rule list grants nothing (getPermissionScope never returns one).
+  return or(...parts) ?? sql`false`;
 };
 
 /**

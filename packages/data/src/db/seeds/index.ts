@@ -1,5 +1,6 @@
 import { newError } from "../../errors";
 import { dbMayFail } from "../client";
+import * as careGroups from "./careGroups";
 import * as users from "./users";
 
 /**
@@ -12,5 +13,6 @@ export const seed = async () => {
 
   return dbMayFail(async () => {
     await users.seed();
+    await careGroups.seed();
   }, "db:seed");
 };

@@ -1,5 +1,6 @@
 import type { DbSchemaName } from "../db/types";
 import type { AppError } from "../errors";
+import type { GroupRoleName } from "../constants/roles";
 import type {
   AuthUser,
   PermissionEntry,
@@ -8,8 +9,10 @@ import type {
   Permissions,
   RolePermission,
   SchemaPermission,
+  ScopeRule,
 } from "./types";
 
+import { GROUP_MANAGER_ROLES, GROUP_ROLE_NAMES, USER_ROLE_NAMES } from "../constants/roles";
 import { isError, newError } from "../errors";
 
 // ---------------------------------------------------------------------------
@@ -38,7 +41,29 @@ export const ADMIN_ONLY_PERMISSION_ENTRY = {
   system: ["all"],
 } as const satisfies PermissionEntry<DbSchemaName>;
 
+/** Any signed-in user, plus the system. */
+const SIGNED_IN_PERMISSION_ENTRY = {
+  ...NO_ACCESS,
+  admin: ["all"],
+  member: ["all"],
+  system: ["all"],
+} as const satisfies PermissionEntry<DbSchemaName>;
+
+/**
+ * Members of the row's care group with one of `roles`, plus the system.
+ * Global roles add nothing: staff only see care data in groups they belong to.
+ */
+const groupEntry = (roles: readonly GroupRoleName[]) =>
+  ({ ...NO_ACCESS, system: ["all"], group: roles }) as const satisfies PermissionEntry<DbSchemaName>;
+
 const STAFF_ONLY: readonly PermissionRoleName[] = ["admin", "system"];
+/** Set by services running as SYSTEM_USER, or not at all. */
+const SYSTEM_ONLY: readonly PermissionRoleName[] = ["system"];
+
+const ANY_GROUP_ROLE = GROUP_ROLE_NAMES;
+const MANAGERS = GROUP_MANAGER_ROLES;
+const OWNERS: readonly GroupRoleName[] = ["owner"];
+const WRITERS: readonly GroupRoleName[] = ["owner", "admin", "caretaker"];
 
 // ---------------------------------------------------------------------------
 // The permission map. Every table must have an entry (enforced by the type).
@@ -47,12 +72,12 @@ const STAFF_ONLY: readonly PermissionRoleName[] = ["admin", "system"];
 export const PERMISSIONS: Permissions = {
   userSchema: {
     ownerField: "id",
+    // Co-members of a care group can read each other (name, image, email).
+    groupUserField: "id",
     // Accounts are created by the auth flow (running as SYSTEM_USER) or by staff.
     create: ADMIN_ONLY_PERMISSION_ENTRY,
-    // TODO: once care circles exist, members need to read other members of
-    // their circles (a `circle` scope).
-    read: DEFAULT_PERMISSION_ENTRY,
-    list: DEFAULT_PERMISSION_ENTRY,
+    read: { ...DEFAULT_PERMISSION_ENTRY, group: ANY_GROUP_ROLE },
+    list: { ...DEFAULT_PERMISSION_ENTRY, group: ANY_GROUP_ROLE },
     update: {
       ...DEFAULT_PERMISSION_ENTRY,
       // Members can edit their profile but not escalate their role, and
@@ -65,6 +90,69 @@ export const PERMISSIONS: Permissions = {
     },
     // Members can delete their own account (a consumer-health-data requirement).
     delete: DEFAULT_PERMISSION_ENTRY,
+  },
+
+  careGroupSchema: {
+    groupField: "id",
+    // Anyone signed in can start a group. Use careGroupService.create, which
+    // makes the creator its first owner in the same transaction.
+    create: SIGNED_IN_PERMISSION_ENTRY,
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    update: groupEntry(MANAGERS),
+    delete: groupEntry(OWNERS),
+  },
+
+  // Role rules the map can't express (only owners touch owners, a group
+  // always keeps an owner) live in careGroupMemberService. Write through it.
+  careGroupMemberSchema: {
+    ownerField: "userId",
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: groupEntry(MANAGERS),
+    update: {
+      ...groupEntry(MANAGERS),
+      // A membership can change role, never group or user.
+      fields: { groupId: SYSTEM_ONLY, userId: SYSTEM_ONLY },
+    },
+    // Managers remove members; anyone can remove themselves (leave).
+    delete: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+  },
+
+  careRecipientSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: groupEntry(MANAGERS),
+    update: { ...groupEntry(WRITERS), fields: { groupId: SYSTEM_ONLY } },
+    delete: groupEntry(MANAGERS),
+  },
+
+  // Invites carry the invitee's email, so only managers see them. The
+  // invitee reads theirs by token through the service (as SYSTEM_USER).
+  careGroupInviteSchema: {
+    groupField: "groupId",
+    read: groupEntry(MANAGERS),
+    list: groupEntry(MANAGERS),
+    create: {
+      ...groupEntry(MANAGERS),
+      fields: { status: SYSTEM_ONLY, acceptedBy: SYSTEM_ONLY, respondedAt: SYSTEM_ONLY },
+    },
+    update: {
+      ...groupEntry(MANAGERS),
+      // Managers may only revoke (status); everything else is fixed.
+      fields: {
+        groupId: SYSTEM_ONLY,
+        email: SYSTEM_ONLY,
+        role: SYSTEM_ONLY,
+        tokenHash: SYSTEM_ONLY,
+        expiresAt: SYSTEM_ONLY,
+        acceptedBy: SYSTEM_ONLY,
+        respondedAt: SYSTEM_ONLY,
+      },
+    },
+    delete: groupEntry(MANAGERS),
   },
 };
 
@@ -96,11 +184,19 @@ export const rejectError = (authUser: AuthUser | null) =>
     code: authUser ? "permissions:unauthorized" : "permissions:unauthenticated",
   });
 
+/** The internal actor (SYSTEM_USER): bypasses service-level role rules too. */
+export const isSystemUser = (authUser: AuthUser | null) => !!authUser?.roleNames.includes("system");
+
+/** A real signed-in user (not the system actor, not anonymous). */
+const isSignedInUser = (authUser: AuthUser | null): authUser is AuthUser =>
+  !!authUser && authUser.roleNames.some((role) => USER_ROLE_NAMES.some((r) => r === role));
+
 /**
  * Resolve what `authUser` may do with `permission` on `schemaName`.
  *
- * A user with several roles gets the most permissive scope any role grants
- * ("all" > "owned"); "none" only means that role adds nothing.
+ * "all" from any global role wins outright. Otherwise the scope is the OR of
+ * every rule that applies: `owned` from a global role, plus `group` rules
+ * from the entry's group roles. No rules means no access.
  */
 export const getPermissionScope = (
   schemaName: DbSchemaName,
@@ -115,12 +211,31 @@ export const getPermissionScope = (
 
   if (permissions.includes("all")) return { type: "all" };
 
-  const { ownerField } = PERMISSIONS[schemaName];
+  const schemaEntry = PERMISSIONS[schemaName];
+  const { ownerField, groupField, groupUserField } = schemaEntry as {
+    ownerField?: string;
+    groupField?: string;
+    groupUserField?: string;
+  };
+  const rules: ScopeRule[] = [];
+
   if (permissions.includes("owned") && authUser && ownerField) {
-    return { type: "owned", ownerField, ownerId: authUser.id };
+    rules.push({ type: "owned", field: ownerField, userId: authUser.id });
   }
 
-  return rejectError(authUser);
+  const groupRoles = schemaEntry[permission].group;
+  if (groupRoles?.length && isSignedInUser(authUser)) {
+    // A misconfigured entry must fail loudly, never silently widen or drop access.
+    if (!groupField && !groupUserField) {
+      throw new Error(`${schemaName}.${permission} has group roles but no groupField or groupUserField`);
+    }
+    if (groupField) rules.push({ type: "group", field: groupField, userId: authUser.id, groupRoles });
+    if (groupUserField) {
+      rules.push({ type: "groupUser", field: groupUserField, userId: authUser.id, groupRoles });
+    }
+  }
+
+  return rules.length ? { type: "rules", rules } : rejectError(authUser);
 };
 
 /** Fields in `data` that `authUser` isn't allowed to set for this permission. */
@@ -136,8 +251,7 @@ export const getUnauthorizedFields = ({
   data: Record<string, unknown>;
 }): string[] => {
   const fields = PERMISSIONS[schemaName][permission].fields as
-    | Record<string, readonly PermissionRoleName[] | undefined>
-    | undefined;
+    Record<string, readonly PermissionRoleName[] | undefined> | undefined;
   if (!fields) return [];
 
   const roles = getRoleNames(authUser);
@@ -152,17 +266,34 @@ export type HasPermissionArgs = {
   authUser: AuthUser | null;
   schemaName: DbSchemaName;
   permission: SchemaPermission;
-  /** The row being acted on. Required to decide `owned` permissions. */
+  /** The row being acted on. Required to decide `owned` and `group` permissions. */
   target?: Record<string, unknown>;
 };
 
 /**
  * Boolean check for UI and business logic (e.g. "show the edit button").
  * The model layer enforces the same rules in SQL; this never replaces that.
+ *
+ * `group` rules are decided from `authUser.groupRoles`. Without it, or for
+ * `groupUser` rules (which depend on other users' memberships), they're false.
  */
 export const hasPermission = ({ authUser, schemaName, permission, target }: HasPermissionArgs) => {
   const scope = getPermissionScope(schemaName, permission, authUser);
   if (isError(scope)) return false;
   if (scope.type === "all") return true;
-  return target?.[scope.ownerField] === scope.ownerId;
+  if (!target) return false;
+
+  return scope.rules.some((rule) => {
+    const value = target[rule.field];
+    switch (rule.type) {
+      case "owned":
+        return value === rule.userId;
+      case "group": {
+        const role = typeof value === "string" ? authUser?.groupRoles?.[value] : undefined;
+        return !!role && rule.groupRoles.includes(role);
+      }
+      case "groupUser":
+        return false;
+    }
+  });
 };
