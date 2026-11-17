@@ -1,0 +1,23 @@
+# Local development datastore. Start it with `pnpm datastore:start`.
+name: caretook
+
+services:
+  postgres:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_USER: caretook
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: caretook
+    # PowerSync reads changes through logical replication.
+    command: ["postgres", "-c", "wal_level=logical"]
+    # Host ports avoid 5432 so this can run next to other local Postgres instances.
+    ports:
+      - "5434:5432"
+    volumes:
+      # Postgres 18+ images keep data in a versioned subdirectory of /var/lib/postgresql.
+      - ./.postgres/data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caretook -d caretook"]
+      interval: 2s
+      timeout: 5s
+      retries: 15

@@ -2,7 +2,7 @@
   "name": "caretook",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.34.9",
+  "packageManager": "pnpm@12.21.0",
   "engines": {
     "node": ">=24.22.0"
   },
@@ -10,6 +10,20 @@
     "dev": "pnpm --filter @caretook/web dev",
     "build": "pnpm -r build",
     "build:native": "pnpm --filter @caretook/web build:native",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "datastore:start": "pnpm datastore:up && pnpm datastore:migrate && pnpm datastore:seed",
+    "datastore:up": "docker compose up -d --wait",
+    "datastore:stop": "docker compose down",
+    "datastore:logs": "docker compose logs -f",
+    "datastore:generate": "pnpm --filter @caretook/data datastore:generate",
+    "datastore:migrate": "pnpm --filter @caretook/data datastore:migrate",
+    "datastore:seed": "pnpm --filter @caretook/data datastore:seed",
+    "datastore:clear": "pnpm --filter @caretook/data datastore:clear",
+    "datastore:reset": "pnpm datastore:clear && pnpm datastore:migrate && pnpm datastore:seed",
+    "datastore:studio": "pnpm --filter @caretook/data datastore:studio",
+    "datastore:start:test": "pnpm datastore:up:test && NODE_ENV=test pnpm datastore:migrate",
+    "datastore:up:test": "docker compose -p caretook-test -f docker-compose.test.yml up -d --wait",
+    "datastore:stop:test": "docker compose -p caretook-test -f docker-compose.test.yml down",
+    "datastore:reset:test": "NODE_ENV=test pnpm datastore:clear && NODE_ENV=test pnpm datastore:migrate"
   }
 }

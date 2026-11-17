@@ -1,0 +1,16 @@
+import { newError } from "../../errors";
+import { dbMayFail } from "../client";
+import * as users from "./users";
+
+/**
+ * Insert development data. Each seed must be idempotent (safe to re-run).
+ * Seeds write straight to the tables (no models), so they also work before
+ * any users exist. Order matters once tables reference each other.
+ */
+export const seed = async () => {
+  if (process.env.NODE_ENV === "production") return newError({ code: "db:seed:production" });
+
+  return dbMayFail(async () => {
+    await users.seed();
+  }, "db:seed");
+};
