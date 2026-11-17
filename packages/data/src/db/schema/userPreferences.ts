@@ -21,8 +21,14 @@ export const unitChoicesZSchema = z.strictObject({
   volume: z.enum(UNIT_OPTIONS.volume),
 });
 
+/** How the timeline lists entries: dense rows, or one card per entry. */
+export const TIMELINE_VIEWS = ["rows", "cards"] as const;
+export type TimelineView = (typeof TIMELINE_VIEWS)[number];
+export const DEFAULT_TIMELINE_VIEW: TimelineView = "rows";
+
 export const userPreferencesZSchema = z.strictObject({
   units: unitChoicesZSchema.partial().optional(),
+  timelineView: z.enum(TIMELINE_VIEWS).optional(),
 });
 export type UserPreferences = z.infer<typeof userPreferencesZSchema>;
 
@@ -31,3 +37,6 @@ export const resolveUnits = (prefs: UserPreferences | null | undefined): UnitCho
   ...DEFAULT_UNITS,
   ...prefs?.units,
 });
+
+export const resolveTimelineView = (prefs: UserPreferences | null | undefined): TimelineView =>
+  prefs?.timelineView ?? DEFAULT_TIMELINE_VIEW;

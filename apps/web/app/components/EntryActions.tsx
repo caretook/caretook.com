@@ -1,11 +1,21 @@
+import { Ellipsis } from "lucide-react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 
 /** The ⋯ menu on a timeline entry (React Aria: arrow keys, typeahead, focus return). */
-export function EntryActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+export function EntryActions({
+  label,
+  onEdit,
+  onDelete,
+}: {
+  /** Names the entry for screen readers, e.g. "Actions for note at 2:27 PM". */
+  label: string;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   return (
     <MenuTrigger>
-      <Button aria-label="Entry actions" className="btn btn-ghost btn-sm btn-square">
-        <span aria-hidden="true">⋯</span>
+      <Button aria-label={label} className="btn btn-ghost btn-sm btn-square -my-1 shrink-0">
+        <Ellipsis className="size-4" aria-hidden="true" />
       </Button>
       <Popover placement="bottom end" className="rounded-box border-base-300 bg-base-100 border shadow-lg">
         <Menu className="menu w-36 outline-none">

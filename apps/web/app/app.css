@@ -15,3 +15,16 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+/* EntrySheet: fades in the backdrop, slides the sheet up (only when motion is OK). */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+}

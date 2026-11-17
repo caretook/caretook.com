@@ -89,6 +89,10 @@ export const list = (ctx: ServiceContext, { groupId, kinds, from, to, ...opts }:
   return timelineEntryModel.listPage({ ...ctx, ...opts, filter });
 };
 
+/** The newest reading of each vital type in a group, with the entry it came from. */
+export const latestVitals = (ctx: ServiceContext, { groupId }: { groupId: string }) =>
+  timelineEntryModel.latestReadings({ ...ctx, filter: { groupId: { type: "eq", value: groupId } } });
+
 // ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------

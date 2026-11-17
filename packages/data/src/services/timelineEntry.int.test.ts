@@ -423,3 +423,37 @@ describe("listing", () => {
     }
   });
 });
+
+describe("latest vitals", () => {
+  const vital = (occurredAt: string, readings: unknown[]) =>
+    ({ kind: "vital", body: undefined, occurredAt, details: { readings } }) as never;
+
+  it("returns the newest reading of each type, skipping deleted entries", async () => {
+    const { u, group, addNote } = await setup();
+    await addNote(
+      vital("2026-11-15T08:00:00.000Z", [
+        { type: "heartRate", value: 60 },
+        { type: "spo2", value: 97 },
+      ]),
+    );
+    const newer = await addNote(vital("2026-11-16T08:00:00.000Z", [{ type: "heartRate", value: 70 }]));
+    const deleted = await addNote(vital("2026-11-17T08:00:00.000Z", [{ type: "heartRate", value: 99 }]));
+    await addNote({ kind: "note", body: "Not a vital", occurredAt: "2026-11-17T09:00:00.000Z" });
+    ok(await timelineEntryService.remove(u.caretaker.ctx, deleted.id));
+
+    const rows = ok(await timelineEntryService.latestVitals(u.viewer.ctx, { groupId: group.id }));
+    const byType = Object.fromEntries(rows.map((r) => [r.reading.type, r]));
+    expect(Object.keys(byType).sort()).toEqual(["heartRate", "spo2"]);
+    expect(byType.heartRate).toMatchObject({ entryId: newer.id, reading: { value: 70 } });
+    expect(byType.spo2).toMatchObject({ reading: { value: 97 } });
+    expect(new Date(byType.heartRate!.occurredAt).toISOString()).toBe("2026-11-16T08:00:00.000Z");
+  });
+
+  it("shows outsiders and staff nothing", async () => {
+    const { u, group, addNote } = await setup();
+    await addNote(vital("2026-11-16T08:00:00.000Z", [{ type: "heartRate", value: 70 }]));
+    for (const actor of [u.outsider, u.staff]) {
+      expect(ok(await timelineEntryService.latestVitals(actor.ctx, { groupId: group.id }))).toEqual([]);
+    }
+  });
+});

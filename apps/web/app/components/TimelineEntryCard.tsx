@@ -1,107 +1,48 @@
-import type { UnitChoices } from "@caretook/data/schema";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { EntryViewProps } from "./TimelineEntryRow";
 
-import { useCallback, useState } from "react";
-import { useFetcher } from "react-router";
-import {
-  formatReading,
-  isKnownReading,
-  isSymptomDetails,
-  isVitalDetails,
-  TIMELINE_LIMITS,
-} from "@caretook/data/schema";
+import { entrySummary, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
-import { ConfirmDialog } from "./ConfirmDialog";
 import { EntryActions } from "./EntryActions";
-import { EntryForm } from "./EntryForm";
+import { KindIcon } from "./KindIcon";
+import { actionsLabel, Readings } from "./TimelineEntryRow";
 
-const KIND_LABEL = { note: "Note", symptom: "Symptom", event: "Event", vital: "Vitals" } as const;
-const KIND_BADGE = {
-  note: "badge-ghost",
-  symptom: "badge-warning",
-  event: "badge-info",
-  vital: "badge-success",
-} as const;
-
-export function TimelineEntryCard({
-  entry,
-  authorName,
-  canWrite,
-  units,
-}: {
-  entry: TimelineEntry;
-  authorName: string;
-  canWrite: boolean;
-  units: UnitChoices;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const remover = useFetcher();
-  const stopEditing = useCallback(() => setEditing(false), []);
-
-  const removing = remover.state !== "idle";
+/** One entry as a compact card: summary and time on one line, the full text, then who wrote it. */
+export function TimelineEntryCard({ entry, authorName, units, removing, onEdit, onDelete }: EntryViewProps) {
+  const { heading, severity, readings, body } = entrySummary(entry, units);
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
-  const symptom = isSymptomDetails(entry.details) ? entry.details : undefined;
-  const readings = isVitalDetails(entry.details) ? entry.details.readings.filter(isKnownReading) : [];
-  const heading = entry.kind === "symptom" ? symptom?.name : entry.title;
-
-  if (editing) {
-    return (
-      <li className="card bg-base-100 shadow-sm">
-        <div className="card-body">
-          <h3 className="font-semibold">Edit {KIND_LABEL[entry.kind].toLowerCase()}</h3>
-          <EntryForm entry={entry} units={units} onDone={stopEditing} onCancel={stopEditing} />
-        </div>
-      </li>
-    );
-  }
+  // The first line is the title (or symptom name), else the readings, else the text itself.
+  const lead = heading ? "heading" : readings.length ? "readings" : "body";
 
   return (
-    <li className={`card bg-base-100 shadow-sm ${removing ? "opacity-50" : ""}`}>
-      <div className="card-body gap-1 p-4">
-        <div className="flex items-start gap-2">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-            <span className={`badge badge-sm ${KIND_BADGE[entry.kind]}`}>{KIND_LABEL[entry.kind]}</span>
-            <time dateTime={entry.occurredAt} className="text-sm font-medium">
-              {formatTime(entry.occurredAt)}
-            </time>
-            {elsewhere && <span className="text-base-content/60 text-xs">({elsewhere})</span>}
-          </div>
-          {canWrite && <EntryActions onEdit={() => setEditing(true)} onDelete={() => setConfirming(true)} />}
-        </div>
-
-        {heading && (
-          <h3 className="font-semibold">
-            {heading}
-            {symptom?.severity != null && (
-              <span className="text-base-content/70 font-normal">
-                {" "}
-                · severity {symptom.severity}/{TIMELINE_LIMITS.severityMax}
-              </span>
+    <li
+      className={`rounded-box border-base-300 bg-base-100 flex items-start gap-3 border p-3 ${removing ? "opacity-50" : ""}`}
+    >
+      <KindIcon kind={entry.kind} />
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <span className="sr-only">{KIND_META[entry.kind].label}: </span>
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="min-w-0 break-words">
+            {lead === "heading" && (
+              <p className="font-semibold">
+                {heading}
+                {severity && <span className="text-base-content/70 font-normal"> · {severity}</span>}
+              </p>
             )}
-          </h3>
-        )}
-        {readings.length > 0 && (
-          <ul className="flex flex-wrap gap-x-3 gap-y-1 font-semibold tabular-nums">
-            {readings.map((r) => (
-              <li key={r.type}>{formatReading(r, units)}</li>
-            ))}
-          </ul>
-        )}
-        {entry.body && <p className="whitespace-pre-wrap">{entry.body}</p>}
-        <p className="text-base-content/60 text-xs">{authorName}</p>
+            {lead === "readings" && <Readings readings={readings} />}
+            {lead === "body" && <p className="whitespace-pre-wrap">{body}</p>}
+          </div>
+          <time dateTime={entry.occurredAt} className="text-base-content/70 shrink-0 text-sm tabular-nums">
+            {formatTime(entry.occurredAt)}
+          </time>
+        </div>
+        {lead === "heading" && readings.length > 0 && <Readings readings={readings} />}
+        {body && lead !== "body" && <p className="break-words whitespace-pre-wrap">{body}</p>}
+        <p className="text-base-content/60 text-xs">
+          {authorName}
+          {elsewhere && ` · ${elsewhere}`}
+        </p>
       </div>
-
-      <ConfirmDialog
-        open={confirming}
-        title="Delete this entry?"
-        confirmLabel="Delete"
-        onClose={() => setConfirming(false)}
-        onConfirm={() => {
-          setConfirming(false);
-          void remover.submit({ intent: "remove", id: entry.id }, { method: "post" });
-        }}
-      />
+      {onEdit && onDelete && <EntryActions label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />}
     </li>
   );
 }

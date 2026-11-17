@@ -30,3 +30,17 @@ export const formatTimeInZone = (iso: string, timeZone: string) => {
   const place = timeZone.split("/").at(-1)?.replaceAll("_", " ") ?? timeZone;
   return `${timeFormat(timeZone).format(new Date(iso))} in ${place}`;
 };
+
+const relative = new Intl.RelativeTimeFormat(undefined, { numeric: "auto", style: "narrow" });
+
+/** "just now", "25m ago", "3h ago", "yesterday", "4d ago", then a date. */
+export const formatAgo = (iso: string, now = Date.now()) => {
+  const minutes = Math.round((now - new Date(iso).getTime()) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return relative.format(-minutes, "minute");
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return relative.format(-hours, "hour");
+  const days = Math.round(hours / 24);
+  if (days < 7) return relative.format(-days, "day");
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+};

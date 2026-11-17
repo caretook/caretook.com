@@ -92,6 +92,9 @@ export const MODEL_ERRORS = {
   "timelineEntryModel:list": {
     message: "Failed to list timeline entries",
   },
+  "timelineEntryModel:latestReadings": {
+    message: "Failed to load the latest vitals",
+  },
   "timelineEntryModel:remove": {
     message: "Failed to delete the timeline entry",
   },

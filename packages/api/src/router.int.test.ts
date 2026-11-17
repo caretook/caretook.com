@@ -1,6 +1,6 @@
 import type { AuthUser } from "@caretook/data";
 
-import { DEFAULT_UNITS } from "@caretook/data";
+import { DEFAULT_TIMELINE_VIEW, DEFAULT_UNITS } from "@caretook/data";
 import { createRouterClient, ORPCError } from "@orpc/server";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../data/test/fixtures";
@@ -62,6 +62,7 @@ describe("auth", () => {
       groupRoles: { [group.id]: "owner" },
       preferences: {},
       units: DEFAULT_UNITS,
+      timelineView: DEFAULT_TIMELINE_VIEW,
     });
   });
 });
@@ -72,6 +73,7 @@ describe("me.updatePreferences", () => {
     expect(await owner.api.me.updatePreferences({ units: { temperature: "c" } })).toEqual({
       preferences: { units: { temperature: "c" } },
       units: { ...DEFAULT_UNITS, temperature: "c" },
+      timelineView: DEFAULT_TIMELINE_VIEW,
     });
     await owner.api.me.updatePreferences({ units: { weight: "kg" } });
     expect((await owner.api.me.get()).units).toEqual({ ...DEFAULT_UNITS, temperature: "c", weight: "kg" });
@@ -79,9 +81,18 @@ describe("me.updatePreferences", () => {
     expect((await viewer.api.me.get()).units).toEqual(DEFAULT_UNITS);
   });
 
+  it("saves the timeline view without touching units", async () => {
+    const { owner } = await setup();
+    await owner.api.me.updatePreferences({ units: { temperature: "c" } });
+    await owner.api.me.updatePreferences({ timelineView: "cards" });
+    const me = await owner.api.me.get();
+    expect(me.timelineView).toBe("cards");
+    expect(me.units.temperature).toBe("c");
+  });
+
   it("rejects unknown units and unknown settings", async () => {
     const { owner } = await setup();
-    const bad = [{ units: { temperature: "k" } }, { theme: "dark" }] as never[];
+    const bad = [{ units: { temperature: "k" } }, { theme: "dark" }, { timelineView: "grid" }] as never[];
     for (const input of bad) {
       expect((await rejection(owner.api.me.updatePreferences(input))).code).toBe("BAD_REQUEST");
     }

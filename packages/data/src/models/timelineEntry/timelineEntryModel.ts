@@ -100,6 +100,35 @@ export const listPage = async (args: ListPageArgs) => {
   };
 };
 
+export type LatestReadingRow = { entryId: string; occurredAt: string; reading: { type: string } };
+
+/**
+ * The newest reading of each vital type across the filtered entries (one
+ * row per type, newest entry wins), scoped like `listPage`. Readings live in
+ * `details.readings`, so this unnests them in SQL rather than scanning pages.
+ */
+export const latestReadings = async (args: Omit<QuerySelectArgs<K>, "orderBy" | "paginate" | "with">) => {
+  const where = generateQueryWhere(schemaName, "list", {
+    ...args,
+    filter: live({ ...args.filter, kind: { type: "eq", value: "vital" } }),
+  });
+  if (isError(where)) return where;
+
+  const t = timelineEntrySchema;
+  const res = await dbMayFail(
+    () =>
+      txOrDb(args.tx).execute<LatestReadingRow>(sql`
+        SELECT DISTINCT ON (r.value->>'type')
+          ${t.id} AS "entryId", ${t.occurredAt}::text AS "occurredAt", r.value AS "reading"
+        FROM ${t} CROSS JOIN LATERAL jsonb_array_elements(${t.details}->'readings') AS r(value)
+        WHERE ${where ?? sql`true`}
+        ORDER BY r.value->>'type', ${t.occurredAt} DESC, ${t.id} DESC`),
+    "timelineEntryModel:latestReadings",
+  );
+  if (isError(res)) return res;
+  return res.rows;
+};
+
 // ---------------------------------------------------------------------------
 // Writes. Writes go through timelineEntryService, which validates content.
 // ---------------------------------------------------------------------------

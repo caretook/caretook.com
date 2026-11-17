@@ -204,7 +204,7 @@ The first full vertical slice: a seeded user signs in, picks one of their care g
 
 ### Timeline iteration 2 (in progress, before Resend)
 
-The user chose to do this feature work before the Resend iteration. There are four phases, in order. **Phase 1 is done; phase 2 is next.** New dependencies still need the user's approval as each phase starts.
+The user chose to do this feature work before the Resend iteration. There are four phases, in order. **Phases 1 and 2 are done; phase 3 (PowerSync) is next.** New dependencies still need the user's approval as each phase starts.
 
 #### Entry kinds: what goes where
 
@@ -258,31 +258,19 @@ Every timeline entry is one of four kinds. When someone proposes a new type of t
    - **Seeds:** ids follow list position, so add new seed entries at the **end** of `ENTRIES`. Changing an existing seed doesn't update rows already seeded; fix those by hand or run `datastore:reset`.
    - Out of scope: alert thresholds, per-recipient baselines, charts.
 
-2. 🟡 **Timeline layout and scanning. NEXT.** The user's main complaints are **quick scanning and general layout**. Problems seen in phone-width screenshots so far:
-   - Cards are tall for one line of content: the badge and time row, then the heading, then the author, each on its own line, with `p-4` padding and a shadow.
-   - "(… in Los Angeles)" repeats on almost every entry. Seeds use `America/Los_Angeles` and the browser was in another zone. In real use it's rarer, but still noisy: show it less often (e.g. in the edit view or a tooltip, or once per day).
-   - The add form is always open at the top, so on a phone the timeline starts below the fold.
-   - Kind is shown only as a colored text badge, with no icon. The vitals badge uses `badge-success`, which reads as "good".
-   - Day headers aren't sticky, and there's no sense of position in a long list.
-
-   Steps:
-   1. Screenshot `/app/groups/:id/timeline` at 420px and 1280px, in light and dark themes, and list the problems.
-   2. **Show the user 2–3 layout options before building** (ASCII mockups through AskUserQuestion previews).
-   3. Build the chosen one.
-
-   Candidates:
-   - a dense row layout: an icon, the time, a one-line summary, the author's initials;
-   - an icon and color per kind;
-   - sticky day headers;
-   - a quick-add button that opens a bottom sheet on phones (React Aria `Modal`/`Dialog`), instead of the always-open form;
-   - a "latest vitals" summary strip;
-   - author avatars or initials.
-
-   Constraints:
-   - Icons: inline SVG unless the user approves an icon package (e.g. `lucide-react`).
-   - Display components take entries as props, so they survive the move to PowerSync.
-   - Keep `jsx-a11y` clean.
-   - Verify in headless Chrome.
+2. ✅ **Timeline layout and scanning** (built 2026-11-17; added `lucide-react` 1.73.0, pinned exactly; no migration). The user picked these from ASCII mockups:
+   - **Two layouts, switchable per user:** dense **rows** (the default) or compact **cards**. It's stored as `user.preferences.timelineView` (`rows | cards`, read through `resolveTimelineView()`), returned by `me.get` and saved with `me.updatePreferences`. The ViewToggle sits in the page header; switching is instant and the save is best effort.
+     - Rows (`TimelineEntryRow`): one panel per day, with dividers between rows. Each row has the kind icon, the time, the summary, the author's initials and the ⋯ menu. Long text is clamped to 2 lines, with More/Less (measured, so the toggle only shows when text overflows). About 9–11 entries fit on a 420×900 screen; before, it was 7, and they started below the fold.
+     - Cards (`TimelineEntryCard`): summary and time on one line, then the full text, then the author (and the entry's time zone).
+     - Both views render from `entrySummary()` (`lib/entryDisplay.ts`) and take entries as props, so they carry over to PowerSync unchanged.
+   - **Kind icons and colors** (`KIND_META`): note `NotebookPen` (neutral), symptom `Bandage` (warning), event `CalendarCheck` (info), vitals `HeartPulse` (secondary, pink). **Not green**, because green reads as "all good". The icon is decorative; the kind is also given as sr-only text.
+   - **Quick-add bar + sheet:** four tiles (Note, Symptom, Event, Vitals ▾). Each opens `EntrySheet` (RAC `ModalOverlay`/`Modal`/`Dialog`: a bottom sheet on phones, a centered dialog from `sm`) with `EntryForm` preset to that kind (`initialKind`/`initialVitalType`). **Edit uses the same sheet**, not an inline form. The form remounts on each open, so "When" defaults to the current time. There's one `ConfirmDialog` and one remove fetcher for the whole list (in the route).
+   - **Sticky day headers.**
+   - **Kind filter chips:** links that set `?kind=note|symptom|event|vital`. The clientLoader passes `kinds` to `timeline.list` (on the server, so "Show older" pages are filtered too).
+   - **Latest vitals strip:** the new `timeline.latestVitals({ groupId })` → `timelineEntryService.latestVitals` → `timelineEntryModel.latestReadings`. That's one RBAC-scoped SQL query (`DISTINCT ON` over `jsonb_array_elements(details->'readings')`, skipping soft-deleted entries). It returns the newest reading per type, sorted most recent first; phones show 4 plus "+N more". After PowerSync, this becomes a local `json_each` query.
+   - The time zone note ("11:27 AM in Los Angeles") is **kept** in both views (the user didn't choose to quiet it): a small line under the row, or after the author on a card.
+   - Verified in headless Chrome (21 checks: above the fold, density, sticky header, no horizontal scroll, add/validate/edit/delete through the sheet, the Vitals menu, Esc, clamping, filter, the view surviving a reload, viewer read-only, no console errors), plus screenshots at 420 and 1280 in light and dark.
+   - Dev data note: the dev database has about 12 duplicate "Temp 100.8 °F / BP 121/79" vitals left over from earlier browser checks. `pnpm datastore:reset` clears them.
 
 3. 🟡 **PowerSync round trip.** It moved ahead of Resend because collaborative notes need it.
    - ❓ Decisions for the user:
@@ -466,9 +454,11 @@ apps/web/              @caretook/web: React Router 8, Vite 8
   app/routes/native-index.tsx  native-only "/" → "/app" redirect
 apps/web/app/.server/data.ts  re-exports @caretook/data (server-only door); auth.ts → @caretook/auth
   app/app.css          Tailwind + daisyUI (light/dark themes follow the device)
-  app/components/      EntryForm, TimelineEntryCard, EntryActions (RAC Menu), DateTimeField (RAC DateField), ConfirmDialog,
-                       VitalTypeMenu (RAC Menu of vital types), VitalReadingsFields
+  app/components/      EntryForm, EntrySheet (RAC Modal), QuickAddBar, TimelineEntryRow, TimelineEntryCard, KindIcon,
+                       TimelineFilters (KindFilter, ViewToggle), LatestVitals, EntryActions (RAC Menu),
+                       DateTimeField (RAC DateField), ConfirmDialog, VitalTypeMenu, VitalReadingsFields
   app/lib/             auth-client.ts, rpc.ts (typed client + output types), api.ts (load/toActionResult),
+                       entryDisplay.ts (KIND_META, entrySummary, initials),
                        entryForm.ts, format.ts, redirect.ts (safeRedirect), form.ts
   app/routes/api/auth.ts  Better Auth handler at /api/auth/* (web only)
   app/routes/rpc.ts    oRPC at /rpc/* (web only); app/lib/rpc.ts is the typed client
@@ -521,5 +511,5 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
 
 1. Make the integration tests independent of each other, as `timelineEntry.int.test.ts` already is (a `setup()` per test). `careGroup.int.test.ts` shares one group across `describe` blocks, so a single failure cascades into others. Then widen coverage to every role against every table.
 2. Choose the hosted database (it must be in the same region as the Vercel functions, with pooling) and decide how production migrations run.
-3. **Timeline iteration 2** (see that section). Vitals are done. **Start the next session at phase 2, layout:** screenshot the timeline, then show the user layout options before building. After that, PowerSync (decisions first), then collaborative notes with Tiptap and Yjs.
+3. **Timeline iteration 2** (see that section). Vitals and the layout are done. **Start the next session at phase 3, PowerSync:** settle the open decisions with the user first. Then collaborative notes with Tiptap and Yjs.
 4. The Resend iteration (sign-up, invites with accept and consent, email verification and reset), then Capacitor (bearer token storage, `VITE_API_ORIGIN`).

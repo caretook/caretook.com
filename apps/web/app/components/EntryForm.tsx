@@ -39,21 +39,28 @@ const issueFor = (issues: FieldIssue[], ...paths: string[]) => {
 export function EntryForm({
   entry,
   units,
+  initialKind = "note",
+  initialVitalType,
   onDone,
   onCancel,
 }: {
   /** Editing this entry; omit to add a new one. */
   entry?: TimelineEntry;
   units: UnitChoices;
+  /** For a new entry: the kind to start with, and for vitals the first reading. */
+  initialKind?: TimelineEntryKind;
+  initialVitalType?: VitalType;
   onDone?: () => void;
   onCancel?: () => void;
 }) {
   const fetcher = useFetcher<ActionResult>();
   const formRef = useRef<HTMLFormElement>(null);
   const id = useId();
-  const [kind, setKind] = useState<TimelineEntryKind>(entry?.kind ?? "note");
+  const [kind, setKind] = useState<TimelineEntryKind>(entry?.kind ?? initialKind);
   const storedReadings = isVitalDetails(entry?.details) ? entry.details.readings.filter(isKnownReading) : [];
-  const [vitalTypes, setVitalTypes] = useState<VitalType[]>(storedReadings.map((r) => r.type));
+  const [vitalTypes, setVitalTypes] = useState<VitalType[]>(
+    entry ? storedReadings.map((r) => r.type) : initialVitalType ? [initialVitalType] : [],
+  );
   // Bumped after each new entry is saved, so the reading fields remount
   // empty (and drop their warnings). Adjusted during render, not in an effect.
   const [resetKey, setResetKey] = useState(0);

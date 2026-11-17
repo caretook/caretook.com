@@ -1,3 +1,5 @@
+import type { VitalReading } from "@caretook/data";
+
 import { z } from "zod";
 import {
   careGroupMemberService,
@@ -7,11 +9,13 @@ import {
   timelineEntryCreateZSchema,
   timelineEntryService,
   timelineEntryUpdateZSchema,
+  isKnownReading,
+  resolveTimelineView,
   resolveUnits,
   userPreferencesZSchema,
   userService,
 } from "@caretook/data";
-import { toTimelineEntry } from "./dto";
+import { iso, toTimelineEntry } from "./dto";
 import { ORPCError } from "@orpc/server";
 import { unwrap } from "./errors";
 import { authedProcedure } from "./procedures";
@@ -38,6 +42,7 @@ const me = {
       preferences: user.preferences,
       /** Display units with defaults filled in: what screens should use. */
       units: resolveUnits(user.preferences),
+      timelineView: resolveTimelineView(user.preferences),
     };
   }),
 
@@ -52,7 +57,7 @@ const me = {
       units: { ...user.preferences.units, ...input.units },
     };
     unwrap(await userService.update(context, { filter: self, data: { preferences } }));
-    return { preferences, units: resolveUnits(preferences) };
+    return { preferences, units: resolveUnits(preferences), timelineView: resolveTimelineView(preferences) };
   }),
 };
 
@@ -132,6 +137,21 @@ const timeline = {
       const page = unwrap(await timelineEntryService.list(context, input));
       return { data: page.data.map(toTimelineEntry), nextCursor: page.nextCursor };
     }),
+
+  /**
+   * The newest reading of each vital type in the group, for the "latest
+   * vitals" strip. Readings of types this server doesn't know are skipped.
+   */
+  latestVitals: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
+    const rows = unwrap(await timelineEntryService.latestVitals(context, input));
+    return rows
+      .filter((row) => isKnownReading(row.reading))
+      .map((row) => ({
+        entryId: row.entryId,
+        occurredAt: iso(row.occurredAt),
+        reading: row.reading as VitalReading,
+      }));
+  }),
 
   create: authedProcedure.input(timelineEntryCreateZSchema).handler(async ({ context, input }) => {
     const entry = unwrap(await timelineEntryService.create(context, input));
