@@ -234,7 +234,7 @@ importers:
         version: 1.16.2
       '@orpc/server':
         specifier: 1.16.2
-        version: 1.16.2
+        version: 1.16.2(ws@8.21.3)
       '@powersync/drizzle-driver':
         specifier: 0.8.0
         version: 0.8.0(@powersync/common@2.5.0)(drizzle-orm@0.45.4(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))
@@ -323,12 +323,18 @@ importers:
 
   packages/api:
     dependencies:
+      '@caretook/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@caretook/data':
         specifier: workspace:*
         version: link:../data
+      '@caretook/notifications':
+        specifier: workspace:*
+        version: link:../notifications
       '@orpc/server':
         specifier: 1.16.2
-        version: 1.16.2
+        version: 1.16.2(ws@8.21.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -4480,7 +4486,7 @@ snapshots:
 
   '@orpc/interop@1.16.2': {}
 
-  '@orpc/server@1.16.2':
+  '@orpc/server@1.16.2(ws@8.21.3)':
     dependencies:
       '@orpc/client': 1.16.2
       '@orpc/contract': 1.16.2
@@ -4493,6 +4499,8 @@ snapshots:
       '@orpc/standard-server-node': 1.16.2
       '@orpc/standard-server-peer': 1.16.2
       cookie: 1.1.1
+    optionalDependencies:
+      ws: 8.21.3
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - fastify

@@ -24,7 +24,8 @@ streams:
       my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
     queries:
       - SELECT id, name FROM care_group WHERE id IN my_groups
-      - SELECT id, group_id, user_id, role FROM care_group_member WHERE group_id IN my_groups
+      # `invited_by` and `created_at`: who invited each member and when they joined (the Members page).
+      - SELECT id, group_id, user_id, role, invited_by, created_at FROM care_group_member WHERE group_id IN my_groups
       - SELECT id, group_id, name, preferred_name FROM care_recipient WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, recipient_id, kind, occurred_at, time_zone, title, body, details,

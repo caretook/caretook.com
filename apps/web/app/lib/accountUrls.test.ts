@@ -32,4 +32,8 @@ describe("accountUrls", () => {
       "/verify-email?email=a%40example.com",
     );
   });
+
+  it("builds an invite's page", () => {
+    expect(accountUrls.invite("abc_DEF-123")).toBe("/invite/abc_DEF-123");
+  });
 });
