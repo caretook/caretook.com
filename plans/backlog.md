@@ -314,3 +314,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): From the inbox: Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/components-prd.md. Four waves: UI primitives, timeline, entry page, then forms/shell/settings. Browser checks + pure unit tests, no new deps. Runs after routing.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/components-plan.md, 6 slices (1→2; 3→5 parallel with 4; 6 last).
+- 2026-11-18 (Robert Bo Davis): 2026-11-18: runs after routing, and before timeline-polish slices 4-7 (paused by the user).
