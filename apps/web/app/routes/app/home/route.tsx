@@ -3,7 +3,7 @@ import type { Route } from "./+types/route";
 import type { GroupRow } from "~/lib/sync/timeline";
 
 import { Link, redirect } from "react-router";
-import { FirstSyncPending } from "~/components/FirstSyncPending";
+import { FirstSyncPending } from "~/components/shell";
 import { appUrls } from "~/lib/appUrls";
 import { rememberedGroup, resolveHomeGroup } from "~/lib/lastGroup";
 import { sessionContext } from "~/lib/session";

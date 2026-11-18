@@ -4,7 +4,7 @@ import { listNames } from "~/lib/liveNow";
 import { useRecentEditors } from "~/lib/sync/editors";
 import { useLiveQuery } from "~/lib/sync";
 import { membersQuery } from "~/lib/sync/timeline";
-import { UserAvatar } from "~/components/UserAvatar";
+import { UserAvatar } from "~/components/ui";
 
 const NO_MEMBERS: MemberRow[] = [];
 /** More than this many, and the rest become "+N". */

@@ -4,16 +4,23 @@
 
 ## Status
 
-| Slice | State                                             | Merge into `prd/components` (slice commits) |
-| ----- | ------------------------------------------------- | ------------------------------------------- |
-| 1     | blocked: `routing` must fully land in `dev` first |                                             |
-| 2     | blocked by 1                                      |                                             |
-| 3     | blocked by 2                                      |                                             |
-| 4     | blocked by 2                                      |                                             |
-| 5     | blocked by 3                                      |                                             |
-| 6     | blocked by 3, 4 and 5                             |                                             |
+| Slice | State                  | Merge into `prd/components` (slice commits) |
+| ----- | ---------------------- | ------------------------------------------- |
+| 1     | merged; wave 1 landing | `934428f` (`a071d12`, `4c18db3`)            |
+| 2     | ready (1 merged)       |                                             |
+| 3     | blocked by 2           |                                             |
+| 4     | blocked by 2           |                                             |
+| 5     | blocked by 3           |                                             |
+| 6     | blocked by 3, 4 and 5  |                                             |
 
-Backlog: B-24 is `triaged`. Claim it when slice 1 starts; mark it `done` after slice 6 merges.
+Backlog: B-24 is claimed by `prd/components`; mark it `done` after slice 6 merges.
+
+Notes for later slices (from slice 1):
+
+- The entry route grew 1.6 KB gzipped (+0.8%): the `forms` index puts `EntrySheet` in the entry route's chunk beside `DateTimeField`. Slice 2 undoes it when the sheet moves into `ui/` (or by splitting `forms`).
+- `components/notes/` (not in the folder list above) holds `LiveNotesEditor` and `EditorAvatars`, so Tiptap never reaches the timeline through an index. `providers/` holds `ContactActions` and `ProviderTypeIcon`. No `timeline/` folder yet.
+- Quick-fixes B-34 (a calendar on `DateTimeField`) may land first; slice 2 then builds the field primitive on top of it.
+- Wave 1's full suite: 11/11 (phase2 failed once on its first step at load 44 right after a server restart, then passed 107/107 at load 6); `ui.mjs` 253/253.
 
 ## Architectural decisions
 

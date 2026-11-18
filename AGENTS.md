@@ -198,6 +198,7 @@ The backlog's PRD table lists them all, with their dependencies.
 - ✅ [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): **done**, all seven slices in `dev`: the `/app` frame, the user menu with theme, the group menu with the last group, the sections nav and tab bar, group settings (details and members), and the timeline layout choice in Settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md); its lasting decisions are under _The `/app` frame_. `timeline-polish`, `providers` and `medications` build on the frame.
 - 🟡 [`plans/timeline-polish-prd.md`](plans/timeline-polish-prd.md) (topic `timeline-polish`): the timeline's filters, day headers, vitals line, wide layout and infinite scroll. Sliced in [`plans/timeline-polish-plan.md`](plans/timeline-polish-plan.md). **Slices 1–3 (the filter module with the kind icon, the day headers, and the one-line vitals) are in `dev`.** It's **paused**: slices 4 (filter by author), 5 (full width), 6 (author tooltip) and 7 (infinite scroll) wait for `routing` and `components`, and get replanned then. `search` builds on slices 1, 4 and 7.
 - 🟡 [`plans/providers-prd.md`](plans/providers-prd.md) (topic `providers`): the provider directory and links from notes and events. Sliced in [`plans/providers-plan.md`](plans/providers-plan.md). **Slices 1–4 (the data layer and the directory: list, add/edit/delete sheets, the provider page with live notes) are in `dev`**; their decisions are under _Providers_. Slices 5–7 (linking from notes and events) wait for `components`.
+- 🟡 [`plans/components-prd.md`](plans/components-prd.md) (topic `components`, B-24): UI primitives, feature folders, thin routes. Sliced in [`plans/components-plan.md`](plans/components-plan.md). **Slice 1 (the menu primitive, the feature folders, one entry actions menu) is in `dev`**; its decisions are under _Components_ below. Slice 2 (sheets, popovers, dialogs, avatars, chips, fields) is next. It runs alone among UI PRDs: new UI elsewhere uses `components/ui/` and the feature folders.
 - ✅ [`plans/routing-prd.md`](plans/routing-prd.md) (topic `routing`, B-23): **done**, all five slices in `dev`: the group route with its middleware, `appUrls`, a folder per route, add- and edit-sheet URLs, and account and group settings subpages. Its lasting decisions are under _The `/app` frame_ and _Timeline screen_. `components` and `timeline-polish` 4–7 can start.
 
 ## Product
@@ -228,6 +229,11 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 - ✅ **UI:** Tailwind v4 + **daisyUI 5** for styling, **React Aria Components** only where HTML falls short (DateField, Menu, Modal, ComboBox…), and `lucide-react` icons. Mobile-first, with daisyUI themes following the device.
   - Prefer native elements (`<dialog>` with `showModal()` for simple confirms).
   - Wrap repeated daisyUI + RAC pairs in `app/components/`.
+- ✅ **Components** (`app/components/`, from the `components` PRD):
+  - `ui/`: primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `ConfirmDialog`, `UserAvatar`. Feature folders: `entry/` (`EntryActions`, `KindIcon`), `forms/` (`DateTimeField`, `EntrySheet`), `notes/` (`LiveNotesEditor`, `EditorAvatars`; kept apart so Tiptap never reaches the timeline through an index), `providers/` (`ContactActions`, `ProviderTypeIcon`), `settings/` (`SettingsFrame`), `shell/` (`FirstSyncPending`). **Import through each folder's `index.ts`**, never a file inside it. A route that imports an index gets that folder's whole chunk, so keep heavy pieces out of indexes light routes use.
+  - **Every menu is `ui/Menu`**: callers pass data (`label`, `menuLabel`, `items`, optional `className` on the trigger), never React Aria parts. Items (`menuModel.ts`, pure, tested) have a label, description, icon, danger tone, disabled, and `onAction` or `href` (links navigate through React Router). Sections can have a title, a non-interactive `header`, and `selection: { selected, onChange }` (`menuitemradio`, a check on the right). No feature file imports `react-aria-components` for a menu.
+  - **One entry actions menu** (`entry/EntryActions`, items from the pure `entryActionItems(kind, { canEdit })`): Edit then Delete for symptoms and vitals, Delete only for notes and events, on rows, cards and the entry page alike.
+  - `ui.mjs` checks every menu by tap and keyboard at 420 and 1280, light and dark.
 - ✅ **Drizzle ORM 0.45** (`pg`), `drizzle-zod` and **Zod 4**; **oRPC 1.16.2**; **Better Auth 1.7.25**; **PowerSync** (web 2.7.0, drizzle-driver 0.8.0); **Yjs 13.6.33** and **Tiptap 3.34.0**.
 - ❓ Turborepo.
 - 🟡 Later: Playwright (+ `@axe-core/playwright`), Capacitor (`webDir` = `apps/web/build/native/client`), the Vercel AI SDK with Claude, print CSS (then `@react-pdf/renderer` if needed), an iCal feed and Google Calendar OAuth.
@@ -506,10 +512,9 @@ Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
     - **title:** `EntryTitle`, editable by writers for both kinds. `commitTitle` saves a new draft, or renames an existing entry. While an event is unnamed (`isUnnamedEvent`) and nothing is typed, writers see `EventTitleChips`: up to 5 of the group's recent event titles (`suggestTitles` in `lib/titleSuggestions.ts`: 14-day half-life, case-insensitive dedupe, no "Event" or deleted entries; read locally by `lib/sync/titleSuggestions.ts`, so they work offline). A tap goes through `commitTitle`, so a named event takes 2 taps.
     - **time:** `EntryTimeChip` for writers (a popover with `DateTimeField`; saved on close, only if changed; a time picked on a draft is the saved time, via `occurredAtRef`). Viewers get a plain `EntryTime`.
     - **editors:** `EditorAvatars`.
-    - **actions:** once the entry exists, `ShareButton` for everyone, plus `EntryMenu` (⋯ → Delete, with a `ConfirmDialog`, then back to the timeline) for writers.
+    - **actions:** once the entry exists, `ShareButton` for everyone, plus `EntryActions` (⋯ → Delete, with a `ConfirmDialog`, then back to the timeline) for writers.
   - **Share** (`share.ts` beside the entry route): the Web Share API when `canShare` allows it, else the clipboard with a "Link copied" status; a dismissed sheet shows nothing, and a failed copy shows the link to copy by hand. The origin is `VITE_API_ORIGIN || location.origin`.
   - Symptom or vital ids, and non-members, get a 404 that shows no title or text.
-  - `EntryMenu` still duplicates part of the timeline's `EntryActions` (see _Next steps_).
 - **Editor:** `LiveNotesEditor` is Tiptap StarterKit (`undoRedo: false`, because Collaboration brings Yjs undo; `link: false`). Its chunk is about 140 KB gzipped and loads only on its route.
 - **Vite:** `optimizeDeps.include` pre-bundles yjs and Tiptap, and `resolve.dedupe` keeps one yjs, React and ProseMirror. Without both, "Yjs was already imported" and broken hooks after re-optimization.
 - **Latency:** a co-editor sees typing in about 0.5–0.8 s locally. Offline edits land about 2.5–3 s after reconnecting.
@@ -532,7 +537,7 @@ Built so far by [`plans/providers-prd.md`](plans/providers-prd.md) slices 1–4 
   - **The list** (`routes/app/groups/providers/`): live from local data. Search (`?q=`; every word in the name, specialty or practice name, case and accents ignored), type chips (`?type=`) and past providers behind "Show past (N)" (`?past=1`), all in the URL through the pure `lib/providerDirectory.ts`. Each row opens the provider page and has contact actions. Writers get "Add provider".
   - **Contact actions** (`lib/contactActions.ts`, pure): `tel:` keeps digits and a leading `+` and dials an extension after a pause (`x214` → `,214`); maps is a Google Maps search URL; a bare website gets `https://`, and only http(s) links are made. `components/ContactActions.tsx` renders them with names like "Call Dr. …, office".
   - **Sheets** `providers/new` (optional `?type=`) and `providers/:providerId/edit`, children of the list (routing's sheet pattern; `providerSheetGuard.ts`): `ProviderForm` with type, name, specialty, practice (clinicians and other contacts), up to 6 phones, email, address, website, primary and past; field messages from the shared Zod schema. Writes are local (`createProvider`, `updateProvider`, `removeProvider`) and upload later. Delete is soft, after a `ConfirmDialog`. Viewers and missing providers get the list, with no form.
-  - **The provider page** (`routes/app/groups/provider/`, `providers/:providerId`): header regions (title, details with the practice as a link, editors, actions with Edit for writers), every contact action, and the provider's live notes in `LiveNotesEditor` (created on the first real change through `createProviderDocument`; read-only for viewers). Missing, deleted or other-group providers are the 404. `LiveNotesEditor`, `EditorAvatars`, `ContactActions` and `ProviderTypeIcon` live in `components/`.
+  - **The provider page** (`routes/app/groups/provider/`, `providers/:providerId`): header regions (title, details with the practice as a link, editors, actions with Edit for writers), every contact action, and the provider's live notes in `LiveNotesEditor` (created on the first real change through `createProviderDocument`; read-only for viewers). Missing, deleted or other-group providers are the 404. `LiveNotesEditor` and `EditorAvatars` live in `components/notes/`, `ContactActions` and `ProviderTypeIcon` in `components/providers/`.
 - **Browser check:** `providers.mjs` covers the device module (through Vite imports against `window.caretookSync`) and every screen: list, search and filters, sheets, offline add and edit, the page, two-browser notes, viewer and non-member. It cleans up its `PV-` providers.
 
 ## Planned: notifications (Resend iteration)
@@ -647,16 +652,16 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/routes.ts, root.tsx, app.css
   app/routes/app/         shared screens, a folder per route (route.tsx + its private files; no server loaders):
                           layout/ (the /app frame: GroupMenu, SectionNav, SyncIndicator, UserMenu), home/, settings/,
-                          groups/layout/ (the group route), groups/index/, groups/timeline/ (EntryForm, EntrySheet,
+                          groups/layout/ (the group route), groups/index/, groups/timeline/ (EntryForm,
                           QuickAddBar, TimelineEntryRow/Card, TimelineFilters, LatestVitals, LiveNowBanner, LiveDot,
-                          EntryActions, VitalTypeMenu, VitalReadingsFields, entryFormData), groups/entry/ (EntryHeader,
-                          EntryTimeChip, EntryMenu, EventTitleChips, EditorAvatars, ShareButton, LiveNotesEditor, share),
+                          VitalTypeMenu, VitalReadingsFields, entryFormData), groups/entry/ (EntryHeader,
+                          EntryTimeChip, EventTitleChips, ShareButton, share),
                           groups/settings/ (groupSettings)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx
   app/.server/            data.ts, auth.ts, api.ts: the server-only doors
-  app/components/         shared by 2+ routes only: ConfirmDialog, DateTimeField, FirstSyncPending, KindIcon, SettingsFrame, UserAvatar,
-                          LiveNotesEditor, EditorAvatars, ContactActions, ProviderTypeIcon
+  app/components/         shared by 2+ routes only, imported through each folder's index: ui/ (Menu, ConfirmDialog, UserAvatar),
+                          entry/, forms/, notes/, providers/, settings/, shell/
   app/lib/                session, group, groupContext, appUrls, settingsNav, me, auth-client, rpc, api, initials, entryDisplay, format,
                           redirect, form, liveEntry, firstSync, liveNow, titleSuggestions, theme, lastGroup, groupSections,
                           timelineFilters, contactActions, providerDirectory
@@ -674,7 +679,7 @@ packages/data/            @caretook/data
 
 ## Next steps
 
-1. **Live notes follow-ups** (the PRD is done): merge `EntryMenu` into the timeline's `EntryActions`; give `LiveNotesEditor` a focus handle (title chips focus `main [contenteditable]` directly). File the PRD and slice issues once `gh` can see the repo.
+1. **Live notes follow-ups** (the PRD is done): give `LiveNotesEditor` a focus handle (title chips focus `main [contenteditable]` directly). File the PRD and slice issues once `gh` can see the repo.
 2. **The backlog** (`pnpm backlog list`): write the PRDs its table marks "to write" (`pnpm prd plan <topic>`, one `write-a-prd` interview each), then run them, at most three at once.
 3. **Tests:** make the integration tests independent (`careGroup.int.test.ts` shares one group across `describe` blocks), then cover every role against every table.
 4. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
