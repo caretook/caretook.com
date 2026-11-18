@@ -309,7 +309,9 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - Sticky day headers.
   - `?kind=` filter chips.
   - A latest vitals strip (`json_each` locally).
-  - Quick-add: **Note** links to `/entries/new?kind=note`; the other tiles open `EntrySheet` (a RAC Modal; a bottom sheet on phones) with `EntryForm` (no note kind), and edit uses the same sheet. A note row's body is its document preview, and its ⋯ Edit opens its page.
+  - Quick-add: **Note** links to `/entries/new?kind=note`; the other tiles open `EntrySheet` (a RAC Modal; a bottom sheet on phones) with `EntryForm` (no note kind), and edit uses the same sheet. A note's or event's row body is its document preview (an event without a document keeps its old body).
+  - **Row taps** (`EntryOpenTarget` in `TimelineEntryRow.tsx`): a link or button stretched over the row or card (`absolute inset-0`), so it's one named, focusable control. Notes and events open `/entries/:id` for everyone; symptoms and vitals open their edit sheet for writers and do nothing for viewers. The ⋯ button and the More/Less toggle sit above it (`relative z-10`), and each row is `relative isolate` so they stay under the sticky day headers.
+  - The ⋯ menu (writers only) has Delete, plus Edit for symptoms and vitals.
   - The timeline's `shouldRevalidate` skips submissions (live queries already show them). "Show older" grows the query limit.
 - **Seeds** (`seeds/timelineEntries.ts`): about 180 fictional entries over eight weeks for Grandma Pat, placed by `hoursAgo` or `at: { daysAgo, time }` (America/Los_Angeles).
   - **Ids follow position**, so adding or changing an entry needs `pnpm datastore:reset`.
@@ -342,7 +344,7 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) wil
   - `bindNoteDoc`'s `ensureSaved` holds a draft's Yjs changes in memory until then; leaving drops them.
   - `EntryHeader` has four regions (title, time, editors, actions), so later features each fill one.
   - Symptom or vital ids, and non-members, get a 404.
-  - Events still get live notes from the ⋯ menu ("Add/Open live notes" opens this page; the document is made on the first change).
+  - An event's row opens this page (the document is made on the first change). There's no separate live notes preview or "Add/Open live notes" item any more.
 - **Editor:** `LiveNotesEditor` is Tiptap StarterKit (`undoRedo: false`, because Collaboration brings Yjs undo; `link: false`). Its chunk is about 140 KB gzipped and loads only on its route.
 - **Vite:** `optimizeDeps.include` pre-bundles yjs and Tiptap, and `resolve.dedupe` keeps one yjs, React and ProseMirror. Without both, "Yjs was already imported" and broken hooks after re-optimization.
 - **Latency:** a co-editor sees typing in about 0.5–0.8 s locally. Offline edits land about 2.5–3 s after reconnecting.
@@ -418,7 +420,7 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) wil
 UI work is verified in headless Chrome over CDP with plain Node scripts (no Playwright yet).
 
 - **Run:** Node 24 (they use the global `WebSocket`), from that folder, against the dev server. `BASE` defaults to `http://localhost:5176`.
-- **Scripts:** `cdp.mjs` (the harness); `roundtrip.mjs` (two-member sync, offline through `proxy.mjs`, because CDP network emulation doesn't cut PowerSync's stream); `phase2.mjs` (the timeline layout; rerun it after any timeline change); `live-note.mjs` (a note is its document: one-tap start, abandoned draft, URL replace, convergence, offline, viewer, 404s); `live-notes.mjs` (event live notes); `signout-wipe.mjs`.
+- **Scripts:** `cdp.mjs` (the harness); `roundtrip.mjs` (two-member sync, offline through `proxy.mjs`, because CDP network emulation doesn't cut PowerSync's stream); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; it runs Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `live-note.mjs` (a note is its document: one-tap start, abandoned draft, URL replace, convergence, offline, viewer, 404s); `live-notes.mjs` (event live notes); `signout-wipe.mjs`.
 - **Patterns:**
   - Use a 420×900 window.
   - Sign in as the `@example.com` seeds (`SEED_USER_PASSWORD`).
@@ -451,7 +453,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/.server/            data.ts, auth.ts, api.ts: the server-only doors
   app/components/         EntryForm, EntrySheet, QuickAddBar, TimelineEntryRow/Card, KindIcon, TimelineFilters,
                           LatestVitals, EntryActions, DateTimeField, ConfirmDialog, VitalTypeMenu,
-                          VitalReadingsFields, LiveNotesEditor, LiveNotesPreview, EntryHeader, SyncIndicator
+                          VitalReadingsFields, LiveNotesEditor, EntryHeader, SyncIndicator
   app/lib/                session, me, auth-client, rpc, api, entryDisplay, entryForm, format, redirect, form, liveEntry
   app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry
 packages/auth/            @caretook/auth

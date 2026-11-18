@@ -65,20 +65,17 @@ try {
   for (const p of [A, B, C]) await p.waitFor(`document.querySelectorAll("ol > li").length > 0`, 20000);
   const timelineUrl = await A.evaluate("location.pathname");
 
-  // 1. Add an event, then live notes from its ⋯ menu.
+  // 1. Add an event, then open it by tapping its row (its live notes are on its page).
   const tag = `LN-${Date.now()}`;
   await A.press(button("Event"));
   await A.waitFor(`document.querySelector('[role=dialog] input[name="title"]')`);
   await A.type(`document.querySelector('[role=dialog] input[name="title"]')`, `${tag} Dr. Lee visit`);
   await A.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
   await A.waitFor(rowWith(tag));
-  await A.press(`${rowWith(tag)}.querySelector('button[aria-label^="Actions"]')`);
-  await A.waitFor(menuItem("Add live notes"));
-  check("menu: writers can add live notes to an event", true);
-  await A.press(menuItem("Add live notes"));
+  await A.press(`${rowWith(tag)}.querySelector('a[aria-label^="Open "]')`);
   await A.waitFor(`/\\/entries\\/[0-9a-f-]{36}$/.test(location.pathname) && ${EDITOR}`, 10000);
   const notesUrl = await A.evaluate("location.pathname");
-  check("add: opens the editor on its own page", true, notesUrl);
+  check("row tap: opens the editor on its own page", true, notesUrl);
   check(
     "editor: toolbar for writers",
     await A.evaluate(`!!document.querySelector('[role=toolbar][aria-label="Formatting"]')`),
@@ -168,12 +165,14 @@ try {
   await A.screenshot("ln-owner");
   await C.screenshot("ln-viewer");
 
-  // 8. Back on the timeline: a preview and an Open link, for the viewer too.
+  // 8. Back on the timeline: the document is the row's body, and the row opens it, for the viewer too.
   await C.goto(timelineUrl);
   await C.waitFor(`${rowWith(tag)}?.textContent.includes("${tag}-a1")`, 15000);
   check(
-    "timeline: preview with an Open link (viewer)",
-    await C.evaluate(`!!${rowWith(tag)}.querySelector('a[href*="/entries/"]')`),
+    "timeline: the document as the body, and the row opens it (viewer)",
+    await C.evaluate(
+      `${rowWith(tag)}.querySelector('a[aria-label^="Open "]')?.pathname === ${JSON.stringify(notesUrl)}`,
+    ),
   );
   check(
     "timeline: viewer has no ⋯ menu",
@@ -188,7 +187,12 @@ try {
   if (await B.evaluate(`!!${symptomRow}`)) {
     await B.press(`${symptomRow}.querySelector('button[aria-label^="Actions"]')`);
     await B.waitFor(menuItem("Edit"));
-    check("menu: no live notes on a symptom", !(await B.evaluate(`!!${menuItem("Add live notes")}`)));
+    check(
+      "menu: a symptom has only Edit and Delete",
+      (await B.evaluate(
+        `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim()).join(",")`,
+      )) === "Edit,Delete",
+    );
     await B.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape" });
   }
 

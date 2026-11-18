@@ -190,7 +190,7 @@ try {
   await C.waitFor(`${rowWith(`${tag} Morning`)}?.textContent.includes("${tag} first words")`, 15000);
   check(
     "timeline: the note's row shows its document as the body",
-    await C.evaluate(`!${rowWith(`${tag} Morning`)}.querySelector('a[href*="/entries/"]')`),
+    await C.evaluate(`!/live notes/i.test(${rowWith(`${tag} Morning`)}.textContent)`),
   );
 
   // 8. Offline: edits show in the preview before syncing, and a new note uploads after reconnecting.

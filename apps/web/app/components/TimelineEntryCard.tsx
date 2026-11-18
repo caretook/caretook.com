@@ -4,8 +4,7 @@ import { entrySummary, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
 import { KindIcon } from "./KindIcon";
-import { LiveNotesPreview } from "./LiveNotesPreview";
-import { actionsLabel, entryLabel, liveNotesAction, Readings } from "./TimelineEntryRow";
+import { actionsLabel, EntryOpenTarget, Readings } from "./TimelineEntryRow";
 
 /** One entry as a compact card: summary and time on one line, the full text, then who wrote it. */
 export function TimelineEntryCard({
@@ -13,10 +12,9 @@ export function TimelineEntryCard({
   authorName,
   units,
   removing,
+  open,
   onEdit,
   onDelete,
-  liveNotes,
-  onLiveNotes,
 }: EntryViewProps) {
   const { heading, severity, readings, body } = entrySummary(entry, units);
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
@@ -25,8 +23,9 @@ export function TimelineEntryCard({
 
   return (
     <li
-      className={`rounded-box border-base-300 bg-base-100 flex items-start gap-3 border p-3 ${removing ? "opacity-50" : ""}`}
+      className={`rounded-box border-base-300 bg-base-100 relative isolate flex items-start gap-3 border p-3 ${removing ? "opacity-50" : ""}`}
     >
+      {open && <EntryOpenTarget open={open} entry={entry} />}
       <KindIcon kind={entry.kind} />
       <div className="min-w-0 flex-1 space-y-0.5">
         <span className="sr-only">{KIND_META[entry.kind].label}: </span>
@@ -47,20 +46,12 @@ export function TimelineEntryCard({
         </div>
         {lead === "heading" && readings.length > 0 && <Readings readings={readings} />}
         {body && lead !== "body" && <p className="break-words whitespace-pre-wrap">{body}</p>}
-        {liveNotes && <LiveNotesPreview notes={liveNotes} entryLabel={entryLabel(entry)} />}
         <p className="text-base-content/60 text-xs">
           {authorName}
           {elsewhere && ` · ${elsewhere}`}
         </p>
       </div>
-      {onEdit && onDelete && (
-        <EntryActions
-          label={actionsLabel(entry)}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          liveNotes={liveNotesAction({ liveNotes, onLiveNotes })}
-        />
-      )}
+      {onDelete && <EntryActions label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />}
     </li>
   );
 }
