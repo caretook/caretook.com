@@ -4,17 +4,19 @@
 
 ## Status
 
-| Slice | Backlog | State           | Merge into `prd/timeline-polish` (slice commits) |
-| ----- | ------- | --------------- | ------------------------------------------------ |
-| 1     | B-5     | merged (wave 1) | `5d6678a` (`9b23d14`, `4c14096`)                 |
-| 2     | B-7     | merged (wave 1) | `cf96edc` (`47a2792`)                            |
-| 3     | B-2     | merged (wave 1) | `908d4fa` (`4b1b280`, `cf12f43`)                 |
-| 4     | B-6     | ready (wave 2)  |                                                  |
-| 5     | B-3     | ready (wave 2)  |                                                  |
-| 6     | B-4     | blocked by 4    |                                                  |
-| 7     | B-10    | blocked by 4    |                                                  |
+| Slice | Backlog | State                | Merge into `prd/timeline-polish` (slice commits) |
+| ----- | ------- | -------------------- | ------------------------------------------------ |
+| 1     | B-5     | merged (wave 1)      | `5d6678a` (`9b23d14`, `4c14096`)                 |
+| 2     | B-7     | merged (wave 1)      | `cf96edc` (`47a2792`)                            |
+| 3     | B-2     | merged (wave 1)      | `908d4fa` (`4b1b280`, `cf12f43`)                 |
+| 4     | B-6     | paused, to replan    |                                                  |
+| 5     | B-3     | paused, to replan    |                                                  |
+| 6     | B-4     | paused, blocked by 4 |                                                  |
+| 7     | B-10    | paused, blocked by 4 |                                                  |
 
-Wave 1 (slices 1–3) is merged, synced with `dev` (which now has all of `app-shell`) and green: `pnpm check`, and `phase2.mjs`, `roundtrip.mjs` and `live-notes.mjs` after each merge. Its worktrees are removed and B-5, B-7 and B-2 are `ready`. It lands in `dev` on the user's word.
+Wave 1 (slices 1–3) is merged, synced with `dev` (which now has all of `app-shell`) and green: `pnpm check`, and `phase2.mjs`, `roundtrip.mjs` and `live-notes.mjs` after each merge. Its worktrees are removed. **It landed in `dev` as `644f780`** (2026-11-18), and B-5, B-7 and B-2 are `landed`. Nothing is in flight.
+
+**Paused (2026-11-18, the user's call):** `routing` and then `components` run before this PRD continues. The integration worktree and `prd/timeline-polish` are removed; `pnpm prd start timeline-polish` makes them again from `dev`. **Replan slices 4–7 before starting them:** their sections below name files (`timeline.tsx`, `TimelineEntryRow`/`Card`, `KindIcon.tsx`, `TimelineFilters`, `phase2.mjs`) that those two PRDs move or reshape.
 
 For slice 4: `lib/timelineFilters.ts` is complete for both filters (`parseFilters`, `setKind`, `setAuthor`, `clearKind`, `clearAuthor`, `clearFilters`, `hasFilters`); an author must be UUID-shaped and membership isn't checked. For slice 5: the day heading is 40 px tall (44 px from `lg`), and the vitals line shows more readings as the column widens.
 

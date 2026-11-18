@@ -1,6 +1,6 @@
 # PRD: Routing (nested group routes, sheet URLs, settings subpages, a folder per route)
 
-Status: 🟡 planned in [`routing-plan.md`](routing-plan.md) (5 slices). Backlog item: B-23. Topic `routing`. Runs after `app-shell` and `timeline-polish` land; `components` follows it.
+Status: 🟡 planned in [`routing-plan.md`](routing-plan.md) (5 slices). Backlog item: B-23. Topic `routing`. Runs after `app-shell` and `timeline-polish` wave 1 (both in `dev`); `components` follows it, and `timeline-polish` slices 4–7 wait for both.
 
 ## Problem Statement
 
