@@ -12,12 +12,13 @@
 #
 # name defaults to the worktree you're in. The log is <worktree>/.dev.log.
 #
-# Browser checks should run against --built: no Vite websocket, no dependency
+# Browser checks run against --built: no Vite websocket, no dependency
 # re-optimization reloading a page mid-check, no stale optimized deps, faster
-# pages. The build takes about 5 s. `pnpm prd browser` rebuilds and restarts a
-# --built server by itself when the source is newer than the build. Use the dev
-# server (no flag) to work on the app by hand. The mode is kept in
-# <worktree>/.serve-mode, so --restart keeps it; pass --dev to switch back.
+# pages. `pnpm prd browser` starts one by itself (replacing a dev server), and
+# rebuilds and restarts it when the source is newer than the build; its --dev
+# keeps the dev server instead. Use the dev server (no flag, or --dev) to work
+# on the app by hand. The mode is kept in <worktree>/.serve-mode, so --restart
+# keeps it; pass --dev to switch back.
 set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
@@ -57,14 +58,18 @@ if [[ -z $(server_pids "$port") ]]; then
   use_node
   if [[ $kind == built ]]; then
     echo "Building $name (web, check build)…"
+    t0=$(date +%s)
     (cd apps/web && VITE_CHECK_BUILD=1 pnpm -s build > ../../.dev.log 2>&1) ||
       { tail -20 .dev.log >&2; die "the build failed (see $dir/.dev.log)"; }
+    echo "Built in $(($(date +%s) - t0)) s."
     touch .serve-built
     # react-router-serve doesn't load .env files: give it the ones Vite loads.
-    (cd apps/web && HOST=127.0.0.1 PORT=$port NODE_ENV=production nohup node \
+    # The whole subshell's output goes to the log: a subshell left holding our
+    # stdout would keep `pnpm prd serve --built | tail` waiting for ever.
+    (cd apps/web && HOST=127.0.0.1 PORT=$port NODE_ENV=production exec nohup node \
       --env-file-if-exists=.env --env-file-if-exists=../../packages/data/.env \
-      node_modules/@react-router/serve/bin.cjs build/web/server/index.js >> ../../.dev.log 2>&1 < /dev/null &
-      disown)
+      node_modules/@react-router/serve/bin.cjs build/web/server/index.js) >> .dev.log 2>&1 < /dev/null &
+    disown
   else
     nohup pnpm dev > .dev.log 2>&1 < /dev/null &
     disown
