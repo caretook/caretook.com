@@ -230,7 +230,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold">{group.recipient?.displayName ?? group.name}</h1>
+          <h1 className="text-lg font-semibold">{group.recipient?.displayName ?? group.name}</h1>
           <p className="text-base-content/70 text-sm">
             {group.name}
             {group.role === "viewer" && " · You can view this timeline"}
