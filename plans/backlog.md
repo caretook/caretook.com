@@ -33,7 +33,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-5 | change | triaged | timeline-polish |  | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
 | B-7 | change | triaged | timeline-polish |  | More prominent day headers in the timeline |
-| B-8 | feature | triaged | app-shell |  | Avatar in the header with a menu for the user's settings and actions |
+| B-8 | feature | in-progress | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | triaged | app-shell |  | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
@@ -121,9 +121,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-8 · feature · Avatar in the header with a menu for the user's settings and actions
 
-- status: triaged
+- status: in-progress
 - prd: app-shell
-- owner:
+- owner: prd/app-shell
 - commit:
 
 - 2026-11-17 (dev keeper): Settings, units, timeline layout, sign out.
