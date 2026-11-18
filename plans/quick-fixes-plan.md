@@ -15,6 +15,7 @@
 | 7     | B-27 | merged                                            | 75127be (004abfe)                            |
 | 8     | B-35 | merged                                            | 6dcc71d (7c0725f)                            |
 | 9     | B-36 | merged                                            | e6fc148 (cc12901)                            |
+| 10    | B-39 | waits for `components` wave 2                     |                                              |
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) is merged into `prd/quick-fixes` and synced with `dev` (21e23d8), waiting for the user's word to land. Slice 6 can start after it: `components` slice 1 moved `DateTimeField` to `components/forms/` (import through `~/components/forms`); tell the `components` orchestrator when B-34 lands.
 
@@ -280,3 +281,29 @@ Also from routing's open issues: `app-shell.mjs`'s "goes to the last group after
 **Check.** The integration suite. No browser checks.
 
 **Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 10: Lean browser checks (B-39)
+
+**Problem.** Browser checks are still most of the time a change takes. `5804ae4` cut how many run (`pnpm prd browser --changed`, one retry on contention, four leases), but each check is still long: `phase2.mjs` has 107 steps and `app-shell.mjs` 98, and `routing.mjs`, `providers.mjs` and `live-notes.mjs` are close behind. Many steps assert pure logic that now has unit tests (filter URLs, day labels, `appUrls`, menu models, member sorting, contact links), so a browser runs them again at a minute a check. And after a merge, an orchestrator only needs to know the area still works, not every edge.
+
+**Build.**
+
+- **Move pure-logic assertions to unit tests.** For each of `phase2`, `app-shell`, `routing`, `providers` and `live-notes`: list the steps that check something a pure module decides (the URL a filter link builds, a label's text, an ordering, a role's allowed actions). Where the module's unit test already covers it, delete the step; where it doesn't, add the case to the unit test first, then delete the step. Keep a step when it checks wiring the unit test can't see (that the link is actually on the page, that tapping it navigates).
+- **Keep checks to user flows:** sign in, do the thing, see the result, across roles, offline and two devices. Collapse steps that differ only in data (several vitals, several menus) into one representative case, unless the difference exercises different code.
+- **A smoke mode.** Each check reads `SMOKE=1` and runs only its core path (target about 20 s: one role, one happy path, no offline, no second device). `pnpm prd browser --changed --smoke` passes it through, and AGENTS.md's after-merge step uses it; hand-offs and landings keep full mode. Mark which steps are smoke with a small helper in `cdp.mjs` (e.g. `step(name, { smoke: true }, fn)`), not by copying flows.
+- Don't change what the checks prove at landing: everything removed must be covered by a unit test or another remaining step. List each removed step and where it's now covered in the hand-off.
+- Update `scripts/loops/check-areas` if a check is split or renamed, and AGENTS.md's check descriptions (the orchestrator folds them in at landing).
+
+**Acceptance criteria.**
+
+- [ ] For each of the five checks: steps before and after, run time before and after (same machine, quiet), and the list of removed steps with where each is now covered.
+- [ ] Every new unit test case passes in `pnpm check`.
+- [ ] Each check's full mode passes 2 runs in a row; its smoke mode passes and takes 30 s or less.
+- [ ] `pnpm prd browser --changed --smoke` runs smoke mode; without `--smoke` it runs full mode.
+- [ ] The full suite's run time drops by at least a third (show both tables).
+
+**Check.** The five checks, full and smoke, through `pnpm prd browser`. `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** `components` wave 2 in `dev` (it reworks the same screens and checks).
