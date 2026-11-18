@@ -11,7 +11,9 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // current one; `/app` goes back to the last group (also after a reload), falls
 // back when that group is gone, and single-group users go straight to their
 // timeline; no group menu off group routes; sign-out forgets the last group.
-// Later slices append theirs.
+// Slice 4: the tab bar at 420 (Timeline current, nothing hidden behind it, an
+// open EntrySheet over it, none on the entry page) and the header's section
+// links at 1280. Later slices append their checks.
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 
 const results = [];
@@ -93,6 +95,137 @@ async function signIn(p, email, { home = false } = {}) {
   if (!home) await p.openDevFamily(60000);
 }
 
+const BAR = `document.querySelector('nav.dock[aria-label="Group sections"]')`;
+const HEADER_NAV = `document.querySelector('header [data-region="sections"] nav[aria-label="Group sections"]')`;
+const shown = (sel) =>
+  `(() => { const el = ${sel}; return !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().height > 0; })()`;
+const metrics = (p, width, mobile) =>
+  p.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile });
+
+/** Slice 4: the tab bar at 420, the header links at 1280, and no bar on the entry page. */
+async function sections(p) {
+  const timelinePath = await p.evaluate(`location.pathname`);
+  const bar = await p.evaluate(`(() => {
+    const bar = ${BAR};
+    if (!bar) return null;
+    const links = [...bar.querySelectorAll("a")];
+    const r = bar.getBoundingClientRect();
+    return {
+      labels: links.map((a) => a.textContent.trim()).join(","),
+      current: links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent.trim()).join(","),
+      href: links[0]?.getAttribute("href"),
+      top: r.top, bottom: r.bottom, height: innerHeight,
+      headerNav: ${shown(HEADER_NAV)},
+    };
+  })()`);
+  check(
+    "420: a bottom tab bar with Timeline marked current",
+    bar && bar.labels === "Timeline" && bar.current === "Timeline" && bar.href === timelinePath,
+    JSON.stringify(bar),
+  );
+  check(
+    "420: the bar is at the bottom, and the header's section links are hidden",
+    bar && Math.abs(bar.bottom - bar.height) < 2 && !bar.headerNav,
+  );
+
+  // The quick-add bar and the end of the page (the last entry, Show older) clear the bar.
+  const quick = await p.evaluate(`(() => {
+    const q = document.querySelector('[role="group"][aria-label="Add to the timeline"]');
+    const r = q.getBoundingClientRect(), top = ${BAR}.getBoundingClientRect().top;
+    return { bottom: r.bottom, top, clear: r.bottom <= top };
+  })()`);
+  check("420: the quick-add bar is clear of the tab bar", quick.clear, JSON.stringify(quick));
+  await p.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`);
+  await sleep(300);
+  const end = await p.evaluate(`(() => {
+    const top = ${BAR}.getBoundingClientRect().top;
+    const last = [...document.querySelectorAll("ol > li")].at(-1).getBoundingClientRect().bottom;
+    const older = [...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Show older entries");
+    const section = document.querySelector('section[aria-labelledby="timeline-heading"]').getBoundingClientRect().bottom;
+    const tail = older ?? [...document.querySelectorAll("ol > li")].at(-1);
+    const r = tail.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.bottom - 4);
+    return { top, last, section, older: older?.getBoundingClientRect().bottom, hitInTail: tail.contains(hit) };
+  })()`);
+  check(
+    "420: scrolled to the end, the last entry and Show older are above the bar, not under it",
+    end.last <= end.top && end.section <= end.top && end.hitInTail,
+    JSON.stringify(end),
+  );
+  await p.screenshot("app-shell-tabbar-end");
+  await p.evaluate(`window.scrollTo(0, 0)`);
+
+  // An open EntrySheet (a bottom sheet on phones) covers the bar, not the other way round.
+  await p.press(
+    `[...document.querySelectorAll('[aria-label="Add to the timeline"] button')].find((b) => b.textContent.trim() === "Symptom")`,
+  );
+  await p.waitFor(`document.querySelector('[role="dialog"] button[type="submit"]')`, 10000);
+  await sleep(400);
+  const sheet = await p.evaluate(`(() => {
+    const dialog = document.querySelector('[role="dialog"]');
+    const submit = dialog.querySelector('button[type="submit"]');
+    submit.scrollIntoView({ block: "end" });
+    const s = submit.getBoundingClientRect();
+    const b = ${BAR}.getBoundingClientRect();
+    const atSubmit = document.elementFromPoint(s.left + s.width / 2, s.top + s.height / 2);
+    const atBar = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    return { submitInDialog: dialog.contains(atSubmit), barOnTop: ${BAR}.contains(atBar), submitBottom: s.bottom };
+  })()`);
+  check(
+    "420: an open EntrySheet is over the tab bar, and its Save button isn't hidden",
+    sheet.submitInDialog && !sheet.barOnTop,
+    JSON.stringify(sheet),
+  );
+  await p.screenshot("app-shell-tabbar-sheet");
+  await escape(p);
+  await p.waitFor(`!document.querySelector('[role="dialog"]')`, 5000);
+
+  // The entry page: no bar, no spacer, the editor gets the whole screen.
+  await p.press(`document.querySelector('ol > li a[href*="/entries/"]')`);
+  await p.waitFor(
+    `location.pathname.includes("/entries/") && document.querySelector('[contenteditable="true"]')`,
+    20000,
+  );
+  await sleep(300);
+  const entry = await p.evaluate(
+    `({ bar: !!${BAR}, spacer: !!document.querySelector("[data-tab-bar-spacer]"), headerCurrent: ${HEADER_NAV}?.querySelector("a")?.getAttribute("aria-current") })`,
+  );
+  check("entry page: no tab bar and no spacer", !entry.bar && !entry.spacer, JSON.stringify(entry));
+  check(
+    'entry page: the header link says it\'s inside Timeline (aria-current="true")',
+    entry.headerCurrent === "true",
+  );
+  await p.goto(`${timelinePath.replace(/\/timeline$/, "")}/entries/new?kind=note`);
+  await p.waitFor(`document.querySelector('[contenteditable="true"]')`, 20000);
+  check("new entry: no tab bar", !(await p.evaluate(`!!${BAR}`)));
+
+  // 1280 wide: no bar, the header's links instead.
+  await p.goto(timelinePath);
+  await p.waitFor(`${rows} > 0`, 30000);
+  await metrics(p, 1280, false);
+  await sleep(400);
+  const wide = await p.evaluate(`(() => {
+    const nav = ${HEADER_NAV};
+    const links = nav ? [...nav.querySelectorAll("a")] : [];
+    return {
+      bar: ${shown(BAR)},
+      spacer: ${shown(`document.querySelector("[data-tab-bar-spacer]")`)},
+      headerNav: ${shown(HEADER_NAV)},
+      labels: links.map((a) => a.textContent.trim()).join(","),
+      current: links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent.trim()).join(","),
+    };
+  })()`);
+  check("1280: no tab bar (and no spacer)", !wide.bar && !wide.spacer, JSON.stringify(wide));
+  check(
+    "1280: the header shows the section links, Timeline current",
+    wide.headerNav && wide.labels === "Timeline" && wide.current === "Timeline",
+    JSON.stringify(wide),
+  );
+  await p.screenshot("app-shell-sections-wide");
+  await metrics(p, 420, true);
+  await sleep(300);
+}
+
 const pages = [];
 const b = await launch(9471);
 const browsers = [b];
@@ -155,6 +288,9 @@ try {
   );
   check("avatar: initials for Dev Member", avatar.text === "DM", avatar.text);
   check("avatar: accessible name", avatar.label === "Account menu for Dev Member", avatar.label);
+
+  // 1b. Sections (slice 4), 420 wide: the tab bar, nothing hidden behind it.
+  await sections(A);
 
   // 2. Keyboard: Enter opens, focus moves into the menu, arrows move, Escape closes and returns focus.
   await A.evaluate(`${TRIGGER}.focus()`);
