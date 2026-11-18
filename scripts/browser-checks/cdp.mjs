@@ -290,3 +290,25 @@ export async function openPage(browser, label) {
     close: () => ws.close(),
   };
 }
+
+/**
+ * Smoke mode (`SMOKE=1`; `pnpm prd browser --smoke` sets it): each check runs
+ * only its core path (one role, one happy path, no offline, no second device),
+ * in about 20 s. Hand-offs and landings run the full check.
+ */
+export const SMOKE = process.env.SMOKE === "1";
+
+/**
+ * A block of a check's steps: `await step(name, fn)`, or `step(name, { smoke:
+ * true }, fn)` for a block on the core path. In smoke mode a block that isn't
+ * marked smoke is skipped, with one "SKIP" line, and returns `skipped`
+ * instead of `fn`'s result. Full mode runs every block.
+ */
+export async function step(name, opts, fn) {
+  if (typeof opts === "function") [fn, opts] = [opts, {}];
+  if (SMOKE && !opts.smoke) {
+    console.log(`SKIP  ${name} (smoke)`);
+    return opts.skipped;
+  }
+  return fn();
+}
