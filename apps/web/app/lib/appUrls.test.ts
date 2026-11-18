@@ -27,6 +27,13 @@ describe("appUrls", () => {
     expect(appUrls.groupSettings(G)).toBe(`/app/groups/${G}/settings`);
   });
 
+  it("builds a group's settings subpages, and drops an unknown one", () => {
+    expect(appUrls.groupSettings(G, "details")).toBe(`/app/groups/${G}/settings/details`);
+    expect(appUrls.groupSettings(G, "members")).toBe(`/app/groups/${G}/settings/members`);
+    // @ts-expect-error: only the listed subpages exist.
+    expect(appUrls.groupSettings(G, "bogus")).toBe(`/app/groups/${G}/settings`);
+  });
+
   it("encodes ids as path segments", () => {
     expect(appUrls.groupHome("a/b?c")).toBe("/app/groups/a%2Fb%3Fc");
     expect(appUrls.entry("g", "x y#z")).toBe("/app/groups/g/entries/x%20y%23z");
@@ -72,6 +79,16 @@ describe("appUrls", () => {
     expect(appUrls.newSheet("g", "symptom", { type: "spo2" })).toBe("/app/groups/g/timeline/new/symptom");
     // @ts-expect-error: notes and events have a page (`newEntry`), not a sheet.
     expect(appUrls.newSheet("g", "note", { search: "?kind=note" })).toBe("/app/groups/g/timeline?kind=note");
+  });
+
+  it("builds the edit sheet's path, carrying the timeline's filters", () => {
+    expect(appUrls.editSheet(G, "e1")).toBe(`/app/groups/${G}/timeline/e1/edit`);
+    expect(appUrls.editSheet("g", "e 1/x", { search: "?kind=vital&author=u&type=spo2" })).toBe(
+      "/app/groups/g/timeline/e%201%2Fx/edit?kind=vital&author=u",
+    );
+    expect(appUrls.editSheet("g", "e1", { search: { kind: "symptom", author: "" } })).toBe(
+      "/app/groups/g/timeline/e1/edit?kind=symptom",
+    );
   });
 
   it("drops an unknown kind for a new entry", () => {

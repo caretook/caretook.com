@@ -59,6 +59,12 @@ const isAccountSettingsPage = (page: unknown): page is AccountSettingsPage =>
   (ACCOUNT_SETTINGS_PAGES as readonly unknown[]).includes(page);
 const groupHome = (groupId: string) => `${HOME}/groups/${segment(groupId)}`;
 
+/** A group's settings subpages, in list order (`…/settings/<page>`). */
+export const GROUP_SETTINGS_PAGES = ["details", "members"] as const;
+export type GroupSettingsPage = (typeof GROUP_SETTINGS_PAGES)[number];
+const isGroupSettingsPage = (page: unknown): page is GroupSettingsPage =>
+  (GROUP_SETTINGS_PAGES as readonly unknown[]).includes(page);
+
 export const appUrls = {
   /** `/app`: the last group's timeline, the only group's, or the list of groups. */
   home: () => HOME,
@@ -87,11 +93,21 @@ export const appUrls = {
     if (kind === "vital" && isVitalType(type)) params.set(VITAL_TYPE_PARAM, type);
     return `${groupHome(groupId)}/timeline/new/${kind}${searchString(params)}`;
   },
+  /**
+   * The edit sheet for a symptom or vital over a group's timeline, carrying
+   * the timeline's filters (the add sheet's own `type` is dropped).
+   */
+  editSheet: (groupId: string, entryId: string, { search }: { search?: Search } = {}) =>
+    `${groupHome(groupId)}/timeline/${segment(entryId)}/edit${searchString(withoutSheetParams(search))}`,
   /** A note's or event's page (also a share link). */
   entry: (groupId: string, entryId: string) => `${groupHome(groupId)}/entries/${segment(entryId)}`,
   /** A new note or event (a draft until its first change). An unknown kind is dropped. */
   newEntry: (groupId: string, kind: LiveEntryKind) =>
     `${groupHome(groupId)}/entries/${NEW_ENTRY}${searchString({ kind: isLiveEntryKind(kind) ? kind : null })}`,
-  /** A group's settings. */
-  groupSettings: (groupId: string) => `${groupHome(groupId)}/settings`,
+  /**
+   * A group's settings: the list, or one of its subpages. An unknown subpage
+   * is dropped (the list).
+   */
+  groupSettings: (groupId: string, page?: GroupSettingsPage) =>
+    `${groupHome(groupId)}/settings${isGroupSettingsPage(page) ? `/${page}` : ""}`,
 } as const;
