@@ -4,9 +4,14 @@
 // (and link, unlink, delete) uploads once the network is back; a viewer's
 // device write is refused locally.
 //
-// There are no provider screens yet, so it drives the device module itself
-// (lib/sync/providers.ts, imported through Vite) against `window.caretookSync`.
-// Later slices add their screens' steps here. Every provider and entry it makes
+// Slice 2 (the Providers tab and list): the section in the tab bar and the
+// header, the seeded list in display order with past ones behind "Show past",
+// search and type filters in the URL (surviving a reload), the contact
+// actions' names and hrefs, the list offline, and a non-member's 404.
+//
+// The device steps drive the device module itself (lib/sync/providers.ts,
+// imported through Vite) against `window.caretookSync`. Later slices add
+// their screens' steps here. Every provider and entry it makes
 // carries this run's tag and is soft-deleted at the end, so it passes run
 // after run without a reset.
 import { execSync } from "node:child_process";
@@ -54,6 +59,233 @@ const onDevice = (p, body) =>
 const localRows = (p, sql, params = []) =>
   onDevice(p, `return db.powersync.getAll(${JSON.stringify(sql)}, ${JSON.stringify(params)});`);
 
+// --- The directory screen (slice 2) -----------------------------------------
+
+const BAR = `document.querySelector('nav.dock[aria-label="Group sections"]')`;
+const HEADER_NAV = `document.querySelector('header [data-region="sections"] nav[aria-label="Group sections"]')`;
+const navState = (nav) => `(() => {
+  const links = [...(${nav}?.querySelectorAll("a") ?? [])];
+  return {
+    labels: links.map((a) => a.textContent.trim()).join(","),
+    current: links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent.trim()).join(","),
+  };
+})()`;
+/** The names in one of the directory's lists, leaving out other runs' tagged providers. */
+const listNames = (label) =>
+  `[...document.querySelectorAll('main ul[aria-label="${label}"] [data-provider-name]')].map((n) => n.textContent.trim()).filter((n) => !n.startsWith("PV-"))`;
+const directory = (p) =>
+  p.evaluate(`({
+    path: location.pathname,
+    search: location.search,
+    box: document.querySelector('main input[type="search"]')?.value,
+    current: ${listNames("Current providers")},
+    past: ${listNames("Past providers")},
+    showPast: document.querySelector("main [data-show-past]")?.textContent.trim() ?? null,
+  })`);
+const SEEDED_CURRENT = [
+  "Cornerstone Pharmacy",
+  "Dr. Elena Alvarez",
+  "Westside Family Medicine",
+  "Dr. Samuel Patel",
+  "Maria Reyes",
+];
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const metrics = (p, width, mobile) =>
+  p.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile });
+const waitForList = (p, test, ms = 15000) =>
+  p.waitFor(`(() => { const names = ${listNames("Current providers")}; return ${test}; })()`, ms);
+
+async function directorySteps(p, proxy) {
+  // The tab bar (420) has Timeline and Providers; Providers opens the list.
+  await p.waitFor(`location.pathname.endsWith("/timeline") && !!${BAR}`, 30000).catch(() => {});
+  const onTimeline = await p.evaluate(navState(BAR));
+  check(
+    "420: the tab bar shows Timeline and Providers, Timeline current",
+    onTimeline.labels === "Timeline,Providers" && onTimeline.current === "Timeline",
+    JSON.stringify(onTimeline),
+  );
+  await p.press(`[...${BAR}.querySelectorAll("a")].find((a) => a.textContent.trim() === "Providers")`);
+  await p.waitFor(`location.pathname.endsWith("/providers")`, 15000);
+  await waitForList(p, `names.length >= 5`);
+  const tab = await p.evaluate(navState(BAR));
+  check(
+    "420: the Providers tab opens the directory and is marked current",
+    tab.current === "Providers" &&
+      (await p.evaluate(`document.querySelector("main h1")?.textContent`)) === "Providers",
+    JSON.stringify(tab),
+  );
+
+  // Display order: primary first, then current by name; past only with "Show past".
+  const seeded = await directory(p);
+  check(
+    "the seeded list: primary first, then current by name",
+    same(seeded.current, SEEDED_CURRENT),
+    JSON.stringify(seeded.current),
+  );
+  check(
+    'past providers are hidden behind "Show past (1)"',
+    seeded.past.length === 0 && seeded.showPast === "Show past (1)",
+    JSON.stringify(seeded),
+  );
+  await p.screenshot("providers-list");
+  await p.press(`document.querySelector("main [data-show-past]")`);
+  await p.waitFor(`location.search.includes("past=1")`, 10000);
+  const withPast = await directory(p);
+  check(
+    '"Show past" lists the past provider below the current ones (?past=1)',
+    same(withPast.past, ["Dr. Alan Whitford"]) && same(withPast.current, SEEDED_CURRENT),
+    JSON.stringify(withPast),
+  );
+
+  // Search by specialty, in the URL, surviving a reload.
+  await p.type(`document.querySelector('main input[type="search"]')`, "cardio");
+  await waitForList(p, `names.length === 1`);
+  await p.waitFor(`new URLSearchParams(location.search).get("q") === "cardio"`, 10000);
+  const cardio = await directory(p);
+  check(
+    '"cardio" finds the cardiologist by specialty (?q=cardio)',
+    same(cardio.current, ["Dr. Samuel Patel"]) && cardio.past.length === 0,
+    JSON.stringify(cardio),
+  );
+  await p.goto(`${cardio.path}${cardio.search}`);
+  await waitForList(p, `names.length > 0`, 30000);
+  const reloaded = await directory(p);
+  check(
+    "the search survives a reload (box and list)",
+    reloaded.box === "cardio" && same(reloaded.current, ["Dr. Samuel Patel"]),
+    JSON.stringify(reloaded),
+  );
+
+  // The clinic's name finds its clinicians; a type chip narrows it, also in the URL.
+  await p.type(`document.querySelector('main input[type="search"]')`, "westside");
+  await waitForList(p, `names.length === 2`);
+  const westside = await directory(p);
+  check(
+    "the clinic's name finds the clinic and its clinician",
+    same(westside.current, ["Dr. Elena Alvarez", "Westside Family Medicine"]),
+    JSON.stringify(westside.current),
+  );
+  await p.waitFor(`new URLSearchParams(location.search).get("q") === "westside"`, 10000);
+  await p.press(
+    `[...document.querySelectorAll('main nav[aria-label="Show providers"] a')].find((a) => a.textContent.trim() === "Clinicians")`,
+  );
+  await p.waitFor(`new URLSearchParams(location.search).get("type") === "clinician"`, 10000);
+  await waitForList(p, `names.length === 1`);
+  const typed = await directory(p);
+  const chip = await p.evaluate(
+    `[...document.querySelectorAll('main nav[aria-label="Show providers"] a[aria-current="true"]')].map((a) => a.textContent.trim()).join(",")`,
+  );
+  check(
+    "the Clinicians chip keeps the search: only Dr. Alvarez (?q=westside&type=clinician)",
+    same(typed.current, ["Dr. Elena Alvarez"]) && chip === "Clinicians" && typed.box === "westside",
+    JSON.stringify({ ...typed, chip }),
+  );
+  await p.goto(`${typed.path}${typed.search}`);
+  await waitForList(p, `names.length > 0`, 30000);
+  const typedReload = await directory(p);
+  check(
+    "search and type survive a reload",
+    same(typedReload.current, ["Dr. Elena Alvarez"]) && typedReload.box === "westside",
+    JSON.stringify(typedReload),
+  );
+  await p.press(
+    `[...document.querySelectorAll('main nav[aria-label="Show providers"] a')].find((a) => a.textContent.trim() === "Pharmacies")`,
+  );
+  await p.waitFor(`new URLSearchParams(location.search).get("type") === "pharmacy"`, 10000);
+  await p.type(`document.querySelector('main input[type="search"]')`, "");
+  await waitForList(p, `names.length === 1`);
+  check(
+    "the Pharmacies chip shows just the pharmacy",
+    same((await directory(p)).current, ["Cornerstone Pharmacy"]),
+  );
+
+  // Contact actions: accessible names and hrefs.
+  await p.goto(typed.path);
+  await waitForList(p, `names.length >= 5`, 30000);
+  const actions = await p.evaluate(`Object.fromEntries(
+    [...document.querySelectorAll("main li[data-provider-id]")].map((li) => [
+      li.querySelector("[data-provider-name]").textContent.trim(),
+      [...li.querySelectorAll("[data-contact-actions] a")].map((a) => [a.getAttribute("aria-label"), a.getAttribute("href"), a.getAttribute("target")]),
+    ]),
+  )`);
+  const alvarez = actions["Dr. Elena Alvarez"] ?? [];
+  check(
+    'Dr. Alvarez: "Call Dr. Elena Alvarez, office" dials the office with its extension, and Email mails her',
+    same(alvarez, [
+      ["Call Dr. Elena Alvarez, office", "tel:5550102200,214", null],
+      ["Email Dr. Elena Alvarez", "mailto:e.alvarez@westsidefamily.example", null],
+    ]),
+    JSON.stringify(alvarez),
+  );
+  const clinic = actions["Westside Family Medicine"] ?? [];
+  check(
+    "Westside: call the front desk, and its address opens in maps (a new tab)",
+    same(clinic[0], ["Call Westside Family Medicine, front desk", "tel:5550102200", null]) &&
+      clinic[1]?.[0] === "Open Westside Family Medicine's address in maps" &&
+      clinic[1]?.[1] ===
+        "https://www.google.com/maps/search/?api=1&query=1200%20Westside%20Ave%2C%20Suite%20300%2C%20Springfield%2C%20CA%2090000" &&
+      clinic[1]?.[2] === "_blank",
+    JSON.stringify(clinic),
+  );
+  check(
+    "Maria Reyes: an international number keeps its +",
+    actions["Maria Reyes"]?.[0]?.[1] === "tel:+15550105500",
+    JSON.stringify(actions["Maria Reyes"]),
+  );
+
+  // 1280 wide: the header's section links, Providers current.
+  await metrics(p, 1280, false);
+  await sleep(400);
+  const wide = await p.evaluate(navState(HEADER_NAV));
+  check(
+    "1280: the header shows Timeline and Providers, Providers current",
+    wide.labels === "Timeline,Providers" && wide.current === "Providers",
+    JSON.stringify(wide),
+  );
+  await p.screenshot("providers-list-wide");
+  await metrics(p, 420, true);
+  await sleep(300);
+
+  // Offline: from the timeline and back, the list comes from the device.
+  // (Both route modules load online first: without a service worker, a dev
+  // page can't fetch a module it hasn't loaded since its last full load.)
+  const tabTo = async (label, path) => {
+    await p.press(`[...${BAR}.querySelectorAll("a")].find((a) => a.textContent.trim() === "${label}")`);
+    await p.waitFor(`location.pathname.endsWith("${path}")`, 15000);
+  };
+  await tabTo("Timeline", "/timeline");
+  await p.waitFor(`document.querySelectorAll("ol > li").length > 0`, 15000);
+  await tabTo("Providers", "/providers");
+  await waitForList(p, `names.length >= 5`);
+  const errorsBefore = p.errors.length;
+  proxy.setOnline(false);
+  await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000);
+  await p.press(`[...${BAR}.querySelectorAll("a")].find((a) => a.textContent.trim() === "Timeline")`);
+  await p.waitFor(
+    `location.pathname.endsWith("/timeline") && document.querySelectorAll("ol > li").length > 0`,
+    15000,
+  );
+  await p.press(`[...${BAR}.querySelectorAll("a")].find((a) => a.textContent.trim() === "Providers")`);
+  await p.waitFor(`location.pathname.endsWith("/providers")`, 15000);
+  await waitForList(p, `names.length >= 5`).catch(() => {});
+  await p.type(`document.querySelector('main input[type="search"]')`, "cardio");
+  await waitForList(p, `names.length === 1`).catch(() => {});
+  await p.waitFor(`location.search === "?q=cardio"`, 10000).catch(() => {});
+  const offline = await directory(p);
+  check(
+    "offline: the directory opens and searches from the device's copy",
+    same(offline.current, ["Dr. Samuel Patel"]) && offline.search === "?q=cardio",
+    JSON.stringify(offline),
+  );
+  proxy.setOnline(true);
+  await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  p.errors.splice(errorsBefore); // Offline fetch failures aren't the app's errors.
+  await p.goto(typed.path.replace(/\/providers$/, "/timeline"));
+  await p.waitFor(`document.querySelectorAll("ol > li").length > 0`, 30000);
+  // The device steps import the device modules into this page: load them while online.
+  await localRows(p, "SELECT 1");
+}
+
 async function signIn(p, email) {
   // On a fresh dev server the first load can fail while Vite optimises its deps: one retry.
   await p.signIn(email, PW).catch(async () => {
@@ -68,6 +300,7 @@ const proxyA = startProxy(9421);
 const bA = await launch(9411, proxyA.args);
 const bB = await launch(9412);
 const bC = await launch(9413);
+const bD = await launch(9414);
 const pages = [];
 try {
   const A = await openPage(bA, "caretaker");
@@ -145,6 +378,9 @@ try {
     notMine[0]?.n === 0,
     `${notMine[0]?.n} from Dev Family 2`,
   );
+
+  // --- The Providers tab and list (slice 2) --------------------------------
+  await directorySteps(A, proxyA);
 
   // --- A member of both groups gets both, each in its own group ------------
   await sleep(4000);
@@ -263,6 +499,32 @@ try {
     [DEV_FAMILY],
   );
   check("…but sees the directory", viewerSees[0]?.n >= 6, `${viewerSees[0]?.n}`);
+  await C.goto(`/app/groups/${DEV_FAMILY}/providers`);
+  await waitForList(C, `names.length >= 5`, 30000).catch(() => {});
+  const viewerList = await directory(C);
+  const viewerNote = await C.evaluate(`document.querySelector("main header p")?.textContent ?? ""`);
+  check(
+    "a viewer sees the same list, marked view-only",
+    same(viewerList.current, SEEDED_CURRENT) && viewerNote.includes("You can view this directory"),
+    JSON.stringify({ current: viewerList.current, viewerNote }),
+  );
+
+  // --- A non-member's providers URL is the 404, with no names --------------
+  await sleep(4000); // Better Auth's sign-in rate limit.
+  const D = await openPage(bD, "admin");
+  pages.push(D);
+  await D.signIn("admin@example.com", PW, { home: true });
+  await D.goto(`/app/groups/${DEV_FAMILY}/providers?q=cardio`);
+  await D.waitFor(`document.querySelector("main h1")?.textContent === "Not found"`, 20000).catch(() => {});
+  const stranger = await D.evaluate(`({
+    h1: document.querySelector("main h1")?.textContent,
+    leaks: /Grandma|Pat|Dev Family|Alvarez|Patel|Westside|Cornerstone|Maria/.test(document.querySelector("main")?.innerText ?? ""),
+  })`);
+  check(
+    "non-member: …/providers is the 404 with no names",
+    stranger.h1 === "Not found" && !stranger.leaks,
+    JSON.stringify(stranger),
+  );
 
   // --- Clean up: soft-delete this run's event --------------------------------
   const cleaned = await onDevice(
@@ -284,7 +546,7 @@ try {
   check("ran to the end", false, e.message);
 } finally {
   for (const p of pages) p.close();
-  for (const b of [bA, bB, bC]) b.proc.kill();
+  for (const b of [bA, bB, bC, bD]) b.proc.kill();
   proxyA.close();
 }
 
