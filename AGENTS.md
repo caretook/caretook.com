@@ -130,6 +130,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 | routes, `routes.ts`, `appUrls`, sheet URLs, settings subpages                | `routing.mjs`                                                 |
 | settings saves, `lib/me.ts`                                                  | `settings-layout.mjs`, `layout-offline.mjs` (timeout)         |
 | session, sign-in, sign-out, sync client, first sync                          | `sign-in.mjs`, `first-sync.mjs`, `signout-wipe.mjs` (timeout) |
+| account emails, `/reset-password`, `/verify-email`, `packages/auth`          | `invites.mjs` (and `sign-in.mjs` for the account pages)       |
 | a feature's own screens                                                      | its own check (`providers.mjs`, `medications.mjs`, …)         |
 | the marketing site (`routes/marketing/`, `public/`)                          | `marketing.mjs` (`--timeout 120`)                             |
 | schema, migrations, sync-config, the upload switch, seeds                    | the checks for every screen that reads those tables           |
@@ -206,6 +207,7 @@ The backlog's PRD table lists them all, with their dependencies.
 - 🟡 [`plans/marketing-prd.md`](plans/marketing-prd.md) (topic `marketing`, B-32): the public site. Sliced in [`plans/marketing-plan.md`](plans/marketing-plan.md). **Slice 1 (the frame, home, brand assets, SEO, prerendering) is in `dev`**; its decisions are under _Marketing site_. Slices 2 (features, about, FAQ) and 3 (legal pages) are next; 4 and 5 wait for `invites` slices 1 and 5.
 - 🟡 [`plans/providers-prd.md`](plans/providers-prd.md) (topic `providers`): the provider directory and links from notes and events. Sliced in [`plans/providers-plan.md`](plans/providers-plan.md). **Slices 1–4 (the data layer and the directory: list, add/edit/delete sheets, the provider page with live notes) are in `dev`**; their decisions are under _Providers_. Slices 5–7 (linking from notes and events) wait for `components`.
 - 🟡 [`plans/components-prd.md`](plans/components-prd.md) (topic `components`, B-24): UI primitives, feature folders, thin routes. Sliced in [`plans/components-plan.md`](plans/components-plan.md). **Slices 1–2 (the menu primitive, the feature folders, one entry actions menu; sheets, popovers, dialogs, avatars, chips, fields) are in `dev`**; their decisions are under _Components_ below. Slices 3 (the timeline, split) and 4 (the entry page, split) are next. It runs alone among UI PRDs: new UI elsewhere uses `components/ui/` and the feature folders.
+- 🟡 [`plans/invites-prd.md`](plans/invites-prd.md) (topic `invites`, B-30): sign-up, invites, consent and account emails. Sliced in [`plans/invites-plan.md`](plans/invites-plan.md). **Slices 1–2 (the notifications package and outbox; sign in by emailed link or code, password reset, email verification) are in `dev`**; their decisions are under _Notifications_ and _Auth_. Slice 3 (email invites with consent) is next, then 4 (link invites, join requests) and 5 (creating groups, access codes) in parallel.
 - ✅ [`plans/routing-prd.md`](plans/routing-prd.md) (topic `routing`, B-23): **done**, all five slices in `dev`: the group route with its middleware, `appUrls`, a folder per route, add- and edit-sheet URLs, and account and group settings subpages. Its lasting decisions are under _The `/app` frame_ and _Timeline screen_. `components` and `timeline-polish` 4–7 can start.
 
 ## Product
@@ -312,7 +314,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
   2. Add a `PERMISSIONS` entry (the type requires one).
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
-- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0008 so far.
+- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0009 so far.
   - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
   - Until the first deploy it's fine to delete and regenerate migrations.
 - **DB client:** the pool is created lazily (importing never needs `DATABASE_URL`). Only the **pool** survives HMR (`utils/remember.ts`); the drizzle wrapper is rebuilt, so new tables work without a restart.
@@ -334,7 +336,10 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 - **Exports:** `getAuth()` (lazy) and `getAuthUser(headers)` → `AuthUser` with `groupRoles`. `@caretook/auth/client` has `createCaretookAuthClient`. apps/web imports through `app/.server/auth.ts` and `app/lib/auth-client.ts`.
 - **Routes:** `/api/auth/*` is web only. `/sign-in` and `/sign-out` are shared and client-only (sign-out is POST only). The /app layout (`routes/app/layout/route.tsx`) redirects to `/sign-in?redirectTo=…`, checked by `safeRedirect`. The sign-in button stays disabled ("Signing in…") while any navigation is non-idle, so it can't be pressed again during the redirect's loaders.
 - **Dev:** seeds give every `@example.com` user a password from `SEED_USER_PASSWORD` (`packages/data/.env`), hashed with `better-auth/crypto` (a dev dependency). The env is in `apps/web/.env`; `vite.config.ts` also loads `packages/data/.env`.
-- 🟡 **Resend** next: verification, reset, invites, maybe magic link or OTP. Keep `requireEmailVerification` off until then, and don't build UI that assumes passwords are the only sign-in method.
+- ✅ **Sign-in methods** (`invites` slice 2): password, an emailed link (`magicLink`) and an emailed 6-digit code (`emailOTP`, stored hashed), all with `disableSignUp: true`, plus password reset and **`requireEmailVerification: true`**. `packages/auth/src/emails.ts` sends every auth email through `notify` (never awaited in the request). Every message about an address reads the same whether or not an account exists. Seed users are `email_verified = true`.
+  - Shared, client-only routes `/reset-password` and `/verify-email` (`routes/account/`, on `AuthCard`); their paths come from `lib/accountUrls.ts`, their wording from `lib/authMessages.ts`. `requireSession` sends a signed-in but unverified user to `/verify-email`.
+  - **Every account form submits through `useSubmitOnce()`** (`routes/account/AuthCard.tsx`): it ignores further submits until the request settles, so a double tap sends one email (B-1). A new account form uses it too.
+  - 🟡 Sign-up only with a ticket (an invite or an access code) comes with `invites` slices 3 and 5.
 - ❓ Before launch:
   - rate-limit storage (the default is in-memory, per serverless instance);
   - native bearer storage (secure storage) and `VITE_API_ORIGIN`.
@@ -562,9 +567,19 @@ Built so far by [`plans/marketing-prd.md`](plans/marketing-prd.md) slice 1.
 - **No third-party requests and no analytics:** `MarketingAnalytics` is an empty hook point. The site makes public privacy promises, so anything that changes them updates the privacy page in the same change.
 - **Browser check:** `marketing.mjs` (no sign-in; about 5 s). Screenshots only with `MARKETING_SHOTS=1`, viewport-only; never `captureBeyondViewport` (it hung headless Chrome for over an hour).
 
-## Planned: notifications (Resend iteration)
+## Notifications (`packages/notifications`)
 
-🟡 A server-only `packages/notifications`, usable from the API, Better Auth callbacks and workers. Nothing is built yet.
+✅ Built by `invites` slices 1–2: `@caretook/notifications`, server only, usable from the API, Better Auth callbacks and workers. Nothing outside it calls Resend.
+
+- **Built:**
+  - `NOTIFICATIONS` (`registry.ts`): `testMessage`, `magicLink`, `signInCode`, `resetPassword`, `verifyEmail`. Templates are `react-email` 6.11.13 components (it replaced the deprecated `@react-email/components`), rendered to HTML and plain text by `@react-email/render` 2.3.1. Data is checked with Zod before rendering; links come only from `APP_URL` and must be app paths (`templates/appPath.ts`).
+  - `notify(name, { to, actor?, data, idempotencyKey, tx?, deliver? })` writes a `notification_outbox` row in the caller's transaction (a repeated key queues nothing). **Every email goes through the outbox, auth emails included.** Outside a transaction it starts delivery at once; inside one, call `deliverSoon(id)` after commit. `setBackgroundRunner` is the hook for Vercel's `waitUntil`.
+  - Delivery: `deliverDue({ limit ≤ 100 })` claims rows `FOR UPDATE SKIP LOCKED` (and retakes rows stuck in `sending` over 10 min); backoff doubles from 1 min to 6 h, failed after 8 attempts; `purgeSent` drops sent rows after 30 days. The web-only `/api/cron/outbox` runs `sweepOutbox` behind a `CRON_SECRET` bearer (401 without it, 503 when unset).
+  - Senders by `MAIL_SENDER`: `log` (dev default; writes `dev_mail`), `memory` (tests), `resend` (checks `{ error }`, passes the idempotency key; outside production only `MAIL_ALLOWLIST` addresses or `@domain`s, others marked `skipped`). Production refuses to start without `RESEND_API_KEY` and `APP_URL`, and refuses `log` or `memory`.
+  - **The dev mailbox:** web-only `/dev/mail` (list, `?to=`), `/dev/mail/:id` (HTML in a sandboxed iframe, text, links) and `/dev/mail.json` (`?to=`, `?limit=`, `?id=`; what browser checks read). All 404 under `NODE_ENV=production`, so mail checks need the dev server, not `pnpm prd serve --built`.
+  - **Env** (documented in `apps/web/.env.example`): `APP_URL`, `MAIL_SENDER`, `RESEND_API_KEY`, `MAIL_FROM`, `MAIL_ALLOWLIST`, `CRON_SECRET`, `INVITE_LINK_KEY`. `new.sh` sets each worktree's `APP_URL` to its own web port and gives it a random `CRON_SECRET` when the main checkout has none. Without `APP_URL` links default to `http://localhost:5173`, so an older worktree's mail points at the main checkout: add `APP_URL` to its `apps/web/.env`.
+- **Before launch:** Resend's open and click tracking are settings on the sending domain, not per message, so turn them off there; plus SPF, DKIM and DMARC on the sending subdomain, the bounce webhooks, and the cron schedule on the host.
+- **Design rules (still apply):**
 
 - **Typed registry:** `defineNotification({ name, data: zod, email: (data, { recipient }) => ({ subject, react }), push? })` in `NOTIFICATIONS = { … } as const`, sent with `notify(name, { to, actor?, data })`.
   - Never type the registry as `Record<string, …>`: that makes every string a valid name and loses the link between name and data.
@@ -575,7 +590,6 @@ Built so far by [`plans/marketing-prd.md`](plans/marketing-prd.md) slice 1.
   - Check Resend's `{ error }`; it doesn't throw.
   - Production refuses to start without `RESEND_API_KEY`.
   - Outside production, only allowlisted recipients get real email.
-- **Outbox:** for everything except auth emails. A `notification_outbox` row is written in the same transaction as the change (unique `idempotency_key`, also passed to Resend). It's delivered through `waitUntil` plus a cron sweep (`CRON_SECRET`, batches of ≤100, backoff). Purge sent rows.
 - **Health-app rules:**
   - No health details in subjects or bodies by default (opt-in only, with consent recorded).
   - Resend open and click tracking off.
@@ -585,13 +599,7 @@ Built so far by [`plans/marketing-prd.md`](plans/marketing-prd.md) slice 1.
   - Send from a subdomain with SPF, DKIM and DMARC.
   - `List-Unsubscribe` on optional mail.
   - Times in the recipient's zone.
-- **Order:**
-  1. Registry and senders.
-  2. Reset and verification.
-  3. Invites through the outbox (with sign-up, accept and consent).
-  4. Tracking off, bounces and DNS.
-
-  Later: digests, preferences, push through Capacitor, the AWS worker.
+- **Next:** invites through the outbox, with sign-up, accept and consent (`invites` slices 3–5); then tracking off, bounces and DNS. Later: digests, preferences, push through Capacitor, the AWS worker.
 
 ## Compliance
 
@@ -604,7 +612,7 @@ Built so far by [`plans/marketing-prd.md`](plans/marketing-prd.md) slice 1.
 
 ## Open questions
 
-- ❓ Invites: email delivery, accept and decline (match the signed-in email, create the membership as `system`), and **consent** for sharing health data (recorded on the invite or as an audit row at accept time).
+- ❓ Invites: accept and decline (match the signed-in email, create the membership as `system`), and **consent** for sharing health data. Settled in the `invites` plan (slice 3: a `care_group_consent` row with the consent version); email delivery is built (_Notifications_).
 - ❓ Account deletion by a group's last owner currently leaves the group ownerless. Block it, delete the group, or auto-promote?
 - ❓ Co-members can read each other's full `user` row in the data layer. Only the API's public-profile shape protects it.
 - ❓ Hosted database, PowerSync production setup, rate-limit storage, native token storage (see the sections above).
@@ -635,7 +643,7 @@ Built so far by [`plans/marketing-prd.md`](plans/marketing-prd.md) slice 1.
 UI work is verified in headless Chrome over CDP with plain Node scripts (no Playwright yet).
 
 - **Run:** `pnpm prd browser <check> [args…]` from the worktree (`phase2`, `phase2.mjs` or a path). It uses Node 24 from `.nvmrc` (the checks need the global `WebSocket`), the worktree's `.env.loop` (`BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER`; the main checkout's defaults when there is none, and `BASE` then defaults to `http://localhost:5176`), runs from `scripts/browser-checks/`, and holds a machine-wide lease (at most four checks at once). `--changed` runs only what the diff needs (see _Browser check budget_). `--timeout <s>` kills a check, and its Chrome, after that long. `--suite` runs every check in the _Browser check budget_ table, pausing 10 s between them for Better Auth's sign-in limit (`CARETOOK_BROWSER_SUITE` and `CARETOOK_BROWSER_PAUSE` override), and exits non-zero if any failed.
-- **Scripts:** `cdp.mjs` (the harness, with `tap()` for real CDP mouse taps; it collects uncaught errors, rejections, `console.error` and failed loads in `page.uncaught`, and a `waitFor` timeout prints `page.diagnose()`: the URL, those errors and the start of `main`; pass `{ quiet: true }` for an expected timeout); `proxy.mjs` (offline, because CDP network emulation doesn't cut PowerSync's stream; it tunnels CONNECT, so WebSockets work, and going offline leaves Vite's `vite-hmr`/`vite-ping` sockets open, so a proxied page still gets Vite's reload after a re-optimization instead of loading two copies of React and Yjs); `live-notes.mjs` (the one notes and events check, about 2 min: drafts, one-tap note and event, title chips, Live now banner and live dot, avatars, convergence, offline, time chip, Delete, Share, 404s, with tap counts Note 1, Event 1, named event 2, Join 1); `roundtrip.mjs` (sheet entries: symptom add, edit, delete, validation, offline, viewer, sign-out wipe); `phase2.mjs` (the timeline layout and row taps, the kind icon filter, the day headings and the one-line vitals strip, writer and viewer in both views; Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change; its sticky-heading steps scroll relative to a day section, never to a fixed offset); `signout-wipe.mjs` (never exits on its own; `pnpm prd browser` stops it after its last line); `sign-in.mjs` (one sign-in request on a double click, by holding `/api/auth/token`); `layout-offline.mjs` (an offline layout change survives and reaches the server); `first-sync.mjs` (a slow first sync, held by its own proxy, shows the syncing state and never "no care groups"; `HOLD_MS`); `app-shell.mjs` (the frame: one-row header at 420, the user menu by keyboard, theme with no flash and with storage blocked, group switching and the last group, the tab bar at 420 and header links at 1280, Sign out, and group settings for owner, caretaker, viewer, a non-member and offline, then members: role change on a second device, the admin and last-owner refusals, remove and leave; it restores the seeded names and memberships, so no reset is needed afterwards); `settings-layout.mjs` (the timeline layout choice in Settings, as caretaker@ in two browsers; it restores the account's layout). `phase2.mjs`'s sticky-header step scrolls into the middle of a day, because seeds are placed by `hoursAgo` and a fixed offset can land on the seam between two days.
+- **Scripts:** `cdp.mjs` (the harness, with `tap()` for real CDP mouse taps; it collects uncaught errors, rejections, `console.error` and failed loads in `page.uncaught`, and a `waitFor` timeout prints `page.diagnose()`: the URL, those errors and the start of `main`; pass `{ quiet: true }` for an expected timeout); `proxy.mjs` (offline, because CDP network emulation doesn't cut PowerSync's stream; it tunnels CONNECT, so WebSockets work, and going offline leaves Vite's `vite-hmr`/`vite-ping` sockets open, so a proxied page still gets Vite's reload after a re-optimization instead of loading two copies of React and Yjs); `live-notes.mjs` (the one notes and events check, about 2 min: drafts, one-tap note and event, title chips, Live now banner and live dot, avatars, convergence, offline, time chip, Delete, Share, 404s, with tap counts Note 1, Event 1, named event 2, Join 1); `roundtrip.mjs` (sheet entries: symptom add, edit, delete, validation, offline, viewer, sign-out wipe); `phase2.mjs` (the timeline layout and row taps, the kind icon filter, the day headings and the one-line vitals strip, writer and viewer in both views; Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change; its sticky-heading steps scroll relative to a day section, never to a fixed offset); `signout-wipe.mjs` (never exits on its own; `pnpm prd browser` stops it after its last line); `sign-in.mjs` (one sign-in request on a double click, by holding `/api/auth/token`); `layout-offline.mjs` (an offline layout change survives and reaches the server); `first-sync.mjs` (a slow first sync, held by its own proxy, shows the syncing state and never "no care groups"; `HOLD_MS`); `app-shell.mjs` (the frame: one-row header at 420, the user menu by keyboard, theme with no flash and with storage blocked, group switching and the last group, the tab bar at 420 and header links at 1280, Sign out, and group settings for owner, caretaker, viewer, a non-member and offline, then members: role change on a second device, the admin and last-owner refusals, remove and leave; it restores the seeded names and memberships, so no reset is needed afterwards); `settings-layout.mjs` (the timeline layout choice in Settings, as caretaker@ in two browsers; it restores the account's layout); `invites.mjs` (account emails through `/dev/mail.json`: emailed link, emailed code, reset, verification, unknown addresses getting the same message and no mail, one email per double press; it makes `inv<run>-…@example.com` accounts and deletes them, their mail, outbox and verification rows at the end; dev server only). `phase2.mjs`'s sticky-header step scrolls into the middle of a day, because seeds are placed by `hoursAgo` and a fixed offset can land on the seam between two days.
   - **They're order-independent:** each run tags the entries it makes, asserts against its own entries (never global idle state or seed order), moves only its own documents' edit times back before "who's typing" steps, and soft-deletes what it made at the end. They exit non-zero on failure.
   - Sign out in a check with `page.signOut()` (`cdp.mjs`), which goes through the account menu.
   - `page.signIn` retries once (with a log line) when `/api/auth/token` answers 401.
@@ -680,15 +688,17 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           EntryTimeChip, EventTitleChips, ShareButton, share),
                           groups/settings/ (groupSettings)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
-  app/routes/sign-in.tsx, sign-out.tsx
-  app/.server/            data.ts, auth.ts, api.ts: the server-only doors
+  app/routes/sign-in.tsx, sign-out.tsx; app/routes/account/ (reset-password, verify-email, AuthCard)
+  app/routes/dev/mail/, app/routes/api/cron/outbox.ts   web only (the dev mailbox; the outbox sweep)
+  app/.server/            data.ts, auth.ts, api.ts, notifications.ts: the server-only doors
   app/components/         shared by 2+ routes only, imported through each folder's index: ui/ (primitives), ui/date/,
                           entry/, notes/, providers/, settings/, shell/
   app/lib/                session, group, groupContext, appUrls, settingsNav, me, auth-client, rpc, api, initials, entryDisplay, format,
                           redirect, form, liveEntry, firstSync, liveNow, titleSuggestions, theme, lastGroup, groupSections,
                           timelineFilters, contactActions, providerDirectory
   app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors, titleSuggestions, members, providers
-packages/auth/            @caretook/auth
+packages/auth/            @caretook/auth (emails.ts: auth emails through notify)
+packages/notifications/   @caretook/notifications: registry, templates (react-email), notify + outbox, senders, cron, dev mail
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
 packages/data/            @caretook/data
   scripts/                migrate, seed, clear runners
@@ -705,4 +715,4 @@ packages/data/            @caretook/data
 2. **The backlog** (`pnpm backlog list`): write the PRDs its table marks "to write" (`pnpm prd plan <topic>`, one `write-a-prd` interview each), then run them, at most three at once.
 3. **Tests:** make the integration tests independent (`careGroup.int.test.ts` shares one group across `describe` blocks), then cover every role against every table.
 4. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
-5. **The Resend iteration:** sign-up, invites with accept and consent, verification and reset. Then Capacitor (bearer storage, `VITE_API_ORIGIN`).
+5. **Invites** (`plans/invites-plan.md`): slice 3 (email invites with consent), then 4 and 5. Then Capacitor (bearer storage, `VITE_API_ORIGIN`).

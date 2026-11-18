@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | State                                                                   | Merge into `prd/invites` (slice commits) |
-| ----- | ----------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | merged                                                                  | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
-| 2     | in progress (`.loops/invites-2`, slot 9)                                |                                          |
-| 3     | blocked by 2 (and uses `routing` slice 5's Members subpage if in `dev`) |                                          |
-| 4     | blocked by 3                                                            |                                          |
-| 5     | blocked by 3                                                            |                                          |
+| Slice | State                                                                                             | Merge into `prd/invites` (slice commits) |
+| ----- | ------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1     | merged                                                                                            | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
+| 2     | merged                                                                                            | `68df3d6` (776ca9b, 3d86337, 5ce74dd)    |
+| 3     | ready after wave 1 lands; blocked by 2 (and uses `routing` slice 5's Members subpage if in `dev`) |                                          |
+| 4     | blocked by 3                                                                                      |                                          |
+| 5     | blocked by 3                                                                                      |                                          |
 
-Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. Wave 1 = slices 1 and 2, landed together.
+Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. Wave 1 = slices 1 and 2: both merged, synced with `dev` (which brought `components` slice 2), checked; waiting for the user's word to land.
 
 Notes from slice 1 for later slices:
 
