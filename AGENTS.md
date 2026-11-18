@@ -8,7 +8,7 @@ Legend: ✅ decided/built · 🟡 proposed, not built · ❓ open.
 
 - **Build only what the user asks for.** Planned work lives in PRDs (below); don't start a PRD or slice until the user says so.
 - **No new dependencies without the user's approval.** Pin approved ones exactly.
-- **Commit only when the user explicitly asks.** "Run before committing" is not a request to commit.
+- **Commit only when the user explicitly asks.** "Run before committing" is not a request to commit. Exception: once the user has started a PRD's loops, loops commit on their own `loop/*` branch and the orchestrator merges them into the integration branch (see _PRDs and parallel loops_).
 - **All seed and test data is fictional.** Never put real people's health information in the repo, even anonymized.
 - Keep this file current: when a slice lands, fold its lasting decisions into the right section and delete anything it made stale.
 
@@ -18,19 +18,52 @@ Feature work goes through a PRD, then a plan cut into slices that loops (paralle
 
 1. **PRD:** `write-a-prd` (interview, explore, sketch modules), saved as `plans/<topic>-prd.md`, then filed as a GitHub issue. `gh` can't reach `caretook/caretook.com` yet; file the issues once `gh auth login` works.
 2. **Plan:** `prd-to-plan` turns the PRD into tracer-bullet vertical slices in `plans/<topic>-plan.md`. Each slice says what it **blocks and is blocked by**, so independent slices can run at once. `prd-to-issues` makes one issue per slice.
-3. **A loop works one slice:**
-   - Read the PRD, the plan and this file first.
-   - **Each loop is isolated:** `scripts/loops/new.sh <slot> <name>` makes a worktree in `.loops/<name>` on branch `loop/<name>` (from `data-layer`), with its own Docker stack (`caretook-loop<slot>`: dev Postgres, test Postgres, PowerSync), env files, dev server port and browser-check ports. It installs, migrates and seeds.
-     - Slot N (1–9): web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80, and CDP/proxy ports shifted by N×1000 (`CDP_PORT_OFFSET`).
-     - Inside a loop, `pnpm dev`, `pnpm datastore:*`, `pnpm test` and `docker compose` all use that loop's stack. Browser checks: `set -a; source .env.loop; set +a` first.
-     - `scripts/loops/ls.sh` lists loops; `scripts/loops/rm.sh <name>` deletes the stack, its data and the worktree, and keeps the branch.
-     - The main checkout keeps the default ports (5173, 5434, 5435, 8080).
-   - Shared files are where loops collide: migrations (number them in plan order), `db/schema/index.ts`, `permissions.ts`, `powersync/sync-config.yaml`, `vitest.config.ts` and this file. Make small edits there, and note them in the slice's hand-off.
-   - Write tests for the slice's modules as the PRD's _Testing Decisions_ say. Run `pnpm check` and the slice's browser check.
-   - **Commit on the loop's own branch** when `pnpm check` passes. Don't merge, rebase or push other branches.
-   - Hand off by reporting what was built, what was verified and what was skipped, plus the commit SHAs.
-4. **Bringing loops together:** the orchestrator reviews each `loop/*` branch and merges it into `data-layer` (the integration branch), in plan order, running `pnpm check` after each merge. A slice blocked by others is branched only after they're merged.
-5. When a PRD is done, move its lasting decisions into this file and mark the PRD done.
+3. **Loops:** one agent per slice, each in its own worktree, branch and Docker stack, run by an orchestrator (the main session). See _Running loops_ below.
+4. When a PRD is done, move its lasting decisions into this file and mark the PRD done.
+
+### Running loops
+
+**Roles.** The **orchestrator** is the main session in the main checkout. It picks the slices that are ready, creates loops, spawns one agent per loop, reviews and merges, and tears loops down. A **loop** is one agent working one slice in isolation. The integration branch is `data-layer` until the user names another.
+
+**Isolation** (`scripts/loops/`):
+
+- `new.sh <slot> <name> [base]` makes a worktree in `.loops/<name>` on a new branch `loop/<name>` (from `data-layer`). It writes the env files (secrets are copied from the main checkout's `packages/data/.env` and `apps/web/.env`), runs `pnpm install`, and starts, migrates and seeds its own stack. `<name>` is `slice-<n>`.
+  - Slot N (1–9): web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80, Compose projects `caretook-loopN` and `caretook-loopN-test`, and CDP/proxy ports shifted by N×1000. Use the slice number as the slot when it's 1–9.
+  - The files it writes (all gitignored): the root `.env` (Compose's project name and ports), `packages/data/.env` and `.env.test.local` (database URLs and `PG_TEST_PORT`), `apps/web/.env` (auth and PowerSync URLs, `WEB_PORT`), and `.env.loop` (`BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER` and `SEED_USER_PASSWORD` for browser checks).
+- `ls.sh` lists loops: branch, commits ahead of `data-layer`, dirty or clean, and containers up.
+- `rm.sh <name> [--force]` runs only **after the branch is merged** (or abandoned): it stops the loop's containers, deletes its disposable database files and removes the worktree. It keeps the `loop/<name>` branch, and refuses uncommitted changes unless `--force` is passed.
+- The main checkout keeps the default ports (5173, 5434, 5435, 8080) and is never used by loops.
+- Every port, the Compose project name and the PowerSync audience come from env, defaulting to the main checkout's values. If you add a service, a port or a hardcoded container name, make it configurable the same way.
+
+**Orchestrator, per wave:**
+
+1. Read the plan. A slice is **ready** when every slice it's blocked by has been merged into `data-layer`. Start only the slices the user asked for.
+2. For each ready slice: `scripts/loops/new.sh <n> slice-<n>`.
+3. Spawn one background agent per loop (not with `isolation: worktree`; the loop already is one). Its prompt must give:
+   - the worktree path (it `cd`s there and works only there; Read/Edit/Write use absolute paths inside it);
+   - the slice number, the PRD and plan paths, and "read AGENTS.md first";
+   - the slice's scope (build only that slice; leave other slices' header regions and files alone);
+   - the loop rules below, and the hand-off format.
+4. As each loop hands off, review its branch: `git diff data-layer...loop/slice-<n>`, its hand-off, and that the acceptance criteria are covered.
+5. Merge **in plan order** into `data-layer` with `git merge --no-ff loop/slice-<n>`. Resolve conflicts in the shared files yourself. After each merge, run `pnpm check` and the browser checks the merged slices touch, from the main checkout. Fix or send it back before merging the next one.
+6. Once merged: `scripts/loops/rm.sh slice-<n>`, then `git branch -d loop/slice-<n>`. Then start the slices it unblocked.
+
+**Loop rules** (copy them into every loop prompt):
+
+- Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24; browser checks need its global `WebSocket`).
+- Your stack is your own. Run `pnpm datastore:reset`, `pnpm test`, `docker compose …` and `pnpm dev` freely from your worktree; they use your ports. Never touch the main checkout, other loops or other Compose projects.
+- Run `pnpm dev` in the background (`WEB_PORT` pins the port). Before browser checks: `set -a; source .env.loop; set +a`. New browser checks use `process.env.PG_CONTAINER` for `psql`, and launch Chrome and proxies through `cdp.mjs` and `proxy.mjs` (which apply the offset), never fixed container names or ports.
+- After editing `powersync/sync-config.yaml`, restart your own PowerSync: `docker compose restart powersync`.
+- Migrations take the number the plan gives the slice. Edits to the shared files stay small and are listed in the hand-off.
+- No new dependencies. All data stays fictional.
+- When `pnpm check` and the slice's browser checks pass, **commit on your `loop/slice-<n>` branch** (coherent commits, ending with the attribution line). Don't merge, rebase or push any other branch.
+- **Hand-off** (the final message): what was built, grouped by area, with every shared-file edit called out; each acceptance criterion marked met or not met, with evidence; the `pnpm check` and browser-check output; anything skipped or surprising that later slices need; and the commit SHAs.
+
+**Gotchas:**
+
+- The first visit to a route on a fresh loop can make Vite re-optimize dependencies and reload the page mid-check. If a browser check times out on its first run, run it once more before debugging.
+- Merging two branches that each generated a migration conflicts in drizzle's `meta/_journal.json` and snapshots. Keep the earlier slice's migration, then regenerate the later one on top (`pnpm datastore:generate`) and re-check its SQL order.
+- The merged `data-layer` seeds can differ from a loop's. After merging a slice that changes seeds or migrations, run `pnpm datastore:reset` in the main checkout.
 
 ### Active PRDs
 
