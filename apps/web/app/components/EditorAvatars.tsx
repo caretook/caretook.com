@@ -1,5 +1,6 @@
 import type { MemberRow } from "~/lib/sync/timeline";
 
+import { listNames } from "~/lib/liveNow";
 import { useRecentEditors } from "~/lib/sync/editors";
 import { useLiveQuery } from "~/lib/sync";
 import { membersQuery } from "~/lib/sync/timeline";
@@ -8,10 +9,6 @@ import { UserAvatar } from "./UserAvatar";
 const NO_MEMBERS: MemberRow[] = [];
 /** More than this many, and the rest become "+N". */
 const MAX_SHOWN = 3;
-
-/** "Maria", "Maria and Sam", "Maria, Sam and Lee". */
-const listNames = (names: string[]) =>
-  names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 
 /**
  * The entry header's `editors` region: initials of the other members who

@@ -26,14 +26,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-1 | bug | triaged | quick-fixes |  | Sign-in can be submitted again while it's loading, and the first load is slow |
+| B-1 | bug | in-progress | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | triaged | timeline-polish |  | Latest vitals is too busy |
 | B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | triaged | timeline-polish |  | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
 | B-7 | change | triaged | timeline-polish |  | More prominent day headers in the timeline |
-| B-8 | feature | triaged | app-shell |  | Avatar in the header with a menu for the user's settings and actions |
+| B-8 | feature | in-progress | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | triaged | app-shell |  | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
@@ -42,24 +42,25 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
-| B-17 | bug | triaged | quick-fixes |  | A timeline layout change made offline is lost |
-| B-18 | feature | in-progress | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
-| B-19 | feature | in-progress | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
-| B-20 | chore | triaged | live-notes-ux |  | Browser check overhaul and documentation (live notes slice 10) |
+| B-17 | bug | in-progress | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
+| B-18 | feature | landed | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
+| B-19 | feature | landed | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
+| B-20 | chore | in-progress | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
-| B-22 | bug | triaged | quick-fixes |  | The first screen after sign-in waits up to 10 s for the first sync |
+| B-22 | bug | in-progress | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 
 ## Items
 
 ### B-1 · bug · Sign-in can be submitted again while it's loading, and the first load is slow
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-17 (dev keeper): Likely cause: `sign-in.tsx` disables the button only while `navigation.state === "submitting"`. After the action redirects, the state is `"loading"` while `/app`'s loaders run `waitForFirstSync` (up to 10 s on a device that hasn't synced), and the button is live again. Fix: stay disabled until the navigation is idle. The slowness is separate: the first sync blocks the first screen. Triage it before choosing a shorter cap, rendering local data straight away with a syncing state, or a smaller first bucket.
 - 2026-11-17 (plan/quick-fixes): Narrowed to the double submit; the slow first load is now B-22. Quick-fixes slice 1.
+- 2026-11-18 (slice/quick-fixes/1): slice/quick-fixes/1: fixed in sign-in.tsx (busy while navigation !== idle) with browser check sign-in.mjs; ready for review
 
 ### B-2 · change · Latest vitals is too busy
 
@@ -121,14 +122,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-8 · feature · Avatar in the header with a menu for the user's settings and actions
 
-- status: triaged
+- status: in-progress
 - prd: app-shell
-- owner:
+- owner: prd/app-shell
 - commit:
 
 - 2026-11-17 (dev keeper): Settings, units, timeline layout, sign out.
 - 2026-11-17 (plan/app-shell): PRD written: plans/app-shell-prd.md on plan/app-shell. Avatar menu: name/email header, Settings, theme (System/Light/Dark, per device), Sign out.
 - 2026-11-17 (plan/app-shell): Plan: plans/app-shell-plan.md (plan/app-shell). Slices 1 (frame + user menu) and 2 (theme); slice 7 (layout in Settings) noted here.
+- 2026-11-18 (prd/app-shell): app-shell slice 1 (frame + user menu) merged into prd/app-shell at 697c39b; slice 2 (theme) still to come, so B-8 stays in progress.
 
 ### B-9 · feature · Care group menu: switch groups, open the group's settings
 
@@ -207,37 +209,38 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-17 · bug · A timeline layout change made offline is lost
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-17 (dev keeper): `timeline.tsx` drops a failed `updatePreferences`, so the next online load restores the server's copy.
 - 2026-11-17 (plan/quick-fixes): Quick-fixes slice 2: queue the change on the device and send it on the next online load.
+- 2026-11-18 (slice/quick-fixes/2): slice/quick-fixes/2 32355db: saveSettings/pending records in lib/me.ts, timeline toggle uses it; layout-offline.mjs 12/12
 
 ### B-18 · feature · Event title suggestions (live notes slice 3)
 
-- status: in-progress
+- status: landed
 - prd: live-notes-ux
 - owner: prd/live-notes-ux
-- commit:
+- commit: ea0b192
 
 - 2026-11-17 (slice/live-notes-ux/3): slice 3 built on slice/live-notes-ux/3 (af79030): chips in the title region, title-chips.mjs 16/16
 
 ### B-19 · feature · Live dot and the Live now banner (live notes slice 7)
 
-- status: in-progress
+- status: landed
 - prd: live-notes-ux
 - owner: prd/live-notes-ux
-- commit:
+- commit: 5cad30f
 
 - 2026-11-17 (slice/live-notes-ux/7): Slice 7 built on slice/live-notes-ux/7 (3f35d8f): Live now banner + live dot on the timeline; check live-now.mjs 21/21.
 
 ### B-20 · chore · Browser check overhaul and documentation (live notes slice 10)
 
-- status: triaged
+- status: in-progress
 - prd: live-notes-ux
-- owner:
+- owner: prd/live-notes-ux
 - commit:
 
 - 2026-11-17 (dev keeper): Blocked by slices 3 and 7.
@@ -251,9 +254,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-22 · bug · The first screen after sign-in waits up to 10 s for the first sync
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-17 (plan/quick-fixes): Split from B-1 (the slowness half). home, timeline and entry clientLoaders call waitForFirstSync (10 s cap) before rendering. Quick-fixes slice 3: measure first, then choose.
+- 2026-11-18 (slice/quick-fixes/3): slice/quick-fixes/3 46ef320: cap 1 s + FirstSyncPending state; signal = isFirstSyncDone/useFirstSyncDone in lib/sync/index.ts. Before: fresh sign-in ~1.0 s to first row locally, slow sync froze sign-in up to 10 s then home stuck on 'not in a care group'. After: syncing state ~1.0 s after DB open, then the timeline.
