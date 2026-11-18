@@ -1,6 +1,6 @@
 import type { Route } from "./+types/route";
 
-import { ComingSoon } from "../sections/Sections";
+import { LegalPage } from "../sections/LegalPage";
 import { marketingMeta, siteUrlFrom } from "../site/meta";
 import { pagePath } from "../site/pages";
 import { content } from "./content";
@@ -10,5 +10,5 @@ export function meta({ matches }: Route.MetaArgs) {
 }
 
 export default function Page() {
-  return <ComingSoon content={content} />;
+  return <LegalPage content={content} />;
 }

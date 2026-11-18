@@ -322,6 +322,9 @@ try {
   await p.waitFor(`location.pathname === "/sign-in" && document.querySelector('input[name="email"]')`, 15000);
   check(true, "Sign in reaches /sign-in");
 
+  // 11. The legal pages (slice 3; its own function at the end of this file).
+  await legalPages(p, viewport, check);
+
   check(p.errors.length === 0, "no console errors", p.errors.join(" | "));
   console.log(`screenshots: ${SHOTS}`);
 } catch (e) {
@@ -331,3 +334,48 @@ try {
 }
 console.log(`${passed}/${passed + failed} passed`);
 process.exit(failed ? 1 : 0);
+
+// The legal pages (marketing slice 3): each loads at 420 and 1280 with one h1,
+// the DRAFT banner and a last-updated date; a table-of-contents link and a
+// heading's anchor link move to their section, below the sticky header.
+async function legalPages(p, viewport, check) {
+  for (const path of ["/privacy", "/terms", "/health-data-privacy"]) {
+    for (const width of [420, 1280]) {
+      const label = `${path} ${width}`;
+      await viewport(width);
+      await p.goto(path);
+      await p.waitFor(`document.querySelector("h1") && document.querySelector("[data-anchor]")`, 15000);
+      const state = await p.evaluate(`({
+        h1: document.querySelectorAll("h1").length,
+        draft: document.querySelector("[data-draft]")?.textContent ?? "",
+        date: document.querySelector("[data-last-updated] time")?.getAttribute("datetime") ?? "",
+        toc: document.querySelectorAll('nav[aria-labelledby="toc-heading"] a').length,
+        sections: document.querySelectorAll("[data-anchor]").length,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      })`);
+      check(state.h1 === 1, `${label}: one h1`, `${state.h1}`);
+      check(/DRAFT/.test(state.draft), `${label}: DRAFT banner`);
+      check(/^\d{4}-\d{2}-\d{2}$/.test(state.date), `${label}: last-updated date`, state.date);
+      check(state.toc === state.sections && state.sections >= 4, `${label}: a contents entry per section`);
+      check(!state.overflow, `${label}: no horizontal scroll`);
+    }
+    // At 1280, once hydrated (hydration restores the scroll, undoing an earlier jump; the module loads before it hydrates): a contents
+    // link, then a heading's own anchor, each lands its heading below the header.
+    await p.waitFor(
+      `Object.keys(window.__reactRouterRouteModules ?? {}).includes("routes/marketing${path}/route")`,
+      15000,
+    );
+    await new Promise((r) => setTimeout(r, 1000));
+    const lands = async (selector, what) => {
+      const id = await p.evaluate(`(() => { const a = ${selector}; a.click(); return a.hash.slice(1); })()`);
+      await p.waitFor(`location.hash === "#${id}"`, 3000);
+      await new Promise((r) => setTimeout(r, 300));
+      const top = await p.evaluate(`document.getElementById("${id}").getBoundingClientRect().top`);
+      const header = await p.evaluate(`document.querySelector("header").getBoundingClientRect().bottom`);
+      check(top >= header - 1 && top < 250, `${path}: ${what} goes to #${id}`, `top ${Math.round(top)}`);
+    };
+    await lands(`document.querySelectorAll('nav[aria-labelledby="toc-heading"] a')[3]`, "a contents link");
+    await p.evaluate(`scrollTo(0, 0)`);
+    await lands(`document.querySelectorAll("[data-anchor]")[2]`, "a heading's anchor");
+  }
+}
