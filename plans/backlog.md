@@ -26,7 +26,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-1 | bug | triaged | quick-fixes |  | Sign-in can be submitted again while it's loading, and the first load is slow |
+| B-1 | bug | in-progress | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | triaged | timeline-polish |  | Latest vitals is too busy |
 | B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
@@ -42,22 +42,24 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
-| B-17 | bug | triaged | quick-fixes |  | A timeline layout change made offline is lost |
-| B-18 | feature | triaged | live-notes-ux |  | Event title suggestions (live notes slice 3) |
-| B-19 | feature | triaged | live-notes-ux |  | Live dot and the Live now banner (live notes slice 7) |
+| B-17 | bug | in-progress | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
+| B-18 | feature | ready | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
+| B-19 | feature | ready | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
 | B-20 | chore | triaged | live-notes-ux |  | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
+| B-22 | bug | in-progress | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 
 ## Items
 
 ### B-1 · bug · Sign-in can be submitted again while it's loading, and the first load is slow
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-17 (dev keeper): Likely cause: `sign-in.tsx` disables the button only while `navigation.state === "submitting"`. After the action redirects, the state is `"loading"` while `/app`'s loaders run `waitForFirstSync` (up to 10 s on a device that hasn't synced), and the button is live again. Fix: stay disabled until the navigation is idle. The slowness is separate: the first sync blocks the first screen. Triage it before choosing a shorter cap, rendering local data straight away with a syncing state, or a smaller first bucket.
+- 2026-11-17 (plan/quick-fixes): Narrowed to the double submit; the slow first load is now B-22. Quick-fixes slice 1.
 
 ### B-2 · change · Latest vitals is too busy
 
@@ -67,6 +69,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): To settle in the PRD: fewer types, one line, or collapsed behind a tap.
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). One line (2–3 most recent + 'All vitals ›' to expand); ignores filters.
 
 ### B-3 · change · Wider timeline entries on large screens, still mobile-first
 
@@ -74,6 +77,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - prd: timeline-polish
 - owner:
 - commit:
+
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Full width at lg+, entry text capped ~75ch; cards in a 2–3 column grid.
 
 ### B-4 · change · Tooltip with the author's name and avatar on an entry's initials
 
@@ -83,6 +88,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Touch has no hover. If tapping the initials filters by author (B-6), phones need another trigger (long-press, or the name shown in the filter chip).
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Hover/focus tooltip (name + avatar), desktop only; touch uses B-6's author chip.
 
 ### B-5 · change · Tap an entry's kind icon to filter by that kind
 
@@ -92,6 +98,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): The icon sits inside the row's stretched tap target (`EntryOpenTarget`); it becomes its own control above it (`relative z-10`, like ⋯).
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Kind icon becomes its own z-10 control; combines with ?author=; re-tap is a no-op.
 
 ### B-6 · change · Tap an entry's author initials to filter by that author
 
@@ -101,6 +108,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): A new `?author=` filter chip, beside `?kind=`.
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). ?author= filter; chip 'By <name> ✕' with avatar; combines with ?kind=.
 
 ### B-7 · change · More prominent day headers in the timeline
 
@@ -108,6 +116,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - prd: timeline-polish
 - owner:
 - commit:
+
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Larger semibold sticky headers: Today, Yesterday, 'Monday, Nov 16' (+year).
 
 ### B-8 · feature · Avatar in the header with a menu for the user's settings and actions
 
@@ -117,6 +127,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Settings, units, timeline layout, sign out.
+- 2026-11-17 (plan/app-shell): PRD written: plans/app-shell-prd.md on plan/app-shell. Avatar menu: name/email header, Settings, theme (System/Light/Dark, per device), Sign out.
+- 2026-11-17 (plan/app-shell): Plan: plans/app-shell-plan.md (plan/app-shell). Slices 1 (frame + user menu) and 2 (theme); slice 7 (layout in Settings) noted here.
 
 ### B-9 · feature · Care group menu: switch groups, open the group's settings
 
@@ -126,6 +138,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): To settle: what group settings holds at first (name, recipient profile, members and roles; invites wait for Resend). Recommended: a group nav (Timeline · Medications · Providers · Assistant) with slots that later PRDs fill.
+- 2026-11-17 (plan/app-shell): PRD written: plans/app-shell-prd.md on plan/app-shell. Group menu switches groups; /app opens the last-used group; bottom tabs (GROUP_SECTIONS registry); group settings = name, recipient (name, preferred name, DOB), members and roles; online-only clientAction → new oRPC procedures. No migration.
+- 2026-11-17 (plan/app-shell): Plan: plans/app-shell-plan.md. Slices 3 (group menu, last group), 4 (sections nav), 5 (settings: details), 6 (settings: members).
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
@@ -135,6 +149,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Replaces "Show older".
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). IntersectionObserver auto-load (limit +30), 'Loading older…' and end-of-timeline message; button removed.
 
 ### B-11 · feature · Search the timeline
 
@@ -192,26 +207,31 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-17 · bug · A timeline layout change made offline is lost
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-17 (dev keeper): `timeline.tsx` drops a failed `updatePreferences`, so the next online load restores the server's copy.
+- 2026-11-17 (plan/quick-fixes): Quick-fixes slice 2: queue the change on the device and send it on the next online load.
 
 ### B-18 · feature · Event title suggestions (live notes slice 3)
 
-- status: triaged
+- status: ready
 - prd: live-notes-ux
-- owner:
-- commit:
+- owner: prd/live-notes-ux
+- commit: ea0b192
+
+- 2026-11-17 (slice/live-notes-ux/3): slice 3 built on slice/live-notes-ux/3 (af79030): chips in the title region, title-chips.mjs 16/16
 
 ### B-19 · feature · Live dot and the Live now banner (live notes slice 7)
 
-- status: triaged
+- status: ready
 - prd: live-notes-ux
-- owner:
-- commit:
+- owner: prd/live-notes-ux
+- commit: 5cad30f
+
+- 2026-11-17 (slice/live-notes-ux/7): Slice 7 built on slice/live-notes-ux/7 (3f35d8f): Live now banner + live dot on the timeline; check live-now.mjs 21/21.
 
 ### B-20 · chore · Browser check overhaul and documentation (live notes slice 10)
 
@@ -228,3 +248,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - prd: orchestration
 - owner: prd/orchestration
 - commit: 3096ba3
+
+### B-22 · bug · The first screen after sign-in waits up to 10 s for the first sync
+
+- status: in-progress
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit:
+
+- 2026-11-17 (plan/quick-fixes): Split from B-1 (the slowness half). home, timeline and entry clientLoaders call waitForFirstSync (10 s cap) before rendering. Quick-fixes slice 3: measure first, then choose.
