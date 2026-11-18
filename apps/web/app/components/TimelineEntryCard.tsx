@@ -3,7 +3,7 @@ import type { EntryViewProps } from "./TimelineEntryRow";
 import { entrySummary, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
-import { KindIcon } from "./KindIcon";
+import { KindFilterLink } from "./KindIcon";
 import { LiveDot } from "./LiveDot";
 import { actionsLabel, EntryOpenTarget, Readings } from "./TimelineEntryRow";
 
@@ -28,7 +28,7 @@ export function TimelineEntryCard({
       className={`rounded-box border-base-300 bg-base-100 relative isolate flex items-start gap-3 border p-3 ${removing ? "opacity-50" : ""}`}
     >
       {open && <EntryOpenTarget open={open} entry={entry} />}
-      <KindIcon kind={entry.kind} />
+      <KindFilterLink kind={entry.kind} />
       <div className="min-w-0 flex-1 space-y-0.5">
         <span className="sr-only">{KIND_META[entry.kind].label}: </span>
         <div className="flex items-baseline justify-between gap-2">
