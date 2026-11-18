@@ -46,11 +46,20 @@ const h1 = `document.querySelector("main h1")?.textContent`;
 const leaks = `/Grandma|Pat|Dev Family|Dev Caretaker|Dev Member/.test(document.querySelector("main")?.innerText ?? "")`;
 const titleInput = `document.querySelector("main [data-region=title] input")`;
 
+/** Where a page is, for a failed step's detail. */
+const pageState = (pg) =>
+  pg
+    .evaluate(
+      `JSON.stringify({ path: location.pathname, synced: window.caretookSync?.powersync.currentStatus.hasSynced, connected: window.caretookSync?.powersync.currentStatus.connected, editors: [...document.querySelectorAll("[contenteditable]")].map((e) => e.getAttribute("contenteditable")), main: document.querySelector("main")?.innerText.slice(0, 200) })`,
+    )
+    .catch(() => "?");
+
 const browsers = [];
+let c;
 try {
   // caretaker@: a writer in Dev Family.
   browsers.push(await launch(9481));
-  const c = await openPage(browsers[0], "caretaker");
+  c = await openPage(browsers[0], "caretaker");
   await c.signIn("caretaker@example.com", PW);
 
   await c.goto(`/app/groups/${G}`);
@@ -60,16 +69,45 @@ try {
   );
   check("the timeline's heading is the group's display name", (await c.evaluate(h1)) === "Grandma Pat");
 
-  await c.goto(`/app/groups/${G}/entries/${noteId}`);
-  await c.waitFor(`document.querySelector("[contenteditable=true]")`, 20000).then(
-    () => check("an entry opens under the group route, editable for a writer", true),
-    () => check("an entry opens under the group route, editable for a writer", false),
+  // A route's first visit on a fresh server can make Vite re-optimize and
+  // reload the page mid-wait (AGENTS.md, Gotchas), so a miss gets one reload.
+  // A real bug fails both tries; the detail says which try it was, and where
+  // the page was.
+  const editable = `document.querySelector("[contenteditable=true]")`;
+  let entryTry = 1;
+  let opened = await c
+    .goto(`/app/groups/${G}/entries/${noteId}`)
+    .then(() => c.waitFor(editable, 45000))
+    .then(() => true)
+    .catch(() => false);
+  if (!opened) {
+    console.log("entry: not editable after 45 s, reloading once:", await pageState(c), c.errors.slice(-3));
+    entryTry = 2;
+    opened = await c
+      .goto(`/app/groups/${G}/entries/${noteId}`)
+      .then(() => c.waitFor(editable, 45000))
+      .then(() => true)
+      .catch(() => false);
+  }
+  check(
+    "an entry opens under the group route, editable for a writer",
+    opened,
+    opened
+      ? entryTry > 1
+        ? "on the second try"
+        : ""
+      : `${await pageState(c)} ${c.errors.slice(-3).join(" | ")}`,
   );
 
   await c.goto(`/app/groups/${G}/settings`);
   await c.waitFor(`document.querySelector("[data-section=members] li")`, 20000).then(
     () => check("group settings opens under the group route", true),
-    () => check("group settings opens under the group route", false),
+    async () =>
+      check(
+        "group settings opens under the group route",
+        false,
+        `${await pageState(c)} ${c.errors.slice(-3).join(" | ")}`,
+      ),
   );
 
   // Live: a rename on the server reaches the heading without a reload.
@@ -141,6 +179,16 @@ try {
   check("no unexpected console errors", errors.length === 0, errors.slice(0, 3).join(" | ").slice(0, 500));
 } catch (e) {
   console.log("ERROR", e.message);
+  if (c)
+    console.log(
+      "caretaker page:",
+      await c
+        .evaluate(
+          `JSON.stringify({ path: location.pathname, sync: window.caretookSync?.powersync.currentStatus.toJSON(), main: document.querySelector("main")?.innerText.slice(0, 300) })`,
+        )
+        .catch(() => "?"),
+      c.errors.slice(0, 5),
+    );
   results.push(false);
 } finally {
   psql(
