@@ -53,7 +53,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 | B-23 | change | ready | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
-| B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
+| B-24 | change | in-progress | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
 | B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
@@ -328,9 +328,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
-- status: triaged
+- status: in-progress
 - prd: components
-- owner:
+- owner: prd/components
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): From the inbox: Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
