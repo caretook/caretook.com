@@ -42,7 +42,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
-| B-17 | bug | triaged | quick-fixes |  | A timeline layout change made offline is lost |
+| B-17 | bug | in-progress | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
 | B-18 | feature | ready | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
 | B-19 | feature | ready | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
 | B-20 | chore | triaged | live-notes-ux |  | Browser check overhaul and documentation (live notes slice 10) |
@@ -207,9 +207,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-17 · bug · A timeline layout change made offline is lost
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-17 (dev keeper): `timeline.tsx` drops a failed `updatePreferences`, so the next online load restores the server's copy.
