@@ -7,15 +7,21 @@
 | Slice | State                       | Merge into `prd/components` (slice commits) |
 | ----- | --------------------------- | ------------------------------------------- |
 | 1     | landed in `dev` (`414b0a6`) | `934428f` (`a071d12`, `4c18db3`)            |
-| 2     | merged; wave 2 landing      | `c25170c` (`0032dd6`, `a2c2bd1`)            |
-| 3     | ready (2 merged)            |                                             |
-| 4     | ready (2 merged)            |                                             |
-| 5     | blocked by 3                |                                             |
+| 2     | landed in `dev` (`666ebf9`) | `c25170c` (`0032dd6`, `a2c2bd1`)            |
+| 3     | merged; wave 3 landing      | `f916469` (`a711ad6`, `963c22b`)            |
+| 4     | merged; wave 3 landing      | `3215617` (`03cde5a`)                       |
+| 5     | ready (3 merged)            |                                             |
 | 6     | blocked by 3, 4 and 5       |                                             |
 
 Backlog: B-24 is claimed by `prd/components`; mark it `done` after slice 6 merges.
 
-Notes for later slices (from slice 1):
+Notes for later slices:
+
+- Slice 3: the timeline has no infinite scroll yet ("Show older"); paging lives in `useTimelineData`, so `timeline-polish` slice 7 swaps it there. Timeline route +379 B gzipped (accepted as noise). `lib/format.ts` lost the unused `dayKey`.
+- Slice 4: `typed` (an uncommitted title) now lives in `EntryTitleRegion`, so it resets if the region flips read-only mid-edit. Entry route +854 B (+0.4%, chunk reshuffle). After writing a new file an existing module imports, restart the dev server (Vite can cache the failed resolve).
+- A full disk (ENOSPC) on 2026-11-18 stalled slice 3 and wedged Docker until a reboot; check `df` if tests fail with ENOSPC.
+
+From slice 1:
 
 - The entry route grew 1.6 KB gzipped (+0.8%): the `forms` index puts `EntrySheet` in the entry route's chunk beside `DateTimeField`. Slice 2 undoes it when the sheet moves into `ui/` (or by splitting `forms`).
 - `components/notes/` (not in the folder list above) holds `LiveNotesEditor` and `EditorAvatars`, so Tiptap never reaches the timeline through an index. `providers/` holds `ContactActions` and `ProviderTypeIcon`. No `timeline/` folder yet.
