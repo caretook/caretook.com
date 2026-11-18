@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   formatDateOfBirth,
   groupSettingsAccess,
+  memberAccess,
+  memberName,
   parseGroupName,
   parseRecipientProfile,
+  roleLabel,
+  sortMembers,
 } from "./groupSettings";
 
 const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -94,5 +98,73 @@ describe("formatDateOfBirth", () => {
   });
   it("falls back to the stored text", () => {
     expect(formatDateOfBirth("unknown")).toBe("unknown");
+  });
+});
+
+describe("memberAccess", () => {
+  const ALL = ["owner", "admin", "caretaker", "viewer"];
+  const BELOW_OWNER = ["admin", "caretaker", "viewer"];
+  const access = (actorRole: string | null, memberRole: string, isSelf = false) =>
+    memberAccess({ actorRole, memberRole, isSelf });
+
+  it("lets an owner give anyone any role, and remove anyone else", () => {
+    for (const memberRole of ALL) {
+      expect(access("owner", memberRole)).toEqual({ roles: ALL, remove: true, leave: false });
+    }
+  });
+  it("lets an owner change their own role and leave (the server refuses the last owner)", () => {
+    expect(access("owner", "owner", true)).toEqual({ roles: ALL, remove: false, leave: true });
+  });
+  it("lets an admin change and remove members below owner, without offering owner", () => {
+    for (const memberRole of BELOW_OWNER) {
+      expect(access("admin", memberRole)).toEqual({ roles: BELOW_OWNER, remove: true, leave: false });
+    }
+    expect(access("admin", "admin", true)).toEqual({ roles: BELOW_OWNER, remove: false, leave: true });
+  });
+  it("gives an admin nothing to do to an owner", () => {
+    expect(access("admin", "owner")).toEqual({ roles: [], remove: false, leave: false });
+  });
+  it("lets caretakers, viewers and anyone without a role only leave", () => {
+    for (const actorRole of ["caretaker", "viewer", null]) {
+      for (const memberRole of ALL) {
+        expect(access(actorRole, memberRole)).toEqual({ roles: [], remove: false, leave: false });
+      }
+      expect(access(actorRole, "viewer", true)).toEqual({ roles: [], remove: false, leave: true });
+    }
+  });
+});
+
+describe("sortMembers", () => {
+  it("orders by role, owners first, then by name, without changing its input", () => {
+    const members = [
+      { role: "viewer", name: "Vic" },
+      { role: "caretaker", name: null },
+      { role: "owner", name: "Olu" },
+      { role: "caretaker", name: "Cam" },
+      { role: "guest", name: "Gus" },
+      { role: "admin", name: "Ada" },
+      { role: "caretaker", name: "Bea" },
+    ];
+    const before = [...members];
+    expect(sortMembers(members).map((m) => m.name)).toEqual(["Olu", "Ada", "Bea", "Cam", null, "Vic", "Gus"]);
+    expect(members).toEqual(before);
+  });
+});
+
+describe("roleLabel and memberName", () => {
+  it("names the known roles, and shows an unknown one as it is", () => {
+    expect(["owner", "admin", "caretaker", "viewer"].map(roleLabel)).toEqual([
+      "Owner",
+      "Admin",
+      "Caretaker",
+      "Viewer",
+    ]);
+    expect(roleLabel("guest")).toBe("guest");
+    expect(roleLabel(null)).toBe("Member");
+  });
+  it("falls back to Member for a missing or blank name", () => {
+    expect(memberName(" Sam Example ")).toBe("Sam Example");
+    expect(memberName("  ")).toBe("Member");
+    expect(memberName(null)).toBe("Member");
   });
 });

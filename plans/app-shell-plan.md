@@ -4,23 +4,24 @@
 
 ## Status
 
-| Slice | State                                        | Merge into `prd/app-shell` (slice commits) |
-| ----- | -------------------------------------------- | ------------------------------------------ |
-| 1     | **landed** in `dev` (`49b66b9`)              | `697c39b` (`e9d37c3`, `4606dcd`)           |
-| 2     | **merged**, ready to land (wave 2)           | `9e5f7c2` (`fb225b0`)                      |
-| 3     | **merged**, ready to land (wave 2)           | `e3d7119` (`650c0f0`); check fix `fb9f6b1` |
-| 4     | **merged**, ready to land (wave 2)           | `ac4eea3` (`d0d5c63`)                      |
-| —     | `dev` synced (quick-fixes wave 1)            | `66255e2`; `first-sync.mjs` fix `aaf2f99`  |
-| 5     | **merged**, ready to land (wave 3)           | `7fb947a` (`01cc17f`, `5ede338`)           |
-| 6     | **running** in `.loops/app-shell-6` (wave 4) |                                            |
-| 7     | **merged**, ready to land (wave 3)           | `0795604` (`08cabee`, `1d6cdc1`)           |
-| —     | `dev` synced (docs and backlog only)         | `bbeb2c9`                                  |
+| Slice | State                                   | Merge into `prd/app-shell` (slice commits)  |
+| ----- | --------------------------------------- | ------------------------------------------- |
+| 1     | **landed** in `dev` (`49b66b9`)         | `697c39b` (`e9d37c3`, `4606dcd`)            |
+| 2     | **merged**, ready to land (wave 2)      | `9e5f7c2` (`fb225b0`)                       |
+| 3     | **merged**, ready to land (wave 2)      | `e3d7119` (`650c0f0`); check fix `fb9f6b1`  |
+| 4     | **merged**, ready to land (wave 2)      | `ac4eea3` (`d0d5c63`)                       |
+| —     | `dev` synced (quick-fixes wave 1)       | `66255e2`; `first-sync.mjs` fix `aaf2f99`   |
+| 5     | **landed** in `dev` (`ae6f342`, wave 3) | `7fb947a` (`01cc17f`, `5ede338`)            |
+| 6     | **merged**, ready to land (wave 4)      | `72c0eb2` (`18754d1`, `314ec04`, `b57d556`) |
+| 7     | **landed** in `dev` (`ae6f342`, wave 3) | `0795604` (`08cabee`, `1d6cdc1`)            |
+| —     | `dev` synced (docs and backlog only)    | `bbeb2c9`                                   |
 
-Backlog: B-8 is landed (slices 1–2); slice 7 is noted on it. B-9 is in progress (claimed by `prd/app-shell`) until slice 6.
+Backlog: B-8 is landed (slices 1–2; slice 7 is noted on it). B-9 is `ready` (slices 3–6). **Every slice is merged: the PRD is done once wave 4 lands** (then `pnpm prd rm app-shell`, and mark it done in the backlog's PRD table).
+
+Wave 4 notes: all checks green on the synced branch (`app-shell` 98, `phase2` 36, `settings-layout` 14, `roundtrip` 20, `live-notes` 91, `layout-offline` 12, `sign-in`, `first-sync`, `signout-wipe`). Leaving waits up to 10 s for the membership to sync away before redirecting; on a slower sync the user lands back on the group until it goes. No native build was run for the group settings route.
 
 Wave 3 notes, for the next orchestrator:
 
-- **Slice 6** branched from `7fb947a` (slice 5 merged, before slice 7 and the sync). It must update slice 5's `app-shell.mjs` assertions (the section list, and a viewer's zero controls), run its block last, and restore the seeded memberships.
 - **`phase2.mjs`:** slice 7's `1d6cdc1` makes the sticky-header step scroll into the middle of a day. `timeline-polish` may touch the same hunk; the commit is safe to redo.
 - **Wave 3's checks, all green on the synced branch:** `app-shell` (76), `phase2` (36), `settings-layout` (14), `roundtrip` (20), `sign-in`, `first-sync`, `layout-offline` (12), `live-notes` (91), `signout-wipe`. `app-shell.mjs` failed once on `openDevFamily` right after a server restart, and passed on the rerun.
 - **Not done:** units still save online only (moving them onto `saveSettings` is out of scope); no native build was run for the new route.

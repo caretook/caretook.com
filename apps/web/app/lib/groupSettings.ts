@@ -98,3 +98,69 @@ export const formatDateOfBirth = (value: string, locale?: string) => {
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString(locale, { timeZone: "UTC", dateStyle: "long" });
 };
+
+// ---------------------------------------------------------------------------
+// Members
+// ---------------------------------------------------------------------------
+
+/** Group roles, highest first: the order of the members list and of a role menu. */
+export const MEMBER_ROLES = ["owner", "admin", "caretaker", "viewer"] as const;
+export type MemberRole = (typeof MEMBER_ROLES)[number];
+
+const ROLE_LABELS: Record<MemberRole, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  caretaker: "Caretaker",
+  viewer: "Viewer",
+};
+
+const isMemberRole = (role: string | null): role is MemberRole =>
+  MEMBER_ROLES.some((known) => known === role);
+
+/** A role's name for people. A role this build doesn't know shows as it is. */
+export const roleLabel = (role: string | null) => (isMemberRole(role) ? ROLE_LABELS[role] : role || "Member");
+
+/**
+ * What the signed-in member may do to one member of the group, by the rules
+ * the server enforces (it stays the authority):
+ * - `roles`: the roles they may give this member, with the current one (empty:
+ *   show the role as text). Owners and admins change roles; only an owner
+ *   gives or takes the owner role.
+ * - `remove`: owners and admins remove others; only an owner removes an owner.
+ * - `leave`: anyone may leave. (The last owner is refused by the server, with
+ *   a message saying why, as is the last owner's own demotion.)
+ */
+export const memberAccess = ({
+  actorRole,
+  memberRole,
+  isSelf,
+}: {
+  actorRole: string | null;
+  memberRole: string | null;
+  isSelf: boolean;
+}): { roles: MemberRole[]; remove: boolean; leave: boolean } => {
+  const owner = actorRole === "owner";
+  const manages = (owner || actorRole === "admin") && (owner || memberRole !== "owner");
+  return {
+    roles: manages ? MEMBER_ROLES.filter((role) => owner || role !== "owner") : [],
+    remove: manages && !isSelf,
+    leave: isSelf,
+  };
+};
+
+/** Members by role (owners first), then by name; members without a name go last in their role. */
+export const sortMembers = <T extends { role: string | null; name: string | null }>(members: T[]): T[] => {
+  const rank = (role: string | null) => {
+    const at = MEMBER_ROLES.findIndex((known) => known === role);
+    return at < 0 ? MEMBER_ROLES.length : at;
+  };
+  return [...members].sort(
+    (a, b) =>
+      rank(a.role) - rank(b.role) ||
+      Number(!a.name) - Number(!b.name) ||
+      (a.name ?? "").localeCompare(b.name ?? ""),
+  );
+};
+
+/** What a member is called on the page: their name, or "Member" until their profile has synced. */
+export const memberName = (name: string | null) => name?.trim() || "Member";

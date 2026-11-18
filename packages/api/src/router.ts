@@ -7,6 +7,7 @@ import {
   careGroupService,
   careRecipientProfileZSchema,
   careRecipientService,
+  GROUP_ROLE_NAMES,
   isError,
   TIMELINE_ENTRY_KINDS,
   timelineEntryCreateZSchema,
@@ -35,6 +36,12 @@ const eq = (value: string) => ({ type: "eq" as const, value });
  */
 const updated = <T>(result: T) => {
   if (isError(result) && result.code === "baseModel:update:nothingUpdated") throw new ORPCError("FORBIDDEN");
+  return unwrap(result);
+};
+
+/** As `updated`, for a removal: a member whose role doesn't allow it removes nothing. */
+const removed = <T>(result: T) => {
+  if (isError(result) && result.code === "baseModel:remove:nothingRemoved") throw new ORPCError("FORBIDDEN");
   return unwrap(result);
 };
 
@@ -185,6 +192,46 @@ const careGroup = {
         await careRecipientService.update(context, { filter: { id: eq(recipient.id) }, data }),
       );
       return toRecipientProfile(saved);
+    }),
+
+  /**
+   * Change a member's group role (owners and admins; only owners make or
+   * change owners, and the last owner keeps the role: a 409). Other members
+   * get a 403, non-members and unknown members a 404. Returns the member as
+   * a public profile, like `members`.
+   */
+  changeRole: authedProcedure
+    .input(z.object({ groupId: id, userId: id, role: z.enum(GROUP_ROLE_NAMES) }))
+    .handler(async ({ context, input }) => {
+      const membership = unwrap(
+        await careGroupMemberService.get(context, {
+          filter: { groupId: eq(input.groupId), userId: eq(input.userId) },
+        }),
+      );
+      if (!membership) throw new ORPCError("NOT_FOUND");
+      const saved = updated(
+        await careGroupMemberService.updateRole(context, { id: membership.id, role: input.role }),
+      );
+      const user = unwrap(await userService.getById(context, saved.userId));
+      return { userId: saved.userId, role: saved.role, name: user?.name ?? null, image: user?.image ?? null };
+    }),
+
+  /**
+   * Remove a member (owners and admins; only owners remove owners). Removing
+   * yourself is leaving, which any member may do, except the last owner (a
+   * 409). Other members get a 403, non-members and unknown members a 404.
+   */
+  removeMember: authedProcedure
+    .input(z.object({ groupId: id, userId: id }))
+    .handler(async ({ context, input }) => {
+      const membership = unwrap(
+        await careGroupMemberService.get(context, {
+          filter: { groupId: eq(input.groupId), userId: eq(input.userId) },
+        }),
+      );
+      if (!membership) throw new ORPCError("NOT_FOUND");
+      removed(await careGroupMemberService.remove(context, membership.id));
+      return { groupId: input.groupId, userId: input.userId };
     }),
 };
 
