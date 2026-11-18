@@ -149,6 +149,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Replaces "Show older".
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). IntersectionObserver auto-load (limit +30), 'Loading older…' and end-of-timeline message; button removed.
 
 ### B-11 · feature · Search the timeline
 
