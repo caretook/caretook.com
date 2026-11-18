@@ -56,7 +56,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
 | B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
-| B-28 | chore | in-progress | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
+| B-28 | chore | ready | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | in-progress | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
@@ -363,10 +363,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-28 · chore · Limit browser checks machine-wide: a lock so at most two run at once
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 8eaf3c3
 
 - 2026-11-18 (Robert Bo Davis): Browser checks were 63% of tool time (850 runs, ~10 h) and ~30% failed, mostly timeouts and PowerSync 401s under contention, causing reruns. A wrapper (e.g. pnpm prd browser <check>) takes one of two lock dirs under .loops/.browser/, like the slot leases, waits for a free one, runs the check with the worktree's .env.loop, and releases on exit (including timeouts for signout-wipe and layout-offline). See AGENTS.md, Browser check budget.
 - 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 4 (plans/quick-fixes-plan.md): pnpm prd browser with two machine-wide leases, --timeout, --suite.
