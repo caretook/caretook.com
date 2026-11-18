@@ -69,7 +69,19 @@ const key = async (p, k, code, keyCode) => {
   await p.send("Input.dispatchKeyEvent", { type: "keyUp", key: k, code, windowsVirtualKeyCode: keyCode });
 };
 const enter = (p) => key(p, "Enter", "Enter", 13);
-const escape = (p) => key(p, "Escape", "Escape", 27);
+// Escape goes to the focused element, and React Aria moves focus into a menu or
+// dialog only after it renders: on a fast (built) server the key can arrive
+// first and miss it. So wait until the open one has focus.
+const escape = async (p) => {
+  await p
+    .waitFor(
+      `!document.querySelector('[role="menu"], [role="dialog"]') || document.activeElement?.closest('[role="menu"], [role="dialog"]')`,
+      5000,
+      { quiet: true },
+    )
+    .catch(() => undefined);
+  await key(p, "Escape", "Escape", 27);
+};
 const down = (p) => key(p, "ArrowDown", "ArrowDown", 40);
 const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const DEV_FAMILY_2 = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8d0001";
@@ -1329,7 +1341,7 @@ try {
   // ──────────────── end of slice 6: group settings, members ────────────────
 
   const noise =
-    /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection/;
+    /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|\[PowerSync\]: Sync aborted/;
   // With storage blocked, React Router's inline ScrollRestoration script reads
   // sessionStorage unguarded and throws; that's expected on that page only.
   const blocked = /^\[no-storage (console\.error|exception)\] SecurityError/;

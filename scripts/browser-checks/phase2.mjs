@@ -705,10 +705,12 @@ try {
   await latestVitalsLine(p);
 
   // PowerSync warns when a full page load closes the previous page's database,
-  // and can fail its first connect right after a reset (a 401 while it
+  // and its shared sync worker logs "Sync aborted" to every page when it stops
+  // the sync for a page that closed (on a check build the next page is already
+  // connected and gets it; B-38), and can fail its first connect right after a reset (a 401 while it
   // refetches the JWKS); a first visit can make Vite reload a route module.
   const noise =
-    /error closing database connection|\[PowerSync\]: Initial connect attempt|status of 401|Error loading route module|Failed to fetch dynamically imported module/;
+    /error closing database connection|\[PowerSync\]: Sync aborted|\[PowerSync\]: Initial connect attempt|status of 401|Error loading route module|Failed to fetch dynamically imported module/;
   const errors = pages.flatMap((pg) => pg.errors).filter((e) => !noise.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 3).join(" | ").slice(0, 500));
 } catch (e) {

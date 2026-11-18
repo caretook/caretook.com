@@ -92,6 +92,12 @@ export async function openPage(browser, label) {
   await send("Runtime.enable");
   await send("Log.enable");
   await send("Network.enable");
+  // Each page is its own device, with its own client IP as real users have. A
+  // built server (NODE_ENV=production) turns on Better Auth's rate limits (3
+  // sign-ins per 10 s, 100 session checks per 10 s, per IP and path), and with
+  // no proxy header every page would share one bucket.
+  const ip = () => Math.floor(Math.random() * 254) + 1;
+  await send("Network.setExtraHTTPHeaders", { headers: { "x-forwarded-for": `10.${ip()}.${ip()}.${ip()}` } });
   await send("Emulation.setDeviceMetricsOverride", {
     width: 420,
     height: 900,
@@ -168,12 +174,23 @@ export async function openPage(browser, label) {
       el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); el.click(); return true; })()`);
   // A real tap (mouse press and release) at the centre of an element, after
   // scrolling it into view: it goes through whatever is on top, as a finger would.
+  // It aims where the element is once it has stopped moving: content arriving
+  // above it (a banner from a live query) can shift it after it first renders,
+  // and a fast (built) server makes the tap race that shift.
   const tap = async (selector) => {
-    const point = await evaluate(`(() => { const el = ${selector}; if (!el) return null;
+    const where = `(() => { const el = ${selector}; if (!el) return null;
       el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect();
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`;
+    let point = await evaluate(where);
     if (!point) throw new Error(`${label}: nothing to tap: ${selector}`);
-    await sleep(100);
+    for (let i = 0; i < 20; i++) {
+      await sleep(100);
+      const next = await evaluate(where);
+      if (!next) throw new Error(`${label}: nothing to tap: ${selector}`);
+      const still = next.x === point.x && next.y === point.y;
+      point = next;
+      if (still) break;
+    }
     for (const type of ["mousePressed", "mouseReleased"]) {
       await send("Input.dispatchMouseEvent", { type, ...point, button: "left", clickCount: 1 });
     }
