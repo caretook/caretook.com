@@ -1,0 +1,67 @@
+# Local development datastore. Start it with `pnpm datastore:start`.
+# Every port and the project name come from variables, so parallel loops can each
+# run a stack (scripts/loops/new.sh writes them into the worktree's root .env,
+# which Compose reads). The defaults are the main checkout's.
+name: ${CARETOOK_STACK:-caretook}
+
+services:
+  postgres:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_USER: caretook
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: caretook
+    # PowerSync reads changes through logical replication.
+    command: ["postgres", "-c", "wal_level=logical"]
+    # Host ports avoid 5432 so this can run next to other local Postgres instances.
+    ports:
+      - "${PG_PORT:-5434}:5432"
+    volumes:
+      # Postgres 18+ images keep data in a versioned subdirectory of /var/lib/postgresql.
+      - ./.postgres/data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caretook -d caretook"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  # PowerSync: replicates Postgres into per-user sync buckets and streams them
+  # to clients (see powersync/). Production uses PowerSync Cloud.
+  powersync:
+    image: journeyapps/powersync-service:1.28.3
+    command: ["start", "-r", "unified"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      powersync-storage:
+        condition: service_healthy
+    environment:
+      POWERSYNC_CONFIG_PATH: /config/service.yaml
+      NODE_OPTIONS: --max-old-space-size=1000
+      PS_DATA_SOURCE_URI: postgresql://caretook:password@postgres:5432/caretook
+      PS_STORAGE_URI: postgresql://powersync:password@powersync-storage:5432/powersync
+      # The web dev server's JWKS. Override when running it on another port.
+      PS_JWKS_URL: ${PS_JWKS_URL:-http://host.docker.internal:5173/api/auth/jwks}
+      # The audience Better Auth signs PowerSync tokens with (POWERSYNC_URL).
+      PS_AUDIENCE: ${POWERSYNC_URL:-http://localhost:8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${POWERSYNC_PORT:-8080}:8080"
+    volumes:
+      - ./powersync:/config:ro
+
+  # PowerSync's bucket storage. Separate from the app database.
+  powersync-storage:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_USER: powersync
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: powersync
+    volumes:
+      - ./.postgres/powersync-storage:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U powersync -d powersync"]
+      interval: 2s
+      timeout: 5s
+      retries: 15

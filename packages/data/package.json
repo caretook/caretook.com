@@ -1,0 +1,36 @@
+{
+  "name": "@caretook/data",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/db/schema/index.ts",
+    "./errors": "./src/errors/index.ts",
+    "./permissions": "./src/permissions/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "datastore:generate": "drizzle-kit generate",
+    "datastore:migrate": "tsx scripts/migrate.ts",
+    "datastore:seed": "tsx scripts/seed.ts",
+    "datastore:clear": "tsx scripts/clear.ts",
+    "datastore:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4",
+    "drizzle-zod": "^0.8.3",
+    "pg": "^8.23.1",
+    "typescript-errors": "^1.1.1",
+    "yjs": "13.6.33",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "better-auth": "1.7.25",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

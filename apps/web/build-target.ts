@@ -8,7 +8,6 @@
  */
 export type BuildTarget = "web" | "native";
 
-export const buildTarget: BuildTarget =
-  process.env.BUILD_TARGET === "native" ? "native" : "web";
+export const buildTarget: BuildTarget = process.env.BUILD_TARGET === "native" ? "native" : "web";
 
 export const isNative = buildTarget === "native";

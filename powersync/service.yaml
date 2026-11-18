@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://unpkg.com/@powersync/service-schema@latest/json-schema/powersync-config.json
+#
+# Local PowerSync service (docker-compose.yml). Production uses PowerSync
+# Cloud, configured in its dashboard with the same sync-config.yaml.
+# `!env` reads PS_* environment variables set in docker-compose.yml.
+
+_type: self-hosted
+
+telemetry:
+  # No usage data leaves our machines (see Compliance in AGENTS.md).
+  disable_telemetry_sharing: true
+
+replication:
+  connections:
+    - type: postgresql
+      uri: !env PS_DATA_SOURCE_URI
+      # Local Docker network only. Production must use verify-full.
+      sslmode: disable
+
+# Bucket storage: its own Postgres container, so `datastore:clear` never touches it.
+storage:
+  type: postgresql
+  uri: !env PS_STORAGE_URI
+  sslmode: disable
+
+port: 8080
+
+sync_config:
+  path: sync-config.yaml
+
+client_auth:
+  # Better Auth's JWKS (EdDSA keys) on the web dev server.
+  jwks_uri: !env PS_JWKS_URL
+  # Better Auth signs PowerSync tokens with this audience (POWERSYNC_URL).
+  audience: [!env PS_AUDIENCE]
+
+api:
+  tokens:
+    # Admin API token for local diagnostics only.
+    - local-dev-admin-token
+
+system:
+  logging:
+    level: info
+    format: text

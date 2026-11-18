@@ -7,5 +7,14 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.test
 .DS_Store
 *.log
+.postgres/
+
+# Parallel loop worktrees (scripts/loops/)
+.loops/
+.claude/worktrees/
+
+# Browser check screenshots (debug output)
+scripts/browser-checks/*.png

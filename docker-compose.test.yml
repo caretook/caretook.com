@@ -1,0 +1,13 @@
+# Integration-test datastore: same as dev, on port 5435 with its own data dir.
+# Its own compose project, so it runs alongside dev.
+name: ${CARETOOK_STACK:-caretook}-test
+
+services:
+  postgres:
+    extends:
+      file: docker-compose.yml
+      service: postgres
+    ports: !override
+      - "${PG_TEST_PORT:-5435}:5432"
+    volumes: !override
+      - ./.postgres/test:/var/lib/postgresql

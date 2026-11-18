@@ -2,6 +2,10 @@ import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration }
 
 import type { Route } from "./+types/root";
 
+import stylesheet from "./app.css?url";
+
+export const links: Route.LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -11,7 +15,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="min-h-dvh bg-base-200 text-base-content">
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -39,9 +43,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     details = error.message;
   }
   return (
-    <main>
-      <h1>{message}</h1>
-      <p>{details}</p>
+    <main className="mx-auto max-w-xl p-6">
+      <h1 className="text-2xl font-semibold">{message}</h1>
+      <p className="mt-2">{details}</p>
     </main>
   );
 }
