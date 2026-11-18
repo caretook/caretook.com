@@ -19,6 +19,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `providers`       | to write | `app-shell`'s group nav (in `dev`) | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
 | `medications`     | to write | `app-shell`'s group nav (in `dev`); `providers` (soft) | new tables (as providers), `KIND_META`, `EntryForm` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
+| `routing`         | [PRD](routing-prd.md): not planned | `app-shell`, `timeline-polish` (both land first) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
+| `components`      | [PRD](components-prd.md): not planned | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
 
 ## Summary
 
@@ -48,6 +50,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-20 | chore | landed | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
+| B-23 | change | triaged | routing |  | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
+| B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 
 ## Items
 
@@ -72,6 +76,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (dev keeper): To settle in the PRD: fewer types, one line, or collapsed behind a tap.
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). One line (2–3 most recent + 'All vitals ›' to expand); ignores filters.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 3. Latest vitals in one line with 'All vitals'. Independent. Wave 1.
+- 2026-11-18 (slice/timeline-polish/3): Slice 3 built on slice/timeline-polish/3: one-line strip with All vitals; phones hide the visible Latest label so a second reading fits. pnpm check and phase2.mjs (44/44) pass.
 
 ### B-3 · change · Wider timeline entries on large screens, still mobile-first
 
@@ -104,6 +109,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (dev keeper): The icon sits inside the row's stretched tap target (`EntryOpenTarget`); it becomes its own control above it (`relative z-10`, like ⋯).
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Kind icon becomes its own z-10 control; combines with ?author=; re-tap is a no-op.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 1. Filter-state module and the kind icon as a filter. Blocked by nothing; blocks slice 4. Wave 1.
+- 2026-11-18 (slice/timeline-polish/1): Slice 1 built on slice/timeline-polish/1: lib/timelineFilters.ts (kind and author), chips and loader moved onto it, kind icon is a 'Show only <kind plural>' link in rows and cards. pnpm check green; phase2 new steps 52/52.
 
 ### B-6 · change · Tap an entry's author initials to filter by that author
 
@@ -279,3 +285,22 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-17 (plan/quick-fixes): Split from B-1 (the slowness half). home, timeline and entry clientLoaders call waitForFirstSync (10 s cap) before rendering. Quick-fixes slice 3: measure first, then choose.
 - 2026-11-18 (slice/quick-fixes/3): slice/quick-fixes/3 46ef320: cap 1 s + FirstSyncPending state; signal = isFirstSyncDone/useFirstSyncDone in lib/sync/index.ts. Before: fresh sign-in ~1.0 s to first row locally, slow sync froze sign-in up to 10 s then home stuck on 'not in a care group'. After: syncing state ~1.0 s after DB open, then the timeline.
+
+### B-23 · change · Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route
+
+- status: triaged
+- prd: routing
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): PRD written: plans/routing-prd.md. Group layout route (middleware context), symptom/vital sheets at timeline/new/:kind and timeline/:id/edit, settings index + subpages, a folder per route. Runs after app-shell and timeline-polish land.
+
+### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
+
+- status: triaged
+- prd: components
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): From the inbox: Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
+- 2026-11-18 (Robert Bo Davis): PRD written: plans/components-prd.md. Four waves: UI primitives, timeline, entry page, then forms/shell/settings. Browser checks + pure unit tests, no new deps. Runs after routing.
