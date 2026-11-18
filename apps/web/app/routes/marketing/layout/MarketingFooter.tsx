@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 
+import { Wordmark } from "~/components/brand";
 import { MARKETING_LINKS, MARKETING_PAGES } from "../site/pages";
-import { Wordmark } from "./Logo";
 
 const SITE_PAGES = MARKETING_PAGES.filter((p) => p.area === "site");
 const LEGAL_PAGES = MARKETING_PAGES.filter((p) => p.area === "legal");

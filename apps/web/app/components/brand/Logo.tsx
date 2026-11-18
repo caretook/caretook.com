@@ -27,11 +27,17 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Wordmark() {
+/**
+ * The mark plus "Caretook". With `wordHiddenBelow`, the word is screen-reader
+ * text below that breakpoint (the mark stays), so a link around it keeps the
+ * name "Caretook" on narrow screens.
+ */
+export function Wordmark({ wordHiddenBelow }: { wordHiddenBelow?: "sm" }) {
+  const hidden = wordHiddenBelow === "sm" ? "max-sm:sr-only" : "";
   return (
     <span className="flex items-center gap-2">
-      <LogoMark className="size-8" />
-      <span className="text-xl font-bold tracking-tight">Caretook</span>
+      <LogoMark className="size-8 shrink-0" />
+      <span className={`text-xl font-bold tracking-tight ${hidden}`}>Caretook</span>
     </span>
   );
 }
