@@ -1,8 +1,11 @@
 import type { Route } from "./+types/layout";
 
-import { Form, isRouteErrorResponse, Link, Outlet } from "react-router";
+import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "react-router";
 import { FirstSyncPending } from "~/components/FirstSyncPending";
+import { GroupMenu } from "~/components/GroupMenu";
+import { SectionNav, TabBar } from "~/components/SectionNav";
 import { SyncIndicator } from "~/components/SyncIndicator";
+import { UserMenu } from "~/components/UserMenu";
 import { isFirstSyncPending } from "~/lib/firstSync";
 import { requireSession } from "~/lib/session";
 
@@ -14,30 +17,45 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   return { user };
 }
 
+/**
+ * The frame around every /app screen. Its regions are fixed; later slices and
+ * PRDs fill them (through the components named below), never restructure them:
+ *
+ * - header `group` (left): the Caretook link, then `GroupMenu` on group routes;
+ * - header `sections` (wide screens): `SectionNav` on group routes;
+ * - header `status`: `SyncIndicator`;
+ * - header `user`: `UserMenu`;
+ * - the outlet;
+ * - `TabBar` (phones) under the outlet, on group routes.
+ *
+ * Screens outside a group (`/app`, `/app/settings`) get the header without a
+ * group menu, sections or tab bar.
+ */
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const { user } = loaderData;
+  const { groupId } = useParams();
+  const { pathname } = useLocation();
   return (
     <>
-      <header className="navbar bg-base-100 px-4 shadow-sm">
-        <div className="flex-1">
+      <header className="navbar bg-base-100 gap-2 px-4 shadow-sm">
+        <div data-region="group" className="flex min-w-0 flex-1 items-center gap-2">
           <Link to="/app" className="text-lg font-semibold">
             Caretook
           </Link>
+          {groupId && <GroupMenu groupId={groupId} />}
         </div>
-        <div className="flex items-center gap-3">
+        <div data-region="sections" className="hidden items-center sm:flex">
+          {groupId && <SectionNav groupId={groupId} pathname={pathname} />}
+        </div>
+        <div data-region="status" className="flex items-center">
           <SyncIndicator />
-          <span className="text-base-content/70 hidden text-sm sm:inline">{user.name ?? user.email}</span>
-          <Link to="/app/settings" className="btn btn-ghost btn-sm">
-            Settings
-          </Link>
-          <Form method="post" action="/sign-out">
-            <button type="submit" className="btn btn-ghost btn-sm">
-              Sign out
-            </button>
-          </Form>
+        </div>
+        <div data-region="user" className="flex items-center">
+          <UserMenu user={user} />
         </div>
       </header>
       <Outlet />
+      {groupId && <TabBar groupId={groupId} pathname={pathname} />}
     </>
   );
 }

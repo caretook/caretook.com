@@ -107,7 +107,7 @@ try {
   check("signed out: after signing in, the link lands on the entry", true);
 
   // 5. A signed-in non-member gets Not found, and nothing about the entry.
-  await C.press(`[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Sign out")`);
+  await C.signOut();
   await C.waitFor(`location.pathname === "/sign-in" || location.pathname === "/"`, 15000);
   await C.signIn("admin@example.com", PW);
   await C.send("Page.navigate", { url: copied });

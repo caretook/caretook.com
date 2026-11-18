@@ -28,7 +28,7 @@ try {
     ),
   );
   console.log("IDB while signed in:", await p.evaluate(countIdb));
-  await p.press(`[...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Sign out")`);
+  await p.signOut();
   await p
     .waitFor(`location.pathname === "/sign-in"`, 15000)
     .catch(async () => console.log("still at", await p.evaluate("location.pathname")));

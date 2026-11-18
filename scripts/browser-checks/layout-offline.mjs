@@ -105,7 +105,7 @@ try {
   const before = await p.evaluate(`${pendingKeys}.length`);
   proxy.setOnline(true);
   await sleep(300);
-  await p.press(`[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Sign out")`);
+  await p.signOut();
   await p.waitFor(`location.pathname === "/sign-in"`, 15000);
   await sleep(500);
   check(
