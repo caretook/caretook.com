@@ -8,7 +8,7 @@ Legend: ✅ decided/built · 🟡 proposed, not built · ❓ open.
 
 - **Build only what the user asks for.** Planned work lives in the backlog and in PRDs (below); don't start a PRD or slice until the user says so.
 - **No new dependencies without the user's approval.** Pin approved ones exactly.
-- **Commit only when the user explicitly asks.** "Run before committing" is not a request to commit. Exceptions: once the user has started a PRD's loops, loops commit on their `slice/` branch and the orchestrator merges them into `prd/<topic>`; and anyone may commit `plans/backlog.md` onto `dev` through `pnpm backlog` (see _PRDs and parallel loops_). Never commit anything else on `dev`, `staging` or `main`.
+- **Commit only when the user explicitly asks.** "Run before committing" is not a request to commit. Exceptions: once the user has started a PRD's loops, loops commit on their `slice/` branch and the orchestrator merges them into `prd/<topic>`; and anyone may commit `plans/inbox.md` and `plans/backlog.md` onto `dev` through `pnpm backlog` (see _PRDs and parallel loops_). Never commit anything else on `dev`, `staging` or `main`.
 - **All seed and test data is fictional.** Never put real people's health information in the repo, even anonymized.
 - Keep this file current: when a slice lands, fold its lasting decisions into the right section and delete anything it made stale.
 
@@ -37,23 +37,31 @@ Feature work goes through a PRD, then a plan cut into slices that loops (paralle
 - **A loop** is one background agent working one slice in `.loops/<topic>-<n>`.
 - **Protection** (`.githooks/`, turned on by `pnpm hooks:install`, which sets `core.hooksPath` for every worktree of the clone; `new.sh` runs it too):
   - `main` and `staging`: no commits, merge commits or pushes, and no local moves except a fast-forward to `origin`'s copy (`git fetch && git branch -f main origin/main`).
-  - `dev`: only merge commits (landings, including one finished after resolving conflicts) and commits that touch nothing but `plans/backlog.md`.
+  - `dev`: only merge commits (landings, including one finished after resolving conflicts) and commits that touch nothing but `plans/inbox.md` and `plans/backlog.md`.
   - The dev keeper overrides with `CARETOOK_ALLOW_PROTECTED=1`, and the hook says it was used. Agents never set it.
   - GitHub rulesets (PRs required on `main` and `staging`) come once `gh` can see the repo.
 
-### The live backlog (`plans/backlog.md`)
+### The live backlog (`plans/inbox.md` and `plans/backlog.md`)
 
-The list of everything planned (bugs, changes, features, big plans, questions), with ids `B-<n>`. It lives **only on `dev`**. `pnpm backlog` (`scripts/backlog/`) runs from any worktree. Each write takes a lock, edits the main checkout's copy, and commits only that file onto `dev`, so the list is live for everyone without merges. The file's header has the commands.
+Everything planned (bugs, changes, features, big plans, questions) lives in two files, **only on `dev`**:
 
-- **Who writes:** the user, orchestrators, PRD-writing agents and loop agents. Others are writing too, so always change it through `pnpm backlog`, which rereads the file under the lock, never by writing a copy you read earlier. Hand edits in the main checkout are fine; `pnpm backlog commit` commits them, and the next tool write includes them. Agents may commit backlog changes without asking: that's the only exception to "commit only when asked".
-- **Never on your own branch.** `plans/backlog.md` is never edited or committed on `prd/`, `slice/` or `plan/` branches; the copy there is stale. Read it with `pnpm backlog list`.
+- **`plans/inbox.md` is the user's.** Plain bullets under `##` headings (Bugs, Changes, Features, Big plans, Questions; the heading sets the type), with indented lines for details. No ids or fields.
+- **`plans/backlog.md` is the tracker** that agents keep and the user reviews: one item per bullet, with id `B-<n>`, status, PRD, owner, commit and notes, and a summary table at the top.
+- **Ingest links them.** `pnpm backlog ingest` files every untagged inbox bullet as a tracker item (status `inbox`) and appends its id to the bullet: `- Login link can be clicked twice (B-1)`. That's the only change agents make to the inbox, so they rarely write while the user is editing it. Editing or deleting a filed bullet doesn't change its item; say so in a new bullet, or change the tracker. `pnpm backlog inbox` shows bullets not filed yet.
+  - **When:** orchestrators run it at every wave boundary, and the user runs it whenever they like. Nothing ingests on its own, so a half-typed bullet is never filed.
+- **Triage: agents propose, the user reviews.** An orchestrator or planning agent sets a new item's PRD (`set B-<n> prd=<topic> status=triaged`) and adds a note saying why. The user reviews that in the summary table and changes it if it's wrong.
+
+`pnpm backlog` (`scripts/backlog/`) runs from any worktree. Each write takes a lock, edits the main checkout's copies, and commits only those two files onto `dev`, so the lists are live for everyone without merges. The top of `scripts/backlog/backlog.mjs` lists the commands.
+
+- **Who writes:** the user (the inbox, and anything in the tracker), orchestrators, PRD-writing agents and loop agents. Others are writing too, so agents always change the tracker through `pnpm backlog`, which rereads it under the lock, never by writing back a copy read earlier. Hand edits in the main checkout are fine; `pnpm backlog commit` commits them, and the next tool write includes them. Agents may commit backlog changes without asking: that's the only exception to "commit only when asked".
+- **Never on your own branch.** Neither file is edited or committed on `prd/`, `slice/` or `plan/` branches; the copies there are stale. Read them with `pnpm backlog list` and `pnpm backlog inbox`.
 - **Fields:** type, status, `prd` (the topic it belongs to), `owner` (the branch that claimed it), `commit`, and free notes (`note` appends a dated, signed line).
 - **Statuses:** inbox → triaged (has a PRD) → in-progress (claimed) → ready → landed → staging → live, or dropped.
   - `claim B-<n>` takes an item for your branch; **the first claim wins**, and others get an error.
   - `done B-<n>` (by the orchestrator, after merging the slice into `prd/<topic>`) records the commit and sets ready.
   - From then on the status is **worked out from git**: landed once `dev` contains the commit, staging and live once `origin/staging` and `origin/main` do. `list` shows it; `refresh` fetches and writes it.
 - **The PRD table** at the top (topics, dependencies, hot files) says which PRDs can run at the same time. Change it when you add, reorder or finish a PRD.
-- Orchestrators reread the backlog **at every wave boundary**. A new item for a running PRD becomes a slice in a later wave; a running slice never changes scope.
+- Orchestrators run `pnpm backlog ingest` and reread the backlog **at every wave boundary**. A new item for a running PRD becomes a slice in a later wave; a running slice never changes scope.
 
 ### Running loops
 
@@ -487,7 +495,7 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) sli
 | `pnpm test` / `test:unit` / `test:integration` / `test:watch` | Vitest (integration needs `pnpm datastore:up:test`)                                                                                |
 | `pnpm typecheck`                                              | tsc everywhere; apps/web runs typegen and tsc on the **web** target only (it includes every shared file)                           |
 | `pnpm check`                                                  | typecheck, lint, format check and tests: run it before handing off                                                                 |
-| `pnpm backlog …`                                              | the live backlog on `dev` (`list`, `add`, `claim`, `done`, …; see _The live backlog_)                                              |
+| `pnpm backlog …`                                              | the live backlog on `dev` (`ingest`, `list`, `claim`, `done`, …; see _The live backlog_)                                           |
 | `pnpm hooks:install`                                          | turn on the branch protection hooks (`.githooks/`) for this clone: once, after cloning                                             |
 
 ### Browser checks (`scripts/browser-checks/`)
@@ -518,7 +526,7 @@ UI work is verified in headless Chrome over CDP with plain Node scripts (no Play
 ```
 docker-compose.yml        dev Postgres :5434, PowerSync :8080 + storage; docker-compose.test.yml → :5435
 powersync/                service.yaml, sync-config.yaml (Sync Streams)
-plans/                    backlog.md (the live backlog, on dev), PRDs and slice plans
+plans/                    inbox.md (the user's list) and backlog.md (the tracker), both only on dev; PRDs and slice plans
 scripts/browser-checks/   headless Chrome checks
 scripts/loops/            new/ls/rm/prompt (+ lib.sh): worktrees in .loops/, slot leases, a Docker stack each
 scripts/backlog/          pnpm backlog: the live backlog CLI (format.mjs parses and renders)

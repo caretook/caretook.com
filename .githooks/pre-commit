@@ -7,9 +7,9 @@ if [[ $branch =~ $PROTECTED_RE ]]; then
 elif [[ $branch == "$TRUNK_BRANCH" ]]; then
   # Concluding a merge (after resolving conflicts) is a landing.
   [[ -e $(git rev-parse --git-path MERGE_HEAD) ]] && exit 0
-  others=$(git diff --cached --name-only | grep -vx "$BACKLOG_FILE" || true)
+  others=$(git diff --cached --name-only | grep -vxF "${BACKLOG_FILES[@]/#/-e}" || true)
   [[ -z $others ]] && exit 0
   overridden "commit on $TRUNK_BRANCH touching $(echo "$others" | head -3 | tr '\n' ' ')" ||
-    refuse "a commit on $TRUNK_BRANCH that touches more than $BACKLOG_FILE: $(echo "$others" | head -3 | tr '\n' ' ')"
+    refuse "a commit on $TRUNK_BRANCH that touches more than the backlog files: $(echo "$others" | head -3 | tr '\n' ' ')"
 fi
 exit 0
