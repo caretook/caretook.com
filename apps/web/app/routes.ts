@@ -24,7 +24,11 @@ const appRoutes = [
           route("new/:kind", "routes/app/groups/timeline/new/route.tsx"),
         ]),
         route("entries/:entryId", "routes/app/groups/entry/route.tsx"),
-        route("settings", "routes/app/groups/settings/route.tsx"),
+        route("settings", "routes/app/groups/settings/layout/route.tsx", [
+          index("routes/app/groups/settings/index/route.tsx"),
+          route("details", "routes/app/groups/settings/details/route.tsx"),
+          route("members", "routes/app/groups/settings/members/route.tsx"),
+        ]),
       ]),
     ]),
   ]),

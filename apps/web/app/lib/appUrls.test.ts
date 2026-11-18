@@ -27,6 +27,13 @@ describe("appUrls", () => {
     expect(appUrls.groupSettings(G)).toBe(`/app/groups/${G}/settings`);
   });
 
+  it("builds a group's settings subpages, and drops an unknown one", () => {
+    expect(appUrls.groupSettings(G, "details")).toBe(`/app/groups/${G}/settings/details`);
+    expect(appUrls.groupSettings(G, "members")).toBe(`/app/groups/${G}/settings/members`);
+    // @ts-expect-error: only the listed subpages exist.
+    expect(appUrls.groupSettings(G, "bogus")).toBe(`/app/groups/${G}/settings`);
+  });
+
   it("encodes ids as path segments", () => {
     expect(appUrls.groupHome("a/b?c")).toBe("/app/groups/a%2Fb%3Fc");
     expect(appUrls.entry("g", "x y#z")).toBe("/app/groups/g/entries/x%20y%23z");
