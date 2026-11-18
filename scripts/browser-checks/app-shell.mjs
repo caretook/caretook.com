@@ -420,8 +420,15 @@ try {
   check("/app: goes to the last group after a reload", reloaded);
 
   // A remembered group you're no longer in: the list, without an error.
-  // (Right after a reload the sync handle can still be opening, so wait for it.)
-  await A.waitFor(`!!window.caretookSync?.userId`, 20000);
+  // Wait for the reloaded page's own remembering first, or it can overwrite
+  // the stale value below: GroupMenu remembers the group in an effect of the
+  // commit that first shows it (so wait for the menu, then a frame for the
+  // effect), and doesn't write the key again after that.
+  await A.waitFor(
+    `${GROUP_TRIGGER}?.textContent.trim() === "Grandpa Lou" && !!window.caretookSync?.userId`,
+    20000,
+  );
+  await A.evaluate(`new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))`);
   await A.evaluate(
     `localStorage.setItem("caretook:lastGroup:" + window.caretookSync.userId, "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8dffff")`,
   );
