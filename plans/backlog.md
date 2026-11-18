@@ -42,7 +42,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
-| B-17 | bug | in-progress | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
+| B-17 | bug | ready | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
 | B-18 | feature | landed | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
 | B-19 | feature | landed | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
 | B-20 | chore | in-progress | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
@@ -209,10 +209,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-17 · bug · A timeline layout change made offline is lost
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: b0325d0
 
 - 2026-11-17 (dev keeper): `timeline.tsx` drops a failed `updatePreferences`, so the next online load restores the server's copy.
 - 2026-11-17 (plan/quick-fixes): Quick-fixes slice 2: queue the change on the device and send it on the next online load.
