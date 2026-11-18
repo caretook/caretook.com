@@ -44,7 +44,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | triaged | quick-fixes |  | A timeline layout change made offline is lost |
 | B-18 | feature | ready | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
-| B-19 | feature | in-progress | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
+| B-19 | feature | ready | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
 | B-20 | chore | triaged | live-notes-ux |  | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | triaged | quick-fixes |  | The first screen after sign-in waits up to 10 s for the first sync |
@@ -226,10 +226,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-19 · feature · Live dot and the Live now banner (live notes slice 7)
 
-- status: in-progress
+- status: ready
 - prd: live-notes-ux
 - owner: prd/live-notes-ux
-- commit:
+- commit: 5cad30f
 
 - 2026-11-17 (slice/live-notes-ux/7): Slice 7 built on slice/live-notes-ux/7 (3f35d8f): Live now banner + live dot on the timeline; check live-now.mjs 21/21.
 
