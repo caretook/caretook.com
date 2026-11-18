@@ -6,7 +6,7 @@ import { Link } from "react-router";
 import { entrySummary, initials, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
-import { AuthorInitials, KindIcon } from "./KindIcon";
+import { AuthorInitials, KindFilterLink } from "./KindIcon";
 import { LiveDot } from "./LiveDot";
 
 export type EntryViewProps = {
@@ -32,8 +32,8 @@ export type EntryOpen = { to: string } | { onPress: () => void };
 
 /**
  * The whole row's tap target: a link or button stretched over the row, so
- * it's one focusable, named control for keyboards and screen readers. The ⋯
- * button and the More/Less toggle sit above it (`relative z-10`), so taps on
+ * it's one focusable, named control for keyboards and screen readers. The
+ * kind icon, the ⋯ button and the More/Less toggle sit above it (`relative z-10`), so taps on
  * them don't open the entry. The row itself must be `relative isolate` (its own stacking context, so
  * those don't rise above the sticky day headers).
  */
@@ -80,7 +80,7 @@ export function TimelineEntryRow({
   return (
     <li className={`relative isolate flex items-start gap-2.5 px-3 py-2 ${removing ? "opacity-50" : ""}`}>
       {open && <EntryOpenTarget open={open} entry={entry} />}
-      <KindIcon kind={entry.kind} size="sm" />
+      <KindFilterLink kind={entry.kind} size="sm" />
       <time
         dateTime={entry.occurredAt}
         className="text-base-content/70 w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"

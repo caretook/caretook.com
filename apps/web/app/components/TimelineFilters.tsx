@@ -2,20 +2,25 @@ import type { TimelineEntryKind, TimelineView } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 
 import { LayoutList, List } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { KIND_META } from "~/lib/entryDisplay";
+import { clearKind, setKind } from "~/lib/timelineFilters";
 
 const FILTERS = ["note", "symptom", "event", "vital"] as const satisfies TimelineEntryKind[];
 
 const chip = (active: boolean) =>
   `btn btn-sm rounded-full px-3 ${active ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100"}`;
 
-/** Kind filter chips: links that set `?kind=`, so the filter survives reloads and Back. */
+/**
+ * Kind filter chips: links that set `?kind=`, so the filter survives reloads
+ * and Back. They change only the kind (see `lib/timelineFilters.ts`).
+ */
 export function KindFilter({ kind }: { kind: TimelineEntryKind | null }) {
+  const { search } = useLocation();
   return (
     <nav aria-label="Show entries" className="flex flex-wrap gap-1.5">
       <Link
-        to={{ search: "" }}
+        to={{ search: clearKind(search) }}
         replace
         preventScrollReset
         className={chip(!kind)}
@@ -26,7 +31,7 @@ export function KindFilter({ kind }: { kind: TimelineEntryKind | null }) {
       {FILTERS.map((k) => (
         <Link
           key={k}
-          to={{ search: `?kind=${k}` }}
+          to={{ search: setKind(search, k) }}
           replace
           preventScrollReset
           className={chip(kind === k)}
