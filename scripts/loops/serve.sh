@@ -64,9 +64,11 @@ if [[ -z $(server_pids "$port") ]]; then
     echo "Built in $(($(date +%s) - t0)) s."
     touch .serve-built
     # react-router-serve doesn't load .env files: give it the ones Vite loads.
+    # VITE_CHECK_BUILD at run time too: with a localhost APP_URL, the server
+    # sends mail to the dev mailbox (isCheckBuild in @caretook/notifications).
     # The whole subshell's output goes to the log: a subshell left holding our
     # stdout would keep `pnpm prd serve --built | tail` waiting for ever.
-    (cd apps/web && HOST=127.0.0.1 PORT=$port NODE_ENV=production exec nohup node \
+    (cd apps/web && VITE_CHECK_BUILD=1 HOST=127.0.0.1 PORT=$port NODE_ENV=production exec nohup node \
       --env-file-if-exists=.env --env-file-if-exists=../../packages/data/.env \
       node_modules/@react-router/serve/bin.cjs build/web/server/index.js) >> .dev.log 2>&1 < /dev/null &
     disown

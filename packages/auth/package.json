@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@caretook/data": "workspace:*",
+    "@caretook/notifications": "workspace:*",
     "better-auth": "1.7.25",
     "drizzle-orm": "^0.45.4"
   },

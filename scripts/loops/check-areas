@@ -25,6 +25,7 @@ scripts/backlog/*                        -
 packages/*/test/*                        -
 .nvmrc                                   -
 .gitignore                               -
+*.env.example                            -
 eslint.config.*                          -
 .prettier*                               -
 vitest.config.*                          -
@@ -54,9 +55,18 @@ packages/data/src/db/client.ts           @suite
 packages/data/package.json               @suite
 packages/api/package.json                @suite
 packages/auth/package.json               @suite
+packages/notifications/package.json      @suite
+
+# Email: the notifications package, the outbox sweep and the dev mailbox are
+# server only (no screen of the app); their unit and integration tests cover them.
+packages/notifications/src/*             -
+apps/web/app/routes/api/cron/*           -
+apps/web/app/routes/dev/*                -
+apps/web/app/.server/notifications.ts    -
 
 # Sign-in, session, the sync client and first sync.
-apps/web/app/routes/sign-in.tsx          sign-in first-sync
+apps/web/app/routes/sign-in.tsx          sign-in first-sync invites
+apps/web/app/routes/account/*            invites sign-in
 apps/web/app/routes/sign-out.tsx         signout-wipe sign-in
 apps/web/app/routes/api/*                sign-in first-sync
 apps/web/app/lib/session.ts              sign-in first-sync signout-wipe
@@ -66,7 +76,7 @@ apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe
 apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell providers
 apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
 apps/web/app/lib/sync/schema.ts          roundtrip live-notes providers phase2
-packages/auth/src/*                      sign-in first-sync signout-wipe
+packages/auth/src/*                      sign-in first-sync signout-wipe invites
 apps/web/app/components/shell/*          first-sync
 
 # Routes, URLs, the group route and settings subpages.
@@ -130,6 +140,7 @@ packages/data/src/db/schema/entryProvider.ts providers
 packages/data/src/db/schema/careGroup*.ts app-shell
 packages/data/src/db/schema/careRecipient.ts app-shell
 packages/data/src/db/schema/userPreferences.ts settings-layout
+packages/data/src/db/schema/notification.ts -
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 packages/data/src/db/seeds/providers.ts  providers
 packages/data/src/db/seeds/*             app-shell
