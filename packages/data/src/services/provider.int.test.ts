@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { createGroup, createUser, ok, system, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
-import { entryProviderId, providerSchema } from "../db/schema";
+import { entryProviderId, PRACTICE_HAS_PROVIDERS_MESSAGE, providerSchema } from "../db/schema";
 import { isError } from "../errors";
 import { noteDocumentModel, noteUpdateModel, timelineEntryProviderModel } from "../models";
 import { entryProviderService, noteDocumentService, providerService, timelineEntryService } from ".";
@@ -160,7 +160,8 @@ describe("providerService: writing", () => {
     const pharmacy = await addProvider({ type: "pharmacy", name: "Corner Pharmacy" });
     const clinician = await addProvider();
 
-    expect(await addProvider({ practiceId: practice.id })).toMatchObject({ practiceId: practice.id });
+    const atPractice = await addProvider({ practiceId: practice.id });
+    expect(atPractice).toMatchObject({ practiceId: practice.id });
     expect(await addProvider({ type: "other", practiceId: pharmacy.id })).toMatchObject({
       practiceId: pharmacy.id,
     });
@@ -179,6 +180,7 @@ describe("providerService: writing", () => {
       codeOf(await providerService.update(u.caretaker.ctx, clinician.id, { practiceId: clinician.id })),
     ).toBe("providerService:badPractice");
 
+    ok(await providerService.remove(u.caretaker.ctx, atPractice.id));
     ok(await providerService.remove(u.caretaker.ctx, practice.id));
     expect(codeOf(await create(practice.id))).toBe("providerService:badPractice");
     expect(
@@ -225,6 +227,42 @@ describe("providerService: writing", () => {
     ok(await providerService.remove(u.caretaker.ctx, gone.id));
     expect(ok(await providerService.update(u.caretaker.ctx, other.id, { type: "other" }))?.type).toBe(
       "other",
+    );
+  });
+
+  it("won't delete a practice or pharmacy while live providers name it", async () => {
+    const { u, addProvider } = await setup();
+    const other = await addProvider({ type: "practice", name: "Eastside Clinic" });
+
+    for (const type of ["practice", "pharmacy"] as const) {
+      const practice = await addProvider({ type, name: `Westside ${type}` });
+      const clinician = await addProvider({ practiceId: practice.id });
+      const contact = await addProvider({ type: "other", name: "Aide", practiceId: practice.id });
+
+      const res = await providerService.remove(u.caretaker.ctx, practice.id);
+      expect(codeOf(res)).toBe("providerService:practiceHasProviders");
+      expect(isError(res) && res.statusCode).toBe(409);
+      expect(isError(res) && res.message).toBe(PRACTICE_HAS_PROVIDERS_MESSAGE);
+      expect(isError(res) && res.meta).not.toHaveProperty("issues");
+      expect(ok(await providerService.getById(u.owner.ctx, practice.id))?.deletedAt).toBeNull();
+
+      // One moves to another practice, the other is deleted: then it goes through.
+      ok(await providerService.update(u.caretaker.ctx, clinician.id, { practiceId: other.id }));
+      expect(codeOf(await providerService.remove(u.caretaker.ctx, practice.id))).toBe(
+        "providerService:practiceHasProviders",
+      );
+      ok(await providerService.remove(u.caretaker.ctx, contact.id));
+      ok(await providerService.remove(u.caretaker.ctx, practice.id));
+      expect(await providerService.getById(u.owner.ctx, practice.id)).toBeNull();
+    }
+
+    // Eastside now has both moved clinicians. Someone outside the group still learns nothing.
+    const outsider = await setup();
+    expect(codeOf(await providerService.remove(outsider.u.caretaker.ctx, other.id))).toBe(
+      "providerService:notFound",
+    );
+    expect(codeOf(await providerService.remove(u.caretaker.ctx, other.id))).toBe(
+      "providerService:practiceHasProviders",
     );
   });
 
