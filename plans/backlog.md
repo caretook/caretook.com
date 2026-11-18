@@ -60,6 +60,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-29 | chore | ready | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
+| B-32 | plan | triaged | marketing |  | Landing page and basic marketing pages |
 
 ## Items
 
@@ -401,3 +402,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): From the invites interview (2026-11-18): out of scope there, noted for later. Each new account gets a private demo group with fictional seed data (timeline, notes, vitals; later meds and providers) it can explore and delete.
+
+### B-32 · plan · Landing page and basic marketing pages
+
+- status: triaged
+- prd: marketing
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. The public site at caretook.com (web build only).
