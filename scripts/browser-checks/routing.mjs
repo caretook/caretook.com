@@ -812,8 +812,17 @@ try {
   }
 
   // Offline: the add links open the sheet, and a save lands on the device.
+  // After a full load the sheets open offline only once React Router has
+  // loaded their route modules (prefetched by the quick-add links and the
+  // timeline), which can finish after the rows show: cutting the network
+  // before that made it reload the page offline ("Error loading route module
+  // …, reloading page", then a TypeError: Illegal invocation in the next step).
   await c.goto(T);
   await c.waitFor(`${ROWS} > 0`, 30000);
+  await c.waitFor(
+    `["new", "edit"].every((r) => window.__reactRouterRouteModules?.["routes/app/groups/timeline/" + r + "/route"])`,
+    20000,
+  );
   const errorsOnline = c.errors.length;
   proxy.setOnline(false);
   await c.waitFor(`document.body.innerText.includes("Offline")`, 20000).catch(() => {});
