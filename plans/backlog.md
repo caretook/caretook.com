@@ -43,7 +43,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | triaged | quick-fixes |  | A timeline layout change made offline is lost |
-| B-18 | feature | in-progress | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
+| B-18 | feature | ready | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
 | B-19 | feature | in-progress | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
 | B-20 | chore | triaged | live-notes-ux |  | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
@@ -217,10 +217,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-18 · feature · Event title suggestions (live notes slice 3)
 
-- status: in-progress
+- status: ready
 - prd: live-notes-ux
 - owner: prd/live-notes-ux
-- commit:
+- commit: ea0b192
 
 - 2026-11-17 (slice/live-notes-ux/3): slice 3 built on slice/live-notes-ux/3 (af79030): chips in the title region, title-chips.mjs 16/16
 
