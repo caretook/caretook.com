@@ -99,7 +99,6 @@ export const appUrls = {
   groupSettings: (groupId: string) => `${groupHome(groupId)}/settings`,
   /** A group's provider directory, with its search and filters (`?q=`, `?type=`, `?past=1`) carried through. */
   providers: (groupId: string, search?: Search) => `${groupHome(groupId)}/providers${searchString(search)}`,
-<<<<<<< HEAD
   /**
    * The add sheet over the directory, carrying the list's search and filters.
    * `type` starts the form as that type (it's also the list's type filter, so
@@ -113,8 +112,6 @@ export const appUrls = {
   /** The edit sheet for one provider, over the directory, carrying the list's search and filters. */
   editProvider: (groupId: string, providerId: string, search?: Search) =>
     `${groupHome(groupId)}/providers/${segment(providerId)}/edit${searchString(search)}`,
-=======
   /** A provider's page: details, contact actions and their shared live notes. */
   provider: (groupId: string, providerId: string) => `${groupHome(groupId)}/providers/${segment(providerId)}`,
->>>>>>> slice/providers/4
 } as const;
