@@ -1,4 +1,4 @@
-// A group's sections (Timeline now; Medications, Providers and Assistant
+// A group's sections (Timeline and Providers now; Medications and Assistant
 // later), from the `GROUP_SECTIONS` registry, rendered twice by the /app frame.
 
 import { Link } from "react-router";

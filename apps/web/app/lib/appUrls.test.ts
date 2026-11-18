@@ -25,6 +25,19 @@ describe("appUrls", () => {
     expect(appUrls.newEntry(G, "note")).toBe(`/app/groups/${G}/entries/${NEW_ENTRY}?kind=note`);
     expect(appUrls.newEntry(G, "event")).toBe(`/app/groups/${G}/entries/${NEW_ENTRY}?kind=event`);
     expect(appUrls.groupSettings(G)).toBe(`/app/groups/${G}/settings`);
+    expect(appUrls.providers(G)).toBe(`/app/groups/${G}/providers`);
+  });
+
+  it("carries the provider directory's search through", () => {
+    expect(appUrls.providers("g", "?q=cardio&type=clinician")).toBe(
+      "/app/groups/g/providers?q=cardio&type=clinician",
+    );
+    expect(appUrls.providers("g", { q: "", past: "1" })).toBe("/app/groups/g/providers?past=1");
+  });
+
+  it("builds a provider's page, with the id as a path segment", () => {
+    expect(appUrls.provider(G, "p1")).toBe(`/app/groups/${G}/providers/p1`);
+    expect(appUrls.provider("g", "a/b")).toBe("/app/groups/g/providers/a%2Fb");
   });
 
   it("builds a group's settings subpages, and drops an unknown one", () => {
@@ -94,6 +107,23 @@ describe("appUrls", () => {
   it("drops an unknown kind for a new entry", () => {
     // @ts-expect-error: only notes and events are drafted on their own page.
     expect(appUrls.newEntry("g", "symptom")).toBe(`/app/groups/g/entries/${NEW_ENTRY}`);
+  });
+
+  it("builds the provider sheets' paths, carrying the directory's search", () => {
+    expect(appUrls.newProvider("g")).toBe("/app/groups/g/providers/new");
+    expect(appUrls.newProvider("g", { type: "pharmacy" })).toBe("/app/groups/g/providers/new?type=pharmacy");
+    // The type replaces the list's type filter; the rest is kept.
+    expect(appUrls.newProvider("g", { type: "practice", search: "?q=west&type=clinician&past=1" })).toBe(
+      "/app/groups/g/providers/new?q=west&type=practice&past=1",
+    );
+    expect(appUrls.newProvider("g", { search: "?q=west&type=clinician" })).toBe(
+      "/app/groups/g/providers/new?q=west&type=clinician",
+    );
+    // @ts-expect-error: only provider types.
+    expect(appUrls.newProvider("g", { type: "bogus" })).toBe("/app/groups/g/providers/new");
+    expect(appUrls.editProvider("g", "p 1", { q: "cardio" })).toBe(
+      "/app/groups/g/providers/p%201/edit?q=cardio",
+    );
   });
 });
 

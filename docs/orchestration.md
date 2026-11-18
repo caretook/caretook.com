@@ -93,7 +93,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 3. Open a **new terminal** and run that command. It starts the orchestrator session with the right first prompt:
 
    ```sh
-   cd .loops/<topic> && claude "$(scripts/loops/prompt.sh orchestrator <topic>)"
+   cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic>)"
    ```
 
 4. The orchestrator summarises the plan and the backlog, and asks which slices to run. Tell it. It can run wave after wave in one session; if a session gets slow or confused, close it and run the same command again (`pnpm prd start <topic>` reprints it). It picks up from the plan's _Status_ section.

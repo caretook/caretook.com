@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-import { History } from "lucide-react";
+import { History, Stethoscope } from "lucide-react";
 import { appUrls } from "./appUrls";
 
 /**
@@ -36,6 +36,13 @@ export const GROUP_SECTIONS: readonly GroupSection[] = [
     path: (groupId) => appUrls.timeline(groupId),
     // An entry's page is part of the timeline.
     match: (subpath) => under(subpath, "/timeline") || under(subpath, "/entries"),
+  },
+  {
+    id: "providers",
+    label: "Providers",
+    icon: Stethoscope,
+    path: (groupId) => appUrls.providers(groupId),
+    match: (subpath) => under(subpath, "/providers"),
   },
 ];
 
