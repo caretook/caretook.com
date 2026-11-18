@@ -69,6 +69,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-37 | bug | inbox |  |  | Deleting a practice leaves its clinicians linked to it |
 | B-38 | bug | triaged | quick-fixes |  | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
 | B-39 | chore | triaged | quick-fixes |  | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
+| B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 
 ## Items
 
@@ -502,3 +503,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Item 5 of the 2026-11-18 testing-churn plan (5804ae4 did items 1-4). phase2.mjs (107 steps) and app-shell.mjs (98) assert pure logic that now has unit tests. Keep checks to user flows, and give each a SMOKE=1 mode (~20 s) for after-merge runs. Run after components wave 2 lands: it reworks the same checks.
+
+### B-40 · chore · Real app screenshots for the marketing site before launch
+
+- status: triaged
+- prd: marketing
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): The marketing site shows SVG placeholders (apps/web/public/screenshots/<name>.svg) to keep the repo small while the app's screens change. Before launch: run scripts/browser-checks/marketing-screenshots.mjs on a freshly reset stack (CARETOOK_BROWSER_SLOTS=4 pnpm prd browser marketing-screenshots --timeout 300), commit the WebP images, and point site/screenshots.ts and the Screenshot component back at them (light and dark sources, srcset).
