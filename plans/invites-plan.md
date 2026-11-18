@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | State                                                                         | Merge into `prd/invites` (slice commits) |
-| ----- | ----------------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | merged                                                                        | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
-| 2     | merged                                                                        | `68df3d6` (776ca9b, 3d86337, 5ce74dd)    |
-| 3     | in progress (`.loops/invites-3`, slot 6; builds on routing's Members subpage) |                                          |
-| 4     | blocked by 3                                                                  |                                          |
-| 5     | blocked by 3                                                                  |                                          |
+| Slice | State                                                                             | Merge into `prd/invites` (slice commits) |
+| ----- | --------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1     | merged                                                                            | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
+| 2     | merged                                                                            | `68df3d6` (776ca9b, 3d86337, 5ce74dd)    |
+| 3     | merged                                                                            | `5ca5d2d` (a08ef99, 35283be, c7adf9c)    |
+| 4     | in progress (`.loops/invites-4`, slot 5)                                          |                                          |
+| 5     | in progress (`.loops/invites-5`, slot 6; regenerates its migration on top of 4's) |                                          |
 
-Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. **Wave 1 (slices 1 and 2) landed in `dev` as `3c1723a`** (2026-11-18): full suite 12/12 on a check build, including the check-build mail fix (`08a7de0`). Slice 3 is in progress (`.loops/invites-3`, slot 6); then 4 and 5 in parallel (the user asked for that), merging 4 first and having 5 regenerate the wave's migration.
+Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. **Wave 1 (slices 1 and 2) landed in `dev` as `3c1723a`** (2026-11-18): full suite 12/12 on a check build, including the check-build mail fix (`08a7de0`). Slice 3 merged (`5ca5d2d`) and is landing alone as wave 2; 4 and 5 run in parallel (the user asked for that), merging 4 first and having 5 regenerate the wave's migration.
 
 **The user's go-ahead (2026-11-18): land the rest of this PRD's waves without asking**, once each is green (wave 1, then 3, then 4 and 5). Every other rule still applies.
 
@@ -162,3 +162,9 @@ Link invites: `createLink` (role caretaker or viewer, expiry 1–90 days default
 - **Secrets:** the loops need `CRON_SECRET` and `INVITE_LINK_KEY` (any random values locally). Real Resend sending isn't needed for any slice; ask the user before using a real key, and only send to `MAIL_ALLOWLIST`.
 - **AGENTS.md at landing:** turn _Planned: notifications_ into a built section (the package, the outbox, dev mail, env), update _Auth_ (sign-in methods, verification, tickets), the invite rows in the permissions table, the API procedure list, the Members page, and close the open questions this settles (invites, consent, email delivery). Add `invites.mjs` to the browser check list and the budget table.
 - **Before production** (not this plan, but say so in the last hand-off): the sending subdomain's SPF, DKIM and DMARC, bounce webhooks, rate-limit storage, and the cron schedule on the host.
+
+Notes from slice 3 for 4 and 5:
+
+- `accept`/`decline` refuse link invites with `careGroupInviteService:wrongKind` (slice 4 fills them in); `signUpWithTicket` takes `{ kind: "invite" }` (slice 5 adds access codes).
+- Slice 5 leaves **New care group** out of the group menu (`routes/app/layout/`, protected while `components` runs); its hand-off names the one-item edit for the user to approve.
+- `pnpm prd browser --smoke <check>`: `--smoke` goes before the check name.
