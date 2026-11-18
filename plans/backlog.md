@@ -44,7 +44,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | triaged | quick-fixes |  | A timeline layout change made offline is lost |
 | B-18 | feature | in-progress | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
-| B-19 | feature | triaged | live-notes-ux |  | Live dot and the Live now banner (live notes slice 7) |
+| B-19 | feature | in-progress | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
 | B-20 | chore | triaged | live-notes-ux |  | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 
@@ -208,9 +208,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-19 · feature · Live dot and the Live now banner (live notes slice 7)
 
-- status: triaged
+- status: in-progress
 - prd: live-notes-ux
-- owner:
+- owner: prd/live-notes-ux
 - commit:
 
 ### B-20 · chore · Browser check overhaul and documentation (live notes slice 10)
