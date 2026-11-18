@@ -205,7 +205,7 @@ The backlog's PRD table lists them all, with their dependencies.
 - 🟡 [`plans/timeline-polish-prd.md`](plans/timeline-polish-prd.md) (topic `timeline-polish`): the timeline's filters, day headers, vitals line, wide layout and infinite scroll. Sliced in [`plans/timeline-polish-plan.md`](plans/timeline-polish-plan.md). **Slices 1–3 (the filter module with the kind icon, the day headers, and the one-line vitals) are in `dev`.** It's **paused**: slices 4 (filter by author), 5 (full width), 6 (author tooltip) and 7 (infinite scroll) wait for `routing` and `components`, and get replanned then. `search` builds on slices 1, 4 and 7.
 - 🟡 [`plans/marketing-prd.md`](plans/marketing-prd.md) (topic `marketing`, B-32): the public site. Sliced in [`plans/marketing-plan.md`](plans/marketing-plan.md). **Slice 1 (the frame, home, brand assets, SEO, prerendering) is in `dev`**; its decisions are under _Marketing site_. Slices 2 (features, about, FAQ) and 3 (legal pages) are next; 4 and 5 wait for `invites` slices 1 and 5.
 - 🟡 [`plans/providers-prd.md`](plans/providers-prd.md) (topic `providers`): the provider directory and links from notes and events. Sliced in [`plans/providers-plan.md`](plans/providers-plan.md). **Slices 1–4 (the data layer and the directory: list, add/edit/delete sheets, the provider page with live notes) are in `dev`**; their decisions are under _Providers_. Slices 5–7 (linking from notes and events) wait for `components`.
-- 🟡 [`plans/components-prd.md`](plans/components-prd.md) (topic `components`, B-24): UI primitives, feature folders, thin routes. Sliced in [`plans/components-plan.md`](plans/components-plan.md). **Slices 1–2 (the menu primitive, the feature folders, one entry actions menu; sheets, popovers, dialogs, avatars, chips, fields) are in `dev`**; their decisions are under _Components_ below. Slices 3 (the timeline, split) and 4 (the entry page, split) are next. It runs alone among UI PRDs: new UI elsewhere uses `components/ui/` and the feature folders.
+- 🟡 [`plans/components-prd.md`](plans/components-prd.md) (topic `components`, B-24): UI primitives, feature folders, thin routes. Sliced in [`plans/components-plan.md`](plans/components-plan.md). **Slices 1–4 (the menu primitive, the feature folders, one entry actions menu; sheets, popovers, dialogs, avatars, chips, fields; the timeline and the entry page split into hooks and regions) are in `dev`**; their decisions are under _Components_, _Timeline screen_ and _Live notes_. Slices 5 (the entry form, split) and 6 (settings and the header on the primitives, and the written rules) are next. It runs alone among UI PRDs: new UI elsewhere uses `components/ui/` and the feature folders.
 - ✅ [`plans/routing-prd.md`](plans/routing-prd.md) (topic `routing`, B-23): **done**, all five slices in `dev`: the group route with its middleware, `appUrls`, a folder per route, add- and edit-sheet URLs, and account and group settings subpages. Its lasting decisions are under _The `/app` frame_ and _Timeline screen_. `components` and `timeline-polish` 4–7 can start.
 
 ## Product
@@ -486,6 +486,7 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - **Row taps** (`EntryOpenTarget` in `TimelineEntryRow.tsx`): a link stretched over the row or card (`absolute inset-0`), so it's one named, focusable control. Notes and events open `/entries/:id` for everyone; symptoms and vitals link to their edit-sheet URL for writers and have no target for viewers. The ⋯ button and the More/Less toggle sit above it (`relative z-10`), and each row is `relative isolate` so they stay under the sticky day headers.
   - The ⋯ menu (writers only) has Delete, plus Edit for symptoms and vitals.
   - The timeline's `shouldRevalidate` skips submissions (live queries already show them). "Show older" grows the query limit.
+  - **The route only composes** (`route.tsx`: loader, action, `shouldRevalidate`, `meta`, and a component of about 20 lines). Its data comes from `useTimelineData` (entries with paging and "Show older", members and `nameOf`, latest vitals, previews, live documents), the view from `useTimelineView`, and deletes from `useEntryRemoval`; `TimelineHeader` and `TimelineEntryList` render it. Infinite scroll (`timeline-polish` slice 7) replaces the button inside `useTimelineData`, not the route. Rows and cards share `EntryBody` (kind, heading with severity, readings, text) and keep only their frames. Pure rules with tests: `timelineDays` (`groupByDay`), `entryOpen` (`openRule`, kind × role) and `entryLabels`. The loader and `meta` share `pageTitle()` on purpose, which keeps them in one chunk (splitting them reshuffled shared chunks and grew the route).
 - **Seeds** (`seeds/timelineEntries.ts`): about 180 fictional entries over eight weeks for Grandma Pat, placed by `hoursAgo` or `at: { daysAgo, time }` (America/Los_Angeles).
   - **Ids follow position**, so adding or changing an entry needs `pnpm datastore:reset`.
   - `timelineEntries.test.ts` validates every seed entry against the content schema, because seeds bypass the service.
@@ -524,6 +525,7 @@ Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
     - **actions:** once the entry exists, `ShareButton` for everyone, plus `EntryActions` (⋯ → Delete, with a `ConfirmDialog`, then back to the timeline) for writers.
   - **Share** (`share.ts` beside the entry route): the Web Share API when `canShare` allows it, else the clipboard with a "Link copied" status; a dismissed sheet shows nothing, and a failed copy shows the link to copy by hand. The origin is `VITE_API_ORIGIN || location.origin`.
   - Symptom or vital ids, and non-members, get a 404 that shows no title or text.
+  - **The route only composes** (about 120 lines): `loadEntry.ts` (the loader's reads and 404 rules), the `useLiveEntry` hook (`entry`, `stored`, `isNew`, `canWrite`, `deleted`, `ensureSaved`, `commitTitle`, `changeTime`, `remove`, `saveError`; no JSX), `EntryPageHeader` (fills `EntryHeader`'s regions and owns the delete dialog) and `EntryTitleRegion` (the title and chips; it owns the typed text). Pure, tested: `entryPage.ts` (`entryHeading`, `titleState`, `showTitleChips`). **`LiveNotesEditor` takes an optional `ref`** (`LiveNotesEditorHandle { focus() }`); a picked title chip focuses the editor through it, never by querying the DOM.
 - **Editor:** `LiveNotesEditor` is Tiptap StarterKit (`undoRedo: false`, because Collaboration brings Yjs undo; `link: false`). Its chunk is about 140 KB gzipped and loads only on its route.
 - **Vite:** `optimizeDeps.include` pre-bundles yjs and Tiptap, and `resolve.dedupe` keeps one yjs, React and ProseMirror. Without both, "Yjs was already imported" and broken hooks after re-optimization.
 - **Latency:** a co-editor sees typing in about 0.5–0.8 s locally. Offline edits land about 2.5–3 s after reconnecting.
@@ -675,9 +677,9 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/routes.ts, root.tsx, app.css
   app/routes/app/         shared screens, a folder per route (route.tsx + its private files; no server loaders):
                           layout/ (the /app frame: GroupMenu, SectionNav, SyncIndicator, UserMenu), home/, settings/,
-                          groups/layout/ (the group route), groups/index/, groups/timeline/ (EntryForm,
+                          groups/layout/ (the group route), groups/index/, groups/timeline/ (useTimelineData, TimelineEntryList, EntryBody, EntryForm,
                           QuickAddBar, TimelineEntryRow/Card, TimelineFilters, LatestVitals, LiveNowBanner, LiveDot,
-                          VitalTypeMenu, VitalReadingsFields, entryFormData), groups/entry/ (EntryHeader,
+                          VitalTypeMenu, VitalReadingsFields, entryFormData), groups/entry/ (useLiveEntry, loadEntry, EntryPageHeader, EntryHeader,
                           EntryTimeChip, EventTitleChips, ShareButton, share),
                           groups/settings/ (groupSettings)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
@@ -702,7 +704,7 @@ packages/data/            @caretook/data
 
 ## Next steps
 
-1. **Live notes follow-ups** (the PRD is done): give `LiveNotesEditor` a focus handle (title chips focus `main [contenteditable]` directly). File the PRD and slice issues once `gh` can see the repo.
+1. **Live notes follow-ups** (the PRD is done): file the PRD and slice issues once `gh` can see the repo.
 2. **The backlog** (`pnpm backlog list`): write the PRDs its table marks "to write" (`pnpm prd plan <topic>`, one `write-a-prd` interview each), then run them, at most three at once.
 3. **Tests:** cover every role against every table (the integration tests are independent now: each builds its own fixtures).
 4. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
