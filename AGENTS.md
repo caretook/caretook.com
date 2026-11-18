@@ -137,7 +137,8 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 - Merging two branches that each generated a migration conflicts in drizzle's `meta/_journal.json` and snapshots. Keep the one already in the target (`dev`'s, at a sync), then regenerate yours on top (`pnpm datastore:generate`) and recheck its SQL order.
 - After a merge or sync that changes seeds or migrations, run `pnpm datastore:reset` in that worktree; the merged seeds can differ from either side's.
 - **Running `new.sh` for several worktrees at once** can fail at migrate with "Connection terminated unexpectedly": a fresh Postgres restarts once after its first-boot init. The containers are fine; rerun `pnpm datastore:start && pnpm datastore:start:test` in each.
-- **The first check run after a `datastore:reset` or a PowerSync restart** can fail on a PowerSync 401 (the JWKS refetch) or slow first sync (`editors.mjs` "within ~2 s"). Rerun once before debugging.
+- **The first check run after a `datastore:reset` or a PowerSync restart** can fail on a PowerSync 401 (the JWKS refetch) or slow first sync (`live-notes.mjs` timing steps). Rerun once before debugging.
+- **PowerSync can keep the old JWKS for minutes after a `datastore:reset`** ("no key matched the token KID", PSYNC_S2101), and pages then wait on `waitForFirstSync`. Run `docker compose restart powersync` after a reset.
 - **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). Run every merged slice's check after each merge, not only the new one's.
 - **Long-running dev servers** can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
 
@@ -145,7 +146,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 
 The backlog's PRD table lists them all, with their dependencies.
 
-- 🟡 [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (topic `live-notes-ux`): notes and events _are_ their live document. Note/Event opens the editor in one tap, and the entry is saved on the first keystroke. Others join in one tap through a row tap, a "Live now" banner, a live dot or a Share link. Sliced in [`plans/live-notes-ux-plan.md`](plans/live-notes-ux-plan.md). **Slices 1, 2, 4, 5, 6, 8 and 9 are in `dev`.** Slices 3 and 7 (then 10) run next, as the first PRD on `prd/live-notes-ux`; the plan's _Status_ section has the state. This file describes the current code, every merged slice included.
+- ✅ [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (topic `live-notes-ux`): **done**, all ten slices in `dev`. Notes and events _are_ their live document: Note/Event opens the editor in one tap, the entry is saved on the first keystroke, and others join in one tap through a row tap, the Live now banner, a live dot or a Share link. Its lasting decisions are under _Timeline entries_ and _Live notes_; follow-ups are in _Next steps_.
 
 ## Product
 
@@ -385,6 +386,7 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - `?kind=` filter chips.
   - A latest vitals strip (`json_each` locally).
   - Quick-add: **Note** and **Event** link to `/entries/new?kind=…`; Symptom and Vitals open `EntrySheet` (a RAC Modal; a bottom sheet on phones) with `EntryForm` (symptoms and vitals only), and edit uses the same sheet. A note's or event's row body is its document preview.
+  - **Live now** (`LiveNowBanner`, between `LatestVitals` and `QuickAddBar`, viewers too): "<names> is writing · <title> · +N more" with a **Join** link, for the most recently edited document others are writing in; one polite `role="status"` announcement per document. Rows and cards show a `LiveDot` (`pointer-events-none`, so taps reach the open target; static under reduced motion; sr-only "Being written now by …"). Both come from `useLiveDocuments` and expire with the recent-editors window. The wording is in `lib/liveNow.ts` (`liveDocuments`, `writingLabel`, `liveDotLabel`, `announcementText`, `listNames`).
   - **Row taps** (`EntryOpenTarget` in `TimelineEntryRow.tsx`): a link or button stretched over the row or card (`absolute inset-0`), so it's one named, focusable control. Notes and events open `/entries/:id` for everyone; symptoms and vitals open their edit sheet for writers and do nothing for viewers. The ⋯ button and the More/Less toggle sit above it (`relative z-10`), and each row is `relative isolate` so they stay under the sticky day headers.
   - The ⋯ menu (writers only) has Delete, plus Edit for symptoms and vitals.
   - The timeline's `shouldRevalidate` skips submissions (live queries already show them). "Show older" grows the query limit.
@@ -395,7 +397,7 @@ The shared space for the caretakers of one care recipient. Always say "care grou
 
 ### Live notes (collaborative documents)
 
-Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) slices 3, 7 and 10 are still to come.
+Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
 
 - **What they are:** the text of every **note and event** (`NOTE_DOCUMENT_KINDS`), a Yjs document. **Its id is the entry's id**, so two devices adding one offline make the same row and merge.
 - **Tables:**
@@ -408,7 +410,7 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) sli
   - `appendUpdate` is idempotent on the update id.
   - `currentText` includes pending updates (for AI and workers).
   - `compact` (system, row locked `FOR UPDATE`) folds pending updates into the snapshot and text, merges their authors into `editors` (`mergeEditors`, latest time per user), and deletes them.
-- **Recent editors** (`db/schema/noteEditors.ts`, client-safe): `recentEditors({ editors, pending, now, excludeUserId })` combines `editors` with pending `note_update` rows. The window is 2 min (`RECENT_EDITORS_WINDOW_MS`, edge inclusive, up to one window of future skew allowed), re-evaluated every 15 s (`useNow`). On the device, `lib/sync/editors.ts` has `documentEditorsQuery`, `groupEditorsQuery` (one row per document in a group, for the live dot and banner), `toRecentEditors` and `useRecentEditors`. `EditorAvatars` shows up to 3 initials then "+N", never the viewer. An update's `created_at` is the server's, so offline edits count as "now" for 2 min after they upload.
+- **Recent editors** (`db/schema/noteEditors.ts`, client-safe): `recentEditors({ editors, pending, now, excludeUserId })` combines `editors` with pending `note_update` rows. The window is 2 min (`RECENT_EDITORS_WINDOW_MS`, edge inclusive, up to one window of future skew allowed), re-evaluated every 15 s (`useNow`). On the device, `lib/sync/editors.ts` has `documentEditorsQuery`, `groupLiveEditorsQuery` and `useLiveDocuments` (the group's live, not deleted, notes and events, for the live dot and banner), `toRecentEditors` and `useRecentEditors`. `EditorAvatars` shows up to 3 initials then "+N", never the viewer. An update's `created_at` is the server's, so offline edits count as "now" for 2 min after they upload.
   - `compactIfDue`: at 20 pending updates, or after 60 s.
 - **Device** (`lib/sync/notes.ts`):
   - `createNoteDoc` and `bindNoteDoc` are split so StrictMode's double effects can't destroy a live doc.
@@ -419,13 +421,13 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) sli
   - Nothing is written until the first real change (`shouldMaterialize` in `lib/liveEntry.ts`: text in the document, or a title). Then `materializeLiveEntry` (`lib/sync/liveEntry.ts`) writes the entry and its document in one local transaction (idempotent on the id; for an older event it adds only the document), and the URL is **replaced** with `/entries/:id`.
   - `bindNoteDoc`'s `ensureSaved` holds a draft's Yjs changes in memory until then; leaving drops them.
   - `EntryHeader` has four regions:
-    - **title:** `EntryTitle`, editable by writers for both kinds. `commitTitle` saves a new draft, or renames an existing entry.
+    - **title:** `EntryTitle`, editable by writers for both kinds. `commitTitle` saves a new draft, or renames an existing entry. While an event is unnamed (`isUnnamedEvent`) and nothing is typed, writers see `EventTitleChips`: up to 5 of the group's recent event titles (`suggestTitles` in `lib/titleSuggestions.ts`: 14-day half-life, case-insensitive dedupe, no "Event" or deleted entries; read locally by `lib/sync/titleSuggestions.ts`, so they work offline). A tap goes through `commitTitle`, so a named event takes 2 taps.
     - **time:** `EntryTimeChip` for writers (a popover with `DateTimeField`; saved on close, only if changed; a time picked on a draft is the saved time, via `occurredAtRef`). Viewers get a plain `EntryTime`.
     - **editors:** `EditorAvatars`.
     - **actions:** once the entry exists, `ShareButton` for everyone, plus `EntryMenu` (⋯ → Delete, with a `ConfirmDialog`, then back to the timeline) for writers.
   - **Share** (`lib/share.ts`): the Web Share API when `canShare` allows it, else the clipboard with a "Link copied" status; a dismissed sheet shows nothing, and a failed copy shows the link to copy by hand. The origin is `VITE_API_ORIGIN || location.origin`.
   - Symptom or vital ids, and non-members, get a 404 that shows no title or text.
-  - `EntryMenu` duplicates part of the timeline's `EntryActions`; slice 10 may merge them.
+  - `EntryMenu` still duplicates part of the timeline's `EntryActions` (see _Next steps_).
 - **Editor:** `LiveNotesEditor` is Tiptap StarterKit (`undoRedo: false`, because Collaboration brings Yjs undo; `link: false`). Its chunk is about 140 KB gzipped and loads only on its route.
 - **Vite:** `optimizeDeps.include` pre-bundles yjs and Tiptap, and `resolve.dedupe` keeps one yjs, React and ProseMirror. Without both, "Yjs was already imported" and broken hooks after re-optimization.
 - **Latency:** a co-editor sees typing in about 0.5–0.8 s locally. Offline edits land about 2.5–3 s after reconnecting.
@@ -503,8 +505,8 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) sli
 UI work is verified in headless Chrome over CDP with plain Node scripts (no Playwright yet).
 
 - **Run:** Node 24 (they use the global `WebSocket`), from that folder, against the dev server. `BASE` defaults to `http://localhost:5176`.
-- **Scripts:** `cdp.mjs` (the harness); `roundtrip.mjs` (two-member sync, offline through `proxy.mjs`, because CDP network emulation doesn't cut PowerSync's stream); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; it runs Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `live-note.mjs` (a note is its document: one-tap start, abandoned draft, URL replace, convergence, offline, viewer, 404s); `live-notes.mjs` (an event is its document: one-tap start, default title, rename); `entry-header.mjs` (time chip and Delete); `editors.mjs` (avatars appear and expire); `share.mjs` (share sheet, clipboard, signed-out redirect, non-member 404); `signout-wipe.mjs`.
-  - ⚠️ `roundtrip.mjs` is stale: it presses a "Note" button, which has been a link since slice 1. Slice 10 rewrites it.
+- **Scripts:** `cdp.mjs` (the harness, with `tap()` for real CDP mouse taps); `proxy.mjs` (offline, because CDP network emulation doesn't cut PowerSync's stream); `live-notes.mjs` (the one notes and events check, about 2 min: drafts, one-tap note and event, title chips, Live now banner and live dot, avatars, convergence, offline, time chip, Delete, Share, 404s, with tap counts Note 1, Event 1, named event 2, Join 1); `roundtrip.mjs` (sheet entries: symptom add, edit, delete, validation, offline, viewer, sign-out wipe); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `signout-wipe.mjs`.
+  - **They're order-independent:** each run tags the entries it makes, asserts against its own entries (never global idle state or seed order), moves only its own documents' edit times back before "who's typing" steps, and soft-deletes what it made at the end. They exit non-zero on failure.
   - Headless Chrome's clipboard needs `Emulation.setFocusEmulationEnabled`. Pin the zone (`Emulation.setTimezoneOverride`, America/Los_Angeles) for layout checks.
 - **Patterns:**
   - Use a 420×900 window.
@@ -512,7 +514,7 @@ UI work is verified in headless Chrome over CDP with plain Node scripts (no Play
   - React Aria buttons and menu items need a `pointerdown` before `.click()`.
   - Set inputs through the native value setter, then dispatch `input`.
   - Collect console errors, and take screenshots.
-- **Afterwards:** the checks write as member@, so run `pnpm datastore:reset`.
+- **Afterwards:** nothing; the checks clean up after themselves, so no reset is needed between runs.
 
 ### Gotchas
 
@@ -542,9 +544,11 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/components/         EntryForm, EntrySheet, QuickAddBar, TimelineEntryRow/Card, KindIcon, TimelineFilters,
                           LatestVitals, EntryActions, DateTimeField, ConfirmDialog, VitalTypeMenu,
                           VitalReadingsFields, LiveNotesEditor, EntryHeader, EntryTimeChip, EntryMenu,
-                          ShareButton, EditorAvatars, SyncIndicator
-  app/lib/                session, me, auth-client, rpc, api, entryDisplay, entryForm, format, redirect, form, liveEntry, share
-  app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors
+                          ShareButton, EditorAvatars, SyncIndicator, EventTitleChips,
+                          LiveNowBanner, LiveDot
+  app/lib/                session, me, auth-client, rpc, api, entryDisplay, entryForm, format, redirect, form, liveEntry, share,
+                          liveNow, titleSuggestions
+  app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors, titleSuggestions
 packages/auth/            @caretook/auth
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
 packages/data/            @caretook/data
@@ -558,7 +562,7 @@ packages/data/            @caretook/data
 
 ## Next steps
 
-1. **The live notes UX PRD:** slices 3 and 7, then 10, as the first PRD on the new branches (`scripts/loops/new.sh prd live-notes-ux`). File the PRD and slice issues once `gh` can see the repo.
+1. **Live notes follow-ups** (the PRD is done): merge `EntryMenu` into the timeline's `EntryActions`; give `LiveNotesEditor` a focus handle (title chips focus `main [contenteditable]` directly); restart PowerSync inside `datastore:reset`. File the PRD and slice issues once `gh` can see the repo.
 2. **The backlog** (`pnpm backlog list`): write the PRDs its table marks "to write" (`new.sh plan <topic>`, one `write-a-prd` interview each), then run them, at most three at once.
 3. **Tests:** make the integration tests independent (`careGroup.int.test.ts` shares one group across `describe` blocks), then cover every role against every table.
 4. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
