@@ -12,11 +12,11 @@
 | 4     | **merged**, ready to land (wave 2)      | `ac4eea3` (`d0d5c63`)                       |
 | —     | `dev` synced (quick-fixes wave 1)       | `66255e2`; `first-sync.mjs` fix `aaf2f99`   |
 | 5     | **landed** in `dev` (`ae6f342`, wave 3) | `7fb947a` (`01cc17f`, `5ede338`)            |
-| 6     | **merged**, ready to land (wave 4)      | `72c0eb2` (`18754d1`, `314ec04`, `b57d556`) |
+| 6     | **landed** in `dev` (`b82a8ce`, wave 4) | `72c0eb2` (`18754d1`, `314ec04`, `b57d556`) |
 | 7     | **landed** in `dev` (`ae6f342`, wave 3) | `0795604` (`08cabee`, `1d6cdc1`)            |
 | —     | `dev` synced (docs and backlog only)    | `bbeb2c9`                                   |
 
-Backlog: B-8 is landed (slices 1–2; slice 7 is noted on it). B-9 is `ready` (slices 3–6). **Every slice is merged: the PRD is done once wave 4 lands** (then `pnpm prd rm app-shell`, and mark it done in the backlog's PRD table).
+Backlog: B-8 is landed (slices 1–2; slice 7 is noted on it). B-9 is landed (slices 3–6). **The PRD is done: every slice is in `dev`**, its worktree is removed, and the backlog's PRD table marks it done.
 
 Wave 4 notes: all checks green on the synced branch (`app-shell` 98, `phase2` 36, `settings-layout` 14, `roundtrip` 20, `live-notes` 91, `layout-offline` 12, `sign-in`, `first-sync`, `signout-wipe`). Leaving waits up to 10 s for the membership to sync away before redirecting; on a slower sync the user lands back on the group until it goes. No native build was run for the group settings route.
 
