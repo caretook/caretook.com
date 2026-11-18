@@ -4,11 +4,9 @@ import { listNames } from "~/lib/liveNow";
 import { useRecentEditors } from "~/lib/sync/editors";
 import { useLiveQuery } from "~/lib/sync";
 import { membersQuery } from "~/lib/sync/timeline";
-import { UserAvatar } from "~/components/ui";
+import { AvatarStack } from "~/components/ui";
 
 const NO_MEMBERS: MemberRow[] = [];
-/** More than this many, and the rest become "+N". */
-const MAX_SHOWN = 3;
 
 /**
  * An `editors` header region (entry and provider pages): initials of the other members who
@@ -31,31 +29,13 @@ export function EditorAvatars({
   if (!editors.length) return null;
 
   const memberOf = (id: string) => members.find((m) => m.user_id === id);
-  const nameOf = (id: string) => memberOf(id)?.name || "Someone";
-  const names = editors.map((e) => nameOf(e.userId));
-  const shown = editors.slice(0, MAX_SHOWN);
-  const extra = editors.length - shown.length;
-  const label = `${listNames(names)} ${names.length === 1 ? "is" : "are"} editing`;
+  const people = editors.map((e) => ({
+    id: e.userId,
+    name: memberOf(e.userId)?.name || "Someone",
+    image: memberOf(e.userId)?.image,
+  }));
+  const label = `${listNames(people.map((p) => p.name))} ${people.length === 1 ? "is" : "are"} editing`;
 
-  return (
-    <div role="group" aria-label={label} title={label} className="flex items-center -space-x-1.5">
-      {shown.map((e) => (
-        <UserAvatar
-          key={e.userId}
-          data-editor={e.userId}
-          name={nameOf(e.userId)}
-          image={memberOf(e.userId)?.image}
-          className="ring-base-100 size-7 text-[0.7rem] ring-2"
-        />
-      ))}
-      {extra > 0 && (
-        <span
-          aria-hidden="true"
-          className="bg-base-300 text-base-content ring-base-100 inline-flex size-7 items-center justify-center rounded-full text-[0.7rem] font-semibold ring-2"
-        >
-          +{extra}
-        </span>
-      )}
-    </div>
-  );
+  // Up to 3, then "+N".
+  return <AvatarStack label={label} people={people} max={3} />;
 }

@@ -3,11 +3,9 @@ import type { ProviderType } from "@caretook/data/schema";
 import { PROVIDER_TYPES } from "@caretook/data/schema";
 import { Search } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
+import { ChipGroup } from "~/components/ui";
 import { clearType, PROVIDER_TYPE_META, setQuery, setType } from "~/lib/providerDirectory";
-
-const chip = (active: boolean) =>
-  `btn btn-sm rounded-full px-3 ${active ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100"}`;
 
 /** Navigation state that marks a URL change as the search box's own. */
 const FROM_SEARCH_BOX = { providerSearch: true } as const;
@@ -72,28 +70,19 @@ export function ProviderSearch({
 export function TypeFilter({ type }: { type: ProviderType | null }) {
   const { search } = useLocation();
   return (
-    <nav aria-label="Show providers" className="flex flex-wrap gap-1.5">
-      <Link
-        to={{ search: clearType(search) }}
-        replace
-        preventScrollReset
-        className={chip(!type)}
-        aria-current={!type ? "true" : undefined}
-      >
-        All
-      </Link>
-      {PROVIDER_TYPES.map((t) => (
-        <Link
-          key={t}
-          to={{ search: setType(search, t) }}
-          replace
-          preventScrollReset
-          className={chip(type === t)}
-          aria-current={type === t ? "true" : undefined}
-        >
-          {PROVIDER_TYPE_META[t].plural}
-        </Link>
-      ))}
-    </nav>
+    <ChipGroup
+      label="Show providers"
+      replace
+      preventScrollReset
+      links={[
+        { id: "all", label: "All", to: { search: clearType(search) }, current: !type },
+        ...PROVIDER_TYPES.map((t) => ({
+          id: t,
+          label: PROVIDER_TYPE_META[t].plural,
+          to: { search: setType(search, t) },
+          current: type === t,
+        })),
+      ]}
+    />
   );
 }

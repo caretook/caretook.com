@@ -8,7 +8,7 @@ import { isPracticeType } from "@caretook/data/schema";
 import { getGroup } from "~/lib/group";
 import { sessionContext } from "~/lib/session";
 import { createProvider } from "~/lib/sync/providers";
-import { EntrySheet } from "~/components/forms";
+import { Sheet } from "~/components/ui";
 import { ProviderForm } from "../ProviderForm";
 import { issuesForRows, providerFromForm } from "../providerFormData";
 import { useCloseProviderSheet, useProvidersOutlet } from "../providerSheet";
@@ -50,7 +50,7 @@ export default function NewProviderSheet({ loaderData }: Route.ComponentProps) {
   const { search } = useLocation();
   const practices = useMemo(() => providers.filter((p) => isPracticeType(p.type)), [providers]);
   return (
-    <EntrySheet isOpen onOpenChange={(open) => !open && close()} title="Add a provider">
+    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add a provider">
       <ProviderForm
         // A new URL is a new form.
         key={search}
@@ -59,6 +59,6 @@ export default function NewProviderSheet({ loaderData }: Route.ComponentProps) {
         onDone={close}
         onCancel={close}
       />
-    </EntrySheet>
+    </Sheet>
   );
 }
