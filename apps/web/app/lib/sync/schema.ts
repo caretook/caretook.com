@@ -56,7 +56,10 @@ export const timelineEntries = sqliteTable(
   (t) => [index("timeline_entry_group_occurred").on(t.groupId, t.occurredAt)],
 );
 
-/** A live document on a note or event. `id` is the entry's id. Snapshot and text are the server's. */
+/**
+ * A live document on a note or event. `id` is the entry's id. Snapshot,
+ * text and `editors` (JSON `{ [userId]: lastEditAt }`) are the server's.
+ */
 export const noteDocuments = sqliteTable(
   "note_document",
   {
@@ -64,6 +67,7 @@ export const noteDocuments = sqliteTable(
     groupId: text("group_id"),
     snapshot: text("snapshot"),
     text: text("text"),
+    editors: text("editors"),
     createdAt: text("created_at"),
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),

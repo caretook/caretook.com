@@ -8,6 +8,7 @@ import { canHaveNoteDocument, noteText } from "@caretook/data/schema";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { data, Link, useNavigate } from "react-router";
+import { EditorAvatars } from "~/components/EditorAvatars";
 import { EntryHeader, EntryTime, EntryTitle } from "~/components/EntryHeader";
 import { LiveNotesEditor } from "~/components/LiveNotesEditor";
 import { KIND_META } from "~/lib/entryDisplay";
@@ -234,6 +235,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
             {!canWrite && " · You can view this"}
           </>
         }
+        editors={!deleted && <EditorAvatars documentId={draft.id} groupId={groupId} viewerId={db.userId} />}
       />
       {kind === "event" && live?.body && (
         <p className="text-base-content/80 break-words whitespace-pre-wrap">{live.body}</p>
