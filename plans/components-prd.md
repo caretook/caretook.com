@@ -1,6 +1,6 @@
 # PRD: Components (UI primitives, thin routes, feature folders, no duplicates)
 
-Status: 🟡 written, not planned. Backlog item: B-24. Topic `components`. Runs after `routing` lands.
+Status: 🟡 planned in [`components-plan.md`](components-plan.md) (6 slices). Backlog item: B-24. Topic `components`. Runs after `routing` lands.
 
 ## Problem Statement
 

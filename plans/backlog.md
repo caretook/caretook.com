@@ -19,8 +19,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `providers`       | to write | `app-shell`'s group nav (in `dev`) | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
 | `medications`     | to write | `app-shell`'s group nav (in `dev`); `providers` (soft) | new tables (as providers), `KIND_META`, `EntryForm` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
-| `routing`         | [PRD](routing-prd.md): not planned | `app-shell`, `timeline-polish` (both land first) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
-| `components`      | [PRD](components-prd.md): not planned | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
+| `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started | `app-shell`, `timeline-polish` (both land first) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
+| `components`      | [PRD](components-prd.md), [plan](components-plan.md): 6 slices, not started | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
 
 ## Summary
 
@@ -32,7 +32,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-2 | change | in-progress | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
 | B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
-| B-5 | change | in-progress | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
+| B-5 | change | ready | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
 | B-7 | change | in-progress | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
 | B-8 | feature | ready | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
@@ -101,10 +101,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-5 · change · Tap an entry's kind icon to filter by that kind
 
-- status: in-progress
+- status: ready
 - prd: timeline-polish
 - owner: prd/timeline-polish
-- commit:
+- commit: 5d6678a
 
 - 2026-11-17 (dev keeper): The icon sits inside the row's stretched tap target (`EntryOpenTarget`); it becomes its own control above it (`relative z-10`, like ⋯).
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Kind icon becomes its own z-10 control; combines with ?author=; re-tap is a no-op.
@@ -163,6 +163,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/app-shell): app-shell slice 4 (GROUP_SECTIONS, SectionNav, TabBar) merged into prd/app-shell at ac4eea3.
 - 2026-11-18 (slice/app-shell/5): Slice 5 (group settings: details) is committed on slice/app-shell/5 (01cc17f, 5ede338), ready for review: the page, careGroup.update/recipient/updateRecipient, app-shell.mjs steps. Members is slice 6.
 - 2026-11-18 (prd/app-shell): Slice 5 (group settings: details) merged into prd/app-shell; slice 6 (members) started.
+- 2026-11-18 (prd/app-shell): Wave 3 landed in dev as ae6f342: slice 5 (group settings: details) and slice 7 (timeline layout in Settings). Slice 6 (members) is running.
+- 2026-11-18 (slice/app-shell/6): Slice 6 (group settings: members) is committed on slice/app-shell/6: careGroup.changeRole and removeMember, the Members section (roles, remove, leave), integration tests and app-shell.mjs steps. Ready for the orchestrator's review.
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
@@ -294,6 +296,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/routing-prd.md. Group layout route (middleware context), symptom/vital sheets at timeline/new/:kind and timeline/:id/edit, settings index + subpages, a folder per route. Runs after app-shell and timeline-polish land.
+- 2026-11-18 (Robert Bo Davis): Planned: plans/routing-plan.md, 5 slices (1 alone; 2→3 parallel with 4→5).
 
 ### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
@@ -304,3 +307,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): From the inbox: Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/components-prd.md. Four waves: UI primitives, timeline, entry page, then forms/shell/settings. Browser checks + pure unit tests, no new deps. Runs after routing.
+- 2026-11-18 (Robert Bo Davis): Planned: plans/components-plan.md, 6 slices (1→2; 3→5 parallel with 4; 6 last).
