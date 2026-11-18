@@ -6,13 +6,15 @@
 
 | Slice | State                                         | Merge into `prd/marketing` (slice commits) |
 | ----- | --------------------------------------------- | ------------------------------------------ |
-| 1     | merged (wave 1)                               | `3eb46f0` (`32ab6a6`, `672687e`)           |
-| 2     | blocked by 1                                  |                                            |
-| 3     | blocked by 1                                  |                                            |
+| 1     | **landed in `dev`** (wave 1, `c59898d`)       | `3eb46f0` (`32ab6a6`, `672687e`)           |
+| 2     | in progress (wave 2, `.loops/marketing-2`)    |                                            |
+| 3     | in progress (wave 2, `.loops/marketing-3`)    |                                            |
 | 4     | blocked by 1 and `invites` slice 1 (in `dev`) |                                            |
 | 5     | blocked by 4 and `invites` slice 5 (in `dev`) |                                            |
 
-Backlog: B-32 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges.
+Backlog: B-32 is claimed by `prd/marketing` (in progress); mark it `done` after the last slice merges.
+
+Wave 1 notes: home loads ~129 KB gzipped JS (over the ~100 KB budget; ~110 KB is React and React Router). `/join` 404s until `invites` builds it. `marketing.mjs` screenshots are off unless `MARKETING_SHOTS=1` (a full-page capture hung it for an hour); always run checks with `--timeout`. The user asked for minimal testing: no app checks unless app code changes.
 
 ## Architectural decisions
 

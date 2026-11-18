@@ -5,11 +5,14 @@ import {
   EyeOff,
   HeartPulse,
   NotebookPen,
+  Pill,
   ShieldCheck,
   Smartphone,
+  Stethoscope,
   Trash,
   UserPlus,
   Users,
+  WifiOff,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,6 +32,9 @@ export const MARKETING_ICONS = {
   noTrackers: EyeOff,
   noAiTraining: Bot,
   delete: Trash,
+  offline: WifiOff,
+  medications: Pill,
+  providers: Stethoscope,
 } as const satisfies Record<string, LucideIcon>;
 
 export type MarketingIconName = keyof typeof MARKETING_ICONS;
