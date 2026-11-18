@@ -8,7 +8,10 @@ import { canHaveNoteDocument, noteText } from "@caretook/data/schema";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { data, Link, useNavigate } from "react-router";
+import { ConfirmDialog } from "~/components/ConfirmDialog";
 import { EntryHeader, EntryTime, EntryTitle } from "~/components/EntryHeader";
+import { EntryMenu } from "~/components/EntryMenu";
+import { EntryTimeChip } from "~/components/EntryTimeChip";
 import { LiveNotesEditor } from "~/components/LiveNotesEditor";
 import { KIND_META } from "~/lib/entryDisplay";
 import { localTimeZone } from "~/lib/format";
@@ -19,6 +22,7 @@ import { materializeLiveEntry } from "~/lib/sync/liveEntry";
 import {
   myGroupsQuery,
   readRows,
+  removeEntry,
   toMyGroup,
   toTimelineEntry,
   updateEntry,
@@ -147,6 +151,9 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
   // Saving: once, on the first real change (text or a title).
   const saved = useRef(!isNew && loaderData.hasDocument);
   const titleRef = useRef(draft.title ?? "");
+  // A time picked on a draft is the time it's saved with.
+  const [draftOccurredAt, setDraftOccurredAt] = useState(draft.occurredAt);
+  const occurredAtRef = useRef(draft.occurredAt);
   const saving = useRef<Promise<boolean> | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -159,7 +166,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
         groupId,
         kind: draft.kind,
         title: isLiveEntryKind(draft.kind) ? savedTitle(draft.kind, titleRef.current) : draft.title,
-        occurredAt: draft.occurredAt,
+        occurredAt: occurredAtRef.current,
         timeZone: draft.timeZone,
       };
       const res = await materializeLiveEntry(getSync(), input);
@@ -204,6 +211,27 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
     });
   };
 
+  const changeTime = (next: string) => {
+    occurredAtRef.current = next;
+    setDraftOccurredAt(next);
+    if (!saved.current) return;
+    void updateEntry(getSync(), draft.id, { occurredAt: next }).then((res) => {
+      setSaveError(res.ok ? null : res.error);
+    });
+  };
+
+  // Delete (⋯ menu): confirm, soft-delete, back to the timeline.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteEntry = async () => {
+    setConfirmDelete(false);
+    const res = await removeEntry(getSync(), draft.id);
+    if (!res.ok) {
+      setSaveError(res.error);
+      return;
+    }
+    void navigate(timelineUrl);
+  };
+
   const label = KIND_META[kind].label;
   const heading = title || (isNew && !live ? `New ${label.toLowerCase()}` : label);
   // Notes are named here. Events keep their title from the entry sheet until slice 2.
@@ -229,11 +257,30 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
           )
         }
         time={
-          <>
-            <EntryTime occurredAt={live?.occurredAt ?? draft.occurredAt} />
-            {!canWrite && " · You can view this"}
-          </>
+          canWrite && !deleted ? (
+            <EntryTimeChip occurredAt={live?.occurredAt ?? draftOccurredAt} onChange={changeTime} />
+          ) : (
+            <>
+              <EntryTime occurredAt={live?.occurredAt ?? draftOccurredAt} />
+              {!canWrite && " · You can view this"}
+            </>
+          )
         }
+        actions={
+          canWrite && live ? (
+            <EntryMenu
+              label={`Actions for this ${label.toLowerCase()}`}
+              onDelete={() => setConfirmDelete(true)}
+            />
+          ) : undefined
+        }
+      />
+      <ConfirmDialog
+        open={confirmDelete}
+        title={`Delete this ${label.toLowerCase()}?`}
+        confirmLabel="Delete"
+        onConfirm={() => void deleteEntry()}
+        onClose={() => setConfirmDelete(false)}
       />
       {kind === "event" && live?.body && (
         <p className="text-base-content/80 break-words whitespace-pre-wrap">{live.body}</p>

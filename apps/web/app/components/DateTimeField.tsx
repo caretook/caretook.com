@@ -8,23 +8,35 @@ import { localTimeZone } from "~/lib/format";
  * Date and time, typed segment by segment (keyboard and screen-reader
  * friendly, from React Aria). Submits as `name`, a zoned value such as
  * "2026-11-17T15:30:00-08:00[America/Los_Angeles]"; see parseDateTimeField.
+ * Outside a form, `onChange` gets each complete value as ISO 8601 (UTC).
  */
 export function DateTimeField({
   name,
   label,
   defaultValue,
+  onChange,
 }: {
-  name: string;
+  name?: string;
   label: string;
   /** ISO 8601; defaults to now. */
   defaultValue?: string;
+  onChange?: (iso: string) => void;
 }) {
   const initial: ZonedDateTime = defaultValue
     ? parseAbsolute(defaultValue, localTimeZone())
     : now(localTimeZone()).set({ second: 0, millisecond: 0 });
 
   return (
-    <DateField name={name} defaultValue={initial} granularity="minute" isRequired className="fieldset">
+    <DateField
+      name={name}
+      defaultValue={initial}
+      granularity="minute"
+      isRequired
+      onChange={(value) => {
+        if (value && onChange) onChange(value.toAbsoluteString());
+      }}
+      className="fieldset"
+    >
       <Label className="fieldset-legend">{label}</Label>
       <DateInput className="input w-full">
         {(segment) => (
