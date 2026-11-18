@@ -66,7 +66,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-34 | change | landed | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
 | B-35 | bug | landed | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
 | B-36 | chore | landed | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
-| B-37 | bug | in-progress | quick-fixes | prd/quick-fixes | Deleting a practice leaves its clinicians linked to it |
+| B-37 | bug | ready | quick-fixes | prd/quick-fixes | Deleting a practice leaves its clinicians linked to it |
 | B-38 | bug | landed | quick-fixes | prd/quick-fixes | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
 | B-39 | chore | ready | quick-fixes | prd/quick-fixes | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
@@ -485,10 +485,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-37 · bug · Deleting a practice leaves its clinicians linked to it
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 9c08e01
 
 - 2026-11-18 (prd/quick-fixes): Found in B-35 (quick-fixes slice 8). A soft-deleted practice stays as its clinicians' practice_id; their edit sheet shows '(removed practice)' and saving keeps it (the practice check runs only when practiceId changes). Decide: refuse the delete while clinicians name it, or clear their links.
 - 2026-11-18 (prd/quick-fixes): Decided with the user: refuse the soft delete while live providers name the practice (409 providerService:practiceHasProviders, server and device), mirroring B-35; never clear the clinicians' links. Spec is quick-fixes slice 14 in plans/quick-fixes-plan.md (on prd/quick-fixes).
