@@ -143,6 +143,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (plan/app-shell): PRD written: plans/app-shell-prd.md on plan/app-shell. Group menu switches groups; /app opens the last-used group; bottom tabs (GROUP_SECTIONS registry); group settings = name, recipient (name, preferred name, DOB), members and roles; online-only clientAction → new oRPC procedures. No migration.
 - 2026-11-17 (plan/app-shell): Plan: plans/app-shell-plan.md. Slices 3 (group menu, last group), 4 (sections nav), 5 (settings: details), 6 (settings: members).
 - 2026-11-18 (slice/app-shell/4): app-shell slice 4 (sections nav + tab bar) committed on slice/app-shell/4 at d0d5c63; awaiting merge
+- 2026-11-18 (slice/app-shell/3): slice 3 (group menu, last group, Dev Family 2 seed) committed on slice/app-shell/3 at 650c0f0; awaiting merge
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
