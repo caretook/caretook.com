@@ -463,3 +463,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): AGENTS.md Next steps item 3. Quick-fixes slice 9: careGroup.int.test.ts (and any other file sharing fixtures across blocks) builds its own fixtures per test or block, like provider.int.test.ts's setup().
+- 2026-11-18 (slice/quick-fixes/9): slice 9: careGroup.int.test.ts now uses setup() per test; the other six int files already did. 169 integration tests before and after; no real bug found.
