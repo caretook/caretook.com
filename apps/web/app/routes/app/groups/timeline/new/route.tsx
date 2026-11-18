@@ -8,7 +8,7 @@ import { sessionContext } from "~/lib/session";
 import { createEntry } from "~/lib/sync/timeline";
 import { entryContentFromForm, parseUnits } from "../entryFormData";
 import { EntryForm } from "../EntryForm";
-import { EntrySheet } from "~/components/forms";
+import { Sheet } from "~/components/ui";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { newSheetGuard } from "../sheetGuard";
 
@@ -44,7 +44,7 @@ export default function NewEntrySheet({ loaderData }: Route.ComponentProps) {
   const close = useCloseSheet();
   const { search } = useLocation();
   return (
-    <EntrySheet isOpen onOpenChange={(open) => !open && close()} title="Add to the timeline">
+    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add to the timeline">
       <EntryForm
         // A new URL is a new form (empty, "When" set to now).
         key={`${loaderData.kind}${search}`}
@@ -54,6 +54,6 @@ export default function NewEntrySheet({ loaderData }: Route.ComponentProps) {
         onDone={close}
         onCancel={close}
       />
-    </EntrySheet>
+    </Sheet>
   );
 }

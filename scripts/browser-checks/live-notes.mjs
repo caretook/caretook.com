@@ -85,8 +85,8 @@ const MENU = `document.querySelector('main header [data-region="actions"] button
 const SHARE = `document.querySelector('main header [data-region="actions"] button[aria-label="Share"]')`;
 const CHIPS = `[...document.querySelectorAll('main header ul[aria-label="Suggested titles"] button')]`;
 const chip = (text) => `${CHIPS}.find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
-const AVATARS = `[...document.querySelectorAll('main [data-region="editors"] [data-editor]')]`;
-const hasAvatar = (id) => `${AVATARS}.some((el) => el.dataset.editor === ${JSON.stringify(id)})`;
+const AVATARS = `[...document.querySelectorAll('main [data-region="editors"] [data-person]')]`;
+const hasAvatar = (id) => `${AVATARS}.some((el) => el.dataset.person === ${JSON.stringify(id)})`;
 const BANNER = `document.querySelector('main section[aria-label="Live now"]')`;
 const BANNER_ID = `(${BANNER}?.dataset.liveBanner ?? null)`;
 const STATUS = `document.querySelector('main p[role="status"]')`;
@@ -643,10 +643,10 @@ try {
   await C.waitFor(hasAvatar(CARETAKER), 8000);
   check(
     "avatars: the caretaker sees the member but not themselves",
-    JSON.stringify(await B.evaluate(`${AVATARS}.map((el) => el.dataset.editor)`)) ===
+    JSON.stringify(await B.evaluate(`${AVATARS}.map((el) => el.dataset.person)`)) ===
       JSON.stringify([MEMBER]),
   );
-  const order = await C.evaluate(`${AVATARS}.map((el) => el.dataset.editor)`);
+  const order = await C.evaluate(`${AVATARS}.map((el) => el.dataset.person)`);
   check(
     "avatars: the viewer sees both, most recent first, and never themselves",
     JSON.stringify(order) === JSON.stringify([CARETAKER, MEMBER]) && !order.includes(VIEWER),
