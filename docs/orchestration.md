@@ -19,6 +19,10 @@ pnpm prd start <topic>   # start (or reopen) a PRD
 pnpm prd ready <topic>   # is it ready to land? what's in it?
 ```
 
+## Small changes: skip all of this
+
+Not everything needs a PRD. For a small change (a docs or tooling tweak, a config change, a contained fix), open an agent in the main checkout, ask for it, and have it commit straight onto `dev`. Use a PRD when the work needs its own database and dev server, runs in parallel with other work, or adds a migration. An agent that can't tell which a request is will ask you.
+
 ## Branches
 
 ```
@@ -33,9 +37,9 @@ dev             where work lands         PRD branches land here when you say so;
 - Your main checkout (`/Users/bo/git/caretook/caretook.com`) **always stays on `dev`**. Nothing else works in it.
 - **Git hooks** enforce this (`pnpm hooks:install` turns them on, once per clone):
   - `main` and `staging` refuse commits, merges and pushes. Updating your local copy to what GitHub has is fine: `git fetch && git branch -f main origin/main`.
-  - `dev` accepts merges, and commits that touch only `plans/inbox.md` and `plans/backlog.md`.
+  - `dev` isn't restricted. PRD branches land there, the backlog tool commits there, and small changes can be made on it directly (above).
   - Every commit message, on every branch, must be a [Conventional Commit](#commit-messages).
-  - To override the branch rules, put `CARETOOK_ALLOW_PROTECTED=1` in front of the command. The hook says when it was used. Agents never do this.
+  - To override the `main` and `staging` rules, put `CARETOOK_ALLOW_PROTECTED=1` in front of the command. The hook says when it was used. Agents never do this.
 
 ## The inbox and the tracker
 
@@ -173,7 +177,6 @@ chore(app-shell): merge dev into prd/app-shell
 
 ## When something's off
 
-- **"refused: a commit on dev that touches more than the backlog files"**: you (or an agent) tried to commit feature work on `dev`. Commit it on a `prd/`, `slice/` or `plan/` branch instead.
 - **"backlog is locked"**: another session is writing the backlog. Try again in a moment. A lock left by a crashed run clears itself after 30 seconds.
 - **"the main checkout is on …, not dev"**: the backlog tool only writes while your main checkout is on `dev`. Switch back with `git switch dev`.
 - **"the commit subject isn't a Conventional Commit"**: reword it as `type(scope): description` (see [Commit messages](#commit-messages)).

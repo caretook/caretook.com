@@ -89,16 +89,13 @@ describe("main and staging", () => {
 });
 
 describe("dev", () => {
-  it("takes backlog-only commits and refuses other files", () => {
+  it("takes direct commits: the backlog and small changes", () => {
     ok(repo, ["switch", "-q", "dev"]);
     commitFile("plans/backlog.md", "z\n");
     commitFile("plans/inbox.md", "- an idea\n");
     writeFileSync(join(repo, "feature.txt"), "f\n");
     ok(repo, ["add", "feature.txt"]);
-    expect(refused(repo, ["commit", "-q", "-m", "feat: feature"])).toMatch(
-      /touches more than the backlog files/,
-    );
-    ok(repo, ["commit", "-q", "-m", "chore: override"], allow);
+    ok(repo, ["commit", "-q", "-m", "feat: feature"]);
   });
 
   it("takes merges, including one concluded after resolving a conflict", () => {

@@ -64,7 +64,7 @@ AGENTS.md has the full command list.
 
 ## Running PRDs (orchestration)
 
-Feature work runs as PRDs, each on its own branch with its own agent (an orchestrator), worktree, database and dev server, up to three at once. You steer each one by talking to its orchestrator; these are the commands around that. [docs/orchestration.md](docs/orchestration.md) is the full guide.
+Small changes need none of this: ask an agent in the main checkout and commit straight onto `dev`. Larger feature work runs as PRDs, each on its own branch with its own agent (an orchestrator), worktree, database and dev server, up to three at once. You steer each one by talking to its orchestrator; these are the commands around that. [docs/orchestration.md](docs/orchestration.md) is the full guide.
 
 **Capture and review ideas**
 

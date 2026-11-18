@@ -8,7 +8,8 @@ Legend: ✅ decided/built · 🟡 proposed, not built · ❓ open.
 
 - **Build only what the user asks for.** Planned work lives in the backlog and in PRDs (below); don't start a PRD or slice until the user says so.
 - **No new dependencies without the user's approval.** Pin approved ones exactly.
-- **Commit only when the user explicitly asks.** "Run before committing" is not a request to commit. Exceptions: once the user has started a PRD's loops, loops commit on their `slice/` branch and the orchestrator merges them into `prd/<topic>`; anyone may commit `plans/inbox.md` and `plans/backlog.md` onto `dev` through `pnpm backlog`; and an orchestrator lands its branch with `pnpm prd land` once the user says to land it (see _PRDs and parallel loops_). Never commit anything else on `dev`, `staging` or `main`.
+- **Commit only when the user explicitly asks.** "Run before committing" is not a request to commit. Exceptions: once the user has started a PRD's loops, loops commit on their `slice/` branch and the orchestrator merges them into `prd/<topic>`; anyone may commit `plans/inbox.md` and `plans/backlog.md` onto `dev` through `pnpm backlog`; and an orchestrator lands its branch with `pnpm prd land` once the user says to land it (see _PRDs and parallel loops_). Never commit on `staging` or `main`.
+- **Small changes go straight onto `dev`**, in the main checkout, with no worktree, PRD or orchestrator: a tooling or docs tweak, a config change, a contained fix the user asks for in the session. Run `pnpm check`, and commit when the user asks. Use a PRD (or a `quick-fixes` slice) when the work needs its own stack, will run alongside other work in parallel, touches a hot file a running PRD is changing, or adds a migration. **If you're unsure which it is, ask the user** before starting.
 - **Every commit subject is a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/)**, merges included: `<type>(<scope>)!: <description>`. The `commit-msg` hook refuses anything else.
   - Types: `feat` (something a user can see or do), `fix` (a bug), `docs` (plans, PRDs, this file, the README), `test` (tests and browser checks only), `refactor`, `perf`, `style`, `build`, `ci`, `chore` (tooling, syncing `dev`, the backlog), `revert`.
   - The scope is the PRD topic for PRD work (`feat(app-shell): group settings page (B-9)`), otherwise the area (`fix(sign-in): …`). Backlog ids go in parentheses at the end of the subject. Add `!` (and a `BREAKING CHANGE:` footer) for a breaking change.
@@ -27,22 +28,22 @@ Feature work goes through a PRD, then a plan cut into slices that loops (paralle
 
 ### Branches and roles
 
-| Branch              | What it is                                          | How it changes                                                         |
-| ------------------- | --------------------------------------------------- | ---------------------------------------------------------------------- |
-| `main`              | Live.                                               | Only by PR merge from `staging` on GitHub.                             |
-| `staging`           | What goes live next.                                | Only by PR merge from `dev` on GitHub.                                 |
-| `dev`               | Active work, and the trunk every PRD branches from. | `pnpm prd land` (when the dev keeper says so); `pnpm backlog` commits. |
-| `prd/<topic>`       | One PRD's integration branch.                       | Its orchestrator merges its slices, and syncs `dev` in.                |
-| `slice/<topic>/<n>` | One slice of that PRD.                              | Its loop agent commits.                                                |
-| `plan/<topic>`      | Writing a PRD or plan (docs only).                  | Its agent commits; lands in `dev` like a PRD branch.                   |
+| Branch              | What it is                                          | How it changes                                                 |
+| ------------------- | --------------------------------------------------- | -------------------------------------------------------------- |
+| `main`              | Live.                                               | Only by PR merge from `staging` on GitHub.                     |
+| `staging`           | What goes live next.                                | Only by PR merge from `dev` on GitHub.                         |
+| `dev`               | Active work, and the trunk every PRD branches from. | `pnpm prd land`; `pnpm backlog` commits; small direct changes. |
+| `prd/<topic>`       | One PRD's integration branch.                       | Its orchestrator merges its slices, and syncs `dev` in.        |
+| `slice/<topic>/<n>` | One slice of that PRD.                              | Its loop agent commits.                                        |
+| `plan/<topic>`      | Writing a PRD or plan (docs only).                  | Its agent commits; lands in `dev` like a PRD branch.           |
 
-- **The dev keeper is the user.** The main checkout is theirs and **always stays on `dev`**. Nobody else works in it; only `pnpm backlog` (the two backlog files) and `pnpm prd land` (the landing merge) write there.
+- **The dev keeper is the user.** The main checkout is theirs and **always stays on `dev`**. Orchestrators and loops never work in it; they reach it only through `pnpm backlog` (the two backlog files) and `pnpm prd land` (the landing merge). A session the user opens there may make small changes directly (see _Working rules_).
 - **A PRD orchestrator** is a top-level session (spawned agents can't spawn more), one per PRD, opened by the user in the PRD's integration worktree `.loops/<topic>`. It reads `dev` but works on `prd/<topic>`, and is where the user steers that PRD. **At most three run at once** (`CARETOOK_MAX_PRDS`).
 - **A loop** is one background agent working one slice in `.loops/<topic>-<n>`.
 - **Protection** (`.githooks/`, turned on by `pnpm hooks:install`, which sets `core.hooksPath` for every worktree of the clone; `new.sh` runs it too):
   - `main` and `staging`: no commits, merge commits or pushes, and no local moves except a fast-forward to `origin`'s copy (`git fetch && git branch -f main origin/main`).
-  - `dev`: only merge commits (landings, including one finished after resolving conflicts) and commits that touch nothing but `plans/inbox.md` and `plans/backlog.md`.
-  - The dev keeper overrides with `CARETOOK_ALLOW_PROTECTED=1`, and the hook says it was used. Agents never set it.
+  - `dev`: not restricted by hooks. It takes landings, backlog commits and small direct changes.
+  - On `main` and `staging`, the dev keeper overrides with `CARETOOK_ALLOW_PROTECTED=1`, and the hook says it was used. Agents never set it.
   - Every branch: `commit-msg` checks the subject is a Conventional Commit (skip one commit with `--no-verify`).
   - GitHub rulesets (PRs required on `main` and `staging`) come once `gh` can see the repo.
 
@@ -103,7 +104,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 - The main checkout keeps the default ports (5173, 5434, 5435, 8080).
 - Every port, the Compose project name and the PowerSync audience come from env, defaulting to the main checkout's values. If you add a service, a port or a hardcoded container name, make it configurable the same way.
 
-**Capacity.** One stack uses about 250 MB idle (the Docker VM has 16 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together. Six busy stacks at once (three loops plus two other PRDs) pushed the load average past 500: `pnpm check` took 25 minutes, tests hit their 5 s timeouts, and sign-ins in browser checks timed out. Rerun a failure like that once the load drops before debugging it.
+**Capacity.** One stack uses about 250 MB idle (the Docker VM has 32 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together. Six busy stacks at once (three loops plus two other PRDs) pushed the load average past 500: `pnpm check` took 25 minutes, tests hit their 5 s timeouts, and sign-ins in browser checks timed out. Rerun a failure like that once the load drops before debugging it.
 
 **Starting a PRD (the user):** `pnpm prd start <topic>`, then run the command it prints in a new terminal (`cd .loops/<topic> && claude "$(scripts/loops/prompt.sh orchestrator <topic>)"`). From then on the user steers that PRD from its orchestrator's console: which slices to run, and when to land.
 

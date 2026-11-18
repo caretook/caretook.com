@@ -6,15 +6,12 @@
 #   main, staging  change only by PR merge on GitHub (dev → staging → main).
 #                  Locally, the only update allowed is a fast-forward to what
 #                  origin already has (git pull).
-#   dev            takes merge commits (landing a prd/ or plan/ branch) and
-#                  commits that touch only plans/backlog.md and plans/inbox.md
-#                  (pnpm backlog).
+#   dev            isn't restricted: it takes landings (prd/ and plan/ merges),
+#                  backlog commits (pnpm backlog) and small direct changes.
 #
-# Override any of it with CARETOOK_ALLOW_PROTECTED=1.
+# Override main and staging with CARETOOK_ALLOW_PROTECTED=1.
 
 PROTECTED_RE='^(main|staging)$'
-TRUNK_BRANCH=dev
-BACKLOG_FILES=(plans/backlog.md plans/inbox.md)
 
 overridden() {
   if [[ ${CARETOOK_ALLOW_PROTECTED:-} == 1 ]]; then
@@ -26,8 +23,8 @@ overridden() {
 
 refuse() {
   echo "caretook hooks: refused: $1" >&2
-  echo "  main and staging change only by PR merge on GitHub; dev takes merges and backlog edits." >&2
-  echo "  Work on a prd/, slice/ or plan/ branch. Override (the dev keeper only): CARETOOK_ALLOW_PROTECTED=1" >&2
+  echo "  main and staging change only by PR merge on GitHub (dev → staging → main)." >&2
+  echo "  Work on dev or a prd/, slice/ or plan/ branch. Override (the dev keeper only): CARETOOK_ALLOW_PROTECTED=1" >&2
   exit 1
 }
 
