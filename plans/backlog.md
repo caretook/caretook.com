@@ -62,6 +62,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-32 | plan | triaged | marketing |  | Landing page and basic marketing pages |
+| B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 
 ## Items
 
@@ -417,3 +418,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. The public site at caretook.com (web build only).
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/marketing-prd.md, plans/marketing-plan.md (5 slices; slice 1, the frame and home page, can start now). No new dependencies; waitlist and contact need invites slice 1, the admin list invites slice 5.
+
+### B-33 · plan · Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Not planned yet; the user will say when. Covers the open questions in AGENTS.md: hosted database (same region as Vercel functions, pooling), how production migrations run, PowerSync Cloud (replication role with column-limited grants, sslmode verify-full, how it reaches the JWKS), rate-limit storage, env and secrets, a real staging environment, and confirming the first Vercel deploy runs pnpm 12. Invites (B-30) and marketing (B-32) need it to go live.
