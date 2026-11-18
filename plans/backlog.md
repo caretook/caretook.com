@@ -66,6 +66,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-34 | change | triaged | quick-fixes |  | Date picker for the When field: a calendar to pick the date, not only typed segments |
 | B-35 | bug | ready | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
 | B-36 | chore | ready | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
+| B-37 | bug | inbox |  |  | Deleting a practice leaves its clinicians linked to it |
 
 ## Items
 
@@ -468,3 +469,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): AGENTS.md Next steps item 3. Quick-fixes slice 9: careGroup.int.test.ts (and any other file sharing fixtures across blocks) builds its own fixtures per test or block, like provider.int.test.ts's setup().
 - 2026-11-18 (slice/quick-fixes/9): slice 9: careGroup.int.test.ts now uses setup() per test; the other six int files already did. 169 integration tests before and after; no real bug found.
+
+### B-37 · bug · Deleting a practice leaves its clinicians linked to it
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/quick-fixes): Found in B-35 (quick-fixes slice 8). A soft-deleted practice stays as its clinicians' practice_id; their edit sheet shows '(removed practice)' and saving keeps it (the practice check runs only when practiceId changes). Decide: refuse the delete while clinicians name it, or clear their links.
