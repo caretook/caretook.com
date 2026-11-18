@@ -13,7 +13,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `orchestration`   | (this tooling; no PRD)                                       | (none)                                               | `AGENTS.md`, `scripts/loops/`, `scripts/backlog/`, `.githooks/`             |
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): done | (none) | `entry.tsx`, `EntryHeader`, `TimelineEntryRow`/`Card`, `timeline.tsx` |
 | `quick-fixes`     | (no PRD: one slice per fix)                                  | (none)                                               | `sign-in.tsx`, `timeline.tsx`                                               |
-| `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): slices 1–4 in `dev`; 5–7 to run | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
+| `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices, not started | `live-notes-ux` (done), `app-shell`'s frame (in `dev`) | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
 | `search`          | to write                                                     | `timeline-polish`'s infinite scroll                  | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx`                |
 | `providers`       | to write | `app-shell`'s group nav (in `dev`) | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
