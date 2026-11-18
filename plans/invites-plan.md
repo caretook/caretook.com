@@ -6,13 +6,21 @@
 
 | Slice | State                                                                   | Merge into `prd/invites` (slice commits) |
 | ----- | ----------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | ready                                                                   |                                          |
-| 2     | blocked by 1                                                            |                                          |
+| 1     | merged                                                                  | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
+| 2     | ready (waits for the user's go-ahead)                                   |                                          |
 | 3     | blocked by 2 (and uses `routing` slice 5's Members subpage if in `dev`) |                                          |
 | 4     | blocked by 3                                                            |                                          |
 | 5     | blocked by 3                                                            |                                          |
 
-Backlog: B-30 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges.
+Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. Wave 1 = slices 1 and 2, landed together.
+
+Notes from slice 1 for later slices:
+
+- `@react-email/components` is deprecated on npm (React Email 6 moved it into `react-email`, which isn't approved), so it wasn't added. Templates use plain JSX in `packages/notifications/src/templates/layout.tsx`, rendered by `@react-email/render` 2.3.1. `resend` is 6.38.1.
+- Inside a transaction, `notify` only writes the outbox row. The caller calls `deliverSoon(id)` after commit. `setBackgroundRunner` is the hook for `waitUntil`.
+- Browser checks read mail from `/dev/mail.json?to=…` (`links` included). It's a 404 under `NODE_ENV=production`, and `getMailConfig()` refuses `log` there, so `invites.mjs` needs the dev server, not `pnpm prd serve --built`.
+- Resend open and click tracking are settings on the sending domain, not per message: a pre-launch setup step.
+- `new.sh` (not `lib.sh`) writes `APP_URL` per worktree and a random `CRON_SECRET` when the main checkout has none. The main checkout's `apps/web/.env` has no `CRON_SECRET` yet, so `/api/cron/outbox` answers 503 there.
 
 ## Architectural decisions
 
