@@ -10,12 +10,12 @@
 | 2     | B-17 | merged | 4629e8c (32355db)                            |
 | 3     | B-22 | merged | b0325d0 (46ef320)                            |
 
-Wave 1 (slices 1–3) is merged, synced with `dev` (60bb4e7) and waiting for the dev keeper to land it.
+Wave 1 (slices 1–3) is in `dev`. Nothing is in flight; new fixes are appended as slice 4 onward.
 
 - Slice 3 measured the first sync at about 120–200 ms after the database opens, so it shortened the wait to 1 s and added a syncing state; with the old code a 12 s sync left home on "You're not in a care group yet" for good.
 - Slice 2's offline-reload criterion is checked by leaving the timeline and coming back offline: a full offline reload needs a service worker, which isn't built.
 - The sync brought in app-shell slice 1, so `layout-offline.mjs` now signs out through `page.signOut()`.
-- Open: `scripts/loops/prompt.sh slice` points at `plans/<topic>-prd.md` even when there's none (as here) and at "Cross-PRD rules" (AGENTS.md says "Rules across PRDs"). Orchestrators corrected it by hand.
+- `scripts/loops/prompt.sh` now skips `plans/<topic>-prd.md` when a topic has none (as here), and names _Rules across PRDs_ correctly.
 
 ## How to run this plan
 

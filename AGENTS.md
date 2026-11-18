@@ -147,7 +147,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 The backlog's PRD table lists them all, with their dependencies.
 
 - 🟡 [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (topic `live-notes-ux`): notes and events _are_ their live document. Note/Event opens the editor in one tap, and the entry is saved on the first keystroke. Others join in one tap through a row tap, a "Live now" banner, a live dot or a Share link. Sliced in [`plans/live-notes-ux-plan.md`](plans/live-notes-ux-plan.md). **Slices 1, 2, 4, 5, 6, 8 and 9 are in `dev`.** Slices 3 and 7 (then 10) run next, as the first PRD on `prd/live-notes-ux`; the plan's _Status_ section has the state. This file describes the current code, every merged slice included.
-- 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–3 (B-1, B-17, B-22) are landing.**
+- 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–3 (B-1, B-17, B-22) are in `dev`**; nothing is in flight. `prompt.sh` handles a topic without a PRD file.
 - 🟡 [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): the `/app` frame, the user menu, the group menu and switcher, group sections, and group settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md). **Slice 1 (the frame and the user menu) is landing.** Slices 2, 3 and 4 run next, each filling one region; `timeline-polish`, `providers` and `medications` build on the frame.
 
 ## Product
