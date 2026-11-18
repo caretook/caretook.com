@@ -19,6 +19,7 @@
 | 11    | B-38 | merged                        | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
 | 12    | B-41 | merged                        | e577fad (d75e3ba; 41b5bcb left out)                   |
 | 13    | B-42 | merged                        | 94ce803 (eccbd1a)                                     |
+| 14    | B-37 | planned                       |                                                       |
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 (slices 11–13) is merged and synced with `dev`, waiting for the user's word to land. Slice 10 waits for `components` slices 3 and 4 (they rework the timeline and entry screens its checks cover).
 
@@ -400,3 +401,32 @@ Both checks passed against the dev server minutes later, from the same code. So 
 **Check.** `pnpm prd browser --changed` (it picks `app-shell`, `marketing` and `phase2` for these files). `pnpm check` passes.
 
 **Blocks:** none. **Blocked by:** none (marketing slices 1–2 are in `dev`).
+
+---
+
+## Slice 14: A practice can't be deleted while providers name it (B-37)
+
+**Problem.** Deleting a provider is a soft delete (`deleted_at`). A clinician's `practice_id` is checked only when the clinician is saved with a new practice, so soft-deleting a practice or pharmacy leaves every clinician that names it pointing at a deleted provider: their edit sheet shows "(removed practice)", and saving keeps it, because the check runs only when `practiceId` changes. Slice 8 closed the same hole for a type change (`providerService:practiceInUse`); this closes it for delete.
+
+**Decision: refuse the delete**, not clear the clinicians' links. It matches slice 8, it never changes other providers' rows as a side effect (a change the user didn't make, which would also sync to every device), and it keeps the link history readable. The user moves the clinicians first, or deletes them.
+
+**Build.**
+
+- **Server.** `providerService.remove`: before the soft delete, in one transaction, if any **live** provider in the group has this provider as `practiceId`, return a new 409 error `providerService:practiceHasProviders` (in `errors/constants.ts`), with no field issue and the message "Providers are linked to this practice. Move them to another practice, or delete them, first." Deleted providers that still point at it don't count. Lock the practice row (`FOR UPDATE`) so a concurrent clinician save that picks this practice can't slip in between; `checkPractice` already refuses a deleted practice for the other order. Reuse the dependents query from `checkPracticeInUse` (extract a shared helper; don't copy it).
+- **Upload.** A PATCH that sets `deleted_at` and a DELETE both go through `remove`, so the 409 is acknowledged as rejected and the next sync restores the practice on the device. No change to `sync.ts` beyond confirming that.
+- **Device.** `removeProvider` in `lib/sync/providers.ts` refuses the same way, through `practiceDependentsQuery` (already there for slice 8) and the `refuse(…)` pattern, with the same message, so an offline delete never shows success and then reverts. Without it, the upload would be rejected and the provider would come back on the next sync with no explanation.
+- **Screens.** The delete `ConfirmDialog` (the provider sheet, and the provider page's actions if it deletes there too) shows the refusal as an error and leaves the provider in place. Better: when the count is known before confirming, say so in the dialog ("2 providers name this practice. Move them first.") and disable Delete. Keep the screen change small; if it needs more than the dialog's body and the button's state, stop at showing the error.
+- **Existing data.** Clinicians that already point at a deleted practice (none in the seeds; possible on dev databases) stay as they are. Their sheet's "(removed practice)" option still lets the user pick another. No migration.
+- Out of scope: hard delete (a purge), and what deleting a clinician does (nothing points at clinicians).
+
+**Acceptance criteria.**
+
+- [ ] Integration test: a practice with a live clinician can't be removed (`providerService:practiceHasProviders`, 409), and the practice stays live; once the clinician moves to another practice or is deleted, the remove goes through. A pharmacy behaves the same.
+- [ ] Integration test through `sync.upload`: a PATCH setting `deleted_at` on that practice, and a DELETE, are both acknowledged as rejected.
+- [ ] The device's `removeProvider` refuses it (a unit or integration test if `lib/sync/providers.ts` has a seam; otherwise a `providers.mjs` step through `window.caretookModules()`).
+- [ ] In the app, as a writer: deleting the seeded practice that has a clinician shows the message and the practice stays in the list; deleting it after moving the clinician works (a `providers.mjs` step, or one manual run with screenshots).
+- [ ] `pnpm check` passes.
+
+**Check.** Integration tests, and `pnpm prd browser providers` if the slice adds a step or touches the sheet. Before hand-off, `pnpm prd browser --changed`.
+
+**Blocks:** none. **Blocked by:** none (the providers PRD is paused, and its slices 5–7 don't touch delete).
