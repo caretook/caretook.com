@@ -247,6 +247,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Blocked by slices 3 and 7.
+- 2026-11-18 (slice/live-notes-ux/10): Slice 10 committed on slice/live-notes-ux/10: consolidated live-notes.mjs (91 checks, order-independent), roundtrip rewritten, phase2 updated, 6 old checks deleted. AGENTS.md changes listed in the hand-off.
 
 ### B-21 · chore · Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks
 
