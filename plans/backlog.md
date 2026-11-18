@@ -49,7 +49,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 | B-23 | change | triaged | routing |  | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
-| B-24 | feature | inbox |  |  | Prefer well abstracted components over single-file components and refactor existing components to… |
+| B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 
 ## Items
 
@@ -293,10 +293,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/routing-prd.md. Group layout route (middleware context), symptom/vital sheets at timeline/new/:kind and timeline/:id/edit, settings index + subpages, a folder per route. Runs after app-shell and timeline-polish land.
 
-### B-24 · feature · Prefer well abstracted components over single-file components and refactor existing components to…
+### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: components
 - owner:
 - commit:
 
