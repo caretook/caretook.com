@@ -769,6 +769,22 @@ async function providerPageSteps(A, B, proxy) {
     () => check("tapping the practice opens its page", false),
   );
 
+  // Edit (a writer): the provider sheet, filled in; closing it comes back to the page.
+  await A.tap(`document.querySelector("main header a[data-edit-provider]")`);
+  const editOpened = await A.waitFor(
+    `${SHEET}?.querySelector('input[name="name"]')?.value === "Westside Family Medicine"`,
+    20000,
+  ).then(
+    () => true,
+    () => false,
+  );
+  check("Edit on the page opens the provider's sheet, filled in", editOpened);
+  await A.tap(`[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")`);
+  await A.waitFor(`!${SHEET} && ${onProviderPage(WESTSIDE)}`, 20000).then(
+    () => check("…and Cancel goes back to the page", true),
+    () => check("…and Cancel goes back to the page", false),
+  );
+
   // This run's provider (no notes yet), on both devices.
   const made = await onDevice(
     A,
@@ -882,6 +898,10 @@ async function viewerProviderSteps(C, id, deletedId) {
       page.readonly === "true" &&
       !page.toolbar,
     JSON.stringify({ editable: page.editable, readonly: page.readonly, toolbar: page.toolbar }),
+  );
+  check(
+    "a viewer gets no Edit on the page",
+    !(await C.evaluate(`!!document.querySelector("main header a[data-edit-provider]")`)),
   );
   await C.goto(providerPath(deletedId));
   await C.waitFor(`document.querySelector("main h1")?.textContent === "Not found"`, 20000).catch(() => {});

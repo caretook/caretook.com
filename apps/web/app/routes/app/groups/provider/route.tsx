@@ -6,7 +6,7 @@ import type { ContactAction } from "~/lib/contactActions";
 import type { LocalProvider, ProviderRow } from "~/lib/sync/providers";
 
 import { noteText } from "@caretook/data/schema";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { data, Link } from "react-router";
 import { ACTION_ICONS, actionLinkProps } from "~/components/ContactActions";
@@ -18,6 +18,7 @@ import { allActions, callAction } from "~/lib/contactActions";
 import { getGroup, useGroup } from "~/lib/group";
 import { shouldMaterialize } from "~/lib/liveEntry";
 import { PROVIDER_TYPE_META } from "~/lib/providerDirectory";
+import { PROVIDER_SHEET_STATE } from "~/routes/app/groups/providers/providerSheet";
 import { sessionContext } from "~/lib/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { createProviderDocument, providerQuery, toProvider } from "~/lib/sync/providers";
@@ -126,8 +127,22 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
       <ProviderHeader
         provider={provider}
         editors={!deleted && <EditorAvatars documentId={providerId} groupId={groupId} viewerId={db.userId} />}
-        // Edit (the provider sheet) goes here for writers.
-        actions={null}
+        actions={
+          canWrite &&
+          !deleted && (
+            <Link
+              to={appUrls.editProvider(groupId, providerId)}
+              // Closing the sheet goes back here.
+              state={PROVIDER_SHEET_STATE}
+              prefetch="render"
+              className="btn btn-ghost btn-sm gap-1"
+              data-edit-provider
+            >
+              <Pencil className="size-4" aria-hidden="true" />
+              Edit
+            </Link>
+          )
+        }
       />
 
       {deleted ? (
