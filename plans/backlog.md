@@ -351,6 +351,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/components/1): components slice 1 committed on slice/components/1 (a071d12, 4c18db3): ui/Menu primitive, feature folders, one EntryActions; ui.mjs added.
 - 2026-11-18 (prd/components): Wave 1 (slice 1) landed in dev as 414b0a6: ui/Menu for every menu, shared components in feature folders (ui, entry, forms, notes, providers, settings, shell) imported through each index.ts, one EntryActions menu. Other PRDs: sync dev at your next wave boundary; new UI uses ui/ and the folders (AGENTS.md, Components). Slice 2 (sheets, popovers, dialogs, avatars, chips, fields) is next.
 - 2026-11-18 (slice/components/2): slice 2 ready on slice/components/2 (a2c2bd1): sheet, popover, field, chip group, avatar stack, icon button in ui/; DateTimeField in ui/date; forms/ removed
+- 2026-11-18 (prd/components): Wave 2 (slice 2) landed in dev as 666ebf9: ui/ primitives Sheet, Popover, ConfirmDialog, Field, ChipGroup, UserAvatar(size), AvatarStack, IconButton; DateTimeField moved to ui/date/ (own index); components/forms/ removed; only ui/ imports react-aria-components. Other PRDs: sync dev at your next wave boundary and build new UI on these. Slices 3 and 4 start now.
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
