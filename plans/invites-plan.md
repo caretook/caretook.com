@@ -12,7 +12,9 @@
 | 4     | blocked by 3                                                                                      |                                          |
 | 5     | blocked by 3                                                                                      |                                          |
 
-Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. Wave 1 = slices 1 and 2: both merged, synced with `dev` (which brought `components` slice 2), checked; waiting for the user's word to land.
+Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. Wave 1 = slices 1 and 2: both merged and synced with `dev`. **Blocker before landing:** `dev` (quick-fixes B-38) now runs browser checks on a production build (`serve.sh --built`), where `/dev/mail` was a 404 and the `log` sender refused, so `invites.mjs` failed. A fix-up on `slice/invites/2` allows both in a check build on a localhost `APP_URL` only.
+
+**The user's go-ahead (2026-11-18): land the rest of this PRD's waves without asking**, once each is green (wave 1, then 3, then 4 and 5). Every other rule still applies.
 
 Notes from slice 1 for later slices:
 
