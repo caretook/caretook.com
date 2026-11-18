@@ -33,12 +33,24 @@ streams:
       # Live documents: the compacted snapshot and every pending Yjs update,
       # so any document opens and edits offline. Viewers get them too (read-only).
       # `editors` (who edited, and when) carries "who's typing" past compaction.
+      # `subject` says whose document it is: an entry's (`entry_id`) or a provider's (`provider_id`).
       - >-
-        SELECT id, group_id, snapshot, text, editors, created_at, updated_at, created_by, updated_by
+        SELECT id, group_id, snapshot, text, editors, created_at, updated_at, created_by, updated_by,
+        subject, entry_id, provider_id
         FROM note_document WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, document_id, data, created_at, created_by
         FROM note_update WHERE group_id IN my_groups
+      # The provider directory, soft-deleted ones included (so deletes reach
+      # devices, and linked entries can still show the name).
+      - >-
+        SELECT id, group_id, type, name, specialty, practice_id, phones, email, address, website,
+        status, is_primary, deleted_at, created_at, updated_at, created_by, updated_by
+        FROM provider WHERE group_id IN my_groups
+      # Which providers each event or note was with.
+      - >-
+        SELECT id, group_id, entry_id, provider_id, created_at, updated_at, created_by, updated_by
+        FROM timeline_entry_provider WHERE group_id IN my_groups
 
   # Co-members' public profiles (name and picture) for author names.
   member_profiles:

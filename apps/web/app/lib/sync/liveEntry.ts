@@ -91,6 +91,9 @@ export const materializeLiveEntry = async (db: SyncDb, input: MaterializeInput):
       await tx.insert(noteDocuments).values({
         id: input.id,
         groupId: input.groupId,
+        subject: "entry",
+        entryId: input.id,
+        providerId: null,
         snapshot: null,
         text: "",
         createdAt: now,
