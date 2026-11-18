@@ -4,22 +4,28 @@
 
 ## Status
 
-| Slice | Item | State                         | Merge into `prd/quick-fixes` (slice commits) |
-| ----- | ---- | ----------------------------- | -------------------------------------------- |
-| 1     | B-1  | merged                        | 1e00754 (5ab3b67)                            |
-| 2     | B-17 | merged                        | 4629e8c (32355db)                            |
-| 3     | B-22 | merged                        | b0325d0 (46ef320)                            |
-| 4     | B-28 | merged                        | b15b140 (9911d1b, 8a0bb50)                   |
-| 5     | B-29 | merged                        | 8eaf3c3 (3b97174, a31bd85)                   |
-| 6     | B-34 | merged                        | 483f768 (7251a69, 10aa140)                   |
-| 7     | B-27 | merged                        | 75127be (004abfe)                            |
-| 8     | B-35 | merged                        | 6dcc71d (7c0725f)                            |
-| 9     | B-36 | merged                        | e6fc148 (cc12901)                            |
-| 10    | B-39 | waits for `components` wave 2 |                                              |
-| 11    | B-38 | ready                         |                                              |
-| 13    | B-42 | ready                         |                                              |
+| Slice | Item | State                         | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ---- | ----------------------------- | ----------------------------------------------------- |
+| 1     | B-1  | merged                        | 1e00754 (5ab3b67)                                     |
+| 2     | B-17 | merged                        | 4629e8c (32355db)                                     |
+| 3     | B-22 | merged                        | b0325d0 (46ef320)                                     |
+| 4     | B-28 | merged                        | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29 | merged                        | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34 | merged                        | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27 | merged                        | 75127be (004abfe)                                     |
+| 8     | B-35 | merged                        | 6dcc71d (7c0725f)                                     |
+| 9     | B-36 | merged                        | e6fc148 (cc12901)                                     |
+| 10    | B-39 | waits for `components` wave 2 |                                                       |
+| 11    | B-38 | merged                        | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41 | merged                        | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42 | merged                        | 94ce803 (eccbd1a)                                     |
+| 14    | B-37 | planned                       |                                                       |
 
-Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 is slice 6 (merged as 483f768); tell the `components` orchestrator when it lands.
+Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 (slices 11–13) is merged and synced with `dev`, waiting for the user's word to land. Slice 10 waits for `components` slices 3 and 4 (they rework the timeline and entry screens its checks cover).
+
+- Slice 11: the blank pages on a build (and slice 12's blank `/app` on dev) are one cause: a page frozen in the back/forward cache keeps PowerSync's shared workers waiting on its database. `lib/sync/pageCache.ts` releases its page-lifetime Web Locks on `pagehide` into the cache and reloads on `pageshow` out of it. Checks now run on a check build by default (`--dev` opts out); `cdp.mjs` sends a per-page `x-forwarded-for` for Better Auth's production rate limits. Open: `requireSession` treats a 429 from get-session as signed out; a self-hosted deploy needs a trusted client-IP header.
+- Slice 12: the same root cause, fixed separately in `client.ts`; that hunk was left out at merge in favour of slice 11's `pageCache.ts`, and `app-shell.mjs` passed on the build and on `--dev` after merging. Its `app-shell.mjs` fix (wait for the reloaded page to remember its group before writing a stale one) is kept.
+- Slice 13: `components/brand/` (`LogoMark`, `Wordmark`) shared by the marketing site and the `/app` header; the header has the marketing look and isn't sticky.
 
 - Slice 6: `DateTimeField` is a RAC `DatePicker` (typed segments plus a calendar `Popover`), same props and submitted value. `roundtrip.mjs` step 4b and `live-notes.mjs`'s time chip go through the calendar. `components` slice 2 may swap its `Group`/`Popover` for its own primitives.
 
@@ -330,19 +336,42 @@ Both checks passed against the dev server minutes later, from the same code. So 
 - **Fix the root cause where it is.** If the app behaves differently in production (an error boundary that renders nothing, a redirect thrown in a way the production router handles differently, a missing chunk for a lazy route), fix the app and add a unit test if the cause is in a pure module. If it's the check (a step that relied on dev-server timing or Vite's slower module loading), fix the check to wait on what it means, never with a fixed sleep.
 - For "Sync aborted": decide whether it's expected when a page closes or signs out mid-sync. If so, have the checks ignore exactly that warning when the step closes the page (as they ignore other teardown noise); if not, fix the teardown.
 - Then run every check in the suite against the built server once (`pnpm prd serve --built`, then `pnpm prd browser --suite`), and fix anything else that differs from dev in the same way.
-- **Make the build the default for checks** once the suite passes on it twice in a row: `pnpm prd browser` starts or rebuilds a `--built` server when the worktree's server is the dev server or isn't running (keep `--dev` to opt out), and update AGENTS.md (_Browser check budget_: "Check builds", the landing step's server restart, _Gotchas_ entries the build makes unnecessary such as Vite re-optimization and stale optimized deps). The orchestrator folds the AGENTS.md wording in at landing.
+- **Make the build the default for checks** once the suite passes on it (the orchestrator's one landing run; the user waived a second run): `pnpm prd browser` starts or rebuilds a `--built` server when the worktree's server is the dev server or isn't running (keep `--dev` to opt out), and update AGENTS.md (_Browser check budget_: "Check builds", the landing step's server restart, _Gotchas_ entries the build makes unnecessary such as Vite re-optimization and stale optimized deps). The orchestrator folds the AGENTS.md wording in at landing.
 
 **Acceptance criteria.**
 
 - [ ] The hand-off names the cause of each of the three failures, with the evidence (the decoded error, or the timing the check depended on).
-- [ ] Against the built server, `providers.mjs` and `phase2.mjs` pass 3 runs in a row on a quiet machine (load under about 40), and the full suite passes twice in a row.
+- [ ] Against the built server, `providers.mjs` and `phase2.mjs` pass 3 runs in a row on a quiet machine (load under about 40), and the full suite passes once, in the orchestrator's landing run on the integration branch (the user waived the loop's two runs).
 - [ ] By hand on the built server: a deleted provider's URL shows "Not found" with no names; a viewer opening `…/providers/new` lands on the list.
-- [ ] The full suite's run time on the built server versus the dev server, same machine (both tables).
+- [ ] The full suite's run time on the built server versus the dev server, same machine (both tables; the orchestrator's landing run against the dev-server suites of waves 3 and 4, 8m49s and 10m06s).
 - [ ] Checks run against a built server by default, rebuilt when the source changes; `--dev` still works.
 
 **Check.** The full suite on the built server, through `pnpm prd browser --suite`. `pnpm check` passes.
 
 **Blocks:** none (slice 10 benefits from it). **Blocked by:** none.
+
+---
+
+## Slice 12: `/app` stays blank after a full reload (B-41)
+
+**Problem.** In `app-shell.mjs`'s last-group steps, a full load of `/app` (`A.goto("/app")`, right after the page was on a group's timeline) leaves the page with no `main` and an empty body for 20 s, and no uncaught errors (`page.diagnose()`). It failed 4 of 5 runs during quick-fixes waves 3 and 4, at load 6–30, at either "/app: goes to the last group after a reload" or "/app: a stale remembered group falls back to the list". It isn't a check race: waiting for `GroupMenu`'s `rememberGroup` write before the check overwrites `caretook:lastGroup` didn't change it. An empty body (not even the frame) means the root never rendered or hydration never finished, so suspect what runs before first render on a full load: the /app layout's `clientMiddleware` (`requireSession`, `openSync`), `waitForFirstSync`, `/app`'s loader and its `resolveHomeGroup` redirect, or the previous page's database still holding a lock (OPFS/IndexedDB, a shared worker) when the new page opens it. Seen on the dev server only, so far.
+
+**Build.**
+
+- **Reproduce** with `app-shell.mjs` alone, then narrow it to a small throwaway script: sign in as member@, open Dev Family 2's timeline, full-load `/app`, repeat. Record what's pending when it hangs: the network (requests that never finish), the HTML that was served (is the body empty from the server, or emptied on the client), `Runtime` evaluation of where hydration stopped (`window.__reactRouterContext`, React Router's state), PowerSync's and the database's open state, and the Vite log.
+- **Fix the root cause where it is.** If it's the app (a promise the middleware or loader awaits that never settles, a lock, a redirect thrown during hydration), keep the fix small and in the module that owns it, add a unit test if the cause is in a pure module, and list every app file in the hand-off. If it's the check, fix the check to wait on what it means. No added waits, retries or longer timeouts as the fix.
+- If the cause is in sync teardown or PowerSync's "Sync aborted" warning, coordinate with slice 11, which owns that warning: note it on B-41 and keep your change to startup.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off names the root cause, with the evidence that showed it.
+- [ ] `app-shell.mjs` passes 5 runs in a row on a quiet machine (load under about 40), against a freshly restarted dev server.
+- [ ] The throwaway reproduction (sign in, open a group, full-load `/app`, 20 times) never hangs after the fix, and did before (show both counts). Delete it before committing.
+- [ ] `pnpm check` passes.
+
+**Check.** `app-shell.mjs` through `pnpm prd browser`, plus the checks for any app area the fix touched (AGENTS.md, _Browser check budget_).
+
+**Blocks:** none. **Blocked by:** none.
 
 ---
 
@@ -372,3 +401,32 @@ Both checks passed against the dev server minutes later, from the same code. So 
 **Check.** `pnpm prd browser --changed` (it picks `app-shell`, `marketing` and `phase2` for these files). `pnpm check` passes.
 
 **Blocks:** none. **Blocked by:** none (marketing slices 1–2 are in `dev`).
+
+---
+
+## Slice 14: A practice can't be deleted while providers name it (B-37)
+
+**Problem.** Deleting a provider is a soft delete (`deleted_at`). A clinician's `practice_id` is checked only when the clinician is saved with a new practice, so soft-deleting a practice or pharmacy leaves every clinician that names it pointing at a deleted provider: their edit sheet shows "(removed practice)", and saving keeps it, because the check runs only when `practiceId` changes. Slice 8 closed the same hole for a type change (`providerService:practiceInUse`); this closes it for delete.
+
+**Decision: refuse the delete**, not clear the clinicians' links. It matches slice 8, it never changes other providers' rows as a side effect (a change the user didn't make, which would also sync to every device), and it keeps the link history readable. The user moves the clinicians first, or deletes them.
+
+**Build.**
+
+- **Server.** `providerService.remove`: before the soft delete, in one transaction, if any **live** provider in the group has this provider as `practiceId`, return a new 409 error `providerService:practiceHasProviders` (in `errors/constants.ts`), with no field issue and the message "Providers are linked to this practice. Move them to another practice, or delete them, first." Deleted providers that still point at it don't count. Lock the practice row (`FOR UPDATE`) so a concurrent clinician save that picks this practice can't slip in between; `checkPractice` already refuses a deleted practice for the other order. Reuse the dependents query from `checkPracticeInUse` (extract a shared helper; don't copy it).
+- **Upload.** A PATCH that sets `deleted_at` and a DELETE both go through `remove`, so the 409 is acknowledged as rejected and the next sync restores the practice on the device. No change to `sync.ts` beyond confirming that.
+- **Device.** `removeProvider` in `lib/sync/providers.ts` refuses the same way, through `practiceDependentsQuery` (already there for slice 8) and the `refuse(…)` pattern, with the same message, so an offline delete never shows success and then reverts. Without it, the upload would be rejected and the provider would come back on the next sync with no explanation.
+- **Screens.** The delete `ConfirmDialog` (the provider sheet, and the provider page's actions if it deletes there too) shows the refusal as an error and leaves the provider in place. Better: when the count is known before confirming, say so in the dialog ("2 providers name this practice. Move them first.") and disable Delete. Keep the screen change small; if it needs more than the dialog's body and the button's state, stop at showing the error.
+- **Existing data.** Clinicians that already point at a deleted practice (none in the seeds; possible on dev databases) stay as they are. Their sheet's "(removed practice)" option still lets the user pick another. No migration.
+- Out of scope: hard delete (a purge), and what deleting a clinician does (nothing points at clinicians).
+
+**Acceptance criteria.**
+
+- [ ] Integration test: a practice with a live clinician can't be removed (`providerService:practiceHasProviders`, 409), and the practice stays live; once the clinician moves to another practice or is deleted, the remove goes through. A pharmacy behaves the same.
+- [ ] Integration test through `sync.upload`: a PATCH setting `deleted_at` on that practice, and a DELETE, are both acknowledged as rejected.
+- [ ] The device's `removeProvider` refuses it (a unit or integration test if `lib/sync/providers.ts` has a seam; otherwise a `providers.mjs` step through `window.caretookModules()`).
+- [ ] In the app, as a writer: deleting the seeded practice that has a clinician shows the message and the practice stays in the list; deleting it after moving the clinician works (a `providers.mjs` step, or one manual run with screenshots).
+- [ ] `pnpm check` passes.
+
+**Check.** Integration tests, and `pnpm prd browser providers` if the slice adds a step or touches the sheet. Before hand-off, `pnpm prd browser --changed`.
+
+**Blocks:** none. **Blocked by:** none (the providers PRD is paused, and its slices 5–7 don't touch delete).

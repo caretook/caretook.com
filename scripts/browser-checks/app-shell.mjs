@@ -69,7 +69,19 @@ const key = async (p, k, code, keyCode) => {
   await p.send("Input.dispatchKeyEvent", { type: "keyUp", key: k, code, windowsVirtualKeyCode: keyCode });
 };
 const enter = (p) => key(p, "Enter", "Enter", 13);
-const escape = (p) => key(p, "Escape", "Escape", 27);
+// Escape goes to the focused element, and React Aria moves focus into a menu or
+// dialog only after it renders: on a fast (built) server the key can arrive
+// first and miss it. So wait until the open one has focus.
+const escape = async (p) => {
+  await p
+    .waitFor(
+      `!document.querySelector('[role="menu"], [role="dialog"]') || document.activeElement?.closest('[role="menu"], [role="dialog"]')`,
+      5000,
+      { quiet: true },
+    )
+    .catch(() => undefined);
+  await key(p, "Escape", "Escape", 27);
+};
 const down = (p) => key(p, "ArrowDown", "ArrowDown", 40);
 const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const DEV_FAMILY_2 = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8d0001";
@@ -408,8 +420,15 @@ try {
   check("/app: goes to the last group after a reload", reloaded);
 
   // A remembered group you're no longer in: the list, without an error.
-  // (Right after a reload the sync handle can still be opening, so wait for it.)
-  await A.waitFor(`!!window.caretookSync?.userId`, 20000);
+  // Wait for the reloaded page's own remembering first, or it can overwrite
+  // the stale value below: GroupMenu remembers the group in an effect of the
+  // commit that first shows it (so wait for the menu, then a frame for the
+  // effect), and doesn't write the key again after that.
+  await A.waitFor(
+    `${GROUP_TRIGGER}?.textContent.trim() === "Grandpa Lou" && !!window.caretookSync?.userId`,
+    20000,
+  );
+  await A.evaluate(`new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))`);
   await A.evaluate(
     `localStorage.setItem("caretook:lastGroup:" + window.caretookSync.userId, "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8dffff")`,
   );
@@ -1329,7 +1348,7 @@ try {
   // ──────────────── end of slice 6: group settings, members ────────────────
 
   const noise =
-    /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection/;
+    /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|\[PowerSync\]: Sync aborted/;
   // With storage blocked, React Router's inline ScrollRestoration script reads
   // sessionStorage unguarded and throws; that's expected on that page only.
   const blocked = /^\[no-storage (console\.error|exception)\] SecurityError/;

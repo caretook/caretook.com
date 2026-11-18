@@ -1238,7 +1238,7 @@ try {
 
   // Being offline is noisy on purpose (the proxy cuts Vite's socket and PowerSync's stream).
   const noise =
-    /401|Failed to load resource|ERR_INTERNET_DISCONNECTED|ERR_PROXY|Failed to fetch|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection/;
+    /401|Failed to load resource|ERR_INTERNET_DISCONNECTED|ERR_PROXY|Failed to fetch|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|\[PowerSync\]: Sync aborted/;
   const errors = pages.flatMap((p) => p.errors).filter((e) => !noise.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 5).join(" | ").slice(0, 800));
 } catch (e) {
