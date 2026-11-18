@@ -23,7 +23,7 @@
   --tab-bar-height: calc(4rem + env(safe-area-inset-bottom));
 }
 
-/* EntrySheet: fades in the backdrop, slides the sheet up (only when motion is OK). */
+/* Sheet (components/ui): fades in the backdrop, slides the sheet up (only when motion is OK). */
 @keyframes fade-in {
   from {
     opacity: 0;

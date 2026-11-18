@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | State                  | Merge into `prd/components` (slice commits) |
-| ----- | ---------------------- | ------------------------------------------- |
-| 1     | merged; wave 1 landing | `934428f` (`a071d12`, `4c18db3`)            |
-| 2     | ready (1 merged)       |                                             |
-| 3     | blocked by 2           |                                             |
-| 4     | blocked by 2           |                                             |
-| 5     | blocked by 3           |                                             |
-| 6     | blocked by 3, 4 and 5  |                                             |
+| Slice | State                       | Merge into `prd/components` (slice commits) |
+| ----- | --------------------------- | ------------------------------------------- |
+| 1     | landed in `dev` (`414b0a6`) | `934428f` (`a071d12`, `4c18db3`)            |
+| 2     | merged; wave 2 landing      | `c25170c` (`0032dd6`, `a2c2bd1`)            |
+| 3     | ready (2 merged)            |                                             |
+| 4     | ready (2 merged)            |                                             |
+| 5     | blocked by 3                |                                             |
+| 6     | blocked by 3, 4 and 5       |                                             |
 
 Backlog: B-24 is claimed by `prd/components`; mark it `done` after slice 6 merges.
 
@@ -19,7 +19,8 @@ Notes for later slices (from slice 1):
 
 - The entry route grew 1.6 KB gzipped (+0.8%): the `forms` index puts `EntrySheet` in the entry route's chunk beside `DateTimeField`. Slice 2 undoes it when the sheet moves into `ui/` (or by splitting `forms`).
 - `components/notes/` (not in the folder list above) holds `LiveNotesEditor` and `EditorAvatars`, so Tiptap never reaches the timeline through an index. `providers/` holds `ContactActions` and `ProviderTypeIcon`. No `timeline/` folder yet.
-- Quick-fixes B-34 (a calendar on `DateTimeField`) may land first; slice 2 then builds the field primitive on top of it.
+- Slice 2 moved `DateTimeField` (with B-34's calendar) to `ui/date/` and deleted `components/forms/`; slice 5 may recreate `forms/`. `ProviderForm`'s own fields are for slice 6.
+- Slice 2's bundle: the entry route's +1.6 KB is gone; every `/app` page carries +2.4 KB of primitives (1.2 KB of it `Sheet`, kept in the `ui` index because splitting it costs each sheet route 2.5 KB); provider sheets dropped 51.6 KB (they no longer load the date picker).
 - Wave 1's full suite: 11/11 (phase2 failed once on its first step at load 44 right after a server restart, then passed 107/107 at load 6); `ui.mjs` 253/253.
 
 ## Architectural decisions

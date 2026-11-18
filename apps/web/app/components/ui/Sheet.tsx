@@ -1,13 +1,22 @@
 import type { ReactNode } from "react";
 
 import { X } from "lucide-react";
-import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
+import { useEffect, useState } from "react";
+import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
+import { IconButton } from "./IconButton";
 
 /**
- * A bottom sheet on phones, a centered dialog on wider screens (React Aria:
- * focus trap, Esc and outside-tap to close, focus returns to the opener).
+ * A bottom sheet on phones, a centered dialog on wider screens, named by its
+ * `title` (React Aria: focus moves in and is trapped, Escape, a tap outside
+ * and Close close it, and focus returns to the opener). Its overlay is
+ * `z-50`, above the tab bar (`z-40`).
+ *
+ * Sheets are routes, so they usually close by unmounting. React Aria then
+ * returns focus only when its own bookkeeping allows; as a backstop, if focus
+ * is left on the page body, it goes back to whatever had it when the sheet
+ * mounted.
  */
-export function EntrySheet({
+export function Sheet({
   isOpen,
   onOpenChange,
   title,
@@ -18,6 +27,20 @@ export function EntrySheet({
   title: string;
   children: ReactNode;
 }) {
+  const [opener] = useState(() => (typeof document === "undefined" ? null : document.activeElement));
+  useEffect(
+    () => () => {
+      // After React Aria's own restore (the next frame).
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (document.activeElement !== document.body) return;
+          if (opener instanceof HTMLElement && opener !== document.body && opener.isConnected) opener.focus();
+        }),
+      );
+    },
+    [opener],
+  );
+
   return (
     <ModalOverlay
       isOpen={isOpen}
@@ -34,9 +57,7 @@ export function EntrySheet({
                 <Heading slot="title" className="text-lg font-semibold">
                   {title}
                 </Heading>
-                <Button aria-label="Close" className="btn btn-ghost btn-sm btn-square" onPress={close}>
-                  <X className="size-5" aria-hidden="true" />
-                </Button>
+                <IconButton label="Close" icon={X} onPress={close} />
               </div>
               {children}
             </>
