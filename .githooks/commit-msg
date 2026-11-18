@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Every commit subject follows Conventional Commits 1.0.0
+# (https://www.conventionalcommits.org/en/v1.0.0/), merges included:
+#
+#   <type>(<optional scope>)<optional !>: <description>
+#
+# Skip it for one commit with `git commit --no-verify`.
+subject=$(grep -v '^#' "$1" | sed -n '/[^[:space:]]/{p;q;}')
+[[ -z $subject ]] && exit 0 # git aborts an empty message itself
+types='feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert'
+[[ $subject =~ ^($types)(\([a-z0-9][a-z0-9./-]*\))?!?:\ [^[:space:]] ]] && exit 0
+[[ $subject =~ ^(fixup|squash|amend)!\  ]] && exit 0
+cat >&2 <<MSG
+caretook hooks: refused: the commit subject isn't a Conventional Commit:
+  $subject
+Write it as <type>(<scope>): <description>, for example:
+  feat(app-shell): group settings page (B-9)
+  fix(sign-in): one request on a double click (B-1)
+  chore(app-shell): merge dev into prd/app-shell
+Types: ${types//|/, }. The scope is optional (a PRD topic or an area); add ! for a breaking change.
+A merge needs one too: git merge --no-ff -m "feat(<topic>): …" <branch>
+(a refused merge is still in progress: finish it with git commit -m "…", or git merge --abort)
+MSG
+exit 1

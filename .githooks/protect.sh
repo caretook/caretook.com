@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Shared by the hooks in .githooks/ (turned on by `pnpm install`, which sets
-# core.hooksPath). Source it; don't run it.
+# Shared by the branch hooks in .githooks/ (turned on by `pnpm hooks:install`,
+# which sets core.hooksPath). Source it; don't run it. (commit-msg, beside it,
+# checks Conventional Commits on every branch.)
 #
 #   main, staging  change only by PR merge on GitHub (dev → staging → main).
 #                  Locally, the only update allowed is a fast-forward to what
