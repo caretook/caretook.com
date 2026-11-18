@@ -6,9 +6,9 @@ import type { TimelineEntry } from "~/lib/rpc";
 import type { NoteDocRow } from "~/lib/sync/notes";
 import type { EntryRow, GroupRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
 
-import { DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
+import { canHaveNoteDocument, DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
-import { data, useFetcher, useNavigate } from "react-router";
+import { data, useFetcher } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
 import { EntryForm } from "~/components/EntryForm";
 import { EntrySheet } from "~/components/EntrySheet";
@@ -176,8 +176,6 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     loaderData.documentRows,
   );
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
-  const navigate = useNavigate();
-  const openEntry = (entry: TimelineEntry) => void navigate(entryUrl(groupId, entry.id));
 
   const canWrite = !!group.role && WRITER_ROLES.includes(group.role);
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
@@ -262,7 +260,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
               className={
                 view === "cards"
                   ? "space-y-2"
-                  : "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y border"
+                  : "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border"
               }
             >
               {day.entries.map((entry) => (
@@ -272,12 +270,18 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
                   authorName={nameOf(entry.createdBy)}
                   units={units}
                   removing={removingId === entry.id}
+                  // Notes and events open their page, for viewers too; symptoms and vitals open the sheet.
+                  open={
+                    canHaveNoteDocument(entry.kind)
+                      ? { to: entryUrl(groupId, entry.id) }
+                      : canWrite
+                        ? { onPress: () => openSheet({ mode: "edit", entry }) }
+                        : undefined
+                  }
                   onEdit={
-                    !canWrite
-                      ? undefined
-                      : isLiveEntryKind(entry.kind)
-                        ? () => openEntry(entry) // edited in its own editor
-                        : () => openSheet({ mode: "edit", entry })
+                    canWrite && !canHaveNoteDocument(entry.kind)
+                      ? () => openSheet({ mode: "edit", entry })
+                      : undefined
                   }
                   onDelete={canWrite ? () => setDeleting(entry) : undefined}
                 />

@@ -2,11 +2,11 @@ import type { UnitChoices } from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/rpc";
 
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { entrySummary, initials, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
 import { AuthorInitials, KindIcon } from "./KindIcon";
-import { LiveNotesPreview, type LiveNotes } from "./LiveNotesPreview";
 
 export type EntryViewProps = {
   entry: TimelineEntry;
@@ -14,23 +14,40 @@ export type EntryViewProps = {
   units: UnitChoices;
   /** Fading out while its delete is saved. */
   removing?: boolean;
-  /** Omitted for people who can't change the timeline (viewers). */
+  /**
+   * What tapping the row does: a note or event opens its page (for everyone),
+   * a symptom or vital opens its edit sheet (writers only). Omitted: nothing.
+   */
+  open?: EntryOpen;
+  /** The ⋯ menu's Edit, for symptoms and vitals. */
   onEdit?: () => void;
+  /** Omitted for people who can't change the timeline (viewers): no ⋯ menu. */
   onDelete?: () => void;
-  /** The entry's live document, if it has one. */
-  liveNotes?: LiveNotes | null;
-  /** Writers on notes and events: add live notes, or open them. */
-  onLiveNotes?: () => void;
 };
 
-/** The ⋯ menu's live notes item, when it applies. */
-export const liveNotesAction = ({
-  liveNotes,
-  onLiveNotes,
-}: Pick<EntryViewProps, "liveNotes" | "onLiveNotes">) =>
-  onLiveNotes
-    ? { label: liveNotes ? "Open live notes" : "Add live notes", onAction: onLiveNotes }
-    : undefined;
+export type EntryOpen = { to: string } | { onPress: () => void };
+
+/**
+ * The whole row's tap target: a link or button stretched over the row, so
+ * it's one focusable, named control for keyboards and screen readers. The ⋯
+ * button and the More/Less toggle sit above it (`relative z-10`), so taps on
+ * them don't open the entry. The row itself must be `relative isolate` (its own stacking context, so
+ * those don't rise above the sticky day headers).
+ */
+export function EntryOpenTarget({ open, entry }: { open: EntryOpen; entry: TimelineEntry }) {
+  const className =
+    "absolute inset-0 cursor-pointer rounded-[inherit] hover:bg-base-content/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary";
+  return "to" in open ? (
+    <Link to={open.to} className={className} aria-label={`Open ${entryLabel(entry)}`} />
+  ) : (
+    <button
+      type="button"
+      className={className}
+      aria-label={`Edit ${entryLabel(entry)}`}
+      onClick={open.onPress}
+    />
+  );
+}
 
 /** A short name for the entry, for links and labels. */
 export const entryLabel = (entry: TimelineEntry) =>
@@ -49,16 +66,16 @@ export function TimelineEntryRow({
   authorName,
   units,
   removing,
+  open,
   onEdit,
   onDelete,
-  liveNotes,
-  onLiveNotes,
 }: EntryViewProps) {
   const { heading, severity, readings, body } = entrySummary(entry, units);
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
 
   return (
-    <li className={`flex items-start gap-2.5 px-3 py-2 ${removing ? "opacity-50" : ""}`}>
+    <li className={`relative isolate flex items-start gap-2.5 px-3 py-2 ${removing ? "opacity-50" : ""}`}>
+      {open && <EntryOpenTarget open={open} entry={entry} />}
       <KindIcon kind={entry.kind} size="sm" />
       <time
         dateTime={entry.occurredAt}
@@ -76,18 +93,10 @@ export function TimelineEntryRow({
         )}
         {readings.length > 0 && <Readings readings={readings} />}
         {body && <ClampedText text={body} />}
-        {liveNotes && <LiveNotesPreview notes={liveNotes} entryLabel={entryLabel(entry)} />}
         {elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
       </div>
       <AuthorInitials name={authorName} initials={initials(authorName)} />
-      {onEdit && onDelete && (
-        <EntryActions
-          label={actionsLabel(entry)}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          liveNotes={liveNotesAction({ liveNotes, onLiveNotes })}
-        />
-      )}
+      {onDelete && <EntryActions label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />}
     </li>
   );
 }
@@ -132,7 +141,7 @@ function ClampedText({ text }: { text: string }) {
       {(overflows || expanded) && (
         <button
           type="button"
-          className="link link-hover text-base-content/70 text-sm"
+          className="link link-hover text-base-content/70 relative z-10 text-sm"
           aria-expanded={expanded}
           onClick={() => setExpanded((e) => !e)}
         >

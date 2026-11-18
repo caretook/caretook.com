@@ -216,13 +216,14 @@ try {
   await A.screenshot("ln-owner");
   await C.screenshot("ln-viewer");
 
-  // 8. Back on the timeline: the document is the row's body, for the viewer too.
+  // 8. Back on the timeline: the document is the row's body, and the row opens it, for the viewer too.
   await C.goto(timelineUrl);
   await C.waitFor(`${rowWith(tag)}?.textContent.includes("${tag}-a1")`, 15000);
   check(
-    "timeline: the event's body is its document preview (viewer)",
+    "timeline: the event's body is its document preview, and the row opens it (viewer)",
     await C.evaluate(
-      `${rowWith(tag)}.textContent.includes("${tag}-start") && !${rowWith(tag)}.textContent.includes("Live notes")`,
+      `${rowWith(tag)}.textContent.includes("${tag}-start") && !${rowWith(tag)}.textContent.includes("Live notes") && ` +
+        `${rowWith(tag)}.querySelector('a[aria-label^="Open "]')?.pathname === ${JSON.stringify(notesUrl)}`,
     ),
   );
   check(
@@ -238,7 +239,12 @@ try {
   if (await B.evaluate(`!!${symptomRow}`)) {
     await B.press(`${symptomRow}.querySelector('button[aria-label^="Actions"]')`);
     await B.waitFor(menuItem("Edit"));
-    check("menu: no live notes on a symptom", !(await B.evaluate(`!!${menuItem("Add live notes")}`)));
+    check(
+      "menu: a symptom has only Edit and Delete",
+      (await B.evaluate(
+        `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim()).join(",")`,
+      )) === "Edit,Delete",
+    );
     await B.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape" });
   }
 
