@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type {
+  TimelineEntry,
   TimelineEntryCreateInput,
   TimelineEntryKind,
   TimelineEntryUpdateInput,
@@ -13,13 +14,14 @@ import type { ServiceContext } from "./types";
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
+  canHaveNoteDocument,
   timelineEntryContentZSchema,
   timelineEntryCreateZSchema,
   timelineEntryUpdateZSchema,
   timelineEntryUpsertZSchema,
 } from "../db/schema";
 import { isError, newError } from "../errors";
-import { careGroupModel, careRecipientModel, timelineEntryModel } from "../models";
+import { careGroupModel, careRecipientModel, noteDocumentModel, timelineEntryModel } from "../models";
 import { rejectError } from "../permissions";
 
 export const serviceName = "timelineEntry";
@@ -69,8 +71,42 @@ const resolveRecipient = async (ctx: ServiceContext, tx: Tx, groupId: string, re
 // Reads
 // ---------------------------------------------------------------------------
 
-export const getById = (ctx: ServiceContext, id: string, opts: IncludeDeleted = {}) =>
-  timelineEntryModel.getById(id, { ...ctx, ...opts });
+/**
+ * A note's or event's text is its live document, so its stored `body` is
+ * null. Reads fill `body` from the document's compacted text, so API, AI
+ * and worker callers keep one text field. Pending (uncompacted) updates
+ * aren't included; `noteDocumentService.currentText` has those.
+ *
+ * - No document yet (its upload is still pending), or an empty one: the
+ *   stored body (null for notes).
+ * - A soft-deleted entry never gets its document's text.
+ * - Documents are read in the actor's scope, like the entries.
+ */
+export const withDocumentText = async <T extends TimelineEntry>(ctx: ServiceContext, entries: T[]) => {
+  const ids = new Set(entries.filter((e) => canHaveNoteDocument(e.kind) && !e.deletedAt).map((e) => e.id));
+  if (!ids.size) return entries;
+
+  const docs = await noteDocumentModel.list({ ...ctx, filter: { id: { type: "inArray", value: [...ids] } } });
+  if (isError(docs)) return docs;
+  const text = new Map(docs.data.map((d) => [d.id, d.text]));
+
+  return entries.map((entry) => {
+    const docText = ids.has(entry.id) ? text.get(entry.id) : undefined;
+    return docText ? { ...entry, body: docText } : entry;
+  });
+};
+
+const withDocumentTextOne = async <T extends TimelineEntry>(ctx: ServiceContext, entry: T | null) => {
+  if (!entry) return entry;
+  const res = await withDocumentText(ctx, [entry]);
+  return isError(res) ? res : (res[0] ?? null);
+};
+
+/** One entry, with a note's or event's `body` from its document (see `withDocumentText`). */
+export const getById = async (ctx: ServiceContext, id: string, opts: IncludeDeleted = {}) => {
+  const entry = await timelineEntryModel.getById(id, { ...ctx, ...opts });
+  return isError(entry) ? entry : withDocumentTextOne(ctx, entry);
+};
 
 export type TimelineListOptions = IncludeDeleted & {
   groupId: string;
@@ -83,8 +119,15 @@ export type TimelineListOptions = IncludeDeleted & {
   limit?: number;
 };
 
-/** One group's timeline, newest first. Pass `nextCursor` back for the next page. */
-export const list = (ctx: ServiceContext, { groupId, kinds, from, to, ...opts }: TimelineListOptions) => {
+/**
+ * One group's timeline, newest first, with notes' and events' `body` from
+ * their documents (see `withDocumentText`). Pass `nextCursor` back for the
+ * next page.
+ */
+export const list = async (
+  ctx: ServiceContext,
+  { groupId, kinds, from, to, ...opts }: TimelineListOptions,
+) => {
   const range = [
     ...(from ? [{ type: "gte" as const, value: from }] : []),
     ...(to ? [{ type: "lt" as const, value: to }] : []),
@@ -94,7 +137,10 @@ export const list = (ctx: ServiceContext, { groupId, kinds, from, to, ...opts }:
     ...(kinds?.length ? { kind: { type: "inArray", value: kinds } } : {}),
     ...(range.length ? { occurredAt: { type: "and", value: range } } : {}),
   };
-  return timelineEntryModel.listPage({ ...ctx, ...opts, filter });
+  const page = await timelineEntryModel.listPage({ ...ctx, ...opts, filter });
+  if (isError(page)) return page;
+  const data = await withDocumentText(ctx, page.data);
+  return isError(data) ? data : { ...page, data };
 };
 
 /** The newest reading of each vital type in a group, with the entry it came from. */
