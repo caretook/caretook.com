@@ -14,13 +14,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): done | (none) | `entry.tsx`, `EntryHeader`, `TimelineEntryRow`/`Card`, `timeline.tsx` |
 | `quick-fixes`     | (no PRD: one slice per fix)                                  | (none)                                               | `sign-in.tsx`, `timeline.tsx`                                               |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
-| `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices, not started | `live-notes-ux` (done), `app-shell`'s frame (in `dev`) | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
-| `search`          | to write                                                     | `timeline-polish`'s infinite scroll                  | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx`                |
+| `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices; 1–3 in `dev` (wave 1). **Paused:** slices 4–7 resume after `routing` and `components` land | `live-notes-ux` (done), `app-shell` (done); slices 4–7 wait for `routing` and `components` | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
+| `search`          | to write | `timeline-polish`'s infinite scroll (slice 7, after `routing` and `components`) | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx` |
 | `providers`       | to write | `app-shell`'s group nav (in `dev`) | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
 | `medications`     | to write | `app-shell`'s group nav (in `dev`); `providers` (soft) | new tables (as providers), `KIND_META`, `EntryForm` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
-| `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started | `app-shell`, `timeline-polish` (both land first) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
-| `components`      | [PRD](components-prd.md), [plan](components-plan.md): 6 slices, not started | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
+| `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started. **Runs next** | `app-shell` (done), `timeline-polish` wave 1 (in `dev`; its slices 4–7 wait for this) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
+| `components`      | [PRD](components-prd.md), [plan](components-plan.md): 6 slices, not started. Runs after `routing`, before `timeline-polish` slices 4–7 | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
 
 ## Summary
 
