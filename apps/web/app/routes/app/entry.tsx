@@ -14,6 +14,7 @@ import { EntryHeader, EntryTime, EntryTitle } from "~/components/EntryHeader";
 import { EntryMenu } from "~/components/EntryMenu";
 import { EntryTimeChip } from "~/components/EntryTimeChip";
 import { LiveNotesEditor } from "~/components/LiveNotesEditor";
+import { ShareButton } from "~/components/ShareButton";
 import { KIND_META } from "~/lib/entryDisplay";
 import { localTimeZone } from "~/lib/format";
 import {
@@ -276,13 +277,19 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
             </>
           )
         }
+        // Once there's an entry to link to (not a draft): Share for everyone, the ⋯ menu for writers.
         actions={
-          canWrite && live ? (
-            <EntryMenu
-              label={`Actions for this ${label.toLowerCase()}`}
-              onDelete={() => setConfirmDelete(true)}
-            />
-          ) : undefined
+          live && (
+            <>
+              <ShareButton title={heading} path={entryUrl(groupId, draft.id)} />
+              {canWrite && (
+                <EntryMenu
+                  label={`Actions for this ${label.toLowerCase()}`}
+                  onDelete={() => setConfirmDelete(true)}
+                />
+              )}
+            </>
+          )
         }
         editors={!deleted && <EditorAvatars documentId={draft.id} groupId={groupId} viewerId={db.userId} />}
       />
