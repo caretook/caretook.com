@@ -20,7 +20,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Clicking the icon on a timeline entry should filter by that type of entry. (B-5)
   Status (2026-11-17): PRD written (timeline-polish). Combines with the author filter; tapping a filter that's already on does nothing.
 - Clicking on the author shorthand should filter by that author. (B-6)
-  Status (2026-11-17): PRD written (timeline-polish). New ?author= filter with a "By <name> ✕" chip.
+  Status (2026-11-17): PRD written (timeline-polish). New `?author=` filter with a "By (name) ✕" chip.
 - Larger/more prominent font for date entries in timeline. (B-7)
   Status (2026-11-17): PRD written (timeline-polish). Larger semibold sticky headers: Today, Yesterday, then "Monday, Nov 16".
 
