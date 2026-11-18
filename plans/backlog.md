@@ -1,12 +1,8 @@
-# Backlog
+# Backlog tracker
 
-The live list of everything planned: bugs, changes, features, big plans and questions. It lives **only on `dev`**, in the main checkout, and changes through `pnpm backlog`, which commits just this file onto `dev` under a lock. So it's current for every session without a merge. AGENTS.md (_The live backlog_) has the rules.
+Agents keep this file; you review it. **Add new things in [inbox.md](inbox.md)**, not here. Each item below came from an inbox line (or an agent), and has an id, a status, the PRD it belongs to, and notes.
 
-- **Read:** `pnpm backlog list` (open items), `list --all`, `list --prd <topic>`, `show B-<n>`. Works from any worktree; it reads the main checkout's copy.
-- **Add:** `pnpm backlog add <type> <title> [--prd <topic>] [--note "…"]`. Types: bug, change, feature, plan, question, chore.
-- **Change:** `set B-<n> status=… prd=… title=…`, `note B-<n> "…"`, `claim B-<n>` (for your branch; the first claim wins), `release B-<n>`, `done B-<n>` (merged into its PRD branch: records the commit).
-- **Statuses:** inbox → triaged (has a PRD) → in-progress (claimed) → ready (done in its PRD branch) → landed (in `dev`) → staging → live, or dropped. From ready on, they're worked out from where the recorded commit is (`refresh` writes them).
-- **By hand:** edit this file in the main checkout, then `pnpm backlog commit "what changed"`. Keep the item format; the summary table is regenerated.
+**Statuses:** inbox (new, not triaged) → triaged (a PRD proposed: check it) → in-progress (claimed) → ready (done in its PRD branch) → landed (in `dev`) → staging → live, or dropped.
 
 ## PRDs
 
