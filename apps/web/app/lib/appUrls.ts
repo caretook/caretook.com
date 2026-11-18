@@ -87,6 +87,12 @@ export const appUrls = {
     if (kind === "vital" && isVitalType(type)) params.set(VITAL_TYPE_PARAM, type);
     return `${groupHome(groupId)}/timeline/new/${kind}${searchString(params)}`;
   },
+  /**
+   * The edit sheet for a symptom or vital over a group's timeline, carrying
+   * the timeline's filters (the add sheet's own `type` is dropped).
+   */
+  editSheet: (groupId: string, entryId: string, { search }: { search?: Search } = {}) =>
+    `${groupHome(groupId)}/timeline/${segment(entryId)}/edit${searchString(withoutSheetParams(search))}`,
   /** A note's or event's page (also a share link). */
   entry: (groupId: string, entryId: string) => `${groupHome(groupId)}/entries/${segment(entryId)}`,
   /** A new note or event (a draft until its first change). An unknown kind is dropped. */

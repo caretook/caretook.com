@@ -5,9 +5,10 @@ import { useLocation, useNavigate, useOutletContext } from "react-router";
 import { appUrls, withoutSheetParams } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
 
-// Sheets over the timeline are child routes (`timeline/new/:kind`): the
-// timeline stays mounted underneath, with its scroll position, loaded pages
-// and filters, and serves its sheets what they share through the outlet.
+// Sheets over the timeline are child routes (`timeline/new/:kind`,
+// `timeline/:entryId/edit`): the timeline stays mounted underneath, with its
+// scroll position, loaded pages and filters, and serves its sheets what they
+// share through the outlet.
 
 /** What the timeline gives the sheet routes rendered in its `Outlet`. */
 export type TimelineOutlet = { units: UnitChoices };

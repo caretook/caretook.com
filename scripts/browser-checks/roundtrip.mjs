@@ -98,7 +98,7 @@ try {
   check("add: stored in Postgres as the member", author === "member@example.com", author);
 
   // 2. Edit on B (a row tap opens the edit sheet), appears on A, stored as B.
-  await B.press(`${rowWith(name)}.querySelector('button[aria-label^="Edit "]')`);
+  await B.press(`${rowWith(name)}.querySelector('a[aria-label^="Edit "]')`);
   await B.waitFor(`${SHEET}?.textContent.includes("Edit symptom") && ${NAME}`);
   await B.type(NAME, `${name}, edited`);
   await B.press(SUBMIT);
@@ -177,7 +177,7 @@ try {
   check(
     "viewer: no add bar, no ⋯ menus, no edit targets",
     await C.evaluate(
-      `!document.querySelector('[aria-label="Add to the timeline"]') && !document.querySelector('main ol button[aria-label^="Actions"]') && !document.querySelector('main ol button[aria-label^="Edit "]')`,
+      `!document.querySelector('[aria-label="Add to the timeline"]') && !document.querySelector('main ol button[aria-label^="Actions"]') && !document.querySelector('main ol [aria-label^="Edit "]')`,
     ),
   );
 
