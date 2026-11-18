@@ -1,5 +1,6 @@
 import type { EntryOpen } from "./entryOpen";
 import type { UnitChoices } from "@caretook/data/schema";
+import type { LinkedProviderName } from "~/lib/entryProviders";
 import type { TimelineEntry } from "~/lib/rpc";
 
 import { AuthorInitials, EntryActions, KindFilterLink } from "~/components/entry";
@@ -25,6 +26,8 @@ export type EntryViewProps = {
   onDelete?: () => void;
   /** Others are writing in its document now: the live dot's label ("Being written now by Maria"). */
   liveLabel?: string;
+  /** A note's or event's linked providers: the "with …" line. */
+  providers?: LinkedProviderName[];
 };
 
 /**
@@ -40,6 +43,7 @@ export function TimelineEntryRow({
   onEdit,
   onDelete,
   liveLabel,
+  providers,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   return (
@@ -56,6 +60,7 @@ export function TimelineEntryRow({
         entry={entry}
         units={units}
         clamp
+        providers={providers}
         className="pt-0.5"
         footer={elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
       />
