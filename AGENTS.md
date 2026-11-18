@@ -106,6 +106,29 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 
 **Capacity.** One stack uses about 250 MB idle (the Docker VM has 32 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together. Six busy stacks at once (three loops plus two other PRDs) pushed the load average past 500: `pnpm check` took 25 minutes, tests hit their 5 s timeouts, and sign-ins in browser checks timed out. Rerun a failure like that once the load drops before debugging it.
 
+**Browser check budget.** Browser checks were 63% of all tool time across the first PRDs (850 runs, about 10 h), and about 30% of runs failed, mostly on timeouts and PowerSync 401s under load, which caused more reruns and more load. So:
+
+- **While building, a loop runs only the check for what it's changing** (its own check, or the one step it's working on), never the whole suite.
+- **Before hand-off, a loop runs its slice's checks once**: its own check plus the checks for the areas its files touch (the table below).
+- **After each merge, an orchestrator runs the checks for the areas the merge touched** (`git diff --stat` against the previous merge, mapped through the table), not every check.
+- **The full suite runs once per landing**, in step 1 of _Landing a wave_, against a freshly restarted dev server.
+- **This overrides any plan** that says "rerun every browser check after each merge".
+- **A timeout, 401 or PSYNC_S2101 is contention until shown otherwise.** Check `uptime`; if the load is above about 20, wait for it to drop, then rerun that one check once. Debug only a failure that repeats on a quiet machine.
+- **Don't run two checks at once in one worktree**, and stagger checks across loops like `pnpm check`.
+
+| Area changed                                                                 | Checks                                                        |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| the timeline screen, rows and cards, filters, vitals strip                   | `phase2.mjs`                                                  |
+| add and edit sheets, `EntryForm`, local timeline writes                      | `roundtrip.mjs`                                               |
+| the entry page, live notes, `note_document`, editors, Live now               | `live-notes.mjs`                                              |
+| the `/app` frame, menus, theme, group settings, members                      | `app-shell.mjs`                                               |
+| routes, `routes.ts`, `appUrls`, sheet URLs, settings subpages                | `routing.mjs`                                                 |
+| settings saves, `lib/me.ts`                                                  | `settings-layout.mjs`, `layout-offline.mjs` (timeout)         |
+| session, sign-in, sign-out, sync client, first sync                          | `sign-in.mjs`, `first-sync.mjs`, `signout-wipe.mjs` (timeout) |
+| a feature's own screens                                                      | its own check (`providers.mjs`, `medications.mjs`, …)         |
+| schema, migrations, sync-config, the upload switch, seeds                    | the checks for every screen that reads those tables           |
+| docs, plans, scripts outside `browser-checks/`, pure modules with unit tests | none                                                          |
+
 **Starting a PRD (the user):** `pnpm prd start <topic>`, then run the command it prints in a new terminal (`cd .loops/<topic> && claude "$(scripts/loops/prompt.sh orchestrator <topic>)"`). From then on the user steers that PRD from its orchestrator's console: which slices to run, and when to land.
 
 **Keep each orchestrator's context small.** A session may run wave after wave; start a fresh one (the same command) whenever it gets slow or confused. The plan's _Status_ section makes that safe at any wave boundary.
@@ -119,13 +142,13 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 2. For each ready slice: `pnpm prd slice <topic> <n>`.
 3. Spawn one background agent per slice (not with `isolation: worktree`; it already is one), with the prompt from `pnpm prd prompt slice <topic> <n>` plus anything the slice needs that the plan doesn't say.
 4. As each loop hands off, review its branch: `git diff prd/<topic>...slice/<topic>/<n>`, its hand-off, and that the acceptance criteria are covered.
-5. Merge **in plan order** into `prd/<topic>`, in your integration worktree, with `git merge --no-ff -m "feat(<topic>): <what it adds> (slice <n>, B-<n>)" slice/<topic>/<n>`. Resolve conflicts in the shared files yourself. After each merge, run `pnpm check` and the browser checks the merged slices touch, there. Fix it or send it back before merging the next one.
+5. Merge **in plan order** into `prd/<topic>`, in your integration worktree, with `git merge --no-ff -m "feat(<topic>): <what it adds> (slice <n>, B-<n>)" slice/<topic>/<n>`. Resolve conflicts in the shared files yourself. After each merge, run `pnpm check` and the browser checks for the areas the merge touched (the _Browser check budget_ table), there. Fix it or send it back before merging the next one.
 6. Once merged: `pnpm backlog done B-<n>` for its items, then `pnpm prd rm <topic>-<n>` (it deletes the merged branch). Start the slices it unblocked.
 7. **Land the wave** when it's green. Don't wait for the whole PRD: small, frequent landings keep PRDs from drifting apart.
 
 **Landing a wave in `dev`:**
 
-1. **Sync and check.** In the integration worktree: `pnpm prd sync` (merges `dev`; resolve conflicts there, regenerate your migration if `dev` gained one, `pnpm datastore:reset`), the PRD's browser checks, then `pnpm prd check`. Backlog-only commits on `dev` don't count as drift, so `pnpm backlog` writes never force another sync.
+1. **Sync and check.** In the integration worktree: `pnpm prd sync` (merges `dev`; resolve conflicts there, regenerate your migration if `dev` gained one, `pnpm datastore:reset`, `docker compose restart powersync`), `pnpm prd serve --restart`, the **full browser check suite once** (one at a time; the only full run of the wave), then `pnpm prd check`. Backlog-only commits on `dev` don't count as drift, so `pnpm backlog` writes never force another sync.
 2. **Serve it and report.** `pnpm prd serve --restart`, then show the user the output of `pnpm prd ready`: the dev server link and seed accounts, the backlog items this landing addresses (grouped as bugs fixed, features, changes), what's still open in the PRD, the commits, and warnings for a migration, seed, sync-config or dependency change. Add the browser checks you ran and two or three things worth trying by hand. If it lists blockers, fix them first.
 3. **Wait for the user.** They may try it at the link, ask for changes (send those back to a loop, then repeat from step 1), or say to land it.
 4. **Land on their word only:** `pnpm prd land <topic> -m "feat(<topic>): <what the wave adds> (B-<n>, …)"`. It refuses unless the branch is synced and `pnpm prd check` passed on its tip, so the code landing in `dev` is exactly the code that was checked; no recheck on `dev` is needed. It prints what the main checkout needs afterwards (`pnpm datastore:reset`, a PowerSync restart, `pnpm install`) and never pushes: `git push origin dev` is the user's.
@@ -150,6 +173,7 @@ A go-ahead covers one landing. An agent never lands on its own judgment, never w
 - After editing `powersync/sync-config.yaml`, restart your own PowerSync: `docker compose restart powersync`.
 - Follow the rules across PRDs (migrations, seeds, registries). Edits to shared files stay small and are listed in the hand-off. Don't edit AGENTS.md, and change the backlog only through `pnpm backlog note`.
 - No new dependencies. All data stays fictional.
+- Browser checks follow the _Browser check budget_: while building, only the check for what you're changing; before hand-off, your slice's checks once (its own plus the table's checks for the areas you touched). Never the full suite; the orchestrator runs that at landing.
 - When `pnpm check` and the slice's browser checks pass, **commit on your `slice/<topic>/<n>` branch** (coherent Conventional Commits scoped to the topic, ending with the attribution line). Don't merge, rebase or push any other branch, and never set `CARETOOK_ALLOW_PROTECTED`.
 - **Hand-off** (the final message): what was built, grouped by area, with every shared-file edit called out; each acceptance criterion marked met or not met, with evidence; the `pnpm check` and browser-check output; anything skipped or surprising that later slices need; and the commit SHAs.
 
@@ -161,7 +185,7 @@ A go-ahead covers one landing. An agent never lands on its own judgment, never w
 - **Running `new.sh` for several worktrees at once** can fail at migrate with "Connection terminated unexpectedly": a fresh Postgres restarts once after its first-boot init. The containers are fine; rerun `pnpm datastore:start && pnpm datastore:start:test` in each.
 - **The first check run after a `datastore:reset` or a PowerSync restart** can fail on a PowerSync 401 (the JWKS refetch) or slow first sync (`live-notes.mjs` timing steps). Rerun once before debugging.
 - **PowerSync can keep the old JWKS for minutes after a `datastore:reset`** ("no key matched the token KID", PSYNC_S2101), and pages then wait on `waitForFirstSync`. Run `docker compose restart powersync` after a reset.
-- **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). Run every merged slice's check after each merge, not only the new one's.
+- **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). After each merge, run the checks for every area the merge touched (the _Browser check budget_ table), not only the new slice's own check; the full suite at landing catches the rest.
 - **Long-running dev servers** can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
 - **Recent-editor state outlives a reset in PowerSync's bucket storage** (not cleared by `datastore:reset`): right after a reset it can still serve editors with the old user ids ("Former member"). Restart PowerSync and give it a minute before `live-notes.mjs`. (Its own "who's typing" steps don't need a quiet group: it ages only its own documents.)
 
@@ -173,6 +197,7 @@ The backlog's PRD table lists them all, with their dependencies.
 - 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–3 (B-1, B-17, B-22) are in `dev`**; nothing is in flight. `prompt.sh` handles a topic without a PRD file.
 - ✅ [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): **done**, all seven slices in `dev`: the `/app` frame, the user menu with theme, the group menu with the last group, the sections nav and tab bar, group settings (details and members), and the timeline layout choice in Settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md); its lasting decisions are under _The `/app` frame_. `timeline-polish`, `providers` and `medications` build on the frame.
 - 🟡 [`plans/timeline-polish-prd.md`](plans/timeline-polish-prd.md) (topic `timeline-polish`): the timeline's filters, day headers, vitals line, wide layout and infinite scroll. Sliced in [`plans/timeline-polish-plan.md`](plans/timeline-polish-plan.md). **Slices 1–3 (the filter module with the kind icon, the day headers, and the one-line vitals) are in `dev`.** It's **paused**: slices 4 (filter by author), 5 (full width), 6 (author tooltip) and 7 (infinite scroll) wait for `routing` and `components`, and get replanned then. `search` builds on slices 1, 4 and 7.
+- 🟡 [`plans/providers-prd.md`](plans/providers-prd.md) (topic `providers`): the provider directory and links from notes and events. Sliced in [`plans/providers-plan.md`](plans/providers-plan.md). **Slice 1 (the data layer) is in `dev`**; its decisions are under _Providers_. Slices 2–4 (the directory screens) and 5–7 (linking) follow.
 - 🟡 [`plans/routing-prd.md`](plans/routing-prd.md) (topic `routing`, B-23): nested routes, sliced in [`plans/routing-plan.md`](plans/routing-plan.md). **Slices 1 (the group route, `appUrls`, a folder per route), 2 (add-sheet URLs) and 4 (account settings subpages) are in `dev`.** Next, 3 (edit-sheet URL) and 5 (group settings subpages), in parallel. `components` and `timeline-polish` 4–7 wait for it.
 
 ## Product
@@ -273,7 +298,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
   2. Add a `PERMISSIONS` entry (the type requires one).
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
-- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0007 so far.
+- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0008 so far.
   - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
   - Until the first deploy it's fine to delete and regenerate migrations.
 - **DB client:** the pool is created lazily (importing never needs `DATABASE_URL`). Only the **pool** survives HMR (`utils/remember.ts`); the drizzle wrapper is rebuilt, so new tables work without a restart.
@@ -306,7 +331,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
   - Ruled out: Zero (offline writes), ElectricSQL (read-only sync), Convex (offline, lock-in), and InstantDB, Triplit and Jazz (control).
 - **Hosting:** PowerSync Cloud in production; locally the `journeyapps/powersync-service:1.28.3` container on :8080, with bucket storage in its own Postgres (`.postgres/powersync-storage`).
 - **Sync Streams** (`powersync/sync-config.yaml`, edition 3; Sync Rules are deprecated). **Queries list their columns explicitly**, so a new column must be added there too.
-  - `care_groups`: one bucket per group the user belongs to. It carries `care_group`, `care_group_member`, `care_recipient` (names only), `timeline_entry` (including soft-deleted rows), `note_document` and `note_update`.
+  - `care_groups`: one bucket per group the user belongs to. It carries `care_group`, `care_group_member`, `care_recipient` (names only), `timeline_entry` (including soft-deleted rows), `note_document`, `note_update`, `provider` (including soft-deleted rows) and `timeline_entry_provider`.
   - `member_profiles`: co-members' `id`, `name` and `image`.
   - The service reads the file at startup: run `docker compose restart powersync` after editing it.
 - **Publication** (`powersync`): the care tables plus `"user" (id, name, image)`. The column list keeps emails, roles and preferences out of replication.
@@ -316,7 +341,9 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
     - PUT → `upsert` (idempotent on id). A changed group, kind or recipient → `immutable`, and an id in a group the actor can't see → `unauthorized`.
     - PATCH → `update`, or `remove` when it sets `deleted_at`.
     - DELETE → `remove`.
-  - `note_document`/`note_update`: PUT → `create`/`appendUpdate`. Anything else → `sync:readOnlyTable`.
+  - `note_document`/`note_update`: PUT → `create`/`appendUpdate`. Anything else → `sync:readOnlyTable`. A document PUT passes the device's `subject` (none means `entry`).
+  - `provider`: like `timeline_entry` (PUT upsert, PATCH update or soft remove, DELETE soft remove; a changed group → `immutable`). `is_primary` arrives as 1/0 and `phones` as JSON text.
+  - `timeline_entry_provider`: PUT → link, DELETE → unlink, PATCH → `sync:readOnlyTable`.
   - Other tables → `sync:readOnlyTable`.
   - 4xx outcomes are acknowledged as rejected, and the next sync restores the server's copy. Other errors throw, so the batch retries.
   - After each batch, touched documents are compacted when due (best effort).
@@ -361,16 +388,18 @@ The shared space for the caretakers of one care recipient. Always say "care grou
 - **Two role systems:** global (`admin`, `member`) covers account access only. Group roles on the membership are `owner`, `admin`, `caretaker` and `viewer`. **Writers** = owner, admin and caretaker.
 - **Permissions:**
 
-  | Table             | read/list                                 | create                             | update                     | delete                            |
-  | ----------------- | ----------------------------------------- | ---------------------------------- | -------------------------- | --------------------------------- |
-  | care_group        | any member                                | any signed-in user (becomes owner) | owner, admin               | owner                             |
-  | care_group_member | any member                                | owner, admin                       | owner, admin (role only)   | owner, admin, or yourself (leave) |
-  | care_recipient    | any member                                | owner, admin                       | owner, admin, caretaker    | owner, admin                      |
-  | care_group_invite | owner, admin                              | owner, admin                       | owner, admin (status only) | owner, admin                      |
-  | user              | self, staff, **co-members** (incl. email) | staff                              | self (no role/email)       | self, staff                       |
-  | timeline_entry    | any member                                | writers                            | writers                    | writers (soft)                    |
-  | note_document     | any member                                | writers (snapshot/text system)     | system                     | system                            |
-  | note_update       | any member                                | writers                            | system                     | system                            |
+  | Table                   | read/list                                 | create                             | update                     | delete                            |
+  | ----------------------- | ----------------------------------------- | ---------------------------------- | -------------------------- | --------------------------------- |
+  | care_group              | any member                                | any signed-in user (becomes owner) | owner, admin               | owner                             |
+  | care_group_member       | any member                                | owner, admin                       | owner, admin (role only)   | owner, admin, or yourself (leave) |
+  | care_recipient          | any member                                | owner, admin                       | owner, admin, caretaker    | owner, admin                      |
+  | care_group_invite       | owner, admin                              | owner, admin                       | owner, admin (status only) | owner, admin                      |
+  | user                    | self, staff, **co-members** (incl. email) | staff                              | self (no role/email)       | self, staff                       |
+  | timeline_entry          | any member                                | writers                            | writers                    | writers (soft)                    |
+  | note_document           | any member                                | writers (snapshot/text system)     | system                     | system                            |
+  | note_update             | any member                                | writers                            | system                     | system                            |
+  | provider                | any member                                | writers                            | writers                    | writers (soft)                    |
+  | timeline_entry_provider | any member                                | writers                            | system                     | writers                           |
   - `system` has `all` everywhere.
   - Ids that point at the group can't be changed except by `system`.
   - **Staff get no default access to care data.** Support access, if ever needed, will be an explicit, audited grant.
@@ -454,6 +483,7 @@ Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
 - **What they are:** the text of every **note and event** (`NOTE_DOCUMENT_KINDS`), a Yjs document. **Its id is the entry's id**, so two devices adding one offline make the same row and merge.
 - **Tables:**
   - `note_document`: `snapshot` (compacted Yjs, base64), derived `text`, and `editors` jsonb `{ [userId]: lastEditAt }` (default `{}`, system-only writes; a forged one in an upload is ignored).
+  - **Its owner** is `subject` (`entry | provider`, default `entry`) with `entry_id` or `provider_id`: exactly one set, equal to `id`, each a cascading composite FK (a check enforces it). A provider's notes are its document. `useLiveDocuments` and the Live now banner join through `timeline_entry`, so provider documents never show there.
   - `note_update`: append-only, base64 `data`, at most 1,000,000 chars.
   - Composite FKs cascade from the entry. `timeline_entry` has a unique `(group_id, id)` for this.
 - **Helpers** (`db/schema/noteYjs.ts`, client-safe): base64, `isYjsUpdate`, `buildNoteDoc`, `encodeNoteDoc`, `noteText` and its inverse `noteDocFromText` (one paragraph per line, `• ` lines as a bullet list). The fragment is `NOTE_FRAGMENT = "default"`.
@@ -484,6 +514,21 @@ Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
 - **Vite:** `optimizeDeps.include` pre-bundles yjs and Tiptap, and `resolve.dedupe` keeps one yjs, React and ProseMirror. Without both, "Yjs was already imported" and broken hooks after re-optimization.
 - **Latency:** a co-editor sees typing in about 0.5–0.8 s locally. Offline edits land about 2.5–3 s after reconnecting.
 - ❓ Presence and cursors (a websocket relay such as Hocuspocus): decide after real use. 🟡 Not built: a compaction cron sweep, a snapshot size cap, an oRPC read for documents, search over `text`.
+
+### Providers
+
+Built so far by [`plans/providers-prd.md`](plans/providers-prd.md) slice 1 (the data layer); the screens come in later slices.
+
+- **Tables:**
+  - `provider`: `group_id`, `type` (`clinician | practice | pharmacy | other`), `name`, `specialty`, `practice_id` (composite FK in the group), `phones` jsonb `[{ label, number }]` (at most 6), `email`, `address`, `website`, `status` (`current | past`), **`is_primary`** (not `primary`, an SQL keyword in Postgres, SQLite and PowerSync), `deleted_at`. Unique `(group_id, id)`.
+  - `timeline_entry_provider`: a link from a note or event to a provider. Its id is `entryProviderId(entryId, providerId)`, a UUID v5 (`db/schema/uuidV5.ts`, pure and synchronous), so the device and server derive the same id and a pair is one row. Composite FKs cascade; unlink is a hard delete.
+- **Rules** (`providerService`, `entryProviderService`; write through them):
+  - A practice must be a live practice or pharmacy in the same group, never the provider itself. Practices and pharmacies have no practice of their own. Changing a practice's type isn't blocked while clinicians point at it (open).
+  - Delete is soft and hides a provider from lists. Lists are in display order: primary, then current by name, then past by name.
+  - Links go only to live notes and events in the same group; a deleted provider is refused; an id in another group is `unauthorized`; unlinking a missing link succeeds (replays).
+- **Device** (`lib/sync/providers.ts`): queries (the list, one provider, an entry's providers including deleted ones for greyed names, a provider's entries, link history) and local writes (create, update, soft remove, link, unlink, and create-and-link in one transaction). Linking needs the entry to exist locally, so a draft must be materialized first. A device-created provider document writes `subject: "provider"` and `provider_id`.
+- **Seeds** (`seeds/providers.ts`, own ids): six fictional providers for Dev Family (a practice and its clinician, a cardiologist, a pharmacy, a home health aide, a past provider) with provider notes and links to seeded events and notes, and one for Dev Family 2.
+- **Browser check:** `providers.mjs` drives the device module through Vite imports against `window.caretookSync` (sync, offline create-and-link, viewer refusal). Later slices add their screen steps there.
 
 ## Planned: notifications (Resend iteration)
 
@@ -608,7 +653,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/lib/                session, group, groupContext, appUrls, me, auth-client, rpc, api, initials, entryDisplay, format,
                           redirect, form, liveEntry, firstSync, liveNow, titleSuggestions, theme, lastGroup, groupSections,
                           timelineFilters
-  app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors, titleSuggestions, members
+  app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors, titleSuggestions, members, providers
 packages/auth/            @caretook/auth
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
 packages/data/            @caretook/data
@@ -616,7 +661,7 @@ packages/data/            @caretook/data
   test/                   env guard, globalSetup, setup, fixtures
   src/constants/, errors/, permissions/
   src/db/                 client, types, migrate, clear, migrations/, seeds/
-  src/db/schema/          tables + Zod (client-safe), vitals, userPreferences, noteDocument, noteYjs, noteEditors
+  src/db/schema/          tables + Zod (client-safe), vitals, userPreferences, noteDocument, noteYjs, noteEditors, provider, entryProvider, uuidV5
   src/models/, src/services/
 ```
 

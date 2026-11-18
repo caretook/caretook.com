@@ -17,7 +17,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices; 1–3 in `dev` (wave 1). **Paused:** slices 4–7 resume after `routing` and `components` land | `live-notes-ux` (done), `app-shell` (done); slices 4–7 wait for `routing` and `components` | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
 | `search`          | to write | `timeline-polish`'s infinite scroll (slice 7, after `routing` and `components`) | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx` |
 | `providers`       | [PRD](providers-prd.md), [plan](providers-plan.md): 7 slices, not started; slice 1 (data) can run now | slice 1: none; 2: `routing` 1; 3: `routing` 2; 5–7 (linking): `components` 2–4 | new tables `provider`, `timeline_entry_provider`; a `note_document` change (reseed); sync config, upload switch, permissions, device schema, seeds; `GROUP_SECTIONS`, `routes.ts`, the entry header, timeline row/card body |
-| `medications`     | to write | `app-shell`'s group nav (in `dev`); `providers` (soft) | new tables (as providers), `KIND_META`, `EntryForm` |
+| `medications`     | planned (6 slices) | `providers` slice 1 (data); `routing` (screens); `components` (primitives, soft) | `TIMELINE_ENTRY_KINDS`, `KIND_META`, timeline strips and quick add, `care_recipient`, `note_document`, sync and upload registries, `GROUP_SECTIONS`, `routes.ts` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started. **Runs next** | `app-shell` (done), `timeline-polish` wave 1 (in `dev`; its slices 4–7 wait for this) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
 | `components`      | [PRD](components-prd.md), [plan](components-plan.md): 6 slices, not started. Runs after `routing`, before `timeline-polish` slices 4–7 | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
@@ -40,7 +40,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
-| B-13 | plan | triaged | providers |  | Provider directory with search, linked from events |
+| B-13 | plan | in-progress | providers | prd/providers | Provider directory with search, linked from events |
 | B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
@@ -52,7 +52,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 | B-23 | change | in-progress | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
-| B-25 | feature | inbox |  |  | @-mentions of providers inside live notes and events |
+| B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
+| B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
+| B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
+| B-28 | chore | triaged | quick-fixes |  | Limit browser checks machine-wide: a lock so at most two run at once |
+| B-29 | chore | triaged | quick-fixes |  | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 
 ## Items
 
@@ -203,14 +207,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-13 · plan · Provider directory with search, linked from events
 
-- status: triaged
+- status: in-progress
 - prd: providers
-- owner:
+- owner: prd/providers
 - commit:
 
 - 2026-11-17 (dev keeper): To settle: one table with a type (provider, pharmacy, facility, contact) or several; what an event's link stores.
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/providers-prd.md. One provider table (clinician | practice | pharmacy | other), clinician→practice link, phones, primary (any number), past status, live notes via a generalized note_document, soft delete. Plan after components lands.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/providers-plan.md. Slices 1–4 (data now; list after routing 1; add/edit after routing 2; provider page). Only linking (B-14, slices 5–7) waits for components 2–4.
+- 2026-11-18 (slice/providers/1): slice/providers/1 (09b62bd, 17b861d): data layer done — provider + timeline_entry_provider tables, note_document subject/entry_id/provider_id, services, sync, device module lib/sync/providers.ts, seeds; providers.mjs started
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
@@ -231,6 +236,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Place "a dose was given" with the kind definitions first (a new kind, not a vital). Prescriber links depend on providers.
+- 2026-11-18 (Robert Bo Davis): PRD written: plans/medications-prd.md. New kinds dose and medicationChange (auto-written with the medication), simple schedules in the recipient's zone, missed doses derived, print page with print CSS, date of birth synced. Data layer waits on providers slice 1; screens on routing.
 
 ### B-16 · question · How does the timeline's layout (rows or cards) persist?
 
@@ -309,6 +315,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Planned: plans/routing-plan.md, 5 slices (1 alone; 2→3 parallel with 4→5).
 - 2026-11-18 (Robert Bo Davis): 2026-11-18: the user is running this next. Its dependency is met: app-shell is done and timeline-polish wave 1 is in dev (644f780); timeline-polish slices 4-7 are paused until routing and components land. routing-plan.md and routing-prd.md still say to wait for all of timeline-polish.
 - 2026-11-18 (slice/routing/1): slice 1 committed on slice/routing/1 (2a4bfad, 54d28fd): group route via client middleware (works in native SPA), appUrls, folder per route
+- 2026-11-18 (slice/routing/3): slice 3 (edit-sheet URL timeline/:entryId/edit) committed on slice/routing/3 (38f0973, 33d4b98); check and all browser checks pass
 
 ### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
@@ -324,9 +331,48 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: providers
 - owner:
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Later, after providers' linking lands. Typing @ in a note's or event's text suggests providers; a mention links the provider like the With row. Needs @tiptap/extension-mention and @tiptap/suggestion (new dependencies: the user's approval). Out of scope for the providers PRD.
+- 2026-11-18 (prd/providers): Triaged to providers by its orchestrator: @-mentions need the provider table and links (slices 1 and 5). A follow-up after slice 5, not in the current plan.
+
+### B-26 · feature · Allergies on the care recipient, shown on the medications page and printed sheet
+
+- status: triaged
+- prd: medications
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Left out of the medications PRD's v1 (2026-11-18). Likely a synced list of { substance, reaction, severity } on care_recipient; the print sheet gets an allergies line when it lands.
+
+### B-27 · bug · routing.mjs fails: group settings blank after the entry step; account Sign out flaky
+
+- status: triaged
+- prd: routing
+- owner:
+- commit:
+
+- 2026-11-18 (prd/providers): Found by the providers orchestrator while landing providers slice 1. routing.mjs fails on dev itself (b869738, routing wave 2): 'group settings opens under the group route' fails every run (54/55): after the entry step, c.goto(/app/groups/<id>/settings) renders no main and no window.caretookSync; the only console error is Vite's 'Failed to send error to Vite server: TypeError: Cannot read properties of undefined (reading send)', which hides the real error. Not reproduced by a standalone script (sign in, open the same seeded note, then settings), so it depends on routing.mjs's earlier state (its proxy browser). One run also failed 'Account's Sign out signs out' and '/app/settings then asks to sign in' (/app/settings/account), possibly load (avg 60-230). Every other check passed on prd/providers.
+
+### B-28 · chore · Limit browser checks machine-wide: a lock so at most two run at once
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Browser checks were 63% of tool time (850 runs, ~10 h) and ~30% failed, mostly timeouts and PowerSync 401s under contention, causing reruns. A wrapper (e.g. pnpm prd browser <check>) takes one of two lock dirs under .loops/.browser/, like the slot leases, waits for a free one, runs the check with the worktree's .env.loop, and releases on exit (including timeouts for signout-wipe and layout-offline). See AGENTS.md, Browser check budget.
+- 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 4 (plans/quick-fixes-plan.md): pnpm prd browser with two machine-wide leases, --timeout, --suite.
+
+### B-29 · chore · Restart PowerSync inside datastore:reset, and fix the flakes it causes
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): PowerSync 401s and PSYNC_S2101 (stale JWKS after a reset) were the most common browser-check failure. datastore:reset should restart the worktree's own powersync container and wait until it accepts a token, so the first check after a reset doesn't fail. Already on AGENTS.md Next steps (live notes follow-ups).
+- 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 5 (plans/quick-fixes-plan.md): datastore:reset restarts this worktree's PowerSync and waits for the new JWKS; cdp.mjs retries one 401.

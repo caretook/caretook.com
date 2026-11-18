@@ -57,6 +57,13 @@
       "when": 1794965761143,
       "tag": "0007_note_editors",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795019497062,
+      "tag": "0008_providers",
+      "breakpoints": true
     }
   ]
 }

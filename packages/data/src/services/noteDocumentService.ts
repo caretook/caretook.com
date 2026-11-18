@@ -1,5 +1,11 @@
 import type { z } from "zod";
-import type { NoteDocumentCreateInput, NoteUpdateCreateInput, Tx } from "../db";
+import type {
+  NoteDocument,
+  NoteDocumentCreateInput,
+  NoteDocumentSubject,
+  NoteUpdateCreateInput,
+  Tx,
+} from "../db";
 import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
@@ -15,12 +21,12 @@ import {
   parseNoteEditors,
 } from "../db/schema";
 import { isError, newError } from "../errors";
-import { noteDocumentModel, noteUpdateModel, timelineEntryModel } from "../models";
+import { noteDocumentModel, noteUpdateModel, providerModel, timelineEntryModel } from "../models";
 import { rejectError } from "../permissions";
 
-// Live documents (collaborative notes) on note and event entries. Write
-// documents and updates through here, not the models: this is where the
-// entry's kind, group and deletion are checked.
+// Live documents (collaborative notes) on note and event entries, and on
+// providers. Write documents and updates through here, not the models: this
+// is where the owner's kind, group and deletion are checked.
 //
 // A document's state is its snapshot plus its pending updates. Devices only
 // ever append updates; `compact` folds them into the snapshot and refreshes
@@ -43,22 +49,42 @@ export const COMPACT_AFTER_UPDATES = 20;
 /** …or once the oldest has waited this long (seconds), so active editing compacts every minute or so. */
 export const COMPACT_AFTER_SECONDS = 60;
 
-/** The entry, as the actor sees it. Deleted entries are hidden, and so are their documents. */
-const liveEntry = async (ctx: ServiceContext, tx: Tx, id: string) => {
+/**
+ * The document's owner (an entry or a provider), as the actor sees it.
+ * Deleted owners are hidden, and so are their documents.
+ */
+const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubject, id: string) => {
+  if (subject === "provider") {
+    const provider = await providerModel.getById(id, { ...ctx, tx });
+    if (isError(provider)) return provider;
+    return provider
+      ? { groupId: provider.groupId, kind: null }
+      : newError({ code: "noteDocumentService:providerNotFound" });
+  }
   const entry = await timelineEntryModel.getById(id, { ...ctx, tx });
   if (isError(entry)) return entry;
-  return entry ?? newError({ code: "noteDocumentService:entryNotFound" });
+  return entry
+    ? { groupId: entry.groupId, kind: entry.kind }
+    : newError({ code: "noteDocumentService:entryNotFound" });
 };
 
-/** The document, if the actor can see it and its entry isn't deleted. */
+/** The document, if the actor can see it and its owner isn't deleted. */
 const visibleDocument = async (ctx: ServiceContext, tx: Tx, id: string) => {
   const doc = await noteDocumentModel.getById(id, { ...ctx, tx });
   if (isError(doc)) return doc;
   if (!doc) return notFound();
-  const entry = await timelineEntryModel.getById(id, { ...ctx, tx });
-  if (isError(entry)) return entry;
-  return entry ? doc : notFound();
+  const owner = await liveOwner(ctx, tx, doc.subject, id);
+  return isError(owner) ? notFound() : doc;
 };
+
+/** The owner columns for a document: exactly one is set, to the document's id. */
+const ownerColumns = (
+  subject: NoteDocumentSubject,
+  id: string,
+): Pick<NoteDocument, "subject" | "entryId" | "providerId"> =>
+  subject === "provider"
+    ? { subject, entryId: null, providerId: id }
+    : { subject, entryId: id, providerId: null };
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -93,8 +119,9 @@ export const currentText = (ctx: ServiceContext, id: string) =>
 // ---------------------------------------------------------------------------
 
 /**
- * Add a live document to an entry (`id` is the entry's id). Only writers,
- * only on a live note or event, in the entry's own group.
+ * Add a live document to an entry or a provider (`id` is the owner's id;
+ * `subject` defaults to an entry). Only writers, only on a live note or
+ * event or a provider that isn't deleted, in the owner's own group.
  *
  * Idempotent: if the entry already has one, that one is returned. That's
  * also PowerSync's replay, and two offline devices adding one at once.
@@ -103,18 +130,20 @@ export const create = (ctx: ServiceContext, input: NoteDocumentCreateInput) =>
   withTransaction(async (tx) => {
     const parsed = noteDocumentCreateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { id, groupId } = parsed.data;
+    const { id, groupId, subject } = parsed.data;
 
-    const entry = await liveEntry(ctx, tx, id);
-    if (isError(entry)) return entry;
-    if (entry.groupId !== groupId) return immutable();
-    if (!canHaveNoteDocument(entry.kind)) return newError({ code: "noteDocumentService:wrongKind" });
+    const owner = await liveOwner(ctx, tx, subject, id);
+    if (isError(owner)) return owner;
+    if (owner.groupId !== groupId) return immutable();
+    if (owner.kind !== null && !canHaveNoteDocument(owner.kind)) {
+      return newError({ code: "noteDocumentService:wrongKind" });
+    }
 
     const existing = await noteDocumentModel.getById(id, { ...ctx, tx });
     if (isError(existing)) return existing;
-    if (existing) return existing;
+    if (existing) return existing.subject === subject ? existing : immutable();
 
-    return noteDocumentModel.create({ ...ctx, tx, data: { id, groupId } });
+    return noteDocumentModel.create({ ...ctx, tx, data: { id, groupId, ...ownerColumns(subject, id) } });
   }, ctx);
 
 /**
