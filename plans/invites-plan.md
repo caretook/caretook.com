@@ -12,7 +12,7 @@
 | 4     | blocked by 3                                                                                      |                                          |
 | 5     | blocked by 3                                                                                      |                                          |
 
-Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. Wave 1 = slices 1 and 2: both merged and synced with `dev`. **Blocker before landing:** `dev` (quick-fixes B-38) now runs browser checks on a production build (`serve.sh --built`), where `/dev/mail` was a 404 and the `log` sender refused, so `invites.mjs` failed. A fix-up on `slice/invites/2` allows both in a check build on a localhost `APP_URL` only.
+Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. **Wave 1 (slices 1 and 2) landed in `dev` as `3c1723a`** (2026-11-18): full suite 12/12 on a check build, including the check-build mail fix (`08a7de0`). Slice 3 is in progress (`.loops/invites-3`, slot 6); then 4 and 5 in parallel (the user asked for that), merging 4 first and having 5 regenerate the wave's migration.
 
 **The user's go-ahead (2026-11-18): land the rest of this PRD's waves without asking**, once each is green (wave 1, then 3, then 4 and 5). Every other rule still applies.
 
