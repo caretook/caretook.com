@@ -37,7 +37,7 @@ Durable decisions every slice follows:
 - **Don't start until `routing` has fully landed in `dev`.** It moves the files this plan splits.
 - **Slice 1 runs alone** (it creates the folders and the menu primitive everything else follows). **2 after 1.**
 - Then **3 and 4 run in parallel** (the timeline vs. the entry page). **5 after 3** (the timeline hosts the form's sheet route). **6 last.**
-- Merge in number order. After each merge, rerun every browser check: `app-shell`, `phase2`, `roundtrip`, `live-notes`, `routing`, `first-sync`, `sign-in`, `signout-wipe` and `layout-offline` (the last two with a timeout), plus `ui.mjs`.
+- Merge in number order. After each merge, run `ui.mjs` plus the checks for the areas the merge touched (AGENTS.md, _Browser check budget_); this PRD touches many areas, so expect most of them. The full suite (`app-shell`, `phase2`, `roundtrip`, `live-notes`, `routing`, `first-sync`, `sign-in`, `signout-wipe` and `layout-offline`, the last two with a timeout) runs once per landing.
 - Every slice ends with `pnpm check`, `pnpm build:native`, its browser checks, a bundle-size comparison of the timeline and entry routes against its base (no growth beyond noise), and a hand-off (AGENTS.md, _Loop rules_).
 - **Land after each wave** (1; 2; 3 and 4; 5; 6), so other PRDs can sync in between and their conflicts stay small.
 

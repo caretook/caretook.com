@@ -106,6 +106,29 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 
 **Capacity.** One stack uses about 250 MB idle (the Docker VM has 32 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together. Six busy stacks at once (three loops plus two other PRDs) pushed the load average past 500: `pnpm check` took 25 minutes, tests hit their 5 s timeouts, and sign-ins in browser checks timed out. Rerun a failure like that once the load drops before debugging it.
 
+**Browser check budget.** Browser checks were 63% of all tool time across the first PRDs (850 runs, about 10 h), and about 30% of runs failed, mostly on timeouts and PowerSync 401s under load, which caused more reruns and more load. So:
+
+- **While building, a loop runs only the check for what it's changing** (its own check, or the one step it's working on), never the whole suite.
+- **Before hand-off, a loop runs its slice's checks once**: its own check plus the checks for the areas its files touch (the table below).
+- **After each merge, an orchestrator runs the checks for the areas the merge touched** (`git diff --stat` against the previous merge, mapped through the table), not every check.
+- **The full suite runs once per landing**, in step 1 of _Landing a wave_, against a freshly restarted dev server.
+- **This overrides any plan** that says "rerun every browser check after each merge".
+- **A timeout, 401 or PSYNC_S2101 is contention until shown otherwise.** Check `uptime`; if the load is above about 20, wait for it to drop, then rerun that one check once. Debug only a failure that repeats on a quiet machine.
+- **Don't run two checks at once in one worktree**, and stagger checks across loops like `pnpm check`.
+
+| Area changed                                                                 | Checks                                                        |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| the timeline screen, rows and cards, filters, vitals strip                   | `phase2.mjs`                                                  |
+| add and edit sheets, `EntryForm`, local timeline writes                      | `roundtrip.mjs`                                               |
+| the entry page, live notes, `note_document`, editors, Live now               | `live-notes.mjs`                                              |
+| the `/app` frame, menus, theme, group settings, members                      | `app-shell.mjs`                                               |
+| routes, `routes.ts`, `appUrls`, sheet URLs, settings subpages                | `routing.mjs`                                                 |
+| settings saves, `lib/me.ts`                                                  | `settings-layout.mjs`, `layout-offline.mjs` (timeout)         |
+| session, sign-in, sign-out, sync client, first sync                          | `sign-in.mjs`, `first-sync.mjs`, `signout-wipe.mjs` (timeout) |
+| a feature's own screens                                                      | its own check (`providers.mjs`, `medications.mjs`, …)         |
+| schema, migrations, sync-config, the upload switch, seeds                    | the checks for every screen that reads those tables           |
+| docs, plans, scripts outside `browser-checks/`, pure modules with unit tests | none                                                          |
+
 **Starting a PRD (the user):** `pnpm prd start <topic>`, then run the command it prints in a new terminal (`cd .loops/<topic> && claude "$(scripts/loops/prompt.sh orchestrator <topic>)"`). From then on the user steers that PRD from its orchestrator's console: which slices to run, and when to land.
 
 **Keep each orchestrator's context small.** A session may run wave after wave; start a fresh one (the same command) whenever it gets slow or confused. The plan's _Status_ section makes that safe at any wave boundary.
@@ -119,13 +142,13 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 2. For each ready slice: `pnpm prd slice <topic> <n>`.
 3. Spawn one background agent per slice (not with `isolation: worktree`; it already is one), with the prompt from `pnpm prd prompt slice <topic> <n>` plus anything the slice needs that the plan doesn't say.
 4. As each loop hands off, review its branch: `git diff prd/<topic>...slice/<topic>/<n>`, its hand-off, and that the acceptance criteria are covered.
-5. Merge **in plan order** into `prd/<topic>`, in your integration worktree, with `git merge --no-ff -m "feat(<topic>): <what it adds> (slice <n>, B-<n>)" slice/<topic>/<n>`. Resolve conflicts in the shared files yourself. After each merge, run `pnpm check` and the browser checks the merged slices touch, there. Fix it or send it back before merging the next one.
+5. Merge **in plan order** into `prd/<topic>`, in your integration worktree, with `git merge --no-ff -m "feat(<topic>): <what it adds> (slice <n>, B-<n>)" slice/<topic>/<n>`. Resolve conflicts in the shared files yourself. After each merge, run `pnpm check` and the browser checks for the areas the merge touched (the _Browser check budget_ table), there. Fix it or send it back before merging the next one.
 6. Once merged: `pnpm backlog done B-<n>` for its items, then `pnpm prd rm <topic>-<n>` (it deletes the merged branch). Start the slices it unblocked.
 7. **Land the wave** when it's green. Don't wait for the whole PRD: small, frequent landings keep PRDs from drifting apart.
 
 **Landing a wave in `dev`:**
 
-1. **Sync and check.** In the integration worktree: `pnpm prd sync` (merges `dev`; resolve conflicts there, regenerate your migration if `dev` gained one, `pnpm datastore:reset`), the PRD's browser checks, then `pnpm prd check`. Backlog-only commits on `dev` don't count as drift, so `pnpm backlog` writes never force another sync.
+1. **Sync and check.** In the integration worktree: `pnpm prd sync` (merges `dev`; resolve conflicts there, regenerate your migration if `dev` gained one, `pnpm datastore:reset`, `docker compose restart powersync`), `pnpm prd serve --restart`, the **full browser check suite once** (one at a time; the only full run of the wave), then `pnpm prd check`. Backlog-only commits on `dev` don't count as drift, so `pnpm backlog` writes never force another sync.
 2. **Serve it and report.** `pnpm prd serve --restart`, then show the user the output of `pnpm prd ready`: the dev server link and seed accounts, the backlog items this landing addresses (grouped as bugs fixed, features, changes), what's still open in the PRD, the commits, and warnings for a migration, seed, sync-config or dependency change. Add the browser checks you ran and two or three things worth trying by hand. If it lists blockers, fix them first.
 3. **Wait for the user.** They may try it at the link, ask for changes (send those back to a loop, then repeat from step 1), or say to land it.
 4. **Land on their word only:** `pnpm prd land <topic> -m "feat(<topic>): <what the wave adds> (B-<n>, …)"`. It refuses unless the branch is synced and `pnpm prd check` passed on its tip, so the code landing in `dev` is exactly the code that was checked; no recheck on `dev` is needed. It prints what the main checkout needs afterwards (`pnpm datastore:reset`, a PowerSync restart, `pnpm install`) and never pushes: `git push origin dev` is the user's.
@@ -150,6 +173,7 @@ A go-ahead covers one landing. An agent never lands on its own judgment, never w
 - After editing `powersync/sync-config.yaml`, restart your own PowerSync: `docker compose restart powersync`.
 - Follow the rules across PRDs (migrations, seeds, registries). Edits to shared files stay small and are listed in the hand-off. Don't edit AGENTS.md, and change the backlog only through `pnpm backlog note`.
 - No new dependencies. All data stays fictional.
+- Browser checks follow the _Browser check budget_: while building, only the check for what you're changing; before hand-off, your slice's checks once (its own plus the table's checks for the areas you touched). Never the full suite; the orchestrator runs that at landing.
 - When `pnpm check` and the slice's browser checks pass, **commit on your `slice/<topic>/<n>` branch** (coherent Conventional Commits scoped to the topic, ending with the attribution line). Don't merge, rebase or push any other branch, and never set `CARETOOK_ALLOW_PROTECTED`.
 - **Hand-off** (the final message): what was built, grouped by area, with every shared-file edit called out; each acceptance criterion marked met or not met, with evidence; the `pnpm check` and browser-check output; anything skipped or surprising that later slices need; and the commit SHAs.
 
@@ -161,7 +185,7 @@ A go-ahead covers one landing. An agent never lands on its own judgment, never w
 - **Running `new.sh` for several worktrees at once** can fail at migrate with "Connection terminated unexpectedly": a fresh Postgres restarts once after its first-boot init. The containers are fine; rerun `pnpm datastore:start && pnpm datastore:start:test` in each.
 - **The first check run after a `datastore:reset` or a PowerSync restart** can fail on a PowerSync 401 (the JWKS refetch) or slow first sync (`live-notes.mjs` timing steps). Rerun once before debugging.
 - **PowerSync can keep the old JWKS for minutes after a `datastore:reset`** ("no key matched the token KID", PSYNC_S2101), and pages then wait on `waitForFirstSync`. Run `docker compose restart powersync` after a reset.
-- **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). Run every merged slice's check after each merge, not only the new one's.
+- **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). After each merge, run the checks for every area the merge touched (the _Browser check budget_ table), not only the new slice's own check; the full suite at landing catches the rest.
 - **Long-running dev servers** can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
 - **Recent-editor state outlives a reset in PowerSync's bucket storage** (not cleared by `datastore:reset`): right after a reset it can still serve editors with the old user ids ("Former member"). Restart PowerSync and give it a minute before `live-notes.mjs`. (Its own "who's typing" steps don't need a quiet group: it ages only its own documents.)
 
