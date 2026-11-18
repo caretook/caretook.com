@@ -16,7 +16,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices; 1–3 in `dev` (wave 1). **Paused:** slices 4–7 resume after `routing` and `components` land | `live-notes-ux` (done), `app-shell` (done); slices 4–7 wait for `routing` and `components` | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
 | `search`          | to write | `timeline-polish`'s infinite scroll (slice 7, after `routing` and `components`) | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx` |
-| `providers`       | to write | `app-shell`'s group nav (in `dev`) | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
+| `providers`       | [PRD](providers-prd.md): written; plan after `components` lands | `routing`, `components` | new tables `provider`, `timeline_entry_provider`; a `note_document` migration; sync config, upload switch, permissions, device schema, seeds; `GROUP_SECTIONS`, `routes.ts`, the entry header, timeline row/card body |
 | `medications`     | to write | `app-shell`'s group nav (in `dev`); `providers` (soft) | new tables (as providers), `KIND_META`, `EntryForm` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started. **Runs next** | `app-shell` (done), `timeline-polish` wave 1 (in `dev`; its slices 4–7 wait for this) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
@@ -208,6 +208,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): To settle: one table with a type (provider, pharmacy, facility, contact) or several; what an event's link stores.
+- 2026-11-18 (Robert Bo Davis): PRD written: plans/providers-prd.md. One provider table (clinician | practice | pharmacy | other), clinician→practice link, phones, primary (any number), past status, live notes via a generalized note_document, soft delete. Plan after components lands.
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
