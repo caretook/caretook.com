@@ -118,6 +118,7 @@ apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
 apps/web/app/lib/sync/providers.ts       providers
+apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 
 # Marketing (web only).
 apps/web/app/routes/marketing/*          marketing

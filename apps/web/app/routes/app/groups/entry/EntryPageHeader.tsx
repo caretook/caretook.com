@@ -38,6 +38,9 @@ export function EntryPageHeader({
   const { entry, canWrite, deleted, stored } = live;
   const noun = KIND_META[entry.kind].label.toLowerCase();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // The title being typed counts for suggestions until it's saved (or someone else renames it).
+  const [typed, setTyped] = useState<{ text: string; over: string | null } | null>(null);
+  const currentTitle = typed && typed.over === entry.title ? typed.text : entry.title;
 
   return (
     <>
@@ -52,6 +55,7 @@ export function EntryPageHeader({
             groupId={groupId}
             onCommit={live.commitTitle}
             onPick={onPickTitle}
+            onTextChange={(text) => setTyped({ text, over: entry.title })}
           />
         }
         time={
@@ -85,6 +89,7 @@ export function EntryPageHeader({
               entryId={entry.id}
               groupId={groupId}
               canWrite={canWrite}
+              title={currentTitle}
               ensureStored={live.ensureStored}
             />
           )
