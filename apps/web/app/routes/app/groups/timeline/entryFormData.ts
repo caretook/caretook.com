@@ -6,7 +6,7 @@ import type {
   VitalType,
 } from "@caretook/data/schema";
 
-import { fromDisplay, VITAL_TYPES, VITALS } from "@caretook/data/schema";
+import { DEFAULT_UNITS, fromDisplay, unitChoicesZSchema, VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { parseZonedDateTime } from "@internationalized/date";
 import { formString } from "~/lib/form";
 import { localTimeZone } from "~/lib/format";
@@ -21,6 +21,16 @@ const parseOccurredAt = (value: string) => {
 };
 
 const optional = (value: string) => value.trim() || null;
+
+/** The units a form displayed (its hidden `units` field), or the defaults. */
+export const parseUnits = (json: string): UnitChoices => {
+  try {
+    const parsed = unitChoicesZSchema.safeParse(JSON.parse(json));
+    return parsed.success ? parsed.data : DEFAULT_UNITS;
+  } catch {
+    return DEFAULT_UNITS;
+  }
+};
 
 /** The name of one vital reading's input: `vital.0.type`, `vital.0.systolic`… */
 export const vitalInputName = (index: number, key: string) => `vital.${index}.${key}`;
