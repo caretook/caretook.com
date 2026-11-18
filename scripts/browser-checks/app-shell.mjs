@@ -1,4 +1,4 @@
-import { launch, openPage, sleep } from "./cdp.mjs";
+import { launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
 // The /app frame (app-shell PRD): the header's regions and the user menu.
 // Slice 1: Caretook, sync status and the avatar fit one row at 420 wide; the
 // avatar shows initials and has a name; the menu opens by tap and keyboard,
@@ -16,6 +16,11 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // links at 1280. Later slices append their checks.
 // Slice 5: group settings (owner, caretaker, viewer, invalid input, offline, a non-member's 404), as one block before the console check.
 // Slice 6: the members list (role change seen live on a second device, owner-only and last-owner refusals, remove, leave), as the last block: it changes Dev Family's memberships and puts the seeds' back.
+//
+// Pure rules are left to their unit tests: where /app goes (resolveHomeGroup in
+// lastGroup.test.ts), what each role may edit and the field messages
+// (groupSettings.test.ts). SMOKE=1 runs member@'s core path only: the header,
+// the user menu, the group menu, the last group, a theme, and Sign out.
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 
 const results = [];
@@ -304,41 +309,43 @@ try {
   check("avatar: accessible name", avatar.label === "Account menu for Dev Member", avatar.label);
 
   // 1b. Sections (slice 4), 420 wide: the tab bar, nothing hidden behind it.
-  await sections(A);
+  await step("sections: the tab bar and the header's links", () => sections(A));
 
   // 2. Keyboard: Enter opens, focus moves into the menu, arrows move, Escape closes and returns focus.
-  await A.evaluate(`${TRIGGER}.focus()`);
-  await enter(A);
-  const opened = await A.waitFor(MENU, 5000)
-    .then(() => true)
-    .catch(() => false);
-  check("keyboard: Enter opens the menu", opened);
-  const header = await A.evaluate(`${MENU}?.textContent ?? ""`);
-  check(
-    "menu: shows the name and email",
-    header.includes("Dev Member") && header.includes("member@example.com"),
-  );
-  await sleep(200);
-  const first = await focusedText(A);
-  await down(A);
-  await sleep(100);
-  const second = await focusedText(A);
-  check(
-    "keyboard: focus is on a menu item, and arrows move it",
-    first === "Settings" && second === "System",
-    `${first} → ${second}`,
-  );
-  const headerFocusable = await A.evaluate(
-    `[...${MENU}.querySelectorAll('[role="menuitem"]')].some((el) => el.textContent.includes("member@example.com"))`,
-  );
-  check("menu: the name and email aren't an item", !headerFocusable);
-  await escape(A);
-  await A.waitFor(`!${MENU}`, 5000);
-  await sleep(200);
-  check(
-    "keyboard: Escape closes, and focus returns to the avatar",
-    await A.evaluate(`document.activeElement === ${TRIGGER}`),
-  );
+  await step("the user menu by keyboard", async () => {
+    await A.evaluate(`${TRIGGER}.focus()`);
+    await enter(A);
+    const opened = await A.waitFor(MENU, 5000)
+      .then(() => true)
+      .catch(() => false);
+    check("keyboard: Enter opens the menu", opened);
+    const header = await A.evaluate(`${MENU}?.textContent ?? ""`);
+    check(
+      "menu: shows the name and email",
+      header.includes("Dev Member") && header.includes("member@example.com"),
+    );
+    await sleep(200);
+    const first = await focusedText(A);
+    await down(A);
+    await sleep(100);
+    const second = await focusedText(A);
+    check(
+      "keyboard: focus is on a menu item, and arrows move it",
+      first === "Settings" && second === "System",
+      `${first} → ${second}`,
+    );
+    const headerFocusable = await A.evaluate(
+      `[...${MENU}.querySelectorAll('[role="menuitem"]')].some((el) => el.textContent.includes("member@example.com"))`,
+    );
+    check("menu: the name and email aren't an item", !headerFocusable);
+    await escape(A);
+    await A.waitFor(`!${MENU}`, 5000);
+    await sleep(200);
+    check(
+      "keyboard: Escape closes, and focus returns to the avatar",
+      await A.evaluate(`document.activeElement === ${TRIGGER}`),
+    );
+  });
 
   // 3. Tap: open, Settings navigates.
   await A.press(TRIGGER);
@@ -419,43 +426,22 @@ try {
     .catch(() => false);
   check("/app: goes to the last group after a reload", reloaded);
 
-  // A remembered group you're no longer in: the list, without an error.
-  // Wait for the reloaded page's own remembering first, or it can overwrite
-  // the stale value below: GroupMenu remembers the group in an effect of the
-  // commit that first shows it (so wait for the menu, then a frame for the
-  // effect), and doesn't write the key again after that.
-  await A.waitFor(
-    `${GROUP_TRIGGER}?.textContent.trim() === "Grandpa Lou" && !!window.caretookSync?.userId`,
-    20000,
-  );
-  await A.evaluate(`new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))`);
-  await A.evaluate(
-    `localStorage.setItem("caretook:lastGroup:" + window.caretookSync.userId, "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8dffff")`,
-  );
-  await A.goto("/app");
-  const fellBack = await A.waitFor(
-    `location.pathname === "/app" && document.querySelectorAll('main a[href$="/timeline"]').length === 2`,
-    20000,
-  )
-    .then(() => true)
-    .catch(() => false);
-  check("/app: a stale remembered group falls back to the list", fellBack);
-  check(
-    "/app: no error page for a stale group",
-    await A.evaluate(`!document.body.textContent.includes("Something went wrong")`),
-  );
+  // A remembered group you're no longer in falls back to the list: resolveHomeGroup's rule (lastGroup.test.ts).
+  await A.waitFor(`${GROUP_TRIGGER}?.textContent.trim() === "Grandpa Lou"`, 20000);
 
   // 4. Theme (slice 2).
-  await A.press(TRIGGER);
-  await A.waitFor(radio("Dark"), 5000);
-  const themeItems = await A.evaluate(
-    `[...document.querySelectorAll('[role="menuitemradio"]')].map((el) => el.textContent.trim()).join(",")`,
-  );
-  check("theme: System, Light and Dark radios in the menu", themeItems === "System,Light,Dark", themeItems);
-  check("theme: System is checked by default", (await A.evaluate(checkedTheme)) === "System");
-  await A.screenshot("app-shell-theme-menu");
-  await escape(A);
-  await A.waitFor(`!${MENU}`, 5000);
+  await step("theme: the menu's radios", async () => {
+    await A.press(TRIGGER);
+    await A.waitFor(radio("Dark"), 5000);
+    const themeItems = await A.evaluate(
+      `[...document.querySelectorAll('[role="menuitemradio"]')].map((el) => el.textContent.trim()).join(",")`,
+    );
+    check("theme: System, Light and Dark radios in the menu", themeItems === "System,Light,Dark", themeItems);
+    check("theme: System is checked by default", (await A.evaluate(checkedTheme)) === "System");
+    await A.screenshot("app-shell-theme-menu");
+    await escape(A);
+    await A.waitFor(`!${MENU}`, 5000);
+  });
 
   await scheme(A, "light");
   const rpcCount = `performance.getEntriesByType("resource").filter((e) => new URL(e.name).pathname.startsWith("/rpc")).length`;
@@ -470,60 +456,63 @@ try {
   await sleep(500);
   check("theme: choosing isn't sent to the server", (await A.evaluate(rpcCount)) === rpcBefore);
 
-  const { identifier: probeId } = await A.send("Page.addScriptToEvaluateOnNewDocument", {
-    source: FIRST_PAINT_PROBE,
+  await step("theme: reload, Light, System and offline", async () => {
+    const { identifier: probeId } = await A.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: FIRST_PAINT_PROBE,
+    });
+    await reload(A);
+    await A.waitFor(TRIGGER, 30000);
+    const probe = await A.evaluate(`window.__themeProbe`);
+    check(
+      "theme: after reload, Dark is set before first paint (no light flash)",
+      probe?.body === "dark" && probe?.frame === "dark",
+      JSON.stringify(probe),
+    );
+    await A.screenshot("app-shell-theme-dark");
+    await A.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: probeId });
+    await A.press(TRIGGER);
+    await A.waitFor(radio("Dark"), 5000);
+    check("theme: the menu shows Dark checked after reload", (await A.evaluate(checkedTheme)) === "Dark");
+    await escape(A);
+    await A.waitFor(`!${MENU}`, 5000);
+
+    await chooseTheme(A, "Light");
+    await scheme(A, "dark");
+    const light = await A.evaluate(themeState);
+    check(
+      "theme: Light overrides a dark device",
+      light.attr === "light" && light.scheme === "light" && light.saved === "light",
+      JSON.stringify(light),
+    );
+
+    await chooseTheme(A, "System");
+    const sysDark = await A.evaluate(themeState);
+    await scheme(A, "light");
+    await sleep(200);
+    const sysLight = await A.evaluate(themeState);
+    check(
+      "theme: System removes the attribute and follows prefers-color-scheme both ways",
+      sysDark.attr === null &&
+        sysDark.saved === null &&
+        sysDark.scheme === "dark" &&
+        sysLight.attr === null &&
+        sysLight.scheme === "light",
+      `${JSON.stringify(sysDark)} / ${JSON.stringify(sysLight)}`,
+    );
+
+    // Offline: the choice still works (it's local only).
+    await A.offline(true);
+    await chooseTheme(A, "Dark");
+    const offlineDark = await A.evaluate(themeState);
+    await chooseTheme(A, "System");
+    await A.offline(false);
+    check(
+      "theme: works offline",
+      offlineDark.attr === "dark" && offlineDark.saved === "dark",
+      JSON.stringify(offlineDark),
+    );
   });
-  await reload(A);
-  await A.waitFor(TRIGGER, 30000);
-  const probe = await A.evaluate(`window.__themeProbe`);
-  check(
-    "theme: after reload, Dark is set before first paint (no light flash)",
-    probe?.body === "dark" && probe?.frame === "dark",
-    JSON.stringify(probe),
-  );
-  await A.screenshot("app-shell-theme-dark");
-  await A.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: probeId });
-  await A.press(TRIGGER);
-  await A.waitFor(radio("Dark"), 5000);
-  check("theme: the menu shows Dark checked after reload", (await A.evaluate(checkedTheme)) === "Dark");
-  await escape(A);
-  await A.waitFor(`!${MENU}`, 5000);
-
-  await chooseTheme(A, "Light");
-  await scheme(A, "dark");
-  const light = await A.evaluate(themeState);
-  check(
-    "theme: Light overrides a dark device",
-    light.attr === "light" && light.scheme === "light" && light.saved === "light",
-    JSON.stringify(light),
-  );
-
-  await chooseTheme(A, "System");
-  const sysDark = await A.evaluate(themeState);
-  await scheme(A, "light");
-  await sleep(200);
-  const sysLight = await A.evaluate(themeState);
-  check(
-    "theme: System removes the attribute and follows prefers-color-scheme both ways",
-    sysDark.attr === null &&
-      sysDark.saved === null &&
-      sysDark.scheme === "dark" &&
-      sysLight.attr === null &&
-      sysLight.scheme === "light",
-    `${JSON.stringify(sysDark)} / ${JSON.stringify(sysLight)}`,
-  );
-
-  // Offline: the choice still works (it's local only).
-  await A.offline(true);
-  await chooseTheme(A, "Dark");
-  const offlineDark = await A.evaluate(themeState);
-  await chooseTheme(A, "System");
-  await A.offline(false);
-  check(
-    "theme: works offline",
-    offlineDark.attr === "dark" && offlineDark.saved === "dark",
-    JSON.stringify(offlineDark),
-  );
+  if (SMOKE) await chooseTheme(A, "System");
   await A.send("Emulation.setEmulatedMedia", { features: [] });
 
   // 5. Sign out from the menu.
@@ -539,65 +528,59 @@ try {
   check("sign out: /app needs signing in again", true);
 
   // 6. viewer@: their own initials and name.
-  const bV = await launch(9472);
-  browsers.push(bV);
-  const V = await openPage(bV, "viewer");
-  pages.push(V);
-  await signIn(V, "viewer@example.com", { home: true });
-  await V.waitFor(TRIGGER, 40000);
-  const vHome = await V.waitFor(`location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))}`, 40000)
-    .then(() => true)
-    .catch(() => false);
-  check("viewer: one group, so /app goes straight to its timeline", vHome);
-  const vAvatar = await V.evaluate(
-    `(() => { const b = ${TRIGGER}; return b.getAttribute("aria-label") + " / " + b.textContent.trim(); })()`,
-  );
-  check("viewer: avatar and name are theirs", vAvatar === "Account menu for Dev Viewer / DV", vAvatar);
-  await V.screenshot("app-shell-viewer");
+  await step("viewer, and storage that throws", async () => {
+    const bV = await launch(9472);
+    browsers.push(bV);
+    const V = await openPage(bV, "viewer");
+    pages.push(V);
+    await signIn(V, "viewer@example.com", { home: true });
+    await V.waitFor(TRIGGER, 40000);
+    const vHome = await V.waitFor(`location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))}`, 40000)
+      .then(() => true)
+      .catch(() => false);
+    check("viewer: one group, so /app goes straight to its timeline", vHome);
+    const vAvatar = await V.evaluate(
+      `(() => { const b = ${TRIGGER}; return b.getAttribute("aria-label") + " / " + b.textContent.trim(); })()`,
+    );
+    check("viewer: avatar and name are theirs", vAvatar === "Account menu for Dev Viewer / DV", vAvatar);
+    await V.screenshot("app-shell-viewer");
+    // Step 7 reuses this browser's port. (caretaker@'s one group goes the same
+    // way: resolveHomeGroup, lastGroup.test.ts.)
+    bV.proc.kill();
 
-  // caretaker@ (one group): straight to the timeline too. Before the viewer's
-  // browser closes: step 7 reuses its port.
-  await V.signOut();
-  await V.waitFor(`location.pathname === "/sign-in"`, 15000);
-  await signIn(V, "caretaker@example.com", { home: true });
-  const cHome = await V.waitFor(`location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))}`, 40000)
-    .then(() => true)
-    .catch(() => false);
-  check("caretaker: one group, so /app goes straight to its timeline", cHome);
-  bV.proc.kill();
-
-  // 7. Storage that throws: the app still renders, in System (fresh browser, viewer@).
-  const bS = await launch(9472);
-  browsers.push(bS);
-  const S = await openPage(bS, "no-storage");
-  pages.push(S);
-  await S.send("Page.addScriptToEvaluateOnNewDocument", {
-    source: `for (const name of ["localStorage", "sessionStorage"]) Object.defineProperty(window, name, { configurable: true, get() { throw new DOMException("The operation is insecure.", "SecurityError"); } });`,
+    // 7. Storage that throws: the app still renders, in System (fresh browser, viewer@).
+    const bS = await launch(9472);
+    browsers.push(bS);
+    const S = await openPage(bS, "no-storage");
+    pages.push(S);
+    await S.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `for (const name of ["localStorage", "sessionStorage"]) Object.defineProperty(window, name, { configurable: true, get() { throw new DOMException("The operation is insecure.", "SecurityError"); } });`,
+    });
+    await scheme(S, "dark");
+    await signIn(S, "viewer@example.com");
+    await S.waitFor(TRIGGER, 40000);
+    await S.waitFor(`${rows} > 0`, 40000);
+    const noStore = await S.evaluate(themeState);
+    check(
+      "theme: storage that throws still renders, in System",
+      noStore.attr === null && noStore.scheme === "dark" && noStore.saved === "throws",
+      JSON.stringify(noStore),
+    );
+    await chooseTheme(S, "Light");
+    const noStoreLight = await S.evaluate(themeState);
+    check(
+      "theme: without storage, a choice still applies for the visit",
+      noStoreLight.attr === "light" && noStoreLight.scheme === "light",
+      JSON.stringify(noStoreLight),
+    );
+    await S.screenshot("app-shell-no-storage");
   });
-  await scheme(S, "dark");
-  await signIn(S, "viewer@example.com");
-  await S.waitFor(TRIGGER, 40000);
-  await S.waitFor(`${rows} > 0`, 40000);
-  const noStore = await S.evaluate(themeState);
-  check(
-    "theme: storage that throws still renders, in System",
-    noStore.attr === null && noStore.scheme === "dark" && noStore.saved === "throws",
-    JSON.stringify(noStore),
-  );
-  await chooseTheme(S, "Light");
-  const noStoreLight = await S.evaluate(themeState);
-  check(
-    "theme: without storage, a choice still applies for the visit",
-    noStoreLight.attr === "light" && noStoreLight.scheme === "light",
-    JSON.stringify(noStoreLight),
-  );
-  await S.screenshot("app-shell-no-storage");
 
   // ───────────────────────── Slice 5: group settings ─────────────────────────
   // Its own browsers (the ones above are signed out or killed by now), and
   // everything it renames is put back to the seeds' values at the end (and
   // again in `finally`, in SQL, if a step throws).
-  {
+  await step("group settings (slice 5)", async () => {
     const { execSync } = await import("node:child_process");
     const { startProxy } = await import("./proxy.mjs");
     const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -670,7 +653,6 @@ try {
     browsers.push(bM, bO);
     try {
       restoreSeeds();
-      await sleep(6000);
 
       // 5a. member@ (owner): from the group menu to the page.
       const M = await openPage(bM, "settings-owner");
@@ -728,7 +710,9 @@ try {
       );
       await M.screenshot("app-shell-group-settings-owner");
 
-      // 5b. Invalid input: the field's error, nothing sent, nothing saved.
+      // 5b. Invalid input: the field's error, nothing sent, nothing saved. One case;
+      // the rules and their messages are parseGroupName's and parseRecipientProfile's
+      // (groupSettings.test.ts).
       await M.evaluate(`window.__stay = ${JSON.stringify(tag)}`);
       await countRpc(M);
       await M.type(input(GROUP, "name"), "   ");
@@ -737,35 +721,14 @@ try {
         `({ error: ${fieldError(GROUP, "name")}, invalid: ${input(GROUP, "name")}.getAttribute("aria-invalid") })`,
       );
       check(
-        "invalid: an empty group name shows the field's error",
+        "invalid: an empty group name shows the field's error, and nothing is sent or saved",
         emptyGroup.startsWith("error:") &&
           emptyGroupState.error === "Enter a name." &&
-          emptyGroupState.invalid === "true",
-        `${emptyGroup} ${JSON.stringify(emptyGroupState)}`,
+          emptyGroupState.invalid === "true" &&
+          (await rpcs(M)) === 0 &&
+          serverGroup() === SEED.group,
+        `${emptyGroup} ${JSON.stringify(emptyGroupState)} rpc ${await rpcs(M)}`,
       );
-      await M.type(input(RECIPIENT, "name"), "");
-      // A date input can't hold a non-date, so forge the field: a hidden input ahead of it in the form.
-      await M.evaluate(`(() => { const h = document.createElement("input"); h.type = "hidden"; h.name = "dateOfBirth";
-        h.value = "not a date"; h.dataset.forged = ""; ${RECIPIENT}.querySelector("form").prepend(h); })()`);
-      const badRecipient = await save(M, RECIPIENT);
-      const badState = await M.evaluate(
-        `({ name: ${fieldError(RECIPIENT, "name")}, dob: ${fieldError(RECIPIENT, "dateOfBirth")} })`,
-      );
-      check(
-        "invalid: an empty recipient name and a date of birth that isn't a date show their fields' errors",
-        badRecipient.startsWith("error:") &&
-          badState.name === "Enter a name." &&
-          badState.dob === "Enter a valid date.",
-        `${badRecipient} ${JSON.stringify(badState)}`,
-      );
-      check(
-        "invalid: nothing was sent, and nothing was saved",
-        (await rpcs(M)) === 0 &&
-          serverGroup() === SEED.group &&
-          serverRecipient() === `${SEED.name}|${SEED.preferred}|${SEED.dob}`,
-        `rpc ${await rpcs(M)}, ${serverGroup()}, ${serverRecipient()}`,
-      );
-      await M.evaluate(`${RECIPIENT}.querySelector("[data-forged]").remove()`);
 
       // 5c. The owner renames the group and edits the recipient.
       await M.type(input(GROUP, "name"), `  ${NEW.group} `);
@@ -826,7 +789,6 @@ try {
       // 5d. caretaker@: edits the recipient, but not the group's name.
       const O = await openPage(bO, "settings-other");
       pages.push(O);
-      await sleep(4000);
       await signIn(O, "caretaker@example.com", { home: true });
       await O.waitFor(GROUP_TRIGGER, 40000);
       await openGroupSettings(O);
@@ -862,42 +824,9 @@ try {
       check("caretaker's edit reaches the owner's header and form without a reload", seenByOwner);
       await O.screenshot("app-shell-group-settings-caretaker");
 
-      // 5e. viewer@: everything read-only; another group's settings is a 404 with no names.
-      await O.signOut();
-      await O.waitFor(`location.pathname === "/sign-in"`, 15000);
-      await sleep(4000);
-      await signIn(O, "viewer@example.com", { home: true });
-      await O.waitFor(GROUP_TRIGGER, 40000);
-      await openGroupSettings(O);
-      await onSettings(O);
-      await O.waitFor(`${text(RECIPIENT)}.includes("1941")`, 20000).catch(() => undefined);
-      const viewer = await O.evaluate(
-        `({ controls: [...document.querySelectorAll("main input, main select, main button, main form")].filter((el) => !el.closest('[data-section="members"]')).length, group: ${text(GROUP)}, recipient: ${text(RECIPIENT)}, notice: !!document.querySelector("[data-needs-connection]") })`,
-      );
-      check(
-        "viewer: sees the group and the recipient read-only, with no edit controls (Members has its own: slice 6)",
-        viewer.controls === 0 &&
-          viewer.group.includes(NEW.group) &&
-          viewer.recipient.includes(NEW.name) &&
-          viewer.recipient.includes(byCaretaker) &&
-          viewer.recipient.includes("March 9, 1941") &&
-          !viewer.notice,
-        JSON.stringify(viewer),
-      );
-      await O.screenshot("app-shell-group-settings-viewer");
-      await O.goto(settingsOf(DEV_FAMILY_2));
-      await O.waitFor(`document.querySelector("main h1")`, 40000);
-      await O.waitFor(`document.querySelector("main h1").textContent.trim() === "Not found"`, 20000).catch(
-        () => undefined,
-      );
-      const stranger = await O.evaluate(
-        `({ h1: document.querySelector("main h1").textContent.trim(), body: document.body.textContent })`,
-      );
-      check(
-        "non-member: another group's settings is a 404 that shows no names",
-        stranger.h1 === "Not found" && !/Lou|Dev Family 2/.test(stranger.body),
-        stranger.h1,
-      );
+      // 5e. A viewer's cards are read-only like the caretaker's group card above
+      // (groupSettingsAccess, groupSettings.test.ts), and another group's settings
+      // is the 404 (routing.mjs, "non-member: another group's …/settings/members").
 
       // 5f. Offline (the proxy cuts member@'s browser): read-only from local data, with the notice.
       await M.evaluate(`${BAR}.querySelector("a").click()`);
@@ -961,7 +890,7 @@ try {
       restoreSeeds();
       proxy.close();
     }
-  }
+  });
   // ─────────────────────── end of slice 5: group settings ──────────────────────
 
   // ─────────────────── Slice 6: group settings, members ───────────────────
@@ -969,7 +898,7 @@ try {
   // (caretaker@ to admin, then viewer, then removed; viewer@ leaves), which
   // every other step and check needs as seeded. They're put back in SQL at
   // its end, and again in `finally` if a step throws.
-  {
+  await step("group settings, members (slice 6)", async () => {
     const { execSync } = await import("node:child_process");
     const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
     const psql = (sql) =>
@@ -993,6 +922,15 @@ try {
       psql(
         `SELECT coalesce(string_agg(u.name || ':' || m.role, ',' ORDER BY array_position(ARRAY['owner','admin','caretaker','viewer'], m.role), u.name), '') FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}'`,
       );
+    /** Wait (up to 20 s) for the server's members to be `expected`; the last value read. */
+    const serverBecomes = async (expected) => {
+      let last = serverMembers();
+      for (let i = 0; i < 40 && last !== expected; i++) {
+        await sleep(500);
+        last = serverMembers();
+      }
+      return last;
+    };
     const ALL_SEEDED = "Dev Member:owner,Dev Caretaker:caretaker,Dev Viewer:viewer";
     const LAST_OWNER = "A care group needs at least one owner. Make someone else an owner first.";
     const OWNER_ONLY = "Only an owner can add, change or remove owners";
@@ -1062,7 +1000,6 @@ try {
     browsers.push(bM, bO);
     try {
       restoreMembers();
-      await sleep(6000);
 
       // 6a. member@ (owner): everyone, with a role menu each, Leave on their own row and Remove on the others.
       const M = await openPage(bM, "members-owner");
@@ -1157,7 +1094,6 @@ try {
       // 6c. caretaker@ on a second device: a plain list, with Leave on their own row only.
       const O = await openPage(bO, "members-other");
       pages.push(O);
-      await sleep(4000);
       await signIn(O, "caretaker@example.com", { home: true });
       await openGroupSettings(O);
       await O.evaluate(`window.__stay = ${JSON.stringify(tag)}`);
@@ -1172,10 +1108,12 @@ try {
       // with what an admin may do (nothing to the owner; no Owner in any menu).
       await choose(M, "Dev Caretaker", "admin");
       const adminSaved = await waitListed(M, "Dev Member (you):owner,Dev Caretaker:admin,Dev Viewer:viewer");
+      // The menu shows the choice at once: wait for the save to reach the server.
+      const adminOnServer = await serverBecomes("Dev Member:owner,Dev Caretaker:admin,Dev Viewer:viewer");
       check(
         "owner: makes the caretaker an admin",
-        adminSaved && serverMembers() === "Dev Member:owner,Dev Caretaker:admin,Dev Viewer:viewer",
-        `${await listed(M)} / ${serverMembers()}`,
+        adminSaved && adminOnServer === "Dev Member:owner,Dev Caretaker:admin,Dev Viewer:viewer",
+        `${await listed(M)} / ${adminOnServer}`,
       );
       const adminSeen = await O.waitFor(`${roleSelect("Dev Caretaker")}?.value === "admin"`, 20000)
         .then(() => true)
@@ -1219,10 +1157,11 @@ try {
         M,
         "Dev Member (you):owner,Dev Caretaker:viewer,Dev Viewer:viewer",
       );
+      const viewerOnServer = await serverBecomes("Dev Member:owner,Dev Caretaker:viewer,Dev Viewer:viewer");
       check(
         "owner: changes the caretaker to viewer",
-        viewerSaved && serverMembers() === "Dev Member:owner,Dev Caretaker:viewer,Dev Viewer:viewer",
-        `${await listed(M)} / ${serverMembers()}`,
+        viewerSaved && viewerOnServer === "Dev Member:owner,Dev Caretaker:viewer,Dev Viewer:viewer",
+        `${await listed(M)} / ${viewerOnServer}`,
       );
       const demotedSeen = await waitListed(
         O,
@@ -1293,7 +1232,6 @@ try {
       // 6g. viewer@ leaves, after confirming: on to /app, with no group left.
       await O.signOut();
       await O.waitFor(`location.pathname === "/sign-in"`, 15000);
-      await sleep(4000);
       await signIn(O, "viewer@example.com", { home: true });
       await openGroupSettings(O);
       const viewerList = await listed(O);
@@ -1344,7 +1282,7 @@ try {
     } finally {
       restoreMembers();
     }
-  }
+  });
   // ──────────────── end of slice 6: group settings, members ────────────────
 
   const noise =

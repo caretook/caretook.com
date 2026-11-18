@@ -26,8 +26,15 @@
 // their screens' steps here. Every provider and entry it makes
 // carries this run's tag and is soft-deleted at the end, so it passes run
 // after run without a reset.
+//
+// The directory's order, search and type filters (providerDirectory.test.ts),
+// the contact links and their names (contactActions.test.ts) and the section
+// nav (groupSections.test.ts; app-shell.mjs) are pure rules with unit tests:
+// the steps here cover one case each, on the page. SMOKE=1 runs caretaker@'s
+// core path: the seeds on the device, the list and a search, one add through
+// the sheet, and the provider page.
 import { execSync } from "node:child_process";
-import { launch, openPage, sleep } from "./cdp.mjs";
+import { launch, openPage, sleep, SMOKE } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -72,7 +79,6 @@ const localRows = (p, sql, params = []) =>
 // --- The directory screen (slice 2) -----------------------------------------
 
 const BAR = `document.querySelector('nav.dock[aria-label="Group sections"]')`;
-const HEADER_NAV = `document.querySelector('header [data-region="sections"] nav[aria-label="Group sections"]')`;
 const navState = (nav) => `(() => {
   const links = [...(${nav}?.querySelectorAll("a") ?? [])];
   return {
@@ -100,20 +106,12 @@ const SEEDED_CURRENT = [
   "Maria Reyes",
 ];
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const metrics = (p, width, mobile) =>
-  p.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile });
 const waitForList = (p, test, ms = 15000) =>
   p.waitFor(`(() => { const names = ${listNames("Current providers")}; return ${test}; })()`, ms);
 
 async function directorySteps(p, proxy) {
-  // The tab bar (420) has Timeline and Providers; Providers opens the list.
+  // The Providers tab (420) opens the list.
   await p.waitFor(`location.pathname.endsWith("/timeline") && !!${BAR}`, 30000).catch(() => {});
-  const onTimeline = await p.evaluate(navState(BAR));
-  check(
-    "420: the tab bar shows Timeline and Providers, Timeline current",
-    onTimeline.labels === "Timeline,Providers" && onTimeline.current === "Timeline",
-    JSON.stringify(onTimeline),
-  );
   await p.press(`[...${BAR}.querySelectorAll("a")].find((a) => a.textContent.trim() === "Providers")`);
   await p.waitFor(`location.pathname.endsWith("/providers")`, 15000);
   await waitForList(p, `names.length >= 5`);
@@ -138,6 +136,19 @@ async function directorySteps(p, proxy) {
     JSON.stringify(seeded),
   );
   await p.screenshot("providers-list");
+  if (SMOKE) {
+    // One search, in the URL.
+    await p.type(`document.querySelector('main input[type="search"]')`, "cardio");
+    await p.waitFor(`new URLSearchParams(location.search).get("q") === "cardio"`, 10000).catch(() => {});
+    await waitForList(p, `names.length === 1`).catch(() => {});
+    const cardio = await directory(p);
+    check(
+      '"cardio" finds the cardiologist (?q=cardio)',
+      same(cardio.current, ["Dr. Samuel Patel"]),
+      JSON.stringify(cardio),
+    );
+    return;
+  }
   await p.press(`document.querySelector("main [data-show-past]")`);
   await p.waitFor(`location.search.includes("past=1")`, 10000);
   const withPast = await directory(p);
@@ -169,12 +180,6 @@ async function directorySteps(p, proxy) {
   // The clinic's name finds its clinicians; a type chip narrows it, also in the URL.
   await p.type(`document.querySelector('main input[type="search"]')`, "westside");
   await waitForList(p, `names.length === 2`);
-  const westside = await directory(p);
-  check(
-    "the clinic's name finds the clinic and its clinician",
-    same(westside.current, ["Dr. Elena Alvarez", "Westside Family Medicine"]),
-    JSON.stringify(westside.current),
-  );
   await p.waitFor(`new URLSearchParams(location.search).get("q") === "westside"`, 10000);
   await p.press(
     `[...document.querySelectorAll('main nav[aria-label="Show providers"] a')].find((a) => a.textContent.trim() === "Clinicians")`,
@@ -190,24 +195,8 @@ async function directorySteps(p, proxy) {
     same(typed.current, ["Dr. Elena Alvarez"]) && chip === "Clinicians" && typed.box === "westside",
     JSON.stringify({ ...typed, chip }),
   );
-  await p.goto(`${typed.path}${typed.search}`);
-  await waitForList(p, `names.length > 0`, 30000);
-  const typedReload = await directory(p);
-  check(
-    "search and type survive a reload",
-    same(typedReload.current, ["Dr. Elena Alvarez"]) && typedReload.box === "westside",
-    JSON.stringify(typedReload),
-  );
-  await p.press(
-    `[...document.querySelectorAll('main nav[aria-label="Show providers"] a')].find((a) => a.textContent.trim() === "Pharmacies")`,
-  );
-  await p.waitFor(`new URLSearchParams(location.search).get("type") === "pharmacy"`, 10000);
-  await p.type(`document.querySelector('main input[type="search"]')`, "");
-  await waitForList(p, `names.length === 1`);
-  check(
-    "the Pharmacies chip shows just the pharmacy",
-    same((await directory(p)).current, ["Cornerstone Pharmacy"]),
-  );
+  // A type chip survives a reload as the search does (both are the URL's);
+  // other chips filter the same way (directoryList, providerDirectory.test.ts).
 
   // Contact actions: accessible names and hrefs.
   await p.goto(typed.path);
@@ -227,34 +216,9 @@ async function directorySteps(p, proxy) {
     ]),
     JSON.stringify(alvarez),
   );
-  const clinic = actions["Westside Family Medicine"] ?? [];
-  check(
-    "Westside: call the front desk, and its address opens in maps (a new tab)",
-    same(clinic[0], ["Call Westside Family Medicine, front desk", "tel:5550102200", null]) &&
-      clinic[1]?.[0] === "Open Westside Family Medicine's address in maps" &&
-      clinic[1]?.[1] ===
-        "https://www.google.com/maps/search/?api=1&query=1200%20Westside%20Ave%2C%20Suite%20300%2C%20Springfield%2C%20CA%2090000" &&
-      clinic[1]?.[2] === "_blank",
-    JSON.stringify(clinic),
-  );
-  check(
-    "Maria Reyes: an international number keeps its +",
-    actions["Maria Reyes"]?.[0]?.[1] === "tel:+15550105500",
-    JSON.stringify(actions["Maria Reyes"]),
-  );
+  // The maps link and an international number: mapsHref and telHref, contactActions.test.ts.
 
-  // 1280 wide: the header's section links, Providers current.
-  await metrics(p, 1280, false);
-  await sleep(400);
-  const wide = await p.evaluate(navState(HEADER_NAV));
-  check(
-    "1280: the header shows Timeline and Providers, Providers current",
-    wide.labels === "Timeline,Providers" && wide.current === "Providers",
-    JSON.stringify(wide),
-  );
-  await p.screenshot("providers-list-wide");
-  await metrics(p, 420, true);
-  await sleep(300);
+  // The section nav at 1280 (Providers current): activeSection, groupSections.test.ts, and app-shell.mjs.
 
   // Offline: from the timeline and back, the list comes from the device.
   // (Both route modules load online first: without a service worker, a dev
@@ -379,26 +343,31 @@ async function sheetSteps(p, other, proxy, tag) {
   );
 
   // Validation: name, email and website shapes, and the phone count, on their fields.
-  await fill(p, [
-    ['[name="email"]', "not-an-email"],
-    ['[name="website"]', "not a site"],
-  ]);
-  // Six rows is the most the form offers…
-  for (let i = 0; i < 5; i++)
+  if (SMOKE) {
     await p.press(
       `[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.includes("Add a phone number"))`,
     );
-  const capped = await p.evaluate(`({
+  } else {
+    await fill(p, [
+      ['[name="email"]', "not-an-email"],
+      ['[name="website"]', "not a site"],
+    ]);
+    // Six rows is the most the form offers…
+    for (let i = 0; i < 5; i++)
+      await p.press(
+        `[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.includes("Add a phone number"))`,
+      );
+    const capped = await p.evaluate(`({
     rows: ${SHEET}.querySelectorAll('[name="phoneNumber"]').length,
     disabled: [...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.includes("Add a phone number")).disabled,
   })`);
-  check(
-    "the form offers at most 6 phone rows (Add is disabled at 6)",
-    capped.rows === 6 && capped.disabled,
-    JSON.stringify(capped),
-  );
-  // …so a seventh is forced in, as an old or tampered form would send it.
-  await p.evaluate(`(() => {
+    check(
+      "the form offers at most 6 phone rows (Add is disabled at 6)",
+      capped.rows === 6 && capped.disabled,
+      JSON.stringify(capped),
+    );
+    // …so a seventh is forced in, as an old or tampered form would send it.
+    await p.evaluate(`(() => {
     const ul = ${SHEET}.querySelector("[data-phones]");
     const li = document.createElement("li");
     li.setAttribute("data-forced", "");
@@ -409,24 +378,25 @@ async function sheetSteps(p, other, proxy, tag) {
     }
     return true;
   })()`);
-  await submitSheet(p);
-  await p.waitFor(`${SHEET}.querySelector('[aria-invalid="true"]')`, 10000).catch(() => {});
-  await p.screenshot("providers-sheet-errors");
-  const errors = await fieldErrors(p);
-  check(
-    "validation shows on the fields: name required, email and website shape, at most 6 phones",
-    errors.name === "Enter a name" &&
-      errors.email === "Enter an email address" &&
-      errors.website === "Enter a web address, like clinic.example" &&
-      errors.phones === "At most 6 phone numbers" &&
-      (await sheetOpen(p)),
-    JSON.stringify(errors),
-  );
-  check("the first invalid field gets focus", await p.evaluate(`document.activeElement?.name === "name"`));
+    await submitSheet(p);
+    await p.waitFor(`${SHEET}.querySelector('[aria-invalid="true"]')`, 10000).catch(() => {});
+    await p.screenshot("providers-sheet-errors");
+    const errors = await fieldErrors(p);
+    check(
+      "validation shows on the fields: name required, email and website shape, at most 6 phones",
+      errors.name === "Enter a name" &&
+        errors.email === "Enter an email address" &&
+        errors.website === "Enter a web address, like clinic.example" &&
+        errors.phones === "At most 6 phone numbers" &&
+        (await sheetOpen(p)),
+      JSON.stringify(errors),
+    );
+    check("the first invalid field gets focus", await p.evaluate(`document.activeElement?.name === "name"`));
 
-  // Fix it: a clinician with two phones and a practice.
-  await p.evaluate(`${SHEET}.querySelector("[data-forced]").remove()`);
-  for (let i = 0; i < 4; i++) await p.press(`${SHEET}.querySelector('[aria-label="Remove phone 3"]')`);
+    // Fix it: a clinician with two phones and a practice.
+    await p.evaluate(`${SHEET}.querySelector("[data-forced]").remove()`);
+    for (let i = 0; i < 4; i++) await p.press(`${SHEET}.querySelector('[aria-label="Remove phone 3"]')`);
+  }
   const name = `${tag} Dr. Sheet`;
   await fill(p, [
     ['[name="name"]', name],
@@ -461,6 +431,7 @@ async function sheetSteps(p, other, proxy, tag) {
     pg === "clinician|Neurology|true|2|After hours|sheet@neuro.example|neuro.example",
     pg,
   );
+  if (SMOKE) return { ids: [id] };
   await other
     .waitFor(
       `window.caretookSync.powersync.getAll("SELECT id FROM provider WHERE id = '${id}'").then((r) => r.length === 1)`,
@@ -481,7 +452,9 @@ async function sheetSteps(p, other, proxy, tag) {
   await p.goto(LIST);
   await waitForList(p, `names.length >= 5`, 30000);
 
-  // Edit by URL (a deep link): the form is filled in; marking primary pins it.
+  // Edit by URL (a deep link): the form is filled in. Primary and past save
+  // together; where each puts it in the list is compareProviders's rule
+  // (providerDirectory.test.ts).
   await p.goto(`${LIST}/${id}/edit?q=`);
   await p.waitFor(SHEET, 30000);
   const filled = await p.evaluate(`(() => { const f = ${SHEET}; return {
@@ -500,25 +473,10 @@ async function sheetSteps(p, other, proxy, tag) {
       filled.title === `Edit ${name}`,
     JSON.stringify(filled),
   );
-  await fill(p, [['[name="isPrimary"]', true]]);
-  await submitSheet(p);
-  await p.waitFor(`!${SHEET} && location.pathname === ${JSON.stringify(LIST)}`, 10000).catch(() => {});
-  await sleep(300);
-  const pinned = await p.evaluate(`({
-    names: ${allNames("Current providers")},
-    badge: [...document.querySelectorAll("main li[data-provider-id]")].find((li) => li.querySelector("[data-provider-name]").textContent === ${JSON.stringify(name)})?.querySelector(".badge")?.textContent,
-  })`);
-  const at = pinned.names.indexOf(name);
-  check(
-    "marking primary pins it among the primary providers (before Dr. Samuel Patel)",
-    at >= 0 && at < pinned.names.indexOf("Dr. Samuel Patel") && pinned.badge === "Primary",
-    JSON.stringify(pinned),
-  );
-
-  // Marking past moves it behind "Show past".
-  await p.goto(`${LIST}/${id}/edit`);
-  await p.waitFor(SHEET, 30000);
-  await fill(p, [['[name="past"]', true]]);
+  await fill(p, [
+    ['[name="isPrimary"]', true],
+    ['[name="past"]', true],
+  ]);
   await submitSheet(p);
   await p.waitFor(`!${SHEET}`, 10000).catch(() => {});
   await sleep(300);
@@ -538,7 +496,7 @@ async function sheetSteps(p, other, proxy, tag) {
     `SELECT status || '|' || is_primary FROM provider WHERE id = '${id}'`,
     (v) => v === "past|true",
   );
-  check("…and the change uploads", pgPast === "past|true", pgPast);
+  check("…and primary and past upload", pgPast === "past|true", pgPast);
 
   // Offline: an add and an edit are written on the device, and upload on reconnect.
   await p.goto(LIST);
@@ -738,6 +696,7 @@ async function providerPageSteps(A, B, proxy) {
     JSON.stringify({ notes: westside.notes?.slice(0, 60), editable: westside.editable }),
   );
   await A.screenshot("provider-page");
+  if (SMOKE) return null;
 
   // A clinician's practice links to the practice's page.
   await A.goto(providerPath(ALVAREZ));
@@ -926,17 +885,18 @@ async function signIn(p, email) {
 const tag = `PV-${Date.now().toString(36)}`;
 const proxyA = startProxy(9421);
 const bA = await launch(9411, proxyA.args);
-const bB = await launch(9412);
-const bC = await launch(9413);
-const bD = await launch(9414);
+// Smoke runs one browser: the second member, the viewer and the non-member are full mode's.
+const bB = SMOKE ? null : await launch(9412);
+const bC = SMOKE ? null : await launch(9413);
+const bD = SMOKE ? null : await launch(9414);
 const pages = [];
 /** This run's providers from the sheet steps, deleted at the end. */
 const made = { ids: [] };
 try {
   const A = await openPage(bA, "caretaker");
-  const B = await openPage(bB, "member");
-  const C = await openPage(bC, "viewer");
-  pages.push(A, B, C);
+  const B = bB && (await openPage(bB, "member"));
+  const C = bC && (await openPage(bC, "viewer"));
+  pages.push(...[A, B, C].filter(Boolean));
 
   // --- Seeds reach a member's device -------------------------------------
   await signIn(A, "caretaker@example.com");
@@ -1013,19 +973,20 @@ try {
   await directorySteps(A, proxyA);
 
   // --- A member of both groups gets both, each in its own group ------------
-  await sleep(4000);
-  await signIn(B, "member@example.com");
-  const both = await localRows(
-    B,
-    `SELECT group_id, count(*) AS n FROM provider WHERE deleted_at IS NULL GROUP BY group_id`,
-  );
-  const byGroup = Object.fromEntries(both.map((r) => [r.group_id, r.n]));
-  const lou = await localRows(B, `SELECT group_id FROM provider WHERE name = 'Dr. Grace Lindqvist'`);
-  check(
-    "member@ (two groups) gets each group's providers, kept apart",
-    byGroup[DEV_FAMILY] >= 6 && byGroup[DEV_FAMILY_2] === 1 && lou[0]?.group_id === DEV_FAMILY_2,
-    JSON.stringify(byGroup),
-  );
+  if (!SMOKE) {
+    await signIn(B, "member@example.com");
+    const both = await localRows(
+      B,
+      `SELECT group_id, count(*) AS n FROM provider WHERE deleted_at IS NULL GROUP BY group_id`,
+    );
+    const byGroup = Object.fromEntries(both.map((r) => [r.group_id, r.n]));
+    const lou = await localRows(B, `SELECT group_id FROM provider WHERE name = 'Dr. Grace Lindqvist'`);
+    check(
+      "member@ (two groups) gets each group's providers, kept apart",
+      byGroup[DEV_FAMILY] >= 6 && byGroup[DEV_FAMILY_2] === 1 && lou[0]?.group_id === DEV_FAMILY_2,
+      JSON.stringify(byGroup),
+    );
+  }
 
   // --- Add, edit and delete through the sheets (slice 3) --------------------
   made.ids = (await sheetSteps(A, B, proxyA, tag)).ids;
@@ -1033,13 +994,15 @@ try {
   // --- The provider page and its live notes (slice 4) -----------------------
   const notesProvider = await providerPageSteps(A, B, proxyA);
 
-  // --- Offline: create an event, create-and-link a provider, link a seeded one
-  proxyA.setOnline(false);
-  await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000);
-  const entryId = await A.evaluate(`crypto.randomUUID()`);
-  const offline = await onDevice(
-    A,
-    `const entryId = ${JSON.stringify(entryId)};
+  // Smoke stops here: offline, a second member, the viewer and a non-member are full mode's.
+  if (!SMOKE) {
+    // --- Offline: create an event, create-and-link a provider, link a seeded one
+    proxyA.setOnline(false);
+    await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000);
+    const entryId = await A.evaluate(`crypto.randomUUID()`);
+    const offline = await onDevice(
+      A,
+      `const entryId = ${JSON.stringify(entryId)};
      const made = await liveEntry.materializeLiveEntry(db, {
        id: entryId, groupId: ${JSON.stringify(DEV_FAMILY)}, kind: "event", title: ${JSON.stringify(`${tag} cardiology visit`)},
        occurredAt: new Date().toISOString(), timeZone: "America/Los_Angeles",
@@ -1057,163 +1020,162 @@ try {
      const bad = await providers.createProvider(db, ${JSON.stringify(DEV_FAMILY)}, { type: "practice", name: "x", practiceId: pharmacy.id });
      const local = await db.powersync.getAll("SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?", [entryId]);
      return { made, created, linked, again, wrongKind: wrongKind.ok, bad: bad.ok, pharmacyId: pharmacy.id, local: local.length };`,
-  );
-  check(
-    "offline: the event, a new provider and two links are written locally",
-    offline.made.ok && offline.created.ok && offline.linked.ok && offline.again.ok && offline.local === 2,
-    JSON.stringify({ local: offline.local, created: offline.created.ok }),
-  );
-  check(
-    "local writes refuse a symptom link and an invalid provider",
-    offline.wrongKind === false && offline.bad === false,
-  );
-  const providerId = offline.created.id;
-  check(
-    "nothing reaches Postgres while offline",
-    psql(`SELECT count(*) FROM provider WHERE id = '${providerId}'`) === "0" &&
-      psql(`SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${entryId}'`) === "0",
-  );
+    );
+    check(
+      "offline: the event, a new provider and two links are written locally",
+      offline.made.ok && offline.created.ok && offline.linked.ok && offline.again.ok && offline.local === 2,
+      JSON.stringify({ local: offline.local, created: offline.created.ok }),
+    );
+    check(
+      "local writes refuse a symptom link and an invalid provider",
+      offline.wrongKind === false && offline.bad === false,
+    );
+    const providerId = offline.created.id;
+    check(
+      "nothing reaches Postgres while offline",
+      psql(`SELECT count(*) FROM provider WHERE id = '${providerId}'`) === "0" &&
+        psql(`SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${entryId}'`) === "0",
+    );
 
-  proxyA.setOnline(true);
-  const uploaded = await waitForSql(
-    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${entryId}'`,
-    (v) => v === "2",
-    30000,
-  );
-  check("back online: the event's two links upload", uploaded === "2", `${uploaded} links`);
-  const row = psql(
-    `SELECT type || '|' || name || '|' || jsonb_array_length(phones) || '|' || website || '|' || is_primary FROM provider WHERE id = '${providerId}'`,
-  );
-  check(
-    "…and the new provider, whole",
-    row === `clinician|${tag} Dr. Offline|2|offline-heart.example|false`,
-    row,
-  );
+    proxyA.setOnline(true);
+    const uploaded = await waitForSql(
+      `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${entryId}'`,
+      (v) => v === "2",
+      30000,
+    );
+    check("back online: the event's two links upload", uploaded === "2", `${uploaded} links`);
+    const row = psql(
+      `SELECT type || '|' || name || '|' || jsonb_array_length(phones) || '|' || website || '|' || is_primary FROM provider WHERE id = '${providerId}'`,
+    );
+    check(
+      "…and the new provider, whole",
+      row === `clinician|${tag} Dr. Offline|2|offline-heart.example|false`,
+      row,
+    );
 
-  // The other member's device gets them through sync.
-  await B.waitFor(
-    `window.caretookSync.powersync.getAll("SELECT id FROM timeline_entry_provider WHERE entry_id = '${entryId}'").then((r) => r.length === 2)`,
-    20000,
-  ).then(
-    () => check("another member's device receives the new links", true),
-    () => check("another member's device receives the new links", false),
-  );
+    // The other member's device gets them through sync.
+    await B.waitFor(
+      `window.caretookSync.powersync.getAll("SELECT id FROM timeline_entry_provider WHERE entry_id = '${entryId}'").then((r) => r.length === 2)`,
+      20000,
+    ).then(
+      () => check("another member's device receives the new links", true),
+      () => check("another member's device receives the new links", false),
+    );
 
-  // --- Edit, unlink and delete sync too -----------------------------------
-  const edits = await onDevice(
-    A,
-    `const updated = await providers.updateProvider(db, ${JSON.stringify(providerId)}, { isPrimary: true, status: "past" });
+    // --- Edit, unlink and delete sync too -----------------------------------
+    const edits = await onDevice(
+      A,
+      `const updated = await providers.updateProvider(db, ${JSON.stringify(providerId)}, { isPrimary: true, status: "past" });
      const unlinked = await providers.unlinkProvider(db, ${JSON.stringify(entryId)}, ${JSON.stringify(offline.pharmacyId)});
      const removed = await providers.removeProvider(db, ${JSON.stringify(providerId)});
      return [updated.ok, unlinked.ok, removed.ok];`,
-  );
-  check("edit, unlink and delete locally", edits.every(Boolean), JSON.stringify(edits));
-  const after = await waitForSql(
-    `SELECT (SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${entryId}') || '|' || (SELECT (deleted_at IS NOT NULL)::text || is_primary::text || status FROM provider WHERE id = '${providerId}')`,
-    (v) => v === "1|truetruepast",
-    20000,
-  );
-  check("…and they upload: one link left, the provider soft-deleted", after === "1|truetruepast", after);
+    );
+    check("edit, unlink and delete locally", edits.every(Boolean), JSON.stringify(edits));
+    const after = await waitForSql(
+      `SELECT (SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${entryId}') || '|' || (SELECT (deleted_at IS NOT NULL)::text || is_primary::text || status FROM provider WHERE id = '${providerId}')`,
+      (v) => v === "1|truetruepast",
+      20000,
+    );
+    check("…and they upload: one link left, the provider soft-deleted", after === "1|truetruepast", after);
 
-  // --- A viewer's device refuses writes -----------------------------------
-  await sleep(4000);
-  await signIn(C, "viewer@example.com");
-  const viewer = await onDevice(
-    C,
-    `const created = await providers.createProvider(db, ${JSON.stringify(DEV_FAMILY)}, { type: "other", name: ${JSON.stringify(`${tag} viewer`)} });
+    // --- A viewer's device refuses writes -----------------------------------
+    await signIn(C, "viewer@example.com");
+    const viewer = await onDevice(
+      C,
+      `const created = await providers.createProvider(db, ${JSON.stringify(DEV_FAMILY)}, { type: "other", name: ${JSON.stringify(`${tag} viewer`)} });
      const linked = await providers.linkProvider(db, ${JSON.stringify(entryId)}, ${JSON.stringify(offline.pharmacyId)});
      return [created.ok, linked.ok];`,
-  );
-  check(
-    "a viewer's device refuses to add or link",
-    viewer.every((ok) => ok === false),
-    JSON.stringify(viewer),
-  );
-  const viewerSees = await localRows(
-    C,
-    `SELECT count(*) AS n FROM provider WHERE group_id = ? AND deleted_at IS NULL`,
-    [DEV_FAMILY],
-  );
-  check("…but sees the directory", viewerSees[0]?.n >= 6, `${viewerSees[0]?.n}`);
-  await C.goto(`/app/groups/${DEV_FAMILY}/providers`);
-  await waitForList(C, `names.length >= 5`, 30000).catch(() => {});
-  const viewerList = await directory(C);
-  const viewerNote = await C.evaluate(`document.querySelector("main header p")?.textContent ?? ""`);
-  check(
-    "a viewer sees the same list, marked view-only",
-    same(viewerList.current, SEEDED_CURRENT) && viewerNote.includes("You can view this directory"),
-    JSON.stringify({ current: viewerList.current, viewerNote }),
-  );
+    );
+    check(
+      "a viewer's device refuses to add or link",
+      viewer.every((ok) => ok === false),
+      JSON.stringify(viewer),
+    );
+    const viewerSees = await localRows(
+      C,
+      `SELECT count(*) AS n FROM provider WHERE group_id = ? AND deleted_at IS NULL`,
+      [DEV_FAMILY],
+    );
+    check("…but sees the directory", viewerSees[0]?.n >= 6, `${viewerSees[0]?.n}`);
+    await C.goto(`/app/groups/${DEV_FAMILY}/providers`);
+    await waitForList(C, `names.length >= 5`, 30000).catch(() => {});
+    const viewerList = await directory(C);
+    const viewerNote = await C.evaluate(`document.querySelector("main header p")?.textContent ?? ""`);
+    check(
+      "a viewer sees the same list, marked view-only",
+      same(viewerList.current, SEEDED_CURRENT) && viewerNote.includes("You can view this directory"),
+      JSON.stringify({ current: viewerList.current, viewerNote }),
+    );
 
-  // A viewer: no Add, and the sheet URLs are the list with no form.
-  const viewerAdd = await C.evaluate(`!!document.querySelector("main [data-add-provider]")`);
-  await C.goto(`/app/groups/${DEV_FAMILY}/providers/new?type=pharmacy`);
-  await C.waitFor(`location.pathname.endsWith("/providers")`, 20000).catch(() => {});
-  await sleep(500);
-  const viewerNew = await C.evaluate(
-    `({ path: location.pathname, search: location.search, form: !!document.querySelector("[data-provider-form]") })`,
-  );
-  const seededId = psql(
-    `SELECT id FROM provider WHERE name = 'Dr. Samuel Patel' AND group_id = '${DEV_FAMILY}'`,
-  );
-  await C.goto(`/app/groups/${DEV_FAMILY}/providers/${seededId}/edit`);
-  await C.waitFor(`location.pathname.endsWith("/providers")`, 20000).catch(() => {});
-  await sleep(500);
-  const viewerEdit = await C.evaluate(
-    `({ path: location.pathname, form: !!document.querySelector("[data-provider-form]"), list: document.querySelectorAll("main li[data-provider-id]").length })`,
-  );
-  check(
-    "a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form",
-    !viewerAdd &&
-      viewerNew.path.endsWith("/providers") &&
-      !viewerNew.form &&
-      viewerNew.search === "?type=pharmacy" &&
-      viewerEdit.path.endsWith("/providers") &&
-      !viewerEdit.form &&
-      viewerEdit.list >= 5,
-    JSON.stringify({ viewerAdd, viewerNew, viewerEdit }),
-  );
+    // A viewer: no Add, and the sheet URLs are the list with no form.
+    const viewerAdd = await C.evaluate(`!!document.querySelector("main [data-add-provider]")`);
+    await C.goto(`/app/groups/${DEV_FAMILY}/providers/new?type=pharmacy`);
+    await C.waitFor(`location.pathname.endsWith("/providers")`, 20000).catch(() => {});
+    await sleep(500);
+    const viewerNew = await C.evaluate(
+      `({ path: location.pathname, search: location.search, form: !!document.querySelector("[data-provider-form]") })`,
+    );
+    const seededId = psql(
+      `SELECT id FROM provider WHERE name = 'Dr. Samuel Patel' AND group_id = '${DEV_FAMILY}'`,
+    );
+    await C.goto(`/app/groups/${DEV_FAMILY}/providers/${seededId}/edit`);
+    await C.waitFor(`location.pathname.endsWith("/providers")`, 20000).catch(() => {});
+    await sleep(500);
+    const viewerEdit = await C.evaluate(
+      `({ path: location.pathname, form: !!document.querySelector("[data-provider-form]"), list: document.querySelectorAll("main li[data-provider-id]").length })`,
+    );
+    check(
+      "a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form",
+      !viewerAdd &&
+        viewerNew.path.endsWith("/providers") &&
+        !viewerNew.form &&
+        viewerNew.search === "?type=pharmacy" &&
+        viewerEdit.path.endsWith("/providers") &&
+        !viewerEdit.form &&
+        viewerEdit.list >= 5,
+      JSON.stringify({ viewerAdd, viewerNew, viewerEdit }),
+    );
 
-  await viewerProviderSteps(C, notesProvider, providerId);
+    await viewerProviderSteps(C, notesProvider, providerId);
 
-  // --- A non-member's providers URL is the 404, with no names --------------
-  await sleep(4000); // Better Auth's sign-in rate limit.
-  const D = await openPage(bD, "admin");
-  pages.push(D);
-  await D.signIn("admin@example.com", PW, { home: true });
-  await D.goto(`/app/groups/${DEV_FAMILY}/providers?q=cardio`);
-  await D.waitFor(`document.querySelector("main h1")?.textContent === "Not found"`, 20000).catch(() => {});
-  const stranger = await D.evaluate(`({
+    // --- A non-member's providers URL is the 404, with no names --------------
+    const D = await openPage(bD, "admin");
+    pages.push(D);
+    await D.signIn("admin@example.com", PW, { home: true });
+    await D.goto(`/app/groups/${DEV_FAMILY}/providers?q=cardio`);
+    await D.waitFor(`document.querySelector("main h1")?.textContent === "Not found"`, 20000).catch(() => {});
+    const stranger = await D.evaluate(`({
     h1: document.querySelector("main h1")?.textContent,
     leaks: /Grandma|Pat|Dev Family|Alvarez|Patel|Westside|Cornerstone|Maria/.test(document.querySelector("main")?.innerText ?? ""),
   })`);
-  check(
-    "non-member: …/providers is the 404 with no names",
-    stranger.h1 === "Not found" && !stranger.leaks,
-    JSON.stringify(stranger),
-  );
-  await D.goto(providerPath(WESTSIDE));
-  await D.waitFor(`document.querySelector("main h1")?.textContent === "Not found"`, 20000).catch(() => {});
-  const strangerPage = await D.evaluate(`({
+    check(
+      "non-member: …/providers is the 404 with no names",
+      stranger.h1 === "Not found" && !stranger.leaks,
+      JSON.stringify(stranger),
+    );
+    await D.goto(providerPath(WESTSIDE));
+    await D.waitFor(`document.querySelector("main h1")?.textContent === "Not found"`, 20000).catch(() => {});
+    const strangerPage = await D.evaluate(`({
     h1: document.querySelector("main h1")?.textContent,
     leaks: /Grandma|Pat|Dev Family|Westside|level 2/.test(document.querySelector("main")?.innerText ?? ""),
   })`);
-  check(
-    "non-member: a provider's page is the 404 with no names",
-    strangerPage.h1 === "Not found" && !strangerPage.leaks,
-    JSON.stringify(strangerPage),
-  );
+    check(
+      "non-member: a provider's page is the 404 with no names",
+      strangerPage.h1 === "Not found" && !strangerPage.leaks,
+      JSON.stringify(strangerPage),
+    );
 
-  // --- Clean up: soft-delete this run's event --------------------------------
-  const cleaned = await onDevice(
-    A,
-    `return (await timeline.removeEntry(db, ${JSON.stringify(entryId)})).ok;`,
-  );
-  const gone = await waitForSql(
-    `SELECT (deleted_at IS NOT NULL)::text FROM timeline_entry WHERE id = '${entryId}'`,
-    (v) => v === "true",
-  );
-  check("clean up: this run's event is deleted", cleaned && gone === "true");
+    // --- Clean up: soft-delete this run's event --------------------------------
+    const cleaned = await onDevice(
+      A,
+      `return (await timeline.removeEntry(db, ${JSON.stringify(entryId)})).ok;`,
+    );
+    const gone = await waitForSql(
+      `SELECT (deleted_at IS NOT NULL)::text FROM timeline_entry WHERE id = '${entryId}'`,
+      (v) => v === "true",
+    );
+    check("clean up: this run's event is deleted", cleaned && gone === "true");
+  }
   const sheetCleaned = await onDevice(
     A,
     `const out = [];
@@ -1226,15 +1188,17 @@ try {
   );
   check("clean up: this run's providers are deleted", sheetCleaned && sheetGone === "0");
 
-  const cleanedProvider = await onDevice(
-    A,
-    `return (await providers.removeProvider(db, ${JSON.stringify(notesProvider)})).ok;`,
-  );
-  const providerGone = await waitForSql(
-    `SELECT (deleted_at IS NOT NULL)::text FROM provider WHERE id = '${notesProvider}'`,
-    (v) => v === "true",
-  );
-  check("clean up: this run's provider is deleted", cleanedProvider && providerGone === "true");
+  if (!SMOKE) {
+    const cleanedProvider = await onDevice(
+      A,
+      `return (await providers.removeProvider(db, ${JSON.stringify(notesProvider)})).ok;`,
+    );
+    const providerGone = await waitForSql(
+      `SELECT (deleted_at IS NOT NULL)::text FROM provider WHERE id = '${notesProvider}'`,
+      (v) => v === "true",
+    );
+    check("clean up: this run's provider is deleted", cleanedProvider && providerGone === "true");
+  }
 
   // Being offline is noisy on purpose (the proxy cuts Vite's socket and PowerSync's stream).
   const noise =
@@ -1245,7 +1209,7 @@ try {
   check("ran to the end", false, e.message);
 } finally {
   for (const p of pages) p.close();
-  for (const b of [bA, bB, bC, bD]) b.proc.kill();
+  for (const b of [bA, bB, bC, bD]) b?.proc.kill();
   proxyA.close();
 }
 
