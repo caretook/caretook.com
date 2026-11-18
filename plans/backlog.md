@@ -127,6 +127,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): To settle: what group settings holds at first (name, recipient profile, members and roles; invites wait for Resend). Recommended: a group nav (Timeline · Medications · Providers · Assistant) with slots that later PRDs fill.
+- 2026-11-17 (plan/app-shell): PRD written: plans/app-shell-prd.md on plan/app-shell. Group menu switches groups; /app opens the last-used group; bottom tabs (GROUP_SECTIONS registry); group settings = name, recipient (name, preferred name, DOB), members and roles; online-only clientAction → new oRPC procedures. No migration.
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
