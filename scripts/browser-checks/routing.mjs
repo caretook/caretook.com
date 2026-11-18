@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import { launch, openPage, sleep } from "./cdp.mjs";
+import { startProxy } from "./proxy.mjs";
 
 // Routing (the routing PRD): every page has its own path, nested where the UI
 // is nested. Slice 1, the group route:
@@ -12,8 +13,32 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 //   page's heading, and a role changed on the server takes the entry page's
 //   writer controls away, both without a reload.
 //
-// It runs as caretaker@ (one group) and admin@ (in no group), and puts back
-// the recipient's preferred name and caretaker@'s role in `finally`.
+// Slice 2, the add sheet's URLs (`timeline/new/symptom`, `new/vital?type=`):
+//
+// - Quick add → Symptom goes to `…/timeline/new/symptom?<filters>`;
+// - Back, Escape, Cancel and a save each close it, keeping the scroll
+//   position, the loaded ("Show older") entries and the filters, and leave
+//   no sheet ahead of you in the history (Back after a save doesn't reopen it);
+// - a deep link (and a reload) to `new/vital?type=heartRate` opens the sheet
+//   with Heart rate; `?type=bogus` with no type; closing a deep-linked sheet
+//   replaces it with the timeline;
+// - `new/note` and `new/anything` land on the timeline, filters kept;
+// - offline, the add links open the sheet and a save lands on the device;
+// - viewer@'s sheet URL is the timeline, with no form.
+//
+// It runs as caretaker@ (one group), admin@ (in no group) and viewer@, puts
+// back the recipient's preferred name and caretaker@'s role, and soft-deletes
+// the entries it tagged, in `finally`.
+//
+// Slice 4, the account's settings subpages:
+//
+// - at 420, /app/settings is the list (Units, Timeline layout, Account); each
+//   item opens its subpage, alone, with a back link to the list;
+// - a subpage works as a direct link and after a reload;
+// - at 1280, /app/settings opens Units beside the side nav, the current item
+//   is aria-current="page", and widening the window on the list does the same;
+// - Account shows the name and email, and its Sign out signs out (the last
+//   caretaker@ step).
 // Run against your stack: `set -a; source .env.loop; set +a`.
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -54,11 +79,194 @@ const pageState = (pg) =>
     )
     .catch(() => "?");
 
+// The add sheet.
+const T = `/app/groups/${G}/timeline`;
+const tag = `RO-${Date.now().toString(36)}`;
+const caretakerId = psql(`SELECT id FROM "user" WHERE email = 'caretaker@example.com'`);
+const DIALOG = `document.querySelector("[role=dialog]")`;
+const ROWS = `document.querySelectorAll("main ol > li").length`;
+const VITAL_TYPE = `(document.querySelector('[role=dialog] input[name="vital.0.type"]')?.value ?? null)`;
+const tile = (text) =>
+  `[...document.querySelectorAll('[aria-label="Add to the timeline"] a, [aria-label="Add to the timeline"] button')].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+const button = (text, scope = "document") =>
+  `[...${scope}.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+const menuItem = (text) =>
+  `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim() === ${JSON.stringify(text)})`;
+const where = (pg) =>
+  pg
+    .evaluate(
+      `JSON.stringify({ path: location.pathname, search: location.search, y: Math.round(scrollY), rows: ${ROWS}, dialog: !!${DIALOG}, idx: history.state?.idx ?? null })`,
+    )
+    .then(JSON.parse);
+const proxy = startProxy(9491);
+
+const SETTINGS_ITEMS = [
+  { id: "units", label: "Units", path: "/app/settings/units" },
+  { id: "timeline", label: "Timeline layout", path: "/app/settings/timeline" },
+  { id: "account", label: "Account", path: "/app/settings/account" },
+];
+const settingsNav = `document.querySelector("nav[data-settings-nav]")`;
+const settingsLink = (id) => `${settingsNav}?.querySelector('[data-settings-item="${id}"]')`;
+const backLink = `[...document.querySelectorAll("main a")].find((a) => a.getAttribute("href") === "/app/settings" && a.textContent.trim() === "Settings")`;
+/** Whether an element is laid out (not display: none, itself or above). */
+const shown = (el) => `!!(${el}) && (${el}).getClientRects().length > 0`;
+const settingsState = `JSON.stringify({
+  path: location.pathname,
+  h1: [...document.querySelectorAll("main h1")].filter((h) => h.getClientRects().length).map((h) => h.textContent.trim()),
+  items: [...(${settingsNav}?.querySelectorAll("[data-settings-item]") ?? [])].map((a) => a.querySelector("span span")?.textContent.trim()),
+  navShown: ${shown(settingsNav)},
+  back: ${shown(backLink)},
+  current: [...(${settingsNav}?.querySelectorAll("[aria-current]") ?? [])].map((a) => a.dataset.settingsItem + "=" + a.getAttribute("aria-current")),
+})`;
+const metrics = (p, width) =>
+  p.send("Emulation.setDeviceMetricsOverride", {
+    width,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: width < 800,
+  });
+
+/** Slice 4: the account's settings list, its subpages and the side nav (caretaker@, ends signed out). */
+async function settingsSteps(p) {
+  const state = async () => JSON.parse(await p.evaluate(settingsState));
+
+  // 420: the list, then each subpage with a back link.
+  await metrics(p, 420);
+  await p.goto("/app/settings");
+  await p.waitFor(`${settingsLink("account")}`, 30000).catch(() => {});
+  let s = await state();
+  check(
+    "420: /app/settings is the list of three items, with no subpage and no back link",
+    s.path === "/app/settings" &&
+      s.navShown &&
+      !s.back &&
+      s.h1.join() === "Settings" &&
+      (await p.evaluate(`${settingsNav}.querySelectorAll("[data-settings-item]").length`)) === 3 &&
+      s.items.join() === SETTINGS_ITEMS.map((i) => i.label).join(),
+    JSON.stringify(s),
+  );
+  await p.screenshot("routing-settings-list-420");
+  for (const item of SETTINGS_ITEMS) {
+    await p.waitFor(settingsLink(item.id), 10000);
+    await p.evaluate(`${settingsLink(item.id)}.click()`);
+    await p
+      .waitFor(
+        `location.pathname === "${item.path}" && document.querySelector("main h1")?.textContent.trim() === ${JSON.stringify(item.label)}`,
+        20000,
+      )
+      .catch(() => {});
+    s = await state();
+    check(
+      `420: ${item.label} opens ${item.path} on its own, with a back link to the list`,
+      s.path === item.path && s.h1.join() === item.label && s.back && !s.navShown,
+      JSON.stringify(s),
+    );
+    await p.evaluate(`${backLink}.click()`);
+    await p.waitFor(`location.pathname === "/app/settings" && ${shown(settingsNav)}`, 10000).then(
+      () => check(`420: ${item.label}'s back link returns to the list`, true),
+      async () =>
+        check(`420: ${item.label}'s back link returns to the list`, false, JSON.stringify(await state())),
+    );
+  }
+
+  // A direct link, and a reload.
+  await p.goto("/app/settings/units");
+  const unitsReady = `location.pathname === "/app/settings/units" && document.querySelector('input[name="temperature"]')`;
+  const direct = await p.waitFor(unitsReady, 30000).then(
+    () => true,
+    () => false,
+  );
+  check("/app/settings/units works as a direct link", direct, direct ? "" : JSON.stringify(await state()));
+  await p.evaluate("location.reload()");
+  await sleep(500);
+  const reloaded = await p.waitFor(unitsReady, 30000).then(
+    () => true,
+    () => false,
+  );
+  check("/app/settings/units works after a reload", reloaded, reloaded ? "" : JSON.stringify(await state()));
+
+  // 1280: the side nav beside Units.
+  await metrics(p, 1280);
+  await p.goto("/app/settings");
+  await p
+    .waitFor(
+      `location.pathname === "/app/settings/units" && document.querySelector('input[name="temperature"]')`,
+      30000,
+    )
+    .catch(() => {});
+  s = await state();
+  check(
+    "1280: /app/settings lands on Units beside the side nav, Units current, no back link",
+    s.path === "/app/settings/units" &&
+      s.navShown &&
+      !s.back &&
+      s.h1.join() === "Units" &&
+      s.current.join() === "units=page",
+    JSON.stringify(s),
+  );
+  await p.screenshot("routing-settings-1280");
+  await p.evaluate(`${settingsLink("timeline")}.click()`);
+  await p
+    .waitFor(
+      `location.pathname === "/app/settings/timeline" && document.querySelector('[role="radiogroup"]')`,
+      20000,
+    )
+    .catch(() => {});
+  s = await state();
+  check(
+    "1280: the side nav switches subpages in one click, and aria-current follows",
+    s.path === "/app/settings/timeline" && s.navShown && s.current.join() === "timeline=page",
+    JSON.stringify(s),
+  );
+  const historyBefore = await p.evaluate("history.length");
+
+  // Widening the window on the list opens the first subpage.
+  await metrics(p, 420);
+  await p.evaluate(`${backLink}.click()`);
+  await p.waitFor(`location.pathname === "/app/settings" && ${shown(settingsNav)}`, 10000).catch(() => {});
+  await metrics(p, 1280);
+  await p.waitFor(`location.pathname === "/app/settings/units"`, 10000).then(
+    () => check("widening the window on the list opens Units", true),
+    async () => check("widening the window on the list opens Units", false, JSON.stringify(await state())),
+  );
+  check("…replacing the list in history", (await p.evaluate("history.length")) === historyBefore + 1);
+
+  // Account: the name and email, and Sign out.
+  await metrics(p, 420);
+  await p.goto("/app/settings/account");
+  await p.waitFor(`document.querySelector('main [data-field="email"]')`, 30000).catch(() => {});
+  const account = JSON.parse(
+    await p.evaluate(
+      `JSON.stringify({ name: document.querySelector('main [data-field="name"]')?.textContent.trim(), email: document.querySelector('main [data-field="email"]')?.textContent.trim(), inputs: document.querySelectorAll("main input").length })`,
+    ),
+  );
+  const seededName = psql(`SELECT name FROM "user" WHERE email = 'caretaker@example.com'`);
+  check(
+    "Account shows the name and email, read-only",
+    account.name === seededName && account.email === "caretaker@example.com" && account.inputs === 0,
+    JSON.stringify(account),
+  );
+  await p.screenshot("routing-settings-account");
+  const signOut = `[...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Sign out")`;
+  await p.evaluate(`${signOut}.click()`);
+  await p.waitFor(`location.pathname === "/sign-in"`, 30000).then(
+    () => check("Account's Sign out signs out", true),
+    async () => check("Account's Sign out signs out", false, await p.evaluate("location.pathname")),
+  );
+  await p.goto("/app/settings");
+  await p.waitFor(`location.pathname === "/sign-in"`, 30000).then(
+    () => check("…and /app/settings then asks to sign in", true),
+    async () =>
+      check("…and /app/settings then asks to sign in", false, await p.evaluate("location.pathname")),
+  );
+}
+
 const browsers = [];
+const errorsFrom = [];
 let c;
 try {
   // caretaker@: a writer in Dev Family.
-  browsers.push(await launch(9481));
+  browsers.push(await launch(9481, proxy.args));
   c = await openPage(browsers[0], "caretaker");
   await c.signIn("caretaker@example.com", PW);
 
@@ -146,6 +354,192 @@ try {
     () => check("the role back to caretaker brings the controls back", false),
   );
 
+  // ── The add sheet (slice 2) ──
+  // A filtered timeline with an older page loaded, scrolled down.
+  const filters = `?kind=vital&author=${caretakerId}`;
+  await c.goto(`${T}${filters}`);
+  await c.waitFor(`${ROWS} > 0 && ${button("Show older entries")}`, 30000);
+  await c.press(button("Show older entries"));
+  await c.waitFor(`${ROWS} > 30`, 10000);
+  await c.evaluate(`scrollTo(0, 1500)`);
+  await sleep(500);
+  const before = await where(c);
+  check(
+    "sheet setup: an older page is loaded and the timeline is scrolled",
+    before.rows > 30 && before.y > 1000,
+    JSON.stringify(before),
+  );
+
+  const openSymptom = async () => {
+    await c.press(tile("Symptom"));
+    await c.waitFor(`${DIALOG} && document.querySelector('[role=dialog] input[name="symptomName"]')`, 10000);
+  };
+  const sameTimeline = async (how) => {
+    await c.waitFor(`!${DIALOG} && location.pathname === ${JSON.stringify(T)}`, 10000).catch(() => {});
+    await sleep(300);
+    const after = await where(c);
+    check(
+      `${how} closes the sheet, keeping the scroll position, the loaded entries and the filters`,
+      !after.dialog &&
+        after.path === T &&
+        after.search === before.search &&
+        Math.abs(after.y - before.y) <= 2 &&
+        after.rows === before.rows,
+      JSON.stringify({ before, after }),
+    );
+    check(
+      `…and ${how} leaves no sheet ahead in the history`,
+      after.idx === before.idx,
+      JSON.stringify(after),
+    );
+  };
+
+  await openSymptom();
+  const sheetOpen = await where(c);
+  check(
+    "Quick add → Symptom goes to …/timeline/new/symptom with the filters",
+    sheetOpen.path === `${T}/new/symptom` && sheetOpen.search === filters && sheetOpen.dialog,
+    JSON.stringify(sheetOpen),
+  );
+  await c.evaluate("history.back()");
+  await sameTimeline("Back");
+
+  await openSymptom();
+  await c.send("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await c.send("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await sameTimeline("Escape");
+
+  await openSymptom();
+  await c.press(button("Cancel", DIALOG));
+  await sameTimeline("Cancel");
+
+  const saved = `${tag} sheet symptom`;
+  await openSymptom();
+  await c.type(`document.querySelector('[role=dialog] input[name="symptomName"]')`, saved);
+  await c.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
+  await sameTimeline("a save");
+  check(
+    "the saved symptom is on the device",
+    (await c.evaluate(
+      `window.caretookSync.powersync.getAll("SELECT id FROM timeline_entry WHERE json_extract(details, '$.name') = ?", [${JSON.stringify(saved)}]).then((r) => r.length)`,
+    )) === 1,
+  );
+  await c.evaluate("history.back()");
+  await sleep(2000);
+  const back = await c.evaluate(`JSON.stringify({ path: location.pathname, dialog: !!${DIALOG} })`);
+  check(
+    "Back after a save doesn't reopen the sheet",
+    !JSON.parse(back).dialog && !JSON.parse(back).path.includes("/new/"),
+    back,
+  );
+
+  // A deep link with a vital type, then a reload.
+  await c.goto(`${T}/new/vital?kind=vital&type=heartRate`);
+  await c.waitFor(DIALOG, 30000).catch(() => {});
+  check(
+    "a deep link to new/vital?type=heartRate opens the sheet with Heart rate",
+    (await c.evaluate(VITAL_TYPE)) === "heartRate",
+  );
+  await c.send("Page.reload", { ignoreCache: false });
+  await sleep(500);
+  await c.waitFor(`document.readyState === "complete" && ${DIALOG}`, 30000).catch(() => {});
+  check("…and so does a reload", (await c.evaluate(VITAL_TYPE)) === "heartRate");
+  const deep = await where(c);
+  await c.press(button("Cancel", DIALOG));
+  await c.waitFor(`!${DIALOG} && location.pathname === ${JSON.stringify(T)}`, 10000).catch(() => {});
+  const deepClosed = await where(c);
+  check(
+    "closing a deep-linked sheet replaces it with the timeline, filters kept",
+    !deepClosed.dialog &&
+      deepClosed.path === T &&
+      deepClosed.search === "?kind=vital" &&
+      deepClosed.idx === deep.idx,
+    JSON.stringify({ deep, deepClosed }),
+  );
+
+  await c.goto(`${T}/new/vital?type=bogus`);
+  await c.waitFor(DIALOG, 30000).catch(() => {});
+  check(
+    "new/vital?type=bogus opens the sheet with no type chosen",
+    (await c.evaluate(`!!${DIALOG} && ${VITAL_TYPE} === null`)) === true,
+  );
+
+  for (const kind of ["note", "anything"]) {
+    await c.goto(`${T}/new/${kind}?kind=vital`);
+    await c
+      .waitFor(
+        `location.pathname === ${JSON.stringify(T)} && location.search === "?kind=vital" && ${ROWS} > 0`,
+        30000,
+      )
+      .catch(() => {});
+    const landed = await where(c);
+    check(
+      `new/${kind} lands on the timeline, filters kept`,
+      landed.path === T && landed.search === "?kind=vital" && !landed.dialog,
+      JSON.stringify(landed),
+    );
+  }
+
+  // Offline: the add links open the sheet, and a save lands on the device.
+  await c.goto(T);
+  await c.waitFor(`${ROWS} > 0`, 30000);
+  const errorsOnline = c.errors.length;
+  proxy.setOnline(false);
+  await c.waitFor(`document.body.innerText.includes("Offline")`, 20000).catch(() => {});
+  const offName = `${tag} offline symptom`;
+  await openSymptom().then(
+    () => check("offline: Quick add → Symptom opens the sheet", true),
+    () => check("offline: Quick add → Symptom opens the sheet", false),
+  );
+  await c.type(`document.querySelector('[role=dialog] input[name="symptomName"]')`, offName);
+  await c.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
+  await c
+    .waitFor(
+      `!${DIALOG} && [...document.querySelectorAll("main ol > li")].some((li) => li.textContent.includes(${JSON.stringify(offName)}))`,
+      10000,
+    )
+    .then(
+      () => check("offline: a save closes the sheet and shows the entry", true),
+      () => check("offline: a save closes the sheet and shows the entry", false),
+    );
+  check(
+    "offline: not on the server yet",
+    psql(`SELECT count(*) FROM timeline_entry WHERE details->>'name' = '${offName}'`) === "0",
+  );
+  await c.press(tile("Vitals"));
+  await c.waitFor(menuItem("Heart rate"), 5000);
+  await c.press(menuItem("Heart rate"));
+  await c.waitFor(DIALOG, 10000).catch(() => {});
+  check(
+    "offline: Vitals → Heart rate opens new/vital?type=heartRate with Heart rate",
+    (await c.evaluate(
+      `location.pathname.endsWith("/new/vital") && location.search === "?type=heartRate" && ${VITAL_TYPE} === "heartRate"`,
+    )) === true,
+  );
+  await c.press(button("Cancel", DIALOG));
+  await c.waitFor(`!${DIALOG}`, 10000).catch(() => {});
+  proxy.setOnline(true);
+  let uploaded = "0";
+  for (let i = 0; i < 60 && uploaded === "0"; i++) {
+    await sleep(1000);
+    uploaded = psql(`SELECT count(*) FROM timeline_entry WHERE details->>'name' = '${offName}'`);
+  }
+  check("online again: the offline entry reaches the server", uploaded === "1");
+  c.errors.splice(errorsOnline); // Offline fetch failures aren't the app's errors.
+
+  // Slice 4: the account's settings list and subpages.
+  await settingsSteps(c);
+
   // admin@: in no care group, so every group URL is a 404 that names nothing.
   await sleep(4000); // Better Auth's sign-in rate limit.
   browsers.push(await launch(9482));
@@ -170,7 +564,27 @@ try {
   );
   check("non-member: the 404 has a way back to /app", frame.main.includes("/app"), JSON.stringify(frame));
 
-  const errors = [...c.errors, ...a.errors].filter(
+  // viewer@: a sheet URL is the timeline, with no form.
+  await sleep(4000); // Better Auth's sign-in rate limit.
+  browsers.push(await launch(9483));
+  const v = await openPage(browsers[2], "viewer");
+  await v.signIn("viewer@example.com", PW);
+  await v.goto(`${T}/new/symptom?kind=vital`);
+  await v.waitFor(`location.pathname === ${JSON.stringify(T)} && ${ROWS} > 0`, 30000).catch(() => {});
+  const viewer = await where(v);
+  check(
+    "viewer: new/symptom is the timeline, with no form",
+    viewer.path === T &&
+      viewer.search === "?kind=vital" &&
+      !viewer.dialog &&
+      (await v.evaluate(
+        `!document.querySelector('input[name="symptomName"], form[method="post"] [name="units"]')`,
+      )),
+    JSON.stringify(viewer),
+  );
+  errorsFrom.push(v);
+
+  const errors = [...c.errors, ...a.errors, ...errorsFrom.flatMap((p) => p.errors)].filter(
     (e) =>
       !/vite|PowerSync|WebSocket|Error loading route module|Failed to fetch dynamically imported module|status of 40[14]/i.test(
         e,
@@ -195,7 +609,11 @@ try {
     `UPDATE care_recipient SET preferred_name = ${foundName ? `'${foundName}'` : "NULL"} WHERE group_id = '${G}'`,
   );
   setCaretakerRole(foundRole);
+  psql(
+    `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
+  );
   for (const b of browsers) b.proc.kill();
+  proxy.close();
   console.log(`\n${results.filter(Boolean).length}/${results.length} passed`);
   process.exit(results.every(Boolean) ? 0 : 1);
 }
