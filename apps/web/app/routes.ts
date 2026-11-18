@@ -25,7 +25,11 @@ const appRoutes = [
         ]),
         route("entries/:entryId", "routes/app/groups/entry/route.tsx"),
         route("settings", "routes/app/groups/settings/route.tsx"),
-        route("providers", "routes/app/groups/providers/route.tsx"),
+        route("providers", "routes/app/groups/providers/route.tsx", [
+          // Sheets over the directory, which stays mounted underneath.
+          route("new", "routes/app/groups/providers/new/route.tsx"),
+          route(":providerId/edit", "routes/app/groups/providers/edit/route.tsx"),
+        ]),
       ]),
     ]),
   ]),

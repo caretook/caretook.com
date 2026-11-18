@@ -86,6 +86,23 @@ describe("appUrls", () => {
     // @ts-expect-error: only notes and events are drafted on their own page.
     expect(appUrls.newEntry("g", "symptom")).toBe(`/app/groups/g/entries/${NEW_ENTRY}`);
   });
+
+  it("builds the provider sheets' paths, carrying the directory's search", () => {
+    expect(appUrls.newProvider("g")).toBe("/app/groups/g/providers/new");
+    expect(appUrls.newProvider("g", { type: "pharmacy" })).toBe("/app/groups/g/providers/new?type=pharmacy");
+    // The type replaces the list's type filter; the rest is kept.
+    expect(appUrls.newProvider("g", { type: "practice", search: "?q=west&type=clinician&past=1" })).toBe(
+      "/app/groups/g/providers/new?q=west&type=practice&past=1",
+    );
+    expect(appUrls.newProvider("g", { search: "?q=west&type=clinician" })).toBe(
+      "/app/groups/g/providers/new?q=west&type=clinician",
+    );
+    // @ts-expect-error: only provider types.
+    expect(appUrls.newProvider("g", { type: "bogus" })).toBe("/app/groups/g/providers/new");
+    expect(appUrls.editProvider("g", "p 1", { q: "cardio" })).toBe(
+      "/app/groups/g/providers/p%201/edit?q=cardio",
+    );
+  });
 });
 
 describe("searchString", () => {
