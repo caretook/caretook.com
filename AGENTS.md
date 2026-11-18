@@ -526,6 +526,7 @@ UI work is verified in headless Chrome over CDP with plain Node scripts (no Play
 ```
 docker-compose.yml        dev Postgres :5434, PowerSync :8080 + storage; docker-compose.test.yml → :5435
 powersync/                service.yaml, sync-config.yaml (Sync Streams)
+docs/                     orchestration.md: the human guide to branches, the inbox and running PRDs (README.md links it)
 plans/                    inbox.md (the user's list) and backlog.md (the tracker), both only on dev; PRDs and slice plans
 scripts/browser-checks/   headless Chrome checks
 scripts/loops/            new/ls/rm/prompt (+ lib.sh): worktrees in .loops/, slot leases, a Docker stack each
