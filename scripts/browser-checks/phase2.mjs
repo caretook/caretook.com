@@ -102,7 +102,12 @@ try {
   );
   check("first page is 30 entries", (await p.evaluate(rows)) === 30, `${await p.evaluate(rows)}`);
 
-  await p.evaluate(`window.scrollTo(0, 1500)`);
+  // Scroll into the middle of a day (a fixed offset can land on the seam
+  // between two days, where the next header is pushing this one out).
+  await p.evaluate(`(() => {
+    const day = [...document.querySelectorAll("section h3")].map((h) => h.parentElement.getBoundingClientRect())
+      .find((r) => r.top > 300 && r.height > 300);
+    window.scrollTo(0, day ? day.top + scrollY + 120 : 1500); })()`);
   await sleep(200);
   const sticky = await p.evaluate(
     `[...document.querySelectorAll("section h3")].some((h) => { const t = h.getBoundingClientRect().top; return t >= 0 && t < 5; })`,
