@@ -1,7 +1,7 @@
-import type { Provider } from "../../db";
+import type { Provider, Tx } from "../../db";
 import type { Filter, QuerySelectArgs } from "../base/queryHelpers";
 
-import { sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { dbMayFail, txOrDb } from "../../db";
 import { providerSchema } from "../../db/schema";
@@ -78,4 +78,28 @@ export const remove = async (args: QuerySelectArgs<K>) => {
   if (!res.length) return newError({ code: "baseModel:remove:nothingRemoved" });
 
   return { ids: res.map((r) => r.id) };
+};
+
+/**
+ * Lock a live provider's row for the rest of `tx` and return it, or null if
+ * it's gone or deleted. Internal: no permission scope, so callers check
+ * visibility (or the group) themselves.
+ *
+ * - `update` (deleting a practice) waits for, and blocks, `share`.
+ * - `share` (a provider naming it as their practice) blocks the delete, and
+ *   after waiting for one, rereads the row and sees it deleted.
+ */
+export const lockLive = async (id: string, tx: Tx, strength: "update" | "share") => {
+  const t = providerSchema;
+  const rows = await dbMayFail(
+    () =>
+      tx
+        .select()
+        .from(t)
+        .where(and(eq(t.id, id), isNull(t.deletedAt)))
+        .for(strength),
+    "providerModel:lock",
+  );
+  if (isError(rows)) return rows;
+  return rows[0] ?? null;
 };

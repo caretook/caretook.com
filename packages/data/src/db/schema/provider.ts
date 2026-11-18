@@ -49,6 +49,14 @@ export const PRACTICE_IN_USE_ISSUE = {
   message: "Clinicians are linked to this practice. Move them to another practice first.",
 } as const;
 
+/**
+ * Why a practice or pharmacy can't be deleted while live providers name it
+ * as their practice: the same on the device and the server
+ * (providerService:practiceHasProviders).
+ */
+export const PRACTICE_HAS_PROVIDERS_MESSAGE =
+  "Providers are linked to this practice. Move them to another practice, or delete them, first.";
+
 /** A labelled phone number ("Office", "Fax", "After hours"). */
 export type ProviderPhone = { label: string; number: string };
 
