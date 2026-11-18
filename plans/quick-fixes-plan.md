@@ -4,19 +4,21 @@
 
 ## Status
 
-| Slice | Item | State                                             | Merge into `prd/quick-fixes` (slice commits) |
-| ----- | ---- | ------------------------------------------------- | -------------------------------------------- |
-| 1     | B-1  | merged                                            | 1e00754 (5ab3b67)                            |
-| 2     | B-17 | merged                                            | 4629e8c (32355db)                            |
-| 3     | B-22 | merged                                            | b0325d0 (46ef320)                            |
-| 4     | B-28 | merged                                            | b15b140 (9911d1b, 8a0bb50)                   |
-| 5     | B-29 | merged                                            | 8eaf3c3 (3b97174, a31bd85)                   |
-| 6     | B-34 | ready (`components` slice 1 is in `dev`, 414b0a6) |                                              |
-| 7     | B-27 | merged                                            | 75127be (004abfe)                            |
-| 8     | B-35 | merged                                            | 6dcc71d (7c0725f)                            |
-| 9     | B-36 | merged                                            | e6fc148 (cc12901)                            |
+| Slice | Item | State  | Merge into `prd/quick-fixes` (slice commits) |
+| ----- | ---- | ------ | -------------------------------------------- |
+| 1     | B-1  | merged | 1e00754 (5ab3b67)                            |
+| 2     | B-17 | merged | 4629e8c (32355db)                            |
+| 3     | B-22 | merged | b0325d0 (46ef320)                            |
+| 4     | B-28 | merged | b15b140 (9911d1b, 8a0bb50)                   |
+| 5     | B-29 | merged | 8eaf3c3 (3b97174, a31bd85)                   |
+| 6     | B-34 | merged | 483f768 (7251a69, 10aa140)                   |
+| 7     | B-27 | merged | 75127be (004abfe)                            |
+| 8     | B-35 | merged | 6dcc71d (7c0725f)                            |
+| 9     | B-36 | merged | e6fc148 (cc12901)                            |
 
-Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) is merged into `prd/quick-fixes` and synced with `dev` (21e23d8), waiting for the user's word to land. Slice 6 can start after it: `components` slice 1 moved `DateTimeField` to `components/forms/` (import through `~/components/forms`); tell the `components` orchestrator when B-34 lands.
+Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 is slice 6 (merged as 483f768); tell the `components` orchestrator when it lands.
+
+- Slice 6: `DateTimeField` is a RAC `DatePicker` (typed segments plus a calendar `Popover`), same props and submitted value. `roundtrip.mjs` step 4b and `live-notes.mjs`'s time chip go through the calendar. `components` slice 2 may swap its `Group`/`Popover` for its own primitives.
 
 - Slice 7: the root cause was `proxy.mjs` not tunnelling CONNECT, so a proxied browser's Vite HMR socket never connected and it missed Vite's reload after a re-optimization (two copies of React and Yjs, a blank page). The proxy now tunnels WebSockets and keeps Vite's sockets open offline; `cdp.mjs` collects uncaught errors and `waitFor` prints `page.diagnose()` on a timeout. Still open on B-27: the first sign-in on an empty Vite deps cache (504 Outdated Optimize Dep; maybe `optimizeDeps.entries`), and a one-off empty `/app` after a reload (`app-shell.mjs`, seen twice at low load, passes on rerun).
 - Slice 8: `providerService:practiceInUse`, on the server and the device. The sheet criterion wasn't run (no browser checks that wave). Open: deleting a practice leaves its clinicians pointing at it.
