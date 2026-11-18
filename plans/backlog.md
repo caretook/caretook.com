@@ -22,6 +22,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started. **Runs next** | `app-shell` (done), `timeline-polish` wave 1 (in `dev`; its slices 4–7 wait for this) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
 | `components`      | [PRD](components-prd.md), [plan](components-plan.md): 6 slices, not started. Runs after `routing`, before `timeline-polish` slices 4–7 | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
 | `invites`         | [PRD](invites-prd.md), [plan](invites-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 3 uses `routing` slice 5 (Members subpage) if in `dev` | a new `packages/notifications`; Better Auth config; `care_group_invite` + new tables; `PERMISSIONS`, `db/schema/index.ts`, the router, `routes.ts`; group settings Members; the group menu; `/app` home; `sign-in.tsx`; env examples and `scripts/loops/lib.sh` |
+| `marketing`       | [PRD](marketing-prd.md), [plan](marketing-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 4: `invites` 1 (outbox); slice 5: `invites` 5 (`/admin`) | web-only marketing routes in `routes.ts`, `react-router.config.ts` (prerender), `root.tsx` (icons, meta), a new public folder; `PERMISSIONS`, `db/schema/index.ts`, the router, `NOTIFICATIONS`, the admin nav |
 
 ## Summary
 
