@@ -32,7 +32,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-2 | change | in-progress | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
 | B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
-| B-5 | change | in-progress | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
+| B-5 | change | ready | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
 | B-7 | change | in-progress | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
 | B-8 | feature | ready | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
@@ -101,10 +101,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-5 · change · Tap an entry's kind icon to filter by that kind
 
-- status: in-progress
+- status: ready
 - prd: timeline-polish
 - owner: prd/timeline-polish
-- commit:
+- commit: 5d6678a
 
 - 2026-11-17 (dev keeper): The icon sits inside the row's stretched tap target (`EntryOpenTarget`); it becomes its own control above it (`relative z-10`, like ⋯).
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Kind icon becomes its own z-10 control; combines with ?author=; re-tap is a no-op.
