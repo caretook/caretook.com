@@ -231,6 +231,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner: prd/live-notes-ux
 - commit:
 
+- 2026-11-17 (slice/live-notes-ux/7): Slice 7 built on slice/live-notes-ux/7 (3f35d8f): Live now banner + live dot on the timeline; check live-now.mjs 21/21.
+
 ### B-20 · chore · Browser check overhaul and documentation (live notes slice 10)
 
 - status: triaged
