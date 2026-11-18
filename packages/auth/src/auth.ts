@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { bearer, jwt } from "better-auth/plugins";
+import { bearer, emailOTP, jwt, magicLink } from "better-auth/plugins";
 import {
   accountSchema,
   getDb,
@@ -12,9 +12,22 @@ import {
   verificationSchema,
 } from "@caretook/data";
 import { getAuthConfig } from "./config";
+import { sendMagicLink, sendResetPassword, sendVerificationEmail, sendVerificationOTP } from "./emails";
 
 // Capacitor's WebView origins. The native app talks to the web server's /api/auth.
 const NATIVE_ORIGINS = ["capacitor://localhost", "https://localhost"];
+
+// The email-OTP plugin's endpoints we don't use: a code only signs in.
+// Resets go through the emailed link, and verification through its own link.
+const UNUSED_OTP_PATHS = [
+  "/email-otp/check-verification-otp",
+  "/email-otp/verify-email",
+  "/email-otp/request-password-reset",
+  "/forget-password/email-otp",
+  "/email-otp/reset-password",
+  "/email-otp/request-email-change",
+  "/email-otp/change-email",
+];
 
 const createAuth = () => {
   const { secret, baseURL, trustedOrigins, powersyncURL } = getAuthConfig();
@@ -39,12 +52,24 @@ const createAuth = () => {
       // Our tables use uuid ids with gen_random_uuid() defaults.
       database: { generateId: "uuid" },
     },
-    // Iteration 1: email + password for seeded accounts only. Sign-up,
-    // verification and reset arrive with Resend (see AGENTS.md).
+    disabledPaths: UNUSED_OTP_PATHS,
+    // Accounts come only from invitations (invites slices 3–5), never from
+    // public sign-up. An unverified account can't sign in with a password:
+    // it gets a fresh verification email and EMAIL_NOT_VERIFIED instead.
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
       minPasswordLength: 12,
+      requireEmailVerification: true,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword,
+    },
+    emailVerification: {
+      sendVerificationEmail,
+      sendOnSignIn: true,
+      autoSignInAfterVerification: true,
+      expiresIn: 60 * 60,
     },
     user: {
       additionalFields: {
@@ -60,6 +85,16 @@ const createAuth = () => {
     plugins: [
       // `Authorization: Bearer <session token>` for Capacitor, where cookies don't work.
       bearer(),
+      // "Email me a link" and "Email me a code": existing accounts only.
+      magicLink({ disableSignUp: true, expiresIn: 5 * 60, storeToken: "hashed", sendMagicLink }),
+      emailOTP({
+        disableSignUp: true,
+        otpLength: 6,
+        expiresIn: 5 * 60,
+        allowedAttempts: 3,
+        storeOTP: "hashed",
+        sendVerificationOTP,
+      }),
       // Short-lived JWTs (and a JWKS endpoint) for PowerSync and workers.
       jwt({
         jwt: {

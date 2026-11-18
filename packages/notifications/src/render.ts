@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import type { EmailContent, EmailContext } from "./define";
 import type { NotificationName, Notifications } from "./registry";
 
 import { newError } from "@caretook/data/errors";
@@ -31,7 +32,10 @@ export const renderNotification = async <N extends NotificationName>(
   }
 
   try {
-    const { subject, react } = definition.email(parsed.data, {
+    // The data just parsed with this definition's own schema; TypeScript
+    // can't correlate the two through the union of every notification.
+    const email = definition.email as (data: unknown, ctx: EmailContext) => EmailContent;
+    const { subject, react } = email(parsed.data, {
       recipient,
       link: linkBuilder(appUrl),
     });

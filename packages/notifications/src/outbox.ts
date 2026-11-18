@@ -15,6 +15,7 @@ import {
 import { and, eq, inArray, lt, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getMailConfig } from "./config";
+import { NOTIFICATIONS } from "./registry";
 import { renderNotification } from "./render";
 import { getSender } from "./senders";
 
@@ -53,6 +54,15 @@ let runInBackground: BackgroundRunner = fireAndForget;
  */
 export const setBackgroundRunner = (runner: BackgroundRunner | null) => {
   runInBackground = runner ?? fireAndForget;
+};
+
+/**
+ * Run `work` after the response, through the registered runner (`waitUntil`
+ * on Vercel). For callers that must not await a send, such as Better Auth's
+ * email callbacks: awaiting would make "no such account" answer faster.
+ */
+export const inBackground = (work: () => Promise<unknown>) => {
+  runInBackground(Promise.resolve().then(work));
 };
 
 /**
@@ -153,6 +163,15 @@ export type DeliverySummary = {
   failed: number;
 };
 
+/** What a sensitive message's body becomes once it's delivered or failed. */
+export const REDACTED_BODY = "[Removed after delivery: this message carried a sign-in link or code.]";
+
+/** A sensitive notification's HTML and text, blanked; nothing for the others. */
+const redactedBody = (name: string) =>
+  (NOTIFICATIONS as Record<string, { sensitive?: boolean }>)[name]?.sensitive
+    ? { html: REDACTED_BODY, text: REDACTED_BODY }
+    : {};
+
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 2000);
 
 /**
@@ -236,6 +255,7 @@ export const deliverDue = async ({
           .set({
             status: "sent",
             sentAt: sql`now()`,
+            ...redactedBody(row.name),
             providerMessageId: result.providerMessageId ?? null,
             lastError: null,
           })
@@ -244,14 +264,14 @@ export const deliverDue = async ({
         summary.skipped++;
         await db
           .update(outbox)
-          .set({ status: "skipped", sentAt: sql`now()`, lastError: result.reason })
+          .set({ status: "skipped", sentAt: sql`now()`, lastError: result.reason, ...redactedBody(row.name) })
           .where(mine(row.id));
       } else if (row.attempts >= MAX_ATTEMPTS) {
         summary.failed++;
         console.error(`[mail] ${row.name} ${row.id} failed after ${row.attempts} attempts: ${result.error}`);
         await db
           .update(outbox)
-          .set({ status: "failed", lastError: errorText(result.error) })
+          .set({ status: "failed", lastError: errorText(result.error), ...redactedBody(row.name) })
           .where(mine(row.id));
       } else {
         summary.retried++;

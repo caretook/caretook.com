@@ -1,66 +1,49 @@
 import type { ReactNode } from "react";
 
-// Small, dependency-free building blocks for email templates: plain HTML with
-// inline styles (mail clients ignore stylesheets), rendered by
-// @react-email/render. Every template wraps its body in EmailLayout.
+import { Body, Button, Container, Head, Html, Preview, Section, Text } from "react-email";
+
+// The building blocks every email template uses, on React Email's components
+// (table-based markup and inline styles that mail clients understand),
+// rendered by @react-email/render. Every template wraps its body in
+// EmailLayout. No health details in any of them (see define.ts).
 
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
 export const EmailLayout = ({ preview, children }: { preview: string; children: ReactNode }) => (
-  <html lang="en">
-    <head>
-      <meta charSet="utf-8" />
+  <Html lang="en">
+    <Head>
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-    </head>
-    <body style={{ margin: 0, padding: 0, backgroundColor: "#f6f6f4", fontFamily: FONT, color: "#1f2328" }}>
-      {/* The inbox preview line; hidden in the message itself. */}
-      <div data-skip-in-text="true" style={{ display: "none", maxHeight: 0, overflow: "hidden" }}>
-        {preview}
-      </div>
-      <table
-        role="presentation"
-        width="100%"
-        cellPadding={0}
-        cellSpacing={0}
-        style={{ padding: "24px 12px" }}
-      >
-        <tbody>
-          <tr>
-            <td align="center">
-              <table
-                role="presentation"
-                width="100%"
-                cellPadding={0}
-                cellSpacing={0}
-                style={{ maxWidth: 520, backgroundColor: "#ffffff", borderRadius: 8, padding: 28 }}
-              >
-                <tbody>
-                  <tr>
-                    <td>
-                      <p style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 600 }}>Caretook</p>
-                      {children}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </body>
-  </html>
+    </Head>
+    {/* The inbox preview line; hidden in the message and left out of the plain text. */}
+    <Preview>{preview}</Preview>
+    <Body
+      style={{
+        margin: 0,
+        padding: "24px 12px",
+        backgroundColor: "#f6f6f4",
+        fontFamily: FONT,
+        color: "#1f2328",
+      }}
+    >
+      <Container style={{ maxWidth: 520, backgroundColor: "#ffffff", borderRadius: 8, padding: 28 }}>
+        <Text style={{ margin: "0 0 20px", fontSize: 18, lineHeight: "24px", fontWeight: 600 }}>
+          Caretook
+        </Text>
+        {children}
+      </Container>
+    </Body>
+  </Html>
 );
 
 export const Paragraph = ({ children }: { children: ReactNode }) => (
-  <p style={{ margin: "0 0 16px", fontSize: 16, lineHeight: "24px" }}>{children}</p>
+  <Text style={{ margin: "0 0 16px", fontSize: 16, lineHeight: "24px" }}>{children}</Text>
 );
 
 export const ButtonLink = ({ href, children }: { href: string; children: ReactNode }) => (
-  <p style={{ margin: "24px 0" }}>
-    <a
+  <Section style={{ margin: "24px 0" }}>
+    <Button
       href={href}
       style={{
-        display: "inline-block",
         backgroundColor: "#2f6f5e",
         color: "#ffffff",
         padding: "12px 20px",
@@ -71,10 +54,26 @@ export const ButtonLink = ({ href, children }: { href: string; children: ReactNo
       }}
     >
       {children}
-    </a>
-  </p>
+    </Button>
+  </Section>
+);
+
+/** A one-time code in large, spaced type (sign-in codes). */
+export const Code = ({ children }: { children: ReactNode }) => (
+  <Text
+    style={{
+      margin: "24px 0",
+      fontSize: 32,
+      lineHeight: "40px",
+      fontWeight: 700,
+      letterSpacing: 6,
+      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    }}
+  >
+    {children}
+  </Text>
 );
 
 export const Muted = ({ children }: { children: ReactNode }) => (
-  <p style={{ margin: "24px 0 0", fontSize: 13, lineHeight: "20px", color: "#656d76" }}>{children}</p>
+  <Text style={{ margin: "24px 0 0", fontSize: 13, lineHeight: "20px", color: "#656d76" }}>{children}</Text>
 );

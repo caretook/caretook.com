@@ -14,7 +14,14 @@ const ctx = { recipient: "someone@example.com", appUrl: APP_URL };
 // here, so every template is rendered by the tests below.
 const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNotification<N>>[1] } = {
   testMessage: { name: "Avery", message: "Hello from the dev mailbox", path: "/app/settings" },
+  verifyEmail: { name: "Avery", token: "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImEifQ.sig-_x" },
+  resetPassword: { name: "Avery", token: "resetToken123" },
+  magicLink: { token: "magicTokenABC", next: "/app/groups/x/timeline" },
+  signInCode: { code: "135790" },
 };
+
+// Notifications whose email carries no link (a code to type in).
+const LINKLESS = new Set<keyof typeof NOTIFICATIONS>(["signInCode"]);
 
 describe("the registry", () => {
   it("has a sample for every notification, keyed by its own name", () => {
@@ -39,12 +46,45 @@ describe("the registry", () => {
       const out = await renderNotification(name, SAMPLES[name], ctx);
       if ("code" in out) throw new Error(String(out.code));
       const links = extractLinks(out.html);
-      expect(links.length).toBeGreaterThan(0);
+      if (!LINKLESS.has(name)) expect(links.length).toBeGreaterThan(0);
       for (const link of links) expect(link.startsWith(`${APP_URL}/`)).toBe(true);
       // The plain text carries the same links.
       for (const link of links) expect(out.text).toContain(link);
     },
   );
+
+  it("puts each account email's secret where the reader needs it", async () => {
+    const render = async <N extends keyof typeof SAMPLES>(name: N) => {
+      const out = await renderNotification(name, SAMPLES[name], ctx);
+      if ("code" in out) throw new Error(String(out.code));
+      return out;
+    };
+    const verify = await render("verifyEmail");
+    expect(extractLinks(verify.html)).toEqual([`${APP_URL}/verify-email?token=${SAMPLES.verifyEmail.token}`]);
+    expect(extractLinks((await render("resetPassword")).html)).toEqual([
+      `${APP_URL}/reset-password?token=resetToken123`,
+    ]);
+    const [magic] = extractLinks((await render("magicLink")).html);
+    const url = new URL(magic ?? "");
+    expect(`${url.origin}${url.pathname}`).toBe(`${APP_URL}/api/auth/magic-link/verify`);
+    expect(url.searchParams.get("token")).toBe("magicTokenABC");
+    expect(url.searchParams.get("callbackURL")).toBe("/app/groups/x/timeline");
+    const code = await render("signInCode");
+    expect(code.text).toContain("135790");
+    expect(code.subject).not.toContain("135790");
+  });
+
+  it("refuses a sign-in code that isn't six digits, and a token with odd characters", async () => {
+    expect(await renderNotification("signInCode", { code: "12345" }, ctx)).toMatchObject({
+      code: "notify:invalidData",
+    });
+    expect(await renderNotification("resetPassword", { token: 'x" onclick="y' }, ctx)).toMatchObject({
+      code: "notify:invalidData",
+    });
+    expect(await renderNotification("magicLink", { token: "t", next: "//evil.example" }, ctx)).toMatchObject({
+      code: "notify:invalidData",
+    });
+  });
 
   it("refuses bad data before rendering", async () => {
     const out = await renderNotification("testMessage", { name: "", message: 42 } as never, ctx);

@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { handleOutboxCron } from "./cron";
-import { MAX_ATTEMPTS, deliverDue, notify, purgeSent } from "./outbox";
+import { MAX_ATTEMPTS, REDACTED_BODY, deliverDue, notify, purgeSent } from "./outbox";
 import { createMemorySender } from "./senders";
 
 const run = randomUUID().slice(0, 8);
@@ -120,6 +120,27 @@ describe("deliverDue", () => {
     expect(sender.sent[0]?.text).toBe(row?.text);
     // Sent rows aren't sent again.
     expect(await deliverDue({ sender })).toMatchObject({ claimed: 0 });
+  });
+
+  it("blanks a sensitive message's body once it's sent, and keeps the others'", async () => {
+    const secret = await notify("signInCode", {
+      to: `ob-${run}@example.com`,
+      data: { code: "246810" },
+      idempotencyKey: key(),
+      deliver: false,
+    });
+    if (isError(secret)) throw new Error(String(secret.code));
+    const plain = await queue();
+    expect((await rowOf(secret.id))?.text).toContain("246810");
+
+    const sender = createMemorySender();
+    await deliverDue({ ids: [secret.id, plain], sender });
+    expect(sender.sent.find((m) => m.name === "signInCode")?.text).toContain("246810");
+
+    const sent = await rowOf(secret.id);
+    expect(sent).toMatchObject({ status: "sent", html: REDACTED_BODY, text: REDACTED_BODY });
+    expect(sent?.subject).not.toContain("246810");
+    expect((await rowOf(plain))?.text).toContain("Hello");
   });
 
   it("backs off after a failure, retries, and fails after the last attempt", async () => {
