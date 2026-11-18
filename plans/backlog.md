@@ -69,6 +69,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): To settle in the PRD: fewer types, one line, or collapsed behind a tap.
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). One line (2–3 most recent + 'All vitals ›' to expand); ignores filters.
 
 ### B-3 · change · Wider timeline entries on large screens, still mobile-first
 
