@@ -35,6 +35,8 @@ export type LiveEntry = {
   changeTime: (occurredAt: string) => void;
   /** Soft-deletes the entry, then goes back to the timeline. */
   remove: () => Promise<void>;
+  /** Saves a draft now (to link a provider to it); resolves true once it's stored. The editor stays mounted. */
+  ensureStored: () => Promise<boolean>;
   /** The last failed write's message, cleared by the next one that works. */
   saveError: string | null;
 };
@@ -154,6 +156,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     commitTitle,
     changeTime,
     remove,
+    ensureStored: save,
     saveError,
   };
 }

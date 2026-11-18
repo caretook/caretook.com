@@ -13,11 +13,13 @@ import { Field } from "~/components/ui";
  *
  *   [icon] [title ............] [editors] [actions]
  *          [time]
+ *          [with ...........]
  *
  * - `title`: `EntryTitle` (editable for writers) or plain text.
  * - `time`: when it happened (`EntryTimeChip` for writers, `EntryTime` otherwise).
  * - `editors`: who is typing now (avatars).
  * - `actions`: Share, the ⋯ menu.
+ * - `with`: the providers it was with (notes and events).
  *
  * Empty regions take no space.
  */
@@ -27,12 +29,14 @@ export function EntryHeader({
   time,
   editors,
   actions,
+  with: withRegion,
 }: {
   kind: TimelineEntryKind;
   title: ReactNode;
   time: ReactNode;
   editors?: ReactNode;
   actions?: ReactNode;
+  with?: ReactNode;
 }) {
   return (
     <header className="flex items-start gap-3">
@@ -42,6 +46,11 @@ export function EntryHeader({
         <div data-region="time" className="text-base-content/70 text-sm">
           {time}
         </div>
+        {withRegion && (
+          <div data-region="with" className="pt-1.5 empty:hidden">
+            {withRegion}
+          </div>
+        )}
       </div>
       {editors && (
         <div data-region="editors" className="flex shrink-0 items-center -space-x-1.5 pt-1">

@@ -96,7 +96,7 @@ apps/web/app/lib/entryDisplay.ts         phase2
 apps/web/app/lib/form.ts                 roundtrip
 
 # The entry page and live notes.
-apps/web/app/routes/app/groups/entry/*   live-notes
+apps/web/app/routes/app/groups/entry/*   live-notes providers
 apps/web/app/components/notes/*          live-notes providers
 apps/web/app/lib/sync/notes.ts           live-notes providers
 apps/web/app/lib/sync/liveEntry.ts       live-notes
