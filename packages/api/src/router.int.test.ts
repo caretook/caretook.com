@@ -1,10 +1,16 @@
 import type { AuthUser } from "@caretook/data";
 
-import { DEFAULT_TIMELINE_VIEW, DEFAULT_UNITS, isError, noteDocumentService } from "@caretook/data";
+import {
+  DEFAULT_TIMELINE_VIEW,
+  DEFAULT_UNITS,
+  isError,
+  noteDocumentService,
+  timelineEntryService,
+} from "@caretook/data";
 import { createRouterClient, ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, newYDoc, typeParagraph } from "../../data/test/fixtures";
+import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../data/test/fixtures";
 import { createRpcHandler, router } from ".";
 
 // Each test makes its own users and group, so tests never depend on each other.
@@ -182,6 +188,126 @@ describe("timeline", () => {
     const second = await owner.api.timeline.list({ groupId: group.id, limit: 2, cursor: first.nextCursor });
     expect([...first.data, ...second.data]).toHaveLength(3);
     expect(second.nextCursor).toBeNull();
+  });
+});
+
+describe("timeline: a note's or event's text is its document", () => {
+  /** A live document on `entryId` with one paragraph per line, compacted unless `pending`. */
+  const writeDocument = async (
+    ctx: { authUser: AuthUser },
+    groupId: string,
+    entryId: string,
+    lines: string[],
+    { pending = false } = {},
+  ) => {
+    ok(await noteDocumentService.create(ctx, { id: entryId, groupId }));
+    const ydoc = newYDoc();
+    for (const line of lines) {
+      const data = typeParagraph(ydoc, line);
+      ok(
+        await noteDocumentService.appendUpdate(ctx, { id: randomUUID(), groupId, documentId: entryId, data }),
+      );
+    }
+    if (!pending) ok(await noteDocumentService.compact(entryId));
+  };
+
+  const at = (hour: number) => `2026-11-17T${String(hour).padStart(2, "0")}:00:00Z`;
+
+  it("returns the document text as body for notes and events, and the stored body otherwise", async () => {
+    const { owner, viewer, group } = await setup();
+    const api = owner.api.timeline;
+    const noteEntry = await api.create({ ...note(group.id), occurredAt: at(8) });
+    const eventEntry = await api.create({
+      ...note(group.id),
+      kind: "event",
+      title: "Dr. Lee visit",
+      occurredAt: at(9),
+    });
+    const symptom = await api.create({
+      ...note(group.id),
+      kind: "symptom",
+      title: null,
+      body: "After lunch",
+      details: { name: "Dizziness", severity: 3 },
+      occurredAt: at(10),
+    });
+    const vital = await api.create({
+      ...note(group.id),
+      kind: "vital",
+      title: null,
+      body: "Resting",
+      details: { readings: [{ type: "heartRate", value: 71 }] },
+      occurredAt: at(11),
+    });
+    await writeDocument(owner.ctx, group.id, noteEntry.id, ["Ate lunch", "Napped after"]);
+    await writeDocument(owner.ctx, group.id, eventEntry.id, ["BP looked fine"]);
+
+    const { data } = await viewer.api.timeline.list({ groupId: group.id });
+    const bodies = Object.fromEntries(data.map((e) => [e.id, e.body]));
+    expect(bodies).toEqual({
+      [noteEntry.id]: "Ate lunch\nNapped after",
+      [eventEntry.id]: "BP looked fine",
+      [symptom.id]: "After lunch",
+      [vital.id]: "Resting",
+    });
+
+    // Filtered lists and edits return the same text.
+    const notes = await viewer.api.timeline.list({ groupId: group.id, kinds: ["note"] });
+    expect(notes.data.map((e) => e.body)).toEqual(["Ate lunch\nNapped after"]);
+    const renamed = await api.update({ id: eventEntry.id, data: { title: "Dr. Lee follow-up" } });
+    expect(renamed).toMatchObject({ title: "Dr. Lee follow-up", body: "BP looked fine" });
+  });
+
+  it("returns a null body, without an error, for a note whose document hasn't arrived or compacted", async () => {
+    const { owner, viewer, group } = await setup();
+    const waiting = await owner.api.timeline.create({ ...note(group.id), occurredAt: at(8) });
+    const pending = await owner.api.timeline.create({ ...note(group.id), occurredAt: at(9) });
+    // Only compacted text is read: pending updates (still being typed) aren't.
+    await writeDocument(owner.ctx, group.id, pending.id, ["Still typing"], { pending: true });
+
+    const { data } = await viewer.api.timeline.list({ groupId: group.id });
+    expect(data.map((e) => [e.id, e.body])).toEqual([
+      [pending.id, null],
+      [waiting.id, null],
+    ]);
+    expect(await noteDocumentService.currentText(owner.ctx, pending.id)).toBe("Still typing");
+  });
+
+  it("never returns a soft-deleted entry's document text", async () => {
+    const { owner, viewer, group } = await setup();
+    const kept = await owner.api.timeline.create({ ...note(group.id), occurredAt: at(8) });
+    const gone = await owner.api.timeline.create({ ...note(group.id), occurredAt: at(9) });
+    await writeDocument(owner.ctx, group.id, kept.id, ["Kept"]);
+    await writeDocument(owner.ctx, group.id, gone.id, ["Private thought"]);
+    await owner.api.timeline.remove({ id: gone.id });
+
+    expect((await viewer.api.timeline.list({ groupId: group.id })).data.map((e) => e.id)).toEqual([kept.id]);
+    const all = await viewer.api.timeline.list({ groupId: group.id, includeDeleted: true });
+    expect(all.data.map((e) => [e.id, e.body])).toEqual([
+      [gone.id, null],
+      [kept.id, "Kept"],
+    ]);
+    expect(all.data[0]?.deletedAt).toMatch(/Z$/);
+
+    // The service's other reads hide it too.
+    const entry = await timelineEntryService.getById(viewer.ctx, gone.id, { includeDeleted: true });
+    expect(entry).toMatchObject({ id: gone.id, body: null });
+    expect(await timelineEntryService.getById(viewer.ctx, gone.id)).toBeNull();
+    for (const read of [noteDocumentService.getById, noteDocumentService.currentText]) {
+      expect(await read(viewer.ctx, gone.id)).toMatchObject({ code: "noteDocumentService:notFound" });
+    }
+    expect((await rejection(owner.api.timeline.update({ id: gone.id, data: { title: "x" } }))).code).toBe(
+      "NOT_FOUND",
+    );
+  });
+
+  it("reads documents in the actor's scope", async () => {
+    const { owner, outsider, group } = await setup();
+    const entry = await owner.api.timeline.create(note(group.id));
+    await writeDocument(owner.ctx, group.id, entry.id, ["Members only"]);
+    expect((await outsider.api.timeline.list({ groupId: group.id })).data).toEqual([]);
+    expect(await timelineEntryService.getById(outsider.ctx, entry.id)).toBeNull();
+    expect(await timelineEntryService.getById(owner.ctx, entry.id)).toMatchObject({ body: "Members only" });
   });
 });
 

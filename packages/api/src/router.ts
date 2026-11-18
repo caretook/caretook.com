@@ -121,7 +121,11 @@ const careGroup = {
 const timestamp = z.iso.datetime({ offset: true });
 
 const timeline = {
-  /** One group's entries, newest first. Pass `nextCursor` back as `cursor` for more. */
+  /**
+   * One group's entries, newest first. Pass `nextCursor` back as `cursor` for more.
+   * A note's or event's `body` is its live document's compacted text (null until
+   * the document arrives); deleted entries never carry their document's text.
+   */
   list: authedProcedure
     .input(
       z.object({
@@ -164,8 +168,10 @@ const timeline = {
   update: authedProcedure
     .input(z.object({ id, data: timelineEntryUpdateZSchema }))
     .handler(async ({ context, input }) => {
-      const entry = unwrap(await timelineEntryService.update(context, input.id, input.data));
-      if (!entry) throw new ORPCError("NOT_FOUND");
+      const updated = unwrap(await timelineEntryService.update(context, input.id, input.data));
+      if (!updated) throw new ORPCError("NOT_FOUND");
+      // A note's or event's body comes from its document, as in `list`.
+      const [entry = updated] = unwrap(await timelineEntryService.withDocumentText(context, [updated]));
       return toTimelineEntry(entry);
     }),
 
