@@ -1,7 +1,7 @@
-import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
+import type { ProviderType, TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { LiveEntryKind } from "./liveEntry";
 
-import { VITAL_TYPES } from "@caretook/data/schema";
+import { PROVIDER_TYPES, VITAL_TYPES } from "@caretook/data/schema";
 import { isLiveEntryKind, NEW_ENTRY } from "./liveEntry";
 
 // Every path inside the app, built in one place. Links, redirects and
@@ -50,6 +50,9 @@ export const withoutSheetParams = (search?: Search) => {
   return params;
 };
 
+/** A new provider's type (`providers/new?type=pharmacy`), the same parameter as the directory's type filter. */
+export const PROVIDER_TYPE_PARAM = "type";
+
 const HOME = "/app";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
@@ -96,4 +99,17 @@ export const appUrls = {
   groupSettings: (groupId: string) => `${groupHome(groupId)}/settings`,
   /** A group's provider directory, with its search and filters (`?q=`, `?type=`, `?past=1`) carried through. */
   providers: (groupId: string, search?: Search) => `${groupHome(groupId)}/providers${searchString(search)}`,
+  /**
+   * The add sheet over the directory, carrying the list's search and filters.
+   * `type` starts the form as that type (it's also the list's type filter, so
+   * it replaces one already there); an unknown type is dropped.
+   */
+  newProvider: (groupId: string, { type, search }: { type?: ProviderType; search?: Search } = {}) => {
+    const params = new URLSearchParams(searchString(search));
+    if (type && (PROVIDER_TYPES as readonly string[]).includes(type)) params.set(PROVIDER_TYPE_PARAM, type);
+    return `${groupHome(groupId)}/providers/new${searchString(params)}`;
+  },
+  /** The edit sheet for one provider, over the directory, carrying the list's search and filters. */
+  editProvider: (groupId: string, providerId: string, search?: Search) =>
+    `${groupHome(groupId)}/providers/${segment(providerId)}/edit${searchString(search)}`,
 } as const;

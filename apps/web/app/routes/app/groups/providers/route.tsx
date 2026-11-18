@@ -2,8 +2,12 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LocalProvider, ProviderRow } from "~/lib/sync/providers";
 
+import type { ProvidersOutlet } from "./providerSheet";
+
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
+import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
 import { directoryList, parseDirectoryFilters, PROVIDER_TYPE_META, setPast } from "~/lib/providerDirectory";
 import { sessionContext } from "~/lib/session";
@@ -12,6 +16,8 @@ import { providersQuery, toProviders } from "~/lib/sync/providers";
 import { readRows } from "~/lib/sync/timeline";
 import { ProviderSearch, TypeFilter } from "./DirectoryFilters";
 import { ProviderListItem } from "./ProviderListItem";
+import { PROVIDER_SHEET_STATE } from "./providerSheet";
+import { onlyProviderSheetChanged } from "./providerSheetGuard";
 
 // Shared by web + native. The group's provider directory, read from the
 // device's local copy (live, so it works offline and follows other members'
@@ -30,15 +36,20 @@ export async function clientLoader({ params, context }: Route.ClientLoaderArgs) 
 
 /**
  * The live query already follows every change, and the filters are applied
- * on the device, so a new search or filter (same path) doesn't rerun the
- * loader. Anything else (another group) does.
+ * on the device, so a new search or filter (same path), a save in a sheet,
+ * or opening and closing a sheet over the list doesn't rerun the loader.
+ * Anything else (another group) does.
  */
 export function shouldRevalidate({
+  formMethod,
   currentUrl,
   nextUrl,
+  nextParams,
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
+  if (formMethod) return false;
   if (currentUrl.pathname === nextUrl.pathname) return false;
+  if (nextParams.groupId && onlyProviderSheetChanged(nextParams.groupId, currentUrl, nextUrl)) return false;
   return defaultShouldRevalidate;
 }
 
@@ -91,12 +102,28 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <header className="min-w-0">
-        <h1 className="text-lg font-semibold">Providers</h1>
-        <p className="text-base-content/70 text-sm">
-          {group.displayName}
-          {!group.canWrite && " · You can view this directory"}
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold">Providers</h1>
+          <p className="text-base-content/70 text-sm">
+            {group.displayName}
+            {!group.canWrite && " · You can view this directory"}
+          </p>
+        </div>
+        {group.canWrite && (
+          <Link
+            to={appUrls.newProvider(groupId, { search })}
+            state={PROVIDER_SHEET_STATE}
+            // Loaded ahead, so the sheet opens offline too.
+            prefetch="render"
+            preventScrollReset
+            className="btn btn-primary btn-sm shrink-0"
+            data-add-provider
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Add provider
+          </Link>
+        )}
       </header>
 
       <ProviderSearch value={text} urlQuery={filters.q} onChange={setText} />
@@ -161,6 +188,8 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
             </Link>
           ))}
       </section>
+
+      <Outlet context={{ providers } satisfies ProvidersOutlet} />
     </main>
   );
 }
