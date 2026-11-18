@@ -450,6 +450,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 6. DateTimeField (the timeline sheet's When, and the entry page's time chip) gets a calendar button and popover through React Aria's DatePicker and Calendar (already a dependency); typed segments stay.
+- 2026-11-18 (slice/quick-fixes/6): slice/quick-fixes/6: DatePicker with calendar in DateTimeField; roundtrip 29/29, live-notes 93/93, phase2 107/107 (rerun after a known PowerSync 'Sync aborted' warning)
 
 ### B-35 · bug · A practice's type can change to clinician or other while clinicians still point at it
 
