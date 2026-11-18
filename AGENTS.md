@@ -6,77 +6,138 @@ Legend: ✅ decided/built · 🟡 proposed, not built · ❓ open.
 
 ## Working rules
 
-- **Build only what the user asks for.** Planned work lives in PRDs (below); don't start a PRD or slice until the user says so.
+- **Build only what the user asks for.** Planned work lives in the backlog and in PRDs (below); don't start a PRD or slice until the user says so.
 - **No new dependencies without the user's approval.** Pin approved ones exactly.
-- **Commit only when the user explicitly asks.** "Run before committing" is not a request to commit. Exception: once the user has started a PRD's loops, loops commit on their own `loop/*` branch and the orchestrator merges them into the integration branch (see _PRDs and parallel loops_).
+- **Commit only when the user explicitly asks.** "Run before committing" is not a request to commit. Exceptions: once the user has started a PRD's loops, loops commit on their `slice/` branch and the orchestrator merges them into `prd/<topic>`; and anyone may commit `plans/backlog.md` onto `dev` through `pnpm backlog` (see _PRDs and parallel loops_). Never commit anything else on `dev`, `staging` or `main`.
 - **All seed and test data is fictional.** Never put real people's health information in the repo, even anonymized.
 - Keep this file current: when a slice lands, fold its lasting decisions into the right section and delete anything it made stale.
 
 ## PRDs and parallel loops
 
-Feature work goes through a PRD, then a plan cut into slices that loops (parallel agents) pick up.
+Feature work goes through a PRD, then a plan cut into slices that loops (parallel agents) pick up. Several PRDs run at once, each with its own orchestrator and branch, and everything planned is tracked in one live backlog.
 
-1. **PRD:** `write-a-prd` (interview, explore, sketch modules), saved as `plans/<topic>-prd.md`, then filed as a GitHub issue. `gh` can't reach `caretook/caretook.com` yet; file the issues once `gh auth login` works.
+1. **PRD:** `write-a-prd` (interview, explore, sketch modules), saved as `plans/<topic>-prd.md`, then filed as a GitHub issue. `gh` can't see `caretook/caretook.com` yet (git over SSH works); file the issues once it can.
 2. **Plan:** `prd-to-plan` turns the PRD into tracer-bullet vertical slices in `plans/<topic>-plan.md`. Each slice says what it **blocks and is blocked by**, so independent slices can run at once. `prd-to-issues` makes one issue per slice.
-3. **Loops:** one agent per slice, each in its own worktree, branch and Docker stack, run by an orchestrator (the main session). See _Running loops_ below.
+3. **Loops:** one agent per slice, each in its own worktree, branch and Docker stack, run by the PRD's orchestrator. See _Running loops_.
 4. When a PRD is done, move its lasting decisions into this file and mark the PRD done.
+
+### Branches and roles
+
+| Branch              | What it is                                          | How it changes                                                             |
+| ------------------- | --------------------------------------------------- | -------------------------------------------------------------------------- |
+| `main`              | Live.                                               | Only by PR merge from `staging` on GitHub.                                 |
+| `staging`           | What goes live next.                                | Only by PR merge from `dev` on GitHub.                                     |
+| `dev`               | Active work, and the trunk every PRD branches from. | The dev keeper merges `prd/` and `plan/` branches; `pnpm backlog` commits. |
+| `prd/<topic>`       | One PRD's integration branch.                       | Its orchestrator merges its slices, and syncs `dev` in.                    |
+| `slice/<topic>/<n>` | One slice of that PRD.                              | Its loop agent commits.                                                    |
+| `plan/<topic>`      | Writing a PRD or plan (docs only).                  | Its agent commits; lands in `dev` like a PRD branch.                       |
+
+- **The dev keeper is the user.** The main checkout is theirs and **always stays on `dev`**. Nobody else works in it; the backlog tool writes `plans/backlog.md` there.
+- **A PRD orchestrator** is a top-level session (spawned agents can't spawn more), one per PRD, opened by the user in the PRD's integration worktree `.loops/<topic>`. It reads `dev` but works on `prd/<topic>`. **At most three run at once** (`CARETOOK_MAX_PRDS`).
+- **A loop** is one background agent working one slice in `.loops/<topic>-<n>`.
+- **Protection** (`.githooks/`, turned on by `pnpm hooks:install`, which sets `core.hooksPath` for every worktree of the clone; `new.sh` runs it too):
+  - `main` and `staging`: no commits, merge commits or pushes, and no local moves except a fast-forward to `origin`'s copy (`git fetch && git branch -f main origin/main`).
+  - `dev`: only merge commits (landings, including one finished after resolving conflicts) and commits that touch nothing but `plans/backlog.md`.
+  - The dev keeper overrides with `CARETOOK_ALLOW_PROTECTED=1`, and the hook says it was used. Agents never set it.
+  - GitHub rulesets (PRs required on `main` and `staging`) come once `gh` can see the repo.
+
+### The live backlog (`plans/backlog.md`)
+
+The list of everything planned (bugs, changes, features, big plans, questions), with ids `B-<n>`. It lives **only on `dev`**. `pnpm backlog` (`scripts/backlog/`) runs from any worktree. Each write takes a lock, edits the main checkout's copy, and commits only that file onto `dev`, so the list is live for everyone without merges. The file's header has the commands.
+
+- **Who writes:** the user, orchestrators, PRD-writing agents and loop agents. Others are writing too, so always change it through `pnpm backlog`, which rereads the file under the lock, never by writing a copy you read earlier. Hand edits in the main checkout are fine; `pnpm backlog commit` commits them, and the next tool write includes them. Agents may commit backlog changes without asking: that's the only exception to "commit only when asked".
+- **Never on your own branch.** `plans/backlog.md` is never edited or committed on `prd/`, `slice/` or `plan/` branches; the copy there is stale. Read it with `pnpm backlog list`.
+- **Fields:** type, status, `prd` (the topic it belongs to), `owner` (the branch that claimed it), `commit`, and free notes (`note` appends a dated, signed line).
+- **Statuses:** inbox → triaged (has a PRD) → in-progress (claimed) → ready → landed → staging → live, or dropped.
+  - `claim B-<n>` takes an item for your branch; **the first claim wins**, and others get an error.
+  - `done B-<n>` (by the orchestrator, after merging the slice into `prd/<topic>`) records the commit and sets ready.
+  - From then on the status is **worked out from git**: landed once `dev` contains the commit, staging and live once `origin/staging` and `origin/main` do. `list` shows it; `refresh` fetches and writes it.
+- **The PRD table** at the top (topics, dependencies, hot files) says which PRDs can run at the same time. Change it when you add, reorder or finish a PRD.
+- Orchestrators reread the backlog **at every wave boundary**. A new item for a running PRD becomes a slice in a later wave; a running slice never changes scope.
 
 ### Running loops
 
-**Roles.** The **orchestrator** is the main session in the main checkout. It picks the slices that are ready, creates loops, spawns one agent per loop, reviews and merges, and tears loops down. A **loop** is one agent working one slice in isolation. The integration branch is `data-layer` until the user names another.
+**Isolation** (`scripts/loops/`; `lib.sh` holds the shared parts):
 
-**Isolation** (`scripts/loops/`):
-
-- `new.sh <slot> <name> [base]` makes a worktree in `.loops/<name>` on a new branch `loop/<name>` (from `data-layer`). It writes the env files (secrets are copied from the main checkout's `packages/data/.env` and `apps/web/.env`), runs `pnpm install`, and starts, migrates and seeds its own stack. `<name>` is `slice-<n>`.
-  - Slot N (1–9): web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80, Compose projects `caretook-loopN` and `caretook-loopN-test`, and CDP/proxy ports shifted by N×1000. Use the slice number as the slot when it's 1–9.
-  - The files it writes (all gitignored): the root `.env` (Compose's project name and ports), `packages/data/.env` and `.env.test.local` (database URLs and `PG_TEST_PORT`), `apps/web/.env` (auth and PowerSync URLs, `WEB_PORT`), and `.env.loop` (`BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER` and `SEED_USER_PASSWORD` for browser checks).
-- `ls.sh` lists loops: branch, commits ahead of `data-layer`, dirty or clean, and containers up.
-- `rm.sh <name> [--force]` runs only **after the branch is merged** (or abandoned): it stops the loop's containers, deletes its disposable database files and removes the worktree. It keeps the `loop/<name>` branch, and refuses uncommitted changes unless `--force` is passed.
-- The main checkout keeps the default ports (5173, 5434, 5435, 8080) and is never used by loops.
+- `new.sh <kind> …` makes a worktree in `.loops/`:
+  - `new.sh prd <topic>`: `.loops/<topic>` on `prd/<topic>` from `dev`, with a stack. It prints the command that starts its orchestrator.
+  - `new.sh slice <topic> <n>`: `.loops/<topic>-<n>` on `slice/<topic>/<n>` from `prd/<topic>`, with a stack.
+  - `new.sh plan <topic>`: `.loops/plan-<topic>` on `plan/<topic>` from `dev`, **without** a stack.
+  - Options before the kind: `--slot N`, `--stack`/`--no-stack`, `--base B`. If the branch already exists it's checked out instead, which resumes a removed worktree.
+- **Slots.** A stacked worktree **leases the lowest free slot (1–19)**: lock directories in `.loops/.slots/<N>`, taken atomically, so two orchestrators never get the same one. A slot is also busy while a worktree's `.env` names it or one of its ports listens.
+  - Ports: slot N in 1–9 is web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80. Slots 10–19 use 7(N−10) in place of 6N (7073 … 7980). CDP and proxy ports shift by N×1000. Compose projects are `caretook-loopN` and `caretook-loopN-test`.
+  - The files it writes (all gitignored): the root `.env` (Compose's project name and ports), `packages/data/.env` and `.env.test.local` (database URLs and `PG_TEST_PORT`), `apps/web/.env` (auth and PowerSync URLs, `WEB_PORT`), and `.env.loop` (`SLOT`, `BASE_BRANCH`, `BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER`, `SEED_USER_PASSWORD`). Secrets are copied from the main checkout's `packages/data/.env` and `apps/web/.env`.
+  - Without a stack, `.env.test.local` points at a closed port, so `pnpm test:integration` fails instead of reaching the main checkout's test database. Run `typecheck`, `lint`, `format:check` and the unit projects there.
+- `ls.sh` lists every worktree: slot, branch, commits ahead of the branch it merges into, dirty or clean, its stack, the PRD count against the cap, and stale leases.
+- `rm.sh <name> [--force] [--keep-branch]` stops the worktree's containers, deletes its database files, removes the worktree and releases its slot. Then it **deletes the branch if it's merged** into its parent (`slice/…` into `prd/<topic>`; `prd/` and `plan/` into `dev`), and keeps it otherwise. It refuses uncommitted changes, and a PRD worktree whose slices still have worktrees, unless `--force`.
+- `prompt.sh orchestrator <topic>` and `prompt.sh slice <topic> <n>` print the first prompt for those sessions.
+- The main checkout keeps the default ports (5173, 5434, 5435, 8080).
 - Every port, the Compose project name and the PowerSync audience come from env, defaulting to the main checkout's values. If you add a service, a port or a hardcoded container name, make it configurable the same way.
 
-**Keep the orchestrator's context small.** One session should run one wave at most; start a fresh session for the next one.
+**Capacity.** One stack uses about 250 MB idle (the Docker VM has 16 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together.
 
-- It works from the plan's _Status_ section and the loops' hand-offs, `git diff --stat` and `pnpm check` output. It doesn't read whole diffs or debug inside a loop: it sends the problem back to that loop's agent with SendMessage.
-- Before it ends, it updates the plan's _Status_ section (what's merged, with SHAs; what's ready; open issues) and folds lasting decisions into this file. Those two files are the hand-off to the next orchestrator.
+**Starting a PRD (the user):**
 
-**Orchestrator, per wave:**
+1. `scripts/loops/new.sh prd <topic>` from any worktree.
+2. In a new terminal, run the command it prints: `cd .loops/<topic> && claude "$(scripts/loops/prompt.sh orchestrator <topic>)"`.
 
-1. Read the plan. A slice is **ready** when every slice it's blocked by has been merged into `data-layer`. Start only the slices the user asked for.
-2. For each ready slice: `scripts/loops/new.sh <n> slice-<n>`.
-3. Spawn one background agent per loop (not with `isolation: worktree`; the loop already is one). Its prompt must give:
-   - the worktree path (it `cd`s there and works only there; Read/Edit/Write use absolute paths inside it);
-   - the slice number, the PRD and plan paths, and "read AGENTS.md first";
-   - the slice's scope (build only that slice; leave other slices' header regions and files alone);
-   - the loop rules below, and the hand-off format.
-4. As each loop hands off, review its branch: `git diff data-layer...loop/slice-<n>`, its hand-off, and that the acceptance criteria are covered.
-5. Merge **in plan order** into `data-layer` with `git merge --no-ff loop/slice-<n>`. Resolve conflicts in the shared files yourself. After each merge, run `pnpm check` and the browser checks the merged slices touch, from the main checkout. Fix or send it back before merging the next one.
-6. Once merged: `scripts/loops/rm.sh slice-<n>`, then `git branch -d loop/slice-<n>`. Then start the slices it unblocked.
+**Keep each orchestrator's context small.** One session runs one wave at most; the user starts a fresh one for the next.
 
-**Loop rules** (copy them into every loop prompt):
+- It works from its plan's _Status_ section, the backlog, the loops' hand-offs, `git diff --stat` and `pnpm check` output. It doesn't read whole diffs or debug inside a loop: it sends the problem back to that loop's agent with SendMessage.
+- Before it ends, it updates its plan's _Status_ section (what's merged, with SHAs; what's ready; open issues) and its backlog items. Those are the hand-off to the next orchestrator.
+
+**PRD orchestrator, per wave:**
+
+1. Read your plan and `pnpm backlog list --prd <topic>`. A slice is **ready** when every slice it's blocked by has been merged into `prd/<topic>`. Start only what the user asks for, and `claim` its items.
+2. For each ready slice: `scripts/loops/new.sh slice <topic> <n>`.
+3. Spawn one background agent per slice (not with `isolation: worktree`; it already is one), with the prompt from `scripts/loops/prompt.sh slice <topic> <n>` plus anything the slice needs that the plan doesn't say.
+4. As each loop hands off, review its branch: `git diff prd/<topic>...slice/<topic>/<n>`, its hand-off, and that the acceptance criteria are covered.
+5. Merge **in plan order** into `prd/<topic>`, in your integration worktree, with `git merge --no-ff slice/<topic>/<n>`. Resolve conflicts in the shared files yourself. After each merge, run `pnpm check` and the browser checks the merged slices touch, there. Fix it or send it back before merging the next one.
+6. Once merged: `pnpm backlog done B-<n>` for its items, then `scripts/loops/rm.sh <topic>-<n>` (it deletes the merged branch). Start the slices it unblocked.
+7. **Land the wave** when it's green. Don't wait for the whole PRD: small, frequent landings keep PRDs from drifting apart.
+
+**Landing a wave in `dev`:**
+
+1. **The orchestrator syncs first.** In its integration worktree: `git merge dev`. It resolves conflicts there (it has the context), regenerates its migration if `dev` gained one, runs `pnpm datastore:reset`, `pnpm check` and the PRD's browser checks, and commits.
+2. It tells the user it's ready: the branch and its SHA, what the wave adds, any migration, seed or sync-config change, and the check output. It never merges into `dev` itself.
+3. **The user merges** (`git merge --no-ff prd/<topic>` on `dev`), one branch at a time. If `dev` moved since the sync and the merge conflicts, the user aborts it and asks the orchestrator to sync again. Afterwards: `pnpm datastore:reset` and `pnpm check` in the main checkout.
+4. Other orchestrators merge `dev` into their branch at their next wave boundary, not mid-wave.
+5. When a PRD is finished and landed, `scripts/loops/rm.sh <topic>` removes its worktree and deletes `prd/<topic>`.
+
+**Rules across PRDs** (they keep many PRDs mergeable):
+
+- **Migrations take the next number when they land, not when they're planned.** Plans say "adds a migration", not "0008". A loop generates whatever is next on its base. When a sync brings in another PRD's migration, keep `dev`'s, regenerate yours on top (`pnpm datastore:generate`), and reread its SQL order. Keep one pending migration per PRD where you can.
+- **Seeds are append-only.** `timelineEntries.ts` ids follow position, so never insert in the middle: append at the end, or give a new feature's seeds their own file and ids.
+- **Additive edits to shared registries.** In `db/schema/index.ts`, `PERMISSIONS`, `sync-config.yaml`, the device schema, the `sync.ts` upload switch, `routes.ts` and `KIND_META`, add entries at the end of their group and never reorder or reformat, so concurrent additions merge as adjacent hunks.
+- **Hot files get regions first.** When two PRDs will change one screen (the backlog's PRD table lists hot files), a small slice first splits it into regions or components that each PRD fills (as `EntryHeader` did for live notes), and lands before both.
+- **AGENTS.md:** loops never edit it. An orchestrator edits it at landing only, to fold in that wave's lasting decisions, and keeps in-flight status in its plan.
+
+**Loop rules** (`prompt.sh slice` points every loop here):
 
 - Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24; browser checks need its global `WebSocket`).
-- Your stack is your own. Run `pnpm datastore:reset`, `pnpm test`, `docker compose …` and `pnpm dev` freely from your worktree; they use your ports. Never touch the main checkout, other loops or other Compose projects.
+- Your stack is your own. Run `pnpm datastore:reset`, `pnpm test`, `docker compose …` and `pnpm dev` freely from your worktree; they use your ports. Never touch the main checkout, other worktrees or other Compose projects.
 - Run `pnpm dev` in the background (`WEB_PORT` pins the port). Before browser checks: `set -a; source .env.loop; set +a`. New browser checks use `process.env.PG_CONTAINER` for `psql`, and launch Chrome and proxies through `cdp.mjs` and `proxy.mjs` (which apply the offset), never fixed container names or ports.
 - After editing `powersync/sync-config.yaml`, restart your own PowerSync: `docker compose restart powersync`.
-- Migrations take the number the plan gives the slice. Edits to the shared files stay small and are listed in the hand-off.
+- Follow the rules across PRDs (migrations, seeds, registries). Edits to shared files stay small and are listed in the hand-off. Don't edit AGENTS.md, and change the backlog only through `pnpm backlog note`.
 - No new dependencies. All data stays fictional.
-- When `pnpm check` and the slice's browser checks pass, **commit on your `loop/slice-<n>` branch** (coherent commits, ending with the attribution line). Don't merge, rebase or push any other branch.
+- When `pnpm check` and the slice's browser checks pass, **commit on your `slice/<topic>/<n>` branch** (coherent commits, ending with the attribution line). Don't merge, rebase or push any other branch, and never set `CARETOOK_ALLOW_PROTECTED`.
 - **Hand-off** (the final message): what was built, grouped by area, with every shared-file edit called out; each acceptance criterion marked met or not met, with evidence; the `pnpm check` and browser-check output; anything skipped or surprising that later slices need; and the commit SHAs.
 
 **Gotchas:**
 
 - The first visit to a route on a fresh loop can make Vite re-optimize dependencies and reload the page mid-check. If a browser check times out on its first run, run it once more before debugging.
-- Merging two branches that each generated a migration conflicts in drizzle's `meta/_journal.json` and snapshots. Keep the earlier slice's migration, then regenerate the later one on top (`pnpm datastore:generate`) and re-check its SQL order.
-- The merged `data-layer` seeds can differ from a loop's. After merging a slice that changes seeds or migrations, run `pnpm datastore:reset` in the main checkout.
-- **Running `new.sh` for several loops at once** can fail at migrate with "Connection terminated unexpectedly": a fresh Postgres restarts once after its first-boot init. The containers are fine; rerun `pnpm datastore:start && pnpm datastore:start:test` in each loop.
+- Merging two branches that each generated a migration conflicts in drizzle's `meta/_journal.json` and snapshots. Keep the one already in the target (`dev`'s, at a sync), then regenerate yours on top (`pnpm datastore:generate`) and recheck its SQL order.
+- After a merge or sync that changes seeds or migrations, run `pnpm datastore:reset` in that worktree; the merged seeds can differ from either side's.
+- **Running `new.sh` for several worktrees at once** can fail at migrate with "Connection terminated unexpectedly": a fresh Postgres restarts once after its first-boot init. The containers are fine; rerun `pnpm datastore:start && pnpm datastore:start:test` in each.
 - **The first check run after a `datastore:reset` or a PowerSync restart** can fail on a PowerSync 401 (the JWKS refetch) or slow first sync (`editors.mjs` "within ~2 s"). Rerun once before debugging.
-- **Merges can break another slice's browser check** without either slice being wrong (slices 4 and 8 both filled the header's `actions`). Run every merged slice's check after each merge, not only the new one's.
-- **Long-running main-checkout dev servers** can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
+- **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). Run every merged slice's check after each merge, not only the new one's.
+- **Long-running dev servers** can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
 
 ### Active PRDs
 
-- 🟡 [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md): notes and events _are_ their live document. Note/Event opens the editor in one tap, and the entry is saved on the first keystroke. Others join in one tap through a row tap, a "Live now" banner, a live dot or a Share link. Adds `note_document.editors` and moves the page to `/entries/:id`. Sliced in [`plans/live-notes-ux-plan.md`](plans/live-notes-ux-plan.md): slice 1 runs alone, then lanes 2→3, 4, 5, 6→7 (7 also needs 5), 8 and 9 run in parallel, and 10 runs last. **Slices 1, 2, 4, 5, 6, 8 and 9 are merged.** The next wave is 3 and 7, then 10; the plan's _Status_ section has the state and what the merged slices left for them. This file describes the current code, every merged slice included.
+The backlog's PRD table lists them all, with their dependencies.
+
+- 🟡 [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (topic `live-notes-ux`): notes and events _are_ their live document. Note/Event opens the editor in one tap, and the entry is saved on the first keystroke. Others join in one tap through a row tap, a "Live now" banner, a live dot or a Share link. Sliced in [`plans/live-notes-ux-plan.md`](plans/live-notes-ux-plan.md). **Slices 1, 2, 4, 5, 6, 8 and 9 are in `dev`.** Slices 3 and 7 (then 10) run next, as the first PRD on `prd/live-notes-ux`; the plan's _Status_ section has the state. This file describes the current code, every merged slice included.
 
 ## Product
 
@@ -426,6 +487,8 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) sli
 | `pnpm test` / `test:unit` / `test:integration` / `test:watch` | Vitest (integration needs `pnpm datastore:up:test`)                                                                                |
 | `pnpm typecheck`                                              | tsc everywhere; apps/web runs typegen and tsc on the **web** target only (it includes every shared file)                           |
 | `pnpm check`                                                  | typecheck, lint, format check and tests: run it before handing off                                                                 |
+| `pnpm backlog …`                                              | the live backlog on `dev` (`list`, `add`, `claim`, `done`, …; see _The live backlog_)                                              |
+| `pnpm hooks:install`                                          | turn on the branch protection hooks (`.githooks/`) for this clone: once, after cloning                                             |
 
 ### Browser checks (`scripts/browser-checks/`)
 
@@ -455,9 +518,11 @@ UI work is verified in headless Chrome over CDP with plain Node scripts (no Play
 ```
 docker-compose.yml        dev Postgres :5434, PowerSync :8080 + storage; docker-compose.test.yml → :5435
 powersync/                service.yaml, sync-config.yaml (Sync Streams)
-plans/                    PRDs and slice plans
+plans/                    backlog.md (the live backlog, on dev), PRDs and slice plans
 scripts/browser-checks/   headless Chrome checks
-scripts/loops/            new/ls/rm: isolated worktree + Docker stack per parallel loop (.loops/)
+scripts/loops/            new/ls/rm/prompt (+ lib.sh): worktrees in .loops/, slot leases, a Docker stack each
+scripts/backlog/          pnpm backlog: the live backlog CLI (format.mjs parses and renders)
+.githooks/                protects main, staging and dev (pnpm hooks:install)
 apps/web/                 @caretook/web (React Router 8, Vite 8)
   build-target.ts, react-router.config.ts, vite.config.ts
   app/routes.ts, root.tsx, app.css
@@ -484,7 +549,8 @@ packages/data/            @caretook/data
 
 ## Next steps
 
-1. **The live notes UX PRD:** slices 1, 2, 4, 5, 6, 8 and 9 are merged. In a fresh session, run slices 3 and 7 in parallel, then 10, as the plan's _Status_ section says. File the PRD and slice issues once `gh` works.
-2. **Tests:** make the integration tests independent (`careGroup.int.test.ts` shares one group across `describe` blocks), then cover every role against every table.
-3. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
-4. **The Resend iteration:** sign-up, invites with accept and consent, verification and reset. Then Capacitor (bearer storage, `VITE_API_ORIGIN`).
+1. **The live notes UX PRD:** slices 3 and 7, then 10, as the first PRD on the new branches (`scripts/loops/new.sh prd live-notes-ux`). File the PRD and slice issues once `gh` can see the repo.
+2. **The backlog** (`pnpm backlog list`): write the PRDs its table marks "to write" (`new.sh plan <topic>`, one `write-a-prd` interview each), then run them, at most three at once.
+3. **Tests:** make the integration tests independent (`careGroup.int.test.ts` shares one group across `describe` blocks), then cover every role against every table.
+4. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
+5. **The Resend iteration:** sign-up, invites with accept and consent, verification and reset. Then Capacitor (bearer storage, `VITE_API_ORIGIN`).

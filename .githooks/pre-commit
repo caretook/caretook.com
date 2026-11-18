@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# shellcheck source=protect.sh
+source "$(dirname "$0")/protect.sh"
+branch=$(current_branch)
+if [[ $branch =~ $PROTECTED_RE ]]; then
+  overridden "commit on $branch" || refuse "a commit on $branch"
+elif [[ $branch == "$TRUNK_BRANCH" ]]; then
+  # Concluding a merge (after resolving conflicts) is a landing.
+  [[ -e $(git rev-parse --git-path MERGE_HEAD) ]] && exit 0
+  others=$(git diff --cached --name-only | grep -vx "$BACKLOG_FILE" || true)
+  [[ -z $others ]] && exit 0
+  overridden "commit on $TRUNK_BRANCH touching $(echo "$others" | head -3 | tr '\n' ' ')" ||
+    refuse "a commit on $TRUNK_BRANCH that touches more than $BACKLOG_FILE: $(echo "$others" | head -3 | tr '\n' ' ')"
+fi
+exit 0

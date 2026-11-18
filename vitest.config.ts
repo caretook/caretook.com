@@ -3,6 +3,8 @@ import { defineConfig } from "vitest/config";
 // Vitest projects:
 //   data:unit    pure functions, no database (packages/data *.test.ts)
 //   web:unit     pure apps/web logic (apps/web/app *.test.ts)
+//   scripts:unit repo tooling (scripts/**/*.test.mjs): the backlog and git
+//                hooks, against throwaway git repos in the OS temp dir
 //   integration  real Postgres, every package (*.int.test.ts): the test
 //                database on port 5435. Start it with `pnpm datastore:up:test`;
 //                each run clears and migrates it first. One project (not one
@@ -27,6 +29,14 @@ export default defineConfig({
           name: "web:unit",
           root: "./apps/web",
           include: ["app/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
+          name: "scripts:unit",
+          root: "./scripts",
+          include: ["**/*.test.mjs"],
+          exclude: ["browser-checks/**"],
         },
       },
       {

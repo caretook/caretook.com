@@ -13,14 +13,16 @@
 | 6     | ✅ merged                | `40e4e54` (`ffe16d9`, `3836ab3`)        |
 | 8     | ✅ merged                | `52abf68` (`90d7ce7`)                   |
 | 9     | ✅ merged                | `5388422` (`943d63d`)                   |
-| 3, 7  | **ready: the next wave** | `loop/slice-3`, `loop/slice-7`          |
+| 3, 7  | **ready: the next wave** | `slice/live-notes-ux/3`, `/7`           |
 | 10    | blocked by 3 and 7       |                                         |
 
 Post-merge fix: `3604c18` (`entry-header.mjs` targets the ⋯ menu by label now that Share shares the `actions` region; `share.mjs` picks a note with text).
 
 **After the wave-2 merges** (main checkout, fresh dev server): `pnpm check` passes (14 files, 202 tests). Browser checks: `live-note` 23/23, `live-notes` 24/24, `phase2` 36/36, `entry-header` 16/16, `editors` 14/14, `share` 14/14, `signout-wipe` clean. The first run after a reset can fail on PowerSync's 401 (JWKS refetch); rerun once. **`roundtrip.mjs` is stale** (it presses a "Note" button, a link since slice 1): slice 10 rewrites it.
 
-**Next wave:** a fresh orchestrator runs `scripts/loops/new.sh 3 slice-3` and `new.sh 7 slice-7`, then one agent each. They collide only in `entry.tsx` (3: the title region; 7: the banner, outside the header) and maybe `timeline.tsx` (7's live dot). Merge 3, then 7, then start 10.
+**Branches:** slices 1–9 merged into the old `data-layer`, which is now in `dev` (and `main`). From here the PRD runs on the new branches (AGENTS.md, _Branches and roles_): `prd/live-notes-ux` from `dev`, its slices on `slice/live-notes-ux/<n>`, and backlog items B-18 (slice 3), B-19 (7) and B-20 (10).
+
+**Next wave:** the user runs `scripts/loops/new.sh prd live-notes-ux` and starts its orchestrator. That orchestrator runs `new.sh slice live-notes-ux 3` and `new.sh slice live-notes-ux 7`, then one agent each. They collide only in `entry.tsx` (3: the title region; 7: the banner, outside the header) and maybe `timeline.tsx` (7's live dot). Merge 3, then 7, then start 10.
 
 ### What the merged slices left for later slices
 
