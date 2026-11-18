@@ -10,7 +10,8 @@ import { openSync } from "./sync";
 // React Router runs a route's loaders in parallel, so the layout and the
 // screen below it both call `requireSession`; they share one in-flight check.
 
-export type SessionUser = { id: string; name: string | null; email: string };
+/** `image` is optional: users cached before it was added have none. */
+export type SessionUser = { id: string; name: string | null; email: string; image?: string | null };
 
 const SESSION_KEY = "caretook:session-user";
 
@@ -49,7 +50,13 @@ export const forgetSessionUser = () => {
 const resolveUser = async (): Promise<SessionUser | null> => {
   try {
     const { data, error } = await authClient.getSession();
-    if (data) return { id: data.user.id, name: data.user.name, email: data.user.email };
+    if (data)
+      return {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        image: data.user.image ?? null,
+      };
     // An error without a status means the request never reached the server.
     return error && !error.status ? cachedUser() : null;
   } catch (e) {
