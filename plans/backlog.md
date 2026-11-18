@@ -72,6 +72,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (dev keeper): To settle in the PRD: fewer types, one line, or collapsed behind a tap.
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). One line (2–3 most recent + 'All vitals ›' to expand); ignores filters.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 3. Latest vitals in one line with 'All vitals'. Independent. Wave 1.
+- 2026-11-18 (slice/timeline-polish/3): Slice 3 built on slice/timeline-polish/3: one-line strip with All vitals; phones hide the visible Latest label so a second reading fits. pnpm check and phase2.mjs (44/44) pass.
 
 ### B-3 · change · Wider timeline entries on large screens, still mobile-first
 
