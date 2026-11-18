@@ -4,21 +4,21 @@
 
 ## Status
 
-| Slice | State                                                | Merge into `prd/routing` (slice commits)                                                                 |
-| ----- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 1     | landed in `dev` (7906798), wave 1                    | 73f2aeb (2a4bfad, 54d28fd), 8a72857 (448a90a)                                                            |
-| 2     | landed in `dev` (b869738), wave 2                    | 1bc7e76 (d991834)                                                                                        |
-| 3     | merged; wave 3, awaiting the user's go-ahead to land | 8318844 (38f0973, 33d4b98)                                                                               |
-| 4     | landed in `dev` (b869738), wave 2                    | 62b0339 (72d71e7, 3d52bb5)                                                                               |
-| 5     | merged; wave 3, awaiting the user's go-ahead to land | 437bea8 (4048c93, 12d4526; routing.mjs conflict kept both; app-shell's Edit selector fixed in the merge) |
+| Slice | State                             | Merge into `prd/routing` (slice commits)                                                                 |
+| ----- | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 1     | landed in `dev` (7906798), wave 1 | 73f2aeb (2a4bfad, 54d28fd), 8a72857 (448a90a)                                                            |
+| 2     | landed in `dev` (b869738), wave 2 | 1bc7e76 (d991834)                                                                                        |
+| 3     | landed in `dev` (ff25ef2), wave 3 | 8318844 (38f0973, 33d4b98)                                                                               |
+| 4     | landed in `dev` (b869738), wave 2 | 62b0339 (72d71e7, 3d52bb5)                                                                               |
+| 5     | landed in `dev` (ff25ef2), wave 3 | 437bea8 (4048c93, 12d4526; routing.mjs conflict kept both; app-shell's Edit selector fixed in the merge) |
 
-Backlog: B-23 is `ready` (done at ff24df4). The PRD is complete once wave 3 lands; then `pnpm prd rm routing`.
+**Done.** All five slices are in `dev`; `prd/routing` and its worktree are removed. B-23 is done (ff24df4). B-27 (`routing.mjs` flakes: group settings blank after the entry step, Account's Sign out) is still open: see its backlog notes.
 
 **Slice 1's decision for slices 2–5: client middleware**, which works in both builds. The group middleware (`lib/group.tsx`) records the group, or the `notOnDevice` error, with `setGroup`. It never throws, because a middleware throw on native's first load lands in the root boundary. Every loader and action under the group route calls `getGroup(context)` first; components use `useGroup()`. The /app layout's middleware sets `sessionContext`; read it with `context.get(sessionContext)`, never a second `requireSession`.
 
 **Slice 2's pieces for slice 3** (`routes/app/groups/timeline/`): `sheetGuard.ts` (`newSheetGuard` → `{ sheet } | { redirect }`, `onlySheetChanged` for `shouldRevalidate`), `sheet.ts` (`useTimelineOutlet`, `SHEET_LINK_STATE`, `useCloseSheet`). Sheet links need `prefetch="render"`, or the sheet can't open offline after a full load. `appUrls.newSheet(groupId, kind, { type, search })`.
 
-**Closing a sheet (differs from the plan, pending the user's call):** opened from the timeline, it goes back (`navigate(-1)`), since replacing would leave two timeline entries; deep-linked, it replaces with the timeline (filters kept), since pushing would let Back reopen it after a save.
+**Closing a sheet (differs from the plan; the user landed it as is):** opened from the timeline, it goes back (`navigate(-1)`), since replacing would leave two timeline entries; deep-linked, it replaces with the timeline (filters kept), since pushing would let Back reopen it after a save.
 
 **Slice 4's pieces for slice 5** (`routes/app/settings/layout/`): `SettingsFrame.tsx` (`<SettingsFrame title listPath items />`, the one nav for both widths, back link, `isWideSettings()`) and `settingsNav.ts` (`SettingsItem`, `settingsCurrent`, `SETTINGS_WIDE_QUERY`). Slice 5 moves them to `components/` and `lib/`, adds a group registry (Details, Members), and fixes `app-shell.mjs`'s `h1 === "Group settings"`, which on phones only shows on the list.
 
