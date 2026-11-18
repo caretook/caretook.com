@@ -1,6 +1,14 @@
-import type { AppError, AuthUser, TimelineEntryUpsertInput } from "@caretook/data";
+import type { AppError, AuthUser, ProviderUpsertInput, TimelineEntryUpsertInput } from "@caretook/data";
 
-import { ERRORS, isError, newError, noteDocumentService, timelineEntryService } from "@caretook/data";
+import {
+  entryProviderService,
+  ERRORS,
+  isError,
+  newError,
+  noteDocumentService,
+  providerService,
+  timelineEntryService,
+} from "@caretook/data";
 import { z } from "zod";
 import { unwrap } from "./errors";
 import { authedProcedure } from "./procedures";
@@ -150,7 +158,12 @@ const readOnly = (table: string, op: CrudOp["op"]) =>
 
 const noteDocumentOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
   if (op.op !== "PUT") return readOnly("note_document", op.op);
-  const res = await noteDocumentService.create(ctx, { id: op.id, groupId: text(op.data?.group_id) ?? "" });
+  const res = await noteDocumentService.create(ctx, {
+    id: op.id,
+    groupId: text(op.data?.group_id) ?? "",
+    // An entry's, unless the device says otherwise (older devices never do).
+    subject: (text(op.data?.subject) ?? undefined) as "entry" | "provider" | undefined,
+  });
   return isError(res) ? res : applied;
 };
 
@@ -167,6 +180,94 @@ const noteUpdateOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Ou
 };
 
 // ---------------------------------------------------------------------------
+// provider: like timeline_entry. Soft deletes, and the group never changes.
+// ---------------------------------------------------------------------------
+
+/** SQLite has no boolean: PowerSync stores 1/0. */
+const bool = (value: unknown) =>
+  value === 1 || value === "1" || value === true
+    ? true
+    : value === 0 || value === "0" || value === false
+      ? false
+      : value;
+
+const PROVIDER_COLUMNS = {
+  type: (v: unknown) => ["type", text(v)],
+  name: (v: unknown) => ["name", text(v)],
+  specialty: (v: unknown) => ["specialty", text(v)],
+  practice_id: (v: unknown) => ["practiceId", text(v)],
+  phones: (v: unknown) => ["phones", json(v) ?? []],
+  email: (v: unknown) => ["email", text(v)],
+  address: (v: unknown) => ["address", text(v)],
+  website: (v: unknown) => ["website", text(v)],
+  status: (v: unknown) => ["status", text(v)],
+  is_primary: (v: unknown) => ["isPrimary", bool(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const providerContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = PROVIDER_COLUMNS[column as keyof typeof PROVIDER_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a provider that's already deleted is a replay: fine. */
+const removeProvider = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await providerService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "providerService:notFound") return res;
+  const provider = await providerService.getById(ctx, id, { includeDeleted: true });
+  if (isError(provider)) return provider;
+  return provider?.deletedAt ? applied : res;
+};
+
+const providerOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = { id: op.id, groupId: text(data.group_id), ...providerContentFrom(data) };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await providerService.upsert(ctx, input as unknown as ProviderUpsertInput);
+    if (isError(res)) return res;
+    // Created and deleted before it was uploaded.
+    if (data.deleted_at) return removeProvider(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeProvider(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data) return newError({ code: "providerService:immutable" });
+  if (data.deleted_at) return removeProvider(ctx, op.id);
+  const content = providerContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await providerService.update(ctx, op.id, content);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "providerService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
+// timeline_entry_provider: links are added (PUT) and removed (DELETE), never changed.
+// ---------------------------------------------------------------------------
+
+const entryProviderOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  if (op.op === "PATCH") return readOnly("timeline_entry_provider", op.op);
+  if (op.op === "DELETE") {
+    const res = await entryProviderService.unlink(ctx, op.id);
+    return isError(res) ? res : applied;
+  }
+  const data = op.data ?? {};
+  const res = await entryProviderService.link(ctx, {
+    id: op.id,
+    groupId: text(data.group_id) ?? "",
+    entryId: text(data.entry_id) ?? "",
+    providerId: text(data.provider_id) ?? "",
+  });
+  return isError(res) ? res : applied;
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -174,6 +275,8 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   timeline_entry: timelineEntryOp,
   note_document: noteDocumentOp,
   note_update: noteUpdateOp,
+  provider: providerOp,
+  timeline_entry_provider: entryProviderOp,
 };
 
 /**
