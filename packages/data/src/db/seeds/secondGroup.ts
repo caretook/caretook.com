@@ -28,7 +28,8 @@ const OWNER_EMAIL = "member@example.com";
 const TIME_ZONE = "America/Los_Angeles";
 
 // Fixed ids that follow list order (…8d1001, …8d1002, …): append only.
-const entryId = (index: number) => `0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8d${String(1001 + index).padStart(4, "0")}`;
+export const entryId = (index: number) =>
+  `0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8d${String(1001 + index).padStart(4, "0")}`;
 
 /** A few days of Grandpa Lou's timeline (fictional). */
 export const SECOND_GROUP_ENTRIES: SeedEntry[] = [
@@ -121,6 +122,8 @@ export const seed = async () => {
       .values({
         id,
         groupId: SECOND_GROUP_ID,
+        subject: "entry",
+        entryId: id,
         snapshot: encodeNoteDoc(doc),
         text: noteText(doc),
         editors: { [owner.id]: occurredAt },

@@ -15,4 +15,7 @@ export * from "./timelineEntry";
 export * from "./noteYjs";
 export * from "./noteEditors";
 export * from "./noteDocument";
+export * from "./uuidV5";
+export * from "./provider";
+export * from "./entryProvider";
 export * from "./auth";

@@ -1,4 +1,4 @@
-import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // The device's local copy of the synced tables, as SQLite holds them. These
 // mirror the columns powersync/sync-config.yaml selects; a column missing
@@ -57,8 +57,10 @@ export const timelineEntries = sqliteTable(
 );
 
 /**
- * A live document on a note or event. `id` is the entry's id. Snapshot,
- * text and `editors` (JSON `{ [userId]: lastEditAt }`) are the server's.
+ * A live document on a note or event, or on a provider. `id` is the owner's
+ * id; `subject` says which (`entry` with `entry_id`, or `provider` with
+ * `provider_id`, each equal to `id`). Snapshot, text and `editors` (JSON
+ * `{ [userId]: lastEditAt }`) are the server's.
  */
 export const noteDocuments = sqliteTable(
   "note_document",
@@ -72,6 +74,9 @@ export const noteDocuments = sqliteTable(
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),
     updatedBy: text("updated_by"),
+    subject: text("subject"),
+    entryId: text("entry_id"),
+    providerId: text("provider_id"),
   },
   (t) => [index("note_document_group").on(t.groupId)],
 );
@@ -97,6 +102,50 @@ export const users = sqliteTable("user", {
   image: text("image"),
 });
 
+/** The group's provider directory. `phones` is JSON text; `is_primary` is 1 or 0. Deletes are soft. */
+export const providers = sqliteTable(
+  "provider",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    type: text("type"),
+    name: text("name"),
+    specialty: text("specialty"),
+    practiceId: text("practice_id"),
+    phones: text("phones"),
+    email: text("email"),
+    address: text("address"),
+    website: text("website"),
+    status: text("status"),
+    isPrimary: integer("is_primary"),
+    deletedAt: text("deleted_at"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("provider_group").on(t.groupId)],
+);
+
+/** Which providers an event or note was with. The id comes from the pair (`entryProviderId`). */
+export const timelineEntryProviders = sqliteTable(
+  "timeline_entry_provider",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    entryId: text("entry_id"),
+    providerId: text("provider_id"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    index("timeline_entry_provider_entry").on(t.entryId),
+    index("timeline_entry_provider_provider").on(t.providerId),
+  ],
+);
+
 export const drizzleSchema = {
   careGroups,
   careGroupMembers,
@@ -105,4 +154,6 @@ export const drizzleSchema = {
   noteDocuments,
   noteUpdates,
   users,
+  providers,
+  timelineEntryProviders,
 };

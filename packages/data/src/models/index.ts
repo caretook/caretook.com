@@ -39,3 +39,11 @@ export type * from "./noteDocument/types";
 import * as noteUpdateModel from "./noteUpdate";
 export { noteUpdateModel };
 export type * from "./noteUpdate/types";
+
+import * as providerModel from "./provider";
+export { providerModel };
+export type * from "./provider/types";
+
+import * as timelineEntryProviderModel from "./timelineEntryProvider";
+export { timelineEntryProviderModel };
+export type * from "./timelineEntryProvider/types";

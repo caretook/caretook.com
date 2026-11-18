@@ -3,19 +3,26 @@ import type { ProtectedField } from "./columns";
 import type { NoteEditors } from "./noteEditors";
 import type { TimelineEntryKind } from "./timelineEntry";
 
-import { foreignKey, index, jsonb, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { check, foreignKey, index, jsonb, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { audits, timestamps } from "./columns";
+import { audits, enumCheck, timestamps } from "./columns";
 import { isYjsUpdate } from "./noteYjs";
+import { providerSchema } from "./provider";
 import { timelineEntrySchema } from "./timelineEntry";
 
-// Live documents: collaborative notes attached to a timeline entry (see
-// noteYjs.ts for the Yjs side). Only notes and events can have one.
+// Live documents: collaborative notes attached to a timeline entry or to a
+// provider (see noteYjs.ts for the Yjs side). Only notes and events have one
+// among entries.
 export const NOTE_DOCUMENT_KINDS = ["note", "event"] as const satisfies readonly TimelineEntryKind[];
 export const canHaveNoteDocument = (kind: string): kind is (typeof NOTE_DOCUMENT_KINDS)[number] =>
   (NOTE_DOCUMENT_KINDS as readonly string[]).includes(kind);
 
-// One live document per entry, and its id **is** the entry's id. Two
+/** What a document belongs to: an entry (its text), or a provider (shared notes about them). */
+export const NOTE_DOCUMENT_SUBJECTS = ["entry", "provider"] as const;
+export type NoteDocumentSubject = (typeof NOTE_DOCUMENT_SUBJECTS)[number];
+
+// One live document per entry or provider, and its id **is** the owner's id. Two
 // devices that both add live notes to an entry while offline create the
 // same row, and their edits merge, instead of one being refused.
 //
@@ -27,13 +34,20 @@ export const canHaveNoteDocument = (kind: string): kind is (typeof NOTE_DOCUMENT
 // from the updates compaction folds in, so "who's typing" (noteEditors.ts)
 // outlives the deleted updates. System only, like the snapshot.
 //
-// Deleting the entry (hard) cascades. A soft-deleted entry hides its document.
+// `subject` says which owner column is set: `entry_id` or `provider_id`, each
+// equal to `id` (a check enforces it), each with its own cascading FK.
+//
+// Deleting the owner (hard) cascades. A soft-deleted owner hides its document.
 export const noteDocumentSchema = pgTable(
   "note_document",
   {
-    // The entry's id. No defaultRandom: it's always given.
+    // The owner's id. No defaultRandom: it's always given.
     id: uuid("id").primaryKey(),
     groupId: uuid("group_id").notNull(),
+    subject: text("subject", { enum: NOTE_DOCUMENT_SUBJECTS }).notNull().default("entry"),
+    // Exactly one is set, and equals `id`.
+    entryId: uuid("entry_id"),
+    providerId: uuid("provider_id"),
     snapshot: text("snapshot"),
     text: text("text").notNull().default(""),
     editors: jsonb("editors").$type<NoteEditors>().notNull().default({}),
@@ -41,12 +55,23 @@ export const noteDocumentSchema = pgTable(
     ...audits,
   },
   (t) => [
-    // The entry must exist and be in the same group.
+    // The owner must exist and be in the same group.
     foreignKey({
       name: "note_document_entry_fk",
-      columns: [t.groupId, t.id],
+      columns: [t.groupId, t.entryId],
       foreignColumns: [timelineEntrySchema.groupId, timelineEntrySchema.id],
     }).onDelete("cascade"),
+    foreignKey({
+      name: "note_document_provider_fk",
+      columns: [t.groupId, t.providerId],
+      foreignColumns: [providerSchema.groupId, providerSchema.id],
+    }).onDelete("cascade"),
+    enumCheck("note_document_subject_check", t.subject, NOTE_DOCUMENT_SUBJECTS),
+    check(
+      "note_document_owner_check",
+      sql`(${t.subject} = 'entry' AND ${t.entryId} = ${t.id} AND ${t.providerId} IS NULL)
+        OR (${t.subject} = 'provider' AND ${t.providerId} = ${t.id} AND ${t.entryId} IS NULL)`,
+    ),
     // Target of note_update's composite FK.
     unique("note_document_group_id_id_unique").on(t.groupId, t.id),
   ],
@@ -96,8 +121,12 @@ export const NOTE_LIMITS = {
   updateChars: 1_000_000,
 } as const;
 
-/** Add a live document to an entry. `id` is the entry's id. */
-export const noteDocumentCreateZSchema = z.strictObject({ id: z.uuid(), groupId: z.uuid() });
+/** Add a live document to an entry or a provider. `id` is the owner's id; the subject defaults to an entry. */
+export const noteDocumentCreateZSchema = z.strictObject({
+  id: z.uuid(),
+  groupId: z.uuid(),
+  subject: z.enum(NOTE_DOCUMENT_SUBJECTS).default("entry"),
+});
 export type NoteDocumentCreateInput = z.input<typeof noteDocumentCreateZSchema>;
 
 /** Append one Yjs update. `id` comes from the device, so replays land on the same row. */
