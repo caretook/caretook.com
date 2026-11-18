@@ -53,6 +53,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-23 | change | in-progress | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
+| B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
 
 ## Items
 
@@ -333,3 +334,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Later, after providers' linking lands. Typing @ in a note's or event's text suggests providers; a mention links the provider like the With row. Needs @tiptap/extension-mention and @tiptap/suggestion (new dependencies: the user's approval). Out of scope for the providers PRD.
 - 2026-11-18 (prd/providers): Triaged to providers by its orchestrator: @-mentions need the provider table and links (slices 1 and 5). A follow-up after slice 5, not in the current plan.
+
+### B-26 · feature · Allergies on the care recipient, shown on the medications page and printed sheet
+
+- status: triaged
+- prd: medications
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Left out of the medications PRD's v1 (2026-11-18). Likely a synced list of { substance, reaction, severity } on care_recipient; the print sheet gets an allergies line when it lands.
