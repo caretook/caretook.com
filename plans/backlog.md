@@ -164,6 +164,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/app-shell/5): Slice 5 (group settings: details) is committed on slice/app-shell/5 (01cc17f, 5ede338), ready for review: the page, careGroup.update/recipient/updateRecipient, app-shell.mjs steps. Members is slice 6.
 - 2026-11-18 (prd/app-shell): Slice 5 (group settings: details) merged into prd/app-shell; slice 6 (members) started.
 - 2026-11-18 (prd/app-shell): Wave 3 landed in dev as ae6f342: slice 5 (group settings: details) and slice 7 (timeline layout in Settings). Slice 6 (members) is running.
+- 2026-11-18 (slice/app-shell/6): Slice 6 (group settings: members) is committed on slice/app-shell/6: careGroup.changeRole and removeMember, the Members section (roles, remove, leave), integration tests and app-shell.mjs steps. Ready for the orchestrator's review.
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
