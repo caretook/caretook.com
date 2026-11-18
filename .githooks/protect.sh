@@ -6,13 +6,14 @@
 #                  Locally, the only update allowed is a fast-forward to what
 #                  origin already has (git pull).
 #   dev            takes merge commits (landing a prd/ or plan/ branch) and
-#                  commits that touch only plans/backlog.md (pnpm backlog).
+#                  commits that touch only plans/backlog.md and plans/inbox.md
+#                  (pnpm backlog).
 #
 # Override any of it with CARETOOK_ALLOW_PROTECTED=1.
 
 PROTECTED_RE='^(main|staging)$'
 TRUNK_BRANCH=dev
-BACKLOG_FILE=plans/backlog.md
+BACKLOG_FILES=(plans/backlog.md plans/inbox.md)
 
 overridden() {
   if [[ ${CARETOOK_ALLOW_PROTECTED:-} == 1 ]]; then

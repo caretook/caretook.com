@@ -92,9 +92,10 @@ describe("dev", () => {
   it("takes backlog-only commits and refuses other files", () => {
     ok(repo, ["switch", "-q", "dev"]);
     commitFile("plans/backlog.md", "z\n");
+    commitFile("plans/inbox.md", "- an idea\n");
     writeFileSync(join(repo, "feature.txt"), "f\n");
     ok(repo, ["add", "feature.txt"]);
-    expect(refused(repo, ["commit", "-q", "-m", "feature"])).toMatch(/touches more than plans\/backlog.md/);
+    expect(refused(repo, ["commit", "-q", "-m", "feature"])).toMatch(/touches more than the backlog files/);
     ok(repo, ["commit", "-q", "-m", "override"], allow);
   });
 
