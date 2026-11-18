@@ -380,6 +380,124 @@ async function dayHeadings(p) {
   await sleep(1500);
 }
 
+/**
+ * Latest vitals (timeline-polish slice 3): one line of the same height at 420
+ * and 1280 wide, newest readings first, "All vitals" never clipped; it expands
+ * (keyboard) and collapses (tap), ignores the kind filter, and a reload starts
+ * collapsed. Ends at 420 wide with no filter, as it started.
+ */
+async function latestVitalsLine(p) {
+  const strip = `document.querySelector('section[aria-labelledby="latest-vitals"]')`;
+  const toggle = `${strip}.querySelector("button[aria-expanded]")`;
+  const expanded = `${toggle}.getAttribute("aria-expanded")`;
+  const measure = () =>
+    p.evaluate(`(() => { const s = ${strip}; const ul = s.querySelector("ul"); const b = ${toggle};
+      const sr = s.getBoundingClientRect(); const ur = ul.getBoundingClientRect(); const br = b.getBoundingClientRect();
+      const lis = [...ul.children];
+      return { height: sr.height, lines: new Set(lis.map((li) => Math.round(li.getBoundingClientRect().top))).size,
+        started: lis.filter((li) => li.getBoundingClientRect().left < ur.right - 24).length,
+        whole: lis.filter((li) => li.getBoundingClientRect().right <= ur.right + 0.5).length, count: lis.length,
+        times: lis.map((li) => li.querySelector("time").dateTime),
+        readings: lis.map((li) => li.querySelector("span").textContent + "@" + li.querySelector("time").dateTime).join("|"),
+        buttonClear: br.right <= sr.right + 0.5 && (br.left >= ur.right - 0.5 || br.bottom <= ur.top + 0.5) &&
+          b.contains(document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2)),
+        controls: !!document.getElementById(b.getAttribute("aria-controls"))?.contains(lis[0]),
+        name: b.textContent.trim() }; })()`);
+  const width = async (w) => {
+    await p.send("Emulation.setDeviceMetricsOverride", {
+      width: w,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: w < 600,
+    });
+    await sleep(400);
+  };
+  await p.evaluate(`window.scrollTo(0, 0)`);
+
+  const phone = await measure();
+  check(
+    "vitals at 420: one line, All vitals never clipped",
+    phone.lines === 1 && phone.height <= 36 && phone.buttonClear && phone.started >= 2,
+    `${phone.height}px, ${phone.started} of ${phone.count} readings begin in the line`,
+  );
+  check(
+    "vitals: most recent readings first",
+    phone.times.every((t, i) => i === 0 || phone.times[i - 1] >= t),
+    phone.times.slice(0, 3).join(" "),
+  );
+  check(
+    "vitals: the toggle is collapsed, named, and controls the list",
+    (await p.evaluate(expanded)) === "false" && phone.name === "All vitals" && phone.controls,
+  );
+
+  await width(1280);
+  const wide = await measure();
+  check(
+    "vitals at 1280: one line of the same height, with more readings",
+    wide.lines === 1 && wide.height === phone.height && wide.buttonClear && wide.whole >= 3,
+    `${wide.height}px, ${wide.whole} whole readings`,
+  );
+  await p.screenshot("phase2-vitals-1280");
+  await width(420);
+
+  // The kind filter doesn't change the strip.
+  await p.press(
+    `[...document.querySelectorAll('nav[aria-label="Show entries"] a')].find((a) => a.textContent.includes("Note"))`,
+  );
+  await p.waitFor(`location.search.includes("kind=note")`);
+  await sleep(500);
+  check("vitals: the same readings with ?kind=note", (await measure()).readings === phone.readings);
+
+  // Keyboard: Enter on the toggle expands every type's reading.
+  await p.evaluate(`${toggle}.focus()`);
+  await p.send("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Enter",
+    code: "Enter",
+    windowsVirtualKeyCode: 13,
+    text: "\r",
+  });
+  await p.send("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Enter",
+    code: "Enter",
+    windowsVirtualKeyCode: 13,
+  });
+  await p.waitFor(`${expanded} === "true"`, 5000).catch(() => undefined);
+  const open = await measure();
+  check(
+    "vitals: Enter expands every type's latest reading",
+    (await p.evaluate(expanded)) === "true" &&
+      open.whole === open.count &&
+      open.count === phone.count &&
+      open.lines > 1 &&
+      open.readings === phone.readings &&
+      open.buttonClear,
+    `${open.whole} of ${open.count} readings on ${open.lines} lines`,
+  );
+  await p.screenshot("phase2-vitals-expanded");
+  await tap(p, toggle);
+  await p.waitFor(`${expanded} === "false"`, 5000).catch(() => undefined);
+  const closed = await measure();
+  check(
+    "vitals: a second tap collapses to one line",
+    closed.lines === 1 && closed.height === phone.height,
+    `${closed.height}px`,
+  );
+
+  // Expanded isn't remembered: a reload starts collapsed.
+  await tap(p, toggle);
+  await p.waitFor(`${expanded} === "true"`, 5000).catch(() => undefined);
+  await p.goto(await p.evaluate("location.pathname"));
+  await p.waitFor(`${rows} > 0 && ${strip}`, 20000);
+  await sleep(500);
+  const reloaded = await measure();
+  check(
+    "vitals: a reload starts collapsed",
+    (await p.evaluate(expanded)) === "false" && reloaded.lines === 1 && reloaded.height === phone.height,
+  );
+}
+
 const bM = await launch(9341);
 const bV = await launch(9342);
 const pages = [];
@@ -580,6 +698,7 @@ try {
     ["viewer", v, false],
   ]);
   await dayHeadings(p);
+  await latestVitalsLine(p);
 
   // PowerSync warns when a full page load closes the previous page's database,
   // and can fail its first connect right after a reset (a 401 while it
