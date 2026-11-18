@@ -50,7 +50,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-20 | chore | landed | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
-| B-23 | change | in-progress | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
+| B-23 | change | ready | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
@@ -306,10 +306,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-23 · change · Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route
 
-- status: in-progress
+- status: ready
 - prd: routing
 - owner: prd/routing
-- commit:
+- commit: ff24df4
 
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/routing-prd.md. Group layout route (middleware context), symptom/vital sheets at timeline/new/:kind and timeline/:id/edit, settings index + subpages, a folder per route. Runs after app-shell and timeline-polish land.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/routing-plan.md, 5 slices (1 alone; 2→3 parallel with 4→5).
