@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMailConfig, parseAllowlist } from "./config";
+import { getMailConfig, isCheckBuild, parseAllowlist } from "./config";
 import { extractLinks } from "./devMail";
 import { linkBuilder } from "./links";
 import { retryDelayMs } from "./outbox";
@@ -157,6 +157,41 @@ describe("getMailConfig", () => {
       getMailConfig({ NODE_ENV: "production", APP_URL, MAIL_SENDER: "log", RESEND_API_KEY: "re_x" }),
     ).toThrow(/not allowed/);
     expect(getMailConfig({ NODE_ENV: "production", APP_URL, RESEND_API_KEY: "re_x" }).sender).toBe("resend");
+  });
+
+  it("lets a check build on this machine use the dev mailbox in production", () => {
+    const check = { NODE_ENV: "production", VITE_CHECK_BUILD: "1" } as const;
+    expect(isCheckBuild({ ...check, APP_URL: "http://localhost:6673" })).toBe(true);
+    expect(isCheckBuild({ ...check, APP_URL: "http://127.0.0.1:6673/" })).toBe(true);
+    expect(getMailConfig({ ...check, APP_URL: "http://localhost:6673" }).sender).toBe("log");
+    expect(getMailConfig({ ...check, APP_URL: "http://127.0.0.1:6673", MAIL_SENDER: "log" }).sender).toBe(
+      "log",
+    );
+    // Never memory, even in a check build.
+    expect(() =>
+      getMailConfig({ ...check, APP_URL: "http://localhost:6673", MAIL_SENDER: "memory" }),
+    ).toThrow(/not allowed/);
+  });
+
+  it("refuses a check build with a public APP_URL, and production without the flag", () => {
+    const publicUrl = {
+      NODE_ENV: "production",
+      VITE_CHECK_BUILD: "1",
+      APP_URL: "https://caretook.com",
+    } as const;
+    expect(isCheckBuild(publicUrl)).toBe(false);
+    expect(() => getMailConfig(publicUrl)).toThrow(/RESEND_API_KEY/);
+    expect(() => getMailConfig({ ...publicUrl, MAIL_SENDER: "log", RESEND_API_KEY: "re_x" })).toThrow(
+      /not allowed/,
+    );
+    expect(isCheckBuild({ NODE_ENV: "production", APP_URL: "http://localhost:6673" })).toBe(false);
+    expect(() =>
+      getMailConfig({ NODE_ENV: "production", APP_URL: "http://localhost:6673", MAIL_SENDER: "log" }),
+    ).toThrow(/not allowed/);
+    expect(isCheckBuild({ NODE_ENV: "production", VITE_CHECK_BUILD: "1" })).toBe(false);
+    expect(
+      isCheckBuild({ NODE_ENV: "production", VITE_CHECK_BUILD: "1", APP_URL: "http://localhost.evil.com" }),
+    ).toBe(false);
   });
 
   it("trims a trailing slash from APP_URL", () => {
