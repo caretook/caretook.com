@@ -55,6 +55,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
 | B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
+| B-28 | chore | triaged | quick-fixes |  | Limit browser checks machine-wide: a lock so at most two run at once |
 
 ## Items
 
@@ -353,3 +354,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/providers): Found by the providers orchestrator while landing providers slice 1. routing.mjs fails on dev itself (b869738, routing wave 2): 'group settings opens under the group route' fails every run (54/55): after the entry step, c.goto(/app/groups/<id>/settings) renders no main and no window.caretookSync; the only console error is Vite's 'Failed to send error to Vite server: TypeError: Cannot read properties of undefined (reading send)', which hides the real error. Not reproduced by a standalone script (sign in, open the same seeded note, then settings), so it depends on routing.mjs's earlier state (its proxy browser). One run also failed 'Account's Sign out signs out' and '/app/settings then asks to sign in' (/app/settings/account), possibly load (avg 60-230). Every other check passed on prd/providers.
+
+### B-28 · chore · Limit browser checks machine-wide: a lock so at most two run at once
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Browser checks were 63% of tool time (850 runs, ~10 h) and ~30% failed, mostly timeouts and PowerSync 401s under contention, causing reruns. A wrapper (e.g. pnpm prd browser <check>) takes one of two lock dirs under .loops/.browser/, like the slot leases, waits for a free one, runs the check with the worktree's .env.loop, and releases on exit (including timeouts for signout-wipe and layout-offline). See AGENTS.md, Browser check budget.
