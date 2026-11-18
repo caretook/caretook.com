@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# shellcheck source=protect.sh
+source "$(dirname "$0")/protect.sh"
+branch=$(current_branch)
+if [[ $branch =~ $PROTECTED_RE ]]; then
+  overridden "merge commit on $branch" || refuse "a merge commit on $branch"
+fi
+exit 0

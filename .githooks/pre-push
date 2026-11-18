@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Pushes to main or staging are refused: they change by PR merge on GitHub.
+# shellcheck source=protect.sh
+source "$(dirname "$0")/protect.sh"
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  b=${remote_ref#refs/heads/}
+  if [[ $b =~ $PROTECTED_RE ]]; then
+    overridden "push to $1 $b" || refuse "a push to $b"
+  fi
+done
+exit 0
