@@ -47,6 +47,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-19 | feature | in-progress | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
 | B-20 | chore | triaged | live-notes-ux |  | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
+| B-22 | bug | triaged | quick-fixes |  | The first screen after sign-in waits up to 10 s for the first sync |
 
 ## Items
 
@@ -230,3 +231,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - prd: orchestration
 - owner: prd/orchestration
 - commit: 3096ba3
+
+### B-22 · bug · The first screen after sign-in waits up to 10 s for the first sync
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-17 (plan/quick-fixes): Split from B-1 (the slowness half). home, timeline and entry clientLoaders call waitForFirstSync (10 s cap) before rendering. Quick-fixes slice 3: measure first, then choose.
