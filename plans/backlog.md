@@ -26,7 +26,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-1 | bug | in-progress | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
+| B-1 | bug | ready | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | triaged | timeline-polish |  | Latest vitals is too busy |
 | B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
@@ -53,10 +53,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-1 · bug · Sign-in can be submitted again while it's loading, and the first load is slow
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: b0325d0
 
 - 2026-11-17 (dev keeper): Likely cause: `sign-in.tsx` disables the button only while `navigation.state === "submitting"`. After the action redirects, the state is `"loading"` while `/app`'s loaders run `waitForFirstSync` (up to 10 s on a device that hasn't synced), and the button is live again. Fix: stay disabled until the navigation is idle. The slowness is separate: the first sync blocks the first screen. Triage it before choosing a shorter cap, rendering local data straight away with a syncing state, or a smaller first bucket.
 - 2026-11-17 (plan/quick-fixes): Narrowed to the double submit; the slow first load is now B-22. Quick-fixes slice 1.
