@@ -22,8 +22,19 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
   current ??= import("./client")
     .then((m) => m.open(userId))
     .then((db) => {
-      // Dev only: lets browser checks and the console query the local copy.
-      if (import.meta.env.DEV) (window as { caretookSync?: SyncDb }).caretookSync = db;
+      // Dev and check builds only (`pnpm prd serve --built` sets
+      // VITE_CHECK_BUILD): lets browser checks and the console query the local
+      // copy, and load the device modules without Vite's source imports. A
+      // production build drops this block.
+      if (import.meta.env.DEV || import.meta.env.VITE_CHECK_BUILD === "1") {
+        const w = window as { caretookSync?: SyncDb; caretookModules?: () => Promise<unknown> };
+        w.caretookSync = db;
+        w.caretookModules = async () => ({
+          providers: await import("./providers"),
+          liveEntry: await import("./liveEntry"),
+          timeline: await import("./timeline"),
+        });
+      }
       return (ready = db);
     })
     .catch((e: unknown) => {

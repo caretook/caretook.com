@@ -68,6 +68,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-36 | chore | ready | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
 | B-37 | bug | inbox |  |  | Deleting a practice leaves its clinicians linked to it |
 | B-38 | bug | triaged | quick-fixes |  | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
+| B-39 | chore | triaged | quick-fixes |  | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
 
 ## Items
 
@@ -491,3 +492,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Found 2026-11-18 running checks against pnpm prd serve --built (a check build, VITE_CHECK_BUILD=1) in a throwaway worktree: providers.mjs failed 'a deleted provider's URL is the 404, with no names' (main empty, body '') and on the retry 'a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form' (path stayed …/providers/new); phase2.mjs failed on '[viewer console.warning] [PowerSync]: Sync aborted'. Both passed against the dev server right after. Could be real production bugs (the 404 and redirect paths) or check timing under a faster server. Fix, then make --built the default for checks (AGENTS.md, Browser check budget).
+
+### B-39 · chore · Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Item 5 of the 2026-11-18 testing-churn plan (5804ae4 did items 1-4). phase2.mjs (107 steps) and app-shell.mjs (98) assert pure logic that now has unit tests. Keep checks to user flows, and give each a SMOKE=1 mode (~20 s) for after-merge runs. Run after components wave 2 lands: it reworks the same checks.
