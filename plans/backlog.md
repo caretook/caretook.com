@@ -19,6 +19,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `providers`       | to write | `app-shell`'s group nav (in `dev`) | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
 | `medications`     | to write | `app-shell`'s group nav (in `dev`); `providers` (soft) | new tables (as providers), `KIND_META`, `EntryForm` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
+| `routing`         | [PRD](routing-prd.md): not planned | `app-shell`, `timeline-polish` (both land first) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
+| `components`      | [PRD](components-prd.md): not planned | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
 
 ## Summary
 

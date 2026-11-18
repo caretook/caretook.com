@@ -35,7 +35,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Need to add elasticsearch based search to the timeline. (B-11)
   Status (2026-11-17): PRD not written yet (search). Proposed: on-device SQLite full-text search (works offline) plus Postgres full-text search on the server, instead of Elasticsearch. Waits on timeline-polish.
 - Split app routing/nesting into subpaths for each page instead of using a single root route. (B-23)
+  Status (2026-11-18): PRD written (routing). Group layout route, URLs for the symptom/vital sheets, settings subpages, a folder per route. Runs after app-shell and timeline-polish land.
 - Prefer well abstracted components over single-file components and refactor existing components to be more abstracted. (B-24)
+  Status (2026-11-18): PRD written (components). UI primitives, thin routes, feature folders, no duplicates, in four waves. Runs after routing.
 
 ## Big plans
 
