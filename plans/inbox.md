@@ -48,7 +48,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Add provider linking/suggestions to event entries in timeline and live notes. (B-14)
   Status (2026-11-18): PRD written (providers). A "With" row on events and notes (several providers each), with suggestions from the title, past titles and recent links.
 - Work on medication list management and tracking in timeline. (B-15)
-  Status (2026-11-17): PRD not written yet (medications). Waits on app-shell's group nav; providers helps.
+  Status (2026-11-18): PRD written (medications): the list with simple schedules, dose and medication-change entries in the timeline, Today/Due now/Dose sheet, a printable sheet. Allergies filed separately.
 
 ## Questions
 
