@@ -71,6 +71,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-39 | chore | triaged | quick-fixes |  | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-41 | bug | in-progress | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
+| B-42 | change | triaged | quick-fixes |  | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
 
 ## Items
 
@@ -522,3 +523,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/quick-fixes): Seen in quick-fixes waves 3 and 4: after A.goto('/app') reloads, the page has no main and an empty body for 20 s, with no uncaught errors (page.diagnose()). It failed 4 of the last 5 app-shell.mjs runs at load 6–30, at either the 'goes to the last group after a reload' or the 'stale remembered group' step. It isn't a check race: waiting for GroupMenu's rememberGroup write before overwriting caretook:lastGroup didn't help. Probably session or sync startup on reload (requireSession/openSync, the DB lock from the previous page?). Triaged to quick-fixes as a candidate slice 12.
+
+### B-42 · change · App header uses the brand: the logo mark and wordmark, and the marketing header's look
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 12. The app header's plain 'Caretook' text link becomes the marketing LogoMark + wordmark (mark only on phones in a group, to keep one row at 420), with the marketing header's border, translucent background and height. LogoMark/Wordmark move to components/brand/ so both use one copy. Not the marketing nav, waitlist button or disclosure menu; not sticky.
