@@ -16,6 +16,13 @@
   outline-offset: 2px;
 }
 
+/* The phone tab bar's height (TabBar, under the /app outlet on group routes).
+   Its spacer reserves this much at the end of the page; anything else fixed
+   to the bottom of a group screen can offset itself by it. */
+:root {
+  --tab-bar-height: calc(4rem + env(safe-area-inset-bottom));
+}
+
 /* EntrySheet: fades in the backdrop, slides the sheet up (only when motion is OK). */
 @keyframes fade-in {
   from {
