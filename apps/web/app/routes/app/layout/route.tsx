@@ -1,6 +1,7 @@
 import type { Route } from "./+types/route";
 
 import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "react-router";
+import { Wordmark } from "~/components/brand";
 import { FirstSyncPending } from "~/components/shell";
 import { appUrls } from "~/lib/appUrls";
 import { isFirstSyncPending } from "~/lib/firstSync";
@@ -48,10 +49,10 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const { pathname } = useLocation();
   return (
     <>
-      <header className="navbar bg-base-100 gap-2 px-4 shadow-sm">
+      <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur sm:px-6">
         <div data-region="group" className="flex min-w-0 flex-1 items-center gap-2">
-          <Link to={appUrls.home()} className="text-lg font-semibold">
-            Caretook
+          <Link to={appUrls.home()} className="shrink-0 rounded-field">
+            <Wordmark wordHiddenBelow={groupId ? "sm" : undefined} />
           </Link>
           {groupId && <GroupMenu groupId={groupId} />}
         </div>

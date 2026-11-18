@@ -9,9 +9,6 @@ const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "
 const timeFormat = (timeZone?: string) =>
   new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone });
 
-/** A stable key for the viewer's calendar day. */
-export const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA");
-
 export const formatDay = (iso: string) => {
   const date = new Date(iso);
   const today = new Date();

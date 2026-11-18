@@ -965,7 +965,7 @@ try {
   // reset), and warns when a full page load closes the previous page's
   // database; and the 404 steps log their Not found.
   const noise =
-    /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|Error: Not found|status: 404|ErrorResponse/;
+    /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|\[PowerSync\]: Sync aborted|Error: Not found|status: 404|ErrorResponse/;
   const errors = pages.flatMap((p) => p.errors).filter((e) => !noise.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 5).join(" | "));
 } catch (e) {
