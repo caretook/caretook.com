@@ -58,6 +58,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-28 | chore | in-progress | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | in-progress | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
+| B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 
 ## Items
 
@@ -389,3 +390,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
+
+### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): From the invites interview (2026-11-18): out of scope there, noted for later. Each new account gets a private demo group with fictional seed data (timeline, notes, vitals; later meds and providers) it can explore and delete.
