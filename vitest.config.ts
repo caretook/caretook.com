@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 // Vitest projects:
 //   data:unit    pure functions, no database (packages/data *.test.ts)
 //   web:unit     pure apps/web logic (apps/web/app *.test.ts)
+//   notifications:unit  templates, links and the allowlist (packages/notifications *.test.ts)
 //   scripts:unit repo tooling (scripts/**/*.test.mjs): the backlog and git
 //                hooks, against throwaway git repos in the OS temp dir
 //   integration  real Postgres, every package (*.int.test.ts): the test
@@ -29,6 +30,15 @@ export default defineConfig({
           name: "web:unit",
           root: "./apps/web",
           include: ["app/**/*.test.ts"],
+        },
+      },
+      {
+        // @caretook/notifications' pure parts: templates, links, allowlist.
+        test: {
+          name: "notifications:unit",
+          root: "./packages/notifications",
+          include: ["src/**/*.test.ts"],
+          exclude: ["src/**/*.int.test.ts"],
         },
       },
       {
