@@ -4,17 +4,18 @@
 
 ## Status
 
-| Slice | State                    | Merge into `data-layer` (slice commits) |
-| ----- | ------------------------ | --------------------------------------- |
-| 1     | ✅ merged                | `b0ceb5c` (`ce4feec`)                   |
-| 2     | ✅ merged                | `ecd70a8` (`ddd8c2b`)                   |
-| 4     | ✅ merged                | `73f76ff` (`cf17d0b`)                   |
-| 5     | ✅ merged                | `195b243` (`54239fc`)                   |
-| 6     | ✅ merged                | `40e4e54` (`ffe16d9`, `3836ab3`)        |
-| 8     | ✅ merged                | `52abf68` (`90d7ce7`)                   |
-| 9     | ✅ merged                | `5388422` (`943d63d`)                   |
-| 3, 7  | **ready: the next wave** | `slice/live-notes-ux/3`, `/7`           |
-| 10    | blocked by 3 and 7       |                                         |
+| Slice | State                    | Merge (slice commits)            |
+| ----- | ------------------------ | -------------------------------- |
+| 1     | ✅ merged                | `b0ceb5c` (`ce4feec`)            |
+| 2     | ✅ merged                | `ecd70a8` (`ddd8c2b`)            |
+| 4     | ✅ merged                | `73f76ff` (`cf17d0b`)            |
+| 5     | ✅ merged                | `195b243` (`54239fc`)            |
+| 6     | ✅ merged                | `40e4e54` (`ffe16d9`, `3836ab3`) |
+| 8     | ✅ merged                | `52abf68` (`90d7ce7`)            |
+| 9     | ✅ merged                | `5388422` (`943d63d`)            |
+| 3     | ✅ merged (prd/)         | `ea0b192` (`af79030`)            |
+| 7     | ✅ merged (prd/)         | `5cad30f` (`3f35d8f`)            |
+| 10    | **ready: the next wave** | B-20                             |
 
 Post-merge fix: `3604c18` (`entry-header.mjs` targets the ⋯ menu by label now that Share shares the `actions` region; `share.mjs` picks a note with text).
 
@@ -22,7 +23,12 @@ Post-merge fix: `3604c18` (`entry-header.mjs` targets the ⋯ menu by label now 
 
 **Branches:** slices 1–9 merged into the old `data-layer`, which is now in `dev` (and `main`). From here the PRD runs on the new branches (AGENTS.md, _Branches and roles_): `prd/live-notes-ux` from `dev`, its slices on `slice/live-notes-ux/<n>`, and backlog items B-18 (slice 3), B-19 (7) and B-20 (10).
 
-**Next wave:** the user runs `scripts/loops/new.sh prd live-notes-ux` and starts its orchestrator. That orchestrator runs `new.sh slice live-notes-ux 3` and `new.sh slice live-notes-ux 7`, then one agent each. They collide only in `entry.tsx` (3: the title region; 7: the banner, outside the header) and maybe `timeline.tsx` (7's live dot). Merge 3, then 7, then start 10.
+**Wave 3 (slices 3 and 7) on `prd/live-notes-ux`**, slices 1–9 merged into the old `data-layer`, which is in `dev`. Synced with `dev` at `c0354a1` (docs only: no migration or seed change). `pnpm check` passes (19 files, 242 tests). Browser checks on slot 1, fresh dev server: `title-chips` 16/16, `live-now` 21/21, `editors` 14/14, `live-notes` 24/24, `live-note` 23/23, `entry-header` 16/16, `share` 14/14, `phase2` 36/36. **Order matters:** `editors`, `live-now` and `title-chips` each need a fresh `pnpm datastore:reset` (their idle and ranking steps fail if another check typed in a note within the last 2 minutes), and the first run after a reset can still fail on the PowerSync 401 or slow first sync. Warm up with `phase2` first.
+
+- Slice 7 didn't touch `entry.tsx`: the Live now banner is on the timeline (between `LatestVitals` and `QuickAddBar`), and the live dot is in rows and cards. `groupEditorsQuery` is now unused (`groupLiveEditorsQuery` replaced it); slice 10 can drop it.
+- Slice 3's chips move focus to `main [contenteditable="true"]` after a tap; slice 10 may give `LiveNotesEditor` a focus handle.
+
+**Next wave:** slice 10 (B-20), in a fresh orchestrator session: `new.sh slice live-notes-ux 10`. Fold `title-chips.mjs` and `live-now.mjs` into the consolidated checks, and make them independent of order and reset state.
 
 ### What the merged slices left for later slices
 

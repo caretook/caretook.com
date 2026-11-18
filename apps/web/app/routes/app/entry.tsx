@@ -13,6 +13,7 @@ import { EditorAvatars } from "~/components/EditorAvatars";
 import { EntryHeader, EntryTime, EntryTitle } from "~/components/EntryHeader";
 import { EntryMenu } from "~/components/EntryMenu";
 import { EntryTimeChip } from "~/components/EntryTimeChip";
+import { EventTitleChips } from "~/components/EventTitleChips";
 import { LiveNotesEditor } from "~/components/LiveNotesEditor";
 import { ShareButton } from "~/components/ShareButton";
 import { KIND_META } from "~/lib/entryDisplay";
@@ -20,6 +21,7 @@ import { localTimeZone } from "~/lib/format";
 import {
   entryUrl,
   isLiveEntryKind,
+  isUnnamedEvent,
   NEW_ENTRY,
   savedTitle,
   shouldMaterialize,
@@ -247,6 +249,9 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
   // Named here, by writers. An unnamed event (saved as "Event") shows an empty field asking for a title.
   const titleEditable = canWrite && isLiveEntryKind(kind) && !deleted;
   const field = isLiveEntryKind(kind) ? titleField(kind, title, !!live) : null;
+  // Suggested names while an event is unnamed and nothing is typed in the field.
+  const [typedTitle, setTypedTitle] = useState("");
+  const showChips = titleEditable && isUnnamedEvent(kind, title) && typedTitle.trim() === "";
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
@@ -260,7 +265,15 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
         kind={kind}
         title={
           titleEditable && field ? (
-            <EntryTitle value={field.value} placeholder={field.placeholder} onCommit={commitTitle} />
+            <>
+              <EntryTitle
+                value={field.value}
+                placeholder={field.placeholder}
+                onCommit={commitTitle}
+                onTextChange={setTypedTitle}
+              />
+              {showChips && <EventTitleChips groupId={groupId} onPick={commitTitle} />}
+            </>
           ) : (
             <p aria-hidden="true" className="text-xl font-semibold break-words">
               {heading}
