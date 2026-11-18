@@ -64,6 +64,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-34 | change | triaged | quick-fixes |  | Date picker for the When field: a calendar to pick the date, not only typed segments |
+| B-35 | bug | triaged | quick-fixes |  | A practice's type can change to clinician or other while clinicians still point at it |
 
 ## Items
 
@@ -442,3 +443,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 6. DateTimeField (the timeline sheet's When, and the entry page's time chip) gets a calendar button and popover through React Aria's DatePicker and Calendar (already a dependency); typed segments stay.
+
+### B-35 · bug · A practice's type can change to clinician or other while clinicians still point at it
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): From the providers plan's open issues. Quick-fixes slice 8: providerService refuses the change while live providers name it as their practice, and the device's local write refuses it too.
