@@ -3,6 +3,7 @@ import type { Route } from "./+types/home";
 import type { GroupRow } from "~/lib/sync/timeline";
 
 import { Link, redirect } from "react-router";
+import { rememberedGroup, resolveHomeGroup } from "~/lib/lastGroup";
 import { requireSession } from "~/lib/session";
 import { useLiveQuery, waitForFirstSync } from "~/lib/sync";
 import { myGroupsQuery, readRows, toMyGroup } from "~/lib/sync/timeline";
@@ -13,13 +14,14 @@ export function meta({}: Route.MetaArgs) {
 
 const timelinePath = (groupId: string) => `/app/groups/${groupId}/timeline`;
 
-// Groups come from the device's synced copy. With a single group (the usual
-// case) go straight to its timeline.
+// Groups come from the device's synced copy. Go straight to the group last
+// opened on this device, or the only group (the usual case).
 export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   const { db } = await requireSession(request);
   await waitForFirstSync(db);
   const rows = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
-  if (rows.length === 1 && rows[0]) throw redirect(timelinePath(rows[0].id));
+  const home = resolveHomeGroup({ groups: rows, remembered: rememberedGroup(db.userId) });
+  if (home) throw redirect(timelinePath(home));
   return { userId: db.userId, rows };
 }
 

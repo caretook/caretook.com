@@ -1,5 +1,6 @@
 import { redirect } from "react-router";
 import { authClient } from "~/lib/auth-client";
+import { forgetGroups } from "~/lib/lastGroup";
 import { forgetSettings } from "~/lib/me";
 import { forgetSessionUser } from "~/lib/session";
 import { closeSync } from "~/lib/sync";
@@ -12,6 +13,7 @@ export async function clientAction() {
   await authClient.signOut();
   forgetSessionUser();
   forgetSettings();
+  forgetGroups();
   throw redirect("/sign-in");
 }
 

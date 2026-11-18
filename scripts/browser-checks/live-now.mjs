@@ -55,10 +55,11 @@ const announcements = (p) => p.evaluate(`window.__announced`);
 
 const user = (email) => psql(`SELECT id || '|' || name FROM "user" WHERE email = '${email}'`).split("|");
 const [, MEMBER_NAME] = user("member@example.com");
-// Two recent seeded notes nobody has touched for at least an hour, on the first page.
+// In Dev Family (member@ is also in Dev Family 2). Two recent seeded notes nobody has touched for at least an hour, on the first page.
 const [NOTE1, NOTE2] = psql(
   `SELECT e.id FROM timeline_entry e JOIN note_document d ON d.id = e.id
-   WHERE e.kind = 'note' AND e.deleted_at IS NULL AND e.occurred_at < now() - interval '1 hour'
+   WHERE e.group_id = '0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001' AND e.kind = 'note' AND e.deleted_at IS NULL
+     AND e.occurred_at < now() - interval '1 hour'
    ORDER BY e.occurred_at DESC LIMIT 2`,
 ).split("\n");
 const GROUP = psql(`SELECT group_id FROM timeline_entry WHERE id = '${NOTE1}'`);

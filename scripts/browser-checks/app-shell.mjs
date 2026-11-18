@@ -6,8 +6,12 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // out items work. Slice 2: the theme choice (System, Light, Dark) applies at
 // once, persists across reload with the attribute set before first paint,
 // System follows prefers-color-scheme both ways, it works offline without a
-// request, and storage that throws still renders (System). Later slices append
-// their checks (groups, sections).
+// request, and storage that throws still renders (System). Slice 3: the group
+// menu names the current group (its recipient), switches groups and marks the
+// current one; `/app` goes back to the last group (also after a reload), falls
+// back when that group is gone, and single-group users go straight to their
+// timeline; no group menu off group routes; sign-out forgets the last group.
+// Later slices append theirs.
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 
 const results = [];
@@ -63,10 +67,20 @@ const key = async (p, k, code, keyCode) => {
 const enter = (p) => key(p, "Enter", "Enter", 13);
 const escape = (p) => key(p, "Escape", "Escape", 27);
 const down = (p) => key(p, "ArrowDown", "ArrowDown", 40);
+const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
+const DEV_FAMILY_2 = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8d0001";
+const timelineOf = (groupId) => `/app/groups/${groupId}/timeline`;
+const GROUP_TRIGGER = `document.querySelector('header [data-region="group"] button')`;
+const groupItem = (text) =>
+  `[...document.querySelectorAll('[role="menuitemradio"]')].find((el) => el.textContent.includes(${JSON.stringify(text)}))`;
+const lastGroupKeys = `Object.keys(localStorage).filter((k) => k.startsWith("caretook:lastGroup:"))`;
 const focusedText = (p) => p.evaluate(`document.activeElement?.textContent.trim() ?? ""`);
 
-/** `p.signIn`, with a longer wait: the first /app load on a busy machine can take 20 s or more. */
-async function signIn(p, email) {
+/**
+ * `p.signIn`, with a longer wait: the first /app load on a busy machine can
+ * take 20 s or more. Unless `home`, goes on from the group list to Dev Family.
+ */
+async function signIn(p, email, { home = false } = {}) {
   await p.goto("/sign-in");
   await p.waitFor(`document.querySelector('input[name="email"]')`, 20000);
   await p.type(`document.querySelector('input[name="email"]')`, email);
@@ -76,6 +90,7 @@ async function signIn(p, email) {
     const alert = await p.evaluate(`document.querySelector('[role="alert"]')?.textContent ?? ""`);
     throw alert ? new Error(`${email}: sign-in refused: ${alert}`) : e;
   });
+  if (!home) await p.openDevFamily(60000);
 }
 
 const pages = [];
@@ -85,7 +100,16 @@ try {
   // 1. member@ on the timeline, 420 wide.
   const A = await openPage(b, "member");
   pages.push(A);
-  await signIn(A, "member@example.com");
+  await signIn(A, "member@example.com", { home: true });
+  // A fresh device remembers no group, and member@ is in two: the list.
+  const list = await A.waitFor(
+    `location.pathname === "/app" && document.querySelectorAll('main a[href$="/timeline"]').length === 2`,
+    40000,
+  )
+    .then(() => true)
+    .catch(() => false);
+  check("/app: two groups and none remembered shows the list", list);
+  await A.openDevFamily(40000);
   await A.waitFor(`${rows} > 0`, 40000);
   await A.waitFor(TRIGGER, 10000);
   await sleep(500);
@@ -178,6 +202,89 @@ try {
   check("tap: Settings goes to /app/settings", toSettings);
   await A.waitFor(TRIGGER, 10000);
   check("settings: the frame's header is still there", await A.evaluate(`!!${TRIGGER}`));
+  check(
+    "settings: no group menu off group routes",
+    await A.evaluate(
+      `!${GROUP_TRIGGER} && document.querySelector('header [data-region="group"]').textContent.trim() === "Caretook"`,
+    ),
+  );
+
+  // 3b. The group menu (slice 3).
+  await A.goto(timelineOf(DEV_FAMILY));
+  await A.waitFor(`${rows} > 0 && ${GROUP_TRIGGER}`, 30000);
+  const groupName = (p) => p.evaluate(`${GROUP_TRIGGER}?.textContent.trim() ?? ""`);
+  const devName = await groupName(A);
+  check("group menu: shows Grandma Pat on Dev Family's timeline", devName === "Grandma Pat", devName);
+  await A.press(GROUP_TRIGGER);
+  await A.waitFor(groupItem("Grandpa Lou"), 5000);
+  const marks = await A.evaluate(
+    `[...document.querySelectorAll('[role="menuitemradio"]')].map((el) => el.textContent.trim() + "=" + el.getAttribute("aria-checked")).join(", ")`,
+  );
+  check(
+    "group menu: lists both groups, the current one checked",
+    marks.includes("Grandma Pat") &&
+      /Grandma Pat[^,]*=true/.test(marks) &&
+      /Grandpa Lou[^,]*=false/.test(marks),
+    marks,
+  );
+  await A.screenshot("app-shell-groups");
+  await A.press(groupItem("Grandpa Lou"));
+  const switched = await A.waitFor(
+    `location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY_2))} && ${rows} > 0`,
+    15000,
+  )
+    .then(() => true)
+    .catch(() => false);
+  check("group menu: one tap switches to Dev Family 2's timeline", switched);
+  await A.waitFor(`${GROUP_TRIGGER}?.textContent.trim() === "Grandpa Lou"`, 5000).catch(() => undefined);
+  const louName = await groupName(A);
+  check("group menu: shows Grandpa Lou on its timeline", louName === "Grandpa Lou", louName);
+  const remembered = await A.evaluate(
+    `localStorage.getItem("caretook:lastGroup:" + window.caretookSync.userId)`,
+  );
+  check("a group route remembers its group", remembered === DEV_FAMILY_2, remembered);
+  await A.press(GROUP_TRIGGER);
+  await A.waitFor(groupItem("Grandpa Lou"), 5000);
+  check(
+    "group menu: now marks Grandpa Lou",
+    await A.evaluate(
+      `${groupItem("Grandpa Lou")}.getAttribute("aria-checked") === "true" && ${groupItem("Grandma Pat")}.getAttribute("aria-checked") === "false"`,
+    ),
+  );
+  await escape(A);
+  await A.waitFor(`!${MENU}`, 5000);
+
+  // /app goes back to the last group: by the Caretook link, then after a reload.
+  await A.press(`document.querySelector('header [data-region="group"] a')`);
+  const back = await A.waitFor(
+    `location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY_2))} && ${rows} > 0`,
+    15000,
+  )
+    .then(() => true)
+    .catch(() => false);
+  check("/app: goes to the last group (Caretook link)", back);
+  await A.goto("/app");
+  const reloaded = await A.waitFor(`location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY_2))}`, 20000)
+    .then(() => true)
+    .catch(() => false);
+  check("/app: goes to the last group after a reload", reloaded);
+
+  // A remembered group you're no longer in: the list, without an error.
+  await A.evaluate(
+    `localStorage.setItem("caretook:lastGroup:" + window.caretookSync.userId, "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8dffff")`,
+  );
+  await A.goto("/app");
+  const fellBack = await A.waitFor(
+    `location.pathname === "/app" && document.querySelectorAll('main a[href$="/timeline"]').length === 2`,
+    20000,
+  )
+    .then(() => true)
+    .catch(() => false);
+  check("/app: a stale remembered group falls back to the list", fellBack);
+  check(
+    "/app: no error page for a stale group",
+    await A.evaluate(`!document.body.textContent.includes("Something went wrong")`),
+  );
 
   // 4. Theme (slice 2).
   await A.press(TRIGGER);
@@ -266,6 +373,8 @@ try {
     .then(() => true)
     .catch(() => false);
   check("tap: Sign out signs out", signedOut);
+  const keysLeft = await A.evaluate(`JSON.stringify(${lastGroupKeys})`);
+  check("sign out: forgets the last group", keysLeft === "[]", keysLeft);
   await A.goto("/app");
   await A.waitFor(`location.pathname === "/sign-in"`, 15000);
   check("sign out: /app needs signing in again", true);
@@ -275,8 +384,12 @@ try {
   browsers.push(bV);
   const V = await openPage(bV, "viewer");
   pages.push(V);
-  await signIn(V, "viewer@example.com");
+  await signIn(V, "viewer@example.com", { home: true });
   await V.waitFor(TRIGGER, 40000);
+  const vHome = await V.waitFor(`location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))}`, 40000)
+    .then(() => true)
+    .catch(() => false);
+  check("viewer: one group, so /app goes straight to its timeline", vHome);
   const vAvatar = await V.evaluate(
     `(() => { const b = ${TRIGGER}; return b.getAttribute("aria-label") + " / " + b.textContent.trim(); })()`,
   );
@@ -310,6 +423,15 @@ try {
     JSON.stringify(noStoreLight),
   );
   await S.screenshot("app-shell-no-storage");
+
+  // caretaker@ (one group): straight to the timeline too.
+  await V.signOut();
+  await V.waitFor(`location.pathname === "/sign-in"`, 15000);
+  await signIn(V, "caretaker@example.com", { home: true });
+  const cHome = await V.waitFor(`location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))}`, 40000)
+    .then(() => true)
+    .catch(() => false);
+  check("caretaker: one group, so /app goes straight to its timeline", cHome);
 
   const noise =
     /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection/;

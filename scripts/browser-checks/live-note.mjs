@@ -244,7 +244,7 @@ try {
 
   // 10. 404s and the sign-in round trip.
   const symptomId = psql(
-    `SELECT id FROM timeline_entry WHERE kind = 'symptom' AND deleted_at IS NULL LIMIT 1`,
+    `SELECT id FROM timeline_entry WHERE group_id = '${groupId}' AND kind = 'symptom' AND deleted_at IS NULL LIMIT 1`,
   );
   await B.goto(`/app/groups/${groupId}/entries/${symptomId}`);
   await B.waitFor(`document.body.textContent.includes("Not found")`, 10000);
