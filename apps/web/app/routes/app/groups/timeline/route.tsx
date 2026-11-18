@@ -8,8 +8,8 @@ import type { EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
 import type { TimelineOutlet } from "./sheet";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
-import { useCallback, useMemo, useState } from "react";
-import { Outlet, useFetcher, useLocation } from "react-router";
+import { useMemo, useState } from "react";
+import { Outlet, PrefetchPageLinks, useFetcher, useLocation, useNavigate } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
 import { appUrls } from "~/lib/appUrls";
 import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
@@ -33,11 +33,7 @@ import {
   toLatestVitals,
   toMember,
   toTimelineEntries,
-  updateEntry,
 } from "~/lib/sync/timeline";
-import { entryUpdateFromForm, parseUnits } from "./entryFormData";
-import { EntryForm } from "./EntryForm";
-import { EntrySheet } from "./EntrySheet";
 import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { QuickAddBar } from "./QuickAddBar";
@@ -91,8 +87,9 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
 }
 
 /**
- * Edits and deletes go to the local database; live queries show them at once
- * and PowerSync uploads them. (New entries are the add sheet's: `new/route.tsx`.)
+ * Deletes go to the local database; live queries show them at once and
+ * PowerSync uploads them. (Adding and editing are the sheets':
+ * `new/route.tsx` and `edit/route.tsx`.)
  */
 export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
   getGroup(context);
@@ -100,9 +97,6 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
   const form = await request.formData();
   const intent = formString(form, "intent");
   const id = formString(form, "id");
-  // The units the form displayed, so vitals convert back the way they were typed.
-  const units = parseUnits(formString(form, "units"));
-  if (intent === "update") return updateEntry(db, id, entryUpdateFromForm(form, units));
   if (intent === "remove") return removeEntry(db, id);
   throw new Error(`Unknown intent: ${intent}`);
 }
@@ -137,9 +131,6 @@ const byDay = (entries: TimelineEntry[]) => {
   }
   return days;
 };
-
-/** The entry the edit sheet is showing. (The add sheet is a route: `new/route.tsx`.) */
-type SheetState = { entry: TimelineEntry; key: number };
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const { userId, units, kind } = loaderData;
@@ -192,17 +183,12 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     saveSettings(userId, { timelineView: next }).catch(() => undefined);
   };
 
-  // The edit sheet. `key` remounts the form each time it opens, so it shows
-  // the entry as it is now.
-  const [sheet, setSheet] = useState<SheetState | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const openSheet = (entry: TimelineEntry) => {
-    setSheet((prev) => ({ entry, key: (prev?.key ?? 0) + 1 }));
-    setSheetOpen(true);
-  };
-  // The add sheet's links carry the filters (and come back to them).
+  // The sheets' links (`new/:kind`, `:entryId/edit`) carry the filters, and come back to them.
   const { search } = useLocation();
-  const closeSheet = useCallback(() => setSheetOpen(false), [setSheetOpen]);
+  const navigate = useNavigate();
+  const editUrl = (entry: TimelineEntry) => appUrls.editSheet(groupId, entry.id, { search });
+  const openEdit = (entry: TimelineEntry) =>
+    void navigate(editUrl(entry), { state: SHEET_LINK_STATE, preventScrollReset: true });
 
   // One delete confirm for the whole list.
   const [deleting, setDeleting] = useState<TimelineEntry | null>(null);
@@ -278,15 +264,15 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
                   authorName={nameOf(entry.createdBy)}
                   units={units}
                   removing={removingId === entry.id}
-                  // Notes and events open their page, for viewers too; symptoms and vitals open the sheet.
+                  // Notes and events open their page, for viewers too; symptoms and vitals open the edit sheet.
                   open={
                     canHaveNoteDocument(entry.kind)
                       ? { to: appUrls.entry(groupId, entry.id) }
                       : canWrite
-                        ? { onPress: () => openSheet(entry) }
+                        ? { to: editUrl(entry), edit: true, state: SHEET_LINK_STATE }
                         : undefined
                   }
-                  onEdit={canWrite && !canHaveNoteDocument(entry.kind) ? () => openSheet(entry) : undefined}
+                  onEdit={canWrite && !canHaveNoteDocument(entry.kind) ? () => openEdit(entry) : undefined}
                   onDelete={canWrite ? () => setDeleting(entry) : undefined}
                   liveLabel={liveLabels.get(entry.id)}
                 />
@@ -306,24 +292,10 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         )}
       </section>
 
-      {canWrite && sheet && (
-        <EntrySheet
-          isOpen={sheetOpen}
-          onOpenChange={setSheetOpen}
-          title={`Edit ${KIND_META[sheet.entry.kind].label.toLowerCase()}`}
-        >
-          <EntryForm
-            key={sheet.key}
-            entry={sheet.entry}
-            units={units}
-            onDone={closeSheet}
-            onCancel={closeSheet}
-          />
-        </EntrySheet>
-      )}
-
-      {/* The add sheet (`new/:kind`), over the timeline. */}
+      {/* The sheets (`new/:kind`, `:entryId/edit`), over the timeline. */}
       <Outlet context={{ units } satisfies TimelineOutlet} />
+      {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
+      {canWrite && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
 
       <ConfirmDialog
         open={!!deleting}

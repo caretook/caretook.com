@@ -74,6 +74,16 @@ describe("appUrls", () => {
     expect(appUrls.newSheet("g", "note", { search: "?kind=note" })).toBe("/app/groups/g/timeline?kind=note");
   });
 
+  it("builds the edit sheet's path, carrying the timeline's filters", () => {
+    expect(appUrls.editSheet(G, "e1")).toBe(`/app/groups/${G}/timeline/e1/edit`);
+    expect(appUrls.editSheet("g", "e 1/x", { search: "?kind=vital&author=u&type=spo2" })).toBe(
+      "/app/groups/g/timeline/e%201%2Fx/edit?kind=vital&author=u",
+    );
+    expect(appUrls.editSheet("g", "e1", { search: { kind: "symptom", author: "" } })).toBe(
+      "/app/groups/g/timeline/e1/edit?kind=symptom",
+    );
+  });
+
   it("drops an unknown kind for a new entry", () => {
     // @ts-expect-error: only notes and events are drafted on their own page.
     expect(appUrls.newEntry("g", "symptom")).toBe(`/app/groups/g/entries/${NEW_ENTRY}`);

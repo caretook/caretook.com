@@ -22,6 +22,7 @@ const appRoutes = [
         route("timeline", "routes/app/groups/timeline/route.tsx", [
           // Sheets over the timeline, which stays mounted underneath.
           route("new/:kind", "routes/app/groups/timeline/new/route.tsx"),
+          route(":entryId/edit", "routes/app/groups/timeline/edit/route.tsx"),
         ]),
         route("entries/:entryId", "routes/app/groups/entry/route.tsx"),
         route("settings", "routes/app/groups/settings/route.tsx"),
