@@ -1,6 +1,7 @@
 import type { SyncDb } from "./sync";
 
 import { createContext, redirect } from "react-router";
+import { accountUrls } from "./accountUrls";
 import { authClient } from "./auth-client";
 import { signInUrl } from "./redirect";
 import { openSync } from "./sync";
@@ -49,9 +50,11 @@ export const forgetSessionUser = () => {
  * their local data. The server still checks the session before accepting
  * any upload, and PowerSync before sending any data.
  */
-const resolveUser = async (): Promise<SessionUser | null> => {
+const resolveUser = async (): Promise<SessionUser | null | "unverified"> => {
   try {
     const { data, error } = await authClient.getSession();
+    // Better Auth doesn't sign in an unconfirmed address; this guards the rest.
+    if (data && !data.user.emailVerified) return "unverified";
     if (data)
       return {
         id: data.user.id,
@@ -67,12 +70,12 @@ const resolveUser = async (): Promise<SessionUser | null> => {
   }
 };
 
-let inflight: Promise<Session | null> | null = null;
+let inflight: Promise<Session | null | "unverified"> | null = null;
 
 const check = () =>
   (inflight ??= (async () => {
     const user = await resolveUser();
-    if (!user) return null;
+    if (!user || user === "unverified") return user;
     cacheUser(user);
     return { user, db: await openSync(user.id) };
   })().finally(() => {
@@ -82,6 +85,7 @@ const check = () =>
 /** The user and their open local database, or a redirect to sign-in. */
 export const requireSession = async (request: Request): Promise<Session> => {
   const session = await check();
+  if (session === "unverified") throw redirect(accountUrls.verifyEmail());
   if (!session) throw redirect(signInUrl(request));
   return session;
 };
