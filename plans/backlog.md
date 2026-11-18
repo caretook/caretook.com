@@ -302,6 +302,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/routing-prd.md. Group layout route (middleware context), symptom/vital sheets at timeline/new/:kind and timeline/:id/edit, settings index + subpages, a folder per route. Runs after app-shell and timeline-polish land.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/routing-plan.md, 5 slices (1 alone; 2→3 parallel with 4→5).
+- 2026-11-18 (Robert Bo Davis): 2026-11-18: the user is running this next. Its dependency is met: app-shell is done and timeline-polish wave 1 is in dev (644f780); timeline-polish slices 4-7 are paused until routing and components land. routing-plan.md and routing-prd.md still say to wait for all of timeline-polish.
 
 ### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
