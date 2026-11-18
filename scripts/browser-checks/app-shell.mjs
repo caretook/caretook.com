@@ -395,6 +395,16 @@ try {
   );
   check("viewer: avatar and name are theirs", vAvatar === "Account menu for Dev Viewer / DV", vAvatar);
   await V.screenshot("app-shell-viewer");
+
+  // caretaker@ (one group): straight to the timeline too. Before the viewer's
+  // browser closes: step 7 reuses its port.
+  await V.signOut();
+  await V.waitFor(`location.pathname === "/sign-in"`, 15000);
+  await signIn(V, "caretaker@example.com", { home: true });
+  const cHome = await V.waitFor(`location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))}`, 40000)
+    .then(() => true)
+    .catch(() => false);
+  check("caretaker: one group, so /app goes straight to its timeline", cHome);
   bV.proc.kill();
 
   // 7. Storage that throws: the app still renders, in System (fresh browser, viewer@).
@@ -423,15 +433,6 @@ try {
     JSON.stringify(noStoreLight),
   );
   await S.screenshot("app-shell-no-storage");
-
-  // caretaker@ (one group): straight to the timeline too.
-  await V.signOut();
-  await V.waitFor(`location.pathname === "/sign-in"`, 15000);
-  await signIn(V, "caretaker@example.com", { home: true });
-  const cHome = await V.waitFor(`location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))}`, 40000)
-    .then(() => true)
-    .catch(() => false);
-  check("caretaker: one group, so /app goes straight to its timeline", cHome);
 
   const noise =
     /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection/;
