@@ -21,6 +21,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started. **Runs next** | `app-shell` (done), `timeline-polish` wave 1 (in `dev`; its slices 4–7 wait for this) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
 | `components`      | [PRD](components-prd.md), [plan](components-plan.md): 6 slices, not started. Runs after `routing`, before `timeline-polish` slices 4–7 | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
+| `invites`         | [PRD](invites-prd.md), [plan](invites-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 3 uses `routing` slice 5 (Members subpage) if in `dev` | a new `packages/notifications`; Better Auth config; `care_group_invite` + new tables; `PERMISSIONS`, `db/schema/index.ts`, the router, `routes.ts`; group settings Members; the group menu; `/app` home; `sign-in.tsx`; env examples and `scripts/loops/lib.sh` |
 
 ## Summary
 
@@ -50,13 +51,16 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-20 | chore | landed | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
-| B-23 | change | in-progress | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
+| B-23 | change | ready | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
 | B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
-| B-28 | chore | triaged | quick-fixes |  | Limit browser checks machine-wide: a lock so at most two run at once |
-| B-29 | chore | triaged | quick-fixes |  | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
+| B-28 | chore | ready | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
+| B-29 | chore | ready | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
+| B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
+| B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
+| B-32 | plan | triaged | marketing |  | Landing page and basic marketing pages |
 
 ## Items
 
@@ -216,6 +220,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/providers-prd.md. One provider table (clinician | practice | pharmacy | other), clinician→practice link, phones, primary (any number), past status, live notes via a generalized note_document, soft delete. Plan after components lands.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/providers-plan.md. Slices 1–4 (data now; list after routing 1; add/edit after routing 2; provider page). Only linking (B-14, slices 5–7) waits for components 2–4.
 - 2026-11-18 (slice/providers/1): slice/providers/1 (09b62bd, 17b861d): data layer done — provider + timeline_entry_provider tables, note_document subject/entry_id/provider_id, services, sync, device module lib/sync/providers.ts, seeds; providers.mjs started
+- 2026-11-18 (slice/providers/4): slice 4 (provider page + live notes) committed on slice/providers/4 (e773c21, f76862d); providers.mjs 57/57, live-notes 91/91, routing 55/55
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
@@ -306,10 +311,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-23 · change · Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route
 
-- status: in-progress
+- status: ready
 - prd: routing
 - owner: prd/routing
-- commit:
+- commit: ff24df4
 
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/routing-prd.md. Group layout route (middleware context), symptom/vital sheets at timeline/new/:kind and timeline/:id/edit, settings index + subpages, a folder per route. Runs after app-shell and timeline-polish land.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/routing-plan.md, 5 slices (1 alone; 2→3 parallel with 4→5).
@@ -356,23 +361,54 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/providers): Found by the providers orchestrator while landing providers slice 1. routing.mjs fails on dev itself (b869738, routing wave 2): 'group settings opens under the group route' fails every run (54/55): after the entry step, c.goto(/app/groups/<id>/settings) renders no main and no window.caretookSync; the only console error is Vite's 'Failed to send error to Vite server: TypeError: Cannot read properties of undefined (reading send)', which hides the real error. Not reproduced by a standalone script (sign in, open the same seeded note, then settings), so it depends on routing.mjs's earlier state (its proxy browser). One run also failed 'Account's Sign out signs out' and '/app/settings then asks to sign in' (/app/settings/account), possibly load (avg 60-230). Every other check passed on prd/providers.
+- 2026-11-18 (prd/providers): Seen again on prd/providers 5dbd62d (providers slice 2 merged): routing.mjs 53/55, failing 'Account's Sign out signs out' and '/app/settings then asks to sign in' at load ~21; the group settings step passed this time. Slice 2's loop saw 55/55.
 
 ### B-28 · chore · Limit browser checks machine-wide: a lock so at most two run at once
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 8eaf3c3
 
 - 2026-11-18 (Robert Bo Davis): Browser checks were 63% of tool time (850 runs, ~10 h) and ~30% failed, mostly timeouts and PowerSync 401s under contention, causing reruns. A wrapper (e.g. pnpm prd browser <check>) takes one of two lock dirs under .loops/.browser/, like the slot leases, waits for a free one, runs the check with the worktree's .env.loop, and releases on exit (including timeouts for signout-wipe and layout-offline). See AGENTS.md, Browser check budget.
 - 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 4 (plans/quick-fixes-plan.md): pnpm prd browser with two machine-wide leases, --timeout, --suite.
+- 2026-11-18 (slice/quick-fixes/4): slice/quick-fixes/4: pnpm prd browser built (2 machine-wide leases, --timeout, --suite, leases in pnpm prd status); hand-off has AGENTS.md wording
 
 ### B-29 · chore · Restart PowerSync inside datastore:reset, and fix the flakes it causes
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 8eaf3c3
 
 - 2026-11-18 (Robert Bo Davis): PowerSync 401s and PSYNC_S2101 (stale JWKS after a reset) were the most common browser-check failure. datastore:reset should restart the worktree's own powersync container and wait until it accepts a token, so the first check after a reset doesn't fail. Already on AGENTS.md Next steps (live notes follow-ups).
 - 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 5 (plans/quick-fixes-plan.md): datastore:reset restarts this worktree's PowerSync and waits for the new JWKS; cdp.mjs retries one 401.
+- 2026-11-18 (slice/quick-fixes/5): slice/quick-fixes/5: datastore:reset now stops PowerSync, drops its slot, empties bucket storage and restarts it (restart alone kept stale note_updates), then waits for replication + JWKS; cdp.mjs signIn retries once on a token 401. live-notes and app-shell passed first run right after a reset, no S2101 in the PowerSync log.
+
+### B-30 · plan · Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset
+
+- status: triaged
+- prd: invites
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
+- 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/invites-prd.md, plans/invites-plan.md (5 slices; slice 1, the notifications package and outbox, can start now). New deps approved: resend, @react-email/components, @react-email/render, qrcode.
+
+### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): From the invites interview (2026-11-18): out of scope there, noted for later. Each new account gets a private demo group with fictional seed data (timeline, notes, vitals; later meds and providers) it can explore and delete.
+
+### B-32 · plan · Landing page and basic marketing pages
+
+- status: triaged
+- prd: marketing
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. The public site at caretook.com (web build only).

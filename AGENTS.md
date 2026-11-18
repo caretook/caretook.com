@@ -113,7 +113,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 - **After each merge, an orchestrator runs the checks for the areas the merge touched** (`git diff --stat` against the previous merge, mapped through the table), not every check.
 - **The full suite runs once per landing**, in step 1 of _Landing a wave_, against a freshly restarted dev server.
 - **This overrides any plan** that says "rerun every browser check after each merge".
-- **A timeout, 401 or PSYNC_S2101 is contention until shown otherwise.** Check `uptime`; if the load is above about 20, wait for it to drop, then rerun that one check once. Debug only a failure that repeats on a quiet machine.
+- **A timeout, 401 or PSYNC_S2101 is contention until shown otherwise.** Check `uptime`; if the load is above about 40, wait for it to drop, then rerun that one check once. Debug only a failure that repeats on a quiet machine.
 - **Don't run two checks at once in one worktree**, and stagger checks across loops like `pnpm check`.
 
 | Area changed                                                                 | Checks                                                        |
