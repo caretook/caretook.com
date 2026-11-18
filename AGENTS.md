@@ -82,7 +82,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 - The main checkout keeps the default ports (5173, 5434, 5435, 8080).
 - Every port, the Compose project name and the PowerSync audience come from env, defaulting to the main checkout's values. If you add a service, a port or a hardcoded container name, make it configurable the same way.
 
-**Capacity.** One stack uses about 250 MB idle (the Docker VM has 16 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together.
+**Capacity.** One stack uses about 250 MB idle (the Docker VM has 16 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together. Six busy stacks at once (three loops plus two other PRDs) pushed the load average past 500: `pnpm check` took 25 minutes, tests hit their 5 s timeouts, and sign-ins in browser checks timed out. Rerun a failure like that once the load drops before debugging it.
 
 **Starting a PRD (the user):**
 
@@ -147,6 +147,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 The backlog's PRD table lists them all, with their dependencies.
 
 - 🟡 [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (topic `live-notes-ux`): notes and events _are_ their live document. Note/Event opens the editor in one tap, and the entry is saved on the first keystroke. Others join in one tap through a row tap, a "Live now" banner, a live dot or a Share link. Sliced in [`plans/live-notes-ux-plan.md`](plans/live-notes-ux-plan.md). **Slices 1, 2, 4, 5, 6, 8 and 9 are in `dev`.** Slices 3 and 7 (then 10) run next, as the first PRD on `prd/live-notes-ux`; the plan's _Status_ section has the state. This file describes the current code, every merged slice included.
+- 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–3 (B-1, B-17, B-22) are landing.**
 - 🟡 [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): the `/app` frame, the user menu, the group menu and switcher, group sections, and group settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md). **Slice 1 (the frame and the user menu) is landing.** Slices 2, 3 and 4 run next, each filling one region; `timeline-polish`, `providers` and `medications` build on the frame.
 
 ## Product
@@ -265,7 +266,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 - **Settings:** `emailAndPassword` with `disableSignUp: true` and a 12-character minimum; telemetry off; `trustedOrigins` = Capacitor's origins + `AUTH_TRUSTED_ORIGINS`.
 - **Plugins:** `bearer()` (native), and `jwt()`: 15-minute EdDSA tokens with `sub` and `role`, JWKS at `/api/auth/jwks`, and `aud` = `POWERSYNC_URL`.
 - **Exports:** `getAuth()` (lazy) and `getAuthUser(headers)` → `AuthUser` with `groupRoles`. `@caretook/auth/client` has `createCaretookAuthClient`. apps/web imports through `app/.server/auth.ts` and `app/lib/auth-client.ts`.
-- **Routes:** `/api/auth/*` is web only. `/sign-in` and `/sign-out` are shared and client-only (sign-out is POST only). `/app/layout.tsx` redirects to `/sign-in?redirectTo=…`, checked by `safeRedirect`.
+- **Routes:** `/api/auth/*` is web only. `/sign-in` and `/sign-out` are shared and client-only (sign-out is POST only). `/app/layout.tsx` redirects to `/sign-in?redirectTo=…`, checked by `safeRedirect`. The sign-in button stays disabled ("Signing in…") while any navigation is non-idle, so it can't be pressed again during the redirect's loaders.
 - **Dev:** seeds give every `@example.com` user a password from `SEED_USER_PASSWORD` (`packages/data/.env`), hashed with `better-auth/crypto` (a dev dependency). The env is in `apps/web/.env`; `vite.config.ts` also loads `packages/data/.env`.
 - 🟡 **Resend** next: verification, reset, invites, maybe magic link or OTP. Keep `requireEmailVerification` off until then, and don't build UI that assumes passwords are the only sign-in method.
 - ❓ Before launch:
@@ -299,10 +300,12 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
     - One user's data per device: the owner is in localStorage, and the file is wiped when someone else opens it.
     - Sign-out runs `disconnectAndClear`, then deletes the IndexedDB/OPFS file.
     - `fetchCredentials` calls `/api/auth/token`. A 401 leaves the device local-only.
-  - `index.ts`: `openSync`, `getSync`, `closeSync`, `waitForFirstSync` (10 s cap), `useLiveQuery` and `useSyncState`. Dev builds expose `window.caretookSync`.
+  - `index.ts`: `openSync`, `getSync`, `closeSync`, `waitForFirstSync`, `isFirstSyncDone`, `useFirstSyncDone`, `useLiveQuery` and `useSyncState`. Dev builds expose `window.caretookSync`.
+  - **The first sync** (measured at about 120–200 ms after the database opens locally): `waitForFirstSync(db)` waits at most 1 s (`FIRST_SYNC_WAIT_MS`) and resolves to `isFirstSyncDone(db)`. That's PowerSync's `hasSynced`, which persists with the local copy, so it's true at once on a synced device and offline. `useFirstSyncDone()` is the hook (below the /app layout only). Use it for anything that needs the local groups, such as a last-group redirect.
+    - A loader whose group isn't on the device throws `notOnDevice(db)` (`lib/firstSync.ts`): a 404 once the first sync is done, otherwise a 503 "First sync pending" that `/app`'s `ErrorBoundary` shows as `FirstSyncPending` ("Getting your care groups…"), which reruns the loaders when the sync lands. `home` shows the same state while `synced` is false, and never says "not in a care group" before then.
   - `timeline.ts`: local queries, row → API-shape mapping (unknown kinds are skipped), and local writes. Writes validate with the shared Zod schemas, check the role locally, and update content columns only.
   - `lib/session.ts` `requireSession(request)`: one shared session check and DB open, because layout and child loaders run in parallel. Offline, the cached last user carries on.
-  - `lib/me.ts` caches settings per user (they aren't synced).
+  - `lib/me.ts` caches settings per user (they aren't synced). **Change them with `saveSettings(userId, change)`**: it caches at once, records the change as pending (`caretook:settings-pending:<userId>`), and calls `updatePreferences`, resolving `"saved"` or, on a network failure, `"pending"`. Other errors reject (a refused change is dropped). `loadSettings` sends pending changes before reading `me.get`; offline it returns the cache with them on top. The last write wins across devices. `forgetSettings` (sign-out) clears pending changes too.
 - **Conflicts:** last write wins per row. Live notes merge through Yjs.
 - ❓ **Production:** a dedicated replication role with column-limited grants, `sslmode: verify-full`, the Cloud instance, and how Cloud reaches the JWKS.
 - 🟡 Not built:
@@ -513,7 +516,7 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) sli
 UI work is verified in headless Chrome over CDP with plain Node scripts (no Playwright yet).
 
 - **Run:** Node 24 (they use the global `WebSocket`), from that folder, against the dev server. `BASE` defaults to `http://localhost:5176`.
-- **Scripts:** `cdp.mjs` (the harness); `roundtrip.mjs` (two-member sync, offline through `proxy.mjs`, because CDP network emulation doesn't cut PowerSync's stream); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; it runs Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `live-note.mjs` (a note is its document: one-tap start, abandoned draft, URL replace, convergence, offline, viewer, 404s); `live-notes.mjs` (an event is its document: one-tap start, default title, rename); `entry-header.mjs` (time chip and Delete); `editors.mjs` (avatars appear and expire); `share.mjs` (share sheet, clipboard, signed-out redirect, non-member 404); `signout-wipe.mjs`; `app-shell.mjs` (the frame and the user menu: one-row header at 420, keyboard menu, Settings, Sign out); `live-now.mjs`; `title-chips.mjs`.
+- **Scripts:** `cdp.mjs` (the harness); `roundtrip.mjs` (two-member sync, offline through `proxy.mjs`, because CDP network emulation doesn't cut PowerSync's stream); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; it runs Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `live-note.mjs` (a note is its document: one-tap start, abandoned draft, URL replace, convergence, offline, viewer, 404s); `live-notes.mjs` (an event is its document: one-tap start, default title, rename); `entry-header.mjs` (time chip and Delete); `editors.mjs` (avatars appear and expire); `share.mjs` (share sheet, clipboard, signed-out redirect, non-member 404); `signout-wipe.mjs` (never exits on its own: run it with a timeout); `sign-in.mjs` (one sign-in request on a double click, by holding `/api/auth/token`); `layout-offline.mjs` (an offline layout change survives and reaches the server); `first-sync.mjs` (a slow first sync, held by its own proxy, shows the syncing state and never "no care groups"; `HOLD_MS`); `app-shell.mjs` (the frame and the user menu: one-row header at 420, keyboard menu, Settings, Sign out); `live-now.mjs`; `title-chips.mjs`.
   - Sign out in a check with `page.signOut()` (`cdp.mjs`), which goes through the account menu.
   - ⚠️ `roundtrip.mjs` is stale: it presses a "Note" button, which has been a link since slice 1. Slice 10 rewrites it.
   - Headless Chrome's clipboard needs `Emulation.setFocusEmulationEnabled`. Pin the zone (`Emulation.setTimezoneOverride`, America/Los_Angeles) for layout checks.
@@ -523,6 +526,7 @@ UI work is verified in headless Chrome over CDP with plain Node scripts (no Play
   - React Aria buttons and menu items need a `pointerdown` before `.click()`.
   - Set inputs through the native value setter, then dispatch `input`.
   - Collect console errors, and take screenshots.
+  - **Better Auth allows about 3 sign-ins per 10 s.** Past that it answers like a wrong password. Pause between checks run back to back (`first-sync.mjs` waits 4 s before each sign-in).
 - **Afterwards:** the checks write as member@, so run `pnpm datastore:reset`.
 
 ### Gotchas
@@ -553,8 +557,9 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/components/         EntryForm, EntrySheet, QuickAddBar, TimelineEntryRow/Card, KindIcon, TimelineFilters,
                           LatestVitals, EntryActions, DateTimeField, ConfirmDialog, VitalTypeMenu,
                           VitalReadingsFields, LiveNotesEditor, EntryHeader, EntryTimeChip, EntryMenu,
-                          ShareButton, EditorAvatars, SyncIndicator, UserAvatar, UserMenu, GroupMenu, SectionNav
-  app/lib/                session, me, auth-client, rpc, api, initials, entryDisplay, entryForm, format, redirect, form, liveEntry, share
+                          ShareButton, EditorAvatars, SyncIndicator, UserAvatar, UserMenu, GroupMenu, SectionNav,
+                          FirstSyncPending
+  app/lib/                session, me, auth-client, rpc, api, initials, entryDisplay, entryForm, format, redirect, form, liveEntry, share, firstSync
   app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors
 packages/auth/            @caretook/auth
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
