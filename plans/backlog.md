@@ -56,7 +56,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-24 | change | in-progress | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
-| B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
+| B-27 | bug | triaged | quick-fixes |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | ready | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | ready | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
@@ -362,7 +362,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-27 · bug · routing.mjs fails: group settings blank after the entry step; account Sign out flaky
 
 - status: triaged
-- prd: routing
+- prd: quick-fixes
 - owner:
 - commit:
 
