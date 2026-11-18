@@ -367,6 +367,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Browser checks were 63% of tool time (850 runs, ~10 h) and ~30% failed, mostly timeouts and PowerSync 401s under contention, causing reruns. A wrapper (e.g. pnpm prd browser <check>) takes one of two lock dirs under .loops/.browser/, like the slot leases, waits for a free one, runs the check with the worktree's .env.loop, and releases on exit (including timeouts for signout-wipe and layout-offline). See AGENTS.md, Browser check budget.
 - 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 4 (plans/quick-fixes-plan.md): pnpm prd browser with two machine-wide leases, --timeout, --suite.
+- 2026-11-18 (slice/quick-fixes/4): slice/quick-fixes/4: pnpm prd browser built (2 machine-wide leases, --timeout, --suite, leases in pnpm prd status); hand-off has AGENTS.md wording
 
 ### B-29 · chore · Restart PowerSync inside datastore:reset, and fix the flakes it causes
 
