@@ -121,6 +121,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (dev keeper): A new `?author=` filter chip, beside `?kind=`.
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). ?author= filter; chip 'By <name> ✕' with avatar; combines with ?kind=.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 4. Author filter, author chip. Blocked by slice 1; blocks slices 6 and 7. Wave 2.
+- 2026-11-18 (Robert Bo Davis): Paused 2026-11-18 by the user: routing (B-23) and then components (B-24) run before timeline-polish continues. Wave 1 (slices 1-3) is in dev as 644f780. Slice 4; ready, builds on lib/timelineFilters.ts. Replan against the new route folders and components when it resumes.
 
 ### B-7 · change · More prominent day headers in the timeline
 
