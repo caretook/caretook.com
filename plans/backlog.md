@@ -213,6 +213,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner: prd/live-notes-ux
 - commit:
 
+- 2026-11-17 (slice/live-notes-ux/3): slice 3 built on slice/live-notes-ux/3 (af79030): chips in the title region, title-chips.mjs 16/16
+
 ### B-19 · feature · Live dot and the Live now banner (live notes slice 7)
 
 - status: in-progress
