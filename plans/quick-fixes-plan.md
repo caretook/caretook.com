@@ -16,6 +16,7 @@
 | 8     | B-35 | merged                        | 6dcc71d (7c0725f)                            |
 | 9     | B-36 | merged                        | e6fc148 (cc12901)                            |
 | 10    | B-39 | waits for `components` wave 2 |                                              |
+| 11    | B-38 | ready                         |                                              |
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 is slice 6 (merged as 483f768); tell the `components` orchestrator when it lands.
 
@@ -309,3 +310,35 @@ Also from routing's open issues: `app-shell.mjs`'s "goes to the last group after
 **Check.** The five checks, full and smoke, through `pnpm prd browser`. `pnpm check` passes.
 
 **Blocks:** none. **Blocked by:** `components` wave 2 in `dev` (it reworks the same screens and checks).
+
+---
+
+## Slice 11: The production build behaves like dev (B-38)
+
+**Problem.** `pnpm prd serve --built` serves a production build of the web target (with `VITE_CHECK_BUILD=1`, which keeps the checks' `window.caretookSync` and `window.caretookModules` hooks). On 2026-11-18, in a throwaway worktree, `sign-in.mjs` and `roundtrip.mjs` passed against it, but:
+
+- `providers.mjs` failed "a deleted provider's URL is the 404, with no names": `main` was missing and the body was empty, a blank page instead of "Not found";
+- on its retry it failed "a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form": the viewer stayed on `…/providers/new` instead of being sent to the list;
+- `phase2.mjs` failed "no console errors or warnings" on `[viewer console.warning] [PowerSync]: Sync aborted`.
+
+Both checks passed against the dev server minutes later, from the same code. So either the production build has real bugs on these paths (a 404 thrown from a client loader, a guard's redirect, PowerSync teardown), or the checks depend on dev-server timing. Real users get the production build, so find out which. Until this is fixed, checks run on the dev server, and the build mode's benefits (no Vite websocket, no dependency re-optimization reloads, no stale deps, faster pages) are out of reach.
+
+**Build.**
+
+- Reproduce each failure with `pnpm prd serve --built` and the single check (`pnpm prd browser providers`, `pnpm prd browser phase2`), and by hand in a browser against the built server. React's production errors are minified: capture them with `cdp.mjs`'s `page.uncaught`/`diagnose()`, and decode them, or build with source maps (`build.sourcemap`) for this investigation only.
+- **Fix the root cause where it is.** If the app behaves differently in production (an error boundary that renders nothing, a redirect thrown in a way the production router handles differently, a missing chunk for a lazy route), fix the app and add a unit test if the cause is in a pure module. If it's the check (a step that relied on dev-server timing or Vite's slower module loading), fix the check to wait on what it means, never with a fixed sleep.
+- For "Sync aborted": decide whether it's expected when a page closes or signs out mid-sync. If so, have the checks ignore exactly that warning when the step closes the page (as they ignore other teardown noise); if not, fix the teardown.
+- Then run every check in the suite against the built server once (`pnpm prd serve --built`, then `pnpm prd browser --suite`), and fix anything else that differs from dev in the same way.
+- **Make the build the default for checks** once the suite passes on it twice in a row: `pnpm prd browser` starts or rebuilds a `--built` server when the worktree's server is the dev server or isn't running (keep `--dev` to opt out), and update AGENTS.md (_Browser check budget_: "Check builds", the landing step's server restart, _Gotchas_ entries the build makes unnecessary such as Vite re-optimization and stale optimized deps). The orchestrator folds the AGENTS.md wording in at landing.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off names the cause of each of the three failures, with the evidence (the decoded error, or the timing the check depended on).
+- [ ] Against the built server, `providers.mjs` and `phase2.mjs` pass 3 runs in a row on a quiet machine (load under about 40), and the full suite passes twice in a row.
+- [ ] By hand on the built server: a deleted provider's URL shows "Not found" with no names; a viewer opening `…/providers/new` lands on the list.
+- [ ] The full suite's run time on the built server versus the dev server, same machine (both tables).
+- [ ] Checks run against a built server by default, rebuilt when the source changes; `--dev` still works.
+
+**Check.** The full suite on the built server, through `pnpm prd browser --suite`. `pnpm check` passes.
+
+**Blocks:** none (slice 10 benefits from it). **Blocked by:** none.
