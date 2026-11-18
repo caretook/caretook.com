@@ -8,9 +8,11 @@ import {
   buildNoteDoc,
   canHaveNoteDocument,
   encodeNoteDoc,
+  mergeEditors,
   noteDocumentCreateZSchema,
   noteText,
   noteUpdateCreateZSchema,
+  parseNoteEditors,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import { noteDocumentModel, noteUpdateModel, timelineEntryModel } from "../models";
@@ -150,7 +152,8 @@ export const appendUpdate = (ctx: ServiceContext, input: NoteUpdateCreateInput) 
 
 /**
  * Fold a document's pending updates into its snapshot, refresh its plain
- * text, and delete those updates. Runs as the system: callers decide when
+ * text, merge their authors into `editors` (the latest time per user), and
+ * delete those updates. Runs as the system: callers decide when
  * (see `compactIfDue`). The row lock makes concurrent compactions take
  * turns; an update that arrives meanwhile simply waits for the next one.
  */
@@ -175,7 +178,11 @@ export const compact = (documentId: string, opts: { tx?: Tx } = {}) =>
     const updated = await noteDocumentModel.update({
       ...system,
       filter: { id: { type: "eq", value: documentId } },
-      data: { snapshot: encodeNoteDoc(ydoc), text: noteText(ydoc) },
+      data: {
+        snapshot: encodeNoteDoc(ydoc),
+        text: noteText(ydoc),
+        editors: mergeEditors(parseNoteEditors(doc.editors), updates.data),
+      },
     });
     if (isError(updated)) return updated;
     ydoc.destroy();

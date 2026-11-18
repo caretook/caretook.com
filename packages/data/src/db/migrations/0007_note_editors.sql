@@ -1,0 +1,1 @@
+ALTER TABLE "note_document" ADD COLUMN "editors" jsonb DEFAULT '{}'::jsonb NOT NULL;

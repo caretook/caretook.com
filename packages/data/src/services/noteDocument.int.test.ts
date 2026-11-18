@@ -1,10 +1,12 @@
 import type { TimelineEntryCreateInput } from "../db";
 
 import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { createGroup, createUser, ok, system, typeParagraph } from "../../test/fixtures";
-import { buildNoteDoc, noteText } from "../db/schema";
+import { getDb } from "../db";
+import { buildNoteDoc, noteText, noteUpdateSchema } from "../db/schema";
 import { isError } from "../errors";
 import { noteDocumentModel, noteUpdateModel, timelineEntryModel } from "../models";
 import { COMPACT_AFTER_UPDATES } from "./noteDocumentService";
@@ -114,6 +116,27 @@ describe("creating a document", () => {
       data: { id: entry.id, groupId: group.id, text: "forged" },
     });
     expect(codeOf(res)).toBe("permissions:fieldUnauthorized");
+  });
+
+  it("can't set editors directly, through the model or the service", async () => {
+    const { u, group, addEntry } = await setup();
+    const entry = await addEntry();
+    const forged = { [u.owner.user.id]: new Date().toISOString() };
+    const viaModel = await noteDocumentModel.create({
+      ...u.caretaker.ctx,
+      data: { id: entry.id, groupId: group.id, editors: forged },
+    });
+    expect(codeOf(viaModel)).toBe("permissions:fieldUnauthorized");
+    const viaService = await noteDocumentService.create(u.caretaker.ctx, {
+      id: entry.id,
+      groupId: group.id,
+      editors: forged,
+    } as never);
+    expect(codeOf(viaService)).toBe("noteDocumentService:invalid");
+
+    // A real one starts with nobody.
+    const doc = ok(await noteDocumentService.create(u.caretaker.ctx, { id: entry.id, groupId: group.id }));
+    expect(doc?.editors).toEqual({});
   });
 });
 
@@ -247,12 +270,46 @@ describe("compaction", () => {
   it("is never available to members directly", async () => {
     const { u, addDocument } = await setup();
     const { doc } = await addDocument();
-    const res = await noteDocumentModel.update({
-      ...u.owner.ctx,
-      filter: { id: { type: "eq", value: doc.id } },
-      data: { text: "forged" },
+    for (const data of [{ text: "forged" }, { editors: { [u.owner.user.id]: new Date().toISOString() } }]) {
+      const res = await noteDocumentModel.update({
+        ...u.owner.ctx,
+        filter: { id: { type: "eq", value: doc.id } },
+        data,
+      });
+      expect(codeOf(res)).toBe("permissions:unauthorized");
+    }
+  });
+
+  it("records each update's author in editors, keeping the latest time per user", async () => {
+    const { u, addDocument, append } = await setup();
+    const { doc } = await addDocument();
+    const ydoc = new Y.Doc();
+    /** Append as `who`, then pin the update's stored time. */
+    const appendAt = async (who: typeof u.caretaker, at: string) => {
+      const res = ok(await append(who.ctx, doc.id, typeParagraph(ydoc, at)));
+      await getDb().update(noteUpdateSchema).set({ createdAt: at }).where(eq(noteUpdateSchema.id, res.id));
+    };
+
+    await appendAt(u.caretaker, "2026-11-17T10:00:00.000Z");
+    await appendAt(u.caretaker, "2026-11-17T10:05:00.000Z");
+    await appendAt(u.caretaker, "2026-11-17T10:02:00.000Z");
+    await appendAt(u.admin, "2026-11-17T10:01:00.000Z");
+    ok(await noteDocumentService.compact(doc.id));
+    expect(ok(await noteDocumentService.getById(u.viewer.ctx, doc.id)).editors).toEqual({
+      [u.caretaker.user.id]: "2026-11-17T10:05:00.000Z",
+      [u.admin.user.id]: "2026-11-17T10:01:00.000Z",
     });
-    expect(codeOf(res)).toBe("permissions:unauthorized");
+
+    // The next compaction merges into what's there: a later time wins, an earlier one doesn't.
+    await appendAt(u.admin, "2026-11-17T10:30:00.000Z");
+    await appendAt(u.caretaker, "2026-11-17T09:00:00.000Z");
+    await appendAt(u.owner, "2026-11-17T10:20:00.000Z");
+    ok(await noteDocumentService.compact(doc.id));
+    expect(ok(await noteDocumentService.getById(u.viewer.ctx, doc.id)).editors).toEqual({
+      [u.caretaker.user.id]: "2026-11-17T10:05:00.000Z",
+      [u.admin.user.id]: "2026-11-17T10:30:00.000Z",
+      [u.owner.user.id]: "2026-11-17T10:20:00.000Z",
+    });
   });
 });
 

@@ -1,8 +1,9 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
+import type { NoteEditors } from "./noteEditors";
 import type { TimelineEntryKind } from "./timelineEntry";
 
-import { foreignKey, index, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { foreignKey, index, jsonb, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { audits, timestamps } from "./columns";
 import { isYjsUpdate } from "./noteYjs";
@@ -22,6 +23,10 @@ export const canHaveNoteDocument = (kind: string): kind is (typeof NOTE_DOCUMENT
 // compaction. `text` is derived from it for previews, search and AI; the
 // server writes both (noteDocumentService.compact), devices never do.
 //
+// `editors` is `{ [userId]: lastEditAt }`: who has edited it and when, merged
+// from the updates compaction folds in, so "who's typing" (noteEditors.ts)
+// outlives the deleted updates. System only, like the snapshot.
+//
 // Deleting the entry (hard) cascades. A soft-deleted entry hides its document.
 export const noteDocumentSchema = pgTable(
   "note_document",
@@ -31,6 +36,7 @@ export const noteDocumentSchema = pgTable(
     groupId: uuid("group_id").notNull(),
     snapshot: text("snapshot"),
     text: text("text").notNull().default(""),
+    editors: jsonb("editors").$type<NoteEditors>().notNull().default({}),
     ...timestamps,
     ...audits,
   },

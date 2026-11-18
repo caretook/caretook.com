@@ -32,8 +32,9 @@ streams:
         FROM timeline_entry WHERE group_id IN my_groups
       # Live documents: the compacted snapshot and every pending Yjs update,
       # so any document opens and edits offline. Viewers get them too (read-only).
+      # `editors` (who edited, and when) carries "who's typing" past compaction.
       - >-
-        SELECT id, group_id, snapshot, text, created_at, updated_at, created_by, updated_by
+        SELECT id, group_id, snapshot, text, editors, created_at, updated_at, created_by, updated_by
         FROM note_document WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, document_id, data, created_at, created_by

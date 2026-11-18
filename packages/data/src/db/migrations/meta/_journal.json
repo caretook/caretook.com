@@ -50,6 +50,13 @@
       "when": 1794960630108,
       "tag": "0006_live_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794965761143,
+      "tag": "0007_note_editors",
+      "breakpoints": true
     }
   ]
 }

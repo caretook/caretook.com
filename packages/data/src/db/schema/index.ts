@@ -13,5 +13,6 @@ export * from "./vitals";
 export * from "./userPreferences";
 export * from "./timelineEntry";
 export * from "./noteYjs";
+export * from "./noteEditors";
 export * from "./noteDocument";
 export * from "./auth";
