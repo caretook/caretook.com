@@ -35,8 +35,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-5 | change | ready | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
 | B-7 | change | ready | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
-| B-8 | feature | ready | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
-| B-9 | feature | ready | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
+| B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
+| B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
@@ -134,7 +134,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-8 · feature · Avatar in the header with a menu for the user's settings and actions
 
-- status: ready
+- status: landed
 - prd: app-shell
 - owner: prd/app-shell
 - commit: 9e5f7c2
@@ -149,7 +149,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-9 · feature · Care group menu: switch groups, open the group's settings
 
-- status: ready
+- status: landed
 - prd: app-shell
 - owner: prd/app-shell
 - commit: 812fe18
