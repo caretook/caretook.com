@@ -68,7 +68,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-36 | chore | ready | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
 | B-37 | bug | triaged | quick-fixes |  | Deleting a practice leaves its clinicians linked to it |
 | B-38 | bug | ready | quick-fixes | prd/quick-fixes | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
-| B-39 | chore | triaged | quick-fixes |  | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
+| B-39 | chore | in-progress | quick-fixes | prd/quick-fixes | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-41 | bug | ready | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | ready | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
@@ -507,9 +507,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-39 · chore · Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Item 5 of the 2026-11-18 testing-churn plan (5804ae4 did items 1-4). phase2.mjs (107 steps) and app-shell.mjs (98) assert pure logic that now has unit tests. Keep checks to user flows, and give each a SMOKE=1 mode (~20 s) for after-merge runs. Run after components wave 2 lands: it reworks the same checks.
