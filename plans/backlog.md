@@ -105,6 +105,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (dev keeper): The icon sits inside the row's stretched tap target (`EntryOpenTarget`); it becomes its own control above it (`relative z-10`, like ⋯).
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Kind icon becomes its own z-10 control; combines with ?author=; re-tap is a no-op.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 1. Filter-state module and the kind icon as a filter. Blocked by nothing; blocks slice 4. Wave 1.
+- 2026-11-18 (slice/timeline-polish/1): Slice 1 built on slice/timeline-polish/1: lib/timelineFilters.ts (kind and author), chips and loader moved onto it, kind icon is a 'Show only <kind plural>' link in rows and cards. pnpm check green; phase2 new steps 52/52.
 
 ### B-6 · change · Tap an entry's author initials to filter by that author
 

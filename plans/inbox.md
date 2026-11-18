@@ -34,6 +34,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Status (2026-11-17): PRD written (timeline-polish). Auto-loads near the bottom; the "Show older" button goes away.
 - Need to add elasticsearch based search to the timeline. (B-11)
   Status (2026-11-17): PRD not written yet (search). Proposed: on-device SQLite full-text search (works offline) plus Postgres full-text search on the server, instead of Elasticsearch. Waits on timeline-polish.
+- Split app routing/nesting into subpaths for each page instead of using a single root route.
+- Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
 
 ## Big plans
 
