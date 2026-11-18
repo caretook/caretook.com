@@ -1,4 +1,4 @@
-import { screenshotSrc, screenshotSrcSet, SCREENSHOT_SIZE, type ScreenshotRef } from "../site/screenshots";
+import { screenshotSrc, SCREENSHOT_SIZE, type ScreenshotRef } from "../site/screenshots";
 import { MarketingIcon } from "./icons";
 import type { FaqGroup, GalleryContent, PageIntroContent, ProseContent, ShowcaseContent } from "./types";
 
@@ -32,9 +32,8 @@ export function PageIntro({ content }: { content: PageIntroContent }) {
 }
 
 /**
- * An app screenshot: the device's theme picks light or dark, and `srcset`
- * picks the width. Lazy unless `eager` (the first image on a page that shows
- * it above the fold).
+ * An app screenshot (an SVG placeholder for now; see `site/screenshots.ts`).
+ * Lazy unless `eager` (the first image on a page that shows it above the fold).
  */
 export function Screenshot({
   image,
@@ -45,27 +44,17 @@ export function Screenshot({
   eager?: boolean;
   className?: string;
 }) {
-  const sizes = "(min-width: 640px) 300px, 75vw";
   return (
     <figure className={`mx-auto w-full max-w-[300px] ${className}`}>
-      <picture>
-        <source
-          media="(prefers-color-scheme: dark)"
-          srcSet={screenshotSrcSet(image.name, "dark")}
-          sizes={sizes}
-        />
-        <img
-          src={screenshotSrc(image.name, "light", SCREENSHOT_SIZE.width)}
-          srcSet={screenshotSrcSet(image.name, "light")}
-          sizes={sizes}
-          width={SCREENSHOT_SIZE.width}
-          height={SCREENSHOT_SIZE.height}
-          alt={image.alt}
-          loading={eager ? "eager" : "lazy"}
-          decoding="async"
-          className="h-auto w-full rounded-box border border-base-300 bg-base-100 shadow-lg"
-        />
-      </picture>
+      <img
+        src={screenshotSrc(image.name)}
+        width={SCREENSHOT_SIZE.width}
+        height={SCREENSHOT_SIZE.height}
+        alt={image.alt}
+        loading={eager ? "eager" : "lazy"}
+        decoding="async"
+        className="h-auto w-full rounded-box border border-base-300 bg-base-100 shadow-lg"
+      />
       {image.caption && (
         <figcaption className="mt-3 text-center text-base text-base-content/70">{image.caption}</figcaption>
       )}

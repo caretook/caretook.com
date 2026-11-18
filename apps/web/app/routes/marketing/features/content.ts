@@ -16,7 +16,7 @@ export const content = {
   meta: {
     title: "Features",
     description:
-      "How Caretook helps a family keep track of someone's care: a shared timeline, notes written together, vitals, sharing with the right access, and offline use.",
+      "How Caretook helps a family keep track of someone's care: a shared timeline, notes written together, vitals, a provider directory, sharing with the right access, and offline use.",
   } satisfies PageMeta,
 
   intro: {
@@ -106,6 +106,20 @@ export const content = {
       },
     },
     {
+      id: "providers",
+      icon: "providers",
+      heading: "Providers and contacts",
+      paragraphs: [
+        "Keep the doctors, practices, pharmacies and other helpers in one directory the whole care group shares, so nobody has to dig for a phone number in the middle of a hard day.",
+        "Each provider has their phone numbers, address and website, and a shared notes page anyone in the group can add to, like the notes on an entry.",
+      ],
+      points: [
+        "Mark the main doctor, and keep past providers for the record",
+        "Clinicians linked to their practice",
+        "Shared notes for each provider",
+      ],
+    },
+    {
       id: "offline",
       icon: "offline",
       heading: "Works with no signal",
@@ -118,17 +132,12 @@ export const content = {
   coming: {
     id: "coming-soon",
     heading: "Coming soon",
-    intro: "We're building these next, with the families using Caretook now.",
+    intro: "We're building this next, with the families using Caretook now.",
     items: [
       {
         icon: "medications",
         title: "Medications",
         body: "A list of current and past medications, with doses and why they were stopped, and a sheet you can print for the next appointment.",
-      },
-      {
-        icon: "providers",
-        title: "Providers and contacts",
-        body: "Doctors, practices and pharmacies in one directory, with one-tap calling and directions, linked to the notes from each visit.",
       },
     ],
   } satisfies FeatureGridContent,

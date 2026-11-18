@@ -1,7 +1,11 @@
 // The marketing site's app screenshots (marketing PRD, slice 2). A generator,
 // not a check: it signs in as the seed users and captures set screens at
-// 420 px, in light and dark, as WebP into apps/web/public/screenshots/. The
-// files are committed; rerun it only when the app's screens change.
+// 420 px, in light and dark, as WebP into apps/web/public/screenshots/.
+//
+// NOT IN USE YET: the site shows SVG placeholders (<name>.svg) until the app's
+// screens settle; real screenshots are a backlog item before launch. When
+// that's done, run this, commit the images, and point site/screenshots.ts (and
+// the `Screenshot` component's light/dark sources) back at them.
 //
 //   pnpm prd browser marketing-screenshots --timeout 300
 //

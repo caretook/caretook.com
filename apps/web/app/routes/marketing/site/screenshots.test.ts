@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { content as features } from "../features/content";
 import { homeContent } from "../home/content";
-import { screenshotFiles, screenshotSrcSet, SCREENSHOTS, type ScreenshotRef } from "./screenshots";
+import { screenshotFiles, screenshotSrc, SCREENSHOTS, type ScreenshotRef } from "./screenshots";
 
 const PUBLIC = fileURLToPath(new URL("../../../../public", import.meta.url));
 
@@ -26,10 +26,8 @@ describe("screenshots", () => {
     }
   });
 
-  it("srcset lists both widths for a theme", () => {
-    expect(screenshotSrcSet("members", "dark")).toBe(
-      "/screenshots/members-dark-420.webp 420w, /screenshots/members-dark-840.webp 840w",
-    );
+  it("points at the SVG placeholders", () => {
+    expect(screenshotSrc("members")).toBe("/screenshots/members.svg");
   });
 
   it("content names only known screens, each with descriptive alt text", () => {

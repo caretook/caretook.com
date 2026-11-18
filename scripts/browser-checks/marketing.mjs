@@ -253,29 +253,28 @@ try {
         h1: document.querySelectorAll("h1").length,
         overflow: document.documentElement.scrollWidth > innerWidth,
         imgs: [...document.querySelectorAll("main img")].map((i) => ({
-          alt: i.getAttribute("alt") ?? "", srcset: i.getAttribute("srcset") ?? "", loading: i.loading,
-          dark: i.parentElement.querySelector('source[media*="dark"]')?.getAttribute("srcset") ?? "",
+          alt: i.getAttribute("alt") ?? "", src: i.getAttribute("src") ?? "", loading: i.loading,
         })),
       })`);
       const label = `${path} ${width}`;
       check(s.h1 === 1 && !s.overflow, `${label}: one h1, no horizontal scroll`, `${s.h1}`);
       check(
-        s.imgs.every((i) => i.alt.trim().length > 20 && /420w.+840w/.test(i.srcset) && /840w/.test(i.dark)) &&
+        s.imgs.every((i) => i.alt.trim().length > 20 && !!i.src) &&
           s.imgs.filter((i) => i.loading !== "lazy").length <= 1,
-        `${label}: ${s.imgs.length} images with alt text, srcset (light and dark), lazy below the fold`,
+        `${label}: ${s.imgs.length} images with alt text, lazy below the fold`,
       );
-      for (const i of s.imgs)
-        for (const u of `${i.srcset}, ${i.dark}`.split(",")) imageUrls.add(u.trim().split(" ")[0]);
+      for (const i of s.imgs) imageUrls.add(i.src);
     }
   }
   const missing = [];
   for (const u of [...imageUrls].filter(Boolean)) {
     const res = await fetch(`${BASE}${u}`);
-    if (!res.ok || res.headers.get("content-type") !== "image/webp") missing.push(`${u} ${res.status}`);
+    if (!res.ok || !res.headers.get("content-type")?.startsWith("image/svg+xml"))
+      missing.push(`${u} ${res.status}`);
   }
   check(
     imageUrls.size > 0 && missing.length === 0,
-    `every screenshot serves as WebP (${imageUrls.size})`,
+    `every screenshot placeholder serves as SVG (${imageUrls.size})`,
     missing.join(", "),
   );
 
