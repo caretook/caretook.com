@@ -121,6 +121,18 @@ export async function openPage(browser, label) {
   const press = (selector) =>
     evaluate(`(() => { const el = ${selector}; if (!el) throw new Error("no element: " + ${JSON.stringify(selector)});
       el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); el.click(); return true; })()`);
+  // A real tap (mouse press and release) at the centre of an element, after
+  // scrolling it into view: it goes through whatever is on top, as a finger would.
+  const tap = async (selector) => {
+    const point = await evaluate(`(() => { const el = ${selector}; if (!el) return null;
+      el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+    if (!point) throw new Error(`${label}: nothing to tap: ${selector}`);
+    await sleep(100);
+    for (const type of ["mousePressed", "mouseReleased"]) {
+      await send("Input.dispatchMouseEvent", { type, ...point, button: "left", clickCount: 1 });
+    }
+  };
   const type = (selector, value) =>
     evaluate(`(() => { const el = ${selector}; const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
       Object.getOwnPropertyDescriptor(proto, "value").set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event("input", { bubbles: true })); return true; })()`);
@@ -142,6 +154,7 @@ export async function openPage(browser, label) {
     screenshot,
     offline,
     press,
+    tap,
     type,
     signIn,
     errors,

@@ -15,7 +15,7 @@ import { useLiveQuery } from "./index";
 // "Who's typing" on this device: each document's compacted `editors` plus
 // its pending updates' authors, through the shared pure `recentEditors`.
 // The entry page's avatars use `useRecentEditors`; the timeline's live dot
-// and Live now banner can use `groupEditorsQuery` + `toRecentEditors` with
+// and Live now banner use `useLiveDocuments` (`groupLiveEditorsQuery`), on
 // the same `useNow` timer.
 
 /** A document's `editors` (JSON text) and its pending updates' authors (a JSON array). */
@@ -30,12 +30,6 @@ const editorsSelect = `SELECT d.id, d.editors,
 export const documentEditorsQuery = (documentId: string): LocalQuery => ({
   sql: `${editorsSelect} WHERE d.id = ?`,
   params: [documentId],
-});
-
-/** Every document in the group, for the timeline (live dot, Live now banner). */
-export const groupEditorsQuery = (groupId: string): LocalQuery => ({
-  sql: `${editorsSelect} WHERE d.group_id = ?`,
-  params: [groupId],
 });
 
 const parsePending = (value: string | null): NoteEdit[] => {
