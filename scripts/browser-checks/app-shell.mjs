@@ -3,7 +3,11 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // Slice 1: Caretook, sync status and the avatar fit one row at 420 wide; the
 // avatar shows initials and has a name; the menu opens by tap and keyboard,
 // shows name and email, returns focus on Escape, and its Settings and Sign
-// out items work. Later slices append their checks (theme, groups, sections).
+// out items work. Slice 2: the theme choice (System, Light, Dark) applies at
+// once, persists across reload with the attribute set before first paint,
+// System follows prefers-color-scheme both ways, it works offline without a
+// request, and storage that throws still renders (System). Later slices append
+// their checks (groups, sections).
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 
 const results = [];
@@ -16,6 +20,35 @@ const MENU = `document.querySelector('[role="menu"]')`;
 const item = (text) =>
   `[...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent.trim() === ${JSON.stringify(text)})`;
 const rows = `document.querySelectorAll("ol > li").length`;
+const radio = (text) =>
+  `[...document.querySelectorAll('[role="menuitemradio"]')].find((el) => el.textContent.trim() === ${JSON.stringify(text)})`;
+const checkedTheme = `[...document.querySelectorAll('[role="menuitemradio"][aria-checked="true"]')].map((el) => el.textContent.trim()).join(",")`;
+const themeState = `({ attr: document.documentElement.dataset.theme ?? null, scheme: getComputedStyle(document.documentElement).colorScheme, saved: (() => { try { return localStorage.getItem("caretook:theme"); } catch { return "throws"; } })() })`;
+const scheme = (p, value) =>
+  p.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value }] });
+/** Records data-theme as <body> is inserted and at the first animation frame (before first paint). */
+const FIRST_PAINT_PROBE = `(() => {
+  const probe = (window.__themeProbe = {});
+  new MutationObserver((_, obs) => {
+    if (document.body) { probe.body = document.documentElement.dataset.theme ?? null; obs.disconnect(); }
+  }).observe(document, { childList: true, subtree: true });
+  requestAnimationFrame(() => {
+    probe.frame = document.documentElement.dataset.theme ?? null;
+    probe.frameBg = document.body ? getComputedStyle(document.body).backgroundColor : null;
+  });
+})()`;
+const reload = async (p) => {
+  await p.send("Page.reload", { ignoreCache: false });
+  await sleep(300);
+  await p.waitFor(`document.readyState === "complete"`, 30000);
+};
+const chooseTheme = async (p, label) => {
+  await p.press(TRIGGER);
+  await p.waitFor(radio(label), 5000);
+  await p.press(radio(label));
+  await p.waitFor(`!${MENU}`, 5000).catch(() => {});
+  await sleep(200);
+};
 
 const key = async (p, k, code, keyCode) => {
   await p.send("Input.dispatchKeyEvent", {
@@ -118,7 +151,7 @@ try {
   const second = await focusedText(A);
   check(
     "keyboard: focus is on a menu item, and arrows move it",
-    first === "Settings" && second === "Sign out",
+    first === "Settings" && second === "System",
     `${first} → ${second}`,
   );
   const headerFocusable = await A.evaluate(
@@ -146,7 +179,88 @@ try {
   await A.waitFor(TRIGGER, 10000);
   check("settings: the frame's header is still there", await A.evaluate(`!!${TRIGGER}`));
 
-  // 4. Sign out from the menu.
+  // 4. Theme (slice 2).
+  await A.press(TRIGGER);
+  await A.waitFor(radio("Dark"), 5000);
+  const themeItems = await A.evaluate(
+    `[...document.querySelectorAll('[role="menuitemradio"]')].map((el) => el.textContent.trim()).join(",")`,
+  );
+  check("theme: System, Light and Dark radios in the menu", themeItems === "System,Light,Dark", themeItems);
+  check("theme: System is checked by default", (await A.evaluate(checkedTheme)) === "System");
+  await A.screenshot("app-shell-theme-menu");
+  await escape(A);
+  await A.waitFor(`!${MENU}`, 5000);
+
+  await scheme(A, "light");
+  const rpcCount = `performance.getEntriesByType("resource").filter((e) => new URL(e.name).pathname.startsWith("/rpc")).length`;
+  const rpcBefore = await A.evaluate(rpcCount);
+  await chooseTheme(A, "Dark");
+  const dark = await A.evaluate(themeState);
+  check(
+    "theme: Dark applies at once and is saved on this device",
+    dark.attr === "dark" && dark.scheme === "dark" && dark.saved === "dark",
+    JSON.stringify(dark),
+  );
+  await sleep(500);
+  check("theme: choosing isn't sent to the server", (await A.evaluate(rpcCount)) === rpcBefore);
+
+  const { identifier: probeId } = await A.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: FIRST_PAINT_PROBE,
+  });
+  await reload(A);
+  await A.waitFor(TRIGGER, 30000);
+  const probe = await A.evaluate(`window.__themeProbe`);
+  check(
+    "theme: after reload, Dark is set before first paint (no light flash)",
+    probe?.body === "dark" && probe?.frame === "dark",
+    JSON.stringify(probe),
+  );
+  await A.screenshot("app-shell-theme-dark");
+  await A.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: probeId });
+  await A.press(TRIGGER);
+  await A.waitFor(radio("Dark"), 5000);
+  check("theme: the menu shows Dark checked after reload", (await A.evaluate(checkedTheme)) === "Dark");
+  await escape(A);
+  await A.waitFor(`!${MENU}`, 5000);
+
+  await chooseTheme(A, "Light");
+  await scheme(A, "dark");
+  const light = await A.evaluate(themeState);
+  check(
+    "theme: Light overrides a dark device",
+    light.attr === "light" && light.scheme === "light" && light.saved === "light",
+    JSON.stringify(light),
+  );
+
+  await chooseTheme(A, "System");
+  const sysDark = await A.evaluate(themeState);
+  await scheme(A, "light");
+  await sleep(200);
+  const sysLight = await A.evaluate(themeState);
+  check(
+    "theme: System removes the attribute and follows prefers-color-scheme both ways",
+    sysDark.attr === null &&
+      sysDark.saved === null &&
+      sysDark.scheme === "dark" &&
+      sysLight.attr === null &&
+      sysLight.scheme === "light",
+    `${JSON.stringify(sysDark)} / ${JSON.stringify(sysLight)}`,
+  );
+
+  // Offline: the choice still works (it's local only).
+  await A.offline(true);
+  await chooseTheme(A, "Dark");
+  const offlineDark = await A.evaluate(themeState);
+  await chooseTheme(A, "System");
+  await A.offline(false);
+  check(
+    "theme: works offline",
+    offlineDark.attr === "dark" && offlineDark.saved === "dark",
+    JSON.stringify(offlineDark),
+  );
+  await A.send("Emulation.setEmulatedMedia", { features: [] });
+
+  // 5. Sign out from the menu.
   await A.signOut();
   const signedOut = await A.waitFor(`location.pathname === "/sign-in"`, 15000)
     .then(() => true)
@@ -156,7 +270,7 @@ try {
   await A.waitFor(`location.pathname === "/sign-in"`, 15000);
   check("sign out: /app needs signing in again", true);
 
-  // 5. viewer@: their own initials and name.
+  // 6. viewer@: their own initials and name.
   const bV = await launch(9472);
   browsers.push(bV);
   const V = await openPage(bV, "viewer");
@@ -168,10 +282,41 @@ try {
   );
   check("viewer: avatar and name are theirs", vAvatar === "Account menu for Dev Viewer / DV", vAvatar);
   await V.screenshot("app-shell-viewer");
+  bV.proc.kill();
+
+  // 7. Storage that throws: the app still renders, in System (fresh browser, viewer@).
+  const bS = await launch(9472);
+  browsers.push(bS);
+  const S = await openPage(bS, "no-storage");
+  pages.push(S);
+  await S.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: `for (const name of ["localStorage", "sessionStorage"]) Object.defineProperty(window, name, { configurable: true, get() { throw new DOMException("The operation is insecure.", "SecurityError"); } });`,
+  });
+  await scheme(S, "dark");
+  await signIn(S, "viewer@example.com");
+  await S.waitFor(TRIGGER, 40000);
+  await S.waitFor(`${rows} > 0`, 40000);
+  const noStore = await S.evaluate(themeState);
+  check(
+    "theme: storage that throws still renders, in System",
+    noStore.attr === null && noStore.scheme === "dark" && noStore.saved === "throws",
+    JSON.stringify(noStore),
+  );
+  await chooseTheme(S, "Light");
+  const noStoreLight = await S.evaluate(themeState);
+  check(
+    "theme: without storage, a choice still applies for the visit",
+    noStoreLight.attr === "light" && noStoreLight.scheme === "light",
+    JSON.stringify(noStoreLight),
+  );
+  await S.screenshot("app-shell-no-storage");
 
   const noise =
     /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection/;
-  const errors = pages.flatMap((p) => p.errors).filter((e) => !noise.test(e));
+  // With storage blocked, React Router's inline ScrollRestoration script reads
+  // sessionStorage unguarded and throws; that's expected on that page only.
+  const blocked = /^\[no-storage (console\.error|exception)\] SecurityError/;
+  const errors = pages.flatMap((p) => p.errors).filter((e) => !noise.test(e) && !blocked.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 5).join(" | "));
 } finally {
   for (const br of browsers) br.proc.kill();
