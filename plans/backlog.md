@@ -87,6 +87,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Full width at lg+, entry text capped ~75ch; cards in a 2–3 column grid.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 5. Full width from lg, 75ch text cap, card grid. Independent; planned for wave 2.
+- 2026-11-18 (Robert Bo Davis): Paused 2026-11-18 by the user: routing (B-23) and then components (B-24) run before timeline-polish continues. Wave 1 (slices 1-3) is in dev as 644f780. Slice 5; ready. Replan against the new route folders and components when it resumes.
 
 ### B-4 · change · Tooltip with the author's name and avatar on an entry's initials
 
