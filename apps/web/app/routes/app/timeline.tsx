@@ -22,8 +22,7 @@ import { entryContentFromForm, entryUpdateFromForm } from "~/lib/entryForm";
 import { formString } from "~/lib/form";
 import { entryUrl, isLiveEntryKind, newEntryUrl } from "~/lib/liveEntry";
 import { dayKey, formatDay } from "~/lib/format";
-import { cacheSettings, loadSettings } from "~/lib/me";
-import { rpc } from "~/lib/rpc";
+import { loadSettings, saveSettings } from "~/lib/me";
 import { requireSession } from "~/lib/session";
 import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
@@ -180,13 +179,12 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const canWrite = !!group.role && WRITER_ROLES.includes(group.role);
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
 
-  // The layout is a per-user setting. It switches at once; saving it is best
-  // effort (if it fails, the next visit shows the old layout).
+  // The layout is a per-user setting. It switches at once; offline, it's
+  // saved on the next online visit (see `saveSettings`).
   const [view, setView] = useState<TimelineView>(loaderData.timelineView);
   const changeView = (next: TimelineView) => {
     setView(next);
-    cacheSettings(userId, { timelineView: next });
-    rpc.me.updatePreferences({ timelineView: next }).catch(() => undefined);
+    saveSettings(userId, { timelineView: next }).catch(() => undefined);
   };
 
   // One sheet for adding and editing. `key` remounts the form each time it
