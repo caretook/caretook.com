@@ -87,6 +87,33 @@ const writeOwner = (userId: string | null) => {
   }
 };
 
+/** The database this page opened last, for `pagehide`. */
+let pageDatabase: AbstractPowerSyncDatabase | null = null;
+let pageLifecycleBound = false;
+
+/**
+ * Keep a page in the back/forward cache from blocking the next one.
+ *
+ * A full load (a typed URL, a reload) puts the old page in the back/forward
+ * cache, frozen. PowerSync's shared workers still count it as a connected tab
+ * (its tab-close lock stays held), and if it was mid-query when it froze, its
+ * database lease is never returned: the next page's `init()` waits for it,
+ * for seconds or until the frozen page is evicted, and /app renders nothing.
+ * So a page going into the cache closes its database (which hands the lease
+ * back), and a page coming back out of it reloads to open it again.
+ */
+const releaseOnPageHide = (powersync: AbstractPowerSyncDatabase) => {
+  pageDatabase = powersync;
+  if (pageLifecycleBound) return;
+  pageLifecycleBound = true;
+  window.addEventListener("pagehide", (event) => {
+    if (event.persisted) void pageDatabase?.close();
+  });
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) location.reload();
+  });
+};
+
 /**
  * Open the local database for `userId` and start syncing. If the file holds
  * someone else's data (or we can't tell whose), it's wiped first: a shared
@@ -94,6 +121,7 @@ const writeOwner = (userId: string | null) => {
  */
 export const open = async (userId: string): Promise<SyncDb> => {
   const powersync = createDatabase();
+  releaseOnPageHide(powersync);
   await powersync.init();
   if (readOwner() !== userId) {
     await powersync.disconnectAndClear();
