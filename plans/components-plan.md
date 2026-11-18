@@ -10,12 +10,14 @@
 | 2     | landed in `dev` (`666ebf9`) | `c25170c` (`0032dd6`, `a2c2bd1`)            |
 | 3     | landed in `dev` (`511cbed`) | `f916469` (`a711ad6`, `963c22b`)            |
 | 4     | landed in `dev` (`511cbed`) | `3215617` (`03cde5a`)                       |
-| 5     | ready (3 merged)            |                                             |
-| 6     | blocked by 3, 4 and 5       |                                             |
+| 5     | merged; wave 4 landing      | `abd2635` (`1c755d2`, `7336e9d`, `249444d`) |
+| 6     | ready (5 merged)            |                                             |
 
 Backlog: B-24 is claimed by `prd/components`; mark it `done` after slice 6 merges.
 
 Notes for later slices:
+
+- Slice 5: the form lives in the timeline route folder (`EntryForm` shell, `EntryKindPicker`, `SymptomFields`, `VitalReadingsFields`, `VitalReadingRow`, `VitalField`, `useEntryFormSave`; pure `formIssues`, `vitalInputs`, `entryFormData`, all tested). `ui/Field` has a `warning` line (never `aria-invalid`). Vital labels now use the `Field` label style. `ui.mjs` gives each pass a fresh `x-forwarded-for`, or a fast run hits Better Auth's session rate limit (429 → `/sign-in`).
 
 - Slice 3: the timeline has no infinite scroll yet ("Show older"); paging lives in `useTimelineData`, so `timeline-polish` slice 7 swaps it there. Timeline route +379 B gzipped (accepted as noise). `lib/format.ts` lost the unused `dayKey`.
 - Slice 4: `typed` (an uncommitted title) now lives in `EntryTitleRegion`, so it resets if the region flips read-only mid-edit. Entry route +854 B (+0.4%, chunk reshuffle). After writing a new file an existing module imports, restart the dev server (Vite can cache the failed resolve).
