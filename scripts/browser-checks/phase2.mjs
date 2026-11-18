@@ -1,7 +1,10 @@
 import { launch, openPage, sleep } from "./cdp.mjs";
 // The timeline checks, against the local (PowerSync) data: layout, filters,
 // the sheet, the view toggle, and row taps (slice 5) in both views for a
-// writer (member@) and a viewer (viewer@).
+// writer (member@) and a viewer (viewer@). It picks rows by kind, not by
+// seed position, so entries other checks add (or a live dot or Live now
+// banner on them) don't change what it checks; it passes with or without a
+// fresh `pnpm datastore:reset`.
 //
 // The browser runs in the seeds' time zone, so rows don't grow a "… in Los
 // Angeles" line, and density is checked per row rather than by how many rows
@@ -22,17 +25,8 @@ const rowOf = (label) =>
   `[...document.querySelectorAll("ol > li")].find((li) => li.querySelector(".sr-only")?.textContent === ${JSON.stringify(`${label}: `)})`;
 const ENTRY_URL = /\/entries\/[0-9a-f-]{36}$/;
 
-/** A real tap (mouse press and release) at the centre of an element, after scrolling it into view. */
-async function tap(p, selector) {
-  const rect = await p.evaluate(`(() => { const el = ${selector}; if (!el) return null;
-    el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
-  if (!rect) throw new Error(`nothing to tap: ${selector}`);
-  await sleep(100);
-  for (const type of ["mousePressed", "mouseReleased"]) {
-    await p.send("Input.dispatchMouseEvent", { type, ...rect, button: "left", clickCount: 1 });
-  }
-}
+/** A real tap (mouse press and release) at the centre of an element (`tap()` in cdp.mjs). */
+const tap = (p, selector) => p.tap(selector);
 const key = async (p, k, code, keyCode) => {
   await p.send("Input.dispatchKeyEvent", {
     type: "rawKeyDown",
@@ -48,8 +42,12 @@ const escape = (p) => key(p, "Escape", "Escape", 27);
 async function signedIn(b, label, email) {
   const p = await openPage(b, label);
   await p.send("Emulation.setTimezoneOverride", { timezoneId: TZ });
-  await p.signIn(email, PW);
-  await p.waitFor(`${rows} > 0`, 20000);
+  // On a fresh dev server the first load can fail while Vite optimises its deps: one retry.
+  await p.signIn(email, PW).catch(async () => {
+    await sleep(2000);
+    await p.signIn(email, PW);
+  });
+  await p.waitFor(`${rows} > 0`, 30000);
   await sleep(500);
   return p;
 }
@@ -271,8 +269,11 @@ try {
   await setView(v, "Rows");
   await sleep(1500);
 
-  // PowerSync warns when a full page load closes the previous page's database.
-  const noise = /error closing database connection/;
+  // PowerSync warns when a full page load closes the previous page's database,
+  // and can fail its first connect right after a reset (a 401 while it
+  // refetches the JWKS); a first visit can make Vite reload a route module.
+  const noise =
+    /error closing database connection|\[PowerSync\]: Initial connect attempt|status of 401|Error loading route module|Failed to fetch dynamically imported module/;
   const errors = pages.flatMap((pg) => pg.errors).filter((e) => !noise.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 3).join(" | ").slice(0, 500));
 } catch (e) {
@@ -283,3 +284,4 @@ try {
   bV.proc.kill();
   console.log(`\n${results.filter(Boolean).length}/${results.length} passed`);
 }
+process.exit(results.every(Boolean) ? 0 : 1);
