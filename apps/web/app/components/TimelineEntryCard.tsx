@@ -4,6 +4,7 @@ import { entrySummary, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
 import { KindIcon } from "./KindIcon";
+import { LiveDot } from "./LiveDot";
 import { actionsLabel, EntryOpenTarget, Readings } from "./TimelineEntryRow";
 
 /** One entry as a compact card: summary and time on one line, the full text, then who wrote it. */
@@ -15,6 +16,7 @@ export function TimelineEntryCard({
   open,
   onEdit,
   onDelete,
+  liveLabel,
 }: EntryViewProps) {
   const { heading, severity, readings, body } = entrySummary(entry, units);
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
@@ -40,9 +42,12 @@ export function TimelineEntryCard({
             {lead === "readings" && <Readings readings={readings} />}
             {lead === "body" && <p className="whitespace-pre-wrap">{body}</p>}
           </div>
-          <time dateTime={entry.occurredAt} className="text-base-content/70 shrink-0 text-sm tabular-nums">
-            {formatTime(entry.occurredAt)}
-          </time>
+          <span className="flex shrink-0 items-center gap-2">
+            {liveLabel && <LiveDot label={liveLabel} />}
+            <time dateTime={entry.occurredAt} className="text-base-content/70 text-sm tabular-nums">
+              {formatTime(entry.occurredAt)}
+            </time>
+          </span>
         </div>
         {lead === "heading" && readings.length > 0 && <Readings readings={readings} />}
         {body && lead !== "body" && <p className="break-words whitespace-pre-wrap">{body}</p>}

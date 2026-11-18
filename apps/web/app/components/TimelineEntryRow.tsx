@@ -7,6 +7,7 @@ import { entrySummary, initials, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
 import { AuthorInitials, KindIcon } from "./KindIcon";
+import { LiveDot } from "./LiveDot";
 
 export type EntryViewProps = {
   entry: TimelineEntry;
@@ -23,6 +24,8 @@ export type EntryViewProps = {
   onEdit?: () => void;
   /** Omitted for people who can't change the timeline (viewers): no ⋯ menu. */
   onDelete?: () => void;
+  /** Others are writing in its document now: the live dot's label ("Being written now by Maria"). */
+  liveLabel?: string;
 };
 
 export type EntryOpen = { to: string } | { onPress: () => void };
@@ -69,6 +72,7 @@ export function TimelineEntryRow({
   open,
   onEdit,
   onDelete,
+  liveLabel,
 }: EntryViewProps) {
   const { heading, severity, readings, body } = entrySummary(entry, units);
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
@@ -95,6 +99,7 @@ export function TimelineEntryRow({
         {body && <ClampedText text={body} />}
         {elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
       </div>
+      {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
       <AuthorInitials name={authorName} initials={initials(authorName)} />
       {onDelete && <EntryActions label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />}
     </li>

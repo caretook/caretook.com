@@ -13,6 +13,7 @@ import { ConfirmDialog } from "~/components/ConfirmDialog";
 import { EntryForm } from "~/components/EntryForm";
 import { EntrySheet } from "~/components/EntrySheet";
 import { LatestVitals } from "~/components/LatestVitals";
+import { LiveNowBanner } from "~/components/LiveNowBanner";
 import { QuickAddBar } from "~/components/QuickAddBar";
 import { KindFilter, ViewToggle } from "~/components/TimelineFilters";
 import { TimelineEntryCard } from "~/components/TimelineEntryCard";
@@ -21,11 +22,13 @@ import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
 import { entryContentFromForm, entryUpdateFromForm } from "~/lib/entryForm";
 import { formString } from "~/lib/form";
 import { entryUrl, isLiveEntryKind, newEntryUrl } from "~/lib/liveEntry";
+import { liveDotLabel } from "~/lib/liveNow";
 import { dayKey, formatDay } from "~/lib/format";
 import { cacheSettings, loadSettings } from "~/lib/me";
 import { rpc } from "~/lib/rpc";
 import { requireSession } from "~/lib/session";
 import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
+import { useLiveDocuments } from "~/lib/sync/editors";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import {
   createEntry,
@@ -180,6 +183,16 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const canWrite = !!group.role && WRITER_ROLES.includes(group.role);
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
 
+  // Notes and events other members are writing in now: the Live now banner and the rows' live dots.
+  const liveDocuments = useLiveDocuments(
+    groupId,
+    userId,
+    (row) => row.title?.trim() || (isEntryKind(row.kind) ? KIND_META[row.kind].label : "Entry"),
+  );
+  const liveLabels = new Map(
+    liveDocuments.map((d) => [d.id, liveDotLabel(d.editors.map((e) => nameOf(e.userId)))]),
+  );
+
   // The layout is a per-user setting. It switches at once; saving it is best
   // effort (if it fails, the next visit shows the old layout).
   const [view, setView] = useState<TimelineView>(loaderData.timelineView);
@@ -227,6 +240,8 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       </header>
 
       <LatestVitals vitals={latestVitals} units={units} />
+
+      <LiveNowBanner documents={liveDocuments} groupId={groupId} nameOf={nameOf} />
 
       {canWrite && (
         <QuickAddBar
@@ -284,6 +299,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
                       : undefined
                   }
                   onDelete={canWrite ? () => setDeleting(entry) : undefined}
+                  liveLabel={liveLabels.get(entry.id)}
                 />
               ))}
             </ol>
