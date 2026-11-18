@@ -153,7 +153,7 @@ The entry page's draft and saving logic moves into one live-entry hook with a sm
 
 ### What to build
 
-Move what's left onto the primitives: the account and group settings pages and their lists (from `routing`), the sync indicator, section nav, tab bar, and anything else still wiring RAC or repeating daisyUI class strings by hand. Write the component rules into AGENTS.md (the folders, the primitive rules, hooks vs. components, the size guideline, when a component moves to a shared folder) and update its layout section. Remove anything left unused.
+Move what's left onto the primitives: the account and group settings pages and their lists (from `routing`), the sync indicator, section nav, tab bar, any `providers` screens built before the primitives landed (its slices 2–4), and anything else still wiring RAC or repeating daisyUI class strings by hand. Write the component rules into AGENTS.md (the folders, the primitive rules, hooks vs. components, the size guideline, when a component moves to a shared folder) and update its layout section. Remove anything left unused.
 
 ### Acceptance criteria
 
@@ -170,3 +170,4 @@ Move what's left onto the primitives: the account and group settings pages and t
 - **Claim:** B-24 when slice 1 starts. Mark it `done` after slice 6 merges.
 - **Land after each wave**, and tell other running PRDs when slices 1 and 2 land: new UI uses `ui/` primitives and the feature folders.
 - **Visual differences** are allowed only for consistency; review each hand-off's before and after screenshots before merging.
+- **`timeline-polish` is paused for this PRD.** Its wave 1 is in `dev` (the `timelineFilters` module and kind icon links, the day headers, the one-line vitals), and slice 3 here must keep all of it as it is (`phase2.mjs` covers it). Slices 4–7 of `timeline-polish` (author filter, full width, author tooltip, infinite scroll) are replanned once this PRD has fully landed: tell the user then, so they can start that replan.
