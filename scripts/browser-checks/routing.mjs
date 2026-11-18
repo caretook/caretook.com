@@ -39,6 +39,18 @@ import { startProxy } from "./proxy.mjs";
 //   is aria-current="page", and widening the window on the list does the same;
 // - Account shows the name and email, and its Sign out signs out (the last
 //   caretaker@ step).
+//
+// Slice 3, the edit sheet's URL (`timeline/<id>/edit`):
+//
+// - a symptom's row tap, and its ⋯ → Edit, go to `…/timeline/<id>/edit?<filters>`
+//   with the form filled; a save updates the row and closes the sheet,
+//   filters kept;
+// - offline, a row tap still opens the edit sheet (its module is prefetched);
+// - a reload reopens the sheet with the entry's current values;
+// - an entry deleted elsewhere while its sheet is open closes the sheet;
+// - a note's edit URL lands on its page; a deleted entry's and another
+//   group's entry's land on the timeline, filters kept;
+// - viewer@'s edit URL is the timeline, with no form, and no edit targets.
 // Run against your stack: `set -a; source .env.loop; set +a`.
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -258,6 +270,176 @@ async function settingsSteps(p) {
     () => check("…and /app/settings then asks to sign in", true),
     async () =>
       check("…and /app/settings then asks to sign in", false, await p.evaluate("location.pathname")),
+  );
+}
+
+/** Slice 3: the edit sheet's URL (caretaker@, a writer; ends on the timeline, online). */
+async function editSheetSteps(p) {
+  const name = `${tag} edit symptom`;
+  const rowWith = (text) =>
+    `[...document.querySelectorAll("main ol > li")].find((li) => li.textContent.includes(${JSON.stringify(text)}))`;
+  const NAME_INPUT = `document.querySelector('[role=dialog] input[name="symptomName"]')`;
+  const editPath = (id) => `${T}/${id}/edit`;
+  const escape = async () => {
+    for (const type of ["keyDown", "keyUp"])
+      await p.send("Input.dispatchKeyEvent", {
+        type,
+        key: "Escape",
+        code: "Escape",
+        windowsVirtualKeyCode: 27,
+      });
+  };
+  const closedOn = async (how, search) => {
+    await p.waitFor(`!${DIALOG} && location.pathname === ${JSON.stringify(T)}`, 10000).catch(() => {});
+    const at = await where(p);
+    check(how, !at.dialog && at.path === T && at.search === search, JSON.stringify(at));
+  };
+
+  // A symptom of our own, added through the add sheet.
+  await p.goto(T);
+  await p.waitFor(`${ROWS} > 0`, 30000);
+  await p.press(tile("Symptom"));
+  await p.waitFor(NAME_INPUT, 10000);
+  await p.type(NAME_INPUT, name);
+  await p.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
+  await p.waitFor(`!${DIALOG} && ${rowWith(name)}`, 10000);
+  const id = await p.evaluate(
+    `window.caretookSync.powersync.getAll("SELECT id FROM timeline_entry WHERE json_extract(details, '$.name') = ?", [${JSON.stringify(name)}]).then((r) => r[0]?.id ?? "")`,
+  );
+
+  // A row tap, on a filtered timeline.
+  const filters = "?kind=symptom";
+  await p.goto(`${T}${filters}`);
+  await p.waitFor(rowWith(name), 30000);
+  const before = await where(p);
+  await p.press(`${rowWith(name)}.querySelector('a[aria-label^="Edit "]')`);
+  await p.waitFor(`${DIALOG}?.textContent.includes("Edit symptom") && ${NAME_INPUT}`, 10000).catch(() => {});
+  const opened = await where(p);
+  check(
+    "a symptom's row tap goes to …/timeline/<id>/edit with the filters, the form filled",
+    opened.path === editPath(id) &&
+      opened.search === filters &&
+      opened.dialog &&
+      (await p.evaluate(`${NAME_INPUT}?.value`)) === name,
+    JSON.stringify(opened),
+  );
+  const edited = `${name} edited`;
+  await p.type(NAME_INPUT, edited);
+  await p.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
+  await closedOn("a save closes the edit sheet, filters kept", filters);
+  check("…and the row shows the change", await p.evaluate(`!!${rowWith(edited)}`));
+  check("…and leaves no sheet ahead in the history", (await where(p)).idx === before.idx);
+
+  // ⋯ → Edit opens the same URL.
+  await p.press(`${rowWith(edited)}.querySelector('button[aria-label^="Actions"]')`);
+  await p.waitFor(menuItem("Edit"), 5000);
+  await p.press(menuItem("Edit"));
+  await p.waitFor(`${DIALOG} && ${NAME_INPUT}`, 10000).catch(() => {});
+  const viaMenu = await where(p);
+  check(
+    "⋯ → Edit goes to the same edit URL, the form filled",
+    viaMenu.path === editPath(id) &&
+      viaMenu.search === filters &&
+      (await p.evaluate(`${NAME_INPUT}?.value`)) === edited,
+    JSON.stringify(viaMenu),
+  );
+  await escape();
+  await closedOn("Escape closes the edit sheet, filters kept", filters);
+
+  // Offline, a row tap still opens the sheet (its module was prefetched).
+  const errorsOnline = p.errors.length;
+  proxy.setOnline(false);
+  await p.waitFor(`document.body.innerText.includes("Offline")`, 20000).catch(() => {});
+  await p.press(`${rowWith(edited)}.querySelector('a[aria-label^="Edit "]')`);
+  await p.waitFor(`${DIALOG} && ${NAME_INPUT}?.value === ${JSON.stringify(edited)}`, 10000).then(
+    () => check("offline: a row tap opens the edit sheet", true),
+    async () => check("offline: a row tap opens the edit sheet", false, JSON.stringify(await where(p))),
+  );
+  await p.press(button("Cancel", DIALOG));
+  await closedOn("offline: Cancel closes it", filters);
+  proxy.setOnline(true);
+  await p.waitFor(`!document.body.innerText.includes("Offline")`, 20000).catch(() => {});
+  p.errors.splice(errorsOnline); // Offline fetch failures aren't the app's errors.
+
+  // A reload shows the entry's current values: changed on the server since.
+  await p.goto(`${editPath(id)}${filters}`);
+  await p.waitFor(`${DIALOG} && ${NAME_INPUT}`, 30000).catch(() => {});
+  const fromServer = `${name} from server`;
+  psql(
+    `UPDATE timeline_entry SET details = jsonb_set(details, '{name}', '"${fromServer}"'), updated_at = now() WHERE id = '${id}'`,
+  );
+  await p.waitFor(
+    `window.caretookSync.powersync.getAll("SELECT 1 FROM timeline_entry WHERE json_extract(details, '$.name') = ?", [${JSON.stringify(fromServer)}]).then((r) => r.length === 1)`,
+    20000,
+  );
+  // Give the local database time to persist the synced row (a reload straight
+  // after a download can reopen the copy from before it).
+  await sleep(3000);
+  // A marker on the old page, so the wait can't be met before the reload has happened.
+  await p.evaluate("window.__beforeReload = 1");
+  await p.send("Page.reload", { ignoreCache: false });
+  await p
+    .waitFor(`!window.__beforeReload && document.readyState === "complete" && ${NAME_INPUT}`, 30000)
+    .catch(() => {});
+  check(
+    "a reload reopens the edit sheet with the entry's current values",
+    (await p.evaluate(`${NAME_INPUT}?.value`)) === fromServer,
+    await p.evaluate(`${NAME_INPUT}?.value ?? "no form"`),
+  );
+
+  // Deleted on another device while open: the sheet closes onto the timeline.
+  const errorsBefore = p.errors.length;
+  psql(`UPDATE timeline_entry SET deleted_at = now(), updated_at = now() WHERE id = '${id}'`);
+  await closedOn("an entry deleted elsewhere while its sheet is open closes the sheet", filters);
+  check(
+    "…with no error",
+    p.errors.length === errorsBefore && !(await p.evaluate(`document.body.innerText.includes("Not found")`)),
+    p.errors.slice(errorsBefore).join(" | "),
+  );
+
+  // Edit URLs that aren't a sheet.
+  await p.goto(`${editPath(noteId)}${filters}`);
+  await p
+    .waitFor(`location.pathname === ${JSON.stringify(`/app/groups/${G}/entries/${noteId}`)}`, 30000)
+    .catch(() => {});
+  check(
+    "a note's edit URL lands on its page",
+    (await p.evaluate("location.pathname")) === `/app/groups/${G}/entries/${noteId}`,
+    await p.evaluate("location.pathname"),
+  );
+  const otherGroupEntry = psql(`SELECT id FROM timeline_entry WHERE group_id <> '${G}' LIMIT 1`);
+  for (const [what, entryId] of [
+    ["a deleted entry's", id],
+    ["another group's entry's", otherGroupEntry],
+  ]) {
+    await p.goto(`${editPath(entryId)}${filters}`);
+    await p.waitFor(`location.pathname === ${JSON.stringify(T)} && ${ROWS} > 0`, 30000).catch(() => {});
+    const landed = await where(p);
+    check(
+      `${what} edit URL lands on the timeline, filters kept`,
+      landed.path === T && landed.search === filters && !landed.dialog,
+      JSON.stringify(landed),
+    );
+  }
+}
+
+/** Slice 3: viewer@'s edit URL is the timeline, with no form and no edit targets. */
+async function editSheetViewerSteps(v) {
+  const symptomId = psql(
+    `SELECT id FROM timeline_entry WHERE group_id = '${G}' AND kind = 'symptom' AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT 1`,
+  );
+  await v.goto(`${T}/${symptomId}/edit?kind=symptom`);
+  await v.waitFor(`location.pathname === ${JSON.stringify(T)} && ${ROWS} > 0`, 30000).catch(() => {});
+  const at = await where(v);
+  check(
+    "viewer: a symptom's edit URL is the timeline, with no form and no edit targets",
+    at.path === T &&
+      at.search === "?kind=symptom" &&
+      !at.dialog &&
+      (await v.evaluate(
+        `!document.querySelector('input[name="symptomName"]') && !document.querySelector('main ol [aria-label^="Edit "]')`,
+      )),
+    JSON.stringify(at),
   );
 }
 
@@ -537,6 +719,9 @@ try {
   check("online again: the offline entry reaches the server", uploaded === "1");
   c.errors.splice(errorsOnline); // Offline fetch failures aren't the app's errors.
 
+  // Slice 3: the edit sheet's URL.
+  await editSheetSteps(c);
+
   // Slice 4: the account's settings list and subpages.
   await settingsSteps(c);
 
@@ -582,6 +767,7 @@ try {
       )),
     JSON.stringify(viewer),
   );
+  await editSheetViewerSteps(v);
   errorsFrom.push(v);
 
   const errors = [...c.errors, ...a.errors, ...errorsFrom.flatMap((p) => p.errors)].filter(
