@@ -6,15 +6,23 @@
 
 | Slice | State                                                         | Merge into `prd/providers` (slice commits) |
 | ----- | ------------------------------------------------------------- | ------------------------------------------ |
-| 1     | ready                                                         |                                            |
-| 2     | blocked by 1 and `routing` slice 1 (in `dev`)                 |                                            |
+| 1     | merged                                                        | `8624622` (`09b62bd`, `17b861d`)           |
+| 2     | ready (`routing` slice 1 synced in at `aab2d0e`)              |                                            |
 | 3     | blocked by 2 and `routing` slice 2 (in `dev`)                 |                                            |
 | 4     | blocked by 2                                                  |                                            |
 | 5     | blocked by 3, 4 and `components` slices 2, 3 and 4 (in `dev`) |                                            |
 | 6     | blocked by 5                                                  |                                            |
 | 7     | blocked by 5                                                  |                                            |
 
-Backlog: B-13 and B-14 are `triaged`. B-25 (@-mentions) is a later follow-up, not part of this plan.
+Backlog: B-13 is `in-progress` (claimed by `prd/providers`; `done` after slice 4). B-14 is `triaged`. B-25 (@-mentions) is triaged to `providers` as a follow-up after slice 5, not part of this plan.
+
+Slice 1 notes for later slices:
+
+- The column is `is_primary` (TS `isPrimary`), not `primary` (an SQL keyword in Postgres, SQLite and PowerSync).
+- `lib/sync/providers.ts` has the device queries and writes. `linkProvider`/`createAndLinkProvider` need the entry to exist locally, so the With row (slice 5) must materialize a draft first.
+- A device-created provider document writes `subject: "provider"` and `provider_id`. `useLiveDocuments` and the Live now banner join through `timeline_entry`, so provider documents never appear there.
+- `providers.mjs` drives the device module through Vite imports. Slice 2 adds its screen steps there.
+- Open: changing a practice's type to clinician isn't blocked while clinicians still point at it.
 
 ## Architectural decisions
 
