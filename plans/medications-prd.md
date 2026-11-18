@@ -1,6 +1,6 @@
 # PRD: Medications (the list, schedules, doses and changes in the timeline, a printable sheet)
 
-Status: 🟡 PRD written, not planned yet. Backlog item: B-15. Topic `medications`. Builds on `routing` (the group route, sheet routes, `appUrls`) and `providers` slice 1 (the `provider` table and the generalized `note_document`); its screens follow `components`' primitives once they land.
+Status: 🟡 planned in [`medications-plan.md`](medications-plan.md) (6 slices; slice 1 starts once `providers` slice 1 is in `dev`). Backlog item: B-15. Topic `medications`. Builds on `routing` (the group route, sheet routes, `appUrls`) and `providers` slice 1 (the `provider` table and the generalized `note_document`); its screens follow `components`' primitives once they land.
 
 ## Problem Statement
 
