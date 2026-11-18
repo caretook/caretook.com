@@ -672,7 +672,7 @@ const LINDQVIST = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8f1001";
 const providerPath = (id, group = DEV_FAMILY) => `/app/groups/${group}/providers/${id}`;
 const NOTES = `document.querySelector("main .ProseMirror")`;
 const notesHave = (text) => `!!${NOTES}?.textContent.includes(${JSON.stringify(text)})`;
-const PAGE_AVATARS = `[...document.querySelectorAll('main header [data-region="editors"] [data-editor]')].map((el) => el.dataset.editor)`;
+const PAGE_AVATARS = `[...document.querySelectorAll('main header [data-region="editors"] [data-person]')].map((el) => el.dataset.person)`;
 const onProviderPage = (id) =>
   `location.pathname.endsWith("/providers/${id}") && !!${NOTES} && document.querySelector("main h1")?.textContent.length > 0`;
 const providerPage = (p) =>

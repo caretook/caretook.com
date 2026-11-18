@@ -59,7 +59,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-27 | bug | ready | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | ready | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | ready | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
-| B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
+| B-30 | plan | in-progress | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
@@ -67,11 +67,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-35 | bug | ready | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
 | B-36 | chore | ready | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
 | B-37 | bug | inbox |  |  | Deleting a practice leaves its clinicians linked to it |
-| B-38 | bug | in-progress | quick-fixes | prd/quick-fixes | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
+| B-38 | bug | ready | quick-fixes | prd/quick-fixes | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
 | B-39 | chore | triaged | quick-fixes |  | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-41 | bug | in-progress | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
-| B-42 | change | triaged | quick-fixes |  | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
+| B-41 | bug | ready | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
+| B-42 | change | ready | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
 
 ## Items
 
@@ -350,6 +350,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/providers): From the providers orchestrator: providers wave 2 (slices 2–4, the directory) lands without a full-suite run under the new `pnpm prd browser` harness (quick-fixes B-28/B-29 synced in at the last moment). Its full suite passed on the old harness (only routing.mjs's B-27 step failed). During components' checks, run the full suite with `pnpm prd browser --suite` and confirm providers.mjs (85 steps) passes under the new harness. Also: slice 4 moved LiveNotesEditor, EditorAvatars, ContactActions and ProviderTypeIcon into components/; provider sheets import EntrySheet from routes/app/groups/timeline/ and should get it from components/.
 - 2026-11-18 (slice/components/1): components slice 1 committed on slice/components/1 (a071d12, 4c18db3): ui/Menu primitive, feature folders, one EntryActions; ui.mjs added.
 - 2026-11-18 (prd/components): Wave 1 (slice 1) landed in dev as 414b0a6: ui/Menu for every menu, shared components in feature folders (ui, entry, forms, notes, providers, settings, shell) imported through each index.ts, one EntryActions menu. Other PRDs: sync dev at your next wave boundary; new UI uses ui/ and the folders (AGENTS.md, Components). Slice 2 (sheets, popovers, dialogs, avatars, chips, fields) is next.
+- 2026-11-18 (slice/components/2): slice 2 ready on slice/components/2 (a2c2bd1): sheet, popover, field, chip group, avatar stack, icon button in ui/; DateTimeField in ui/date; forms/ removed
+- 2026-11-18 (prd/components): Wave 2 (slice 2) landed in dev as 666ebf9: ui/ primitives Sheet, Popover, ConfirmDialog, Field, ChipGroup, UserAvatar(size), AvatarStack, IconButton; DateTimeField moved to ui/date/ (own index); components/forms/ removed; only ui/ imports react-aria-components. Other PRDs: sync dev at your next wave boundary and build new UI on these. Slices 3 and 4 start now.
+- 2026-11-18 (slice/components/4): components slice 4 (03cde5a): entry page split into loadEntry, useLiveEntry, EntryPageHeader, EntryTitleRegion; LiveNotesEditor focus handle; live-notes 93/93, providers 85/85, ui 577/577
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
@@ -411,14 +414,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-30 · plan · Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset
 
-- status: triaged
+- status: in-progress
 - prd: invites
-- owner:
+- owner: prd/invites
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/invites-prd.md, plans/invites-plan.md (5 slices; slice 1, the notifications package and outbox, can start now). New deps approved: resend, @react-email/components, @react-email/render, qrcode.
 - 2026-11-18 (slice/marketing/3): invites slice 3: the consent screen must link to /privacy and /health-data-privacy (marketing slice 3)
+- 2026-11-18 (slice/invites/1): invites slice 1 on slice/invites/1 (f1f6dc2, fe08cda, 36520d6): @caretook/notifications, outbox + dev_mail (migration 0009), /api/cron/outbox, /dev/mail. Dropped @react-email/components (deprecated on npm); templates use @react-email/render only.
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 
@@ -489,13 +493,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-38 · bug · Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 94ce803
 
 - 2026-11-18 (Robert Bo Davis): Found 2026-11-18 running checks against pnpm prd serve --built (a check build, VITE_CHECK_BUILD=1) in a throwaway worktree: providers.mjs failed 'a deleted provider's URL is the 404, with no names' (main empty, body '') and on the retry 'a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form' (path stayed …/providers/new); phase2.mjs failed on '[viewer console.warning] [PowerSync]: Sync aborted'. Both passed against the dev server right after. Could be real production bugs (the 404 and redirect paths) or check timing under a faster server. Fix, then make --built the default for checks (AGENTS.md, Browser check budget).
 - 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 11 (find the cause of each failure, then make the check build the default).
+- 2026-11-18 (slice/quick-fixes/11): Root cause (slice 11): the back/forward cache. On a full load the old /app page is frozen in Chrome's bfcache instead of unloaded; PowerSync's shared workers only drop a page when its tab-close-signal Web Locks are released, so they keep waiting on the frozen page's database connection (often mid-transaction) and the next page's openSync never resolves: blank page, router not initialized, no errors. Evidence: hangs happened exactly when the previous page was bfcached (marker survives Back), 0 hangs with --disable-features=BackForwardCache; a probe that holds a write transaction then full-loads hung 1/5, 2/8, 1/8 before and 0/12, 0/20 after the fix. The dev server never shows it: Vite's HMR websocket keeps pages out of bfcache (0/6 cached on dev, about 1/3 on the build). Fix: lib/sync/pageCache.ts releases PowerSync's page-lifetime locks on pagehide(persisted) and reloads on pageshow(persisted). 'Sync aborted' is the shared sync worker's teardown log for a page that closed, broadcast to the next page: expected, now ignored by the checks.
+- 2026-11-18 (slice/quick-fixes/11): slice 11 done on slice/quick-fixes/11 (tip 7da2c38): lib/sync/pageCache.ts fix; checks fixed for the build (per-page x-forwarded-for for Better Auth's production rate limits, tap waits for its target to stop moving, Escape waits for menu focus, picker focus return, 'Sync aborted' ignored); pnpm prd browser now defaults to a check build (--dev opts out). Full suite and dev/build timing deferred to the orchestrator's landing run.
 
 ### B-39 · chore · Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode
 
@@ -517,19 +523,22 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-41 · bug · /app stays blank after a full reload (app-shell.mjs last-group steps)
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 94ce803
 
 - 2026-11-18 (prd/quick-fixes): Seen in quick-fixes waves 3 and 4: after A.goto('/app') reloads, the page has no main and an empty body for 20 s, with no uncaught errors (page.diagnose()). It failed 4 of the last 5 app-shell.mjs runs at load 6–30, at either the 'goes to the last group after a reload' or the 'stale remembered group' step. It isn't a check race: waiting for GroupMenu's rememberGroup write before overwriting caretook:lastGroup didn't help. Probably session or sync startup on reload (requireSession/openSync, the DB lock from the previous page?). Triaged to quick-fixes as a candidate slice 12.
+- 2026-11-18 (slice/quick-fixes/11): slice 11 (B-38): providers.mjs's two build failures are this same hang, on the built server: after a full load (C.goto) of …/providers/<deleted id> or …/providers/new, body '' and no main, router state.initialized false, window.caretookSync unset (openSync never resolved), no Web Locks held or pending, no errors, for 20+ s. Reproduced 1 in 8 full loads in a throwaway loop (viewer: provider page, then full load of a deleted provider). So B-38's blank 404 and missing redirect are B-41's startup hang, not the 404 or guard code; slice 11 leaves the fix to slice 12.
+- 2026-11-18 (slice/quick-fixes/11): slice 11 found B-38's blank pages are the back/forward cache freezing the previous page with PowerSync's locks held (see B-38's note); fixed in lib/sync/pageCache.ts on slice/quick-fixes/11. On the dev server pages didn't enter bfcache in my tests (Vite's websocket), so B-41 on dev may be a different cause, but worth retesting app-shell.mjs with slice 11 merged.
+- 2026-11-18 (slice/quick-fixes/12): Root cause: every full load put the old page in Chrome's back/forward cache (pagehide persisted, then freeze) with its PowerSync connection open. Frozen mid-query, its DB lease was never returned (worker log: 'Closing connection lease that hasn't been returned' 7-13 s later, on eviction), so the next page's powersync.init() waited and /app stayed blank. Fix in lib/sync/client.ts (startup, not sign-out teardown): close the DB on a persisted pagehide, reload on a persisted pageshow. Also fixed app-shell.mjs's stale-group step racing GroupMenu's remember effect. Slice 11: the frozen page's close can log PowerSync's 'error closing database connection' in the shared worker. 41b5bcb, d75e3ba.
 
 ### B-42 · change · App header uses the brand: the logo mark and wordmark, and the marketing header's look
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 94ce803
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 12. The app header's plain 'Caretook' text link becomes the marketing LogoMark + wordmark (mark only on phones in a group, to keep one row at 420), with the marketing header's border, translucent background and height. LogoMark/Wordmark move to components/brand/ so both use one copy. Not the marketing nav, waitlist button or disclosure menu; not sticky.
 - 2026-11-18 (Robert Bo Davis): Quick-fixes slice 13 (slice 12 is B-41 on prd/quick-fixes).

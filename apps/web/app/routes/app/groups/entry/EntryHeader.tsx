@@ -1,10 +1,11 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
 import { formatDay, formatTime } from "~/lib/format";
 import { KindIcon } from "~/components/entry";
+import { Field } from "~/components/ui";
 
 /**
  * The entry page's header, in four regions so each feature fills only its
@@ -83,7 +84,6 @@ export function EntryTitle({
   /** Called with the field's text as it's typed (before it's committed). */
   onTextChange?: (text: string) => void;
 }) {
-  const id = useId();
   const stored = value ?? "";
   const [text, setText] = useState(stored);
   const [editing, setEditing] = useState(false);
@@ -102,32 +102,31 @@ export function EntryTitle({
   };
 
   return (
-    <>
-      <label htmlFor={id} className="sr-only">
-        Title
-      </label>
-      <input
-        id={id}
-        type="text"
-        value={text}
-        maxLength={TIMELINE_LIMITS.title}
-        placeholder={placeholder}
-        autoComplete="off"
-        enterKeyHint="done"
-        onFocus={() => setEditing(true)}
-        onChange={(e) => {
-          setText(e.target.value);
-          onTextChange?.(e.target.value);
-        }}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            e.currentTarget.blur();
-          }
-        }}
-        className="input input-ghost h-auto w-full px-1 -ml-1 py-0.5 text-xl font-semibold"
-      />
-    </>
+    <Field label="Title" labelHidden>
+      {(control) => (
+        <input
+          {...control}
+          type="text"
+          value={text}
+          maxLength={TIMELINE_LIMITS.title}
+          placeholder={placeholder}
+          autoComplete="off"
+          enterKeyHint="done"
+          onFocus={() => setEditing(true)}
+          onChange={(e) => {
+            setText(e.target.value);
+            onTextChange?.(e.target.value);
+          }}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          className="input input-ghost h-auto w-full px-1 -ml-1 py-0.5 text-xl font-semibold"
+        />
+      )}
+    </Field>
   );
 }

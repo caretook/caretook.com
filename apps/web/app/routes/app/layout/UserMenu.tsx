@@ -68,7 +68,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
         },
       ]}
     >
-      <UserAvatar name={user.name} email={user.email} image={user.image} className="size-8 text-xs" />
+      <UserAvatar name={user.name} email={user.email} image={user.image} size="md" />
     </Menu>
   );
 }
