@@ -100,3 +100,19 @@ export function organizationJsonLd(siteUrl: string) {
     logo: absoluteUrl(siteUrl, LOGO_PATH),
   };
 }
+
+/**
+ * `FAQPage` structured data (the FAQ): the same questions and answers the page
+ * shows, in order. Paragraphs are joined with a blank line.
+ */
+export function faqPageJsonLd(items: readonly { question: string; answer: readonly string[] }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer.join("\n\n") },
+    })),
+  };
+}
