@@ -50,7 +50,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-18 | feature | triaged | live-notes-ux |  | Event title suggestions (live notes slice 3) |
 | B-19 | feature | triaged | live-notes-ux |  | Live dot and the Live now banner (live notes slice 7) |
 | B-20 | chore | triaged | live-notes-ux |  | Browser check overhaul and documentation (live notes slice 10) |
-| B-21 | chore | in-progress | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
+| B-21 | chore | ready | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 
 ## Items
 
@@ -228,7 +228,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-21 · chore · Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks
 
-- status: in-progress
+- status: ready
 - prd: orchestration
 - owner: prd/orchestration
-- commit:
+- commit: 3096ba3
