@@ -56,16 +56,21 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-24 | change | in-progress | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
-| B-27 | bug | in-progress | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
+| B-27 | bug | ready | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | ready | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | ready | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
-| B-34 | change | triaged | quick-fixes |  | Date picker for the When field: a calendar to pick the date, not only typed segments |
-| B-35 | bug | in-progress | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
-| B-36 | chore | in-progress | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
+| B-34 | change | ready | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
+| B-35 | bug | ready | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
+| B-36 | chore | ready | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
+| B-37 | bug | inbox |  |  | Deleting a practice leaves its clinicians linked to it |
+| B-38 | bug | triaged | quick-fixes |  | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
+| B-39 | chore | triaged | quick-fixes |  | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
+| B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
+| B-41 | bug | triaged | quick-fixes |  | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 
 ## Items
 
@@ -213,6 +218,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Quick actions go through the same local write paths as the forms (offline, synced), as a draft the user confirms. Questions need server-side retrieval and an AI vendor that doesn't retain or train on our data.
+- 2026-11-18 (plan/assistant): Draft PRD written on plan/assistant: plans/assistant-prd.md. Interview 2026-11-18: actions first then questions; floating button + sheet; server transcription (vendor open); conversations not saved; drafts confirmed; offline queue (text + audio, drafts wait); opt-in per group (owner consents, members acknowledge); read tools over services; Anthropic TS SDK; model chosen by an eval; create + edit recent; Save as note; 'via assistant' marker; daily caps per user. Questions wait on search's server side.
 
 ### B-13 · plan · Provider directory with search, linked from events
 
@@ -342,6 +348,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): 2026-11-18: runs after routing, and before timeline-polish slices 4-7 (paused by the user).
 - 2026-11-18 (prd/providers): From the providers orchestrator: providers wave 2 (slices 2–4, the directory) lands without a full-suite run under the new `pnpm prd browser` harness (quick-fixes B-28/B-29 synced in at the last moment). Its full suite passed on the old harness (only routing.mjs's B-27 step failed). During components' checks, run the full suite with `pnpm prd browser --suite` and confirm providers.mjs (85 steps) passes under the new harness. Also: slice 4 moved LiveNotesEditor, EditorAvatars, ContactActions and ProviderTypeIcon into components/; provider sheets import EntrySheet from routes/app/groups/timeline/ and should get it from components/.
 - 2026-11-18 (slice/components/1): components slice 1 committed on slice/components/1 (a071d12, 4c18db3): ui/Menu primitive, feature folders, one EntryActions; ui.mjs added.
+- 2026-11-18 (prd/components): Wave 1 (slice 1) landed in dev as 414b0a6: ui/Menu for every menu, shared components in feature folders (ui, entry, forms, notes, providers, settings, shell) imported through each index.ts, one EntryActions menu. Other PRDs: sync dev at your next wave boundary; new UI uses ui/ and the folders (AGENTS.md, Components). Slice 2 (sheets, popovers, dialogs, avatars, chips, fields) is next.
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
@@ -364,10 +371,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-27 · bug · routing.mjs fails: group settings blank after the entry step; account Sign out flaky
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: e6fc148
 
 - 2026-11-18 (prd/providers): Found by the providers orchestrator while landing providers slice 1. routing.mjs fails on dev itself (b869738, routing wave 2): 'group settings opens under the group route' fails every run (54/55): after the entry step, c.goto(/app/groups/<id>/settings) renders no main and no window.caretookSync; the only console error is Vite's 'Failed to send error to Vite server: TypeError: Cannot read properties of undefined (reading send)', which hides the real error. Not reproduced by a standalone script (sign in, open the same seeded note, then settings), so it depends on routing.mjs's earlier state (its proxy browser). One run also failed 'Account's Sign out signs out' and '/app/settings then asks to sign in' (/app/settings/account), possibly load (avg 60-230). Every other check passed on prd/providers.
 - 2026-11-18 (prd/providers): Seen again on prd/providers 5dbd62d (providers slice 2 merged): routing.mjs 53/55, failing 'Account's Sign out signs out' and '/app/settings then asks to sign in' at load ~21; the group settings step passed this time. Slice 2's loop saw 55/55.
@@ -375,6 +382,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/quick-fixes): Seen on prd/quick-fixes ac12b13 (dev ff25ef2 synced in, fresh datastore:reset and dev server): routing.mjs failed 3 runs in a row at load 18-32. Twice 4/5 with 'caretaker: timed out waiting for ol > li' on the timeline right after the settings/members step (Vite 'Failed to send error' again hides the real error); once with dev's own cdp.mjs, 27/29 with 'offline: Quick add → Symptom opens the sheet' and 'TypeError: Illegal invocation'. Every other suite check passed. The pre-sync routing.mjs passed 55/55. Not caused by quick-fixes: its cdp.mjs 401 retry never fired.
 - 2026-11-18 (prd/providers): Still failing after routing finished (prd/providers 82eb690, synced with dev 94a0c08): 'group settings opens under the group route' fails at load ~13 (quiet machine), so not contention. Now at /settings/members, same blank page and 'Failed to send error to Vite server'. Rest of routing.mjs 79/80.
 - 2026-11-18 (Robert Bo Davis): Moved to quick-fixes slice 7 (routing is closed). Also folds in routing's leftover app-shell.mjs flake (reading window.caretookSync.userId right after a reload).
+- 2026-11-18 (slice/quick-fixes/7): Root cause (slice/quick-fixes/7): proxy.mjs didn't handle CONNECT, and Chrome sends WebSockets through a proxy as CONNECT tunnels, so Vite's HMR socket never connected in routing.mjs's proxied caretaker browser ('[vite] failed to connect to websocket'). That page never got 'optimized dependencies changed, reloading', kept its old pre-bundled chunks while newly visited routes imported the new ones, and broke with two copies of React and Yjs ('Yjs was already imported', 'Invalid hook call'): the blank page. Reproduced with the old proxy on a cleared deps cache (79/80, those errors); fixed proxy passes 80/80 through 4 mid-run re-optimizations. Second cause: the offline Quick add step cut the network right after a full load, before React Router had loaded the sheet route modules, so it reloaded the page offline (the Illegal invocation run); the check now waits for those modules. Not fixed: on a server with an empty deps cache, the very first sign-in can still miss Vite's first reload (504 Outdated Optimize Dep on yjs, blank /sign-in; AGENTS.md gotcha). A follow-up could pre-bundle every dep at startup (optimizeDeps.entries over the route modules).
+- 2026-11-18 (slice/quick-fixes/7): Two other flakes seen once each on a quiet machine (load 9-12) during slice 7, neither repeated on a rerun and neither through the proxy, so left for another slice: app-shell.mjs 'goes to the last group after a reload' (member@'s /app full load showed an empty body for 20 s with no errors, then reached Grandpa Lou's timeline later, so the next step 'stale remembered group' failed too); routing.mjs 'a reload reopens the edit sheet with the entry's current values' (the reloaded page showed the value from before the server change despite the step's 3 s sleep: the local database's copy not yet saved when the page reloads). Both look like PowerSync's local copy across a full reload. The sign-out failures from earlier runs didn't recur in 8 routing runs; they were probably the same stale-deps breakage.
 
 ### B-28 · chore · Limit browser checks machine-wide: a lock so at most two run at once
 
@@ -408,6 +417,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/invites-prd.md, plans/invites-plan.md (5 slices; slice 1, the notifications package and outbox, can start now). New deps approved: resend, @react-email/components, @react-email/render, qrcode.
+- 2026-11-18 (slice/marketing/3): invites slice 3: the consent screen must link to /privacy and /health-data-privacy (marketing slice 3)
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 
@@ -439,29 +449,76 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-34 · change · Date picker for the When field: a calendar to pick the date, not only typed segments
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 483f768
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 6. DateTimeField (the timeline sheet's When, and the entry page's time chip) gets a calendar button and popover through React Aria's DatePicker and Calendar (already a dependency); typed segments stay.
+- 2026-11-18 (slice/quick-fixes/6): slice/quick-fixes/6: DatePicker with calendar in DateTimeField; roundtrip 29/29, live-notes 93/93, phase2 107/107 (rerun after a known PowerSync 'Sync aborted' warning)
 
 ### B-35 · bug · A practice's type can change to clinician or other while clinicians still point at it
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: e6fc148
 
 - 2026-11-18 (Robert Bo Davis): From the providers plan's open issues. Quick-fixes slice 8: providerService refuses the change while live providers name it as their practice, and the device's local write refuses it too.
 - 2026-11-18 (slice/quick-fixes/8): slice/quick-fixes/8 7c0725f: server + device refuse practice->clinician/other while live providers name it (providerService:practiceInUse, issue on type). Browser step not run (excluded this wave). Deleting a practice still leaves clinicians pointing at a deleted practice; the sheet shows '(removed practice)'.
 
 ### B-36 · chore · Independent integration tests: no shared group across describe blocks
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: e6fc148
 
 - 2026-11-18 (Robert Bo Davis): AGENTS.md Next steps item 3. Quick-fixes slice 9: careGroup.int.test.ts (and any other file sharing fixtures across blocks) builds its own fixtures per test or block, like provider.int.test.ts's setup().
 - 2026-11-18 (slice/quick-fixes/9): slice 9: careGroup.int.test.ts now uses setup() per test; the other six int files already did. 169 integration tests before and after; no real bug found.
+
+### B-37 · bug · Deleting a practice leaves its clinicians linked to it
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/quick-fixes): Found in B-35 (quick-fixes slice 8). A soft-deleted practice stays as its clinicians' practice_id; their edit sheet shows '(removed practice)' and saving keeps it (the practice check runs only when practiceId changes). Decide: refuse the delete while clinicians name it, or clear their links.
+
+### B-38 · bug · Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Found 2026-11-18 running checks against pnpm prd serve --built (a check build, VITE_CHECK_BUILD=1) in a throwaway worktree: providers.mjs failed 'a deleted provider's URL is the 404, with no names' (main empty, body '') and on the retry 'a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form' (path stayed …/providers/new); phase2.mjs failed on '[viewer console.warning] [PowerSync]: Sync aborted'. Both passed against the dev server right after. Could be real production bugs (the 404 and redirect paths) or check timing under a faster server. Fix, then make --built the default for checks (AGENTS.md, Browser check budget).
+- 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 11 (find the cause of each failure, then make the check build the default).
+
+### B-39 · chore · Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Item 5 of the 2026-11-18 testing-churn plan (5804ae4 did items 1-4). phase2.mjs (107 steps) and app-shell.mjs (98) assert pure logic that now has unit tests. Keep checks to user flows, and give each a SMOKE=1 mode (~20 s) for after-merge runs. Run after components wave 2 lands: it reworks the same checks.
+
+### B-40 · chore · Real app screenshots for the marketing site before launch
+
+- status: triaged
+- prd: marketing
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): The marketing site shows SVG placeholders (apps/web/public/screenshots/<name>.svg) to keep the repo small while the app's screens change. Before launch: run scripts/browser-checks/marketing-screenshots.mjs on a freshly reset stack (CARETOOK_BROWSER_SLOTS=4 pnpm prd browser marketing-screenshots --timeout 300), commit the WebP images, and point site/screenshots.ts and the Screenshot component back at them (light and dark sources, srcset).
+
+### B-41 · bug · /app stays blank after a full reload (app-shell.mjs last-group steps)
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (prd/quick-fixes): Seen in quick-fixes waves 3 and 4: after A.goto('/app') reloads, the page has no main and an empty body for 20 s, with no uncaught errors (page.diagnose()). It failed 4 of the last 5 app-shell.mjs runs at load 6–30, at either the 'goes to the last group after a reload' or the 'stale remembered group' step. It isn't a check race: waiting for GroupMenu's rememberGroup write before overwriting caretook:lastGroup didn't help. Probably session or sync startup on reload (requireSession/openSync, the DB lock from the previous page?). Triaged to quick-fixes as a candidate slice 12.

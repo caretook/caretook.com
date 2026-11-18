@@ -62,19 +62,35 @@ export async function openPage(browser, label) {
       pending.set(n, { resolve, reject });
       ws.send(JSON.stringify({ id: n, method, params }));
     });
+  // Everything the page reports, for checks' own error assertions (`errors`)
+  // and for a failed wait's diagnosis (`uncaught`, `diagnose()`). Vite's dev
+  // client forwards console errors and uncaught errors to the server, and when
+  // its socket is down it logs only "Failed to send error to Vite server",
+  // which hides the real error: so take them from CDP directly, with where
+  // they came from.
+  const uncaught = [];
+  const where = (d) => (d?.url ? ` (${d.url.replace(BASE, "")}:${(d.lineNumber ?? 0) + 1})` : "");
+  const argText = (a) => a.value ?? a.description ?? a.unserializableValue ?? "";
   listeners.push((msg) => {
     if (msg.method === "Runtime.consoleAPICalled" && ["error", "warning"].includes(msg.params.type)) {
-      const text = msg.params.args.map((a) => a.value ?? a.description ?? "").join(" ");
+      const text = msg.params.args.map(argText).join(" ");
       errors.push(`[${label} console.${msg.params.type}] ${text}`);
+      if (msg.params.type === "error") uncaught.push(`console.error: ${text}`);
     }
     if (msg.method === "Runtime.exceptionThrown") {
-      errors.push(
-        `[${label} exception] ${msg.params.exceptionDetails.exception?.description ?? msg.params.exceptionDetails.text}`,
-      );
+      const d = msg.params.exceptionDetails;
+      const text = d.exception?.description ?? d.text;
+      errors.push(`[${label} exception] ${text}`);
+      uncaught.push(`uncaught: ${text}${where(d.stackTrace?.callFrames?.[0] ?? d)}`);
+    }
+    if (msg.method === "Log.entryAdded" && msg.params.entry.level === "error") {
+      const e = msg.params.entry;
+      uncaught.push(`${e.source}: ${e.text}${e.url ? ` (${e.url.replace(BASE, "")})` : ""}`);
     }
   });
   await send("Page.enable");
   await send("Runtime.enable");
+  await send("Log.enable");
   await send("Network.enable");
   await send("Emulation.setDeviceMetricsOverride", {
     width: 420,
@@ -93,7 +109,34 @@ export async function openPage(browser, label) {
     await send("Page.navigate", { url: BASE + path });
     await waitFor(`document.readyState === "complete"`, 15000);
   };
-  const waitFor = async (expression, ms = 10000) => {
+  /**
+   * The page's state for a failed step: its URL, the errors it reported since
+   * the last diagnosis (uncaught errors, rejections, console errors and failed
+   * loads, newest last) and the start of `main`'s HTML.
+   */
+  let diagnosed = 0;
+  const diagnose = async () => {
+    // A page that's gone never answers, so give up after 3 s.
+    const page = await Promise.race([
+      evaluate(
+        `JSON.stringify({ url: location.href, main: document.querySelector("main")?.outerHTML.slice(0, 600) ?? null, body: document.querySelector("main") ? undefined : document.body?.innerText.slice(0, 300) })`,
+      ),
+      sleep(3000).then(() => {
+        throw new Error("no answer in 3 s");
+      }),
+    ])
+      .then(JSON.parse)
+      .catch((e) => ({ url: "?", main: `(can't evaluate: ${e.message})` }));
+    const fresh = uncaught.slice(diagnosed).slice(-8);
+    diagnosed = uncaught.length;
+    return [
+      `[${label}] at ${page.url.replace(BASE, "")}`,
+      fresh.length ? fresh.map((e) => `  ${e.slice(0, 600)}`).join("\n") : "  (no errors reported)",
+      `  main: ${page.main ?? `none; body: ${JSON.stringify(page.body ?? "")}`}`,
+    ].join("\n");
+  };
+  /** Waits for `expression`; on a timeout, prints `diagnose()` (unless `quiet`) and throws. */
+  const waitFor = async (expression, ms = 10000, { quiet = false } = {}) => {
     const end = Date.now() + ms;
     while (Date.now() < end) {
       try {
@@ -103,6 +146,8 @@ export async function openPage(browser, label) {
       }
       await sleep(100);
     }
+    if (!quiet)
+      console.log(`${label}: timed out waiting for ${expression.slice(0, 200)}\n${await diagnose()}`);
     throw new Error(`${label}: timed out waiting for ${expression}`);
   };
   const screenshot = async (name) => {
@@ -217,6 +262,8 @@ export async function openPage(browser, label) {
     openDevFamily,
     signOut,
     errors,
+    uncaught,
+    diagnose,
     close: () => ws.close(),
   };
 }

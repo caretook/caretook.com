@@ -5,7 +5,13 @@ import type { Route } from "./+types/root";
 import stylesheet from "./app.css?url";
 import { THEME_SCRIPT } from "./lib/theme";
 
-export const links: Route.LinksFunction = () => [{ rel: "stylesheet", href: stylesheet }];
+export const links: Route.LinksFunction = () => [
+  { rel: "stylesheet", href: stylesheet },
+  // The draft brand icons (public/; marketing slice 1), for every page in both targets.
+  { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+  { rel: "icon", href: "/icons/icon-32.png", type: "image/png", sizes: "32x32" },
+  { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
+];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
