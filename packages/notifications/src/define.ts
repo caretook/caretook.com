@@ -13,6 +13,12 @@ export type EmailContent = { subject: string; react: ReactElement };
 
 export type NotificationDefinition<Name extends string, Data extends z.ZodType> = {
   name: Name;
+  /**
+   * The email carries a sign-in secret (a link token or a code). The outbox
+   * keeps its body only until it's delivered (or fails for good), then
+   * blanks the HTML and text, so the secret isn't left lying in the table.
+   */
+  sensitive?: boolean;
   /** Checked before rendering: notify() refuses data that doesn't parse. */
   data: Data;
   /**
