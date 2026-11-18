@@ -218,7 +218,7 @@ function MemberItem({
   return (
     <li data-member={member.user_id} className="space-y-1 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <UserAvatar name={member.name} image={member.image} className="size-9 text-sm" />
+        <UserAvatar name={member.name} image={member.image} size="lg" />
         <p className="min-w-0 flex-1 truncate font-medium">
           {name}
           {isSelf && <span className="text-base-content/70 font-normal"> (you)</span>}

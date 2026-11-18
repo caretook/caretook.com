@@ -2,10 +2,11 @@ import type { TimelineEntryKind, UnitChoices, VitalType } from "@caretook/data/s
 import type { ActionResult, FieldIssue } from "~/lib/api";
 import type { TimelineEntry } from "~/lib/rpc";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { isKnownReading, isSymptomDetails, isVitalDetails, TIMELINE_LIMITS } from "@caretook/data/schema";
-import { DateTimeField } from "~/components/forms";
+import { Field } from "~/components/ui";
+import { DateTimeField } from "~/components/ui/date";
 import { VitalReadingsFields } from "./VitalReadingsFields";
 import { VitalTypeMenu } from "./VitalTypeMenu";
 
@@ -53,7 +54,6 @@ export function EntryForm({
 }) {
   const fetcher = useFetcher<ActionResult>();
   const formRef = useRef<HTMLFormElement>(null);
-  const id = useId();
   const [kind, setKind] = useState<TimelineEntryKind>(entry?.kind ?? initialKind);
   const storedReadings = isVitalDetails(entry?.details) ? entry.details.readings.filter(isKnownReading) : [];
   const [vitalTypes, setVitalTypes] = useState<VitalType[]>(
@@ -137,72 +137,52 @@ export function EntryForm({
 
       {kind === "symptom" && (
         <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-          <fieldset className="fieldset">
-            <label className="fieldset-legend" htmlFor={`${id}-name`}>
-              Symptom
-            </label>
-            <input
-              id={`${id}-name`}
-              name="symptomName"
-              className="input w-full"
-              maxLength={TIMELINE_LIMITS.symptomName}
-              defaultValue={symptom?.name ?? ""}
-              placeholder="e.g. Knee pain"
-              aria-invalid={!!nameIssue}
-              aria-describedby={nameIssue ? `${id}-name-error` : undefined}
-            />
-            {nameIssue && (
-              <p id={`${id}-name-error`} className="text-error text-sm">
-                {nameIssue}
-              </p>
+          <Field label="Symptom" error={nameIssue}>
+            {(control) => (
+              <input
+                {...control}
+                name="symptomName"
+                className="input w-full"
+                maxLength={TIMELINE_LIMITS.symptomName}
+                defaultValue={symptom?.name ?? ""}
+                placeholder="e.g. Knee pain"
+              />
             )}
-          </fieldset>
-          <fieldset className="fieldset">
-            <label className="fieldset-legend" htmlFor={`${id}-severity`}>
-              Severity
-            </label>
-            <select
-              id={`${id}-severity`}
-              name="severity"
-              className="select"
-              defaultValue={symptom?.severity ?? ""}
-            >
-              <option value="">Not rated</option>
-              {Array.from({ length: TIMELINE_LIMITS.severityMax + 1 }, (_, n) => (
-                <option key={n} value={n}>
-                  {n} / {TIMELINE_LIMITS.severityMax}
-                </option>
-              ))}
-            </select>
-          </fieldset>
+          </Field>
+          <Field label="Severity">
+            {(control) => (
+              <select {...control} name="severity" className="select" defaultValue={symptom?.severity ?? ""}>
+                <option value="">Not rated</option>
+                {Array.from({ length: TIMELINE_LIMITS.severityMax + 1 }, (_, n) => (
+                  <option key={n} value={n}>
+                    {n} / {TIMELINE_LIMITS.severityMax}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
         </div>
       )}
 
-      <fieldset className="fieldset">
-        <label className="fieldset-legend" htmlFor={`${id}-body`}>
-          Notes (optional)
-        </label>
-        <textarea
-          id={`${id}-body`}
-          name="body"
-          className="textarea w-full"
-          rows={3}
-          maxLength={TIMELINE_LIMITS.body}
-          defaultValue={entry?.body ?? ""}
-          aria-invalid={!!bodyIssue}
-          aria-describedby={bodyIssue ? `${id}-body-error` : undefined}
-        />
-        {bodyIssue && (
-          <p id={`${id}-body-error`} className="text-error text-sm">
-            {bodyIssue}
-          </p>
+      <Field label="Notes (optional)" error={bodyIssue}>
+        {(control) => (
+          <textarea
+            {...control}
+            name="body"
+            className="textarea w-full"
+            rows={3}
+            maxLength={TIMELINE_LIMITS.body}
+            defaultValue={entry?.body ?? ""}
+          />
         )}
-      </fieldset>
+      </Field>
 
-      <DateTimeField name="occurredAt" label="When" defaultValue={entry?.occurredAt} />
-      {issueFor(issues, "occurredAt") && (
-        <p className="text-error text-sm">{issueFor(issues, "occurredAt")}</p>
-      )}
+      <DateTimeField
+        name="occurredAt"
+        label="When"
+        defaultValue={entry?.occurredAt}
+        error={issueFor(issues, "occurredAt")}
+      />
 
       {result && !result.ok && !issues.length && (
         <p role="alert" className="text-error text-sm">
