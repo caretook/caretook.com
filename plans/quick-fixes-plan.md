@@ -4,24 +4,27 @@
 
 ## Status
 
-| Slice | Item | State                         | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ---- | ----------------------------- | ----------------------------------------------------- |
-| 1     | B-1  | merged                        | 1e00754 (5ab3b67)                                     |
-| 2     | B-17 | merged                        | 4629e8c (32355db)                                     |
-| 3     | B-22 | merged                        | b0325d0 (46ef320)                                     |
-| 4     | B-28 | merged                        | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29 | merged                        | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34 | merged                        | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27 | merged                        | 75127be (004abfe)                                     |
-| 8     | B-35 | merged                        | 6dcc71d (7c0725f)                                     |
-| 9     | B-36 | merged                        | e6fc148 (cc12901)                                     |
-| 10    | B-39 | waits for `components` wave 2 |                                                       |
-| 11    | B-38 | merged                        | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41 | merged                        | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42 | merged                        | 94ce803 (eccbd1a)                                     |
-| 14    | B-37 | planned                       |                                                       |
+| Slice | Item | State  | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ---- | ------ | ----------------------------------------------------- |
+| 1     | B-1  | merged | 1e00754 (5ab3b67)                                     |
+| 2     | B-17 | merged | 4629e8c (32355db)                                     |
+| 3     | B-22 | merged | b0325d0 (46ef320)                                     |
+| 4     | B-28 | merged | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29 | merged | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34 | merged | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27 | merged | 75127be (004abfe)                                     |
+| 8     | B-35 | merged | 6dcc71d (7c0725f)                                     |
+| 9     | B-36 | merged | e6fc148 (cc12901)                                     |
+| 10    | B-39 | merged | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38 | merged | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41 | merged | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42 | merged | 94ce803 (eccbd1a)                                     |
+| 14    | B-37 | merged | 9c08e01 (cf1f804)                                     |
 
-Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 (slices 11–13) is merged and synced with `dev`, waiting for the user's word to land. Slice 10 waits for `components` slices 3 and 4 (they rework the timeline and entry screens its checks cover).
+Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 landed as 8e0c2c0. Wave 6 (slices 10 and 14) is merged into `prd/quick-fixes`.
+
+- Slice 10: `--smoke` / `SMOKE=1` and `cdp.mjs`'s `step()`; the five reworked checks went from 463 to 377 steps and 311 s to 219 s in full mode, about 4–7 s each in smoke. Suite pause 10 s → 2 s. Pure-logic steps removed only where a named unit test covers them. `roundtrip.mjs` is untouched apart from smoke markers until `components` slice 5 lands (noted on B-39). The full suite's drop (estimated −34%) is measured at landing. Each check passed one full run, not two, at the user's instruction.
+- Slice 14: `providerService:practiceHasProviders` (409) on the server and device; the delete confirm shows the count and disables Delete. A viewer deleting a practice with providers gets the 409 rather than a 403 (the dependents check runs first; it reveals nothing a viewer can't already read).
 
 - Slice 11: the blank pages on a build (and slice 12's blank `/app` on dev) are one cause: a page frozen in the back/forward cache keeps PowerSync's shared workers waiting on its database. `lib/sync/pageCache.ts` releases its page-lifetime Web Locks on `pagehide` into the cache and reloads on `pageshow` out of it. Checks now run on a check build by default (`--dev` opts out); `cdp.mjs` sends a per-page `x-forwarded-for` for Better Auth's production rate limits. Open: `requireSession` treats a 429 from get-session as signed out; a self-hosted deploy needs a trusted client-IP header.
 - Slice 12: the same root cause, fixed separately in `client.ts`; that hunk was left out at merge in favour of slice 11's `pageCache.ts`, and `app-shell.mjs` passed on the build and on `--dev` after merging. Its `app-shell.mjs` fix (wait for the reloaded page to remember its group before writing a stale one) is kept.

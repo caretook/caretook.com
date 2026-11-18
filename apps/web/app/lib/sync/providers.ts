@@ -16,6 +16,7 @@ import {
   isPracticeType,
   leavesPracticeTypes,
   parseProviderPhones,
+  PRACTICE_HAS_PROVIDERS_MESSAGE,
   PRACTICE_IN_USE_ISSUE,
   PROVIDER_STATUSES,
   PROVIDER_TYPES,
@@ -207,6 +208,19 @@ export const practiceInUseRefusal = (from: ProviderType, to: ProviderType, depen
       ])
     : null;
 
+/**
+ * A practice or pharmacy can't be deleted while live providers name it as
+ * their practice (the server refuses it too, as providerService:practiceHasProviders).
+ */
+export const practiceHasProvidersRefusal = (dependents: number) =>
+  dependents > 0 ? refuse(PRACTICE_HAS_PROVIDERS_MESSAGE) : null;
+
+/** What the delete dialog says instead of letting you delete it, or null when it can go. */
+export const deleteBlockedNote = (type: ProviderType, dependents: number) =>
+  isPracticeType(type) && dependents > 0
+    ? `${dependents} ${dependents === 1 ? "provider is" : "providers are"} linked to this ${type}. Move them to another practice, or delete them, first.`
+    : null;
+
 /** How many live providers in the group name this one as their practice. */
 export const practiceDependentsQuery = (groupId: string, practiceId: string): LocalQuery => ({
   sql: `SELECT COUNT(*) AS n FROM provider WHERE group_id = ? AND practice_id = ? AND deleted_at IS NULL`,
@@ -323,11 +337,18 @@ export const updateProvider = async (
   return { ok: true, id };
 };
 
-/** Soft delete, so the deletion syncs and linked entries keep the name. */
+/**
+ * Soft delete, so the deletion syncs and linked entries keep the name. A
+ * practice that live providers name is refused here, not left for the upload
+ * to reject (which would bring it back on the next sync with no reason given).
+ */
 export const removeProvider = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const existing = await liveProvider(db, id);
   if (!existing) return { ok: true };
   if (!(await canWrite(db, existing.groupId))) return forbidden;
+  const [count] = await readRows<{ n: number }>(db, practiceDependentsQuery(existing.groupId, id));
+  const inUse = practiceHasProvidersRefusal(count?.n ?? 0);
+  if (inUse) return inUse;
   const now = nowTimestamp();
   await db.drizzle
     .update(providers)
