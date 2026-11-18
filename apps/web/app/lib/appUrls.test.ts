@@ -25,6 +25,14 @@ describe("appUrls", () => {
     expect(appUrls.newEntry(G, "note")).toBe(`/app/groups/${G}/entries/${NEW_ENTRY}?kind=note`);
     expect(appUrls.newEntry(G, "event")).toBe(`/app/groups/${G}/entries/${NEW_ENTRY}?kind=event`);
     expect(appUrls.groupSettings(G)).toBe(`/app/groups/${G}/settings`);
+    expect(appUrls.providers(G)).toBe(`/app/groups/${G}/providers`);
+  });
+
+  it("carries the provider directory's search through", () => {
+    expect(appUrls.providers("g", "?q=cardio&type=clinician")).toBe(
+      "/app/groups/g/providers?q=cardio&type=clinician",
+    );
+    expect(appUrls.providers("g", { q: "", past: "1" })).toBe("/app/groups/g/providers?past=1");
   });
 
   it("encodes ids as path segments", () => {

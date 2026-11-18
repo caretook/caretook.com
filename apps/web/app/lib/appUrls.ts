@@ -94,4 +94,6 @@ export const appUrls = {
     `${groupHome(groupId)}/entries/${NEW_ENTRY}${searchString({ kind: isLiveEntryKind(kind) ? kind : null })}`,
   /** A group's settings. */
   groupSettings: (groupId: string) => `${groupHome(groupId)}/settings`,
+  /** A group's provider directory, with its search and filters (`?q=`, `?type=`, `?past=1`) carried through. */
+  providers: (groupId: string, search?: Search) => `${groupHome(groupId)}/providers${searchString(search)}`,
 } as const;
