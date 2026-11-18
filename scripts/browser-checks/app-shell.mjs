@@ -15,6 +15,7 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // open EntrySheet over it, none on the entry page) and the header's section
 // links at 1280. Later slices append their checks.
 // Slice 5: group settings (owner, caretaker, viewer, invalid input, offline, a non-member's 404), as one block before the console check.
+// Slice 6: the members list (role change seen live on a second device, owner-only and last-owner refusals, remove, leave), as the last block: it changes Dev Family's memberships and puts the seeds' back.
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 
 const results = [];
@@ -685,7 +686,7 @@ try {
           first5.name === SEED.name &&
           first5.preferred === SEED.preferred &&
           first5.dob === SEED.dob &&
-          first5.sections === "group-details,care-recipient" &&
+          first5.sections === "group-details,care-recipient,members" &&
           !first5.notice,
         JSON.stringify(first5),
       );
@@ -840,10 +841,10 @@ try {
       await onSettings(O);
       await O.waitFor(`${text(RECIPIENT)}.includes("1941")`, 20000).catch(() => undefined);
       const viewer = await O.evaluate(
-        `({ controls: document.querySelectorAll("main input, main button, main form").length, group: ${text(GROUP)}, recipient: ${text(RECIPIENT)}, notice: !!document.querySelector("[data-needs-connection]") })`,
+        `({ controls: [...document.querySelectorAll("main input, main select, main button, main form")].filter((el) => !el.closest('[data-section="members"]')).length, group: ${text(GROUP)}, recipient: ${text(RECIPIENT)}, notice: !!document.querySelector("[data-needs-connection]") })`,
       );
       check(
-        "viewer: sees the group and the recipient read-only, with no edit controls",
+        "viewer: sees the group and the recipient read-only, with no edit controls (Members has its own: slice 6)",
         viewer.controls === 0 &&
           viewer.group.includes(NEW.group) &&
           viewer.recipient.includes(NEW.name) &&
@@ -880,7 +881,7 @@ try {
         .then(() => true)
         .catch(() => false);
       const offline5 = await M.evaluate(
-        `({ notice: document.querySelector("[data-needs-connection]")?.textContent.trim(), controls: document.querySelectorAll("main input, main button, main form").length, group: ${text(GROUP)}, recipient: ${text(RECIPIENT)} })`,
+        `({ notice: document.querySelector("[data-needs-connection]")?.textContent.trim(), controls: document.querySelectorAll("main input, main select, main button, main form").length, group: ${text(GROUP)}, recipient: ${text(RECIPIENT)} })`,
       );
       check(
         "offline: the page loads from local data and says it needs a connection",
@@ -931,6 +932,385 @@ try {
     }
   }
   // ─────────────────────── end of slice 5: group settings ──────────────────────
+
+  // ─────────────────── Slice 6: group settings, members ───────────────────
+  // The last block in the file: it changes Dev Family's memberships
+  // (caretaker@ to admin, then viewer, then removed; viewer@ leaves), which
+  // every other step and check needs as seeded. They're put back in SQL at
+  // its end, and again in `finally` if a step throws.
+  {
+    const { execSync } = await import("node:child_process");
+    const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
+    const psql = (sql) =>
+      execSync(`docker exec ${PG_CONTAINER} psql -U caretook -d caretook -tAc ${JSON.stringify(sql)}`)
+        .toString()
+        .trim();
+    const SEEDED = [
+      ["member@example.com", "owner"],
+      ["caretaker@example.com", "caretaker"],
+      ["viewer@example.com", "viewer"],
+    ];
+    const restoreMembers = () => {
+      for (const [email, role] of SEEDED) {
+        psql(
+          `INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by) SELECT '${DEV_FAMILY}', id, '${role}', id, id FROM "user" WHERE email = '${email}' ON CONFLICT (group_id, user_id) DO UPDATE SET role = EXCLUDED.role WHERE care_group_member.role <> EXCLUDED.role`,
+        );
+      }
+    };
+    /** Dev Family's members on the server, as "name:role" by role. */
+    const serverMembers = () =>
+      psql(
+        `SELECT coalesce(string_agg(u.name || ':' || m.role, ',' ORDER BY array_position(ARRAY['owner','admin','caretaker','viewer'], m.role), u.name), '') FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}'`,
+      );
+    const ALL_SEEDED = "Dev Member:owner,Dev Caretaker:caretaker,Dev Viewer:viewer";
+    const LAST_OWNER = "A care group needs at least one owner. Make someone else an owner first.";
+    const OWNER_ONLY = "Only an owner can add, change or remove owners";
+    const NO_GROUPS = "You're not in a care group yet";
+    const tag = Date.now().toString(36);
+
+    const SETTINGS = `/app/groups/${DEV_FAMILY}/settings`;
+    const MEMBERS = `document.querySelector('main [data-section="members"]')`;
+    const memberRow = (name) =>
+      `[...(${MEMBERS}?.querySelectorAll("li[data-member]") ?? [])].find((li) => li.querySelector("p").textContent.includes(${JSON.stringify(name)}))`;
+    const roleSelect = (name) => `${memberRow(name)}?.querySelector("select")`;
+    const rowButton = (name) => `${memberRow(name)}?.querySelector("button")`;
+    const rowAlert = (name) =>
+      `(${memberRow(name)}?.querySelector('[role="alert"]')?.textContent.trim() ?? "")`;
+    /** The list as shown: "name:role" in order, "*" on a role menu, then the row's button. */
+    const listed = (p) =>
+      p.evaluate(`[...(${MEMBERS}?.querySelectorAll("li[data-member]") ?? [])].map((li) => {
+        const select = li.querySelector("select");
+        const role = select ? select.selectedOptions[0].textContent.trim() + "*" : li.querySelector("[data-role]").textContent.trim();
+        const button = li.querySelector("button")?.textContent.trim();
+        return li.querySelector("p").textContent.trim() + ":" + role + (button ? ":" + button : "");
+      }).join(",")`);
+    const waitListed = (p, expected, ms = 20000) =>
+      p
+        .waitFor(
+          `[...(${MEMBERS}?.querySelectorAll("li[data-member]") ?? [])].map((li) => li.querySelector("p").textContent.trim() + ":" + (li.querySelector("select")?.value ?? li.querySelector("[data-role]").textContent.trim().toLowerCase())).join(",") === ${JSON.stringify(expected)}`,
+          ms,
+        )
+        .then(() => true)
+        .catch(() => false);
+    const options = (name) => `[...${roleSelect(name)}.options].map((o) => o.value).join(",")`;
+    /** Choose a role in a member's menu, as a person would (a change event). */
+    const choose = (p, name, role) =>
+      p.evaluate(`(() => { const el = ${roleSelect(name)}; if (!el) throw new Error("no role menu for ${name}");
+        el.value = ${JSON.stringify(role)}; el.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+    const DIALOG = `document.querySelector("dialog[open]")`;
+    const dialogButton = (text) =>
+      `[...(${DIALOG}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+    const openConfirm = async (p, name) => {
+      // A row's controls are disabled while a change to it saves.
+      await p.waitFor(`${rowButton(name)} && !${rowButton(name)}.disabled`, 20000);
+      await p.evaluate(`${rowButton(name)}.click()`);
+      await p.waitFor(DIALOG, 5000);
+      return p.evaluate(`${DIALOG}.querySelector("h2").textContent.trim()`);
+    };
+    const onMembers = (p, ms = 40000) =>
+      p.waitFor(
+        `location.pathname === ${JSON.stringify(SETTINGS)} && ${MEMBERS}?.querySelector("li[data-member]")`,
+        ms,
+      );
+    const openGroupSettings = async (p) => {
+      await p.waitFor(GROUP_TRIGGER, 40000);
+      await p.press(GROUP_TRIGGER);
+      await p.waitFor(item("Group settings"), 5000);
+      await p.press(item("Group settings"));
+      await onMembers(p);
+      // Online: the forms and member controls come with the loader's API read.
+      await p.waitFor(`${MEMBERS}.querySelector("button")`, 20000);
+    };
+
+    const bM = await launch(9476);
+    const bO = await launch(9477);
+    browsers.push(bM, bO);
+    try {
+      restoreMembers();
+      await sleep(6000);
+
+      // 6a. member@ (owner): everyone, with a role menu each, Leave on their own row and Remove on the others.
+      const M = await openPage(bM, "members-owner");
+      pages.push(M);
+      await signIn(M, "member@example.com");
+      await M.waitFor(`${rows} > 0`, 40000);
+      await openGroupSettings(M);
+      await M.evaluate(`window.__stay = ${JSON.stringify(tag)}`);
+      const ownerList = await listed(M);
+      const ownerView = await M.evaluate(`({
+        sections: [...document.querySelectorAll("main > section")].map((s) => s.dataset.section).join(","),
+        heading: ${MEMBERS}.querySelector("h2").textContent.trim(),
+        avatars: [...${MEMBERS}.querySelectorAll("li[data-member] > div > span[aria-hidden]")].map((a) => a.textContent.trim()).join(","),
+        options: ${options("Dev Viewer")},
+        labels: [...${MEMBERS}.querySelectorAll("li select, li button")].map((el) => el.getAttribute("aria-label")).join("|"),
+        text: ${MEMBERS}.textContent,
+      })`);
+      check(
+        "owner: Members lists everyone by role, with a role menu each, Leave for themselves and Remove for the others",
+        ownerView.sections === "group-details,care-recipient,members" &&
+          ownerView.heading === "Members" &&
+          ownerList ===
+            "Dev Member (you):Owner*:Leave,Dev Caretaker:Caretaker*:Remove,Dev Viewer:Viewer*:Remove",
+        `${ownerView.sections} / ${ownerList}`,
+      );
+      check(
+        "owner: avatars show initials, the controls are named, and a menu offers all four roles",
+        ownerView.avatars === "DM,DC,DV" &&
+          ownerView.options === "owner,admin,caretaker,viewer" &&
+          ownerView.labels ===
+            "Role for Dev Member|Leave this care group|Role for Dev Caretaker|Remove Dev Caretaker|Role for Dev Viewer|Remove Dev Viewer",
+        JSON.stringify({ avatars: ownerView.avatars, options: ownerView.options, labels: ownerView.labels }),
+      );
+      check("members: no email anywhere in the list", !/@|example\.com/.test(ownerView.text));
+      await M.evaluate(`${MEMBERS}.scrollIntoView({ block: "center" })`);
+      await M.screenshot("app-shell-members-owner");
+
+      // 6b. The last owner can't demote themselves or leave: the message, and nothing changes.
+      await choose(M, "Dev Member", "viewer");
+      const demoteRefused = await M.waitFor(`${rowAlert("Dev Member")} !== ""`, 20000)
+        .then(() => true)
+        .catch(() => false);
+      const demote = await M.evaluate(
+        `({ alert: ${rowAlert("Dev Member")}, role: ${roleSelect("Dev Member")}.value })`,
+      );
+      check(
+        "last owner: demoting themselves shows why, and the menu goes back to Owner",
+        demoteRefused &&
+          demote.alert === LAST_OWNER &&
+          demote.role === "owner" &&
+          serverMembers() === ALL_SEEDED,
+        `${JSON.stringify(demote)} / ${serverMembers()}`,
+      );
+      const leaveTitle = await openConfirm(M, "Dev Member");
+      await M.evaluate(`${dialogButton("Cancel")}.click()`);
+      await M.waitFor(`!${DIALOG}`, 5000);
+      check(
+        "leave: asks first, and Cancel changes nothing",
+        leaveTitle.startsWith("Leave this care group?") && serverMembers() === ALL_SEEDED,
+        leaveTitle,
+      );
+      // Clear the demotion's message first (choosing the role they have saves
+      // nothing), so the wait below can only pass on the refusal to leave.
+      await choose(M, "Dev Member", "owner");
+      await sleep(150);
+      await M.waitFor(`${rowAlert("Dev Member")} === "" && !${rowButton("Dev Member")}.disabled`, 20000);
+      await openConfirm(M, "Dev Member");
+      await M.evaluate(`${dialogButton("Leave")}.click()`);
+      await M.waitFor(`!${DIALOG}`, 5000);
+      await sleep(300);
+      const leaveRefused = await M.waitFor(
+        `${rowButton("Dev Member")}?.textContent.trim() === "Leave" && !${rowButton("Dev Member")}.disabled && ${rowAlert("Dev Member")} !== ""`,
+        20000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      const leave = await M.evaluate(
+        `({ alert: ${rowAlert("Dev Member")}, path: location.pathname, stay: window.__stay })`,
+      );
+      check(
+        "last owner: leaving shows why, they stay on the page, and nothing changes",
+        leaveRefused &&
+          leave.alert === LAST_OWNER &&
+          leave.path === SETTINGS &&
+          leave.stay === tag &&
+          serverMembers() === ALL_SEEDED,
+        `${JSON.stringify(leave)} / ${serverMembers()}`,
+      );
+      await M.evaluate(`${MEMBERS}.scrollIntoView({ block: "center" })`);
+      await M.screenshot("app-shell-members-last-owner");
+
+      // 6c. caretaker@ on a second device: a plain list, with Leave on their own row only.
+      const O = await openPage(bO, "members-other");
+      pages.push(O);
+      await sleep(4000);
+      await signIn(O, "caretaker@example.com", { home: true });
+      await openGroupSettings(O);
+      await O.evaluate(`window.__stay = ${JSON.stringify(tag)}`);
+      const caretakerList = await listed(O);
+      check(
+        "caretaker: sees everyone and their roles, with no role menus and only Leave on their own row",
+        caretakerList === "Dev Member:Owner,Dev Caretaker (you):Caretaker:Leave,Dev Viewer:Viewer",
+        caretakerList,
+      );
+
+      // 6d. The owner makes caretaker@ an admin: it shows on their device without a reload,
+      // with what an admin may do (nothing to the owner; no Owner in any menu).
+      await choose(M, "Dev Caretaker", "admin");
+      const adminSaved = await waitListed(M, "Dev Member (you):owner,Dev Caretaker:admin,Dev Viewer:viewer");
+      check(
+        "owner: makes the caretaker an admin",
+        adminSaved && serverMembers() === "Dev Member:owner,Dev Caretaker:admin,Dev Viewer:viewer",
+        `${await listed(M)} / ${serverMembers()}`,
+      );
+      const adminSeen = await O.waitFor(`${roleSelect("Dev Caretaker")}?.value === "admin"`, 20000)
+        .then(() => true)
+        .catch(() => false);
+      const adminList = await listed(O);
+      const adminOptions = adminSeen ? await O.evaluate(options("Dev Viewer")) : "";
+      check(
+        "admin (second device, no reload): gets role menus and Remove, but nothing on the owner's row",
+        adminSeen &&
+          adminList === "Dev Member:Owner,Dev Caretaker (you):Admin*:Leave,Dev Viewer:Viewer*:Remove" &&
+          (await O.evaluate(`window.__stay`)) === tag,
+        adminList,
+      );
+      check("admin: no menu offers Owner", adminOptions === "admin,caretaker,viewer", adminOptions);
+      // A forged request (an Owner option added by hand) gets the owner-only message.
+      await O.evaluate(
+        `${roleSelect("Dev Viewer")}.append(Object.assign(document.createElement("option"), { value: "owner", textContent: "Owner", }))`,
+      );
+      await choose(O, "Dev Viewer", "owner");
+      const forgedRefused = await O.waitFor(`${rowAlert("Dev Viewer")} !== ""`, 20000)
+        .then(() => true)
+        .catch(() => false);
+      const forged = await O.evaluate(
+        `({ alert: ${rowAlert("Dev Viewer")}, role: ${roleSelect("Dev Viewer")}.value })`,
+      );
+      check(
+        "admin: a forged request to make someone an owner gets the owner-only message, and changes nothing",
+        forgedRefused &&
+          forged.alert === OWNER_ONLY &&
+          forged.role === "viewer" &&
+          serverMembers() === "Dev Member:owner,Dev Caretaker:admin,Dev Viewer:viewer",
+        `${JSON.stringify(forged)} / ${serverMembers()}`,
+      );
+      await O.evaluate(`${MEMBERS}.scrollIntoView({ block: "center" })`);
+      await O.screenshot("app-shell-members-admin");
+
+      // 6e. The owner makes caretaker@ a viewer: their list shows it, and their next
+      // timeline screen has no writer controls.
+      await choose(M, "Dev Caretaker", "viewer");
+      const viewerSaved = await waitListed(
+        M,
+        "Dev Member (you):owner,Dev Caretaker:viewer,Dev Viewer:viewer",
+      );
+      check(
+        "owner: changes the caretaker to viewer",
+        viewerSaved && serverMembers() === "Dev Member:owner,Dev Caretaker:viewer,Dev Viewer:viewer",
+        `${await listed(M)} / ${serverMembers()}`,
+      );
+      const demotedSeen = await waitListed(
+        O,
+        "Dev Member:owner,Dev Caretaker (you):viewer,Dev Viewer:viewer",
+      );
+      const demotedList = await listed(O);
+      check(
+        "second device: the members list shows the change without a reload, and the role menus are gone",
+        demotedSeen &&
+          demotedList === "Dev Member:Owner,Dev Caretaker (you):Viewer:Leave,Dev Viewer:Viewer" &&
+          (await O.evaluate(`window.__stay`)) === tag,
+        demotedList,
+      );
+      await O.evaluate(`${BAR}.querySelector("a").click()`);
+      await O.waitFor(
+        `location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))} && ${rows} > 0`,
+        20000,
+      );
+      const noWriter = await O.evaluate(`({
+        addBar: !!document.querySelector('[aria-label="Add to the timeline"]'),
+        menus: document.querySelectorAll('main ol button[aria-label^="Actions"], main ol button[aria-label^="Edit "]').length,
+        note: document.querySelector("main")?.textContent.includes("You can view this timeline"),
+        stay: window.__stay,
+      })`);
+      check(
+        "second device: the next timeline screen has no writer controls",
+        !noWriter.addBar && noWriter.menus === 0 && noWriter.note && noWriter.stay === tag,
+        JSON.stringify(noWriter),
+      );
+      await O.screenshot("app-shell-members-demoted-timeline");
+
+      // 6f. The owner removes them, after confirming; they lose the group on their next sync.
+      const removeTitle = await openConfirm(M, "Dev Caretaker");
+      await M.evaluate(`${dialogButton("Cancel")}.click()`);
+      await M.waitFor(`!${DIALOG}`, 5000);
+      check(
+        "remove: asks first, naming the member, and Cancel changes nothing",
+        removeTitle.startsWith("Remove Dev Caretaker from this care group?") &&
+          serverMembers() === "Dev Member:owner,Dev Caretaker:viewer,Dev Viewer:viewer",
+        removeTitle,
+      );
+      await openConfirm(M, "Dev Caretaker");
+      await M.evaluate(`${dialogButton("Remove")}.click()`);
+      const removedShown = await waitListed(M, "Dev Member (you):owner,Dev Viewer:viewer");
+      check(
+        "owner: removes the member, who leaves the list without a reload",
+        removedShown &&
+          serverMembers() === "Dev Member:owner,Dev Viewer:viewer" &&
+          (await M.evaluate(`window.__stay`)) === tag,
+        `${await listed(M)} / ${serverMembers()}`,
+      );
+      const emptied = await O.waitFor(`${rows} === 0`, 30000)
+        .then(() => true)
+        .catch(() => false);
+      await O.goto("/app");
+      const lostGroup = await O.waitFor(
+        `location.pathname === "/app" && document.querySelector("main")?.textContent.includes(${JSON.stringify(NO_GROUPS)})`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      check(
+        "removed member: the group's entries go on their next sync, and /app says they're in no care group",
+        emptied && lostGroup && !(await O.evaluate(`!!${GROUP_TRIGGER}`)),
+        `emptied ${emptied}, ${await O.evaluate(`location.pathname`)}`,
+      );
+
+      // 6g. viewer@ leaves, after confirming: on to /app, with no group left.
+      await O.signOut();
+      await O.waitFor(`location.pathname === "/sign-in"`, 15000);
+      await sleep(4000);
+      await signIn(O, "viewer@example.com", { home: true });
+      await openGroupSettings(O);
+      const viewerList = await listed(O);
+      const viewerControls = await O.evaluate(
+        `[...document.querySelectorAll("main input, main select, main button")].filter((el) => !el.closest("dialog:not([open])")).map((el) => el.textContent.trim()).join(",")`,
+      );
+      check(
+        "viewer: the only control on the whole page is Leave, on their own row",
+        viewerList === "Dev Member:Owner,Dev Viewer (you):Viewer:Leave" && viewerControls === "Leave",
+        `${viewerList} / ${viewerControls}`,
+      );
+      await O.screenshot("app-shell-members-viewer");
+      await openConfirm(O, "Dev Viewer");
+      await sleep(400);
+      await O.screenshot("app-shell-members-leave-confirm");
+      await O.evaluate(`${dialogButton("Leave")}.click()`);
+      const left = await O.waitFor(
+        `location.pathname === "/app" && document.querySelector("main")?.textContent.includes(${JSON.stringify(NO_GROUPS)})`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      check(
+        "viewer: leaves after confirming, lands on /app, and has no care group (no group menu)",
+        left && !(await O.evaluate(`!!${GROUP_TRIGGER}`)) && serverMembers() === "Dev Member:owner",
+        `${await O.evaluate(`location.pathname`)} / ${serverMembers()}`,
+      );
+      await sleep(1500);
+      check(
+        "viewer: still on /app a moment later (nothing sends them back to the group)",
+        (await O.evaluate(`location.pathname`)) === "/app",
+      );
+      const aloneShown = await waitListed(M, "Dev Member (you):owner");
+      check("owner: sees them go without a reload", aloneShown, await listed(M));
+
+      // 6h. Put the seeds' memberships back; the owner's list follows.
+      restoreMembers();
+      const restored = await waitListed(
+        M,
+        "Dev Member (you):owner,Dev Caretaker:caretaker,Dev Viewer:viewer",
+        30000,
+      );
+      check(
+        "the seeds' memberships are back (in SQL), and the list follows",
+        restored && serverMembers() === ALL_SEEDED,
+        `${await listed(M)} / ${serverMembers()}`,
+      );
+    } finally {
+      restoreMembers();
+    }
+  }
+  // ──────────────── end of slice 6: group settings, members ────────────────
 
   const noise =
     /401|Failed to load resource|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection/;
