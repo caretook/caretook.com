@@ -25,6 +25,7 @@ import {
   shouldMaterialize,
   titleField,
 } from "~/lib/liveEntry";
+import { notOnDevice } from "~/lib/firstSync";
 import { requireSession } from "~/lib/session";
 import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
 import { materializeLiveEntry } from "~/lib/sync/liveEntry";
@@ -62,7 +63,7 @@ export async function clientLoader({ request, params }: Route.ClientLoaderArgs) 
 
   const groups = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
   const groupRow = groups.find((g) => g.id === groupId);
-  if (!groupRow) throw data("Not found", { status: 404 });
+  if (!groupRow) throw notOnDevice(db);
   const group = toMyGroup(groupRow);
   const canWrite = !!group.role && WRITER_ROLES.includes(group.role);
 
