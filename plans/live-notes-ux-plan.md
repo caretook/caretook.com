@@ -4,18 +4,20 @@
 
 ## Status
 
-| Slice | State                    | Merge (slice commits)            |
-| ----- | ------------------------ | -------------------------------- |
-| 1     | ✅ merged                | `b0ceb5c` (`ce4feec`)            |
-| 2     | ✅ merged                | `ecd70a8` (`ddd8c2b`)            |
-| 4     | ✅ merged                | `73f76ff` (`cf17d0b`)            |
-| 5     | ✅ merged                | `195b243` (`54239fc`)            |
-| 6     | ✅ merged                | `40e4e54` (`ffe16d9`, `3836ab3`) |
-| 8     | ✅ merged                | `52abf68` (`90d7ce7`)            |
-| 9     | ✅ merged                | `5388422` (`943d63d`)            |
-| 3     | ✅ merged (prd/)         | `ea0b192` (`af79030`)            |
-| 7     | ✅ merged (prd/)         | `5cad30f` (`3f35d8f`)            |
-| 10    | **ready: the next wave** | B-20                             |
+**✅ Done.** All ten slices are merged; AGENTS.md describes the result, and its _Next steps_ list the follow-ups.
+
+| Slice | State            | Merge (slice commits)            |
+| ----- | ---------------- | -------------------------------- |
+| 1     | ✅ merged        | `b0ceb5c` (`ce4feec`)            |
+| 2     | ✅ merged        | `ecd70a8` (`ddd8c2b`)            |
+| 4     | ✅ merged        | `73f76ff` (`cf17d0b`)            |
+| 5     | ✅ merged        | `195b243` (`54239fc`)            |
+| 6     | ✅ merged        | `40e4e54` (`ffe16d9`, `3836ab3`) |
+| 8     | ✅ merged        | `52abf68` (`90d7ce7`)            |
+| 9     | ✅ merged        | `5388422` (`943d63d`)            |
+| 3     | ✅ merged (prd/) | `ea0b192` (`af79030`)            |
+| 7     | ✅ merged (prd/) | `5cad30f` (`3f35d8f`)            |
+| 10    | ✅ merged (prd/) | `9e4491b` (`cabb0e1`)            |
 
 Post-merge fix: `3604c18` (`entry-header.mjs` targets the ⋯ menu by label now that Share shares the `actions` region; `share.mjs` picks a note with text).
 

@@ -1,6 +1,6 @@
 # PRD: Notes and events are live documents
 
-Status: draft, 2026-11-17. To be filed as a GitHub issue once `gh` can reach `caretook/caretook.com`.
+Status: ✅ done, 2026-11-18 (all slices in `dev`). To be filed as a GitHub issue once `gh` can reach `caretook/caretook.com`.
 
 ## Problem Statement
 
