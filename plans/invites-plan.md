@@ -45,9 +45,9 @@ Durable decisions every slice follows:
 - **Slice 1 starts now**, beside `routing`, `providers` and `components`: it touches only a new package, the outbox and dev-mail tables, two web-only routes and env wiring.
 - **2 after 1. 3 after 2.** Before 3, check whether `routing` slice 5 (group settings subpages) is in `dev`, and sync.
 - **4 and 5 after 3, in parallel.** Merge 4 first; 5 regenerates the wave's migration on top.
-- Merge in number order. After each merge, run `invites.mjs` plus the budget's checks for the areas touched: `sign-in.mjs` and `app-shell.mjs` (slices 2, 3, 4, 5: sign-in and group settings), `first-sync.mjs` (slices 4 and 5: home's new states). The full suite runs once per landing.
+- Merge in number order, **with no checks between merges** (dev's rule since quick-fixes wave 6). Before landing, the full suite runs once on a check build, then `pnpm prd check`. The loops check their own slices: `invites`, `sign-in` and `app-shell` (slices 3, 4, 5: sign-in and group settings), plus `first-sync` (slices 4 and 5: home's new states).
 - **Land in waves:** 1 and 2 together (better sign-in, verification and reset); then 3 (email invites, enough to bring family in); then 4 and 5.
-- Every slice ends with `pnpm check`, `pnpm build:native`, its checks and a hand-off (AGENTS.md, _Loop rules_).
+- Every slice ends with `pnpm check`, `pnpm build:native`, its checks and a hand-off (AGENTS.md, _Loop rules_). While building, loops use `pnpm prd browser <check> --smoke`; before hand-off, `--changed` once in full mode. `invites.mjs` marks its core path with `step(name, { smoke: true }, fn)` (from slice 3 on).
 
 ```
 1 ── 2 ── 3 ──┬── 4
