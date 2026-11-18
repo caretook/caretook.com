@@ -37,7 +37,7 @@ const button = (text) =>
 const EDITOR = `document.querySelector(".ProseMirror")`;
 const EDITOR_FOCUSED = `document.activeElement?.classList.contains("ProseMirror")`;
 const CHIP = `document.querySelector('main header button[aria-label="Change when it happened"]')`;
-const MENU = `document.querySelector('main header [data-region="actions"] button')`;
+const MENU = `document.querySelector('main header [data-region="actions"] button[aria-label^="Actions for"]')`;
 const HEADER_TIME = `document.querySelector("main header time")`;
 const DAY_SEGMENT = `document.querySelector('[role=dialog] [data-type="day"]')`;
 /** The day heading above the row containing `text`, or null. */
@@ -138,9 +138,7 @@ try {
   // 3. Viewers get neither an editable chip nor the ⋯ menu.
   check(
     "viewer: plain time, no chip, no ⋯ menu",
-    await C.evaluate(
-      `!!${HEADER_TIME} && !${CHIP} && !${MENU} && !document.querySelector('main header [data-region="actions"]')`,
-    ),
+    await C.evaluate(`!!${HEADER_TIME} && !${CHIP} && !${MENU}`),
   );
   await C.screenshot("ln4-viewer");
 

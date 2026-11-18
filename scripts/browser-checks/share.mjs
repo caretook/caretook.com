@@ -25,7 +25,7 @@ const EDITOR = `document.querySelector(".ProseMirror")`;
 
 // A seeded note with a title, and some of its text.
 const [entryId, groupId, title, text] = psql(
-  `SELECT e.id || '|' || e.group_id || '|' || e.title || '|' || left(d.text, 30) FROM timeline_entry e JOIN note_document d ON d.id = e.id WHERE e.kind = 'note' AND e.title IS NOT NULL AND e.deleted_at IS NULL ORDER BY e.occurred_at DESC LIMIT 1`,
+  `SELECT e.id || '|' || e.group_id || '|' || e.title || '|' || left(d.text, 30) FROM timeline_entry e JOIN note_document d ON d.id = e.id WHERE e.kind = 'note' AND e.title IS NOT NULL AND e.deleted_at IS NULL AND length(d.text) >= 10 ORDER BY e.occurred_at DESC LIMIT 1`,
 ).split("|");
 const entryPath = `/app/groups/${groupId}/entries/${entryId}`;
 const entryLink = BASE + entryPath;
