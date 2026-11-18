@@ -21,6 +21,7 @@ import { sessionContext } from "~/lib/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { createProviderDocument, providerQuery, toProvider } from "~/lib/sync/providers";
 import { readRows } from "~/lib/sync/timeline";
+import { LinkedEntries } from "./LinkedEntries";
 
 // Shared by web + native. A provider's page: who they are, every way to
 // reach them, and their shared live notes ("park on level 2, ask for
@@ -181,6 +182,8 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
               ensureSaved={ensureSaved}
             />
           </section>
+
+          <LinkedEntries groupId={groupId} providerId={providerId} />
         </>
       )}
     </main>

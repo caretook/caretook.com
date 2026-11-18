@@ -14,3 +14,7 @@ export { SEPARATOR } from "./menuModel";
 export { Popover } from "./Popover";
 export { Sheet } from "./Sheet";
 export { UserAvatar } from "./UserAvatar";
+export { ChipList } from "./ChipList";
+export type { ListChip } from "./ChipList";
+export { ComboBox } from "./ComboBox";
+export type { ComboBoxOption } from "./ComboBox";

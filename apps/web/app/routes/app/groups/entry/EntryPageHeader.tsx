@@ -10,12 +10,14 @@ import { KIND_META } from "~/lib/entryDisplay";
 import { EntryHeader, EntryTime } from "./EntryHeader";
 import { EntryTimeChip } from "./EntryTimeChip";
 import { EntryTitleRegion } from "./EntryTitleRegion";
+import { EntryWithRow } from "./EntryWithRow";
 import { ShareButton } from "./ShareButton";
 
 /**
  * The entry page's header, filled from its live entry: the title, when it
  * happened (a chip for writers), who's writing, and, once there's an entry to
- * link to, Share for everyone and the ⋯ menu (Delete, confirmed) for writers.
+ * link to, Share for everyone and the ⋯ menu (Delete, confirmed) for writers;
+ * and who it was with (providers).
  */
 export function EntryPageHeader({
   live,
@@ -77,6 +79,16 @@ export function EntryPageHeader({
           )
         }
         editors={editors}
+        with={
+          !deleted && (
+            <EntryWithRow
+              entryId={entry.id}
+              groupId={groupId}
+              canWrite={canWrite}
+              ensureStored={live.ensureStored}
+            />
+          )
+        }
       />
       <ConfirmDialog
         open={confirmDelete}
