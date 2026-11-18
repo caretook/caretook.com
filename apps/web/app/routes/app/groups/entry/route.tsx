@@ -25,12 +25,12 @@ import { sessionContext } from "~/lib/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { materializeLiveEntry } from "~/lib/sync/liveEntry";
 import { readRows, removeEntry, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
-import { EditorAvatars } from "./EditorAvatars";
+import { EditorAvatars } from "~/components/EditorAvatars";
 import { EntryHeader, EntryTime, EntryTitle } from "./EntryHeader";
 import { EntryMenu } from "./EntryMenu";
 import { EntryTimeChip } from "./EntryTimeChip";
 import { EventTitleChips } from "./EventTitleChips";
-import { LiveNotesEditor } from "./LiveNotesEditor";
+import { LiveNotesEditor } from "~/components/LiveNotesEditor";
 import { ShareButton } from "./ShareButton";
 
 // Shared by web + native. A note (or event) is its live document: this page

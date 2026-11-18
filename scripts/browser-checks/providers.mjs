@@ -15,6 +15,12 @@
 // primary and past, offline add and edit, delete after a confirm on every
 // device, and a viewer's sheet URLs showing the list.
 //
+// Slice 4 (the provider page): a row opens the page; its details, contact
+// actions and seeded notes; a clinician's practice links to the practice's
+// page; two browsers' notes converge with each other's avatars; notes made
+// offline merge after reconnecting; a viewer reads them; a deleted, another
+// group's or a non-member's provider URL is the 404 with no names.
+//
 // The device steps drive the device module itself (lib/sync/providers.ts,
 // imported through Vite) against `window.caretookSync`. Later slices add
 // their screens' steps here. Every provider and entry it makes
@@ -660,6 +666,236 @@ async function sheetSteps(p, other, proxy, tag) {
   return { ids: [id, offlineId] };
 }
 
+// --- The provider page (slice 4) ---------------------------------------------
+
+const WESTSIDE = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8e1001";
+const ALVAREZ = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8e1002";
+const LINDQVIST = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8f1001";
+const providerPath = (id, group = DEV_FAMILY) => `/app/groups/${group}/providers/${id}`;
+const NOTES = `document.querySelector("main .ProseMirror")`;
+const notesHave = (text) => `!!${NOTES}?.textContent.includes(${JSON.stringify(text)})`;
+const PAGE_AVATARS = `[...document.querySelectorAll('main header [data-region="editors"] [data-editor]')].map((el) => el.dataset.editor)`;
+const onProviderPage = (id) =>
+  `location.pathname.endsWith("/providers/${id}") && !!${NOTES} && document.querySelector("main h1")?.textContent.length > 0`;
+const providerPage = (p) =>
+  p.evaluate(`({
+    h1: document.querySelector("main h1")?.textContent.trim(),
+    badges: [...document.querySelectorAll('main header [data-region="title"] .badge')].map((b) => b.textContent.trim()),
+    details: document.querySelector('main header [data-region="details"]')?.textContent.trim(),
+    practice: document.querySelector("main header a[data-practice]")?.getAttribute("href") ?? null,
+    contacts: [...document.querySelectorAll("main [data-contact-list] a")].map((a) => [a.dataset.action, a.getAttribute("href"), a.textContent.trim()]),
+    notes: ${NOTES}?.textContent ?? null,
+    editable: ${NOTES}?.getAttribute("contenteditable"),
+    readonly: ${NOTES}?.getAttribute("aria-readonly"),
+    toolbar: !!document.querySelector('main [role=toolbar][aria-label="Formatting"]'),
+    actions: !!document.querySelector('main header [data-region="actions"]'),
+  })`);
+/** Type at the end of the notes, as a person would. */
+async function typeNotes(p, text) {
+  await p.evaluate(`(() => { const el = ${NOTES}; el.focus();
+    const sel = getSelection(); sel.selectAllChildren(el); sel.collapseToEnd(); return true; })()`);
+  await p.send("Input.insertText", { text });
+}
+
+/** A (caretaker, behind `proxy`) and B (member) on the provider page; returns the run's provider's id. */
+async function providerPageSteps(A, B, proxy) {
+  // A row opens the page: a tap on the row, not only the name.
+  await A.goto(`/app/groups/${DEV_FAMILY}/providers`);
+  await waitForList(A, `names.length >= 5`, 30000);
+  await A.tap(`document.querySelector('main li[data-provider-id="${WESTSIDE}"] p.text-sm')`);
+  await A.waitFor(onProviderPage(WESTSIDE), 20000).catch(() => {});
+  const westside = await providerPage(A);
+  check(
+    "a tap on a directory row opens the provider's page",
+    westside.h1 === "Westside Family Medicine",
+    JSON.stringify(westside.h1),
+  );
+  check(
+    "the page shows the type, specialty and Primary badge",
+    same(westside.badges, ["Primary"]) && westside.details === "Practice · Primary care",
+    JSON.stringify({ badges: westside.badges, details: westside.details }),
+  );
+  check(
+    "every contact action: each number with its label, the address in maps, the website",
+    same(
+      westside.contacts.map(([kind, href]) => [kind, href]),
+      [
+        ["call", "tel:5550102200"],
+        ["call", "tel:5550102201"],
+        ["call", "tel:5550102210"],
+        [
+          "map",
+          "https://www.google.com/maps/search/?api=1&query=1200%20Westside%20Ave%2C%20Suite%20300%2C%20Springfield%2C%20CA%2090000",
+        ],
+        ["website", "https://westsidefamily.example/"],
+      ],
+    ) &&
+      westside.contacts[0][2].includes("Call Westside Family Medicine, front desk") &&
+      westside.contacts[1][2].includes("Fax"),
+    JSON.stringify(westside.contacts),
+  );
+  check(
+    "the seeded notes show in the editor, writable for a caretaker",
+    westside.notes?.includes("level 2") && westside.editable === "true" && westside.toolbar,
+    JSON.stringify({ notes: westside.notes?.slice(0, 60), editable: westside.editable }),
+  );
+  await A.screenshot("provider-page");
+
+  // A clinician's practice links to the practice's page.
+  await A.goto(providerPath(ALVAREZ));
+  await A.waitFor(
+    `${onProviderPage(ALVAREZ)} && !!document.querySelector("main header a[data-practice]")`,
+    20000,
+  ).catch(() => {});
+  const alvarez = await providerPage(A);
+  check(
+    "a clinician's page: both numbers, email, and the practice as a link",
+    alvarez.practice === providerPath(WESTSIDE) &&
+      alvarez.details.startsWith("Clinician · Internal medicine · Westside Family Medicine") &&
+      same(
+        alvarez.contacts.map(([kind, href]) => [kind, href]),
+        [
+          ["call", "tel:5550102200,214"],
+          ["call", "tel:5550102299"],
+          ["email", "mailto:e.alvarez@westsidefamily.example"],
+        ],
+      ) &&
+      alvarez.notes?.includes("through the portal"),
+    JSON.stringify(alvarez),
+  );
+  await A.tap(`document.querySelector("main header a[data-practice]")`);
+  await A.waitFor(onProviderPage(WESTSIDE), 20000).then(
+    () => check("tapping the practice opens its page", true),
+    () => check("tapping the practice opens its page", false),
+  );
+
+  // This run's provider (no notes yet), on both devices.
+  const made = await onDevice(
+    A,
+    `return providers.createProvider(db, ${JSON.stringify(DEV_FAMILY)}, {
+       type: "clinician", name: ${JSON.stringify(`${tag} Dr. Notes`)}, specialty: "Neurology",
+     });`,
+  );
+  const id = made.id;
+  await waitForSql(`SELECT count(*) FROM provider WHERE id = '${id}'`, (v) => v === "1");
+  await A.goto(providerPath(id));
+  await A.waitFor(onProviderPage(id), 20000).catch(() => {});
+  await B.goto(providerPath(id));
+  await B.waitFor(onProviderPage(id), 30000).catch(() => {});
+  check(
+    "a provider without notes opens with an empty editor, and no document yet",
+    (await providerPage(A)).notes === "" &&
+      psql(`SELECT count(*) FROM note_document WHERE id = '${id}'`) === "0",
+  );
+
+  // The first real change makes the provider's document; B sees the text.
+  await typeNotes(A, `${tag} park on level 3`);
+  const doc = await waitForSql(
+    `SELECT subject || '|' || coalesce(provider_id::text, '') || '|' || coalesce(entry_id::text, '-') FROM note_document WHERE id = '${id}'`,
+    (v) => v !== "",
+  );
+  check(
+    "the first keystroke makes the provider's document (subject provider)",
+    doc === `provider|${id}|-`,
+    doc,
+  );
+  await B.waitFor(notesHave(`${tag} park on level 3`), 20000).then(
+    () => check("a second browser sees the notes as they're written", true),
+    () => check("a second browser sees the notes as they're written", false),
+  );
+  await typeNotes(B, ` ask for Dana`);
+  await A.waitFor(notesHave("ask for Dana"), 20000).then(
+    () => check("…and the first sees the second's edits (converged)", true),
+    () => check("…and the first sees the second's edits (converged)", false),
+  );
+  const [userA, userB] = [
+    await A.evaluate(`window.caretookSync.userId`),
+    await B.evaluate(`window.caretookSync.userId`),
+  ];
+  await A.waitFor(`${PAGE_AVATARS}.includes(${JSON.stringify(userB)})`, 20000).catch(() => {});
+  await B.waitFor(`${PAGE_AVATARS}.includes(${JSON.stringify(userA)})`, 20000).catch(() => {});
+  const avatars = { A: await A.evaluate(PAGE_AVATARS), B: await B.evaluate(PAGE_AVATARS) };
+  check(
+    "each sees the other's avatar, never their own",
+    same(avatars.A, [userB]) && same(avatars.B, [userA]),
+    JSON.stringify(avatars),
+  );
+
+  // Offline: A writes while cut off, B writes online; both merge after reconnecting.
+  const errorsBefore = A.errors.length;
+  proxy.setOnline(false);
+  await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000);
+  await typeNotes(A, ` ${tag}-offline-A`);
+  await typeNotes(B, ` ${tag}-online-B`);
+  await sleep(1500);
+  check(
+    "offline: A's words stay on A while B's can't reach it",
+    (await A.evaluate(notesHave(`${tag}-offline-A`))) && !(await A.evaluate(notesHave(`${tag}-online-B`))),
+  );
+  proxy.setOnline(true);
+  await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  const merged = `${notesHave(`${tag}-offline-A`)} && ${notesHave(`${tag}-online-B`)}`;
+  const both = await Promise.all([A.waitFor(merged, 30000), B.waitFor(merged, 30000)]).then(
+    () => true,
+    () => false,
+  );
+  const texts = [await A.evaluate(`${NOTES}.textContent`), await B.evaluate(`${NOTES}.textContent`)];
+  check(
+    "back online: both browsers have both edits, the same text",
+    both && texts[0] === texts[1],
+    JSON.stringify(texts),
+  );
+  A.errors.splice(errorsBefore); // Offline fetch failures aren't the app's errors.
+  await A.goto(`/app/groups/${DEV_FAMILY}/timeline`);
+  await A.waitFor(`document.querySelectorAll("ol > li").length > 0`, 30000);
+  await localRows(A, "SELECT 1");
+
+  // Another group's provider under this group's URL is the 404, with no names.
+  await B.goto(providerPath(LINDQVIST));
+  await B.waitFor(`document.querySelector("main h1")?.textContent === "Not found"`, 20000).catch(() => {});
+  const crossed = await B.evaluate(`({
+    h1: document.querySelector("main h1")?.textContent,
+    leaks: /Lindqvist|Audiology/.test(document.querySelector("main")?.innerText ?? ""),
+  })`);
+  check(
+    "another group's provider under this group's URL is the 404, with no names",
+    crossed.h1 === "Not found" && !crossed.leaks,
+    JSON.stringify(crossed),
+  );
+  await B.goto(providerPath(LINDQVIST, DEV_FAMILY_2));
+  await B.waitFor(onProviderPage(LINDQVIST), 20000).then(
+    () => check("…and opens under its own group", true),
+    () => check("…and opens under its own group", false),
+  );
+  return id;
+}
+
+/** C (viewer): the run's provider's notes read-only; a deleted provider's URL is the 404. */
+async function viewerProviderSteps(C, id, deletedId) {
+  await C.goto(providerPath(id));
+  await C.waitFor(`${onProviderPage(id)} && ${notesHave(`${tag}-online-B`)}`, 30000).catch(() => {});
+  const page = await providerPage(C);
+  check(
+    "a viewer reads the notes, read-only (no toolbar, not editable)",
+    page.notes?.includes(`${tag}-offline-A`) &&
+      page.editable === "false" &&
+      page.readonly === "true" &&
+      !page.toolbar,
+    JSON.stringify({ editable: page.editable, readonly: page.readonly, toolbar: page.toolbar }),
+  );
+  await C.goto(providerPath(deletedId));
+  await C.waitFor(`document.querySelector("main h1")?.textContent === "Not found"`, 20000).catch(() => {});
+  const gone = await C.evaluate(`({
+    h1: document.querySelector("main h1")?.textContent,
+    leaks: (document.querySelector("main")?.innerText ?? "").includes(${JSON.stringify(tag)}),
+  })`);
+  check(
+    "a deleted provider's URL is the 404, with no names",
+    gone.h1 === "Not found" && !gone.leaks,
+    JSON.stringify(gone),
+  );
+}
+
 async function signIn(p, email) {
   // On a fresh dev server the first load can fail while Vite optimises its deps: one retry.
   await p.signIn(email, PW).catch(async () => {
@@ -775,6 +1011,9 @@ try {
 
   // --- Add, edit and delete through the sheets (slice 3) --------------------
   made.ids = (await sheetSteps(A, B, proxyA, tag)).ids;
+
+  // --- The provider page and its live notes (slice 4) -----------------------
+  const notesProvider = await providerPageSteps(A, B, proxyA);
 
   // --- Offline: create an event, create-and-link a provider, link a seeded one
   proxyA.setOnline(false);
@@ -917,6 +1156,8 @@ try {
     JSON.stringify({ viewerAdd, viewerNew, viewerEdit }),
   );
 
+  await viewerProviderSteps(C, notesProvider, providerId);
+
   // --- A non-member's providers URL is the 404, with no names --------------
   await sleep(4000); // Better Auth's sign-in rate limit.
   const D = await openPage(bD, "admin");
@@ -932,6 +1173,17 @@ try {
     "non-member: …/providers is the 404 with no names",
     stranger.h1 === "Not found" && !stranger.leaks,
     JSON.stringify(stranger),
+  );
+  await D.goto(providerPath(WESTSIDE));
+  await D.waitFor(`document.querySelector("main h1")?.textContent === "Not found"`, 20000).catch(() => {});
+  const strangerPage = await D.evaluate(`({
+    h1: document.querySelector("main h1")?.textContent,
+    leaks: /Grandma|Pat|Dev Family|Westside|level 2/.test(document.querySelector("main")?.innerText ?? ""),
+  })`);
+  check(
+    "non-member: a provider's page is the 404 with no names",
+    strangerPage.h1 === "Not found" && !strangerPage.leaks,
+    JSON.stringify(strangerPage),
   );
 
   // --- Clean up: soft-delete this run's event --------------------------------
@@ -955,6 +1207,16 @@ try {
     (v) => v === "0",
   );
   check("clean up: this run's providers are deleted", sheetCleaned && sheetGone === "0");
+
+  const cleanedProvider = await onDevice(
+    A,
+    `return (await providers.removeProvider(db, ${JSON.stringify(notesProvider)})).ok;`,
+  );
+  const providerGone = await waitForSql(
+    `SELECT (deleted_at IS NOT NULL)::text FROM provider WHERE id = '${notesProvider}'`,
+    (v) => v === "true",
+  );
+  check("clean up: this run's provider is deleted", cleanedProvider && providerGone === "true");
 
   // Being offline is noisy on purpose (the proxy cuts Vite's socket and PowerSync's stream).
   const noise =

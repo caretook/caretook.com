@@ -30,6 +30,7 @@ const appRoutes = [
           route("new", "routes/app/groups/providers/new/route.tsx"),
           route(":providerId/edit", "routes/app/groups/providers/edit/route.tsx"),
         ]),
+        route("providers/:providerId", "routes/app/groups/provider/route.tsx"),
       ]),
     ]),
   ]),
