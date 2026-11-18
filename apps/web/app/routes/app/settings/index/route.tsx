@@ -1,6 +1,6 @@
 import { redirect } from "react-router";
 import { appUrls } from "~/lib/appUrls";
-import { isWideSettings } from "~/components/SettingsFrame";
+import { isWideSettings } from "~/components/settings";
 import { ACCOUNT_SETTINGS } from "../layout/settingsPages";
 
 // `/app/settings` itself: the list on phones (the layout renders it). Wide

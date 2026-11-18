@@ -8,7 +8,7 @@ import { sessionContext } from "~/lib/session";
 import { createEntry } from "~/lib/sync/timeline";
 import { entryContentFromForm, parseUnits } from "../entryFormData";
 import { EntryForm } from "../EntryForm";
-import { EntrySheet } from "../EntrySheet";
+import { EntrySheet } from "~/components/forms";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { newSheetGuard } from "../sheetGuard";
 

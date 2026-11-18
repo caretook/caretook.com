@@ -1,8 +1,7 @@
 import type { LocalProvider } from "~/lib/sync/providers";
 
 import { Link } from "react-router";
-import { ContactActions } from "~/components/ContactActions";
-import { ProviderTypeIcon } from "~/components/ProviderTypeIcon";
+import { ContactActions, ProviderTypeIcon } from "~/components/providers";
 import { appUrls } from "~/lib/appUrls";
 import { quickActions } from "~/lib/contactActions";
 import { PROVIDER_TYPE_META } from "~/lib/providerDirectory";

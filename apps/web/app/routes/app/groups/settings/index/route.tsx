@@ -1,7 +1,7 @@
 import type { Route } from "./+types/route";
 
 import { redirect } from "react-router";
-import { isWideSettings } from "~/components/SettingsFrame";
+import { isWideSettings } from "~/components/settings";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup } from "~/lib/group";
 import { groupSettingsPages } from "../layout/settingsPages";
