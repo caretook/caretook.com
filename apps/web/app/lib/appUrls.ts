@@ -31,13 +31,23 @@ export const searchString = (search?: Search): string => {
 };
 
 const HOME = "/app";
+
+/** The account's settings subpages, in list order (`/app/settings/<page>`). */
+export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account"] as const;
+export type AccountSettingsPage = (typeof ACCOUNT_SETTINGS_PAGES)[number];
+const isAccountSettingsPage = (page: unknown): page is AccountSettingsPage =>
+  (ACCOUNT_SETTINGS_PAGES as readonly unknown[]).includes(page);
 const groupHome = (groupId: string) => `${HOME}/groups/${segment(groupId)}`;
 
 export const appUrls = {
   /** `/app`: the last group's timeline, the only group's, or the list of groups. */
   home: () => HOME,
-  /** The account's settings. */
-  settings: () => `${HOME}/settings`,
+  /**
+   * The account's settings: the list, or one of its subpages. An unknown
+   * subpage is dropped (the list).
+   */
+  settings: (page?: AccountSettingsPage) =>
+    `${HOME}/settings${isAccountSettingsPage(page) ? `/${page}` : ""}`,
   /** A care group on its own (it goes on to the timeline). */
   groupHome,
   /** A group's timeline, with its filters (`?kind=`, `?author=`) carried through. */
