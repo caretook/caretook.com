@@ -61,10 +61,8 @@ const waitForSql = async (sql, test, ms = 20000) => {
 const onDevice = (p, body) =>
   p.evaluate(`(async () => {
     const db = window.caretookSync;
-    if (!db) throw new Error("window.caretookSync isn't there (dev builds only)");
-    const providers = await import("/app/lib/sync/providers.ts");
-    const liveEntry = await import("/app/lib/sync/liveEntry.ts");
-    const timeline = await import("/app/lib/sync/timeline.ts");
+    if (!db) throw new Error("window.caretookSync isn't there (dev and check builds only)");
+    const { providers, liveEntry, timeline } = await window.caretookModules();
     ${body}
   })()`);
 

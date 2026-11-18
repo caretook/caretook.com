@@ -75,6 +75,12 @@ const TOOLBAR = `document.querySelector('[role=toolbar][aria-label="Formatting"]
 const TIME_CHIP = `document.querySelector('main header button[aria-label="Change when it happened"]')`;
 const HEADER_TIME = `document.querySelector("main header time")`;
 const DAY_SEGMENT = `document.querySelector('[role=dialog] [data-type="day"]')`;
+const PICK_DATE = `document.querySelector('[role=dialog] [aria-label="Pick a date"]')`;
+const CAL_GRID = `document.querySelector("[role=grid]")`;
+const CAL_HEADING = `${CAL_GRID}?.closest("[role=dialog]")?.querySelector("h2")?.textContent.trim()`;
+const NEXT_MONTH = `${CAL_GRID}?.closest("[role=dialog]")?.querySelector('[aria-label="Next month"]')`;
+const calDay = (day) =>
+  `[...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find((c) => c.textContent.trim() === ${JSON.stringify(day)} && !c.hasAttribute("data-outside-month"))`;
 const MENU = `document.querySelector('main header [data-region="actions"] button[aria-label^="Actions for"]')`;
 const SHARE = `document.querySelector('main header [data-region="actions"] button[aria-label="Share"]')`;
 const CHIPS = `[...document.querySelectorAll('main header ul[aria-label="Suggested titles"] button')]`;
@@ -812,8 +818,31 @@ try {
   const dayBefore = await B.evaluate(dayOfRow(N4));
   await visit(C, entryPath(N4));
   await C.waitFor(editorHas(`${tag} written later`), 15000);
-  await shiftDay(A, +1);
+  // Move it a day later through the chip's calendar (a nested popover).
   const movedMs = pickedMs + DAY_MS;
+  const target = await A.evaluate(`(() => { const d = new Date(${movedMs});
+    return { day: String(d.getDate()), heading: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }) }; })()`);
+  await A.press(TIME_CHIP);
+  await A.waitFor(PICK_DATE, 5000);
+  await A.tap(PICK_DATE);
+  await A.waitFor(CAL_GRID, 5000);
+  await escape(A);
+  await A.waitFor(`!${CAL_GRID}`, 3000);
+  check("time: Escape closes the calendar, not the chip's popover", await A.evaluate(`!!${DAY_SEGMENT}`));
+  await A.tap(PICK_DATE);
+  await A.waitFor(CAL_GRID, 5000);
+  if ((await A.evaluate(CAL_HEADING)) !== target.heading) await A.press(NEXT_MONTH);
+  await A.waitFor(`${CAL_HEADING} === ${JSON.stringify(target.heading)}`, 3000);
+  await A.tap(calDay(target.day));
+  await A.waitFor(`!${CAL_GRID}`, 3000);
+  await sleep(1500);
+  check(
+    "time: picking a day closes the calendar; the chip stays open and nothing is saved yet",
+    (await A.evaluate(`!!${DAY_SEGMENT}`)) && Math.abs(occurredMs() - pickedMs) < 1000,
+    new Date(occurredMs()).toISOString(),
+  );
+  await A.press(button("Done"));
+  await A.waitFor(`!${DAY_SEGMENT}`, 5000);
   await waitForSql(
     `SELECT (extract(epoch FROM occurred_at) * 1000)::bigint FROM timeline_entry WHERE id = '${N4}'`,
     (r) => Math.abs(Number(r) - movedMs) < 1000,

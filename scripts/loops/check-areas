@@ -1,0 +1,138 @@
+# Which browser checks a changed file needs: `pnpm prd browser --changed` reads
+# this. AGENTS.md's Browser check budget table, as globs.
+#
+# One rule per line: a glob (bash pattern; * also matches /), then the checks it
+# needs, or `-` for none, or `@suite` for every check. The first matching rule
+# wins, so specific rules go above general ones.
+#
+# After the rules, two built-in fallbacks (browser.sh):
+#   - a module under apps/web/app/lib/ (not lib/sync/) with a sibling .test.ts
+#     needs no check: its unit tests cover it;
+#   - any other file needs $unmapped_default (sign-in phase2 roundtrip), with a
+#     warning to add a rule here.
+#
+# Add a rule when you add a screen, a check or a shared module.
+
+# Docs, plans, tests and tooling: no browser checks.
+*.md                                     -
+plans/*                                  -
+docs/*                                   -
+.githooks/*                              -
+scripts/loops/*                          -
+scripts/backlog/*                        -
+*.test.ts                                -
+*.int.test.ts                            -
+packages/*/test/*                        -
+.nvmrc                                   -
+.gitignore                               -
+eslint.config.*                          -
+.prettier*                               -
+vitest.config.*                          -
+*/tsconfig*.json                         -
+tsconfig*.json                           -
+
+# The checks themselves. The harness runs the basics; a check runs itself.
+scripts/browser-checks/cdp.mjs           sign-in roundtrip
+scripts/browser-checks/proxy.mjs         first-sync layout-offline
+scripts/browser-checks/*.png             -
+scripts/browser-checks/*                 @self
+
+# Build, config, dependencies, sync rules and migrations touch every screen.
+pnpm-lock.yaml                           @suite
+package.json                             @suite
+pnpm-workspace.yaml                      @suite
+apps/web/package.json                    @suite
+apps/web/vite.config.ts                  @suite
+apps/web/react-router.config.ts          @suite
+apps/web/build-target.ts                 @suite
+apps/web/app/root.tsx                    @suite
+apps/web/app/app.css                     phase2 app-shell ui
+powersync/*                              @suite
+docker-compose*.yml                      @suite
+packages/data/src/db/migrations/*        @suite
+packages/data/src/db/client.ts           @suite
+packages/data/package.json               @suite
+packages/api/package.json                @suite
+packages/auth/package.json               @suite
+
+# Sign-in, session, the sync client and first sync.
+apps/web/app/routes/sign-in.tsx          sign-in first-sync
+apps/web/app/routes/sign-out.tsx         signout-wipe sign-in
+apps/web/app/routes/api/*                sign-in first-sync
+apps/web/app/lib/session.ts              sign-in first-sync signout-wipe
+apps/web/app/lib/firstSync.ts            first-sync
+apps/web/app/lib/auth-client.ts          sign-in signout-wipe
+apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe
+apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
+apps/web/app/lib/sync/schema.ts          roundtrip live-notes providers phase2
+packages/auth/src/*                      sign-in first-sync signout-wipe
+apps/web/app/components/shell/*          first-sync
+
+# Routes, URLs, the group route and settings subpages.
+apps/web/app/routes.ts                   routing
+apps/web/app/routes/app/groups/layout/*  routing app-shell
+apps/web/app/routes/app/groups/index/*   routing
+apps/web/app/lib/group.tsx               routing app-shell
+apps/web/app/lib/groupContext.ts         routing app-shell
+apps/web/app/routes/app/settings/*       routing settings-layout layout-offline
+apps/web/app/lib/me.ts                   settings-layout layout-offline
+apps/web/app/components/settings/*       routing settings-layout app-shell
+
+# The /app frame, menus, theme, group settings and members.
+apps/web/app/routes/app/layout/*         app-shell
+apps/web/app/routes/app/home/*           app-shell
+apps/web/app/routes/app/groups/settings/* app-shell routing
+apps/web/app/lib/sync/members.ts         app-shell
+apps/web/app/components/ui/*             ui app-shell
+
+# The timeline, its rows, filters, vitals and sheets.
+apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
+apps/web/app/components/entry/*          phase2 roundtrip live-notes
+apps/web/app/components/forms/*          roundtrip live-notes
+apps/web/app/lib/sync/timeline.ts        phase2 roundtrip
+apps/web/app/lib/entryDisplay.ts         phase2
+apps/web/app/lib/form.ts                 roundtrip
+
+# The entry page and live notes.
+apps/web/app/routes/app/groups/entry/*   live-notes
+apps/web/app/components/notes/*          live-notes providers
+apps/web/app/lib/sync/notes.ts           live-notes providers
+apps/web/app/lib/sync/liveEntry.ts       live-notes
+apps/web/app/lib/sync/editors.ts         live-notes
+apps/web/app/lib/sync/titleSuggestions.ts live-notes
+
+# Providers.
+apps/web/app/routes/app/groups/provider/*  providers
+apps/web/app/routes/app/groups/providers/* providers
+apps/web/app/components/providers/*      providers
+apps/web/app/lib/sync/providers.ts       providers
+
+# Marketing (web only).
+apps/web/app/routes/marketing/*          marketing
+apps/web/public/*                        marketing
+
+# Server code the device reaches. The upload switch carries every synced write.
+packages/api/src/sync.ts                 roundtrip live-notes providers
+packages/api/src/*                       -
+apps/web/app/.server/*                   sign-in
+apps/web/app/routes/rpc.ts               sign-in
+
+# Shared schemas and seeds: the screens that read them.
+packages/data/src/db/schema/timelineEntry.ts phase2 roundtrip live-notes
+packages/data/src/db/schema/vitals.ts    phase2 roundtrip
+packages/data/src/db/schema/noteDocument.ts live-notes providers
+packages/data/src/db/schema/noteYjs.ts   live-notes
+packages/data/src/db/schema/noteEditors.ts live-notes
+packages/data/src/db/schema/provider.ts  providers
+packages/data/src/db/schema/entryProvider.ts providers
+packages/data/src/db/schema/careGroup*.ts app-shell
+packages/data/src/db/schema/careRecipient.ts app-shell
+packages/data/src/db/schema/userPreferences.ts settings-layout
+packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
+packages/data/src/db/seeds/providers.ts  providers
+packages/data/src/db/seeds/*             app-shell
+
+# The rest of the data layer (services, models, permissions, errors) has
+# integration tests; the browser reaches it only through the upload switch above.
+packages/data/src/*                      -
+packages/data/scripts/*                  -

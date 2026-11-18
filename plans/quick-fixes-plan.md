@@ -4,21 +4,25 @@
 
 ## Status
 
-| Slice | Item | State                                             | Merge into `prd/quick-fixes` (slice commits) |
-| ----- | ---- | ------------------------------------------------- | -------------------------------------------- |
-| 1     | B-1  | merged                                            | 1e00754 (5ab3b67)                            |
-| 2     | B-17 | merged                                            | 4629e8c (32355db)                            |
-| 3     | B-22 | merged                                            | b0325d0 (46ef320)                            |
-| 4     | B-28 | merged                                            | b15b140 (9911d1b, 8a0bb50)                   |
-| 5     | B-29 | merged                                            | 8eaf3c3 (3b97174, a31bd85)                   |
-| 6     | B-34 | ready (`components` slice 1 is in `dev`, 414b0a6) |                                              |
-| 7     | B-27 | merged                                            | 75127be (004abfe)                            |
-| 8     | B-35 | merged                                            | 6dcc71d (7c0725f)                            |
-| 9     | B-36 | merged                                            | e6fc148 (cc12901)                            |
+| Slice | Item | State                         | Merge into `prd/quick-fixes` (slice commits) |
+| ----- | ---- | ----------------------------- | -------------------------------------------- |
+| 1     | B-1  | merged                        | 1e00754 (5ab3b67)                            |
+| 2     | B-17 | merged                        | 4629e8c (32355db)                            |
+| 3     | B-22 | merged                        | b0325d0 (46ef320)                            |
+| 4     | B-28 | merged                        | b15b140 (9911d1b, 8a0bb50)                   |
+| 5     | B-29 | merged                        | 8eaf3c3 (3b97174, a31bd85)                   |
+| 6     | B-34 | merged                        | 483f768 (7251a69, 10aa140)                   |
+| 7     | B-27 | merged                        | 75127be (004abfe)                            |
+| 8     | B-35 | merged                        | 6dcc71d (7c0725f)                            |
+| 9     | B-36 | merged                        | e6fc148 (cc12901)                            |
+| 10    | B-39 | waits for `components` wave 2 |                                              |
+| 11    | B-38 | ready                         |                                              |
 
-Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) is merged into `prd/quick-fixes` and synced with `dev` (21e23d8), waiting for the user's word to land. Slice 6 can start after it: `components` slice 1 moved `DateTimeField` to `components/forms/` (import through `~/components/forms`); tell the `components` orchestrator when B-34 lands.
+Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 is slice 6 (merged as 483f768); tell the `components` orchestrator when it lands.
 
-- Slice 7: the root cause was `proxy.mjs` not tunnelling CONNECT, so a proxied browser's Vite HMR socket never connected and it missed Vite's reload after a re-optimization (two copies of React and Yjs, a blank page). The proxy now tunnels WebSockets and keeps Vite's sockets open offline; `cdp.mjs` collects uncaught errors and `waitFor` prints `page.diagnose()` on a timeout. Still open on B-27: the first sign-in on an empty Vite deps cache (504 Outdated Optimize Dep; maybe `optimizeDeps.entries`), and a one-off empty `/app` after a reload (`app-shell.mjs`, seen twice at low load, passes on rerun).
+- Slice 6: `DateTimeField` is a RAC `DatePicker` (typed segments plus a calendar `Popover`), same props and submitted value. `roundtrip.mjs` step 4b and `live-notes.mjs`'s time chip go through the calendar. `components` slice 2 may swap its `Group`/`Popover` for its own primitives.
+
+- Slice 7: the root cause was `proxy.mjs` not tunnelling CONNECT, so a proxied browser's Vite HMR socket never connected and it missed Vite's reload after a re-optimization (two copies of React and Yjs, a blank page). The proxy now tunnels WebSockets and keeps Vite's sockets open offline; `cdp.mjs` collects uncaught errors and `waitFor` prints `page.diagnose()` on a timeout. Still open on B-27: the first sign-in on an empty Vite deps cache (504 Outdated Optimize Dep; maybe `optimizeDeps.entries`), and an empty `/app` after a full reload (`app-shell.mjs`'s last-group steps: no `main`, empty body, no errors, for 20 s). It's not a check race: it failed 4 of the last 5 `app-shell.mjs` runs at load 6–30, at either reload step, so it's an app hang on reload, probably in session or sync startup.
 - Slice 8: `providerService:practiceInUse`, on the server and the device. The sheet criterion wasn't run (no browser checks that wave). Open: deleting a practice leaves its clinicians pointing at it.
 - Slice 9: `careGroup.int.test.ts` builds its fixtures per test; the other integration files were already independent.
 
@@ -280,3 +284,61 @@ Also from routing's open issues: `app-shell.mjs`'s "goes to the last group after
 **Check.** The integration suite. No browser checks.
 
 **Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 10: Lean browser checks (B-39)
+
+**Problem.** Browser checks are still most of the time a change takes. `5804ae4` cut how many run (`pnpm prd browser --changed`, one retry on contention, four leases), but each check is still long: `phase2.mjs` has 107 steps and `app-shell.mjs` 98, and `routing.mjs`, `providers.mjs` and `live-notes.mjs` are close behind. Many steps assert pure logic that now has unit tests (filter URLs, day labels, `appUrls`, menu models, member sorting, contact links), so a browser runs them again at a minute a check. And after a merge, an orchestrator only needs to know the area still works, not every edge.
+
+**Build.**
+
+- **Move pure-logic assertions to unit tests.** For each of `phase2`, `app-shell`, `routing`, `providers` and `live-notes`: list the steps that check something a pure module decides (the URL a filter link builds, a label's text, an ordering, a role's allowed actions). Where the module's unit test already covers it, delete the step; where it doesn't, add the case to the unit test first, then delete the step. Keep a step when it checks wiring the unit test can't see (that the link is actually on the page, that tapping it navigates).
+- **Keep checks to user flows:** sign in, do the thing, see the result, across roles, offline and two devices. Collapse steps that differ only in data (several vitals, several menus) into one representative case, unless the difference exercises different code.
+- **A smoke mode.** Each check reads `SMOKE=1` and runs only its core path (target about 20 s: one role, one happy path, no offline, no second device). `pnpm prd browser --changed --smoke` passes it through, and AGENTS.md's after-merge step uses it; hand-offs and landings keep full mode. Mark which steps are smoke with a small helper in `cdp.mjs` (e.g. `step(name, { smoke: true }, fn)`), not by copying flows.
+- Don't change what the checks prove at landing: everything removed must be covered by a unit test or another remaining step. List each removed step and where it's now covered in the hand-off.
+- Update `scripts/loops/check-areas` if a check is split or renamed, and AGENTS.md's check descriptions (the orchestrator folds them in at landing).
+
+**Acceptance criteria.**
+
+- [ ] For each of the five checks: steps before and after, run time before and after (same machine, quiet), and the list of removed steps with where each is now covered.
+- [ ] Every new unit test case passes in `pnpm check`.
+- [ ] Each check's full mode passes 2 runs in a row; its smoke mode passes and takes 30 s or less.
+- [ ] `pnpm prd browser --changed --smoke` runs smoke mode; without `--smoke` it runs full mode.
+- [ ] The full suite's run time drops by at least a third (show both tables).
+
+**Check.** The five checks, full and smoke, through `pnpm prd browser`. `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** `components` wave 2 in `dev` (it reworks the same screens and checks).
+
+---
+
+## Slice 11: The production build behaves like dev (B-38)
+
+**Problem.** `pnpm prd serve --built` serves a production build of the web target (with `VITE_CHECK_BUILD=1`, which keeps the checks' `window.caretookSync` and `window.caretookModules` hooks). On 2026-11-18, in a throwaway worktree, `sign-in.mjs` and `roundtrip.mjs` passed against it, but:
+
+- `providers.mjs` failed "a deleted provider's URL is the 404, with no names": `main` was missing and the body was empty, a blank page instead of "Not found";
+- on its retry it failed "a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form": the viewer stayed on `…/providers/new` instead of being sent to the list;
+- `phase2.mjs` failed "no console errors or warnings" on `[viewer console.warning] [PowerSync]: Sync aborted`.
+
+Both checks passed against the dev server minutes later, from the same code. So either the production build has real bugs on these paths (a 404 thrown from a client loader, a guard's redirect, PowerSync teardown), or the checks depend on dev-server timing. Real users get the production build, so find out which. Until this is fixed, checks run on the dev server, and the build mode's benefits (no Vite websocket, no dependency re-optimization reloads, no stale deps, faster pages) are out of reach.
+
+**Build.**
+
+- Reproduce each failure with `pnpm prd serve --built` and the single check (`pnpm prd browser providers`, `pnpm prd browser phase2`), and by hand in a browser against the built server. React's production errors are minified: capture them with `cdp.mjs`'s `page.uncaught`/`diagnose()`, and decode them, or build with source maps (`build.sourcemap`) for this investigation only.
+- **Fix the root cause where it is.** If the app behaves differently in production (an error boundary that renders nothing, a redirect thrown in a way the production router handles differently, a missing chunk for a lazy route), fix the app and add a unit test if the cause is in a pure module. If it's the check (a step that relied on dev-server timing or Vite's slower module loading), fix the check to wait on what it means, never with a fixed sleep.
+- For "Sync aborted": decide whether it's expected when a page closes or signs out mid-sync. If so, have the checks ignore exactly that warning when the step closes the page (as they ignore other teardown noise); if not, fix the teardown.
+- Then run every check in the suite against the built server once (`pnpm prd serve --built`, then `pnpm prd browser --suite`), and fix anything else that differs from dev in the same way.
+- **Make the build the default for checks** once the suite passes on it twice in a row: `pnpm prd browser` starts or rebuilds a `--built` server when the worktree's server is the dev server or isn't running (keep `--dev` to opt out), and update AGENTS.md (_Browser check budget_: "Check builds", the landing step's server restart, _Gotchas_ entries the build makes unnecessary such as Vite re-optimization and stale optimized deps). The orchestrator folds the AGENTS.md wording in at landing.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off names the cause of each of the three failures, with the evidence (the decoded error, or the timing the check depended on).
+- [ ] Against the built server, `providers.mjs` and `phase2.mjs` pass 3 runs in a row on a quiet machine (load under about 40), and the full suite passes twice in a row.
+- [ ] By hand on the built server: a deleted provider's URL shows "Not found" with no names; a viewer opening `…/providers/new` lands on the list.
+- [ ] The full suite's run time on the built server versus the dev server, same machine (both tables).
+- [ ] Checks run against a built server by default, rebuilt when the source changes; `--dev` still works.
+
+**Check.** The full suite on the built server, through `pnpm prd browser --suite`. `pnpm check` passes.
+
+**Blocks:** none (slice 10 benefits from it). **Blocked by:** none.
