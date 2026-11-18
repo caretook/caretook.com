@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-// A settings area (the account's now, a group's next): a short list of
+// A settings area (the account's and a group's): a short list of
 // subpages, shown as the page on phones and as a side nav beside the open
 // subpage on wide screens. These are the pure parts, unit-tested in web:unit;
 // `SettingsFrame` renders them.
