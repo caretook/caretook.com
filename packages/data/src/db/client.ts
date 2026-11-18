@@ -14,25 +14,29 @@ import * as schema from "./schema";
 // whole module is fine.
 export const getSchema = <K extends keyof typeof schema>(name: K) => schema[name];
 
-const DB_KEY = "caretook:db";
+const POOL_KEY = "caretook:db-pool";
 
-const createDb = () => {
-  const { url, maxPool, debug } = getDbConfig();
+const createPool = () => {
+  const { url, maxPool } = getDbConfig();
   if (!url) throw newError({ code: "db:missingUrl" });
-
-  const pool = new pg.Pool({
+  return new pg.Pool({
     connectionString: url,
     max: maxPool,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 2_000,
   });
-
-  // { schema } enables the relational query API (db.query.userSchema...).
-  return drizzle({ client: pool, schema, logger: debug });
 };
 
+// { schema } enables the relational query API (db.query.userSchema...).
+const createDb = (pool: pg.Pool) => drizzle({ client: pool, schema, logger: getDbConfig().debug });
+
+// The pool is kept across dev-server HMR reloads (one set of connections).
+// The drizzle wrapper isn't: it holds the schema, so it's rebuilt when this
+// module reloads, and new tables work without restarting the server.
+let db: ReturnType<typeof createDb> | null = null;
+
 /** Lazily create the pool on first use, so importing never needs DATABASE_URL. */
-export const getDb = () => remember(DB_KEY, createDb);
+export const getDb = () => (db ??= createDb(remember(POOL_KEY, createPool)));
 
 export type Db = ReturnType<typeof createDb>;
 
@@ -60,7 +64,8 @@ export const initClient = () => dbMayFail(() => getDb().execute(sql`SELECT 1`), 
 
 export const endClient = async () => {
   await getDb().$client.end();
-  forget(DB_KEY);
+  forget(POOL_KEY);
+  db = null;
 };
 
 /**

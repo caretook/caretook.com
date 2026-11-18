@@ -1,9 +1,10 @@
 import type { AuthUser } from "@caretook/data";
 
-import { DEFAULT_TIMELINE_VIEW, DEFAULT_UNITS } from "@caretook/data";
+import { DEFAULT_TIMELINE_VIEW, DEFAULT_UNITS, isError, noteDocumentService } from "@caretook/data";
 import { createRouterClient, ORPCError } from "@orpc/server";
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser } from "../../data/test/fixtures";
+import { createGroup, createUser, newYDoc, typeParagraph } from "../../data/test/fixtures";
 import { createRpcHandler, router } from ".";
 
 // Each test makes its own users and group, so tests never depend on each other.
@@ -181,6 +182,181 @@ describe("timeline", () => {
     const second = await owner.api.timeline.list({ groupId: group.id, limit: 2, cursor: first.nextCursor });
     expect([...first.data, ...second.data]).toHaveLength(3);
     expect(second.nextCursor).toBeNull();
+  });
+});
+
+describe("sync.upload", () => {
+  /** A row as a device's SQLite holds it: snake_case, microsecond timestamps, JSON as text. */
+  const row = (groupId: string, recipientId: string) => ({
+    group_id: groupId,
+    recipient_id: recipientId,
+    kind: "symptom",
+    occurred_at: "2026-11-17T20:00:00.000000Z",
+    time_zone: "America/Los_Angeles",
+    title: null,
+    body: "After lunch",
+    details: JSON.stringify({ name: "Dizziness", severity: 3 }),
+    created_by: "ignored",
+  });
+
+  it("applies a device's inserts, edits and deletes in order", async () => {
+    const { owner, viewer, group, recipient } = await setup();
+    const id = randomUUID();
+
+    const res = await owner.api.sync.upload({
+      ops: [
+        { op: "PUT", table: "timeline_entry", id, data: row(group.id, recipient.id) },
+        { op: "PATCH", table: "timeline_entry", id, data: { body: "After a big lunch" } },
+      ],
+    });
+    expect(res.results).toEqual([
+      { id, status: "applied" },
+      { id, status: "applied" },
+    ]);
+    const [entry] = (await viewer.api.timeline.list({ groupId: group.id })).data;
+    expect(entry).toMatchObject({
+      id,
+      kind: "symptom",
+      body: "After a big lunch",
+      occurredAt: "2026-11-17T20:00:00.000Z",
+      details: { name: "Dizziness", severity: 3 },
+      createdBy: owner.user.id,
+    });
+
+    // A soft delete arrives as a PATCH of deleted_at.
+    const patch = {
+      op: "PATCH" as const,
+      table: "timeline_entry",
+      id,
+      data: { deleted_at: "2026-11-17 21:00:00Z" },
+    };
+    expect((await owner.api.sync.upload({ ops: [patch] })).results).toEqual([{ id, status: "applied" }]);
+    expect((await viewer.api.timeline.list({ groupId: group.id })).data).toEqual([]);
+  });
+
+  it("is safe to replay", async () => {
+    const { owner, group, recipient } = await setup();
+    const id = randomUUID();
+    const ops = [
+      { op: "PUT" as const, table: "timeline_entry", id, data: row(group.id, recipient.id) },
+      { op: "DELETE" as const, table: "timeline_entry", id },
+    ];
+    await owner.api.sync.upload({ ops });
+    const replay = await owner.api.sync.upload({ ops });
+    expect(replay.results.map((r) => r.status)).toEqual(["applied", "applied"]);
+    const all = await owner.api.timeline.list({ groupId: group.id, includeDeleted: true });
+    expect(all.data).toHaveLength(1);
+  });
+
+  it("acknowledges refused changes instead of failing the batch", async () => {
+    const { owner, viewer, group, recipient } = await setup();
+    const good = randomUUID();
+    const res = await viewer.api.sync.upload({
+      ops: [{ op: "PUT", table: "timeline_entry", id: randomUUID(), data: row(group.id, recipient.id) }],
+    });
+    expect(res.results[0]).toMatchObject({ status: "rejected", code: "permissions:unauthorized" });
+
+    const mixed = await owner.api.sync.upload({
+      ops: [
+        {
+          op: "PUT",
+          table: "timeline_entry",
+          id: randomUUID(),
+          data: { ...row(group.id, recipient.id), details: "{" },
+        },
+        { op: "PUT", table: "care_group", id: group.id, data: { name: "Renamed" } },
+        { op: "PUT", table: "timeline_entry", id: good, data: row(group.id, recipient.id) },
+        { op: "PATCH", table: "timeline_entry", id: good, data: { kind: "note" } },
+      ],
+    });
+    expect(mixed.results).toEqual([
+      expect.objectContaining({ status: "rejected", code: "timelineEntryService:invalid" }),
+      expect.objectContaining({ status: "rejected", code: "sync:readOnlyTable" }),
+      { id: good, status: "applied" },
+      expect.objectContaining({ status: "rejected", code: "timelineEntryService:immutable" }),
+    ]);
+    expect((await owner.api.careGroup.listMine())[0]?.name).toBe("Test Family");
+  });
+
+  it("needs a session", async () => {
+    expect((await rejection(clientFor(null).sync.upload({ ops: [] }))).code).toBe("UNAUTHORIZED");
+  });
+
+  describe("live documents", () => {
+    /** An event made offline, its live document, and `n` edits: one batch, in order. */
+    const offlineDocument = (groupId: string, recipientId: string, n: number) => {
+      const entryId = randomUUID();
+      const ydoc = newYDoc();
+      const ops = [
+        {
+          op: "PUT" as const,
+          table: "timeline_entry",
+          id: entryId,
+          data: { ...row(groupId, recipientId), kind: "event", title: "Dr. Lee visit", details: null },
+        },
+        { op: "PUT" as const, table: "note_document", id: entryId, data: { group_id: groupId } },
+        ...Array.from({ length: n }, (_, i) => ({
+          op: "PUT" as const,
+          table: "note_update",
+          id: randomUUID(),
+          data: { group_id: groupId, document_id: entryId, data: typeParagraph(ydoc, `Line ${i + 1}`) },
+        })),
+      ];
+      return { entryId, ops };
+    };
+
+    it("creates the document and its edits from one offline batch, and replays safely", async () => {
+      const { owner, group, recipient } = await setup();
+      const { entryId, ops } = offlineDocument(group.id, recipient.id, 2);
+      const res = await owner.api.sync.upload({ ops });
+      expect(res.results.map((r) => r.status)).toEqual(["applied", "applied", "applied", "applied"]);
+      expect((await owner.api.sync.upload({ ops })).results.every((r) => r.status === "applied")).toBe(true);
+
+      const text = await noteDocumentService.currentText(owner.ctx, entryId);
+      expect(text).toBe("Line 1\nLine 2");
+    });
+
+    it("compacts once enough edits arrive", async () => {
+      const { owner, group, recipient } = await setup();
+      const n = noteDocumentService.COMPACT_AFTER_UPDATES;
+      const { entryId, ops } = offlineDocument(group.id, recipient.id, n);
+      await owner.api.sync.upload({ ops });
+
+      const doc = await noteDocumentService.getById(owner.ctx, entryId);
+      if (isError(doc)) throw doc;
+      // Compacted during the upload: the text is the server's, and nothing is pending.
+      expect(doc.text.split("\n")).toEqual(Array.from({ length: n }, (_, i) => `Line ${i + 1}`));
+      expect(doc.snapshot).not.toBeNull();
+    });
+
+    it("refuses viewers' edits, and any change but adding", async () => {
+      const { owner, viewer, group, recipient } = await setup();
+      const { entryId, ops } = offlineDocument(group.id, recipient.id, 1);
+      await owner.api.sync.upload({ ops });
+
+      const edit = {
+        op: "PUT" as const,
+        table: "note_update",
+        id: randomUUID(),
+        data: { group_id: group.id, document_id: entryId, data: typeParagraph(newYDoc(), "Hi") },
+      };
+      expect((await viewer.api.sync.upload({ ops: [edit] })).results[0]).toMatchObject({
+        status: "rejected",
+        code: "permissions:unauthorized",
+      });
+
+      const res = await owner.api.sync.upload({
+        ops: [
+          { op: "PATCH", table: "note_document", id: entryId, data: { text: "forged" } },
+          { op: "DELETE", table: "note_document", id: entryId },
+          { op: "PATCH", table: "note_update", id: ops[2]!.id, data: { data: "x" } },
+          { op: "DELETE", table: "note_update", id: ops[2]!.id },
+        ],
+      });
+      expect(res.results.map((r) => r.status === "rejected" && r.code)).toEqual(
+        Array(4).fill("sync:readOnlyTable"),
+      );
+    });
   });
 });
 

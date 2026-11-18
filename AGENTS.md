@@ -159,7 +159,7 @@ The shared space care data belongs to: the caretakers looking after one care rec
 - ❓ Invitations: sending the email, and the accept/decline flow (match the signed-in user's email to the invite, then create the membership as `system`). Comes with Better Auth.
 - ❓ Consent: inviting someone shares health data. What does the inviter or recipient confirm, and where is it recorded? Probably a field on the invite, or an audit row, at accept time.
 - ❓ Account deletion by a group's last owner: today the cascade leaves the group without an owner. Block deletion until ownership is handed over, delete their sole-owner groups, or promote someone automatically?
-- ❓ How a membership removal propagates to devices that have already synced the group's data offline (PowerSync sync rules plus local data wipe).
+- 🟡 Membership removal: the next sync drops that group's buckets from the device (Sync Streams). Not yet tested end to end; a device that stays offline keeps its copy until it reconnects.
 - 🟡 Co-members can read each other's full user row in the data layer, including `role` and `emailVerified`. The API exposes only public profiles (`careGroup.members`: name, image, role), so keep it that way for any new procedure.
 
 ### Shared timeline (iteration 1, done)
@@ -167,7 +167,7 @@ The shared space care data belongs to: the caretakers looking after one care rec
 The first full vertical slice: a seeded user signs in, picks one of their care groups, then can add, edit, delete and view timeline entries on the web target. It's online only (oRPC from `clientLoader`/`clientAction`). PowerSync comes next, so the API reuses the same services its upload endpoint will call.
 
 - ✅ One `timeline_entry` table with a `kind` column:
-  - `group_id` is stored directly on the row, because PowerSync sync rules filter by column, not by join. `recipient_id` is stored too, ready for several recipients per group.
+  - `group_id` is stored directly on the row, because PowerSync streams filter on columns of the synced row. `recipient_id` is stored too, ready for several recipients per group.
   - `occurred_at` (when it happened, as opposed to `created_at`, the upload time) plus the device's IANA `time_zone`.
   - `title` (optional) and `body`, with kind-specific fields in a `details` jsonb validated by a Zod discriminated union.
   - Index on `(group_id, occurred_at desc, id)`.
@@ -204,7 +204,7 @@ The first full vertical slice: a seeded user signs in, picks one of their care g
 
 ### Timeline iteration 2 (in progress, before Resend)
 
-The user chose to do this feature work before the Resend iteration. There are four phases, in order. **Phases 1 and 2 are done; phase 3 (PowerSync) is next.** New dependencies still need the user's approval as each phase starts.
+The user chose to do this feature work before the Resend iteration. There are four phases, in order. **All four phases are done** (phases 3 and 4 are uncommitted until the user asks). New dependencies still need the user's approval as each phase starts.
 
 #### Entry kinds: what goes where
 
@@ -255,7 +255,7 @@ Every timeline entry is one of four kinds. When someone proposes a new type of t
      - vitals in `timelineEntry.int.test.ts`;
      - preferences in `router.int.test.ts`;
      - a headless Chrome run (see _Browser checks_ below).
-   - **Seeds:** ids follow list position, so add new seed entries at the **end** of `ENTRIES`. Changing an existing seed doesn't update rows already seeded; fix those by hand or run `datastore:reset`.
+   - **Seeds:** see _Dev seed data_ under phase 2.
    - Out of scope: alert thresholds, per-recipient baselines, charts.
 
 2. ✅ **Timeline layout and scanning** (built 2026-11-17; added `lucide-react` 1.73.0, pinned exactly; no migration). The user picked these from ASCII mockups:
@@ -270,35 +270,102 @@ Every timeline entry is one of four kinds. When someone proposes a new type of t
    - **Latest vitals strip:** the new `timeline.latestVitals({ groupId })` → `timelineEntryService.latestVitals` → `timelineEntryModel.latestReadings`. That's one RBAC-scoped SQL query (`DISTINCT ON` over `jsonb_array_elements(details->'readings')`, skipping soft-deleted entries). It returns the newest reading per type, sorted most recent first; phones show 4 plus "+N more". After PowerSync, this becomes a local `json_each` query.
    - The time zone note ("11:27 AM in Los Angeles") is **kept** in both views (the user didn't choose to quiet it): a small line under the row, or after the author on a card.
    - Verified in headless Chrome (21 checks: above the fold, density, sticky header, no horizontal scroll, add/validate/edit/delete through the sheet, the Vitals menu, Esc, clamping, filter, the view surviving a reload, viewer read-only, no console errors), plus screenshots at 420 and 1280 in light and dark.
-   - Dev data note: the dev database has about 12 duplicate "Temp 100.8 °F / BP 121/79" vitals left over from earlier browser checks. `pnpm datastore:reset` clears them.
+   - **Dev seed data** (`seeds/timelineEntries.ts`): Grandma Pat in Dev Family has about 180 entries over eight weeks, so layout and paging can be judged with realistic volume and lengths.
+     - The story: knee arthritis and PT, dizziness on standing (a BP dose change), late-afternoon confusion, hiring an aide (Maria), an OT home safety visit, a urine infection that showed up as sudden confusion (urgent care → ER, logged hour by hour), respite research, pharmacy and insurance admin. Two long notes (a phone-call rundown and a full doctor's visit) test clamping and long cards.
+     - **All seed data is fictional.** Never put real people's health information in the repo, even anonymized: in this session the user decided against seeding an anonymized real family timeline.
+     - `SEED_ENTRIES = [...ENTRIES, ...MORE_ENTRIES, ...routineVitals()]`. An entry is placed either `hoursAgo` (relative to seeding time) or `at: { daysAgo, time: "HH:MM" }` (a local time in `America/Los_Angeles`), so times written in the text match the timestamp.
+     - `routineVitals()` generates daily sleep, bowel movements, morning BP every 3 days and a weekly weight from a fixed pseudo-random sequence, so every seed gives the same values.
+     - Ids follow position in `SEED_ENTRIES` and inserts skip existing ids. **Adding to `ENTRIES` or `MORE_ENTRIES` shifts the ids of everything after it**, so run `pnpm datastore:reset` afterwards (changing an existing entry also needs a reset).
+     - `seeds/timelineEntries.test.ts` (in `data:unit`) checks every seed entry against `timelineEntryContentZSchema`, because seeds insert straight into the table without the service's validation.
 
-3. 🟡 **PowerSync round trip.** It moved ahead of Resend because collaborative notes need it.
-   - ❓ Decisions for the user:
-     - PowerSync Cloud or self-hosted (Docker for local dev in either case);
-     - the packages: `@powersync/web` plus the Drizzle driver (`@powersync/drizzle-driver`) or Kysely;
-     - where the upload endpoint lives (an oRPC procedure or a dedicated route).
-   - Auth: Better Auth's `jwt()` plugin already issues 15-minute EdDSA tokens (`sub`, `role`), with JWKS at `/api/auth/jwks`. PowerSync verifies them.
-   - Sync rules: one bucket per care group, for members only (by `care_group_member`). Synced tables: `timeline_entry` (soft-deleted rows included, so deletes reach other devices), `care_group`, `care_recipient`, and members' public profiles. **Never sync emails or account tables.**
-   - Upload endpoint:
-     - receives the client's CRUD batch and calls the **services**, never the models, so RBAC and validation still apply;
-     - needs an idempotent `timelineEntryService.upsert` keyed by the client-generated id, with per-kind validation (there's deliberately no unvalidated upsert today);
-     - replays are no-ops.
-   - Client: the timeline reads local SQLite with watched queries, replacing `clientLoader` and the oRPC `timeline.list`. Writes are local and instant (optimistic), and the "Show older" keyset paging becomes a local query.
-   - ❓ Still open (see _Care groups_): when someone is removed from a group, wipe that group's data from their devices.
+3. ✅ **PowerSync round trip** (built 2026-11-17; migration `0005`). Moved ahead of Resend because collaborative notes need it.
+   - **Decisions (the user's):**
+     - PowerSync Cloud in production, the self-hosted service in Docker locally.
+     - The Drizzle driver.
+     - The upload endpoint is an oRPC procedure.
+     - `me` settings are cached on the device, not synced.
+     - No latency spike first.
+   - **Dependencies:** `@powersync/web` 2.7.0, `@powersync/drizzle-driver` 0.8.0, `@journeyapps/wa-sqlite` 2.0.10 and `drizzle-orm` (apps/web). Docker image `journeyapps/powersync-service:1.28.3`.
+   - **Sync Streams, not Sync Rules** (Sync Rules are deprecated). `powersync/sync-config.yaml` (`config: edition: 3`) defines two streams:
+     - `care_groups`: one bucket per group the user belongs to. It carries `care_group`, `care_group_member`, `care_recipient` (name and preferred name only) and every `timeline_entry` column, including soft-deleted rows.
+     - `member_profiles`: co-members' `id`, `name` and `image`.
+     - The service reads the file only at startup: run `docker compose restart powersync` after changing it.
+   - **Publication** (migration `0005`): `CREATE PUBLICATION powersync` covers the care tables plus `"user" (id, name, image)`. That column list keeps emails, roles and preferences out of replication entirely. A new synced table needs `ALTER PUBLICATION powersync ADD TABLE …` in a migration. `datastore:clear` drops the publication. After `datastore:reset`, PowerSync re-snapshots on its own. Expect one 401 in the browser as it refetches the new JWKS (the reset regenerates Better Auth's keys).
+   - **Local infra** (`docker-compose.yml`):
+     - `powersync` on :8080, with bucket storage in its own `powersync-storage` Postgres (`.postgres/powersync-storage`), so clearing the app database never touches it.
+     - It fetches Better Auth's JWKS from `PS_JWKS_URL` (default `http://host.docker.internal:5173/api/auth/jwks`). Docker Desktop forwards that only to the host's **IPv4** loopback, so `vite.config.ts` binds `127.0.0.1` and allows the `host.docker.internal` Host header. On another port, set `PS_JWKS_URL`.
+     - `service.yaml` turns telemetry off.
+   - **Auth:** Better Auth signs JWTs with `aud` = `POWERSYNC_URL`, which on Cloud must be the instance URL. The client connects to `VITE_POWERSYNC_URL`; both are in `apps/web/.env`. `fetchCredentials` calls `/api/auth/token`. On a 401 it returns null and the device stays local-only; any other failure is retried.
+   - **Upload** (`packages/api/src/sync.ts`, `sync.upload`): takes up to 100 CRUD ops, in order, and maps them onto the **services**:
+     - `PUT` → `timelineEntryService.upsert`, idempotent on the client's id. A replay is harmless, a deleted entry stays deleted, a changed group, kind or recipient → `timelineEntryService:immutable`, and an id taken in a group the actor can't see → `unauthorized`.
+     - `PATCH` → `update`, or `remove` when it sets `deleted_at`.
+     - `DELETE` → `remove`.
+     - Other tables → `sync:readOnlyTable`.
+     - 4xx outcomes are acknowledged as `rejected` (logged on the client), and the next sync restores the server's copy. Anything else throws, so the batch retries.
+   - **Timestamp format:** PowerSync syncs timestamptz as `2026-11-17T21:45:25.229000Z` (ISO with microseconds; its docs show a space). Local writes use exactly that text (`toLocalTimestamp`), so rows sort correctly as strings. `fromLocalTimestamp` parses either form.
+   - **Client** (`apps/web/app/lib/sync/`):
+     - `schema.ts`: Drizzle sqlite tables, turned into the PowerSync schema with `DrizzleAppSchema`.
+     - `client.ts`: the database (`caretook.sqlite`) and connector, loaded lazily (never imported statically).
+       - The device holds one user's data at a time: the owner is kept in localStorage, and the file is wiped when someone else opens it.
+       - Sign-out runs `disconnectAndClear`, then **deletes the IndexedDB/OPFS file**, because SQLite keeps freed pages. The delete completes once PowerSync's shared worker lets go (by the next reload).
+     - `index.ts`: `openSync`, `getSync`, `closeSync`, `waitForFirstSync` (10 s cap), `useLiveQuery` (a watched SQL query; new loader data resets it), and `useSyncState`. Dev builds expose `window.caretookSync`.
+     - `timeline.ts`: the queries (entries with keyset-free `LIMIT n+1` paging, groups, members, latest vitals via `json_each`), row → API-shape mapping (rows of unknown kinds are skipped), and local create/update/remove. Writes validate with the same Zod schemas and check the role locally; only content columns are ever updated.
+   - **Routes:**
+     - `lib/session.ts` `requireSession(request)`: one shared session check plus DB open, because React Router runs layout and child loaders in parallel. Offline, the last signed-in user (cached) carries on.
+     - The home and timeline loaders read local data. Components use live queries, so other members' changes appear without reloading.
+     - The timeline's `shouldRevalidate` skips form submissions. "Show older" grows the query's limit.
+     - `lib/me.ts` caches settings per user. `components/SyncIndicator.tsx` shows Offline or Syncing… in the header.
+   - **Verified** (headless Chrome, `scripts/browser-checks/`):
+     - `roundtrip.mjs` (21 checks): two members see an add, edit or delete in about 0.4–0.8 s locally; audit fields in Postgres; a local validation error; viewer read-only; sign-out.
+     - The offline check: browser A goes through a switchable proxy (`proxy.mjs`), since CDP network emulation doesn't cut PowerSync's open stream. An entry written offline shows locally, isn't on the server or the other device, and arrives about 1.8 s after reconnecting.
+     - `phase2.mjs` (15 checks): the phase 2 layout checks against local data.
+     - `signout-wipe.mjs`: the local file is gone after sign-out and a reload.
+   - Not done or open:
+     - ❓ **Production:** a dedicated replication role with column-limited grants, `sslmode: verify-full`, the Cloud instance setup, and how PowerSync Cloud reaches the JWKS.
+     - The old oRPC reads (`timeline.list`, `latestVitals`, `careGroup.listMine`, `members`) stay for API, AI and worker use, but no screen uses them now.
+     - Settings (`/app/settings`) still loads and saves online only.
+     - **Offline web reload** needs a service worker (not built). Offline works within a loaded session, and will in Capacitor.
+     - Removal from a group: the next sync drops that group's buckets from the device. Not yet tested end to end.
 
-4. 🟡 **Collaborative notes.** Several people edit the same note at once, and viewers watch live, so it needs a CRDT.
-   - **Yjs** with the **Tiptap** editor (the user's choice), through `@tiptap/extension-collaboration`. Packages to approve: `yjs`, `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-collaboration`.
-   - Tables:
-     - `note_document`: `group_id`, `entry_id` (unique: at most one per entry), a compacted Yjs snapshot, and derived plain text for previews, search and AI;
-     - `note_update`: append-only Yjs updates, with `group_id` on the row, synced by PowerSync. That covers offline editing and merging between users.
-   - ✅ **A live document is something you add to an entry** (decided by the user, 2026-11-17):
-     - Only **event** and **note** entries can have one: e.g. live appointment notes on an event, or a running write-up on a note. Symptoms and vitals can't.
-     - It's created on demand ("Add live notes" on the entry), at most one per entry.
-     - The entry keeps its own `title`/`body`; the document sits alongside it, and the card shows a preview from the plain text plus an "Open" link.
-     - The service checks the entry's kind and group when creating a document, and `group_id` must match the entry's. Deleting the entry (soft) hides its document; group deletion cascades.
-   - Permissions: writers edit; viewers watch the live document, read-only.
-   - ❓ **Live latency:** PowerSync's round trip (upload → Postgres → replication → stream) may feel slow for live co-editing, and it carries no presence or cursors. Plan: build on PowerSync, measure the latency, then add a websocket relay for low-latency updates and awareness if needed (e.g. Hocuspocus on AWS, since Vercel can't hold websockets open). Postgres plus PowerSync stays the durable store either way.
-   - The server compacts updates into the snapshot and refreshes the plain text.
+4. ✅ **Collaborative notes ("live notes")** (built 2026-11-17; migration `0006`). Several people edit the same document at once, offline included, and viewers watch it live.
+   - **Dependencies (approved):** apps/web gets `yjs` 13.6.33, `@tiptap/react`, `@tiptap/core`, `@tiptap/pm`, `@tiptap/starter-kit` and `@tiptap/extension-collaboration` (all 3.34.0), `@tiptap/y-tiptap` 3.3.0 and `y-protocols` 1.0.7 (the last four are Tiptap's peer dependencies). packages/data gets `yjs` 13.6.33, for compaction and plain text. All pinned exactly.
+   - ✅ **A live document is something you add to an entry** (the user's decision):
+     - Only **event** and **note** entries can have one (`NOTE_DOCUMENT_KINDS`); symptoms and vitals can't.
+     - It's created on demand: "Add live notes" in the entry's ⋯ menu (writers).
+     - The entry keeps its own `title`/`body`. Rows and cards show a two-line preview plus an "Open live notes" link, for viewers too.
+   - **A document's id is its entry's id.** That makes "one per entry" true by construction. And when two devices both add live notes to an entry offline, they create the same row and their edits merge, instead of one being refused.
+   - **Tables** (`db/schema/noteDocument.ts`):
+     - `note_document`: `id` (= the entry's), `group_id`, `snapshot` (compacted Yjs state, base64, null until the first compaction) and `text` (derived plain text). A composite FK `(group_id, id) → timeline_entry(group_id, id)` cascades, which needed a new unique `(group_id, id)` on `timeline_entry`. drizzle-kit emitted that unique **after** the FK again; it was moved by hand.
+     - `note_update`: append-only Yjs updates (base64 `data`, at most 1,000,000 chars), with a composite FK to `note_document(group_id, id)`, indexed on `(document_id, created_at)`.
+     - Both are in the `powersync` publication (migration `0006`).
+   - **Yjs helpers** (`db/schema/noteYjs.ts`, client-safe, shared by server and device): base64 conversion, `isYjsUpdate` (validates by applying to an empty doc), `buildNoteDoc(snapshot, updates)`, `encodeNoteDoc`, and `noteText` (one line per paragraph or heading, `• ` for list items). The Tiptap content lives in the fragment `NOTE_FRAGMENT = "default"`.
+   - **Permissions:** read/list for any member. `note_document` create for writers, with `snapshot`/`text` system-only. `note_update` create for writers. Update and delete on both are **system only**: devices only ever insert.
+   - **Service** (`noteDocumentService`; write through it, not the models):
+     - `create`: the entry must be live, a note or event, and in the given group. It's idempotent, returning the existing document.
+     - `appendUpdate`: the document must be visible and its entry not deleted. It's idempotent on the update's id.
+     - `getById` hides a deleted entry's document. `currentText` includes updates not yet compacted (for AI and workers).
+     - `compact(documentId)`, run as the system: it locks the document row `FOR UPDATE`, applies the snapshot plus every pending update, writes the new snapshot and text, and deletes those updates.
+     - `compactIfDue`: compacts at 20 pending updates, or once the oldest has waited 60 s.
+   - **Sync:**
+     - Both tables are in the `care_groups` stream (the user's choice over an on-demand stream), so any document opens and edits offline, even one never opened before.
+     - `sync.upload` maps a `note_document` PUT to `create` and a `note_update` PUT to `appendUpdate`. Any PATCH or DELETE on either table is refused with `sync:readOnlyTable`.
+     - After each batch, the documents it touched are compacted when due (best effort: a failure is logged and the next upload retries).
+     - Leftover updates (typing that stops below the threshold) stay pending until the next edit. Device previews rebuild the text locally, so they're fresh anyway. A cron sweep for stale pending updates is not built.
+   - **Device** (`lib/sync/notes.ts`):
+     - `createNoteDoc(initial)` builds a Y.Doc from what the loader read, so the editor opens with the text.
+     - `bindNoteDoc(doc, …)` watches `note_document.snapshot` and `note_update` rows and applies them (applying twice is harmless). Local changes are merged per burst of typing (written 250 ms after the last keystroke, at least every 1 s) into one `note_update` row. A viewer's changes are never written.
+     - It's split into create and bind so React StrictMode's double effects can't destroy a doc that's still in use.
+     - `ensureNoteDocument` checks the kind and role locally. `groupDocumentsQuery` + `toPreviews` feed the timeline's previews.
+   - **Screen:** `/app/groups/:groupId/entries/:entryId/notes` (`routes/app/entry-notes.tsx`, shared and client-only).
+     - `LiveNotesEditor`: Tiptap with StarterKit (`undoRedo: false`, since Collaboration brings Yjs-aware undo; `link: false`) and a small toolbar (bold, italic, heading, bulleted and numbered lists). It's read-only for viewers.
+     - A non-member, a missing entry, or a symptom or vital is a 404. A writer on an entry without a document sees "Start live notes". If the entry is deleted while it's open, the page says so.
+     - The editor chunk is 140 KB gzipped and loads only on this route. Base styles are `.live-notes` in `app.css` (no typography plugin).
+   - **Vite** (`vite.config.ts`): `optimizeDeps.include` pre-bundles yjs and the Tiptap packages in one pass, and `resolve.dedupe` keeps one yjs, React and ProseMirror. Without that, the browser loaded two yjs copies ("Yjs was already imported") and a mid-session re-optimize broke React hooks.
+   - **DB client fix:** `getDb()` used to keep the whole drizzle instance across HMR, including the schema it was built with. A running dev server then 500'd on any new table (`db.query.<new>` was undefined). Now only the **pool** is remembered, and the drizzle wrapper is rebuilt when the module reloads.
+   - **Live latency, measured:** a caretaker sees another's typing in **0.5–0.8 s** (median about 0.65 s over three runs) through local PowerSync. Offline edits arrive about 2.5–3 s after reconnecting. That's usable for appointment notes. There are **no presence or cursors**. ❓ Whether to add a websocket relay (e.g. Hocuspocus on AWS) for presence and lower latency: decide after real use, or once PowerSync Cloud latency is measured.
+   - **Tests:** `noteYjs.test.ts` (unit: base64, validation, text, merge order and replay), `noteDocument.int.test.ts` (13: roles, kinds, idempotency, deleted entries, forged fields, compaction, cascade), and `sync.upload` live-document cases in `router.int.test.ts`. `test/fixtures.ts` has `typeParagraph(doc, text)` and `newYDoc()`.
+   - **Browser check:** `live-notes.mjs` (18 checks, three browsers): add from the menu, viewer read-only, latency, concurrent edits converging, authorship in Postgres, offline then reconnect, a heading syncing, timeline previews for the viewer, no live notes on a symptom, and deleting the entry while it's open.
+   - Not done: presence and cursors, a compaction cron sweep, a size cap on snapshots, an oRPC read for documents (only `currentText` in the service), search over `text`.
 
 #### Browser checks
 
@@ -311,7 +378,12 @@ UI work is verified in headless Chrome over CDP, with a plain Node script (no Pl
   - Set inputs through the native value setter, then dispatch an `input` event.
 - Collect console errors and take screenshots.
 
-The scripts live in the session scratchpad, not the repo. Write a new one per check, or add Playwright when the user approves it.
+The scripts live in `scripts/browser-checks/` (run them from that folder with Node 24 against the dev server; `BASE` defaults to `http://localhost:5176`). Add one per check, or replace them with Playwright when the user approves it.
+
+- Run them with Node 24 (`~/.nvm/versions/node/v24.22.3/bin/node`, or `nvm use` first). They use the global `WebSocket`, which the machine's default Node 20 doesn't have.
+- The phase 2 check (21 steps) covered: first entry above the fold at 420px; enough rows on the first screen; a sticky day header; no horizontal scroll; add, validate, edit and delete through the sheet; the Vitals menu; Esc closes the sheet; long-text clamping and More; the Symptoms filter; the view choice surviving a reload; a viewer seeing no add bar or menus; no console errors or warnings. Repeat it after any timeline change.
+- The checks create and delete entries as member@ (deletes are soft), so run `pnpm datastore:reset` afterwards for clean dev data.
+- After `pnpm build:native`, `pnpm lint` can report `no-unsafe-argument` errors in `routes/rpc.ts` and `routes/api/auth.ts`: the native typegen overwrote the web route types. Run `pnpm typecheck` to regenerate them.
 
 Port 5173 may already be in use. Better Auth only trusts `BETTER_AUTH_URL` and `AUTH_TRUSTED_ORIGINS`, so on another port start the dev server as `BETTER_AUTH_URL=http://localhost:5176 AUTH_TRUSTED_ORIGINS=http://localhost:5176 pnpm --filter @caretook/web dev --port 5176 --strictPort`. Real env vars win over `.env`.
 
@@ -438,7 +510,9 @@ The design starts from the user's cn-time-by-project `app/.server/notifications`
 
 ```
 .nvmrc                 Node 24.22.3
-docker-compose.yml     dev Postgres (port 5434); docker-compose.test.yml → test (5435)
+docker-compose.yml     dev Postgres (port 5434), PowerSync (8080) + its storage; docker-compose.test.yml → test (5435)
+powersync/             service.yaml (local PowerSync), sync-config.yaml (Sync Streams)
+scripts/browser-checks/ headless Chrome checks (cdp.mjs harness, roundtrip, phase2, live-notes, signout-wipe, proxy)
 package.json           root scripts; packageManager pnpm@12.21.0
 eslint.config.js       ESLint flat config (type-aware); .prettierrc.json, .prettierignore
 vitest.config.ts       Vitest projects (data:unit, integration)
@@ -449,15 +523,21 @@ apps/web/              @caretook/web: React Router 8, Vite 8
   react-router.config.ts
   app/root.tsx
   app/routes.ts
-  app/routes/app/          shared screens (no server loaders/actions): home, timeline, settings (units)
+  app/routes/app/          shared screens (no server loaders/actions): home, timeline, entry-notes (live notes),
+                           settings (units)
   app/routes/marketing/    web-only pages
   app/routes/native-index.tsx  native-only "/" → "/app" redirect
 apps/web/app/.server/data.ts  re-exports @caretook/data (server-only door); auth.ts → @caretook/auth
   app/app.css          Tailwind + daisyUI (light/dark themes follow the device)
   app/components/      EntryForm, EntrySheet (RAC Modal), QuickAddBar, TimelineEntryRow, TimelineEntryCard, KindIcon,
                        TimelineFilters (KindFilter, ViewToggle), LatestVitals, EntryActions (RAC Menu),
-                       DateTimeField (RAC DateField), ConfirmDialog, VitalTypeMenu, VitalReadingsFields
-  app/lib/             auth-client.ts, rpc.ts (typed client + output types), api.ts (load/toActionResult),
+                       DateTimeField (RAC DateField), ConfirmDialog, VitalTypeMenu, VitalReadingsFields,
+                       LiveNotesEditor (Tiptap + Yjs), LiveNotesPreview
+  app/lib/sync/        PowerSync: schema (drizzle sqlite), client (db + connector, lazy), index (open/close,
+                       useLiveQuery, useSyncState), timeline (local queries + writes), notes (live documents:
+                       previews, ensureNoteDocument, createNoteDoc/bindNoteDoc)
+  app/lib/             session.ts (requireSession), me.ts (cached settings),
+                       auth-client.ts, rpc.ts (typed client + output types), api.ts (load/toActionResult),
                        entryDisplay.ts (KIND_META, entrySummary, initials),
                        entryForm.ts, format.ts, redirect.ts (safeRedirect), form.ts
   app/routes/api/auth.ts  Better Auth handler at /api/auth/* (web only)
@@ -475,12 +555,16 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
   src/errors/          typescript-errors codes + helpers
   src/permissions/     RBAC map + helpers (client-safe)
   src/db/              client (lazy pool, txOrDb, dbMayFail, withTransaction), types,
-                       migrate.ts, clear.ts, seeds/, migrations/
+                       migrate.ts, clear.ts, migrations/
+  src/db/seeds/        users, accounts (dev passwords), careGroups (Dev Family), timelineEntries
+                       (+ timelineEntries.test.ts validating every seed entry)
   src/db/schema/       tables + Zod schemas (client-safe); vitals.ts (vital spec, units, conversion),
-                       userPreferences.ts (per-user settings, resolveUnits)
+                       userPreferences.ts (per-user settings: resolveUnits, resolveTimelineView),
+                       noteDocument.ts (live notes tables), noteYjs.ts (Yjs helpers, plain text)
   src/models/          base/ (CRUD + query helpers), user/, careGroup/, careGroupMember/,
-                       careRecipient/, careGroupInvite/, timelineEntry/
-  src/services/        baseService, userService, careGroup*, careRecipientService, timelineEntryService
+                       careRecipient/, careGroupInvite/, timelineEntry/, noteDocument/, noteUpdate/
+  src/services/        baseService, userService, careGroup*, careRecipientService, timelineEntryService,
+                       noteDocumentService
 ```
 
 ## Commands (run from the repo root after `nvm use`)
@@ -511,5 +595,6 @@ packages/data/         @caretook/data: Drizzle schema, models, services, RBAC
 
 1. Make the integration tests independent of each other, as `timelineEntry.int.test.ts` already is (a `setup()` per test). `careGroup.int.test.ts` shares one group across `describe` blocks, so a single failure cascades into others. Then widen coverage to every role against every table.
 2. Choose the hosted database (it must be in the same region as the Vercel functions, with pooling) and decide how production migrations run.
-3. **Timeline iteration 2** (see that section). Vitals and the layout are done. **Start the next session at phase 3, PowerSync:** settle the open decisions with the user first. Then collaborative notes with Tiptap and Yjs.
+3. **Timeline iteration 2** is done (see that section; phases 3 and 4 are uncommitted until the user asks). Open follow-ups for live notes: decide on presence and cursors (a websocket relay) after real use, and add a compaction cron sweep.
+
 4. The Resend iteration (sign-up, invites with accept and consent, email verification and reset), then Capacitor (bearer token storage, `VITE_API_ORIGIN`).

@@ -25,6 +25,8 @@ export const clear = async () => {
   return dbMayFail(
     () =>
       getDb().transaction(async (tx) => {
+        // Publications live outside the schema, so dropping it leaves this one behind.
+        await tx.execute(sql`DROP PUBLICATION IF EXISTS powersync`);
         await tx.execute(sql`DROP SCHEMA IF EXISTS drizzle CASCADE`);
         await tx.execute(sql`DROP SCHEMA IF EXISTS public CASCADE`);
         await tx.execute(sql`CREATE SCHEMA public`);

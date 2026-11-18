@@ -6,6 +6,7 @@ import { entrySummary, initials, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
 import { AuthorInitials, KindIcon } from "./KindIcon";
+import { LiveNotesPreview, type LiveNotes } from "./LiveNotesPreview";
 
 export type EntryViewProps = {
   entry: TimelineEntry;
@@ -16,7 +17,24 @@ export type EntryViewProps = {
   /** Omitted for people who can't change the timeline (viewers). */
   onEdit?: () => void;
   onDelete?: () => void;
+  /** The entry's live document, if it has one. */
+  liveNotes?: LiveNotes | null;
+  /** Writers on notes and events: add live notes, or open them. */
+  onLiveNotes?: () => void;
 };
+
+/** The ⋯ menu's live notes item, when it applies. */
+export const liveNotesAction = ({
+  liveNotes,
+  onLiveNotes,
+}: Pick<EntryViewProps, "liveNotes" | "onLiveNotes">) =>
+  onLiveNotes
+    ? { label: liveNotes ? "Open live notes" : "Add live notes", onAction: onLiveNotes }
+    : undefined;
+
+/** A short name for the entry, for links and labels. */
+export const entryLabel = (entry: TimelineEntry) =>
+  `${entry.title || KIND_META[entry.kind].label.toLowerCase()} at ${formatTime(entry.occurredAt)}`;
 
 /** Screen-reader name for an entry's ⋯ menu. */
 export const actionsLabel = (entry: TimelineEntry) =>
@@ -26,7 +44,16 @@ export const actionsLabel = (entry: TimelineEntry) =>
  * One entry as a dense row: kind icon, time, a one-line summary, author
  * initials and the ⋯ menu. Long text is clamped to two lines, with "More".
  */
-export function TimelineEntryRow({ entry, authorName, units, removing, onEdit, onDelete }: EntryViewProps) {
+export function TimelineEntryRow({
+  entry,
+  authorName,
+  units,
+  removing,
+  onEdit,
+  onDelete,
+  liveNotes,
+  onLiveNotes,
+}: EntryViewProps) {
   const { heading, severity, readings, body } = entrySummary(entry, units);
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
 
@@ -49,10 +76,18 @@ export function TimelineEntryRow({ entry, authorName, units, removing, onEdit, o
         )}
         {readings.length > 0 && <Readings readings={readings} />}
         {body && <ClampedText text={body} />}
+        {liveNotes && <LiveNotesPreview notes={liveNotes} entryLabel={entryLabel(entry)} />}
         {elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
       </div>
       <AuthorInitials name={authorName} initials={initials(authorName)} />
-      {onEdit && onDelete && <EntryActions label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />}
+      {onEdit && onDelete && (
+        <EntryActions
+          label={actionsLabel(entry)}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          liveNotes={liveNotesAction({ liveNotes, onLiveNotes })}
+        />
+      )}
     </li>
   );
 }

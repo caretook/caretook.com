@@ -6,11 +6,14 @@ export function EntryActions({
   label,
   onEdit,
   onDelete,
+  liveNotes,
 }: {
   /** Names the entry for screen readers, e.g. "Actions for note at 2:27 PM". */
   label: string;
   onEdit: () => void;
   onDelete: () => void;
+  /** "Add live notes" or "Open live notes", on notes and events. */
+  liveNotes?: { label: string; onAction: () => void };
 }) {
   return (
     <MenuTrigger>
@@ -18,7 +21,15 @@ export function EntryActions({
         <Ellipsis className="size-4" aria-hidden="true" />
       </Button>
       <Popover placement="bottom end" className="rounded-box border-base-300 bg-base-100 border shadow-lg">
-        <Menu className="menu w-36 outline-none">
+        <Menu className="menu w-44 outline-none">
+          {liveNotes && (
+            <MenuItem
+              onAction={liveNotes.onAction}
+              className="rounded-field cursor-pointer px-3 py-2 outline-none data-[focused]:bg-base-200"
+            >
+              {liveNotes.label}
+            </MenuItem>
+          )}
           <MenuItem
             onAction={onEdit}
             className="rounded-field cursor-pointer px-3 py-2 outline-none data-[focused]:bg-base-200"

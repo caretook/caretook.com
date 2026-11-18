@@ -31,3 +31,11 @@ export type * from "./careGroupInvite/types";
 import * as timelineEntryModel from "./timelineEntry";
 export { timelineEntryModel };
 export type * from "./timelineEntry/types";
+
+import * as noteDocumentModel from "./noteDocument";
+export { noteDocumentModel };
+export type * from "./noteDocument/types";
+
+import * as noteUpdateModel from "./noteUpdate";
+export { noteUpdateModel };
+export type * from "./noteUpdate/types";

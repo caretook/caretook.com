@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://unpkg.com/@powersync/service-sync-rules@latest/schema/sync_rules.json
+#
+# Which rows reach which device (Sync Streams; Sync Rules are deprecated).
+# The JWT's `sub` (auth.user_id()) is the Better Auth user id.
+#
+# Rules:
+# - Members sync only the care groups they belong to. Removing a membership
+#   drops that group's buckets, so the next sync removes its data from the device.
+# - Never sync emails or account tables. The `user` table is also limited to
+#   public columns by the Postgres publication (migration 0005).
+# - Soft-deleted timeline entries are synced, so deletes reach other devices.
+#   A deleted entry's live document still syncs; screens hide it with the entry.
+#
+# The service reads this only at startup: `pnpm powersync:restart` after a change.
+
+config:
+  edition: 3
+
+streams:
+  # Everything on a member's screens for their care groups: one bucket per group.
+  care_groups:
+    auto_subscribe: true
+    with:
+      my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
+    queries:
+      - SELECT id, name FROM care_group WHERE id IN my_groups
+      - SELECT id, group_id, user_id, role FROM care_group_member WHERE group_id IN my_groups
+      - SELECT id, group_id, name, preferred_name FROM care_recipient WHERE group_id IN my_groups
+      - >-
+        SELECT id, group_id, recipient_id, kind, occurred_at, time_zone, title, body, details,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM timeline_entry WHERE group_id IN my_groups
+      # Live documents: the compacted snapshot and every pending Yjs update,
+      # so any document opens and edits offline. Viewers get them too (read-only).
+      - >-
+        SELECT id, group_id, snapshot, text, created_at, updated_at, created_by, updated_by
+        FROM note_document WHERE group_id IN my_groups
+      - >-
+        SELECT id, group_id, document_id, data, created_at, created_by
+        FROM note_update WHERE group_id IN my_groups
+
+  # Co-members' public profiles (name and picture) for author names.
+  member_profiles:
+    auto_subscribe: true
+    with:
+      my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
+    query: >-
+      SELECT "user".id, "user".name, "user".image FROM "user"
+      INNER JOIN care_group_member ON care_group_member.user_id = "user".id
+      WHERE care_group_member.group_id IN my_groups

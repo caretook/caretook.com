@@ -1,15 +1,15 @@
 import type { Route } from "./+types/layout";
 
-import { Form, isRouteErrorResponse, Link, Outlet, redirect } from "react-router";
-import { authClient } from "~/lib/auth-client";
-import { signInUrl } from "~/lib/redirect";
+import { Form, isRouteErrorResponse, Link, Outlet } from "react-router";
+import { SyncIndicator } from "~/components/SyncIndicator";
+import { requireSession } from "~/lib/session";
 
 // Shared by web + native. Do not export a server `loader` or `action` from /app routes.
 
+/** Every /app screen needs a session and the local database (shared with child loaders). */
 export async function clientLoader({ request }: Route.ClientLoaderArgs) {
-  const { data } = await authClient.getSession();
-  if (!data) throw redirect(signInUrl(request));
-  return { user: data.user };
+  const { user } = await requireSession(request);
+  return { user };
 }
 
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
@@ -23,6 +23,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
           </Link>
         </div>
         <div className="flex items-center gap-3">
+          <SyncIndicator />
           <span className="text-base-content/70 hidden text-sm sm:inline">{user.name ?? user.email}</span>
           <Link to="/app/settings" className="btn btn-ghost btn-sm">
             Settings

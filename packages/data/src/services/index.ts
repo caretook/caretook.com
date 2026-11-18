@@ -19,6 +19,9 @@ export { careGroupInviteService };
 import * as timelineEntryService from "./timelineEntryService";
 export { timelineEntryService };
 
+import * as noteDocumentService from "./noteDocumentService";
+export { noteDocumentService };
+
 export type * from "./types";
 
 export const services = {
@@ -28,6 +31,7 @@ export const services = {
   careRecipient: careRecipientService,
   careGroupInvite: careGroupInviteService,
   timelineEntry: timelineEntryService,
+  noteDocument: noteDocumentService,
 };
 
 export type ServiceTypeMap = typeof services;

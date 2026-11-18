@@ -1,11 +1,14 @@
 import type { Route } from "./+types/timeline";
 import type { TimelineEntryKind, TimelineView, VitalType } from "@caretook/data/schema";
+import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/api";
 import type { TimelineEntry } from "~/lib/rpc";
+import type { NoteDocRow } from "~/lib/sync/notes";
+import type { EntryRow, GroupRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
 
-import { DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
-import { useCallback, useState } from "react";
-import { data, useFetcher } from "react-router";
+import { canHaveNoteDocument, DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
+import { useCallback, useMemo, useState } from "react";
+import { data, useFetcher, useNavigate } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
 import { EntryForm } from "~/components/EntryForm";
 import { EntrySheet } from "~/components/EntrySheet";
@@ -14,20 +17,41 @@ import { QuickAddBar } from "~/components/QuickAddBar";
 import { KindFilter, ViewToggle } from "~/components/TimelineFilters";
 import { TimelineEntryCard } from "~/components/TimelineEntryCard";
 import { TimelineEntryRow } from "~/components/TimelineEntryRow";
-import { load, toActionResult } from "~/lib/api";
 import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
 import { entryContentFromForm, entryUpdateFromForm } from "~/lib/entryForm";
 import { formString } from "~/lib/form";
 import { dayKey, formatDay } from "~/lib/format";
+import { cacheSettings, loadSettings } from "~/lib/me";
 import { rpc } from "~/lib/rpc";
+import { requireSession } from "~/lib/session";
+import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
+import { ensureNoteDocument, groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
+import {
+  createEntry,
+  entriesQuery,
+  membersQuery,
+  myGroupsQuery,
+  readingsQuery,
+  readRows,
+  removeEntry,
+  toLatestVitals,
+  toMember,
+  toMyGroup,
+  toTimelineEntries,
+  updateEntry,
+  WRITER_ROLES,
+} from "~/lib/sync/timeline";
 
-// Shared by web + native: client-only data (clientLoader/clientAction over oRPC).
+// Shared by web + native. Reads and writes go to the device's local copy
+// (PowerSync), so the timeline works offline and other members' changes
+// appear as they sync. Only settings come from the API (cached offline).
 
 const PAGE_SIZE = 30;
-const WRITERS = ["owner", "admin", "caretaker"];
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  return [{ title: loaderData ? `${loaderData.group.name} · Caretook` : "Timeline · Caretook" }];
+  return [
+    { title: loaderData ? `${loaderData.groupRow.name ?? "Timeline"} · Caretook` : "Timeline · Caretook" },
+  ];
 }
 
 /** `?kind=symptom` shows one kind; anything else shows them all. */
@@ -36,38 +60,61 @@ const kindFilter = (request: Request) => {
   return isEntryKind(kind) ? kind : null;
 };
 
+/**
+ * The first screenful, read locally so the page renders complete; live
+ * queries in the component take over from there. A group that isn't on the
+ * device (not a member, or removed) is a 404.
+ */
 export async function clientLoader({ request, params }: Route.ClientLoaderArgs) {
   const { groupId } = params;
+  const { db } = await requireSession(request);
+  await waitForFirstSync(db);
   const kind = kindFilter(request);
-  const kinds = kind ? [kind] : undefined;
-  const [groups, page, members, me, latestVitals] = await Promise.all([
-    load(request, rpc.careGroup.listMine()),
-    load(request, rpc.timeline.list({ groupId, kinds, limit: PAGE_SIZE })),
-    load(request, rpc.careGroup.members({ groupId })),
-    load(request, rpc.me.get()),
-    load(request, rpc.timeline.latestVitals({ groupId })),
+
+  const groups = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
+  const groupRow = groups.find((g) => g.id === groupId);
+  if (!groupRow) throw data("Not found", { status: 404 });
+
+  const [entryRows, memberRows, readingRows, documentRows, settings] = await Promise.all([
+    readRows<EntryRow>(db, entriesQuery(groupId, kind, PAGE_SIZE)),
+    readRows<MemberRow>(db, membersQuery(groupId)),
+    readRows<ReadingRow>(db, readingsQuery(groupId)),
+    readRows<NoteDocRow>(db, groupDocumentsQuery(groupId)),
+    loadSettings(request, db.userId),
   ]);
-  const group = groups.find((g) => g.id === groupId);
-  if (!group) throw data("Not found", { status: 404 });
-  return { group, page, members, units: me.units, timelineView: me.timelineView, latestVitals, kind };
+  return {
+    userId: db.userId,
+    groupRow,
+    groups,
+    entryRows,
+    memberRows,
+    readingRows,
+    documentRows,
+    ...settings,
+    kind,
+  };
 }
 
+/** Writes go to the local database; live queries show them at once and PowerSync uploads them. */
 export async function clientAction({ request, params }: Route.ClientActionArgs): Promise<ActionResult> {
   const form = await request.formData();
   const intent = formString(form, "intent");
   const id = formString(form, "id");
   // The units the form displayed, so vitals convert back the way they were typed.
   const units = parseUnits(formString(form, "units"));
-  try {
-    if (intent === "create")
-      await rpc.timeline.create({ groupId: params.groupId, ...entryContentFromForm(form, units) });
-    else if (intent === "update") await rpc.timeline.update({ id, data: entryUpdateFromForm(form, units) });
-    else if (intent === "remove") await rpc.timeline.remove({ id });
-    else throw new Error(`Unknown intent: ${intent}`);
-    return { ok: true };
-  } catch (e) {
-    return toActionResult(e);
-  }
+  const db = getSync();
+  if (intent === "create") return createEntry(db, params.groupId, entryContentFromForm(form, units));
+  if (intent === "update") return updateEntry(db, id, entryUpdateFromForm(form, units));
+  if (intent === "remove") return removeEntry(db, id);
+  throw new Error(`Unknown intent: ${intent}`);
+}
+
+/**
+ * Live queries already reflect every write, so a submission doesn't rerun
+ * the loader (that would reset "Show older"). Navigation (a new filter) does.
+ */
+export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+  return formMethod ? false : defaultShouldRevalidate;
 }
 
 const parseUnits = (json: string) => {
@@ -97,49 +144,55 @@ type SheetContent =
 type SheetState = SheetContent & { key: number };
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { group, page, members, units, latestVitals, kind } = loaderData;
-  const canWrite = !!group.role && WRITERS.includes(group.role);
-  const nameOf = (userId: string) => members.find((m) => m.userId === userId)?.name ?? "Former member";
+  const { userId, units, kind } = loaderData;
+  const { groupId } = params;
+
+  // "Show older" grows the local query's limit. A new filter starts over.
+  const [paging, setPaging] = useState({ kind, limit: PAGE_SIZE });
+  const limit = paging.kind === kind ? paging.limit : PAGE_SIZE;
+
+  const groupsQuery = myGroupsQuery(userId);
+  const groupRows = useLiveQuery<GroupRow>(groupsQuery.sql, groupsQuery.params, loaderData.groups);
+  const groupRow = groupRows.find((g) => g.id === groupId) ?? loaderData.groupRow;
+  const group = toMyGroup(groupRow);
+
+  const entriesSql = entriesQuery(groupId, kind, limit);
+  const entryRows = useLiveQuery<EntryRow>(entriesSql.sql, entriesSql.params, loaderData.entryRows);
+  const membersSql = membersQuery(groupId);
+  const members = useLiveQuery<MemberRow>(membersSql.sql, membersSql.params, loaderData.memberRows).map(
+    toMember,
+  );
+  const readingsSql = readingsQuery(groupId);
+  const latestVitals = toLatestVitals(
+    useLiveQuery<ReadingRow>(readingsSql.sql, readingsSql.params, loaderData.readingRows),
+  );
+
+  // Live documents, with previews rebuilt locally (they include unsynced edits).
+  const documentsSql = groupDocumentsQuery(groupId);
+  const documentRows = useLiveQuery<NoteDocRow>(
+    documentsSql.sql,
+    documentsSql.params,
+    loaderData.documentRows,
+  );
+  const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
+  const notesUrl = (entryId: string) => `/app/groups/${groupId}/entries/${entryId}/notes`;
+  const navigate = useNavigate();
+  const openLiveNotes = async (entry: TimelineEntry) => {
+    const res = await ensureNoteDocument(getSync(), entry.id);
+    if (res.ok) await navigate(notesUrl(entry.id));
+    else console.warn("Couldn't add live notes", res.error);
+  };
+
+  const canWrite = !!group.role && WRITER_ROLES.includes(group.role);
+  const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
 
   // The layout is a per-user setting. It switches at once; saving it is best
   // effort (if it fails, the next visit shows the old layout).
   const [view, setView] = useState<TimelineView>(loaderData.timelineView);
   const changeView = (next: TimelineView) => {
     setView(next);
+    cacheSettings(userId, { timelineView: next });
     rpc.me.updatePreferences({ timelineView: next }).catch(() => undefined);
-  };
-
-  // Older pages loaded with "Show older". Reset whenever the loader reruns
-  // (after any change, or a new filter), so the list never shows stale entries.
-  const [firstPage, setFirstPage] = useState(page);
-  const [older, setOlder] = useState<TimelineEntry[]>([]);
-  const [cursor, setCursor] = useState(page.nextCursor);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  if (page !== firstPage) {
-    setFirstPage(page);
-    setOlder([]);
-    setCursor(page.nextCursor);
-  }
-
-  const loadOlder = async () => {
-    if (!cursor) return;
-    setLoadingMore(true);
-    setLoadError(null);
-    try {
-      const next = await rpc.timeline.list({
-        groupId: params.groupId,
-        kinds: kind ? [kind] : undefined,
-        limit: PAGE_SIZE,
-        cursor,
-      });
-      setOlder((prev) => [...prev, ...next.data]);
-      setCursor(next.nextCursor);
-    } catch {
-      setLoadError("Couldn't load older entries. Try again.");
-    } finally {
-      setLoadingMore(false);
-    }
   };
 
   // One sheet for adding and editing. `key` remounts the form each time it
@@ -150,14 +203,16 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     setSheet({ ...next, key: Date.now() });
     setSheetOpen(true);
   };
-  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  const closeSheet = useCallback(() => setSheetOpen(false), [setSheetOpen]);
 
   // One delete confirm for the whole list.
   const [deleting, setDeleting] = useState<TimelineEntry | null>(null);
   const remover = useFetcher();
   const removingId = remover.state !== "idle" ? remover.formData?.get("id") : null;
 
-  const entries = [...page.data, ...older];
+  // The query asks for one extra row: if it came back, there's more to show.
+  const hasOlder = entryRows.length > limit;
+  const entries = toTimelineEntries(entryRows.slice(0, limit));
   const days = byDay(entries);
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
 
@@ -215,25 +270,27 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
                   removing={removingId === entry.id}
                   onEdit={canWrite ? () => openSheet({ mode: "edit", entry }) : undefined}
                   onDelete={canWrite ? () => setDeleting(entry) : undefined}
+                  liveNotes={
+                    previews.has(entry.id)
+                      ? { preview: previews.get(entry.id) ?? "", url: notesUrl(entry.id) }
+                      : null
+                  }
+                  onLiveNotes={
+                    canWrite && canHaveNoteDocument(entry.kind) ? () => void openLiveNotes(entry) : undefined
+                  }
                 />
               ))}
             </ol>
           </section>
         ))}
 
-        {loadError && (
-          <p role="alert" className="text-error text-sm">
-            {loadError}
-          </p>
-        )}
-        {cursor && (
+        {hasOlder && (
           <button
             type="button"
             className="btn btn-block"
-            disabled={loadingMore}
-            onClick={() => void loadOlder()}
+            onClick={() => setPaging({ kind, limit: limit + PAGE_SIZE })}
           >
-            {loadingMore ? "Loading…" : "Show older entries"}
+            Show older entries
           </button>
         )}
       </section>

@@ -4,10 +4,20 @@ import { entrySummary, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
 import { KindIcon } from "./KindIcon";
-import { actionsLabel, Readings } from "./TimelineEntryRow";
+import { LiveNotesPreview } from "./LiveNotesPreview";
+import { actionsLabel, entryLabel, liveNotesAction, Readings } from "./TimelineEntryRow";
 
 /** One entry as a compact card: summary and time on one line, the full text, then who wrote it. */
-export function TimelineEntryCard({ entry, authorName, units, removing, onEdit, onDelete }: EntryViewProps) {
+export function TimelineEntryCard({
+  entry,
+  authorName,
+  units,
+  removing,
+  onEdit,
+  onDelete,
+  liveNotes,
+  onLiveNotes,
+}: EntryViewProps) {
   const { heading, severity, readings, body } = entrySummary(entry, units);
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   // The first line is the title (or symptom name), else the readings, else the text itself.
@@ -37,12 +47,20 @@ export function TimelineEntryCard({ entry, authorName, units, removing, onEdit, 
         </div>
         {lead === "heading" && readings.length > 0 && <Readings readings={readings} />}
         {body && lead !== "body" && <p className="break-words whitespace-pre-wrap">{body}</p>}
+        {liveNotes && <LiveNotesPreview notes={liveNotes} entryLabel={entryLabel(entry)} />}
         <p className="text-base-content/60 text-xs">
           {authorName}
           {elsewhere && ` · ${elsewhere}`}
         </p>
       </div>
-      {onEdit && onDelete && <EntryActions label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />}
+      {onEdit && onDelete && (
+        <EntryActions
+          label={actionsLabel(entry)}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          liveNotes={liveNotesAction({ liveNotes, onLiveNotes })}
+        />
+      )}
     </li>
   );
 }

@@ -2,7 +2,7 @@ import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
 import type { VitalDetails } from "./vitals";
 
-import { foreignKey, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { careGroupSchema } from "./careGroup";
@@ -67,6 +67,9 @@ export const timelineEntrySchema = pgTable(
     // The timeline query: one group, newest first, keyset-paginated.
     index("timeline_entry_group_occurred_idx").on(t.groupId, t.occurredAt.desc(), t.id.desc()),
     enumCheck("timeline_entry_kind_check", t.kind, TIMELINE_ENTRY_KINDS),
+    // Target of composite FKs (note_document), so a row attached to an entry
+    // is guaranteed to be in the entry's group.
+    unique("timeline_entry_group_id_id_unique").on(t.groupId, t.id),
   ],
 );
 
@@ -140,6 +143,16 @@ export const timelineEntryCreateZSchema = z.intersection(
   timelineEntryContentZSchema,
 );
 export type TimelineEntryCreateInput = z.input<typeof timelineEntryCreateZSchema>;
+
+/**
+ * Upsert input (PowerSync's upload queue): a create whose `id` is required,
+ * because the client made the row and replays must land on the same one.
+ */
+export const timelineEntryUpsertZSchema = z.intersection(
+  z.object({ id: z.uuid(), groupId: z.uuid(), recipientId: z.uuid().optional() }),
+  timelineEntryContentZSchema,
+);
+export type TimelineEntryUpsertInput = z.input<typeof timelineEntryUpsertZSchema>;
 
 /** Update input: content only. Group, recipient and kind never change. */
 export const timelineEntryUpdateZSchema = z.strictObject({

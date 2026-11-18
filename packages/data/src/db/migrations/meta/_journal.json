@@ -36,6 +36,20 @@
       "when": 1794950720741,
       "tag": "0004_vitals_and_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794956183873,
+      "tag": "0005_powersync_publication",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794960630108,
+      "tag": "0006_live_notes",
+      "breakpoints": true
     }
   ]
 }

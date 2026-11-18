@@ -22,6 +22,7 @@
     "drizzle-zod": "^0.8.3",
     "pg": "^8.23.1",
     "typescript-errors": "^1.1.1",
+    "yjs": "13.6.33",
     "zod": "^4.6.7"
   },
   "devDependencies": {

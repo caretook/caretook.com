@@ -98,6 +98,12 @@ export const MODEL_ERRORS = {
   "timelineEntryModel:remove": {
     message: "Failed to delete the timeline entry",
   },
+  "noteDocumentModel:lock": {
+    message: "Failed to lock the live document",
+  },
+  "noteDocumentModel:pending": {
+    message: "Failed to count the live document's pending updates",
+  },
   "userModel:notFound": {
     message: "User not found",
     statusCode: 404,
@@ -141,9 +147,37 @@ export const SERVICE_ERRORS = {
     message: "This care group has no care recipient yet",
     statusCode: 409,
   },
+  "timelineEntryService:immutable": {
+    message: "An entry's group, recipient and kind can't change",
+    statusCode: 400,
+  },
   "timelineEntryService:recipientNotInGroup": {
     message: "That care recipient isn't in this care group",
     statusCode: 400,
+  },
+  "noteDocumentService:invalid": {
+    message: "The live document change is invalid",
+    statusCode: 400,
+  },
+  "noteDocumentService:notFound": {
+    message: "Live document not found",
+    statusCode: 404,
+  },
+  "noteDocumentService:entryNotFound": {
+    message: "That entry is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "noteDocumentService:wrongKind": {
+    message: "Only notes and events can have live notes",
+    statusCode: 400,
+  },
+  "noteDocumentService:immutable": {
+    message: "A live document's group and entry can't change",
+    statusCode: 400,
+  },
+  "sync:readOnlyTable": {
+    message: "Devices can't write to this table",
+    statusCode: 403,
   },
   "careGroupInviteService:notFound": {
     message: "Invitation not found, or no longer pending",

@@ -1,8 +1,11 @@
 import type { Route } from "./+types/home";
 
+import type { GroupRow } from "~/lib/sync/timeline";
+
 import { Link, redirect } from "react-router";
-import { load } from "~/lib/api";
-import { rpc } from "~/lib/rpc";
+import { requireSession } from "~/lib/session";
+import { useLiveQuery, waitForFirstSync } from "~/lib/sync";
+import { myGroupsQuery, readRows, toMyGroup } from "~/lib/sync/timeline";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Caretook" }];
@@ -10,15 +13,19 @@ export function meta({}: Route.MetaArgs) {
 
 const timelinePath = (groupId: string) => `/app/groups/${groupId}/timeline`;
 
-// With a single group (the usual case) go straight to its timeline.
+// Groups come from the device's synced copy. With a single group (the usual
+// case) go straight to its timeline.
 export async function clientLoader({ request }: Route.ClientLoaderArgs) {
-  const groups = await load(request, rpc.careGroup.listMine());
-  if (groups.length === 1 && groups[0]) throw redirect(timelinePath(groups[0].id));
-  return { groups };
+  const { db } = await requireSession(request);
+  await waitForFirstSync(db);
+  const rows = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
+  if (rows.length === 1 && rows[0]) throw redirect(timelinePath(rows[0].id));
+  return { userId: db.userId, rows };
 }
 
 export default function AppHome({ loaderData }: Route.ComponentProps) {
-  const { groups } = loaderData;
+  const query = myGroupsQuery(loaderData.userId);
+  const groups = useLiveQuery<GroupRow>(query.sql, query.params, loaderData.rows).map(toMyGroup);
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-6">
       <h1 className="text-2xl font-semibold">Your care groups</h1>

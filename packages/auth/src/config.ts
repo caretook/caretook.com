@@ -4,6 +4,8 @@ export type AuthConfig = {
   baseURL: string | undefined;
   /** Extra origins allowed to call the auth API (comma-separated in env). */
   trustedOrigins: string[];
+  /** The PowerSync service URL: the `aud` of the JWTs it accepts. */
+  powersyncURL: string | undefined;
 };
 
 // Read lazily so importing never requires env vars (typecheck, builds).
@@ -14,4 +16,5 @@ export const getAuthConfig = (): AuthConfig => ({
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean),
+  powersyncURL: process.env.POWERSYNC_URL || undefined,
 });

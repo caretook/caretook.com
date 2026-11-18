@@ -17,7 +17,7 @@ import { getAuthConfig } from "./config";
 const NATIVE_ORIGINS = ["capacitor://localhost", "https://localhost"];
 
 const createAuth = () => {
-  const { secret, baseURL, trustedOrigins } = getAuthConfig();
+  const { secret, baseURL, trustedOrigins, powersyncURL } = getAuthConfig();
   if (!secret) throw new Error("BETTER_AUTH_SECRET is not set");
 
   return betterAuth({
@@ -63,6 +63,8 @@ const createAuth = () => {
       // Short-lived JWTs (and a JWKS endpoint) for PowerSync and workers.
       jwt({
         jwt: {
+          // PowerSync only accepts tokens addressed to it (its instance URL on Cloud).
+          ...(powersyncURL ? { audience: powersyncURL } : {}),
           expirationTime: "15m",
           definePayload: ({ user }) => ({ sub: user.id, role: (user as { role?: string }).role }),
         },

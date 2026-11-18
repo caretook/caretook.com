@@ -21,3 +21,42 @@ services:
       interval: 2s
       timeout: 5s
       retries: 15
+
+  # PowerSync: replicates Postgres into per-user sync buckets and streams them
+  # to clients (see powersync/). Production uses PowerSync Cloud.
+  powersync:
+    image: journeyapps/powersync-service:1.28.3
+    command: ["start", "-r", "unified"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      powersync-storage:
+        condition: service_healthy
+    environment:
+      POWERSYNC_CONFIG_PATH: /config/service.yaml
+      NODE_OPTIONS: --max-old-space-size=1000
+      PS_DATA_SOURCE_URI: postgresql://caretook:password@postgres:5432/caretook
+      PS_STORAGE_URI: postgresql://powersync:password@powersync-storage:5432/powersync
+      # The web dev server's JWKS. Override when running it on another port.
+      PS_JWKS_URL: ${PS_JWKS_URL:-http://host.docker.internal:5173/api/auth/jwks}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./powersync:/config:ro
+
+  # PowerSync's bucket storage. Separate from the app database.
+  powersync-storage:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_USER: powersync
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: powersync
+    volumes:
+      - ./.postgres/powersync-storage:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U powersync -d powersync"]
+      interval: 2s
+      timeout: 5s
+      retries: 15

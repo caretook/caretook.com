@@ -1,5 +1,6 @@
 import type { TimelineEntryCreateInput } from "../db";
 
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok, system } from "../../test/fixtures";
 import { isError } from "../errors";
@@ -455,5 +456,86 @@ describe("latest vitals", () => {
     for (const actor of [u.outsider, u.staff]) {
       expect(ok(await timelineEntryService.latestVitals(actor.ctx, { groupId: group.id }))).toEqual([]);
     }
+  });
+});
+
+describe("upsert (the PowerSync upload path)", () => {
+  const upsertInput = (s: Awaited<ReturnType<typeof setup>>, id = randomUUID()) =>
+    ({ ...s.note(), id }) as Parameters<typeof timelineEntryService.upsert>[1];
+
+  it("creates an entry with the client's id, and a replay changes nothing", async () => {
+    const s = await setup();
+    const input = upsertInput(s);
+
+    const first = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
+    expect(first).toMatchObject({ id: input.id, body: "Ate lunch", createdBy: s.u.caretaker.user.id });
+
+    const again = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
+    expect(again).toMatchObject({ id: input.id, body: "Ate lunch" });
+    const page = ok(await timelineEntryService.list(s.u.owner.ctx, { groupId: s.group.id }));
+    expect(page.data.map((e) => e.id)).toEqual([input.id]);
+  });
+
+  it("updates the content of an existing entry, validated as usual", async () => {
+    const s = await setup();
+    const input = upsertInput(s);
+    ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
+
+    const edited = ok(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, body: "Ate half" }));
+    expect(edited).toMatchObject({ body: "Ate half", updatedBy: s.u.admin.user.id });
+
+    expect(codeOf(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, body: "" }))).toBe(
+      "timelineEntryService:invalid",
+    );
+  });
+
+  it("refuses to change group, kind or recipient", async () => {
+    const s = await setup();
+    const input = upsertInput(s);
+    ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
+    const other = await createGroup(s.u.caretaker);
+
+    const moved = { ...input, groupId: other.group.id };
+    expect(codeOf(await timelineEntryService.upsert(s.u.caretaker.ctx, moved))).toBe(
+      "timelineEntryService:immutable",
+    );
+    const asEvent = { ...input, kind: "event", title: "Lunch" } as typeof input;
+    expect(codeOf(await timelineEntryService.upsert(s.u.caretaker.ctx, asEvent))).toBe(
+      "timelineEntryService:immutable",
+    );
+    const recipient = { ...input, recipientId: other.recipient.id };
+    expect(codeOf(await timelineEntryService.upsert(s.u.caretaker.ctx, recipient))).toBe(
+      "timelineEntryService:immutable",
+    );
+  });
+
+  it("keeps a deleted entry deleted", async () => {
+    const s = await setup();
+    const input = upsertInput(s);
+    ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
+    ok(await timelineEntryService.remove(s.u.caretaker.ctx, input.id));
+
+    const late = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, { ...input, body: "Late edit" }));
+    expect(late).toMatchObject({ body: "Ate lunch" });
+    expect(late?.deletedAt).not.toBeNull();
+  });
+
+  it("refuses viewers and outsiders, and doesn't reveal another group's ids", async () => {
+    const s = await setup();
+    expect(codeOf(await timelineEntryService.upsert(s.u.viewer.ctx, upsertInput(s)))).toBe(
+      "permissions:unauthorized",
+    );
+    expect(codeOf(await timelineEntryService.upsert(s.u.outsider.ctx, upsertInput(s)))).toBe(
+      "permissions:unauthorized",
+    );
+
+    // An outsider reusing an id that exists in a group they can't see.
+    const taken = upsertInput(s);
+    ok(await timelineEntryService.upsert(s.u.caretaker.ctx, taken));
+    const theirs = await createGroup(s.u.outsider);
+    const reused = { ...taken, groupId: theirs.group.id };
+    expect(codeOf(await timelineEntryService.upsert(s.u.outsider.ctx, reused))).toBe(
+      "permissions:unauthorized",
+    );
   });
 });

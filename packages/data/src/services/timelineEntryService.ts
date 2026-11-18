@@ -1,14 +1,22 @@
 import type { z } from "zod";
-import type { TimelineEntryCreateInput, TimelineEntryKind, TimelineEntryUpdateInput, Tx } from "../db";
+import type {
+  TimelineEntryCreateInput,
+  TimelineEntryKind,
+  TimelineEntryUpdateInput,
+  TimelineEntryUpsertInput,
+  Tx,
+} from "../db";
 import type { Filter } from "../models";
 import type { IncludeDeleted } from "../models/timelineEntry";
 import type { ServiceContext } from "./types";
 
+import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   timelineEntryContentZSchema,
   timelineEntryCreateZSchema,
   timelineEntryUpdateZSchema,
+  timelineEntryUpsertZSchema,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupModel, careRecipientModel, timelineEntryModel } from "../models";
@@ -148,6 +156,49 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
     });
     if (isError(updated)) return updated;
     return updated[0] ?? null;
+  }, ctx);
+
+/**
+ * Create the entry with this id, or bring the existing one up to date: what
+ * PowerSync's upload queue sends for a row a device created. Safe to replay:
+ * a second identical call changes nothing but `updatedAt`.
+ *
+ * - A new id is a `create` (same validation and group check).
+ * - An existing id is an `update` of its content, by the same rules. Its
+ *   group, recipient and kind must match: they never change.
+ * - A deleted entry stays deleted (a delete wins over a late edit).
+ * - An id that exists but the actor can't see is refused, without saying
+ *   whether it exists.
+ */
+export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
+  withTransaction(async (tx) => {
+    const parsed = timelineEntryUpsertZSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const { id, groupId, recipientId, kind, title, body, occurredAt, timeZone, details } = parsed.data;
+
+    // Existence is checked as the system, so a taken id is refused cleanly
+    // rather than failing on the primary key.
+    const existing = await timelineEntryModel.getById(id, {
+      authUser: SYSTEM_USER,
+      tx,
+      includeDeleted: true,
+    });
+    if (isError(existing)) return existing;
+    if (!existing) return create({ ...ctx, tx }, parsed.data);
+
+    const visible = await timelineEntryModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    if (isError(visible)) return visible;
+    if (!visible) return rejectError(ctx.authUser);
+
+    if (
+      visible.groupId !== groupId ||
+      visible.kind !== kind ||
+      (recipientId !== undefined && visible.recipientId !== recipientId)
+    )
+      return newError({ code: "timelineEntryService:immutable" });
+    if (visible.deletedAt) return visible;
+
+    return update({ ...ctx, tx }, id, { title, body, occurredAt, timeZone, details: details ?? null });
   }, ctx);
 
 /** Soft delete. The entry disappears from the timeline but syncs as deleted. */

@@ -1,7 +1,9 @@
 import type { AuthUser } from "../src/permissions";
 
 import { randomUUID } from "node:crypto";
+import * as Y from "yjs";
 import { SYSTEM_USER } from "../src/constants";
+import { NOTE_FRAGMENT, toBase64 } from "../src/db/schema";
 import { isError } from "../src/errors";
 import { careGroupMemberService, careGroupService, userService } from "../src/services";
 
@@ -36,3 +38,25 @@ export const createGroup = async (
   }
   return { group, recipient };
 };
+
+/**
+ * One device's edit to a live document: a Yjs update (base64) that appends
+ * a paragraph to `doc`, shaped like the Tiptap editor's content.
+ */
+export const typeParagraph = (doc: Y.Doc, text: string) => {
+  let update: Uint8Array | null = null;
+  const capture = (u: Uint8Array) => (update = u);
+  doc.on("update", capture);
+  const p = new Y.XmlElement("paragraph");
+  const t = new Y.XmlText();
+  p.insert(0, [t]);
+  t.insert(0, text);
+  const root = doc.getXmlFragment(NOTE_FRAGMENT);
+  root.insert(root.length, [p]);
+  doc.off("update", capture);
+  if (!update) throw new Error("Fixture failed: no update");
+  return toBase64(update);
+};
+
+/** A fresh Yjs document, for `typeParagraph`. */
+export const newYDoc = () => new Y.Doc();

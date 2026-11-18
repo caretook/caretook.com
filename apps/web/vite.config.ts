@@ -15,5 +15,32 @@ for (const file of [".env", "../../packages/data/.env"]) {
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter()],
-  resolve: { tsconfigPaths: true },
+  // One copy each of yjs (Yjs breaks with two: its `instanceof` checks fail),
+  // React, and ProseMirror's packages.
+  resolve: {
+    tsconfigPaths: true,
+    dedupe: ["yjs", "react", "react-dom", "prosemirror-model", "prosemirror-state", "prosemirror-view"],
+  },
+  // IPv4 loopback, not "localhost" (which Node binds to [::1] only): the
+  // PowerSync container fetches Better Auth's JWKS through
+  // host.docker.internal, which Docker Desktop forwards to 127.0.0.1 (and
+  // Vite refuses unknown Host headers).
+  server: { host: "127.0.0.1", allowedHosts: ["host.docker.internal"] },
+  // PowerSync runs SQLite (WASM) in web workers. Pre-bundling breaks the
+  // worker and WASM URLs, and the workers are ES modules.
+  //
+  // The editor's packages are pre-bundled up front, in one pass, so yjs is
+  // shared rather than copied into each bundle, and opening live notes for
+  // the first time doesn't re-optimize (which reloads the page mid-session).
+  optimizeDeps: {
+    exclude: ["@powersync/web"],
+    include: [
+      "yjs",
+      "@tiptap/react",
+      "@tiptap/starter-kit",
+      "@tiptap/extension-collaboration",
+      "@tiptap/y-tiptap",
+    ],
+  },
+  worker: { format: "es" },
 });
