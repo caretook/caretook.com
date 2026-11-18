@@ -463,3 +463,25 @@ export const createProviderDocument = async (db: SyncDb, providerId: string): Pr
   });
   return { ok: true };
 };
+
+// ---------------------------------------------------------------------------
+// The timeline's "with …" line
+// ---------------------------------------------------------------------------
+
+/**
+ * The providers linked to the timeline's loaded entries, in link order, for
+ * one live query beside the entries (never one per row). The subquery is
+ * `entriesQuery`'s window (same group, kind and limit), so paging and the kind
+ * filter change this query with it. Deleted providers are included (greyed).
+ */
+export const timelineLinksQuery = (groupId: string, kind: string | null, limit: number): LocalQuery => ({
+  sql: `SELECT l.entry_id, l.provider_id, p.name, p.deleted_at
+        FROM timeline_entry_provider l JOIN provider p ON p.id = l.provider_id
+        WHERE l.entry_id IN (
+          SELECT id FROM timeline_entry
+          WHERE group_id = ? AND deleted_at IS NULL ${kind ? "AND kind = ?" : ""}
+          ORDER BY occurred_at DESC, id DESC LIMIT ?
+        )
+        ORDER BY l.entry_id, l.created_at, l.id`,
+  params: kind ? [groupId, kind, limit + 1] : [groupId, limit + 1],
+});
