@@ -259,7 +259,7 @@ try {
     20000,
   );
   check("signed out: sign in, then back to the entry", true);
-  await D.press(`[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Sign out")`);
+  await D.signOut();
   await D.waitFor(`location.pathname === "/sign-in" || location.pathname === "/"`, 15000);
   await D.signIn("admin@example.com", PW);
   await D.goto(entryPath);
