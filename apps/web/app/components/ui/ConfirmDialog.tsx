@@ -8,22 +8,29 @@ import { useEffect, useId, useRef } from "react";
  *   it (Delete in a ⋯ menu) has closed and put focus back on its button
  *   first: that button is where focus returns when the dialog closes.
  * - Escape closes only the dialog, never a sheet it's in.
+ * - `message` explains, and `confirmDisabled` holds back the confirm button
+ *   (when the action can't go ahead yet; Cancel still closes).
  */
 export function ConfirmDialog({
   open,
   title,
   confirmLabel,
+  message,
+  confirmDisabled = false,
   onConfirm,
   onClose,
 }: {
   open: boolean;
   title: string;
   confirmLabel: string;
+  message?: string | null;
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const messageId = useId();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -54,16 +61,22 @@ export function ConfirmDialog({
       onClose={onClose}
       onKeyDown={(e) => e.key === "Escape" && e.stopPropagation()}
       aria-labelledby={titleId}
+      aria-describedby={message ? messageId : undefined}
     >
       <div className="modal-box">
         <h2 id={titleId} className="text-lg font-semibold">
           {title}
         </h2>
+        {message && (
+          <p id={messageId} className="mt-2">
+            {message}
+          </p>
+        )}
         <div className="modal-action">
           <button type="button" className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className="btn btn-error" onClick={onConfirm}>
+          <button type="button" className="btn btn-error" disabled={confirmDisabled} onClick={onConfirm}>
             {confirmLabel}
           </button>
         </div>
