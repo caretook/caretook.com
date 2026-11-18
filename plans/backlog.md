@@ -48,6 +48,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-20 | chore | landed | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
+| B-23 | feature | inbox |  |  | Split app routing/nesting into subpaths for each page instead of using a single root route. |
+| B-24 | feature | inbox |  |  | Prefer well abstracted components over single-file components and refactor existing components to… |
 
 ## Items
 
@@ -281,3 +283,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-17 (plan/quick-fixes): Split from B-1 (the slowness half). home, timeline and entry clientLoaders call waitForFirstSync (10 s cap) before rendering. Quick-fixes slice 3: measure first, then choose.
 - 2026-11-18 (slice/quick-fixes/3): slice/quick-fixes/3 46ef320: cap 1 s + FirstSyncPending state; signal = isFirstSyncDone/useFirstSyncDone in lib/sync/index.ts. Before: fresh sign-in ~1.0 s to first row locally, slow sync froze sign-in up to 10 s then home stuck on 'not in a care group'. After: syncing state ~1.0 s after DB open, then the timeline.
+
+### B-23 · feature · Split app routing/nesting into subpaths for each page instead of using a single root route.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-24 · feature · Prefer well abstracted components over single-file components and refactor existing components to…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): From the inbox: Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
