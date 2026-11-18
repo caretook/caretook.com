@@ -35,6 +35,11 @@ Feature work goes through a PRD, then a plan cut into slices that loops (paralle
 - The main checkout keeps the default ports (5173, 5434, 5435, 8080) and is never used by loops.
 - Every port, the Compose project name and the PowerSync audience come from env, defaulting to the main checkout's values. If you add a service, a port or a hardcoded container name, make it configurable the same way.
 
+**Keep the orchestrator's context small.** One session should run one wave at most; start a fresh session for the next one.
+
+- It works from the plan's _Status_ section and the loops' hand-offs, `git diff --stat` and `pnpm check` output. It doesn't read whole diffs or debug inside a loop: it sends the problem back to that loop's agent with SendMessage.
+- Before it ends, it updates the plan's _Status_ section (what's merged, with SHAs; what's ready; open issues) and folds lasting decisions into this file. Those two files are the hand-off to the next orchestrator.
+
 **Orchestrator, per wave:**
 
 1. Read the plan. A slice is **ready** when every slice it's blocked by has been merged into `data-layer`. Start only the slices the user asked for.
@@ -67,7 +72,7 @@ Feature work goes through a PRD, then a plan cut into slices that loops (paralle
 
 ### Active PRDs
 
-- 🟡 [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md): notes and events _are_ their live document. Note/Event opens the editor in one tap, and the entry is saved on the first keystroke. Others join in one tap through a row tap, a "Live now" banner, a live dot or a Share link. Adds `note_document.editors` and moves the page to `/entries/:id`. Sliced in [`plans/live-notes-ux-plan.md`](plans/live-notes-ux-plan.md): slice 1 runs alone, then lanes 2→3, 4, 5, 6→7 (7 also needs 5), 8 and 9 run in parallel, and 10 runs last. Until it lands, this file describes the current code.
+- 🟡 [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md): notes and events _are_ their live document. Note/Event opens the editor in one tap, and the entry is saved on the first keystroke. Others join in one tap through a row tap, a "Live now" banner, a live dot or a Share link. Adds `note_document.editors` and moves the page to `/entries/:id`. Sliced in [`plans/live-notes-ux-plan.md`](plans/live-notes-ux-plan.md): slice 1 runs alone, then lanes 2→3, 4, 5, 6→7 (7 also needs 5), 8 and 9 run in parallel, and 10 runs last. **Slice 1 is merged.** The next wave is 2, 4, 5, 6, 8 and 9; the plan's _Status_ section has the state, the expected collisions and what slice 1 left for later slices. This file describes the current code, slice 1 included.
 
 ## Product
 
@@ -462,7 +467,7 @@ packages/data/            @caretook/data
 
 ## Next steps
 
-1. **The live notes UX PRD:** cut it into slices (`prd-to-plan`), then run the loops. File the PRD and slice issues once `gh` works.
+1. **The live notes UX PRD:** slice 1 is merged. In a fresh session, run the next wave (slices 2, 4, 5, 6, 8 and 9) as the plan's _Status_ section says. File the PRD and slice issues once `gh` works.
 2. **Tests:** make the integration tests independent (`careGroup.int.test.ts` shares one group across `describe` blocks), then cover every role against every table.
 3. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
 4. **The Resend iteration:** sign-up, invites with accept and consent, verification and reset. Then Capacitor (bearer storage, `VITE_API_ORIGIN`).

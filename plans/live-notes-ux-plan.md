@@ -2,6 +2,52 @@
 
 > Source PRD: [`plans/live-notes-ux-prd.md`](live-notes-ux-prd.md). User-story numbers (US) refer to it.
 
+## Status
+
+| Slice            | State                                 | Branch / merge                     |
+| ---------------- | ------------------------------------- | ---------------------------------- |
+| 1                | ✅ merged into `data-layer`           | `b0ceb5c` (slice commit `ce4feec`) |
+| 2, 4, 5, 6, 8, 9 | ready: the next wave, run in parallel | `loop/slice-<n>`                   |
+| 3                | blocked by 2                          |                                    |
+| 7                | blocked by 5 and 6                    |                                    |
+| 10               | blocked by 1–9                        |                                    |
+
+**Next wave:** a fresh orchestrator session follows AGENTS.md _Running loops_. It runs `scripts/loops/new.sh <n> slice-<n>` for n = 2, 4, 5, 6, 8 and 9 (the slot is the slice number), then spawns one agent per loop. Merge in plan order (2, 4, 5, 6, 8, 9), then start 3, and start 7 once both 5 and 6 are in.
+
+**Expected collisions in this wave:**
+
+- **The entry page header:** slices 2, 4, 6 and 8 each fill only their own region.
+- **`apps/web/app/routes/app/entry.tsx`:** 2, 4, 6 and 8.
+- **`timeline.tsx` and the row components:** 2 and 5. Slice 2 drops events' separate preview; slice 5 removes "Add/Open live notes" and `LiveNotesPreview`.
+- **`lib/liveEntry.ts`:** slice 2.
+- **Only slice 6 adds a migration (0007)** and edits `sync-config.yaml`.
+
+### What slice 1 left for later slices
+
+- **Header:** `<EntryHeader kind title time editors? actions? />` in `components/EntryHeader.tsx`.
+  - `title` and `time` are ReactNodes. `editors` and `actions` take no space when absent.
+  - **Slice 6** fills `editors`.
+  - **Slices 4 and 8** fill `actions`.
+  - **Slice 4** replaces `<EntryTime occurredAt>` in `time` with its chip.
+  - `EntryTitle({ value, placeholder, onCommit })` saves on blur or Enter, and follows remote renames unless the field is mid-edit.
+- **Pure decisions** (`lib/liveEntry.ts`, tested in `web:unit`):
+  - `LIVE_ENTRY_KINDS = ["note"]`. **Slice 2** adds `"event"`, which also turns on the quick-add link through `QuickAddBar`'s `hrefFor`.
+  - `savedTitle(kind, title)`. **Slice 2** makes it return "Event" for an empty event title.
+  - `shouldMaterialize({ saved, text, title })`, `NEW_ENTRY`, `entryUrl` and `newEntryUrl`.
+- **Saving** (`routes/app/entry.tsx` and `lib/sync/liveEntry.ts`):
+  - `save()` builds a `MaterializeInput` from the `draft` state. `materializeLiveEntry(db, input)` writes the entry and its document in one transaction, idempotently on the id. For an existing entry with no document (today's events), it inserts only the document.
+  - **Slice 4:** to make a time chosen on `new` the saved time, keep `occurredAt` in a ref or state that `save()` reads, instead of `draft.occurredAt`.
+- **The editor's save gate:** `bindNoteDoc(…, { ensureSaved })` holds a draft's changes until `ensureSaved(doc)` resolves true, saves on the first real change, then flushes. The route's `ensureSaved` must be stable, or the editor rebinds.
+- **Still on the old path, for slice 2:** events still allow a body, still edit through `EntryForm`, and keep their separate `LiveNotesPreview` and "Add/Open live notes" (now pointing at `/entries/:id`).
+- **For slice 5:** viewers can reach a note only by its URL (they have no ⋯ menu, and rows aren't tappable yet).
+- **Route discovery:** `react-router.config.ts` sets `routeDiscovery: { mode: "initial" }`, because lazy discovery fails offline when navigating to a just-saved `/entries/:id`. Keep it.
+- **Other gotchas:**
+  - `entry.tsx` reads `getSync()` once into state, because sign-out closes the DB while the page can still render once more.
+  - The entry header is `main header`; the app navbar is also a `<header>`.
+- **Browser checks:**
+  - `live-note.mjs` is slice 1's check (23/23 after the merge). Extend it, or add one per slice; slice 10 consolidates them.
+  - `phase2.mjs` passes 14/15 after the merge. "Dense first screen" (≥6 rows above the fold) fails with 5. This is probably because the seeds are placed relative to now, which makes the check depend on the time of day; it wasn't confirmed against the old code. **Slice 5** updates `phase2.mjs` and should fix it or make it independent of the time.
+
 ## How to run this plan
 
 - **Slice 1 runs alone.** Every other slice builds on its route, lifecycle and header.
@@ -45,7 +91,7 @@ Durable decisions that apply across all phases:
 
 ---
 
-## Phase 1: Tracer: a note is its document
+## Phase 1: Tracer: a note is its document ✅ merged
 
 **Blocked by:** none · **Blocks:** 2–10 · **User stories:** 1, 3–7, 12, 13, 18–20, 34–36, 40, 42
 
@@ -72,20 +118,20 @@ The thinnest complete path for notes:
 
 ### Acceptance criteria
 
-- [ ] From the timeline, a writer is typing in a new note after **one tap**.
-- [ ] Opening `new` and leaving without typing writes no `timeline_entry` or `note_document` row, locally or in Postgres.
-- [ ] After the first keystroke, the URL is `/entries/:entryId` and Back returns to the timeline.
-- [ ] Postgres has the entry with a null `body`, plus its document and updates, with correct authorship.
-- [ ] A note written fully offline uploads without rejection after reconnecting.
-- [ ] Two writers' edits converge, and a viewer sees them live, read-only.
-- [ ] The timeline row shows the document's text, including edits not yet synced. There's no separate "Live notes" block for notes.
-- [ ] The note option is gone from the entry sheet.
-- [ ] A symptom or vital id at `/entries/:id` → 404. A non-member → 404. Signed out → sign-in, then back to the entry.
-- [ ] Unit tests: the note content rules; the text → document helper round trips through plain text (bullets, empty text).
-- [ ] Integration test: an upload batch with a note PUT and its document PUT, and the same split across two batches, both succeed. A note PUT with a body is rejected.
-- [ ] Seed validation passes against the new rules, and `pnpm datastore:reset` seeds documents for all notes.
-- [ ] The `web:unit` project runs in `pnpm test` and covers the pure "when to materialize" decision.
-- [ ] A browser check covers the one-tap start, the abandoned draft, the URL replace, convergence, offline and the viewer.
+- [x] From the timeline, a writer is typing in a new note after **one tap**.
+- [x] Opening `new` and leaving without typing writes no `timeline_entry` or `note_document` row, locally or in Postgres.
+- [x] After the first keystroke, the URL is `/entries/:entryId` and Back returns to the timeline.
+- [x] Postgres has the entry with a null `body`, plus its document and updates, with correct authorship.
+- [x] A note written fully offline uploads without rejection after reconnecting.
+- [x] Two writers' edits converge, and a viewer sees them live, read-only.
+- [x] The timeline row shows the document's text, including edits not yet synced. There's no separate "Live notes" block for notes.
+- [x] The note option is gone from the entry sheet.
+- [x] A symptom or vital id at `/entries/:id` → 404. A non-member → 404. Signed out → sign-in, then back to the entry.
+- [x] Unit tests: the note content rules; the text → document helper round trips through plain text (bullets, empty text).
+- [x] Integration test: an upload batch with a note PUT and its document PUT, and the same split across two batches, both succeed. A note PUT with a body is rejected.
+- [x] Seed validation passes against the new rules, and `pnpm datastore:reset` seeds documents for all notes.
+- [x] The `web:unit` project runs in `pnpm test` and covers the pure "when to materialize" decision.
+- [x] A browser check covers the one-tap start, the abandoned draft, the URL replace, convergence, offline and the viewer.
 
 ---
 
