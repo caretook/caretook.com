@@ -2,7 +2,9 @@
 // one h1, landmarks, the skip link, the phone menu (opens, closes with Escape),
 // meta tags and JSON-LD, sitemap.xml and robots.txt, no third-party requests,
 // no /app or sync chunk, the calls to action, and Sign in reaching /sign-in.
-// Each marketing page loads with one h1. No sign-in and nothing written, so
+// Each marketing page loads with one h1. Features, FAQ and About at 420 and
+// 1280: one h1, screenshots with alt text and responsive, lazy sources, and
+// the FAQ's JSON-LD matching its visible questions. No sign-in and nothing written, so
 // there's nothing to clean up.
 //
 // Screenshots (full page) go to the worktree's git dir, never the repo:
@@ -239,6 +241,60 @@ try {
   const allUrls = await resources();
   check(!allUrls.some((u) => APP_CHUNK.test(u)), "no /app or sync chunk on the last page either");
 
+  // 8b. Features, FAQ and About at both widths: one h1, no sideways scroll, and
+  // every image with alt text, responsive sources and lazy loading (bar one).
+  const imageUrls = new Set();
+  for (const path of ["/features", "/faq", "/about"]) {
+    for (const width of [420, 1280]) {
+      await viewport(width);
+      await p.goto(path);
+      await p.waitFor(`document.querySelector("h1")`, 15000);
+      const s = await p.evaluate(`({
+        h1: document.querySelectorAll("h1").length,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        imgs: [...document.querySelectorAll("main img")].map((i) => ({
+          alt: i.getAttribute("alt") ?? "", src: i.getAttribute("src") ?? "", loading: i.loading,
+        })),
+      })`);
+      const label = `${path} ${width}`;
+      check(s.h1 === 1 && !s.overflow, `${label}: one h1, no horizontal scroll`, `${s.h1}`);
+      check(
+        s.imgs.every((i) => i.alt.trim().length > 20 && !!i.src) &&
+          s.imgs.filter((i) => i.loading !== "lazy").length <= 1,
+        `${label}: ${s.imgs.length} images with alt text, lazy below the fold`,
+      );
+      for (const i of s.imgs) imageUrls.add(i.src);
+    }
+  }
+  const missing = [];
+  for (const u of [...imageUrls].filter(Boolean)) {
+    const res = await fetch(`${BASE}${u}`);
+    if (!res.ok || !res.headers.get("content-type")?.startsWith("image/svg+xml"))
+      missing.push(`${u} ${res.status}`);
+  }
+  check(
+    imageUrls.size > 0 && missing.length === 0,
+    `every screenshot placeholder serves as SVG (${imageUrls.size})`,
+    missing.join(", "),
+  );
+
+  // 8c. The FAQ's JSON-LD matches its visible questions and answers.
+  await p.goto("/faq");
+  await p.waitFor(`document.querySelector("[data-faq-item]")`, 15000);
+  const faq = await p.evaluate(`(() => {
+    const ld = [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.textContent)).find((d) => d["@type"] === "FAQPage");
+    const visible = [...document.querySelectorAll("[data-faq-item]")].map((el) => ({
+      q: el.querySelector("h3").textContent.trim(),
+      a: [...el.querySelectorAll("p")].map((p) => p.textContent.trim()).join("\\n\\n"),
+    }));
+    return { ld: (ld?.mainEntity ?? []).map((q) => ({ q: q.name, a: q.acceptedAnswer.text })), visible };
+  })()`);
+  check(
+    faq.visible.length >= 8 && JSON.stringify(faq.ld) === JSON.stringify(faq.visible),
+    "FAQ JSON-LD matches the visible questions and answers",
+    `${faq.ld.length} in JSON-LD, ${faq.visible.length} on the page`,
+  );
+
   // 9. sitemap.xml and robots.txt.
   const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text();
   const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
@@ -265,6 +321,9 @@ try {
   await p.waitFor(`location.pathname === "/sign-in" && document.querySelector('input[name="email"]')`, 15000);
   check(true, "Sign in reaches /sign-in");
 
+  // 11. The legal pages (slice 3; its own function at the end of this file).
+  await legalPages(p, viewport, check);
+
   check(p.errors.length === 0, "no console errors", p.errors.join(" | "));
   console.log(`screenshots: ${SHOTS}`);
 } catch (e) {
@@ -274,3 +333,48 @@ try {
 }
 console.log(`${passed}/${passed + failed} passed`);
 process.exit(failed ? 1 : 0);
+
+// The legal pages (marketing slice 3): each loads at 420 and 1280 with one h1,
+// the DRAFT banner and a last-updated date; a table-of-contents link and a
+// heading's anchor link move to their section, below the sticky header.
+async function legalPages(p, viewport, check) {
+  for (const path of ["/privacy", "/terms", "/health-data-privacy"]) {
+    for (const width of [420, 1280]) {
+      const label = `${path} ${width}`;
+      await viewport(width);
+      await p.goto(path);
+      await p.waitFor(`document.querySelector("h1") && document.querySelector("[data-anchor]")`, 15000);
+      const state = await p.evaluate(`({
+        h1: document.querySelectorAll("h1").length,
+        draft: document.querySelector("[data-draft]")?.textContent ?? "",
+        date: document.querySelector("[data-last-updated] time")?.getAttribute("datetime") ?? "",
+        toc: document.querySelectorAll('nav[aria-labelledby="toc-heading"] a').length,
+        sections: document.querySelectorAll("[data-anchor]").length,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      })`);
+      check(state.h1 === 1, `${label}: one h1`, `${state.h1}`);
+      check(/DRAFT/.test(state.draft), `${label}: DRAFT banner`);
+      check(/^\d{4}-\d{2}-\d{2}$/.test(state.date), `${label}: last-updated date`, state.date);
+      check(state.toc === state.sections && state.sections >= 4, `${label}: a contents entry per section`);
+      check(!state.overflow, `${label}: no horizontal scroll`);
+    }
+    // At 1280, once hydrated (hydration restores the scroll, undoing an earlier jump; the module loads before it hydrates): a contents
+    // link, then a heading's own anchor, each lands its heading below the header.
+    await p.waitFor(
+      `Object.keys(window.__reactRouterRouteModules ?? {}).includes("routes/marketing${path}/route")`,
+      15000,
+    );
+    await new Promise((r) => setTimeout(r, 1000));
+    const lands = async (selector, what) => {
+      const id = await p.evaluate(`(() => { const a = ${selector}; a.click(); return a.hash.slice(1); })()`);
+      await p.waitFor(`location.hash === "#${id}"`, 3000);
+      await new Promise((r) => setTimeout(r, 300));
+      const top = await p.evaluate(`document.getElementById("${id}").getBoundingClientRect().top`);
+      const header = await p.evaluate(`document.querySelector("header").getBoundingClientRect().bottom`);
+      check(top >= header - 1 && top < 250, `${path}: ${what} goes to #${id}`, `top ${Math.round(top)}`);
+    };
+    await lands(`document.querySelectorAll('nav[aria-labelledby="toc-heading"] a')[3]`, "a contents link");
+    await p.evaluate(`scrollTo(0, 0)`);
+    await lands(`document.querySelectorAll("[data-anchor]")[2]`, "a heading's anchor");
+  }
+}

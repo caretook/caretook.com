@@ -1,6 +1,7 @@
 import type {
   CtaBandContent,
   FeatureGridContent,
+  GalleryContent,
   HeroContent,
   PageMeta,
   PromiseContent,
@@ -54,6 +55,29 @@ export const homeContent = {
       },
     ],
   } satisfies FeatureGridContent,
+
+  gallery: {
+    id: "see-it",
+    heading: "See it on a phone",
+    intro: "Real screens from Caretook, filled with made-up family data.",
+    shots: [
+      {
+        name: "timeline-rows",
+        alt: "Grandma Pat's timeline: today's entries, with a note about lunch and blood pressure readings, and buttons to add a note, symptom, event or vitals.",
+        caption: "The shared timeline",
+      },
+      {
+        name: "live-note",
+        alt: "A note titled Cardiology follow-up with notes from the visit and the next steps, and the initials of the other person writing it.",
+        caption: "A note written together",
+      },
+      {
+        name: "members",
+        alt: "A care group's members: an owner, a caretaker and a viewer, each with their role.",
+        caption: "Family, with the right access",
+      },
+    ],
+  } satisfies GalleryContent,
 
   steps: {
     id: "how-it-works",
