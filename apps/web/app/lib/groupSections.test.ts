@@ -7,6 +7,7 @@ import { activeSection, GROUP_SECTIONS, groupSubpath, isTabBarHidden, sectionCur
 const G = "11111111-1111-4111-8111-111111111111";
 const base = appUrls.groupHome(G);
 const timeline = GROUP_SECTIONS.find((s) => s.id === "timeline")!;
+const providers = GROUP_SECTIONS.find((s) => s.id === "providers")!;
 
 // A throwaway second section, as a later PRD would append it.
 const medications: GroupSection = {
@@ -19,9 +20,10 @@ const medications: GroupSection = {
 const withMeds = [...GROUP_SECTIONS, medications];
 
 describe("GROUP_SECTIONS", () => {
-  it("starts with Timeline", () => {
-    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual(["timeline"]);
+  it("starts with Timeline, then Providers", () => {
+    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual(["timeline", "providers"]);
     expect(timeline.path(G)).toBe(appUrls.timeline(G));
+    expect(providers.path(G)).toBe(appUrls.providers(G));
   });
   it("has unique ids", () => {
     expect(new Set(GROUP_SECTIONS.map((s) => s.id)).size).toBe(GROUP_SECTIONS.length);
@@ -50,6 +52,11 @@ describe("activeSection", () => {
     expect(activeSection(`${base}/entries/abc`, G)).toEqual({ section: timeline, isPage: false });
     expect(activeSection(`${base}/entries/new`, G)).toEqual({ section: timeline, isPage: false });
   });
+  it("is Providers on the directory, and inside it below /providers", () => {
+    expect(activeSection(`${base}/providers`, G)).toEqual({ section: providers, isPage: true });
+    expect(activeSection(`${base}/providers/abc`, G)).toEqual({ section: providers, isPage: false });
+    expect(activeSection(`${base}/providersx`, G)).toBeNull();
+  });
   it("is nothing on a group page outside every section, or outside the group", () => {
     expect(activeSection(`${base}/settings`, G)).toBeNull();
     expect(activeSection(`${base}`, G)).toBeNull();
@@ -68,6 +75,8 @@ describe("sectionCurrent", () => {
     expect(sectionCurrent(timeline, `${base}/settings`, G)).toBeUndefined();
     expect(sectionCurrent(timeline, `${base}/medications`, G, withMeds)).toBeUndefined();
     expect(sectionCurrent(medications, `${base}/medications`, G, withMeds)).toBe("page");
+    expect(sectionCurrent(providers, `${base}/providers`, G)).toBe("page");
+    expect(sectionCurrent(timeline, `${base}/providers`, G)).toBeUndefined();
   });
 });
 
@@ -75,6 +84,7 @@ describe("isTabBarHidden", () => {
   it("shows the bar on the timeline and other group pages", () => {
     expect(isTabBarHidden(`${base}/timeline`, G)).toBe(false);
     expect(isTabBarHidden(`${base}/settings`, G)).toBe(false);
+    expect(isTabBarHidden(`${base}/providers`, G)).toBe(false);
   });
   it("hides it on an entry's page and a new entry", () => {
     expect(isTabBarHidden(`${base}/entries/abc`, G)).toBe(true);

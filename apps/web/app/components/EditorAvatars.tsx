@@ -11,7 +11,7 @@ const NO_MEMBERS: MemberRow[] = [];
 const MAX_SHOWN = 3;
 
 /**
- * The entry header's `editors` region: initials of the other members who
+ * An `editors` header region (entry and provider pages): initials of the other members who
  * edited this document in the last couple of minutes, most recent first.
  * Updates live as edits arrive, and expires on the recent-editors timer.
  * Renders nothing when nobody else is typing (or for the viewer alone).
