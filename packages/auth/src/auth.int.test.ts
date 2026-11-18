@@ -224,6 +224,14 @@ describe("email verification", () => {
     expect(await mailTo(verified.email)).toEqual([]);
     expect(await mailTo(unknown)).toEqual([]);
   });
+
+  it("sends every resend, even two in one second (the token's iat is in seconds)", async () => {
+    const login = await createLogin({ verified: false });
+    for (let i = 0; i < 2; i++) {
+      await api().sendVerificationEmail({ body: { email: login.email }, asResponse: true });
+    }
+    expect((await mailTo(login.email)).map((m) => m.name)).toEqual(["verifyEmail", "verifyEmail"]);
+  });
 });
 
 describe("magic links", () => {
