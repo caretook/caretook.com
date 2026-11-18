@@ -44,9 +44,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Plan lightweight agentic chat options (with voice support) for quick actions (like adding a note, symptom, event, vital, etc.) and for asking questions about the timeline. (B-12)
   Status (2026-11-17): PRD not written yet (assistant). Waits on search; providers and medications help.
 - Add in providers directory with search and linking to event entries in timeline. (B-13)
-  Status (2026-11-17): PRD not written yet (providers). Waits on app-shell's group nav.
+  Status (2026-11-18): planned (providers, 7 slices; the data slice can start now). One directory (clinicians, practices, pharmacies, other contacts) with live notes, primary and past; plan after routing and components land.
 - Add provider linking/suggestions to event entries in timeline and live notes. (B-14)
-  Status (2026-11-17): PRD not written yet (providers, with B-13).
+  Status (2026-11-18): PRD written (providers). A "With" row on events and notes (several providers each), with suggestions from the title, past titles and recent links.
 - Work on medication list management and tracking in timeline. (B-15)
   Status (2026-11-17): PRD not written yet (medications). Waits on app-shell's group nav; providers helps.
 

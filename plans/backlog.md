@@ -16,7 +16,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices; 1–3 in `dev` (wave 1). **Paused:** slices 4–7 resume after `routing` and `components` land | `live-notes-ux` (done), `app-shell` (done); slices 4–7 wait for `routing` and `components` | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
 | `search`          | to write | `timeline-polish`'s infinite scroll (slice 7, after `routing` and `components`) | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx` |
-| `providers`       | to write | `app-shell`'s group nav (in `dev`) | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
+| `providers`       | [PRD](providers-prd.md), [plan](providers-plan.md): 7 slices, not started; slice 1 (data) can run now | slice 1: none; 2: `routing` 1; 3: `routing` 2; 5–7 (linking): `components` 2–4 | new tables `provider`, `timeline_entry_provider`; a `note_document` change (reseed); sync config, upload switch, permissions, device schema, seeds; `GROUP_SECTIONS`, `routes.ts`, the entry header, timeline row/card body |
 | `medications`     | to write | `app-shell`'s group nav (in `dev`); `providers` (soft) | new tables (as providers), `KIND_META`, `EntryForm` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started. **Runs next** | `app-shell` (done), `timeline-polish` wave 1 (in `dev`; its slices 4–7 wait for this) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
@@ -50,8 +50,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-20 | chore | landed | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
-| B-23 | change | triaged | routing |  | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
+| B-23 | change | in-progress | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
+| B-25 | feature | inbox |  |  | @-mentions of providers inside live notes and events |
 
 ## Items
 
@@ -208,6 +209,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): To settle: one table with a type (provider, pharmacy, facility, contact) or several; what an event's link stores.
+- 2026-11-18 (Robert Bo Davis): PRD written: plans/providers-prd.md. One provider table (clinician | practice | pharmacy | other), clinician→practice link, phones, primary (any number), past status, live notes via a generalized note_document, soft delete. Plan after components lands.
+- 2026-11-18 (Robert Bo Davis): Planned: plans/providers-plan.md. Slices 1–4 (data now; list after routing 1; add/edit after routing 2; provider page). Only linking (B-14, slices 5–7) waits for components 2–4.
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
@@ -217,6 +220,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Tiptap mentions in the document, a field on the event, or both.
+- 2026-11-18 (Robert Bo Davis): PRD written (providers): timeline_entry_provider link table (pair-derived ids), With row on events and notes, picker with inline add, suggestions from title/text matches, title memory and recent links. No @-mentions.
+- 2026-11-18 (Robert Bo Davis): Planned: providers slices 5–7 (With row, suggestions, 'with …' on rows), after components slices 2–4 land.
 
 ### B-15 · plan · Medication list (current, past, discontinued), printable sheet, and tracking in the timeline
 
@@ -295,14 +300,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-23 · change · Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route
 
-- status: triaged
+- status: in-progress
 - prd: routing
-- owner:
+- owner: prd/routing
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/routing-prd.md. Group layout route (middleware context), symptom/vital sheets at timeline/new/:kind and timeline/:id/edit, settings index + subpages, a folder per route. Runs after app-shell and timeline-polish land.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/routing-plan.md, 5 slices (1 alone; 2→3 parallel with 4→5).
 - 2026-11-18 (Robert Bo Davis): 2026-11-18: the user is running this next. Its dependency is met: app-shell is done and timeline-polish wave 1 is in dev (644f780); timeline-polish slices 4-7 are paused until routing and components land. routing-plan.md and routing-prd.md still say to wait for all of timeline-polish.
+- 2026-11-18 (slice/routing/1): slice 1 committed on slice/routing/1 (2a4bfad, 54d28fd): group route via client middleware (works in native SPA), appUrls, folder per route
 
 ### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
@@ -315,3 +321,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/components-prd.md. Four waves: UI primitives, timeline, entry page, then forms/shell/settings. Browser checks + pure unit tests, no new deps. Runs after routing.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/components-plan.md, 6 slices (1→2; 3→5 parallel with 4; 6 last).
 - 2026-11-18 (Robert Bo Davis): 2026-11-18: runs after routing, and before timeline-polish slices 4-7 (paused by the user).
+
+### B-25 · feature · @-mentions of providers inside live notes and events
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Later, after providers' linking lands. Typing @ in a note's or event's text suggests providers; a mention links the provider like the With row. Needs @tiptap/extension-mention and @tiptap/suggestion (new dependencies: the user's approval). Out of scope for the providers PRD.
