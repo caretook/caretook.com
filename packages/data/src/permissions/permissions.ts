@@ -237,6 +237,10 @@ export const PERMISSIONS: Permissions = {
     update: SYSTEM_ONLY_ENTRY,
     delete: groupEntry(WRITERS),
   },
+
+  // @caretook/notifications' outbox and the dev mailbox: the system's only.
+  notificationOutboxSchema: SYSTEM_ONLY_SCHEMA,
+  devMailSchema: SYSTEM_ONLY_SCHEMA,
 };
 
 // ---------------------------------------------------------------------------
