@@ -154,6 +154,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/app-shell/3): slice 3 (group menu, last group, Dev Family 2 seed) committed on slice/app-shell/3 at 650c0f0; awaiting merge
 - 2026-11-18 (prd/app-shell): app-shell slice 3 (group menu, last group, second seed group) merged into prd/app-shell at e3d7119; stays in progress until slice 6.
 - 2026-11-18 (prd/app-shell): app-shell slice 4 (GROUP_SECTIONS, SectionNav, TabBar) merged into prd/app-shell at ac4eea3.
+- 2026-11-18 (slice/app-shell/5): Slice 5 (group settings: details) is committed on slice/app-shell/5 (01cc17f, 5ede338), ready for review: the page, careGroup.update/recipient/updateRecipient, app-shell.mjs steps. Members is slice 6.
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
