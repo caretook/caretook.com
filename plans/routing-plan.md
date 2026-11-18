@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | State                                                | Merge into `prd/routing` (slice commits)                                  |
-| ----- | ---------------------------------------------------- | ------------------------------------------------------------------------- |
-| 1     | landed in `dev` (7906798), wave 1                    | 73f2aeb (2a4bfad, 54d28fd), 8a72857 (448a90a)                             |
-| 2     | merged; wave 2, awaiting the user's go-ahead to land | 1bc7e76 (d991834)                                                         |
-| 3     | ready once wave 2 lands                              |                                                                           |
-| 4     | merged; wave 2, awaiting the user's go-ahead to land | 62b0339 (72d71e7, 3d52bb5; routing.mjs conflict resolved by keeping both) |
-| 5     | ready once wave 2 lands                              |                                                                           |
+| Slice | State                                                | Merge into `prd/routing` (slice commits)                                                                 |
+| ----- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 1     | landed in `dev` (7906798), wave 1                    | 73f2aeb (2a4bfad, 54d28fd), 8a72857 (448a90a)                                                            |
+| 2     | landed in `dev` (b869738), wave 2                    | 1bc7e76 (d991834)                                                                                        |
+| 3     | merged; wave 3, awaiting the user's go-ahead to land | 8318844 (38f0973, 33d4b98)                                                                               |
+| 4     | landed in `dev` (b869738), wave 2                    | 62b0339 (72d71e7, 3d52bb5)                                                                               |
+| 5     | merged; wave 3, awaiting the user's go-ahead to land | 437bea8 (4048c93, 12d4526; routing.mjs conflict kept both; app-shell's Edit selector fixed in the merge) |
 
-Backlog: B-23 is claimed by `prd/routing` (in-progress). Mark it `done` after slice 5 merges.
+Backlog: B-23 is `ready` (done at ff24df4). The PRD is complete once wave 3 lands; then `pnpm prd rm routing`.
 
 **Slice 1's decision for slices 2–5: client middleware**, which works in both builds. The group middleware (`lib/group.tsx`) records the group, or the `notOnDevice` error, with `setGroup`. It never throws, because a middleware throw on native's first load lands in the root boundary. Every loader and action under the group route calls `getGroup(context)` first; components use `useGroup()`. The /app layout's middleware sets `sessionContext`; read it with `context.get(sessionContext)`, never a second `requireSession`.
 
