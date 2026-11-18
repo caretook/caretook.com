@@ -1,4 +1,6 @@
-// Phase 4: live notes. Three browsers: member@ (owner, through a switchable
+// Live notes on an event: an event is its document (live notes UX, slice 2).
+// One tap on Event starts typing; an unnamed event saves as "Event" and asks
+// for a title; a rename syncs. Then the shared document. Three browsers: member@ (owner, through a switchable
 // proxy for the offline check), caretaker@ and viewer@, all in Dev Family.
 import { execSync } from "node:child_process";
 import { launch, openPage, sleep } from "./cdp.mjs";
@@ -20,10 +22,11 @@ const psql = (sql) =>
 
 const rowWith = (text) =>
   `[...document.querySelectorAll("ol > li")].find((li) => li.textContent.includes(${JSON.stringify(text)}))`;
-const button = (text) =>
-  `[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
 const menuItem = (text) =>
   `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim() === ${JSON.stringify(text)})`;
+const tile = (text) =>
+  `[...document.querySelectorAll('[aria-label="Add to the timeline"] a, [aria-label="Add to the timeline"] button')].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+const TITLE = `document.querySelector("main header input")`;
 const EDITOR = `document.querySelector(".ProseMirror")`;
 const editorHas = (text) => `${EDITOR}?.textContent.includes(${JSON.stringify(text)})`;
 
@@ -65,30 +68,75 @@ try {
   for (const p of [A, B, C]) await p.waitFor(`document.querySelectorAll("ol > li").length > 0`, 20000);
   const timelineUrl = await A.evaluate("location.pathname");
 
-  // 1. Add an event, then live notes from its ⋯ menu.
+  // 1. One tap on Event: typing in its document straight away, with the title field at the top.
   const tag = `LN-${Date.now()}`;
-  await A.press(button("Event"));
-  await A.waitFor(`document.querySelector('[role=dialog] input[name="title"]')`);
-  await A.type(`document.querySelector('[role=dialog] input[name="title"]')`, `${tag} Dr. Lee visit`);
-  await A.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
-  await A.waitFor(rowWith(tag));
-  await A.press(`${rowWith(tag)}.querySelector('button[aria-label^="Actions"]')`);
-  await A.waitFor(menuItem("Add live notes"));
-  check("menu: writers can add live notes to an event", true);
-  await A.press(menuItem("Add live notes"));
-  await A.waitFor(`/\\/entries\\/[0-9a-f-]{36}$/.test(location.pathname) && ${EDITOR}`, 10000);
+  const eventsBefore = psql(`SELECT count(*) FROM timeline_entry WHERE kind = 'event'`);
+  await A.press(tile("Event"));
+  await A.waitFor(
+    `/\\/entries\\/new$/.test(location.pathname) && document.activeElement?.classList.contains("ProseMirror")`,
+    15000,
+  );
+  check(
+    "start: one tap on Event, cursor in the document, title field at the top",
+    await A.evaluate(`!!${TITLE} && ${TITLE}.placeholder === "Title" && location.search === "?kind=event"`),
+  );
+  await sleep(1500);
+  check(
+    "start: nothing saved before the first change",
+    psql(`SELECT count(*) FROM timeline_entry WHERE kind = 'event'`) === eventsBefore &&
+      (await A.evaluate(
+        `window.caretookSync.powersync.getAll("SELECT count(*) AS n FROM timeline_entry WHERE kind = 'event'").then((r) => String(r[0].n))`,
+      )) === eventsBefore,
+  );
+
+  // 2. Typing before any title saves it as "Event", and the title asks for a name.
+  await A.send("Input.insertText", { text: `${tag}-start` });
+  await A.waitFor(`/\\/entries\\/[0-9a-f-]{36}$/.test(location.pathname)`, 10000);
   const notesUrl = await A.evaluate("location.pathname");
-  check("add: opens the editor on its own page", true, notesUrl);
+  const eventId = notesUrl.split("/")[5];
+  await A.waitFor(`${TITLE}?.placeholder === "Add a title"`, 10000);
+  check(
+    'default title: saved as "Event", with an "Add a title" prompt',
+    await A.evaluate(`${TITLE}.value === ""`),
+    notesUrl,
+  );
+  await A.waitFor(
+    `window.caretookSync.powersync.getAll("SELECT title, body FROM timeline_entry WHERE id = '${eventId}'").then((r) => r[0]?.title === "Event" && r[0]?.body === null)`,
+  );
+  check('default title: stored locally as "Event" with no body', true);
   check(
     "editor: toolbar for writers",
     await A.evaluate(`!!document.querySelector('[role=toolbar][aria-label="Formatting"]')`),
   );
+  await A.screenshot("ln-event-unnamed");
 
-  // 2. The other caretaker and the viewer open it.
+  // 3. The other caretaker and the viewer open it; a rename reaches both.
+  // (Once it has synced to them: before that, it isn't on their device.)
+  for (const p of [B, C]) await p.waitFor(rowWith(`${tag}-start`), 20000);
   await B.goto(notesUrl);
   await B.waitFor(EDITOR, 15000);
   await C.goto(notesUrl);
   await C.waitFor(EDITOR, 15000);
+  check(
+    'default title: the viewer sees "Event"',
+    await C.evaluate(`document.querySelector("main header")?.textContent.includes("Event") && !${TITLE}`),
+  );
+  await A.evaluate(`${TITLE}.focus()`);
+  await A.type(TITLE, `${tag} Dr. Lee visit`);
+  await A.evaluate(`${TITLE}.blur()`);
+  await B.waitFor(`${TITLE}?.value === "${tag} Dr. Lee visit"`, 15000);
+  await C.waitFor(
+    `document.querySelector("main header")?.textContent.includes("${tag} Dr. Lee visit")`,
+    15000,
+  );
+  check("rename: reaches the other caretaker and the viewer", true);
+  check("rename: the prompt is gone", await A.evaluate(`${TITLE}.placeholder === "Title"`));
+  await sleep(2000);
+  check(
+    "rename: stored in Postgres, with no body",
+    psql(`SELECT title || '|' || coalesce(body, 'null') FROM timeline_entry WHERE id = '${eventId}'`) ===
+      `${tag} Dr. Lee visit|null`,
+  );
   check(
     "viewer: read-only, no toolbar",
     await C.evaluate(
@@ -168,12 +216,14 @@ try {
   await A.screenshot("ln-owner");
   await C.screenshot("ln-viewer");
 
-  // 8. Back on the timeline: a preview and an Open link, for the viewer too.
+  // 8. Back on the timeline: the document is the row's body, for the viewer too.
   await C.goto(timelineUrl);
   await C.waitFor(`${rowWith(tag)}?.textContent.includes("${tag}-a1")`, 15000);
   check(
-    "timeline: preview with an Open link (viewer)",
-    await C.evaluate(`!!${rowWith(tag)}.querySelector('a[href*="/entries/"]')`),
+    "timeline: the event's body is its document preview (viewer)",
+    await C.evaluate(
+      `${rowWith(tag)}.textContent.includes("${tag}-start") && !${rowWith(tag)}.textContent.includes("Live notes")`,
+    ),
   );
   check(
     "timeline: viewer has no ⋯ menu",

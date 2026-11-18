@@ -689,11 +689,12 @@ export const occurredAtOf = (entry: SeedEntry, now: number) => {
 const entryId = (index: number) => `0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c${String(1001 + index).padStart(4, "0")}`;
 
 /** Kinds whose text lives in their live document. A seed's `body` is that document's text. */
-const DOCUMENT_KINDS: readonly TimelineEntryKind[] = ["note"];
+const DOCUMENT_KINDS: readonly TimelineEntryKind[] = ["note", "event"];
 
 /**
- * What a seed entry stores: its content columns, and for notes the text of
- * its live document (the entry's `body` is then null).
+ * What a seed entry stores: its content columns, and for notes and events
+ * the text of its live document (the entry's `body` is then null; an event
+ * without one gets an empty document).
  */
 export const seedContentOf = (entry: SeedEntry) => {
   const hasDocument = DOCUMENT_KINDS.includes(entry.kind);
@@ -738,7 +739,7 @@ export const seed = async () => {
     ];
   });
 
-  // Every note gets its live document, already compacted (no pending updates).
+  // Every note and event gets its live document, already compacted (no pending updates).
   const documents = rows.flatMap(({ id, groupId, occurredAt, createdBy, documentText }) => {
     if (documentText === null) return [];
     const doc = noteDocFromText(documentText);

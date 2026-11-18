@@ -62,23 +62,18 @@ export const entryContentFromForm = (form: FormData, units: UnitChoices) => {
     body: optional(formString(form, "body")),
   };
 
-  switch (kind) {
-    case "symptom":
-      return {
-        kind,
-        ...shared,
-        details: {
-          name: formString(form, "symptomName"),
-          severity: severity === "" ? null : Number(severity),
-        },
-      };
-    case "vital":
-      return { kind, ...shared, details: { readings: readingsFromForm(form, units) } };
-    // Notes aren't made in a form (their text is their live document), so
-    // anything else is an event; a wrong kind still fails validation.
-    default:
-      return { kind: "event" as const, ...shared, title: formString(form, "title"), details: null };
-  }
+  // Notes and events aren't made in a form (their text is their live
+  // document), so anything but vitals is a symptom; a wrong kind's fields
+  // still fail validation.
+  if (kind === "vital") return { kind, ...shared, details: { readings: readingsFromForm(form, units) } };
+  return {
+    kind: "symptom" as const,
+    ...shared,
+    details: {
+      name: formString(form, "symptomName"),
+      severity: severity === "" ? null : Number(severity),
+    },
+  };
 };
 
 /** The same, as an update: content only (kind, group and recipient never change). */

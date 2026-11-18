@@ -208,9 +208,9 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
 
   // The query asks for one extra row: if it came back, there's more to show.
   const hasOlder = entryRows.length > limit;
-  // A note's text is its live document: its preview is the note's body.
+  // A note's or event's text is its live document: its preview is the body.
   const entries = toTimelineEntries(entryRows.slice(0, limit)).map((entry) =>
-    entry.kind === "note" ? { ...entry, body: previews.get(entry.id) || null } : entry,
+    isLiveEntryKind(entry.kind) ? { ...entry, body: previews.get(entry.id) || null } : entry,
   );
   const days = byDay(entries);
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
@@ -280,13 +280,6 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
                         : () => openSheet({ mode: "edit", entry })
                   }
                   onDelete={canWrite ? () => setDeleting(entry) : undefined}
-                  // Events still show their live notes separately (until slice 2).
-                  liveNotes={
-                    entry.kind === "event" && previews.has(entry.id)
-                      ? { preview: previews.get(entry.id) ?? "", url: entryUrl(groupId, entry.id) }
-                      : null
-                  }
-                  onLiveNotes={canWrite && entry.kind === "event" ? () => openEntry(entry) : undefined}
                 />
               ))}
             </ol>

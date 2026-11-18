@@ -28,7 +28,18 @@ describe("timeline seed entries", () => {
     const notes = SEED_ENTRIES.filter((e) => e.kind === "note").map(seedContentOf);
     expect(notes.length).toBeGreaterThan(0);
     expect(notes.every((n) => n.body === null && !!n.documentText?.trim())).toBe(true);
-    const others = SEED_ENTRIES.filter((e) => e.kind !== "note").map(seedContentOf);
+  });
+
+  it("give every event a live document, and no body", () => {
+    const events = SEED_ENTRIES.filter((e) => e.kind === "event").map(seedContentOf);
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.every((e) => e.body === null && typeof e.documentText === "string")).toBe(true);
+    // Some events have notes in their document.
+    expect(events.some((e) => !!e.documentText?.trim())).toBe(true);
+  });
+
+  it("give symptoms and vitals no document", () => {
+    const others = SEED_ENTRIES.filter((e) => e.kind !== "note" && e.kind !== "event").map(seedContentOf);
     expect(others.every((n) => n.documentText === null)).toBe(true);
   });
 
