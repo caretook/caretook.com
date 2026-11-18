@@ -9,15 +9,14 @@ import { DateTimeField } from "./DateTimeField";
 import { VitalReadingsFields } from "./VitalReadingsFields";
 import { VitalTypeMenu } from "./VitalTypeMenu";
 
-const KINDS: { value: Exclude<TimelineEntryKind, "vital" | "note">; label: string }[] = [
+// Notes and events are written in their own editor (their text is their live document).
+const KINDS: { value: Exclude<TimelineEntryKind, "vital" | "note" | "event">; label: string }[] = [
   { value: "symptom", label: "Symptom" },
-  { value: "event", label: "Event" },
 ];
 
 // Plain-language messages for the fields people most often miss. The
 // server's Zod messages ("Too small: expected string…") aren't for users.
 const FRIENDLY: Record<string, string> = {
-  title: "Give it a title.",
   "details.name": "Name the symptom.",
   details: "Name the symptom.",
   occurredAt: "Enter a date and time.",
@@ -29,9 +28,9 @@ const issueFor = (issues: FieldIssue[], ...paths: string[]) => {
 };
 
 /**
- * Add or edit a symptom, event or vitals entry (notes are written in their
- * own editor). Each kind asks for what it requires: a symptom its name, an
- * event its title, vitals their readings
+ * Add or edit a symptom or vitals entry (notes and events are written in
+ * their own editor). Each kind asks for what it requires: a symptom its
+ * name, vitals their readings
  * (picked from the Vitals menu, shown in the user's `units`). Posts to the
  * timeline route's clientAction.
  */
@@ -85,7 +84,6 @@ export function EntryForm({
 
   const busy = fetcher.state !== "idle";
   const bodyIssue = issueFor(issues, "body");
-  const titleIssue = issueFor(issues, "title");
   const nameIssue = issueFor(issues, "details.name", "details");
 
   return (
@@ -178,29 +176,6 @@ export function EntryForm({
             </select>
           </fieldset>
         </div>
-      )}
-
-      {kind === "event" && (
-        <fieldset className="fieldset">
-          <label className="fieldset-legend" htmlFor={`${id}-title`}>
-            Title
-          </label>
-          <input
-            id={`${id}-title`}
-            name="title"
-            className="input w-full"
-            maxLength={TIMELINE_LIMITS.title}
-            defaultValue={entry?.title ?? ""}
-            placeholder="e.g. Physical therapy"
-            aria-invalid={!!titleIssue}
-            aria-describedby={titleIssue ? `${id}-title-error` : undefined}
-          />
-          {titleIssue && (
-            <p id={`${id}-title-error`} className="text-error text-sm">
-              {titleIssue}
-            </p>
-          )}
-        </fieldset>
       )}
 
       <fieldset className="fieldset">

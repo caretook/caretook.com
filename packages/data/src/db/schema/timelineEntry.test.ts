@@ -21,8 +21,15 @@ describe("note content", () => {
 });
 
 describe("event content", () => {
-  it("still needs a title", () => {
+  it("needs a title", () => {
     expect(paths({ ...base, kind: "event", title: "Physical therapy" })).toEqual([]);
+    expect(paths({ ...base, kind: "event", title: "Event", body: null })).toEqual([]);
     expect(paths({ ...base, kind: "event", title: " " })).toEqual(["title"]);
+    expect(paths({ ...base, kind: "event" })).toEqual(["title"]);
+  });
+
+  it("rejects a body, even an empty one: its text is its live document", () => {
+    expect(paths({ ...base, kind: "event", title: "Visit", body: "Dr. Lee" })).toEqual(["body"]);
+    expect(paths({ ...base, kind: "event", title: "Visit", body: "" })).toEqual(["body"]);
   });
 });

@@ -292,7 +292,13 @@ describe("sync.upload", () => {
           op: "PUT" as const,
           table: "timeline_entry",
           id: entryId,
-          data: { ...row(groupId, recipientId), kind: "event", title: "Dr. Lee visit", details: null },
+          data: {
+            ...row(groupId, recipientId),
+            kind: "event",
+            title: "Dr. Lee visit",
+            body: null,
+            details: null,
+          },
         },
         { op: "PUT" as const, table: "note_document", id: entryId, data: { group_id: groupId } },
         ...Array.from({ length: n }, (_, i) => ({
@@ -381,6 +387,51 @@ describe("sync.upload", () => {
         status: "rejected",
         code: "timelineEntryService:invalid",
       });
+    });
+
+    it('accepts an event saved as "Event" with no body, and its rename', async () => {
+      const { owner, viewer, group, recipient } = await setup();
+      const { entryId, entry, document } = offlineNote(group.id, recipient.id);
+      const event = { ...entry, data: { ...entry.data, kind: "event", title: "Event" } };
+      const rename = {
+        op: "PATCH" as const,
+        table: "timeline_entry",
+        id: entryId,
+        data: { title: "Dr. Lee" },
+      };
+      const res = await owner.api.sync.upload({ ops: [event, document, rename] });
+      expect(res.results.map((r) => r.status)).toEqual(["applied", "applied", "applied"]);
+      const [stored] = (await viewer.api.timeline.list({ groupId: group.id })).data;
+      expect(stored).toMatchObject({ id: entryId, kind: "event", title: "Dr. Lee", body: null });
+    });
+
+    it("rejects an event with a body or no title", async () => {
+      const { owner, group, recipient } = await setup();
+      const { entryId, entry } = offlineNote(group.id, recipient.id);
+      const event = { ...entry, data: { ...entry.data, kind: "event", title: "Dr. Lee" } };
+      const cases = [
+        { data: { ...event.data, body: "Talked about the knee" }, path: "body" },
+        { data: { ...event.data, title: null }, path: "title" },
+        { data: { ...event.data, title: " " }, path: "title" },
+      ];
+      for (const { data, path } of cases) {
+        const res = await owner.api.sync.upload({ ops: [{ ...event, data }] });
+        expect(res.results[0]).toMatchObject({
+          id: entryId,
+          status: "rejected",
+          code: "timelineEntryService:invalid",
+          issues: [expect.objectContaining({ path })],
+        });
+      }
+      // Once stored, a PATCH can't add a body or clear the title either.
+      await owner.api.sync.upload({ ops: [event] });
+      for (const data of [{ body: "x" }, { title: null }]) {
+        const patch = { op: "PATCH" as const, table: "timeline_entry", id: entryId, data };
+        expect((await owner.api.sync.upload({ ops: [patch] })).results[0]).toMatchObject({
+          status: "rejected",
+          code: "timelineEntryService:invalid",
+        });
+      }
     });
 
     it("compacts once enough edits arrive", async () => {

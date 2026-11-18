@@ -12,7 +12,14 @@ import { EntryHeader, EntryTime, EntryTitle } from "~/components/EntryHeader";
 import { LiveNotesEditor } from "~/components/LiveNotesEditor";
 import { KIND_META } from "~/lib/entryDisplay";
 import { localTimeZone } from "~/lib/format";
-import { entryUrl, isLiveEntryKind, NEW_ENTRY, savedTitle, shouldMaterialize } from "~/lib/liveEntry";
+import {
+  entryUrl,
+  isLiveEntryKind,
+  NEW_ENTRY,
+  savedTitle,
+  shouldMaterialize,
+  titleField,
+} from "~/lib/liveEntry";
 import { requireSession } from "~/lib/session";
 import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
 import { materializeLiveEntry } from "~/lib/sync/liveEntry";
@@ -30,7 +37,7 @@ import {
 // Everything is local; edits sync through PowerSync like the rest of the
 // timeline.
 //
-// `/entries/new?kind=note` is a draft: an id made here, nothing written.
+// `/entries/new?kind=note|event` is a draft: an id made here, nothing written.
 // The first real change saves the entry and its document together (see
 // lib/liveEntry.ts), and the URL is replaced with `/entries/:id`. It's the
 // same route, so the editor stays mounted and keeps the cursor.
@@ -194,7 +201,8 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
 
   const commitTitle = (next: string) => {
     titleRef.current = next;
-    if (!saved.current) {
+    // A draft's title is saved with it. (An existing entry is renamed, even one still without its document.)
+    if (isNew && !saved.current) {
       if (shouldMaterialize({ saved: false, text: "", title: next })) void save();
       return;
     }
@@ -206,8 +214,9 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
 
   const label = KIND_META[kind].label;
   const heading = title || (isNew && !live ? `New ${label.toLowerCase()}` : label);
-  // Notes are named here. Events keep their title from the entry sheet until slice 2.
-  const titleEditable = canWrite && kind === "note" && !deleted;
+  // Named here, by writers. An unnamed event (saved as "Event") shows an empty field asking for a title.
+  const titleEditable = canWrite && isLiveEntryKind(kind) && !deleted;
+  const field = isLiveEntryKind(kind) ? titleField(kind, title, !!live) : null;
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
@@ -220,8 +229,8 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
       <EntryHeader
         kind={kind}
         title={
-          titleEditable ? (
-            <EntryTitle value={title} placeholder="Title (optional)" onCommit={commitTitle} />
+          titleEditable && field ? (
+            <EntryTitle value={field.value} placeholder={field.placeholder} onCommit={commitTitle} />
           ) : (
             <p aria-hidden="true" className="text-xl font-semibold break-words">
               {heading}
@@ -235,10 +244,6 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
           </>
         }
       />
-      {kind === "event" && live?.body && (
-        <p className="text-base-content/80 break-words whitespace-pre-wrap">{live.body}</p>
-      )}
-
       {saveError && (
         <p role="alert" className="text-error text-sm">
           {saveError}

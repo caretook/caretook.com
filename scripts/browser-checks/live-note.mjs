@@ -231,13 +231,14 @@ try {
   await A.waitFor(rowWith(offWord), 5000);
   check("offline: still on the device that wrote it (not rolled back)", true);
 
-  // 9. The entry sheet has no Note option.
+  // 9. The entry sheet offers only Symptom and Vitals (notes and events have their own page).
   await B.press(tile("Symptom"));
   await B.waitFor(`document.querySelector("[role=dialog] form")`);
   check(
-    "sheet: no Note option",
+    "sheet: only Symptom and Vitals",
     await B.evaluate(
-      `!document.querySelector('[role=dialog] input[aria-label="Note"]') && !!document.querySelector('[role=dialog] input[aria-label="Event"]')`,
+      `(() => { const kinds = [...document.querySelectorAll('[role=dialog] fieldset .join > *')].map((el) => el.getAttribute("aria-label") ?? el.textContent.trim());
+        return JSON.stringify(kinds) === JSON.stringify(["Symptom", "Vitals ▾"]); })()`,
     ),
   );
 
