@@ -254,6 +254,26 @@ export const PERMISSION_ERRORS = {
   },
 } as const;
 
+// @caretook/notifications: notify(), the outbox and the senders.
+export const NOTIFICATION_ERRORS = {
+  "notify:invalidData": {
+    message: "The notification's data is invalid",
+    statusCode: 400,
+  },
+  "notify:render": {
+    message: "Failed to render the notification",
+  },
+  "notify:enqueue": {
+    message: "Failed to queue the notification",
+  },
+  "notify:deliver": {
+    message: "Failed to deliver queued notifications",
+  },
+  "notify:send": {
+    message: "The mail sender refused the message",
+  },
+} as const;
+
 export const ERRORS = {
   error: {
     message: "An error occurred",
@@ -262,6 +282,7 @@ export const ERRORS = {
   ...MODEL_ERRORS,
   ...SERVICE_ERRORS,
   ...PERMISSION_ERRORS,
+  ...NOTIFICATION_ERRORS,
 } as const;
 
 export const ERROR_KEYS = Object.keys(ERRORS) as (keyof typeof ERRORS)[];

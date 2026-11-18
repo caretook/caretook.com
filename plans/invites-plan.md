@@ -4,15 +4,25 @@
 
 ## Status
 
-| Slice | State                                                                   | Merge into `prd/invites` (slice commits) |
-| ----- | ----------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | ready                                                                   |                                          |
-| 2     | blocked by 1                                                            |                                          |
-| 3     | blocked by 2 (and uses `routing` slice 5's Members subpage if in `dev`) |                                          |
-| 4     | blocked by 3                                                            |                                          |
-| 5     | blocked by 3                                                            |                                          |
+| Slice | State                                                                                             | Merge into `prd/invites` (slice commits) |
+| ----- | ------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1     | merged                                                                                            | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
+| 2     | merged                                                                                            | `68df3d6` (776ca9b, 3d86337, 5ce74dd)    |
+| 3     | ready after wave 1 lands; blocked by 2 (and uses `routing` slice 5's Members subpage if in `dev`) |                                          |
+| 4     | blocked by 3                                                                                      |                                          |
+| 5     | blocked by 3                                                                                      |                                          |
 
-Backlog: B-30 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges.
+Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. Wave 1 = slices 1 and 2: both merged and synced with `dev`. **Blocker before landing:** `dev` (quick-fixes B-38) now runs browser checks on a production build (`serve.sh --built`), where `/dev/mail` was a 404 and the `log` sender refused, so `invites.mjs` failed. A fix-up on `slice/invites/2` allows both in a check build on a localhost `APP_URL` only.
+
+**The user's go-ahead (2026-11-18): land the rest of this PRD's waves without asking**, once each is green (wave 1, then 3, then 4 and 5). Every other rule still applies.
+
+Notes from slice 1 for later slices:
+
+- `@react-email/components` is deprecated on npm (React Email 6 moved its components into `react-email`), so slice 1 didn't add it: its templates use plain JSX in `packages/notifications/src/templates/layout.tsx`, rendered by `@react-email/render` 2.3.1. `resend` is 6.38.1. **The user has since approved `react-email` in its place (2026-11-18): slice 2 adds it and moves `layout.tsx` and `testMessage` onto its components.**
+- Inside a transaction, `notify` only writes the outbox row. The caller calls `deliverSoon(id)` after commit. `setBackgroundRunner` is the hook for `waitUntil`.
+- Browser checks read mail from `/dev/mail.json?to=…` (`links` included). It's a 404 under `NODE_ENV=production`, and `getMailConfig()` refuses `log` there, so `invites.mjs` needs the dev server, not `pnpm prd serve --built`.
+- Resend open and click tracking are settings on the sending domain, not per message: a pre-launch setup step.
+- `new.sh` (not `lib.sh`) writes `APP_URL` per worktree and a random `CRON_SECRET` when the main checkout has none. The main checkout's `apps/web/.env` has no `CRON_SECRET` yet, so `/api/cron/outbox` answers 503 there.
 
 ## Architectural decisions
 
@@ -25,7 +35,7 @@ Durable decisions every slice follows:
 - **Acceptance, redemption and approval write as `system`** inside services. Screens call oRPC (these writes are online only), never local writes.
 - **Shared routes stay client-only** (`/invite/:token`, `/join/:code`, `/reset-password`, `/verify-email`, sign-in). `/admin/*`, `/dev/mail` and `/api/cron/outbox` are web only. `/dev/mail` returns 404 in production.
 - **Schema:** each landing wave has at most one migration for this PRD. Slices in one wave regenerate that wave's migration on top of each other (4 and 5: the orchestrator merges 4 first and has 5 regenerate). Registries are appended to, never reordered: `db/schema/index.ts`, `PERMISSIONS`, the router, `routes.ts`, `NOTIFICATIONS`.
-- **New dependencies (approved; pin exactly):** `resend`, `@react-email/components`, `@react-email/render`, `qrcode` (+ `@types/qrcode`). Add each in the slice that first needs it (1: resend and React Email; 5: qrcode). `pnpm-workspace.yaml`'s `minimumReleaseAge` stays; pick versions old enough.
+- **New dependencies (approved; pin exactly):** `resend`, `react-email` (the components; it replaced the deprecated `@react-email/components`, approved 2026-11-18), `@react-email/render`, `qrcode` (+ `@types/qrcode`). Add each in the slice that first needs it (1: resend and `@react-email/render`; 2: `react-email`; 5: qrcode). Pin the `react-email` version that matches `@react-email/render` 2.3.1 (or move both together). `pnpm-workspace.yaml`'s `minimumReleaseAge` stays; pick versions old enough.
 - **Env** (new, gitignored values in `.env` and documented in the `.env.example` files): `APP_URL`, `MAIL_SENDER`, `RESEND_API_KEY`, `MAIL_FROM`, `MAIL_ALLOWLIST`, `CRON_SECRET`, `INVITE_LINK_KEY`. `scripts/loops/lib.sh` copies the secrets into new worktrees and sets `APP_URL` to the worktree's web port.
 - **Seeds stay verified:** every `@example.com` seed user has `email_verified = true`, so existing browser checks keep signing in.
 - **UI building blocks:** screens use `components`' primitives where landed; group settings' Members work goes into `routing` slice 5's Members subpage when it's in `dev` (otherwise today's group settings page, which `routing` then moves).
@@ -72,7 +82,7 @@ routing 5 (Members subpage) → 3, soft
 
 ### What to build
 
-Notifications `verifyEmail`, `resetPassword`, `magicLink` and `signInCode`, wired into Better Auth's callbacks through `notify` (never awaited in the request). `requireEmailVerification: true` (seed users stay verified). The `magicLink` and `emailOTP` plugins with `disableSignUp: true`. The sign-in page gains "Email me a link", "Email me a code" (a 6-digit input) and "Forgot password?". New shared, client-only routes `/reset-password` (from the emailed link) and `/verify-email` (the landing page, plus a "Resend" for an unverified account that tries to sign in). Every message about an email address is the same whether or not an account exists. Start `invites.mjs`, reading mail from `/dev/mail`.
+First, add `react-email` (pinned) and move slice 1's `layout.tsx` and `testMessage` onto its components, keeping the HTML and plain-text output tests green. Then notifications `verifyEmail`, `resetPassword`, `magicLink` and `signInCode`, wired into Better Auth's callbacks through `notify` (never awaited in the request). `requireEmailVerification: true` (seed users stay verified). The `magicLink` and `emailOTP` plugins with `disableSignUp: true`. The sign-in page gains "Email me a link", "Email me a code" (a 6-digit input) and "Forgot password?". New shared, client-only routes `/reset-password` (from the emailed link) and `/verify-email` (the landing page, plus a "Resend" for an unverified account that tries to sign in). Every message about an email address is the same whether or not an account exists. Start `invites.mjs`, reading mail from `/dev/mail`.
 
 ### Acceptance criteria
 
