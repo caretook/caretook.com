@@ -408,6 +408,8 @@ try {
   check("/app: goes to the last group after a reload", reloaded);
 
   // A remembered group you're no longer in: the list, without an error.
+  // (Right after a reload the sync handle can still be opening, so wait for it.)
+  await A.waitFor(`!!window.caretookSync?.userId`, 20000);
   await A.evaluate(
     `localStorage.setItem("caretook:lastGroup:" + window.caretookSync.userId, "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8dffff")`,
   );
@@ -605,6 +607,9 @@ try {
     };
     const settingsOf = (groupId) => `/app/groups/${groupId}/settings`;
     const SETTINGS = settingsOf(DEV_FAMILY);
+    // The list (phones) opens Details, where the group and the recipient are.
+    const DETAILS = `${SETTINGS}/details`;
+    const listItem = (id) => `document.querySelector('main [data-settings-item="${id}"]')`;
     const section = (id) => `document.querySelector('main [data-section="${id}"]')`;
     const GROUP = section("group-details");
     const RECIPIENT = section("care-recipient");
@@ -614,7 +619,7 @@ try {
     const controls = (sec) => `(${sec}?.querySelectorAll("input:not([type=hidden]), button").length ?? -1)`;
     const text = (sec) => `(${sec}?.textContent ?? "")`;
     const onSettings = (p, ms = 40000) =>
-      p.waitFor(`location.pathname === ${JSON.stringify(SETTINGS)} && ${GROUP} && ${RECIPIENT}`, ms);
+      p.waitFor(`location.pathname === ${JSON.stringify(DETAILS)} && ${GROUP} && ${RECIPIENT}`, ms);
     /** Press a section's Save and wait for its result ("Saved." or an alert). */
     const save = async (p, sec) => {
       await p.evaluate(`${sec}.querySelector('button[type="submit"]').click()`);
@@ -636,6 +641,8 @@ try {
       await p.press(GROUP_TRIGGER);
       await p.waitFor(item("Group settings"), 5000);
       await p.press(item("Group settings"));
+      await p.waitFor(listItem("details"), 30000);
+      await p.press(listItem("details"));
     };
 
     const proxy = startProxy(9475);
@@ -663,10 +670,15 @@ try {
         menuEnd,
       );
       await M.press(item("Group settings"));
-      const opened5 = await onSettings(M)
+      const opened5 = await M.waitFor(
+        `location.pathname === ${JSON.stringify(SETTINGS)} && document.querySelector("main h1")?.textContent.trim() === "Group settings" && ${listItem("members")}`,
+        40000,
+      )
         .then(() => true)
         .catch(() => false);
-      check("group menu: Group settings opens /app/groups/:groupId/settings", opened5);
+      check("group menu: Group settings opens /app/groups/:groupId/settings (the list)", opened5);
+      await M.press(listItem("details"));
+      await onSettings(M);
       await M.waitFor(input(RECIPIENT, "dateOfBirth"), 20000);
       const first5 = await M.evaluate(`({
         h1: document.querySelector("main h1")?.textContent.trim(),
@@ -674,19 +686,19 @@ try {
         name: ${input(RECIPIENT, "name")}?.value,
         preferred: ${input(RECIPIENT, "preferredName")}?.value,
         dob: ${input(RECIPIENT, "dateOfBirth")}?.value,
-        sections: [...document.querySelectorAll("main > section")].map((s) => s.dataset.section).join(","),
+        sections: [...document.querySelectorAll("main [data-section]")].map((s) => s.dataset.section).join(","),
         bar: ${shown(BAR)},
         current: [...(${BAR}?.querySelectorAll("a[aria-current]") ?? [])].length,
         notice: !!document.querySelector("[data-needs-connection]"),
       })`);
       check(
         "owner: the page shows the group's name and the recipient's name, preferred name and date of birth",
-        first5.h1 === "Group settings" &&
+        first5.h1 === "Details" &&
           first5.group === SEED.group &&
           first5.name === SEED.name &&
           first5.preferred === SEED.preferred &&
           first5.dob === SEED.dob &&
-          first5.sections === "group-details,care-recipient,members" &&
+          first5.sections === "group-details,care-recipient" &&
           !first5.notice,
         JSON.stringify(first5),
       );
@@ -902,7 +914,7 @@ try {
       await sleep(1000);
 
       // 5g. Put the seeds' names back, through the page.
-      await M.goto(SETTINGS);
+      await M.goto(DETAILS);
       await onSettings(M);
       await M.waitFor(input(RECIPIENT, "dateOfBirth"), 30000);
       await M.type(input(GROUP, "name"), SEED.group);
@@ -968,7 +980,9 @@ try {
     const NO_GROUPS = "You're not in a care group yet";
     const tag = Date.now().toString(36);
 
-    const SETTINGS = `/app/groups/${DEV_FAMILY}/settings`;
+    // The list (phones) opens Members.
+    const SETTINGS = `/app/groups/${DEV_FAMILY}/settings/members`;
+    const MEMBERS_ITEM = `document.querySelector('main [data-settings-item="members"]')`;
     const MEMBERS = `document.querySelector('main [data-section="members"]')`;
     const memberRow = (name) =>
       `[...(${MEMBERS}?.querySelectorAll("li[data-member]") ?? [])].find((li) => li.querySelector("p").textContent.includes(${JSON.stringify(name)}))`;
@@ -1017,6 +1031,8 @@ try {
       await p.press(GROUP_TRIGGER);
       await p.waitFor(item("Group settings"), 5000);
       await p.press(item("Group settings"));
+      await p.waitFor(MEMBERS_ITEM, 30000);
+      await p.press(MEMBERS_ITEM);
       await onMembers(p);
       // Online: the forms and member controls come with the loader's API read.
       await p.waitFor(`${MEMBERS}.querySelector("button")`, 20000);
@@ -1038,8 +1054,8 @@ try {
       await M.evaluate(`window.__stay = ${JSON.stringify(tag)}`);
       const ownerList = await listed(M);
       const ownerView = await M.evaluate(`({
-        sections: [...document.querySelectorAll("main > section")].map((s) => s.dataset.section).join(","),
-        heading: ${MEMBERS}.querySelector("h2").textContent.trim(),
+        sections: [...document.querySelectorAll("main [data-section]")].map((s) => s.dataset.section).join(","),
+        heading: ${MEMBERS}.querySelector("h1").textContent.trim(),
         avatars: [...${MEMBERS}.querySelectorAll("li[data-member] > div > span[aria-hidden]")].map((a) => a.textContent.trim()).join(","),
         options: ${options("Dev Viewer")},
         labels: [...${MEMBERS}.querySelectorAll("li select, li button")].map((el) => el.getAttribute("aria-label")).join("|"),
@@ -1047,7 +1063,7 @@ try {
       })`);
       check(
         "owner: Members lists everyone by role, with a role menu each, Leave for themselves and Remove for the others",
-        ownerView.sections === "group-details,care-recipient,members" &&
+        ownerView.sections === "members" &&
           ownerView.heading === "Members" &&
           ownerList ===
             "Dev Member (you):Owner*:Leave,Dev Caretaker:Caretaker*:Remove,Dev Viewer:Viewer*:Remove",
@@ -1208,7 +1224,7 @@ try {
       );
       const noWriter = await O.evaluate(`({
         addBar: !!document.querySelector('[aria-label="Add to the timeline"]'),
-        menus: document.querySelectorAll('main ol button[aria-label^="Actions"], main ol button[aria-label^="Edit "]').length,
+        menus: document.querySelectorAll('main ol button[aria-label^="Actions"], main ol [aria-label^="Edit "]').length,
         note: document.querySelector("main")?.textContent.includes("You can view this timeline"),
         stay: window.__stay,
       })`);

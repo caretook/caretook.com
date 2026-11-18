@@ -1,5 +1,5 @@
 import type { SheetKind } from "../../../../lib/appUrls";
-import type { VitalType } from "@caretook/data/schema";
+import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
 import {
   appUrls,
@@ -8,9 +8,10 @@ import {
   VITAL_TYPE_PARAM,
   withoutSheetParams,
 } from "../../../../lib/appUrls";
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { parseFilters } from "../../../../lib/timelineFilters";
 
-// The timeline's sheet routes (`timeline/new/:kind`): which sheet a URL
+// The timeline's sheet routes (`timeline/new/:kind`, `timeline/:entryId/edit`): which sheet a URL
 // opens, or where it goes instead. Pure, so web:unit tests it; the routes'
 // loaders apply it.
 
@@ -41,6 +42,38 @@ export const newSheetGuard = ({
     return { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
   const type = new URLSearchParams(search).get(VITAL_TYPE_PARAM);
   return { sheet: { kind, vitalType: kind === "vital" && isVitalType(type) ? type : null } };
+};
+
+/** What the edit guard needs to know about the entry, as read from the device. */
+export type EditSheetEntry = {
+  id: string;
+  groupId: string;
+  kind: TimelineEntryKind;
+  deletedAt: string | null;
+};
+
+/**
+ * `timeline/:entryId/edit`: a writer's symptom or vital in this group. A
+ * note or event has its own page (for viewers too); a missing, deleted or
+ * other group's entry, or a viewer, is the timeline. Redirects keep the
+ * timeline's filters.
+ */
+export const editSheetGuard = <Entry extends EditSheetEntry>({
+  groupId,
+  entry,
+  search,
+  canWrite,
+}: {
+  groupId: string;
+  entry: Entry | null;
+  search: string;
+  canWrite: boolean;
+}): SheetDecision<{ entry: Entry }> => {
+  const timeline = { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
+  if (!entry || entry.groupId !== groupId || entry.deletedAt) return timeline;
+  if (canHaveNoteDocument(entry.kind)) return { redirect: appUrls.entry(groupId, entry.id) };
+  if (!canWrite) return timeline;
+  return { sheet: { entry } };
 };
 
 const within = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
