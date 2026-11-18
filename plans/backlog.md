@@ -353,6 +353,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/components/2): slice 2 ready on slice/components/2 (a2c2bd1): sheet, popover, field, chip group, avatar stack, icon button in ui/; DateTimeField in ui/date; forms/ removed
 - 2026-11-18 (prd/components): Wave 2 (slice 2) landed in dev as 666ebf9: ui/ primitives Sheet, Popover, ConfirmDialog, Field, ChipGroup, UserAvatar(size), AvatarStack, IconButton; DateTimeField moved to ui/date/ (own index); components/forms/ removed; only ui/ imports react-aria-components. Other PRDs: sync dev at your next wave boundary and build new UI on these. Slices 3 and 4 start now.
 - 2026-11-18 (slice/components/4): components slice 4 (03cde5a): entry page split into loadEntry, useLiveEntry, EntryPageHeader, EntryTitleRegion; LiveNotesEditor focus handle; live-notes 93/93, providers 85/85, ui 577/577
+- 2026-11-18 (prd/components): Wave 3 (slices 3 and 4) landed in dev as 511cbed: the timeline route only composes (useTimelineData with paging, useTimelineView, useEntryRemoval, TimelineEntryList, shared EntryBody); the entry route only composes (useLiveEntry, loadEntry, EntryPageHeader, EntryTitleRegion); LiveNotesEditor has a focus handle. Slices 5 (entry form) and 6 (settings, header, written rules) remain. Other PRDs: sync dev at your next wave boundary; avoid routes/app/groups/timeline/ EntryForm and the settings routes until components lands 5 and 6.
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
