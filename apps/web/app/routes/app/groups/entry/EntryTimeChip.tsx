@@ -1,7 +1,7 @@
 import { CalendarClock } from "lucide-react";
 import { useRef } from "react";
 import { Button, Dialog, DialogTrigger, Popover } from "react-aria-components";
-import { DateTimeField } from "~/components/DateTimeField";
+import { DateTimeField } from "~/components/forms";
 import { EntryTime } from "./EntryHeader";
 
 /**

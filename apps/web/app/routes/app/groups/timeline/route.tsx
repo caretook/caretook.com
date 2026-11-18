@@ -10,7 +10,7 @@ import type { TimelineOutlet } from "./sheet";
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
 import { Outlet, PrefetchPageLinks, useFetcher, useLocation, useNavigate } from "react-router";
-import { ConfirmDialog } from "~/components/ConfirmDialog";
+import { ConfirmDialog } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
 import { formString } from "~/lib/form";

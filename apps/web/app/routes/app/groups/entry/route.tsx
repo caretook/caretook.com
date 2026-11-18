@@ -8,7 +8,8 @@ import { canHaveNoteDocument, noteText } from "@caretook/data/schema";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { data, Link, useNavigate } from "react-router";
-import { ConfirmDialog } from "~/components/ConfirmDialog";
+import { EntryActions } from "~/components/entry";
+import { ConfirmDialog } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
 import { localTimeZone } from "~/lib/format";
@@ -25,12 +26,10 @@ import { sessionContext } from "~/lib/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { materializeLiveEntry } from "~/lib/sync/liveEntry";
 import { readRows, removeEntry, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
-import { EditorAvatars } from "~/components/EditorAvatars";
+import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { EntryHeader, EntryTime, EntryTitle } from "./EntryHeader";
-import { EntryMenu } from "./EntryMenu";
 import { EntryTimeChip } from "./EntryTimeChip";
 import { EventTitleChips } from "./EventTitleChips";
-import { LiveNotesEditor } from "~/components/LiveNotesEditor";
 import { ShareButton } from "./ShareButton";
 
 // Shared by web + native. A note (or event) is its live document: this page
@@ -287,7 +286,8 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
             <>
               <ShareButton title={heading} path={appUrls.entry(groupId, draft.id)} />
               {canWrite && (
-                <EntryMenu
+                <EntryActions
+                  kind={live.kind}
                   label={`Actions for this ${label.toLowerCase()}`}
                   onDelete={() => setConfirmDelete(true)}
                 />

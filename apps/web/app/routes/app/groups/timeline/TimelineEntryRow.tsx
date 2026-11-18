@@ -5,8 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { entrySummary, initials, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
-import { EntryActions } from "./EntryActions";
-import { AuthorInitials, KindFilterLink } from "~/components/KindIcon";
+import { AuthorInitials, EntryActions, KindFilterLink } from "~/components/entry";
 import { LiveDot } from "./LiveDot";
 
 export type EntryViewProps = {
@@ -104,7 +103,9 @@ export function TimelineEntryRow({
       </div>
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
       <AuthorInitials name={authorName} initials={initials(authorName)} />
-      {onDelete && <EntryActions label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />}
+      {onDelete && (
+        <EntryActions kind={entry.kind} label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />
+      )}
     </li>
   );
 }
