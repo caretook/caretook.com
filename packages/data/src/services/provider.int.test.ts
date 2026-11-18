@@ -186,6 +186,48 @@ describe("providerService: writing", () => {
     ).toBe("providerService:badPractice");
   });
 
+  it("won't let a practice stop being one while live clinicians name it", async () => {
+    const { u, addProvider } = await setup();
+    const practice = await addProvider({ type: "practice", name: "Westside Clinic" });
+    const other = await addProvider({ type: "practice", name: "Eastside Clinic" });
+    const clinician = await addProvider({ practiceId: practice.id });
+    const retype = (type: "clinician" | "other" | "pharmacy" | "practice") =>
+      providerService.update(u.caretaker.ctx, practice.id, { type });
+
+    for (const type of ["clinician", "other"] as const) {
+      const res = await retype(type);
+      expect(codeOf(res)).toBe("providerService:practiceInUse");
+      expect(isError(res) && res.meta).toMatchObject({
+        issues: [
+          {
+            path: "type",
+            message: "Clinicians are linked to this practice. Move them to another practice first.",
+          },
+        ],
+      });
+    }
+    expect(ok(await providerService.getById(u.owner.ctx, practice.id))?.type).toBe("practice");
+
+    // Practice and pharmacy are both practices.
+    expect(ok(await retype("pharmacy"))?.type).toBe("pharmacy");
+    expect(ok(await retype("practice"))?.type).toBe("practice");
+
+    // Once the clinician moves, it goes through.
+    ok(await providerService.update(u.caretaker.ctx, clinician.id, { practiceId: other.id }));
+    expect(ok(await retype("clinician"))?.type).toBe("clinician");
+
+    // A deleted clinician doesn't count.
+    const gone = await addProvider({ type: "other", practiceId: other.id });
+    expect(codeOf(await providerService.update(u.caretaker.ctx, other.id, { type: "other" }))).toBe(
+      "providerService:practiceInUse",
+    );
+    ok(await providerService.update(u.caretaker.ctx, clinician.id, { practiceId: null }));
+    ok(await providerService.remove(u.caretaker.ctx, gone.id));
+    expect(ok(await providerService.update(u.caretaker.ctx, other.id, { type: "other" }))?.type).toBe(
+      "other",
+    );
+  });
+
   it("keeps the group fixed, and needs a group the actor belongs to", async () => {
     const { u, group, addProvider } = await setup();
     const other = await setup();

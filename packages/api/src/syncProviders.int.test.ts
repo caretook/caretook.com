@@ -158,6 +158,33 @@ describe("sync.upload: provider", () => {
   });
 });
 
+describe("sync.upload: practice in use", () => {
+  it("rejects a PATCH that turns a practice with live clinicians into a clinician", async () => {
+    const { owner, group } = await setup();
+    const practiceId = randomUUID();
+    const clinicianId = randomUUID();
+    await owner.api.sync.upload({
+      ops: [
+        { op: "PUT", table: "provider", id: practiceId, data: providerRow(group.id, { type: "practice" }) },
+        {
+          op: "PUT",
+          table: "provider",
+          id: clinicianId,
+          data: providerRow(group.id, { practice_id: practiceId }),
+        },
+      ],
+    });
+
+    const res = await owner.api.sync.upload({
+      ops: [{ op: "PATCH", table: "provider", id: practiceId, data: { type: "clinician" } }],
+    });
+    expect(res.results).toEqual([
+      expect.objectContaining({ id: practiceId, status: "rejected", code: "providerService:practiceInUse" }),
+    ]);
+    expect(ok(await providerService.getById(owner.ctx, practiceId))?.type).toBe("practice");
+  });
+});
+
 describe("sync.upload: timeline_entry_provider", () => {
   it("links offline: an event, a new provider and the link in one batch, replayed safely", async () => {
     const { owner, viewer, group, recipient } = await setup();
