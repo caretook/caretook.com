@@ -1,7 +1,9 @@
 import type { Route } from "./+types/layout";
 
 import { Form, isRouteErrorResponse, Link, Outlet } from "react-router";
+import { FirstSyncPending } from "~/components/FirstSyncPending";
 import { SyncIndicator } from "~/components/SyncIndicator";
+import { isFirstSyncPending } from "~/lib/firstSync";
 import { requireSession } from "~/lib/session";
 
 // Shared by web + native. Do not export a server `loader` or `action` from /app routes.
@@ -43,6 +45,8 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
 // Errors inside /app (a missing group, a failed load) render here, so the
 // page keeps its frame and a way back.
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  // A new device that hasn't got the group yet (lib/firstSync.ts).
+  if (isFirstSyncPending(error)) return <FirstSyncPending />;
   const notFound = isRouteErrorResponse(error) && error.status === 404;
   if (!notFound) console.error(error);
   return (

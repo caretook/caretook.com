@@ -1,7 +1,7 @@
 import type { SyncStatus } from "@powersync/web";
 import type { SyncDb } from "./client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 export type { SyncDb };
 
@@ -49,15 +49,40 @@ export const closeSync = async () => {
 };
 
 /**
- * Wait for the first full download on a new device, so screens don't flash
- * "nothing here yet". Gives up after `ms` (offline on first launch), and
- * returns at once on later visits.
+ * How long a screen's loader waits for a new device's first sync before it
+ * renders anyway (with a syncing state, see `FirstSyncPending`). Locally the
+ * first sync lands about 150 ms after the database opens, so a synced device
+ * and a normal sign-in never see the syncing state.
  */
-export const waitForFirstSync = async (db: SyncDb, ms = 10_000) => {
-  if (db.powersync.currentStatus.hasSynced) return;
+export const FIRST_SYNC_WAIT_MS = 1_000;
+
+/**
+ * "First sync is done": this device has finished its first full download,
+ * so a missing row really is missing. True at once on later visits (and
+ * offline), since PowerSync keeps it with the local copy.
+ */
+export const isFirstSyncDone = (db: SyncDb): boolean => !!db.powersync.currentStatus.hasSynced;
+
+/**
+ * Wait for the first full download on a new device, so screens don't flash
+ * "nothing here yet". Gives up after `ms` (a slow first sync, or offline on
+ * first launch), and returns at once on later visits. Resolves to
+ * `isFirstSyncDone` afterwards.
+ */
+export const waitForFirstSync = async (db: SyncDb, ms = FIRST_SYNC_WAIT_MS): Promise<boolean> => {
+  if (isFirstSyncDone(db)) return true;
   const signal = AbortSignal.timeout(ms);
   await db.powersync.waitForFirstSync({ signal }).catch(() => undefined);
+  return isFirstSyncDone(db);
 };
+
+/** `isFirstSyncDone` for components: flips to true when the first sync finishes. Below the /app layout only. */
+export const useFirstSyncDone = (): boolean =>
+  useSyncExternalStore(subscribeToStatus, firstSyncDoneSnapshot, () => false);
+
+const subscribeToStatus = (onChange: () => void) =>
+  ready ? ready.powersync.registerListener({ statusChanged: onChange }) : () => undefined;
+const firstSyncDoneSnapshot = () => !!ready && isFirstSyncDone(ready);
 
 /**
  * Rows of a local query, kept up to date as the database changes (local

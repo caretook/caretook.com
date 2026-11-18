@@ -8,7 +8,7 @@ import type { EntryRow, GroupRow, MemberRow, ReadingRow } from "~/lib/sync/timel
 
 import { canHaveNoteDocument, DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
-import { data, useFetcher } from "react-router";
+import { useFetcher } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
 import { EntryForm } from "~/components/EntryForm";
 import { EntrySheet } from "~/components/EntrySheet";
@@ -24,6 +24,7 @@ import { entryUrl, isLiveEntryKind, newEntryUrl } from "~/lib/liveEntry";
 import { dayKey, formatDay } from "~/lib/format";
 import { cacheSettings, loadSettings } from "~/lib/me";
 import { rpc } from "~/lib/rpc";
+import { notOnDevice } from "~/lib/firstSync";
 import { requireSession } from "~/lib/session";
 import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
@@ -74,7 +75,7 @@ export async function clientLoader({ request, params }: Route.ClientLoaderArgs) 
 
   const groups = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
   const groupRow = groups.find((g) => g.id === groupId);
-  if (!groupRow) throw data("Not found", { status: 404 });
+  if (!groupRow) throw notOnDevice(db);
 
   const [entryRows, memberRows, readingRows, documentRows, settings] = await Promise.all([
     readRows<EntryRow>(db, entriesQuery(groupId, kind, PAGE_SIZE)),
