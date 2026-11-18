@@ -27,6 +27,7 @@ import { dayKey, formatDay } from "~/lib/format";
 import { loadSettings, saveSettings } from "~/lib/me";
 import { notOnDevice } from "~/lib/firstSync";
 import { requireSession } from "~/lib/session";
+import { parseFilters } from "~/lib/timelineFilters";
 import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/sync/editors";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
@@ -59,10 +60,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 /** `?kind=symptom` shows one kind; anything else shows them all. */
-const kindFilter = (request: Request) => {
-  const kind = new URL(request.url).searchParams.get("kind");
-  return isEntryKind(kind) ? kind : null;
-};
+const kindFilter = (request: Request) => parseFilters(new URL(request.url).search).kind;
 
 /**
  * The first screenful, read locally so the page renders complete; live
