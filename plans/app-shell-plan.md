@@ -4,13 +4,22 @@
 
 ## Status
 
-| Slice   | State                       | Merge into `prd/app-shell` (slice commits) |
-| ------- | --------------------------- | ------------------------------------------ |
-| 1       | **ready: the first wave**   |                                            |
-| 2, 3, 4 | blocked by 1                |                                            |
-| 5       | blocked by 3                |                                            |
-| 6       | blocked by 5                |                                            |
-| 7       | ready (after quick-fixes 2) |                                            |
+| Slice   | State                         | Merge into `prd/app-shell` (slice commits)                  |
+| ------- | ----------------------------- | ----------------------------------------------------------- |
+| 1       | **merged**, synced with `dev` | `697c39b` (`e9d37c3`, `4606dcd`); `dev` synced at `7fb8fc7` |
+| 2, 3, 4 | ready (the next wave)         |                                                             |
+| 5       | blocked by 3                  |                                                             |
+| 6       | blocked by 5                  |                                                             |
+| 7       | ready (after quick-fixes 2)   |                                                             |
+
+Wave 1 notes, for the next orchestrator:
+
+- Slice 1 left stubs that render nothing: `GroupMenu.tsx` (slice 3, then 5) and `SectionNav.tsx` (`SectionNav` + `TabBar`, slice 4). The theme item goes at the marked comment in `UserMenu.tsx` (slice 2); its `Menu` has no `selectionMode`, so the theme needs its own `MenuSection` with `selectionMode="single"`.
+- Slice 4 must add the bottom offset that keeps the quick-add bar and `EntrySheet` clear of the tab bar.
+- `cdp.mjs` gained `page.signOut()`; every check signs out through the account menu. `roundtrip.mjs` is still stale (live-notes-ux slice 10 rewrites it).
+- `live-now.mjs` must run on a quiet group (see the AGENTS.md gotcha). `app-shell.mjs` and `live-now.mjs` share CDP ports 9471–9472, which is fine only because checks run one at a time.
+- Resolved at the `dev` sync: `EditorAvatars.tsx` imports (keep `listNames`, drop `initials`).
+- B-8 stays in progress until slice 2 merges.
 
 ## Architectural decisions
 

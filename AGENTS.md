@@ -140,12 +140,14 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 - **The first check run after a `datastore:reset` or a PowerSync restart** can fail on a PowerSync 401 (the JWKS refetch) or slow first sync (`editors.mjs` "within ~2 s"). Rerun once before debugging.
 - **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). Run every merged slice's check after each merge, not only the new one's.
 - **Long-running dev servers** can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
+- **Recent-editor checks (`live-now.mjs`, `editors.mjs`) need a quiet group.** Any check that types as member@ makes that document "live" for 2 minutes. Run them first after a `datastore:reset` or wait out the window. Right after a reset, PowerSync's bucket storage (not cleared by the reset) can still serve editors with the old user ids ("Former member"): restart PowerSync and give it a minute before these checks.
 
 ### Active PRDs
 
 The backlog's PRD table lists them all, with their dependencies.
 
 - 🟡 [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (topic `live-notes-ux`): notes and events _are_ their live document. Note/Event opens the editor in one tap, and the entry is saved on the first keystroke. Others join in one tap through a row tap, a "Live now" banner, a live dot or a Share link. Sliced in [`plans/live-notes-ux-plan.md`](plans/live-notes-ux-plan.md). **Slices 1, 2, 4, 5, 6, 8 and 9 are in `dev`.** Slices 3 and 7 (then 10) run next, as the first PRD on `prd/live-notes-ux`; the plan's _Status_ section has the state. This file describes the current code, every merged slice included.
+- 🟡 [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): the `/app` frame, the user menu, the group menu and switcher, group sections, and group settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md). **Slice 1 (the frame and the user menu) is landing.** Slices 2, 3 and 4 run next, each filling one region; `timeline-polish`, `providers` and `medications` build on the frame.
 
 ## Product
 
@@ -378,6 +380,14 @@ The shared space for the caretakers of one care recipient. Always say "care grou
 - **User preferences:** `user.preferences` jsonb (`userPreferencesZSchema`, every field optional, so new settings need no migration).
   - `units`, via `resolveUnits()`, defaulting to °F, lb, mg/dL and mL.
   - `timelineView` (`rows | cards`), via `resolveTimelineView()`.
+- **The `/app` frame** (`routes/app/layout.tsx`, a hot file): fixed regions that slices and PRDs fill through their components, never by restructuring the layout:
+  - header `group` (left): the Caretook link, then `GroupMenu` on group routes (app-shell slices 3 and 5);
+  - header `sections` (`hidden sm:flex`): `SectionNav` on group routes (slice 4);
+  - header `status`: `SyncIndicator`;
+  - header `user`: `UserMenu`, a RAC menu on the avatar ("Account menu for …"), with a name and email header, Settings and Sign out (POST to `/sign-out`). Theme goes in it next (slice 2);
+  - the outlet, then `TabBar` (phones, group routes; slice 4).
+  - `GroupMenu`, `SectionNav` and `TabBar` render nothing yet. The `groupId` comes from `useParams()`; screens outside a group get the header only.
+  - **Avatars:** `UserAvatar` (image, or initials if it's missing or fails to load) is shared by the user menu and `EditorAvatars`. `lib/initials.ts` has `initials(name)` and `userInitials({ name, email })` (name, then the email's first letter, then "?"). `SessionUser` carries an optional `image`.
 - **Timeline screen** (`/app/groups/:groupId/timeline`):
   - Rows (the default) or cards, both rendered from `entrySummary()`.
   - Kind icons and colors in `KIND_META`. Vitals are pink, **not green** (green reads as "all good").
@@ -503,7 +513,8 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) sli
 UI work is verified in headless Chrome over CDP with plain Node scripts (no Playwright yet).
 
 - **Run:** Node 24 (they use the global `WebSocket`), from that folder, against the dev server. `BASE` defaults to `http://localhost:5176`.
-- **Scripts:** `cdp.mjs` (the harness); `roundtrip.mjs` (two-member sync, offline through `proxy.mjs`, because CDP network emulation doesn't cut PowerSync's stream); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; it runs Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `live-note.mjs` (a note is its document: one-tap start, abandoned draft, URL replace, convergence, offline, viewer, 404s); `live-notes.mjs` (an event is its document: one-tap start, default title, rename); `entry-header.mjs` (time chip and Delete); `editors.mjs` (avatars appear and expire); `share.mjs` (share sheet, clipboard, signed-out redirect, non-member 404); `signout-wipe.mjs`.
+- **Scripts:** `cdp.mjs` (the harness); `roundtrip.mjs` (two-member sync, offline through `proxy.mjs`, because CDP network emulation doesn't cut PowerSync's stream); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; it runs Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `live-note.mjs` (a note is its document: one-tap start, abandoned draft, URL replace, convergence, offline, viewer, 404s); `live-notes.mjs` (an event is its document: one-tap start, default title, rename); `entry-header.mjs` (time chip and Delete); `editors.mjs` (avatars appear and expire); `share.mjs` (share sheet, clipboard, signed-out redirect, non-member 404); `signout-wipe.mjs`; `app-shell.mjs` (the frame and the user menu: one-row header at 420, keyboard menu, Settings, Sign out); `live-now.mjs`; `title-chips.mjs`.
+  - Sign out in a check with `page.signOut()` (`cdp.mjs`), which goes through the account menu.
   - ⚠️ `roundtrip.mjs` is stale: it presses a "Note" button, which has been a link since slice 1. Slice 10 rewrites it.
   - Headless Chrome's clipboard needs `Emulation.setFocusEmulationEnabled`. Pin the zone (`Emulation.setTimezoneOverride`, America/Los_Angeles) for layout checks.
 - **Patterns:**
@@ -542,8 +553,8 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/components/         EntryForm, EntrySheet, QuickAddBar, TimelineEntryRow/Card, KindIcon, TimelineFilters,
                           LatestVitals, EntryActions, DateTimeField, ConfirmDialog, VitalTypeMenu,
                           VitalReadingsFields, LiveNotesEditor, EntryHeader, EntryTimeChip, EntryMenu,
-                          ShareButton, EditorAvatars, SyncIndicator
-  app/lib/                session, me, auth-client, rpc, api, entryDisplay, entryForm, format, redirect, form, liveEntry, share
+                          ShareButton, EditorAvatars, SyncIndicator, UserAvatar, UserMenu, GroupMenu, SectionNav
+  app/lib/                session, me, auth-client, rpc, api, initials, entryDisplay, entryForm, format, redirect, form, liveEntry, share
   app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors
 packages/auth/            @caretook/auth
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
