@@ -14,7 +14,7 @@ import { KindIcon } from "./KindIcon";
  *          [time]
  *
  * - `title`: `EntryTitle` (editable for writers) or plain text.
- * - `time`: when it happened (`EntryTime`; a tappable chip later).
+ * - `time`: when it happened (`EntryTimeChip` for writers, `EntryTime` otherwise).
  * - `editors`: who is typing now (avatars).
  * - `actions`: Share, the ⋯ menu.
  *
