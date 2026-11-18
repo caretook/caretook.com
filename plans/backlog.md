@@ -78,6 +78,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner:
 - commit:
 
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Full width at lg+, entry text capped ~75ch; cards in a 2–3 column grid.
+
 ### B-4 · change · Tooltip with the author's name and avatar on an entry's initials
 
 - status: triaged
