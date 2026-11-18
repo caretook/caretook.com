@@ -197,7 +197,7 @@ The backlog's PRD table lists them all, with their dependencies.
 - 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–3 (B-1, B-17, B-22) are in `dev`**; nothing is in flight. `prompt.sh` handles a topic without a PRD file.
 - ✅ [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): **done**, all seven slices in `dev`: the `/app` frame, the user menu with theme, the group menu with the last group, the sections nav and tab bar, group settings (details and members), and the timeline layout choice in Settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md); its lasting decisions are under _The `/app` frame_. `timeline-polish`, `providers` and `medications` build on the frame.
 - 🟡 [`plans/timeline-polish-prd.md`](plans/timeline-polish-prd.md) (topic `timeline-polish`): the timeline's filters, day headers, vitals line, wide layout and infinite scroll. Sliced in [`plans/timeline-polish-plan.md`](plans/timeline-polish-plan.md). **Slices 1–3 (the filter module with the kind icon, the day headers, and the one-line vitals) are in `dev`.** It's **paused**: slices 4 (filter by author), 5 (full width), 6 (author tooltip) and 7 (infinite scroll) wait for `routing` and `components`, and get replanned then. `search` builds on slices 1, 4 and 7.
-- 🟡 [`plans/providers-prd.md`](plans/providers-prd.md) (topic `providers`): the provider directory and links from notes and events. Sliced in [`plans/providers-plan.md`](plans/providers-plan.md). **Slice 1 (the data layer) is in `dev`**; its decisions are under _Providers_. Slices 2–4 (the directory screens) and 5–7 (linking) follow.
+- 🟡 [`plans/providers-prd.md`](plans/providers-prd.md) (topic `providers`): the provider directory and links from notes and events. Sliced in [`plans/providers-plan.md`](plans/providers-plan.md). **Slices 1–4 (the data layer and the directory: list, add/edit/delete sheets, the provider page with live notes) are in `dev`**; their decisions are under _Providers_. Slices 5–7 (linking from notes and events) wait for `components`.
 - ✅ [`plans/routing-prd.md`](plans/routing-prd.md) (topic `routing`, B-23): **done**, all five slices in `dev`: the group route with its middleware, `appUrls`, a folder per route, add- and edit-sheet URLs, and account and group settings subpages. Its lasting decisions are under _The `/app` frame_ and _Timeline screen_. `components` and `timeline-polish` 4–7 can start.
 
 ## Product
@@ -517,7 +517,7 @@ Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
 
 ### Providers
 
-Built so far by [`plans/providers-prd.md`](plans/providers-prd.md) slice 1 (the data layer); the screens come in later slices.
+Built so far by [`plans/providers-prd.md`](plans/providers-prd.md) slices 1–4 (the data layer and the directory); linking from entries comes in slices 5–7.
 
 - **Tables:**
   - `provider`: `group_id`, `type` (`clinician | practice | pharmacy | other`), `name`, `specialty`, `practice_id` (composite FK in the group), `phones` jsonb `[{ label, number }]` (at most 6), `email`, `address`, `website`, `status` (`current | past`), **`is_primary`** (not `primary`, an SQL keyword in Postgres, SQLite and PowerSync), `deleted_at`. Unique `(group_id, id)`.
@@ -528,7 +528,12 @@ Built so far by [`plans/providers-prd.md`](plans/providers-prd.md) slice 1 (the 
   - Links go only to live notes and events in the same group; a deleted provider is refused; an id in another group is `unauthorized`; unlinking a missing link succeeds (replays).
 - **Device** (`lib/sync/providers.ts`): queries (the list, one provider, an entry's providers including deleted ones for greyed names, a provider's entries, link history) and local writes (create, update, soft remove, link, unlink, and create-and-link in one transaction). Linking needs the entry to exist locally, so a draft must be materialized first. A device-created provider document writes `subject: "provider"` and `provider_id`.
 - **Seeds** (`seeds/providers.ts`, own ids): six fictional providers for Dev Family (a practice and its clinician, a cardiologist, a pharmacy, a home health aide, a past provider) with provider notes and links to seeded events and notes, and one for Dev Family 2.
-- **Browser check:** `providers.mjs` drives the device module through Vite imports against `window.caretookSync` (sync, offline create-and-link, viewer refusal). Later slices add their screen steps there.
+- **Screens** (children of the group route, built through `appUrls.providers`, `newProvider`, `editProvider`, `provider`; a Providers entry in `GROUP_SECTIONS`, lucide `Stethoscope`):
+  - **The list** (`routes/app/groups/providers/`): live from local data. Search (`?q=`; every word in the name, specialty or practice name, case and accents ignored), type chips (`?type=`) and past providers behind "Show past (N)" (`?past=1`), all in the URL through the pure `lib/providerDirectory.ts`. Each row opens the provider page and has contact actions. Writers get "Add provider".
+  - **Contact actions** (`lib/contactActions.ts`, pure): `tel:` keeps digits and a leading `+` and dials an extension after a pause (`x214` → `,214`); maps is a Google Maps search URL; a bare website gets `https://`, and only http(s) links are made. `components/ContactActions.tsx` renders them with names like "Call Dr. …, office".
+  - **Sheets** `providers/new` (optional `?type=`) and `providers/:providerId/edit`, children of the list (routing's sheet pattern; `providerSheetGuard.ts`): `ProviderForm` with type, name, specialty, practice (clinicians and other contacts), up to 6 phones, email, address, website, primary and past; field messages from the shared Zod schema. Writes are local (`createProvider`, `updateProvider`, `removeProvider`) and upload later. Delete is soft, after a `ConfirmDialog`. Viewers and missing providers get the list, with no form.
+  - **The provider page** (`routes/app/groups/provider/`, `providers/:providerId`): header regions (title, details with the practice as a link, editors, actions with Edit for writers), every contact action, and the provider's live notes in `LiveNotesEditor` (created on the first real change through `createProviderDocument`; read-only for viewers). Missing, deleted or other-group providers are the 404. `LiveNotesEditor`, `EditorAvatars`, `ContactActions` and `ProviderTypeIcon` live in `components/`.
+- **Browser check:** `providers.mjs` covers the device module (through Vite imports against `window.caretookSync`) and every screen: list, search and filters, sheets, offline add and edit, the page, two-browser notes, viewer and non-member. It cleans up its `PV-` providers.
 
 ## Planned: notifications (Resend iteration)
 
@@ -649,10 +654,11 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx
   app/.server/            data.ts, auth.ts, api.ts: the server-only doors
-  app/components/         shared by 2+ routes only: ConfirmDialog, DateTimeField, FirstSyncPending, KindIcon, SettingsFrame, UserAvatar
+  app/components/         shared by 2+ routes only: ConfirmDialog, DateTimeField, FirstSyncPending, KindIcon, SettingsFrame, UserAvatar,
+                          LiveNotesEditor, EditorAvatars, ContactActions, ProviderTypeIcon
   app/lib/                session, group, groupContext, appUrls, settingsNav, me, auth-client, rpc, api, initials, entryDisplay, format,
                           redirect, form, liveEntry, firstSync, liveNow, titleSuggestions, theme, lastGroup, groupSections,
-                          timelineFilters
+                          timelineFilters, contactActions, providerDirectory
   app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors, titleSuggestions, members, providers
 packages/auth/            @caretook/auth
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler

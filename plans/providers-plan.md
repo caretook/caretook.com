@@ -4,17 +4,19 @@
 
 ## Status
 
-| Slice | State                                                         | Merge into `prd/providers` (slice commits) |
-| ----- | ------------------------------------------------------------- | ------------------------------------------ |
-| 1     | merged                                                        | `8624622` (`09b62bd`, `17b861d`)           |
-| 2     | ready (`routing` slice 1 synced in at `aab2d0e`)              |                                            |
-| 3     | blocked by 2 and `routing` slice 2 (in `dev`)                 |                                            |
-| 4     | blocked by 2                                                  |                                            |
-| 5     | blocked by 3, 4 and `components` slices 2, 3 and 4 (in `dev`) |                                            |
-| 6     | blocked by 5                                                  |                                            |
-| 7     | blocked by 5                                                  |                                            |
+| Slice | State                                                                               | Merge into `prd/providers` (slice commits) |
+| ----- | ----------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1     | landed in `dev` (`cc47b01`)                                                         | `8624622` (`09b62bd`, `17b861d`)           |
+| 2     | merged                                                                              | `5dbd62d` (`ffd9b57`, `f131be7`)           |
+| 3     | merged                                                                              | `a87e072` (`41ee0b6`, `280cef2`)           |
+| 4     | merged; Edit wired by the orchestrator (`de2f2c1`), `appUrls` merge fix (`30f0d61`) | `b2b8120` (`e773c21`, `f76862d`)           |
+| 5     | blocked by `components` slices 2, 3 and 4 (in `dev`)                                |                                            |
+| 6     | blocked by 5                                                                        |                                            |
+| 7     | blocked by 5                                                                        |                                            |
 
-Backlog: B-13 is `in-progress` (claimed by `prd/providers`; `done` after slice 4). B-14 is `triaged`. B-25 (@-mentions) is triaged to `providers` as a follow-up after slice 5, not part of this plan.
+Wave 2 (slices 2–4, a usable directory) is merged and synced with `dev` at `82eb690` (routing done); awaiting the user's go-ahead to land.
+
+Backlog: B-13 is `ready` (done at `30f0d61`, after slice 4). B-14 is `triaged` (slices 5–7). B-25 (@-mentions) is triaged to `providers` as a follow-up after slice 5, not part of this plan. B-27 (routing.mjs flakes, owned by routing) and B-28 (a machine-wide browser check lock; note on leftover Chromes) came up while running this PRD.
 
 Slice 1 notes for later slices:
 
@@ -23,6 +25,14 @@ Slice 1 notes for later slices:
 - A device-created provider document writes `subject: "provider"` and `provider_id`. `useLiveDocuments` and the Live now banner join through `timeline_entry`, so provider documents never appear there.
 - `providers.mjs` drives the device module through Vite imports. Slice 2 adds its screen steps there.
 - Open: changing a practice's type to clinician isn't blocked while clinicians still point at it.
+
+Wave 2 notes for later slices:
+
+- The provider page (`routes/app/groups/provider/`) has an empty spot after Notes for slice 5's linked entries; `providerEntriesQuery` is ready.
+- The edit sheet is a child of the list route, so from the provider page it opens over the list (`PROVIDER_SHEET_STATE` makes closing go back to the page).
+- Sheets import `EntrySheet` from `routes/app/groups/timeline/`; `components` should move it to `components/`. `LiveNotesEditor`, `EditorAvatars`, `ContactActions` and `ProviderTypeIcon` moved to `components/` in slice 4: tell `components` when this lands.
+- `compareProviders` (JS) puts past providers below current ones even when primary; `providersQuery`'s SQL order differs.
+- `providers.mjs` cleans up its `PV-` providers; an aborted run can leave past ones behind that break slice 2's "Show past (1)" step on that stack.
 
 ## Architectural decisions
 
