@@ -18,8 +18,9 @@
 | 10    | B-39 | waits for `components` wave 2 |                                              |
 | 11    | B-38 | ready                         |                                              |
 | 12    | B-41 | ready                         |                                              |
+| 13    | B-42 | ready                         |                                              |
 
-Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 is slices 11 and 12.
+Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 is slices 11, 12 and 13.
 
 - Slice 6: `DateTimeField` is a RAC `DatePicker` (typed segments plus a calendar `Popover`), same props and submitted value. `roundtrip.mjs` step 4b and `live-notes.mjs`'s time chip go through the calendar. `components` slice 2 may swap its `Group`/`Popover` for its own primitives.
 
@@ -366,3 +367,32 @@ Both checks passed against the dev server minutes later, from the same code. So 
 **Check.** `app-shell.mjs` through `pnpm prd browser`, plus the checks for any app area the fix touched (AGENTS.md, _Browser check budget_).
 
 **Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 13: The app header uses the brand (B-42)
+
+**Problem.** The marketing site (in `dev` since its slices 1–2) has the draft brand: `LogoMark` (a heart with a check in a rounded square, drawn inline so it follows the theme's `primary`) and `Wordmark` (the mark plus "Caretook"), in a header with a bottom border, a translucent background with a blur, and a 64 px height. The app's header (`routes/app/layout/route.tsx`) still shows "Caretook" as plain text with a shadow, so going from caretook.com to Sign in to `/app` looks like two products. The favicon and touch icons are already shared (`root.tsx` links them for both targets); the header isn't.
+
+**Build.**
+
+- **One copy of the brand.** Move `LogoMark` and `Wordmark` from `routes/marketing/layout/Logo.tsx` to a new `components/brand/` folder with an `index.ts` (two routes now use them: AGENTS.md's rule for `components/`). The index imports nothing else, so the marketing pages and the app shell stay light, and marketing still imports nothing from `routes/app/` or `lib/sync/`. `Wordmark` takes an optional prop to hide the word visually below a breakpoint (the mark stays). The marketing header and footer import from the new folder; nothing about them changes.
+- **The app header's `group` region:** the Caretook link shows `Wordmark` instead of plain text. On group routes below `sm` it shows the mark only (the word is screen-reader text), so the mark, `GroupMenu`, the sync indicator and the avatar still fit one row at 420. Outside a group (`/app`, `/app/settings`) and from `sm`, mark and word. The link's accessible name stays "Caretook" (`app-shell.mjs` finds it as the region's first link).
+- **The header's look**, as far as it fits the app: a `border-b border-base-300` in place of `shadow-sm`, `bg-base-100/95` with `backdrop-blur`, and the marketing header's 64 px height (`h-16`, `min-h-16` on the daisyUI navbar), with its side padding (`px-4 sm:px-6`). Full width, not the marketing `max-w-5xl` (the app's screens are wider). Light and dark both follow the theme tokens.
+- **Not sticky.** The timeline's day headers stick at the top of the page, and a sticky app header would take 64 px of a phone screen on every scroll. Keep the header in the flow, as now.
+- **Not carried over:** the marketing nav links, Join the waitlist, and the marketing disclosure menu. The app has its own regions (sections nav, sync status, the account menu), and those stay as they are; `components` slice 6 moves them onto the primitives later.
+- Add a `check-areas` rule: `apps/web/app/components/brand/*` → `app-shell marketing`.
+- **Hot file:** `routes/app/layout/route.tsx` (the `/app` frame) is also on `components` slice 6's list. Keep this edit to the `group` region's link and the `<header>`'s classes, so that slice merges past it.
+
+**Acceptance criteria.**
+
+- [ ] The app header shows the logo mark and "Caretook" on `/app` and `/app/settings` at 420 and 1280, and on group routes from `sm`; on a group route at 420 it shows the mark only, and the header is one row (`app-shell.mjs`'s 420 step passes).
+- [ ] The mark follows the theme: light, dark, and System on a dark device (screenshots of the header at 420 and 1280 in light and dark, next to the marketing header for comparison).
+- [ ] The header has the border, translucent background and 64 px height, and isn't sticky (the timeline's sticky day headers still stick at the top: `phase2.mjs` passes).
+- [ ] The marketing pages look the same as before (`marketing.mjs` passes; a screenshot of its header).
+- [ ] Tapping the logo still goes to `/app` and then the last group (`app-shell.mjs`).
+- [ ] The native build (`pnpm build:native`) shows the same header.
+
+**Check.** `pnpm prd browser --changed` (it picks `app-shell`, `marketing` and `phase2` for these files). `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none (marketing slices 1–2 are in `dev`).
