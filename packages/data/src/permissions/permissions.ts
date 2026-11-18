@@ -188,13 +188,16 @@ export const PERMISSIONS: Permissions = {
   },
 
   // Live documents on note and event entries. Writers add one (through
-  // noteDocumentService, which checks the entry); the snapshot and text are
+  // noteDocumentService, which checks the entry); the snapshot, text and editors are
   // written by compaction, as the system. Removing the entry hides it.
   noteDocumentSchema: {
     groupField: "groupId",
     read: groupEntry(ANY_GROUP_ROLE),
     list: groupEntry(ANY_GROUP_ROLE),
-    create: { ...groupEntry(WRITERS), fields: { snapshot: SYSTEM_ONLY, text: SYSTEM_ONLY } },
+    create: {
+      ...groupEntry(WRITERS),
+      fields: { snapshot: SYSTEM_ONLY, text: SYSTEM_ONLY, editors: SYSTEM_ONLY },
+    },
     update: SYSTEM_ONLY_ENTRY,
     delete: SYSTEM_ONLY_ENTRY,
   },

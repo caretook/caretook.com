@@ -9,6 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { data, Link, useNavigate } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
+import { EditorAvatars } from "~/components/EditorAvatars";
 import { EntryHeader, EntryTime, EntryTitle } from "~/components/EntryHeader";
 import { EntryMenu } from "~/components/EntryMenu";
 import { EntryTimeChip } from "~/components/EntryTimeChip";
@@ -283,6 +284,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
             />
           ) : undefined
         }
+        editors={!deleted && <EditorAvatars documentId={draft.id} groupId={groupId} viewerId={db.userId} />}
       />
       <ConfirmDialog
         open={confirmDelete}

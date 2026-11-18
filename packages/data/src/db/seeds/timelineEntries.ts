@@ -748,6 +748,7 @@ export const seed = async () => {
       groupId,
       snapshot: encodeNoteDoc(doc),
       text: noteText(doc),
+      editors: { [createdBy]: occurredAt },
       createdAt: occurredAt,
       updatedAt: occurredAt,
       createdBy,

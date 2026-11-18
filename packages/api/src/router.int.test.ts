@@ -475,6 +475,31 @@ describe("sync.upload", () => {
         Array(4).fill("sync:readOnlyTable"),
       );
     });
+
+    it("never takes editors from a device: compaction writes them from the updates' authors", async () => {
+      const { owner, viewer, group, recipient } = await setup();
+      const n = noteDocumentService.COMPACT_AFTER_UPDATES;
+      const { entryId, ops } = offlineDocument(group.id, recipient.id, n);
+      const forged = { [viewer.user.id]: new Date().toISOString() };
+      const withForgery = ops.map((op) =>
+        op.table === "note_document" ? { ...op, data: { ...op.data, editors: forged } } : op,
+      );
+      const res = await owner.api.sync.upload({ ops: withForgery });
+      expect(res.results.every((r) => r.status === "applied")).toBe(true);
+
+      // Compacted during the upload: only the real author is there.
+      const doc = await noteDocumentService.getById(owner.ctx, entryId);
+      if (isError(doc)) throw doc;
+      expect(Object.keys(doc.editors)).toEqual([owner.user.id]);
+      expect(Date.now() - Date.parse(doc.editors[owner.user.id]!)).toBeLessThan(60_000);
+
+      // And a PATCH can't change them.
+      const patch = { op: "PATCH" as const, table: "note_document", id: entryId, data: { editors: forged } };
+      expect((await owner.api.sync.upload({ ops: [patch] })).results[0]).toMatchObject({
+        status: "rejected",
+        code: "sync:readOnlyTable",
+      });
+    });
   });
 });
 
