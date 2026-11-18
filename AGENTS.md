@@ -119,7 +119,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 - **The backstop:** the dev keeper runs the full suite on `dev` (`pnpm prd browser --suite` from any synced worktree, on a quiet machine) **before opening the PR to `staging`**. It catches breaks between areas that `--changed` doesn't see.
 - **This overrides any plan** that says "rerun every browser check after each merge".
 - **Don't run two checks at once in one worktree.** The lease already limits how many run on the machine, so there's no need to stagger checks by hand.
-- **Check builds (opt-in for now):** `pnpm prd serve --built` serves a production build (about 5 s to build) with `VITE_CHECK_BUILD=1`, which keeps `window.caretookSync` and `window.caretookModules` (the device modules, which `providers.mjs` loads) for the checks. It has no Vite websocket, no dependency re-optimization reloads and no stale deps. `pnpm prd browser` rebuilds and restarts it by itself when the source is newer than the build. `--dev` (or a plain `--restart` after `--dev`) goes back to the dev server. **Not the default yet:** on 2026-11-18 `providers.mjs` and `phase2.mjs` passed on the dev server but failed on the build (a deleted provider's 404 rendered a blank page, a viewer's `…/providers/new` didn't redirect, a PowerSync "Sync aborted" warning). Those are filed as B-38, since they may be production bugs. Make it the default once they're fixed.
+- **Checks run on a check build.** `pnpm prd browser` serves a production build of the web target with `VITE_CHECK_BUILD=1` (5–7 s to build), which keeps `window.caretookSync` and `window.caretookModules` (the device modules, which `providers.mjs` loads). In a `.loops` worktree with a stack it starts one when no server is running, swaps it in for a dev server, and rebuilds and restarts it when the app source, `public/`, `.env`, a `package.json` or the lockfile is newer than the build (the main checkout's server is left alone). `--dev` runs against the dev server instead; `pnpm prd serve --built` serves a build by hand. A build has no Vite websocket, no dependency re-optimization reloads and no stale deps. It runs with `NODE_ENV=production`, so Better Auth's rate limits are on; `cdp.mjs` gives every page its own `x-forwarded-for`, so they apply per page. PowerSync's `[PowerSync]: Sync aborted` is the shared sync worker's teardown log for a page that closed, broadcast to the next page: the checks ignore exactly that warning.
 
 | Area changed                                                                 | Checks                                                        |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -187,20 +187,20 @@ A go-ahead covers one landing. An agent never lands on its own judgment, never w
 
 **Gotchas:**
 
-- The first visit to a route on a fresh loop can make Vite re-optimize dependencies and reload the page mid-check. If a browser check times out on its first run, run it once more before debugging.
+- **Dev server only (`--dev`):** the first visit to a route on a fresh loop can make Vite re-optimize dependencies and reload the page mid-check. If a browser check times out on its first run, run it once more before debugging.
 - Merging two branches that each generated a migration conflicts in drizzle's `meta/_journal.json` and snapshots. Keep the one already in the target (`dev`'s, at a sync), then regenerate yours on top (`pnpm datastore:generate`) and recheck its SQL order.
 - After a merge or sync that changes seeds or migrations, run `pnpm datastore:reset` in that worktree; the merged seeds can differ from either side's.
 - **Running `new.sh` for several worktrees at once** can fail at migrate with "Connection terminated unexpectedly": a fresh Postgres restarts once after its first-boot init. The containers are fine; rerun `pnpm datastore:start && pnpm datastore:start:test` in each.
 - **The first check run after a PowerSync restart** (`docker compose restart powersync`, after editing `sync-config.yaml`) can fail on slow first sync (`live-notes.mjs` timing steps). Rerun once before debugging. `pnpm datastore:reset` doesn't need this: it restarts PowerSync with empty bucket storage and waits until it's ready.
 - **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). After each merge, run the checks for every area the merge touched (the _Browser check budget_ table), not only the new slice's own check; the full suite at landing catches the rest.
-- **Long-running dev servers** can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
+- **Long-running dev servers** (`--dev` only) can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
 
 ### Active PRDs
 
 The backlog's PRD table lists them all, with their dependencies.
 
 - ✅ [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (topic `live-notes-ux`): **done**, all ten slices in `dev`. Notes and events _are_ their live document: Note/Event opens the editor in one tap, the entry is saved on the first keystroke, and others join in one tap through a row tap, the Live now banner, a live dot or a Share link. Its lasting decisions are under _Timeline entries_ and _Live notes_; follow-ups are in _Next steps_.
-- 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–9 (B-1, B-17, B-22, B-28, B-29, B-34, B-27, B-35, B-36) are in `dev`**; nothing is in flight. `prompt.sh` handles a topic without a PRD file.
+- 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–9 and 11–13 (B-1, B-17, B-22, B-28, B-29, B-34, B-27, B-35, B-36, B-38, B-41, B-42) are in `dev`**; slice 10 (B-39, lean browser checks) waits for `components` slices 3 and 4. `prompt.sh` handles a topic without a PRD file.
 - ✅ [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): **done**, all seven slices in `dev`: the `/app` frame, the user menu with theme, the group menu with the last group, the sections nav and tab bar, group settings (details and members), and the timeline layout choice in Settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md); its lasting decisions are under _The `/app` frame_. `timeline-polish`, `providers` and `medications` build on the frame.
 - 🟡 [`plans/timeline-polish-prd.md`](plans/timeline-polish-prd.md) (topic `timeline-polish`): the timeline's filters, day headers, vitals line, wide layout and infinite scroll. Sliced in [`plans/timeline-polish-plan.md`](plans/timeline-polish-plan.md). **Slices 1–3 (the filter module with the kind icon, the day headers, and the one-line vitals) are in `dev`.** It's **paused**: slices 4 (filter by author), 5 (full width), 6 (author tooltip) and 7 (infinite scroll) wait for `routing` and `components`, and get replanned then. `search` builds on slices 1, 4 and 7.
 - 🟡 [`plans/marketing-prd.md`](plans/marketing-prd.md) (topic `marketing`, B-32): the public site. Sliced in [`plans/marketing-plan.md`](plans/marketing-plan.md). **Slice 1 (the frame, home, brand assets, SEO, prerendering) is in `dev`**; its decisions are under _Marketing site_. Slices 2 (features, about, FAQ) and 3 (legal pages) are next; 4 and 5 wait for `invites` slices 1 and 5.
@@ -368,6 +368,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
     - One user's data per device: the owner is in localStorage, and the file is wiped when someone else opens it.
     - Sign-out runs `disconnectAndClear`, then deletes the IndexedDB/OPFS file.
     - `fetchCredentials` calls `/api/auth/token`. A 401 leaves the device local-only.
+  - `pageCache.ts` (`releaseSyncLocksWhenCached`, called once in `client.ts` before PowerSync opens): a full load can freeze the old page in the back/forward cache instead of unloading it, and PowerSync 2.7's shared workers then keep waiting on its database (its `tab-close-signal-*` and `shared-connection-*` Web Locks), so the next page's database never opens: a blank page with no error (`/app` after a reload, a deleted provider's 404, a viewer's `providers/new`). It wraps `navigator.locks.request` for those page-lifetime locks only, releases them on a `pagehide` into the cache as unloading would, and reloads on a `pageshow` out of it (so Back to a cached page reloads it, which fails offline on the web until a service worker exists). It depends on PowerSync's internal lock names: recheck it on a PowerSync upgrade. The dev server hid it, since Vite's websocket keeps pages out of the cache.
   - `index.ts`: `openSync`, `getSync`, `closeSync`, `waitForFirstSync`, `isFirstSyncDone`, `useFirstSyncDone`, `useLiveQuery` and `useSyncState`. Dev builds expose `window.caretookSync`.
   - **The first sync** (measured at about 120–200 ms after the database opens locally): `waitForFirstSync(db)` waits at most 1 s (`FIRST_SYNC_WAIT_MS`) and resolves to `isFirstSyncDone(db)`. That's PowerSync's `hasSynced`, which persists with the local copy, so it's true at once on a synced device and offline. `useFirstSyncDone()` is the hook (below the /app layout only). Use it for anything that needs the local groups, such as a last-group redirect.
     - A loader whose group isn't on the device throws `notOnDevice(db)` (`lib/firstSync.ts`): a 404 once the first sync is done, otherwise a 503 "First sync pending" that `/app`'s `ErrorBoundary` shows as `FirstSyncPending` ("Getting your care groups…"), which reruns the loaders when the sync lands. `home` shows the same state while `synced` is false, and never says "not in a care group" before then.
@@ -454,7 +455,7 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - `units`, via `resolveUnits()`, defaulting to °F, lb, mg/dL and mL.
   - `timelineView` (`rows | cards`), via `resolveTimelineView()`.
 - **The `/app` frame** (`routes/app/layout/route.tsx`, a hot file): fixed regions that slices and PRDs fill through their components, never by restructuring the layout:
-  - header `group` (left): the Caretook link, then `GroupMenu` on group routes;
+  - header `group` (left): the Caretook link (`Wordmark` from `components/brand/`; mark only below `sm` on group routes, the word kept as screen-reader text so the link's name stays "Caretook"), then `GroupMenu` on group routes. The header matches the marketing header's look (`h-16`, `border-b border-base-300`, `bg-base-100/95 backdrop-blur`, `px-4 sm:px-6`), full width, and is deliberately not sticky (the timeline's day headers stick at the top);
   - header `sections` (`hidden sm:flex`): `SectionNav` on group routes;
   - header `status`: `SyncIndicator`;
   - header `user`: `UserMenu`;
@@ -559,7 +560,7 @@ Built so far by [`plans/marketing-prd.md`](plans/marketing-prd.md) slice 1.
 - **One page list:** `site/pages.ts` `MARKETING_PAGES` feeds the header, footer, sitemap and prerender. A new page is an entry there, a route in `routes.ts`, and a folder with `route.tsx` and `content.ts`.
 - **Copy lives in typed content modules** (`<page>/content.ts`), rendered by `sections/` components; icons are named by string (`sections/icons.tsx`).
 - **SEO:** `site/meta.ts` `marketingMeta({ title, description, path, siteUrl, image?, jsonLd? })`; the layout's loader gives `siteUrl` from `APP_URL` (default `https://caretook.com`). `robots.txt` disallows `/app /admin /invite /join /api /rpc /dev` by prefix, so public files that must stay crawlable avoid those prefixes (icons live in `/icons/`).
-- **Brand assets** (drafts, in `apps/web/public/`): `favicon.svg`, `logo.svg`, `icons/*.png`, `og-default.png`, `site.webmanifest`. The PNGs are rendered from the SVG; regenerate them if it changes. `root.tsx` links the icons for both targets.
+- **Brand assets** (drafts, in `apps/web/public/`): `favicon.svg`, `logo.svg`, `icons/*.png`, `og-default.png`, `site.webmanifest`. The PNGs are rendered from the SVG; regenerate them if it changes. `root.tsx` links the icons for both targets. `LogoMark` and `Wordmark` (`components/brand/`, imported by the marketing header and footer and the `/app` header; the index imports nothing else) draw the same mark inline in the theme's `primary`: change them together with the SVG and PNGs.
 - **Theme:** the existing `THEME_SCRIPT`, unchanged; a stored app theme applies on the site.
 - **No third-party requests and no analytics:** `MarketingAnalytics` is an empty hook point. The site makes public privacy promises, so anything that changes them updates the privacy page in the same change.
 - **Browser check:** `marketing.mjs` (no sign-in; about 5 s). Screenshots only with `MARKETING_SHOTS=1`, viewport-only; never `captureBeyondViewport` (it hung headless Chrome for over an hour).
@@ -650,7 +651,7 @@ UI work is verified in headless Chrome over CDP with plain Node scripts (no Play
   - React Aria buttons and menu items need a `pointerdown` before `.click()`.
   - Set inputs through the native value setter, then dispatch `input`.
   - Collect console errors, and take screenshots.
-  - **Better Auth allows about 3 sign-ins per 10 s.** Past that it answers like a wrong password. Pause between checks run back to back (`first-sync.mjs` waits 4 s before each sign-in).
+  - **Better Auth allows about 3 sign-ins per 10 s per page** on a check build (the dev server doesn't rate-limit). Past that it answers like a wrong password. Pause between checks run back to back (`first-sync.mjs` waits 4 s before each sign-in).
 - **Afterwards:** nothing; the checks clean up after themselves, so no reset is needed between runs.
 
 ### Gotchas
@@ -684,7 +685,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx
   app/.server/            data.ts, auth.ts, api.ts: the server-only doors
-  app/components/         shared by 2+ routes only, imported through each folder's index: ui/ (primitives), ui/date/,
+  app/components/         shared by 2+ routes only, imported through each folder's index: brand/, ui/ (primitives), ui/date/,
                           entry/, notes/, providers/, settings/, shell/
   app/lib/                session, group, groupContext, appUrls, settingsNav, me, auth-client, rpc, api, initials, entryDisplay, format,
                           redirect, form, liveEntry, firstSync, liveNow, titleSuggestions, theme, lastGroup, groupSections,
@@ -705,6 +706,6 @@ packages/data/            @caretook/data
 
 1. **Live notes follow-ups** (the PRD is done): file the PRD and slice issues once `gh` can see the repo.
 2. **The backlog** (`pnpm backlog list`): write the PRDs its table marks "to write" (`pnpm prd plan <topic>`, one `write-a-prd` interview each), then run them, at most three at once.
-3. **Tests:** make the integration tests independent (`careGroup.int.test.ts` shares one group across `describe` blocks), then cover every role against every table.
+3. **Tests:** cover every role against every table (the integration tests are independent now: each builds its own fixtures).
 4. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
 5. **The Resend iteration:** sign-up, invites with accept and consent, verification and reset. Then Capacitor (bearer storage, `VITE_API_ORIGIN`).

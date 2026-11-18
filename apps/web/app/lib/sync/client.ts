@@ -4,12 +4,17 @@ import { DrizzleAppSchema, wrapPowerSyncWithDrizzle } from "@powersync/drizzle-d
 import { PowerSyncDatabase } from "@powersync/web";
 import { authClient } from "../auth-client";
 import { rpc } from "../rpc";
+import { releaseSyncLocksWhenCached } from "./pageCache";
 import { drizzleSchema } from "./schema";
 
 // The PowerSync database and its connection. Browser only: load it through
 // `openSync()` in ./index.ts, never import it statically (it starts workers).
 
 const AppSchema = new DrizzleAppSchema(drizzleSchema);
+
+// A page frozen in the back/forward cache must let go of the database, or the
+// next page's never opens (see ./pageCache). Before PowerSync takes any lock.
+if (navigator.locks) releaseSyncLocksWhenCached(navigator.locks, window);
 
 /** Ops per upload request. Matches SYNC_BATCH_LIMIT in packages/api/src/sync.ts. */
 const UPLOAD_BATCH = 100;
