@@ -74,11 +74,14 @@ export function EntryTitle({
   value,
   placeholder,
   onCommit,
+  onTextChange,
 }: {
   value: string | null;
   placeholder: string;
   /** Called with the trimmed text when it differs from `value`. */
   onCommit: (title: string) => void;
+  /** Called with the field's text as it's typed (before it's committed). */
+  onTextChange?: (text: string) => void;
 }) {
   const id = useId();
   const stored = value ?? "";
@@ -112,7 +115,10 @@ export function EntryTitle({
         autoComplete="off"
         enterKeyHint="done"
         onFocus={() => setEditing(true)}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value);
+          onTextChange?.(e.target.value);
+        }}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
