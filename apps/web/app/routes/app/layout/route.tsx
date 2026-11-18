@@ -1,19 +1,30 @@
-import type { Route } from "./+types/layout";
+import type { Route } from "./+types/route";
 
 import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "react-router";
 import { FirstSyncPending } from "~/components/FirstSyncPending";
-import { GroupMenu } from "~/components/GroupMenu";
-import { SectionNav, TabBar } from "~/components/SectionNav";
-import { SyncIndicator } from "~/components/SyncIndicator";
-import { UserMenu } from "~/components/UserMenu";
+import { appUrls } from "~/lib/appUrls";
 import { isFirstSyncPending } from "~/lib/firstSync";
-import { requireSession } from "~/lib/session";
+import { requireSession, sessionContext } from "~/lib/session";
+import { GroupMenu } from "./GroupMenu";
+import { SectionNav, TabBar } from "./SectionNav";
+import { SyncIndicator } from "./SyncIndicator";
+import { UserMenu } from "./UserMenu";
 
 // Shared by web + native. Do not export a server `loader` or `action` from /app routes.
 
-/** Every /app screen needs a session and the local database (shared with child loaders). */
-export async function clientLoader({ request }: Route.ClientLoaderArgs) {
-  const { user } = await requireSession(request);
+/**
+ * Every /app screen needs a session and the local database: checked once per
+ * navigation (or sign-in), then read by every loader, action and middleware
+ * below as `context.get(sessionContext)`.
+ */
+export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
+  async ({ request, context }) => {
+    context.set(sessionContext, await requireSession(request));
+  },
+];
+
+export function clientLoader({ context }: Route.ClientLoaderArgs) {
+  const { user } = context.get(sessionContext);
   return { user };
 }
 
@@ -39,7 +50,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
     <>
       <header className="navbar bg-base-100 gap-2 px-4 shadow-sm">
         <div data-region="group" className="flex min-w-0 flex-1 items-center gap-2">
-          <Link to="/app" className="text-lg font-semibold">
+          <Link to={appUrls.home()} className="text-lg font-semibold">
             Caretook
           </Link>
           {groupId && <GroupMenu groupId={groupId} />}
@@ -73,7 +84,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <p className="text-base-content/70">
         {notFound ? "This page doesn't exist, or you don't have access to it." : "Try again in a moment."}
       </p>
-      <Link to="/app" className="btn btn-primary">
+      <Link to={appUrls.home()} className="btn btn-primary">
         Back to Caretook
       </Link>
     </main>

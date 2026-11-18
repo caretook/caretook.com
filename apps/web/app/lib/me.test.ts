@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { appUrls } from "./appUrls";
 
 const api = vi.hoisted(() => ({ get: vi.fn(), updatePreferences: vi.fn() }));
 vi.mock("./rpc", () => ({ rpc: { me: api } }));
@@ -7,7 +8,7 @@ vi.mock("./rpc", () => ({ rpc: { me: api } }));
 const { forgetSettings, loadSettings, saveSettings } = await import("./me");
 
 const USER = "u1";
-const request = new Request("http://localhost/app/groups/g/timeline");
+const request = new Request(`http://localhost${appUrls.timeline("g")}`);
 const offline = () => new TypeError("Failed to fetch");
 const serverSettings = (timelineView: "rows" | "cards") => ({
   units: { temperature: "f", weight: "lb", glucose: "mg/dL", volume: "mL" },

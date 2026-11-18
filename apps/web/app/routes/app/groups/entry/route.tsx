@@ -1,25 +1,19 @@
-import type { Route } from "./+types/entry";
+import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type * as Y from "yjs";
 import type { MaterializeInput } from "~/lib/sync/liveEntry";
-import type { EntryRow, GroupRow } from "~/lib/sync/timeline";
+import type { EntryRow } from "~/lib/sync/timeline";
 
 import { canHaveNoteDocument, noteText } from "@caretook/data/schema";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { data, Link, useNavigate } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
-import { EditorAvatars } from "~/components/EditorAvatars";
-import { EntryHeader, EntryTime, EntryTitle } from "~/components/EntryHeader";
-import { EntryMenu } from "~/components/EntryMenu";
-import { EntryTimeChip } from "~/components/EntryTimeChip";
-import { EventTitleChips } from "~/components/EventTitleChips";
-import { LiveNotesEditor } from "~/components/LiveNotesEditor";
-import { ShareButton } from "~/components/ShareButton";
+import { appUrls } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
 import { localTimeZone } from "~/lib/format";
+import { getGroup, useGroup } from "~/lib/group";
 import {
-  entryUrl,
   isLiveEntryKind,
   isUnnamedEvent,
   NEW_ENTRY,
@@ -27,19 +21,17 @@ import {
   shouldMaterialize,
   titleField,
 } from "~/lib/liveEntry";
-import { notOnDevice } from "~/lib/firstSync";
-import { requireSession } from "~/lib/session";
-import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
+import { sessionContext } from "~/lib/session";
+import { getSync, useLiveQuery } from "~/lib/sync";
 import { materializeLiveEntry } from "~/lib/sync/liveEntry";
-import {
-  myGroupsQuery,
-  readRows,
-  removeEntry,
-  toMyGroup,
-  toTimelineEntry,
-  updateEntry,
-  WRITER_ROLES,
-} from "~/lib/sync/timeline";
+import { readRows, removeEntry, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
+import { EditorAvatars } from "./EditorAvatars";
+import { EntryHeader, EntryTime, EntryTitle } from "./EntryHeader";
+import { EntryMenu } from "./EntryMenu";
+import { EntryTimeChip } from "./EntryTimeChip";
+import { EventTitleChips } from "./EventTitleChips";
+import { LiveNotesEditor } from "./LiveNotesEditor";
+import { ShareButton } from "./ShareButton";
 
 // Shared by web + native. A note (or event) is its live document: this page
 // is where it's written, by several people at once (Yjs), offline included.
@@ -57,17 +49,15 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 const entrySql = "SELECT * FROM timeline_entry WHERE id = ? AND group_id = ? AND deleted_at IS NULL";
 
-/** The entry, its document and pending updates (or a new draft). Anything not on the device, or not allowed, is a 404. */
-export async function clientLoader({ request, params }: Route.ClientLoaderArgs) {
+/**
+ * The entry, its document and pending updates (or a new draft). Anything not
+ * on the device, or not allowed, is a 404. (The group route has already
+ * turned away a group that isn't on the device.)
+ */
+export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const { groupId, entryId } = params;
-  const { db } = await requireSession(request);
-  await waitForFirstSync(db);
-
-  const groups = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
-  const groupRow = groups.find((g) => g.id === groupId);
-  if (!groupRow) throw notOnDevice(db);
-  const group = toMyGroup(groupRow);
-  const canWrite = !!group.role && WRITER_ROLES.includes(group.role);
+  const { canWrite } = getGroup(context);
+  const { db } = context.get(sessionContext);
 
   if (entryId === NEW_ENTRY) {
     const kind = new URL(request.url).searchParams.get("kind");
@@ -83,7 +73,6 @@ export async function clientLoader({ request, params }: Route.ClientLoaderArgs) 
         timeZone: localTimeZone(),
       },
       heading: `New ${KIND_META[kind].label.toLowerCase()}`,
-      canWrite,
       hasDocument: false,
       initial: { snapshot: null, updates: [] },
       entryRows: [] as EntryRow[],
@@ -109,7 +98,6 @@ export async function clientLoader({ request, params }: Route.ClientLoaderArgs) 
     isNew: false,
     entry: { ...entry, kind: entry.kind },
     heading: entry.title || KIND_META[entry.kind].label,
-    canWrite,
     hasDocument: !!doc,
     initial: { snapshot: doc?.snapshot ?? null, updates },
     // Starting rows for the live query (stable, so it doesn't reset each render).
@@ -139,7 +127,9 @@ export default function Entry(props: Route.ComponentProps) {
 }
 
 function EntryPage({ loaderData, params }: Route.ComponentProps) {
-  const { canWrite, initial } = loaderData;
+  const { initial } = loaderData;
+  // Live: a role changed on another device shows without a reload.
+  const { canWrite } = useGroup();
   const { groupId } = params;
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
@@ -149,7 +139,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
   // URL swap from `new` to the entry's own keeps this component and editor.
   const [draft] = useState(loaderData.entry);
   const [isNew] = useState(loaderData.isNew);
-  const timelineUrl = `/app/groups/${groupId}/timeline`;
+  const timelineUrl = appUrls.timeline(groupId);
 
   // The stored entry, live: other members' renames, and deletion.
   const rows = useLiveQuery<EntryRow>(entrySql, [draft.id, groupId], loaderData.entryRows);
@@ -190,7 +180,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
       setSaveError(null);
       saved.current = true;
       // Back from here goes to the timeline, and the link is the entry's own.
-      if (isNew) void navigate(entryUrl(groupId, draft.id), { replace: true });
+      if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true });
       return true;
     })();
     return saving.current;
@@ -295,7 +285,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
         actions={
           live && (
             <>
-              <ShareButton title={heading} path={entryUrl(groupId, draft.id)} />
+              <ShareButton title={heading} path={appUrls.entry(groupId, draft.id)} />
               {canWrite && (
                 <EntryMenu
                   label={`Actions for this ${label.toLowerCase()}`}

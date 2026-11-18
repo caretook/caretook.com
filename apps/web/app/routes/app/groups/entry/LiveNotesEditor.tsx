@@ -6,7 +6,7 @@ import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Heading2, Italic, List, ListOrdered } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { bindNoteDoc, createNoteDoc } from "~/lib/sync/notes";
 
 /**
@@ -42,6 +42,11 @@ export function LiveNotesEditor({
     };
   }, [doc, db, documentId, groupId, canWrite, ensureSaved]);
 
+  // The role is live (`useGroup()`), so editing follows it without a remount:
+  // a writer made a viewer can't type on, and back. The attributes read it
+  // through a ref, because ProseMirror re-reads them on each update.
+  const canWriteRef = useRef(canWrite);
+
   const editor = useEditor({
     // Rendered in the browser only (the /app shell has no server data).
     immediatelyRender: false,
@@ -53,15 +58,20 @@ export function LiveNotesEditor({
       Collaboration.configure({ document: doc, field: NOTE_FRAGMENT }),
     ],
     editorProps: {
-      attributes: {
+      attributes: () => ({
         "aria-label": label,
         "aria-multiline": "true",
         role: "textbox",
-        ...(canWrite ? {} : { "aria-readonly": "true" }),
+        ...(canWriteRef.current ? {} : { "aria-readonly": "true" }),
         class: "live-notes min-h-[50vh] px-4 py-3 outline-none",
-      },
+      }),
     },
   });
+
+  useEffect(() => {
+    canWriteRef.current = canWrite;
+    if (editor && editor.isEditable !== canWrite) editor.setEditable(canWrite);
+  }, [editor, canWrite]);
 
   return (
     <div className="rounded-box border-base-300 bg-base-100 border">

@@ -1,14 +1,12 @@
 import type { AuthUser } from "@caretook/data/permissions";
 import type { CareRecipientProfileInput } from "@caretook/data/schema";
-import type { ActionResult } from "./api";
+import type { ActionResult } from "~/lib/api";
 
 import { hasPermission } from "@caretook/data/permissions";
 import { careGroupInsertZSchema, careRecipientProfileZSchema } from "@caretook/data/schema";
 
-// The pure parts of group settings (`routes/app/groupSettings.tsx`): who may
+// The pure parts of group settings (`./route.tsx`): who may
 // edit what, and turning a submitted form into a valid change or field errors.
-
-export const groupSettingsPath = (groupId: string) => `/app/groups/${groupId}/settings`;
 
 /** What every save says when the request can't reach the server. */
 export const NEEDS_CONNECTION = "Needs a connection to edit.";

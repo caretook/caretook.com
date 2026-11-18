@@ -6,7 +6,7 @@ import { Link } from "react-router";
 import { entrySummary, initials, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
-import { AuthorInitials, KindFilterLink } from "./KindIcon";
+import { AuthorInitials, KindFilterLink } from "~/components/KindIcon";
 import { LiveDot } from "./LiveDot";
 
 export type EntryViewProps = {
