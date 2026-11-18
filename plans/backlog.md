@@ -57,6 +57,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | in-progress | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | in-progress | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
+| B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 
 ## Items
 
@@ -376,3 +377,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): PowerSync 401s and PSYNC_S2101 (stale JWKS after a reset) were the most common browser-check failure. datastore:reset should restart the worktree's own powersync container and wait until it accepts a token, so the first check after a reset doesn't fail. Already on AGENTS.md Next steps (live notes follow-ups).
 - 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 5 (plans/quick-fixes-plan.md): datastore:reset restarts this worktree's PowerSync and waits for the new JWKS; cdp.mjs retries one 401.
+
+### B-30 · plan · Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset
+
+- status: triaged
+- prd: invites
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
