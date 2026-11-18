@@ -134,6 +134,174 @@ describe("careGroup", () => {
   });
 });
 
+describe("careGroup: group settings", () => {
+  const ROLES = ["owner", "admin", "caretaker", "viewer"] as const;
+
+  /** A new group with one member per role, plus someone outside it. */
+  const settingsSetup = async () => {
+    const owner = await createUser("owner");
+    const admin = await createUser("admin");
+    const caretaker = await createUser("caretaker");
+    const viewer = await createUser("viewer");
+    const outsider = await createUser("outsider");
+    const { group, recipient } = await createGroup(owner, [
+      { user: admin.user, role: "admin" },
+      { user: caretaker.user, role: "caretaker" },
+      { user: viewer.user, role: "viewer" },
+    ]);
+    const api = (who: typeof owner, role?: (typeof ROLES)[number]) =>
+      clientFor(withRoles(who.ctx.authUser, role ? { [group.id]: role } : {}));
+    return {
+      group,
+      recipient,
+      owner: api(owner, "owner"),
+      admin: api(admin, "admin"),
+      caretaker: api(caretaker, "caretaker"),
+      viewer: api(viewer, "viewer"),
+      outsider: api(outsider),
+    };
+  };
+
+  const profileOf = (recipient: { id: string; groupId: string }, over: object = {}) => ({
+    id: recipient.id,
+    groupId: recipient.groupId,
+    name: "Pat Example",
+    preferredName: null,
+    dateOfBirth: null,
+    ...over,
+  });
+
+  describe("update", () => {
+    it.each(["owner", "admin"] as const)("lets an %s rename the group, trimmed", async (role) => {
+      const s = await settingsSetup();
+      expect(await s[role].careGroup.update({ groupId: s.group.id, name: "  Example Family  " })).toEqual({
+        id: s.group.id,
+        name: "Example Family",
+      });
+      expect((await s.viewer.careGroup.listMine())[0]?.name).toBe("Example Family");
+    });
+
+    it.each(["caretaker", "viewer"] as const)(
+      "refuses a %s with a 403, and changes nothing",
+      async (role) => {
+        const s = await settingsSetup();
+        const error = await rejection(s[role].careGroup.update({ groupId: s.group.id, name: "Renamed" }));
+        expect(error.code).toBe("FORBIDDEN");
+        expect((await s.owner.careGroup.listMine())[0]?.name).toBe(s.group.name);
+      },
+    );
+
+    it("answers a non-member with a 404, and changes nothing", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(s.outsider.careGroup.update({ groupId: s.group.id, name: "Renamed" }));
+      expect(error.code).toBe("NOT_FOUND");
+      expect((await s.owner.careGroup.listMine())[0]?.name).toBe(s.group.name);
+    });
+
+    it("refuses an empty, blank or overlong name", async () => {
+      const s = await settingsSetup();
+      for (const name of ["", "   ", "x".repeat(121)]) {
+        expect((await rejection(s.owner.careGroup.update({ groupId: s.group.id, name }))).code).toBe(
+          "BAD_REQUEST",
+        );
+      }
+      expect((await s.owner.careGroup.listMine())[0]?.name).toBe(s.group.name);
+    });
+  });
+
+  describe("recipient", () => {
+    it.each(ROLES)("shows the profile to a member (%s), and nothing else", async (role) => {
+      const s = await settingsSetup();
+      await s.owner.careGroup.updateRecipient({ groupId: s.group.id, dateOfBirth: "1941-03-09" });
+      expect(await s[role].careGroup.recipient({ groupId: s.group.id })).toEqual(
+        profileOf(s.recipient, { dateOfBirth: "1941-03-09" }),
+      );
+    });
+
+    it("answers a non-member with a 404", async () => {
+      const s = await settingsSetup();
+      expect((await rejection(s.outsider.careGroup.recipient({ groupId: s.group.id }))).code).toBe(
+        "NOT_FOUND",
+      );
+    });
+  });
+
+  describe("updateRecipient", () => {
+    it.each(["owner", "admin", "caretaker"] as const)("lets a %s edit the profile", async (role) => {
+      const s = await settingsSetup();
+      const saved = await s[role].careGroup.updateRecipient({
+        groupId: s.group.id,
+        name: "  Patricia Example ",
+        preferredName: " Pat ",
+        dateOfBirth: "1941-03-09",
+      });
+      const expected = profileOf(s.recipient, {
+        name: "Patricia Example",
+        preferredName: "Pat",
+        dateOfBirth: "1941-03-09",
+      });
+      expect(saved).toEqual(expected);
+      expect(await s.viewer.careGroup.recipient({ groupId: s.group.id })).toEqual(expected);
+      expect((await s.viewer.careGroup.listMine())[0]?.recipient?.displayName).toBe("Pat");
+    });
+
+    it("keeps fields left out, and clears a preferred name or date of birth", async () => {
+      const s = await settingsSetup();
+      const groupId = s.group.id;
+      await s.owner.careGroup.updateRecipient({ groupId, preferredName: "Pat", dateOfBirth: "1941-03-09" });
+      expect(await s.owner.careGroup.updateRecipient({ groupId, name: "Patricia Example" })).toEqual(
+        profileOf(s.recipient, { name: "Patricia Example", preferredName: "Pat", dateOfBirth: "1941-03-09" }),
+      );
+      expect(await s.owner.careGroup.updateRecipient({ groupId })).toMatchObject({ preferredName: "Pat" });
+      expect(
+        await s.owner.careGroup.updateRecipient({ groupId, preferredName: "", dateOfBirth: null }),
+      ).toEqual(profileOf(s.recipient, { name: "Patricia Example" }));
+    });
+
+    it("refuses a viewer with a 403, and changes nothing", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(
+        s.viewer.careGroup.updateRecipient({ groupId: s.group.id, name: "Renamed" }),
+      );
+      expect(error.code).toBe("FORBIDDEN");
+      expect(await s.owner.careGroup.recipient({ groupId: s.group.id })).toEqual(profileOf(s.recipient));
+    });
+
+    it("answers a non-member with a 404, and changes nothing", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(
+        s.outsider.careGroup.updateRecipient({ groupId: s.group.id, name: "Renamed" }),
+      );
+      expect(error.code).toBe("NOT_FOUND");
+      expect(await s.owner.careGroup.recipient({ groupId: s.group.id })).toEqual(profileOf(s.recipient));
+    });
+
+    it("refuses an empty name and a date of birth that isn't a date, naming the field", async () => {
+      const s = await settingsSetup();
+      const groupId = s.group.id;
+      const bad = [
+        { input: { name: "  " }, field: "name" },
+        { input: { dateOfBirth: "not a date" }, field: "dateOfBirth" },
+        { input: { dateOfBirth: "1941-02-30" }, field: "dateOfBirth" },
+        { input: { preferredName: "x".repeat(121) }, field: "preferredName" },
+      ];
+      for (const { input, field } of bad) {
+        const error = await rejection(s.owner.careGroup.updateRecipient({ groupId, ...input }));
+        expect(error.code).toBe("BAD_REQUEST");
+        expect(JSON.stringify(error.data?.issues)).toContain(field);
+      }
+      expect(await s.owner.careGroup.recipient({ groupId })).toEqual(profileOf(s.recipient));
+    });
+
+    it("accepts a future date of birth (the shared schema has no such rule)", async () => {
+      const s = await settingsSetup();
+      expect(
+        await s.owner.careGroup.updateRecipient({ groupId: s.group.id, dateOfBirth: "2999-01-01" }),
+      ).toMatchObject({ dateOfBirth: "2999-01-01" });
+    });
+  });
+});
+
 describe("timeline", () => {
   it("creates, lists, edits and deletes, with ISO timestamps", async () => {
     const { owner, viewer, group, recipient } = await setup();
