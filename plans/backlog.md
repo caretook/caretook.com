@@ -52,6 +52,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 | B-23 | change | in-progress | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
+| B-25 | feature | inbox |  |  | @-mentions of providers inside live notes and events |
 
 ## Items
 
@@ -317,3 +318,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/components-prd.md. Four waves: UI primitives, timeline, entry page, then forms/shell/settings. Browser checks + pure unit tests, no new deps. Runs after routing.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/components-plan.md, 6 slices (1→2; 3→5 parallel with 4; 6 last).
 - 2026-11-18 (Robert Bo Davis): 2026-11-18: runs after routing, and before timeline-polish slices 4-7 (paused by the user).
+
+### B-25 · feature · @-mentions of providers inside live notes and events
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Later, after providers' linking lands. Typing @ in a note's or event's text suggests providers; a mention links the provider like the With row. Needs @tiptap/extension-mention and @tiptap/suggestion (new dependencies: the user's approval). Out of scope for the providers PRD.
