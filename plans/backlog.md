@@ -120,6 +120,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Larger semibold sticky headers: Today, Yesterday, 'Monday, Nov 16' (+year).
+- 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 2. dayLabel and larger day headers. Independent. Wave 1.
 
 ### B-8 · feature · Avatar in the header with a menu for the user's settings and actions
 
