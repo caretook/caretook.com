@@ -152,7 +152,7 @@ try {
   );
 
   // 7. Sign-out wipes the device.
-  await A.press(button("Sign out"));
+  await A.signOut();
   await A.waitFor(`location.pathname === "/sign-in"`, 15000);
   const left = await A.evaluate(`(async () => {
     const dbs = await indexedDB.databases(); return JSON.stringify(dbs.map((d) => d.name)); })()`);

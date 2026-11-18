@@ -51,11 +51,5 @@ export const entrySummary = (entry: TimelineEntry, units: UnitChoices) => {
   };
 };
 
-/** "Dev Caretaker" → "DC". */
-export const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "?";
+/** "Dev Caretaker" → "DC" (shared with `UserAvatar`; see `lib/initials.ts`). */
+export { initials } from "./initials";
