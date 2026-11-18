@@ -14,7 +14,10 @@ const appRoutes = [
       route("settings", "routes/app/settings/route.tsx"),
       route("groups/:groupId", "routes/app/groups/layout/route.tsx", { id: "group" }, [
         index("routes/app/groups/index/route.tsx"),
-        route("timeline", "routes/app/groups/timeline/route.tsx"),
+        route("timeline", "routes/app/groups/timeline/route.tsx", [
+          // Sheets over the timeline, which stays mounted underneath.
+          route("new/:kind", "routes/app/groups/timeline/new/route.tsx"),
+        ]),
         route("entries/:entryId", "routes/app/groups/entry/route.tsx"),
         route("settings", "routes/app/groups/settings/route.tsx"),
       ]),

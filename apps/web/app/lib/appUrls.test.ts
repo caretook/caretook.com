@@ -37,6 +37,35 @@ describe("appUrls", () => {
     expect(appUrls.timeline("g", "?")).toBe("/app/groups/g/timeline");
   });
 
+  it("builds the add sheet's path, carrying the timeline's filters", () => {
+    expect(appUrls.newSheet(G, "symptom")).toBe(`/app/groups/${G}/timeline/new/symptom`);
+    expect(appUrls.newSheet(G, "vital")).toBe(`/app/groups/${G}/timeline/new/vital`);
+    expect(appUrls.newSheet("g", "vital", { type: "heartRate" })).toBe(
+      "/app/groups/g/timeline/new/vital?type=heartRate",
+    );
+    expect(appUrls.newSheet("g", "symptom", { search: "?kind=vital&author=u" })).toBe(
+      "/app/groups/g/timeline/new/symptom?kind=vital&author=u",
+    );
+    expect(appUrls.newSheet("g", "vital", { type: "spo2", search: { kind: "symptom" } })).toBe(
+      "/app/groups/g/timeline/new/vital?kind=symptom&type=spo2",
+    );
+  });
+
+  it("drops the add sheet's unknown or misplaced values", () => {
+    // A type from an earlier sheet is replaced, not repeated.
+    expect(appUrls.newSheet("g", "vital", { type: "weight", search: "?type=spo2&kind=note" })).toBe(
+      "/app/groups/g/timeline/new/vital?kind=note&type=weight",
+    );
+    expect(appUrls.newSheet("g", "symptom", { search: "?type=spo2" })).toBe(
+      "/app/groups/g/timeline/new/symptom",
+    );
+    // @ts-expect-error: only vital types.
+    expect(appUrls.newSheet("g", "vital", { type: "bogus" })).toBe("/app/groups/g/timeline/new/vital");
+    expect(appUrls.newSheet("g", "symptom", { type: "spo2" })).toBe("/app/groups/g/timeline/new/symptom");
+    // @ts-expect-error: notes and events have a page (`newEntry`), not a sheet.
+    expect(appUrls.newSheet("g", "note", { search: "?kind=note" })).toBe("/app/groups/g/timeline?kind=note");
+  });
+
   it("drops an unknown kind for a new entry", () => {
     // @ts-expect-error: only notes and events are drafted on their own page.
     expect(appUrls.newEntry("g", "symptom")).toBe(`/app/groups/g/entries/${NEW_ENTRY}`);

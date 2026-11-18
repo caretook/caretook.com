@@ -1,5 +1,7 @@
+import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { LiveEntryKind } from "./liveEntry";
 
+import { VITAL_TYPES } from "@caretook/data/schema";
 import { isLiveEntryKind, NEW_ENTRY } from "./liveEntry";
 
 // Every path inside the app, built in one place. Links, redirects and
@@ -30,6 +32,24 @@ export const searchString = (search?: Search): string => {
   return text ? `?${text}` : "";
 };
 
+/** The kinds added in a sheet over the timeline (notes and events have a page: `newEntry`). */
+export const SHEET_KINDS = ["symptom", "vital"] as const satisfies readonly TimelineEntryKind[];
+export type SheetKind = (typeof SHEET_KINDS)[number];
+export const isSheetKind = (value: unknown): value is SheetKind =>
+  (SHEET_KINDS as readonly unknown[]).includes(value);
+
+/** A new vital's first reading: `?type=heartRate`. */
+export const VITAL_TYPE_PARAM = "type";
+export const isVitalType = (value: unknown): value is VitalType =>
+  (VITAL_TYPES as readonly unknown[]).includes(value);
+
+/** `search` without the add sheet's own parameter: the timeline's filters, as a sheet carries them. */
+export const withoutSheetParams = (search?: Search) => {
+  const params = new URLSearchParams(searchString(search));
+  params.delete(VITAL_TYPE_PARAM);
+  return params;
+};
+
 const HOME = "/app";
 const groupHome = (groupId: string) => `${HOME}/groups/${segment(groupId)}`;
 
@@ -42,6 +62,21 @@ export const appUrls = {
   groupHome,
   /** A group's timeline, with its filters (`?kind=`, `?author=`) carried through. */
   timeline: (groupId: string, search?: Search) => `${groupHome(groupId)}/timeline${searchString(search)}`,
+  /**
+   * The add sheet over a group's timeline, carrying the timeline's filters.
+   * A vital can start with a reading's `type`; an unknown type, or a type on
+   * a symptom, is dropped. An unknown kind is the timeline itself.
+   */
+  newSheet: (
+    groupId: string,
+    kind: SheetKind,
+    { type, search }: { type?: VitalType; search?: Search } = {},
+  ) => {
+    const params = withoutSheetParams(search);
+    if (!isSheetKind(kind)) return `${groupHome(groupId)}/timeline${searchString(params)}`;
+    if (kind === "vital" && isVitalType(type)) params.set(VITAL_TYPE_PARAM, type);
+    return `${groupHome(groupId)}/timeline/new/${kind}${searchString(params)}`;
+  },
   /** A note's or event's page (also a share link). */
   entry: (groupId: string, entryId: string) => `${groupHome(groupId)}/entries/${segment(entryId)}`,
   /** A new note or event (a draft until its first change). An unknown kind is dropped. */

@@ -1,14 +1,15 @@
 import type { Route } from "./+types/route";
-import type { TimelineEntryKind, TimelineView, VitalType } from "@caretook/data/schema";
+import type { TimelineView } from "@caretook/data/schema";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/api";
 import type { TimelineEntry } from "~/lib/rpc";
 import type { NoteDocRow } from "~/lib/sync/notes";
 import type { EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
+import type { TimelineOutlet } from "./sheet";
 
-import { canHaveNoteDocument, DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
-import { useFetcher } from "react-router";
+import { Outlet, useFetcher, useLocation } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
 import { appUrls } from "~/lib/appUrls";
 import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
@@ -20,11 +21,10 @@ import { liveDotLabel } from "~/lib/liveNow";
 import { loadSettings, saveSettings } from "~/lib/me";
 import { sessionContext } from "~/lib/session";
 import { parseFilters } from "~/lib/timelineFilters";
-import { getSync, useLiveQuery } from "~/lib/sync";
+import { useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/sync/editors";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import {
-  createEntry,
   entriesQuery,
   membersQuery,
   readingsQuery,
@@ -35,12 +35,14 @@ import {
   toTimelineEntries,
   updateEntry,
 } from "~/lib/sync/timeline";
-import { entryContentFromForm, entryUpdateFromForm } from "./entryFormData";
+import { entryUpdateFromForm, parseUnits } from "./entryFormData";
 import { EntryForm } from "./EntryForm";
 import { EntrySheet } from "./EntrySheet";
 import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { QuickAddBar } from "./QuickAddBar";
+import { SHEET_LINK_STATE } from "./sheet";
+import { onlySheetChanged } from "./sheetGuard";
 import { KindFilter, ViewToggle } from "./TimelineFilters";
 import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
@@ -88,15 +90,18 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   };
 }
 
-/** Writes go to the local database; live queries show them at once and PowerSync uploads them. */
-export async function clientAction({ request, params }: Route.ClientActionArgs): Promise<ActionResult> {
+/**
+ * Edits and deletes go to the local database; live queries show them at once
+ * and PowerSync uploads them. (New entries are the add sheet's: `new/route.tsx`.)
+ */
+export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
+  getGroup(context);
+  const { db } = context.get(sessionContext);
   const form = await request.formData();
   const intent = formString(form, "intent");
   const id = formString(form, "id");
   // The units the form displayed, so vitals convert back the way they were typed.
   const units = parseUnits(formString(form, "units"));
-  const db = getSync();
-  if (intent === "create") return createEntry(db, params.groupId, entryContentFromForm(form, units));
   if (intent === "update") return updateEntry(db, id, entryUpdateFromForm(form, units));
   if (intent === "remove") return removeEntry(db, id);
   throw new Error(`Unknown intent: ${intent}`);
@@ -104,20 +109,20 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
 
 /**
  * Live queries already reflect every write, so a submission doesn't rerun
- * the loader (that would reset "Show older"). Navigation (a new filter) does.
+ * the loader (that would reset "Show older"), and neither does opening or
+ * closing a sheet over the timeline. Other navigation (a new filter) does.
  */
-export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
-  return formMethod ? false : defaultShouldRevalidate;
+export function shouldRevalidate({
+  formMethod,
+  currentUrl,
+  nextUrl,
+  nextParams,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (formMethod) return false;
+  if (nextParams.groupId && onlySheetChanged(nextParams.groupId, currentUrl, nextUrl)) return false;
+  return defaultShouldRevalidate;
 }
-
-const parseUnits = (json: string) => {
-  try {
-    const parsed = unitChoicesZSchema.safeParse(JSON.parse(json));
-    return parsed.success ? parsed.data : DEFAULT_UNITS;
-  } catch {
-    return DEFAULT_UNITS;
-  }
-};
 
 /** Consecutive entries grouped by the viewer's calendar day. */
 const byDay = (entries: TimelineEntry[]) => {
@@ -133,10 +138,8 @@ const byDay = (entries: TimelineEntry[]) => {
   return days;
 };
 
-/** What the entry sheet is showing: a new entry of some kind, or an edit. */
-type SheetContent =
-  { mode: "add"; kind: TimelineEntryKind; vitalType?: VitalType } | { mode: "edit"; entry: TimelineEntry };
-type SheetState = SheetContent & { key: number };
+/** The entry the edit sheet is showing. (The add sheet is a route: `new/route.tsx`.) */
+type SheetState = { entry: TimelineEntry; key: number };
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const { userId, units, kind } = loaderData;
@@ -189,14 +192,16 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     saveSettings(userId, { timelineView: next }).catch(() => undefined);
   };
 
-  // One sheet for adding and editing. `key` remounts the form each time it
-  // opens, so it starts empty, with "When" set to now.
+  // The edit sheet. `key` remounts the form each time it opens, so it shows
+  // the entry as it is now.
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const openSheet = (next: SheetContent) => {
-    setSheet({ ...next, key: Date.now() });
+  const openSheet = (entry: TimelineEntry) => {
+    setSheet((prev) => ({ entry, key: (prev?.key ?? 0) + 1 }));
     setSheetOpen(true);
   };
+  // The add sheet's links carry the filters (and come back to them).
+  const { search } = useLocation();
   const closeSheet = useCallback(() => setSheetOpen(false), [setSheetOpen]);
 
   // One delete confirm for the whole list.
@@ -232,8 +237,9 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
 
       {canWrite && (
         <QuickAddBar
-          onAdd={(k, vitalType) => openSheet({ mode: "add", kind: k, vitalType })}
-          hrefFor={(k) => (isLiveEntryKind(k) ? appUrls.newEntry(groupId, k) : undefined)}
+          newEntryUrl={(k) => appUrls.newEntry(groupId, k)}
+          newSheetUrl={(k, type) => appUrls.newSheet(groupId, k, { type, search })}
+          sheetLinkState={SHEET_LINK_STATE}
         />
       )}
 
@@ -277,14 +283,10 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
                     canHaveNoteDocument(entry.kind)
                       ? { to: appUrls.entry(groupId, entry.id) }
                       : canWrite
-                        ? { onPress: () => openSheet({ mode: "edit", entry }) }
+                        ? { onPress: () => openSheet(entry) }
                         : undefined
                   }
-                  onEdit={
-                    canWrite && !canHaveNoteDocument(entry.kind)
-                      ? () => openSheet({ mode: "edit", entry })
-                      : undefined
-                  }
+                  onEdit={canWrite && !canHaveNoteDocument(entry.kind) ? () => openSheet(entry) : undefined}
                   onDelete={canWrite ? () => setDeleting(entry) : undefined}
                   liveLabel={liveLabels.get(entry.id)}
                 />
@@ -308,32 +310,20 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         <EntrySheet
           isOpen={sheetOpen}
           onOpenChange={setSheetOpen}
-          title={
-            sheet.mode === "edit"
-              ? `Edit ${KIND_META[sheet.entry.kind].label.toLowerCase()}`
-              : "Add to the timeline"
-          }
+          title={`Edit ${KIND_META[sheet.entry.kind].label.toLowerCase()}`}
         >
-          {sheet.mode === "edit" ? (
-            <EntryForm
-              key={sheet.key}
-              entry={sheet.entry}
-              units={units}
-              onDone={closeSheet}
-              onCancel={closeSheet}
-            />
-          ) : (
-            <EntryForm
-              key={sheet.key}
-              units={units}
-              initialKind={sheet.kind}
-              initialVitalType={sheet.vitalType}
-              onDone={closeSheet}
-              onCancel={closeSheet}
-            />
-          )}
+          <EntryForm
+            key={sheet.key}
+            entry={sheet.entry}
+            units={units}
+            onDone={closeSheet}
+            onCancel={closeSheet}
+          />
         </EntrySheet>
       )}
+
+      {/* The add sheet (`new/:kind`), over the timeline. */}
+      <Outlet context={{ units } satisfies TimelineOutlet} />
 
       <ConfirmDialog
         open={!!deleting}
