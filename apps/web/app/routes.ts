@@ -8,7 +8,7 @@ const appRoutes = [
     layout("routes/app/layout.tsx", [
       index("routes/app/home.tsx"),
       route("groups/:groupId/timeline", "routes/app/timeline.tsx"),
-      route("groups/:groupId/entries/:entryId/notes", "routes/app/entry-notes.tsx"),
+      route("groups/:groupId/entries/:entryId", "routes/app/entry.tsx"),
       route("settings", "routes/app/settings.tsx"),
     ]),
   ]),

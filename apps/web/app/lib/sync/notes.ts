@@ -1,19 +1,17 @@
-import type { ActionResult } from "../api";
 import type { SyncDb } from "./index";
-import type { GroupRow } from "./timeline";
 
-import { buildNoteDoc, canHaveNoteDocument, fromBase64, noteText, toBase64 } from "@caretook/data/schema";
+import { buildNoteDoc, fromBase64, noteText, toBase64 } from "@caretook/data/schema";
 import * as Y from "yjs";
-import { noteDocuments, noteUpdates } from "./schema";
-import { myGroupsQuery, readRows, toLocalTimestamp, toMyGroup, WRITER_ROLES } from "./timeline";
+import { noteUpdates } from "./schema";
+import { toLocalTimestamp } from "./timeline";
 
 // Live documents on this device. A document's state is its snapshot plus
 // every pending update row; both arrive through sync, so the editor works
 // offline and merges with everyone else's edits (Yjs).
 //
-// Devices only insert: a note_document row (when someone adds live notes)
-// and note_update rows (bursts of typing). The server compacts updates into
-// the snapshot and writes the plain text.
+// Devices only insert: a note_document row (with its entry, on the first
+// change: see liveEntry.ts) and note_update rows (bursts of typing). The
+// server compacts updates into the snapshot and writes the plain text.
 
 // ---------------------------------------------------------------------------
 // Queries
@@ -59,53 +57,6 @@ export const previewText = (row: NoteDocRow) => {
 export const toPreviews = (rows: NoteDocRow[]) => new Map(rows.map((row) => [row.id, previewText(row)]));
 
 // ---------------------------------------------------------------------------
-// Adding live notes to an entry
-// ---------------------------------------------------------------------------
-
-type EntryKindRow = { id: string; group_id: string | null; kind: string | null };
-
-/**
- * Add a live document to a note or event (or find the one it has). Its id
- * is the entry's id, so two devices doing this offline make the same row.
- */
-export const ensureNoteDocument = async (db: SyncDb, entryId: string): Promise<ActionResult> => {
-  const [entry] = await readRows<EntryKindRow>(db, {
-    sql: "SELECT id, group_id, kind FROM timeline_entry WHERE id = ? AND deleted_at IS NULL",
-    params: [entryId],
-  });
-  if (!entry?.group_id)
-    return { ok: false, error: "That entry is gone. It may have been deleted.", issues: [] };
-  if (!entry.kind || !canHaveNoteDocument(entry.kind)) {
-    return { ok: false, error: "Only notes and events can have live notes", issues: [] };
-  }
-
-  const groups = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
-  const group = groups.map(toMyGroup).find((g) => g.id === entry.group_id);
-  if (!group?.role || !WRITER_ROLES.includes(group.role)) {
-    return { ok: false, error: "You don't have permission to do that.", issues: [] };
-  }
-
-  const existing = await readRows<{ id: string }>(db, {
-    sql: "SELECT id FROM note_document WHERE id = ?",
-    params: [entryId],
-  });
-  if (existing.length) return { ok: true };
-
-  const now = toLocalTimestamp(new Date());
-  await db.drizzle.insert(noteDocuments).values({
-    id: entryId,
-    groupId: entry.group_id,
-    snapshot: null,
-    text: "",
-    createdAt: now,
-    updatedAt: now,
-    createdBy: db.userId,
-    updatedBy: db.userId,
-  });
-  return { ok: true };
-};
-
-// ---------------------------------------------------------------------------
 // The editor's Y.Doc, bound to local SQLite
 // ---------------------------------------------------------------------------
 
@@ -145,6 +96,13 @@ export type BindNoteDocOptions = {
   groupId: string;
   /** Viewers watch: their (editor-internal) changes are never written. */
   canWrite: boolean;
+  /**
+   * For a draft that isn't saved yet: saves its entry and document when the
+   * doc holds a real change, and resolves true once they exist. Until then,
+   * local changes wait in memory, and leaving drops them. Called on every
+   * local change until it returns true.
+   */
+  ensureSaved?: (doc: Y.Doc) => Promise<boolean>;
 };
 
 /**
@@ -155,7 +113,10 @@ export type BindNoteDocOptions = {
  *
  * Returns `flush` (write pending changes now) and `unbind`, which also flushes.
  */
-export const bindNoteDoc = (doc: Y.Doc, { db, documentId, groupId, canWrite }: BindNoteDocOptions) => {
+export const bindNoteDoc = (
+  doc: Y.Doc,
+  { db, documentId, groupId, canWrite, ensureSaved }: BindNoteDocOptions,
+) => {
   const seen = new Set<string>();
   let lastSnapshot: string | null = null;
 
@@ -164,11 +125,30 @@ export const bindNoteDoc = (doc: Y.Doc, { db, documentId, groupId, canWrite }: B
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
   let maxTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const flush = () => {
+  // A draft's changes are held until its entry and document exist.
+  let saved = !ensureSaved;
+  let saving: Promise<boolean> | null = null;
+  const trySave = (): Promise<boolean> => {
+    if (saved || !ensureSaved) return Promise.resolve(true);
+    saving ??= ensureSaved(doc)
+      .catch((e: unknown) => {
+        console.error("Couldn't save the entry", e);
+        return false;
+      })
+      .then((ok) => {
+        saving = null;
+        if (ok) saved = true;
+        return ok;
+      });
+    return saving;
+  };
+
+  const flush = async (): Promise<void> => {
     clearTimeout(idleTimer);
     clearTimeout(maxTimer);
     idleTimer = maxTimer = undefined;
-    if (!pending.length) return Promise.resolve();
+    if (!pending.length) return;
+    if (!(await trySave()) || !pending.length) return;
     const update = Y.mergeUpdates(pending);
     pending = [];
     const id = crypto.randomUUID();
@@ -190,6 +170,13 @@ export const bindNoteDoc = (doc: Y.Doc, { db, documentId, groupId, canWrite }: B
   const onUpdate = (update: Uint8Array, origin: unknown) => {
     if (origin === FROM_DB || !canWrite) return;
     pending.push(update);
+    // A draft's first real change saves it at once (the URL then becomes
+    // the entry's), and its waiting changes follow straight after.
+    if (!saved) {
+      void trySave().then((ok) => {
+        if (ok) void flush();
+      });
+    }
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => void flush(), FLUSH_IDLE_MS);
     maxTimer ??= setTimeout(() => void flush(), FLUSH_MAX_MS);

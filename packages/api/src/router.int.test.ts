@@ -31,7 +31,7 @@ const setup = async () => {
 const note = (groupId: string) => ({
   groupId,
   kind: "note" as const,
-  body: "Ate lunch",
+  title: "Ate lunch",
   occurredAt: "2026-11-17T12:00:00-08:00",
   timeZone: "America/Los_Angeles",
 });
@@ -139,8 +139,8 @@ describe("timeline", () => {
     const page = await viewer.api.timeline.list({ groupId: group.id });
     expect(page).toEqual({ data: [created], nextCursor: null });
 
-    const updated = await owner.api.timeline.update({ id: created.id, data: { body: "Ate all of lunch" } });
-    expect(updated.body).toBe("Ate all of lunch");
+    const updated = await owner.api.timeline.update({ id: created.id, data: { title: "Ate all of lunch" } });
+    expect(updated.title).toBe("Ate all of lunch");
 
     expect(await owner.api.timeline.remove({ id: created.id })).toEqual({ id: created.id });
     expect((await viewer.api.timeline.list({ groupId: group.id })).data).toEqual([]);
@@ -162,12 +162,12 @@ describe("timeline", () => {
   it("returns validation issues as BAD_REQUEST", async () => {
     const { owner, group } = await setup();
     // Caught by the procedure's input schema.
-    expect((await rejection(owner.api.timeline.create({ ...note(group.id), body: "" }))).code).toBe(
+    expect((await rejection(owner.api.timeline.create({ ...note(group.id), body: "" } as never))).code).toBe(
       "BAD_REQUEST",
     );
     // Caught by the service, against the merged entry.
     const entry = await owner.api.timeline.create(note(group.id));
-    const error = await rejection(owner.api.timeline.update({ id: entry.id, data: { body: null } }));
+    const error = await rejection(owner.api.timeline.update({ id: entry.id, data: { body: "Ate lunch" } }));
     expect(error.code).toBe("BAD_REQUEST");
     expect(error.data?.code).toBe("timelineEntryService:invalid");
     expect(error.data?.issues?.[0]).toMatchObject({ path: "body" });
@@ -314,6 +314,73 @@ describe("sync.upload", () => {
 
       const text = await noteDocumentService.currentText(owner.ctx, entryId);
       expect(text).toBe("Line 1\nLine 2");
+    });
+
+    /** A note as a device saves it: no body (its text is the document), then its document and an edit. */
+    const offlineNote = (groupId: string, recipientId: string) => {
+      const entryId = randomUUID();
+      const entry = {
+        op: "PUT" as const,
+        table: "timeline_entry",
+        id: entryId,
+        data: { ...row(groupId, recipientId), kind: "note", body: null, details: null },
+      };
+      const document = {
+        op: "PUT" as const,
+        table: "note_document",
+        id: entryId,
+        data: { group_id: groupId },
+      };
+      const edit = {
+        op: "PUT" as const,
+        table: "note_update",
+        id: randomUUID(),
+        data: { group_id: groupId, document_id: entryId, data: typeParagraph(newYDoc(), "Ate lunch") },
+      };
+      return { entryId, entry, document, edit };
+    };
+
+    it("accepts a note with no body and its document, in one batch", async () => {
+      const { owner, viewer, group, recipient } = await setup();
+      const { entryId, entry, document, edit } = offlineNote(group.id, recipient.id);
+      const res = await owner.api.sync.upload({ ops: [entry, document, edit] });
+      expect(res.results.map((r) => r.status)).toEqual(["applied", "applied", "applied"]);
+
+      const [stored] = (await viewer.api.timeline.list({ groupId: group.id })).data;
+      expect(stored).toMatchObject({ id: entryId, kind: "note", body: null, createdBy: owner.user.id });
+      expect(await noteDocumentService.currentText(owner.ctx, entryId)).toBe("Ate lunch");
+    });
+
+    it("accepts a note and its document split across two batches", async () => {
+      const { owner, group, recipient } = await setup();
+      const { entryId, entry, document, edit } = offlineNote(group.id, recipient.id);
+      expect((await owner.api.sync.upload({ ops: [entry] })).results).toEqual([
+        { id: entryId, status: "applied" },
+      ]);
+      const second = await owner.api.sync.upload({ ops: [document, edit] });
+      expect(second.results.map((r) => r.status)).toEqual(["applied", "applied"]);
+      expect(await noteDocumentService.currentText(owner.ctx, entryId)).toBe("Ate lunch");
+    });
+
+    it("rejects a note with a body", async () => {
+      const { owner, group, recipient } = await setup();
+      const { entryId, entry } = offlineNote(group.id, recipient.id);
+      const res = await owner.api.sync.upload({
+        ops: [{ ...entry, data: { ...entry.data, body: "Ate lunch" } }],
+      });
+      expect(res.results[0]).toMatchObject({
+        id: entryId,
+        status: "rejected",
+        code: "timelineEntryService:invalid",
+        issues: [expect.objectContaining({ path: "body" })],
+      });
+      // And once stored, a PATCH can't add one either.
+      await owner.api.sync.upload({ ops: [entry] });
+      const patch = { op: "PATCH" as const, table: "timeline_entry", id: entryId, data: { body: "x" } };
+      expect((await owner.api.sync.upload({ ops: [patch] })).results[0]).toMatchObject({
+        status: "rejected",
+        code: "timelineEntryService:invalid",
+      });
     });
 
     it("compacts once enough edits arrive", async () => {

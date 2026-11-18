@@ -2,7 +2,14 @@ import type { TimelineEntryDetails, TimelineEntryKind } from "../schema";
 
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
-import { timelineEntrySchema, userSchema } from "../schema";
+import {
+  encodeNoteDoc,
+  noteDocFromText,
+  noteDocumentSchema,
+  noteText,
+  timelineEntrySchema,
+  userSchema,
+} from "../schema";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 
 const TIME_ZONE = "America/Los_Angeles";
@@ -681,6 +688,23 @@ export const occurredAtOf = (entry: SeedEntry, now: number) => {
 // list order, so add new entries at the end.
 const entryId = (index: number) => `0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c${String(1001 + index).padStart(4, "0")}`;
 
+/** Kinds whose text lives in their live document. A seed's `body` is that document's text. */
+const DOCUMENT_KINDS: readonly TimelineEntryKind[] = ["note"];
+
+/**
+ * What a seed entry stores: its content columns, and for notes the text of
+ * its live document (the entry's `body` is then null).
+ */
+export const seedContentOf = (entry: SeedEntry) => {
+  const hasDocument = DOCUMENT_KINDS.includes(entry.kind);
+  return {
+    title: entry.title ?? null,
+    body: hasDocument ? null : (entry.body ?? null),
+    details: entry.details ?? null,
+    documentText: hasDocument ? (entry.body ?? "") : null,
+  };
+};
+
 export const seed = async () => {
   const db = getDb();
 
@@ -696,6 +720,7 @@ export const seed = async () => {
     const authorId = idByEmail.get(entry.author);
     if (!authorId) return [];
     const occurredAt = occurredAtOf(entry, now).toISOString();
+    const { documentText, ...content } = seedContentOf(entry);
     return [
       {
         id: entryId(index),
@@ -704,21 +729,45 @@ export const seed = async () => {
         kind: entry.kind,
         occurredAt,
         timeZone: TIME_ZONE,
-        title: entry.title ?? null,
-        body: entry.body ?? null,
-        details: entry.details ?? null,
+        ...content,
         deletedAt: entry.deleted ? occurredAt : null,
         createdBy: authorId,
         updatedBy: authorId,
+        documentText,
       },
     ];
   });
 
+  // Every note gets its live document, already compacted (no pending updates).
+  const documents = rows.flatMap(({ id, groupId, occurredAt, createdBy, documentText }) => {
+    if (documentText === null) return [];
+    const doc = noteDocFromText(documentText);
+    const document = {
+      id,
+      groupId,
+      snapshot: encodeNoteDoc(doc),
+      text: noteText(doc),
+      createdAt: occurredAt,
+      updatedAt: occurredAt,
+      createdBy,
+      updatedBy: createdBy,
+    };
+    doc.destroy();
+    return [document];
+  });
+
   // In batches, well under Postgres's limit on query parameters.
-  for (let i = 0; i < rows.length; i += 200) {
+  const entries = rows.map(({ documentText: _text, ...row }) => row);
+  for (let i = 0; i < entries.length; i += 200) {
     await db
       .insert(timelineEntrySchema)
-      .values(rows.slice(i, i + 200))
+      .values(entries.slice(i, i + 200))
       .onConflictDoNothing({ target: timelineEntrySchema.id });
+  }
+  for (let i = 0; i < documents.length; i += 200) {
+    await db
+      .insert(noteDocumentSchema)
+      .values(documents.slice(i, i + 200))
+      .onConflictDoNothing({ target: noteDocumentSchema.id });
   }
 };

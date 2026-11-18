@@ -6,9 +6,41 @@ import {
   fromBase64,
   isYjsUpdate,
   NOTE_FRAGMENT,
+  noteDocFromText,
   noteText,
   toBase64,
 } from "./noteYjs";
+
+describe("noteDocFromText", () => {
+  const roundTrip = (text: string) => noteText(buildNoteDoc(encodeNoteDoc(noteDocFromText(text))));
+
+  it("round trips plain text through a stored document", () => {
+    expect(roundTrip("Ate most of lunch.\nGood spirits.")).toBe("Ate most of lunch.\nGood spirits.");
+  });
+
+  it("turns • lines into a bulleted list", () => {
+    const text = "Questions for Dr. Lee:\n• Lower the dose?\n• Recheck when?\nThat's all.";
+    expect(roundTrip(text)).toBe(text);
+    const fragment = noteDocFromText(text).getXmlFragment(NOTE_FRAGMENT);
+    expect(fragment.toArray().map((n) => (n as Y.XmlElement).nodeName)).toEqual([
+      "paragraph",
+      "bulletList",
+      "paragraph",
+    ]);
+  });
+
+  it("keeps a blank line between paragraphs", () => {
+    expect(roundTrip("First\n\nSecond")).toBe("First\n\nSecond");
+  });
+
+  it("gives an empty document for empty text", () => {
+    for (const text of ["", "  \n "]) {
+      const doc = noteDocFromText(text);
+      expect(doc.getXmlFragment(NOTE_FRAGMENT).length).toBe(0);
+      expect(noteText(doc)).toBe("");
+    }
+  });
+});
 
 /** A Tiptap-shaped document: paragraphs, a heading, a bullet list. */
 const sampleDoc = () => {

@@ -64,7 +64,7 @@ describe("creating a document", () => {
       const doc = ok(await noteDocumentService.create(u[role].ctx, { id: entry.id, groupId: group.id }));
       expect(doc).toMatchObject({ id: entry.id, groupId: group.id, text: "", snapshot: null });
     }
-    const entry = await addEntry({ kind: "note", body: "Ate lunch", title: null });
+    const entry = await addEntry({ kind: "note", title: null });
     for (const role of ["viewer", "outsider", "staff"] as const) {
       const res = await noteDocumentService.create(u[role].ctx, { id: entry.id, groupId: group.id });
       expect(codeOf(res)).toMatch(/permissions:unauthorized|noteDocumentService:entryNotFound/);

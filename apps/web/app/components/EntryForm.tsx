@@ -9,8 +9,7 @@ import { DateTimeField } from "./DateTimeField";
 import { VitalReadingsFields } from "./VitalReadingsFields";
 import { VitalTypeMenu } from "./VitalTypeMenu";
 
-const KINDS: { value: Exclude<TimelineEntryKind, "vital">; label: string }[] = [
-  { value: "note", label: "Note" },
+const KINDS: { value: Exclude<TimelineEntryKind, "vital" | "note">; label: string }[] = [
   { value: "symptom", label: "Symptom" },
   { value: "event", label: "Event" },
 ];
@@ -18,7 +17,6 @@ const KINDS: { value: Exclude<TimelineEntryKind, "vital">; label: string }[] = [
 // Plain-language messages for the fields people most often miss. The
 // server's Zod messages ("Too small: expected string…") aren't for users.
 const FRIENDLY: Record<string, string> = {
-  body: "Write the note.",
   title: "Give it a title.",
   "details.name": "Name the symptom.",
   details: "Name the symptom.",
@@ -31,15 +29,16 @@ const issueFor = (issues: FieldIssue[], ...paths: string[]) => {
 };
 
 /**
- * Add or edit a timeline entry. Each kind asks for what it requires: a note
- * its text, a symptom its name, an event its title, vitals their readings
+ * Add or edit a symptom, event or vitals entry (notes are written in their
+ * own editor). Each kind asks for what it requires: a symptom its name, an
+ * event its title, vitals their readings
  * (picked from the Vitals menu, shown in the user's `units`). Posts to the
  * timeline route's clientAction.
  */
 export function EntryForm({
   entry,
   units,
-  initialKind = "note",
+  initialKind = "symptom",
   initialVitalType,
   onDone,
   onCancel,
@@ -181,10 +180,10 @@ export function EntryForm({
         </div>
       )}
 
-      {(kind === "note" || kind === "event") && (
+      {kind === "event" && (
         <fieldset className="fieldset">
           <label className="fieldset-legend" htmlFor={`${id}-title`}>
-            {kind === "event" ? "Title" : "Title (optional)"}
+            Title
           </label>
           <input
             id={`${id}-title`}
@@ -192,7 +191,7 @@ export function EntryForm({
             className="input w-full"
             maxLength={TIMELINE_LIMITS.title}
             defaultValue={entry?.title ?? ""}
-            placeholder={kind === "event" ? "e.g. Physical therapy" : ""}
+            placeholder="e.g. Physical therapy"
             aria-invalid={!!titleIssue}
             aria-describedby={titleIssue ? `${id}-title-error` : undefined}
           />
@@ -206,7 +205,7 @@ export function EntryForm({
 
       <fieldset className="fieldset">
         <label className="fieldset-legend" htmlFor={`${id}-body`}>
-          {kind === "note" ? "Note" : "Notes (optional)"}
+          Notes (optional)
         </label>
         <textarea
           id={`${id}-body`}
