@@ -1,7 +1,7 @@
 import type { Route } from "./+types/route";
 
 import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "react-router";
-import { FirstSyncPending } from "~/components/FirstSyncPending";
+import { FirstSyncPending } from "~/components/shell";
 import { appUrls } from "~/lib/appUrls";
 import { isFirstSyncPending } from "~/lib/firstSync";
 import { requireSession, sessionContext } from "~/lib/session";

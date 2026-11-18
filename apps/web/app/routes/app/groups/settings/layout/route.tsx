@@ -1,7 +1,7 @@
 import type { Route } from "./+types/route";
 
 import { useMemo } from "react";
-import { SettingsFrame } from "~/components/SettingsFrame";
+import { SettingsFrame } from "~/components/settings";
 import { appUrls } from "~/lib/appUrls";
 import { groupSettingsPages } from "./settingsPages";
 

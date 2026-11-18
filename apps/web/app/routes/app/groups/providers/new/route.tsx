@@ -8,7 +8,7 @@ import { isPracticeType } from "@caretook/data/schema";
 import { getGroup } from "~/lib/group";
 import { sessionContext } from "~/lib/session";
 import { createProvider } from "~/lib/sync/providers";
-import { EntrySheet } from "../../timeline/EntrySheet";
+import { EntrySheet } from "~/components/forms";
 import { ProviderForm } from "../ProviderForm";
 import { issuesForRows, providerFromForm } from "../providerFormData";
 import { useCloseProviderSheet, useProvidersOutlet } from "../providerSheet";

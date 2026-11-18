@@ -12,7 +12,7 @@ import { useLiveQuery } from "~/lib/sync";
 import { readRows, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
 import { entryUpdateFromForm, parseUnits } from "../entryFormData";
 import { EntryForm } from "../EntryForm";
-import { EntrySheet } from "../EntrySheet";
+import { EntrySheet } from "~/components/forms";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { editSheetGuard } from "../sheetGuard";
 

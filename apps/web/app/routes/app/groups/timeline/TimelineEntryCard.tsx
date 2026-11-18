@@ -2,8 +2,7 @@ import type { EntryViewProps } from "./TimelineEntryRow";
 
 import { entrySummary, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
-import { EntryActions } from "./EntryActions";
-import { KindFilterLink } from "~/components/KindIcon";
+import { EntryActions, KindFilterLink } from "~/components/entry";
 import { LiveDot } from "./LiveDot";
 import { actionsLabel, EntryOpenTarget, Readings } from "./TimelineEntryRow";
 
@@ -56,7 +55,9 @@ export function TimelineEntryCard({
           {elsewhere && ` · ${elsewhere}`}
         </p>
       </div>
-      {onDelete && <EntryActions label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />}
+      {onDelete && (
+        <EntryActions kind={entry.kind} label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />
+      )}
     </li>
   );
 }
