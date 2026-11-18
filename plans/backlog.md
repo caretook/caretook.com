@@ -375,3 +375,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): PowerSync 401s and PSYNC_S2101 (stale JWKS after a reset) were the most common browser-check failure. datastore:reset should restart the worktree's own powersync container and wait until it accepts a token, so the first check after a reset doesn't fail. Already on AGENTS.md Next steps (live notes follow-ups).
+- 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 5 (plans/quick-fixes-plan.md): datastore:reset restarts this worktree's PowerSync and waits for the new JWKS; cdp.mjs retries one 401.
