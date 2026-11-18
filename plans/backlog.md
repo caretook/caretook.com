@@ -67,6 +67,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-35 | bug | ready | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
 | B-36 | chore | ready | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
 | B-37 | bug | inbox |  |  | Deleting a practice leaves its clinicians linked to it |
+| B-38 | bug | triaged | quick-fixes |  | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
 
 ## Items
 
@@ -413,6 +414,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/invites-prd.md, plans/invites-plan.md (5 slices; slice 1, the notifications package and outbox, can start now). New deps approved: resend, @react-email/components, @react-email/render, qrcode.
+- 2026-11-18 (slice/marketing/3): invites slice 3: the consent screen must link to /privacy and /health-data-privacy (marketing slice 3)
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 
@@ -480,3 +482,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/quick-fixes): Found in B-35 (quick-fixes slice 8). A soft-deleted practice stays as its clinicians' practice_id; their edit sheet shows '(removed practice)' and saving keeps it (the practice check runs only when practiceId changes). Decide: refuse the delete while clinicians name it, or clear their links.
+
+### B-38 · bug · Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Found 2026-11-18 running checks against pnpm prd serve --built (a check build, VITE_CHECK_BUILD=1) in a throwaway worktree: providers.mjs failed 'a deleted provider's URL is the 404, with no names' (main empty, body '') and on the retry 'a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form' (path stayed …/providers/new); phase2.mjs failed on '[viewer console.warning] [PowerSync]: Sync aborted'. Both passed against the dev server right after. Could be real production bugs (the 404 and redirect paths) or check timing under a faster server. Fix, then make --built the default for checks (AGENTS.md, Browser check budget).
