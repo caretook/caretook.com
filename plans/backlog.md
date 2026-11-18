@@ -214,6 +214,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-17 (dev keeper): `timeline.tsx` drops a failed `updatePreferences`, so the next online load restores the server's copy.
 - 2026-11-17 (plan/quick-fixes): Quick-fixes slice 2: queue the change on the device and send it on the next online load.
+- 2026-11-18 (slice/quick-fixes/2): slice/quick-fixes/2 32355db: saveSettings/pending records in lib/me.ts, timeline toggle uses it; layout-offline.mjs 12/12
 
 ### B-18 · feature · Event title suggestions (live notes slice 3)
 
