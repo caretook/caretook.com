@@ -23,7 +23,7 @@ import { entryContentFromForm, entryUpdateFromForm } from "~/lib/entryForm";
 import { formString } from "~/lib/form";
 import { entryUrl, isLiveEntryKind, newEntryUrl } from "~/lib/liveEntry";
 import { liveDotLabel } from "~/lib/liveNow";
-import { dayKey, formatDay } from "~/lib/format";
+import { dayKey, dayLabel, localTimeZone } from "~/lib/format";
 import { loadSettings, saveSettings } from "~/lib/me";
 import { notOnDevice } from "~/lib/firstSync";
 import { requireSession } from "~/lib/session";
@@ -133,11 +133,13 @@ const parseUnits = (json: string) => {
 /** Consecutive entries grouped by the viewer's calendar day. */
 const byDay = (entries: TimelineEntry[]) => {
   const days: { key: string; label: string; entries: TimelineEntry[] }[] = [];
+  const timeZone = localTimeZone();
+  const now = new Date();
   for (const entry of entries) {
     const key = dayKey(entry.occurredAt);
     const last = days.at(-1);
     if (last?.key === key) last.entries.push(entry);
-    else days.push({ key, label: formatDay(entry.occurredAt), entries: [entry] });
+    else days.push({ key, label: dayLabel(entry.occurredAt, timeZone, now), entries: [entry] });
   }
   return days;
 };
@@ -266,7 +268,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
           <section key={day.key} aria-labelledby={`day-${day.key}`}>
             <h3
               id={`day-${day.key}`}
-              className="bg-base-200/95 text-base-content/70 sticky top-0 z-10 -mx-1 px-1 py-2 text-xs font-semibold tracking-wide uppercase backdrop-blur"
+              className="bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 px-1 py-2 text-base font-semibold backdrop-blur lg:text-lg"
             >
               {day.label}
             </h3>

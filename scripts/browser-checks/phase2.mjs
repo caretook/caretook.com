@@ -77,6 +77,126 @@ async function tapsOpenEntries(p, who, view) {
   }
 }
 
+/**
+ * Day headings (timeline-polish slice 2): "Today" and "Yesterday", then
+ * "Monday, Nov 16"; larger and full contrast in both themes; stuck to the top,
+ * above the rows' controls, in rows and in cards. Ends in the rows view at 420.
+ */
+async function dayHeadings(p) {
+  const metrics = (width, mobile) =>
+    p.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile });
+  // Each heading with the day it stands for (its section's key, in the browser's zone).
+  const headings = await p.evaluate(`(() => {
+    const key = (daysAgo) => { const d = new Date(); d.setDate(d.getDate() - daysAgo); return d.toLocaleDateString("en-CA"); };
+    return { today: key(0), yesterday: key(1),
+      all: [...document.querySelectorAll("section h3")].map((h) => ({ key: h.id.replace("day-", ""), text: h.textContent.trim() })) };
+  })()`);
+  const labelOf = (dayKey) => headings.all.find((h) => h.key === dayKey)?.text;
+  check('the newest day reads "Today"', labelOf(headings.today) === "Today", `${labelOf(headings.today)}`);
+  check(
+    'the day before reads "Yesterday"',
+    labelOf(headings.yesterday) === "Yesterday",
+    `${labelOf(headings.yesterday)}`,
+  );
+  const older = headings.all.filter((h) => h.key < headings.yesterday);
+  const dated = /^(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day, [A-Z][a-z]{2} (\d{1,2})(, \d{4})?$/;
+  const wrong = older.filter((h) => {
+    const m = dated.exec(h.text);
+    const sameYear = h.key.slice(0, 4) === headings.today.slice(0, 4);
+    return !m || Number(m[2]) !== Number(h.key.slice(8)) || !!m[3] === sameYear;
+  });
+  check(
+    'older days read like "Monday, Nov 16"',
+    older.length > 0 && wrong.length === 0,
+    `${older.length} older, e.g. ${older[0]?.text}${wrong.length ? `; wrong: ${wrong.map((h) => h.text).join(" | ")}` : ""}`,
+  );
+
+  // Larger, normal case, semibold and the page's full text colour, in both themes.
+  const style = `(() => { const s = getComputedStyle(document.querySelector("section h3"));
+    return { size: s.fontSize, weight: s.fontWeight, transform: s.textTransform, color: s.color,
+      text: getComputedStyle(document.body).color, position: s.position }; })()`;
+  const saved = await p.evaluate(`document.documentElement.dataset.theme ?? ""`);
+  const colors = {};
+  for (const theme of ["light", "dark"]) {
+    await p.evaluate(`document.documentElement.dataset.theme = ${JSON.stringify(theme)}`);
+    await sleep(300);
+    const s = await p.evaluate(style);
+    colors[theme] = s.color;
+    check(
+      `${theme}: the day heading is 16px, semibold, normal case, full contrast and sticky`,
+      s.size === "16px" &&
+        s.weight === "600" &&
+        s.transform === "none" &&
+        s.color === s.text &&
+        s.position === "sticky",
+      JSON.stringify(s),
+    );
+    await p.screenshot(`phase2-day-headings-${theme}`);
+  }
+  check("the heading's colour follows the theme", colors.light !== colors.dark, JSON.stringify(colors));
+  await p.evaluate(
+    saved
+      ? `document.documentElement.dataset.theme = ${JSON.stringify(saved)}`
+      : `delete document.documentElement.dataset.theme`,
+  );
+  await metrics(1280, false);
+  await sleep(300);
+  const wide = await p.evaluate(style);
+  check("1280: the day heading is 18px", wide.size === "18px", wide.size);
+  await metrics(420, true);
+  await sleep(300);
+
+  // Stuck at the top while scrolling, and above the rows' controls, in both views.
+  // "Held": moved down from its place in its section to stay in view. Between
+  // two days the next heading is arriving within a heading's height of the top.
+  const probe = `(() => {
+    const hs = [...document.querySelectorAll("section h3")].map((h) => ({ h, r: h.getBoundingClientRect(), s: h.parentElement.getBoundingClientRect() }));
+    const held = hs.find(({ r, s }) => r.top - s.top > 1 && r.bottom > 0);
+    const arriving = hs.some(({ r }) => r.top >= 0 && r.top < 60);
+    if (!held) return { held: null, arriving, through: [] };
+    const { h, r } = held;
+    const top = Math.max(r.top, 0);
+    const xs = [r.left + 12, r.left + r.width / 2, r.right - 20, r.right - 4];
+    const ys = r.bottom - top < 6 ? [] : [top + 2, (top + r.bottom) / 2, r.bottom - 2];
+    const through = xs.flatMap((x) => ys.map((y) => document.elementFromPoint(x, y)))
+      .filter((el) => el && !h.contains(el)).map((el) => el.tagName + "." + el.className);
+    return { held: h.textContent.trim(), top: r.top, arriving, through };
+  })()`;
+  for (const view of ["Rows", "Cards"]) {
+    if (view === "Cards") await setView(p, "Cards");
+    await sleep(500);
+    const end = await p.evaluate(`document.documentElement.scrollHeight - window.innerHeight`);
+    const seen = new Set();
+    const gaps = [];
+    const above = [];
+    let atTop = 0;
+    for (let y = 500; y < end; y += 130) {
+      await p.evaluate(`window.scrollTo(0, ${y})`);
+      await sleep(100);
+      const at = await p.evaluate(probe);
+      if (at.held) seen.add(at.held);
+      if (at.held && Math.abs(at.top) < 1) atTop += 1;
+      if (!at.held && !at.arriving) gaps.push(y);
+      above.push(...at.through);
+    }
+    const name = view.toLowerCase();
+    check(
+      `${name}: a day heading stays stuck to the top while scrolling`,
+      gaps.length === 0 && atTop > 3 && seen.size > 1,
+      `${seen.size} days' headings held in turn, ${atTop} positions at the very top, gaps at ${gaps.join(",") || "none"}`,
+    );
+    check(
+      `${name}: a row's controls never show above a stuck heading`,
+      above.length === 0,
+      above.slice(0, 3).join(" | "),
+    );
+    if (view === "Cards") await p.screenshot("phase2-day-heading-stuck-cards");
+    await p.evaluate(`window.scrollTo(0, 0)`);
+  }
+  await setView(p, "Rows");
+  await sleep(1500);
+}
+
 const bM = await launch(9341);
 const bV = await launch(9342);
 const pages = [];
@@ -102,7 +222,10 @@ try {
   );
   check("first page is 30 entries", (await p.evaluate(rows)) === 30, `${await p.evaluate(rows)}`);
 
-  await p.evaluate(`window.scrollTo(0, 1500)`);
+  // Partway down the tallest day, so its heading is the one held (not one being pushed out by the next day's).
+  await p.evaluate(`(() => { const days = [...document.querySelectorAll("section h3")].map((h) => h.parentElement.getBoundingClientRect());
+    const day = days.reduce((a, b) => (b.height > a.height ? b : a));
+    window.scrollTo(0, day.top + window.scrollY + day.height / 3); })()`);
   await sleep(200);
   const sticky = await p.evaluate(
     `[...document.querySelectorAll("section h3")].some((h) => { const t = h.getBoundingClientRect().top; return t >= 0 && t < 5; })`,
@@ -268,6 +391,8 @@ try {
   await v.screenshot("phase2-viewer-cards");
   await setView(v, "Rows");
   await sleep(1500);
+
+  await dayHeadings(p);
 
   // PowerSync warns when a full page load closes the previous page's database,
   // and can fail its first connect right after a reset (a 401 while it
