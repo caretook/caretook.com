@@ -1,15 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
+import { appUrls } from "../../../../lib/appUrls";
 import { shareLink, shareUrl } from "./share";
 
-const data = { title: "Cardiology visit", url: "https://caretook.com/app/groups/g/entries/e" };
+const data = { title: "Cardiology visit", url: `https://caretook.com${appUrls.entry("g", "e")}` };
 const abort = () => Object.assign(new Error("Share canceled"), { name: "AbortError" });
 const notAllowed = () =>
   Object.assign(new Error("Must be handling a user gesture"), { name: "NotAllowedError" });
 
 describe("shareUrl", () => {
   it("joins the web origin and the entry's path", () => {
-    expect(shareUrl("https://caretook.com", "/app/groups/g/entries/e")).toBe(data.url);
-    expect(shareUrl("http://localhost:5173/", "/app/x")).toBe("http://localhost:5173/app/x");
+    expect(shareUrl("https://caretook.com", appUrls.entry("g", "e"))).toBe(data.url);
+    expect(shareUrl("http://localhost:5173/", appUrls.home())).toBe("http://localhost:5173/app");
   });
 });
 

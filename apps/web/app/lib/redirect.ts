@@ -1,5 +1,7 @@
+import { appUrls } from "./appUrls";
+
 /** A same-site path to return to after sign-in; anything else falls back to /app. */
-export const safeRedirect = (to: string | null | undefined, fallback = "/app") =>
+export const safeRedirect = (to: string | null | undefined, fallback = appUrls.home()) =>
   to?.startsWith("/") && !to.startsWith("//") && !to.startsWith("/\\") ? to : fallback;
 
 export const signInUrl = (request: Request) => {

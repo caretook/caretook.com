@@ -7,6 +7,8 @@
 //    "Getting your care groups…" (never "not in a care group"), then goes
 //    straight to the timeline once the group arrives.
 // 4. Same, signing in to a deep link (the timeline): the syncing state, not a 404.
+// 5. Same, deep-linking to another group route (group settings): the group
+//    route shows the syncing state for every screen in the group, then the page.
 //
 // Times are from pressing "Sign in". Run against your stack: `set -a; source .env.loop; set +a`.
 import http from "node:http";
@@ -91,7 +93,7 @@ const RECORDER = `(() => {
     if (document.querySelector("[data-first-sync-pending]")) { m.seenPending = true; m.pending ??= t; }
     if (text.includes("not in a care group")) m.seenNoGroup = true;
     if (text.includes("Not found")) m.seen404 = true;
-    if (document.querySelector("ol > li") && m.firstRow == null) m.firstRow = t;
+    if (document.querySelector(window.__ready || "ol > li") && m.firstRow == null) m.firstRow = t;
     requestAnimationFrame(tick);
   };
   tick(); return true; })()`;
@@ -118,13 +120,17 @@ const expect = (ok, what) => {
   if (!ok) failures.push(what);
 };
 
-const signInTimed = async (p, redirectTo, holdSync = false) => {
+// What shows that a page has rendered: a timeline row, or a member in group settings.
+const READY = { timeline: "ol > li", settings: "[data-section=members] li" };
+
+const signInTimed = async (p, redirectTo, holdSync = false, ready = READY.timeline) => {
   // Better Auth rate-limits sign-in (3 per 10 s), and its error reads like a wrong password.
   await sleep(4000);
   await p.goto(redirectTo ? `/sign-in?redirectTo=${encodeURIComponent(redirectTo)}` : "/sign-in");
   await p.waitFor(`document.querySelector('input[name="email"]')`);
   await p.type(`document.querySelector('input[name="email"]')`, "caretaker@example.com");
   await p.type(`document.querySelector('input[name="password"]')`, PASSWORD);
+  await p.evaluate(`window.__ready = ${JSON.stringify(ready)}`);
   await p.evaluate(RECORDER);
   if (holdSync) {
     held = true;
@@ -178,14 +184,14 @@ try {
   // Each signed-in tab's PowerSync lives in a shared worker; a new Chrome profile gives a fresh device.
   b.proc.kill();
 
-  for (const deepLink of [null, "timeline"]) {
+  for (const deepLink of [null, "timeline", "settings"]) {
     const c = await launch(9362, proxyArgs);
     try {
       const p = await openPage(c, deepLink ? "slow-deep" : "slow");
-      const redirectTo = deepLink ? `/app/groups/${groupId}/timeline` : null;
-      const m = await signInTimed(p, redirectTo, true);
+      const redirectTo = deepLink ? `/app/groups/${groupId}/${deepLink}` : null;
+      const m = await signInTimed(p, redirectTo, true, READY[deepLink ?? "timeline"]);
       console.log(
-        `slow sign-in${deepLink ? " (deep link)" : ""}, PowerSync held ${HOLD_MS} ms:`,
+        `slow sign-in${deepLink ? ` (deep link to ${deepLink})` : ""}, PowerSync held ${HOLD_MS} ms:`,
         JSON.stringify(m),
       );
       expect(
@@ -194,13 +200,17 @@ try {
       );
       expect(!m.seenNoGroup, "home never says 'not in a care group' before the first sync");
       expect(!m.seen404, "a deep link isn't a 404 before the first sync");
-      expect(/\/timeline$/.test(await p.evaluate("location.pathname")), "it still ends on the timeline");
+      const end = deepLink ?? "timeline";
+      expect(
+        (await p.evaluate("location.pathname")).endsWith(`/${end}`),
+        `it still ends on the ${end === "settings" ? "group settings" : "timeline"}`,
+      );
       expect(
         !(await p.evaluate(`!!document.querySelector("[data-first-sync-pending]")`)),
         "the syncing state goes once synced",
       );
       errors.push(...p.errors);
-      await p.screenshot(`first-sync-${deepLink ? "deep" : "home"}`);
+      await p.screenshot(`first-sync-${deepLink ? `deep-${deepLink}` : "home"}`);
     } finally {
       release();
       c.proc.kill();

@@ -1,8 +1,8 @@
-import type { ShareOutcome } from "~/lib/share";
+import type { ShareOutcome } from "./share";
 
 import { Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { shareLink, shareUrl } from "~/lib/share";
+import { shareLink, shareUrl } from "./share";
 
 /**
  * Share an entry's link: the device's share sheet where there is one,

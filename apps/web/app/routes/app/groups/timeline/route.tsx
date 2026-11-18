@@ -1,51 +1,49 @@
-import type { Route } from "./+types/timeline";
+import type { Route } from "./+types/route";
 import type { TimelineEntryKind, TimelineView, VitalType } from "@caretook/data/schema";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/api";
 import type { TimelineEntry } from "~/lib/rpc";
 import type { NoteDocRow } from "~/lib/sync/notes";
-import type { EntryRow, GroupRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
+import type { EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
 
 import { canHaveNoteDocument, DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
-import { EntryForm } from "~/components/EntryForm";
-import { EntrySheet } from "~/components/EntrySheet";
-import { LatestVitals } from "~/components/LatestVitals";
-import { LiveNowBanner } from "~/components/LiveNowBanner";
-import { QuickAddBar } from "~/components/QuickAddBar";
-import { KindFilter, ViewToggle } from "~/components/TimelineFilters";
-import { TimelineEntryCard } from "~/components/TimelineEntryCard";
-import { TimelineEntryRow } from "~/components/TimelineEntryRow";
+import { appUrls } from "~/lib/appUrls";
 import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
-import { entryContentFromForm, entryUpdateFromForm } from "~/lib/entryForm";
 import { formString } from "~/lib/form";
-import { entryUrl, isLiveEntryKind, newEntryUrl } from "~/lib/liveEntry";
-import { liveDotLabel } from "~/lib/liveNow";
 import { dayKey, dayLabel, localTimeZone } from "~/lib/format";
+import { getGroup, useGroup } from "~/lib/group";
+import { isLiveEntryKind } from "~/lib/liveEntry";
+import { liveDotLabel } from "~/lib/liveNow";
 import { loadSettings, saveSettings } from "~/lib/me";
-import { notOnDevice } from "~/lib/firstSync";
-import { requireSession } from "~/lib/session";
+import { sessionContext } from "~/lib/session";
 import { parseFilters } from "~/lib/timelineFilters";
-import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
+import { getSync, useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/sync/editors";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import {
   createEntry,
   entriesQuery,
   membersQuery,
-  myGroupsQuery,
   readingsQuery,
   readRows,
   removeEntry,
   toLatestVitals,
   toMember,
-  toMyGroup,
   toTimelineEntries,
   updateEntry,
-  WRITER_ROLES,
 } from "~/lib/sync/timeline";
+import { entryContentFromForm, entryUpdateFromForm } from "./entryFormData";
+import { EntryForm } from "./EntryForm";
+import { EntrySheet } from "./EntrySheet";
+import { LatestVitals } from "./LatestVitals";
+import { LiveNowBanner } from "./LiveNowBanner";
+import { QuickAddBar } from "./QuickAddBar";
+import { KindFilter, ViewToggle } from "./TimelineFilters";
+import { TimelineEntryCard } from "./TimelineEntryCard";
+import { TimelineEntryRow } from "./TimelineEntryRow";
 
 // Shared by web + native. Reads and writes go to the device's local copy
 // (PowerSync), so the timeline works offline and other members' changes
@@ -54,9 +52,7 @@ import {
 const PAGE_SIZE = 30;
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  return [
-    { title: loaderData ? `${loaderData.groupRow.name ?? "Timeline"} · Caretook` : "Timeline · Caretook" },
-  ];
+  return [{ title: loaderData ? `${loaderData.groupName || "Timeline"} · Caretook` : "Timeline · Caretook" }];
 }
 
 /** `?kind=symptom` shows one kind; anything else shows them all. */
@@ -64,18 +60,14 @@ const kindFilter = (request: Request) => parseFilters(new URL(request.url).searc
 
 /**
  * The first screenful, read locally so the page renders complete; live
- * queries in the component take over from there. A group that isn't on the
- * device (not a member, or removed) is a 404.
+ * queries in the component take over from there. The group itself comes from
+ * the group route (which has already turned away a group not on the device).
  */
-export async function clientLoader({ request, params }: Route.ClientLoaderArgs) {
+export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const { groupId } = params;
-  const { db } = await requireSession(request);
-  await waitForFirstSync(db);
+  const group = getGroup(context);
+  const { db } = context.get(sessionContext);
   const kind = kindFilter(request);
-
-  const groups = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
-  const groupRow = groups.find((g) => g.id === groupId);
-  if (!groupRow) throw notOnDevice(db);
 
   const [entryRows, memberRows, readingRows, documentRows, settings] = await Promise.all([
     readRows<EntryRow>(db, entriesQuery(groupId, kind, PAGE_SIZE)),
@@ -86,8 +78,7 @@ export async function clientLoader({ request, params }: Route.ClientLoaderArgs) 
   ]);
   return {
     userId: db.userId,
-    groupRow,
-    groups,
+    groupName: group.name,
     entryRows,
     memberRows,
     readingRows,
@@ -155,10 +146,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const [paging, setPaging] = useState({ kind, limit: PAGE_SIZE });
   const limit = paging.kind === kind ? paging.limit : PAGE_SIZE;
 
-  const groupsQuery = myGroupsQuery(userId);
-  const groupRows = useLiveQuery<GroupRow>(groupsQuery.sql, groupsQuery.params, loaderData.groups);
-  const groupRow = groupRows.find((g) => g.id === groupId) ?? loaderData.groupRow;
-  const group = toMyGroup(groupRow);
+  const group = useGroup();
 
   const entriesSql = entriesQuery(groupId, kind, limit);
   const entryRows = useLiveQuery<EntryRow>(entriesSql.sql, entriesSql.params, loaderData.entryRows);
@@ -180,7 +168,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   );
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
 
-  const canWrite = !!group.role && WRITER_ROLES.includes(group.role);
+  const { canWrite } = group;
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
 
   // Notes and events other members are writing in now: the Live now banner and the rows' live dots.
@@ -229,7 +217,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold">{group.recipient?.displayName ?? group.name}</h1>
+          <h1 className="text-lg font-semibold">{group.displayName}</h1>
           <p className="text-base-content/70 text-sm">
             {group.name}
             {group.role === "viewer" && " · You can view this timeline"}
@@ -245,7 +233,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       {canWrite && (
         <QuickAddBar
           onAdd={(k, vitalType) => openSheet({ mode: "add", kind: k, vitalType })}
-          hrefFor={(k) => (isLiveEntryKind(k) ? newEntryUrl(groupId, k) : undefined)}
+          hrefFor={(k) => (isLiveEntryKind(k) ? appUrls.newEntry(groupId, k) : undefined)}
         />
       )}
 
@@ -287,7 +275,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
                   // Notes and events open their page, for viewers too; symptoms and vitals open the sheet.
                   open={
                     canHaveNoteDocument(entry.kind)
-                      ? { to: entryUrl(groupId, entry.id) }
+                      ? { to: appUrls.entry(groupId, entry.id) }
                       : canWrite
                         ? { onPress: () => openSheet({ mode: "edit", entry }) }
                         : undefined

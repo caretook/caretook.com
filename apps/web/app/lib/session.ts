@@ -1,14 +1,16 @@
 import type { SyncDb } from "./sync";
 
-import { redirect } from "react-router";
+import { createContext, redirect } from "react-router";
 import { authClient } from "./auth-client";
 import { signInUrl } from "./redirect";
 import { openSync } from "./sync";
 
 // The signed-in user and their local database, for /app clientLoaders.
 //
-// React Router runs a route's loaders in parallel, so the layout and the
-// screen below it both call `requireSession`; they share one in-flight check.
+// The /app layout's middleware calls `requireSession` once per navigation
+// and puts the result in `sessionContext`; every /app loader, action and
+// middleware below it reads it from there (`context.get(sessionContext)`)
+// rather than checking again. Concurrent calls share one in-flight check.
 
 /** `image` is optional: users cached before it was added have none. */
 export type SessionUser = { id: string; name: string | null; email: string; image?: string | null };
@@ -65,7 +67,7 @@ const resolveUser = async (): Promise<SessionUser | null> => {
   }
 };
 
-let inflight: Promise<{ user: SessionUser; db: SyncDb } | null> | null = null;
+let inflight: Promise<Session | null> | null = null;
 
 const check = () =>
   (inflight ??= (async () => {
@@ -78,8 +80,14 @@ const check = () =>
   }));
 
 /** The user and their open local database, or a redirect to sign-in. */
-export const requireSession = async (request: Request) => {
+export const requireSession = async (request: Request): Promise<Session> => {
   const session = await check();
   if (!session) throw redirect(signInUrl(request));
   return session;
 };
+
+/** What `requireSession` resolves to. */
+export type Session = { user: SessionUser; db: SyncDb };
+
+/** The session for everything under /app, set by the /app layout's middleware. */
+export const sessionContext = createContext<Session>();

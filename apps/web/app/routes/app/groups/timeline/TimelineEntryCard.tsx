@@ -3,7 +3,7 @@ import type { EntryViewProps } from "./TimelineEntryRow";
 import { entrySummary, KIND_META } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryActions } from "./EntryActions";
-import { KindFilterLink } from "./KindIcon";
+import { KindFilterLink } from "~/components/KindIcon";
 import { LiveDot } from "./LiveDot";
 import { actionsLabel, EntryOpenTarget, Readings } from "./TimelineEntryRow";
 
