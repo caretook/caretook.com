@@ -70,7 +70,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-38 | bug | ready | quick-fixes | prd/quick-fixes | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
 | B-39 | chore | triaged | quick-fixes |  | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-41 | bug | in-progress | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
+| B-41 | bug | ready | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | in-progress | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
 
 ## Items
@@ -523,10 +523,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-41 · bug · /app stays blank after a full reload (app-shell.mjs last-group steps)
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 94ce803
 
 - 2026-11-18 (prd/quick-fixes): Seen in quick-fixes waves 3 and 4: after A.goto('/app') reloads, the page has no main and an empty body for 20 s, with no uncaught errors (page.diagnose()). It failed 4 of the last 5 app-shell.mjs runs at load 6–30, at either the 'goes to the last group after a reload' or the 'stale remembered group' step. It isn't a check race: waiting for GroupMenu's rememberGroup write before overwriting caretook:lastGroup didn't help. Probably session or sync startup on reload (requireSession/openSync, the DB lock from the previous page?). Triaged to quick-fixes as a candidate slice 12.
 - 2026-11-18 (slice/quick-fixes/11): slice 11 (B-38): providers.mjs's two build failures are this same hang, on the built server: after a full load (C.goto) of …/providers/<deleted id> or …/providers/new, body '' and no main, router state.initialized false, window.caretookSync unset (openSync never resolved), no Web Locks held or pending, no errors, for 20+ s. Reproduced 1 in 8 full loads in a throwaway loop (viewer: provider page, then full load of a deleted provider). So B-38's blank 404 and missing redirect are B-41's startup hang, not the 404 or guard code; slice 11 leaves the fix to slice 12.
