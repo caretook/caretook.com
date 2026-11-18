@@ -4,19 +4,27 @@
 
 ## Status
 
-| Slice | State                                                | Merge into `prd/routing` (slice commits)      |
-| ----- | ---------------------------------------------------- | --------------------------------------------- |
-| 1     | merged; wave 1, awaiting the user's go-ahead to land | 73f2aeb (2a4bfad, 54d28fd), 8a72857 (448a90a) |
-| 2     | ready once wave 1 lands                              |                                               |
-| 3     | blocked by 2                                         |                                               |
-| 4     | ready once wave 1 lands                              |                                               |
-| 5     | blocked by 4                                         |                                               |
+| Slice | State                                                | Merge into `prd/routing` (slice commits)                                  |
+| ----- | ---------------------------------------------------- | ------------------------------------------------------------------------- |
+| 1     | landed in `dev` (7906798), wave 1                    | 73f2aeb (2a4bfad, 54d28fd), 8a72857 (448a90a)                             |
+| 2     | merged; wave 2, awaiting the user's go-ahead to land | 1bc7e76 (d991834)                                                         |
+| 3     | ready once wave 2 lands                              |                                                                           |
+| 4     | merged; wave 2, awaiting the user's go-ahead to land | 62b0339 (72d71e7, 3d52bb5; routing.mjs conflict resolved by keeping both) |
+| 5     | ready once wave 2 lands                              |                                                                           |
 
 Backlog: B-23 is claimed by `prd/routing` (in-progress). Mark it `done` after slice 5 merges.
 
 **Slice 1's decision for slices 2–5: client middleware**, which works in both builds. The group middleware (`lib/group.tsx`) records the group, or the `notOnDevice` error, with `setGroup`. It never throws, because a middleware throw on native's first load lands in the root boundary. Every loader and action under the group route calls `getGroup(context)` first; components use `useGroup()`. The /app layout's middleware sets `sessionContext`; read it with `context.get(sessionContext)`, never a second `requireSession`.
 
+**Slice 2's pieces for slice 3** (`routes/app/groups/timeline/`): `sheetGuard.ts` (`newSheetGuard` → `{ sheet } | { redirect }`, `onlySheetChanged` for `shouldRevalidate`), `sheet.ts` (`useTimelineOutlet`, `SHEET_LINK_STATE`, `useCloseSheet`). Sheet links need `prefetch="render"`, or the sheet can't open offline after a full load. `appUrls.newSheet(groupId, kind, { type, search })`.
+
+**Closing a sheet (differs from the plan, pending the user's call):** opened from the timeline, it goes back (`navigate(-1)`), since replacing would leave two timeline entries; deep-linked, it replaces with the timeline (filters kept), since pushing would let Back reopen it after a save.
+
+**Slice 4's pieces for slice 5** (`routes/app/settings/layout/`): `SettingsFrame.tsx` (`<SettingsFrame title listPath items />`, the one nav for both widths, back link, `isWideSettings()`) and `settingsNav.ts` (`SettingsItem`, `settingsCurrent`, `SETTINGS_WIDE_QUERY`). Slice 5 moves them to `components/` and `lib/`, adds a group registry (Details, Members), and fixes `app-shell.mjs`'s `h1 === "Group settings"`, which on phones only shows on the list.
+
 **Open issues:**
+
+- `app-shell.mjs`'s "goes to the last group after a reload" step reads `window.caretookSync.userId` right after a reload and can throw under load (seen twice on a first run, passed on the rerun). Make it wait for `window.caretookSync`.
 
 - `routing.mjs`'s entry step failed twice on the integration stack under load (about 37–54), then passed on the first try at load 17. The loop found no app bug. The check now waits 45 s, retries once, and prints page state on a failure: if it fails again, read that detail.
 - Native dev needs `/api` and `/rpc` proxied to a web server, plus the native origin in `AUTH_TRUSTED_ORIGINS`. There's no script for it yet.

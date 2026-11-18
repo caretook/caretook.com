@@ -159,7 +159,7 @@ async function sections(p) {
 
   // An open EntrySheet (a bottom sheet on phones) covers the bar, not the other way round.
   await p.press(
-    `[...document.querySelectorAll('[aria-label="Add to the timeline"] button')].find((b) => b.textContent.trim() === "Symptom")`,
+    `[...document.querySelectorAll('[aria-label="Add to the timeline"] a')].find((b) => b.textContent.trim() === "Symptom")`,
   );
   await p.waitFor(`document.querySelector('[role="dialog"] button[type="submit"]')`, 10000);
   await sleep(400);
