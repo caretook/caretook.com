@@ -11,13 +11,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | PRD               | Doc                                                          | Depends on                                           | Hot files                                                                   |
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
 | `orchestration`   | (this tooling; no PRD)                                       | (none)                                               | `AGENTS.md`, `scripts/loops/`, `scripts/backlog/`, `.githooks/`             |
-| `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md)   | (none)                                               | `entry.tsx`, `EntryHeader`, `TimelineEntryRow`/`Card`, `timeline.tsx`       |
+| `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): done | (none) | `entry.tsx`, `EntryHeader`, `TimelineEntryRow`/`Card`, `timeline.tsx` |
 | `quick-fixes`     | (no PRD: one slice per fix)                                  | (none)                                               | `sign-in.tsx`, `timeline.tsx`                                               |
-| `app-shell`       | to write                                                     | (none)                                               | `layout.tsx`, `routes.ts`, `home.tsx`                                       |
-| `timeline-polish` | to write                                                     | `live-notes-ux` slices 3 and 7 (the row components) | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
+| `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): slices 1–4 in `dev`; 5–7 to run | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
+| `timeline-polish` | [PRD](timeline-polish-prd.md); plan to write | `live-notes-ux` (done), `app-shell`'s frame (in `dev`) | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
 | `search`          | to write                                                     | `timeline-polish`'s infinite scroll                  | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx`                |
-| `providers`       | to write                                                     | `app-shell`'s group nav                              | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
-| `medications`     | to write                                                     | `app-shell`'s group nav; `providers` (soft)          | new tables (as providers), `KIND_META`, `EntryForm`                         |
+| `providers`       | to write | `app-shell`'s group nav (in `dev`) | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
+| `medications`     | to write | `app-shell`'s group nav (in `dev`); `providers` (soft) | new tables (as providers), `KIND_META`, `EntryForm` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
 
 ## Summary
