@@ -453,6 +453,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): From the providers plan's open issues. Quick-fixes slice 8: providerService refuses the change while live providers name it as their practice, and the device's local write refuses it too.
+- 2026-11-18 (slice/quick-fixes/8): slice/quick-fixes/8 7c0725f: server + device refuse practice->clinician/other while live providers name it (providerService:practiceInUse, issue on type). Browser step not run (excluded this wave). Deleting a practice still leaves clinicians pointing at a deleted practice; the sheet shows '(removed practice)'.
 
 ### B-36 · chore · Independent integration tests: no shared group across describe blocks
 
