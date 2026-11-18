@@ -1,3 +1,4 @@
+import type { ScreenshotRef } from "../site/screenshots";
 import type { MarketingIconName } from "./icons";
 
 /**
@@ -59,4 +60,51 @@ export type ComingSoonContent = {
   meta: PageMeta;
   heading: string;
   lead: string;
+};
+
+/** A page's opening: its only `h1` and a lead, with no calls to action. */
+export type PageIntroContent = {
+  eyebrow?: string;
+  heading: string;
+  lead: string;
+};
+
+/** One feature told at length: text beside an app screenshot. */
+export type ShowcaseContent = {
+  id: string;
+  icon: MarketingIconName;
+  heading: string;
+  paragraphs: string[];
+  /** Short points under the text. */
+  points?: string[];
+  image?: ScreenshotRef;
+};
+
+/** A row of app screenshots with a heading. */
+export type GalleryContent = {
+  id: string;
+  heading: string;
+  intro?: string;
+  shots: ScreenshotRef[];
+};
+
+/** A heading and plain paragraphs (About). */
+export type ProseContent = {
+  id: string;
+  heading: string;
+  paragraphs: string[];
+  /** Copy the team still has to write: shown with a "To be written" badge. */
+  placeholder?: boolean;
+};
+
+export type FaqItem = {
+  question: string;
+  /** One or more paragraphs. */
+  answer: string[];
+};
+
+export type FaqGroup = {
+  id: string;
+  heading: string;
+  items: FaqItem[];
 };
