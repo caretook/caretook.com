@@ -4,13 +4,13 @@
 
 ## Status
 
-| Slice | State                                                               | Merge into `prd/routing` (slice commits) |
-| ----- | ------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | blocked: `app-shell` and `timeline-polish` must land in `dev` first |                                          |
-| 2     | blocked by 1                                                        |                                          |
-| 3     | blocked by 2                                                        |                                          |
-| 4     | blocked by 1                                                        |                                          |
-| 5     | blocked by 4                                                        |                                          |
+| Slice | State                                                        | Merge into `prd/routing` (slice commits) |
+| ----- | ------------------------------------------------------------ | ---------------------------------------- |
+| 1     | ready: `app-shell` and `timeline-polish` wave 1 are in `dev` |                                          |
+| 2     | blocked by 1                                                 |                                          |
+| 3     | blocked by 2                                                 |                                          |
+| 4     | blocked by 1                                                 |                                          |
+| 5     | blocked by 4                                                 |                                          |
 
 Backlog: B-23 is `triaged`. Claim it when slice 1 starts; mark it `done` after slice 5 merges.
 
@@ -35,7 +35,7 @@ Durable decisions every slice follows:
 
 ## How to run this plan
 
-- **Don't start until `app-shell` (slices 5–7) and `timeline-polish` have landed in `dev`.** Both change the files slice 1 moves. Check the backlog's PRD table first.
+- **Its dependencies are in `dev`:** all of `app-shell`, and `timeline-polish` wave 1 (slices 1–3). `timeline-polish` slices 4–7 are paused until `routing` and `components` land, so nothing else is changing the files slice 1 moves. Check the backlog's PRD table first.
 - **Slice 1 runs alone.** It moves every route into its folder and rewrites `routes.ts`, so nothing else can run beside it.
 - Then **2 and 4 run in parallel** (the timeline vs. the settings routes). **3 after 2** (same sheet route shell), **5 after 4** (it reuses 4's list and side nav).
 - Merge in number order. After each merge, rerun every browser check (this plan touches every screen): `app-shell`, `phase2`, `roundtrip`, `live-notes`, `first-sync`, `sign-in`, `signout-wipe` and `layout-offline` (the last two with a timeout), plus `routing.mjs` once it exists.
@@ -51,7 +51,7 @@ Durable decisions every slice follows:
 
 ## Slice 1: The group route, the URL module and a folder per route
 
-**User stories:** US 11–14, 23–28. **Blocked by:** `app-shell` and `timeline-polish` landed in `dev`. **Blocks:** 2, 3, 4, 5.
+**User stories:** US 11–14, 23–28. **Blocked by:** none (`app-shell` and `timeline-polish` wave 1 are in `dev`). **Blocks:** 2, 3, 4, 5.
 
 ### What to build
 
