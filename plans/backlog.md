@@ -65,7 +65,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-34 | change | triaged | quick-fixes |  | Date picker for the When field: a calendar to pick the date, not only typed segments |
 | B-35 | bug | in-progress | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
-| B-36 | chore | triaged | quick-fixes |  | Independent integration tests: no shared group across describe blocks |
+| B-36 | chore | in-progress | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
 
 ## Items
 
@@ -456,9 +456,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-36 · chore · Independent integration tests: no shared group across describe blocks
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): AGENTS.md Next steps item 3. Quick-fixes slice 9: careGroup.int.test.ts (and any other file sharing fixtures across blocks) builds its own fixtures per test or block, like provider.int.test.ts's setup().
