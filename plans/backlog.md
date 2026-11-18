@@ -29,7 +29,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
-| B-2 | change | in-progress | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
+| B-2 | change | ready | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
 | B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | ready | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
@@ -68,10 +68,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-2 · change · Latest vitals is too busy
 
-- status: in-progress
+- status: ready
 - prd: timeline-polish
 - owner: prd/timeline-polish
-- commit:
+- commit: 908d4fa
 
 - 2026-11-17 (dev keeper): To settle in the PRD: fewer types, one line, or collapsed behind a tap.
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). One line (2–3 most recent + 'All vitals ›' to expand); ignores filters.
