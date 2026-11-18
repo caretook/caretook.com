@@ -53,7 +53,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
   - **Vitest 5** projects in the root `vitest.config.ts`:
     - `data:unit` runs `*.test.ts` with no database.
     - `integration` runs every package's `*.int.test.ts` against the test Postgres on :5435. Its globalSetup clears and migrates once per run, refuses any other host or port, and runs files one at a time. Tests build their own fixtures (`packages/data/test/fixtures.ts`).
-    - There's no `apps/web` project yet.
+    - `web:unit` runs apps/web's pure `app/**/*.test.ts` (no PowerSync; apps/web's vite.config isn't loaded, so tests import relatively, not through `~/`).
 - ✅ **React Router 8.5.1** (framework mode) with Vite 8, chosen over Next.js and TanStack Start: reads come from the local sync database, so server-centric frameworks gain little.
 - ✅ **UI:** Tailwind v4 + **daisyUI 5** for styling, **React Aria Components** only where HTML falls short (DateField, Menu, Modal, ComboBox…), and `lucide-react` icons. Mobile-first, with daisyUI themes following the device.
   - Prefer native elements (`<dialog>` with `showModal()` for simple confirms).
@@ -244,7 +244,7 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - `update` validates the **merged** row.
   - `occurredAt` reads back as Postgres text (`2026-11-17 10:00:00.000+00`); normalise it at the API.
 - **Kinds.** When someone proposes a new thing to log, place it with these definitions first:
-  - **Note:** free text about the day; a body is required.
+  - **Note:** free text about the day. **Its text is its live document**: `body` is always null (the content rules reject one), and the title is optional. Written at `/entries/:id`, not in the sheet.
   - **Symptom:** something the recipient **feels or reports**, or a problem described in words: a free-text `name` plus `severity` 0–10. **Pain is a symptom.**
   - **Vital:** something **measured, counted or observed**, with a fixed unit or scale. Without one (mood, confusion), it's a symptom. Bowel movement, urine output and sleep are vitals.
   - **Event:** something that happened (a visit, a fall, a pickup); a title is required. Appointments (with place and provider) come later.
@@ -265,11 +265,12 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - Sticky day headers.
   - `?kind=` filter chips.
   - A latest vitals strip (`json_each` locally).
-  - Quick-add tiles open `EntrySheet` (a RAC Modal; a bottom sheet on phones) with `EntryForm`, and edit uses the same sheet.
+  - Quick-add: **Note** links to `/entries/new?kind=note`; the other tiles open `EntrySheet` (a RAC Modal; a bottom sheet on phones) with `EntryForm` (no note kind), and edit uses the same sheet. A note row's body is its document preview, and its ⋯ Edit opens its page.
   - The timeline's `shouldRevalidate` skips submissions (live queries already show them). "Show older" grows the query limit.
 - **Seeds** (`seeds/timelineEntries.ts`): about 180 fictional entries over eight weeks for Grandma Pat, placed by `hoursAgo` or `at: { daysAgo, time }` (America/Los_Angeles).
   - **Ids follow position**, so adding or changing an entry needs `pnpm datastore:reset`.
   - `timelineEntries.test.ts` validates every seed entry against the content schema, because seeds bypass the service.
+  - A note's seed `body` is its document's text: the insert stores a null body plus a compacted `note_document` (`seedContentOf`, `noteDocFromText`).
 
 ### Live notes (collaborative documents)
 
@@ -280,7 +281,7 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) wil
   - `note_document`: `snapshot` (compacted Yjs, base64) and derived `text`.
   - `note_update`: append-only, base64 `data`, at most 1,000,000 chars.
   - Composite FKs cascade from the entry. `timeline_entry` has a unique `(group_id, id)` for this.
-- **Helpers** (`db/schema/noteYjs.ts`, client-safe): base64, `isYjsUpdate`, `buildNoteDoc`, `encodeNoteDoc` and `noteText`. The fragment is `NOTE_FRAGMENT = "default"`.
+- **Helpers** (`db/schema/noteYjs.ts`, client-safe): base64, `isYjsUpdate`, `buildNoteDoc`, `encodeNoteDoc`, `noteText` and its inverse `noteDocFromText` (one paragraph per line, `• ` lines as a bullet list). The fragment is `NOTE_FRAGMENT = "default"`.
 - **`noteDocumentService`** (write through it):
   - `create` is idempotent and requires a live note or event.
   - `appendUpdate` is idempotent on the update id.
@@ -292,6 +293,12 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) wil
   - Typing bursts flush as one `note_update` 250 ms after the last keystroke, and at least every 1 s.
   - A viewer's changes are never written.
   - Previews rebuild text locally, so they include unsynced edits.
+- **Entry page** (`routes/app/entry.tsx`, `/entries/:id`; `/entries/new?kind=note` is a draft, the same route so the editor stays mounted):
+  - Nothing is written until the first real change (`shouldMaterialize` in `lib/liveEntry.ts`: text in the document, or a title). Then `materializeLiveEntry` (`lib/sync/liveEntry.ts`) writes the entry and its document in one local transaction (idempotent on the id; for an older event it adds only the document), and the URL is **replaced** with `/entries/:id`.
+  - `bindNoteDoc`'s `ensureSaved` holds a draft's Yjs changes in memory until then; leaving drops them.
+  - `EntryHeader` has four regions (title, time, editors, actions), so later features each fill one.
+  - Symptom or vital ids, and non-members, get a 404.
+  - Events still get live notes from the ⋯ menu ("Add/Open live notes" opens this page; the document is made on the first change).
 - **Editor:** `LiveNotesEditor` is Tiptap StarterKit (`undoRedo: false`, because Collaboration brings Yjs undo; `link: false`). Its chunk is about 140 KB gzipped and loads only on its route.
 - **Vite:** `optimizeDeps.include` pre-bundles yjs and Tiptap, and `resolve.dedupe` keeps one yjs, React and ProseMirror. Without both, "Yjs was already imported" and broken hooks after re-optimization.
 - **Latency:** a co-editor sees typing in about 0.5–0.8 s locally. Offline edits land about 2.5–3 s after reconnecting.
@@ -367,7 +374,7 @@ Current behavior; [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) wil
 UI work is verified in headless Chrome over CDP with plain Node scripts (no Playwright yet).
 
 - **Run:** Node 24 (they use the global `WebSocket`), from that folder, against the dev server. `BASE` defaults to `http://localhost:5176`.
-- **Scripts:** `cdp.mjs` (the harness); `roundtrip.mjs` (two-member sync, offline through `proxy.mjs`, because CDP network emulation doesn't cut PowerSync's stream); `phase2.mjs` (the timeline layout; rerun it after any timeline change); `live-notes.mjs`; `signout-wipe.mjs`.
+- **Scripts:** `cdp.mjs` (the harness); `roundtrip.mjs` (two-member sync, offline through `proxy.mjs`, because CDP network emulation doesn't cut PowerSync's stream); `phase2.mjs` (the timeline layout; rerun it after any timeline change); `live-note.mjs` (a note is its document: one-tap start, abandoned draft, URL replace, convergence, offline, viewer, 404s); `live-notes.mjs` (event live notes); `signout-wipe.mjs`.
 - **Patterns:**
   - Use a 420×900 window.
   - Sign in as the `@example.com` seeds (`SEED_USER_PASSWORD`).
@@ -381,6 +388,7 @@ UI work is verified in headless Chrome over CDP with plain Node scripts (no Play
 - **The dev server on another port:** Better Auth trusts only `BETTER_AUTH_URL` and `AUTH_TRUSTED_ORIGINS`, so use `BETTER_AUTH_URL=http://localhost:5176 AUTH_TRUSTED_ORIGINS=http://localhost:5176 pnpm --filter @caretook/web dev --port 5176 --strictPort`. PowerSync's JWKS then needs `PS_JWKS_URL` set to match.
 - **After `pnpm build:native`:** lint can report `no-unsafe-argument` in `routes/rpc.ts` and `routes/api/auth.ts`, because the native typegen overwrote the web route types. Run `pnpm typecheck`.
 - **`/app` error handling:** `/app` has its own `ErrorBoundary`. It keeps the frame, and avoids React's "script tag" warning from the root boundary.
+- **Route discovery is `initial`** (`react-router.config.ts`). With the default (lazy), navigating to a path not seen yet (a note just saved offline, `/entries/:id`) asks the server for `/__manifest` first, and fails offline.
 
 ## Layout
 
@@ -392,15 +400,15 @@ scripts/browser-checks/   headless Chrome checks
 apps/web/                 @caretook/web (React Router 8, Vite 8)
   build-target.ts, react-router.config.ts, vite.config.ts
   app/routes.ts, root.tsx, app.css
-  app/routes/app/         shared screens: home, timeline, entry-notes, settings (no server loaders)
+  app/routes/app/         shared screens: home, timeline, entry (/entries/:id and /entries/new), settings (no server loaders)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx
   app/.server/            data.ts, auth.ts, api.ts: the server-only doors
   app/components/         EntryForm, EntrySheet, QuickAddBar, TimelineEntryRow/Card, KindIcon, TimelineFilters,
                           LatestVitals, EntryActions, DateTimeField, ConfirmDialog, VitalTypeMenu,
-                          VitalReadingsFields, LiveNotesEditor, LiveNotesPreview, SyncIndicator
-  app/lib/                session, me, auth-client, rpc, api, entryDisplay, entryForm, format, redirect, form
-  app/lib/sync/           schema, client (lazy), index, timeline, notes
+                          VitalReadingsFields, LiveNotesEditor, LiveNotesPreview, EntryHeader, SyncIndicator
+  app/lib/                session, me, auth-client, rpc, api, entryDisplay, entryForm, format, redirect, form, liveEntry
+  app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry
 packages/auth/            @caretook/auth
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
 packages/data/            @caretook/data

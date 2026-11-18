@@ -47,7 +47,7 @@ export const fromLocalTimestamp = (value: string) => {
   return new Date(`${m[1]}T${m[2]}.${ms}${m[4] ?? "Z"}`).toISOString();
 };
 
-const nowTimestamp = () => toLocalTimestamp(new Date());
+export const nowTimestamp = () => toLocalTimestamp(new Date());
 
 const parseJson = (value: string | null): unknown => {
   if (!value) return null;
@@ -204,27 +204,31 @@ export const readRows = <T>(db: SyncDb, query: LocalQuery) => db.powersync.getAl
 // Writes
 // ---------------------------------------------------------------------------
 
-const invalid = (error: { issues: { path: PropertyKey[]; message: string }[] }): ActionResult => ({
+export const invalid = (error: { issues: { path: PropertyKey[]; message: string }[] }): ActionResult => ({
   ok: false,
   error: "The timeline entry is invalid",
   issues: error.issues.map(({ path, message }) => ({ path: path.map(String).join("."), message })),
 });
 
-const forbidden: ActionResult = { ok: false, error: "You don't have permission to do that.", issues: [] };
-const missing: ActionResult = {
+export const forbidden: ActionResult = {
+  ok: false,
+  error: "You don't have permission to do that.",
+  issues: [],
+};
+export const missing: ActionResult = {
   ok: false,
   error: "That entry is gone. It may have been deleted.",
   issues: [],
 };
 
 /** The actor's role in the group and the group's recipient, from the local copy. */
-const groupFor = async (db: SyncDb, groupId: string) => {
+export const groupFor = async (db: SyncDb, groupId: string) => {
   const rows = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
   const row = rows.find((g) => g.id === groupId);
   return row ? toMyGroup(row) : null;
 };
 
-const contentColumns = (content: Omit<TimelineEntryContent, "kind">) => ({
+export const contentColumns = (content: Omit<TimelineEntryContent, "kind">) => ({
   occurredAt: toLocalTimestamp(content.occurredAt),
   timeZone: content.timeZone,
   title: content.title ?? null,

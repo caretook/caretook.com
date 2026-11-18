@@ -73,7 +73,7 @@ try {
   await A.waitFor(menuItem("Add live notes"));
   check("menu: writers can add live notes to an event", true);
   await A.press(menuItem("Add live notes"));
-  await A.waitFor(`location.pathname.endsWith("/notes") && ${EDITOR}`, 10000);
+  await A.waitFor(`/\\/entries\\/[0-9a-f-]{36}$/.test(location.pathname) && ${EDITOR}`, 10000);
   const notesUrl = await A.evaluate("location.pathname");
   check("add: opens the editor on its own page", true, notesUrl);
   check(
@@ -170,7 +170,7 @@ try {
   await C.waitFor(`${rowWith(tag)}?.textContent.includes("${tag}-a1")`, 15000);
   check(
     "timeline: preview with an Open link (viewer)",
-    await C.evaluate(`!!${rowWith(tag)}.querySelector('a[href$="/notes"]')`),
+    await C.evaluate(`!!${rowWith(tag)}.querySelector('a[href*="/entries/"]')`),
   );
   check(
     "timeline: viewer has no ⋯ menu",

@@ -115,17 +115,16 @@ const entryFields = {
 
 const noDetails = z.null().optional();
 
+/** A note's text is its live document (note_document), never `body`. */
+const noBody = z.null({ error: "A note's text is its live document, not a body" }).optional();
+
 /**
- * The content of an entry, by kind: a note needs a body, an event a title,
- * a symptom a name, vitals at least one reading. Used on create, and on update against the merged row.
+ * The content of an entry, by kind: a note has no body (its text is its live
+ * document) and an optional title, an event needs a title, a symptom a name,
+ * vitals at least one reading. Used on create, and on update against the merged row.
  */
 export const timelineEntryContentZSchema = z.discriminatedUnion("kind", [
-  z.object({
-    ...entryFields,
-    kind: z.literal("note"),
-    body: requiredText(TIMELINE_LIMITS.body),
-    details: noDetails,
-  }),
+  z.object({ ...entryFields, kind: z.literal("note"), body: noBody, details: noDetails }),
   z.object({ ...entryFields, kind: z.literal("symptom"), details: symptomDetailsZSchema }),
   z.object({
     ...entryFields,

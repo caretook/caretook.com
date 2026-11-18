@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config";
 
 // Vitest projects:
 //   data:unit    pure functions, no database (packages/data *.test.ts)
+//   web:unit     pure apps/web logic (apps/web/app *.test.ts)
 //   integration  real Postgres, every package (*.int.test.ts): the test
 //                database on port 5435. Start it with `pnpm datastore:up:test`;
 //                each run clears and migrates it first. One project (not one
@@ -16,6 +17,16 @@ export default defineConfig({
           root: "./packages/data",
           include: ["src/**/*.test.ts"],
           exclude: ["src/**/*.int.test.ts"],
+        },
+      },
+      {
+        // Pure apps/web logic (app/**/*.test.ts): no PowerSync, no React Router
+        // plugin (apps/web's vite.config.ts isn't loaded), so tests import
+        // relatively, not through "~/".
+        test: {
+          name: "web:unit",
+          root: "./apps/web",
+          include: ["app/**/*.test.ts"],
         },
       },
       {

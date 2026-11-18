@@ -32,7 +32,7 @@ const setup = async () => {
     ({
       groupId: group.id,
       kind: "note",
-      body: "Ate lunch",
+      title: "Ate lunch",
       occurredAt: "2026-11-17T12:00:00.000Z",
       timeZone: "America/Los_Angeles",
       ...overrides,
@@ -113,8 +113,8 @@ describe("creating", () => {
   it("validates content per kind", async () => {
     const { u, note } = await setup();
     const invalid = [
-      note({ body: "  " }), // a note needs a body
-      note({ kind: "event", body: "x" }), // an event needs a title
+      note({ body: "Ate lunch" }), // a note's text is its document, not a body
+      note({ kind: "event", title: " " }), // an event needs a title
       note({ kind: "symptom", body: "x" }), // a symptom needs details.name
       note({ kind: "symptom", details: { name: "Pain", severity: 11 } }),
       note({ kind: "symptom", details: { name: "Pain", extra: true } as never }),
@@ -164,14 +164,14 @@ describe("updating", () => {
 
     for (const role of ["owner", "admin"] as const) {
       const updated = ok(
-        await timelineEntryService.update(u[role].ctx, entry.id, { body: `Edited by ${role}` }),
+        await timelineEntryService.update(u[role].ctx, entry.id, { title: `Edited by ${role}` }),
       );
-      expect(updated).toMatchObject({ body: `Edited by ${role}`, updatedBy: u[role].user.id });
+      expect(updated).toMatchObject({ title: `Edited by ${role}`, updatedBy: u[role].user.id });
     }
-    expect(codeOf(await timelineEntryService.update(u.viewer.ctx, entry.id, { body: "x" }))).toBe(
+    expect(codeOf(await timelineEntryService.update(u.viewer.ctx, entry.id, { title: "x" }))).toBe(
       "baseModel:update:nothingUpdated",
     );
-    expect(codeOf(await timelineEntryService.update(u.outsider.ctx, entry.id, { body: "x" }))).toBe(
+    expect(codeOf(await timelineEntryService.update(u.outsider.ctx, entry.id, { title: "x" }))).toBe(
       "timelineEntryService:notFound",
     );
   });
@@ -205,7 +205,7 @@ describe("updating", () => {
   it("keeps the merged entry valid for its kind", async () => {
     const { u, addNote } = await setup();
     const note = await addNote();
-    expect(codeOf(await timelineEntryService.update(u.caretaker.ctx, note.id, { body: null }))).toBe(
+    expect(codeOf(await timelineEntryService.update(u.caretaker.ctx, note.id, { body: "Ate lunch" }))).toBe(
       "timelineEntryService:invalid",
     );
     expect(
@@ -319,7 +319,7 @@ describe("deleting", () => {
     const { u, addNote } = await setup();
     const entry = await addNote();
     ok(await timelineEntryService.remove(u.caretaker.ctx, entry.id));
-    expect(codeOf(await timelineEntryService.update(u.caretaker.ctx, entry.id, { body: "x" }))).toBe(
+    expect(codeOf(await timelineEntryService.update(u.caretaker.ctx, entry.id, { title: "x" }))).toBe(
       "timelineEntryService:notFound",
     );
   });
@@ -439,7 +439,7 @@ describe("latest vitals", () => {
     );
     const newer = await addNote(vital("2026-11-16T08:00:00.000Z", [{ type: "heartRate", value: 70 }]));
     const deleted = await addNote(vital("2026-11-17T08:00:00.000Z", [{ type: "heartRate", value: 99 }]));
-    await addNote({ kind: "note", body: "Not a vital", occurredAt: "2026-11-17T09:00:00.000Z" });
+    await addNote({ kind: "note", title: "Not a vital", occurredAt: "2026-11-17T09:00:00.000Z" });
     ok(await timelineEntryService.remove(u.caretaker.ctx, deleted.id));
 
     const rows = ok(await timelineEntryService.latestVitals(u.viewer.ctx, { groupId: group.id }));
@@ -468,10 +468,10 @@ describe("upsert (the PowerSync upload path)", () => {
     const input = upsertInput(s);
 
     const first = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
-    expect(first).toMatchObject({ id: input.id, body: "Ate lunch", createdBy: s.u.caretaker.user.id });
+    expect(first).toMatchObject({ id: input.id, title: "Ate lunch", createdBy: s.u.caretaker.user.id });
 
     const again = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
-    expect(again).toMatchObject({ id: input.id, body: "Ate lunch" });
+    expect(again).toMatchObject({ id: input.id, title: "Ate lunch" });
     const page = ok(await timelineEntryService.list(s.u.owner.ctx, { groupId: s.group.id }));
     expect(page.data.map((e) => e.id)).toEqual([input.id]);
   });
@@ -481,10 +481,10 @@ describe("upsert (the PowerSync upload path)", () => {
     const input = upsertInput(s);
     ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
 
-    const edited = ok(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, body: "Ate half" }));
-    expect(edited).toMatchObject({ body: "Ate half", updatedBy: s.u.admin.user.id });
+    const edited = ok(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, title: "Ate half" }));
+    expect(edited).toMatchObject({ title: "Ate half", updatedBy: s.u.admin.user.id });
 
-    expect(codeOf(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, body: "" }))).toBe(
+    expect(codeOf(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, body: "" } as never))).toBe(
       "timelineEntryService:invalid",
     );
   });
@@ -515,8 +515,8 @@ describe("upsert (the PowerSync upload path)", () => {
     ok(await timelineEntryService.upsert(s.u.caretaker.ctx, input));
     ok(await timelineEntryService.remove(s.u.caretaker.ctx, input.id));
 
-    const late = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, { ...input, body: "Late edit" }));
-    expect(late).toMatchObject({ body: "Ate lunch" });
+    const late = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, { ...input, title: "Late edit" }));
+    expect(late).toMatchObject({ title: "Ate lunch" });
     expect(late?.deletedAt).not.toBeNull();
   });
 

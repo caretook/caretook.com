@@ -74,10 +74,10 @@ export const entryContentFromForm = (form: FormData, units: UnitChoices) => {
       };
     case "vital":
       return { kind, ...shared, details: { readings: readingsFromForm(form, units) } };
-    case "event":
-      return { kind, ...shared, title: formString(form, "title"), details: null };
+    // Notes aren't made in a form (their text is their live document), so
+    // anything else is an event; a wrong kind still fails validation.
     default:
-      return { kind: "note" as const, ...shared, body: formString(form, "body"), details: null };
+      return { kind: "event" as const, ...shared, title: formString(form, "title"), details: null };
   }
 };
 

@@ -17,29 +17,36 @@ import { bindNoteDoc, createNoteDoc } from "~/lib/sync/notes";
 export function LiveNotesEditor({
   label,
   initial,
+  autofocus = false,
   ...options
-}: BindNoteDocOptions & { label: string; initial: NoteDocParts }) {
-  const { db, documentId, groupId, canWrite } = options;
+}: BindNoteDocOptions & {
+  label: string;
+  initial: NoteDocParts;
+  /** Put the cursor in the document on open (a writer starting a new entry). */
+  autofocus?: boolean;
+}) {
+  const { db, documentId, groupId, canWrite, ensureSaved } = options;
   // One Y.Doc for the component's lifetime, holding what the loader read,
   // so the editor opens with the text instead of filling in afterwards.
   const [doc] = useState(() => createNoteDoc(initial));
 
   // Bind it to the database while mounted. Unbinding writes the last
-  // keystrokes, and so does leaving the page.
+  // keystrokes, and so does leaving the page. `ensureSaved` must be stable.
   useEffect(() => {
-    const binding = bindNoteDoc(doc, { db, documentId, groupId, canWrite });
+    const binding = bindNoteDoc(doc, { db, documentId, groupId, canWrite, ensureSaved });
     const onHide = () => void binding.flush();
     window.addEventListener("pagehide", onHide);
     return () => {
       window.removeEventListener("pagehide", onHide);
       binding.unbind();
     };
-  }, [doc, db, documentId, groupId, canWrite]);
+  }, [doc, db, documentId, groupId, canWrite, ensureSaved]);
 
   const editor = useEditor({
     // Rendered in the browser only (the /app shell has no server data).
     immediatelyRender: false,
     editable: canWrite,
+    autofocus: canWrite && autofocus ? "end" : false,
     extensions: [
       // Collaboration brings its own undo (Yjs-aware): StarterKit's must be off.
       StarterKit.configure({ undoRedo: false, link: false }),

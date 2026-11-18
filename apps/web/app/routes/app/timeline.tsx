@@ -6,7 +6,7 @@ import type { TimelineEntry } from "~/lib/rpc";
 import type { NoteDocRow } from "~/lib/sync/notes";
 import type { EntryRow, GroupRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
 
-import { canHaveNoteDocument, DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
+import { DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
 import { data, useFetcher, useNavigate } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
@@ -20,12 +20,13 @@ import { TimelineEntryRow } from "~/components/TimelineEntryRow";
 import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
 import { entryContentFromForm, entryUpdateFromForm } from "~/lib/entryForm";
 import { formString } from "~/lib/form";
+import { entryUrl, isLiveEntryKind, newEntryUrl } from "~/lib/liveEntry";
 import { dayKey, formatDay } from "~/lib/format";
 import { cacheSettings, loadSettings } from "~/lib/me";
 import { rpc } from "~/lib/rpc";
 import { requireSession } from "~/lib/session";
 import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
-import { ensureNoteDocument, groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
+import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import {
   createEntry,
   entriesQuery,
@@ -175,13 +176,8 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     loaderData.documentRows,
   );
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
-  const notesUrl = (entryId: string) => `/app/groups/${groupId}/entries/${entryId}/notes`;
   const navigate = useNavigate();
-  const openLiveNotes = async (entry: TimelineEntry) => {
-    const res = await ensureNoteDocument(getSync(), entry.id);
-    if (res.ok) await navigate(notesUrl(entry.id));
-    else console.warn("Couldn't add live notes", res.error);
-  };
+  const openEntry = (entry: TimelineEntry) => void navigate(entryUrl(groupId, entry.id));
 
   const canWrite = !!group.role && WRITER_ROLES.includes(group.role);
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
@@ -212,7 +208,10 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
 
   // The query asks for one extra row: if it came back, there's more to show.
   const hasOlder = entryRows.length > limit;
-  const entries = toTimelineEntries(entryRows.slice(0, limit));
+  // A note's text is its live document: its preview is the note's body.
+  const entries = toTimelineEntries(entryRows.slice(0, limit)).map((entry) =>
+    entry.kind === "note" ? { ...entry, body: previews.get(entry.id) || null } : entry,
+  );
   const days = byDay(entries);
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
 
@@ -231,7 +230,12 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
 
       <LatestVitals vitals={latestVitals} units={units} />
 
-      {canWrite && <QuickAddBar onAdd={(k, vitalType) => openSheet({ mode: "add", kind: k, vitalType })} />}
+      {canWrite && (
+        <QuickAddBar
+          onAdd={(k, vitalType) => openSheet({ mode: "add", kind: k, vitalType })}
+          hrefFor={(k) => (isLiveEntryKind(k) ? newEntryUrl(groupId, k) : undefined)}
+        />
+      )}
 
       <KindFilter kind={kind} />
 
@@ -268,16 +272,21 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
                   authorName={nameOf(entry.createdBy)}
                   units={units}
                   removing={removingId === entry.id}
-                  onEdit={canWrite ? () => openSheet({ mode: "edit", entry }) : undefined}
+                  onEdit={
+                    !canWrite
+                      ? undefined
+                      : isLiveEntryKind(entry.kind)
+                        ? () => openEntry(entry) // edited in its own editor
+                        : () => openSheet({ mode: "edit", entry })
+                  }
                   onDelete={canWrite ? () => setDeleting(entry) : undefined}
+                  // Events still show their live notes separately (until slice 2).
                   liveNotes={
-                    previews.has(entry.id)
-                      ? { preview: previews.get(entry.id) ?? "", url: notesUrl(entry.id) }
+                    entry.kind === "event" && previews.has(entry.id)
+                      ? { preview: previews.get(entry.id) ?? "", url: entryUrl(groupId, entry.id) }
                       : null
                   }
-                  onLiveNotes={
-                    canWrite && canHaveNoteDocument(entry.kind) ? () => void openLiveNotes(entry) : undefined
-                  }
+                  onLiveNotes={canWrite && entry.kind === "event" ? () => openEntry(entry) : undefined}
                 />
               ))}
             </ol>

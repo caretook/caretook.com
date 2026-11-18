@@ -82,6 +82,47 @@ const blockLines = (node: Y.XmlFragment | Y.XmlElement, prefix = ""): string[] =
   return lines;
 };
 
+const BULLET = "• ";
+
+const paragraph = (parent: Y.XmlFragment | Y.XmlElement, line: string) => {
+  const p = new Y.XmlElement("paragraph");
+  parent.push([p]);
+  if (line) {
+    const t = new Y.XmlText();
+    p.push([t]);
+    t.insert(0, line);
+  }
+};
+
+/**
+ * A document holding plain text, the inverse of `noteText`: one paragraph
+ * per line, and runs of "• " lines as a bulleted list. Empty text gives an
+ * empty document. For seeds, and anything else that starts from text.
+ */
+export const noteDocFromText = (text: string) => {
+  const doc = new Y.Doc();
+  const lines = text.trim() ? text.trim().split("\n") : [];
+  doc.transact(() => {
+    const fragment = doc.getXmlFragment(NOTE_FRAGMENT);
+    let list: Y.XmlElement | null = null;
+    for (const line of lines) {
+      if (line.startsWith(BULLET)) {
+        if (!list) {
+          list = new Y.XmlElement("bulletList");
+          fragment.push([list]);
+        }
+        const item = new Y.XmlElement("listItem");
+        list.push([item]);
+        paragraph(item, line.slice(BULLET.length));
+      } else {
+        list = null;
+        paragraph(fragment, line);
+      }
+    }
+  });
+  return doc;
+};
+
 /**
  * The document as plain text: one line per paragraph or heading, "• " for
  * list items. For previews, search and AI. Formatting is dropped.

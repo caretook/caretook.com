@@ -1,6 +1,7 @@
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
 import { ChevronDown } from "lucide-react";
+import { Link } from "react-router";
 import { KIND_META } from "~/lib/entryDisplay";
 import { VitalTypeMenu } from "./VitalTypeMenu";
 
@@ -11,9 +12,16 @@ const TILE = "btn btn-ghost h-auto min-h-12 flex-col gap-0.5 px-1 py-1.5 text-xs
 /**
  * One tap to start an entry of a given kind: Note, Symptom, Event, or a vital
  * type from the Vitals menu. Four equal tiles, so it stays one row on phones.
- * The form itself opens in a sheet.
+ * A kind with a page of its own (`hrefFor`, e.g. a note's editor) links
+ * there; the others open their form in a sheet (`onAdd`).
  */
-export function QuickAddBar({ onAdd }: { onAdd: (kind: TimelineEntryKind, vitalType?: VitalType) => void }) {
+export function QuickAddBar({
+  onAdd,
+  hrefFor,
+}: {
+  onAdd: (kind: TimelineEntryKind, vitalType?: VitalType) => void;
+  hrefFor?: (kind: TimelineEntryKind) => string | undefined;
+}) {
   return (
     <div
       role="group"
@@ -22,10 +30,20 @@ export function QuickAddBar({ onAdd }: { onAdd: (kind: TimelineEntryKind, vitalT
     >
       {DIRECT_KINDS.map((kind) => {
         const { Icon, label } = KIND_META[kind];
-        return (
-          <button key={kind} type="button" className={TILE} onClick={() => onAdd(kind)}>
+        const href = hrefFor?.(kind);
+        const content = (
+          <>
             <Icon className="size-5" aria-hidden="true" />
             {label}
+          </>
+        );
+        return href ? (
+          <Link key={kind} to={href} className={TILE}>
+            {content}
+          </Link>
+        ) : (
+          <button key={kind} type="button" className={TILE} onClick={() => onAdd(kind)}>
+            {content}
           </button>
         );
       })}
