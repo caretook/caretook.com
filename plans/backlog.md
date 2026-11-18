@@ -53,10 +53,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 | B-23 | change | ready | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
-| B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
+| B-24 | change | in-progress | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
-| B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
+| B-27 | bug | in-progress | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | ready | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | ready | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
@@ -64,6 +64,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-34 | change | triaged | quick-fixes |  | Date picker for the When field: a calendar to pick the date, not only typed segments |
+| B-35 | bug | in-progress | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
+| B-36 | chore | in-progress | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
 
 ## Items
 
@@ -236,6 +238,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (dev keeper): Tiptap mentions in the document, a field on the event, or both.
 - 2026-11-18 (Robert Bo Davis): PRD written (providers): timeline_entry_provider link table (pair-derived ids), With row on events and notes, picker with inline add, suggestions from title/text matches, title memory and recent links. No @-mentions.
 - 2026-11-18 (Robert Bo Davis): Planned: providers slices 5–7 (With row, suggestions, 'with …' on rows), after components slices 2–4 land.
+- 2026-11-18 (prd/providers): Providers orchestrator, end of session: slices 1–4 are in dev (slice 1 cc47b01, slices 2–4 5a2c8af); the plan's Status table in dev still says wave 2 is awaiting its go-ahead, but it landed. Slices 5–7 wait for components slices 2–4 in dev; then pnpm prd start providers, sync, and start slice 5. The prd/providers worktree was removed to free a PRD slot.
 
 ### B-15 · plan · Medication list (current, past, discontinued), printable sheet, and tracking in the timeline
 
@@ -328,9 +331,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
-- status: triaged
+- status: in-progress
 - prd: components
-- owner:
+- owner: prd/components
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): From the inbox: Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
@@ -338,6 +341,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Planned: plans/components-plan.md, 6 slices (1→2; 3→5 parallel with 4; 6 last).
 - 2026-11-18 (Robert Bo Davis): 2026-11-18: runs after routing, and before timeline-polish slices 4-7 (paused by the user).
 - 2026-11-18 (prd/providers): From the providers orchestrator: providers wave 2 (slices 2–4, the directory) lands without a full-suite run under the new `pnpm prd browser` harness (quick-fixes B-28/B-29 synced in at the last moment). Its full suite passed on the old harness (only routing.mjs's B-27 step failed). During components' checks, run the full suite with `pnpm prd browser --suite` and confirm providers.mjs (85 steps) passes under the new harness. Also: slice 4 moved LiveNotesEditor, EditorAvatars, ContactActions and ProviderTypeIcon into components/; provider sheets import EntrySheet from routes/app/groups/timeline/ and should get it from components/.
+- 2026-11-18 (slice/components/1): components slice 1 committed on slice/components/1 (a071d12, 4c18db3): ui/Menu primitive, feature folders, one EntryActions; ui.mjs added.
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
@@ -360,9 +364,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-27 · bug · routing.mjs fails: group settings blank after the entry step; account Sign out flaky
 
-- status: triaged
-- prd: routing
-- owner:
+- status: in-progress
+- prd: quick-fixes
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-18 (prd/providers): Found by the providers orchestrator while landing providers slice 1. routing.mjs fails on dev itself (b869738, routing wave 2): 'group settings opens under the group route' fails every run (54/55): after the entry step, c.goto(/app/groups/<id>/settings) renders no main and no window.caretookSync; the only console error is Vite's 'Failed to send error to Vite server: TypeError: Cannot read properties of undefined (reading send)', which hides the real error. Not reproduced by a standalone script (sign in, open the same seeded note, then settings), so it depends on routing.mjs's earlier state (its proxy browser). One run also failed 'Account's Sign out signs out' and '/app/settings then asks to sign in' (/app/settings/account), possibly load (avg 60-230). Every other check passed on prd/providers.
@@ -370,6 +374,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Routing landed in full (ff25ef2) with B-27 still open; prd/routing is closed. In the landing suite routing.mjs passed 80/80 (slice 5 changed the group settings step to open …/settings/members), so this may only be hidden. Slice 3 saw the same blank group settings once, on a long-running server. Next: a quick-fixes slice, or reopen routing, to find the root cause.
 - 2026-11-18 (prd/quick-fixes): Seen on prd/quick-fixes ac12b13 (dev ff25ef2 synced in, fresh datastore:reset and dev server): routing.mjs failed 3 runs in a row at load 18-32. Twice 4/5 with 'caretaker: timed out waiting for ol > li' on the timeline right after the settings/members step (Vite 'Failed to send error' again hides the real error); once with dev's own cdp.mjs, 27/29 with 'offline: Quick add → Symptom opens the sheet' and 'TypeError: Illegal invocation'. Every other suite check passed. The pre-sync routing.mjs passed 55/55. Not caused by quick-fixes: its cdp.mjs 401 retry never fired.
 - 2026-11-18 (prd/providers): Still failing after routing finished (prd/providers 82eb690, synced with dev 94a0c08): 'group settings opens under the group route' fails at load ~13 (quiet machine), so not contention. Now at /settings/members, same blank page and 'Failed to send error to Vite server'. Rest of routing.mjs 79/80.
+- 2026-11-18 (Robert Bo Davis): Moved to quick-fixes slice 7 (routing is closed). Also folds in routing's leftover app-shell.mjs flake (reading window.caretookSync.userId right after a reload).
 
 ### B-28 · chore · Limit browser checks machine-wide: a lock so at most two run at once
 
@@ -440,3 +445,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 6. DateTimeField (the timeline sheet's When, and the entry page's time chip) gets a calendar button and popover through React Aria's DatePicker and Calendar (already a dependency); typed segments stay.
+
+### B-35 · bug · A practice's type can change to clinician or other while clinicians still point at it
+
+- status: in-progress
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): From the providers plan's open issues. Quick-fixes slice 8: providerService refuses the change while live providers name it as their practice, and the device's local write refuses it too.
+- 2026-11-18 (slice/quick-fixes/8): slice/quick-fixes/8 7c0725f: server + device refuse practice->clinician/other while live providers name it (providerService:practiceInUse, issue on type). Browser step not run (excluded this wave). Deleting a practice still leaves clinicians pointing at a deleted practice; the sheet shows '(removed practice)'.
+
+### B-36 · chore · Independent integration tests: no shared group across describe blocks
+
+- status: in-progress
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): AGENTS.md Next steps item 3. Quick-fixes slice 9: careGroup.int.test.ts (and any other file sharing fixtures across blocks) builds its own fixtures per test or block, like provider.int.test.ts's setup().
+- 2026-11-18 (slice/quick-fixes/9): slice 9: careGroup.int.test.ts now uses setup() per test; the other six int files already did. 169 integration tests before and after; no real bug found.
