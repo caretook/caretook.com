@@ -206,6 +206,10 @@ export const SERVICE_ERRORS = {
     message: "The practice must be a practice or pharmacy in this care group",
     statusCode: 400,
   },
+  "providerService:practiceInUse": {
+    message: "Clinicians are linked to this practice. Move them to another practice first.",
+    statusCode: 400,
+  },
   "entryProviderService:invalid": {
     message: "The provider link is invalid",
     statusCode: 400,

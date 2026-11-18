@@ -95,6 +95,7 @@ export function ProviderForm({
       props: { "aria-invalid": !!message, "aria-describedby": message ? errorId : undefined },
     };
   };
+  const typeField = field("type");
   const name = field("name");
   const specialty = field("specialty");
   const practice = field("practiceId");
@@ -117,7 +118,13 @@ export function ProviderForm({
 
       <fieldset className="fieldset">
         <legend className="fieldset-legend">Type</legend>
-        <div className="join flex-wrap">
+        <div
+          className="join flex-wrap"
+          role="radiogroup"
+          aria-label="Type"
+          tabIndex={typeField.message ? -1 : undefined}
+          {...typeField.props}
+        >
           {PROVIDER_TYPES.map((t) => (
             <input
               key={t}
@@ -131,6 +138,7 @@ export function ProviderForm({
             />
           ))}
         </div>
+        <FieldError id={typeField.errorId} message={typeField.message} />
       </fieldset>
 
       <fieldset className="fieldset">

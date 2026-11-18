@@ -1,7 +1,7 @@
 import type { ProviderRow } from "./providers";
 
 import { describe, expect, it } from "vitest";
-import { toProvider, toProviders } from "./providers";
+import { practiceDependentsQuery, practiceInUseRefusal, toProvider, toProviders } from "./providers";
 
 const row = (overrides: Partial<ProviderRow> = {}): ProviderRow => ({
   id: "p1",
@@ -53,5 +53,39 @@ describe("toProvider", () => {
     expect(
       toProviders([row(), row({ id: "p2", type: "dentist" }), row({ id: "p3", name: null })]),
     ).toHaveLength(1);
+  });
+});
+
+describe("practiceInUseRefusal", () => {
+  const issue = {
+    path: "type",
+    message: "Clinicians are linked to this practice. Move them to another practice first.",
+  };
+
+  it("refuses a practice or pharmacy leaving the practice types while providers name it", () => {
+    for (const from of ["practice", "pharmacy"] as const) {
+      for (const to of ["clinician", "other"] as const) {
+        expect(practiceInUseRefusal(from, to, 1)).toEqual({
+          ok: false,
+          error: issue.message,
+          issues: [issue],
+        });
+      }
+    }
+  });
+
+  it("allows practice ↔ pharmacy, no dependents, and other types", () => {
+    expect(practiceInUseRefusal("practice", "pharmacy", 3)).toBeNull();
+    expect(practiceInUseRefusal("pharmacy", "practice", 3)).toBeNull();
+    expect(practiceInUseRefusal("practice", "clinician", 0)).toBeNull();
+    expect(practiceInUseRefusal("clinician", "other", 2)).toBeNull();
+  });
+
+  it("counts only live providers in the group", () => {
+    const q = practiceDependentsQuery("g1", "p1");
+    expect(q.params).toEqual(["g1", "p1"]);
+    expect(q.sql).toMatch(/group_id = \?/);
+    expect(q.sql).toMatch(/practice_id = \?/);
+    expect(q.sql).toMatch(/deleted_at IS NULL/);
   });
 });
