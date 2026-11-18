@@ -331,14 +331,14 @@ Both checks passed against the dev server minutes later, from the same code. So 
 - **Fix the root cause where it is.** If the app behaves differently in production (an error boundary that renders nothing, a redirect thrown in a way the production router handles differently, a missing chunk for a lazy route), fix the app and add a unit test if the cause is in a pure module. If it's the check (a step that relied on dev-server timing or Vite's slower module loading), fix the check to wait on what it means, never with a fixed sleep.
 - For "Sync aborted": decide whether it's expected when a page closes or signs out mid-sync. If so, have the checks ignore exactly that warning when the step closes the page (as they ignore other teardown noise); if not, fix the teardown.
 - Then run every check in the suite against the built server once (`pnpm prd serve --built`, then `pnpm prd browser --suite`), and fix anything else that differs from dev in the same way.
-- **Make the build the default for checks** once the suite passes on it twice in a row: `pnpm prd browser` starts or rebuilds a `--built` server when the worktree's server is the dev server or isn't running (keep `--dev` to opt out), and update AGENTS.md (_Browser check budget_: "Check builds", the landing step's server restart, _Gotchas_ entries the build makes unnecessary such as Vite re-optimization and stale optimized deps). The orchestrator folds the AGENTS.md wording in at landing.
+- **Make the build the default for checks** once the suite passes on it (the orchestrator's one landing run; the user waived a second run): `pnpm prd browser` starts or rebuilds a `--built` server when the worktree's server is the dev server or isn't running (keep `--dev` to opt out), and update AGENTS.md (_Browser check budget_: "Check builds", the landing step's server restart, _Gotchas_ entries the build makes unnecessary such as Vite re-optimization and stale optimized deps). The orchestrator folds the AGENTS.md wording in at landing.
 
 **Acceptance criteria.**
 
 - [ ] The hand-off names the cause of each of the three failures, with the evidence (the decoded error, or the timing the check depended on).
-- [ ] Against the built server, `providers.mjs` and `phase2.mjs` pass 3 runs in a row on a quiet machine (load under about 40), and the full suite passes twice in a row.
+- [ ] Against the built server, `providers.mjs` and `phase2.mjs` pass 3 runs in a row on a quiet machine (load under about 40), and the full suite passes once, in the orchestrator's landing run on the integration branch (the user waived the loop's two runs).
 - [ ] By hand on the built server: a deleted provider's URL shows "Not found" with no names; a viewer opening `…/providers/new` lands on the list.
-- [ ] The full suite's run time on the built server versus the dev server, same machine (both tables).
+- [ ] The full suite's run time on the built server versus the dev server, same machine (both tables; the orchestrator's landing run against the dev-server suites of waves 3 and 4, 8m49s and 10m06s).
 - [ ] Checks run against a built server by default, rebuilt when the source changes; `--dev` still works.
 
 **Check.** The full suite on the built server, through `pnpm prd browser --suite`. `pnpm check` passes.
