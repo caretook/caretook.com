@@ -40,7 +40,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
-| B-13 | plan | triaged | providers |  | Provider directory with search, linked from events |
+| B-13 | plan | in-progress | providers | prd/providers | Provider directory with search, linked from events |
 | B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
@@ -203,9 +203,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-13 · plan · Provider directory with search, linked from events
 
-- status: triaged
+- status: in-progress
 - prd: providers
-- owner:
+- owner: prd/providers
 - commit:
 
 - 2026-11-17 (dev keeper): To settle: one table with a type (provider, pharmacy, facility, contact) or several; what an event's link stores.
