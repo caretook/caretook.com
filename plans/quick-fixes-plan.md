@@ -9,8 +9,10 @@
 | 1     | B-1  | merged | 1e00754 (5ab3b67)                            |
 | 2     | B-17 | merged | 4629e8c (32355db)                            |
 | 3     | B-22 | merged | b0325d0 (46ef320)                            |
+| 4     | B-28 | ready  |                                              |
+| 5     | B-29 | ready  |                                              |
 
-Wave 1 (slices 1–3) is in `dev`. Nothing is in flight; new fixes are appended as slice 4 onward.
+Wave 1 (slices 1–3) is in `dev`. Slices 4 and 5 (browser check tooling, from the _Browser check budget_ in AGENTS.md) are ready; they're independent and can run together.
 
 - Slice 3 measured the first sync at about 120–200 ms after the database opens, so it shortened the wait to 1 s and added a syncing state; with the old code a 12 s sync left home on "You're not in a care group yet" for good.
 - Slice 2's offline-reload criterion is checked by leaving the timeline and coming back offline: a full offline reload needs a service worker, which isn't built.
@@ -21,6 +23,7 @@ Wave 1 (slices 1–3) is in `dev`. Nothing is in flight; new fixes are appended 
 
 - **Every slice is independent:** none blocks another, so any of them can run at once. They touch different files (1: `sign-in.tsx`; 2: `lib/me.ts` and the timeline's layout toggle; 3: `lib/sync/index.ts` and the loaders that wait on the first sync). Merge in number order.
 - No migrations, no sync-config changes, no seed changes.
+- **Slices 4 and 5 are tooling**: `scripts/loops/`, `scripts/browser-checks/`, `package.json` scripts and AGENTS.md's check instructions (the orchestrator writes the AGENTS.md part at landing). They touch no app code, so they don't conflict with `routing`, `providers` or `components`. Land them as soon as they're green: every running loop benefits.
 - Each slice ends with `pnpm check` passing, a browser check for its behaviour, and a hand-off (AGENTS.md, _Loop rules_).
 - Land each slice as soon as it's merged and green: these are small, and `timeline-polish` and `app-shell` will touch the same screens.
 - **Overlap with other PRDs:** slice 2 touches the timeline's layout toggle in `timeline.tsx` (hot for `timeline-polish` and `live-notes-ux` slice 7), and `app-shell` adds the same preference to Settings. Keep the timeline edit to the toggle's handler, and put the logic in `lib/me.ts` so Settings can reuse it.
@@ -96,3 +99,63 @@ Wave 1 (slices 1–3) is in `dev`. Nothing is in flight; new fixes are appended 
 **Blocks:** none. **Blocked by:** none.
 
 **Note for `app-shell`:** its `/app` last-group redirect also needs the local groups, so it reuses whatever "first sync is done" signal this slice adds.
+
+---
+
+## Slice 4: At most two browser checks at once, machine-wide (B-28)
+
+**Problem.** Browser checks were 63% of all tool time across the first PRDs (850 runs, about 10 h), and about 30% of runs failed, mostly on timeouts and PowerSync 401s while several loops ran Chrome, Vite and PowerSync at once (load averages of 30–60, once past 500, on 10 cores). Failures caused reruns, which added load. Nothing limits how many checks run at once across worktrees.
+
+**Build.**
+
+- `pnpm prd browser <check> [args…]` (a new `scripts/loops/browser.sh`, dispatched by `prd.sh`): run one check from the current worktree, holding one of **two** machine-wide leases.
+  - Leases are directories under the main checkout's `.loops/.browser/<N>` (N = 1, 2), taken with `mkdir` like the slot leases in `lib.sh`, each with a `name` file (worktree, check, pid, start time).
+  - If both are taken, wait and poll (every 5 s), printing once who holds them; give up after `CARETOOK_BROWSER_WAIT` (default 20 min) with a clear message and a non-zero exit.
+  - A lease whose pid is gone is stale: take it over (and say so).
+  - Release on every exit path (`trap` on EXIT, INT and TERM), including a timeout.
+  - Run the check with the worktree's `.env.loop` sourced (or the main checkout's defaults when there is none), from `scripts/browser-checks/`, with Node 24 from `.nvmrc`.
+  - `--timeout <s>` kills the check after that many seconds. It's the default for the checks that never exit on their own (`signout-wipe.mjs`, `layout-offline.mjs`: 300 s), so callers stop hand-rolling `timeout`.
+  - Print the elapsed time and the load average at start and end, so a hand-off shows whether a failure ran under load.
+- `pnpm prd browser --suite` runs the full suite (the checks listed in AGENTS.md's _Browser check budget_), one at a time under a lease, and prints a pass/fail table at the end. That's the landing step's one full run.
+- `pnpm prd status` (`ls.sh`) shows who holds the browser leases, and any stale lease.
+- `CARETOOK_BROWSER_SLOTS` overrides the limit (default 2).
+
+**Acceptance criteria.**
+
+- [ ] Three `pnpm prd browser phase2.mjs` started at once from three worktrees: two run, the third waits and starts when one finishes (show the timestamps).
+- [ ] Ctrl-C, a failing check and a `--timeout` all release the lease; a lease left by a killed process (`kill -9`) is taken over as stale.
+- [ ] `signout-wipe.mjs` and `layout-offline.mjs` exit through the default timeout and report their result.
+- [ ] `--suite` runs every check in order and prints the table; one failure doesn't stop the rest; the exit code is non-zero if any failed.
+- [ ] `pnpm prd status` shows the leases.
+- [ ] The hand-off includes the AGENTS.md wording for the orchestrator to fold in at landing: _Running loops_ (the command table and the _Browser check budget_ say to run checks through `pnpm prd browser`), _Loop rules_ and _Browser checks_.
+
+**Check.** No browser check of its own: the criteria above, shown with command output. `pnpm check` passes; `shellcheck` on the new script if it's installed.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 5: `datastore:reset` leaves PowerSync ready (B-29)
+
+**Problem.** After `pnpm datastore:reset`, PowerSync keeps the old JWKS for minutes ("no key matched the token KID", PSYNC_S2101), so the first sign-in gets a 401 and pages wait on `waitForFirstSync`. Its bucket storage can also still serve recent editors with the old user ids. It was the most common cause of failed browser checks. AGENTS.md works around it by hand (_Gotchas_: "Run `docker compose restart powersync` after a reset"), and agents often forget.
+
+**Build.**
+
+- `pnpm datastore:reset` restarts the worktree's own PowerSync after seeding (its Compose project from the root `.env`, never another worktree's), when the container exists and is running. Skip it, with a note, when it isn't (the test-only stack, CI).
+- Then wait until PowerSync is ready: poll until it answers its health/probe endpoint, and until it has fetched the new JWKS (for example, request `/api/auth/token` for a seed user from the running dev server and confirm PowerSync accepts it, or check the service log for the key fetch). Give up after 60 s with a clear warning, not a failure, since the dev server may not be running.
+- Clear PowerSync's bucket storage as part of the reset if that's what keeps stale recent editors (confirm first; if a restart alone fixes it, don't).
+- Put the logic in a small script beside the other datastore runners (not inline in `package.json`), so `datastore:reset` stays one command and `new.sh` can use it too.
+- Update the browser checks' sign-in helper (`cdp.mjs`) to retry once on a 401 from `/api/auth/token`, with a log line, as a last guard.
+
+**Acceptance criteria.**
+
+- [ ] In a loop worktree with its dev server running: `pnpm datastore:reset`, then immediately `live-notes.mjs` and `app-shell.mjs` pass on the first run, with no 401 or PSYNC_S2101 in the PowerSync log (show the log excerpt).
+- [ ] The same in the main checkout's stack (default ports).
+- [ ] With PowerSync stopped, the reset still succeeds and says it skipped the restart.
+- [ ] It only restarts this worktree's container (show `docker ps` for two stacks before and after).
+- [ ] After a reset, `live-notes.mjs`'s recent-editor steps show no "Former member".
+- [ ] The hand-off includes the AGENTS.md wording for the orchestrator to fold in at landing: remove the "restart PowerSync after a reset" steps and gotchas this makes unnecessary (_Running loops_, _Landing a wave_, _Gotchas_, _Next steps_ item 1), and keep the ones it doesn't.
+
+**Check.** The criteria above, with command output. `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
