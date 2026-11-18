@@ -622,6 +622,78 @@ async function sheetSteps(p, other, proxy, tag) {
   return { ids: [id, offlineId] };
 }
 
+// --- A practice that providers name can't be deleted (quick-fixes slice 14, B-37) ---
+
+/**
+ * The device refuses to delete a practice live providers name, and the edit
+ * sheet's confirm says so with Delete disabled; once the clinician moves, it
+ * deletes (and uploads). Uses its own tagged practice and clinician, deleted here.
+ */
+async function practiceDeleteSteps(p, tag) {
+  const LIST = `/app/groups/${DEV_FAMILY}/providers`;
+  const made = await onDevice(
+    p,
+    `const practice = await providers.createProvider(db, ${JSON.stringify(DEV_FAMILY)}, { type: "practice", name: ${JSON.stringify(`${tag} Practice`)} });
+     const clinician = await providers.createProvider(db, ${JSON.stringify(DEV_FAMILY)}, { type: "clinician", name: ${JSON.stringify(`${tag} Dr. Linked`)}, practiceId: practice.id });
+     const refused = await providers.removeProvider(db, practice.id);
+     return { practiceId: practice.id, clinicianId: clinician.id, refused };`,
+  );
+  check(
+    "the device refuses to delete a practice a live clinician names",
+    made.refused.ok === false &&
+      /Move them to another practice, or delete them, first/.test(made.refused.error),
+    JSON.stringify(made.refused),
+  );
+
+  const deleteButton = `[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Delete provider")`;
+  const confirmOpen = `document.querySelector("dialog.modal[open]")`;
+  const confirmButton = `[...${confirmOpen}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Delete")`;
+  const openConfirm = async () => {
+    await p.goto(`${LIST}/${made.practiceId}/edit`);
+    await p.waitFor(SHEET, 30000);
+    await p.press(deleteButton);
+    await p.waitFor(confirmOpen, 5000);
+    return p.evaluate(
+      `({ message: ${confirmOpen}.querySelector("p")?.textContent ?? "", disabled: ${confirmButton}.disabled })`,
+    );
+  };
+  const blocked = await openConfirm();
+  check(
+    "its confirm says why, with Delete disabled",
+    blocked.disabled && blocked.message.startsWith("1 provider is linked to this practice."),
+    JSON.stringify(blocked),
+  );
+  await p.press(
+    `[...${confirmOpen}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")`,
+  );
+  await sleep(300);
+  check(
+    "…and the practice stays",
+    (await sheetOpen(p)) &&
+      psql(`SELECT (deleted_at IS NULL)::text FROM provider WHERE id = '${made.practiceId}'`) === "true",
+  );
+
+  // Move the clinician off it: then it deletes.
+  const moved = await onDevice(
+    p,
+    `return (await providers.updateProvider(db, ${JSON.stringify(made.clinicianId)}, { practiceId: null })).ok;`,
+  );
+  const open = await openConfirm();
+  check(
+    "once the clinician moves, Delete is enabled",
+    moved && !open.disabled && !open.message,
+    JSON.stringify(open),
+  );
+  await p.press(confirmButton);
+  await p.waitFor(`!${SHEET} && location.pathname === ${JSON.stringify(LIST)}`, 10000).catch(() => {});
+  const deleted = await waitForSql(
+    `SELECT (deleted_at IS NOT NULL)::text FROM provider WHERE id = '${made.practiceId}'`,
+    (v) => v === "true",
+  );
+  check("…and the delete uploads", deleted === "true", deleted);
+  return [made.clinicianId];
+}
+
 // --- The provider page (slice 4) ---------------------------------------------
 
 const WESTSIDE = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8e1001";
@@ -1164,6 +1236,8 @@ try {
       strangerPage.h1 === "Not found" && !strangerPage.leaks,
       JSON.stringify(strangerPage),
     );
+
+    made.ids.push(...(await practiceDeleteSteps(A, tag)));
 
     // --- Clean up: soft-delete this run's event --------------------------------
     const cleaned = await onDevice(

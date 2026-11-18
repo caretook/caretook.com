@@ -9,7 +9,13 @@ import { isPracticeType } from "@caretook/data/schema";
 import { formString } from "~/lib/form";
 import { getGroup } from "~/lib/group";
 import { sessionContext } from "~/lib/session";
-import { providerQuery, removeProvider, toProvider, updateProvider } from "~/lib/sync/providers";
+import {
+  deleteBlockedNote,
+  providerQuery,
+  removeProvider,
+  toProvider,
+  updateProvider,
+} from "~/lib/sync/providers";
 import { readRows } from "~/lib/sync/timeline";
 import { ConfirmDialog, Sheet } from "~/components/ui";
 import { ProviderForm } from "../ProviderForm";
@@ -67,6 +73,11 @@ export default function EditProviderSheet({ loaderData }: Route.ComponentProps) 
   const remover = useFetcher<ActionResult>();
   const [confirming, setConfirming] = useState(false);
   const practices = useMemo(() => providers.filter((p) => isPracticeType(p.type)), [providers]);
+  // A practice that live providers name can't be deleted (the device and the server refuse it).
+  const blocked = deleteBlockedNote(
+    provider.type,
+    providers.filter((p) => p.practiceId === provider.id).length,
+  );
 
   // Deleted: the list no longer has it, so close the sheet.
   useEffect(() => {
@@ -93,6 +104,8 @@ export default function EditProviderSheet({ loaderData }: Route.ComponentProps) 
         open={confirming}
         title={`Delete ${provider.name}?`}
         confirmLabel="Delete"
+        message={blocked}
+        confirmDisabled={!!blocked}
         onConfirm={() => {
           setConfirming(false);
           void remover.submit({ intent: "remove" }, { method: "post" });

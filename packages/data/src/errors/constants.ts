@@ -107,6 +107,9 @@ export const MODEL_ERRORS = {
   "providerModel:remove": {
     message: "Failed to delete the provider",
   },
+  "providerModel:lock": {
+    message: "Failed to lock the provider",
+  },
   "userModel:notFound": {
     message: "User not found",
     statusCode: 404,
@@ -209,6 +212,10 @@ export const SERVICE_ERRORS = {
   "providerService:practiceInUse": {
     message: "Clinicians are linked to this practice. Move them to another practice first.",
     statusCode: 400,
+  },
+  "providerService:practiceHasProviders": {
+    message: "Providers are linked to this practice. Move them to another practice, or delete them, first.",
+    statusCode: 409,
   },
   "entryProviderService:invalid": {
     message: "The provider link is invalid",
