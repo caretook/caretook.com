@@ -12,6 +12,15 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 //   page's heading, and a role changed on the server takes the entry page's
 //   writer controls away, both without a reload.
 //
+// Slice 4, the account's settings subpages:
+//
+// - at 420, /app/settings is the list (Units, Timeline layout, Account); each
+//   item opens its subpage, alone, with a back link to the list;
+// - a subpage works as a direct link and after a reload;
+// - at 1280, /app/settings opens Units beside the side nav, the current item
+//   is aria-current="page", and widening the window on the list does the same;
+// - Account shows the name and email, and its Sign out signs out.
+//
 // It runs as caretaker@ (one group) and admin@ (in no group), and puts back
 // the recipient's preferred name and caretaker@'s role in `finally`.
 // Run against your stack: `set -a; source .env.loop; set +a`.
@@ -53,6 +62,167 @@ const pageState = (pg) =>
       `JSON.stringify({ path: location.pathname, synced: window.caretookSync?.powersync.currentStatus.hasSynced, connected: window.caretookSync?.powersync.currentStatus.connected, editors: [...document.querySelectorAll("[contenteditable]")].map((e) => e.getAttribute("contenteditable")), main: document.querySelector("main")?.innerText.slice(0, 200) })`,
     )
     .catch(() => "?");
+
+const SETTINGS_ITEMS = [
+  { id: "units", label: "Units", path: "/app/settings/units" },
+  { id: "timeline", label: "Timeline layout", path: "/app/settings/timeline" },
+  { id: "account", label: "Account", path: "/app/settings/account" },
+];
+const settingsNav = `document.querySelector("nav[data-settings-nav]")`;
+const settingsLink = (id) => `${settingsNav}?.querySelector('[data-settings-item="${id}"]')`;
+const backLink = `[...document.querySelectorAll("main a")].find((a) => a.getAttribute("href") === "/app/settings" && a.textContent.trim() === "Settings")`;
+/** Whether an element is laid out (not display: none, itself or above). */
+const shown = (el) => `!!(${el}) && (${el}).getClientRects().length > 0`;
+const settingsState = `JSON.stringify({
+  path: location.pathname,
+  h1: [...document.querySelectorAll("main h1")].filter((h) => h.getClientRects().length).map((h) => h.textContent.trim()),
+  items: [...(${settingsNav}?.querySelectorAll("[data-settings-item]") ?? [])].map((a) => a.querySelector("span span")?.textContent.trim()),
+  navShown: ${shown(settingsNav)},
+  back: ${shown(backLink)},
+  current: [...(${settingsNav}?.querySelectorAll("[aria-current]") ?? [])].map((a) => a.dataset.settingsItem + "=" + a.getAttribute("aria-current")),
+})`;
+const metrics = (p, width) =>
+  p.send("Emulation.setDeviceMetricsOverride", {
+    width,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: width < 800,
+  });
+
+/** Slice 4: the account's settings list, its subpages and the side nav (caretaker@, ends signed out). */
+async function settingsSteps(p) {
+  const state = async () => JSON.parse(await p.evaluate(settingsState));
+
+  // 420: the list, then each subpage with a back link.
+  await metrics(p, 420);
+  await p.goto("/app/settings");
+  await p.waitFor(`${settingsLink("account")}`, 30000).catch(() => {});
+  let s = await state();
+  check(
+    "420: /app/settings is the list of three items, with no subpage and no back link",
+    s.path === "/app/settings" &&
+      s.navShown &&
+      !s.back &&
+      s.h1.join() === "Settings" &&
+      (await p.evaluate(`${settingsNav}.querySelectorAll("[data-settings-item]").length`)) === 3 &&
+      s.items.join() === SETTINGS_ITEMS.map((i) => i.label).join(),
+    JSON.stringify(s),
+  );
+  await p.screenshot("routing-settings-list-420");
+  for (const item of SETTINGS_ITEMS) {
+    await p.waitFor(settingsLink(item.id), 10000);
+    await p.evaluate(`${settingsLink(item.id)}.click()`);
+    await p
+      .waitFor(
+        `location.pathname === "${item.path}" && document.querySelector("main h1")?.textContent.trim() === ${JSON.stringify(item.label)}`,
+        20000,
+      )
+      .catch(() => {});
+    s = await state();
+    check(
+      `420: ${item.label} opens ${item.path} on its own, with a back link to the list`,
+      s.path === item.path && s.h1.join() === item.label && s.back && !s.navShown,
+      JSON.stringify(s),
+    );
+    await p.evaluate(`${backLink}.click()`);
+    await p.waitFor(`location.pathname === "/app/settings" && ${shown(settingsNav)}`, 10000).then(
+      () => check(`420: ${item.label}'s back link returns to the list`, true),
+      async () =>
+        check(`420: ${item.label}'s back link returns to the list`, false, JSON.stringify(await state())),
+    );
+  }
+
+  // A direct link, and a reload.
+  await p.goto("/app/settings/units");
+  const unitsReady = `location.pathname === "/app/settings/units" && document.querySelector('input[name="temperature"]')`;
+  const direct = await p.waitFor(unitsReady, 30000).then(
+    () => true,
+    () => false,
+  );
+  check("/app/settings/units works as a direct link", direct, direct ? "" : JSON.stringify(await state()));
+  await p.evaluate("location.reload()");
+  await sleep(500);
+  const reloaded = await p.waitFor(unitsReady, 30000).then(
+    () => true,
+    () => false,
+  );
+  check("/app/settings/units works after a reload", reloaded, reloaded ? "" : JSON.stringify(await state()));
+
+  // 1280: the side nav beside Units.
+  await metrics(p, 1280);
+  await p.goto("/app/settings");
+  await p
+    .waitFor(
+      `location.pathname === "/app/settings/units" && document.querySelector('input[name="temperature"]')`,
+      30000,
+    )
+    .catch(() => {});
+  s = await state();
+  check(
+    "1280: /app/settings lands on Units beside the side nav, Units current, no back link",
+    s.path === "/app/settings/units" &&
+      s.navShown &&
+      !s.back &&
+      s.h1.join() === "Units" &&
+      s.current.join() === "units=page",
+    JSON.stringify(s),
+  );
+  await p.screenshot("routing-settings-1280");
+  await p.evaluate(`${settingsLink("timeline")}.click()`);
+  await p
+    .waitFor(
+      `location.pathname === "/app/settings/timeline" && document.querySelector('[role="radiogroup"]')`,
+      20000,
+    )
+    .catch(() => {});
+  s = await state();
+  check(
+    "1280: the side nav switches subpages in one click, and aria-current follows",
+    s.path === "/app/settings/timeline" && s.navShown && s.current.join() === "timeline=page",
+    JSON.stringify(s),
+  );
+  const historyBefore = await p.evaluate("history.length");
+
+  // Widening the window on the list opens the first subpage.
+  await metrics(p, 420);
+  await p.evaluate(`${backLink}.click()`);
+  await p.waitFor(`location.pathname === "/app/settings" && ${shown(settingsNav)}`, 10000).catch(() => {});
+  await metrics(p, 1280);
+  await p.waitFor(`location.pathname === "/app/settings/units"`, 10000).then(
+    () => check("widening the window on the list opens Units", true),
+    async () => check("widening the window on the list opens Units", false, JSON.stringify(await state())),
+  );
+  check("…replacing the list in history", (await p.evaluate("history.length")) === historyBefore + 1);
+
+  // Account: the name and email, and Sign out.
+  await metrics(p, 420);
+  await p.goto("/app/settings/account");
+  await p.waitFor(`document.querySelector('main [data-field="email"]')`, 30000).catch(() => {});
+  const account = JSON.parse(
+    await p.evaluate(
+      `JSON.stringify({ name: document.querySelector('main [data-field="name"]')?.textContent.trim(), email: document.querySelector('main [data-field="email"]')?.textContent.trim(), inputs: document.querySelectorAll("main input").length })`,
+    ),
+  );
+  const seededName = psql(`SELECT name FROM "user" WHERE email = 'caretaker@example.com'`);
+  check(
+    "Account shows the name and email, read-only",
+    account.name === seededName && account.email === "caretaker@example.com" && account.inputs === 0,
+    JSON.stringify(account),
+  );
+  await p.screenshot("routing-settings-account");
+  const signOut = `[...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Sign out")`;
+  await p.evaluate(`${signOut}.click()`);
+  await p.waitFor(`location.pathname === "/sign-in"`, 30000).then(
+    () => check("Account's Sign out signs out", true),
+    async () => check("Account's Sign out signs out", false, await p.evaluate("location.pathname")),
+  );
+  await p.goto("/app/settings");
+  await p.waitFor(`location.pathname === "/sign-in"`, 30000).then(
+    () => check("…and /app/settings then asks to sign in", true),
+    async () =>
+      check("…and /app/settings then asks to sign in", false, await p.evaluate("location.pathname")),
+  );
+}
 
 const browsers = [];
 let c;
@@ -145,6 +315,9 @@ try {
     () => check("the role back to caretaker brings the controls back", true),
     () => check("the role back to caretaker brings the controls back", false),
   );
+
+  // Slice 4: the account's settings list and subpages.
+  await settingsSteps(c);
 
   // admin@: in no care group, so every group URL is a 404 that names nothing.
   await sleep(4000); // Better Auth's sign-in rate limit.

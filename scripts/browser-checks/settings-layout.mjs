@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import { launch, openPage, sleep } from "./cdp.mjs";
 
 // The timeline layout choice in Settings (app-shell slice 7): Rows or Cards
-// on /app/settings changes the same preference as the timeline's toggle.
+// in Settings (/app/settings/timeline) changes the same preference as the timeline's toggle.
 // Choosing Cards in Settings shows cards on the timeline; flipping the
 // timeline's toggle back shows Rows in Settings (opened at once, so the save
 // may still be in flight); and the choice follows the account to a second
@@ -44,13 +44,19 @@ const radio = (label) => `document.querySelector('input[name="timelineView"][ari
 const chosen = `[...document.querySelectorAll('input[name="timelineView"]')].filter((el) => el.checked).map((el) => el.getAttribute("aria-label")).join(",")`;
 const layoutStatus = `${GROUP}?.closest("section").querySelector('[role="status"]')?.textContent.trim() ?? ""`;
 
-/** Settings through the account menu: a navigation inside the app, as a user does it. */
+/**
+ * Settings through the account menu, then its Timeline layout subpage (the
+ * list at 420): navigations inside the app, as a user does them.
+ */
 async function openSettings(p) {
   await p.waitFor(TRIGGER, 15000);
   await p.press(TRIGGER);
   await p.waitFor(menuItem("Settings"), 5000);
   await p.press(menuItem("Settings"));
-  await p.waitFor(`location.pathname === "/app/settings" && ${GROUP}`, 30000);
+  const link = `document.querySelector('nav[data-settings-nav] a[href="/app/settings/timeline"]')`;
+  await p.waitFor(`location.pathname === "/app/settings" && ${link}`, 30000);
+  await p.evaluate(`${link}.click()`);
+  await p.waitFor(`location.pathname === "/app/settings/timeline" && ${GROUP}`, 30000);
 }
 /** The timeline through the header's Caretook link (caretaker@ has one group). */
 async function openTimeline(p) {
