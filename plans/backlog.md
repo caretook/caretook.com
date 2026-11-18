@@ -29,12 +29,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
-| B-2 | change | ready | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
+| B-2 | change | landed | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
 | B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
-| B-5 | change | ready | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
+| B-5 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
-| B-7 | change | ready | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
+| B-7 | change | landed | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
@@ -68,7 +68,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-2 · change · Latest vitals is too busy
 
-- status: ready
+- status: landed
 - prd: timeline-polish
 - owner: prd/timeline-polish
 - commit: 908d4fa
@@ -101,7 +101,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-5 · change · Tap an entry's kind icon to filter by that kind
 
-- status: ready
+- status: landed
 - prd: timeline-polish
 - owner: prd/timeline-polish
 - commit: 5d6678a
@@ -124,7 +124,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-7 · change · More prominent day headers in the timeline
 
-- status: ready
+- status: landed
 - prd: timeline-polish
 - owner: prd/timeline-polish
 - commit: cf96edc
