@@ -60,6 +60,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-17 (dev keeper): Likely cause: `sign-in.tsx` disables the button only while `navigation.state === "submitting"`. After the action redirects, the state is `"loading"` while `/app`'s loaders run `waitForFirstSync` (up to 10 s on a device that hasn't synced), and the button is live again. Fix: stay disabled until the navigation is idle. The slowness is separate: the first sync blocks the first screen. Triage it before choosing a shorter cap, rendering local data straight away with a syncing state, or a smaller first bucket.
 - 2026-11-17 (plan/quick-fixes): Narrowed to the double submit; the slow first load is now B-22. Quick-fixes slice 1.
+- 2026-11-18 (slice/quick-fixes/1): slice/quick-fixes/1: fixed in sign-in.tsx (busy while navigation !== idle) with browser check sign-in.mjs; ready for review
 
 ### B-2 · change · Latest vitals is too busy
 
