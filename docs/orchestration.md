@@ -163,6 +163,7 @@ chore(app-shell): merge dev into prd/app-shell
 | Command                           | What it's for                                                                      |
 | --------------------------------- | ---------------------------------------------------------------------------------- |
 | `pnpm prd status`                 | every worktree: branch, changes, dev server link                                   |
+| `pnpm prd status-watch [seconds]` | the same, redrawn every few seconds (default 5) until Ctrl-C                       |
 | `pnpm prd start <topic>`          | create or reopen a PRD's worktree; prints the orchestrator command                 |
 | `pnpm prd plan <topic>`           | a docs-only worktree for writing a PRD or plan                                     |
 | `pnpm prd serve [name]`           | run a worktree's dev server (`--restart`, `--stop`)                                |

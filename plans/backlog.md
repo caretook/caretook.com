@@ -42,8 +42,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
-| B-13 | plan | ready | providers | prd/providers | Provider directory with search, linked from events |
-| B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
+| B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
+| B-14 | plan | in-progress | providers | prd/providers | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
@@ -52,26 +52,26 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-20 | chore | landed | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
-| B-23 | change | ready | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
+| B-23 | change | landed | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | in-progress | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
-| B-27 | bug | ready | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
-| B-28 | chore | ready | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
-| B-29 | chore | ready | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
+| B-27 | bug | landed | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
+| B-28 | chore | landed | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
+| B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | in-progress | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
-| B-34 | change | ready | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
-| B-35 | bug | ready | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
-| B-36 | chore | ready | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
-| B-37 | bug | triaged | quick-fixes |  | Deleting a practice leaves its clinicians linked to it |
-| B-38 | bug | ready | quick-fixes | prd/quick-fixes | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
-| B-39 | chore | triaged | quick-fixes |  | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
+| B-34 | change | landed | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
+| B-35 | bug | landed | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
+| B-36 | chore | landed | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
+| B-37 | bug | ready | quick-fixes | prd/quick-fixes | Deleting a practice leaves its clinicians linked to it |
+| B-38 | bug | landed | quick-fixes | prd/quick-fixes | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
+| B-39 | chore | ready | quick-fixes | prd/quick-fixes | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-41 | bug | ready | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
-| B-42 | change | ready | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
+| B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
+| B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
 
 ## Items
 
@@ -223,7 +223,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-13 · plan · Provider directory with search, linked from events
 
-- status: ready
+- status: landed
 - prd: providers
 - owner: prd/providers
 - commit: 30f0d61
@@ -237,9 +237,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
-- status: triaged
+- status: in-progress
 - prd: providers
-- owner:
+- owner: prd/providers
 - commit:
 
 - 2026-11-17 (dev keeper): Tiptap mentions in the document, a field on the event, or both.
@@ -325,7 +325,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-23 · change · Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route
 
-- status: ready
+- status: landed
 - prd: routing
 - owner: prd/routing
 - commit: ff24df4
@@ -376,7 +376,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-27 · bug · routing.mjs fails: group settings blank after the entry step; account Sign out flaky
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: e6fc148
@@ -392,7 +392,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-28 · chore · Limit browser checks machine-wide: a lock so at most two run at once
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 8eaf3c3
@@ -404,7 +404,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-29 · chore · Restart PowerSync inside datastore:reset, and fix the flakes it causes
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 8eaf3c3
@@ -455,7 +455,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-34 · change · Date picker for the When field: a calendar to pick the date, not only typed segments
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 483f768
@@ -465,7 +465,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-35 · bug · A practice's type can change to clinician or other while clinicians still point at it
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: e6fc148
@@ -475,7 +475,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-36 · chore · Independent integration tests: no shared group across describe blocks
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: e6fc148
@@ -485,17 +485,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-37 · bug · Deleting a practice leaves its clinicians linked to it
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 9c08e01
 
 - 2026-11-18 (prd/quick-fixes): Found in B-35 (quick-fixes slice 8). A soft-deleted practice stays as its clinicians' practice_id; their edit sheet shows '(removed practice)' and saving keeps it (the practice check runs only when practiceId changes). Decide: refuse the delete while clinicians name it, or clear their links.
 - 2026-11-18 (prd/quick-fixes): Decided with the user: refuse the soft delete while live providers name the practice (409 providerService:practiceHasProviders, server and device), mirroring B-35; never clear the clinicians' links. Spec is quick-fixes slice 14 in plans/quick-fixes-plan.md (on prd/quick-fixes).
+- 2026-11-18 (slice/quick-fixes/14): slice 14 (cf1f804): delete refused with 409 providerService:practiceHasProviders while live providers name it; device refuses too; edit sheet confirm shows the count with Delete disabled
 
 ### B-38 · bug · Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 94ce803
@@ -507,12 +508,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-39 · chore · Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 9c08e01
 
 - 2026-11-18 (Robert Bo Davis): Item 5 of the 2026-11-18 testing-churn plan (5804ae4 did items 1-4). phase2.mjs (107 steps) and app-shell.mjs (98) assert pure logic that now has unit tests. Keep checks to user flows, and give each a SMOKE=1 mode (~20 s) for after-merge runs. Run after components wave 2 lands: it reworks the same checks.
+- 2026-11-18 (prd/quick-fixes): components slice 5 (the entry form, split) is still pending, so slice 10 leaves roundtrip.mjs's sheet steps as they are apart from the smoke markers; revisit them after components 5 lands.
+- 2026-11-18 (slice/quick-fixes/10): Slice 10 committed on slice/quick-fixes/10 (1870973, 9e7d83b): --smoke mode, five checks leaner (full 311 s -> 219 s quiet, smoke 4-7 s each). One full + one smoke run each, per the user's instruction.
 
 ### B-40 · chore · Real app screenshots for the marketing site before launch
 
@@ -525,7 +528,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-41 · bug · /app stays blank after a full reload (app-shell.mjs last-group steps)
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 94ce803
@@ -537,7 +540,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-42 · change · App header uses the brand: the logo mark and wordmark, and the marketing header's look
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 94ce803
