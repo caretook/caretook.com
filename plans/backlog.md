@@ -40,7 +40,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
-| B-13 | plan | triaged | providers |  | Provider directory with search, linked from events |
+| B-13 | plan | in-progress | providers | prd/providers | Provider directory with search, linked from events |
 | B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
@@ -52,7 +52,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 | B-23 | change | in-progress | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
-| B-25 | feature | inbox |  |  | @-mentions of providers inside live notes and events |
+| B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 
 ## Items
 
@@ -203,14 +203,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-13 · plan · Provider directory with search, linked from events
 
-- status: triaged
+- status: in-progress
 - prd: providers
-- owner:
+- owner: prd/providers
 - commit:
 
 - 2026-11-17 (dev keeper): To settle: one table with a type (provider, pharmacy, facility, contact) or several; what an event's link stores.
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/providers-prd.md. One provider table (clinician | practice | pharmacy | other), clinician→practice link, phones, primary (any number), past status, live notes via a generalized note_document, soft delete. Plan after components lands.
 - 2026-11-18 (Robert Bo Davis): Planned: plans/providers-plan.md. Slices 1–4 (data now; list after routing 1; add/edit after routing 2; provider page). Only linking (B-14, slices 5–7) waits for components 2–4.
+- 2026-11-18 (slice/providers/1): slice/providers/1 (09b62bd, 17b861d): data layer done — provider + timeline_entry_provider tables, note_document subject/entry_id/provider_id, services, sync, device module lib/sync/providers.ts, seeds; providers.mjs started
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
@@ -324,9 +325,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: providers
 - owner:
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Later, after providers' linking lands. Typing @ in a note's or event's text suggests providers; a mention links the provider like the With row. Needs @tiptap/extension-mention and @tiptap/suggestion (new dependencies: the user's approval). Out of scope for the providers PRD.
+- 2026-11-18 (prd/providers): Triaged to providers by its orchestrator: @-mentions need the provider table and links (slices 1 and 5). A follow-up after slice 5, not in the current plan.

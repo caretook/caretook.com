@@ -1,12 +1,12 @@
 import type { MyGroup } from "~/lib/rpc";
-import type { clientLoader as layoutLoader } from "~/routes/app/layout";
+import type { clientLoader as layoutLoader } from "./route";
 import type { GroupRow } from "~/lib/sync/timeline";
 
 import { Check, ChevronDown, Settings } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { Button, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { useNavigate, useRouteLoaderData } from "react-router";
-import { groupSettingsPath } from "~/lib/groupSettings";
+import { appUrls } from "~/lib/appUrls";
 import { rememberGroup } from "~/lib/lastGroup";
 import { useLiveQuery } from "~/lib/sync";
 import { myGroupsQuery, toMyGroup } from "~/lib/sync/timeline";
@@ -20,8 +20,6 @@ const displayName = (group: MyGroup) => group.recipient?.displayName || group.na
 // One array for every render: `useLiveQuery` treats a new `initial` as new loader data.
 const NO_ROWS: GroupRow[] = [];
 
-const timelinePath = (groupId: string) => `/app/groups/${groupId}/timeline`;
-
 /**
  * The header's `group` region on `/app/groups/:groupId/*`: the current
  * group's display name as a menu listing every group on this device (live,
@@ -33,7 +31,7 @@ export function GroupMenu({ groupId }: { groupId: string }) {
   const navigate = useNavigate();
   // The signed-in user from the /app layout's loader (not `getSync()`, which
   // throws while signing out, when the database closes under this header).
-  const userId = useRouteLoaderData<typeof layoutLoader>("routes/app/layout")?.user.id ?? "";
+  const userId = useRouteLoaderData<typeof layoutLoader>("app")?.user.id ?? "";
   const query = useMemo(() => myGroupsQuery(userId), [userId]);
   const groups = useLiveQuery<GroupRow>(query.sql, query.params, NO_ROWS).map(toMyGroup);
   const current = groups.find((g) => g.id === groupId);
@@ -70,7 +68,7 @@ export function GroupMenu({ groupId }: { groupId: string }) {
                 id={group.id}
                 textValue={displayName(group)}
                 onAction={() => {
-                  if (group.id !== groupId) void navigate(timelinePath(group.id));
+                  if (group.id !== groupId) void navigate(appUrls.timeline(group.id));
                 }}
                 className={ITEM}
               >
@@ -94,7 +92,7 @@ export function GroupMenu({ groupId }: { groupId: string }) {
           <Separator className="border-base-300 my-1 border-t" />
           <MenuItem
             id="group-settings"
-            onAction={() => void navigate(groupSettingsPath(groupId))}
+            onAction={() => void navigate(appUrls.groupSettings(groupId))}
             className={ITEM}
           >
             <Settings aria-hidden="true" className="size-4 shrink-0" />

@@ -173,6 +173,7 @@ The backlog's PRD table lists them all, with their dependencies.
 - 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–3 (B-1, B-17, B-22) are in `dev`**; nothing is in flight. `prompt.sh` handles a topic without a PRD file.
 - ✅ [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): **done**, all seven slices in `dev`: the `/app` frame, the user menu with theme, the group menu with the last group, the sections nav and tab bar, group settings (details and members), and the timeline layout choice in Settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md); its lasting decisions are under _The `/app` frame_. `timeline-polish`, `providers` and `medications` build on the frame.
 - 🟡 [`plans/timeline-polish-prd.md`](plans/timeline-polish-prd.md) (topic `timeline-polish`): the timeline's filters, day headers, vitals line, wide layout and infinite scroll. Sliced in [`plans/timeline-polish-plan.md`](plans/timeline-polish-plan.md). **Slices 1–3 (the filter module with the kind icon, the day headers, and the one-line vitals) are in `dev`.** It's **paused**: slices 4 (filter by author), 5 (full width), 6 (author tooltip) and 7 (infinite scroll) wait for `routing` and `components`, and get replanned then. `search` builds on slices 1, 4 and 7.
+- 🟡 [`plans/routing-prd.md`](plans/routing-prd.md) (topic `routing`, B-23): nested routes, sliced in [`plans/routing-plan.md`](plans/routing-plan.md). **Slice 1 (the group route, `appUrls`, a folder per route) is in `dev`.** Next, 2 (add-sheet URLs) and 4 (account settings subpages) in parallel, then 3 (edit-sheet URL) and 5 (group settings subpages). `components` and `timeline-polish` 4–7 wait for it.
 
 ## Product
 
@@ -292,7 +293,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 - **Settings:** `emailAndPassword` with `disableSignUp: true` and a 12-character minimum; telemetry off; `trustedOrigins` = Capacitor's origins + `AUTH_TRUSTED_ORIGINS`.
 - **Plugins:** `bearer()` (native), and `jwt()`: 15-minute EdDSA tokens with `sub` and `role`, JWKS at `/api/auth/jwks`, and `aud` = `POWERSYNC_URL`.
 - **Exports:** `getAuth()` (lazy) and `getAuthUser(headers)` → `AuthUser` with `groupRoles`. `@caretook/auth/client` has `createCaretookAuthClient`. apps/web imports through `app/.server/auth.ts` and `app/lib/auth-client.ts`.
-- **Routes:** `/api/auth/*` is web only. `/sign-in` and `/sign-out` are shared and client-only (sign-out is POST only). `/app/layout.tsx` redirects to `/sign-in?redirectTo=…`, checked by `safeRedirect`. The sign-in button stays disabled ("Signing in…") while any navigation is non-idle, so it can't be pressed again during the redirect's loaders.
+- **Routes:** `/api/auth/*` is web only. `/sign-in` and `/sign-out` are shared and client-only (sign-out is POST only). The /app layout (`routes/app/layout/route.tsx`) redirects to `/sign-in?redirectTo=…`, checked by `safeRedirect`. The sign-in button stays disabled ("Signing in…") while any navigation is non-idle, so it can't be pressed again during the redirect's loaders.
 - **Dev:** seeds give every `@example.com` user a password from `SEED_USER_PASSWORD` (`packages/data/.env`), hashed with `better-auth/crypto` (a dev dependency). The env is in `apps/web/.env`; `vite.config.ts` also loads `packages/data/.env`.
 - 🟡 **Resend** next: verification, reset, invites, maybe magic link or OTP. Keep `requireEmailVerification` off until then, and don't build UI that assumes passwords are the only sign-in method.
 - ❓ Before launch:
@@ -330,7 +331,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
   - **The first sync** (measured at about 120–200 ms after the database opens locally): `waitForFirstSync(db)` waits at most 1 s (`FIRST_SYNC_WAIT_MS`) and resolves to `isFirstSyncDone(db)`. That's PowerSync's `hasSynced`, which persists with the local copy, so it's true at once on a synced device and offline. `useFirstSyncDone()` is the hook (below the /app layout only). Use it for anything that needs the local groups, such as a last-group redirect.
     - A loader whose group isn't on the device throws `notOnDevice(db)` (`lib/firstSync.ts`): a 404 once the first sync is done, otherwise a 503 "First sync pending" that `/app`'s `ErrorBoundary` shows as `FirstSyncPending` ("Getting your care groups…"), which reruns the loaders when the sync lands. `home` shows the same state while `synced` is false, and never says "not in a care group" before then.
   - `timeline.ts`: local queries, row → API-shape mapping (unknown kinds are skipped), and local writes. Writes validate with the shared Zod schemas, check the role locally, and update content columns only.
-  - `lib/session.ts` `requireSession(request)`: one shared session check and DB open, because layout and child loaders run in parallel. Offline, the cached last user carries on.
+  - `lib/session.ts` `requireSession(request)`: one shared session check and DB open. Offline, the cached last user carries on. The /app layout's `clientMiddleware` calls it once per navigation and sets `sessionContext`; every /app loader and action reads `context.get(sessionContext)`, never `requireSession` again.
   - `lib/me.ts` caches settings per user (they aren't synced). **Change them with `saveSettings(userId, change)`**: it caches at once, records the change as pending (`caretook:settings-pending:<userId>`), and calls `updatePreferences`, resolving `"saved"` or, on a network failure, `"pending"`. Other errors reject (a refused change is dropped). `loadSettings` sends pending changes before reading `me.get`; offline it returns the cache with them on top. The last write wins across devices. `forgetSettings` (sign-out) clears pending changes too.
 - **Conflicts:** last write wins per row. Live notes merge through Yjs.
 - ❓ **Production:** a dedicated replication role with column-limited grants, `sslmode: verify-full`, the Cloud instance, and how Cloud reaches the JWKS.
@@ -409,22 +410,25 @@ The shared space for the caretakers of one care recipient. Always say "care grou
 - **User preferences:** `user.preferences` jsonb (`userPreferencesZSchema`, every field optional, so new settings need no migration).
   - `units`, via `resolveUnits()`, defaulting to °F, lb, mg/dL and mL.
   - `timelineView` (`rows | cards`), via `resolveTimelineView()`.
-- **The `/app` frame** (`routes/app/layout.tsx`, a hot file): fixed regions that slices and PRDs fill through their components, never by restructuring the layout:
+- **The `/app` frame** (`routes/app/layout/route.tsx`, a hot file): fixed regions that slices and PRDs fill through their components, never by restructuring the layout:
   - header `group` (left): the Caretook link, then `GroupMenu` on group routes;
   - header `sections` (`hidden sm:flex`): `SectionNav` on group routes;
   - header `status`: `SyncIndicator`;
   - header `user`: `UserMenu`;
   - the outlet, then `TabBar` (phones, group routes).
   - The `groupId` comes from `useParams()`; screens outside a group (`/app`, `/app/settings`) get the header only.
+  - **Routes are a nested tree** in `routes.ts` (explicit config, no file-system routing): the `app` layout → `home`, `settings`, and the `group` layout (`/app/groups/:groupId`) → an index that redirects to the timeline, `timeline`, `entries/:entryId` and `settings`. **A folder per route:** `routes/app/<area>/<page>/route.tsx`, with the components and helpers only that route uses beside it; a file moves to `components/` only when a second route uses it.
+  - **The group route** (`routes/app/groups/layout/route.tsx`): its `clientMiddleware` loads the group once per navigation, before any child loader. **Client middleware works in both builds** (React Router 8.5.1, no flag). `lib/group.tsx`: `setGroup` records the group, or the `notOnDevice` error, and **never throws**, because a middleware throw on native's first load renders the root boundary, not /app's. Every loader and action under the group route calls `getGroup(context)` first (it throws the recorded error into /app's boundary). Components read `useGroup()`: a typed, read-only `GroupContext` (`lib/groupContext.ts`: `userId`, `id`, `name`, `displayName`, `role`, `canWrite`, `recipient`), live through `myGroupQuery`, keeping the last value if the group leaves the device. Screens never query the group, role or membership themselves.
+  - **`appUrls`** (`lib/appUrls.ts`, pure, tested) builds every `/app/…` path and carries search params through (`home`, `settings`, `groupHome`, `timeline(groupId, search)`, `entry`, `newEntry`, `groupSettings`). **Nothing else writes an `/app/…` string**; a new route adds its builder there.
   - **`UserMenu`:** a RAC menu on the avatar ("Account menu for …"): a name and email header, Settings, a **Theme** section (System, Light, Dark; its own `MenuSection` with `selectionMode="single"`, so its items are `menuitemradio`), and Sign out (POST to `/sign-out`).
   - **Theme** (`lib/theme.ts`): per device in `caretook:theme`, never sent to the server, and kept at sign-out. Light and Dark set `data-theme` on `<html>`; System removes it (and stores nothing), so daisyUI follows `prefers-color-scheme`. `THEME_SCRIPT`, inline first in `root.tsx`'s `<head>` (both targets), applies it before first paint; `<html>` has `suppressHydrationWarning` for it. Storage that throws falls back to System. (With storage blocked, React Router's own `ScrollRestoration` script throws a `SecurityError`; not ours.)
   - **`GroupMenu`:** the current group's display name (recipient's preferred name or name, then the group name) as a RAC menu ("…: switch care group") listing every local group (live, offline), the current one checked (`menuitemradio`); choosing one opens its timeline. After a separator, "Group settings" opens `/app/groups/:groupId/settings`. It reads the user id from the layout's loader data (`useRouteLoaderData`), not `getSync()`, which throws while signing out.
   - **Last group** (`lib/lastGroup.ts`): a group route you're a member of is saved as `caretook:lastGroup:<userId>`; sign-out runs `forgetGroups()`. `/app`'s loader redirects by the pure `resolveHomeGroup({ groups, remembered })`: the remembered group if you're still in it, else the only group, else the list.
   - **Group sections** (`lib/groupSections.ts`): `GROUP_SECTIONS`, an ordered `{ id, label, icon, path(groupId), match(subpath) }` list (Timeline only; `match` also claims `/entries/*`). **A later PRD adds a section by appending one entry and its route**; the shell needs no edit. `SectionNav` (header links) and `TabBar` (a daisyUI `dock`, `sm:hidden`, `z-40`) render it with `aria-current` (`"page"` on the section's page, `"true"` inside it). Both navs are named "Group sections"; only one shows. The bar is hidden on `/entries/*`; elsewhere it renders an in-flow spacer of `--tab-bar-height` (`app.css`), so screens never offset for it. Anything else fixed to the bottom of a group screen offsets by that variable. Modals (`z-50`) cover it.
-  - **Group settings** (`routes/app/groupSettings.tsx`, `/app/groups/:groupId/settings`; not a section, so the tab bar shows with nothing current): a list of `<Section id title>` cards (`group-details`, `care-recipient`, `members`; later sections append). Names and the role are live from local data; the date of birth comes from `careGroup.recipient`. **Writes are online only**: one `clientAction` with an `intent` (`renameGroup`, `updateRecipient`, `changeRole`, `removeMember`) calling oRPC. Offline, or without the role, a section is a read-only `<dl>` with no controls, and the page says "Needs a connection to edit". `lib/groupSettings.ts` has the pure parts: `groupSettingsAccess` (through `hasPermission`), `parseGroupName` and `parseRecipientProfile` (the shared Zod schemas, with the field messages). There's no future-date rule on the date of birth.
+  - **Group settings** (`routes/app/groups/settings/route.tsx`, `/app/groups/:groupId/settings`; not a section, so the tab bar shows with nothing current): a list of `<Section id title>` cards (`group-details`, `care-recipient`, `members`; later sections append). Names and the role are live from local data; the date of birth comes from `careGroup.recipient`. **Writes are online only**: one `clientAction` with an `intent` (`renameGroup`, `updateRecipient`, `changeRole`, `removeMember`) calling oRPC. Offline, or without the role, a section is a read-only `<dl>` with no controls, and the page says "Needs a connection to edit". `groupSettings.ts` beside it has the pure parts: `groupSettingsAccess` (through `hasPermission`), `parseGroupName` and `parseRecipientProfile` (the shared Zod schemas, with the field messages). There's no future-date rule on the date of birth.
     - **Members:** every member (avatar, name with "(you)", role), live from local data, sorted by role then name (`sortMembers`, `memberAccess`, `roleLabel`). Online, owners and admins get a native role `<select>` and Remove; everyone gets Leave on their own row; both go through one `ConfirmDialog`. Only owners are offered Owner or controls on an owner's row. The service's owner-only and last-owner messages are shown as they are (`memberRefusal`).
     - **Leaving waits for the device:** `/app` reads the local copy, so the action waits up to 10 s for the membership to sync away (`waitForMembershipGone` in `lib/sync/members.ts`) before redirecting to `/app`. On a slower sync the user lands back on the group until it goes.
-  - **Settings** (`routes/app/settings.tsx`): Units, and a "Timeline layout" choice (Rows or Cards) that saves on change through `saveSettings`, the same save as the timeline's toggle. Its loader reads through `loadSettings`, so a pending change shows at once.
+  - **Settings** (`routes/app/settings/route.tsx`): Units, and a "Timeline layout" choice (Rows or Cards) that saves on change through `saveSettings`, the same save as the timeline's toggle. Its loader reads through `loadSettings`, so a pending change shows at once.
   - **Avatars:** `UserAvatar` (image, or initials if it's missing or fails to load) is shared by the user menu and `EditorAvatars`. `lib/initials.ts` has `initials(name)` and `userInitials({ name, email })` (name, then the email's first letter, then "?"). `SessionUser` carries an optional `image`.
 - **Timeline screen** (`/app/groups/:groupId/timeline`):
   - Rows (the default) or cards, both rendered from `entrySummary()`.
@@ -465,7 +469,7 @@ Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
   - Typing bursts flush as one `note_update` 250 ms after the last keystroke, and at least every 1 s.
   - A viewer's changes are never written.
   - Previews rebuild text locally, so they include unsynced edits.
-- **Entry page** (`routes/app/entry.tsx`, `/entries/:id`; `/entries/new?kind=note|event` is a draft, the same route so the editor stays mounted):
+- **Entry page** (`routes/app/groups/entry/route.tsx`, `/entries/:id`; `/entries/new?kind=note|event` is a draft, the same route so the editor stays mounted):
   - Nothing is written until the first real change (`shouldMaterialize` in `lib/liveEntry.ts`: text in the document, or a title). Then `materializeLiveEntry` (`lib/sync/liveEntry.ts`) writes the entry and its document in one local transaction (idempotent on the id; for an older event it adds only the document), and the URL is **replaced** with `/entries/:id`.
   - `bindNoteDoc`'s `ensureSaved` holds a draft's Yjs changes in memory until then; leaving drops them.
   - `EntryHeader` has four regions:
@@ -473,7 +477,7 @@ Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
     - **time:** `EntryTimeChip` for writers (a popover with `DateTimeField`; saved on close, only if changed; a time picked on a draft is the saved time, via `occurredAtRef`). Viewers get a plain `EntryTime`.
     - **editors:** `EditorAvatars`.
     - **actions:** once the entry exists, `ShareButton` for everyone, plus `EntryMenu` (⋯ → Delete, with a `ConfirmDialog`, then back to the timeline) for writers.
-  - **Share** (`lib/share.ts`): the Web Share API when `canShare` allows it, else the clipboard with a "Link copied" status; a dismissed sheet shows nothing, and a failed copy shows the link to copy by hand. The origin is `VITE_API_ORIGIN || location.origin`.
+  - **Share** (`share.ts` beside the entry route): the Web Share API when `canShare` allows it, else the clipboard with a "Link copied" status; a dismissed sheet shows nothing, and a failed copy shows the link to copy by hand. The origin is `VITE_API_ORIGIN || location.origin`.
   - Symptom or vital ids, and non-members, get a 404 that shows no title or text.
   - `EntryMenu` still duplicates part of the timeline's `EntryActions` (see _Next steps_).
 - **Editor:** `LiveNotesEditor` is Tiptap StarterKit (`undoRedo: false`, because Collaboration brings Yjs undo; `link: false`). Its chunk is about 140 KB gzipped and loads only on its route.
@@ -590,17 +594,20 @@ scripts/backlog/          pnpm backlog: the live backlog CLI (format.mjs parses 
 apps/web/                 @caretook/web (React Router 8, Vite 8)
   build-target.ts, react-router.config.ts, vite.config.ts
   app/routes.ts, root.tsx, app.css
-  app/routes/app/         shared screens: home, timeline, entry (/entries/:id and /entries/new), settings, groupSettings (no server loaders)
+  app/routes/app/         shared screens, a folder per route (route.tsx + its private files; no server loaders):
+                          layout/ (the /app frame: GroupMenu, SectionNav, SyncIndicator, UserMenu), home/, settings/,
+                          groups/layout/ (the group route), groups/index/, groups/timeline/ (EntryForm, EntrySheet,
+                          QuickAddBar, TimelineEntryRow/Card, TimelineFilters, LatestVitals, LiveNowBanner, LiveDot,
+                          EntryActions, VitalTypeMenu, VitalReadingsFields, entryFormData), groups/entry/ (EntryHeader,
+                          EntryTimeChip, EntryMenu, EventTitleChips, EditorAvatars, ShareButton, LiveNotesEditor, share),
+                          groups/settings/ (groupSettings)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx
   app/.server/            data.ts, auth.ts, api.ts: the server-only doors
-  app/components/         EntryForm, EntrySheet, QuickAddBar, TimelineEntryRow/Card, KindIcon, TimelineFilters,
-                          LatestVitals, EntryActions, DateTimeField, ConfirmDialog, VitalTypeMenu,
-                          VitalReadingsFields, LiveNotesEditor, EntryHeader, EntryTimeChip, EntryMenu,
-                          ShareButton, EditorAvatars, SyncIndicator, UserAvatar, UserMenu, GroupMenu, SectionNav,
-                          FirstSyncPending, EventTitleChips, LiveNowBanner, LiveDot
-  app/lib/                session, me, auth-client, rpc, api, initials, entryDisplay, entryForm, format, redirect, form, liveEntry, share, firstSync,
-                          liveNow, titleSuggestions, theme, lastGroup, groupSections, groupSettings, timelineFilters
+  app/components/         shared by 2+ routes only: ConfirmDialog, DateTimeField, FirstSyncPending, KindIcon, UserAvatar
+  app/lib/                session, group, groupContext, appUrls, me, auth-client, rpc, api, initials, entryDisplay, format,
+                          redirect, form, liveEntry, firstSync, liveNow, titleSuggestions, theme, lastGroup, groupSections,
+                          timelineFilters
   app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors, titleSuggestions, members
 packages/auth/            @caretook/auth
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler

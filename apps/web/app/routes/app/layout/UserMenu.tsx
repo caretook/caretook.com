@@ -15,8 +15,9 @@ import {
   Separator,
 } from "react-aria-components";
 import { useNavigate, useSubmit } from "react-router";
+import { appUrls } from "~/lib/appUrls";
 import { readTheme, setTheme } from "~/lib/theme";
-import { UserAvatar } from "./UserAvatar";
+import { UserAvatar } from "~/components/UserAvatar";
 
 const ITEM =
   "rounded-field flex cursor-pointer items-center gap-2 px-3 py-2 outline-none data-[focused]:bg-base-200";
@@ -53,7 +54,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
               {user.name && <span className="block truncate font-semibold">{user.name}</span>}
               <span className="text-base-content/70 block truncate text-sm">{user.email}</span>
             </Header>
-            <MenuItem id="settings" onAction={() => void navigate("/app/settings")} className={ITEM}>
+            <MenuItem id="settings" onAction={() => void navigate(appUrls.settings())} className={ITEM}>
               <Settings aria-hidden="true" className="size-4" />
               Settings
             </MenuItem>

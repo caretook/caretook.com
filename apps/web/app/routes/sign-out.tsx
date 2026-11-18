@@ -1,4 +1,5 @@
 import { redirect } from "react-router";
+import { appUrls } from "~/lib/appUrls";
 import { authClient } from "~/lib/auth-client";
 import { forgetGroups } from "~/lib/lastGroup";
 import { forgetSettings } from "~/lib/me";
@@ -18,7 +19,7 @@ export async function clientAction() {
 }
 
 export function clientLoader() {
-  throw redirect("/app");
+  throw redirect(appUrls.home());
 }
 
 export default function SignOut() {

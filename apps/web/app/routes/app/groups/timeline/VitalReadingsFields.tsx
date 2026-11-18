@@ -13,7 +13,7 @@ import {
   toDisplay,
   VITALS,
 } from "@caretook/data/schema";
-import { vitalInputName } from "~/lib/entryForm";
+import { vitalInputName } from "./entryFormData";
 import { VitalTypeMenu } from "./VitalTypeMenu";
 
 /** A server issue on one field, in words that name the range in the user's units. */

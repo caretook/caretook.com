@@ -5,7 +5,7 @@ import type { TimelineEntry } from "~/lib/rpc";
 import { useEffect, useId, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { isKnownReading, isSymptomDetails, isVitalDetails, TIMELINE_LIMITS } from "@caretook/data/schema";
-import { DateTimeField } from "./DateTimeField";
+import { DateTimeField } from "~/components/DateTimeField";
 import { VitalReadingsFields } from "./VitalReadingsFields";
 import { VitalTypeMenu } from "./VitalTypeMenu";
 

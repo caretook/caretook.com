@@ -1,8 +1,8 @@
-import type { Route } from "./+types/groupSettings";
+import type { Route } from "./+types/route";
 import type { ReactNode } from "react";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/api";
-import type { GroupRow, MemberRow } from "~/lib/sync/timeline";
+import type { MemberRow } from "~/lib/sync/timeline";
 
 import { ORPCError } from "@orpc/client";
 import { WifiOff } from "lucide-react";
@@ -11,8 +11,14 @@ import { redirect, useFetcher, useRevalidator } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
 import { UserAvatar } from "~/components/UserAvatar";
 import { load, toActionResult } from "~/lib/api";
-import { notOnDevice } from "~/lib/firstSync";
+import { appUrls } from "~/lib/appUrls";
 import { formString } from "~/lib/form";
+import { getGroup, useGroup } from "~/lib/group";
+import { rpc } from "~/lib/rpc";
+import { sessionContext } from "~/lib/session";
+import { useLiveQuery } from "~/lib/sync";
+import { waitForMembershipGone } from "~/lib/sync/members";
+import { membersQuery, readRows } from "~/lib/sync/timeline";
 import {
   formatDateOfBirth,
   groupSettingsAccess,
@@ -24,12 +30,7 @@ import {
   parseRecipientProfile,
   roleLabel,
   sortMembers,
-} from "~/lib/groupSettings";
-import { rpc } from "~/lib/rpc";
-import { requireSession } from "~/lib/session";
-import { useLiveQuery, waitForFirstSync } from "~/lib/sync";
-import { waitForMembershipGone } from "~/lib/sync/members";
-import { membersQuery, myGroupsQuery, readRows } from "~/lib/sync/timeline";
+} from "./groupSettings";
 
 // Shared by web + native. Names, members and roles come from the device's
 // local copy (live, so they work offline and follow other members' changes).
@@ -42,17 +43,14 @@ export const meta = () => [{ title: "Group settings · Caretook" }];
 const isNetworkError = (e: unknown) => e instanceof TypeError;
 
 /**
- * The group from the local copy (a group that isn't on the device is a 404),
- * plus the recipient's profile from the API. Without a connection the page
- * still loads, read-only (`online: false`).
+ * The members from the local copy (the group itself comes from the group
+ * route), plus the recipient's profile from the API. Without a connection
+ * the page still loads, read-only (`online: false`).
  */
-export async function clientLoader({ request, params }: Route.ClientLoaderArgs) {
+export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const { groupId } = params;
-  const { db } = await requireSession(request);
-  await waitForFirstSync(db);
-  const rows = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
-  const groupRow = rows.find((g) => g.id === groupId);
-  if (!groupRow) throw notOnDevice(db);
+  getGroup(context);
+  const { db } = context.get(sessionContext);
   const members = await readRows<MemberRow>(db, membersQuery(groupId));
 
   const profile = await load(request, rpc.careGroup.recipient({ groupId })).then(
@@ -62,10 +60,14 @@ export async function clientLoader({ request, params }: Route.ClientLoaderArgs) 
       throw e;
     },
   );
-  return { userId: db.userId, groupId, rows, groupRow, members, ...profile };
+  return { userId: db.userId, groupId, members, ...profile };
 }
 
-export async function clientAction({ request, params }: Route.ClientActionArgs): Promise<ActionResult> {
+export async function clientAction({
+  request,
+  params,
+  context,
+}: Route.ClientActionArgs): Promise<ActionResult> {
   const { groupId } = params;
   const form = await request.formData();
   const intent = formString(form, "intent");
@@ -95,13 +97,13 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
     }
     if (intent === "removeMember") {
       const userId = formString(form, "userId");
-      const { db } = await requireSession(request);
+      const { db } = context.get(sessionContext);
       await rpc.careGroup.removeMember({ groupId, userId });
       if (userId !== db.userId) return { ok: true };
       // You left. `/app` reads the local copy, so wait for the group to go
       // from it first (otherwise `/app` would send you straight back here).
       await waitForMembershipGone(db, { groupId, userId });
-      throw redirect("/app");
+      throw redirect(appUrls.home());
     }
     return { ok: false, error: "Unknown action.", issues: [] };
   } catch (e) {
@@ -135,14 +137,9 @@ export function shouldRevalidate({ actionResult, defaultShouldRevalidate }: Shou
 export default function GroupSettings({ loaderData }: Route.ComponentProps) {
   const { userId, groupId, online, recipient } = loaderData;
 
-  // The loader's rows only seed the live query: a save reruns the loader
-  // before the renamed rows have synced back, and its (older) read mustn't
-  // replace what the watch has since reported.
-  const [seed] = useState(loaderData.rows);
-  const query = myGroupsQuery(userId);
-  const rows = useLiveQuery<GroupRow>(query.sql, query.params, seed);
-  const row = rows.find((g) => g.id === groupId) ?? loaderData.groupRow;
-  const access = groupSettingsAccess(groupId, row.role);
+  // Live from the device: a rename or a changed role shows without a reload.
+  const group = useGroup();
+  const access = groupSettingsAccess(groupId, group.role);
 
   // Back online: load the date of birth and show the forms.
   const { revalidate } = useRevalidator();
@@ -167,27 +164,27 @@ export default function GroupSettings({ loaderData }: Route.ComponentProps) {
       {/* Each part of the page is one <section> card; later parts are appended after the last one. */}
       <Section id="group-details" title="Care group">
         {online && access.renameGroup ? (
-          <GroupNameForm name={row.name ?? ""} />
+          <GroupNameForm name={group.name} />
         ) : (
           <Details>
-            <Detail label="Name" value={row.name} />
+            <Detail label="Name" value={group.name} />
           </Details>
         )}
       </Section>
 
       <Section id="care-recipient" title="Care recipient">
-        {!row.recipient_id ? (
+        {!group.recipient ? (
           <p className="text-base-content/70 text-sm">This care group has no care recipient yet.</p>
         ) : online && access.editRecipient ? (
           <RecipientForm
-            name={row.recipient_name ?? ""}
-            preferredName={row.recipient_preferred_name ?? ""}
+            name={group.recipient.name}
+            preferredName={group.recipient.preferredName ?? ""}
             dateOfBirth={recipient?.dateOfBirth ?? ""}
           />
         ) : (
           <Details>
-            <Detail label="Name" value={row.recipient_name} />
-            <Detail label="Preferred name" value={row.recipient_preferred_name} />
+            <Detail label="Name" value={group.recipient.name} />
+            <Detail label="Preferred name" value={group.recipient.preferredName} />
             <Detail
               label="Date of birth"
               value={recipient?.dateOfBirth ? formatDateOfBirth(recipient.dateOfBirth) : null}
@@ -201,7 +198,7 @@ export default function GroupSettings({ loaderData }: Route.ComponentProps) {
         <Members
           groupId={groupId}
           userId={userId}
-          myRole={row.role}
+          myRole={group.role}
           online={online}
           initial={loaderData.members}
         />

@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 
 import { History } from "lucide-react";
+import { appUrls } from "./appUrls";
 
 /**
  * A care group's sections: the destinations of the phone tab bar and the
@@ -32,7 +33,7 @@ export const GROUP_SECTIONS: readonly GroupSection[] = [
     id: "timeline",
     label: "Timeline",
     icon: History,
-    path: (groupId) => `/app/groups/${groupId}/timeline`,
+    path: (groupId) => appUrls.timeline(groupId),
     // An entry's page is part of the timeline.
     match: (subpath) => under(subpath, "/timeline") || under(subpath, "/entries"),
   },
@@ -43,7 +44,7 @@ export const GROUP_SECTIONS: readonly GroupSection[] = [
  * for the group itself), or null when `pathname` isn't in that group.
  */
 export function groupSubpath(pathname: string, groupId: string): string | null {
-  const base = `/app/groups/${groupId}`;
+  const base = appUrls.groupHome(groupId);
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   if (path === base) return "";
   return path.startsWith(`${base}/`) ? path.slice(base.length) : null;

@@ -3,14 +3,21 @@ import { type RouteConfig, index, layout, prefix, route } from "@react-router/de
 import { isNative } from "../build-target";
 
 // Shared app screens: client-only data (local DB + oRPC). Present in both targets.
+// Each route module is `route.tsx` in its own folder, beside the files only it uses.
+// Nested where the UI is nested: the group route loads the group once for every
+// screen inside it. Later group sections (Medications, Providers…) are new
+// children of `groups/:groupId`, appended at the end of its list.
 const appRoutes = [
   ...prefix("app", [
-    layout("routes/app/layout.tsx", [
-      index("routes/app/home.tsx"),
-      route("groups/:groupId/timeline", "routes/app/timeline.tsx"),
-      route("groups/:groupId/entries/:entryId", "routes/app/entry.tsx"),
-      route("settings", "routes/app/settings.tsx"),
-      route("groups/:groupId/settings", "routes/app/groupSettings.tsx"),
+    layout("routes/app/layout/route.tsx", { id: "app" }, [
+      index("routes/app/home/route.tsx"),
+      route("settings", "routes/app/settings/route.tsx"),
+      route("groups/:groupId", "routes/app/groups/layout/route.tsx", { id: "group" }, [
+        index("routes/app/groups/index/route.tsx"),
+        route("timeline", "routes/app/groups/timeline/route.tsx"),
+        route("entries/:entryId", "routes/app/groups/entry/route.tsx"),
+        route("settings", "routes/app/groups/settings/route.tsx"),
+      ]),
     ]),
   ]),
   route("sign-in", "routes/sign-in.tsx"),
