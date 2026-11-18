@@ -7,7 +7,7 @@
 | Slice | State                                                                   | Merge into `prd/invites` (slice commits) |
 | ----- | ----------------------------------------------------------------------- | ---------------------------------------- |
 | 1     | merged                                                                  | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
-| 2     | ready (waits for the user's go-ahead)                                   |                                          |
+| 2     | in progress (`.loops/invites-2`, slot 9)                                |                                          |
 | 3     | blocked by 2 (and uses `routing` slice 5's Members subpage if in `dev`) |                                          |
 | 4     | blocked by 3                                                            |                                          |
 | 5     | blocked by 3                                                            |                                          |
