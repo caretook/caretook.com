@@ -137,7 +137,24 @@ export async function openPage(browser, label) {
     evaluate(`(() => { const el = ${selector}; const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
       Object.getOwnPropertyDescriptor(proto, "value").set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event("input", { bubbles: true })); return true; })()`);
 
-  const signIn = async (email, password) => {
+  /**
+   * On the `/app` group list (member@ is in two seeded groups), open Dev
+   * Family's timeline: the group every check works in. A user with one group
+   * is already on its timeline; one with none stays on the list.
+   */
+  const openDevFamily = async (ms = 45000) => {
+    await waitFor(
+      `location.pathname !== "/app" || document.querySelector("main h1")?.textContent === "Your care groups"`,
+      ms,
+    );
+    const link = `[...document.querySelectorAll('main a[href$="/timeline"]')].find((a) => a.textContent.includes("Grandma Pat"))`;
+    if (!(await evaluate(`location.pathname === "/app" && !!${link}`))) return;
+    await evaluate(`${link}.click()`);
+    await waitFor(`location.pathname.endsWith("/timeline")`, ms);
+  };
+
+  /** Sign in; then, unless `home`, go on from the group list to Dev Family (see `openDevFamily`). */
+  const signIn = async (email, password, { home = false } = {}) => {
     await goto("/sign-in");
     await waitFor(`document.querySelector('input[name="email"]')`);
     await type(`document.querySelector('input[name="email"]')`, email);
@@ -145,6 +162,7 @@ export async function openPage(browser, label) {
     await press(`document.querySelector('form button[type="submit"]')`);
     // The first /app load (PowerSync, cold modules) can be slow when many loops share the machine.
     await waitFor(`location.pathname.startsWith("/app")`, 45000);
+    if (!home) await openDevFamily();
   };
 
   /** Sign out through the header's account menu (app-shell slice 1). */
@@ -168,6 +186,7 @@ export async function openPage(browser, label) {
     tap,
     type,
     signIn,
+    openDevFamily,
     signOut,
     errors,
     close: () => ws.close(),

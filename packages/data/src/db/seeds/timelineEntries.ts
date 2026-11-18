@@ -15,7 +15,7 @@ import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 const TIME_ZONE = "America/Los_Angeles";
 const HOUR = 60 * 60 * 1000;
 
-type SeedEntry = {
+export type SeedEntry = {
   /** Hours before seeding time, or `at`: a local time some days ago. */
   hoursAgo?: number;
   at?: { daysAgo: number; time: `${number}:${number}` };

@@ -4,22 +4,27 @@
 
 ## Status
 
-| Slice   | State                         | Merge into `prd/app-shell` (slice commits)                  |
-| ------- | ----------------------------- | ----------------------------------------------------------- |
-| 1       | **merged**, synced with `dev` | `697c39b` (`e9d37c3`, `4606dcd`); `dev` synced at `7fb8fc7` |
-| 2, 3, 4 | ready (the next wave)         |                                                             |
-| 5       | blocked by 3                  |                                                             |
-| 6       | blocked by 5                  |                                                             |
-| 7       | ready (after quick-fixes 2)   |                                                             |
+| Slice | State                                                    | Merge into `prd/app-shell` (slice commits) |
+| ----- | -------------------------------------------------------- | ------------------------------------------ |
+| 1     | **landed** in `dev` (`49b66b9`)                          | `697c39b` (`e9d37c3`, `4606dcd`)           |
+| 2     | **merged**, ready to land (wave 2)                       | `9e5f7c2` (`fb225b0`)                      |
+| 3     | **merged**, ready to land (wave 2)                       | `e3d7119` (`650c0f0`); check fix `fb9f6b1` |
+| 4     | **merged**, ready to land (wave 2)                       | `ac4eea3` (`d0d5c63`)                      |
+| —     | `dev` synced (quick-fixes wave 1)                        | `66255e2`; `first-sync.mjs` fix `aaf2f99`  |
+| 5     | ready (the next wave)                                    |                                            |
+| 6     | blocked by 5                                             |                                            |
+| 7     | ready (quick-fixes 2 has landed: use its `saveSettings`) |                                            |
 
-Wave 1 notes, for the next orchestrator:
+Backlog: B-8 is `ready` at `9e5f7c2` (slices 1–2). B-9 is in progress (claimed by `prd/app-shell`) until slice 6. Slice 7 has no item; note it on B-8.
 
-- Slice 1 left stubs that render nothing: `GroupMenu.tsx` (slice 3, then 5) and `SectionNav.tsx` (`SectionNav` + `TabBar`, slice 4). The theme item goes at the marked comment in `UserMenu.tsx` (slice 2); its `Menu` has no `selectionMode`, so the theme needs its own `MenuSection` with `selectionMode="single"`.
-- Slice 4 must add the bottom offset that keeps the quick-add bar and `EntrySheet` clear of the tab bar.
-- `cdp.mjs` gained `page.signOut()`; every check signs out through the account menu. `roundtrip.mjs` is still stale (live-notes-ux slice 10 rewrites it).
-- `live-now.mjs` must run on a quiet group (see the AGENTS.md gotcha). `app-shell.mjs` and `live-now.mjs` share CDP ports 9471–9472, which is fine only because checks run one at a time.
-- Resolved at the `dev` sync: `EditorAvatars.tsx` imports (keep `listNames`, drop `initials`).
-- B-8 stays in progress until slice 2 merges.
+Wave 2 notes, for the next orchestrator:
+
+- **Slice 5:** "Group settings" goes at the marked comment at the end of `GroupMenu`'s `Menu` (after a `Separator`). `/app/groups/:groupId/settings` will show the tab bar with no section current; that's intended (it isn't a section).
+- **Seeds:** member@ has two groups now. Browser checks get Dev Family through `cdp.mjs`'s `signIn` (`openDevFamily`; `{ home: true }` to skip it). Filter psql seed queries by Dev Family's id. Slice 6's role-change checks should use Dev Family (where caretaker@ and viewer@ are).
+- **Merging `app-shell.mjs`:** every slice appends to it, and the header comment conflicts each time. Slices 2 and 3 also clashed at runtime: slice 2 kills the viewer's browser to reuse port 9472, so any later step on the viewer page must run before that (`fb9f6b1`). Run the whole file after each merge.
+- **Slice 7:** quick-fixes slice 2's `saveSettings(userId, change)` (`lib/me.ts`) is in `dev`; write the layout through it.
+- **Flaky checks seen this wave** (they passed on a rerun, or on a quiet machine): the old `live-note.mjs` step 4 or 8, and `editors.mjs` right after other checks typed (both now folded into live-notes-ux's order-independent `live-notes.mjs`); `app-shell.mjs` group-menu Escape and "/app after a reload", once each on a first run. `layout-offline.mjs` doesn't exit after printing its result: run it with a timeout.
+- **Browser checks after the second `dev` sync:** live-notes-ux slice 10 replaced `editors`, `live-note`, `live-now`, `share`, `title-chips` and `entry-header` with one `live-notes.mjs`; slice 3's Dev Family filters in the old files were dropped with them. The wave's set is now `app-shell`, `phase2`, `live-notes`, `roundtrip`, `signout-wipe`, `first-sync`, `sign-in` and `layout-offline`.
 
 ## Architectural decisions
 

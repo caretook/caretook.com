@@ -149,7 +149,7 @@ The backlog's PRD table lists them all, with their dependencies.
 
 - ✅ [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (topic `live-notes-ux`): **done**, all ten slices in `dev`. Notes and events _are_ their live document: Note/Event opens the editor in one tap, the entry is saved on the first keystroke, and others join in one tap through a row tap, the Live now banner, a live dot or a Share link. Its lasting decisions are under _Timeline entries_ and _Live notes_; follow-ups are in _Next steps_.
 - 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–3 (B-1, B-17, B-22) are in `dev`**; nothing is in flight. `prompt.sh` handles a topic without a PRD file.
-- 🟡 [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): the `/app` frame, the user menu, the group menu and switcher, group sections, and group settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md). **Slice 1 (the frame and the user menu) is landing.** Slices 2, 3 and 4 run next, each filling one region; `timeline-polish`, `providers` and `medications` build on the frame.
+- 🟡 [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): the `/app` frame, the user menu, the group menu and switcher, group sections, and group settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md). **Slices 1–4 (the frame, the user menu with theme, the group menu with the last group, and the sections nav with the tab bar) are in `dev`** once wave 2 lands. Slice 5 (group settings: details) runs next, then 6 (members); 7 (timeline layout in Settings) can run any time. `timeline-polish`, `providers` and `medications` build on the frame.
 
 ## Product
 
@@ -353,7 +353,7 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - `careGroupService.create` makes the creator the first owner.
   - Only owners add, promote, demote or remove owners. A group keeps at least one owner (owner rows are locked `FOR UPDATE`).
   - `careGroupInviteService.create` (only owners invite owners) returns the raw token once (7-day expiry). `revoke` withdraws a pending invite.
-- **Seeds:** "Dev Family", with member@ as owner, caretaker@ as caretaker and viewer@ as viewer. admin@ is deliberately not a member.
+- **Seeds:** "Dev Family" (recipient Grandma Pat), with member@ as owner, caretaker@ as caretaker and viewer@ as viewer. "Dev Family 2" (`seeds/secondGroup.ts`, recipient Grandpa Lou, five entries with their own ids) has member@ as its only member, so member@'s `/app` is the group list on a fresh device; caretaker@ and viewer@ have one group each. admin@ is deliberately not a member.
 
 ### Timeline entries
 
@@ -385,12 +385,17 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - `units`, via `resolveUnits()`, defaulting to °F, lb, mg/dL and mL.
   - `timelineView` (`rows | cards`), via `resolveTimelineView()`.
 - **The `/app` frame** (`routes/app/layout.tsx`, a hot file): fixed regions that slices and PRDs fill through their components, never by restructuring the layout:
-  - header `group` (left): the Caretook link, then `GroupMenu` on group routes (app-shell slices 3 and 5);
-  - header `sections` (`hidden sm:flex`): `SectionNav` on group routes (slice 4);
+  - header `group` (left): the Caretook link, then `GroupMenu` on group routes;
+  - header `sections` (`hidden sm:flex`): `SectionNav` on group routes;
   - header `status`: `SyncIndicator`;
-  - header `user`: `UserMenu`, a RAC menu on the avatar ("Account menu for …"), with a name and email header, Settings and Sign out (POST to `/sign-out`). Theme goes in it next (slice 2);
-  - the outlet, then `TabBar` (phones, group routes; slice 4).
-  - `GroupMenu`, `SectionNav` and `TabBar` render nothing yet. The `groupId` comes from `useParams()`; screens outside a group get the header only.
+  - header `user`: `UserMenu`;
+  - the outlet, then `TabBar` (phones, group routes).
+  - The `groupId` comes from `useParams()`; screens outside a group (`/app`, `/app/settings`) get the header only.
+  - **`UserMenu`:** a RAC menu on the avatar ("Account menu for …"): a name and email header, Settings, a **Theme** section (System, Light, Dark; its own `MenuSection` with `selectionMode="single"`, so its items are `menuitemradio`), and Sign out (POST to `/sign-out`).
+  - **Theme** (`lib/theme.ts`): per device in `caretook:theme`, never sent to the server, and kept at sign-out. Light and Dark set `data-theme` on `<html>`; System removes it (and stores nothing), so daisyUI follows `prefers-color-scheme`. `THEME_SCRIPT`, inline first in `root.tsx`'s `<head>` (both targets), applies it before first paint; `<html>` has `suppressHydrationWarning` for it. Storage that throws falls back to System. (With storage blocked, React Router's own `ScrollRestoration` script throws a `SecurityError`; not ours.)
+  - **`GroupMenu`:** the current group's display name (recipient's preferred name or name, then the group name) as a RAC menu ("…: switch care group") listing every local group (live, offline), the current one checked (`menuitemradio`); choosing one opens its timeline. "Group settings" goes at the marked comment (slice 5). It reads the user id from the layout's loader data (`useRouteLoaderData`), not `getSync()`, which throws while signing out.
+  - **Last group** (`lib/lastGroup.ts`): a group route you're a member of is saved as `caretook:lastGroup:<userId>`; sign-out runs `forgetGroups()`. `/app`'s loader redirects by the pure `resolveHomeGroup({ groups, remembered })`: the remembered group if you're still in it, else the only group, else the list.
+  - **Group sections** (`lib/groupSections.ts`): `GROUP_SECTIONS`, an ordered `{ id, label, icon, path(groupId), match(subpath) }` list (Timeline only; `match` also claims `/entries/*`). **A later PRD adds a section by appending one entry and its route**; the shell needs no edit. `SectionNav` (header links) and `TabBar` (a daisyUI `dock`, `sm:hidden`, `z-40`) render it with `aria-current` (`"page"` on the section's page, `"true"` inside it). Both navs are named "Group sections"; only one shows. The bar is hidden on `/entries/*`; elsewhere it renders an in-flow spacer of `--tab-bar-height` (`app.css`), so screens never offset for it. Anything else fixed to the bottom of a group screen offsets by that variable. Modals (`z-50`) cover it.
   - **Avatars:** `UserAvatar` (image, or initials if it's missing or fails to load) is shared by the user menu and `EditorAvatars`. `lib/initials.ts` has `initials(name)` and `userInitials({ name, email })` (name, then the email's first letter, then "?"). `SessionUser` carries an optional `image`.
 - **Timeline screen** (`/app/groups/:groupId/timeline`):
   - Rows (the default) or cards, both rendered from `entrySummary()`.
@@ -518,9 +523,11 @@ Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
 UI work is verified in headless Chrome over CDP with plain Node scripts (no Playwright yet).
 
 - **Run:** Node 24 (they use the global `WebSocket`), from that folder, against the dev server. `BASE` defaults to `http://localhost:5176`.
-- **Scripts:** `cdp.mjs` (the harness, with `tap()` for real CDP mouse taps); `proxy.mjs` (offline, because CDP network emulation doesn't cut PowerSync's stream); `live-notes.mjs` (the one notes and events check, about 2 min: drafts, one-tap note and event, title chips, Live now banner and live dot, avatars, convergence, offline, time chip, Delete, Share, 404s, with tap counts Note 1, Event 1, named event 2, Join 1); `roundtrip.mjs` (sheet entries: symptom add, edit, delete, validation, offline, viewer, sign-out wipe); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `signout-wipe.mjs` (never exits on its own: run it with a timeout); `sign-in.mjs` (one sign-in request on a double click, by holding `/api/auth/token`); `layout-offline.mjs` (an offline layout change survives and reaches the server); `first-sync.mjs` (a slow first sync, held by its own proxy, shows the syncing state and never "no care groups"; `HOLD_MS`); `app-shell.mjs` (the frame and the user menu: one-row header at 420, keyboard menu, Settings, Sign out).
+- **Scripts:** `cdp.mjs` (the harness, with `tap()` for real CDP mouse taps); `proxy.mjs` (offline, because CDP network emulation doesn't cut PowerSync's stream); `live-notes.mjs` (the one notes and events check, about 2 min: drafts, one-tap note and event, title chips, Live now banner and live dot, avatars, convergence, offline, time chip, Delete, Share, 404s, with tap counts Note 1, Event 1, named event 2, Join 1); `roundtrip.mjs` (sheet entries: symptom add, edit, delete, validation, offline, viewer, sign-out wipe); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `signout-wipe.mjs` (never exits on its own: run it with a timeout); `sign-in.mjs` (one sign-in request on a double click, by holding `/api/auth/token`); `layout-offline.mjs` (an offline layout change survives and reaches the server); `first-sync.mjs` (a slow first sync, held by its own proxy, shows the syncing state and never "no care groups"; `HOLD_MS`); `app-shell.mjs` (the frame: one-row header at 420, the user menu by keyboard, theme with no flash and with storage blocked, group switching and the last group, the tab bar at 420 and header links at 1280, Sign out).
   - **They're order-independent:** each run tags the entries it makes, asserts against its own entries (never global idle state or seed order), moves only its own documents' edit times back before "who's typing" steps, and soft-deletes what it made at the end. They exit non-zero on failure.
   - Sign out in a check with `page.signOut()` (`cdp.mjs`), which goes through the account menu.
+  - **member@ has two groups.** `page.signIn(email, pw)` goes on from the group list to Dev Family's timeline (`page.openDevFamily()`); pass `{ home: true }` to stay where `/app` lands. A check that needs a one-group user's "straight to the timeline" signs in as caretaker@ or viewer@. psql queries that pick seeded rows filter on Dev Family's id (`0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001`).
+  - ⚠️ `layout-offline.mjs` prints its result and then doesn't exit (its proxy's open sockets): run it with a timeout, like `signout-wipe.mjs`.
   - Headless Chrome's clipboard needs `Emulation.setFocusEmulationEnabled`. Pin the zone (`Emulation.setTimezoneOverride`, America/Los_Angeles) for layout checks.
 - **Patterns:**
   - Use a 420×900 window.
@@ -562,7 +569,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           ShareButton, EditorAvatars, SyncIndicator, UserAvatar, UserMenu, GroupMenu, SectionNav,
                           FirstSyncPending, EventTitleChips, LiveNowBanner, LiveDot
   app/lib/                session, me, auth-client, rpc, api, initials, entryDisplay, entryForm, format, redirect, form, liveEntry, share, firstSync,
-                          liveNow, titleSuggestions
+                          liveNow, titleSuggestions, theme, lastGroup, groupSections
   app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors, titleSuggestions
 packages/auth/            @caretook/auth
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
