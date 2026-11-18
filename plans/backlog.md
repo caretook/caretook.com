@@ -532,3 +532,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 12. The app header's plain 'Caretook' text link becomes the marketing LogoMark + wordmark (mark only on phones in a group, to keep one row at 420), with the marketing header's border, translucent background and height. LogoMark/Wordmark move to components/brand/ so both use one copy. Not the marketing nav, waitlist button or disclosure menu; not sticky.
+- 2026-11-18 (Robert Bo Davis): Quick-fixes slice 13 (slice 12 is B-41 on prd/quick-fixes).
