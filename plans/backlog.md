@@ -52,7 +52,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 | B-23 | change | in-progress | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
-| B-25 | feature | inbox |  |  | @-mentions of providers inside live notes and events |
+| B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 
 ## Items
 
@@ -324,8 +324,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: providers
 - owner:
 - commit:
 
