@@ -2,7 +2,9 @@
 // one h1, landmarks, the skip link, the phone menu (opens, closes with Escape),
 // meta tags and JSON-LD, sitemap.xml and robots.txt, no third-party requests,
 // no /app or sync chunk, the calls to action, and Sign in reaching /sign-in.
-// Each marketing page loads with one h1. No sign-in and nothing written, so
+// Each marketing page loads with one h1. Features, FAQ and About at 420 and
+// 1280: one h1, screenshots with alt text and responsive, lazy sources, and
+// the FAQ's JSON-LD matching its visible questions. No sign-in and nothing written, so
 // there's nothing to clean up.
 //
 // Screenshots (full page) go to the worktree's git dir, never the repo:
@@ -238,6 +240,61 @@ try {
   }
   const allUrls = await resources();
   check(!allUrls.some((u) => APP_CHUNK.test(u)), "no /app or sync chunk on the last page either");
+
+  // 8b. Features, FAQ and About at both widths: one h1, no sideways scroll, and
+  // every image with alt text, responsive sources and lazy loading (bar one).
+  const imageUrls = new Set();
+  for (const path of ["/features", "/faq", "/about"]) {
+    for (const width of [420, 1280]) {
+      await viewport(width);
+      await p.goto(path);
+      await p.waitFor(`document.querySelector("h1")`, 15000);
+      const s = await p.evaluate(`({
+        h1: document.querySelectorAll("h1").length,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        imgs: [...document.querySelectorAll("main img")].map((i) => ({
+          alt: i.getAttribute("alt") ?? "", srcset: i.getAttribute("srcset") ?? "", loading: i.loading,
+          dark: i.parentElement.querySelector('source[media*="dark"]')?.getAttribute("srcset") ?? "",
+        })),
+      })`);
+      const label = `${path} ${width}`;
+      check(s.h1 === 1 && !s.overflow, `${label}: one h1, no horizontal scroll`, `${s.h1}`);
+      check(
+        s.imgs.every((i) => i.alt.trim().length > 20 && /420w.+840w/.test(i.srcset) && /840w/.test(i.dark)) &&
+          s.imgs.filter((i) => i.loading !== "lazy").length <= 1,
+        `${label}: ${s.imgs.length} images with alt text, srcset (light and dark), lazy below the fold`,
+      );
+      for (const i of s.imgs)
+        for (const u of `${i.srcset}, ${i.dark}`.split(",")) imageUrls.add(u.trim().split(" ")[0]);
+    }
+  }
+  const missing = [];
+  for (const u of [...imageUrls].filter(Boolean)) {
+    const res = await fetch(`${BASE}${u}`);
+    if (!res.ok || res.headers.get("content-type") !== "image/webp") missing.push(`${u} ${res.status}`);
+  }
+  check(
+    imageUrls.size > 0 && missing.length === 0,
+    `every screenshot serves as WebP (${imageUrls.size})`,
+    missing.join(", "),
+  );
+
+  // 8c. The FAQ's JSON-LD matches its visible questions and answers.
+  await p.goto("/faq");
+  await p.waitFor(`document.querySelector("[data-faq-item]")`, 15000);
+  const faq = await p.evaluate(`(() => {
+    const ld = [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.textContent)).find((d) => d["@type"] === "FAQPage");
+    const visible = [...document.querySelectorAll("[data-faq-item]")].map((el) => ({
+      q: el.querySelector("h3").textContent.trim(),
+      a: [...el.querySelectorAll("p")].map((p) => p.textContent.trim()).join("\\n\\n"),
+    }));
+    return { ld: (ld?.mainEntity ?? []).map((q) => ({ q: q.name, a: q.acceptedAnswer.text })), visible };
+  })()`);
+  check(
+    faq.visible.length >= 8 && JSON.stringify(faq.ld) === JSON.stringify(faq.visible),
+    "FAQ JSON-LD matches the visible questions and answers",
+    `${faq.ld.length} in JSON-LD, ${faq.visible.length} on the page`,
+  );
 
   // 9. sitemap.xml and robots.txt.
   const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text();
