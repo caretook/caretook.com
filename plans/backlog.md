@@ -117,6 +117,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Settings, units, timeline layout, sign out.
+- 2026-11-17 (plan/app-shell): PRD written: plans/app-shell-prd.md on plan/app-shell. Avatar menu: name/email header, Settings, theme (System/Light/Dark, per device), Sign out.
 
 ### B-9 · feature · Care group menu: switch groups, open the group's settings
 
