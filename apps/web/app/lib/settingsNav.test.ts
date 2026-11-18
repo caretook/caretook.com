@@ -2,7 +2,7 @@ import type { SettingsItem } from "./settingsNav";
 
 import { Settings } from "lucide-react";
 import { describe, expect, it } from "vitest";
-import { appUrls } from "../../../../lib/appUrls";
+import { appUrls } from "./appUrls";
 import { isSettingsList, settingsCurrent } from "./settingsNav";
 
 const item = (id: "units" | "timeline" | "account"): SettingsItem => ({

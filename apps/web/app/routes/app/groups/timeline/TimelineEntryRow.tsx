@@ -28,10 +28,14 @@ export type EntryViewProps = {
   liveLabel?: string;
 };
 
-export type EntryOpen = { to: string } | { onPress: () => void };
+/**
+ * A link: a note's or event's page, or (`edit`) a symptom's or vital's edit
+ * sheet, which carries `state` and keeps the scroll position.
+ */
+export type EntryOpen = { to: string; edit?: boolean; state?: object };
 
 /**
- * The whole row's tap target: a link or button stretched over the row, so
+ * The whole row's tap target: a link stretched over the row, so
  * it's one focusable, named control for keyboards and screen readers. The
  * kind icon, the ⋯ button and the More/Less toggle sit above it (`relative z-10`), so taps on
  * them don't open the entry. The row itself must be `relative isolate` (its own stacking context, so
@@ -40,14 +44,13 @@ export type EntryOpen = { to: string } | { onPress: () => void };
 export function EntryOpenTarget({ open, entry }: { open: EntryOpen; entry: TimelineEntry }) {
   const className =
     "absolute inset-0 cursor-pointer rounded-[inherit] hover:bg-base-content/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary";
-  return "to" in open ? (
-    <Link to={open.to} className={className} aria-label={`Open ${entryLabel(entry)}`} />
-  ) : (
-    <button
-      type="button"
+  return (
+    <Link
+      to={open.to}
+      state={open.state}
+      preventScrollReset={open.edit}
       className={className}
-      aria-label={`Edit ${entryLabel(entry)}`}
-      onClick={open.onPress}
+      aria-label={`${open.edit ? "Edit" : "Open"} ${entryLabel(entry)}`}
     />
   );
 }

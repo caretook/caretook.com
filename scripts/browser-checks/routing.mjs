@@ -39,6 +39,27 @@ import { startProxy } from "./proxy.mjs";
 //   is aria-current="page", and widening the window on the list does the same;
 // - Account shows the name and email, and its Sign out signs out (the last
 //   caretaker@ step).
+//
+// Slice 3, the edit sheet's URL (`timeline/<id>/edit`):
+//
+// - a symptom's row tap, and its ⋯ → Edit, go to `…/timeline/<id>/edit?<filters>`
+//   with the form filled; a save updates the row and closes the sheet,
+//   filters kept;
+// - offline, a row tap still opens the edit sheet (its module is prefetched);
+// - a reload reopens the sheet with the entry's current values;
+// - an entry deleted elsewhere while its sheet is open closes the sheet;
+// - a note's edit URL lands on its page; a deleted entry's and another
+//   group's entry's land on the timeline, filters kept;
+// - viewer@'s edit URL is the timeline, with no form, and no edit targets.
+//
+// Slice 5, a group's settings subpages:
+//
+// - at 420, group settings is the list (Details, Members); each item opens its
+//   subpage, alone, with a back link to the list;
+// - `…/settings/members` works as a direct link and after a reload;
+// - at 1280, group settings opens Details beside the side nav, and the side
+//   nav opens Members with aria-current following;
+// - another group's `…/settings/members` is the /app 404, with no names.
 // Run against your stack: `set -a; source .env.loop; set +a`.
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -261,6 +282,306 @@ async function settingsSteps(p) {
   );
 }
 
+/** Slice 3: the edit sheet's URL (caretaker@, a writer; ends on the timeline, online). */
+async function editSheetSteps(p) {
+  const name = `${tag} edit symptom`;
+  const rowWith = (text) =>
+    `[...document.querySelectorAll("main ol > li")].find((li) => li.textContent.includes(${JSON.stringify(text)}))`;
+  const NAME_INPUT = `document.querySelector('[role=dialog] input[name="symptomName"]')`;
+  const editPath = (id) => `${T}/${id}/edit`;
+  const escape = async () => {
+    for (const type of ["keyDown", "keyUp"])
+      await p.send("Input.dispatchKeyEvent", {
+        type,
+        key: "Escape",
+        code: "Escape",
+        windowsVirtualKeyCode: 27,
+      });
+  };
+  const closedOn = async (how, search) => {
+    await p.waitFor(`!${DIALOG} && location.pathname === ${JSON.stringify(T)}`, 10000).catch(() => {});
+    const at = await where(p);
+    check(how, !at.dialog && at.path === T && at.search === search, JSON.stringify(at));
+  };
+
+  // A symptom of our own, added through the add sheet.
+  await p.goto(T);
+  await p.waitFor(`${ROWS} > 0`, 30000);
+  await p.press(tile("Symptom"));
+  await p.waitFor(NAME_INPUT, 10000);
+  await p.type(NAME_INPUT, name);
+  await p.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
+  await p.waitFor(`!${DIALOG} && ${rowWith(name)}`, 10000);
+  const id = await p.evaluate(
+    `window.caretookSync.powersync.getAll("SELECT id FROM timeline_entry WHERE json_extract(details, '$.name') = ?", [${JSON.stringify(name)}]).then((r) => r[0]?.id ?? "")`,
+  );
+
+  // A row tap, on a filtered timeline.
+  const filters = "?kind=symptom";
+  await p.goto(`${T}${filters}`);
+  await p.waitFor(rowWith(name), 30000);
+  const before = await where(p);
+  await p.press(`${rowWith(name)}.querySelector('a[aria-label^="Edit "]')`);
+  await p.waitFor(`${DIALOG}?.textContent.includes("Edit symptom") && ${NAME_INPUT}`, 10000).catch(() => {});
+  const opened = await where(p);
+  check(
+    "a symptom's row tap goes to …/timeline/<id>/edit with the filters, the form filled",
+    opened.path === editPath(id) &&
+      opened.search === filters &&
+      opened.dialog &&
+      (await p.evaluate(`${NAME_INPUT}?.value`)) === name,
+    JSON.stringify(opened),
+  );
+  const edited = `${name} edited`;
+  await p.type(NAME_INPUT, edited);
+  await p.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
+  await closedOn("a save closes the edit sheet, filters kept", filters);
+  check("…and the row shows the change", await p.evaluate(`!!${rowWith(edited)}`));
+  check("…and leaves no sheet ahead in the history", (await where(p)).idx === before.idx);
+
+  // ⋯ → Edit opens the same URL.
+  await p.press(`${rowWith(edited)}.querySelector('button[aria-label^="Actions"]')`);
+  await p.waitFor(menuItem("Edit"), 5000);
+  await p.press(menuItem("Edit"));
+  await p.waitFor(`${DIALOG} && ${NAME_INPUT}`, 10000).catch(() => {});
+  const viaMenu = await where(p);
+  check(
+    "⋯ → Edit goes to the same edit URL, the form filled",
+    viaMenu.path === editPath(id) &&
+      viaMenu.search === filters &&
+      (await p.evaluate(`${NAME_INPUT}?.value`)) === edited,
+    JSON.stringify(viaMenu),
+  );
+  await escape();
+  await closedOn("Escape closes the edit sheet, filters kept", filters);
+
+  // Offline, a row tap still opens the sheet (its module was prefetched).
+  const errorsOnline = p.errors.length;
+  proxy.setOnline(false);
+  await p.waitFor(`document.body.innerText.includes("Offline")`, 20000).catch(() => {});
+  await p.press(`${rowWith(edited)}.querySelector('a[aria-label^="Edit "]')`);
+  await p.waitFor(`${DIALOG} && ${NAME_INPUT}?.value === ${JSON.stringify(edited)}`, 10000).then(
+    () => check("offline: a row tap opens the edit sheet", true),
+    async () => check("offline: a row tap opens the edit sheet", false, JSON.stringify(await where(p))),
+  );
+  await p.press(button("Cancel", DIALOG));
+  await closedOn("offline: Cancel closes it", filters);
+  proxy.setOnline(true);
+  await p.waitFor(`!document.body.innerText.includes("Offline")`, 20000).catch(() => {});
+  p.errors.splice(errorsOnline); // Offline fetch failures aren't the app's errors.
+
+  // A reload shows the entry's current values: changed on the server since.
+  await p.goto(`${editPath(id)}${filters}`);
+  await p.waitFor(`${DIALOG} && ${NAME_INPUT}`, 30000).catch(() => {});
+  const fromServer = `${name} from server`;
+  psql(
+    `UPDATE timeline_entry SET details = jsonb_set(details, '{name}', '"${fromServer}"'), updated_at = now() WHERE id = '${id}'`,
+  );
+  await p.waitFor(
+    `window.caretookSync.powersync.getAll("SELECT 1 FROM timeline_entry WHERE json_extract(details, '$.name') = ?", [${JSON.stringify(fromServer)}]).then((r) => r.length === 1)`,
+    20000,
+  );
+  // Give the local database time to persist the synced row (a reload straight
+  // after a download can reopen the copy from before it).
+  await sleep(3000);
+  // A marker on the old page, so the wait can't be met before the reload has happened.
+  await p.evaluate("window.__beforeReload = 1");
+  await p.send("Page.reload", { ignoreCache: false });
+  await p
+    .waitFor(`!window.__beforeReload && document.readyState === "complete" && ${NAME_INPUT}`, 30000)
+    .catch(() => {});
+  check(
+    "a reload reopens the edit sheet with the entry's current values",
+    (await p.evaluate(`${NAME_INPUT}?.value`)) === fromServer,
+    await p.evaluate(`${NAME_INPUT}?.value ?? "no form"`),
+  );
+
+  // Deleted on another device while open: the sheet closes onto the timeline.
+  const errorsBefore = p.errors.length;
+  psql(`UPDATE timeline_entry SET deleted_at = now(), updated_at = now() WHERE id = '${id}'`);
+  await closedOn("an entry deleted elsewhere while its sheet is open closes the sheet", filters);
+  check(
+    "…with no error",
+    p.errors.length === errorsBefore && !(await p.evaluate(`document.body.innerText.includes("Not found")`)),
+    p.errors.slice(errorsBefore).join(" | "),
+  );
+
+  // Edit URLs that aren't a sheet.
+  await p.goto(`${editPath(noteId)}${filters}`);
+  await p
+    .waitFor(`location.pathname === ${JSON.stringify(`/app/groups/${G}/entries/${noteId}`)}`, 30000)
+    .catch(() => {});
+  check(
+    "a note's edit URL lands on its page",
+    (await p.evaluate("location.pathname")) === `/app/groups/${G}/entries/${noteId}`,
+    await p.evaluate("location.pathname"),
+  );
+  const otherGroupEntry = psql(`SELECT id FROM timeline_entry WHERE group_id <> '${G}' LIMIT 1`);
+  for (const [what, entryId] of [
+    ["a deleted entry's", id],
+    ["another group's entry's", otherGroupEntry],
+  ]) {
+    await p.goto(`${editPath(entryId)}${filters}`);
+    await p.waitFor(`location.pathname === ${JSON.stringify(T)} && ${ROWS} > 0`, 30000).catch(() => {});
+    const landed = await where(p);
+    check(
+      `${what} edit URL lands on the timeline, filters kept`,
+      landed.path === T && landed.search === filters && !landed.dialog,
+      JSON.stringify(landed),
+    );
+  }
+}
+
+/** Slice 3: viewer@'s edit URL is the timeline, with no form and no edit targets. */
+async function editSheetViewerSteps(v) {
+  const symptomId = psql(
+    `SELECT id FROM timeline_entry WHERE group_id = '${G}' AND kind = 'symptom' AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT 1`,
+  );
+  await v.goto(`${T}/${symptomId}/edit?kind=symptom`);
+  await v.waitFor(`location.pathname === ${JSON.stringify(T)} && ${ROWS} > 0`, 30000).catch(() => {});
+  const at = await where(v);
+  check(
+    "viewer: a symptom's edit URL is the timeline, with no form and no edit targets",
+    at.path === T &&
+      at.search === "?kind=symptom" &&
+      !at.dialog &&
+      (await v.evaluate(
+        `!document.querySelector('input[name="symptomName"]') && !document.querySelector('main ol [aria-label^="Edit "]')`,
+      )),
+    JSON.stringify(at),
+  );
+}
+
+/** Slice 5: a group's settings list (Details, Members), its subpages and the side nav (caretaker@, stays signed in). */
+async function groupSettingsSteps(p) {
+  const GS = `/app/groups/${G}/settings`;
+  const ITEMS = [
+    {
+      id: "details",
+      label: "Details",
+      path: `${GS}/details`,
+      ready: `document.querySelector('main [data-section="care-recipient"]')`,
+    },
+    {
+      id: "members",
+      label: "Members",
+      path: `${GS}/members`,
+      ready: `document.querySelector('main [data-section="members"] li[data-member]')`,
+    },
+  ];
+  const back = `[...document.querySelectorAll("main a")].find((a) => a.getAttribute("href") === ${JSON.stringify(GS)} && a.textContent.trim() === "Group settings")`;
+  const state = async () =>
+    JSON.parse(
+      await p.evaluate(`JSON.stringify({
+        path: location.pathname,
+        h1: [...document.querySelectorAll("main h1")].filter((h) => h.getClientRects().length).map((h) => h.textContent.trim()),
+        items: [...(${settingsNav}?.querySelectorAll("[data-settings-item]") ?? [])].map((a) => a.querySelector("span span")?.textContent.trim()),
+        navLabel: ${settingsNav}?.getAttribute("aria-label") ?? null,
+        navShown: ${shown(settingsNav)},
+        back: ${shown(back)},
+        current: [...(${settingsNav}?.querySelectorAll("[aria-current]") ?? [])].map((a) => a.dataset.settingsItem + "=" + a.getAttribute("aria-current")),
+      })`),
+    );
+
+  // 420: the list, then each subpage with a back link.
+  await metrics(p, 420);
+  await p.goto(GS);
+  await p.waitFor(`${settingsLink("members")}`, 30000).catch(() => {});
+  let s = await state();
+  check(
+    "420: group settings is the list of Details and Members, with no subpage and no back link",
+    s.path === GS &&
+      s.navShown &&
+      !s.back &&
+      s.h1.join() === "Group settings" &&
+      s.navLabel === "Group settings" &&
+      s.items.join() === ITEMS.map((i) => i.label).join(),
+    JSON.stringify(s),
+  );
+  await p.screenshot("routing-group-settings-list-420");
+  for (const item of ITEMS) {
+    await p.evaluate(`${settingsLink(item.id)}.click()`);
+    await p
+      .waitFor(`location.pathname === ${JSON.stringify(item.path)} && ${item.ready}`, 30000)
+      .catch(() => {});
+    s = await state();
+    check(
+      `420: ${item.label} opens …/settings/${item.id} on its own, with a back link to the list`,
+      s.path === item.path && s.h1.join() === item.label && s.back && !s.navShown,
+      JSON.stringify(s),
+    );
+    await p.evaluate(`${back}.click()`);
+    await p.waitFor(`location.pathname === ${JSON.stringify(GS)} && ${shown(settingsNav)}`, 10000).then(
+      () => check(`420: ${item.label}'s back link returns to the group's list`, true),
+      async () =>
+        check(
+          `420: ${item.label}'s back link returns to the group's list`,
+          false,
+          JSON.stringify(await state()),
+        ),
+    );
+  }
+
+  // A direct link, and a reload.
+  const [, members] = ITEMS;
+  const membersReady = `location.pathname === ${JSON.stringify(members.path)} && ${members.ready}`;
+  await p.goto(members.path);
+  const direct = await p.waitFor(membersReady, 30000).then(
+    () => true,
+    () => false,
+  );
+  check("…/settings/members works as a direct link", direct, direct ? "" : JSON.stringify(await state()));
+  await p.evaluate("location.reload()");
+  await sleep(500);
+  const reloaded = await p.waitFor(membersReady, 30000).then(
+    () => true,
+    () => false,
+  );
+  check("…/settings/members works after a reload", reloaded, reloaded ? "" : JSON.stringify(await state()));
+
+  // 1280: the side nav beside Details.
+  await metrics(p, 1280);
+  await p.goto(GS);
+  await p
+    .waitFor(`location.pathname === ${JSON.stringify(ITEMS[0].path)} && ${ITEMS[0].ready}`, 30000)
+    .catch(() => {});
+  s = await state();
+  check(
+    "1280: group settings lands on Details beside the side nav, Details current, no back link",
+    s.path === ITEMS[0].path &&
+      s.navShown &&
+      !s.back &&
+      s.h1.join() === "Details" &&
+      s.current.join() === "details=page",
+    JSON.stringify(s),
+  );
+  await p.screenshot("routing-group-settings-1280");
+  await p.evaluate(`${settingsLink("members")}.click()`);
+  await p.waitFor(membersReady, 20000).catch(() => {});
+  s = await state();
+  check(
+    "1280: the side nav opens Members in one click, and aria-current follows",
+    s.path === members.path && s.navShown && s.current.join() === "members=page",
+    JSON.stringify(s),
+  );
+
+  // Another group's settings subpage (caretaker@ is only in Dev Family): the 404, with no names.
+  await metrics(p, 420);
+  const other = "/app/groups/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8d0001/settings/members";
+  await p.goto(other);
+  await p.waitFor(`${h1} === "Not found"`, 30000).catch(() => {});
+  const stranger = JSON.parse(
+    await p.evaluate(
+      `JSON.stringify({ h1: ${h1}, path: location.pathname, leaks: /Lou|Dev Family 2|Dev Member/.test(document.querySelector("main")?.innerText ?? "") })`,
+    ),
+  );
+  check(
+    "non-member: another group's …/settings/members is the /app 404, with no names",
+    stranger.h1 === "Not found" && !stranger.leaks && stranger.path === other,
+    JSON.stringify(stranger),
+  );
+}
+
 const browsers = [];
 const errorsFrom = [];
 let c;
@@ -307,7 +628,7 @@ try {
       : `${await pageState(c)} ${c.errors.slice(-3).join(" | ")}`,
   );
 
-  await c.goto(`/app/groups/${G}/settings`);
+  await c.goto(`/app/groups/${G}/settings/members`);
   await c.waitFor(`document.querySelector("[data-section=members] li")`, 20000).then(
     () => check("group settings opens under the group route", true),
     async () =>
@@ -537,6 +858,12 @@ try {
   check("online again: the offline entry reaches the server", uploaded === "1");
   c.errors.splice(errorsOnline); // Offline fetch failures aren't the app's errors.
 
+  // Slice 3: the edit sheet's URL.
+  await editSheetSteps(c);
+
+  // Slice 5: a group's settings list and subpages.
+  await groupSettingsSteps(c);
+
   // Slice 4: the account's settings list and subpages.
   await settingsSteps(c);
 
@@ -582,6 +909,7 @@ try {
       )),
     JSON.stringify(viewer),
   );
+  await editSheetViewerSteps(v);
   errorsFrom.push(v);
 
   const errors = [...c.errors, ...a.errors, ...errorsFrom.flatMap((p) => p.errors)].filter(

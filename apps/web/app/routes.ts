@@ -22,9 +22,14 @@ const appRoutes = [
         route("timeline", "routes/app/groups/timeline/route.tsx", [
           // Sheets over the timeline, which stays mounted underneath.
           route("new/:kind", "routes/app/groups/timeline/new/route.tsx"),
+          route(":entryId/edit", "routes/app/groups/timeline/edit/route.tsx"),
         ]),
         route("entries/:entryId", "routes/app/groups/entry/route.tsx"),
-        route("settings", "routes/app/groups/settings/route.tsx"),
+        route("settings", "routes/app/groups/settings/layout/route.tsx", [
+          index("routes/app/groups/settings/index/route.tsx"),
+          route("details", "routes/app/groups/settings/details/route.tsx"),
+          route("members", "routes/app/groups/settings/members/route.tsx"),
+        ]),
         route("providers", "routes/app/groups/providers/route.tsx", [
           // Sheets over the directory, which stays mounted underneath.
           route("new", "routes/app/groups/providers/new/route.tsx"),

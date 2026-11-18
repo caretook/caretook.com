@@ -1,4 +1,4 @@
-import type { SettingsItem } from "./settingsNav";
+import type { SettingsItem } from "~/lib/settingsNav";
 import type { AccountSettingsPage } from "~/lib/appUrls";
 
 import { LayoutList, Ruler, UserRound } from "lucide-react";

@@ -7,7 +7,7 @@
 //    "Getting your care groups…" (never "not in a care group"), then goes
 //    straight to the timeline once the group arrives.
 // 4. Same, signing in to a deep link (the timeline): the syncing state, not a 404.
-// 5. Same, deep-linking to another group route (group settings): the group
+// 5. Same, deep-linking to another group route (group settings' Members): the group
 //    route shows the syncing state for every screen in the group, then the page.
 //
 // Times are from pressing "Sign in". Run against your stack: `set -a; source .env.loop; set +a`.
@@ -121,7 +121,7 @@ const expect = (ok, what) => {
 };
 
 // What shows that a page has rendered: a timeline row, or a member in group settings.
-const READY = { timeline: "ol > li", settings: "[data-section=members] li" };
+const READY = { timeline: "ol > li", "settings/members": "[data-section=members] li" };
 
 const signInTimed = async (p, redirectTo, holdSync = false, ready = READY.timeline) => {
   // Better Auth rate-limits sign-in (3 per 10 s), and its error reads like a wrong password.
@@ -184,7 +184,7 @@ try {
   // Each signed-in tab's PowerSync lives in a shared worker; a new Chrome profile gives a fresh device.
   b.proc.kill();
 
-  for (const deepLink of [null, "timeline", "settings"]) {
+  for (const deepLink of [null, "timeline", "settings/members"]) {
     const c = await launch(9362, proxyArgs);
     try {
       const p = await openPage(c, deepLink ? "slow-deep" : "slow");
@@ -203,14 +203,14 @@ try {
       const end = deepLink ?? "timeline";
       expect(
         (await p.evaluate("location.pathname")).endsWith(`/${end}`),
-        `it still ends on the ${end === "settings" ? "group settings" : "timeline"}`,
+        `it still ends on the ${end === "settings/members" ? "group settings' Members" : "timeline"}`,
       );
       expect(
         !(await p.evaluate(`!!document.querySelector("[data-first-sync-pending]")`)),
         "the syncing state goes once synced",
       );
       errors.push(...p.errors);
-      await p.screenshot(`first-sync-${deepLink ? `deep-${deepLink}` : "home"}`);
+      await p.screenshot(`first-sync-${deepLink ? `deep-${deepLink.replace("/", "-")}` : "home"}`);
     } finally {
       release();
       c.proc.kill();
