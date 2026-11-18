@@ -45,7 +45,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
 | B-18 | feature | landed | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
 | B-19 | feature | landed | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
-| B-20 | chore | in-progress | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
+| B-20 | chore | landed | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 
@@ -242,10 +242,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-20 · chore · Browser check overhaul and documentation (live notes slice 10)
 
-- status: in-progress
+- status: landed
 - prd: live-notes-ux
 - owner: prd/live-notes-ux
-- commit:
+- commit: 7f462fe
 
 - 2026-11-17 (dev keeper): Blocked by slices 3 and 7.
 - 2026-11-18 (slice/live-notes-ux/10): Slice 10 committed on slice/live-notes-ux/10: consolidated live-notes.mjs (91 checks, order-independent), roundtrip rewritten, phase2 updated, 6 old checks deleted. AGENTS.md changes listed in the hand-off.

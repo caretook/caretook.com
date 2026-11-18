@@ -23,8 +23,8 @@ Wave 2 notes, for the next orchestrator:
 - **Seeds:** member@ has two groups now. Browser checks get Dev Family through `cdp.mjs`'s `signIn` (`openDevFamily`; `{ home: true }` to skip it). Filter psql seed queries by Dev Family's id. Slice 6's role-change checks should use Dev Family (where caretaker@ and viewer@ are).
 - **Merging `app-shell.mjs`:** every slice appends to it, and the header comment conflicts each time. Slices 2 and 3 also clashed at runtime: slice 2 kills the viewer's browser to reuse port 9472, so any later step on the viewer page must run before that (`fb9f6b1`). Run the whole file after each merge.
 - **Slice 7:** quick-fixes slice 2's `saveSettings(userId, change)` (`lib/me.ts`) is in `dev`; write the layout through it.
-- **Flaky checks seen this wave** (they passed on a rerun, or on a quiet machine): `live-note.mjs` step 4 or 8 (noted on B-20); `editors.mjs` right after other checks typed (run it first after a reset); `app-shell.mjs` group-menu Escape and "/app after a reload", once each on a first run. `layout-offline.mjs` doesn't exit after printing its result: run it with a timeout.
-- `roundtrip.mjs` is still stale (live-notes-ux slice 10).
+- **Flaky checks seen this wave** (they passed on a rerun, or on a quiet machine): the old `live-note.mjs` step 4 or 8, and `editors.mjs` right after other checks typed (both now folded into live-notes-ux's order-independent `live-notes.mjs`); `app-shell.mjs` group-menu Escape and "/app after a reload", once each on a first run. `layout-offline.mjs` doesn't exit after printing its result: run it with a timeout.
+- **Browser checks after the second `dev` sync:** live-notes-ux slice 10 replaced `editors`, `live-note`, `live-now`, `share`, `title-chips` and `entry-header` with one `live-notes.mjs`; slice 3's Dev Family filters in the old files were dropped with them. The wave's set is now `app-shell`, `phase2`, `live-notes`, `roundtrip`, `signout-wipe`, `first-sync`, `sign-in` and `layout-offline`.
 
 ## Architectural decisions
 
