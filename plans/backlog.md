@@ -56,7 +56,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
 | B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | in-progress | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
-| B-29 | chore | triaged | quick-fixes |  | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
+| B-29 | chore | in-progress | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 
 ## Items
 
@@ -369,9 +369,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-29 · chore · Restart PowerSync inside datastore:reset, and fix the flakes it causes
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): PowerSync 401s and PSYNC_S2101 (stale JWKS after a reset) were the most common browser-check failure. datastore:reset should restart the worktree's own powersync container and wait until it accepts a token, so the first check after a reset doesn't fail. Already on AGENTS.md Next steps (live notes follow-ups).
