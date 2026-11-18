@@ -138,6 +138,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (plan/app-shell): Plan: plans/app-shell-plan.md (plan/app-shell). Slices 1 (frame + user menu) and 2 (theme); slice 7 (layout in Settings) noted here.
 - 2026-11-18 (prd/app-shell): app-shell slice 1 (frame + user menu) merged into prd/app-shell at 697c39b; slice 2 (theme) still to come, so B-8 stays in progress.
 - 2026-11-18 (slice/app-shell/7): app-shell slice 7 (timeline layout in Settings) started on slice/app-shell/7
+- 2026-11-18 (slice/app-shell/7): app-shell slice 7 (timeline layout in Settings) handed off on slice/app-shell/7: pnpm check and settings-layout.mjs, phase2, layout-offline, app-shell checks pass
 
 ### B-9 · feature · Care group menu: switch groups, open the group's settings
 
