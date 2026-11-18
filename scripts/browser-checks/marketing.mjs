@@ -67,9 +67,16 @@ try {
     p.evaluate(`[location.href, ...performance.getEntriesByType("resource").map((e) => e.name)]`);
   const hydrated = `document.querySelector('header button[aria-controls]') && window.__reactRouterRouteModules && window.__reactRouterRouteModules["routes/marketing/home/route"]`;
   const background = `getComputedStyle(document.querySelector("main").parentElement).backgroundColor`;
+  // Screenshots are for review, not assertions, so they're off unless MARKETING_SHOTS=1. A full-page
+  // capture (captureBeyondViewport) once hung this check for over an hour, so these are viewport-only
+  // and give up after 10 s.
   const shot = async (name) => {
-    const { data } = await p.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
-    writeFileSync(join(SHOTS, `${name}.png`), Buffer.from(data, "base64"));
+    if (process.env.MARKETING_SHOTS !== "1") return;
+    const capture = p.send("Page.captureScreenshot", { format: "png" });
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 10_000));
+    const result = await Promise.race([capture, timeout]);
+    if (result) writeFileSync(join(SHOTS, `${name}.png`), Buffer.from(result.data, "base64"));
+    else console.log(`screenshot ${name} timed out; skipped`);
   };
 
   // 1. Home at both widths, in both themes.
