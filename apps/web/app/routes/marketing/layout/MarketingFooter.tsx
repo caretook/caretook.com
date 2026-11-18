@@ -48,7 +48,11 @@ export function MarketingFooter() {
           </ul>
         </nav>
       </div>
-      <p className="mx-auto w-full max-w-5xl px-4 pb-8 text-sm text-base-content/70 sm:px-6">
+      {/* The year is set at prerender, so a page built last year can differ on hydration. */}
+      <p
+        className="mx-auto w-full max-w-5xl px-4 pb-8 text-sm text-base-content/70 sm:px-6"
+        suppressHydrationWarning
+      >
         © {new Date().getFullYear()} Caretook
       </p>
     </footer>

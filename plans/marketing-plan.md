@@ -6,7 +6,7 @@
 
 | Slice | State                                         | Merge into `prd/marketing` (slice commits) |
 | ----- | --------------------------------------------- | ------------------------------------------ |
-| 1     | ready                                         |                                            |
+| 1     | merged (wave 1)                               | `3eb46f0` (`32ab6a6`, `672687e`)           |
 | 2     | blocked by 1                                  |                                            |
 | 3     | blocked by 1                                  |                                            |
 | 4     | blocked by 1 and `invites` slice 1 (in `dev`) |                                            |
