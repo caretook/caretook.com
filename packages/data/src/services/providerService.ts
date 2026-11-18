@@ -7,6 +7,8 @@ import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   isPracticeType,
+  leavesPracticeTypes,
+  PRACTICE_IN_USE_ISSUE,
   providerContentZSchema,
   providerCreateZSchema,
   providerUpdateZSchema,
@@ -37,6 +39,29 @@ const badPractice = () =>
       issues: [{ path: "practiceId", message: "Choose a practice or pharmacy in this care group" }],
     },
   });
+
+const practiceInUse = () =>
+  newError({ code: "providerService:practiceInUse", meta: { issues: [{ ...PRACTICE_IN_USE_ISSUE }] } });
+
+/**
+ * A practice or pharmacy can't stop being one while live providers in its
+ * group name it as their practice. Deleted ones don't count.
+ */
+const checkPracticeInUse = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  { id, groupId, from, to }: { id: string; groupId: string; from: string; to: string },
+) => {
+  if (!leavesPracticeTypes(from, to)) return null;
+  const dependents = await providerModel.list({
+    ...ctx,
+    tx,
+    filter: { groupId: { type: "eq", value: groupId }, practiceId: { type: "eq", value: id } },
+    paginate: { limit: 1, page: 1 },
+  });
+  if (isError(dependents)) return dependents;
+  return dependents.data.length ? practiceInUse() : null;
+};
 
 /** The practice must be a live practice or pharmacy in the group, and not the provider itself. */
 const checkPractice = async (
@@ -114,6 +139,14 @@ export const update = (ctx: ServiceContext, id: string, input: ProviderUpdateInp
       ...patch,
     });
     if (!merged.success) return invalid(merged.error);
+
+    const inUse = await checkPracticeInUse(ctx, tx, {
+      id,
+      groupId: existing.groupId,
+      from: existing.type,
+      to: merged.data.type,
+    });
+    if (inUse) return inUse;
 
     if (merged.data.practiceId !== existing.practiceId) {
       const practice = await checkPractice(ctx, tx, { id, groupId: existing.groupId, ...merged.data });

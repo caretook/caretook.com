@@ -14,7 +14,9 @@ import {
   canLinkProviders,
   entryProviderId,
   isPracticeType,
+  leavesPracticeTypes,
   parseProviderPhones,
+  PRACTICE_IN_USE_ISSUE,
   PROVIDER_STATUSES,
   PROVIDER_TYPES,
   providerContentZSchema,
@@ -193,6 +195,24 @@ const badPractice = refuse("The practice must be a practice or pharmacy in this 
   { path: "practiceId", message: "Choose a practice or pharmacy in this care group" },
 ]);
 
+/**
+ * A practice or pharmacy can't stop being one while live providers name it
+ * as their practice (the server refuses it too, as providerService:practiceInUse).
+ * `dependents` is how many live providers in the group point at it.
+ */
+export const practiceInUseRefusal = (from: ProviderType, to: ProviderType, dependents: number) =>
+  leavesPracticeTypes(from, to) && dependents > 0
+    ? refuse("Clinicians are linked to this practice. Move them to another practice first.", [
+        { ...PRACTICE_IN_USE_ISSUE },
+      ])
+    : null;
+
+/** How many live providers in the group name this one as their practice. */
+export const practiceDependentsQuery = (groupId: string, practiceId: string): LocalQuery => ({
+  sql: `SELECT COUNT(*) AS n FROM provider WHERE group_id = ? AND practice_id = ? AND deleted_at IS NULL`,
+  params: [groupId, practiceId],
+});
+
 const canWrite = async (db: SyncDb, groupId: string) => {
   const group = await groupFor(db, groupId);
   return !!group?.role && WRITER_ROLES.includes(group.role);
@@ -284,6 +304,11 @@ export const updateProvider = async (
     ...defined,
   });
   if (!merged.success) return invalid(merged.error);
+  if (leavesPracticeTypes(existing.type, merged.data.type)) {
+    const [count] = await readRows<{ n: number }>(db, practiceDependentsQuery(existing.groupId, id));
+    const inUse = practiceInUseRefusal(existing.type, merged.data.type, count?.n ?? 0);
+    if (inUse) return inUse;
+  }
   if (
     merged.data.practiceId !== existing.practiceId &&
     !(await practiceOk(db, existing.groupId, id, merged.data.practiceId))
