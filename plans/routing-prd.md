@@ -1,6 +1,6 @@
 # PRD: Routing (nested group routes, sheet URLs, settings subpages, a folder per route)
 
-Status: 🟡 written, not planned. Backlog item: B-23. Topic `routing`. Runs after `app-shell` and `timeline-polish` land; `components` follows it.
+Status: 🟡 planned in [`routing-plan.md`](routing-plan.md) (5 slices). Backlog item: B-23. Topic `routing`. Runs after `app-shell` and `timeline-polish` land; `components` follows it.
 
 ## Problem Statement
 
@@ -77,7 +77,7 @@ Nothing a user does today changes, except that sheets and settings subpages now 
 - **Frame regions are unchanged.** `GroupMenu`, `SectionNav` and `TabBar` read the group from the group context instead of `useParams()` + their own queries where that's simpler. The tab bar's "hidden on `/entries/*`" rule is unchanged; it shows under sheet routes (the sheet covers it, `z-50`).
 - **No schema, migration, sync-config, seed or API change.**
 - **Hot files:** `routes.ts` (rewritten in slice 1), `layout.tsx` (frame untouched, only its loader may slim down), `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `UserMenu`, `lib/groupSections.ts`, `lib/liveEntry.ts`. That's why it waits for `app-shell` and `timeline-polish` to land, and why `components` waits for it.
-- **Suggested slices:** (1) group layout route + middleware/context + `appUrls` + folders for the existing routes, behavior unchanged; (2) sheet routes; (3) account settings subpages; (4) group settings subpages. 2, 3 and 4 can run in parallel after 1.
+- **Slices:** see the plan: (1) group route, `appUrls` and a folder per route; then (2) add-sheet URLs → (3) edit-sheet URL, in parallel with (4) account settings subpages → (5) group settings subpages.
 
 ## Testing Decisions
 
