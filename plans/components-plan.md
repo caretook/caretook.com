@@ -8,8 +8,8 @@
 | ----- | --------------------------- | ------------------------------------------- |
 | 1     | landed in `dev` (`414b0a6`) | `934428f` (`a071d12`, `4c18db3`)            |
 | 2     | landed in `dev` (`666ebf9`) | `c25170c` (`0032dd6`, `a2c2bd1`)            |
-| 3     | merged; wave 3 landing      | `f916469` (`a711ad6`, `963c22b`)            |
-| 4     | merged; wave 3 landing      | `3215617` (`03cde5a`)                       |
+| 3     | landed in `dev` (`511cbed`) | `f916469` (`a711ad6`, `963c22b`)            |
+| 4     | landed in `dev` (`511cbed`) | `3215617` (`03cde5a`)                       |
 | 5     | ready (3 merged)            |                                             |
 | 6     | blocked by 3, 4 and 5       |                                             |
 
