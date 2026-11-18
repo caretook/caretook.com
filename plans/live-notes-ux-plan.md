@@ -4,49 +4,45 @@
 
 ## Status
 
-| Slice            | State                                 | Branch / merge                     |
-| ---------------- | ------------------------------------- | ---------------------------------- |
-| 1                | ✅ merged into `data-layer`           | `b0ceb5c` (slice commit `ce4feec`) |
-| 2, 4, 5, 6, 8, 9 | ready: the next wave, run in parallel | `loop/slice-<n>`                   |
-| 3                | blocked by 2                          |                                    |
-| 7                | blocked by 5 and 6                    |                                    |
-| 10               | blocked by 1–9                        |                                    |
+| Slice | State                    | Merge into `data-layer` (slice commits) |
+| ----- | ------------------------ | --------------------------------------- |
+| 1     | ✅ merged                | `b0ceb5c` (`ce4feec`)                   |
+| 2     | ✅ merged                | `ecd70a8` (`ddd8c2b`)                   |
+| 4     | ✅ merged                | `73f76ff` (`cf17d0b`)                   |
+| 5     | ✅ merged                | `195b243` (`54239fc`)                   |
+| 6     | ✅ merged                | `40e4e54` (`ffe16d9`, `3836ab3`)        |
+| 8     | ✅ merged                | `52abf68` (`90d7ce7`)                   |
+| 9     | ✅ merged                | `5388422` (`943d63d`)                   |
+| 3, 7  | **ready: the next wave** | `loop/slice-3`, `loop/slice-7`          |
+| 10    | blocked by 3 and 7       |                                         |
 
-**Next wave:** a fresh orchestrator session follows AGENTS.md _Running loops_. It runs `scripts/loops/new.sh <n> slice-<n>` for n = 2, 4, 5, 6, 8 and 9 (the slot is the slice number), then spawns one agent per loop. Merge in plan order (2, 4, 5, 6, 8, 9), then start 3, and start 7 once both 5 and 6 are in.
+Post-merge fix: `3604c18` (`entry-header.mjs` targets the ⋯ menu by label now that Share shares the `actions` region; `share.mjs` picks a note with text).
 
-**Expected collisions in this wave:**
+**After the wave-2 merges** (main checkout, fresh dev server): `pnpm check` passes (14 files, 202 tests). Browser checks: `live-note` 23/23, `live-notes` 24/24, `phase2` 36/36, `entry-header` 16/16, `editors` 14/14, `share` 14/14, `signout-wipe` clean. The first run after a reset can fail on PowerSync's 401 (JWKS refetch); rerun once. **`roundtrip.mjs` is stale** (it presses a "Note" button, a link since slice 1): slice 10 rewrites it.
 
-- **The entry page header:** slices 2, 4, 6 and 8 each fill only their own region.
-- **`apps/web/app/routes/app/entry.tsx`:** 2, 4, 6 and 8.
-- **`timeline.tsx` and the row components:** 2 and 5. Slice 2 drops events' separate preview; slice 5 removes "Add/Open live notes" and `LiveNotesPreview`.
-- **`lib/liveEntry.ts`:** slice 2.
-- **Only slice 6 adds a migration (0007)** and edits `sync-config.yaml`.
+**Next wave:** a fresh orchestrator runs `scripts/loops/new.sh 3 slice-3` and `new.sh 7 slice-7`, then one agent each. They collide only in `entry.tsx` (3: the title region; 7: the banner, outside the header) and maybe `timeline.tsx` (7's live dot). Merge 3, then 7, then start 10.
 
-### What slice 1 left for later slices
+### What the merged slices left for later slices
 
-- **Header:** `<EntryHeader kind title time editors? actions? />` in `components/EntryHeader.tsx`.
-  - `title` and `time` are ReactNodes. `editors` and `actions` take no space when absent.
-  - **Slice 6** fills `editors`.
-  - **Slices 4 and 8** fill `actions`.
-  - **Slice 4** replaces `<EntryTime occurredAt>` in `time` with its chip.
-  - `EntryTitle({ value, placeholder, onCommit })` saves on blur or Enter, and follows remote renames unless the field is mid-edit.
-- **Pure decisions** (`lib/liveEntry.ts`, tested in `web:unit`):
-  - `LIVE_ENTRY_KINDS = ["note"]`. **Slice 2** adds `"event"`, which also turns on the quick-add link through `QuickAddBar`'s `hrefFor`.
-  - `savedTitle(kind, title)`. **Slice 2** makes it return "Event" for an empty event title.
-  - `shouldMaterialize({ saved, text, title })`, `NEW_ENTRY`, `entryUrl` and `newEntryUrl`.
-- **Saving** (`routes/app/entry.tsx` and `lib/sync/liveEntry.ts`):
-  - `save()` builds a `MaterializeInput` from the `draft` state. `materializeLiveEntry(db, input)` writes the entry and its document in one transaction, idempotently on the id. For an existing entry with no document (today's events), it inserts only the document.
-  - **Slice 4:** to make a time chosen on `new` the saved time, keep `occurredAt` in a ref or state that `save()` reads, instead of `draft.occurredAt`.
-- **The editor's save gate:** `bindNoteDoc(…, { ensureSaved })` holds a draft's changes until `ensureSaved(doc)` resolves true, saves on the first real change, then flushes. The route's `ensureSaved` must be stable, or the editor rebinds.
-- **Still on the old path, for slice 2:** events still allow a body, still edit through `EntryForm`, and keep their separate `LiveNotesPreview` and "Add/Open live notes" (now pointing at `/entries/:id`).
-- **For slice 5:** viewers can reach a note only by its URL (they have no ⋯ menu, and rows aren't tappable yet).
-- **Route discovery:** `react-router.config.ts` sets `routeDiscovery: { mode: "initial" }`, because lazy discovery fails offline when navigating to a just-saved `/entries/:id`. Keep it.
-- **Other gotchas:**
+- **Slice 3 (event title suggestions):**
+  - Show chips when `isUnnamedEvent(kind, title)` (`lib/liveEntry.ts`) is true: an event whose title is empty or `"Event"` (`DEFAULT_EVENT_TITLE`).
+  - Put them in the header's **title** region next to `EntryTitle`, whose value and placeholder come from `titleField(kind, title, saved)`.
+  - A chip tap can go through `commitTitle(chip)`: it saves a new draft (`isNew && !saved.current`) or renames an existing entry.
+- **Slice 7 (live dot, Live now banner):**
+  - Data: `groupEditorsQuery(groupId)` with `useLiveQuery`, one `useNow()`, and `toRecentEditors(row, { now, viewerId: db.userId })` per document (`lib/sync/editors.ts`). `row.id` is the entry id. The most recently active document has the largest `result[0].lastEditAt`.
+  - `recentEditors` and the window/tick constants come from `@caretook/data/schema` (`noteEditors.ts`).
+  - `EditorAvatars` builds its "X is editing" label inline; lift `listNames` out if the banner needs the same wording.
+  - Rows: anything clickable in a row or card must be `relative z-10`, above the row's stretched open target (`EntryOpenTarget`, `absolute inset-0`). Anything else sits under it, so taps on it still open the entry. Rows are `relative isolate` so they stay under the sticky day headers.
+- **Slice 10 (checks and docs):**
+  - Rewrite `roundtrip.mjs` (Note is a link; the sheet is Symptom and Vitals only).
+  - Consolidate `live-note`, `live-notes`, `entry-header`, `editors` and `share`. Checks find rows' open targets by `a[aria-label^="Open "]` / `button[aria-label^="Edit "]`, real taps go through CDP mouse events (`tap()` in `phase2.mjs`), the header menu by `button[aria-label^="Actions for"]`, Share by `button[aria-label="Share"]`, avatars by `[data-region="editors"] [data-editor]`.
+  - Consider merging `EntryMenu` (entry header) into the timeline's `EntryActions`.
+  - Seed bodies with `- ` lines become plain paragraphs, not bullets (only `• ` makes a list).
+- **Still true from slice 1:**
   - `entry.tsx` reads `getSync()` once into state, because sign-out closes the DB while the page can still render once more.
+  - The route's `ensureSaved` must stay stable, or the editor rebinds.
+  - `routeDiscovery: { mode: "initial" }` stays (lazy discovery fails offline).
   - The entry header is `main header`; the app navbar is also a `<header>`.
-- **Browser checks:**
-  - `live-note.mjs` is slice 1's check (23/23 after the merge). Extend it, or add one per slice; slice 10 consolidates them.
-  - `phase2.mjs` passes 14/15 after the merge. "Dense first screen" (≥6 rows above the fold) fails with 5. This is probably because the seeds are placed relative to now, which makes the check depend on the time of day; it wasn't confirmed against the old code. **Slice 5** updates `phase2.mjs` and should fix it or make it independent of the time.
 
 ## How to run this plan
 
@@ -135,7 +131,7 @@ The thinnest complete path for notes:
 
 ---
 
-## Phase 2: Events are documents
+## Phase 2: Events are documents ✅ merged
 
 **Blocked by:** 1 · **Blocks:** 3 · **User stories:** 2, 9, 10, 11
 
@@ -152,14 +148,14 @@ Events get the same flow as notes:
 
 ### Acceptance criteria
 
-- [ ] From the timeline, a writer is typing in a new event after **one tap**.
-- [ ] Typing in the document before any title saves the event titled "Event", and the "Add a title" prompt shows.
-- [ ] Renaming the event syncs to other members.
-- [ ] An event PUT with a body or no title is rejected by the upload, which the integration test covers.
-- [ ] Unit tests: the event content rules, and the default-title decision (in `web:unit`).
-- [ ] The entry sheet offers only Symptom and Vitals.
-- [ ] Seeded events have documents after a reset. The timeline shows no plain bodies on notes or events.
-- [ ] The browser check covers the event start, the default title and a rename.
+- [x] From the timeline, a writer is typing in a new event after **one tap**.
+- [x] Typing in the document before any title saves the event titled "Event", and the "Add a title" prompt shows.
+- [x] Renaming the event syncs to other members.
+- [x] An event PUT with a body or no title is rejected by the upload, which the integration test covers.
+- [x] Unit tests: the event content rules, and the default-title decision (in `web:unit`).
+- [x] The entry sheet offers only Symptom and Vitals.
+- [x] Seeded events have documents after a reset. The timeline shows no plain bodies on notes or events.
+- [x] The browser check covers the event start, the default title and a rename.
 
 ---
 
@@ -185,7 +181,7 @@ While an event's title is empty or still "Event", the title region shows up to 5
 
 ---
 
-## Phase 4: Header: time chip and delete
+## Phase 4: Header: time chip and delete ✅ merged
 
 **Blocked by:** 1 · **Blocks:** none · **User stories:** 14–17
 
@@ -197,15 +193,15 @@ While an event's title is empty or still "Event", the title region shows up to 5
 
 ### Acceptance criteria
 
-- [ ] Changing the time from the chip moves the entry to the right place on the timeline, for every member.
-- [ ] A time set on `new` before typing is the saved `occurredAt`.
-- [ ] Delete from the header asks for confirmation, soft-deletes the entry, and returns to the timeline. A second browser on the entry sees the deleted state.
-- [ ] Viewers see neither the time chip as editable nor the ⋯ menu.
-- [ ] The browser check covers the time change, delete and the viewer.
+- [x] Changing the time from the chip moves the entry to the right place on the timeline, for every member.
+- [x] A time set on `new` before typing is the saved `occurredAt`.
+- [x] Delete from the header asks for confirmation, soft-deletes the entry, and returns to the timeline. A second browser on the entry sees the deleted state.
+- [x] Viewers see neither the time chip as editable nor the ⋯ menu.
+- [x] The browser check covers the time change, delete and the viewer.
 
 ---
 
-## Phase 5: Tap the row to open, and menu cleanup
+## Phase 5: Tap the row to open, and menu cleanup ✅ merged
 
 **Blocked by:** 1 · **Blocks:** 7 · **User stories:** 21, 32, 33, 37–39
 
@@ -218,16 +214,16 @@ While an event's title is empty or still "Event", the title region shows up to 5
 
 ### Acceptance criteria
 
-- [ ] Tapping anywhere on a note or event row or card opens it, in both views, for a writer and for a viewer.
-- [ ] Tapping a symptom or vital row opens its edit sheet for a writer, and does nothing for a viewer.
-- [ ] The ⋯ menu and the More/Less toggle don't open the entry.
-- [ ] No "Add live notes" or "Open live notes" remains anywhere.
-- [ ] Keyboard users can open an entry, and jsx-a11y lint passes.
-- [ ] `phase2.mjs` is updated and passes. The browser check covers row taps in both views and for both roles.
+- [x] Tapping anywhere on a note or event row or card opens it, in both views, for a writer and for a viewer.
+- [x] Tapping a symptom or vital row opens its edit sheet for a writer, and does nothing for a viewer.
+- [x] The ⋯ menu and the More/Less toggle don't open the entry.
+- [x] No "Add live notes" or "Open live notes" remains anywhere.
+- [x] Keyboard users can open an entry, and jsx-a11y lint passes.
+- [x] `phase2.mjs` is updated and passes. The browser check covers row taps in both views and for both roles.
 
 ---
 
-## Phase 6: Recent editors and editor avatars
+## Phase 6: Recent editors and editor avatars ✅ merged
 
 **Blocked by:** 1 · **Blocks:** 7 · **User stories:** 25–27
 
@@ -243,13 +239,13 @@ The "who's typing" signal, end to end, shown first in the entry page's **editors
 
 ### Acceptance criteria
 
-- [ ] When member A types, member B sees A's avatar in the header within ~2 s.
-- [ ] The avatar disappears about 2 minutes after A stops typing, even after compaction has deleted A's updates.
-- [ ] Nobody sees their own avatar.
-- [ ] Unit tests: the window edge, merging `editors` with pending updates (latest wins), excluding the viewer, ordering, and empty inputs.
-- [ ] Integration tests: compaction writes `editors` from the update authors, keeps the latest time per user, and `editors` can't be forged through create or upload.
-- [ ] The stream syncs `editors` to devices, which is verified locally.
-- [ ] The browser check covers the avatar appearing, and then expiring (with a shortened window or a mocked clock).
+- [x] When member A types, member B sees A's avatar in the header within ~2 s.
+- [x] The avatar disappears about 2 minutes after A stops typing, even after compaction has deleted A's updates.
+- [x] Nobody sees their own avatar.
+- [x] Unit tests: the window edge, merging `editors` with pending updates (latest wins), excluding the viewer, ordering, and empty inputs.
+- [x] Integration tests: compaction writes `editors` from the update authors, keeps the latest time per user, and `editors` can't be forged through create or upload.
+- [x] The stream syncs `editors` to devices, which is verified locally.
+- [x] The browser check covers the avatar appearing, and then expiring (with a shortened window or a mocked clock).
 
 ---
 
@@ -275,7 +271,7 @@ The "who's typing" signal, end to end, shown first in the entry page's **editors
 
 ---
 
-## Phase 8: Share link
+## Phase 8: Share link ✅ merged
 
 **Blocked by:** 1 · **Blocks:** none · **User stories:** 28–31
 
@@ -290,15 +286,15 @@ The link takes a signed-out member through sign-in to the entry, and shows a non
 
 ### Acceptance criteria
 
-- [ ] Share calls the share sheet when it's available, and copies the link with a confirmation otherwise.
-- [ ] A signed-out member opening the link lands on the entry after signing in.
-- [ ] A signed-in non-member gets a 404 that reveals no title or text.
-- [ ] Share is available to viewers too, since sharing a link grants no access.
-- [ ] The browser check covers the clipboard fallback, the signed-out redirect and the non-member 404.
+- [x] Share calls the share sheet when it's available, and copies the link with a confirmation otherwise.
+- [x] A signed-out member opening the link lands on the entry after signing in.
+- [x] A signed-in non-member gets a 404 that reveals no title or text.
+- [x] Share is available to viewers too, since sharing a link grants no access.
+- [x] The browser check covers the clipboard fallback, the signed-out redirect and the non-member 404.
 
 ---
 
-## Phase 9: API read path
+## Phase 9: API read path ✅ merged
 
 **Blocked by:** 1 · **Blocks:** none · **User stories:** 41, 43
 
@@ -310,10 +306,10 @@ Deleting an entry hides its document from service reads, as it does today. The c
 
 ### Acceptance criteria
 
-- [ ] `timeline.list` returns the document text as `body` for notes and events, and the stored `body` for symptoms and vitals.
-- [ ] A note without a document yet (its upload is still pending) returns a null `body`, without an error.
-- [ ] A soft-deleted entry's document text isn't returned by any read.
-- [ ] Integration tests in the router suite cover these cases.
+- [x] `timeline.list` returns the document text as `body` for notes and events, and the stored `body` for symptoms and vitals.
+- [x] A note without a document yet (its upload is still pending) returns a null `body`, without an error.
+- [x] A soft-deleted entry's document text isn't returned by any read.
+- [x] Integration tests in the router suite cover these cases.
 
 ---
 
