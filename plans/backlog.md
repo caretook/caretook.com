@@ -61,7 +61,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-29 | chore | ready | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
-| B-32 | plan | triaged | marketing |  | Landing page and basic marketing pages |
+| B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
+| B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
+| B-34 | change | triaged | quick-fixes |  | Date picker for the When field: a calendar to pick the date, not only typed segments |
 
 ## Items
 
@@ -365,6 +367,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/providers): Found by the providers orchestrator while landing providers slice 1. routing.mjs fails on dev itself (b869738, routing wave 2): 'group settings opens under the group route' fails every run (54/55): after the entry step, c.goto(/app/groups/<id>/settings) renders no main and no window.caretookSync; the only console error is Vite's 'Failed to send error to Vite server: TypeError: Cannot read properties of undefined (reading send)', which hides the real error. Not reproduced by a standalone script (sign in, open the same seeded note, then settings), so it depends on routing.mjs's earlier state (its proxy browser). One run also failed 'Account's Sign out signs out' and '/app/settings then asks to sign in' (/app/settings/account), possibly load (avg 60-230). Every other check passed on prd/providers.
 - 2026-11-18 (prd/providers): Seen again on prd/providers 5dbd62d (providers slice 2 merged): routing.mjs 53/55, failing 'Account's Sign out signs out' and '/app/settings then asks to sign in' at load ~21; the group settings step passed this time. Slice 2's loop saw 55/55.
 - 2026-11-18 (Robert Bo Davis): Routing landed in full (ff25ef2) with B-27 still open; prd/routing is closed. In the landing suite routing.mjs passed 80/80 (slice 5 changed the group settings step to open …/settings/members), so this may only be hidden. Slice 3 saw the same blank group settings once, on a long-running server. Next: a quick-fixes slice, or reopen routing, to find the root cause.
+- 2026-11-18 (prd/quick-fixes): Seen on prd/quick-fixes ac12b13 (dev ff25ef2 synced in, fresh datastore:reset and dev server): routing.mjs failed 3 runs in a row at load 18-32. Twice 4/5 with 'caretaker: timed out waiting for ol > li' on the timeline right after the settings/members step (Vite 'Failed to send error' again hides the real error); once with dev's own cdp.mjs, 27/29 with 'offline: Quick add → Symptom opens the sheet' and 'TypeError: Illegal invocation'. Every other suite check passed. The pre-sync routing.mjs passed 55/55. Not caused by quick-fixes: its cdp.mjs 401 retry never fired.
+- 2026-11-18 (prd/providers): Still failing after routing finished (prd/providers 82eb690, synced with dev 94a0c08): 'group settings opens under the group route' fails at load ~13 (quiet machine), so not contention. Now at /settings/members, same blank page and 'Failed to send error to Vite server'. Rest of routing.mjs 79/80.
 
 ### B-28 · chore · Limit browser checks machine-wide: a lock so at most two run at once
 
@@ -410,10 +414,28 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-32 · plan · Landing page and basic marketing pages
 
-- status: triaged
+- status: in-progress
 - prd: marketing
-- owner:
+- owner: prd/marketing
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. The public site at caretook.com (web build only).
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/marketing-prd.md, plans/marketing-plan.md (5 slices; slice 1, the frame and home page, can start now). No new dependencies; waitlist and contact need invites slice 1, the admin list invites slice 5.
+
+### B-33 · plan · Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Not planned yet; the user will say when. Covers the open questions in AGENTS.md: hosted database (same region as Vercel functions, pooling), how production migrations run, PowerSync Cloud (replication role with column-limited grants, sslmode verify-full, how it reaches the JWKS), rate-limit storage, env and secrets, a real staging environment, and confirming the first Vercel deploy runs pnpm 12. Invites (B-30) and marketing (B-32) need it to go live.
+
+### B-34 · change · Date picker for the When field: a calendar to pick the date, not only typed segments
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 6. DateTimeField (the timeline sheet's When, and the entry page's time chip) gets a calendar button and popover through React Aria's DatePicker and Calendar (already a dependency); typed segments stay.

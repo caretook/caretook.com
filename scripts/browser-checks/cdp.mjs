@@ -155,13 +155,41 @@ export async function openPage(browser, label) {
 
   /** Sign in; then, unless `home`, go on from the group list to Dev Family (see `openDevFamily`). */
   const signIn = async (email, password, { home = false } = {}) => {
-    await goto("/sign-in");
-    await waitFor(`document.querySelector('input[name="email"]')`);
-    await type(`document.querySelector('input[name="email"]')`, email);
-    await type(`document.querySelector('input[name="password"]')`, password);
-    await press(`document.querySelector('form button[type="submit"]')`);
-    // The first /app load (PowerSync, cold modules) can be slow when many loops share the machine.
-    await waitFor(`location.pathname.startsWith("/app")`, 45000);
+    // A 401 from the sync token endpoint leaves the device local-only (no first
+    // sync), so the page would wait for groups that never come. Last guard:
+    // retry once, with a log line.
+    let tokenRefused = false;
+    const watchToken = (msg) => {
+      const { response } = msg.params ?? {};
+      if (msg.method === "Network.responseReceived" && response.status === 401) {
+        if (new URL(response.url).pathname === "/api/auth/token") tokenRefused = true;
+      }
+    };
+    listeners.push(watchToken);
+    const submit = async () => {
+      await goto("/sign-in");
+      await waitFor(`document.querySelector('input[name="email"]')`);
+      await type(`document.querySelector('input[name="email"]')`, email);
+      await type(`document.querySelector('input[name="password"]')`, password);
+      await press(`document.querySelector('form button[type="submit"]')`);
+      // The first /app load (PowerSync, cold modules) can be slow when many loops share the machine.
+      await waitFor(`location.pathname.startsWith("/app")`, 45000);
+    };
+    try {
+      await submit();
+      if (tokenRefused) {
+        console.log(`${label}: /api/auth/token answered 401 after signing in as ${email}; retrying once`);
+        tokenRefused = false;
+        await sleep(1000);
+        await send("Page.reload");
+        await waitFor(`document.readyState === "complete" && location.pathname !== "/"`, 15000);
+        if (await evaluate(`location.pathname === "/sign-in"`)) await submit();
+        else await waitFor(`location.pathname.startsWith("/app")`, 45000);
+        if (tokenRefused) console.log(`${label}: /api/auth/token answered 401 again`);
+      }
+    } finally {
+      listeners.splice(listeners.indexOf(watchToken), 1);
+    }
     if (!home) await openDevFamily();
   };
 

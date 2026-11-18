@@ -9,10 +9,14 @@
 | 1     | B-1  | merged | 1e00754 (5ab3b67)                            |
 | 2     | B-17 | merged | 4629e8c (32355db)                            |
 | 3     | B-22 | merged | b0325d0 (46ef320)                            |
-| 4     | B-28 | ready  |                                              |
-| 5     | B-29 | ready  |                                              |
+| 4     | B-28 | merged | b15b140 (9911d1b, 8a0bb50)                   |
+| 5     | B-29 | merged | 8eaf3c3 (3b97174, a31bd85)                   |
 
-Wave 1 (slices 1–3) is in `dev`. Slices 4 and 5 (browser check tooling, from the _Browser check budget_ in AGENTS.md) are ready; they're independent and can run together.
+Wave 1 (slices 1–3) is in `dev`. Wave 2 (slices 4 and 5, browser check tooling) is merged into `prd/quick-fixes`, with its AGENTS.md wording folded in; it lands on the user's word.
+
+- Slice 4: `pnpm prd browser` (two machine-wide leases, `--timeout`, `--suite`). The never-exiting checks are stopped 2 s after their last line, so they don't hold a lease for 300 s.
+- Slice 5: `datastore:reset` ends with `datastore:powersync`, which also empties PowerSync's bucket storage (a restart alone kept stale `note_update`s, the "Former member" cause). Its main-checkout criterion is verified by the orchestrator after landing.
+- Open: `phase2.mjs` failed 1/107 once in slice 4's worktree on a `[PowerSync]: Sync aborted` console warning (app, not tooling), at load 26–56.
 
 - Slice 3 measured the first sync at about 120–200 ms after the database opens, so it shortened the wait to 1 s and added a syncing state; with the old code a 12 s sync left home on "You're not in a care group yet" for good.
 - Slice 2's offline-reload criterion is checked by leaving the timeline and coming back offline: a full offline reload needs a service worker, which isn't built.
