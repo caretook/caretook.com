@@ -64,7 +64,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-34 | change | triaged | quick-fixes |  | Date picker for the When field: a calendar to pick the date, not only typed segments |
-| B-35 | bug | in-progress | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
+| B-35 | bug | ready | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
 | B-36 | chore | in-progress | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
 
 ## Items
@@ -451,10 +451,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-35 · bug · A practice's type can change to clinician or other while clinicians still point at it
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: e6fc148
 
 - 2026-11-18 (Robert Bo Davis): From the providers plan's open issues. Quick-fixes slice 8: providerService refuses the change while live providers name it as their practice, and the device's local write refuses it too.
 - 2026-11-18 (slice/quick-fixes/8): slice/quick-fixes/8 7c0725f: server + device refuse practice->clinician/other while live providers name it (providerService:practiceInUse, issue on type). Browser step not run (excluded this wave). Deleting a practice still leaves clinicians pointing at a deleted practice; the sheet shows '(removed practice)'.
