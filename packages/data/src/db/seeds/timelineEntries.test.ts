@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { timelineEntryContentZSchema } from "../schema";
-import { occurredAtOf, SEED_ENTRIES, seedContentOf } from "./timelineEntries";
+import { SECOND_GROUP_ENTRIES } from "./secondGroup";
+import { occurredAtOf, SEED_ENTRIES as DEV_FAMILY_ENTRIES, seedContentOf } from "./timelineEntries";
+
+// Every seeded group's entries: Dev Family's, then Dev Family 2's.
+const SEED_ENTRIES = [...DEV_FAMILY_ENTRIES, ...SECOND_GROUP_ENTRIES];
 
 // Seeds write straight to the table, skipping the service's validation, so
 // check them against the same rules the API enforces.
@@ -41,6 +45,11 @@ describe("timeline seed entries", () => {
   it("give symptoms and vitals no document", () => {
     const others = SEED_ENTRIES.filter((e) => e.kind !== "note" && e.kind !== "event").map(seedContentOf);
     expect(others.every((n) => n.documentText === null)).toBe(true);
+  });
+
+  it("seed a second group with a few entries of its own", () => {
+    expect(SECOND_GROUP_ENTRIES.length).toBeGreaterThan(0);
+    expect(SECOND_GROUP_ENTRIES.every((e) => e.author === "member@example.com")).toBe(true);
   });
 
   it("places `at` entries at that local time", () => {

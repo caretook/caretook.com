@@ -43,10 +43,11 @@ const idOf = (email) => psql(`SELECT id FROM "user" WHERE email = '${email}'`);
 const MEMBER = idOf("member@example.com");
 const CARETAKER = idOf("caretaker@example.com");
 const VIEWER = idOf("viewer@example.com");
-// A seeded note nobody has touched for at least an hour: its editors are its author, long ago.
+// In Dev Family (member@ is also in Dev Family 2). A seeded note nobody has touched for at least an hour: its editors are its author, long ago.
 const NOTE = psql(
   `SELECT e.id FROM timeline_entry e JOIN note_document d ON d.id = e.id
-   WHERE e.kind = 'note' AND e.deleted_at IS NULL AND e.occurred_at < now() - interval '1 hour'
+   WHERE e.group_id = '0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001' AND e.kind = 'note' AND e.deleted_at IS NULL
+     AND e.occurred_at < now() - interval '1 hour'
    ORDER BY e.occurred_at DESC LIMIT 1`,
 );
 const GROUP = psql(`SELECT group_id FROM timeline_entry WHERE id = '${NOTE}'`);
