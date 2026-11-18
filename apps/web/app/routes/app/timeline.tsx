@@ -8,7 +8,7 @@ import type { EntryRow, GroupRow, MemberRow, ReadingRow } from "~/lib/sync/timel
 
 import { canHaveNoteDocument, DEFAULT_UNITS, unitChoicesZSchema } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
-import { data, useFetcher } from "react-router";
+import { useFetcher } from "react-router";
 import { ConfirmDialog } from "~/components/ConfirmDialog";
 import { EntryForm } from "~/components/EntryForm";
 import { EntrySheet } from "~/components/EntrySheet";
@@ -24,8 +24,8 @@ import { formString } from "~/lib/form";
 import { entryUrl, isLiveEntryKind, newEntryUrl } from "~/lib/liveEntry";
 import { liveDotLabel } from "~/lib/liveNow";
 import { dayKey, formatDay } from "~/lib/format";
-import { cacheSettings, loadSettings } from "~/lib/me";
-import { rpc } from "~/lib/rpc";
+import { loadSettings, saveSettings } from "~/lib/me";
+import { notOnDevice } from "~/lib/firstSync";
 import { requireSession } from "~/lib/session";
 import { getSync, useLiveQuery, waitForFirstSync } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/sync/editors";
@@ -77,7 +77,7 @@ export async function clientLoader({ request, params }: Route.ClientLoaderArgs) 
 
   const groups = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
   const groupRow = groups.find((g) => g.id === groupId);
-  if (!groupRow) throw data("Not found", { status: 404 });
+  if (!groupRow) throw notOnDevice(db);
 
   const [entryRows, memberRows, readingRows, documentRows, settings] = await Promise.all([
     readRows<EntryRow>(db, entriesQuery(groupId, kind, PAGE_SIZE)),
@@ -193,13 +193,12 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     liveDocuments.map((d) => [d.id, liveDotLabel(d.editors.map((e) => nameOf(e.userId)))]),
   );
 
-  // The layout is a per-user setting. It switches at once; saving it is best
-  // effort (if it fails, the next visit shows the old layout).
+  // The layout is a per-user setting. It switches at once; offline, it's
+  // saved on the next online visit (see `saveSettings`).
   const [view, setView] = useState<TimelineView>(loaderData.timelineView);
   const changeView = (next: TimelineView) => {
     setView(next);
-    cacheSettings(userId, { timelineView: next });
-    rpc.me.updatePreferences({ timelineView: next }).catch(() => undefined);
+    saveSettings(userId, { timelineView: next }).catch(() => undefined);
   };
 
   // One sheet for adding and editing. `key` remounts the form each time it
@@ -230,7 +229,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold">{group.recipient?.displayName ?? group.name}</h1>
+          <h1 className="text-lg font-semibold">{group.recipient?.displayName ?? group.name}</h1>
           <p className="text-base-content/70 text-sm">
             {group.name}
             {group.role === "viewer" && " · You can view this timeline"}

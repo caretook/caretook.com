@@ -917,7 +917,7 @@ try {
     20000,
   );
   check("signed out: after signing in, the link lands on the entry", true);
-  await D.press(button("Sign out"));
+  await D.signOut();
   await D.waitFor(`location.pathname === "/sign-in" || location.pathname === "/"`, 15000);
   await D.signIn("admin@example.com", PW);
   await D.send("Page.navigate", { url: copied });

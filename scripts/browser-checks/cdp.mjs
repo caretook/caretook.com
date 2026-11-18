@@ -25,7 +25,7 @@ export async function launch(basePort, extraArgs = []) {
     ...extraArgs,
     "about:blank",
   ]);
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 150; i++) {
     try {
       const v = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
       return { proc, port, ws: v.webSocketDebuggerUrl };
@@ -143,7 +143,18 @@ export async function openPage(browser, label) {
     await type(`document.querySelector('input[name="email"]')`, email);
     await type(`document.querySelector('input[name="password"]')`, password);
     await press(`document.querySelector('form button[type="submit"]')`);
-    await waitFor(`location.pathname.startsWith("/app")`, 15000);
+    // The first /app load (PowerSync, cold modules) can be slow when many loops share the machine.
+    await waitFor(`location.pathname.startsWith("/app")`, 45000);
+  };
+
+  /** Sign out through the header's account menu (app-shell slice 1). */
+  const signOut = async () => {
+    const trigger = `document.querySelector('header [data-region="user"] button[aria-label^="Account menu for"]')`;
+    const item = `[...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent.trim() === "Sign out")`;
+    await waitFor(trigger, 15000);
+    await press(trigger);
+    await waitFor(item, 5000);
+    await press(item);
   };
 
   return {
@@ -157,6 +168,7 @@ export async function openPage(browser, label) {
     tap,
     type,
     signIn,
+    signOut,
     errors,
     close: () => ws.close(),
   };

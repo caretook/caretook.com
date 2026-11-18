@@ -30,7 +30,11 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
 }
 
 export default function SignIn({ loaderData, actionData }: Route.ComponentProps) {
-  const submitting = useNavigation().state === "submitting";
+  // Busy from submit until the navigation it starts is idle: a successful sign-in
+  // redirects, and the state is "loading" while /app's loaders run (up to the first
+  // sync), so checking only "submitting" would re-enable the button for a second
+  // sign-in. An error returns to idle, which re-enables the form.
+  const busy = useNavigation().state !== "idle";
   return (
     <main className="flex min-h-dvh items-center justify-center px-4">
       <div className="card bg-base-100 w-full max-w-sm shadow-md">
@@ -69,8 +73,8 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
                 {actionData.error}
               </p>
             )}
-            <button type="submit" className="btn btn-primary btn-block mt-2" disabled={submitting}>
-              {submitting ? "Signing in…" : "Sign in"}
+            <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
+              {busy ? "Signing in…" : "Sign in"}
             </button>
           </Form>
         </div>

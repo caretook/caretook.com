@@ -184,7 +184,7 @@ try {
   // 7. Tidy up, then sign-out wipes the device.
   psql(`UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' = '${offName}'`);
   await A.waitFor(`!${rowWith(offName)}`, 15000);
-  await A.press(button("Sign out"));
+  await A.signOut();
   await A.waitFor(`location.pathname === "/sign-in"`, 15000);
   // The database is deleted, or (while a delete is pending) holds nothing.
   await sleep(1000);

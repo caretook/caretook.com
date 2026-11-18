@@ -82,7 +82,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 - The main checkout keeps the default ports (5173, 5434, 5435, 8080).
 - Every port, the Compose project name and the PowerSync audience come from env, defaulting to the main checkout's values. If you add a service, a port or a hardcoded container name, make it configurable the same way.
 
-**Capacity.** One stack uses about 250 MB idle (the Docker VM has 16 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together.
+**Capacity.** One stack uses about 250 MB idle (the Docker VM has 16 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together. Six busy stacks at once (three loops plus two other PRDs) pushed the load average past 500: `pnpm check` took 25 minutes, tests hit their 5 s timeouts, and sign-ins in browser checks timed out. Rerun a failure like that once the load drops before debugging it.
 
 **Starting a PRD (the user):**
 
@@ -141,12 +141,15 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 - **PowerSync can keep the old JWKS for minutes after a `datastore:reset`** ("no key matched the token KID", PSYNC_S2101), and pages then wait on `waitForFirstSync`. Run `docker compose restart powersync` after a reset.
 - **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). Run every merged slice's check after each merge, not only the new one's.
 - **Long-running dev servers** can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
+- **Recent-editor state outlives a reset in PowerSync's bucket storage** (not cleared by `datastore:reset`): right after a reset it can still serve editors with the old user ids ("Former member"). Restart PowerSync and give it a minute before `live-notes.mjs`. (Its own "who's typing" steps don't need a quiet group: it ages only its own documents.)
 
 ### Active PRDs
 
 The backlog's PRD table lists them all, with their dependencies.
 
 - ✅ [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (topic `live-notes-ux`): **done**, all ten slices in `dev`. Notes and events _are_ their live document: Note/Event opens the editor in one tap, the entry is saved on the first keystroke, and others join in one tap through a row tap, the Live now banner, a live dot or a Share link. Its lasting decisions are under _Timeline entries_ and _Live notes_; follow-ups are in _Next steps_.
+- 🟡 [`plans/quick-fixes-plan.md`](plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–3 (B-1, B-17, B-22) are in `dev`**; nothing is in flight. `prompt.sh` handles a topic without a PRD file.
+- 🟡 [`plans/app-shell-prd.md`](plans/app-shell-prd.md) (topic `app-shell`): the `/app` frame, the user menu, the group menu and switcher, group sections, and group settings. Sliced in [`plans/app-shell-plan.md`](plans/app-shell-plan.md). **Slice 1 (the frame and the user menu) is landing.** Slices 2, 3 and 4 run next, each filling one region; `timeline-polish`, `providers` and `medications` build on the frame.
 
 ## Product
 
@@ -264,7 +267,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 - **Settings:** `emailAndPassword` with `disableSignUp: true` and a 12-character minimum; telemetry off; `trustedOrigins` = Capacitor's origins + `AUTH_TRUSTED_ORIGINS`.
 - **Plugins:** `bearer()` (native), and `jwt()`: 15-minute EdDSA tokens with `sub` and `role`, JWKS at `/api/auth/jwks`, and `aud` = `POWERSYNC_URL`.
 - **Exports:** `getAuth()` (lazy) and `getAuthUser(headers)` → `AuthUser` with `groupRoles`. `@caretook/auth/client` has `createCaretookAuthClient`. apps/web imports through `app/.server/auth.ts` and `app/lib/auth-client.ts`.
-- **Routes:** `/api/auth/*` is web only. `/sign-in` and `/sign-out` are shared and client-only (sign-out is POST only). `/app/layout.tsx` redirects to `/sign-in?redirectTo=…`, checked by `safeRedirect`.
+- **Routes:** `/api/auth/*` is web only. `/sign-in` and `/sign-out` are shared and client-only (sign-out is POST only). `/app/layout.tsx` redirects to `/sign-in?redirectTo=…`, checked by `safeRedirect`. The sign-in button stays disabled ("Signing in…") while any navigation is non-idle, so it can't be pressed again during the redirect's loaders.
 - **Dev:** seeds give every `@example.com` user a password from `SEED_USER_PASSWORD` (`packages/data/.env`), hashed with `better-auth/crypto` (a dev dependency). The env is in `apps/web/.env`; `vite.config.ts` also loads `packages/data/.env`.
 - 🟡 **Resend** next: verification, reset, invites, maybe magic link or OTP. Keep `requireEmailVerification` off until then, and don't build UI that assumes passwords are the only sign-in method.
 - ❓ Before launch:
@@ -298,10 +301,12 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
     - One user's data per device: the owner is in localStorage, and the file is wiped when someone else opens it.
     - Sign-out runs `disconnectAndClear`, then deletes the IndexedDB/OPFS file.
     - `fetchCredentials` calls `/api/auth/token`. A 401 leaves the device local-only.
-  - `index.ts`: `openSync`, `getSync`, `closeSync`, `waitForFirstSync` (10 s cap), `useLiveQuery` and `useSyncState`. Dev builds expose `window.caretookSync`.
+  - `index.ts`: `openSync`, `getSync`, `closeSync`, `waitForFirstSync`, `isFirstSyncDone`, `useFirstSyncDone`, `useLiveQuery` and `useSyncState`. Dev builds expose `window.caretookSync`.
+  - **The first sync** (measured at about 120–200 ms after the database opens locally): `waitForFirstSync(db)` waits at most 1 s (`FIRST_SYNC_WAIT_MS`) and resolves to `isFirstSyncDone(db)`. That's PowerSync's `hasSynced`, which persists with the local copy, so it's true at once on a synced device and offline. `useFirstSyncDone()` is the hook (below the /app layout only). Use it for anything that needs the local groups, such as a last-group redirect.
+    - A loader whose group isn't on the device throws `notOnDevice(db)` (`lib/firstSync.ts`): a 404 once the first sync is done, otherwise a 503 "First sync pending" that `/app`'s `ErrorBoundary` shows as `FirstSyncPending` ("Getting your care groups…"), which reruns the loaders when the sync lands. `home` shows the same state while `synced` is false, and never says "not in a care group" before then.
   - `timeline.ts`: local queries, row → API-shape mapping (unknown kinds are skipped), and local writes. Writes validate with the shared Zod schemas, check the role locally, and update content columns only.
   - `lib/session.ts` `requireSession(request)`: one shared session check and DB open, because layout and child loaders run in parallel. Offline, the cached last user carries on.
-  - `lib/me.ts` caches settings per user (they aren't synced).
+  - `lib/me.ts` caches settings per user (they aren't synced). **Change them with `saveSettings(userId, change)`**: it caches at once, records the change as pending (`caretook:settings-pending:<userId>`), and calls `updatePreferences`, resolving `"saved"` or, on a network failure, `"pending"`. Other errors reject (a refused change is dropped). `loadSettings` sends pending changes before reading `me.get`; offline it returns the cache with them on top. The last write wins across devices. `forgetSettings` (sign-out) clears pending changes too.
 - **Conflicts:** last write wins per row. Live notes merge through Yjs.
 - ❓ **Production:** a dedicated replication role with column-limited grants, `sslmode: verify-full`, the Cloud instance, and how Cloud reaches the JWKS.
 - 🟡 Not built:
@@ -379,6 +384,14 @@ The shared space for the caretakers of one care recipient. Always say "care grou
 - **User preferences:** `user.preferences` jsonb (`userPreferencesZSchema`, every field optional, so new settings need no migration).
   - `units`, via `resolveUnits()`, defaulting to °F, lb, mg/dL and mL.
   - `timelineView` (`rows | cards`), via `resolveTimelineView()`.
+- **The `/app` frame** (`routes/app/layout.tsx`, a hot file): fixed regions that slices and PRDs fill through their components, never by restructuring the layout:
+  - header `group` (left): the Caretook link, then `GroupMenu` on group routes (app-shell slices 3 and 5);
+  - header `sections` (`hidden sm:flex`): `SectionNav` on group routes (slice 4);
+  - header `status`: `SyncIndicator`;
+  - header `user`: `UserMenu`, a RAC menu on the avatar ("Account menu for …"), with a name and email header, Settings and Sign out (POST to `/sign-out`). Theme goes in it next (slice 2);
+  - the outlet, then `TabBar` (phones, group routes; slice 4).
+  - `GroupMenu`, `SectionNav` and `TabBar` render nothing yet. The `groupId` comes from `useParams()`; screens outside a group get the header only.
+  - **Avatars:** `UserAvatar` (image, or initials if it's missing or fails to load) is shared by the user menu and `EditorAvatars`. `lib/initials.ts` has `initials(name)` and `userInitials({ name, email })` (name, then the email's first letter, then "?"). `SessionUser` carries an optional `image`.
 - **Timeline screen** (`/app/groups/:groupId/timeline`):
   - Rows (the default) or cards, both rendered from `entrySummary()`.
   - Kind icons and colors in `KIND_META`. Vitals are pink, **not green** (green reads as "all good").
@@ -505,8 +518,9 @@ Built by [`plans/live-notes-ux-prd.md`](plans/live-notes-ux-prd.md) (done).
 UI work is verified in headless Chrome over CDP with plain Node scripts (no Playwright yet).
 
 - **Run:** Node 24 (they use the global `WebSocket`), from that folder, against the dev server. `BASE` defaults to `http://localhost:5176`.
-- **Scripts:** `cdp.mjs` (the harness, with `tap()` for real CDP mouse taps); `proxy.mjs` (offline, because CDP network emulation doesn't cut PowerSync's stream); `live-notes.mjs` (the one notes and events check, about 2 min: drafts, one-tap note and event, title chips, Live now banner and live dot, avatars, convergence, offline, time chip, Delete, Share, 404s, with tap counts Note 1, Event 1, named event 2, Join 1); `roundtrip.mjs` (sheet entries: symptom add, edit, delete, validation, offline, viewer, sign-out wipe); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `signout-wipe.mjs`.
+- **Scripts:** `cdp.mjs` (the harness, with `tap()` for real CDP mouse taps); `proxy.mjs` (offline, because CDP network emulation doesn't cut PowerSync's stream); `live-notes.mjs` (the one notes and events check, about 2 min: drafts, one-tap note and event, title chips, Live now banner and live dot, avatars, convergence, offline, time chip, Delete, Share, 404s, with tap counts Note 1, Event 1, named event 2, Join 1); `roundtrip.mjs` (sheet entries: symptom add, edit, delete, validation, offline, viewer, sign-out wipe); `phase2.mjs` (the timeline layout and row taps, writer and viewer in both views; Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change); `signout-wipe.mjs` (never exits on its own: run it with a timeout); `sign-in.mjs` (one sign-in request on a double click, by holding `/api/auth/token`); `layout-offline.mjs` (an offline layout change survives and reaches the server); `first-sync.mjs` (a slow first sync, held by its own proxy, shows the syncing state and never "no care groups"; `HOLD_MS`); `app-shell.mjs` (the frame and the user menu: one-row header at 420, keyboard menu, Settings, Sign out).
   - **They're order-independent:** each run tags the entries it makes, asserts against its own entries (never global idle state or seed order), moves only its own documents' edit times back before "who's typing" steps, and soft-deletes what it made at the end. They exit non-zero on failure.
+  - Sign out in a check with `page.signOut()` (`cdp.mjs`), which goes through the account menu.
   - Headless Chrome's clipboard needs `Emulation.setFocusEmulationEnabled`. Pin the zone (`Emulation.setTimezoneOverride`, America/Los_Angeles) for layout checks.
 - **Patterns:**
   - Use a 420×900 window.
@@ -514,6 +528,7 @@ UI work is verified in headless Chrome over CDP with plain Node scripts (no Play
   - React Aria buttons and menu items need a `pointerdown` before `.click()`.
   - Set inputs through the native value setter, then dispatch `input`.
   - Collect console errors, and take screenshots.
+  - **Better Auth allows about 3 sign-ins per 10 s.** Past that it answers like a wrong password. Pause between checks run back to back (`first-sync.mjs` waits 4 s before each sign-in).
 - **Afterwards:** nothing; the checks clean up after themselves, so no reset is needed between runs.
 
 ### Gotchas
@@ -544,9 +559,9 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/components/         EntryForm, EntrySheet, QuickAddBar, TimelineEntryRow/Card, KindIcon, TimelineFilters,
                           LatestVitals, EntryActions, DateTimeField, ConfirmDialog, VitalTypeMenu,
                           VitalReadingsFields, LiveNotesEditor, EntryHeader, EntryTimeChip, EntryMenu,
-                          ShareButton, EditorAvatars, SyncIndicator, EventTitleChips,
-                          LiveNowBanner, LiveDot
-  app/lib/                session, me, auth-client, rpc, api, entryDisplay, entryForm, format, redirect, form, liveEntry, share,
+                          ShareButton, EditorAvatars, SyncIndicator, UserAvatar, UserMenu, GroupMenu, SectionNav,
+                          FirstSyncPending, EventTitleChips, LiveNowBanner, LiveDot
+  app/lib/                session, me, auth-client, rpc, api, initials, entryDisplay, entryForm, format, redirect, form, liveEntry, share, firstSync,
                           liveNow, titleSuggestions
   app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors, titleSuggestions
 packages/auth/            @caretook/auth
