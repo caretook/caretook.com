@@ -11,7 +11,12 @@ const appRoutes = [
   ...prefix("app", [
     layout("routes/app/layout/route.tsx", { id: "app" }, [
       index("routes/app/home/route.tsx"),
-      route("settings", "routes/app/settings/route.tsx"),
+      route("settings", "routes/app/settings/layout/route.tsx", [
+        index("routes/app/settings/index/route.tsx"),
+        route("units", "routes/app/settings/units/route.tsx"),
+        route("timeline", "routes/app/settings/timeline/route.tsx"),
+        route("account", "routes/app/settings/account/route.tsx"),
+      ]),
       route("groups/:groupId", "routes/app/groups/layout/route.tsx", { id: "group" }, [
         index("routes/app/groups/index/route.tsx"),
         route("timeline", "routes/app/groups/timeline/route.tsx", [

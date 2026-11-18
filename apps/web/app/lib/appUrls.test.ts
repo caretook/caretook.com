@@ -10,6 +10,14 @@ describe("appUrls", () => {
     expect(appUrls.settings()).toBe("/app/settings");
   });
 
+  it("builds the account settings subpages, and drops an unknown one", () => {
+    expect(appUrls.settings("units")).toBe("/app/settings/units");
+    expect(appUrls.settings("timeline")).toBe("/app/settings/timeline");
+    expect(appUrls.settings("account")).toBe("/app/settings/account");
+    // @ts-expect-error: only the listed subpages exist.
+    expect(appUrls.settings("bogus")).toBe("/app/settings");
+  });
+
   it("builds a group's paths", () => {
     expect(appUrls.groupHome(G)).toBe(`/app/groups/${G}`);
     expect(appUrls.timeline(G)).toBe(`/app/groups/${G}/timeline`);
