@@ -2,10 +2,11 @@ import type { MyGroup } from "~/lib/rpc";
 import type { clientLoader as layoutLoader } from "~/routes/app/layout";
 import type { GroupRow } from "~/lib/sync/timeline";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Settings } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { Button, Menu, MenuItem, MenuSection, MenuTrigger, Popover } from "react-aria-components";
+import { Button, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { useNavigate, useRouteLoaderData } from "react-router";
+import { groupSettingsPath } from "~/lib/groupSettings";
 import { rememberGroup } from "~/lib/lastGroup";
 import { useLiveQuery } from "~/lib/sync";
 import { myGroupsQuery, toMyGroup } from "~/lib/sync/timeline";
@@ -25,7 +26,8 @@ const timelinePath = (groupId: string) => `/app/groups/${groupId}/timeline`;
  * The header's `group` region on `/app/groups/:groupId/*`: the current
  * group's display name as a menu listing every group on this device (live,
  * so it works offline), the current one checked. Choosing one opens its
- * timeline. Loading a group route also remembers it for `/app`.
+ * timeline; "Group settings" opens the current group's settings. Loading a
+ * group route also remembers it for `/app`.
  */
 export function GroupMenu({ groupId }: { groupId: string }) {
   const navigate = useNavigate();
@@ -89,7 +91,15 @@ export function GroupMenu({ groupId }: { groupId: string }) {
               </MenuItem>
             ))}
           </MenuSection>
-          {/* "Group settings" (after a Separator) goes here: app-shell slice 5. */}
+          <Separator className="border-base-300 my-1 border-t" />
+          <MenuItem
+            id="group-settings"
+            onAction={() => void navigate(groupSettingsPath(groupId))}
+            className={ITEM}
+          >
+            <Settings aria-hidden="true" className="size-4 shrink-0" />
+            Group settings
+          </MenuItem>
         </Menu>
       </Popover>
     </MenuTrigger>

@@ -2,9 +2,12 @@ import type { VitalReading } from "@caretook/data";
 
 import { z } from "zod";
 import {
+  careGroupInsertZSchema,
   careGroupMemberService,
   careGroupService,
+  careRecipientProfileZSchema,
   careRecipientService,
+  isError,
   TIMELINE_ENTRY_KINDS,
   timelineEntryCreateZSchema,
   timelineEntryService,
@@ -23,6 +26,32 @@ import { sync } from "./sync";
 
 const id = z.uuid();
 const ids = (values: string[]) => ({ type: "inArray" as const, value: values });
+const eq = (value: string) => ({ type: "eq" as const, value });
+
+/**
+ * The result of an update to a row the actor can already read. The models
+ * enforce the role in SQL, so a member whose role doesn't allow the change
+ * updates nothing: that's a 403 (a non-member got a 404 from the read).
+ */
+const updated = <T>(result: T) => {
+  if (isError(result) && result.code === "baseModel:update:nothingUpdated") throw new ORPCError("FORBIDDEN");
+  return unwrap(result);
+};
+
+/** A care recipient's profile: what group settings shows and edits. */
+const toRecipientProfile = (recipient: {
+  id: string;
+  groupId: string;
+  name: string;
+  preferredName: string | null;
+  dateOfBirth: string | null;
+}) => ({
+  id: recipient.id,
+  groupId: recipient.groupId,
+  name: recipient.name,
+  preferredName: recipient.preferredName,
+  dateOfBirth: recipient.dateOfBirth,
+});
 
 // ---------------------------------------------------------------------------
 // me
@@ -112,6 +141,51 @@ const careGroup = {
       return { userId: m.userId, role: m.role, name: user?.name ?? null, image: user?.image ?? null };
     });
   }),
+
+  /** Rename a group (owners and admins). Other members get a 403, non-members a 404. */
+  update: authedProcedure
+    .input(careGroupInsertZSchema.pick({ name: true }).extend({ groupId: id }))
+    .handler(async ({ context, input }) => {
+      const group = unwrap(await careGroupService.getById(context, input.groupId));
+      if (!group) throw new ORPCError("NOT_FOUND");
+      const [renamed = group] = updated(
+        await careGroupService.update(context, { filter: { id: eq(group.id) }, data: { name: input.name } }),
+      );
+      return { id: renamed.id, name: renamed.name };
+    }),
+
+  /**
+   * The group's care recipient: name, preferred name and date of birth (which
+   * doesn't sync to devices). Members only; null when the group has none.
+   */
+  recipient: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
+    const group = unwrap(await careGroupService.getById(context, input.groupId));
+    if (!group) throw new ORPCError("NOT_FOUND");
+    const recipient = unwrap(await careRecipientService.get(context, { filter: { groupId: eq(group.id) } }));
+    return recipient ? toRecipientProfile(recipient) : null;
+  }),
+
+  /**
+   * Edit the recipient's profile (owners, admins and caretakers). Fields left
+   * out keep their value; an empty preferred name clears it.
+   */
+  updateRecipient: authedProcedure
+    .input(careRecipientProfileZSchema.extend({ groupId: id }))
+    .handler(async ({ context, input }) => {
+      const { groupId, ...profile } = input;
+      const recipient = unwrap(await careRecipientService.get(context, { filter: { groupId: eq(groupId) } }));
+      if (!recipient) throw new ORPCError("NOT_FOUND");
+      const data = {
+        ...(profile.name !== undefined && { name: profile.name }),
+        ...(profile.preferredName !== undefined && { preferredName: profile.preferredName || null }),
+        ...(profile.dateOfBirth !== undefined && { dateOfBirth: profile.dateOfBirth }),
+      };
+      if (!Object.keys(data).length) return toRecipientProfile(recipient);
+      const [saved = recipient] = updated(
+        await careRecipientService.update(context, { filter: { id: eq(recipient.id) }, data }),
+      );
+      return toRecipientProfile(saved);
+    }),
 };
 
 // ---------------------------------------------------------------------------
