@@ -131,7 +131,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 | schema, migrations, sync-config, the upload switch, seeds                    | the checks for every screen that reads those tables           |
 | docs, plans, scripts outside `browser-checks/`, pure modules with unit tests | none                                                          |
 
-**Starting a PRD (the user):** `pnpm prd start <topic>`, then run the command it prints in a new terminal (`cd .loops/<topic> && claude "$(scripts/loops/prompt.sh orchestrator <topic>)"`). From then on the user steers that PRD from its orchestrator's console: which slices to run, and when to land.
+**Starting a PRD (the user):** `pnpm prd start <topic>`, then run the command it prints in a new terminal (`cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic>)"`). From then on the user steers that PRD from its orchestrator's console: which slices to run, and when to land.
 
 **Keep each orchestrator's context small.** A session may run wave after wave; start a fresh one (the same command) whenever it gets slow or confused. The plan's _Status_ section makes that safe at any wave boundary.
 
