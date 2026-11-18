@@ -4,19 +4,25 @@
 
 ## Status
 
-| Slice | Backlog | State                   | Merge into `prd/timeline-polish` (slice commits) |
-| ----- | ------- | ----------------------- | ------------------------------------------------ |
-| 1     | B-5     | ready (wave 1)          |                                                  |
-| 2     | B-7     | ready (wave 1)          |                                                  |
-| 3     | B-2     | ready (wave 1)          |                                                  |
-| 4     | B-6     | blocked by 1            |                                                  |
-| 5     | B-3     | ready (planned: wave 2) |                                                  |
-| 6     | B-4     | blocked by 4            |                                                  |
-| 7     | B-10    | blocked by 4            |                                                  |
+| Slice | Backlog | State           | Merge into `prd/timeline-polish` (slice commits) |
+| ----- | ------- | --------------- | ------------------------------------------------ |
+| 1     | B-5     | merged (wave 1) | `5d6678a` (`9b23d14`, `4c14096`)                 |
+| 2     | B-7     | merged (wave 1) | `cf96edc` (`47a2792`)                            |
+| 3     | B-2     | merged (wave 1) | `908d4fa` (`4b1b280`, `cf12f43`)                 |
+| 4     | B-6     | ready (wave 2)  |                                                  |
+| 5     | B-3     | ready (wave 2)  |                                                  |
+| 6     | B-4     | blocked by 4    |                                                  |
+| 7     | B-10    | blocked by 4    |                                                  |
 
-Nothing has started. The PRD's dependencies are all in `dev`: `live-notes-ux` (done) and `app-shell` slices 1–4 (the frame, `UserAvatar`, the tab bar).
+Wave 1 (slices 1–3) is merged, synced with `dev` (which now has all of `app-shell`) and green: `pnpm check`, and `phase2.mjs`, `roundtrip.mjs` and `live-notes.mjs` after each merge. Its worktrees are removed and B-5, B-7 and B-2 are `ready`. It lands in `dev` on the user's word.
 
-Open issues: none yet.
+For slice 4: `lib/timelineFilters.ts` is complete for both filters (`parseFilters`, `setKind`, `setAuthor`, `clearKind`, `clearAuthor`, `clearFilters`, `hasFilters`); an author must be UUID-shaped and membership isn't checked. For slice 5: the day heading is 40 px tall (44 px from `lg`), and the vitals line shows more readings as the column widens.
+
+Open issues:
+
+- **Phones hide the visible "Latest" label** on the vitals line (screen-reader only below `sm`), because only one seeded reading fits beside it at 420. The PRD asked for the label and two readings; the user has been asked and hasn't decided.
+- Under load (ten stacks), `live-notes.mjs` failed once per run on a timing step (PowerSync reconnect, the Live now banner within 2 s) and passed on the rerun each time. Not caused by this wave.
+- `phase2.mjs` steps that reload the page can log `[PowerSync]: Sync error` (the old page's connection closing). `kindIconFilters` filters it for its own steps only; the shared noise pattern doesn't cover it yet.
 
 ## Backlog map
 

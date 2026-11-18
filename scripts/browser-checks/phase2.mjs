@@ -6,6 +6,10 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // banner on them) don't change what it checks; it passes with or without a
 // fresh `pnpm datastore:reset`.
 //
+// timeline-polish adds one function per slice, called at the end of the run:
+// `kindIconFilters` (slice 1), `dayHeadings` (slice 2) and `latestVitalsLine`
+// (slice 3). Each leaves the page at 420 wide in the rows view with no filter.
+//
 // The browser runs in the seeds' time zone, so rows don't grow a "… in Los
 // Angeles" line, and density is checked per row rather than by how many rows
 // happen to fit today (that depended on the time of day).

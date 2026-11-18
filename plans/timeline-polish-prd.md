@@ -1,6 +1,6 @@
 # PRD: Timeline polish
 
-Status: 🟡 planned in [`timeline-polish-plan.md`](timeline-polish-plan.md), not started. Backlog items: B-2, B-3, B-4, B-5, B-6, B-7, B-10. Topic `timeline-polish`.
+Status: 🟡 in progress, sliced in [`timeline-polish-plan.md`](timeline-polish-plan.md): slices 1–3 are built (wave 1). Backlog items: B-2, B-3, B-4, B-5, B-6, B-7, B-10. Topic `timeline-polish`.
 
 ## Problem Statement
 
