@@ -134,6 +134,383 @@ describe("careGroup", () => {
   });
 });
 
+describe("careGroup: group settings", () => {
+  const ROLES = ["owner", "admin", "caretaker", "viewer"] as const;
+
+  /** A new group with one member per role, plus someone outside it. */
+  const settingsSetup = async () => {
+    const owner = await createUser("owner");
+    const admin = await createUser("admin");
+    const caretaker = await createUser("caretaker");
+    const viewer = await createUser("viewer");
+    const outsider = await createUser("outsider");
+    const { group, recipient } = await createGroup(owner, [
+      { user: admin.user, role: "admin" },
+      { user: caretaker.user, role: "caretaker" },
+      { user: viewer.user, role: "viewer" },
+    ]);
+    const api = (who: typeof owner, role?: (typeof ROLES)[number]) =>
+      clientFor(withRoles(who.ctx.authUser, role ? { [group.id]: role } : {}));
+    return {
+      group,
+      recipient,
+      owner: api(owner, "owner"),
+      admin: api(admin, "admin"),
+      caretaker: api(caretaker, "caretaker"),
+      viewer: api(viewer, "viewer"),
+      outsider: api(outsider),
+      ids: {
+        owner: owner.user.id,
+        admin: admin.user.id,
+        caretaker: caretaker.user.id,
+        viewer: viewer.user.id,
+        outsider: outsider.user.id,
+      },
+    };
+  };
+
+  const profileOf = (recipient: { id: string; groupId: string }, over: object = {}) => ({
+    id: recipient.id,
+    groupId: recipient.groupId,
+    name: "Pat Example",
+    preferredName: null,
+    dateOfBirth: null,
+    ...over,
+  });
+
+  describe("update", () => {
+    it.each(["owner", "admin"] as const)("lets an %s rename the group, trimmed", async (role) => {
+      const s = await settingsSetup();
+      expect(await s[role].careGroup.update({ groupId: s.group.id, name: "  Example Family  " })).toEqual({
+        id: s.group.id,
+        name: "Example Family",
+      });
+      expect((await s.viewer.careGroup.listMine())[0]?.name).toBe("Example Family");
+    });
+
+    it.each(["caretaker", "viewer"] as const)(
+      "refuses a %s with a 403, and changes nothing",
+      async (role) => {
+        const s = await settingsSetup();
+        const error = await rejection(s[role].careGroup.update({ groupId: s.group.id, name: "Renamed" }));
+        expect(error.code).toBe("FORBIDDEN");
+        expect((await s.owner.careGroup.listMine())[0]?.name).toBe(s.group.name);
+      },
+    );
+
+    it("answers a non-member with a 404, and changes nothing", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(s.outsider.careGroup.update({ groupId: s.group.id, name: "Renamed" }));
+      expect(error.code).toBe("NOT_FOUND");
+      expect((await s.owner.careGroup.listMine())[0]?.name).toBe(s.group.name);
+    });
+
+    it("refuses an empty, blank or overlong name", async () => {
+      const s = await settingsSetup();
+      for (const name of ["", "   ", "x".repeat(121)]) {
+        expect((await rejection(s.owner.careGroup.update({ groupId: s.group.id, name }))).code).toBe(
+          "BAD_REQUEST",
+        );
+      }
+      expect((await s.owner.careGroup.listMine())[0]?.name).toBe(s.group.name);
+    });
+  });
+
+  describe("recipient", () => {
+    it.each(ROLES)("shows the profile to a member (%s), and nothing else", async (role) => {
+      const s = await settingsSetup();
+      await s.owner.careGroup.updateRecipient({ groupId: s.group.id, dateOfBirth: "1941-03-09" });
+      expect(await s[role].careGroup.recipient({ groupId: s.group.id })).toEqual(
+        profileOf(s.recipient, { dateOfBirth: "1941-03-09" }),
+      );
+    });
+
+    it("answers a non-member with a 404", async () => {
+      const s = await settingsSetup();
+      expect((await rejection(s.outsider.careGroup.recipient({ groupId: s.group.id }))).code).toBe(
+        "NOT_FOUND",
+      );
+    });
+  });
+
+  describe("updateRecipient", () => {
+    it.each(["owner", "admin", "caretaker"] as const)("lets a %s edit the profile", async (role) => {
+      const s = await settingsSetup();
+      const saved = await s[role].careGroup.updateRecipient({
+        groupId: s.group.id,
+        name: "  Patricia Example ",
+        preferredName: " Pat ",
+        dateOfBirth: "1941-03-09",
+      });
+      const expected = profileOf(s.recipient, {
+        name: "Patricia Example",
+        preferredName: "Pat",
+        dateOfBirth: "1941-03-09",
+      });
+      expect(saved).toEqual(expected);
+      expect(await s.viewer.careGroup.recipient({ groupId: s.group.id })).toEqual(expected);
+      expect((await s.viewer.careGroup.listMine())[0]?.recipient?.displayName).toBe("Pat");
+    });
+
+    it("keeps fields left out, and clears a preferred name or date of birth", async () => {
+      const s = await settingsSetup();
+      const groupId = s.group.id;
+      await s.owner.careGroup.updateRecipient({ groupId, preferredName: "Pat", dateOfBirth: "1941-03-09" });
+      expect(await s.owner.careGroup.updateRecipient({ groupId, name: "Patricia Example" })).toEqual(
+        profileOf(s.recipient, { name: "Patricia Example", preferredName: "Pat", dateOfBirth: "1941-03-09" }),
+      );
+      expect(await s.owner.careGroup.updateRecipient({ groupId })).toMatchObject({ preferredName: "Pat" });
+      expect(
+        await s.owner.careGroup.updateRecipient({ groupId, preferredName: "", dateOfBirth: null }),
+      ).toEqual(profileOf(s.recipient, { name: "Patricia Example" }));
+    });
+
+    it("refuses a viewer with a 403, and changes nothing", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(
+        s.viewer.careGroup.updateRecipient({ groupId: s.group.id, name: "Renamed" }),
+      );
+      expect(error.code).toBe("FORBIDDEN");
+      expect(await s.owner.careGroup.recipient({ groupId: s.group.id })).toEqual(profileOf(s.recipient));
+    });
+
+    it("answers a non-member with a 404, and changes nothing", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(
+        s.outsider.careGroup.updateRecipient({ groupId: s.group.id, name: "Renamed" }),
+      );
+      expect(error.code).toBe("NOT_FOUND");
+      expect(await s.owner.careGroup.recipient({ groupId: s.group.id })).toEqual(profileOf(s.recipient));
+    });
+
+    it("refuses an empty name and a date of birth that isn't a date, naming the field", async () => {
+      const s = await settingsSetup();
+      const groupId = s.group.id;
+      const bad = [
+        { input: { name: "  " }, field: "name" },
+        { input: { dateOfBirth: "not a date" }, field: "dateOfBirth" },
+        { input: { dateOfBirth: "1941-02-30" }, field: "dateOfBirth" },
+        { input: { preferredName: "x".repeat(121) }, field: "preferredName" },
+      ];
+      for (const { input, field } of bad) {
+        const error = await rejection(s.owner.careGroup.updateRecipient({ groupId, ...input }));
+        expect(error.code).toBe("BAD_REQUEST");
+        expect(JSON.stringify(error.data?.issues)).toContain(field);
+      }
+      expect(await s.owner.careGroup.recipient({ groupId })).toEqual(profileOf(s.recipient));
+    });
+
+    it("accepts a future date of birth (the shared schema has no such rule)", async () => {
+      const s = await settingsSetup();
+      expect(
+        await s.owner.careGroup.updateRecipient({ groupId: s.group.id, dateOfBirth: "2999-01-01" }),
+      ).toMatchObject({ dateOfBirth: "2999-01-01" });
+    });
+  });
+
+  // Members (app-shell slice 6).
+  type Settings = Awaited<ReturnType<typeof settingsSetup>>;
+  type Role = (typeof ROLES)[number];
+  const OWNER_ONLY = "Only an owner can add, change or remove owners";
+  const LAST_OWNER = "A care group needs at least one owner. Make someone else an owner first.";
+
+  /** Each member's role, by the label `settingsSetup` gave them (as `who` sees it). */
+  const rolesOf = async (s: Settings, who: Role = "owner") => {
+    const members = await s[who].careGroup.members({ groupId: s.group.id });
+    const label = (userId: string) => ROLES.find((r) => s.ids[r] === userId) ?? userId;
+    return Object.fromEntries(members.map((m) => [label(m.userId), m.role]));
+  };
+  const SEEDED = { owner: "owner", admin: "admin", caretaker: "caretaker", viewer: "viewer" };
+
+  describe("changeRole", () => {
+    const change = (s: Settings, actor: Role | "outsider", target: Role | "outsider", role: Role) =>
+      s[actor].careGroup.changeRole({ groupId: s.group.id, userId: s.ids[target], role });
+
+    it("lets an owner give any member any role, owner included, as a public profile", async () => {
+      for (const target of ["admin", "caretaker", "viewer"] as const) {
+        for (const role of ROLES) {
+          const s = await settingsSetup();
+          const saved = await change(s, "owner", target, role);
+          expect(saved).toEqual({ userId: s.ids[target], role, name: target, image: null });
+          expect(JSON.stringify(saved)).not.toContain("@example.com");
+          expect(await rolesOf(s)).toEqual({ ...SEEDED, [target]: role });
+        }
+      }
+    });
+
+    it("lets an admin change roles below owner, their own included", async () => {
+      const s = await settingsSetup();
+      expect(await change(s, "admin", "caretaker", "viewer")).toMatchObject({ role: "viewer" });
+      expect(await change(s, "admin", "viewer", "admin")).toMatchObject({ role: "admin" });
+      expect(await change(s, "admin", "admin", "caretaker")).toMatchObject({ role: "caretaker" });
+      expect(await rolesOf(s)).toEqual({
+        owner: "owner",
+        admin: "caretaker",
+        caretaker: "viewer",
+        viewer: "admin",
+      });
+    });
+
+    it("refuses an admin who makes someone an owner, or changes an owner", async () => {
+      const s = await settingsSetup();
+      const attempts = [
+        () => change(s, "admin", "caretaker", "owner"),
+        () => change(s, "admin", "admin", "owner"),
+        () => change(s, "admin", "owner", "viewer"),
+      ];
+      for (const attempt of attempts) {
+        const error = await rejection(attempt());
+        expect(error.code).toBe("FORBIDDEN");
+        expect(error.data?.code).toBe("careGroupMemberService:ownerOnly");
+        expect(error.message).toBe(OWNER_ONLY);
+      }
+      expect(await rolesOf(s)).toEqual(SEEDED);
+    });
+
+    it.each(["caretaker", "viewer"] as const)(
+      "refuses a %s with a 403, whoever the target, and changes nothing",
+      async (role) => {
+        const s = await settingsSetup();
+        for (const target of ROLES) {
+          for (const to of ROLES) {
+            if (SEEDED[target] === to) continue;
+            expect((await rejection(change(s, role, target, to))).code).toBe("FORBIDDEN");
+          }
+        }
+        expect(await rolesOf(s)).toEqual(SEEDED);
+      },
+    );
+
+    it("keeps the last owner an owner (409), until there's another", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(change(s, "owner", "owner", "admin"));
+      expect(error.code).toBe("CONFLICT");
+      expect(error.data?.code).toBe("careGroupMemberService:lastOwner");
+      expect(error.message).toBe(LAST_OWNER);
+      expect(await rolesOf(s)).toEqual(SEEDED);
+
+      await change(s, "owner", "admin", "owner");
+      expect(await change(s, "owner", "owner", "viewer")).toMatchObject({ role: "viewer" });
+      expect(await rolesOf(s)).toEqual({ ...SEEDED, owner: "viewer", admin: "owner" });
+      // The new owner is now the last one.
+      expect((await rejection(change(s, "admin", "admin", "caretaker"))).code).toBe("CONFLICT");
+    });
+
+    it("answers a non-member, and a user who isn't in the group, with a 404", async () => {
+      const s = await settingsSetup();
+      expect((await rejection(change(s, "outsider", "viewer", "caretaker"))).code).toBe("NOT_FOUND");
+      expect((await rejection(change(s, "outsider", "outsider", "owner"))).code).toBe("NOT_FOUND");
+      expect((await rejection(change(s, "owner", "outsider", "viewer"))).code).toBe("NOT_FOUND");
+      expect(await rolesOf(s)).toEqual(SEEDED);
+    });
+
+    it("refuses a role that isn't one", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(
+        s.owner.careGroup.changeRole({ groupId: s.group.id, userId: s.ids.viewer, role: "boss" as "owner" }),
+      );
+      expect(error.code).toBe("BAD_REQUEST");
+      expect(await rolesOf(s)).toEqual(SEEDED);
+    });
+  });
+
+  describe("removeMember", () => {
+    const remove = (s: Settings, actor: Role | "outsider", target: Role | "outsider") =>
+      s[actor].careGroup.removeMember({ groupId: s.group.id, userId: s.ids[target] });
+    const without = (...gone: Role[]) =>
+      Object.fromEntries(Object.entries(SEEDED).filter(([label]) => !gone.includes(label as Role)));
+
+    it.each(["admin", "caretaker", "viewer"] as const)(
+      "lets an owner remove a %s, who then loses the group",
+      async (target) => {
+        const s = await settingsSetup();
+        const result = await remove(s, "owner", target);
+        expect(result).toEqual({ groupId: s.group.id, userId: s.ids[target] });
+        expect(await rolesOf(s)).toEqual(without(target));
+        expect(await s[target].careGroup.listMine()).toEqual([]);
+        expect(await s[target].careGroup.members({ groupId: s.group.id })).toEqual([]);
+      },
+    );
+
+    it("lets an owner remove another owner, but an admin can't remove an owner", async () => {
+      const s = await settingsSetup();
+      await s.owner.careGroup.changeRole({ groupId: s.group.id, userId: s.ids.caretaker, role: "owner" });
+      const error = await rejection(remove(s, "admin", "caretaker"));
+      expect(error.code).toBe("FORBIDDEN");
+      expect(error.data?.code).toBe("careGroupMemberService:ownerOnly");
+      expect(error.message).toBe(OWNER_ONLY);
+      expect((await rejection(remove(s, "admin", "owner"))).message).toBe(OWNER_ONLY);
+      expect(await rolesOf(s)).toEqual({ ...SEEDED, caretaker: "owner" });
+
+      await remove(s, "owner", "caretaker");
+      expect(await rolesOf(s)).toEqual(without("caretaker"));
+    });
+
+    it("lets an admin remove a caretaker and a viewer", async () => {
+      const s = await settingsSetup();
+      await remove(s, "admin", "caretaker");
+      await remove(s, "admin", "viewer");
+      expect(await rolesOf(s)).toEqual(without("caretaker", "viewer"));
+    });
+
+    it.each(["caretaker", "viewer"] as const)(
+      "refuses a %s who removes anyone else with a 403, and removes nothing",
+      async (role) => {
+        const s = await settingsSetup();
+        for (const target of ROLES.filter((r) => r !== role)) {
+          expect((await rejection(remove(s, role, target))).code).toBe("FORBIDDEN");
+        }
+        expect(await rolesOf(s)).toEqual(SEEDED);
+      },
+    );
+
+    it.each(["admin", "caretaker", "viewer"] as const)(
+      "lets a %s leave (remove themselves)",
+      async (role) => {
+        const s = await settingsSetup();
+        expect(await remove(s, role, role)).toEqual({ groupId: s.group.id, userId: s.ids[role] });
+        expect(await rolesOf(s)).toEqual(without(role));
+        expect(await s[role].careGroup.listMine()).toEqual([]);
+      },
+    );
+
+    it("keeps the last owner in the group (409), until there's another", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(remove(s, "owner", "owner"));
+      expect(error.code).toBe("CONFLICT");
+      expect(error.data?.code).toBe("careGroupMemberService:lastOwner");
+      expect(error.message).toBe(LAST_OWNER);
+      expect(await rolesOf(s)).toEqual(SEEDED);
+
+      await s.owner.careGroup.changeRole({ groupId: s.group.id, userId: s.ids.admin, role: "owner" });
+      await remove(s, "owner", "owner");
+      expect(await rolesOf(s, "admin")).toEqual({ ...without("owner"), admin: "owner" });
+      expect(await s.owner.careGroup.listMine()).toEqual([]);
+    });
+
+    it("answers a non-member, and a user who isn't in the group, with a 404", async () => {
+      const s = await settingsSetup();
+      expect((await rejection(remove(s, "outsider", "viewer"))).code).toBe("NOT_FOUND");
+      expect((await rejection(remove(s, "outsider", "outsider"))).code).toBe("NOT_FOUND");
+      expect((await rejection(remove(s, "owner", "outsider"))).code).toBe("NOT_FOUND");
+      expect(await rolesOf(s)).toEqual(SEEDED);
+    });
+
+    it("never returns an email", async () => {
+      const s = await settingsSetup();
+      const changed = await s.owner.careGroup.changeRole({
+        groupId: s.group.id,
+        userId: s.ids.viewer,
+        role: "caretaker",
+      });
+      const gone = await remove(s, "owner", "viewer");
+      const refused = await rejection(remove(s, "owner", "owner"));
+      expect(Object.keys(changed).sort()).toEqual(["image", "name", "role", "userId"]);
+      expect(JSON.stringify([changed, gone, refused.message, refused.data])).not.toMatch(/@|email/i);
+    });
+  });
+});
+
 describe("timeline", () => {
   it("creates, lists, edits and deletes, with ISO timestamps", async () => {
     const { owner, viewer, group, recipient } = await setup();

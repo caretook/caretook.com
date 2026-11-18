@@ -39,8 +39,27 @@ export type CareRecipientUpdate = Partial<CareRecipientInsert>;
 export type CareRecipient = CareRecipientSelect;
 
 const name = z.string().trim().min(1).max(120);
+const preferredName = z.string().trim().max(120).nullish();
 const dateOfBirth = z.iso.date().nullish();
 
 export const careRecipientSelectZSchema = createSelectSchema(careRecipientSchema);
-export const careRecipientInsertZSchema = createInsertSchema(careRecipientSchema, { name, dateOfBirth });
-export const careRecipientUpdateZSchema = createUpdateSchema(careRecipientSchema, { name, dateOfBirth });
+export const careRecipientInsertZSchema = createInsertSchema(careRecipientSchema, {
+  name,
+  preferredName,
+  dateOfBirth,
+});
+export const careRecipientUpdateZSchema = createUpdateSchema(careRecipientSchema, {
+  name,
+  preferredName,
+  dateOfBirth,
+});
+
+/**
+ * The profile fields group settings edits. Each is optional: what's left out
+ * keeps its value. (`partial()` because a column override stays required in
+ * drizzle-zod's update schema.)
+ */
+export const careRecipientProfileZSchema = careRecipientUpdateZSchema
+  .pick({ name: true, preferredName: true, dateOfBirth: true })
+  .partial();
+export type CareRecipientProfileInput = z.infer<typeof careRecipientProfileZSchema>;

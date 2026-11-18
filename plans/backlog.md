@@ -13,12 +13,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `orchestration`   | (this tooling; no PRD)                                       | (none)                                               | `AGENTS.md`, `scripts/loops/`, `scripts/backlog/`, `.githooks/`             |
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): done | (none) | `entry.tsx`, `EntryHeader`, `TimelineEntryRow`/`Card`, `timeline.tsx` |
 | `quick-fixes`     | (no PRD: one slice per fix)                                  | (none)                                               | `sign-in.tsx`, `timeline.tsx`                                               |
-| `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): slices 1–4 in `dev`; 5–7 to run | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
+| `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices, not started | `live-notes-ux` (done), `app-shell`'s frame (in `dev`) | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
 | `search`          | to write                                                     | `timeline-polish`'s infinite scroll                  | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx`                |
 | `providers`       | to write | `app-shell`'s group nav (in `dev`) | new tables (sync config, upload, permissions, seeds), `EntryForm`, `entry.tsx` |
 | `medications`     | to write | `app-shell`'s group nav (in `dev`); `providers` (soft) | new tables (as providers), `KIND_META`, `EntryForm` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
+| `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started | `app-shell`, `timeline-polish` (both land first) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
+| `components`      | [PRD](components-prd.md), [plan](components-plan.md): 6 slices, not started | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
 
 ## Summary
 
@@ -27,14 +29,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
-| B-2 | change | triaged | timeline-polish |  | Latest vitals is too busy |
+| B-2 | change | ready | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
 | B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
-| B-5 | change | triaged | timeline-polish |  | Tap an entry's kind icon to filter by that kind |
+| B-5 | change | ready | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
-| B-7 | change | triaged | timeline-polish |  | More prominent day headers in the timeline |
-| B-8 | feature | ready | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
-| B-9 | feature | in-progress | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
+| B-7 | change | ready | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
+| B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
+| B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
@@ -48,6 +50,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-20 | chore | landed | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
+| B-23 | change | triaged | routing |  | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
+| B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 
 ## Items
 
@@ -64,14 +68,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-2 · change · Latest vitals is too busy
 
-- status: triaged
+- status: ready
 - prd: timeline-polish
-- owner:
-- commit:
+- owner: prd/timeline-polish
+- commit: 908d4fa
 
 - 2026-11-17 (dev keeper): To settle in the PRD: fewer types, one line, or collapsed behind a tap.
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). One line (2–3 most recent + 'All vitals ›' to expand); ignores filters.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 3. Latest vitals in one line with 'All vitals'. Independent. Wave 1.
+- 2026-11-18 (slice/timeline-polish/3): Slice 3 built on slice/timeline-polish/3: one-line strip with All vitals; phones hide the visible Latest label so a second reading fits. pnpm check and phase2.mjs (44/44) pass.
 
 ### B-3 · change · Wider timeline entries on large screens, still mobile-first
 
@@ -96,14 +101,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-5 · change · Tap an entry's kind icon to filter by that kind
 
-- status: triaged
+- status: ready
 - prd: timeline-polish
-- owner:
-- commit:
+- owner: prd/timeline-polish
+- commit: 5d6678a
 
 - 2026-11-17 (dev keeper): The icon sits inside the row's stretched tap target (`EntryOpenTarget`); it becomes its own control above it (`relative z-10`, like ⋯).
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Kind icon becomes its own z-10 control; combines with ?author=; re-tap is a no-op.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 1. Filter-state module and the kind icon as a filter. Blocked by nothing; blocks slice 4. Wave 1.
+- 2026-11-18 (slice/timeline-polish/1): Slice 1 built on slice/timeline-polish/1: lib/timelineFilters.ts (kind and author), chips and loader moved onto it, kind icon is a 'Show only <kind plural>' link in rows and cards. pnpm check green; phase2 new steps 52/52.
 
 ### B-6 · change · Tap an entry's author initials to filter by that author
 
@@ -118,17 +124,17 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-7 · change · More prominent day headers in the timeline
 
-- status: triaged
+- status: ready
 - prd: timeline-polish
-- owner:
-- commit:
+- owner: prd/timeline-polish
+- commit: cf96edc
 
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Larger semibold sticky headers: Today, Yesterday, 'Monday, Nov 16' (+year).
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 2. dayLabel and larger day headers. Independent. Wave 1.
 
 ### B-8 · feature · Avatar in the header with a menu for the user's settings and actions
 
-- status: ready
+- status: landed
 - prd: app-shell
 - owner: prd/app-shell
 - commit: 9e5f7c2
@@ -138,13 +144,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (plan/app-shell): Plan: plans/app-shell-plan.md (plan/app-shell). Slices 1 (frame + user menu) and 2 (theme); slice 7 (layout in Settings) noted here.
 - 2026-11-18 (prd/app-shell): app-shell slice 1 (frame + user menu) merged into prd/app-shell at 697c39b; slice 2 (theme) still to come, so B-8 stays in progress.
 - 2026-11-18 (slice/app-shell/7): app-shell slice 7 (timeline layout in Settings) started on slice/app-shell/7
+- 2026-11-18 (slice/app-shell/7): app-shell slice 7 (timeline layout in Settings) handed off on slice/app-shell/7: pnpm check and settings-layout.mjs, phase2, layout-offline, app-shell checks pass
+- 2026-11-18 (prd/app-shell): Slice 7 (timeline layout in Settings) merged into prd/app-shell at 0795604.
 
 ### B-9 · feature · Care group menu: switch groups, open the group's settings
 
-- status: in-progress
+- status: landed
 - prd: app-shell
 - owner: prd/app-shell
-- commit:
+- commit: 812fe18
 
 - 2026-11-17 (dev keeper): To settle: what group settings holds at first (name, recipient profile, members and roles; invites wait for Resend). Recommended: a group nav (Timeline · Medications · Providers · Assistant) with slots that later PRDs fill.
 - 2026-11-17 (plan/app-shell): PRD written: plans/app-shell-prd.md on plan/app-shell. Group menu switches groups; /app opens the last-used group; bottom tabs (GROUP_SECTIONS registry); group settings = name, recipient (name, preferred name, DOB), members and roles; online-only clientAction → new oRPC procedures. No migration.
@@ -153,6 +161,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/app-shell/3): slice 3 (group menu, last group, Dev Family 2 seed) committed on slice/app-shell/3 at 650c0f0; awaiting merge
 - 2026-11-18 (prd/app-shell): app-shell slice 3 (group menu, last group, second seed group) merged into prd/app-shell at e3d7119; stays in progress until slice 6.
 - 2026-11-18 (prd/app-shell): app-shell slice 4 (GROUP_SECTIONS, SectionNav, TabBar) merged into prd/app-shell at ac4eea3.
+- 2026-11-18 (slice/app-shell/5): Slice 5 (group settings: details) is committed on slice/app-shell/5 (01cc17f, 5ede338), ready for review: the page, careGroup.update/recipient/updateRecipient, app-shell.mjs steps. Members is slice 6.
+- 2026-11-18 (prd/app-shell): Slice 5 (group settings: details) merged into prd/app-shell; slice 6 (members) started.
+- 2026-11-18 (prd/app-shell): Wave 3 landed in dev as ae6f342: slice 5 (group settings: details) and slice 7 (timeline layout in Settings). Slice 6 (members) is running.
+- 2026-11-18 (slice/app-shell/6): Slice 6 (group settings: members) is committed on slice/app-shell/6: careGroup.changeRole and removeMember, the Members section (roles, remove, leave), integration tests and app-shell.mjs steps. Ready for the orchestrator's review.
+- 2026-11-18 (prd/app-shell): Wave 4 landed in dev as b82a8ce: slice 6 (group settings: members). All seven app-shell slices are in dev; the PRD is done.
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
@@ -275,3 +288,24 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-17 (plan/quick-fixes): Split from B-1 (the slowness half). home, timeline and entry clientLoaders call waitForFirstSync (10 s cap) before rendering. Quick-fixes slice 3: measure first, then choose.
 - 2026-11-18 (slice/quick-fixes/3): slice/quick-fixes/3 46ef320: cap 1 s + FirstSyncPending state; signal = isFirstSyncDone/useFirstSyncDone in lib/sync/index.ts. Before: fresh sign-in ~1.0 s to first row locally, slow sync froze sign-in up to 10 s then home stuck on 'not in a care group'. After: syncing state ~1.0 s after DB open, then the timeline.
+
+### B-23 · change · Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route
+
+- status: triaged
+- prd: routing
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): PRD written: plans/routing-prd.md. Group layout route (middleware context), symptom/vital sheets at timeline/new/:kind and timeline/:id/edit, settings index + subpages, a folder per route. Runs after app-shell and timeline-polish land.
+- 2026-11-18 (Robert Bo Davis): Planned: plans/routing-plan.md, 5 slices (1 alone; 2→3 parallel with 4→5).
+
+### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
+
+- status: triaged
+- prd: components
+- owner:
+- commit:
+
+- 2026-11-18 (Robert Bo Davis): From the inbox: Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
+- 2026-11-18 (Robert Bo Davis): PRD written: plans/components-prd.md. Four waves: UI primitives, timeline, entry page, then forms/shell/settings. Browser checks + pure unit tests, no new deps. Runs after routing.
+- 2026-11-18 (Robert Bo Davis): Planned: plans/components-plan.md, 6 slices (1→2; 3→5 parallel with 4; 6 last).

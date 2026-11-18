@@ -1,6 +1,6 @@
 # PRD: App shell (user menu, group switcher, group nav, group settings)
 
-Status: 🟡 written, not planned. Backlog items: B-8, B-9. Topic `app-shell`.
+Status: ✅ done, 2026-11-18 (all seven slices in `dev`). Backlog items: B-8, B-9. Topic `app-shell`. To be filed as a GitHub issue once `gh` can reach `caretook/caretook.com`.
 
 ## Problem Statement
 

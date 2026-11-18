@@ -10,6 +10,7 @@ const appRoutes = [
       route("groups/:groupId/timeline", "routes/app/timeline.tsx"),
       route("groups/:groupId/entries/:entryId", "routes/app/entry.tsx"),
       route("settings", "routes/app/settings.tsx"),
+      route("groups/:groupId/settings", "routes/app/groupSettings.tsx"),
     ]),
   ]),
   route("sign-in", "routes/sign-in.tsx"),
