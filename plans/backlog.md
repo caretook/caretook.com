@@ -413,6 +413,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/invites-prd.md, plans/invites-plan.md (5 slices; slice 1, the notifications package and outbox, can start now). New deps approved: resend, @react-email/components, @react-email/render, qrcode.
+- 2026-11-18 (slice/marketing/3): invites slice 3: the consent screen must link to /privacy and /health-data-privacy (marketing slice 3)
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 
