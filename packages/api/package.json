@@ -10,7 +10,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@caretook/auth": "workspace:*",
     "@caretook/data": "workspace:*",
+    "@caretook/notifications": "workspace:*",
     "@orpc/server": "1.16.2",
     "zod": "^4.6.7"
   },

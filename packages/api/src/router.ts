@@ -23,6 +23,7 @@ import { iso, toTimelineEntry } from "./dto";
 import { ORPCError } from "@orpc/server";
 import { unwrap } from "./errors";
 import { authedProcedure } from "./procedures";
+import { invite } from "./invites";
 import { sync } from "./sync";
 
 const id = z.uuid();
@@ -303,5 +304,5 @@ const timeline = {
   }),
 };
 
-export const router = { me, careGroup, timeline, sync };
+export const router = { me, careGroup, timeline, sync, invite };
 export type Router = typeof router;

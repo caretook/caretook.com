@@ -18,6 +18,12 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
   resetPassword: { name: "Avery", token: "resetToken123" },
   magicLink: { token: "magicTokenABC", next: "/app/groups/x/timeline" },
   signInCode: { code: "135790" },
+  groupInvite: {
+    groupName: "Grandma Example",
+    inviterName: "Avery",
+    role: "caretaker",
+    token: "inviteTok_123-x",
+  },
 };
 
 // Notifications whose email carries no link (a code to type in).
@@ -205,5 +211,37 @@ describe("retryDelayMs", () => {
   it("doubles from a minute and caps at six hours", () => {
     expect([1, 2, 3, 4].map(retryDelayMs)).toEqual([60_000, 120_000, 240_000, 480_000]);
     expect(retryDelayMs(20)).toBe(6 * 60 * 60_000);
+  });
+});
+
+describe("groupInvite", () => {
+  it("names the group and the inviter, and links to the invite on APP_URL", async () => {
+    const out = await renderNotification("groupInvite", SAMPLES.groupInvite, ctx);
+    if ("code" in out) throw new Error(String(out.code));
+    expect(out.subject).toBe("Avery invited you to Grandma Example's care group on Caretook");
+    expect(out.text).toContain("as a caretaker");
+    expect(extractLinks(out.html)).toEqual([`${APP_URL}/invite/inviteTok_123-x`]);
+  });
+
+  it("never carries health details, even when handed some", async () => {
+    const sentinel = "SENTINEL-HEALTH-9431";
+    const out = await renderNotification(
+      "groupInvite",
+      {
+        ...SAMPLES.groupInvite,
+        // Fields a careless caller might pass: the template has no place for them.
+        ...({ symptom: sentinel, note: sentinel, vitals: sentinel, dateOfBirth: sentinel } as object),
+      },
+      ctx,
+    );
+    if ("code" in out) throw new Error(String(out.code));
+    expect(`${out.subject}${out.html}${out.text}`).not.toContain(sentinel);
+  });
+
+  it("falls back to 'Someone' without an inviter's name", async () => {
+    const { inviterName: _omit, ...data } = SAMPLES.groupInvite;
+    const out = await renderNotification("groupInvite", data, ctx);
+    if ("code" in out) throw new Error(String(out.code));
+    expect(out.subject.startsWith("Someone invited you")).toBe(true);
   });
 });

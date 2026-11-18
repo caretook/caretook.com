@@ -1,6 +1,7 @@
 import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/api";
-import type { MemberRow } from "~/lib/sync/timeline";
+import type { MemberDetailRow } from "~/lib/sync/members";
+import type { InviteActionResult } from "./inviteApi";
 
 import { ORPCError } from "@orpc/client";
 import { useState } from "react";
@@ -12,16 +13,21 @@ import { getGroup, useGroup } from "~/lib/group";
 import { rpc } from "~/lib/rpc";
 import { sessionContext } from "~/lib/session";
 import { useLiveQuery } from "~/lib/sync";
-import { waitForMembershipGone } from "~/lib/sync/members";
-import { membersQuery, readRows } from "~/lib/sync/timeline";
+import { memberDetailsQuery, waitForMembershipGone } from "~/lib/sync/members";
+import { readRows } from "~/lib/sync/timeline";
 import { failedSave, loadRecipientProfile } from "../api";
 import { MEMBER_ROLES, memberAccess, memberName, roleLabel, sortMembers } from "../groupSettings";
 import { SettingsPage } from "../parts";
+import { inviteAction, isInviteIntent, loadInvites } from "./inviteApi";
+import { emailInviteRoles, memberHistory } from "./invites";
+import { InviteButton } from "./InviteSheet";
+import { PendingInvites } from "./PendingInvites";
 
 // `…/settings/members`. Shared by web + native. Members and roles come from
 // the device's local copy (live, so they work offline and follow other
 // members' changes). Changing a role, removing and leaving go through the
-// API: online only.
+// API: online only. So do invites (`InviteSheet`, `PendingInvites`), which
+// owners and admins send, resend and revoke here.
 
 export const meta = () => [{ title: "Members · Group settings · Caretook" }];
 
@@ -34,21 +40,23 @@ export { shouldRevalidate } from "../api";
  */
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const { groupId } = params;
-  getGroup(context);
+  const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const members = await readRows<MemberRow>(db, membersQuery(groupId));
+  const members = await readRows<MemberDetailRow>(db, memberDetailsQuery(groupId));
   const { online } = await loadRecipientProfile(request, groupId);
-  return { userId: db.userId, groupId, members, online };
+  const invites = await loadInvites(groupId, group.role, online);
+  return { userId: db.userId, groupId, members, online, invites };
 }
 
 export async function clientAction({
   request,
   params,
   context,
-}: Route.ClientActionArgs): Promise<ActionResult> {
+}: Route.ClientActionArgs): Promise<ActionResult | InviteActionResult> {
   const { groupId } = params;
   const form = await request.formData();
   const intent = formString(form, "intent");
+  if (isInviteIntent(intent)) return inviteAction(intent, form, groupId, getGroup(context).role);
   try {
     if (intent === "changeRole") {
       const chosen = formString(form, "role");
@@ -92,6 +100,7 @@ export default function GroupMembers({ loaderData }: Route.ComponentProps) {
   const group = useGroup();
   return (
     <SettingsPage id="members" title="Members" online={online}>
+      <InviteButton myRole={group.role} online={online} />
       <div className="card bg-base-100 shadow-sm">
         <div className="card-body">
           <Members
@@ -103,6 +112,9 @@ export default function GroupMembers({ loaderData }: Route.ComponentProps) {
           />
         </div>
       </div>
+      {online && emailInviteRoles(group.role).length > 0 && (
+        <PendingInvites invites={loaderData.invites} myRole={group.role} />
+      )}
     </SettingsPage>
   );
 }
@@ -125,11 +137,11 @@ function Members({
   userId: string;
   myRole: string | null;
   online: boolean;
-  initial: MemberRow[];
+  initial: MemberDetailRow[];
 }) {
   const [seed] = useState(initial);
-  const query = membersQuery(groupId);
-  const members = sortMembers(useLiveQuery<MemberRow>(query.sql, query.params, seed));
+  const query = memberDetailsQuery(groupId);
+  const members = sortMembers(useLiveQuery<MemberDetailRow>(query.sql, query.params, seed));
 
   // Removing and leaving share one confirm dialog and one request.
   const [confirming, setConfirming] = useState<RemoveTarget | null>(null);
@@ -191,7 +203,7 @@ function MemberItem({
   removeError,
   onRemove,
 }: {
-  member: MemberRow;
+  member: MemberDetailRow;
   isSelf: boolean;
   /** What you may do to this member; null offline (nothing). */
   access: ReturnType<typeof memberAccess> | null;
@@ -200,6 +212,7 @@ function MemberItem({
   onRemove: () => void;
 }) {
   const name = memberName(member.name);
+  const history = memberHistory(member);
   const fetcher = useFetcher<ActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
@@ -219,10 +232,17 @@ function MemberItem({
     <li data-member={member.user_id} className="space-y-1 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <UserAvatar name={member.name} image={member.image} size="lg" />
-        <p className="min-w-0 flex-1 truncate font-medium">
-          {name}
-          {isSelf && <span className="text-base-content/70 font-normal"> (you)</span>}
-        </p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">
+            {name}
+            {isSelf && <span className="text-base-content/70 font-normal"> (you)</span>}
+          </p>
+          {history && (
+            <p data-member-history="" className="text-base-content/70 truncate text-sm">
+              {history}
+            </p>
+          )}
+        </div>
         {access?.roles.length ? (
           <select
             aria-label={`Role for ${name}`}

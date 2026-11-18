@@ -26,6 +26,8 @@ export const accountUrls = {
   /** Where an expired or used magic link lands (Better Auth adds `error=`). */
   magicLinkError: () => "/sign-in?with=link&expired=1",
   resetPassword: () => "/reset-password",
+  /** An invite link's page (the token is base64url, so it needs no escaping). */
+  invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
   verifyEmail: (email?: string | null, next?: string | null) =>
     `/verify-email${searchString({ email: email?.trim() || undefined, next: nextParam(next) })}`,
 };

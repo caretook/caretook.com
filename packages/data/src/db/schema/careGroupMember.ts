@@ -21,6 +21,9 @@ export const careGroupMemberSchema = pgTable(
       .notNull()
       .references(() => userSchema.id, { onDelete: "cascade" }),
     role: text("role", { enum: GROUP_ROLE_NAMES }).notNull(),
+    // Who sent the invite this member joined through (null: added another
+    // way, such as founding the group). Set by the system on acceptance.
+    invitedBy: uuid("invited_by").references(() => userSchema.id, { onDelete: "set null" }),
     ...timestamps,
     ...audits,
   },

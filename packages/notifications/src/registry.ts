@@ -1,3 +1,4 @@
+import { groupInvite } from "./templates/groupInvite";
 import { magicLink } from "./templates/magicLink";
 import { resetPassword } from "./templates/resetPassword";
 import { signInCode } from "./templates/signInCode";
@@ -13,6 +14,7 @@ export const NOTIFICATIONS = {
   resetPassword,
   magicLink,
   signInCode,
+  groupInvite,
 } as const;
 
 export type Notifications = typeof NOTIFICATIONS;
