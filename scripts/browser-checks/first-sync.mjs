@@ -96,7 +96,8 @@ const RECORDER = `(() => {
   };
   tick(); return true; })()`;
 
-// member@'s care group, for the deep link.
+// caretaker@'s care group, for the deep link. caretaker@ has one group (member@
+// has two since app-shell slice 3, so its /app is the group list).
 const groupId = execFileSync("docker", [
   "exec",
   process.env.PG_CONTAINER,
@@ -106,7 +107,7 @@ const groupId = execFileSync("docker", [
   "-d",
   "caretook",
   "-tAc",
-  "SELECT g.id FROM care_group g JOIN care_group_member m ON m.group_id = g.id JOIN \"user\" u ON u.id = m.user_id WHERE u.email = 'member@example.com' LIMIT 1",
+  "SELECT g.id FROM care_group g JOIN care_group_member m ON m.group_id = g.id JOIN \"user\" u ON u.id = m.user_id WHERE u.email = 'caretaker@example.com' LIMIT 1",
 ])
   .toString()
   .trim();
@@ -122,7 +123,7 @@ const signInTimed = async (p, redirectTo, holdSync = false) => {
   await sleep(4000);
   await p.goto(redirectTo ? `/sign-in?redirectTo=${encodeURIComponent(redirectTo)}` : "/sign-in");
   await p.waitFor(`document.querySelector('input[name="email"]')`);
-  await p.type(`document.querySelector('input[name="email"]')`, "member@example.com");
+  await p.type(`document.querySelector('input[name="email"]')`, "caretaker@example.com");
   await p.type(`document.querySelector('input[name="password"]')`, PASSWORD);
   await p.evaluate(RECORDER);
   if (holdSync) {
