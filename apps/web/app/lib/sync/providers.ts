@@ -21,7 +21,7 @@ import {
   providerUpdateZSchema,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
-import { providers, timelineEntryProviders } from "./schema";
+import { noteDocuments, providers, timelineEntryProviders } from "./schema";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows, WRITER_ROLES } from "./timeline";
 
 // The provider directory and entry links on this device: local queries for
@@ -404,4 +404,37 @@ export const createAndLinkProvider = async (
     await tx.insert(timelineEntryProviders).values(link);
   });
   return { ok: true, id: row.id };
+};
+
+/**
+ * Give a provider their shared live notes: the provider's document (its id
+ * is the provider's). Written on the first real change on their page, as a
+ * draft entry's is. Idempotent: a document that's already here (made on
+ * another device, or a moment ago) is left alone, and the server merges two
+ * devices' creates into one row.
+ */
+export const createProviderDocument = async (db: SyncDb, providerId: string): Promise<ActionResult> => {
+  const provider = await liveProvider(db, providerId);
+  if (!provider) return providerMissing;
+  if (!(await canWrite(db, provider.groupId))) return forbidden;
+  const existing = await readRows<{ id: string }>(db, {
+    sql: "SELECT id FROM note_document WHERE id = ?",
+    params: [providerId],
+  });
+  if (existing.length) return { ok: true };
+  const now = nowTimestamp();
+  await db.drizzle.insert(noteDocuments).values({
+    id: providerId,
+    groupId: provider.groupId,
+    subject: "provider",
+    entryId: null,
+    providerId,
+    snapshot: null,
+    text: "",
+    createdAt: now,
+    updatedAt: now,
+    createdBy: db.userId,
+    updatedBy: db.userId,
+  });
+  return { ok: true };
 };

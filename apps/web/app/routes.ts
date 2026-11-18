@@ -26,6 +26,7 @@ const appRoutes = [
         route("entries/:entryId", "routes/app/groups/entry/route.tsx"),
         route("settings", "routes/app/groups/settings/route.tsx"),
         route("providers", "routes/app/groups/providers/route.tsx"),
+        route("providers/:providerId", "routes/app/groups/provider/route.tsx"),
       ]),
     ]),
   ]),

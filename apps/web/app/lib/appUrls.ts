@@ -96,4 +96,6 @@ export const appUrls = {
   groupSettings: (groupId: string) => `${groupHome(groupId)}/settings`,
   /** A group's provider directory, with its search and filters (`?q=`, `?type=`, `?past=1`) carried through. */
   providers: (groupId: string, search?: Search) => `${groupHome(groupId)}/providers${searchString(search)}`,
+  /** A provider's page: details, contact actions and their shared live notes. */
+  provider: (groupId: string, providerId: string) => `${groupHome(groupId)}/providers/${segment(providerId)}`,
 } as const;

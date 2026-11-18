@@ -35,6 +35,11 @@ describe("appUrls", () => {
     expect(appUrls.providers("g", { q: "", past: "1" })).toBe("/app/groups/g/providers?past=1");
   });
 
+  it("builds a provider's page, with the id as a path segment", () => {
+    expect(appUrls.provider(G, "p1")).toBe(`/app/groups/${G}/providers/p1`);
+    expect(appUrls.provider("g", "a/b")).toBe("/app/groups/g/providers/a%2Fb");
+  });
+
   it("encodes ids as path segments", () => {
     expect(appUrls.groupHome("a/b?c")).toBe("/app/groups/a%2Fb%3Fc");
     expect(appUrls.entry("g", "x y#z")).toBe("/app/groups/g/entries/x%20y%23z");
