@@ -70,7 +70,13 @@ export async function openPage(browser, label) {
   // they came from.
   const uncaught = [];
   const where = (d) => (d?.url ? ` (${d.url.replace(BASE, "")}:${(d.lineNumber ?? 0) + 1})` : "");
-  const argText = (a) => a.value ?? a.description ?? a.unserializableValue ?? "";
+  // A plain object logs as "Object": show its preview's fields instead (PowerSync
+  // logs its errors as objects with a name and message).
+  const preview = (a) =>
+    a.type === "object" && !a.subtype && a.preview?.properties?.length
+      ? `{${a.preview.properties.map((p) => `${p.name}: ${p.value ?? p.type}`).join(", ")}}`
+      : null;
+  const argText = (a) => a.value ?? preview(a) ?? a.description ?? a.unserializableValue ?? "";
   listeners.push((msg) => {
     if (msg.method === "Runtime.consoleAPICalled" && ["error", "warning"].includes(msg.params.type)) {
       const text = msg.params.args.map(argText).join(" ");

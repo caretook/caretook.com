@@ -236,6 +236,8 @@ try {
   );
   await key(A, "Escape");
   await A.waitFor(`!${GRID}`, 3000);
+  // React Aria hands focus back to the button a moment after the popover goes.
+  await A.waitFor(`document.activeElement === ${PICK}`, 3000, { quiet: true }).catch(() => undefined);
   check(
     "picker: Escape closes it, focus back on the button, date unchanged",
     (await A.evaluate(`document.activeElement === ${PICK}`)) &&
