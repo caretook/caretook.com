@@ -248,6 +248,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-17 (dev keeper): Blocked by slices 3 and 7.
 - 2026-11-18 (slice/live-notes-ux/10): Slice 10 committed on slice/live-notes-ux/10: consolidated live-notes.mjs (91 checks, order-independent), roundtrip rewritten, phase2 updated, 6 old checks deleted. AGENTS.md changes listed in the hand-off.
+- 2026-11-18 (prd/app-shell): From prd/app-shell: live-note.mjs races under load. Step 4 (B.goto(entryPath)) and step 8 (B.goto(timelineUrl)) full-load caretaker right after member@ writes; entry.tsx's clientLoader reads once after waitForFirstSync, so caretaker gets a 404 (or a blank HydrateFallback past 15 s) if the row hasn't streamed yet. ~1 in 3 runs fail with three loops busy; 3/3 pass on a quiet machine. Suggest waiting for the row in B's local db before goto, or navigating in-app.
 
 ### B-21 · chore · Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks
 
