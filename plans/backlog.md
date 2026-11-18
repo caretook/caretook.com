@@ -108,6 +108,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): A new `?author=` filter chip, beside `?kind=`.
+- 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). ?author= filter; chip 'By <name> ✕' with avatar; combines with ?kind=.
 
 ### B-7 · change · More prominent day headers in the timeline
 
