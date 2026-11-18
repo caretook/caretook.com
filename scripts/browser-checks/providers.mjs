@@ -9,6 +9,12 @@
 // search and type filters in the URL (surviving a reload), the contact
 // actions' names and hrefs, the list offline, and a non-member's 404.
 //
+// Slice 3 (add, edit and delete): the Add button and the sheet routes
+// (`providers/new`, `providers/:providerId/edit`), validation on the fields,
+// a clinician with two phones and a practice reaching a second device,
+// primary and past, offline add and edit, delete after a confirm on every
+// device, and a viewer's sheet URLs showing the list.
+//
 // The device steps drive the device module itself (lib/sync/providers.ts,
 // imported through Vite) against `window.caretookSync`. Later slices add
 // their screens' steps here. Every provider and entry it makes
@@ -286,6 +292,374 @@ async function directorySteps(p, proxy) {
   await localRows(p, "SELECT 1");
 }
 
+// --- Add, edit and delete (slice 3) ------------------------------------------
+
+const SHEET = `document.querySelector('[role="dialog"] [data-provider-form]')`;
+const sheetOpen = (p) => p.evaluate(`!!${SHEET}`);
+/** Fill the open sheet's fields: [selector, value] (the nth match with `[selector, value, n]`). */
+const fill = (p, fields) =>
+  p.evaluate(`(() => {
+    const form = ${SHEET};
+    for (const [sel, value, n = 0] of ${JSON.stringify(fields)}) {
+      const el = form.querySelectorAll(sel)[n];
+      if (!el) throw new Error("no field: " + sel + " #" + n);
+      if (el.type === "checkbox" || el.type === "radio") {
+        if (el.checked !== value) el.click();
+        continue;
+      }
+      const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype
+        : el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, "value").set.call(el, value);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    return true;
+  })()`);
+/** Each invalid field's name and its message (through aria-describedby), plus the phones message. */
+const fieldErrors = (p) =>
+  p.evaluate(`(() => {
+    const form = ${SHEET};
+    const out = {};
+    for (const el of form.querySelectorAll('[aria-invalid="true"]')) {
+      const key = el.name + (el.name.startsWith("phone") ? [...form.querySelectorAll('[name="' + el.name + '"]')].indexOf(el) : "");
+      out[key] = document.getElementById(el.getAttribute("aria-describedby"))?.textContent ?? "";
+    }
+    const set = form.querySelector("fieldset[aria-describedby]");
+    if (set) out.phones = document.getElementById(set.getAttribute("aria-describedby"))?.textContent ?? "";
+    return out;
+  })()`);
+const submitSheet = (p) => p.press(`${SHEET}.querySelector('button[type="submit"]')`);
+const allNames = (label) =>
+  `[...document.querySelectorAll('main ul[aria-label="${label}"] [data-provider-name]')].map((n) => n.textContent.trim())`;
+const selectPractice = (p, name) =>
+  p.evaluate(`(() => {
+    const select = ${SHEET}.querySelector('[name="practiceId"]');
+    const option = [...select.options].find((o) => o.textContent.startsWith(${JSON.stringify(name)}));
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(select, option.value);
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    return option.value;
+  })()`);
+const escape = async (p) => {
+  for (const type of ["keyDown", "keyUp"])
+    await p.send("Input.dispatchKeyEvent", {
+      type,
+      key: "Escape",
+      code: "Escape",
+      windowsVirtualKeyCode: 27,
+    });
+};
+
+/** A writer adds, edits, marks and deletes providers through the sheets; returns what to clean up. */
+async function sheetSteps(p, other, proxy, tag) {
+  const LIST = `/app/groups/${DEV_FAMILY}/providers`;
+  await p.goto(LIST);
+  await waitForList(p, `names.length >= 5`, 30000);
+
+  // The Add button opens the sheet over the list (the list stays underneath).
+  await p.press(`document.querySelector("main [data-add-provider]")`);
+  await p.waitFor(SHEET, 15000);
+  const opened = await p.evaluate(`({
+    path: location.pathname,
+    title: document.querySelector('[role="dialog"] :is(h2, h3)')?.textContent,
+    list: document.querySelectorAll('main ul[aria-label="Current providers"] li').length,
+    phones: ${SHEET}.querySelectorAll('[name="phoneNumber"]').length,
+    type: ${SHEET}.querySelector('[name="type"]:checked')?.value,
+  })`);
+  check(
+    'a writer\'s "Add provider" opens the add sheet over the list (…/providers/new), as a clinician',
+    opened.path === `${LIST}/new` &&
+      opened.title === "Add a provider" &&
+      opened.list >= 5 &&
+      opened.type === "clinician",
+    JSON.stringify(opened),
+  );
+
+  // Validation: name, email and website shapes, and the phone count, on their fields.
+  await fill(p, [
+    ['[name="email"]', "not-an-email"],
+    ['[name="website"]', "not a site"],
+  ]);
+  // Six rows is the most the form offers…
+  for (let i = 0; i < 5; i++)
+    await p.press(
+      `[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.includes("Add a phone number"))`,
+    );
+  const capped = await p.evaluate(`({
+    rows: ${SHEET}.querySelectorAll('[name="phoneNumber"]').length,
+    disabled: [...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.includes("Add a phone number")).disabled,
+  })`);
+  check(
+    "the form offers at most 6 phone rows (Add is disabled at 6)",
+    capped.rows === 6 && capped.disabled,
+    JSON.stringify(capped),
+  );
+  // …so a seventh is forced in, as an old or tampered form would send it.
+  await p.evaluate(`(() => {
+    const ul = ${SHEET}.querySelector("[data-phones]");
+    const li = document.createElement("li");
+    li.setAttribute("data-forced", "");
+    li.innerHTML = '<input name="phoneLabel" value="x"><input name="phoneNumber" value="555 0199">';
+    ul.append(li);
+    for (const [i, input] of ${SHEET}.querySelectorAll('[name="phoneNumber"]').entries()) {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "555 01" + (10 + i));
+    }
+    return true;
+  })()`);
+  await submitSheet(p);
+  await p.waitFor(`${SHEET}.querySelector('[aria-invalid="true"]')`, 10000).catch(() => {});
+  await p.screenshot("providers-sheet-errors");
+  const errors = await fieldErrors(p);
+  check(
+    "validation shows on the fields: name required, email and website shape, at most 6 phones",
+    errors.name === "Enter a name" &&
+      errors.email === "Enter an email address" &&
+      errors.website === "Enter a web address, like clinic.example" &&
+      errors.phones === "At most 6 phone numbers" &&
+      (await sheetOpen(p)),
+    JSON.stringify(errors),
+  );
+  check("the first invalid field gets focus", await p.evaluate(`document.activeElement?.name === "name"`));
+
+  // Fix it: a clinician with two phones and a practice.
+  await p.evaluate(`${SHEET}.querySelector("[data-forced]").remove()`);
+  for (let i = 0; i < 4; i++) await p.press(`${SHEET}.querySelector('[aria-label="Remove phone 3"]')`);
+  const name = `${tag} Dr. Sheet`;
+  await fill(p, [
+    ['[name="name"]', name],
+    ['[name="specialty"]', "Neurology"],
+    ['[name="email"]', "sheet@neuro.example"],
+    ['[name="website"]', "neuro.example"],
+    ['[name="address"]', "9 Sheet Lane\nSpringfield"],
+    ['[name="phoneLabel"]', "Office", 0],
+    ['[name="phoneNumber"]', "(555) 010-7700", 0],
+    ['[name="phoneLabel"]', "After hours", 1],
+    ['[name="phoneNumber"]', "(555) 010-7701", 1],
+  ]);
+  const westsideId = await selectPractice(p, "Westside Family Medicine");
+  await submitSheet(p);
+  await p.waitFor(`!${SHEET} && location.pathname === ${JSON.stringify(LIST)}`, 10000).catch(() => {});
+  const added = await p.evaluate(
+    `({ path: location.pathname, sheet: !!${SHEET}, names: ${allNames("Current providers")} })`,
+  );
+  check(
+    "saving closes the sheet back to the list, where the new clinician is at once",
+    added.path === LIST && !added.sheet && added.names.includes(name),
+    JSON.stringify({ path: added.path, sheet: added.sheet, has: added.names.includes(name) }),
+  );
+  const [local] = await localRows(p, "SELECT id FROM provider WHERE name = ?", [name]);
+  const id = local?.id;
+  const pg = await waitForSql(
+    `SELECT type || '|' || specialty || '|' || (practice_id = '${westsideId}')::text || '|' || jsonb_array_length(phones) || '|' || (phones->1->>'label') || '|' || email || '|' || website FROM provider WHERE id = '${id}'`,
+    (v) => v !== "",
+  );
+  check(
+    "…and it uploads whole: two phones and the practice",
+    pg === "clinician|Neurology|true|2|After hours|sheet@neuro.example|neuro.example",
+    pg,
+  );
+  await other
+    .waitFor(
+      `window.caretookSync.powersync.getAll("SELECT id FROM provider WHERE id = '${id}'").then((r) => r.length === 1)`,
+      20000,
+    )
+    .then(
+      () => check("a second device gets the new provider", true),
+      () => check("a second device gets the new provider", false),
+    );
+  // Back after a save doesn't reopen the sheet.
+  await p.evaluate(`history.back()`);
+  await sleep(800);
+  check(
+    "Back after a save doesn't reopen the sheet",
+    !(await sheetOpen(p)),
+    await p.evaluate(`location.pathname`),
+  );
+  await p.goto(LIST);
+  await waitForList(p, `names.length >= 5`, 30000);
+
+  // Edit by URL (a deep link): the form is filled in; marking primary pins it.
+  await p.goto(`${LIST}/${id}/edit?q=`);
+  await p.waitFor(SHEET, 30000);
+  const filled = await p.evaluate(`(() => { const f = ${SHEET}; return {
+    name: f.querySelector('[name="name"]').value,
+    phones: [...f.querySelectorAll('[name="phoneNumber"]')].map((i) => i.value),
+    practice: f.querySelector('[name="practiceId"]').value,
+    address: f.querySelector('[name="address"]').value,
+    title: document.querySelector('[role="dialog"] :is(h2, h3)')?.textContent,
+  }; })()`);
+  check(
+    "the edit sheet (…/:providerId/edit) opens filled in",
+    filled.name === name &&
+      filled.phones.join(",") === "(555) 010-7700,(555) 010-7701" &&
+      filled.practice === westsideId &&
+      filled.address === "9 Sheet Lane\nSpringfield" &&
+      filled.title === `Edit ${name}`,
+    JSON.stringify(filled),
+  );
+  await fill(p, [['[name="isPrimary"]', true]]);
+  await submitSheet(p);
+  await p.waitFor(`!${SHEET} && location.pathname === ${JSON.stringify(LIST)}`, 10000).catch(() => {});
+  await sleep(300);
+  const pinned = await p.evaluate(`({
+    names: ${allNames("Current providers")},
+    badge: [...document.querySelectorAll("main li[data-provider-id]")].find((li) => li.querySelector("[data-provider-name]").textContent === ${JSON.stringify(name)})?.querySelector(".badge")?.textContent,
+  })`);
+  const at = pinned.names.indexOf(name);
+  check(
+    "marking primary pins it among the primary providers (before Dr. Samuel Patel)",
+    at >= 0 && at < pinned.names.indexOf("Dr. Samuel Patel") && pinned.badge === "Primary",
+    JSON.stringify(pinned),
+  );
+
+  // Marking past moves it behind "Show past".
+  await p.goto(`${LIST}/${id}/edit`);
+  await p.waitFor(SHEET, 30000);
+  await fill(p, [['[name="past"]', true]]);
+  await submitSheet(p);
+  await p.waitFor(`!${SHEET}`, 10000).catch(() => {});
+  await sleep(300);
+  const pastNow = await p.evaluate(`({
+    current: ${allNames("Current providers")},
+    showPast: document.querySelector("main [data-show-past]")?.textContent.trim() ?? null,
+  })`);
+  check(
+    'marking past moves it behind "Show past"',
+    !pastNow.current.includes(name) && /^Show past \(\d+\)$/.test(pastNow.showPast ?? ""),
+    JSON.stringify(pastNow),
+  );
+  await p.press(`document.querySelector("main [data-show-past]")`);
+  await p.waitFor(`location.search.includes("past=1")`, 10000);
+  check("…and lists it under Past providers", (await p.evaluate(allNames("Past providers"))).includes(name));
+  const pgPast = await waitForSql(
+    `SELECT status || '|' || is_primary FROM provider WHERE id = '${id}'`,
+    (v) => v === "past|true",
+  );
+  check("…and the change uploads", pgPast === "past|true", pgPast);
+
+  // Offline: an add and an edit are written on the device, and upload on reconnect.
+  await p.goto(LIST);
+  await waitForList(p, `names.length >= 5`, 30000);
+  await p.goto(`${LIST}/${id}/edit`); // Opened online (the module loads), saved offline.
+  await p.waitFor(SHEET, 30000);
+  await localRows(p, "SELECT 1"); // The device modules, loaded while online.
+  const errorsBefore = p.errors.length;
+  proxy.setOnline(false);
+  await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000);
+  await fill(p, [
+    ['[name="specialty"]', "Neurology (offline edit)"],
+    ['[name="past"]', false],
+  ]);
+  await submitSheet(p);
+  await p.waitFor(`!${SHEET}`, 10000).catch(() => {});
+  await p.waitFor(`document.querySelector("main [data-add-provider]")`, 10000).catch(() => {});
+  await p.press(`document.querySelector("main [data-add-provider]")`);
+  const offlineSheet = await p.waitFor(SHEET, 10000).then(
+    () => true,
+    () => false,
+  );
+  check("offline: Add provider opens the sheet", offlineSheet);
+  const offlineName = `${tag} Offline Pharmacy`;
+  await fill(p, [
+    ['[name="type"][value="pharmacy"]', true],
+    ['[name="name"]', offlineName],
+    ['[name="phoneNumber"]', "555-010-8800", 0],
+  ]);
+  await submitSheet(p);
+  await p.waitFor(`!${SHEET}`, 10000).catch(() => {});
+  await sleep(300);
+  const offlineList = await p.evaluate(allNames("Current providers"));
+  check(
+    "offline: the add and the edit show in the list at once",
+    offlineList.includes(offlineName) && offlineList.includes(name),
+    JSON.stringify(offlineList.filter((n) => n.startsWith(tag))),
+  );
+  const [offlineRow] = await localRows(p, "SELECT id FROM provider WHERE name = ?", [offlineName]);
+  const offlineId = offlineRow?.id;
+  check(
+    "offline: nothing reaches Postgres yet",
+    psql(`SELECT count(*) FROM provider WHERE id = '${offlineId}'`) === "0" &&
+      psql(`SELECT specialty FROM provider WHERE id = '${id}'`) === "Neurology",
+  );
+  proxy.setOnline(true);
+  const synced = await waitForSql(
+    `SELECT (SELECT type || ':' || jsonb_array_length(phones) FROM provider WHERE id = '${offlineId}') || '|' || (SELECT specialty || ':' || status FROM provider WHERE id = '${id}')`,
+    (v) => v === "pharmacy:1|Neurology (offline edit):current",
+    30000,
+  );
+  check(
+    "back online: the offline add and edit upload",
+    synced === "pharmacy:1|Neurology (offline edit):current",
+    synced,
+  );
+  await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  p.errors.splice(errorsBefore); // Offline fetch failures aren't the app's errors.
+
+  // Delete: after a confirm; Escape and Cancel close only the confirm.
+  await p.goto(`${LIST}/${offlineId}/edit`);
+  await p.waitFor(SHEET, 30000);
+  const deleteButton = `[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Delete provider")`;
+  const confirmOpen = `document.querySelector("dialog.modal[open]")`;
+  await p.press(deleteButton);
+  await p.waitFor(confirmOpen, 5000);
+  const confirmTitle = await p.evaluate(`${confirmOpen}.querySelector("h2").textContent`);
+  await escape(p);
+  await sleep(300);
+  const afterEscape = await p.evaluate(`({ confirm: !!${confirmOpen}, sheet: !!${SHEET} })`);
+  check(
+    `Delete asks first ("${confirmTitle}"); Escape closes only the confirm`,
+    confirmTitle === `Delete ${offlineName}?` && !afterEscape.confirm && afterEscape.sheet,
+    JSON.stringify(afterEscape),
+  );
+  await p.press(deleteButton);
+  await p.waitFor(confirmOpen, 5000);
+  await p.press(
+    `[...${confirmOpen}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")`,
+  );
+  await sleep(300);
+  check(
+    "Cancel keeps the provider and the sheet",
+    !(await p.evaluate(`!!${confirmOpen}`)) &&
+      (await sheetOpen(p)) &&
+      psql(`SELECT (deleted_at IS NULL)::text FROM provider WHERE id = '${offlineId}'`) === "true",
+  );
+  await p.press(deleteButton);
+  await p.waitFor(confirmOpen, 5000);
+  await p.press(
+    `[...${confirmOpen}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Delete")`,
+  );
+  await p.waitFor(`!${SHEET} && location.pathname === ${JSON.stringify(LIST)}`, 10000).catch(() => {});
+  await sleep(300);
+  check(
+    "Delete closes the sheet and removes it from the list",
+    !(await p.evaluate(allNames("Current providers"))).includes(offlineName) &&
+      (await p.evaluate(`location.pathname`)) === LIST,
+  );
+  const deleted = await waitForSql(
+    `SELECT (deleted_at IS NOT NULL)::text FROM provider WHERE id = '${offlineId}'`,
+    (v) => v === "true",
+  );
+  check("…soft-deleted in Postgres", deleted === "true", deleted);
+  await other
+    .waitFor(
+      `window.caretookSync.powersync.getAll("SELECT deleted_at FROM provider WHERE id = '${offlineId}'").then((r) => r[0]?.deleted_at)`,
+      20000,
+    )
+    .then(
+      () => check("…and on the second device", true),
+      () => check("…and on the second device", false),
+    );
+  await p.goto(`${LIST}/${offlineId}/edit`);
+  await p.waitFor(`location.pathname === ${JSON.stringify(LIST)}`, 20000).catch(() => {});
+  check(
+    "a deleted provider's edit URL is the list",
+    (await p.evaluate(`location.pathname`)) === LIST && !(await sheetOpen(p)),
+  );
+  await p.screenshot("providers-after-sheets");
+  // The device steps after this import the device modules into this page: load them while online.
+  await localRows(p, "SELECT 1");
+  return { ids: [id, offlineId] };
+}
+
 async function signIn(p, email) {
   // On a fresh dev server the first load can fail while Vite optimises its deps: one retry.
   await p.signIn(email, PW).catch(async () => {
@@ -302,6 +676,8 @@ const bB = await launch(9412);
 const bC = await launch(9413);
 const bD = await launch(9414);
 const pages = [];
+/** This run's providers from the sheet steps, deleted at the end. */
+const made = { ids: [] };
 try {
   const A = await openPage(bA, "caretaker");
   const B = await openPage(bB, "member");
@@ -396,6 +772,9 @@ try {
     byGroup[DEV_FAMILY] >= 6 && byGroup[DEV_FAMILY_2] === 1 && lou[0]?.group_id === DEV_FAMILY_2,
     JSON.stringify(byGroup),
   );
+
+  // --- Add, edit and delete through the sheets (slice 3) --------------------
+  made.ids = (await sheetSteps(A, B, proxyA, tag)).ids;
 
   // --- Offline: create an event, create-and-link a provider, link a seeded one
   proxyA.setOnline(false);
@@ -509,6 +888,35 @@ try {
     JSON.stringify({ current: viewerList.current, viewerNote }),
   );
 
+  // A viewer: no Add, and the sheet URLs are the list with no form.
+  const viewerAdd = await C.evaluate(`!!document.querySelector("main [data-add-provider]")`);
+  await C.goto(`/app/groups/${DEV_FAMILY}/providers/new?type=pharmacy`);
+  await C.waitFor(`location.pathname.endsWith("/providers")`, 20000).catch(() => {});
+  await sleep(500);
+  const viewerNew = await C.evaluate(
+    `({ path: location.pathname, search: location.search, form: !!document.querySelector("[data-provider-form]") })`,
+  );
+  const seededId = psql(
+    `SELECT id FROM provider WHERE name = 'Dr. Samuel Patel' AND group_id = '${DEV_FAMILY}'`,
+  );
+  await C.goto(`/app/groups/${DEV_FAMILY}/providers/${seededId}/edit`);
+  await C.waitFor(`location.pathname.endsWith("/providers")`, 20000).catch(() => {});
+  await sleep(500);
+  const viewerEdit = await C.evaluate(
+    `({ path: location.pathname, form: !!document.querySelector("[data-provider-form]"), list: document.querySelectorAll("main li[data-provider-id]").length })`,
+  );
+  check(
+    "a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form",
+    !viewerAdd &&
+      viewerNew.path.endsWith("/providers") &&
+      !viewerNew.form &&
+      viewerNew.search === "?type=pharmacy" &&
+      viewerEdit.path.endsWith("/providers") &&
+      !viewerEdit.form &&
+      viewerEdit.list >= 5,
+    JSON.stringify({ viewerAdd, viewerNew, viewerEdit }),
+  );
+
   // --- A non-member's providers URL is the 404, with no names --------------
   await sleep(4000); // Better Auth's sign-in rate limit.
   const D = await openPage(bD, "admin");
@@ -536,6 +944,17 @@ try {
     (v) => v === "true",
   );
   check("clean up: this run's event is deleted", cleaned && gone === "true");
+  const sheetCleaned = await onDevice(
+    A,
+    `const out = [];
+     for (const id of ${JSON.stringify(made.ids)}) out.push((await providers.removeProvider(db, id)).ok);
+     return out.every(Boolean);`,
+  );
+  const sheetGone = await waitForSql(
+    `SELECT count(*) FROM provider WHERE id IN ('${made.ids.join("','")}') AND deleted_at IS NULL`,
+    (v) => v === "0",
+  );
+  check("clean up: this run's providers are deleted", sheetCleaned && sheetGone === "0");
 
   // Being offline is noisy on purpose (the proxy cuts Vite's socket and PowerSync's stream).
   const noise =
