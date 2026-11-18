@@ -10,6 +10,7 @@ import { useCallback, useRef, useState } from "react";
 import { data, Link, useNavigate } from "react-router";
 import { EntryHeader, EntryTime, EntryTitle } from "~/components/EntryHeader";
 import { LiveNotesEditor } from "~/components/LiveNotesEditor";
+import { ShareButton } from "~/components/ShareButton";
 import { KIND_META } from "~/lib/entryDisplay";
 import { localTimeZone } from "~/lib/format";
 import { entryUrl, isLiveEntryKind, NEW_ENTRY, savedTitle, shouldMaterialize } from "~/lib/liveEntry";
@@ -234,6 +235,8 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
             {!canWrite && " · You can view this"}
           </>
         }
+        // Share once there's an entry to link to (not a draft), for viewers too.
+        actions={live && <ShareButton title={heading} path={entryUrl(groupId, draft.id)} />}
       />
       {kind === "event" && live?.body && (
         <p className="text-base-content/80 break-words whitespace-pre-wrap">{live.body}</p>
