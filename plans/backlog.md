@@ -218,6 +218,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Tiptap mentions in the document, a field on the event, or both.
+- 2026-11-18 (Robert Bo Davis): PRD written (providers): timeline_entry_provider link table (pair-derived ids), With row on events and notes, picker with inline add, suggestions from title/text matches, title memory and recent links. No @-mentions.
 
 ### B-15 · plan · Medication list (current, past, discontinued), printable sheet, and tracking in the timeline
 
