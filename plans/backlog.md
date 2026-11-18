@@ -492,6 +492,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/quick-fixes): Found in B-35 (quick-fixes slice 8). A soft-deleted practice stays as its clinicians' practice_id; their edit sheet shows '(removed practice)' and saving keeps it (the practice check runs only when practiceId changes). Decide: refuse the delete while clinicians name it, or clear their links.
 - 2026-11-18 (prd/quick-fixes): Decided with the user: refuse the soft delete while live providers name the practice (409 providerService:practiceHasProviders, server and device), mirroring B-35; never clear the clinicians' links. Spec is quick-fixes slice 14 in plans/quick-fixes-plan.md (on prd/quick-fixes).
+- 2026-11-18 (slice/quick-fixes/14): slice 14 (cf1f804): delete refused with 409 providerService:practiceHasProviders while live providers name it; device refuses too; edit sheet confirm shows the count with Delete disabled
 
 ### B-38 · bug · Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect
 
