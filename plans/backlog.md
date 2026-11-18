@@ -26,15 +26,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-1 | bug | ready | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
+| B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | triaged | timeline-polish |  | Latest vitals is too busy |
 | B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | triaged | timeline-polish |  | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
 | B-7 | change | triaged | timeline-polish |  | More prominent day headers in the timeline |
-| B-8 | feature | in-progress | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
-| B-9 | feature | triaged | app-shell |  | Care group menu: switch groups, open the group's settings |
+| B-8 | feature | ready | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
+| B-9 | feature | in-progress | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
@@ -42,18 +42,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
-| B-17 | bug | ready | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
+| B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
 | B-18 | feature | landed | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
 | B-19 | feature | landed | live-notes-ux | prd/live-notes-ux | Live dot and the Live now banner (live notes slice 7) |
 | B-20 | chore | in-progress | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
-| B-22 | bug | ready | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
+| B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 
 ## Items
 
 ### B-1 · bug · Sign-in can be submitted again while it's loading, and the first load is slow
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: b0325d0
@@ -122,10 +122,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-8 · feature · Avatar in the header with a menu for the user's settings and actions
 
-- status: in-progress
+- status: ready
 - prd: app-shell
 - owner: prd/app-shell
-- commit:
+- commit: 9e5f7c2
 
 - 2026-11-17 (dev keeper): Settings, units, timeline layout, sign out.
 - 2026-11-17 (plan/app-shell): PRD written: plans/app-shell-prd.md on plan/app-shell. Avatar menu: name/email header, Settings, theme (System/Light/Dark, per device), Sign out.
@@ -134,14 +134,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-9 · feature · Care group menu: switch groups, open the group's settings
 
-- status: triaged
+- status: in-progress
 - prd: app-shell
-- owner:
+- owner: prd/app-shell
 - commit:
 
 - 2026-11-17 (dev keeper): To settle: what group settings holds at first (name, recipient profile, members and roles; invites wait for Resend). Recommended: a group nav (Timeline · Medications · Providers · Assistant) with slots that later PRDs fill.
 - 2026-11-17 (plan/app-shell): PRD written: plans/app-shell-prd.md on plan/app-shell. Group menu switches groups; /app opens the last-used group; bottom tabs (GROUP_SECTIONS registry); group settings = name, recipient (name, preferred name, DOB), members and roles; online-only clientAction → new oRPC procedures. No migration.
 - 2026-11-17 (plan/app-shell): Plan: plans/app-shell-plan.md. Slices 3 (group menu, last group), 4 (sections nav), 5 (settings: details), 6 (settings: members).
+- 2026-11-18 (slice/app-shell/4): app-shell slice 4 (sections nav + tab bar) committed on slice/app-shell/4 at d0d5c63; awaiting merge
+- 2026-11-18 (slice/app-shell/3): slice 3 (group menu, last group, Dev Family 2 seed) committed on slice/app-shell/3 at 650c0f0; awaiting merge
+- 2026-11-18 (prd/app-shell): app-shell slice 3 (group menu, last group, second seed group) merged into prd/app-shell at e3d7119; stays in progress until slice 6.
+- 2026-11-18 (prd/app-shell): app-shell slice 4 (GROUP_SECTIONS, SectionNav, TabBar) merged into prd/app-shell at ac4eea3.
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
@@ -209,7 +213,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-17 · bug · A timeline layout change made offline is lost
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: b0325d0
@@ -244,6 +248,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Blocked by slices 3 and 7.
+- 2026-11-18 (slice/live-notes-ux/10): Slice 10 committed on slice/live-notes-ux/10: consolidated live-notes.mjs (91 checks, order-independent), roundtrip rewritten, phase2 updated, 6 old checks deleted. AGENTS.md changes listed in the hand-off.
+- 2026-11-18 (prd/app-shell): From prd/app-shell: live-note.mjs races under load. Step 4 (B.goto(entryPath)) and step 8 (B.goto(timelineUrl)) full-load caretaker right after member@ writes; entry.tsx's clientLoader reads once after waitForFirstSync, so caretaker gets a 404 (or a blank HydrateFallback past 15 s) if the row hasn't streamed yet. ~1 in 3 runs fail with three loops busy; 3/3 pass on a quiet machine. Suggest waiting for the row in B's local db before goto, or navigating in-app.
 
 ### B-21 · chore · Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks
 
@@ -254,7 +260,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-22 · bug · The first screen after sign-in waits up to 10 s for the first sync
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: b0325d0

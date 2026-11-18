@@ -3,6 +3,7 @@ import type { Route } from "./+types/home";
 import type { GroupRow } from "~/lib/sync/timeline";
 
 import { Link, redirect } from "react-router";
+import { FirstSyncPending } from "~/components/FirstSyncPending";
 import { rememberedGroup, resolveHomeGroup } from "~/lib/lastGroup";
 import { requireSession } from "~/lib/session";
 import { useLiveQuery, waitForFirstSync } from "~/lib/sync";
@@ -15,19 +16,22 @@ export function meta({}: Route.MetaArgs) {
 const timelinePath = (groupId: string) => `/app/groups/${groupId}/timeline`;
 
 // Groups come from the device's synced copy. Go straight to the group last
-// opened on this device, or the only group (the usual case).
+// opened on this device, or the only group (the usual case). On a new device
+// whose first sync is slow, say so (and reload when it lands) rather than
+// "no care group".
 export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   const { db } = await requireSession(request);
-  await waitForFirstSync(db);
+  const synced = await waitForFirstSync(db);
   const rows = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
   const home = resolveHomeGroup({ groups: rows, remembered: rememberedGroup(db.userId) });
   if (home) throw redirect(timelinePath(home));
-  return { userId: db.userId, rows };
+  return { userId: db.userId, rows, synced };
 }
 
 export default function AppHome({ loaderData }: Route.ComponentProps) {
   const query = myGroupsQuery(loaderData.userId);
   const groups = useLiveQuery<GroupRow>(query.sql, query.params, loaderData.rows).map(toMyGroup);
+  if (!loaderData.synced) return <FirstSyncPending />;
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-6">
       <h1 className="text-2xl font-semibold">Your care groups</h1>
