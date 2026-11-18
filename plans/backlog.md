@@ -54,6 +54,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-24 | change | triaged | components |  | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
+| B-27 | bug | triaged | routing |  | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 
 ## Items
 
@@ -343,3 +344,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Left out of the medications PRD's v1 (2026-11-18). Likely a synced list of { substance, reaction, severity } on care_recipient; the print sheet gets an allergies line when it lands.
+
+### B-27 · bug · routing.mjs fails: group settings blank after the entry step; account Sign out flaky
+
+- status: triaged
+- prd: routing
+- owner:
+- commit:
+
+- 2026-11-18 (prd/providers): Found by the providers orchestrator while landing providers slice 1. routing.mjs fails on dev itself (b869738, routing wave 2): 'group settings opens under the group route' fails every run (54/55): after the entry step, c.goto(/app/groups/<id>/settings) renders no main and no window.caretookSync; the only console error is Vite's 'Failed to send error to Vite server: TypeError: Cannot read properties of undefined (reading send)', which hides the real error. Not reproduced by a standalone script (sign in, open the same seeded note, then settings), so it depends on routing.mjs's earlier state (its proxy browser). One run also failed 'Account's Sign out signs out' and '/app/settings then asks to sign in' (/app/settings/account), possibly load (avg 60-230). Every other check passed on prd/providers.
