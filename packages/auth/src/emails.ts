@@ -3,7 +3,7 @@ import type { Queued } from "@caretook/notifications";
 
 import { getDb, isError, userSchema } from "@caretook/data";
 import { inBackground, notify } from "@caretook/notifications";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 
 // Better Auth's email callbacks, sent through @caretook/notifications' outbox.
@@ -52,7 +52,10 @@ export const sendVerificationEmail = ({
     notify("verifyEmail", {
       to: user.email,
       data: { name: user.name ?? undefined, token, ...(next ? { next } : {}) },
-      idempotencyKey: keyFor("verifyEmail", token),
+      // The token is a JWT whose `iat` is in whole seconds, so two sends in
+      // one second ("Send a new link" right after signing in) share it: key
+      // each send on its own, or the outbox drops the second as a repeat.
+      idempotencyKey: keyFor("verifyEmail", `${token}:${randomUUID()}`),
     }).then(logFailure("verifyEmail")),
   );
   return Promise.resolve();
