@@ -4,6 +4,9 @@ import { execSync } from "node:child_process";
 import { launch, openPage, sleep } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
+// The dev Postgres container: a loop's own (PG_CONTAINER in .env.loop) or the main one.
+const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
+
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -11,7 +14,7 @@ const check = (name, ok, detail = "") => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? `  (${detail})` : ""}`);
 };
 const psql = (sql) =>
-  execSync(`docker exec caretook-postgres-1 psql -U caretook -d caretook -tAc ${JSON.stringify(sql)}`)
+  execSync(`docker exec ${PG_CONTAINER} psql -U caretook -d caretook -tAc ${JSON.stringify(sql)}`)
     .toString()
     .trim();
 
