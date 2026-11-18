@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
 import { formatDay, formatTime } from "~/lib/format";
-import { KindIcon } from "./KindIcon";
+import { KindIcon } from "~/components/KindIcon";
 
 /**
  * The entry page's header, in four regions so each feature fills only its

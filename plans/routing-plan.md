@@ -4,15 +4,22 @@
 
 ## Status
 
-| Slice | State                                                        | Merge into `prd/routing` (slice commits) |
-| ----- | ------------------------------------------------------------ | ---------------------------------------- |
-| 1     | ready: `app-shell` and `timeline-polish` wave 1 are in `dev` |                                          |
-| 2     | blocked by 1                                                 |                                          |
-| 3     | blocked by 2                                                 |                                          |
-| 4     | blocked by 1                                                 |                                          |
-| 5     | blocked by 4                                                 |                                          |
+| Slice | State                                                | Merge into `prd/routing` (slice commits)      |
+| ----- | ---------------------------------------------------- | --------------------------------------------- |
+| 1     | merged; wave 1, awaiting the user's go-ahead to land | 73f2aeb (2a4bfad, 54d28fd), 8a72857 (448a90a) |
+| 2     | ready once wave 1 lands                              |                                               |
+| 3     | blocked by 2                                         |                                               |
+| 4     | ready once wave 1 lands                              |                                               |
+| 5     | blocked by 4                                         |                                               |
 
-Backlog: B-23 is `triaged`. Claim it when slice 1 starts; mark it `done` after slice 5 merges.
+Backlog: B-23 is claimed by `prd/routing` (in-progress). Mark it `done` after slice 5 merges.
+
+**Slice 1's decision for slices 2–5: client middleware**, which works in both builds. The group middleware (`lib/group.tsx`) records the group, or the `notOnDevice` error, with `setGroup`. It never throws, because a middleware throw on native's first load lands in the root boundary. Every loader and action under the group route calls `getGroup(context)` first; components use `useGroup()`. The /app layout's middleware sets `sessionContext`; read it with `context.get(sessionContext)`, never a second `requireSession`.
+
+**Open issues:**
+
+- `routing.mjs`'s entry step failed twice on the integration stack under load (about 37–54), then passed on the first try at load 17. The loop found no app bug. The check now waits 45 s, retries once, and prints page state on a failure: if it fails again, read that detail.
+- Native dev needs `/api` and `/rpc` proxied to a web server, plus the native origin in `AUTH_TRUSTED_ORIGINS`. There's no script for it yet.
 
 ## Architectural decisions
 

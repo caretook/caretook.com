@@ -1,5 +1,5 @@
 import type { Measure, TimelineView, UnitChoices } from "@caretook/data/schema";
-import type { Route } from "./+types/settings";
+import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/api";
 
 import { UNIT_LABEL, UNIT_OPTIONS, unitChoicesZSchema } from "@caretook/data/schema";
@@ -9,14 +9,14 @@ import { toActionResult } from "~/lib/api";
 import { formString } from "~/lib/form";
 import { loadSettings, saveSettings } from "~/lib/me";
 import { rpc } from "~/lib/rpc";
-import { requireSession } from "~/lib/session";
+import { sessionContext } from "~/lib/session";
 
 // Shared by web + native: client-only data (clientLoader/clientAction over oRPC).
 
 export const meta = () => [{ title: "Settings · Caretook" }];
 
-export async function clientLoader({ request }: Route.ClientLoaderArgs) {
-  const { user } = await requireSession(request);
+export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
+  const { user } = context.get(sessionContext);
   // The device-side read the timeline uses: it sends a layout change that's
   // still pending first, so this page never shows an older choice.
   const settings = await loadSettings(request, user.id);

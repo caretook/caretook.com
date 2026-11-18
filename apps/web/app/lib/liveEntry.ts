@@ -19,10 +19,6 @@ export type LiveEntryKind = (typeof LIVE_ENTRY_KINDS)[number];
 export const isLiveEntryKind = (kind: string | null | undefined): kind is LiveEntryKind =>
   (LIVE_ENTRY_KINDS as readonly string[]).includes(kind ?? "");
 
-export const entryUrl = (groupId: string, entryId: string) => `/app/groups/${groupId}/entries/${entryId}`;
-export const newEntryUrl = (groupId: string, kind: LiveEntryKind) =>
-  `${entryUrl(groupId, NEW_ENTRY)}?kind=${kind}`;
-
 /** What a draft has so far: the document's plain text and the title field. */
 export type DraftState = { saved: boolean; text: string; title: string };
 

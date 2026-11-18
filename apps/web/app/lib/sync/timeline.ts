@@ -143,6 +143,17 @@ export const myGroupsQuery = (userId: string): LocalQuery => ({
   params: [userId],
 });
 
+/** One group `userId` belongs to (no row when they aren't a member, or it isn't on the device). */
+export const myGroupQuery = (userId: string, groupId: string): LocalQuery => ({
+  sql: `SELECT g.id, g.name, m.role, r.id AS recipient_id, r.name AS recipient_name,
+               r.preferred_name AS recipient_preferred_name
+        FROM care_group g
+        JOIN care_group_member m ON m.group_id = g.id AND m.user_id = ?
+        LEFT JOIN care_recipient r ON r.group_id = g.id
+        WHERE g.id = ?`,
+  params: [userId, groupId],
+});
+
 export const toMyGroup = (row: GroupRow): MyGroup => ({
   id: row.id,
   name: row.name ?? "",

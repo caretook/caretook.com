@@ -2,7 +2,7 @@ import type { LiveDocument } from "~/lib/liveNow";
 
 import { useState } from "react";
 import { Link } from "react-router";
-import { entryUrl } from "~/lib/liveEntry";
+import { appUrls } from "~/lib/appUrls";
 import { announcementText, writingLabel } from "~/lib/liveNow";
 import { LiveDot } from "./LiveDot";
 
@@ -50,7 +50,7 @@ export function LiveNowBanner({
             {more > 0 && <span className="text-base-content/70"> · +{more} more</span>}
           </p>
           <Link
-            to={entryUrl(groupId, top.id)}
+            to={appUrls.entry(groupId, top.id)}
             className="btn btn-primary btn-sm shrink-0"
             aria-label={`Join ${top.title}`}
           >
