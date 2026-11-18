@@ -2,5 +2,7 @@ build/
 coverage/
 .react-router/
 .postgres/
+.loops/
+.claude/worktrees/
 pnpm-lock.yaml
 packages/data/src/db/migrations/

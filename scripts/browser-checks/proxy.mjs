@@ -3,7 +3,9 @@
 import http from "node:http";
 import net from "node:net";
 
-export function startProxy(port) {
+export function startProxy(basePort) {
+  // Parallel loops shift every CDP and proxy port by CDP_PORT_OFFSET (see cdp.mjs).
+  const port = basePort + Number(process.env.CDP_PORT_OFFSET ?? 0);
   let online = true;
   const sockets = new Set();
   const server = http.createServer((req, res) => {

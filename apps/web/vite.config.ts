@@ -25,7 +25,12 @@ export default defineConfig({
   // PowerSync container fetches Better Auth's JWKS through
   // host.docker.internal, which Docker Desktop forwards to 127.0.0.1 (and
   // Vite refuses unknown Host headers).
-  server: { host: "127.0.0.1", allowedHosts: ["host.docker.internal"] },
+  // WEB_PORT (a loop's apps/web/.env) pins the port; a CLI --port still wins.
+  server: {
+    host: "127.0.0.1",
+    allowedHosts: ["host.docker.internal"],
+    ...(process.env.WEB_PORT && { port: Number(process.env.WEB_PORT), strictPort: true }),
+  },
   // PowerSync runs SQLite (WASM) in web workers. Pre-bundling breaks the
   // worker and WASM URLs, and the workers are ES modules.
   //

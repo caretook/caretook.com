@@ -15,6 +15,8 @@ export default defineConfig(
     "**/.react-router/",
     "**/db/migrations/",
     ".postgres/",
+    ".loops/",
+    ".claude/worktrees/",
   ]),
 
   js.configs.recommended,

@@ -9,7 +9,11 @@ export const BASE = process.env.BASE ?? "http://localhost:5176";
 export const OUT = new URL(".", import.meta.url).pathname;
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function launch(port, extraArgs = []) {
+// Parallel loops shift every CDP and proxy port by CDP_PORT_OFFSET.
+export const PORT_OFFSET = Number(process.env.CDP_PORT_OFFSET ?? 0);
+
+export async function launch(basePort, extraArgs = []) {
+  const port = basePort + PORT_OFFSET;
   const dir = mkdtempSync(join(tmpdir(), "cdp-"));
   const proc = spawn(CHROME, [
     "--headless=new",

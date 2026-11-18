@@ -1,5 +1,8 @@
 # Local development datastore. Start it with `pnpm datastore:start`.
-name: caretook
+# Every port and the project name come from variables, so parallel loops can each
+# run a stack (scripts/loops/new.sh writes them into the worktree's root .env,
+# which Compose reads). The defaults are the main checkout's.
+name: ${CARETOOK_STACK:-caretook}
 
 services:
   postgres:
@@ -12,7 +15,7 @@ services:
     command: ["postgres", "-c", "wal_level=logical"]
     # Host ports avoid 5432 so this can run next to other local Postgres instances.
     ports:
-      - "5434:5432"
+      - "${PG_PORT:-5434}:5432"
     volumes:
       # Postgres 18+ images keep data in a versioned subdirectory of /var/lib/postgresql.
       - ./.postgres/data:/var/lib/postgresql
@@ -39,10 +42,12 @@ services:
       PS_STORAGE_URI: postgresql://powersync:password@powersync-storage:5432/powersync
       # The web dev server's JWKS. Override when running it on another port.
       PS_JWKS_URL: ${PS_JWKS_URL:-http://host.docker.internal:5173/api/auth/jwks}
+      # The audience Better Auth signs PowerSync tokens with (POWERSYNC_URL).
+      PS_AUDIENCE: ${POWERSYNC_URL:-http://localhost:8080}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "8080:8080"
+      - "${POWERSYNC_PORT:-8080}:8080"
     volumes:
       - ./powersync:/config:ro
 

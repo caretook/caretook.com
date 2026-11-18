@@ -20,11 +20,17 @@ Feature work goes through a PRD, then a plan cut into slices that loops (paralle
 2. **Plan:** `prd-to-plan` turns the PRD into tracer-bullet vertical slices in `plans/<topic>-plan.md`. Each slice says what it **blocks and is blocked by**, so independent slices can run at once. `prd-to-issues` makes one issue per slice.
 3. **A loop works one slice:**
    - Read the PRD, the plan and this file first.
-   - Use a worktree (or its own branch) so parallel loops don't collide.
+   - **Each loop is isolated:** `scripts/loops/new.sh <slot> <name>` makes a worktree in `.loops/<name>` on branch `loop/<name>` (from `data-layer`), with its own Docker stack (`caretook-loop<slot>`: dev Postgres, test Postgres, PowerSync), env files, dev server port and browser-check ports. It installs, migrates and seeds.
+     - Slot N (1–9): web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80, and CDP/proxy ports shifted by N×1000 (`CDP_PORT_OFFSET`).
+     - Inside a loop, `pnpm dev`, `pnpm datastore:*`, `pnpm test` and `docker compose` all use that loop's stack. Browser checks: `set -a; source .env.loop; set +a` first.
+     - `scripts/loops/ls.sh` lists loops; `scripts/loops/rm.sh <name>` deletes the stack, its data and the worktree, and keeps the branch.
+     - The main checkout keeps the default ports (5173, 5434, 5435, 8080).
    - Shared files are where loops collide: migrations (number them in plan order), `db/schema/index.ts`, `permissions.ts`, `powersync/sync-config.yaml`, `vitest.config.ts` and this file. Make small edits there, and note them in the slice's hand-off.
    - Write tests for the slice's modules as the PRD's _Testing Decisions_ say. Run `pnpm check` and the slice's browser check.
-   - Hand off by reporting what was built, what was verified and what was skipped. Don't commit unless asked.
-4. When a PRD is done, move its lasting decisions into this file and mark the PRD done.
+   - **Commit on the loop's own branch** when `pnpm check` passes. Don't merge, rebase or push other branches.
+   - Hand off by reporting what was built, what was verified and what was skipped, plus the commit SHAs.
+4. **Bringing loops together:** the orchestrator reviews each `loop/*` branch and merges it into `data-layer` (the integration branch), in plan order, running `pnpm check` after each merge. A slice blocked by others is branched only after they're merged.
+5. When a PRD is done, move its lasting decisions into this file and mark the PRD done.
 
 ### Active PRDs
 
@@ -389,6 +395,7 @@ docker-compose.yml        dev Postgres :5434, PowerSync :8080 + storage; docker-
 powersync/                service.yaml, sync-config.yaml (Sync Streams)
 plans/                    PRDs and slice plans
 scripts/browser-checks/   headless Chrome checks
+scripts/loops/            new/ls/rm: isolated worktree + Docker stack per parallel loop (.loops/)
 apps/web/                 @caretook/web (React Router 8, Vite 8)
   build-target.ts, react-router.config.ts, vite.config.ts
   app/routes.ts, root.tsx, app.css

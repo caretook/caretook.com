@@ -32,7 +32,7 @@ client_auth:
   # Better Auth's JWKS (EdDSA keys) on the web dev server.
   jwks_uri: !env PS_JWKS_URL
   # Better Auth signs PowerSync tokens with this audience (POWERSYNC_URL).
-  audience: ["http://localhost:8080"]
+  audience: [!env PS_AUDIENCE]
 
 api:
   tokens:
