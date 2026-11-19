@@ -117,3 +117,21 @@ export const sendVerificationOTP = ({ email, otp, type }: { email: string; otp: 
   );
   return Promise.resolve();
 };
+
+/**
+ * An access code's sign-up (/join/:code) with an address that already has an
+ * account: nothing is created, the page says "check your email" as it does
+ * for a new address, and the account's owner gets this. Queued in the
+ * background like the other auth emails, so the answer takes no longer.
+ * Keyed on the address, the code and the day, so repeats send one email.
+ */
+export const sendAccessCodeExistingAccount = (email: string, code: string) => {
+  const day = new Date().toISOString().slice(0, 10);
+  inBackground(() =>
+    notify("accessCodeExistingAccount", {
+      to: email,
+      data: {},
+      idempotencyKey: keyFor("accessCodeExistingAccount", `${email}:${code}:${day}`),
+    }).then(logFailure("accessCodeExistingAccount")),
+  );
+};

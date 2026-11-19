@@ -9,6 +9,7 @@ import {
   codeState,
   inviteEmailZ,
   newCareGroupZSchema,
+  normalizeInviteEmail,
   timeZoneZSchema,
   resolveNewCareGroup,
   staffGroupService,
@@ -55,7 +56,9 @@ export const accessCode = {
   /**
    * Create an account and its care group from a code, in one transaction.
    * The account isn't verified yet: the client asks for the confirmation
-   * email and sends the person to /verify-email.
+   * email and sends the person to /verify-email. An address that already
+   * has an account gets the same answer (and an email instead), so the
+   * answer is only the address, never the new group's id.
    */
   signUp: publicProcedure
     .input(
@@ -68,7 +71,7 @@ export const accessCode = {
       }),
     )
     .handler(async ({ input }) => {
-      const user = unwrap(
+      unwrap(
         await signUpWithTicket({
           ticket: { kind: "accessCode", code: input.code, group: input.group },
           name: input.name,
@@ -76,7 +79,7 @@ export const accessCode = {
           password: input.password,
         }),
       );
-      return { email: user.email, groupId: user.groupId ?? null };
+      return { email: normalizeInviteEmail(input.email) };
     }),
 };
 

@@ -7,12 +7,14 @@ import {
   emailMatches,
   isError,
   newError,
+  normalizeAccessCode,
   normalizeInviteEmail,
   SYSTEM_USER,
   userModel,
   withTransaction,
 } from "@caretook/data";
 import { getAuth } from "./auth";
+import { sendAccessCodeExistingAccount } from "./emails";
 
 // Caretook is invitation-only: public sign-up stays off (`disableSignUp`),
 // and an account is created only here, with a ticket: an email invite's
@@ -104,7 +106,13 @@ export const signUpWithTicket = async ({
  * verified: the code doesn't prove the address, so the person confirms it
  * by email before using the app), its password, and the code's redemption,
  * which creates their care group with them as its owner. Any refusal (a
- * used-up code, an address already taken) leaves nothing behind.
+ * used-up code, a bad group) leaves nothing behind.
+ *
+ * An address that already has an account answers like a new one (`id:
+ * null`, no `groupId`), so a code can't be used to find out who has an
+ * account: nothing is created, the code's use count stays, and the account's
+ * owner gets an email saying to sign in and choose New care group. A refused
+ * code or group is refused the same way for both.
  */
 const signUpWithAccessCode = async ({
   ticket,
@@ -119,12 +127,16 @@ const signUpWithAccessCode = async ({
   }
   const address = normalizeInviteEmail(email);
   const hash = await ctx.password.hash(password);
+  const existingAccount = () => {
+    sendAccessCodeExistingAccount(address, normalizeAccessCode(ticket.code) ?? ticket.code);
+    return { id: null, email: address, emailVerified: false };
+  };
 
   const result = await withTransaction(async (tx) => {
     const system = { authUser: SYSTEM_USER, tx };
     const existing = await userModel.get({ ...system, filter: { email: { type: "eq", value: address } } });
     if (isError(existing)) return existing;
-    if (existing) return newError({ code: "ticket:accountExists" });
+    if (existing) return (await accessCodeService.refusal(ticket.code, ticket.group)) ?? EXISTING;
 
     const user = await userModel.create({
       ...system,
@@ -144,13 +156,16 @@ const signUpWithAccessCode = async ({
     if (isError(redeemed)) return redeemed;
     return { id: user.id, email: user.email, emailVerified: false, groupId: redeemed.groupId };
   });
+  if (result === EXISTING) return existingAccount();
   // Two sign-ups with one address at once: the unique email decides.
   if (isError(result) && result.code === "db:transaction") {
     const taken = await userModel.get({
       authUser: SYSTEM_USER,
       filter: { email: { type: "eq", value: address } },
     });
-    if (!isError(taken) && taken) return newError({ code: "ticket:accountExists" });
+    if (!isError(taken) && taken) return existingAccount();
   }
   return result;
 };
+
+const EXISTING = Symbol("existing account");
