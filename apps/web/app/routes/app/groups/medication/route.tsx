@@ -5,7 +5,7 @@ import type { StatusIntent } from "~/lib/medicationStatusForm";
 import type { MedicationRow } from "~/lib/sync/medications";
 
 import { Pencil } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { MedicationStatusActions } from "~/components/medications";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
@@ -94,12 +94,15 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   const title = medicationTitle(medication);
   const navigate = useNavigate();
   // Deleted from here: back to the list (the page would only say it's gone).
-  const statusDone = useCallback(
-    (intent: StatusIntent) => {
-      if (intent === "remove") void navigate(listUrl, { replace: true });
-    },
-    [navigate, listUrl],
-  );
+  // Keyed on the live row, not the write's result: the row can show the
+  // delete first, which unmounts the actions before they hear the result.
+  const removedHere = useRef(false);
+  const statusSent = useCallback((intent: StatusIntent) => {
+    if (intent === "remove") removedHere.current = true;
+  }, []);
+  useEffect(() => {
+    if (deleted && removedHere.current) void navigate(listUrl, { replace: true });
+  }, [deleted, navigate, listUrl]);
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
@@ -129,7 +132,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
                 medication={medication}
                 recipientTimeZone={loaderData.recipientTimeZone}
                 layout="menu"
-                onDone={statusDone}
+                onSubmit={statusSent}
               />
             </>
           )

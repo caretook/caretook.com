@@ -74,8 +74,8 @@ const forgetSessionUser = () => {
 };
 
 /**
- * Wipe this device's copy: stop syncing, delete the local database and its
- * search index, and forget the cached user, settings (pending changes too),
+ * Wipe this device's copy: stop syncing, empty the local database (vacuumed,
+ * so no freed page keeps a deleted row) and drop its search index, and forget the cached user, settings (pending changes too),
  * last group and recent searches. Sign-out, and a session the server says
  * has ended, both go through here. Changes not uploaded yet are lost.
  */

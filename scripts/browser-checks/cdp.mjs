@@ -334,6 +334,36 @@ export async function openPage(browser, label) {
 }
 
 /**
+ * A page expression: does the local database's IndexedDB storage still hold
+ * `text` anywhere in its bytes (freed pages included)? Resolves to "no file",
+ * "open hung" (a delete is queued), "clean" or "holds it". Sign-out keeps the
+ * file but vacuums it (lib/sync/client.ts), so "clean" is what a wipe leaves.
+ */
+export const localCopyHolds = (text) => `(async () => {
+  if (!(await indexedDB.databases()).some((d) => d.name === "caretook.sqlite")) return "no file";
+  const db = await Promise.race([
+    new Promise((res, rej) => { const r = indexedDB.open("caretook.sqlite"); r.onsuccess = () => res(r.result); r.onerror = rej; }),
+    new Promise((res) => setTimeout(() => res(null), 3000)),
+  ]);
+  if (!db) return "open hung";
+  const needle = ${JSON.stringify(text)};
+  const dec = new TextDecoder("latin1");
+  let hits = 0;
+  const visit = (v) => {
+    if (v instanceof ArrayBuffer || ArrayBuffer.isView(v)) {
+      const u = v instanceof ArrayBuffer ? new Uint8Array(v) : new Uint8Array(v.buffer, v.byteOffset, v.byteLength);
+      if (dec.decode(u).includes(needle)) hits++;
+    } else if (v && typeof v === "object") for (const k of Object.keys(v)) visit(v[k]);
+  };
+  for (const name of db.objectStoreNames) {
+    const all = await new Promise((res) => { const r = db.transaction(name).objectStore(name).getAll(); r.onsuccess = () => res(r.result); });
+    all.forEach(visit);
+  }
+  db.close();
+  return hits ? "holds it" : "clean";
+})()`;
+
+/**
  * Smoke mode (`SMOKE=1`; `pnpm prd browser --smoke` sets it): each check runs
  * only its core path (one role, one happy path, no offline, no second device),
  * in about 20 s. Hand-offs and landings run the full check.
