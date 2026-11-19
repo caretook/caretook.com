@@ -17,17 +17,20 @@ export const UPCOMING_KIND_LABELS: Record<UpcomingKind, string> = {
   note: "Reminders",
 };
 
+/** The timeline's kind and author filters (Upcoming has no `?upcoming=` switch). */
+type UpcomingFilters = Pick<TimelineFilters, "kind" | "author">;
+
 const isUpcomingKind = (kind: TimelineEntryKind | null): kind is UpcomingKind =>
   (UPCOMING_KINDS as readonly (string | null)[]).includes(kind);
 
 /** Upcoming's filters: a kind Upcoming doesn't list (`?kind=vital`) reads as none. */
-export const parseUpcomingFilters = (search: string): TimelineFilters & { kind: UpcomingKind | null } => {
+export const parseUpcomingFilters = (search: string): UpcomingFilters & { kind: UpcomingKind | null } => {
   const { kind, author } = parseFilters(search);
   return { kind: isUpcomingKind(kind) ? kind : null, author };
 };
 
 /** The Past tab's filters: past events only, so just the author. */
-export const parsePastFilters = (search: string): TimelineFilters => ({
+export const parsePastFilters = (search: string): UpcomingFilters => ({
   kind: null,
   author: parseFilters(search).author,
 });

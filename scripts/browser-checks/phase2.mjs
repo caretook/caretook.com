@@ -1262,10 +1262,12 @@ async function infiniteScroll(p, offlineDevice) {
   const status = `document.querySelector("[data-older-entries] [role=status]")`;
   // The kinds the timeline lists (`TIMELINE_KINDS`): doses and medication changes aren't on it yet.
   const SHOWN_KINDS = "'note', 'symptom', 'event', 'vital'";
+  // The history ends at now (appointments slice 6): future notes and events aren't in it.
+  const PAST = "(kind NOT IN ('note', 'event') OR occurred_at <= now())";
   const liveCount = () =>
     Number(
       psql(
-        `SELECT count(*) FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL AND kind IN (${SHOWN_KINDS})`,
+        `SELECT count(*) FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL AND kind IN (${SHOWN_KINDS}) AND ${PAST}`,
       ),
     );
   // Dev Family's timeline (the page may be on a sheet's URL here).
@@ -1415,7 +1417,7 @@ async function infiniteScroll(p, offlineDevice) {
     await sleep(800);
     const events = Number(
       psql(
-        `SELECT count(*) FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND kind = 'event' AND deleted_at IS NULL`,
+        `SELECT count(*) FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND kind = 'event' AND deleted_at IS NULL AND ${PAST}`,
       ),
     );
     const short = await p.evaluate(
@@ -1455,7 +1457,8 @@ async function infiniteScroll(p, offlineDevice) {
       );
       await sleep(800);
       await p.evaluate(
-        `window.__anchor = document.elementFromPoint(innerWidth / 2, innerHeight / 2).closest("ol > li"), true`,
+        // The first row below the middle of the screen (the middle itself can be a day heading).
+        `window.__anchor = [...document.querySelectorAll("ol > li")].find((li) => li.getBoundingClientRect().top >= innerHeight / 2), true`,
       );
       const place = () =>
         p.evaluate(`({ rows: ${rows}, top: Math.round(window.__anchor?.getBoundingClientRect().top ?? NaN), y: Math.round(scrollY),
@@ -1552,6 +1555,42 @@ try {
   );
   check("first page is 30 entries", (await p.evaluate(rows)) === 30, `${await p.evaluate(rows)}`);
   // The day headings' stickiness, over rows and cards, is `dayHeadings` below.
+
+  // Appointments slice 6: the history ends at now, and the Next strip shows
+  // what's ahead (its toggle and block are upcoming.mjs's).
+  await step("the history ends at now; the Next strip names what's ahead", { smoke: true }, async () => {
+    const ahead = psql(
+      `SELECT id || ':' || (cancelled_at IS NULL) FROM timeline_entry WHERE group_id = '0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001'
+       AND deleted_at IS NULL AND kind IN ('note', 'event') AND occurred_at > now() + interval '2 minutes'`,
+    )
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => line.split(":"));
+    const shown = await p.evaluate(
+      `${JSON.stringify(ahead.map(([id]) => id))}.filter((id) => document.querySelector('main section[aria-labelledby="timeline-heading"] a[href$="/entries/' + id + '"]'))`,
+    );
+    check(
+      "by default, no future note or event is in the history",
+      ahead.length > 0 && shown.length === 0,
+      `${ahead.length} ahead, ${shown.length} shown`,
+    );
+    const strip = await p.evaluate(`(() => {
+      const s = document.querySelector("main [data-next-strip]");
+      const link = s?.querySelector("[data-next]");
+      return s && { next: link?.dataset.next, text: link?.textContent, toggle: s.querySelector("[data-upcoming-toggle]")?.textContent.trim(),
+        aboveList: !!(s.compareDocumentPosition(document.querySelector("main ol")) & Node.DOCUMENT_POSITION_FOLLOWING) };
+    })()`);
+    const live = ahead.filter(([, notCancelled]) => notCancelled === "true").map(([id]) => id);
+    check(
+      "the Next strip names a live item ahead, with +N more, and Show upcoming, above the list",
+      !!strip &&
+        live.includes(strip.next) &&
+        /^Next: .+ · .+ · \+\d+ more$/.test(strip.text ?? "") &&
+        strip.toggle === "Show upcoming" &&
+        strip.aboveList,
+      JSON.stringify(strip),
+    );
+  });
 
   const vitalsShown = await p.evaluate(`document.body.innerText.match(/BP \\d+\\/\\d+/) !== null`);
   check("latest vitals strip shows", vitalsShown);

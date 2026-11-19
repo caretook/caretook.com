@@ -2,7 +2,7 @@ import type { TimelineEntry } from "~/lib/rpc";
 import type { NoteDocRow } from "~/lib/sync/notes";
 import type { EntryFilters, EntryRow, MemberRow } from "~/lib/sync/timeline";
 import type { ContactRow, LinkedContact } from "./upcomingContact";
-import type { UpcomingSection } from "./upcomingDays";
+import type { UpcomingSection } from "~/lib/upcomingDays";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
 
 import { useMemo, useState } from "react";
@@ -15,7 +15,7 @@ import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import { fromLocalTimestamp, membersQuery, toMember, toTimelineEntries } from "~/lib/sync/timeline";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { contactsByEntry } from "./upcomingContact";
-import { pastSections, upcomingSections } from "./upcomingDays";
+import { pastSections, upcomingSections } from "~/lib/upcomingDays";
 import { pastQueries, upcomingQueries } from "./upcomingQueries";
 
 // Upcoming's and the Past tab's data, live: the loaders read the first

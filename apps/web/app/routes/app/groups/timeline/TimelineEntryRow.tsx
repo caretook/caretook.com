@@ -65,7 +65,7 @@ export function TimelineEntryRow({
         dateTime={entry.occurredAt}
         className="text-base-content/70 w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
       >
-        {formatTime(entry.occurredAt)}
+        {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
       </time>
       <EntryBody
         entry={entry}

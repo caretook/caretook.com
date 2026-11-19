@@ -11,6 +11,7 @@ import { entryOpen } from "./entryOpen";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
+import { UpcomingBlock } from "./UpcomingBlock";
 import { useEntryRemoval } from "./useEntryRemoval";
 
 /**
@@ -28,8 +29,10 @@ const LIST_CLASS: Record<TimelineView, string> = {
 
 /**
  * The entries, a section per day under a sticky heading, as rows or cards,
- * then `OlderEntries`, which loads older pages as the end comes near. Writers
- * get each entry's ⋯ menu, with one delete confirm for the whole list.
+ * then `OlderEntries`, which loads older pages as the end comes near. With
+ * `upcoming` (`?upcoming=1`), the Upcoming block comes first, above Today, in
+ * the same rows or cards. Writers get each entry's ⋯ menu, with one delete
+ * confirm for the whole list.
  */
 export function TimelineEntryList({
   data,
@@ -39,6 +42,7 @@ export function TimelineEntryList({
   canWrite,
   kind,
   author,
+  upcoming,
 }: {
   data: Pick<
     TimelineData,
@@ -51,6 +55,8 @@ export function TimelineEntryList({
   kind: TimelineEntryKind | null;
   /** The author filter's user id, when it's on (the empty list names them). */
   author: string | null;
+  /** The Upcoming block, when it's on, and where its "See all in Upcoming" goes. */
+  upcoming?: { items: TimelineData["upcoming"]; seeAll: string } | null;
 }) {
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -80,8 +86,43 @@ export function TimelineEntryList({
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
   }, [filterKey]);
 
+  const item = (entry: TimelineEntry) => {
+    const open = entryOpen({ groupId, entry, canWrite, search });
+    return (
+      <Entry
+        key={entry.id}
+        entry={entry}
+        authorName={data.nameOf(entry.createdBy)}
+        authorImage={data.imageOf(entry.createdBy)}
+        units={units}
+        removing={removal.isRemoving(entry.id)}
+        open={open}
+        onEdit={
+          open?.sheet
+            ? () => void navigate(open.to, { state: SHEET_LINK_STATE, preventScrollReset: true })
+            : undefined
+        }
+        onDelete={canWrite ? () => removal.ask(entry) : undefined}
+        cancel={cancelOf(entry)}
+        liveLabel={data.liveLabelOf(entry.id)}
+        providers={data.providersOf(entry.id)}
+      />
+    );
+  };
+
   return (
     <>
+      {upcoming && (
+        <div className={COLUMN_CAP}>
+          <UpcomingBlock
+            upcoming={upcoming.items}
+            view={view}
+            listClass={LIST_CLASS[view]}
+            seeAll={upcoming.seeAll}
+            entry={item}
+          />
+        </div>
+      )}
       <section ref={list} aria-labelledby="timeline-heading" className={`space-y-4 ${COLUMN_CAP}`}>
         <h2 id="timeline-heading" className="sr-only">
           Timeline
@@ -105,29 +146,7 @@ export function TimelineEntryList({
               {day.label}
             </h3>
             <ol className={LIST_CLASS[view]} data-view={view}>
-              {day.entries.map((entry) => {
-                const open = entryOpen({ groupId, entry, canWrite, search });
-                return (
-                  <Entry
-                    key={entry.id}
-                    entry={entry}
-                    authorName={data.nameOf(entry.createdBy)}
-                    authorImage={data.imageOf(entry.createdBy)}
-                    units={units}
-                    removing={removal.isRemoving(entry.id)}
-                    open={open}
-                    onEdit={
-                      open?.sheet
-                        ? () => void navigate(open.to, { state: SHEET_LINK_STATE, preventScrollReset: true })
-                        : undefined
-                    }
-                    onDelete={canWrite ? () => removal.ask(entry) : undefined}
-                    cancel={cancelOf(entry)}
-                    liveLabel={data.liveLabelOf(entry.id)}
-                    providers={data.providersOf(entry.id)}
-                  />
-                );
-              })}
+              {day.entries.map(item)}
             </ol>
           </section>
         ))}

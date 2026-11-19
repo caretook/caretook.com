@@ -23,8 +23,19 @@
 // Undo for writers only); Undo from the banner and the menu; an offline
 // cancel syncs on reconnect; a viewer's device refuses the write.
 //
-// Later slices (6: the timeline's Next strip and Upcoming block) add their
-// steps here. The rules themselves (timing, order, labels, filters, the
+//
+// Slice 6, the timeline (its own steps, below `timelineSteps`):
+// - the Next strip names the soonest live item (never a cancelled one) with
+//   "+N more", and an event saved for later today shows in it at once, not in
+//   the history;
+// - Show upcoming adds the block above Today (`?upcoming=1`), which survives
+//   a reload, combines with the kind and author filters, shows in rows and
+//   cards, and links to Upcoming with the same filters;
+// - an item whose time passes moves from the block and the strip into the
+//   history within a minute, without a reload; a viewer sees the strip and
+//   the block, with no ⋯ menus.
+//
+// Later slices add their steps here. The rules themselves (timing, order, labels, filters, the
 // actions) are unit-tested; the steps here check the wiring, one case each.
 // The entries this run makes carry its tag and are soft-deleted at the end,
 // so it passes run after run without a reset. SMOKE=1 runs caretaker@'s core
@@ -609,6 +620,256 @@ async function cancelSteps(A, B, proxy) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Slice 6: the timeline's Next strip and Upcoming block
+// ---------------------------------------------------------------------------
+
+const timelinePath = (search = "") => `/app/groups/${DEV_FAMILY}/timeline${search}`;
+const STRIP = `document.querySelector("main [data-next-strip]")`;
+const stripState = (p) =>
+  p.evaluate(`(() => {
+    const s = ${STRIP};
+    if (!s) return null;
+    const link = s.querySelector("[data-next]");
+    return { next: link?.dataset.next ?? null, text: link?.textContent ?? s.textContent,
+      toggle: s.querySelector("[data-upcoming-toggle]")?.textContent.trim() };
+  })()`);
+const BLOCK = `document.querySelector("main [data-upcoming-block]")`;
+/** The block's rows, in order: id (from its open link), text, kind link, author, and whether it has a ⋯ menu. */
+const blockState = (p) =>
+  p.evaluate(`(() => {
+    const b = ${BLOCK};
+    if (!b) return null;
+    const history = document.querySelector('main section[aria-labelledby="timeline-heading"]');
+    return {
+      above: !!history && !!(b.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING),
+      views: [...new Set([...b.querySelectorAll("ol")].map((ol) => ol.dataset.blockView))],
+      headings: [...b.querySelectorAll("h3")].map((h) => h.textContent.trim()),
+      seeAll: b.querySelector("[data-see-all]")?.getAttribute("href"),
+      width: b.getBoundingClientRect().width,
+      items: [...b.querySelectorAll("ol > li")].map((li) => ({
+        id: li.querySelector("a.absolute")?.getAttribute("href")?.split("/").pop(),
+        text: li.textContent,
+        kindLink: li.querySelector('a[aria-label^="Show only"]')?.getAttribute("aria-label"),
+        author: li.querySelector("[data-author]")?.dataset.author,
+        menu: !!li.querySelector('button[aria-label*="ctions"]'),
+      })),
+    };
+  })()`);
+/** True when the history (the timeline's day list) has a row opening this entry. */
+const inHistory = (id) =>
+  `!!document.querySelector('main section[aria-labelledby="timeline-heading"] a.absolute[href$="/entries/${id}"]')`;
+
+/** Saves an event through the entry page's local write (`materializeLiveEntry`), `offsetMs` from now. */
+const saveEvent = (p, title, offsetMs) =>
+  p.evaluate(`(async () => {
+    const { liveEntry } = await window.caretookModules();
+    const id = crypto.randomUUID();
+    const result = await liveEntry.materializeLiveEntry(window.caretookSync, {
+      id, groupId: ${JSON.stringify(DEV_FAMILY)}, kind: "event", title: ${JSON.stringify(title)},
+      occurredAt: new Date(Date.now() + ${offsetMs}).toISOString(), timeZone: "America/Los_Angeles",
+    });
+    if (!result.ok) throw new Error(JSON.stringify(result));
+    return id;
+  })()`);
+
+/** Opens the timeline from the section nav, as a tap would. */
+const openTimeline = async (p) => {
+  const link = `[...(${BAR}?.querySelectorAll("a") ?? [])].find((a) => a.textContent.trim() === "Timeline")`;
+  await p.waitFor(link, 20000);
+  await p.tap(link);
+  await p.waitFor(`location.pathname.endsWith("/timeline") && document.querySelector("main ol")`, 20000);
+};
+
+/** Upcoming's live items (not cancelled), soonest first, as the section lists them. */
+async function upcomingLive(p) {
+  await openUpcoming(p);
+  await p.waitFor(
+    `document.querySelectorAll("main [data-upcoming-item]").length >= ${seedTitles.length}`,
+    30000,
+  );
+  return (await rowsOf(p)).filter((r) => !r.cancelled);
+}
+
+async function stripSteps(p) {
+  const live = await upcomingLive(p);
+  await openTimeline(p);
+  await p.waitFor(`${STRIP}?.querySelector("[data-next]")`, 20000).catch(() => {});
+  const strip = await stripState(p);
+  const title = live[0]?.text ?? "";
+  check(
+    "the Next strip names the soonest live item, with +N more (cancelled ones never count)",
+    !!strip?.next &&
+      strip.next === live[0]?.id &&
+      strip.text.startsWith("Next: ") &&
+      title.includes(strip.text.slice(6).split(" · ")[0]) &&
+      strip.text.endsWith(`· +${live.length - 1} more`) &&
+      strip.toggle === "Show upcoming",
+    JSON.stringify({ strip, expected: live[0]?.id, count: live.length }),
+  );
+  const seededAhead = await p.evaluate(
+    `${JSON.stringify(live.map((r) => r.id))}.filter((id) => document.querySelector('main section[aria-labelledby="timeline-heading"] a.absolute[href$="/entries/' + id + '"]'))`,
+  );
+  check("the seeded future items aren't in the history", seededAhead.length === 0, seededAhead.join(","));
+
+  // An event saved for later today (90 min on) is soonest: the strip names it at once.
+  const later = `${TAG} later today`;
+  const id = await saveEvent(p, later, 90 * 60_000);
+  const shown = await p
+    .waitFor(`${STRIP}?.querySelector("[data-next]")?.dataset.next === "${id}"`, 5000)
+    .then(
+      () => true,
+      () => false,
+    );
+  const after = await stripState(p);
+  check(
+    "an event saved for later today shows in the Next strip at once, and not in the history",
+    shown &&
+      after.text.startsWith(`Next: ${later} · `) &&
+      after.text.endsWith(`· +${live.length} more`) &&
+      !(await p.evaluate(inHistory(id))),
+    JSON.stringify(after),
+  );
+  return id;
+}
+
+async function blockSteps(p, laterId) {
+  await p.tap(`${STRIP}.querySelector("[data-upcoming-toggle]")`);
+  await p.waitFor(`location.search === "?upcoming=1" && ${BLOCK}`, 10000);
+  let block = await blockState(p);
+  check(
+    "Show upcoming adds the block above Today: at most 5, soonest first, then See all in Upcoming",
+    block.above &&
+      block.items.length === 5 &&
+      block.items[0].id === laterId &&
+      block.views.join() === "rows" &&
+      block.seeAll === upcomingPath() &&
+      (await stripState(p)).toggle === "Hide upcoming",
+    JSON.stringify({ ...block, items: block.items.map((i) => i.id) }),
+  );
+
+  await p.send("Page.reload");
+  await p.waitFor(`document.readyState === "complete" && ${BLOCK}?.querySelector("ol > li")`, 30000);
+  check("the block survives a reload", (await p.evaluate(`location.search`)) === "?upcoming=1");
+
+  // The kind chips keep it on, and it shows that kind only.
+  await p.tap(
+    `[...document.querySelectorAll('main nav[aria-label="Show entries"] a')].find((a) => a.textContent.trim() === "Notes")`,
+  );
+  await p.waitFor(`location.search === "?kind=note&upcoming=1"`, 10000);
+  await p
+    .waitFor(
+      `${BLOCK}?.querySelector("ol > li") && [...${BLOCK}.querySelectorAll("ol > li")].every((li) => li.querySelector('a[aria-label="Show only notes"]'))`,
+      10000,
+    )
+    .catch(() => {});
+  block = await blockState(p);
+  check(
+    "with a kind filter, the block lists that kind, and links to Upcoming with it",
+    block.items.length > 0 &&
+      block.items.every((i) => i.kindLink === "Show only notes") &&
+      block.items.some((i) => i.text.includes("Call the pharmacy")) &&
+      block.seeAll === `${upcomingPath()}?kind=note`,
+    JSON.stringify({ seeAll: block.seeAll, kinds: block.items.map((i) => i.kindLink) }),
+  );
+
+  // An author's initials in the block add the author filter.
+  await p.tap(`${BLOCK}.querySelector("[data-author]")`);
+  await p.waitFor(`location.search.includes("author=") && location.search.includes("upcoming=1")`, 10000);
+  await sleep(500);
+  const author = await p.evaluate(`new URLSearchParams(location.search).get("author")`);
+  block = await blockState(p);
+  check(
+    "with an author filter too, the block lists only their items, and See all carries both",
+    block.items.length > 0 &&
+      block.items.every((i) => i.author === author && i.kindLink === "Show only notes") &&
+      block.seeAll === `${upcomingPath()}?kind=note&author=${author}`,
+    JSON.stringify({ seeAll: block.seeAll, items: block.items.length }),
+  );
+  await p.tap(`${BLOCK}.querySelector("[data-see-all]")`);
+  await p.waitFor(
+    `location.pathname.endsWith("/upcoming") && document.querySelector("main [data-upcoming-list]")`,
+    20000,
+  );
+  const upcomingSearch = await p.evaluate(`location.search`);
+  check(
+    "See all in Upcoming opens Upcoming with the same filters",
+    upcomingSearch === `?kind=note&author=${author}`,
+    upcomingSearch,
+  );
+
+  // Cards, and the wide column.
+  await p.goto(timelinePath("?upcoming=1"));
+  await p.waitFor(`${BLOCK}?.querySelector("ol > li")`, 30000);
+  await p.press(`document.querySelector('[aria-label="Cards"]')`);
+  await p.waitFor(`${BLOCK}.querySelector("ol")?.dataset.blockView === "cards"`, 5000).catch(() => {});
+  const cards = await blockState(p);
+  await metrics(p, 1280, false);
+  await sleep(300);
+  const wide = await blockState(p);
+  const wideStrip = await p.evaluate(`!!${STRIP}?.querySelector("[data-next]")`);
+  await metrics(p, 420, true);
+  await p.press(`document.querySelector('[aria-label="Rows"]')`);
+  await p.waitFor(`${BLOCK}.querySelector("ol")?.dataset.blockView === "rows"`, 5000).catch(() => {});
+  check(
+    "the block follows the timeline's view (cards), and keeps to the entries' column at 1280",
+    cards.views.join() === "cards" &&
+      cards.items.length === 5 &&
+      wide.width > 0 &&
+      wide.width <= 1024 &&
+      wideStrip,
+    JSON.stringify({ views: cards.views, width: wide.width, wideStrip }),
+  );
+}
+
+async function crossingSteps(p) {
+  // With the block on, an event starting 20 s after the next minute turns (the history ends at the
+  // end of the current minute): in the block now, in the history within about 80 s.
+  await p.evaluate(`window.__timelineNoReload = true`);
+  const soon = `${TAG} crossing`;
+  const now = Date.now();
+  const id = await saveEvent(p, soon, Math.ceil(now / 60_000) * 60_000 + 20_000 - now);
+  const inBlock = `[...(${BLOCK}?.querySelectorAll("ol > li a.absolute") ?? [])].some((a) => a.getAttribute("href").endsWith("/entries/${id}"))`;
+  const ahead = await p.waitFor(`${inBlock} && !${inHistory(id)}`, 5000).then(
+    () => true,
+    () => false,
+  );
+  const started = Date.now();
+  const crossed = await p
+    .waitFor(
+      `!${inBlock} && ${inHistory(id)} && ${STRIP}?.querySelector("[data-next]")?.dataset.next !== "${id}"`,
+      150_000,
+      { quiet: true },
+    )
+    .then(
+      () => true,
+      () => false,
+    );
+  const noReload = await p.evaluate(`!!window.__timelineNoReload`);
+  check(
+    "an item whose time passes moves from the block into the history within a minute, without a reload",
+    ahead && crossed && noReload,
+    `${ahead} ${crossed} ${noReload} ${Math.round((Date.now() - started) / 1000)} s`,
+  );
+  await p.tap(`${STRIP}.querySelector("[data-upcoming-toggle]")`);
+  await p.waitFor(`location.search === "" && !${BLOCK}`, 10000);
+  check("Hide upcoming takes the block away", !(await p.evaluate(`!!${BLOCK}`)));
+}
+
+async function timelineViewerSteps(p) {
+  await openTimeline(p);
+  await p.waitFor(`${STRIP}?.querySelector("[data-next]")`, 20000).catch(() => {});
+  const strip = await stripState(p);
+  await p.tap(`${STRIP}.querySelector("[data-upcoming-toggle]")`);
+  await p.waitFor(`${BLOCK}?.querySelector("ol > li")`, 10000).catch(() => {});
+  const block = await blockState(p);
+  check(
+    "a viewer sees the Next strip and the block, with no ⋯ menus",
+    !!strip?.next && block?.items.length > 0 && block.items.every((i) => !i.menu),
+    JSON.stringify({ strip, items: block?.items.length, menus: block?.items.filter((i) => i.menu).length }),
+  );
+}
+
 const proxy = SMOKE ? null : startProxy(9711);
 const bA = await launch(9701, proxy ? proxy.args : []);
 const bB = SMOKE ? null : await launch(9702);
@@ -629,6 +890,9 @@ try {
     await A.evaluate(`window.__upcomingNoReload = true`);
     await timingSteps(A);
   });
+  const laterId = await step("the timeline's Next strip", { smoke: true }, () => stripSteps(A));
+  await step("the timeline's Upcoming block", () => blockSteps(A, laterId));
+  await step("the timeline, as time passes", () => crossingSteps(A));
   await step("a non-member", () => strangerSteps(A));
 
   if (!SMOKE) {
@@ -649,6 +913,7 @@ try {
     );
     await addSteps(B, false);
     await step("cancel and undo cancel", () => cancelSteps(A, B, proxy));
+    await timelineViewerSteps(B);
   }
 
   // The offline step's cut connection: PowerSync's sync error "network error".
