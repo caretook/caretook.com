@@ -116,12 +116,15 @@ const openUpcoming = async (p) => {
 };
 
 async function sectionSteps(p) {
+  await p.waitFor(BAR, 20000);
   const bar = await p.evaluate(navState(BAR));
   await openUpcoming(p);
   const onPage = await p.evaluate(navState(BAR));
   check(
-    "420: the tab bar lists Upcoming after Timeline and Providers, current on its page",
-    bar?.labels === "Timeline,Providers,Upcoming" && bar.current === null && onPage?.current === "page",
+    "420: the tab bar lists Upcoming after Timeline, Providers and Medications, current on its page",
+    bar?.labels === "Timeline,Providers,Medications,Upcoming" &&
+      bar.current === null &&
+      onPage?.current === "page",
     JSON.stringify({ bar, onPage }),
   );
   await metrics(p, 1280, false);
@@ -130,7 +133,7 @@ async function sectionSteps(p) {
   await metrics(p, 420, true);
   check(
     "1280: the header's section links end with Upcoming, current",
-    wide?.labels === "Timeline,Providers,Upcoming" && wide.current === "page",
+    wide?.labels === "Timeline,Providers,Medications,Upcoming" && wide.current === "page",
     JSON.stringify(wide),
   );
 }
@@ -913,6 +916,8 @@ try {
     );
     await addSteps(B, false);
     await step("cancel and undo cancel", () => cancelSteps(A, B, proxy));
+    // The cancel steps leave the viewer on an entry page, which has no tab bar.
+    await B.goto(`/app/groups/${DEV_FAMILY}/upcoming`);
     await timelineViewerSteps(B);
   }
 
