@@ -515,6 +515,64 @@ async function latestVitalsLine(p) {
   );
 }
 
+/**
+ * The medication strip (medications-2 slice 5): Dev Family always has
+ * scheduled medications, so it's there whatever the clock: one 32 px line at
+ * 420, in the strip family's width and centre at 1280, Given all for a writer
+ * only while a pass is due or overdue, and text only for a viewer. Its
+ * states and Given all are medications.mjs's (`stripSteps`), with passes it
+ * places itself.
+ */
+async function medicationStripLine(users) {
+  const read = (p) =>
+    p.evaluate(`(() => { const s = document.querySelector("main [data-med-strip]"); if (!s) return null;
+      const r = s.getBoundingClientRect(); const page = document.documentElement.clientWidth;
+      return { state: s.dataset.stripState, height: r.height, width: r.width, page,
+        centre: Math.round(r.left + r.width / 2 - page / 2),
+        givenAll: !!s.querySelector("[data-strip-given-all]"), controls: s.querySelectorAll("a, button").length,
+        text: s.textContent.trim() }; })()`);
+  for (const [who, p] of users) {
+    await p.goto(`/app/groups/${DEV_FAMILY}/timeline`);
+    await p.waitFor(`!!document.querySelector("main [data-med-strip]")`, 15000).catch(() => undefined);
+    const phone = await read(p);
+    const dueNow = phone?.state === "due" || phone?.state === "overdue";
+    check(
+      `${who}: the medication strip is one line at 420, with Given all ${who === "viewer" ? "never" : "only while a pass is due"}`,
+      !!phone &&
+        phone.height > 0 &&
+        phone.height <= 34 &&
+        /^(Next|Due|Overdue): .+ · /.test(phone.text) &&
+        (who === "viewer" ? phone.controls === 0 : phone.givenAll === dueNow),
+      JSON.stringify(phone),
+    );
+  }
+  const [, p] = users[0];
+  await p.send("Emulation.setDeviceMetricsOverride", {
+    width: 1280,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await sleep(400);
+  const wide = await read(p);
+  check(
+    "1280: the medication strip is one line, wider than the column, narrower than the page, centred",
+    !!wide &&
+      wide.height <= 34 &&
+      wide.width > 1024 &&
+      wide.width < wide.page - 32 &&
+      Math.abs(wide.centre) <= 1,
+    JSON.stringify(wide),
+  );
+  await p.send("Emulation.setDeviceMetricsOverride", {
+    width: 420,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  await sleep(400);
+}
+
 const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
 const psql = (sql) =>
@@ -1777,6 +1835,9 @@ try {
   await step("providers on notes and events", { smoke: true }, () => withLines(p));
   await step("day headings", () => dayHeadings(p));
   await step("the latest vitals line", () => latestVitalsLine(p));
+  await step("the medication strip", { smoke: true }, () =>
+    medicationStripLine([["writer", p], ...(v ? [["viewer", v]] : [])]),
+  );
   /** A signed-in device behind a proxy that can be cut, opened once (CDP's offline doesn't cut PowerSync's stream). */
   const offlineDevice = async () => {
     if (!offline) {
