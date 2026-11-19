@@ -19,6 +19,20 @@
 // - group settings Details no longer has the recipient card, and links to
 //   the profile.
 //
+// Slice 3, the writers' details (`…/profile/contact`, `…/profile/insurance`):
+//
+// - the owner's page has Contact (call, text, email, maps) and Insurance
+//   (plans by rank, member ID, group number, a call action) from the device;
+// - a caretaker edits them: a bad number and a plan without a member ID are
+//   refused on their fields with nothing sent; phones, email, address and
+//   two plans (one removed, one added) save through one call each, show as the
+//   sheet closes, reach the server, and show on the owner's device after sync;
+// - a viewer sees neither card, both sheets' URLs land on the profile, and
+//   their device has no details row;
+// - offline, the owner reads both cards, and both Edits are disabled;
+// - the caretaker demoted to viewer loses the cards and the device row
+//   without a reload, and gets them back when the role is restored.
+//
 // Later slices add their steps in their own blocks below. The rules (age,
 // labels, the form's parsing) are unit-tested; the steps here check the
 // wiring, one case each. Grandma Pat's seeded profile is put back at the end
@@ -68,6 +82,47 @@ const serverRecipient = () =>
   psql(`SELECT concat_ws('|', name, coalesce(preferred_name, ''), coalesce(date_of_birth::text, ''),
     coalesce(code_status, ''), coalesce(blood_type, ''), coalesce(primary_language, ''), coalesce(pronouns, ''),
     coalesce(notes, '')) FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`);
+
+/** Grandma Pat's writers-only details as seeded (`seeds/profiles.ts`), and putting them back. */
+const SEED_DETAILS = {
+  phones: [{ label: "Home", number: "(555) 010-2231" }],
+  email: "pat.example@example.com",
+  address: "1428 Elm Street\nSpringfield, OR 97477",
+  insurance: [
+    {
+      id: "0b6f3c1e-5d1a-4c2e-9a77-3f1d2bc00001",
+      rank: "primary",
+      insurer: "Medicare",
+      planName: "Part A and B",
+      memberId: "1EG4-TE5-MK72",
+      groupNumber: null,
+      phone: "(555) 010-3300",
+    },
+    {
+      id: "0b6f3c1e-5d1a-4c2e-9a77-3f1d2bc00002",
+      rank: "secondary",
+      insurer: "Example Mutual Health",
+      planName: "Medigap Plan G",
+      memberId: "EMH-448120-07",
+      groupNumber: "GRP-55021",
+      phone: "(555) 010-3310",
+    },
+  ],
+};
+const restoreDetails = () =>
+  psql(`UPDATE care_recipient_details SET phones = ${lit(JSON.stringify(SEED_DETAILS.phones))}::jsonb,
+    email = ${lit(SEED_DETAILS.email)}, address = ${lit(SEED_DETAILS.address)},
+    insurance = ${lit(JSON.stringify(SEED_DETAILS.insurance))}::jsonb, updated_at = now()
+    WHERE group_id = '${DEV_FAMILY}'`);
+/** The server's details: "<phones>|<email>|<address>|<insurer>:<memberId>:<rank>,…". */
+const serverDetails = () =>
+  psql(`SELECT concat_ws('|', (SELECT string_agg(p->>'number', ',' ORDER BY o) FROM jsonb_array_elements(phones) WITH ORDINALITY t(p, o)),
+    coalesce(email, ''), replace(coalesce(address, ''), E'\n', ' / '),
+    (SELECT string_agg((p->>'insurer') || ':' || (p->>'memberId') || ':' || (p->>'rank'), ',' ORDER BY o) FROM jsonb_array_elements(insurance) WITH ORDINALITY t(p, o)))
+    FROM care_recipient_details WHERE group_id = '${DEV_FAMILY}'`);
+const setCaretakerRole = (role) =>
+  psql(`UPDATE care_group_member SET role = ${lit(role)}, updated_at = now() WHERE group_id = '${DEV_FAMILY}'
+    AND user_id = (SELECT id FROM "user" WHERE email = 'caretaker@example.com') AND role <> ${lit(role)}`);
 
 /** Grandma Pat's age today in Los Angeles (her zone), as the page says it. */
 const seedAge = () => {
@@ -135,6 +190,8 @@ let bA, bB, bC, proxy;
 
 try {
   restoreSeed();
+  restoreDetails();
+  setCaretakerRole("caretaker");
   proxy = startProxy(9665);
   bA = await launch(9661, proxy.args);
   const A = await openPage(bA, "owner");
@@ -184,7 +241,8 @@ try {
         page.basics.primaryLanguage === "English" &&
         page.basics.pronouns === "she/her" &&
         page.note === SEED.notes &&
-        page.sections === "basics,note",
+        // Slice 3 adds the writers' Contact and Insurance after the note.
+        page.sections === "basics,note,contact,insurance",
       JSON.stringify(page),
     );
     const editShown = await A.waitFor(EDIT_LINK, 15000)
@@ -459,6 +517,342 @@ try {
 
   // ─────────────── end of slice 2: the profile page and basics ───────────────
 
+  // ─────────────── Slice 3: writers' details (contact and insurance) ───────────────
+
+  const CONTACT = `${PROFILE}/contact`;
+  const INSURANCE = `${PROFILE}/insurance`;
+  const section = (id) => `document.querySelector('main [data-section="${id}"]')`;
+  const editSheet = (id) => `${section(id)}?.querySelector('a[data-edit-sheet="${id}"]')`;
+  const editDisabled = (id) => `${section(id)}?.querySelector('button[data-edit-sheet="${id}"]:disabled')`;
+  const CONTACT_FORM = `document.querySelector('[role="dialog"] [data-contact-form]')`;
+  const INSURANCE_FORM = `document.querySelector('[role="dialog"] [data-insurance-form]')`;
+  const SUBMIT = (form) => `${form}.querySelector('button[type="submit"]')`;
+  const describedError = (el) =>
+    `((document.getElementById((${el}?.getAttribute("aria-describedby") ?? "").split(" ").find((id) => id.endsWith("-error")) ?? "")?.textContent.trim()) ?? "")`;
+  const sheetClosed = `${onProfile} && !document.querySelector('[role="dialog"]')`;
+  const deviceDetailsRows = (p) =>
+    p.evaluate(
+      `window.caretookSync.powersync.getAll("SELECT count(*) AS n FROM care_recipient_details").then((r) => r[0].n)`,
+    );
+
+  /** What the writers' cards show. */
+  const detailsState = (p) =>
+    p.evaluate(`(() => {
+      const contact = document.querySelector('main [data-section="contact"]');
+      const insurance = document.querySelector('main [data-section="insurance"]');
+      return {
+        sections: [...document.querySelectorAll("main [data-section]")].map((s) => s.dataset.section).join(","),
+        contact: contact ? [...contact.querySelectorAll("[data-recipient-contact] a[data-action]")].map((a) => a.dataset.action + "=" + a.getAttribute("href")) : null,
+        contactText: contact ? [...contact.querySelectorAll("[data-recipient-contact] li")].map((li) => li.textContent.trim()).join(" / ") : null,
+        plans: insurance ? [...insurance.querySelectorAll("li[data-plan]")].map((li) => ({
+          rank: li.dataset.plan,
+          title: li.querySelector("[data-plan-title]")?.textContent.trim(),
+          memberId: li.querySelector("[data-member-id]")?.textContent.trim(),
+          group: li.querySelector("[data-group-number]")?.textContent.trim() ?? null,
+          call: li.querySelector('a[data-action="call"]')?.getAttribute("href") ?? null,
+          callName: li.querySelector('a[data-action="call"] .sr-only')?.textContent.trim() ?? null,
+        })) : null,
+        viewerLine: document.querySelector("main [data-viewer-more]")?.textContent.trim() ?? null,
+      };
+    })()`);
+
+  /** Count this page's `careGroup.updateRecipientDetails` calls from now on, until a reload. */
+  const countDetailsSaves = (p) =>
+    p.evaluate(`(() => { if (window.__detailSaves !== undefined) return; window.__detailSaves = 0; const f = window.fetch;
+      window.fetch = (...a) => { if (String(a[0]?.url ?? a[0]).includes("/rpc/careGroup/updateRecipientDetails")) window.__detailSaves++; return f(...a); }; })()`);
+
+  await step("writers' details: the owner's Contact and Insurance", { smoke: true }, async () => {
+    await A.goto(PROFILE);
+    await A.waitFor(`${section("insurance")}?.querySelector("li[data-plan]")`, 30000).catch(() => undefined);
+    const state = await detailsState(A);
+    check(
+      "owner: Contact and Insurance after the note",
+      state.sections === "basics,note,contact,insurance" && state.viewerLine === null,
+      state.sections,
+    );
+    check(
+      "owner: Contact calls, texts, emails and maps from the device's copy",
+      JSON.stringify(state.contact) ===
+        JSON.stringify([
+          "call=tel:5550102231",
+          "text=sms:5550102231",
+          "email=mailto:pat.example@example.com",
+          "map=https://www.google.com/maps/search/?api=1&query=1428%20Elm%20Street%2C%20Springfield%2C%20OR%2097477",
+        ]),
+      JSON.stringify(state.contact),
+    );
+    const [first, second] = state.plans ?? [];
+    check(
+      "owner: Insurance shows each plan by rank, with its member ID, group number and a call action",
+      state.plans?.length === 2 &&
+        first.rank === "primary" &&
+        first.title?.endsWith("Medicare · Part A and B") &&
+        first.memberId === "1EG4-TE5-MK72" &&
+        first.group === null &&
+        first.call === "tel:5550103300" &&
+        first.callName?.startsWith("Call Medicare") &&
+        second.rank === "secondary" &&
+        second.memberId === "EMH-448120-07" &&
+        second.group === "GRP-55021" &&
+        second.call === "tel:5550103310",
+      JSON.stringify(state.plans),
+    );
+    const edits = await A.waitFor(`${editSheet("contact")} && ${editSheet("insurance")}`, 15000)
+      .then(() => true)
+      .catch(() => false);
+    check("owner: each card has Edit", edits);
+    await A.screenshot("profiles-details-owner");
+  });
+
+  if (!SMOKE) {
+    await step("writers' details: a caretaker edits contact and insurance", async () => {
+      const B = pages[1]; // the caretaker (slice 2's editing step)
+      await B.goto(PROFILE);
+      await B.waitFor(editSheet("contact"), 30000);
+      await countDetailsSaves(B);
+
+      // Contact: a bad number is refused on its field, focused, with nothing sent.
+      await B.tap(editSheet("contact"));
+      await B.waitFor(`location.pathname === ${JSON.stringify(CONTACT)} && ${CONTACT_FORM}`, 20000);
+      await B.waitFor(`!${SUBMIT(CONTACT_FORM)}.disabled`, 30000);
+      const start = await B.evaluate(`({
+        title: document.querySelector('[role="dialog"] :is(h1, h2, h3, h4)')?.textContent.trim(),
+        numbers: [...${CONTACT_FORM}.querySelectorAll('[name="phoneNumber"]')].map((el) => el.value),
+        email: ${CONTACT_FORM}.querySelector('[name="email"]').value,
+        address: ${CONTACT_FORM}.querySelector('[name="address"]').value,
+      })`);
+      check(
+        "contact sheet: starts from the device's copy",
+        start.title === "Edit contact" &&
+          JSON.stringify(start.numbers) === JSON.stringify(["(555) 010-2231"]) &&
+          start.email === SEED_DETAILS.email &&
+          start.address === SEED_DETAILS.address,
+        JSON.stringify(start),
+      );
+      await B.evaluate(
+        `[...${CONTACT_FORM}.querySelectorAll("button")].find((b) => b.textContent.includes("Add a phone number")).click()`,
+      );
+      await B.waitFor(`${CONTACT_FORM}.querySelectorAll('[name="phoneNumber"]').length === 2`, 5000);
+      const NUMBER2 = `${CONTACT_FORM}.querySelectorAll('[name="phoneNumber"]')[1]`;
+      await B.type(`${CONTACT_FORM}.querySelectorAll('[name="phoneLabel"]')[1]`, "Mobile");
+      await B.type(NUMBER2, "call her");
+      await B.evaluate(`${SUBMIT(CONTACT_FORM)}.click()`);
+      await B.waitFor(describedError(NUMBER2), 10000).catch(() => undefined);
+      const refused = await B.evaluate(`({
+        error: ${describedError(NUMBER2)}, focused: document.activeElement === ${NUMBER2}, saves: window.__detailSaves,
+      })`);
+      check(
+        "contact sheet: a bad number gets its field's error, focused, and nothing is sent",
+        refused.error.startsWith("Use digits") && refused.focused && refused.saves === 0,
+        JSON.stringify(refused),
+      );
+
+      const EMAIL = `pat.${TAG.toLowerCase()}@example.com`;
+      await B.type(NUMBER2, "(555) 010-2299");
+      await B.type(`${CONTACT_FORM}.querySelector('[name="email"]')`, EMAIL);
+      await B.type(
+        `${CONTACT_FORM}.querySelector('[name="address"]')`,
+        `${TAG} Oak Lane\nSpringfield, OR 97477`,
+      );
+      await B.evaluate(`${SUBMIT(CONTACT_FORM)}.click()`);
+      const contactClosed = await B.waitFor(sheetClosed, 20000)
+        .then(() => true)
+        .catch(() => false);
+      const bContact = await detailsState(B);
+      check(
+        "caretaker: Save closes the contact sheet, and the card shows both numbers, the email and address",
+        contactClosed &&
+          bContact.contact?.includes("call=tel:5550102299") &&
+          bContact.contact?.includes("text=sms:5550102299") &&
+          bContact.contact?.includes(`email=mailto:${EMAIL}`) &&
+          bContact.contactText?.includes(`${TAG} Oak Lane, Springfield, OR 97477`),
+        JSON.stringify(bContact.contact),
+      );
+      const afterContact = serverDetails();
+      check(
+        "the server has the contact, through one careGroup.updateRecipientDetails",
+        afterContact.startsWith(
+          `(555) 010-2231,(555) 010-2299|${EMAIL}|${TAG} Oak Lane / Springfield, OR 97477|`,
+        ) && (await B.evaluate(`window.__detailSaves`)) === 1,
+        afterContact,
+      );
+
+      // Insurance: remove the secondary plan, change the primary's member ID, add a new secondary plan.
+      await B.tap(editSheet("insurance"));
+      await B.waitFor(`location.pathname === ${JSON.stringify(INSURANCE)} && ${INSURANCE_FORM}`, 20000);
+      await B.waitFor(`!${SUBMIT(INSURANCE_FORM)}.disabled`, 30000);
+      const ROWS = `${INSURANCE_FORM}.querySelectorAll("li[data-plan-row]")`;
+      const inRow = (i, field) => `${ROWS}[${i}]?.querySelector('[name$=".${field}"]')`;
+      const sheetStart = await B.evaluate(`({
+        insurers: [...${ROWS}].map((li) => li.querySelector('[name$=".insurer"]').value),
+        ranks: [...${ROWS}].map((li) => li.querySelector('[name$=".rank"]:checked')?.value),
+        legend: ${ROWS}[0]?.querySelector("legend")?.textContent.trim(),
+        labelled: [...${INSURANCE_FORM}.querySelectorAll("input:not([type=radio]):not([type=hidden])")].every((el) => document.querySelector('label[for="' + el.id + '"]')),
+      })`);
+      check(
+        "insurance sheet: starts from the device's plans, primary first, every field labelled",
+        JSON.stringify(sheetStart.insurers) === JSON.stringify(["Medicare", "Example Mutual Health"]) &&
+          JSON.stringify(sheetStart.ranks) === JSON.stringify(["primary", "secondary"]) &&
+          sheetStart.legend === "Plan 1" &&
+          sheetStart.labelled,
+        JSON.stringify(sheetStart),
+      );
+      await B.press(`${INSURANCE_FORM}.querySelector('[aria-label="Remove plan 2"]')`);
+      await B.waitFor(`${ROWS}.length === 1`, 5000);
+      await B.evaluate(`${INSURANCE_FORM}.querySelector("[data-add-plan]").click()`);
+      await B.waitFor(`${ROWS}.length === 2`, 5000);
+      const newRank = await B.evaluate(
+        `${inRow(1, "rank")} && ${ROWS}[1].querySelector('[name$=".rank"]:checked')?.value`,
+      );
+      await B.type(inRow(0, "memberId"), `MC-${TAG}`);
+      await B.type(inRow(1, "insurer"), `Insurer ${TAG}`);
+      await B.type(inRow(1, "groupNumber"), "GRP-1");
+      await B.type(inRow(1, "phone"), "(555) 010-3399");
+      await B.evaluate(`${SUBMIT(INSURANCE_FORM)}.click()`);
+      await B.waitFor(describedError(inRow(1, "memberId")), 10000).catch(() => undefined);
+      const planRefused = await B.evaluate(`({
+        error: ${describedError(inRow(1, "memberId"))}, focused: document.activeElement === ${inRow(1, "memberId")}, saves: window.__detailSaves,
+      })`);
+      check(
+        "insurance sheet: a new plan starts as secondary; without a member ID it's refused on that field, focused, nothing sent",
+        newRank === "secondary" &&
+          planRefused.error === "Enter the member ID" &&
+          planRefused.focused &&
+          planRefused.saves === 1,
+        JSON.stringify({ newRank, ...planRefused }),
+      );
+      await B.type(inRow(1, "memberId"), `NEW-${TAG}`);
+      await B.evaluate(`${SUBMIT(INSURANCE_FORM)}.click()`);
+      const insuranceClosed = await B.waitFor(sheetClosed, 20000)
+        .then(() => true)
+        .catch(() => false);
+      const bPlans = (await detailsState(B)).plans ?? [];
+      check(
+        "caretaker: Save closes the insurance sheet, and the card shows the two plans by rank",
+        insuranceClosed &&
+          bPlans.length === 2 &&
+          bPlans[0].rank === "primary" &&
+          bPlans[0].memberId === `MC-${TAG}` &&
+          bPlans[1].rank === "secondary" &&
+          bPlans[1].title?.endsWith(`Insurer ${TAG}`) &&
+          bPlans[1].memberId === `NEW-${TAG}` &&
+          bPlans[1].group === "GRP-1" &&
+          bPlans[1].call === "tel:5550103399",
+        JSON.stringify(bPlans),
+      );
+      const afterInsurance = serverDetails();
+      check(
+        "the server has the plans (and the contact still), through a second call",
+        afterInsurance.endsWith(`|Medicare:MC-${TAG}:primary,Insurer ${TAG}:NEW-${TAG}:secondary`) &&
+          afterInsurance.includes(EMAIL) &&
+          (await B.evaluate(`window.__detailSaves`)) === 2,
+        afterInsurance,
+      );
+      await B.screenshot("profiles-details-caretaker");
+
+      // The owner's device shows both after sync, without a reload.
+      const synced = await A.waitFor(
+        `${section("insurance")}?.textContent.includes(${JSON.stringify(`NEW-${TAG}`)}) && ${section("contact")}?.querySelector('a[href="mailto:${EMAIL}"]')`,
+        20000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      check(
+        "owner: the caretaker's contact and plans show after sync",
+        synced,
+        JSON.stringify(await detailsState(A)),
+      );
+    });
+
+    await step("writers' details: a viewer", async () => {
+      const C = pages[2]; // the viewer (slice 2's viewer step)
+      await C.goto(PROFILE);
+      await C.waitFor(`${onProfile} && document.querySelector("main [data-viewer-more]")`, 30000);
+      await sleep(500);
+      const state = await detailsState(C);
+      check(
+        "viewer: neither Contact nor Insurance, and the caretakers line",
+        !state.sections.includes("contact") &&
+          !state.sections.includes("insurance") &&
+          state.viewerLine !== null,
+        state.sections,
+      );
+      for (const url of [CONTACT, INSURANCE]) {
+        await C.goto(url);
+        const landed = await C.waitFor(sheetClosed, 30000)
+          .then(() => true)
+          .catch(() => false);
+        check(
+          `viewer: ${url.split("/").pop()} sheet's URL lands on the profile`,
+          landed,
+          await C.evaluate(`location.pathname`),
+        );
+      }
+      const rows = await deviceDetailsRows(C);
+      check("viewer: the device has no details row", rows === 0, `rows ${rows}`);
+    });
+
+    await step("writers' details: offline", async () => {
+      await A.goto(PROFILE);
+      await A.waitFor(`${editSheet("contact")} && ${editSheet("insurance")}`, 30000);
+      proxy.setOnline(false);
+      const disabled = await A.waitFor(`${editDisabled("contact")} && ${editDisabled("insurance")}`, 30000)
+        .then(() => true)
+        .catch(() => false);
+      const state = await detailsState(A);
+      const notes = await A.evaluate(
+        `["contact", "insurance"].map((id) => document.getElementById(document.querySelector('main [data-section="' + id + '"] button[data-edit-sheet]')?.getAttribute("aria-describedby") ?? "")?.textContent.trim())`,
+      );
+      check(
+        "offline: Contact and Insurance read from the device",
+        state.contact?.length > 0 && state.plans?.length === 2,
+        JSON.stringify(state),
+      );
+      check(
+        "offline: both Edits are disabled, and say they need a connection",
+        disabled && notes.every((n) => n === "Needs a connection to edit."),
+        JSON.stringify(notes),
+      );
+      await A.screenshot("profiles-details-offline");
+      proxy.setOnline(true);
+      const again = await A.waitFor(`${editSheet("contact")} && ${editSheet("insurance")}`, 30000)
+        .then(() => true)
+        .catch(() => false);
+      check("online again: both Edits are links again", again);
+    });
+
+    await step("writers' details: a caretaker demoted to viewer", async () => {
+      const B = pages[1]; // the caretaker (slice 2's editing step)
+      await B.goto(PROFILE);
+      await B.waitFor(section("insurance"), 30000);
+      const before = await deviceDetailsRows(B);
+      setCaretakerRole("viewer");
+      const lost = await B.waitFor(
+        `!${section("contact")} && !${section("insurance")} && document.querySelector("main [data-viewer-more]")`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      await B.waitFor(
+        `window.caretookSync.powersync.getAll("SELECT count(*) AS n FROM care_recipient_details").then((r) => r[0].n === 0)`,
+        30000,
+      ).catch(() => undefined);
+      const after = await deviceDetailsRows(B);
+      check(
+        "demoted: the cards go without a reload, and so does the device's details row",
+        before === 1 && lost && after === 0,
+        `rows ${before} → ${after}`,
+      );
+      setCaretakerRole("caretaker");
+      const back = await B.waitFor(`${section("insurance")}?.querySelector("li[data-plan]")`, 30000)
+        .then(() => true)
+        .catch(() => false);
+      check("promoted back: the cards return after sync", back);
+    });
+  }
+
+  // ─────────── end of slice 3: writers' details (contact and insurance) ───────────
+
   // The offline step's cut connection: PowerSync's sync error ("network error",
   // or "Failed to fetch" when its token request is cut).
   const noise =
@@ -471,6 +865,8 @@ try {
 } finally {
   try {
     restoreSeed();
+    restoreDetails();
+    setCaretakerRole("caretaker");
   } catch (e) {
     console.log(`clean-up failed: ${e.message}`);
   }
