@@ -1195,6 +1195,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user, in the backlog planning session). AGENTS.md (Sync, not built): units still save online only; routes/app/settings/units/route.tsx calls rpc.me.updatePreferences directly. Use saveSettings like the timeline layout (pending offline, sent later; loadSettings shows the pending change), and drop the offline notice. Checks: settings-layout, layout-offline.
+- 2026-11-19 (slice/quick-fixes/30): slice 30 (51f5fb8): units save through saveSettings; offline pending, vitals sheet shows the new unit at once, sent on next online load. layout-offline has a units step.
 
 ### B-93 · bug · Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications
 
