@@ -4,13 +4,13 @@
 
 ## Status
 
-| Slice | State                                                                             | Merge into `prd/invites` (slice commits) |
-| ----- | --------------------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | merged                                                                            | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
-| 2     | merged                                                                            | `68df3d6` (776ca9b, 3d86337, 5ce74dd)    |
-| 3     | merged                                                                            | `5ca5d2d` (a08ef99, 35283be, c7adf9c)    |
-| 4     | in progress (`.loops/invites-4`, slot 5)                                          |                                          |
-| 5     | in progress (`.loops/invites-5`, slot 6; regenerates its migration on top of 4's) |                                          |
+| Slice | State                                                                              | Merge into `prd/invites` (slice commits) |
+| ----- | ---------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1     | merged                                                                             | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
+| 2     | merged                                                                             | `68df3d6` (776ca9b, 3d86337, 5ce74dd)    |
+| 3     | merged                                                                             | `5ca5d2d` (a08ef99, 35283be, c7adf9c)    |
+| 4     | merged                                                                             | `7ccb921` (a413fd9, cc04093)             |
+| 5     | handed off; merging prd/invites (slice 4) and regenerating its migration as `0012` |                                          |
 
 Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. **Wave 1 (slices 1 and 2) landed in `dev` as `3c1723a`** (2026-11-18): full suite 12/12 on a check build, including the check-build mail fix (`08a7de0`). **Wave 2 (slice 3) landed in `dev` as `04b1e61`** (full suite 12/12, 6m25s); 4 and 5 run in parallel (the user asked for that), merging 4 first and having 5 regenerate the wave's migration.
 
