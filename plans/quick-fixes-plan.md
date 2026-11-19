@@ -922,3 +922,23 @@ Both checks passed against the dev server minutes later, from the same code. So 
 - [ ] `invites.mjs`' emailed-link and emailed-code steps updated; `sign-in` and `invites` pass; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
 
 **Blocks:** none. **Blocked by:** slice 35.
+
+---
+
+## Slice 38: Landing fixes for wave 9–10 (B-79, B-90, B-97)
+
+**Problem.** The full suite on `prd/quick-fixes` after syncing with `dev` (care-periods), 2026-11-19 at load 13–60, failed checks that don't look like contention:
+
+- `app-shell.mjs` 6g, both runs: on one page, the removed caretaker signs out (`page.signOut()`), then `signIn(O, "viewer@…")` posts the sign-in, but the page stays on `/sign-in` for 60 s. Slice 34's loop saw this 4 of 6 times (sign-in POST and get-session 200, then no `/api/auth/token`). Suspect slice 28 (`wipeDevice` on sign-out, the sign-in loader's session check, `sessionOutcome`), possibly an IndexedDB delete blocked by PowerSync's shared worker; or slice 37's sign-in page. The retry also failed (the account menu never appeared).
+- `search.mjs`: "?period= without a search changes nothing on the timeline" (compares the first 8 rows of two loads). Check it isn't the `?period=`/`?vital=` merge in `lib/timelineFilters.ts` (d2f0efb).
+- `care-periods.mjs`: "no console errors or warnings": `Sync: the server refused a change … timelineEntryService:notFound` for the caretaker. Check it isn't slice 33's field-limited reads in `baseModel`.
+- Also failed once: `roundtrip.mjs` "add: shows on this device at once (2420 ms)", `medications.mjs` "Delete asks first…" (the known slice 20 step), `invites.mjs` "Chrome didn't start". `live-notes` and `upcoming` passed on retry.
+
+**Build.** Reproduce each, find the cause and fix it (app or check), smallest change. A cause in a merged slice is fixed here, called out in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Each failure: cause and fix (or why it's contention), with evidence.
+- [ ] `app-shell`, `search`, `care-periods`, `roundtrip`, `medications`, `invites` each pass in full mode; `pnpm check` passes.
+
+**Blocks:** landing. **Blocked by:** none.
