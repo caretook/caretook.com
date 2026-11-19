@@ -206,10 +206,11 @@ describe("invites", () => {
   it("lets managers invite, returning the token once and never the hash", async () => {
     const { u, groupId } = await setup();
     const res = ok(
-      await careGroupInviteService.create(u.admin.ctx, {
+      await careGroupInviteService.createEmail(u.admin.ctx, {
         groupId,
         email: "New.Person@Example.com",
         role: "caretaker",
+        attested: true,
       }),
     );
     expect(res.token.length).toBeGreaterThan(30);
@@ -223,25 +224,36 @@ describe("invites", () => {
     // One pending invite per email per group.
     expect(
       codeOf(
-        await careGroupInviteService.create(u.owner.ctx, {
+        await careGroupInviteService.createEmail(u.owner.ctx, {
           groupId,
           email: "new.person@example.com",
           role: "viewer",
+          attested: true,
         }),
       ),
-    ).toBe("baseModel:create");
+    ).toBe("careGroupInviteService:alreadyInvited");
   });
 
   it("only lets owners invite owners", async () => {
     const { u, groupId } = await setup();
     expect(
       codeOf(
-        await careGroupInviteService.create(u.admin.ctx, { groupId, email: "o@example.com", role: "owner" }),
+        await careGroupInviteService.createEmail(u.admin.ctx, {
+          groupId,
+          email: "o@example.com",
+          role: "owner",
+          attested: true,
+        }),
       ),
     ).toBe("careGroupInviteService:ownerOnly");
     expect(
       codeOf(
-        await careGroupInviteService.create(u.owner.ctx, { groupId, email: "o@example.com", role: "owner" }),
+        await careGroupInviteService.createEmail(u.owner.ctx, {
+          groupId,
+          email: "o@example.com",
+          role: "owner",
+          attested: true,
+        }),
       ),
     ).toBe("ok");
   });
@@ -251,10 +263,11 @@ describe("invites", () => {
     expect(ok(await careGroupInviteService.list(u.caretaker.ctx)).count).toBe(0);
     expect(
       codeOf(
-        await careGroupInviteService.create(u.caretaker.ctx, {
+        await careGroupInviteService.createEmail(u.caretaker.ctx, {
           groupId,
           email: "c@example.com",
           role: "viewer",
+          attested: true,
         }),
       ),
     ).toBe("permissions:unauthorized");
@@ -263,7 +276,12 @@ describe("invites", () => {
   it("revokes pending invites only, and can't be used to forge acceptance", async () => {
     const { u, groupId } = await setup();
     const { invite } = ok(
-      await careGroupInviteService.create(u.owner.ctx, { groupId, email: "r@example.com", role: "viewer" }),
+      await careGroupInviteService.createEmail(u.owner.ctx, {
+        groupId,
+        email: "r@example.com",
+        role: "viewer",
+        attested: true,
+      }),
     );
     if (!invite) throw new Error("invite not readable");
     expect(
