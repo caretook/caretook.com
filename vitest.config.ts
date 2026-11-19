@@ -1,6 +1,7 @@
 import { createServer } from "node:net";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
+import { deviceCommands } from "./apps/web/test/commands.ts";
 
 // Vitest projects:
 //   data:unit    pure functions, no database (packages/data *.test.ts)
@@ -92,6 +93,8 @@ export default defineConfig({
             viewport: { width: 420, height: 900 },
             screenshotFailures: false,
             api: { port: browserPort },
+            // Page-level commands for tests (apps/web/test/commands.ts).
+            commands: deviceCommands,
           },
         },
       },
