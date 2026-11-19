@@ -134,6 +134,8 @@ apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
 apps/web/app/lib/sync/providers.ts       providers
+# The medication list (no screens yet: `medications.mjs` drives the device module).
+apps/web/app/lib/sync/medications.ts     medications
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 
 # Marketing (web only).
@@ -156,6 +158,8 @@ packages/data/src/db/schema/noteYjs.ts   live-notes
 packages/data/src/db/schema/noteEditors.ts live-notes
 packages/data/src/db/schema/provider.ts  providers
 packages/data/src/db/schema/entryProvider.ts providers
+packages/data/src/db/schema/medication.ts medications
+packages/data/src/db/schema/timeZone.ts  roundtrip
 packages/data/src/db/schema/inviteRules.ts invites app-shell
 packages/data/src/db/schema/careGroup*.ts app-shell invites
 packages/data/src/db/schema/careRecipient.ts app-shell
@@ -164,6 +168,7 @@ packages/data/src/db/schema/notification.ts -
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 packages/data/src/db/seeds/providers.ts  providers
 packages/data/src/db/seeds/invites.ts    invites app-shell
+packages/data/src/db/seeds/medications.ts medications
 packages/data/src/db/seeds/*             app-shell
 
 # The rest of the data layer (services, models, permissions, errors) has

@@ -1,5 +1,6 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
+import type { DoseDetails, MedicationChangeDetails } from "./medication";
 import type { VitalDetails } from "./vitals";
 
 import { foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
@@ -8,19 +9,45 @@ import { z } from "zod";
 import { careGroupSchema } from "./careGroup";
 import { careRecipientSchema } from "./careRecipient";
 import { audits, enumCheck, id, timestamps } from "./columns";
+import { doseDetailsZSchema, medicationChangeDetailsZSchema } from "./medication";
+import { timeZoneZSchema } from "./timeZone";
 import { vitalDetailsZSchema } from "./vitals";
 
-export const TIMELINE_ENTRY_KINDS = ["note", "symptom", "event", "vital"] as const;
+export const TIMELINE_ENTRY_KINDS = [
+  "note",
+  "symptom",
+  "event",
+  "vital",
+  "dose",
+  "medicationChange",
+] as const;
 export type TimelineEntryKind = (typeof TIMELINE_ENTRY_KINDS)[number];
 
-/** Kind-specific fields: a symptom's name and severity, a vital's readings. */
+/**
+ * Kind-specific fields: a symptom's name and severity, a vital's readings,
+ * a dose's medication and status, a medication change's what and why
+ * (see medication.ts).
+ */
 export type SymptomDetails = { name: string; severity?: number | null };
-export type TimelineEntryDetails = SymptomDetails | VitalDetails;
+export type TimelineEntryDetails = SymptomDetails | VitalDetails | DoseDetails | MedicationChangeDetails;
 
 export const isSymptomDetails = (d: TimelineEntryDetails | null | undefined): d is SymptomDetails =>
   !!d && "name" in d;
 export const isVitalDetails = (d: TimelineEntryDetails | null | undefined): d is VitalDetails =>
   !!d && "readings" in d;
+export const isDoseDetails = (d: TimelineEntryDetails | null | undefined): d is DoseDetails =>
+  !!d && "medicationId" in d && "status" in d;
+export const isMedicationChangeDetails = (
+  d: TimelineEntryDetails | null | undefined,
+): d is MedicationChangeDetails => !!d && "medicationId" in d && "change" in d;
+
+/**
+ * Kinds written with a medication, never by hand: `timelineEntryService`
+ * refuses to create or edit them (deleting one, as a correction, is allowed).
+ */
+export const SYSTEM_WRITTEN_KINDS = ["medicationChange"] as const satisfies readonly TimelineEntryKind[];
+export const isSystemWrittenKind = (kind: string) =>
+  (SYSTEM_WRITTEN_KINDS as readonly string[]).includes(kind);
 
 const timestampColumn = (name: string) =>
   timestamp(name, { precision: 3, mode: "string", withTimezone: true });
@@ -83,17 +110,7 @@ export type TimelineEntry = TimelineEntrySelect;
 // Zod schemas. Client-safe: the same rules run in forms and on the server.
 // ---------------------------------------------------------------------------
 
-/** A valid IANA time zone name, as the runtime understands it. */
-export const isTimeZone = (value: string) => {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: value });
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-const timeZone = z.string().refine(isTimeZone, { message: "Unknown time zone" });
+const timeZone = timeZoneZSchema;
 const occurredAt = z.iso.datetime({ offset: true });
 const optionalText = (max: number) => z.string().trim().max(max).nullish();
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
@@ -118,10 +135,18 @@ const noDetails = z.null().optional();
 /** A note's or event's text is its live document (note_document), never `body`. */
 const noBody = z.null({ error: "Its text is its live document, not a body" }).optional();
 
+/** Doses and medication changes are named by their medication, and say everything in `details`. */
+const noTitle = optionalText(TIMELINE_LIMITS.title).refine((v) => v == null, {
+  error: "It has no title: its medication names it",
+});
+const noText = z.null({ error: "It has no body: a dose's note is in its details" }).optional();
+
 /**
  * The content of an entry, by kind: notes and events have no body (their
  * text is their live document); a note's title is optional and an event's
- * required. A symptom needs a name, vitals at least one reading. Used on create, and on update against the merged row.
+ * required. A symptom needs a name, vitals at least one reading, a dose and
+ * a medication change their medication. Used on create, and on update
+ * against the merged row.
  */
 export const timelineEntryContentZSchema = z.discriminatedUnion("kind", [
   z.object({ ...entryFields, kind: z.literal("note"), body: noBody, details: noDetails }),
@@ -134,6 +159,20 @@ export const timelineEntryContentZSchema = z.discriminatedUnion("kind", [
     details: noDetails,
   }),
   z.object({ ...entryFields, kind: z.literal("vital"), details: vitalDetailsZSchema }),
+  z.object({
+    ...entryFields,
+    kind: z.literal("dose"),
+    title: noTitle,
+    body: noText,
+    details: doseDetailsZSchema,
+  }),
+  z.object({
+    ...entryFields,
+    kind: z.literal("medicationChange"),
+    title: noTitle,
+    body: noText,
+    details: medicationChangeDetailsZSchema,
+  }),
 ]);
 export type TimelineEntryContent = z.infer<typeof timelineEntryContentZSchema>;
 
@@ -161,7 +200,7 @@ export const timelineEntryUpdateZSchema = z.strictObject({
   occurredAt: occurredAt.optional(),
   timeZone: timeZone.optional(),
   // Checked against the entry's kind once merged with the stored row.
-  details: z.union([symptomDetailsZSchema, vitalDetailsZSchema]).nullish(),
+  details: z.union([symptomDetailsZSchema, vitalDetailsZSchema, doseDetailsZSchema]).nullish(),
 });
 export type TimelineEntryUpdateInput = z.input<typeof timelineEntryUpdateZSchema>;
 

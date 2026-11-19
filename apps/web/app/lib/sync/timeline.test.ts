@@ -12,7 +12,8 @@ const CASES = [
   {
     name: "neither filter",
     filters: { kind: null, author: null },
-    where: "group_id = ? AND deleted_at IS NULL",
+    // Without a kind, only the kinds the timeline shows (doses and medication changes wait for medications slice 4).
+    where: "group_id = ? AND deleted_at IS NULL AND kind IN ('note', 'symptom', 'event', 'vital')",
     params: [GROUP, 31],
   },
   {
@@ -24,7 +25,8 @@ const CASES = [
   {
     name: "an author",
     filters: { kind: null, author: AUTHOR },
-    where: "group_id = ? AND deleted_at IS NULL AND created_by = ?",
+    where:
+      "group_id = ? AND deleted_at IS NULL AND kind IN ('note', 'symptom', 'event', 'vital') AND created_by = ?",
     params: [GROUP, AUTHOR, 31],
   },
   {

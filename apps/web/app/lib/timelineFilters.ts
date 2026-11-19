@@ -1,7 +1,5 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 
-import { TIMELINE_ENTRY_KINDS } from "@caretook/data/schema";
-
 // The timeline's filters live in the URL: `?kind=<kind>&author=<userId>`.
 // This module owns that state: reading it from a search string, and the
 // search string for each change. No React or database here; every filter
@@ -23,8 +21,22 @@ export type TimelineFilters = {
 export const KIND_PARAM = "kind";
 export const AUTHOR_PARAM = "author";
 
-const isKind = (value: string | null): value is TimelineEntryKind =>
-  (TIMELINE_ENTRY_KINDS as readonly string[]).includes(value ?? "");
+/**
+ * The kinds the timeline lists and filters by. Doses and medication changes
+ * are stored and synced already, but the timeline skips them until it can
+ * render them: `medications` slice 4 appends them here.
+ */
+export const TIMELINE_KINDS = [
+  "note",
+  "symptom",
+  "event",
+  "vital",
+] as const satisfies readonly TimelineEntryKind[];
+
+export const isTimelineKind = (value: string | null): value is (typeof TIMELINE_KINDS)[number] =>
+  (TIMELINE_KINDS as readonly string[]).includes(value ?? "");
+
+const isKind = isTimelineKind;
 
 // User ids are UUIDs. Whether it's a current member isn't checked here: a
 // former member's entries can still be filtered.
