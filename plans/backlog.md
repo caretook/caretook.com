@@ -314,6 +314,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/medications/6): medications slice 6 (print sheet + provider page Medications) committed on slice/medications/6 as 74388c4; phase2's 8 wide-layout failures (15 px off at 1280) reproduce on the base d7977c1 too
 - 2026-11-19 (prd/medications): medications orchestrator: wave 2 (slices 2, 4, 6) landed in dev as bc944ae; slice 3 (add, edit, stop, restart, delete) started 2026-11-19, then slice 5.
 - 2026-11-19 (prd/medications): medications orchestrator: wave 3 (slice 3: add, edit, stop, restart, delete) landed in dev as c887336; slice 5 (Today, Due now) running.
+- 2026-11-19 (slice/medications/5): slice 5 (Today, Due now strip, dueDoses, dose warnings) committed on slice/medications/5: 45bae5b, dd4c95b; pnpm check, build:native and --changed (phase2, roundtrip, medications) pass
 
 ### B-16 · question · How does the timeline's layout (rows or cards) persist?
 
