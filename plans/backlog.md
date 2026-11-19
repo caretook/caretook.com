@@ -240,6 +240,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). IntersectionObserver auto-load (limit +30), 'Loading older…' and end-of-timeline message; button removed.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 7. Infinite scroll. Blocked by slice 4. Wave 3.
 - 2026-11-18 (Robert Bo Davis): Paused 2026-11-18 by the user: routing (B-23) and then components (B-24) run before timeline-polish continues. Wave 1 (slices 1-3) is in dev as 644f780. Slice 7; blocked by slice 4 (B-6). search (B-11) waits on it.
+- 2026-11-18 (slice/timeline-polish/7): slice 7 built on slice/timeline-polish/7: infinite scroll (OlderEntries, useLiveRows, timelinePaging). pnpm check green; --changed: roundtrip, app-shell, routing pass; phase2 passes all its own steps, fails only the 8 known wideLayout scrollbar steps (orchestrator fixing on prd). Smooth up to ~300 loaded rows.
 
 ### B-11 · feature · Search the timeline
 
