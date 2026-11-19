@@ -18,6 +18,12 @@
 //      reason, /join/CARE-DEMO-0001 (signed out) says it isn't available,
 //      the audit log has the change, and admin@ turns it back on; support@
 //      sees the settings read-only.
+//  10. The announcement (slice 6): admin@ posts a banner from the settings
+//      form (its preview follows the text and tone); member@ sees it in
+//      /app, dismisses it, and doesn't see it after a reload; a new banner
+//      shows; with the announcement request blocked, and offline, the cached
+//      one still shows; offline it goes at its end time, and stays gone
+//      online. The announcement is put back as it was, even on failure.
 //
 //   Care groups (slice 4; smoke runs step 6):
 //   6. admin@ finds a tagged ownerless group (viewer@ its only member) with
@@ -32,6 +38,7 @@
 // their audit entries, at the end.
 import { execFileSync } from "node:child_process";
 import { BASE, launch, openPage, sleep, step } from "./cdp.mjs";
+import { startProxy } from "./proxy.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
 const PASSWORD = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
@@ -68,6 +75,16 @@ const check = (ok, what, detail = "") => {
 // Set when step 9 turned access-code sign-up off, so cleanup can turn it back on.
 let accessCodesTurnedOff = false;
 
+// Step 10's stored announcement before it started (JSON text, "" for no row),
+// set while it may have changed it, so cleanup can put it back.
+let announcementBefore = null;
+const restoreAnnouncement = () => {
+  if (announcementBefore === null) return "";
+  return announcementBefore === ""
+    ? `DELETE FROM app_setting WHERE key = 'announcement';`
+    : `UPDATE app_setting SET value = '${announcementBefore.replaceAll("'", "''")}'::jsonb WHERE key = 'announcement';`;
+};
+
 const cleanUp = () =>
   psql(`
     DELETE FROM admin_audit_log WHERE changes::text LIKE '%${TAG}%';
@@ -78,7 +95,8 @@ const cleanUp = () =>
     DELETE FROM care_group WHERE name LIKE '${TAG}%';
     DELETE FROM "user" WHERE email LIKE '${RUN}-%';
     DELETE FROM admin_audit_log WHERE action = 'setting.set' AND reason LIKE '${TAG}%';
-    ${accessCodesTurnedOff ? `UPDATE app_setting SET value = 'true'::jsonb WHERE key = 'signup.accessCodes';` : ""}`);
+    ${accessCodesTurnedOff ? `UPDATE app_setting SET value = 'true'::jsonb WHERE key = 'signup.accessCodes';` : ""}
+    ${restoreAnnouncement()}`);
 
 const q = (selector) => `document.querySelector(${JSON.stringify(selector)})`;
 const TRIGGER = `document.querySelector('header [data-region="user"] button[aria-label^="Account menu for"]')`;
@@ -561,6 +579,137 @@ try {
       check(refused === 403, "and the API refuses support a change", String(refused));
     },
   );
+  // 10. The announcement banner (slice 6) -------------------------------------------------
+  await step("10. admin@ posts a banner; member@ sees, dismisses and keeps it offline", async () => {
+    const KEY = "announcement";
+    const card = q(`[data-setting="${KEY}"]`);
+    const form = (sel) => q(`[data-setting-form="${KEY}"] ${sel}`);
+    const banner = q('[data-region="announcement"] [data-announcement]');
+    const bannerState = `(() => { const b = ${banner}; return b ? { tone: b.dataset.tone, text: b.textContent.trim() } : null; })()`;
+    const FIRST = `${TAG} Maintenance tonight from 22:00`;
+    const SECOND = `${TAG} Sync is slow this morning`;
+
+    announcementBefore = psql(`SELECT value::text FROM app_setting WHERE key = '${KEY}'`);
+    const admin = await open(9871, "admin-announcement");
+    /** Sets the announcement through the API (seconds-precise end times), as admin@. */
+    const setAnnouncement = (value, reason) =>
+      admin.evaluate(
+        `fetch("/rpc/admin/settings/set", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: JSON.stringify({ json: ${JSON.stringify({ key: KEY, value, reason })} }) }).then((r) => r.status)`,
+      );
+    const proxy = startProxy(9875);
+    const memberBrowser = await launch(9872, proxy.args);
+    browsers.push(memberBrowser);
+    const m = await openPage(memberBrowser, "member-announcement");
+    /** Whether this page's announcement request has finished since it loaded. */
+    const asked = `performance.getEntriesByType("resource").some((e) => e.name.includes("/rpc/public/announcement") && e.responseEnd > 0)`;
+    const reloadMember = async () => {
+      await m.send("Page.reload");
+      await m.waitFor(`document.readyState === "complete" && location.pathname.startsWith("/app")`, 30000);
+      await m.waitFor(`document.querySelector('header [data-region="user"] button')`, 30000);
+    };
+
+    try {
+      await admin.signIn("admin@example.com", PASSWORD, { home: true });
+      await admin.goto("/admin/settings");
+      await admin.waitFor(`${card} && ${form('[name="text"]')}`, 20000);
+      await admin.type(form('[name="text"]'), FIRST);
+      await admin.evaluate(`${form('input[name="tone"][value="warning"]')}.click()`);
+      const preview = await admin.evaluate(
+        `(() => { const b = ${q("[data-announcement-preview] [data-tone]")}; return b ? { tone: b.dataset.tone, text: b.textContent.trim() } : null; })()`,
+      );
+      check(
+        preview?.tone === "warning" && preview.text === FIRST,
+        "the settings form previews the banner as typed",
+        JSON.stringify(preview),
+      );
+      await admin.type(form('[name="reason"]'), `${TAG} maintenance notice`);
+      await admin.press(form('button[type="submit"]'));
+      await admin.waitFor(`${card}?.dataset.value.includes(${JSON.stringify(FIRST)})`, 15000);
+      check(true, "admin@ posts it with a reason");
+
+      await m.signIn("member@example.com", PASSWORD, { home: true });
+      await m.waitFor(banner, 20000);
+      const first = await m.evaluate(bannerState);
+      check(
+        first?.tone === "warning" && first.text === FIRST,
+        "member@ sees it at the top of /app",
+        JSON.stringify(first),
+      );
+      const ui = await m.evaluate(`({
+        above: !!document.querySelector('header + [data-region="announcement"]'),
+        dismiss: !!${banner}?.querySelector('button[aria-label="Dismiss announcement"]'),
+      })`);
+      check(ui.above && ui.dismiss, "under the header, with a Dismiss button", JSON.stringify(ui));
+
+      await m.press(`${banner}.querySelector('button[aria-label="Dismiss announcement"]')`);
+      await m.waitFor(`!${banner}`, 5000);
+      await reloadMember();
+      await m.waitFor(asked, 20000);
+      await sleep(500);
+      check(!(await m.evaluate(`!!${banner}`)), "dismissed, it stays gone after a reload");
+
+      check(
+        (await setAnnouncement({ text: SECOND, tone: "info" }, `${TAG} new notice`)) === 200,
+        "admin@ posts a new one",
+      );
+      await reloadMember();
+      const second = await m
+        .waitFor(`${banner}?.textContent.includes(${JSON.stringify(SECOND)})`, 20000)
+        .then(() => m.evaluate(bannerState))
+        .catch(() => null);
+      check(second?.tone === "info", "a new banner shows again", JSON.stringify(second));
+
+      // The request fails: the banner comes from this device's copy.
+      await m.send("Network.setBlockedURLs", { urls: ["*/rpc/public/announcement*"] });
+      await reloadMember();
+      await sleep(1500);
+      const cached = await m.evaluate(bannerState);
+      check(
+        cached?.text === SECOND,
+        "with the request failing, the cached banner shows",
+        JSON.stringify(cached),
+      );
+      await m.send("Network.setBlockedURLs", { urls: [] });
+
+      // It gets an end 20 s away while member@ is online, then member@ goes offline.
+      const endsAt = new Date(Date.now() + 20_000).toISOString();
+      check(
+        (await setAnnouncement({ text: SECOND, tone: "info", endsAt }, `${TAG} ending soon`)) === 200,
+        "admin@ gives it an end time",
+      );
+      await m.evaluate(`window.dispatchEvent(new Event("online"))`);
+      await m.waitFor(
+        `JSON.parse(localStorage.getItem("caretook:announcement") ?? "null")?.endsAt === ${JSON.stringify(endsAt)}`,
+        15000,
+      );
+      proxy.setOnline(false);
+      await m.evaluate(`window.dispatchEvent(new Event("online"))`);
+      await sleep(1000);
+      check(!!(await m.evaluate(`!!${banner}`)), "offline, the cached banner still shows");
+      const wait = Math.max(0, Date.parse(endsAt) - Date.now()) + 10_000;
+      const gone = await m.waitFor(`!${banner}`, wait, { quiet: true }).then(
+        () => true,
+        () => false,
+      );
+      check(gone && Date.now() >= Date.parse(endsAt), "offline, it goes at its end time");
+      proxy.setOnline(true);
+      await sleep(1000);
+      await reloadMember();
+      await m.waitFor(asked, 20000);
+      await sleep(500);
+      check(!(await m.evaluate(`!!${banner}`)), "and online after a reload it stays gone");
+      // Failed loads while blocked or offline are expected; anything uncaught isn't.
+      const thrown = m.uncaught.filter((e) => e.startsWith("uncaught:"));
+      check(thrown.length === 0, "nothing thrown on member@'s page", JSON.stringify(thrown.slice(0, 3)));
+    } finally {
+      proxy.setOnline(true);
+      const before = announcementBefore ? JSON.parse(announcementBefore) : null;
+      const status = await setAnnouncement(before, `${TAG} put the announcement back`).catch(() => 0);
+      if (status === 200) announcementBefore = null;
+      check(status === 200, "the announcement is put back as it was", String(status));
+      proxy.close?.();
+    }
+  });
 } catch (error) {
   failed++;
   console.log(`FAIL ${error instanceof Error ? error.message : String(error)}`);
