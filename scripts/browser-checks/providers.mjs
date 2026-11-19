@@ -1234,11 +1234,39 @@ async function viewerWithSteps(C, eventId) {
 const SUGGESTIONS = `${WITH}?.querySelector("[data-provider-suggestions]")`;
 const ENTRY_TITLE = `document.querySelector("main header input")`;
 const suggested = (p) =>
-  p.evaluate(`[...(${SUGGESTIONS}?.querySelectorAll("button") ?? [])].map((b) => b.textContent.trim())`);
+  p.evaluate(`[...(${SUGGESTIONS}?.querySelectorAll("ul button") ?? [])].map((b) => b.textContent.trim())`);
 const suggestionNamed = (name) =>
   `[...(${SUGGESTIONS}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(name)})`;
 const firstSuggestionIs = (name) =>
   `${SUGGESTIONS}?.querySelector("button")?.textContent.trim() === ${JSON.stringify(name)}`;
+
+/** The suggestions' layout: chip count, distinct rows, and whether the list scrolls or wraps. */
+const suggestionLayout = (p) =>
+  p.evaluate(`(() => {
+    const ul = ${SUGGESTIONS}?.querySelector("ul");
+    if (!ul) return null;
+    const items = [...ul.children];
+    const style = getComputedStyle(ul);
+    const rows = new Set(items.map((li) => Math.round(li.getBoundingClientRect().top))).size;
+    const chip = items[0]?.getBoundingClientRect().height ?? 0;
+    return {
+      chips: items.length,
+      rows,
+      wrap: style.flexWrap,
+      overflowX: style.overflowX,
+      fitsOneRow: ${SUGGESTIONS}.getBoundingClientRect().height < chip * 1.6,
+      clipped: ul.scrollWidth > ul.clientWidth + 1,
+    };
+  })()`);
+
+/** Set A's viewport width (900 tall, mobile below 640). */
+const setWidth = (p, width) =>
+  p.send("Emulation.setDeviceMetricsOverride", {
+    width,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: width < 640,
+  });
 
 /** A new draft of `kind` on A, with `title` typed (not yet saved). */
 async function draftWithTitle(p, kind, title) {
@@ -1277,6 +1305,24 @@ async function suggestionSteps(A, proxy) {
     typed[0] === PATEL,
     JSON.stringify(typed),
   );
+  // B-72: on a phone the suggestions stay on one row that scrolls sideways; from sm up they wrap.
+  const phone = await suggestionLayout(A);
+  check(
+    "420: suggestions stay on one scrolling row",
+    phone?.rows === 1 && phone.wrap === "nowrap" && phone.overflowX === "auto" && phone.fitsOneRow,
+    JSON.stringify(phone),
+  );
+  await setWidth(A, 1280);
+  await A.waitFor(`getComputedStyle(${SUGGESTIONS}.querySelector("ul")).flexWrap === "wrap"`, 5000).catch(
+    () => {},
+  );
+  const wide = await suggestionLayout(A);
+  check(
+    "1280: every suggestion shows, wrapping as before",
+    wide?.chips === phone?.chips && wide.wrap === "wrap" && wide.overflowX === "visible" && !wide.clipped,
+    JSON.stringify(wide),
+  );
+  await setWidth(A, 420);
   const eventId = await tapSuggestion(A, PATEL);
   entries.push(eventId);
   const linked = await waitForSql(
