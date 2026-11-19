@@ -616,6 +616,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Proposed for medications: Dose joins quick add in slice 4, so that slice can set the order Note, Event, Dose, Symptom, Vital (grouping free text, then dose, then measures). The plan's slice 4 is not running yet, so it can take this in scope.
 - 2026-11-18 (prd/medications): medications orchestrator: fits slice 4, which adds Dose to the quick-add bar; reorder the bar to Note, Event, Dose, Symptom, Vital there rather than in a separate slice.
 - 2026-11-18 (prd/medications): medications orchestrator: claimed for slice 4 (started 2026-11-18): the quick-add bar becomes Note, Event, Dose, Symptom, Vital.
+- 2026-11-18 (slice/medications/4): Built in slice/medications/4 (63d73d2): quick add is Note, Event, Dose, Symptom, Vitals; Dose for writers only.
 
 ### B-44 · change · Display phone number, address, email, etc. in provider directory without a click. Use that as link…
 
