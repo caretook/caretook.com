@@ -97,7 +97,14 @@ async function kindIconFilters(users) {
     const names = await p.evaluate(
       `[...document.querySelectorAll("ol > li")].map((li) => li.querySelector('a[aria-label^="Show only"]')?.getAttribute("aria-label") ?? "none")`,
     );
-    const known = ["Show only notes", "Show only symptoms", "Show only events", "Show only vitals"];
+    const known = [
+      "Show only notes",
+      "Show only symptoms",
+      "Show only events",
+      "Show only vitals",
+      "Show only doses",
+      "Show only medication changes",
+    ];
     check(
       `${at}: every entry's icon is a "Show only <kind>" link`,
       names.length > 0 && names.every((n) => known.includes(n)),

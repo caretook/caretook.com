@@ -828,7 +828,8 @@ try {
       Math.abs(occurredMs() - pickedMs) < 1000,
       new Date(occurredMs()).toISOString(),
     );
-    await visit(B, TIMELINE);
+    // Notes only: two days back can be past the first page once doses fill the timeline.
+    await visit(B, `${TIMELINE}?kind=note`);
     await B.waitFor(dayOfRow(N4), 15000);
     const dayBefore = await B.evaluate(dayOfRow(N4));
     await visit(C, entryPath(N4));
