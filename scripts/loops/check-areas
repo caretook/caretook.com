@@ -74,8 +74,24 @@ apps/web/app/.server/notifications.ts    -
 # Starting care groups (invites slice 5): /join/:code, the New care group
 # sheet, the timeline's Invite someone card and the web-only /admin pages.
 apps/web/app/routes/account/join/*       groups
-apps/web/app/routes/admin/*              groups
-apps/web/app/.server/admin.ts            groups
+# The staff foundation (admin PRD): /admin's frame, nav and audit log, its
+# door, the staff rules, the audit service and the Admin menu item.
+apps/web/app/routes/admin/audit/*        admin
+apps/web/app/routes/admin/AuditEntryList.tsx admin
+apps/web/app/routes/admin/auditDisplay.ts admin
+apps/web/app/routes/admin/auditFilters.ts admin
+apps/web/app/routes/admin/*              admin groups
+apps/web/app/.server/admin.ts            admin groups
+packages/api/src/auditAdmin.ts           admin
+packages/api/src/procedures.ts           admin groups
+packages/data/src/db/schema/staffRules.ts admin groups app-shell
+packages/data/src/db/schema/adminAudit.ts admin
+packages/data/src/services/adminAuditService.ts admin
+packages/data/src/services/staffAccess.ts admin groups
+packages/data/src/models/adminAuditLog/* admin
+packages/data/src/db/seeds/staff.ts      admin
+packages/data/src/services/accessCodeService.ts groups admin
+packages/data/src/services/staffGroupService.ts groups admin
 apps/web/app/routes/app/groups/new/*     groups app-shell
 apps/web/app/components/groups/*         groups app-shell
 apps/web/app/routes/app/home/NewGroupLink.tsx groups app-shell first-sync
@@ -143,6 +159,7 @@ apps/web/app/components/settings/*       routing settings-layout app-shell ui
 apps/web/app/routes/app/layout/route.tsx app-shell search
 # The group menu also shows the current care period (care-periods slice 4).
 apps/web/app/routes/app/layout/GroupMenu.tsx app-shell care-periods
+apps/web/app/routes/app/layout/UserMenu.tsx app-shell admin
 apps/web/app/routes/app/layout/*         app-shell
 apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
 apps/web/app/routes/app/home/*           app-shell first-sync
