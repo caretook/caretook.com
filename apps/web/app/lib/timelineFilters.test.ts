@@ -35,6 +35,11 @@ describe("parseFilters", () => {
     }
   });
 
+  it("ignores the kinds the timeline doesn't show yet", () => {
+    expect(parseFilters("?kind=dose")).toEqual({ kind: null, author: null });
+    expect(parseFilters("?kind=medicationChange")).toEqual({ kind: null, author: null });
+  });
+
   it("ignores an unknown kind", () => {
     expect(parseFilters("?kind=medication")).toEqual({ kind: null, author: null });
     expect(parseFilters("?kind=")).toEqual({ kind: null, author: null });

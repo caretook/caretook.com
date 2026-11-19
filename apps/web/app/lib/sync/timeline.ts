@@ -12,6 +12,7 @@ import type { SyncDb } from "./index";
 import { isKnownReading, timelineEntryContentZSchema } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { isEntryKind } from "../entryDisplay";
+import { TIMELINE_KINDS } from "../timelineFilters";
 import { timelineEntries } from "./schema";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
@@ -113,12 +114,19 @@ export const toTimelineEntries = (rows: EntryRow[]) =>
 export type LocalQuery = { sql: string; params: unknown[] };
 
 /**
+ * The kinds the timeline shows, as SQL (`TIMELINE_KINDS`). The timeline's
+ * window leaves the other kinds out here, not after loading, so a day of
+ * doses never shortens a page.
+ */
+export const SHOWN_KINDS_SQL = `kind IN (${TIMELINE_KINDS.map((k) => `'${k}'`).join(", ")})`;
+
+/**
  * One group's entries, newest first. Asks for one row more than `limit`,
  * so the screen knows whether "Show older" has anything to show.
  */
 export const entriesQuery = (groupId: string, kind: TimelineEntryKind | null, limit: number): LocalQuery => ({
   sql: `SELECT * FROM timeline_entry
-        WHERE group_id = ? AND deleted_at IS NULL ${kind ? "AND kind = ?" : ""}
+        WHERE group_id = ? AND deleted_at IS NULL AND ${kind ? "kind = ?" : SHOWN_KINDS_SQL}
         ORDER BY occurred_at DESC, id DESC LIMIT ?`,
   params: kind ? [groupId, kind, limit + 1] : [groupId, limit + 1],
 });

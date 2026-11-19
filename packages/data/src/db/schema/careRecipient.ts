@@ -6,6 +6,7 @@ import { createInsertSchema, createSelectSchema, createUpdateSchema } from "driz
 import { z } from "zod";
 import { careGroupSchema } from "./careGroup";
 import { audits, id, timestamps } from "./columns";
+import { timeZoneZSchema } from "./timeZone";
 
 // The person a care group looks after: a profile, not an account. Exactly
 // one per group for now (the unique group_id); dropping that constraint is
@@ -22,6 +23,9 @@ export const careRecipientSchema = pgTable(
     preferredName: text("preferred_name"),
     dateOfBirth: date("date_of_birth", { mode: "string" }),
     notes: text("notes"),
+    // The recipient's IANA time zone: where they live. A medication's schedule
+    // times are in it, so "8:00" is the same moment for a caretaker elsewhere.
+    timeZone: text("time_zone").notNull(),
     ...timestamps,
     ...audits,
   },
@@ -41,17 +45,20 @@ export type CareRecipient = CareRecipientSelect;
 const name = z.string().trim().min(1).max(120);
 const preferredName = z.string().trim().max(120).nullish();
 const dateOfBirth = z.iso.date().nullish();
+const timeZone = timeZoneZSchema;
 
 export const careRecipientSelectZSchema = createSelectSchema(careRecipientSchema);
 export const careRecipientInsertZSchema = createInsertSchema(careRecipientSchema, {
   name,
   preferredName,
   dateOfBirth,
+  timeZone,
 });
 export const careRecipientUpdateZSchema = createUpdateSchema(careRecipientSchema, {
   name,
   preferredName,
   dateOfBirth,
+  timeZone: timeZone.optional(),
 });
 
 /**

@@ -32,6 +32,10 @@ export { entryProviderService };
 import * as careGroupConsentService from "./careGroupConsentService";
 export { careGroupConsentService };
 
+import * as medicationService from "./medicationService";
+export { medicationService };
+export type { MedicationWriteOptions } from "./medicationService";
+
 export type * from "./types";
 
 export const services = {
@@ -45,6 +49,7 @@ export const services = {
   provider: providerService,
   entryProvider: entryProviderService,
   careGroupConsent: careGroupConsentService,
+  medication: medicationService,
 };
 
 export type ServiceTypeMap = typeof services;
