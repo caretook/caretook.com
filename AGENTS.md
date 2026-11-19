@@ -174,6 +174,8 @@ The table's machine-readable form is `scripts/loops/check-areas`; keep the two i
 
 A go-ahead covers one landing. An agent never lands on its own judgment, never with `--force` unless the user says so, and never for another PRD.
 
+**Planning agents are the exception:** a `plan/<topic>` branch touches no code, so its agent may land it whenever its PRD or plan is ready, without waiting for a go-ahead, and may pass `--force` (`pnpm prd land plan/<topic> --force -m "docs(<topic>): …"`). Before landing, check that `git diff --stat dev...plan/<topic>` lists only `plans/` and `docs/` files; if anything else changed, it's not a planning branch, so ask first.
+
 **Rules across PRDs** (they keep many PRDs mergeable):
 
 - **Migrations take the next number when they land, not when they're planned.** Plans say "adds a migration", not "0008". A loop generates whatever is next on its base. When a sync brings in another PRD's migration, keep `dev`'s, regenerate yours on top (`pnpm datastore:generate`), and reread its SQL order. Keep one pending migration per PRD where you can.
