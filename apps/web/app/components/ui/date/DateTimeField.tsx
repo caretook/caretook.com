@@ -31,7 +31,9 @@ import { FIELD_ERROR, FIELD_LABEL } from "../styles";
  * as ISO 8601 (UTC). Inside another popover (the entry page's time chip),
  * the calendar opens as a nested popover and closing it leaves the outer
  * one open. `error` shows under the field (it describes the segments, which
- * are marked invalid), styled like the field primitive's.
+ * are marked invalid), styled like the field primitive's. `max` (ISO 8601)
+ * is the latest time it takes: later days can't be picked in the calendar,
+ * and a later typed time is invalid (the form won't submit).
  */
 export function DateTimeField({
   name,
@@ -39,6 +41,7 @@ export function DateTimeField({
   defaultValue,
   onChange,
   error,
+  max,
 }: {
   name?: string;
   label: string;
@@ -46,6 +49,8 @@ export function DateTimeField({
   defaultValue?: string;
   onChange?: (iso: string) => void;
   error?: string;
+  /** ISO 8601: the latest time allowed. */
+  max?: string;
 }) {
   const initial: ZonedDateTime = defaultValue
     ? parseAbsolute(defaultValue, localTimeZone())
@@ -56,6 +61,7 @@ export function DateTimeField({
       name={name}
       defaultValue={initial}
       granularity="minute"
+      maxValue={max ? parseAbsolute(max, localTimeZone()) : undefined}
       isRequired
       isInvalid={error ? true : undefined}
       onChange={(value) => {

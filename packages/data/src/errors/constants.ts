@@ -390,6 +390,10 @@ export const SERVICE_ERRORS = {
     message: "That medication is gone. It may have been deleted.",
     statusCode: 404,
   },
+  "timelineEntryService:rescheduledToNotInGroup": {
+    message: "A rescheduled event must point at another event in this care group",
+    statusCode: 400,
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {
