@@ -109,7 +109,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-67 | change | ready | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | in-progress | quick-fixes | prd/quick-fixes | Move the New care group link state into components/groups |
-| B-70 | bug | in-progress | quick-fixes | prd/quick-fixes | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
+| B-70 | bug | ready | quick-fixes | prd/quick-fixes | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
 | B-71 | bug | ready | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
 | B-72 | bug | ready | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
 | B-73 | bug | ready | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
@@ -925,10 +925,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-70 · bug · ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 27c2c74
 
 - 2026-11-18 (prd/invites orchestrator): Flaked in the invites wave 3 suite (2026-11-18 19:46, load 18→27, not auto-retried): '1280 dark provider add sheet: Escape closes only it, and focus returns to the opener (tap)'. The failure detail showed focus on the opener, so likely the sheet's close wasn't finished when the step checked. Passed 625/625 on a rerun; ui.mjs also flaked earlier in providers-5 (timeout). In .loops/.browser-flakes.log. A browser-check fix, so quick-fixes.
 - 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
