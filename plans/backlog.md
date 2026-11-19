@@ -84,7 +84,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
-| B-55 | feature | inbox |  |  | Todos list with assignment to group members, due dates, and completion status. |
+| B-55 | feature | triaged | tasks |  | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | inbox |  |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-57 | plan | inbox |  |  | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
 | B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
@@ -693,8 +693,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-55 · feature · Todos list with assignment to group members, due dates, and completion status.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: tasks
 - owner:
 - commit:
 
