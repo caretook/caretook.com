@@ -30,7 +30,8 @@ import {
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
-import { medications, noteDocuments, timelineEntries } from "./schema";
+import { newProviderRow } from "./providers";
+import { medications, noteDocuments, providers, timelineEntries } from "./schema";
 import {
   forbidden,
   fromLocalTimestamp,
@@ -404,15 +405,60 @@ const providerOk = async (db: SyncDb, groupId: string, id: string, allowed: (typ
   return !!row && !row.deleted_at && row.group_id === groupId && allowed(row.type ?? "");
 };
 
-/** The prescriber and pharmacy are checked when set or changed; one deleted later stays linked. */
+/**
+ * The prescriber and pharmacy are checked when set or changed; one deleted
+ * later stays linked. `added` are providers written in the same transaction
+ * (new, so not on the device yet, and of the right type by construction).
+ */
 const checkProviders = async (
   db: SyncDb,
   groupId: string,
   { prescriberId, pharmacyId }: { prescriberId: string | null; pharmacyId: string | null },
+  added: ReadonlySet<string> = new Set(),
 ) => {
-  if (prescriberId && !(await providerOk(db, groupId, prescriberId, isPrescriberType))) return badPrescriber;
-  if (pharmacyId && !(await providerOk(db, groupId, pharmacyId, isPharmacyType))) return badPharmacy;
+  if (
+    prescriberId &&
+    !added.has(prescriberId) &&
+    !(await providerOk(db, groupId, prescriberId, isPrescriberType))
+  )
+    return badPrescriber;
+  if (pharmacyId && !added.has(pharmacyId) && !(await providerOk(db, groupId, pharmacyId, isPharmacyType)))
+    return badPharmacy;
   return null;
+};
+
+/**
+ * A prescriber or pharmacy to add with the medication, by name (the form's
+ * "Add "<typed>" as a new prescriber"): a clinician, and a pharmacy. They're
+ * written in the medication's transaction, first, so neither is ever left
+ * without the other, and they upload before the medication that names them.
+ */
+export type NewMedicationProviders = { prescriber?: string; pharmacy?: string };
+
+type ProviderRowToAdd = Exclude<Awaited<ReturnType<typeof newProviderRow>>, Refusal>;
+
+/** The new providers' rows, validated, and the ids the medication takes; or the refusal, on its field. */
+const newProviderRows = async (db: SyncDb, groupId: string, names: NewMedicationProviders) => {
+  const rows: ProviderRowToAdd[] = [];
+  const ids: { prescriberId?: string; pharmacyId?: string } = {};
+  const wanted = [
+    ["prescriberId", names.prescriber, "clinician"],
+    ["pharmacyId", names.pharmacy, "pharmacy"],
+  ] as const;
+  for (const [field, name, type] of wanted) {
+    if (name === undefined) continue;
+    const row = await newProviderRow(db, groupId, { type, name });
+    if ("ok" in row) {
+      if (!row.issues.length) return row;
+      const what = field === "prescriberId" ? "prescriber" : "pharmacy";
+      return refuse(`The new ${what} is invalid`, [
+        { path: field, message: row.issues[0]?.message ?? `Check the ${what}'s name` },
+      ]);
+    }
+    rows.push(row);
+    ids[field] = row.id;
+  }
+  return { rows, ids, added: new Set(rows.map((r) => r.id)) };
 };
 
 const contentColumns = (content: MedicationContent) => ({
@@ -470,14 +516,19 @@ const changeEntryRow = (
 };
 
 /** A medication's row and its "started" entry, validated: what `createMedication` writes. */
-export const newMedicationRows = async (db: SyncDb, groupId: string, input: MedicationContentInput) => {
+export const newMedicationRows = async (
+  db: SyncDb,
+  groupId: string,
+  input: MedicationContentInput,
+  added: ReadonlySet<string> = new Set(),
+) => {
   if (!(await canWrite(db, groupId))) return forbidden as Refusal;
   const recipient = await recipientOf(db, groupId);
   if (!recipient) return refuse("This care group has no care recipient yet");
   const parsed = medicationContentZSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
-  const providers = await checkProviders(db, groupId, parsed.data);
-  if (providers) return providers;
+  const badProviders = await checkProviders(db, groupId, parsed.data, added);
+  if (badProviders) return badProviders;
 
   const id = crypto.randomUUID();
   const now = nowTimestamp();
@@ -498,17 +549,23 @@ export const newMedicationRows = async (db: SyncDb, groupId: string, input: Medi
 
 /**
  * Add a medication on this device, with its "started" entry on the timeline
- * in the same transaction (the medication first, so it uploads first). It
- * syncs when the device is online.
+ * in the same transaction (the medication first, so it uploads first), and
+ * any prescriber or pharmacy added with it before both. It syncs when the
+ * device is online.
  */
 export const createMedication = async (
   db: SyncDb,
   groupId: string,
   input: MedicationContentInput,
+  newProviders: NewMedicationProviders = {},
 ): Promise<MedicationWriteResult> => {
-  const rows = await newMedicationRows(db, groupId, input);
+  if (!(await canWrite(db, groupId))) return forbidden as Refusal;
+  const added = await newProviderRows(db, groupId, newProviders);
+  if ("ok" in added) return added;
+  const rows = await newMedicationRows(db, groupId, { ...input, ...added.ids }, added.added);
   if ("ok" in rows) return rows;
   await db.drizzle.transaction(async (tx) => {
+    for (const provider of added.rows) await tx.insert(providers).values(provider);
     await tx.insert(medications).values(rows.medication);
     if (rows.entry) await tx.insert(timelineEntries).values(rows.entry);
   });
@@ -519,12 +576,14 @@ export const createMedication = async (
  * Edit a medication, including stopping and restarting it (`status`). The
  * group and recipient are fixed; the merged medication must be valid. A stop,
  * a restart or an edit to a tracked field writes its change entry in the
- * same transaction.
+ * same transaction, and a prescriber or pharmacy added with the edit goes in
+ * it first.
  */
 export const updateMedication = async (
   db: SyncDb,
   id: string,
   patch: MedicationUpdateInput,
+  newProviders: NewMedicationProviders = {},
 ): Promise<MedicationWriteResult> => {
   const existing = await liveMedication(db, id);
   if (!existing) return medicationMissing;
@@ -532,20 +591,30 @@ export const updateMedication = async (
 
   const shape = medicationUpdateZSchema.safeParse(patch);
   if (!shape.success) return invalid(shape.error);
-  const defined = Object.fromEntries(Object.entries(shape.data).filter(([, v]) => v !== undefined));
+  const added = await newProviderRows(db, existing.groupId, newProviders);
+  if ("ok" in added) return added;
+  const defined = Object.fromEntries(
+    Object.entries({ ...shape.data, ...added.ids }).filter(([, v]) => v !== undefined),
+  );
   const before = medicationContentOf(existing);
   const merged = medicationContentZSchema.safeParse({ ...before, ...defined });
   if (!merged.success) return invalid(merged.error);
-  const providers = await checkProviders(db, existing.groupId, {
-    prescriberId: merged.data.prescriberId !== existing.prescriberId ? merged.data.prescriberId : null,
-    pharmacyId: merged.data.pharmacyId !== existing.pharmacyId ? merged.data.pharmacyId : null,
-  });
-  if (providers) return providers;
+  const badProviders = await checkProviders(
+    db,
+    existing.groupId,
+    {
+      prescriberId: merged.data.prescriberId !== existing.prescriberId ? merged.data.prescriberId : null,
+      pharmacyId: merged.data.pharmacyId !== existing.pharmacyId ? merged.data.pharmacyId : null,
+    },
+    added.added,
+  );
+  if (badProviders) return badProviders;
 
   const recipient = await recipientOf(db, existing.groupId);
   const now = nowTimestamp();
   const entry = changeEntryRow(db, existing, before, merged.data, now, recipient?.time_zone ?? "UTC");
   await db.drizzle.transaction(async (tx) => {
+    for (const provider of added.rows) await tx.insert(providers).values(provider);
     await tx
       .update(medications)
       .set({ ...contentColumns(merged.data), updatedAt: now, updatedBy: db.userId })

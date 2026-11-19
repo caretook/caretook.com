@@ -669,8 +669,8 @@ async function notesSteps(A, B) {
   await A.waitFor(`${onMedPage(metformin)} && ${notesHave("applesauce")}`, 20000).catch(() => {});
   const seeded = await medPage(A);
   check(
-    "the seeded notes show in the editor, writable for a caretaker; no edit controls yet",
-    seeded.notes?.includes("applesauce") && seeded.editable === "true" && !seeded.actions,
+    "the seeded notes show in the editor, writable for a caretaker, with the Edit and status actions",
+    seeded.notes?.includes("applesauce") && seeded.editable === "true" && seeded.actions,
     JSON.stringify({ notes: seeded.notes?.slice(0, 40), editable: seeded.editable, actions: seeded.actions }),
   );
 
@@ -1433,8 +1433,536 @@ async function providerMedicationSteps(p) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3: add, edit, stop, restart and delete.
+// ---------------------------------------------------------------------------
+
+const FORM = `document.querySelector("[role=dialog] [data-medication-form]")`;
+const formField = (name) => `${FORM}?.querySelector('[name="${name}"]')`;
+const TIMES = `[...(${FORM}?.querySelectorAll('input[name="time"]') ?? [])]`;
+const FORM_SUBMIT = `${FORM}?.querySelector('button[type="submit"]')`;
+/** The error line a form field is described by, or null. */
+const errorOf = (name) =>
+  `(() => { const el = ${formField(name)}; const id = el?.getAttribute("aria-describedby")?.split(" ").find((x) => x.endsWith("-error")); return id ? (document.getElementById(id)?.textContent.trim() ?? null) : null; })()`;
+const TIMES_ERROR = `(${FORM}?.querySelector("[data-schedule-times] > p.text-error")?.textContent.trim() ?? null)`;
+const suggestion = (text) =>
+  `[...(${FORM}?.querySelectorAll("[data-name-suggestions] button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+const pickerInput = (kind) =>
+  `${FORM}?.querySelector('[data-provider-picker="${kind}"] input[role="combobox"]')`;
+const pickerChip = (kind) =>
+  `(${FORM}?.querySelector('[data-provider-picker="${kind}"] li[data-chip]')?.textContent.trim() ?? null)`;
+const option = (text) =>
+  `[...document.querySelectorAll('[role="option"]')].find((o) => o.firstElementChild?.textContent === ${JSON.stringify(text)})`;
+const OPEN_DIALOG = `document.querySelector("dialog[open]")`;
+const dialogButton = (text) =>
+  `[...(${OPEN_DIALOG}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+/** Every name in one of the list's lists, this run's included. */
+const allNames = (label) =>
+  `[...document.querySelectorAll('main ul[aria-label="${label}"] [data-medication-name]')].map((n) => n.textContent.trim())`;
+const historyTexts = (p) =>
+  p.evaluate(
+    `[...document.querySelectorAll("main [data-medication-history] li[data-entry-id] [data-entry-text]")].map((t) => t.textContent.trim())`,
+  );
+const statusOf = (name) =>
+  psql(
+    `SELECT status || ':' || coalesce(stop_reason, '-') || ':' || coalesce(stop_note, '-') FROM medication WHERE name = '${name}' AND deleted_at IS NULL`,
+  );
+const changeCount = (name) =>
+  psql(
+    `SELECT count(*) FROM timeline_entry WHERE kind = 'medicationChange' AND deleted_at IS NULL AND details->>'medicationId' = (SELECT id::text FROM medication WHERE name = '${name}')`,
+  );
+
+/** A real tap without scrolling first: a combo box's list closes when the page (or sheet) scrolls. */
+async function tapInPlace(p, selector) {
+  const point = await p.evaluate(`(() => { const r = ${selector}.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  for (const type of ["mousePressed", "mouseReleased"]) {
+    await p.send("Input.dispatchMouseEvent", { type, ...point, button: "left", clickCount: 1 });
+  }
+}
+
+/**
+ * Type into a picker and choose `optionText` from its list. The list closes
+ * when the sheet scrolls (React Aria), so scroll first and let it settle,
+ * and type again if the list went away before it showed.
+ */
+async function pickProvider(p, kind, text, optionText) {
+  await p.evaluate(`${pickerInput(kind)}.scrollIntoView({ block: "center" })`);
+  await sleep(400);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await p.evaluate(`${pickerInput(kind)}.focus()`);
+    await p.type(pickerInput(kind), "");
+    await p.type(pickerInput(kind), text);
+    const shown = await p.waitFor(option(optionText), 4000, { quiet: true }).then(
+      () => true,
+      () => false,
+    );
+    if (shown) break;
+  }
+  await tapInPlace(p, option(optionText));
+}
+
+/** Open a medication page's ⋯ menu and choose `item`. */
+async function pageAction(p, title, item) {
+  const button = `document.querySelector('main header [data-region="actions"] button[aria-label=${JSON.stringify(`Actions for ${title}`)}]')`;
+  await p.waitFor(button, 15000);
+  await p.press(button);
+  await p.waitFor(menuItem(item), 5000);
+  await p.press(menuItem(item));
+}
+
+/** Open the list, wait for it, and open the add sheet from its header (A). */
+async function openAddSheet(p) {
+  await p.goto(LIST);
+  await p.waitFor(`!!document.querySelector("main [data-add-medication]")`, 20000);
+  await p.tap(`document.querySelector("main [data-add-medication]")`);
+  await p.waitFor(`location.pathname.endsWith("/medications/new") && !!${FORM}`, 15000);
+}
+
+/**
+ * Add a medication from the add sheet (caretaker@, A): name suggestions,
+ * validation on the fields, and a new prescriber added inline, written with
+ * it; both show at once, on a second device (B) and on the server, and its
+ * page's history says "Started". Returns its name.
+ */
+async function addSteps(p, B) {
+  const name = `${TAG} Losartan`;
+  const doctor = `${TAG} Dr. Ada Moss`;
+  await openAddSheet(p).then(
+    () => check("a writer's Add medication opens the add sheet over the list", true),
+    () => check("a writer's Add medication opens the add sheet over the list", false),
+  );
+
+  // "lis" suggests the seeded Lisinopril; picking it fills the name only.
+  await p.type(formField("name"), "lis");
+  await p.waitFor(suggestion("Lisinopril"), 8000).catch(() => {});
+  const offered = await p.evaluate(
+    `[...(${FORM}?.querySelectorAll("[data-name-suggestions] button") ?? [])].map((b) => b.textContent.trim())`,
+  );
+  if (offered.includes("Lisinopril")) await p.tap(suggestion("Lisinopril"));
+  await sleep(200);
+  const filled = await p.evaluate(`({
+    name: ${formField("name")}?.value, strength: ${formField("strength")}?.value,
+    dose: ${formField("dose")}?.value, reason: ${formField("reason")}?.value,
+    suggestions: !!${FORM}?.querySelector("[data-name-suggestions]"),
+  })`);
+  check(
+    'typing "lis" suggests Lisinopril; picking it fills the name only',
+    offered.includes("Lisinopril") &&
+      filled.name === "Lisinopril" &&
+      filled.strength === "" &&
+      filled.dose === "" &&
+      filled.reason === "" &&
+      !filled.suggestions,
+    JSON.stringify({ offered, filled }),
+  );
+
+  // Validation, through the fields: no name, the same time twice.
+  await p.type(formField("name"), "");
+  await p.press(`${FORM}.querySelector("[data-add-time]")`);
+  await p.type(`${TIMES}[1]`, "08:00");
+  await p.press(FORM_SUBMIT);
+  await p.waitFor(`${errorOf("name")} !== null`, 8000).catch(() => {});
+  const invalid = await p.evaluate(`({ name: ${errorOf("name")}, times: ${TIMES_ERROR},
+    focused: document.activeElement === ${formField("name")} })`);
+  check(
+    "validation shows on the fields: the name is required and each time once (focus on the first)",
+    invalid.name === "Enter a name" && invalid.times === "List each time once" && invalid.focused,
+    JSON.stringify(invalid),
+  );
+  // As needed, past the maximum.
+  await p.type(formField("name"), name);
+  await p.press(`${FORM}.querySelector('input[name="scheduleType"][value="asNeeded"]')`);
+  await p.waitFor(formField("maxPerDay"), 5000);
+  await p.type(formField("maxPerDay"), "30");
+  await p.press(FORM_SUBMIT);
+  await p.waitFor(`${errorOf("maxPerDay")} !== null`, 8000).catch(() => {});
+  check(
+    "an as-needed maximum out of range shows its message",
+    (await p.evaluate(errorOf("maxPerDay"))) === "At most 24 a day",
+    String(await p.evaluate(errorOf("maxPerDay"))),
+  );
+
+  // Fill it in: scheduled at 8:00 and 20:00, with a new prescriber.
+  await p.press(`${FORM}.querySelector('input[name="scheduleType"][value="scheduled"]')`);
+  await p.waitFor(`${TIMES}.length === 2`, 5000);
+  await p.type(`${TIMES}[1]`, "20:00");
+  await p.type(formField("strength"), "25 mg");
+  await p.evaluate(`${FORM}.querySelector('[name="form"]').value = "tablet"`);
+  await p.type(formField("dose"), "1 tablet");
+  await p.type(formField("reason"), "Blood pressure");
+  await pickProvider(p, "prescriber", doctor, `Add "${doctor}" as a new prescriber`);
+  await p
+    .waitFor(`${pickerChip("prescriber")} === ${JSON.stringify(`${doctor} (new)`)}`, 5000)
+    .catch(() => {});
+  const chip = await p.evaluate(pickerChip("prescriber"));
+  await p.screenshot("medication-add-sheet");
+  await p.press(FORM_SUBMIT);
+  const title = `${name} 25 mg`;
+  await p
+    .waitFor(
+      `!${SHEET} && location.pathname.endsWith("/medications") && ${allNames("Current medications")}.includes(${JSON.stringify(title)})`,
+      10000,
+    )
+    .catch(() => {});
+  const listed = await p.evaluate(
+    `({ path: location.pathname, current: ${allNames("Current medications")} })`,
+  );
+  check(
+    "saving closes the sheet and the medication is on the list at once (current)",
+    listed.path.endsWith("/medications") && listed.current.includes(title),
+    JSON.stringify({ chip, listed }),
+  );
+  const server = await waitForSql(
+    `SELECT p.name || '|' || p.type || '|' || (m.schedule->>'times') FROM medication m JOIN provider p ON p.id = m.prescriber_id WHERE m.name = '${name}'`,
+    (v) => v !== "",
+  );
+  check(
+    "the medication and its new prescriber (a clinician) upload together, linked",
+    server === `${doctor}|clinician|["08:00", "20:00"]` && chip === `${doctor} (new)`,
+    `${server} / ${chip}`,
+  );
+  if (B) {
+    const seen = await waitForLocal(
+      B,
+      `SELECT m.name, p.name AS prescriber FROM medication m JOIN provider p ON p.id = m.prescriber_id WHERE m.name = ?`,
+      [name],
+      (rows) => rows.length === 1,
+      30000,
+    );
+    check(
+      "a second device gets the medication and its new prescriber",
+      seen[0]?.prescriber === doctor,
+      JSON.stringify(seen),
+    );
+  }
+  const id = await medicationId(p, name);
+  await p.goto(medPath(id));
+  await p
+    .waitFor(
+      `${onMedPage(id)} && document.querySelectorAll("main [data-medication-history] li").length > 0`,
+      20000,
+    )
+    .catch(() => {});
+  const history = await historyTexts(p);
+  check('its page\'s history says "Started"', same(history, ["Started"]), JSON.stringify(history));
+  return { name, title, id };
+}
+
+/**
+ * Edit from the medication's page (A): the sheet opens over the list and
+ * closes back to the page; a refill edit writes no change entry, a dose
+ * change writes one with before and after.
+ */
+async function editSteps(p, { title, name, id }) {
+  const openEdit = async () => {
+    await p.goto(medPath(id));
+    await p.waitFor(`${onMedPage(id)} && !!document.querySelector("main [data-edit-medication]")`, 20000);
+    await p.tap(`document.querySelector("main [data-edit-medication]")`);
+    await p.waitFor(`location.pathname.endsWith("/medications/${id}/edit") && !!${FORM}`, 15000);
+  };
+  await openEdit();
+  await p.screenshot("medication-edit-sheet");
+  const prefilled = await p.evaluate(`({ name: ${formField("name")}?.value, dose: ${formField("dose")}?.value,
+    times: ${TIMES}.map((t) => t.value), prescriber: ${pickerChip("prescriber")},
+    status: ${SHEET}?.querySelector("[data-status-now]")?.textContent.trim() })`);
+  check(
+    "Edit on the page opens the edit sheet, filled in, with the status actions",
+    prefilled.name === name &&
+      prefilled.dose === "1 tablet" &&
+      same(prefilled.times, ["08:00", "20:00"]) &&
+      prefilled.prescriber === `${TAG} Dr. Ada Moss` &&
+      prefilled.status === "Current: taken now",
+    JSON.stringify(prefilled),
+  );
+  await p.type(formField("refillsLeft"), "3");
+  await p.type(formField("quantity"), "30 tablets");
+  await p.press(FORM_SUBMIT);
+  await p.waitFor(`!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000).catch(() => {});
+  const back = await p.evaluate(`location.pathname`);
+  const refills = await waitForSql(
+    `SELECT refills_left FROM medication WHERE id = '${id}'`,
+    (v) => v === "3",
+  );
+  await sleep(500);
+  check(
+    "saving goes back to the page; a refill edit uploads and writes no change entry",
+    back.endsWith(`/medications/${id}`) && refills === "3" && changeCount(name) === "1",
+    `${back} refills ${refills}, entries ${changeCount(name)}`,
+  );
+
+  await openEdit();
+  await p.type(formField("dose"), "2 tablets");
+  await p.press(FORM_SUBMIT);
+  await p.waitFor(`!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000).catch(() => {});
+  const changed = await waitForSql(
+    `SELECT details->'before'->>'dose' || '>' || (details->'after'->>'dose') FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'change' = 'changed' AND details->>'medicationId' = '${id}'`,
+    (v) => v !== "",
+  );
+  await p
+    .waitFor(`document.querySelectorAll("main [data-medication-history] li").length >= 2`, 10000)
+    .catch(() => {});
+  const history = await historyTexts(p);
+  check(
+    'changing the dose writes one "Changed" entry with before and after, newest first on the page',
+    changed === "1 tablet>2 tablets" &&
+      changeCount(name) === "2" &&
+      history[0] === "Changed dose 1 tablet → 2 tablets",
+    `${changed} ${changeCount(name)} ${JSON.stringify(history)}`,
+  );
+  void title;
+}
+
+/**
+ * The status actions on the page (A): Discontinue needs a reason and moves
+ * it below the current ones; Restart brings it back ("Resumed"); Mark
+ * completed needs no reason; Restart from the edit sheet; Delete.
+ */
+async function statusSteps(p, { title, name, id }) {
+  await p.goto(medPath(id));
+  await p.waitFor(onMedPage(id), 20000).catch(() => {});
+  await pageAction(p, title, "Discontinue…");
+  await p.waitFor(`!!${OPEN_DIALOG}?.querySelector("[data-discontinue-form]")`, 5000).catch(() => {});
+  await p.press(dialogButton("Discontinue"));
+  await p
+    .waitFor(`!!${OPEN_DIALOG}?.querySelector('[role="radiogroup"][aria-invalid="true"]')`, 8000)
+    .catch(() => {});
+  const refused = await p.evaluate(
+    `${OPEN_DIALOG}?.querySelector("[data-discontinue-form] .text-error")?.textContent.trim() ?? null`,
+  );
+  check(
+    "Discontinue without a reason is refused, with the reason's message, and nothing changes",
+    refused === "Choose why it was stopped" && statusOf(name).startsWith("current"),
+    `${refused} ${statusOf(name)}`,
+  );
+  await p.press(`${OPEN_DIALOG}.querySelector('input[name="stopReason"][aria-label="Side effects"]')`);
+  await p.screenshot("medication-discontinue");
+  await p.type(`${OPEN_DIALOG}.querySelector('textarea[name="stopNote"]')`, `${TAG} dizzy`);
+  await p.press(dialogButton("Discontinue"));
+  await p.waitFor(`!${OPEN_DIALOG}`, 8000).catch(() => {});
+  const stopped = await waitForSql(
+    `SELECT status || ':' || coalesce(stop_reason, '-') || ':' || coalesce(stop_note, '-') FROM medication WHERE id = '${id}'`,
+    (v) => v.startsWith("discontinued"),
+  );
+  await p
+    .waitFor(
+      `document.querySelector('main header [data-region="title"] .badge')?.textContent === "Discontinued"`,
+      8000,
+    )
+    .catch(() => {});
+  const history = await historyTexts(p);
+  check(
+    "Discontinue with a reason and a note: the page says so, and its entry is on the history",
+    stopped === `discontinued:sideEffects:${TAG} dizzy` && history[0] === "Discontinued: side effects",
+    `${stopped} ${JSON.stringify(history.slice(0, 2))}`,
+  );
+  await p.goto(LIST);
+  await p
+    .waitFor(
+      `${allNames("Completed and discontinued medications")}.includes(${JSON.stringify(title)})`,
+      15000,
+    )
+    .catch(() => {});
+  const moved = await p.evaluate(
+    `({ current: ${allNames("Current medications")}, stopped: ${allNames("Completed and discontinued medications")} })`,
+  );
+  check(
+    "a discontinued medication moves below the current ones",
+    !moved.current.includes(title) && moved.stopped.includes(title),
+    JSON.stringify(moved),
+  );
+
+  await p.goto(medPath(id));
+  await p.waitFor(onMedPage(id), 20000).catch(() => {});
+  await pageAction(p, title, "Restart");
+  const restarted = await waitForSql(
+    `SELECT status FROM medication WHERE id = '${id}'`,
+    (v) => v === "current",
+  );
+  await p
+    .waitFor(`!document.querySelector('main header [data-region="title"] .badge')`, 8000)
+    .catch(() => {});
+  const resumed = await historyTexts(p);
+  check(
+    'Restart brings it back with a "Resumed" entry',
+    restarted === "current" && resumed[0] === "Resumed" && changeCount(name) === "4",
+    `${restarted} ${JSON.stringify(resumed.slice(0, 2))} ${changeCount(name)}`,
+  );
+
+  await pageAction(p, title, "Mark completed");
+  await p.waitFor(dialogButton("Mark completed"), 5000).catch(() => {});
+  await p.press(dialogButton("Mark completed"));
+  const completed = await waitForSql(
+    `SELECT status || ':' || coalesce(stop_reason, '-') || ':' || (stopped_on IS NOT NULL)::text FROM medication WHERE id = '${id}'`,
+    (v) => v.startsWith("completed"),
+  );
+  await p
+    .waitFor(
+      `document.querySelector('main header [data-region="title"] .badge')?.textContent === "Completed"`,
+      8000,
+    )
+    .catch(() => {});
+  check(
+    "Mark completed needs no reason; it's dated today",
+    completed === "completed:-:true" && (await historyTexts(p))[0] === "Completed",
+    completed,
+  );
+
+  // The edit sheet's own status actions: Restart there, then back to the page.
+  await p.tap(`document.querySelector("main [data-edit-medication]")`);
+  await p.waitFor(`!!${SHEET}?.querySelector("[data-status-actions]")`, 15000).catch(() => {});
+  const restartButton = `[...(${SHEET}?.querySelectorAll("[data-status-actions] button") ?? [])].find((b) => b.textContent.trim() === "Restart")`;
+  await p.press(restartButton);
+  await p.waitFor(`!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000).catch(() => {});
+  const again = await waitForSql(`SELECT status FROM medication WHERE id = '${id}'`, (v) => v === "current");
+  check(
+    "Restart in the edit sheet works too, and closes back to the page",
+    again === "current" && (await p.evaluate(`location.pathname`)).endsWith(`/medications/${id}`),
+    again,
+  );
+
+  // Delete: a confirm, then the list; it's gone from it, soft.
+  await pageAction(p, title, "Delete");
+  await p.waitFor(dialogButton("Delete"), 5000).catch(() => {});
+  await p.press(dialogButton("Delete"));
+  await p
+    .waitFor(
+      `location.pathname.endsWith("/medications") && ${allNames("Current medications")}.length >= 4`,
+      10000,
+    )
+    .catch(() => {});
+  const deleted = await waitForSql(
+    `SELECT (deleted_at IS NOT NULL)::text FROM medication WHERE id = '${id}'`,
+    (v) => v === "true",
+  );
+  const after = await p.evaluate(
+    `({ path: location.pathname, all: [...${allNames("Current medications")}, ...${allNames("Completed and discontinued medications")}] })`,
+  );
+  check(
+    "Delete asks first, then goes to the list without it; the delete is soft and uploads",
+    deleted === "true" && after.path.endsWith("/medications") && !after.all.includes(title),
+    JSON.stringify(after),
+  );
+}
+
+/** Offline (A, through its proxy): add, edit and discontinue; each syncs on reconnecting with one change entry (B sees it). */
+async function formOfflineSteps(p, proxy, B) {
+  const name = `${TAG} Albuterol`;
+  await p.goto(LIST);
+  await p.waitFor(`${allNames("Current medications")}.length >= 4`, 20000).catch(() => {});
+  const errorsBefore = p.errors.length;
+  proxy.setOnline(false);
+  await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+  await p.tap(`document.querySelector("main [data-add-medication]")`);
+  await p.waitFor(`!!${FORM}`, 15000).catch(() => {});
+  await p.type(formField("name"), name);
+  await p.press(`${FORM}.querySelector('input[name="scheduleType"][value="asNeeded"]')`);
+  await p.waitFor(formField("maxPerDay"), 5000);
+  await p.type(formField("maxPerDay"), "4");
+  await p.type(formField("dose"), "1 puff");
+  await p.press(FORM_SUBMIT);
+  await p
+    .waitFor(`!${SHEET} && ${allNames("Current medications")}.includes(${JSON.stringify(name)})`, 10000)
+    .catch(() => {});
+  const added = await p.evaluate(`${allNames("Current medications")}.includes(${JSON.stringify(name)})`);
+  const id = await medicationId(p, name);
+  // A full load needs the network (no service worker yet): open its page from the list.
+  await p.tap(`document.querySelector('main li[data-medication-id="${id}"] [data-medication-name]')`);
+  await p.waitFor(onMedPage(id), 10000).catch(() => {});
+  await p.tap(`document.querySelector("main [data-edit-medication]")`);
+  await p.waitFor(`!!${FORM}`, 10000).catch(() => {});
+  await p.type(formField("dose"), "2 puffs");
+  await p.press(FORM_SUBMIT);
+  await p.waitFor(`!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000).catch(() => {});
+  await pageAction(p, name, "Discontinue…");
+  await p.waitFor(`!!${OPEN_DIALOG}?.querySelector("[data-discontinue-form]")`, 5000).catch(() => {});
+  await p.press(`${OPEN_DIALOG}.querySelector('input[name="stopReason"][aria-label="Not working"]')`);
+  await p.press(dialogButton("Discontinue"));
+  await p.waitFor(`!${OPEN_DIALOG}`, 8000).catch(() => {});
+  const local = await localRows(
+    p,
+    `SELECT m.status, m.dose, (SELECT count(*) FROM timeline_entry e WHERE e.kind = 'medicationChange' AND json_extract(e.details, '$.medicationId') = m.id) AS n FROM medication m WHERE m.id = ?`,
+    [id],
+  );
+  const before = psql(`SELECT count(*) FROM medication WHERE name = '${name}'`);
+  proxy.setOnline(true);
+  await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  const synced = await waitForSql(
+    `SELECT status || ':' || dose || ':' || stop_reason FROM medication WHERE name = '${name}'`,
+    (v) => v === "discontinued:2 puffs:ineffective",
+    30000,
+  );
+  const kinds = await waitForSql(
+    `SELECT string_agg(details->>'change', ',' ORDER BY occurred_at) FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'medicationId' = '${id}'`,
+    (v) => v.split(",").length >= 3,
+  );
+  check(
+    "offline: add, edit and discontinue work on the device, then sync on reconnecting with one change entry each",
+    added &&
+      local[0]?.status === "discontinued" &&
+      local[0]?.n === 3 &&
+      before === "0" &&
+      synced === "discontinued:2 puffs:ineffective" &&
+      kinds === "started,changed,stopped",
+    `${added} ${JSON.stringify(local)} ${before} ${synced} ${kinds}`,
+  );
+  if (B) {
+    const seen = await waitForLocal(
+      B,
+      "SELECT status FROM medication WHERE id = ?",
+      [id],
+      (r) => r[0]?.status === "discontinued",
+      30000,
+    );
+    check("…and a second device gets it", seen[0]?.status === "discontinued", JSON.stringify(seen));
+  }
+  p.errors.splice(errorsBefore); // Offline fetch failures aren't the app's errors.
+}
+
+/** viewer@ (C): no add, edit or status controls; the sheet URLs show the list with no form. */
+async function viewerFormSteps(C) {
+  await C.goto(LIST);
+  await C.waitFor(`${allNames("Current medications")}.length >= 4`, 20000).catch(() => {});
+  const add = await C.evaluate(`!!document.querySelector("main [data-add-medication]")`);
+  await C.goto(`${LIST}/new?q=lis`);
+  await C.waitFor(
+    `location.pathname.endsWith("/medications") && ${allNames("Current medications")}.length >= 1`,
+    20000,
+  ).catch(() => {});
+  const fromNew = await C.evaluate(
+    `({ path: location.pathname, search: location.search, form: !!document.querySelector("[data-medication-form]") })`,
+  );
+  const lisinopril = await medicationId(C, "Lisinopril");
+  await C.goto(`${LIST}/${lisinopril}/edit`);
+  await C.waitFor(
+    `location.pathname.endsWith("/medications") && ${allNames("Current medications")}.length >= 4`,
+    20000,
+  ).catch(() => {});
+  const fromEdit = await C.evaluate(
+    `({ path: location.pathname, form: !!document.querySelector("[data-medication-form]") })`,
+  );
+  await C.goto(medPath(lisinopril));
+  await C.waitFor(onMedPage(lisinopril), 20000).catch(() => {});
+  const page = await C.evaluate(
+    `({ actions: !!document.querySelector('main header [data-region="actions"]'), edit: !!document.querySelector("[data-edit-medication]") })`,
+  );
+  check(
+    "a viewer gets no Add, Edit or status controls, and the sheet URLs show the list with no form",
+    !add &&
+      fromNew.path.endsWith("/medications") &&
+      fromNew.search === "?q=lis" &&
+      !fromNew.form &&
+      fromEdit.path.endsWith("/medications") &&
+      !fromEdit.form &&
+      !page.actions &&
+      !page.edit,
+    JSON.stringify({ add, fromNew, fromEdit, page }),
+  );
+}
+
 // One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
-const proxy = startProxy(9434);
+// 9435, not 9434: slot 2's offset puts 9434 on 11434, Ollama's default port.
+const proxy = startProxy(9435);
 const proxyA = proxy;
 const bA = await launch(9431, proxy.args);
 const bB = SMOKE ? null : await launch(9432);
@@ -1451,6 +1979,8 @@ try {
   await pageSteps(A);
   await printSteps(A);
   await providerMedicationSteps(A);
+  // Slice 3 on A; the second device (B) only in a full run.
+  if (SMOKE) await addSteps(A);
 
   if (!SMOKE) {
     // member@ is in both groups: each group's medications stay its own.
@@ -1477,6 +2007,12 @@ try {
       JSON.stringify({ second, zone }),
     );
     const notesId = await notesSteps(A, B);
+    const added = await addSteps(A, B);
+    if (added.id) {
+      await editSteps(A, added);
+      await statusSteps(A, added);
+    }
+    await formOfflineSteps(A, proxy, B);
     await offlineSteps(A, proxy);
     await printOfflineSteps(A, proxy);
     if (made) {
@@ -1534,6 +2070,7 @@ try {
       JSON.stringify(refusals),
     );
     await viewerSteps(C, notesId);
+    await viewerFormSteps(C);
     await notFoundSteps(B, A);
   }
 
@@ -1572,7 +2109,8 @@ try {
     psql(
       `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind IN ('dose', 'medicationChange')
          AND details->>'medicationId' IN (SELECT id::text FROM medication WHERE name LIKE '${TAG}%');
-       UPDATE medication SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%'`,
+       UPDATE medication SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%';
+       UPDATE provider SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%'`,
     );
   } catch (e) {
     console.log(`clean-up failed: ${e.message}`);

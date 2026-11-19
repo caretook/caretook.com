@@ -1,17 +1,28 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
+import type { ActionResult } from "~/lib/api";
+import type { StatusIntent } from "~/lib/medicationStatusForm";
 import type { MedicationRow } from "~/lib/sync/medications";
 
-import { useState } from "react";
-import { Link } from "react-router";
+import { Pencil } from "lucide-react";
+import { useCallback, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { MedicationStatusActions } from "~/components/medications";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { BackLink } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
 import { medicationTitle } from "~/lib/medicationDisplay";
+import { MEDICATION_SHEET_STATE } from "~/lib/medicationSheets";
+import { statusRequestFromForm } from "~/lib/medicationStatusForm";
 import { sessionContext } from "~/lib/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
-import { medicationQuery, toMedication } from "~/lib/sync/medications";
+import {
+  changeMedicationStatus,
+  medicationQuery,
+  removeMedication,
+  toMedication,
+} from "~/lib/sync/medications";
 import { loadMedication } from "./loadMedication";
 import { MedicationDetails, MedicationRefills } from "./MedicationDetails";
 import { MedicationHeader } from "./MedicationHeader";
@@ -33,6 +44,24 @@ export async function clientLoader({ params, context }: Route.ClientLoaderArgs) 
   getGroup(context);
   const { db } = context.get(sessionContext);
   return loadMedication(db, params.groupId, params.medicationId);
+}
+
+/**
+ * The header's status actions (Mark completed, Discontinue, Restart,
+ * Delete): local writes, with their change entries; the page's live queries
+ * show them, and PowerSync uploads them.
+ */
+export async function clientAction({
+  request,
+  params,
+  context,
+}: Route.ClientActionArgs): Promise<ActionResult> {
+  getGroup(context);
+  const { db } = context.get(sessionContext);
+  const status = statusRequestFromForm(await request.formData());
+  if (!status) return { ok: false, error: "Nothing to do", issues: [] };
+  if (status.intent === "remove") return removeMedication(db, params.medicationId);
+  return changeMedicationStatus(db, params.medicationId, status.change);
 }
 
 /** Live queries keep the page current, so submissions need no reload. */
@@ -63,6 +92,14 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
 
   const { ensureSaved, saveError } = useMedicationNotes(medicationId, loaderData.hasDocument);
   const title = medicationTitle(medication);
+  const navigate = useNavigate();
+  // Deleted from here: back to the list (the page would only say it's gone).
+  const statusDone = useCallback(
+    (intent: StatusIntent) => {
+      if (intent === "remove") void navigate(listUrl, { replace: true });
+    },
+    [navigate, listUrl],
+  );
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
@@ -73,7 +110,30 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
         editors={
           !deleted && <EditorAvatars documentId={medicationId} groupId={groupId} viewerId={db.userId} />
         }
-        // Writers' Edit and status actions go in `actions` (the edit sheet).
+        actions={
+          canWrite &&
+          !deleted && (
+            <>
+              <Link
+                to={appUrls.editMedication(groupId, medicationId)}
+                // Closing the sheet comes back here.
+                state={MEDICATION_SHEET_STATE}
+                prefetch="render"
+                className="btn btn-ghost btn-sm gap-1"
+                data-edit-medication
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+                Edit
+              </Link>
+              <MedicationStatusActions
+                medication={medication}
+                recipientTimeZone={loaderData.recipientTimeZone}
+                layout="menu"
+                onDone={statusDone}
+              />
+            </>
+          )
+        }
       />
 
       {deleted ? (

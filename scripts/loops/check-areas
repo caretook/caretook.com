@@ -159,6 +159,8 @@ apps/web/app/lib/sync/providers.ts       providers
 apps/web/app/lib/sync/medications.ts     medications
 apps/web/app/routes/app/groups/medications/* medications
 apps/web/app/routes/app/groups/medication/* medications live-notes
+# The status actions (the medication page and the list's edit sheet).
+apps/web/app/components/medications/*    medications
 apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 # The time fields and the reschedule sheet (the entry page's time chip, and
 # Reschedule from the timeline, Upcoming and the entry page).
