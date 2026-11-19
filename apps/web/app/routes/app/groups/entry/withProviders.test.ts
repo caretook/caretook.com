@@ -1,7 +1,7 @@
 import type { PickerProvider } from "./withProviders";
 
 import { describe, expect, it } from "vitest";
-import { canAddNamed, chipLabel, pickerOptions } from "./withProviders";
+import { canAddNamed, pickerOptions } from "./withProviders";
 
 const p = (id: string, name: string, extra: Partial<PickerProvider> = {}): PickerProvider => ({
   id,
@@ -63,12 +63,5 @@ describe("canAddNamed", () => {
 
   it("offers a deleted provider's name again", () => {
     expect(canAddNamed(all, "Dr. Gone")).toBe(true);
-  });
-});
-
-describe("chipLabel", () => {
-  it("marks a deleted provider removed", () => {
-    expect(chipLabel(patel)).toBe("Dr. Samuel Patel");
-    expect(chipLabel(gone)).toBe("Dr. Gone (removed)");
   });
 });

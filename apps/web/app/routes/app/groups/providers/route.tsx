@@ -10,13 +10,13 @@ import { Link, Outlet, useLocation } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
 import { directoryList, parseDirectoryFilters } from "~/lib/providerDirectory";
+import { PROVIDER_SHEET_STATE } from "~/lib/providerSheetLink";
 import { sessionContext } from "~/lib/session";
 import { useLiveQuery } from "~/lib/sync";
 import { providersQuery, toProviders } from "~/lib/sync/providers";
 import { readRows } from "~/lib/sync/timeline";
 import { ProviderSearch, TypeFilter } from "./DirectoryFilters";
 import { DirectoryResults } from "./DirectoryResults";
-import { PROVIDER_SHEET_STATE } from "./providerSheet";
 import { onlyProviderSheetChanged } from "./providerSheetGuard";
 
 // Shared by web + native. The group's provider directory, read from the
