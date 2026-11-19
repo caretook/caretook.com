@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { endOfListText, nextLimit, PAGE_SIZE, pageWindow } from "./timelinePaging";
+import { endOfListText, nextLimit, PAGE_SIZE, pageWindow } from "./paging";
 
 describe("nextLimit", () => {
   it("adds one page", () => {
@@ -60,5 +60,11 @@ describe("endOfListText", () => {
   it("says nothing while there's more, or on an empty timeline (it has its own message)", () => {
     expect(endOfListText({ empty: false, loading: false, hasOlder: true })).toBe("");
     expect(endOfListText({ empty: true, loading: false, hasOlder: false })).toBe("");
+  });
+
+  it("says another list's end in its own words", () => {
+    expect(
+      endOfListText({ empty: false, loading: false, hasOlder: false, endText: "No earlier visits" }),
+    ).toBe("No earlier visits");
   });
 });

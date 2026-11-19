@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { useState } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
-import { formatDay, formatTime } from "~/lib/format";
+import { scheduleText } from "~/lib/entrySchedule";
 import { KindIcon } from "~/components/entry";
 import { Field } from "~/components/ui";
 
@@ -14,12 +14,14 @@ import { Field } from "~/components/ui";
  *   [icon] [title ............] [editors] [actions]
  *          [time]
  *          [with ...........]
+ *          [place ..........]
  *
  * - `title`: `EntryTitle` (editable for writers) or plain text.
  * - `time`: when it happened (`EntryTimeChip` for writers, `EntryTime` otherwise).
  * - `editors`: who is typing now (avatars).
  * - `actions`: Share, the ⋯ menu.
  * - `with`: the providers it was with (notes and events).
+ * - `place`: where an event is (an appointment's address).
  *
  * Empty regions take no space.
  */
@@ -30,6 +32,7 @@ export function EntryHeader({
   editors,
   actions,
   with: withRegion,
+  place,
 }: {
   kind: TimelineEntryKind;
   title: ReactNode;
@@ -37,6 +40,7 @@ export function EntryHeader({
   editors?: ReactNode;
   actions?: ReactNode;
   with?: ReactNode;
+  place?: ReactNode;
 }) {
   return (
     <header className="flex items-start gap-3">
@@ -49,6 +53,11 @@ export function EntryHeader({
         {withRegion && (
           <div data-region="with" className="pt-1.5 empty:hidden">
             {withRegion}
+          </div>
+        )}
+        {place && (
+          <div data-region="place" className="pt-1 empty:hidden">
+            {place}
           </div>
         )}
       </div>
@@ -66,11 +75,24 @@ export function EntryHeader({
   );
 }
 
-/** When the entry happened, read-only. */
-export function EntryTime({ occurredAt }: { occurredAt: string }) {
+/**
+ * When the entry is, read-only: "Today, 2:15 PM", a range ("Tomorrow, 10:30
+ * AM–11:15 AM") or "Friday, Nov 20 · All day". `dateTime` is the start.
+ */
+export function EntryTime({
+  occurredAt,
+  endsAt = null,
+  allDay = false,
+  timeZone,
+}: {
+  occurredAt: string;
+  endsAt?: string | null;
+  allDay?: boolean;
+  timeZone: string;
+}) {
   return (
-    <time dateTime={occurredAt}>
-      {formatDay(occurredAt)}, {formatTime(occurredAt)}
+    <time dateTime={occurredAt} data-all-day={allDay || undefined}>
+      {scheduleText({ id: "", occurredAt, endsAt, allDay, timeZone }, new Date())}
     </time>
   );
 }

@@ -1,12 +1,13 @@
 import type { EntryOpen } from "./entryOpen";
 import type { UnitChoices } from "@caretook/data/schema";
 import type { LinkedProviderName } from "~/lib/entryProviders";
+import type { EntryCancelActions } from "~/components/entry";
 import type { TimelineEntry } from "~/lib/rpc";
 
-import { AuthorFilterLink, EntryActions, KindFilterLink } from "~/components/entry";
+import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
 import { initials } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
-import { EntryBody } from "./EntryBody";
+import { cancelledLabel } from "~/lib/upcomingLabels";
 import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
@@ -26,6 +27,8 @@ export type EntryViewProps = {
   onEdit?: () => void;
   /** Omitted for people who can't change the timeline (viewers): no ⋯ menu. */
   onDelete?: () => void;
+  /** An event's Cancel or Undo cancel in the ⋯ menu (writers). */
+  cancel?: EntryCancelActions;
   /** Others are writing in its document now: the live dot's label ("Being written now by Maria"). */
   liveLabel?: string;
   /** A note's or event's linked providers: the "with …" line. */
@@ -45,27 +48,37 @@ export function TimelineEntryRow({
   open,
   onEdit,
   onDelete,
+  cancel,
   liveLabel,
   providers,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
+  const cancelled = cancelledLabel(entry);
   return (
-    <li className={`relative isolate flex items-start gap-2.5 px-3 py-2 ${removing ? "opacity-50" : ""}`}>
+    <li
+      className={`relative isolate flex items-start gap-2.5 px-3 py-2 ${removing ? "opacity-50" : ""}`}
+      data-cancelled={cancelled ? "" : undefined}
+    >
       {open && <EntryOpenTarget open={open} entry={entry} />}
       <KindFilterLink kind={entry.kind} size="sm" />
       <time
         dateTime={entry.occurredAt}
         className="text-base-content/70 w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
       >
-        {formatTime(entry.occurredAt)}
+        {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
       </time>
       <EntryBody
         entry={entry}
         units={units}
         clamp
         providers={providers}
-        className="pt-0.5"
-        footer={elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
+        className={`pt-0.5 ${cancelled ? CANCELLED_TEXT : ""}`}
+        footer={
+          <>
+            {elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
+            {cancelled && <CancelledBadge label={cancelled} />}
+          </>
+        }
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
       <AuthorFilterLink
@@ -75,8 +88,26 @@ export function TimelineEntryRow({
         image={authorImage}
       />
       {onDelete && (
-        <EntryActions kind={entry.kind} label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />
+        <EntryActions
+          kind={entry.kind}
+          label={actionsLabel(entry)}
+          onEdit={onEdit}
+          cancel={cancel}
+          onDelete={onDelete}
+        />
       )}
     </li>
+  );
+}
+
+/** A cancelled event's text, struck through and muted (rows and cards). */
+export const CANCELLED_TEXT = "text-base-content/60 line-through";
+
+/** "Cancelled", below a cancelled event's text. An inline block, so the line through its text skips it. */
+export function CancelledBadge({ label }: { label: string }) {
+  return (
+    <p className="inline-block" data-cancelled-label>
+      <span className="badge badge-sm badge-ghost">{label}</span>
+    </p>
   );
 }

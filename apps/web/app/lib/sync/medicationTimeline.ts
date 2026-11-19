@@ -3,7 +3,7 @@ import type { EntryFilters, LocalQuery } from "./timeline";
 
 import { useMemo } from "react";
 import { useLiveQuery } from "./index";
-import { entryWindow, fromLocalTimestamp } from "./timeline";
+import { entryWindow, fromLocalTimestamp, historyWindow } from "./timeline";
 
 // Medications as the timeline needs them: the names behind its doses and
 // changes, and the Dose sheet's choices. Local reads for `useLiveQuery` and
@@ -19,14 +19,18 @@ export type EntryMedicationRow = {
 /**
  * The medications the timeline's doses and changes name, deleted ones too (a
  * dose keeps its medication's name): one query over the same window as the
- * entries (`entryWindow`), never one per row.
+ * entries, never one per row. With a `cutoff` that's the timeline's history
+ * (`historyWindow`, which ends at now); without one, `entryWindow`.
  */
 export const timelineMedicationsQuery = (
   groupId: string,
   filters: EntryFilters,
   limit: number,
+  cutoff?: string,
 ): LocalQuery => {
-  const window = entryWindow(groupId, filters, limit);
+  const window = cutoff
+    ? historyWindow(groupId, filters, limit, cutoff)
+    : entryWindow(groupId, filters, limit);
   return {
     sql: `SELECT m.id, m.name, m.strength, m.deleted_at FROM medication m
           WHERE m.group_id = ?
@@ -45,8 +49,13 @@ export const toEntryMedication = (row: EntryMedicationRow): EntryMedication => (
 const NO_ROWS: EntryMedicationRow[] = [];
 
 /** The timeline's medications, live, by id (`timelineMedicationsQuery`). */
-export function useTimelineMedications(groupId: string, filters: EntryFilters, limit: number) {
-  const query = timelineMedicationsQuery(groupId, filters, limit);
+export function useTimelineMedications(
+  groupId: string,
+  filters: EntryFilters,
+  limit: number,
+  cutoff?: string,
+) {
+  const query = timelineMedicationsQuery(groupId, filters, limit, cutoff);
   const rows = useLiveQuery<EntryMedicationRow>(query.sql, query.params, NO_ROWS);
   return useMemo(() => {
     const byId = new Map(rows.map((row) => [row.id, toEntryMedication(row)]));

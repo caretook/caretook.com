@@ -3,10 +3,12 @@ import {
   clearAuthor,
   clearFilters,
   clearKind,
+  clearUpcoming,
   hasFilters,
   parseFilters,
   setAuthor,
   setKind,
+  setUpcoming,
 } from "./timelineFilters";
 
 const ALEX = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -14,19 +16,27 @@ const SAM = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0aaa";
 
 describe("parseFilters", () => {
   it("reads no filters from an empty search", () => {
-    expect(parseFilters("")).toEqual({ kind: null, author: null });
-    expect(parseFilters("?")).toEqual({ kind: null, author: null });
+    expect(parseFilters("")).toEqual({ kind: null, author: null, upcoming: false });
+    expect(parseFilters("?")).toEqual({ kind: null, author: null, upcoming: false });
   });
 
   it("reads a kind, an author, or both", () => {
-    expect(parseFilters("?kind=symptom")).toEqual({ kind: "symptom", author: null });
-    expect(parseFilters(`?author=${ALEX}`)).toEqual({ kind: null, author: ALEX });
-    expect(parseFilters(`?kind=vital&author=${ALEX}`)).toEqual({ kind: "vital", author: ALEX });
-    expect(parseFilters(`?author=${ALEX}&kind=note`)).toEqual({ kind: "note", author: ALEX });
+    expect(parseFilters("?kind=symptom")).toEqual({ kind: "symptom", author: null, upcoming: false });
+    expect(parseFilters(`?author=${ALEX}`)).toEqual({ kind: null, author: ALEX, upcoming: false });
+    expect(parseFilters(`?kind=vital&author=${ALEX}`)).toEqual({
+      kind: "vital",
+      author: ALEX,
+      upcoming: false,
+    });
+    expect(parseFilters(`?author=${ALEX}&kind=note`)).toEqual({
+      kind: "note",
+      author: ALEX,
+      upcoming: false,
+    });
   });
 
   it("reads a search without its question mark", () => {
-    expect(parseFilters("kind=event")).toEqual({ kind: "event", author: null });
+    expect(parseFilters("kind=event")).toEqual({ kind: "event", author: null, upcoming: false });
   });
 
   it("knows every kind", () => {
@@ -36,20 +46,24 @@ describe("parseFilters", () => {
   });
 
   it("ignores an unknown kind", () => {
-    expect(parseFilters("?kind=medication")).toEqual({ kind: null, author: null });
-    expect(parseFilters("?kind=")).toEqual({ kind: null, author: null });
-    expect(parseFilters("?kind=Symptom")).toEqual({ kind: null, author: null });
+    expect(parseFilters("?kind=medication")).toEqual({ kind: null, author: null, upcoming: false });
+    expect(parseFilters("?kind=")).toEqual({ kind: null, author: null, upcoming: false });
+    expect(parseFilters("?kind=Symptom")).toEqual({ kind: null, author: null, upcoming: false });
   });
 
   it("ignores an author that isn't a user id", () => {
-    expect(parseFilters("?author=alex")).toEqual({ kind: null, author: null });
-    expect(parseFilters("?author=")).toEqual({ kind: null, author: null });
-    expect(parseFilters(`?author=${ALEX}'%20OR%201=1`)).toEqual({ kind: null, author: null });
+    expect(parseFilters("?author=alex")).toEqual({ kind: null, author: null, upcoming: false });
+    expect(parseFilters("?author=")).toEqual({ kind: null, author: null, upcoming: false });
+    expect(parseFilters(`?author=${ALEX}'%20OR%201=1`)).toEqual({
+      kind: null,
+      author: null,
+      upcoming: false,
+    });
   });
 
   it("keeps the valid filter when the other is unknown", () => {
-    expect(parseFilters(`?kind=nope&author=${ALEX}`)).toEqual({ kind: null, author: ALEX });
-    expect(parseFilters("?kind=note&author=nope")).toEqual({ kind: "note", author: null });
+    expect(parseFilters(`?kind=nope&author=${ALEX}`)).toEqual({ kind: null, author: ALEX, upcoming: false });
+    expect(parseFilters("?kind=note&author=nope")).toEqual({ kind: "note", author: null, upcoming: false });
   });
 
   it("reads an author id in lower case", () => {
@@ -57,7 +71,7 @@ describe("parseFilters", () => {
   });
 
   it("ignores other parameters", () => {
-    expect(parseFilters("?q=fall&kind=event")).toEqual({ kind: "event", author: null });
+    expect(parseFilters("?q=fall&kind=event")).toEqual({ kind: "event", author: null, upcoming: false });
   });
 });
 
@@ -176,11 +190,48 @@ describe("a round trip", () => {
     let search = "";
     search = setKind(search, "symptom");
     search = setAuthor(search, ALEX);
-    expect(parseFilters(search)).toEqual({ kind: "symptom", author: ALEX });
+    expect(parseFilters(search)).toEqual({ kind: "symptom", author: ALEX, upcoming: false });
     search = clearKind(search);
-    expect(parseFilters(search)).toEqual({ kind: null, author: ALEX });
+    expect(parseFilters(search)).toEqual({ kind: null, author: ALEX, upcoming: false });
     search = setKind(search, "note");
     search = clearAuthor(search);
-    expect(parseFilters(search)).toEqual({ kind: "note", author: null });
+    expect(parseFilters(search)).toEqual({ kind: "note", author: null, upcoming: false });
+  });
+});
+
+describe("the Upcoming block (?upcoming=1)", () => {
+  it("reads only 1 as on", () => {
+    expect(parseFilters("?upcoming=1").upcoming).toBe(true);
+    expect(parseFilters("?upcoming=0").upcoming).toBe(false);
+    expect(parseFilters("?upcoming=true").upcoming).toBe(false);
+    expect(parseFilters(`?kind=event&author=${ALEX}&upcoming=1`)).toEqual({
+      kind: "event",
+      author: ALEX,
+      upcoming: true,
+    });
+  });
+
+  it("is not a filter", () => {
+    expect(hasFilters(parseFilters("?upcoming=1"))).toBe(false);
+  });
+
+  it("turns on after the filters, and off again, keeping them", () => {
+    expect(setUpcoming("")).toBe("?upcoming=1");
+    expect(setUpcoming(`?author=${ALEX}&kind=event`)).toBe(`?kind=event&author=${ALEX}&upcoming=1`);
+    expect(clearUpcoming(`?kind=event&upcoming=1`)).toBe("?kind=event");
+    expect(clearUpcoming("?upcoming=1")).toBe("");
+  });
+
+  it("returns the same search when it changes nothing", () => {
+    expect(setUpcoming("?upcoming=1&q=x")).toBe("?upcoming=1&q=x");
+    expect(clearUpcoming("?kind=note")).toBe("?kind=note");
+  });
+
+  it("stays through every filter change", () => {
+    expect(setKind("?upcoming=1", "note")).toBe("?kind=note&upcoming=1");
+    expect(setAuthor("?upcoming=1", ALEX)).toBe(`?author=${ALEX}&upcoming=1`);
+    expect(clearKind("?kind=note&upcoming=1")).toBe("?upcoming=1");
+    expect(clearAuthor(`?author=${ALEX}&upcoming=1`)).toBe("?upcoming=1");
+    expect(clearFilters(`?kind=note&author=${ALEX}&upcoming=1`)).toBe("?upcoming=1");
   });
 });

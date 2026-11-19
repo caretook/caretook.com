@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { useEffect, useId, useRef } from "react";
 
 /**
@@ -10,6 +12,9 @@ import { useEffect, useId, useRef } from "react";
  * - Escape closes only the dialog, never a sheet it's in.
  * - `message` explains, and `confirmDisabled` holds back the confirm button
  *   (when the action can't go ahead yet; Cancel still closes).
+ * - `children` (a field, such as a reason) go between the message and the
+ *   buttons; `cancelLabel` renames the closing button ("Keep it" when the
+ *   action itself is a cancel).
  */
 export function ConfirmDialog({
   open,
@@ -17,6 +22,8 @@ export function ConfirmDialog({
   confirmLabel,
   message,
   confirmDisabled = false,
+  cancelLabel = "Cancel",
+  children,
   onConfirm,
   onClose,
 }: {
@@ -25,6 +32,8 @@ export function ConfirmDialog({
   confirmLabel: string;
   message?: string | null;
   confirmDisabled?: boolean;
+  cancelLabel?: string;
+  children?: ReactNode;
   onConfirm: () => void;
   onClose: () => void;
 }) {
@@ -72,9 +81,10 @@ export function ConfirmDialog({
             {message}
           </p>
         )}
+        {children && <div className="mt-3">{children}</div>}
         <div className="modal-action">
           <button type="button" className="btn" onClick={onClose}>
-            Cancel
+            {cancelLabel}
           </button>
           <button type="button" className="btn btn-error" disabled={confirmDisabled} onClick={onConfirm}>
             {confirmLabel}

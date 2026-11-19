@@ -5,6 +5,7 @@ import type { EntryRow } from "~/lib/sync/timeline";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { data } from "react-router";
+import { WHEN_PICK } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
 import { localTimeZone } from "~/lib/format";
 import { isLiveEntryKind, NEW_ENTRY } from "~/lib/liveEntry";
@@ -25,6 +26,8 @@ export type EntryDraft = {
 
 export type EntryPageData = {
   isNew: boolean;
+  /** A draft opened as `?when=pick` (Add appointment, Add reminder): the time chip opens first. */
+  pickDay: boolean;
   entry: EntryDraft;
   heading: string;
   hasDocument: boolean;
@@ -37,7 +40,8 @@ const notFound = () => data("Not found", { status: 404 });
 
 /**
  * The entry, its document and pending updates, or a new draft
- * (`entryId` = `new`, `kind` from `?kind=`). Anything not on the device, not
+ * (`entryId` = `new`, `kind` from `?kind=`, and `?when=pick` to ask for the
+ * day first). Anything not on the device, not
  * a note or event, or (for a draft) not allowed, is a 404.
  */
 export async function loadEntry(
@@ -46,13 +50,15 @@ export async function loadEntry(
     groupId,
     entryId,
     kind,
+    when = null,
     canWrite,
-  }: { groupId: string; entryId: string; kind: string | null; canWrite: boolean },
+  }: { groupId: string; entryId: string; kind: string | null; when?: string | null; canWrite: boolean },
 ): Promise<EntryPageData> {
   if (entryId === NEW_ENTRY) {
     if (!isLiveEntryKind(kind) || !canWrite) throw notFound();
     return {
       isNew: true,
+      pickDay: when === WHEN_PICK,
       entry: {
         id: crypto.randomUUID(),
         kind,
@@ -85,6 +91,7 @@ export async function loadEntry(
   const { id, title, occurredAt, timeZone } = entry;
   return {
     isNew: false,
+    pickDay: false,
     entry: { id, kind: entry.kind, title, occurredAt, timeZone },
     heading: entryHeading(KIND_META[entry.kind].label, title, false),
     hasDocument: !!doc,

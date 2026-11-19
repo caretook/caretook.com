@@ -6,15 +6,15 @@
 
 | Slice | State                                                      | Merge into `prd/appointments` (slice commits) |
 | ----- | ---------------------------------------------------------- | --------------------------------------------- |
-| 1     | ready (sync after `medications` slice 1 if it lands first) |                                               |
-| 2     | blocked by 1                                               |                                               |
-| 3     | blocked by 1                                               |                                               |
+| 1     | landed in `dev` (`1abaa58`); migration `0015_appointments` | `8881e85` (`5f58d49`…`e7bafce`)               |
+| 2     | in progress                                                |                                               |
+| 3     | in progress                                                |                                               |
 | 4     | blocked by 2                                               |                                               |
 | 5     | blocked by 4                                               |                                               |
-| 6     | blocked by 1 and `timeline-polish` wave 3 (slices 6 and 7) |                                               |
+| 6     | unblocked (timeline-polish wave 3 in `dev`); start after 3 |                                               |
 | 7     | blocked by 3 and `medications` slice 5                     |                                               |
 
-Backlog: B-47 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges.
+Backlog: B-47 is claimed by `prd/appointments`; mark it `done` after the last slice merges. The user said to land every wave without asking, and to clean up at the end. Slice 1 decided that doses are not future kinds (refused over 1 h ahead on the server, 5 min on the device).
 
 ## Architectural decisions
 

@@ -451,7 +451,7 @@ async function listSteps(p) {
   const bar = await p.evaluate(navState(BAR));
   check(
     "420: the tab bar shows Medications after Providers",
-    bar.labels === "Timeline,Providers,Medications" && bar.current === "Timeline",
+    bar.labels.startsWith("Timeline,Providers,Medications") && bar.current === "Timeline",
     JSON.stringify(bar),
   );
   await p.tap(`[...${BAR}.querySelectorAll("a")].find((a) => a.textContent.trim() === "Medications")`);
@@ -547,7 +547,7 @@ async function listSteps(p) {
   const wide = await p.evaluate(navState(HEADER_NAV));
   check(
     "1280: the header links show Medications after Providers, marked current",
-    wide.labels === "Timeline,Providers,Medications" && wide.current === "Medications",
+    wide.labels.startsWith("Timeline,Providers,Medications") && wide.current === "Medications",
     JSON.stringify(wide),
   );
   await p.screenshot("medications-list-wide");
