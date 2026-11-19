@@ -150,6 +150,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-106 | bug | triaged | admin |  | Turning email invites off also blocks staff owner invites from /admin |
 | B-107 | feature | triaged | orchestration |  | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
 | B-108 | change | triaged | orchestration |  | Browser testing without a timeout keeps causing hung processes. We need to always have a sane… |
+| B-109 | chore | triaged | orchestration |  | Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand |
 
 ## Items
 
@@ -1364,3 +1365,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: Browser testing without a timeout keeps causing hung processes. We need to always have a sane timeout for browser tests.
 - 2026-11-19 (Robert Bo Davis): Proposed for orchestration: browser.sh only kills on --timeout <s>; make a default per-check timeout (and a suite-wide one) mandatory. Seen live 2026-11-19: medications-2's suite held a lease 3 h on medications.mjs. Small enough to do directly on dev.
+
+### B-109 · chore · Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand
+
+- status: triaged
+- prd: orchestration
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. AGENTS.md is ~195 KB (~50k tokens) and loads into every session, loops included.
