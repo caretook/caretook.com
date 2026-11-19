@@ -122,6 +122,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-82 | change | triaged | quick-fixes |  | Server logs carry error codes and ids only, never values or meta |
 | B-83 | change | triaged | quick-fixes |  | Co-members read only id, name and image of each other's user row |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
+| B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 
 ## Items
 
@@ -1036,3 +1037,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-1 (launch): soft-deleted rows keep title, body, details and the document, and sync to every member's device. Scrub to a tombstone and purge later. The undo window and retention are open for the data-rights interview (user, 2026-11-19).
+
+### B-85 · feature · Two-factor sign-in, required for owners, admins and staff; breached-password check
+
+- status: triaged
+- prd: account-security
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-9 (later): Better Auth's twoFactor and haveIBeenPwned plugins (built in). Required for owners, admins and global staff, optional for others (decided 2026-11-19). The PRD settles group creation, promotion, a grace period for existing owners, and recovery.
