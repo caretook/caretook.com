@@ -13,8 +13,9 @@
 | 5     | merged; landing with 6–7                                                             | `10ae781` (`12722a3`, `83b6249`)            |
 | 6     | merged; landing with 5, 7                                                            | `37330ff` (`78ecfa4`, `9d3cc7f`, `8ebc08e`) |
 | 7     | merged; landing with 5–6                                                             | `1b1a039` (`80af750`, `39959af`)            |
+| 8     | fix, merged: live queries watch nothing once sign-out has closed the database        | `cbe2116` (`b8641d8`)                       |
 
-Wave 2 (slices 2–4, a usable directory) landed in `dev` (`5a2c8af`). The PRD restarted from `dev` on 2026-11-18 after `components` slices 2–4 landed, and wave 3 (slices 5–7, linking) lands as one, with the user's standing go-ahead. **The plan is done** once it's in `dev`.
+Wave 2 (slices 2–4, a usable directory) landed in `dev` (`5a2c8af`). The PRD restarted from `dev` on 2026-11-18 after `components` slices 2–4 landed, and wave 3 (slices 5–7, linking, plus fix slice 8) lands as one, with the user's standing go-ahead. **The plan is done** once it's in `dev`.
 
 Backlog: B-13 is `landed`. B-14 is `ready` (done at `1b1a039`). B-25 (@-mentions) is triaged to `providers` as the follow-up, not part of this plan. Open: "other" contacts match suggestions by last name like clinicians (slice 6's call; the PRD didn't say). `withProviders.ts` re-exports `chipLabel` from `lib/entryProviders.ts`; point its imports at `lib` when next touched. B-27 (routing.mjs flakes, owned by routing) and B-28 (a machine-wide browser check lock; note on leftover Chromes) came up while running this PRD.
 
