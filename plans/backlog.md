@@ -1109,6 +1109,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-10 (later): closes the AGENTS.md open question; invites read email as system.
+- 2026-11-19 (slice/quick-fixes/33): slice 33: co-members' user reads are field-limited in SQL (groupFields: id, name, image); email readers use userModel.getWhole*/listWhole as system. Hand-off lists the AGENTS.md lines to update.
 
 ### B-84 · feature · Deleting an entry, provider or medication scrubs its content everywhere
 
