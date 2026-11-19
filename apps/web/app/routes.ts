@@ -57,6 +57,7 @@ const appRoutes = [
         // page with its sheets as children, and a period's page.
         route("periods", "routes/app/groups/periods/route.tsx", [
           route("new", "routes/app/groups/periods/new/route.tsx"),
+          route(":periodId/edit", "routes/app/groups/periods/edit/route.tsx"),
         ]),
         route("periods/:periodId", "routes/app/groups/period/route.tsx"),
       ]),

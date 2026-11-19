@@ -17,21 +17,25 @@ import { readRows } from "~/lib/sync/timeline";
 /**
  * Close the sheet by leaving its route; Back, Escape, Cancel and a save all
  * end up in the same place: back, when it was opened by one of the app's
- * links (the periods page, the timeline's line, an entry's suggestion);
- * otherwise (a bookmark, a reload) the periods page replaces it. Only the
- * first call counts.
+ * links (the periods page, a period's page, the timeline's line, an entry's
+ * suggestion); otherwise (a bookmark, a reload) the periods page replaces it.
+ * `toList` goes to the periods page whatever opened it (once the period is
+ * deleted, the page it came from is gone). Only the first call counts.
  */
 export function useClosePeriodSheet() {
   const navigate = useNavigate();
   const state: unknown = useLocation().state;
   const { id } = useGroup();
   const closed = useRef(false);
-  return useCallback(() => {
-    if (closed.current) return;
-    closed.current = true;
-    if (openedFromApp(state)) void navigate(-1);
-    else void navigate(appUrls.periods(id), { replace: true, preventScrollReset: true });
-  }, [navigate, state, id]);
+  return useCallback(
+    (toList = false) => {
+      if (closed.current) return;
+      closed.current = true;
+      if (!toList && openedFromApp(state)) void navigate(-1);
+      else void navigate(appUrls.periods(id), { replace: true, preventScrollReset: true });
+    },
+    [navigate, state, id],
+  );
 }
 
 /** The place picker's providers as a sheet's loader reads them, so the first render has them. */

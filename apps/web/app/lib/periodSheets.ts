@@ -29,6 +29,24 @@ export const newPeriodGuard = ({
   canWrite: boolean;
 }): PeriodSheetDecision<true> => (canWrite ? { sheet: true } : { redirect: appUrls.periods(groupId) });
 
+/**
+ * `periods/:periodId/edit`: a live period in this group, for a writer. A
+ * viewer, and a period that's missing, deleted or in another group, get the
+ * periods page (with no names: they all look the same).
+ */
+export const editPeriodGuard = <P extends { groupId: string; deletedAt: string | null }>({
+  groupId,
+  canWrite,
+  period,
+}: {
+  groupId: string;
+  canWrite: boolean;
+  period: P | null;
+}): PeriodSheetDecision<P> =>
+  canWrite && period && period.groupId === groupId && !period.deletedAt
+    ? { sheet: period }
+    : { redirect: appUrls.periods(groupId) };
+
 /** What the add sheet starts with. Anything missing or malformed is left to the defaults (now, no place). */
 export type PeriodPrefillValues = {
   type: CarePeriodType | null;

@@ -20,6 +20,16 @@
 //   the list, and their device refuses writes;
 // - a period's page shows its type, place and dates; another group's or a
 //   missing period is the 404.
+// Slice 2 (the period page):
+// - the page's details, its place's call/map/website actions, and links to
+//   the periods before and after;
+// - the period's notes in two browsers (the document made on the first
+//   change), offline, and read-only for a viewer, who gets no Edit or Delete;
+// - the edit sheet from the page (a new label, an earlier start), back to
+//   the page, the second device and the period before following;
+// - Delete behind a confirm that says what happens, the second device's
+//   page extending the period before, the deleted period's 404 and edit URL;
+// - a place deleted from the directory greyed "(removed)".
 //
 // Every period this run makes carries its tag (in its label) and is
 // soft-deleted at the end, with any place it added, so it passes run after
@@ -449,7 +459,7 @@ async function viewerSteps(C) {
 async function pageSteps(p, member) {
   await toFront(p);
   await p.goto(`${PERIODS}/${SEEDED_HOSPITAL}`);
-  await need(p, `document.querySelector("main [data-period-page]")`, 30000, "the period page");
+  await need(p, `document.querySelector("main[data-period-page]")`, 30000, "the period page");
   const page = await p.evaluate(`({
     h1: document.querySelector("main h1")?.textContent.trim(),
     place: document.querySelector("main [data-period-place]")?.textContent.trim(),
@@ -478,6 +488,292 @@ async function pageSteps(p, member) {
     "another group's and a missing period's URL is the 404, with no names",
     !leaks && missing,
     String(leaks),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2: the period page (details, place and its contact actions, the
+// neighbours, live notes in two browsers, offline and for a viewer), the
+// edit sheet, delete, a removed place, and the 404s.
+// ---------------------------------------------------------------------------
+
+const PAGE = `document.querySelector("main[data-period-page]")`;
+const NOTES = `document.querySelector("main .ProseMirror")`;
+const notesHave = (text) => `!!${NOTES}?.textContent.includes(${JSON.stringify(text)})`;
+const onPeriodPage = (id) =>
+  `location.pathname.endsWith("/periods/${id}") && !!document.querySelector('main[data-period-page="${id}"]') && !!${NOTES}`;
+const pageState = (p) =>
+  p.evaluate(`({
+    h1: document.querySelector("main h1")?.textContent.trim(),
+    type: document.querySelector("main [data-period-type]")?.textContent.trim(),
+    now: !!document.querySelector('main header [data-region="title"] .badge'),
+    place: document.querySelector("main [data-period-place]")?.textContent.trim() ?? null,
+    placeLink: document.querySelector("main [data-period-place] a")?.getAttribute("href") ?? null,
+    removed: !!document.querySelector("main [data-place-removed]"),
+    actions: [...document.querySelectorAll("main [data-contact-actions] a[data-action]")].map((a) => a.dataset.action),
+    start: document.querySelector("main [data-period-start]")?.textContent.trim(),
+    end: document.querySelector("main [data-period-end]")?.textContent.trim(),
+    length: document.querySelector("main [data-period-length]")?.textContent.trim() ?? null,
+    previous: document.querySelector('main [data-period-neighbour="previous"]')?.getAttribute("aria-label") ?? null,
+    next: document.querySelector('main [data-period-neighbour="next"]')?.getAttribute("aria-label") ?? null,
+    edit: !!document.querySelector("main a[data-edit-period]"),
+    menu: !!document.querySelector('main header button[aria-label^="Actions for"]'),
+    editable: ${NOTES}?.getAttribute("contenteditable") ?? null,
+  })`);
+async function typePeriodNotes(p, text) {
+  await p.waitFor(`${NOTES}?.getAttribute("contenteditable") === "true"`, 30000);
+  await p.evaluate(`(() => { const el = ${NOTES}; el.focus();
+    const sel = getSelection(); sel.selectAllChildren(el); sel.collapseToEnd(); return true; })()`);
+  await p.send("Input.insertText", { text });
+}
+async function key(p, key, code, keyCode) {
+  await p.send("Input.dispatchKeyEvent", { type: "keyDown", key, code, windowsVirtualKeyCode: keyCode });
+  await p.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode: keyCode });
+}
+const menuItem = (text) =>
+  `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim() === ${JSON.stringify(text)})`;
+const DIALOG = `document.querySelector("dialog[open]")`;
+/** `hour`:00 on the day `daysAgo` days back in Los Angeles (no DST change in between). */
+const laAt = (daysAgo, hour) =>
+  new Date(new Date(laMidnight(daysAgo)).getTime() + hour * 3_600_000).toISOString();
+const openPeriod = async (p, id) => {
+  await p.goto(`${PERIODS}/${id}`);
+  return need(p, onPeriodPage(id), 30000, `the period page ${id}`);
+};
+
+/** The seeded hospital stay's page: details, the place with every contact action, the neighbours. */
+async function fullPageSteps(p) {
+  await toFront(p);
+  await openPeriod(p, SEEDED_HOSPITAL);
+  const page = await pageState(p);
+  check(
+    "the period page: type, label, place with its room, call/map/website actions, start, end and length",
+    page.h1 === "Hospital · Cardiac unit (4 West)" &&
+      page.type === "Hospital" &&
+      !page.now &&
+      page.place === "Mercy General Hospital, Room 412, bed B" &&
+      /\/providers\//.test(page.placeLink ?? "") &&
+      page.actions.filter((a) => a === "call").length === 2 &&
+      page.actions.includes("map") &&
+      page.actions.includes("website") &&
+      /\d\d:\d\d/.test(page.start ?? "") &&
+      !!page.end &&
+      !!page.length,
+    JSON.stringify(page),
+  );
+  check(
+    "it links to the periods before and after it",
+    /^Previous period: Emergency room, /.test(page.previous ?? "") &&
+      /^Next period: Rehab, /.test(page.next ?? ""),
+    JSON.stringify({ previous: page.previous, next: page.next }),
+  );
+  await p.screenshot("care-period-page");
+  await p.tap(`document.querySelector('main [data-period-neighbour="next"]')`);
+  const stepped = await need(
+    p,
+    `!location.pathname.endsWith("/periods/${SEEDED_HOSPITAL}") && document.querySelector("main h1")?.textContent === "Rehab · Oak Hills Rehab"`,
+    10000,
+    "the next period's page",
+  );
+  const back = await p.evaluate(
+    `document.querySelector('main [data-period-neighbour="previous"]')?.getAttribute("href")?.endsWith(${JSON.stringify(SEEDED_HOSPITAL)})`,
+  );
+  check("tapping Next opens the next period, whose Previous links back", stepped && back);
+}
+
+/** Notes in two browsers, offline, and read-only for a viewer; then edit, delete and a removed place. */
+async function notesEditDeleteSteps(A, B, C, proxy) {
+  // Two tagged periods 10 days back (inside the seeded rehab stay): P1 then P2.
+  const made = await onDevice(
+    A,
+    `return [
+      await periods.createCarePeriod(db, ${JSON.stringify(DEV_FAMILY)}, { type: "other", label: ${JSON.stringify(`${TAG} notes`)}, startedAt: ${JSON.stringify(laAt(10, 14))} }),
+      await periods.createCarePeriod(db, ${JSON.stringify(DEV_FAMILY)}, { type: "hospital", label: ${JSON.stringify(`${TAG} gone`)}, startedAt: ${JSON.stringify(laAt(10, 18))} }),
+    ];`,
+  );
+  const [P1, P2] = made.map((r) => r.id);
+  if (!P1 || !P2) {
+    check("made the tagged periods for the page steps", false, JSON.stringify(made));
+    return;
+  }
+  await waitForLocal(B, "SELECT id FROM care_period WHERE id IN (?, ?)", [P1, P2], (r) => r.length === 2);
+
+  // ---- Notes: A writes (the document is made then), B sees it and answers ----
+  await toFront(A);
+  await openPeriod(A, P1);
+  await openPeriod(B, P1);
+  const fromA = `${TAG} bring the discharge papers`;
+  await toFront(A);
+  await typePeriodNotes(A, fromA);
+  const bSees = await need(B, notesHave(fromA), 20000, "A's notes on B");
+  const doc = await waitForSql(
+    `SELECT subject || '|' || care_period_id FROM note_document WHERE id = '${P1}'`,
+    (v) => v !== "",
+  );
+  const fromB = ` ${TAG} visiting 2-8pm`;
+  await toFront(B);
+  await typePeriodNotes(B, fromB);
+  const aSees = await need(A, notesHave(fromB.trim()), 20000, "B's notes on A");
+  check(
+    "two browsers write the period's notes together; the document is made on the first change (subject carePeriod)",
+    bSees && aSees && doc === `carePeriod|${P1}`,
+    doc,
+  );
+
+  // ---- Offline: A's edit waits, then lands on reconnect ----
+  const errorsBefore = A.errors.length;
+  await toFront(A);
+  proxy.setOnline(false);
+  await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+  const offline = ` ${TAG} unit phone x4410`;
+  await typePeriodNotes(A, offline);
+  const aShows = await need(A, notesHave(offline.trim()), 5000, "the offline edit on A");
+  await sleep(2000);
+  const bEarly = await B.evaluate(notesHave(offline.trim()));
+  proxy.setOnline(true);
+  await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  const bLater = await need(B, notesHave(offline.trim()), 30000, "the offline edit on B after reconnect");
+  check(
+    "offline: A's notes edit shows at once, and reaches B only after reconnecting",
+    aShows && !bEarly && bLater,
+  );
+  A.errors.splice(errorsBefore);
+
+  // ---- A viewer reads the notes without editing, and gets no actions ----
+  await openPeriod(C, P1);
+  await need(C, notesHave(fromA), 20000, "the notes on the viewer's page");
+  const viewer = await pageState(C);
+  await C.goto(`${PERIODS}/${P1}/edit`);
+  await need(C, `location.pathname.endsWith("/periods") && ${LIST}`, 15000, "the viewer's edit redirect");
+  check(
+    "a viewer reads the notes read-only, with no Edit or Delete, and the edit sheet's URL sends them to the list",
+    viewer.editable === "false" &&
+      !viewer.edit &&
+      !viewer.menu &&
+      (await C.evaluate(`location.pathname.endsWith("/periods")`)),
+    JSON.stringify(viewer),
+  );
+
+  // ---- Edit from the page: a new label, and the start two hours earlier (14:00 → 12:00: the
+  // hour segment counts within AM or PM, so it must not cross noon) ----
+  await toFront(A);
+  await openPeriod(A, P1);
+  await A.tap(`document.querySelector("main a[data-edit-period]")`);
+  await need(A, `${FORM} && location.pathname.endsWith("/periods/${P1}/edit")`, 10000, "the edit sheet");
+  const filled = await A.evaluate(`({
+    label: ${formField("label")}?.value,
+    other: ${typeRadio("Other")}?.checked,
+  })`);
+  await A.type(formField("label"), `${TAG} notes edited`);
+  await A.evaluate(`${FORM}.querySelector('[data-period-start] [data-type="hour"]').focus()`);
+  await key(A, "ArrowDown", "ArrowDown", 40);
+  await key(A, "ArrowDown", "ArrowDown", 40);
+  await A.press(SUBMIT);
+  const backOnPage = await need(
+    A,
+    `!${SHEET} && location.pathname.endsWith("/periods/${P1}") && document.querySelector("main h1")?.textContent === ${JSON.stringify(`${TAG} notes edited`)}`,
+    10000,
+    "the sheet to close back to the page",
+  );
+  const edited = await pageState(A);
+  check(
+    "Edit opens the sheet filled from the period; saving returns to the page with the new label and start",
+    filled.label === `${TAG} notes` && filled.other && backOnPage && /, 12:00$/.test(edited.start ?? ""),
+    JSON.stringify({ filled, edited }),
+  );
+  const bStart = await need(
+    B,
+    `/, 12:00$/.test(document.querySelector("main [data-period-start]")?.textContent.trim() ?? "")`,
+    20000,
+    "the moved start on B",
+  );
+  await A.tap(`document.querySelector('main [data-period-neighbour="previous"]')`);
+  await need(A, `!location.pathname.endsWith("/periods/${P1}") && !!${PAGE}`, 10000, "the previous period");
+  const before = await pageState(A);
+  check(
+    "the moved start shows on the second device, and the period before now ends at it",
+    bStart && /, 12:00$/.test(before.end ?? ""),
+    JSON.stringify({ bStart, end: before.end }),
+  );
+
+  // ---- Delete P2 from its page: the confirm says what happens, then the list ----
+  await openPeriod(A, P2);
+  const p2End = (await pageState(A)).end;
+  await A.press(`document.querySelector('main header button[aria-label^="Actions for"]')`);
+  await need(A, menuItem("Delete"), 5000, "the Delete item");
+  await A.press(menuItem("Delete"));
+  await need(A, DIALOG, 5000, "the delete confirm");
+  const message = await A.evaluate(`${DIALOG}.querySelector("p")?.textContent.trim()`);
+  await A.press(`${DIALOG}.querySelector(".btn-error")`);
+  const listed = await need(
+    A,
+    `location.pathname.endsWith("/periods") && ${LIST} && !document.querySelector('main [data-period="${P2}"]')`,
+    10000,
+    "the list without the deleted period",
+  );
+  check(
+    "Delete asks first, saying the period before runs on; then the list, without it",
+    message === `${TAG} notes edited will continue until ${p2End}.` && listed,
+    JSON.stringify({ message, p2End }),
+  );
+  const bExtended = await need(
+    B,
+    `document.querySelector("main [data-period-end]")?.textContent.trim() === ${JSON.stringify(p2End)}`,
+    20000,
+    "P1 extended on B",
+  );
+  const server = await waitForSql(
+    `SELECT deleted_at IS NOT NULL FROM care_period WHERE id = '${P2}'`,
+    (v) => v === "t",
+  );
+  check(
+    "the second device's page shows the period before it extended; the delete uploads",
+    bExtended && server === "t",
+  );
+
+  // ---- The deleted period's page and edit sheet ----
+  await B.goto(`${PERIODS}/${P2}`);
+  const gone = await need(B, NOT_FOUND, 15000, "the deleted period's 404");
+  const leaks = await B.evaluate(
+    `document.querySelector("main")?.textContent.includes(${JSON.stringify(`${TAG} gone`)})`,
+  );
+  await A.goto(`${PERIODS}/${P2}/edit`);
+  const toList = await need(
+    A,
+    `location.pathname.endsWith("/periods") && ${LIST}`,
+    15000,
+    "the edit redirect",
+  );
+  check(
+    "a deleted period's page is the 404 without its details, and its edit sheet goes to the list",
+    gone && !leaks && toList,
+  );
+
+  // ---- A place deleted from the directory shows greyed "(removed)" ----
+  const placeName = `${TAG} Clinic`;
+  const P3 = (
+    await onDevice(
+      A,
+      `return periods.createCarePeriod(db, ${JSON.stringify(DEV_FAMILY)}, { type: "rehab", label: ${JSON.stringify(`${TAG} place`)}, startedAt: ${JSON.stringify(laAt(9, 12))} }, { name: ${JSON.stringify(placeName)} });`,
+    )
+  ).id;
+  await waitForSql(`SELECT count(*) FROM provider WHERE name = '${placeName}'`, (v) => v === "1");
+  psql(`UPDATE provider SET deleted_at = now() WHERE name = '${placeName}'`);
+  await waitForLocal(
+    A,
+    "SELECT id FROM provider WHERE name = ? AND deleted_at IS NOT NULL",
+    [placeName],
+    (r) => r.length === 1,
+  );
+  await openPeriod(A, P3);
+  const removed = await pageState(A);
+  check(
+    'a period whose place was deleted shows it greyed "(removed)", with no link or contact actions',
+    removed.removed &&
+      removed.place === `${placeName} (removed)` &&
+      !removed.placeLink &&
+      removed.actions.length === 0,
+    JSON.stringify(removed),
   );
 }
 
@@ -670,6 +966,10 @@ try {
     await C.signIn("viewer@example.com", PW);
     await step("a viewer", () => viewerSteps(C));
     await step("a period's page and the 404s", () => pageSteps(A, B));
+    await step("slice 2: the period page", () => fullPageSteps(A));
+    await step("slice 2: notes, edit, delete and a removed place", () =>
+      notesEditDeleteSteps(A, B, C, proxy),
+    );
     await step("suggestions from events", () => suggestionSteps(A, proxy, C));
   }
 

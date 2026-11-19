@@ -255,4 +255,8 @@ describe("appUrls: care periods", () => {
     ).toBe("/app/groups/g/periods/new?type=hospital&startedAt=2026-11-12T22%3A20%3A00.000Z&place=p1");
     expect(appUrls.newPeriod("g", { dateOnly: true })).toBe("/app/groups/g/periods/new?dateOnly=1");
   });
+
+  it("builds a period's edit sheet", () => {
+    expect(appUrls.editPeriod("g", "p 1")).toBe("/app/groups/g/periods/p%201/edit");
+  });
 });

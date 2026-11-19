@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  editPeriodGuard,
   newPeriodGuard,
   onlyPeriodSheetChanged,
   openedFromApp,
@@ -14,6 +15,24 @@ describe("period sheets", () => {
   it("opens the add sheet for writers and sends viewers to the periods page", () => {
     expect(newPeriodGuard({ groupId: "g", canWrite: true })).toEqual({ sheet: true });
     expect(newPeriodGuard({ groupId: "g", canWrite: false })).toEqual({ redirect: "/app/groups/g/periods" });
+  });
+
+  it("opens the edit sheet on a writer's live period in the group, else the periods page", () => {
+    const period = { id: "p1", groupId: "g", deletedAt: null };
+    const list = { redirect: "/app/groups/g/periods" };
+    expect(editPeriodGuard({ groupId: "g", canWrite: true, period })).toEqual({ sheet: period });
+    expect(editPeriodGuard({ groupId: "g", canWrite: false, period })).toEqual(list);
+    expect(editPeriodGuard({ groupId: "g", canWrite: true, period: null })).toEqual(list);
+    expect(editPeriodGuard({ groupId: "g", canWrite: true, period: { ...period, groupId: "h" } })).toEqual(
+      list,
+    );
+    expect(
+      editPeriodGuard({
+        groupId: "g",
+        canWrite: true,
+        period: { ...period, deletedAt: "2026-11-18T00:00:00Z" },
+      }),
+    ).toEqual(list);
   });
 
   it("knows a sheet opened by the app's own links", () => {

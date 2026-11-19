@@ -225,4 +225,7 @@ export const appUrls = {
     })}`,
   /** A care period's page: its place, dates and notes. */
   period: (groupId: string, periodId: string) => `${groupHome(groupId)}/periods/${segment(periodId)}`,
+  /** The edit sheet for one care period, over the periods page. */
+  editPeriod: (groupId: string, periodId: string) =>
+    `${groupHome(groupId)}/periods/${segment(periodId)}/edit`,
 } as const;
