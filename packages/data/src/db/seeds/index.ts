@@ -6,6 +6,7 @@ import * as appointments from "./appointments";
 import * as careGroups from "./careGroups";
 import * as carePeriods from "./carePeriods";
 import * as invites from "./invites";
+import * as medicationPasses from "./medicationPasses";
 import * as medications from "./medications";
 import * as moreGroups from "./moreGroups";
 import * as profiles from "./profiles";
@@ -31,6 +32,7 @@ export const seed = async () => {
     await providers.seed();
     await invites.seed();
     await accessCodes.seed();
+    await medicationPasses.seed();
     await medications.seed();
     await appointments.seed();
     await profiles.seed();

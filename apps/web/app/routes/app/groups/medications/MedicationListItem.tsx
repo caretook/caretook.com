@@ -1,3 +1,4 @@
+import type { SchedulePass } from "~/lib/medicationDisplay";
 import type { LocalMedication } from "~/lib/sync/medications";
 
 import { Pill } from "lucide-react";
@@ -10,7 +11,13 @@ import { medicationSummaryLine, medicationTitle, stoppedText } from "~/lib/medic
  * schedule, and why it's taken; a stopped one also says how and when. The
  * name is a link stretched over the row, so a tap anywhere opens its page.
  */
-export function MedicationListItem({ medication }: { medication: LocalMedication }) {
+export function MedicationListItem({
+  medication,
+  passes,
+}: {
+  medication: LocalMedication;
+  passes: readonly SchedulePass[];
+}) {
   const stopped = stoppedText(medication);
   return (
     <li
@@ -34,7 +41,7 @@ export function MedicationListItem({ medication }: { medication: LocalMedication
           </Link>
         </p>
         <p className="text-base-content/70 text-sm" data-medication-summary>
-          {medicationSummaryLine(medication)}
+          {medicationSummaryLine(medication, passes)}
         </p>
         {medication.reason && (
           <p className="text-base-content/70 text-sm" data-medication-reason>

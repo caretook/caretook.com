@@ -1,11 +1,15 @@
 import type { FieldIssue } from "~/lib/api";
+import type { LocalPass } from "~/lib/sync/medicationPasses";
 import type { MedicationSchedule } from "@caretook/data/schema";
 
 import { Plus, X } from "lucide-react";
 import { useId, useState } from "react";
+import { Link } from "react-router";
 import { MEDICATION_LIMITS } from "@caretook/data/schema";
 import { ChoiceGroup, Field, IconButton } from "~/components/ui";
-import { FIELD } from "./medicationFormData";
+import { clockTime } from "~/lib/medicationDisplay";
+import { FIELD, passAmountField } from "./medicationFormData";
+import { initialSlots } from "./scheduleSlots";
 
 type ScheduleType = MedicationSchedule["type"];
 
@@ -17,28 +21,46 @@ const TYPE_OPTIONS = [
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 
 /**
- * The schedule: at set times every day (up to 8, each a time input, in the
- * recipient's time zone) or as needed (with an optional most-in-a-day). The
- * shared schema's messages show on the times ("List each time once") and
- * the maximum ("At most 24 a day").
+ * The schedule: at set times every day (in the recipient's time zone) or as
+ * needed (with an optional most-in-a-day). At set times is the group's passes
+ * to tick (Morning, Evening…), each with an amount when it differs from the
+ * usual dose, plus times of their own ("Add another time"), each with its
+ * own amount. Up to 8 in all. The shared schema's messages show on the rows
+ * ("List each time once") and the maximum ("At most 24 a day").
  */
 export function ScheduleFields({
   initial,
+  passes,
+  dose,
+  passesHref,
   issues,
   zoneNote,
 }: {
   initial: MedicationSchedule | null;
+  /** The group's passes, deleted ones too (`useSchedulePasses`). */
+  passes: readonly LocalPass[];
+  /** The usual dose as typed: the amounts' placeholder. */
+  dose: string;
+  /** The Passes screen. */
+  passesHref: string;
   issues: FieldIssue[];
   /** "Times are Los Angeles time", when the device is in another zone. */
   zoneNote: string | null;
 }) {
   const [type, setType] = useState<ScheduleType>(initial?.type ?? "scheduled");
+  const [start] = useState(() => initialSlots(initial, passes));
+  const [ticked, setTicked] = useState(start.passes);
   // Each row keeps its key as rows come and go, so typing stays in its field.
-  const [times, setTimes] = useState(() =>
-    (initial?.type === "scheduled" ? initial.times : ["08:00"]).map((value, key) => ({ key, value })),
-  );
-  const timesId = useId();
+  const [times, setTimes] = useState(start.times);
+  const id = useId();
   const timesError = issueFor(issues, "schedule.times");
+  const passesError = issueFor(issues, "schedule.passes");
+  const live = passes.filter((p) => !p.deletedAt);
+  const count = Object.keys(ticked).length + times.length;
+  const placeholder = dose.trim() || "Usual dose";
+
+  const setTime = (key: number, change: Partial<(typeof times)[number]>) =>
+    setTimes((all) => all.map((t) => (t.key === key ? { ...t, ...change } : t)));
 
   return (
     <div className="space-y-1" data-schedule>
@@ -51,73 +73,182 @@ export function ScheduleFields({
         error={issueFor(issues, "schedule")}
       />
       {type === "scheduled" ? (
-        <fieldset
-          className="fieldset"
-          aria-labelledby={`${timesId}-label`}
-          aria-describedby={`${timesId}-help${timesError ? ` ${timesId}-error` : ""}`}
-          aria-invalid={timesError ? true : undefined}
-          data-schedule-times
-        >
-          <span id={`${timesId}-label`} className="fieldset-legend">
-            Times each day
-          </span>
-          <p id={`${timesId}-help`} className="label text-base-content/70 whitespace-normal">
+        <>
+          <p className="text-base-content/70 text-sm">
             {zoneNote ? `Every day. ${zoneNote}.` : "Every day."}
           </p>
-          <ul className="space-y-1.5">
-            {times.map((time, index) => (
-              <li key={time.key} className="flex items-start gap-1">
-                <Field
-                  label={`Time ${index + 1}`}
-                  labelHidden
-                  className="w-40"
-                  error={issueFor(issues, `schedule.times.${index}`)}
-                >
-                  {(control) => (
-                    <input
-                      {...control}
-                      type="time"
-                      name={FIELD.time}
-                      className="input w-full"
-                      value={time.value}
-                      onChange={(e) =>
-                        setTimes((all) =>
-                          all.map((t) => (t.key === time.key ? { ...t, value: e.target.value } : t)),
-                        )
-                      }
+          {start.unknown.map((passId) => (
+            // A pass this device doesn't have yet: kept as it is.
+            <input key={passId} type="hidden" name={FIELD.passId} value={passId} />
+          ))}
+          <fieldset
+            className="fieldset"
+            aria-labelledby={`${id}-passes`}
+            aria-describedby={passesError ? `${id}-passes-error` : undefined}
+            aria-invalid={passesError ? true : undefined}
+            data-schedule-passes
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span id={`${id}-passes`} className="fieldset-legend">
+                Passes
+              </span>
+              <Link to={passesHref} className="link link-hover text-sm" data-manage-passes>
+                Manage passes
+              </Link>
+            </div>
+            {live.length === 0 ? (
+              <p className="text-base-content/70 text-sm">No passes yet. Add Morning or Evening on Passes.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {live.map((pass) => {
+                  const slot = ticked[pass.id];
+                  const amountError = issueFor(issues, `schedule.passes.${pass.id}.amount`);
+                  return (
+                    <li
+                      key={pass.id}
+                      className="flex flex-wrap items-start gap-x-3 gap-y-1"
+                      data-pass-slot={pass.id}
+                    >
+                      <label className="label text-base-content min-h-10 min-w-40 cursor-pointer gap-3 whitespace-normal">
+                        <input
+                          type="checkbox"
+                          name={FIELD.passId}
+                          value={pass.id}
+                          className="checkbox checkbox-sm"
+                          checked={!!slot}
+                          disabled={!slot && count >= MEDICATION_LIMITS.scheduleTimes}
+                          onChange={(e) => {
+                            const on = e.target.checked;
+                            setTicked((all) =>
+                              on
+                                ? { ...all, [pass.id]: { amount: "" } }
+                                : Object.fromEntries(Object.entries(all).filter(([key]) => key !== pass.id)),
+                            );
+                          }}
+                        />
+                        <span>
+                          <span className="font-medium">{pass.name}</span>{" "}
+                          <span className="text-base-content/70">{clockTime(pass.time)}</span>
+                        </span>
+                      </label>
+                      {slot && (
+                        <Field
+                          label={`Amount at ${pass.name}`}
+                          labelHidden
+                          className="w-44"
+                          error={amountError}
+                        >
+                          {(control) => (
+                            <input
+                              {...control}
+                              name={passAmountField(pass.id)}
+                              className="input w-full"
+                              maxLength={MEDICATION_LIMITS.doseAmount}
+                              placeholder={placeholder}
+                              autoComplete="off"
+                              value={slot.amount}
+                              onChange={(e) =>
+                                setTicked((all) => ({ ...all, [pass.id]: { amount: e.target.value } }))
+                              }
+                            />
+                          )}
+                        </Field>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {passesError && (
+              <p id={`${id}-passes-error`} className="text-error text-sm">
+                {passesError}
+              </p>
+            )}
+          </fieldset>
+
+          <fieldset
+            className="fieldset"
+            aria-labelledby={`${id}-times`}
+            aria-describedby={timesError ? `${id}-times-error` : undefined}
+            aria-invalid={timesError ? true : undefined}
+            data-schedule-times
+          >
+            <span id={`${id}-times`} className="fieldset-legend">
+              {live.length ? "Other times" : "Times each day"}
+            </span>
+            {times.length > 0 && (
+              <ul className="space-y-1.5">
+                {times.map((time, index) => (
+                  <li key={time.key} className="flex flex-wrap items-start gap-x-1 gap-y-1" data-time-slot>
+                    <Field
+                      label={`Time ${index + 1}`}
+                      labelHidden
+                      className="w-36"
+                      error={issueFor(issues, `schedule.times.${index}`)}
+                    >
+                      {(control) => (
+                        <input
+                          {...control}
+                          type="time"
+                          name={FIELD.time}
+                          className="input w-full"
+                          value={time.value}
+                          onChange={(e) => setTime(time.key, { value: e.target.value })}
+                        />
+                      )}
+                    </Field>
+                    <Field
+                      label={`Amount at time ${index + 1}`}
+                      labelHidden
+                      className="w-44"
+                      error={issueFor(issues, `schedule.times.${index}.amount`)}
+                    >
+                      {(control) => (
+                        <input
+                          {...control}
+                          name={FIELD.timeAmount}
+                          className="input w-full"
+                          maxLength={MEDICATION_LIMITS.doseAmount}
+                          placeholder={placeholder}
+                          autoComplete="off"
+                          value={time.amount}
+                          onChange={(e) => setTime(time.key, { amount: e.target.value })}
+                        />
+                      )}
+                    </Field>
+                    <IconButton
+                      label={`Remove time ${index + 1}`}
+                      icon={X}
+                      className="mt-1.5"
+                      onPress={() => setTimes((all) => all.filter((t) => t.key !== time.key))}
                     />
-                  )}
-                </Field>
-                {times.length > 1 && (
-                  <IconButton
-                    label={`Remove time ${index + 1}`}
-                    icon={X}
-                    className="mt-1.5"
-                    onPress={() => setTimes((all) => all.filter((t) => t.key !== time.key))}
-                  />
-                )}
-              </li>
-            ))}
-          </ul>
-          {times.length < MEDICATION_LIMITS.scheduleTimes && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm self-start"
-              onClick={() =>
-                setTimes((all) => [...all, { key: Math.max(-1, ...all.map((t) => t.key)) + 1, value: "" }])
-              }
-              data-add-time
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              Add a time
-            </button>
-          )}
-          {timesError && (
-            <p id={`${timesId}-error`} className="text-error text-sm">
-              {timesError}
-            </p>
-          )}
-        </fieldset>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {count < MEDICATION_LIMITS.scheduleTimes && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm self-start"
+                onClick={() =>
+                  setTimes((all) => [
+                    ...all,
+                    { key: Math.max(-1, ...all.map((t) => t.key)) + 1, value: "", amount: "" },
+                  ])
+                }
+                data-add-time
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                {live.length ? "Add another time" : "Add a time"}
+              </button>
+            )}
+            {timesError && (
+              <p id={`${id}-times-error`} className="text-error text-sm">
+                {timesError}
+              </p>
+            )}
+          </fieldset>
+        </>
       ) : (
         <Field
           label="Most in a day (optional)"

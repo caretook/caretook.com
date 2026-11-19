@@ -1,5 +1,6 @@
 import type { DueDoses } from "../dueDoses";
 import type { SyncDb } from "./index";
+import type { PassRow } from "./medicationPasses";
 import type { MedicationRow, RecipientRow } from "./medications";
 import type { EntryRow, LocalQuery } from "./timeline";
 
@@ -8,6 +9,7 @@ import { dueDoses } from "../dueDoses";
 import { addDays, dayInZone, startOfDay } from "../zonedDay";
 import { useNow } from "./editors";
 import { useLiveQuery } from "./index";
+import { passesQuery, toPasses } from "./medicationPasses";
 import { isDoseEntry, recipientQuery, toMedicationEntries, toMedications } from "./medications";
 import { readRows, toLocalTimestamp } from "./timeline";
 
@@ -44,29 +46,36 @@ const FALLBACK_ZONE = "UTC";
 
 export type DueDosesRows = {
   medications: MedicationRow[];
+  /** The group's passes, deleted ones too (a schedule naming one keeps its time). */
+  passes: PassRow[];
   doses: EntryRow[];
   recipient: RecipientRow[];
 };
 
+/** The group's passes as due doses and schedule wording need them: deleted ones too. */
+export const duePassesQuery = (groupId: string) => passesQuery(groupId, { includeDeleted: true });
+
 // Starting rows when there's no loader's: kept apart by identity, so the hook
 // can tell rows not read yet from none at all.
-const NOT_READ: DueDosesRows = { medications: [], doses: [], recipient: [] };
+const NOT_READ: DueDosesRows = { medications: [], passes: [], doses: [], recipient: [] };
 
 /** A loader's first read, so a screen renders complete before the live queries take over. */
 export async function loadDueDoses(db: SyncDb, groupId: string): Promise<DueDosesRows> {
-  const [recipient, medications] = await Promise.all([
+  const [recipient, medications, passes] = await Promise.all([
     readRows<RecipientRow>(db, recipientQuery(groupId)),
     readRows<MedicationRow>(db, dueMedicationsQuery(groupId)),
+    readRows<PassRow>(db, duePassesQuery(groupId)),
   ]);
   const zone = recipient[0]?.time_zone || FALLBACK_ZONE;
   const doses = await readRows<EntryRow>(db, dosesSinceQuery(groupId, yesterdayStart(new Date(), zone)));
-  return { medications, doses, recipient };
+  return { medications, passes, doses, recipient };
 }
 
 /** The pure part: rows in, `dueDoses` out. */
 export const toDueDoses = (rows: DueDosesRows, now: Date): DueDoses =>
   dueDoses({
     medications: toMedications(rows.medications),
+    passes: toPasses(rows.passes),
     doses: toMedicationEntries(rows.doses).filter(isDoseEntry),
     now,
     timeZone: rows.recipient[0]?.time_zone || FALLBACK_ZONE,
@@ -86,6 +95,9 @@ export function useDueDoses(groupId: string, initial: DueDosesRows = NOT_READ) {
   const zone = recipient[0]?.time_zone || FALLBACK_ZONE;
   const medicationsQ = dueMedicationsQuery(groupId);
   const medications = useLiveQuery<MedicationRow>(medicationsQ.sql, medicationsQ.params, initial.medications);
+  const passesQ = duePassesQuery(groupId);
+  const passRows = useLiveQuery<PassRow>(passesQ.sql, passesQ.params, initial.passes);
+  const passes = useMemo(() => toPasses(passRows), [passRows]);
   // Keyed on the day, so the query only changes at midnight.
   const day = dayInZone(new Date(now), zone);
   const from = useMemo(() => startOfDay(addDays(day, -1), zone), [day, zone]);
@@ -93,13 +105,16 @@ export function useDueDoses(groupId: string, initial: DueDosesRows = NOT_READ) {
   const doses = useLiveQuery<EntryRow>(dosesQ.sql, dosesQ.params, initial.doses);
 
   const due = useMemo(
-    () => toDueDoses({ medications, doses, recipient }, new Date(now)),
-    [medications, doses, recipient, now],
+    () => toDueDoses({ medications, passes: passRows, doses, recipient }, new Date(now)),
+    [medications, passRows, doses, recipient, now],
   );
   // Without a loader's rows, nothing is known until every query has answered
   // once: before then, every slot would read as unanswered.
   const ready =
     initial !== NOT_READ ||
-    (medications !== NOT_READ.medications && doses !== NOT_READ.doses && recipient !== NOT_READ.recipient);
-  return { due, ready, timeZone: zone, now };
+    (medications !== NOT_READ.medications &&
+      passRows !== NOT_READ.passes &&
+      doses !== NOT_READ.doses &&
+      recipient !== NOT_READ.recipient);
+  return { due, ready, timeZone: zone, now, passes };
 }

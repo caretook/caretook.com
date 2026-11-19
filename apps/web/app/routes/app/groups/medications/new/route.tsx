@@ -12,7 +12,7 @@ import { sessionContext } from "~/lib/session";
 import { createMedication, recipientQuery } from "~/lib/sync/medications";
 import { readRows } from "~/lib/sync/timeline";
 import { MedicationForm } from "../MedicationForm";
-import { issuesForTimeRows, medicationFromForm } from "../medicationFormData";
+import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
 
 // Shared by web + native. `medications/new`: the add sheet, over the list.
@@ -42,9 +42,9 @@ export async function clientLoader({ request, context }: Route.ClientLoaderArgs)
 export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const { input, newProviders, timeRows } = medicationFromForm(await request.formData());
+  const { input, newProviders, slotRows } = medicationFromForm(await request.formData());
   const result = await createMedication(db, group.id, input, newProviders);
-  if (!result.ok) return { ...result, issues: issuesForTimeRows(result.issues, timeRows) };
+  if (!result.ok) return { ...result, issues: issuesForSlotRows(result.issues, slotRows) };
   return { ok: true };
 }
 
@@ -57,7 +57,7 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 export default function NewMedicationSheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseMedicationSheet();
   const { search } = useLocation();
-  const { providers, names } = useMedicationFormSources(params.groupId, loaderData);
+  const { providers, names, passes } = useMedicationFormSources(params.groupId, loaderData);
   const zoneNote = scheduleZoneNote(
     loaderData.recipientTimeZone,
     Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -68,6 +68,7 @@ export default function NewMedicationSheet({ loaderData, params }: Route.Compone
         // A new URL is a new form.
         key={search}
         providers={providers}
+        passes={passes}
         names={names}
         zoneNote={zoneNote}
         onDone={() => close()}

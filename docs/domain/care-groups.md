@@ -38,6 +38,8 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   | user_contact            | yourself only (not staff)                 | yourself                                 | yourself                   | yourself                          |
   | member_contact_share    | any member                                | system                                   | system                     | system                            |
   | care_period             | any member                                | writers                                  | writers                    | writers (soft)                    |
+  | medication_pass         | any member                                | writers                                  | writers                    | writers (soft)                    |
+  | recipient_allergy       | any member                                | writers                                  | writers                    | writers (soft)                    |
 
 - `system` has `all` everywhere.
 - Ids that point at the group can't be changed except by `system`.

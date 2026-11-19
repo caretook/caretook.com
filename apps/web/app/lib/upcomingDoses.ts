@@ -1,26 +1,34 @@
 import type { DueDoses, SlotState } from "./dueDoses";
+import type { PassLike } from "@caretook/data/schema";
 import type { TimedEntry } from "./upcoming";
 import type { UpcomingSection } from "./upcomingDays";
 
 import { localDate } from "@caretook/data/schema";
-import { isOpen } from "./dueDoses";
+import { duePasses } from "./duePasses";
 import { dayLabel } from "./format";
-import { medicationTitle } from "./medicationDisplay";
+import { medicationCountText, passTitle } from "./medicationDisplay";
 import { NOW_KEY } from "./upcomingDays";
 
-// Today's medication doses in Upcoming: `dueDoses`' slots that still want a
-// dose (upcoming, due or overdue) become items under their day, in time order
-// among the appointments and reminders. Worked out, never written: a logged
-// dose answers its slot, and the slot drops out. Pure; web:unit tests it.
+// Today's medication doses in Upcoming, by pass (`duePasses`): a pass that
+// still wants doses (upcoming, due or overdue, partly done or not) is one
+// item, and a time of its own one item for its medication, under their day,
+// in time order among the appointments and reminders. Worked out, never
+// written: a logged dose answers its slot, and once a pass is done it drops
+// out. Pure; web:unit tests it.
 
-/** One open dose slot, as an Upcoming item. */
+/** One open pass, or one medication's open time of its own, as an Upcoming item. */
 export type UpcomingDose = {
   type: "dueDose";
-  /** `<medicationId>@HH:MM`: unique for the day. */
+  /** `pass:<passId>`, or `<medicationId>@HH:MM`: unique for the day. */
   key: string;
-  medicationId: string;
-  /** "Metformin 500 mg". */
+  /** The pass, or null for a time of its own. */
+  passId: string | null;
+  /** A time of its own's medication, or null for a pass. */
+  medicationId: string | null;
+  /** The pass's name ("Morning"), or the medication ("Metformin 500 mg"). */
   title: string;
+  /** How many medications in it still want a dose. */
+  count: number;
   /** The schedule time, "HH:MM" in the recipient's zone (the Dose sheet's `?slot=`). */
   time: string;
   /** The moment it falls (ISO 8601). */
@@ -34,17 +42,28 @@ export type WithDoses<T> = T | UpcomingDose;
 export const isUpcomingDose = <T extends object>(item: WithDoses<T>): item is UpcomingDose =>
   "type" in item && item.type === "dueDose";
 
-/** Today's slots that still want a dose, in time order (then medication name, as `dueDoses` gives them). */
-export const upcomingDoses = (due: DueDoses): UpcomingDose[] =>
-  due.slots.filter(isOpen).map((slot) => ({
-    type: "dueDose",
-    key: `${slot.medication.id}@${slot.time}`,
-    medicationId: slot.medication.id,
-    title: medicationTitle(slot.medication),
-    time: slot.time,
-    at: slot.at,
-    state: slot.state as UpcomingDose["state"],
-  }));
+/** Today's passes that still want a dose, in time order (as `duePasses` gives them). */
+export const upcomingDoses = (
+  due: Pick<DueDoses, "slots">,
+  passes: readonly Pick<PassLike, "id" | "name" | "sortOrder">[] = [],
+): UpcomingDose[] =>
+  duePasses(due, passes)
+    .filter((pass) => pass.state !== "done")
+    .map((pass) => ({
+      type: "dueDose",
+      key: pass.key,
+      passId: pass.name ? pass.passId : null,
+      medicationId: pass.name ? null : (pass.open[0]?.medication.id ?? null),
+      title: passTitle(pass),
+      count: pass.open.length,
+      time: pass.time,
+      at: pass.at,
+      state: pass.state as UpcomingDose["state"],
+    }));
+
+/** What an item reads as: "Metformin 500 mg dose", "Morning · 3 medications". */
+export const doseItemText = (dose: Pick<UpcomingDose, "passId" | "title" | "count">) =>
+  dose.passId ? `${dose.title} · ${medicationCountText(dose.count)}` : `${dose.title} dose`;
 
 /**
  * Whether doses show with these filters: only unfiltered. A kind filter is a
@@ -57,10 +76,13 @@ export const showsDoses = ({ kind, author }: { kind?: string | null; author?: st
 export const doseStateLabel = (state: UpcomingDose["state"]) =>
   state === "due" ? "Due" : state === "overdue" ? "Overdue" : null;
 
-/** "Log Metformin 500 mg, 8:00 PM dose, overdue": a writer's link. */
+/** "Log Metformin 500 mg, 8:00 PM dose, overdue", "Log Morning, 8:00 AM, 3 medications, due": a writer's link. */
 export const doseLinkLabel = (dose: UpcomingDose, when: string) => {
   const state = doseStateLabel(dose.state);
-  return `Log ${dose.title}, ${when} dose${state ? `, ${state.toLowerCase()}` : ""}`;
+  const what = dose.passId
+    ? `${dose.title}, ${when}, ${medicationCountText(dose.count)}`
+    : `${dose.title}, ${when} dose`;
+  return `Log ${what}${state ? `, ${state.toLowerCase()}` : ""}`;
 };
 
 const ms = (iso: string) => new Date(iso).getTime();

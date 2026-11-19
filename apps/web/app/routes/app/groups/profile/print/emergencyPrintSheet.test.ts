@@ -112,7 +112,7 @@ const medications = [
     name: "Metformin",
     strength: "500 mg",
     dose: "1 tablet",
-    schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+    schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
     pharmacyId: "ph1",
   }),
   med({ name: "Acetaminophen", strength: "500 mg", schedule: { type: "asNeeded", maxPerDay: 4 } }),
@@ -261,6 +261,31 @@ describe("emergencySheet", () => {
     expect(section(full(), "medications")?.medications.map((m) => [m.title, m.howTaken])).toEqual([
       ["Acetaminophen 500 mg", "As needed, up to 4 a day"],
       ["Metformin 500 mg", "1 tablet · 8:00 and 20:00"],
+    ]);
+  });
+
+  it("names the passes a schedule uses, as the medication screens do", () => {
+    const passes = [
+      { id: "pe", name: "Evening", time: "20:00", sortOrder: 2 },
+      { id: "pm", name: "Morning", time: "08:00", sortOrder: 1 },
+    ];
+    const metformin = med({
+      name: "Metformin",
+      strength: "500 mg",
+      dose: "1 tablet",
+      schedule: { type: "scheduled", slots: [{ passId: "pe" }, { passId: "pm", amount: "2 tablets" }] },
+    });
+    const sheet = emergencySheet({
+      recipient,
+      details,
+      members,
+      medications: [metformin],
+      providers,
+      passes,
+      now: NOW,
+    });
+    expect(section(sheet, "medications")?.medications.map((m) => m.howTaken)).toEqual([
+      "1 tablet · Morning (2 tablets) and Evening",
     ]);
   });
 

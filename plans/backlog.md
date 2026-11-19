@@ -52,11 +52,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | landed | timeline-polish | prd/timeline-polish | Infinite scroll through the whole timeline |
-| B-11 | feature | ready | search | prd/search | Search the timeline |
+| B-11 | feature | landed | search | prd/search | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
 | B-14 | plan | landed | providers | prd/providers | Provider links and suggestions while writing events and live notes |
-| B-15 | plan | ready | medications | prd/medications | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
+| B-15 | plan | landed | medications | prd/medications | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
 | B-18 | feature | landed | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
@@ -84,61 +84,61 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
-| B-43 | change | ready | medications | prd/medications | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
-| B-44 | change | ready | quick-fixes | prd/quick-fixes | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
-| B-45 | change | ready | profiles | prd/profiles | birthdate, contact information, address, and insurance information should optionally be added to… |
-| B-46 | change | ready | profiles | prd/profiles | optional phone number, address, etc on group members that can be published to the group for… |
-| B-47 | feature | ready | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
+| B-43 | change | landed | medications | prd/medications | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
+| B-44 | change | landed | quick-fixes | prd/quick-fixes | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
+| B-45 | change | landed | profiles | prd/profiles | birthdate, contact information, address, and insurance information should optionally be added to… |
+| B-46 | change | landed | profiles | prd/profiles | optional phone number, address, etc on group members that can be published to the group for… |
+| B-47 | feature | landed | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
 | B-49 | feature | triaged | assistant |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
-| B-50 | feature | ready | care-periods | prd/care-periods | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
+| B-50 | feature | landed | care-periods | prd/care-periods | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
 | B-51 | feature | ready | medications-2 | prd/medications-2 | printable medication schedule sheet that can be printed to be checked off with a pen at patient's… |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-55 | feature | triaged | tasks |  | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-57 | plan | ready | encryption | plan/encryption | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
+| B-57 | plan | landed | encryption | plan/encryption | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
 | B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
-| B-59 | chore | triaged | orchestration |  | Clean up/truncate this file and the backlog periodically. |
+| B-59 | chore | ready | orchestration | prd/orchestration | Clean up/truncate this file and the backlog periodically. |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
-| B-64 | feature | ready | quick-fixes | prd/quick-fixes | Withdraw a pending join request from the requester's home |
-| B-65 | change | ready | quick-fixes | prd/quick-fixes | A screen to change the care recipient's time zone |
+| B-64 | feature | landed | quick-fixes | prd/quick-fixes | Withdraw a pending join request from the requester's home |
+| B-65 | change | landed | quick-fixes | prd/quick-fixes | A screen to change the care recipient's time zone |
 | B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
-| B-67 | change | ready | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
+| B-67 | change | landed | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
-| B-69 | chore | ready | quick-fixes | prd/quick-fixes | Move the New care group link state into components/groups |
-| B-70 | bug | ready | quick-fixes | prd/quick-fixes | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
-| B-71 | bug | ready | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
-| B-72 | bug | ready | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
-| B-73 | bug | ready | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
-| B-74 | bug | ready | quick-fixes | prd/quick-fixes | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
+| B-69 | chore | landed | quick-fixes | prd/quick-fixes | Move the New care group link state into components/groups |
+| B-70 | bug | landed | quick-fixes | prd/quick-fixes | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
+| B-71 | bug | landed | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
+| B-72 | bug | landed | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
+| B-73 | bug | landed | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
+| B-74 | bug | landed | quick-fixes | prd/quick-fixes | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
 | B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
 | B-76 | feature | ready | medications-2 | prd/medications-2 | medication groups for doses. Often the same medication is taken at different times of the day every… |
-| B-77 | plan | ready | encryption | plan/encryption | Data security and encryption review. |
-| B-78 | change | ready | quick-fixes | prd/quick-fixes | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
-| B-79 | bug | ready | quick-fixes | prd/quick-fixes | Device keeps its synced data after the session ends; offline sign-in never expires |
-| B-80 | feature | ready | quick-fixes | prd/quick-fixes | Devices page in account settings: see sessions, sign out one or all others |
-| B-81 | change | ready | quick-fixes | prd/quick-fixes | Security headers and a CSP for every web response |
-| B-82 | change | ready | quick-fixes | prd/quick-fixes | Server logs carry error codes and ids only, never values or meta |
-| B-83 | change | ready | quick-fixes | prd/quick-fixes | Co-members read only id, name and image of each other's user row |
+| B-77 | plan | landed | encryption | plan/encryption | Data security and encryption review. |
+| B-78 | change | landed | quick-fixes | prd/quick-fixes | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
+| B-79 | bug | landed | quick-fixes | prd/quick-fixes | Device keeps its synced data after the session ends; offline sign-in never expires |
+| B-80 | feature | landed | quick-fixes | prd/quick-fixes | Devices page in account settings: see sessions, sign out one or all others |
+| B-81 | change | landed | quick-fixes | prd/quick-fixes | Security headers and a CSP for every web response |
+| B-82 | change | landed | quick-fixes | prd/quick-fixes | Server logs carry error codes and ids only, never values or meta |
+| B-83 | change | landed | quick-fixes | prd/quick-fixes | Co-members read only id, name and image of each other's user row |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-86 | change | ready | medications-2 | prd/medications-2 | need an upcoming medication banner on the timeline page and a way to quickly add doses to the… |
 | B-87 | plan | triaged | assistant |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 | B-88 | change | landed | orchestration |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
-| B-89 | feature | triaged | orchestration |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
-| B-90 | change | ready | quick-fixes | prd/quick-fixes | Seed data with multiple care groups and user mix for improved manual testing. |
+| B-89 | feature | in-progress | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
+| B-90 | change | landed | quick-fixes | prd/quick-fixes | Seed data with multiple care groups and user mix for improved manual testing. |
 | B-91 | feature | ready | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
-| B-92 | change | ready | quick-fixes | prd/quick-fixes | Units save offline: move the Units settings page onto saveSettings |
-| B-93 | bug | ready | quick-fixes | prd/quick-fixes | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
-| B-94 | change | ready | quick-fixes | prd/quick-fixes | Account forms, sign-in and the marketing menu button onto the ui primitives |
-| B-95 | chore | ready | quick-fixes | prd/quick-fixes | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
-| B-96 | change | ready | quick-fixes | prd/quick-fixes | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
-| B-97 | change | ready | quick-fixes | prd/quick-fixes | Vitals filter on timeline should bring up a sub-filter for vital type. |
+| B-92 | change | landed | quick-fixes | prd/quick-fixes | Units save offline: move the Units settings page onto saveSettings |
+| B-93 | bug | landed | quick-fixes | prd/quick-fixes | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
+| B-94 | change | landed | quick-fixes | prd/quick-fixes | Account forms, sign-in and the marketing menu button onto the ui primitives |
+| B-95 | chore | landed | quick-fixes | prd/quick-fixes | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
+| B-96 | change | landed | quick-fixes | prd/quick-fixes | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
+| B-97 | change | landed | quick-fixes | prd/quick-fixes | Vitals filter on timeline should bring up a sub-filter for vital type. |
 | B-98 | change | triaged | quick-fixes |  | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-99 | change | triaged | quick-fixes |  | Don't display recent vitals in the timeline header in mobile, |
 | B-100 | change | triaged | quick-fixes |  | Add "recent vita averages" to the profile page. |
@@ -148,11 +148,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-105 | change | triaged | quick-fixes |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | triaged | admin |  | Turning email invites off also blocks staff owner invites from /admin |
-| B-107 | feature | triaged | orchestration |  | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
-| B-108 | change | triaged | orchestration |  | Browser testing without a timeout keeps causing hung processes. We need to always have a sane… |
-| B-109 | chore | triaged | orchestration |  | Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand |
+| B-107 | feature | in-progress | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
+| B-108 | change | ready | orchestration | prd/orchestration | Browser testing without a timeout keeps causing hung processes. We need to always have a sane… |
+| B-109 | chore | ready | orchestration | prd/orchestration | Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand |
 | B-110 | bug | triaged | orchestration |  | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
-| B-111 | bug | triaged | orchestration |  | Backlog writes can commit a half-typed inbox bullet and tag it with another item's id |
+| B-111 | bug | ready | orchestration | prd/orchestration | Backlog writes can commit a half-typed inbox bullet and tag it with another item's id |
+| B-112 | change | inbox |  |  | Show the recipient's allergies on the profile's printable emergency sheet |
 
 ## Items
 
@@ -289,7 +290,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-11 · feature · Search the timeline
 
-- status: ready
+- status: landed
 - prd: search
 - owner: prd/search
 - commit: bffb16f
@@ -349,7 +350,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-15 · plan · Medication list (current, past, discontinued), printable sheet, and tracking in the timeline
 
-- status: ready
+- status: landed
 - prd: medications
 - owner: prd/medications
 - commit: fbc8dae
@@ -674,7 +675,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-43 · change · Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital"
 
-- status: ready
+- status: landed
 - prd: medications
 - owner: prd/medications
 - commit: 46c675b
@@ -686,7 +687,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-44 · change · Display phone number, address, email, etc. in provider directory without a click. Use that as link…
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 2cd7789
@@ -697,7 +698,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-45 · change · birthdate, contact information, address, and insurance information should optionally be added to…
 
-- status: ready
+- status: landed
 - prd: profiles
 - owner: prd/profiles
 - commit: 0013589
@@ -710,7 +711,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-46 · change · optional phone number, address, etc on group members that can be published to the group for…
 
-- status: ready
+- status: landed
 - prd: profiles
 - owner: prd/profiles
 - commit: 4a72ee4
@@ -725,7 +726,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
 
-- status: ready
+- status: landed
 - prd: appointments
 - owner: prd/appointments
 - commit: 315f0a1
@@ -762,7 +763,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-50 · feature · Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start…
 
-- status: ready
+- status: landed
 - prd: care-periods
 - owner: prd/care-periods
 - commit: e9e1f61
@@ -837,7 +838,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-57 · plan · Discuss options for end to end encryption of data in transit and at rest where owner of the data is…
 
-- status: ready
+- status: landed
 - prd: encryption
 - owner: plan/encryption
 - commit: 8b07657
@@ -859,10 +860,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-59 · chore · Clean up/truncate this file and the backlog periodically.
 
-- status: triaged
+- status: ready
 - prd: orchestration
-- owner:
-- commit:
+- owner: prd/orchestration
+- commit: 7a144a0
 
 - 2026-11-18 (Robert Bo Davis): Proposed for orchestration: a 'pnpm backlog archive' that moves live (or landed) items out of backlog.md into an archive file and prunes their inbox bullets, run by hand or at landing.
 - 2026-11-19 (Robert Bo Davis): 2026-11-19: removed the inbox's 18 stale 'Status (…)' lines; the tracker holds status.
@@ -907,7 +908,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-64 · feature · Withdraw a pending join request from the requester's home
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 290fd21
@@ -918,7 +919,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-65 · change · A screen to change the care recipient's time zone
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 5d8af6e
@@ -939,7 +940,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-67 · change · Access-code sign-up says when an address already has an account
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 0ddaaa7
@@ -960,7 +961,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-69 · chore · Move the New care group link state into components/groups
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 2431a55
@@ -971,7 +972,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-70 · bug · ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 27c2c74
@@ -982,7 +983,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-71 · bug · date picker entry box mobile-friendly. it expands outside of elements on small screens.
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 2cd7789
@@ -992,7 +993,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-72 · bug · suggested provider list is too long on mobile.
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 2cd7789
@@ -1002,7 +1003,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-73 · bug · timeline entry add modal should take up the full screen on mobile, don't leave room for header.
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 59f380a
@@ -1011,7 +1012,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-74 · bug · medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out)
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 679fa87
@@ -1049,7 +1050,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-77 · plan · Data security and encryption review.
 
-- status: ready
+- status: landed
 - prd: encryption
 - owner: plan/encryption
 - commit: 8b07657
@@ -1059,7 +1060,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-78 · change · improve timeline page display for vitals and upcoming banner. They should be limited. We should…
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 17a89b1
@@ -1070,7 +1071,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-79 · bug · Device keeps its synced data after the session ends; offline sign-in never expires
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: dab620f
@@ -1082,7 +1083,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-80 · feature · Devices page in account settings: see sessions, sign out one or all others
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 25757d4
@@ -1093,7 +1094,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-81 · change · Security headers and a CSP for every web response
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 376f8b7
@@ -1104,7 +1105,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-82 · change · Server logs carry error codes and ids only, never values or meta
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 5047c71
@@ -1115,7 +1116,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-83 · change · Co-members read only id, name and image of each other's user row
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: dac3172
@@ -1178,9 +1179,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-89 · feature · PRD tooling streamlining. We are using way too many resources for full docker stacks and browser…
 
-- status: triaged
+- status: in-progress
 - prd: orchestration
-- owner:
+- owner: prd/orchestration
 - commit:
 
 - 2026-11-19 (backlog planner): From the inbox: PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead.
@@ -1189,7 +1190,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-90 · change · Seed data with multiple care groups and user mix for improved manual testing.
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: dd5f4f3
@@ -1211,7 +1212,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-92 · change · Units save offline: move the Units settings page onto saveSettings
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: dab620f
@@ -1221,7 +1222,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-93 · bug · Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 998cc44
@@ -1231,7 +1232,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-94 · change · Account forms, sign-in and the marketing menu button onto the ui primitives
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 1fc9168
@@ -1241,7 +1242,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-95 · chore · Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 420d5e9
@@ -1250,7 +1251,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-96 · change · Email link and code shouldn't really be two different login options, should they? Can't we email a…
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 8b28fda
@@ -1261,7 +1262,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-97 · change · Vitals filter on timeline should bring up a sub-filter for vital type.
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 0065420
@@ -1355,9 +1356,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-107 · feature · Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests…
 
-- status: triaged
+- status: in-progress
 - prd: orchestration
-- owner:
+- owner: prd/orchestration
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests (blocker, major, minor, etc.) an only run the blocker/major tests? The test suite takes too long to run and is not very reliable.
@@ -1366,24 +1367,26 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-108 · change · Browser testing without a timeout keeps causing hung processes. We need to always have a sane…
 
-- status: triaged
+- status: ready
 - prd: orchestration
-- owner:
-- commit:
+- owner: prd/orchestration
+- commit: 5c0989c
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: Browser testing without a timeout keeps causing hung processes. We need to always have a sane timeout for browser tests.
 - 2026-11-19 (Robert Bo Davis): Proposed for orchestration: browser.sh only kills on --timeout <s>; make a default per-check timeout (and a suite-wide one) mandatory. Seen live 2026-11-19: medications-2's suite held a lease 3 h on medications.mjs. Small enough to do directly on dev.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+- 2026-11-19 (slice/orchestration/2): slice 2 built at 66e02bd: manifest scripts/loops/checks, silence watchdog, caps, suite cap, trimmed output; real sign-in run left for the orchestrator
 
 ### B-109 · chore · Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand
 
-- status: triaged
+- status: ready
 - prd: orchestration
-- owner:
-- commit:
+- owner: prd/orchestration
+- commit: 7a144a0
 
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. AGENTS.md is ~195 KB (~50k tokens) and loads into every session, loops included.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+- 2026-11-19 (slice/orchestration/1): slice 1 committed on slice/orchestration/1 (a6ac71a, 3cf23d0): AGENTS.md core 29.8 KB, area docs in docs/domain/, handbook docs/loops.md, slice-fields parser
 
 ### B-110 · bug · Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes)
 
@@ -1397,10 +1400,20 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-111 · bug · Backlog writes can commit a half-typed inbox bullet and tag it with another item's id
 
-- status: triaged
+- status: ready
 - prd: orchestration
-- owner:
-- commit:
+- owner: prd/orchestration
+- commit: 7a144a0
 
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. Commit 82f41cb (an add from prd/admin) committed an untagged inbox bullet as '(B-106)'; re-filed as B-108. Writes should commit only their own change, and ingest/add should refuse duplicate ids.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+- 2026-11-19 (prd/orchestration): Slice 3 at 8af746c: writes commit only what they changed (temp index), ids never reused, doctor and archive. Waiting to merge after slice 1.
+
+### B-112 · change · Show the recipient's allergies on the profile's printable emergency sheet
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (prd/medications-2): The emergency sheet (profiles) passes allergies: null, waiting for B-26. medications-2 built allergies (lib/sync/allergies.ts: allergiesQuery, loadAllergies; PrintAllergies), so the sheet can show them now. profiles.mjs's sheet step would need to expect them.

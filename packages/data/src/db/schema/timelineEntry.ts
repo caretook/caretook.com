@@ -1,6 +1,6 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
-import type { DoseDetails, MedicationChangeDetails } from "./medication";
+import type { DoseDetails, MedicationChangeDetails, PassMovedDetails } from "./medication";
 import type { VitalDetails } from "./vitals";
 
 import {
@@ -20,7 +20,7 @@ import { careGroupSchema } from "./careGroup";
 import { careRecipientSchema } from "./careRecipient";
 import { audits, enumCheck, id, timestamps } from "./columns";
 import { isStartOfDay } from "./entryTiming";
-import { doseDetailsZSchema, medicationChangeDetailsZSchema } from "./medication";
+import { doseDetailsZSchema, medicationChangeEntryDetailsZSchema } from "./medication";
 import { timeZoneZSchema } from "./timeZone";
 import { vitalDetailsZSchema } from "./vitals";
 
@@ -40,7 +40,8 @@ export type TimelineEntryKind = (typeof TIMELINE_ENTRY_KINDS)[number];
  * (see medication.ts).
  */
 export type SymptomDetails = { name: string; severity?: number | null };
-export type TimelineEntryDetails = SymptomDetails | VitalDetails | DoseDetails | MedicationChangeDetails;
+export type TimelineEntryDetails =
+  SymptomDetails | VitalDetails | DoseDetails | MedicationChangeDetails | PassMovedDetails;
 
 export const isSymptomDetails = (d: TimelineEntryDetails | null | undefined): d is SymptomDetails =>
   !!d && "name" in d;
@@ -51,6 +52,9 @@ export const isDoseDetails = (d: TimelineEntryDetails | null | undefined): d is 
 export const isMedicationChangeDetails = (
   d: TimelineEntryDetails | null | undefined,
 ): d is MedicationChangeDetails => !!d && "medicationId" in d && "change" in d;
+/** A pass's time moved (a `medicationChange` entry with no one medication). */
+export const isPassMovedDetails = (d: TimelineEntryDetails | null | undefined): d is PassMovedDetails =>
+  !!d && "change" in d && d.change === "passMoved";
 
 /**
  * Kinds written with a medication, never by hand: `timelineEntryService`
@@ -274,7 +278,7 @@ export const timelineEntryContentZSchema = z.discriminatedUnion("kind", [
     kind: z.literal("medicationChange"),
     title: noTitle,
     body: noText,
-    details: medicationChangeDetailsZSchema,
+    details: medicationChangeEntryDetailsZSchema,
   }),
 ]);
 export type TimelineEntryContent = z.infer<typeof timelineEntryContentZSchema>;

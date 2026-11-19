@@ -1,4 +1,5 @@
 import type { MedicationContent, MedicationStatus, ProviderPhone, ProviderType } from "@caretook/data/schema";
+import type { SchedulePass } from "../../../../../lib/medicationDisplay";
 
 import {
   FORM_LABELS,
@@ -59,7 +60,7 @@ export type PrintCurrentRow = {
   form: string | null;
   dose: string | null;
   directions: string | null;
-  /** "8:00 and 20:00", "As needed, up to 4 a day". */
+  /** "Morning and Evening", "Morning (1000 mg) and 14:00", "As needed, up to 4 a day". */
   schedule: string;
   reason: string | null;
   prescriber: string | null;
@@ -167,6 +168,7 @@ export const printSheet = ({
   groupName = "",
   medications,
   providers,
+  passes = [],
   now,
   locale,
 }: {
@@ -174,6 +176,8 @@ export const printSheet = ({
   groupName?: string;
   medications: readonly PrintMedicationInput[];
   providers: readonly PrintProviderInput[];
+  /** The group's passes, deleted ones too: schedules read by pass name. */
+  passes?: readonly SchedulePass[];
   now: Date;
   locale?: string;
 }): PrintSheet => {
@@ -197,7 +201,7 @@ export const printSheet = ({
     form: m.form ? FORM_LABELS[m.form] : null,
     dose: blank(m.dose),
     directions: blank(m.directions),
-    schedule: scheduleText(m.schedule),
+    schedule: scheduleText(m.schedule, passes, m.dose),
     reason: blank(m.reason),
     prescriber: nameOf(m.prescriberId),
     started: m.startedOn ? formatDate(m.startedOn, locale) : null,

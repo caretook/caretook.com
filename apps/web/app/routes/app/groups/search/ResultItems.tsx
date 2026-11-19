@@ -1,3 +1,4 @@
+import type { SchedulePass } from "~/lib/medicationDisplay";
 import type { EntryResult, ProviderResult } from "./loadSearch";
 import type { ParsedSearch, Snippet, UnitChoices } from "@caretook/data/schema";
 import type { LocalMedication } from "~/lib/sync/medications";
@@ -155,16 +156,19 @@ export function ProviderResultItem({
  */
 export function MedicationResultItem({
   medication,
+  passes,
   notes,
   search,
 }: {
   medication: LocalMedication;
+  /** The group's passes, deleted ones too: the schedule reads by pass name. */
+  passes: readonly SchedulePass[];
   notes?: string;
   search: ParsedSearch;
 }) {
   const stopped = medication.status !== "current";
   const title = medicationTitle(medication);
-  const summary = medicationSummaryLine(medication);
+  const summary = medicationSummaryLine(medication, passes);
   const snippet = notesSnippet([title, summary], notes, search);
   return (
     <li

@@ -4,15 +4,21 @@
 
 ## Status
 
-| Slice | State                                   | Merge into `prd/medications-2` (slice commits) |
-| ----- | --------------------------------------- | ---------------------------------------------- |
-| 1     | not started (ready)                     |                                                |
-| 2     | blocked by 1                            |                                                |
-| 3     | blocked by 1                            |                                                |
-| 4     | blocked by 2                            |                                                |
-| 5     | blocked by 4, and B-78 landing in `dev` |                                                |
-| 6     | blocked by 4                            |                                                |
-| 7     | blocked by 2 and 3                      |                                                |
+| Slice | State  | Merge into `prd/medications-2` (slice commits)  |
+| ----- | ------ | ----------------------------------------------- |
+| 1     | merged | d92771a (05033d4, 9f776b7, 1b52df3)             |
+| 2     | merged | 79b6edd (38649d2, fe4896e)                      |
+| 3     | merged | eff620e (6938aaf, c74c009, 1b1efa5); B-26 ready |
+| 4     | merged | 809f54a (2a0a9d9)                               |
+| 5     | merged | 39b8de0 (690a510); B-86 ready                   |
+| 6     | merged | f24ff7d (41a1df4); B-76 ready                   |
+| 7     | merged | 734a0a1 (f228f3d); B-51 ready                   |
+
+**Every slice is merged.** `dev` synced twice: at 3a897e0 (profiles, `0017_profiles`) and at 5a84161 (care periods, `0018_care_periods`). This PRD's migration is now **`0019_medication_passes_allergies`** (byte-identical SQL, hand-written `ALTER PUBLICATION` kept). Pass logs fold beside care period markers through `timeline/dayItems.ts` (`foldPassLogs`, tested). AGENTS.md has this PRD's decisions. The landing suite (11-19) failed: `medications` (a pass log counted as 2 rows, consistent), `profiles` (the emergency sheet's schedule text after passes, consistent; plus a leftover account from a killed `invites` run), tooltip hovers in `phase2`/`ui`, `roundtrip`'s add timing (2.0–2.3 s), `app-shell`'s other-member sign-in, and `invites` hung 2 h 20 min in step 6-7 (killed). Passed: routing, settings-layout, layout-offline, sign-in, first-sync, signout-wipe, providers, groups, upcoming, search, profiles-contacts; live-notes and care-periods flaky. A fix loop (`slice/medications-2/8`) is on them. Then: merge it, `pnpm datastore:reset`, rerun the checks it touched, `pnpm prd check`, land, `pnpm prd rm medications-2`.
+
+**Landing mode: run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**Landing:** this PRD has a migration, so per the user's standing preference (from `profiles`) it lands **once, after every slice is merged**, with one full suite run then (the user said 11-19 "just run the suite": no need to ask). Slice 1 left the seeded medications on time slots; slice 2 moves them onto passes. Slice 3 adds a PATCH on `care_recipient` limited to `no_known_allergies_at`.
 
 Backlog: B-76, B-86, B-51 and B-26 are `triaged`. Claim B-76 when slice 1 starts, B-26 with slice 3, B-51 with slice 7, B-86 with slice 5. Mark each `done` after its last slice merges (B-76 after slice 6). The PRD and this plan are on `plan/medications-2` until they land in `dev`.
 

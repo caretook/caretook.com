@@ -14,6 +14,9 @@ import { useGroup } from "~/lib/group";
 import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/entryOpen";
+import { appUrls } from "~/lib/appUrls";
+import { foldPassLogs } from "./dayItems";
+import { PassLogItem } from "./PassLogItem";
 import { PeriodMarkerItem } from "./PeriodMarkerItem";
 import { COLUMN_CAP } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
@@ -65,6 +68,7 @@ export function TimelineEntryList({
     | "nameOf"
     | "providersOf"
     | "imageOf"
+    | "passNameOf"
     | "markers"
     | "periods"
   >;
@@ -191,10 +195,11 @@ export function TimelineEntryList({
               {day.label}
             </h3>
             <ol className={LIST_CLASS[view]} data-view={view}>
-              {day.entries.map((it) =>
+              {/* Doses logged in one round fold into one pass log; care period markers keep their moments. */}
+              {foldPassLogs(day.entries).map((it) =>
                 it.type === "entry" ? (
                   item(it.entry, true)
-                ) : (
+                ) : it.type === "marker" ? (
                   <PeriodMarkerItem
                     key={it.key}
                     marker={it.marker}
@@ -202,6 +207,18 @@ export function TimelineEntryList({
                     timeZone={recipientZone}
                     placeName={data.periods.placeName}
                     view={view}
+                  />
+                ) : (
+                  <PassLogItem
+                    key={it.id}
+                    view={view}
+                    passLogId={it.id}
+                    passName={data.passNameOf(it.passId)}
+                    doses={it.entries}
+                    occurredAt={it.occurredAt}
+                    authorName={data.nameOf(it.entries[0]!.createdBy)}
+                    authorImage={data.imageOf(it.entries[0]!.createdBy)}
+                    sheetTo={canWrite ? appUrls.passSheet(groupId, it.id, { search }) : undefined}
                   />
                 ),
               )}

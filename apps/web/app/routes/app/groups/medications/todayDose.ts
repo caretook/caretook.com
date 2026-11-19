@@ -14,6 +14,8 @@ export type TodayDose = {
   status: DoseStatus;
   /** The slot it answers ("08:00"); none for an as-needed dose. */
   scheduledFor?: string | null;
+  /** The pass that slot is in, when it's in one. */
+  passId?: string | null;
   amount?: string | null;
   note?: string | null;
 };
@@ -24,6 +26,7 @@ export const todayDoseFields = (dose: TodayDose): Record<string, string> => ({
   medicationId: dose.medicationId,
   status: dose.status,
   scheduledFor: dose.scheduledFor ?? "",
+  passId: dose.passId ?? "",
   amount: dose.amount?.trim() ?? "",
   note: dose.note?.trim() ?? "",
 });
@@ -38,6 +41,7 @@ export const todayDoseFromForm = (form: FormData): DoseInput | null => {
     // An unknown status is left for the write's validation to refuse.
     status: formString(form, "status") as DoseStatus,
     scheduledFor: optional(formString(form, "scheduledFor")),
+    passId: optional(formString(form, "passId")),
     amount: optional(formString(form, "amount")),
     note: optional(formString(form, "note")),
   };
