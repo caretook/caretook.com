@@ -104,4 +104,10 @@ const webRoutes = [
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.
 const nativeRoutes = [index("routes/native-index.tsx")];
 
-export default [...(isNative ? nativeRoutes : webRoutes), ...appRoutes] satisfies RouteConfig;
+// The web-only routes sit in a pathless layout whose middleware adds the
+// security headers to resource routes (routes/web/route.ts; documents get them
+// in entry.server.tsx).
+export default [
+  ...(isNative ? nativeRoutes : [layout("routes/web/route.ts", { id: "web" }, webRoutes)]),
+  ...appRoutes,
+] satisfies RouteConfig;
