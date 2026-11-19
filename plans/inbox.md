@@ -36,6 +36,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Don't display recent vitals in the timeline header in mobile, (B-102)
 - Add "recent vital averages" to the profile page. (B-103)
 - Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header. (B-105)
+- Browser testing without a timeout keeps causing hung processes. We need to always have a sane timeout for browser tests. (B-106)
 
 ## Feature requests
 
@@ -60,6 +61,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead. (B-89)
 - Need an Admin panel for caretook global administrators to manage users, care groups, and settings. (B-91)
 - PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When disk space gets low, we have to be able to restart the system and recover the state of the system. (B-104)
+- Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests (blocker, major, minor, etc.) an only run the blocker/major tests? The test suite takes too long to run and is not very reliable.
 
 ## Big plans
 

@@ -147,6 +147,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-103 | change | dropped |  |  | Add "recent vita averages" to the profile page. |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-105 | change | inbox |  |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
+| B-106 | bug | triaged | admin |  | Turning email invites off also blocks staff owner invites from /admin |
 
 ## Items
 
@@ -1330,3 +1331,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (prd/admin): From the inbox: Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header.
+
+### B-106 · bug · Turning email invites off also blocks staff owner invites from /admin
+
+- status: triaged
+- prd: admin
+- owner:
+- commit:
+
+- 2026-11-19 (prd/admin): From the user while admin slice 5 merged: not the intended behaviour. careGroupInviteService.createEmail refuses with settings:signupClosed when signup.emailInvites is off, and groupAdminService.inviteOwner and staffGroupService.createWithOwnerInvite go through it, so staff can't invite an owner. Staff owner invites should bypass the switch. Not addressed in the admin PRD's current slices; fix later.
