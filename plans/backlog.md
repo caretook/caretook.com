@@ -119,7 +119,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-76 | feature | in-progress | medications-2 | prd/medications-2 | medication groups for doses. Often the same medication is taken at different times of the day every… |
 | B-77 | plan | ready | encryption | plan/encryption | Data security and encryption review. |
 | B-78 | change | ready | quick-fixes | prd/quick-fixes | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
-| B-79 | bug | triaged | quick-fixes |  | Device keeps its synced data after the session ends; offline sign-in never expires |
+| B-79 | bug | in-progress | quick-fixes | prd/quick-fixes | Device keeps its synced data after the session ends; offline sign-in never expires |
 | B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
 | B-81 | change | ready | quick-fixes | prd/quick-fixes | Security headers and a CSP for every web response |
 | B-82 | change | ready | quick-fixes | prd/quick-fixes | Server logs carry error codes and ids only, never values or meta |
@@ -1047,9 +1047,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-79 · bug · Device keeps its synced data after the session ends; offline sign-in never expires
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-2 (launch): wipe the device copy (the sign-out path) when the server says the session has ended; allow the cached user offline only within 3 days of the last confirmed session (decided 2026-11-19), then require sign-in, and wipe once online and still signed out.
