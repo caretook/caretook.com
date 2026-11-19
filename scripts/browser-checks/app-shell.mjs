@@ -692,11 +692,13 @@ try {
       await M.waitFor(item("Group settings"), 5000);
       const menuEnd = await M.evaluate(
         `(() => { const all = [...${MENU}.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [role="separator"]')];
-          return all.slice(-3).map((el) => el.getAttribute("role") + ":" + el.textContent.trim()).join(" > "); })()`,
+          // A current care period adds "Now: …" after the separator (care-periods); its own check covers it.
+          return all.slice(-5).map((el) => el.getAttribute("role") + ":" + el.textContent.trim())
+            .filter((t) => !t.startsWith("menuitem:Now: ")).slice(-4).join(" > "); })()`,
       );
       check(
-        "group menu: ends with a separator, then Group settings and New care group",
-        menuEnd === "separator: > menuitem:Group settings > menuitem:New care group",
+        "group menu: ends with a separator, then Group settings, Care periods and New care group",
+        menuEnd === "separator: > menuitem:Group settings > menuitem:Care periods > menuitem:New care group",
         menuEnd,
       );
       await M.press(item("Group settings"));

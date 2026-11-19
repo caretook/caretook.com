@@ -116,6 +116,8 @@ apps/web/app/components/settings/*       routing settings-layout app-shell ui
 # The /app frame, menus, theme, group settings and members.
 # The header's search magnifier (search slice 3) opens the search page.
 apps/web/app/routes/app/layout/route.tsx app-shell search
+# The group menu also shows the current care period (care-periods slice 4).
+apps/web/app/routes/app/layout/GroupMenu.tsx app-shell care-periods
 apps/web/app/routes/app/layout/*         app-shell
 apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
 apps/web/app/routes/app/home/*           app-shell first-sync
@@ -194,6 +196,7 @@ apps/web/app/lib/sync/carePeriods.ts     care-periods
 apps/web/app/routes/app/groups/periods/* care-periods
 apps/web/app/routes/app/groups/period/*  care-periods
 apps/web/app/lib/sync/periodSuggestions.ts care-periods live-notes
+apps/web/app/lib/sync/currentPeriod.ts   care-periods app-shell
 # Search (search PRD): the device index, its tables and triggers, and the
 # shared query language and search documents.
 apps/web/app/lib/sync/search.ts          search
