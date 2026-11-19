@@ -1291,13 +1291,14 @@ async function suggestionSteps(A, proxy) {
   // Leave the draft unsaved: clear the typed title before going on.
   await A.type(ENTRY_TITLE, "");
 
-  // Nothing to match: a new note suggests the recently linked (Dr. Patel, just now).
+  // Nothing to match: a new note suggests recently linked providers, Dr. Patel (just now) among them.
+  // (Their order, frequency against recency, is unit-tested.)
   await draftWithTitle(A, "note", "");
-  await A.waitFor(firstSuggestionIs(PATEL), 15000).catch(() => {});
+  await A.waitFor(suggestionNamed(PATEL), 15000).catch(() => {});
   const recent = await suggested(A);
   check(
     "with nothing to match, recently linked providers are suggested",
-    recent[0] === PATEL,
+    recent.includes(PATEL) && recent.length <= 5,
     JSON.stringify(recent),
   );
 
