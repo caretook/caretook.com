@@ -253,6 +253,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Asked for as Elasticsearch. Recommended instead: SQLite FTS5 on the device (works offline) plus Postgres full-text search on the server (API, AI). Elasticsearch is server only, another service to host, and another copy of health data. Check that PowerSync's web SQLite build has FTS5.
+- 2026-11-19 (plan/search): PRD written on plan/search: plans/search-prd.md (interview 2026-11-19). Covers entries, providers, medications and their notes; a timeline ?q= filter plus a group search page (header magnifier); FTS5 on the device (porter stemming, prefix, phrases, -exclusions, indexes unsynced text) and Postgres FTS on the server (searchService, search.query) for the assistant. Run after appointments lands.
 
 ### B-12 · plan · Assistant: lightweight chat, with voice, for quick actions and questions about the timeline
 
