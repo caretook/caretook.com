@@ -662,6 +662,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'appointments' (to write): future-dated notes and events (appointments, with place and provider, which AGENTS.md defers), never symptoms or vitals; a toggle or section for upcoming items on the timeline. Medication reminders as future items depend on medications slice 5 (Today/due doses).
 - 2026-11-18 (plan/appointments): PRD written on plan/appointments: plans/appointments-prd.md (interview 2026-11-18). Follow-ups B-60–B-63.
 - 2026-11-19 (slice/appointments/1): slice 1 (data layer and time rules) ready on slice/appointments/1 at e7bafce: migration 0014_appointments, future-date rule (dose not a future kind), lib/upcoming + windows, seeds
+- 2026-11-19 (slice/appointments/3): slice 3 (Upcoming section + Past tab) committed on slice/appointments/3 (3f6c48c, 6bbf62c); upcoming.mjs 23/23
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
