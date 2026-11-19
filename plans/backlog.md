@@ -33,6 +33,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `encryption`      | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 | (none); affects `assistant` and `documents` | none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
 | `onboarding`      | to write (B-31)                                              | `invites` (done)                                     | seeds, `careGroupService`, `/app` home                                     |
 | `account-security` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) | `invites` (done); B-80 (the Devices page) first (soft) | `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
+| `admin`           | [PRD](admin-prd.md), [plan](admin-plan.md): 6 slices, waves 1 → (2, 4, 5) → (3, 6): staff roles (admin, support), audit log, users, disable, care groups, settings, announcement banner (B-91) | `invites`, `marketing` (done); start after `profiles` lands; `account-security` (staff 2FA) comes after | one migration (`user` role and disable columns, `admin_audit_log`, `app_setting`), `USER_ROLE_NAMES`, `PERMISSIONS`, `db/schema/index.ts`, `packages/auth` config, the API router (`adminProcedure` → `staffProcedure`), `routes.ts`, the account menu, one region in the `/app` layout (slice 6), the invite and access-code services (settings switches) |
 
 ## Summary
 
@@ -65,7 +66,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-23 | change | landed | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | landed | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
-| B-26 | feature | triaged | medications-2 |  | Allergies on the care recipient, shown on the medications page and printed sheet |
+| B-26 | feature | ready | medications-2 | prd/medications-2 | Allergies on the care recipient, shown on the medications page and printed sheet |
 | B-27 | bug | landed | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | landed | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
@@ -89,7 +90,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-47 | feature | ready | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
 | B-49 | feature | triaged | assistant |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
-| B-50 | feature | in-progress | care-periods | prd/care-periods | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
+| B-50 | feature | ready | care-periods | prd/care-periods | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
 | B-51 | feature | triaged | medications-2 |  | printable medication schedule sheet that can be printed to be checked off with a pen at patient's… |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
@@ -129,8 +130,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-87 | plan | triaged | simple-mode |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 | B-88 | change | triaged | orchestration |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
 | B-89 | feature | triaged | orchestration |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
-| B-90 | change | inbox |  |  | Seed data with multiple care groups and user mix for improved manual testing. |
-| B-91 | feature | inbox |  |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
+| B-90 | change | triaged | quick-fixes |  | Seed data with multiple care groups and user mix for improved manual testing. |
+| B-91 | feature | triaged | admin |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
+| B-92 | change | triaged | quick-fixes |  | Units save offline: move the Units settings page onto saveSettings |
+| B-93 | bug | triaged | quick-fixes |  | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
+| B-94 | change | triaged | quick-fixes |  | Account forms, sign-in and the marketing menu button onto the ui primitives |
+| B-95 | chore | triaged | quick-fixes |  | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
+| B-96 | change | inbox |  |  | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
 
 ## Items
 
@@ -455,13 +461,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-26 · feature · Allergies on the care recipient, shown on the medications page and printed sheet
 
-- status: triaged
+- status: ready
 - prd: medications-2
-- owner:
-- commit:
+- owner: prd/medications-2
+- commit: eff620e
 
 - 2026-11-18 (Robert Bo Davis): Left out of the medications PRD's v1 (2026-11-18). Likely a synced list of { substance, reaction, severity } on care_recipient; the print sheet gets an allergies line when it lands.
 - 2026-11-19 (plan/medications-2): In the medications-2 PRD (plans/medications-2-prd.md on plan/medications-2), interviewed 2026-11-19.
+- 2026-11-19 (slice/medications-2/3): slice 3 (allergies) built on slice/medications-2/3 (6938aaf, c74c009, 1b1efa5): region, sheet, print block, name warning, No known allergies via upload; medications.mjs 142/142
 
 ### B-27 · bug · routing.mjs fails: group settings blank after the entry step; account Sign out flaky
 
@@ -736,15 +743,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-50 · feature · Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start…
 
-- status: in-progress
+- status: ready
 - prd: care-periods
 - owner: prd/care-periods
-- commit:
+- commit: e9e1f61
 
 - 2026-11-18 (prd/marketing): From the inbox: Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start date-end date", "at home on hospice - start date-end date", etc. These will be useful in the summary and for filtering.
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'care-periods' (to write): named date ranges (at home, in hospital, at home on hospice) shown as bands or headers on the timeline and usable as a filter (lib/timelineFilters) and by the assistant's summaries (B-49). After timeline-polish.
 - 2026-11-19 (Robert Bo Davis): PRD written (2026-11-19) on plan/care-periods: plans/care-periods-prd.md. One contiguous track per group (starts only), fixed types + label, optional provider place + room detail, date with optional time, live notes per period, From→to markers on the timeline (shown under kind/author filters), current-period line + group menu icon, periods page, keyword suggestions from events, period filter in search only (last slice, after search). Next: prd-to-plan.
 - 2026-11-19 (slice/care-periods/1): Slice 1 (data layer, sync, seeds, device module, periods page, add sheet, minimal period page) committed on slice/care-periods/1 at abc3fa8
+- 2026-11-19 (slice/care-periods/2): slice 2 (period page, notes, edit sheet, delete) ready on slice/care-periods/2 at a2938cc
+- 2026-11-19 (slice/care-periods/6): slice 6 (search within a care period) handed off at 6cab48e: search page When choice, timeline Within a period menu and During chip, ?period= only with q
+- 2026-11-19 (slice/care-periods/3): slice 3 (timeline line + boundary markers) built on slice/care-periods/3 (2696c88, 5af07a0); awaiting orchestrator review
 
 ### B-51 · feature · printable medication schedule sheet that can be printed to be checked off with a pen at patient's…
 
@@ -988,6 +998,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (prd/medications): medications orchestrator: handed to quick-fixes when the medications PRD gave up its slot (PRD done). A near-finished fix is on branch slice/medications/7 (b4e8190, one WIP commit on dev's medications code): it changes components/ui/ConfirmDialog.tsx (34 lines) and medications.mjs. Its agent had medications.mjs passing 3 times in a row; still to do: ui.mjs and app-shell.mjs for the ConfirmDialog change, pnpm check, and a real commit message. Cherry-pick or rebase it onto a quick-fixes slice.
 - 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
 - 2026-11-19 (slice/quick-fixes/20): slice/quick-fixes/20: medications.mjs check changes from b4e8190 kept (front tab, real taps, synced-before-open, bounded device calls), plus enabled-button waits; ConfirmDialog change dropped (hidden-tab only, not an app race). medications 118/118 x3; one earlier run failed once at 'Delete … goes to the list' (not reproduced; diagnostics added).
+- 2026-11-19 (prd/profiles): profiles landing 2026-11-19: medications.mjs failed once on 'Delete asks first, then goes to the list' (the delete wrote, the page stayed on the medication), load ~33; passed on the next run. prd/profiles has no medications code changes.
 
 ### B-75 · feature · medications need to keep a history of past dose changes, frequency changes, etc. on each medication…
 
@@ -1009,6 +1020,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (prd/search): From the inbox: medication groups for doses. Often the same medication is taken at different times of the day every day. We need to be able to group doses together so that they can be taken at the same time as part of the schedule and allow for setting status of each medication in the group on dose logging in the timeline.
 - 2026-11-19 (prd/medications): medications orchestrator: proposed for medications as a follow-up (not in the six-slice plan): a 'dose group' (several medications taken at one time) touches the schedule, dueDoses, Today and the Dose sheet, so it needs its own PRD interview or a plan addendum before slicing. Partly covered today: Today lists every medication due at one time together, each with its own Given/Skipped/Refused.
 - 2026-11-19 (plan/medications-2): In the medications-2 PRD (plans/medications-2-prd.md on plan/medications-2), interviewed 2026-11-19.
+- 2026-11-19 (slice/medications-2/1): slice 1 (medications-2) on slice/medications-2/1 at 1b52df3: passes table + sync, schedule slots with old-shape read, default passes, Passes screen. Seeded medications not yet moved onto passes (slice 2).
+- 2026-11-19 (slice/medications-2/2): slice 2 (passes in schedules) built on slice/medications-2/2: form passes + amounts, schedule wording by pass, dueDoses keyed by pass, seeds on passes (38649d2, fe4896e)
 
 ### B-77 · plan · Data security and encryption review.
 
@@ -1143,14 +1156,64 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-90 · change · Seed data with multiple care groups and user mix for improved manual testing.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
+
+- 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: one slice adding a new seed file with its own ids (seeds are append-only): more groups and a mix of users and roles (a user in three groups, an admin-only group member, a viewer in two groups, an empty group). Existing seeded users' memberships stay as they are, because browser checks rely on them (member@ has two groups; caretaker@ and viewer@ one each). Also feeds onboarding's demo group (B-31).
 
 ### B-91 · feature · Need an Admin panel for caretook global administrators to manage users, care groups, and settings.
 
+- status: triaged
+- prd: admin
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): Proposed for a new PRD 'admin' (to write): extends the existing web-only /admin (access codes, new group, waitlist) with users (find, verify, disable, sign out everywhere, reset), care groups (list, members and roles, owner recovery) and settings. Staff still see no care data (AGENTS.md: support access only as an explicit, audited grant), so it needs an audit log. Soft dependency on account-security (B-85: 2FA required for staff) first.
+- 2026-11-19 (plan/admin): PRD and plan written (interview 2026-11-19): plans/admin-prd.md, plans/admin-plan.md. Six slices, waves 1 → (2, 4, 5) → (3, 6): staff foundation (support role, staff rules, audit log, Admin menu item, admin:grant), users, disable and staff roles, care groups, settings, announcement banner. Staff never see care data; no group delete (data-rights); 2FA later (account-security). Start after profiles lands.
+
+### B-92 · change · Units save offline: move the Units settings page onto saveSettings
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user, in the backlog planning session). AGENTS.md (Sync, not built): units still save online only; routes/app/settings/units/route.tsx calls rpc.me.updatePreferences directly. Use saveSettings like the timeline layout (pending offline, sent later; loadSettings shows the pending change), and drop the offline notice. Checks: settings-layout, layout-offline.
+
+### B-93 · bug · Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user). .loops/.browser-flakes.log has timeouts with no contention: phase2 (load 10→7, 14→31), roundtrip (11→12), providers (8→8), medications (8→9); plus the providers.mjs 16-minute hang after the non-member 404 step (practiceDeleteSteps). Read each first-run log, find the step, and replace fixed sleeps or early checks with waits on state (as B-70 did with settlesOn). Cuts reruns (related to B-89).
+
+### B-94 · change · Account forms, sign-in and the marketing menu button onto the ui primitives
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user). AGENTS.md (Components, not yet on the primitives): routes/account/ (AuthCard forms), sign-in.tsx and the marketing header's menu button (IconButton), waiting for invites to settle (done). Field for every labelled control, IconButton for icon-only buttons; keep useSubmitOnce. No visible change. Checks: sign-in, invites, groups (join), marketing.
+
+### B-95 · chore · Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user). provider/route.tsx imports PROVIDER_SHEET_STATE from the providers route folder (against folder-per-route, like B-69); entry/withProviders.ts re-exports chipLabel from lib/entryProviders. A small refactor; then drop the matching lines from AGENTS.md.
+
+### B-96 · change · Email link and code shouldn't really be two different login options, should they? Can't we email a…
+
 - status: inbox
 - prd:
 - owner:
 - commit:
+
+- 2026-11-19 (prd/medications-2): From the inbox: Email link and code shouldn't really be two different login options, should they? Can't we email a link and a code at the same time?
