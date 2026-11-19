@@ -1,6 +1,6 @@
-import type { AuthUser } from "@caretook/data";
+import type { AuthUser, StaffCapability } from "@caretook/data";
 
-import { isError, logError } from "@caretook/data";
+import { isError, logError, staffCan } from "@caretook/data";
 import { ORPCError, os } from "@orpc/server";
 
 /**
@@ -52,10 +52,13 @@ export const authedProcedure = publicProcedure.use(({ context, next }) => {
 });
 
 /**
- * Caretook staff only (the global `admin` role). Group roles count for
- * nothing here: a group's owner is refused like anyone else (a 403).
+ * Caretook staff with `capability` (db/schema/staffRules.ts: admin and
+ * support, each with their own powers). Group roles count for nothing here:
+ * a group's owner is refused like anyone else (a 403), and so is support on
+ * an admin-only capability.
  */
-export const adminProcedure = authedProcedure.use(({ context, next }) => {
-  if (!context.authUser.roleNames.includes("admin")) throw new ORPCError("FORBIDDEN");
-  return next({ context });
-});
+export const staffProcedure = (capability: StaffCapability) =>
+  authedProcedure.use(({ context, next }) => {
+    if (!staffCan(context.authUser.roleNames, capability)) throw new ORPCError("FORBIDDEN");
+    return next({ context });
+  });

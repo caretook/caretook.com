@@ -76,10 +76,13 @@ const dataInScope = async (scope: PermissionScope, data: Row, tx?: Tx): Promise<
   return res.rows[0]?.ok === true;
 };
 
-const idFilter = <K extends DbSchemaName>(id: string) => ({ id: { type: "eq", value: id } }) as Filter<K>;
+// `unknown` first: not every table has an `id` (app_setting is keyed by
+// `key`); the base functions are only used on tables that do.
+const idFilter = <K extends DbSchemaName>(id: string) =>
+  ({ id: { type: "eq", value: id } }) as unknown as Filter<K>;
 
 const idsFilter = <K extends DbSchemaName>(ids: string[]) =>
-  ({ id: { type: "inArray", value: ids } }) as Filter<K>;
+  ({ id: { type: "inArray", value: ids } }) as unknown as Filter<K>;
 
 // ---------------------------------------------------------------------------
 // Reads

@@ -71,6 +71,13 @@ export type { SearchHit, SearchOptions, SearchResult } from "./searchService";
 import * as carePeriodService from "./carePeriodService";
 export { carePeriodService };
 
+import * as adminAuditService from "./adminAuditService";
+export { adminAuditService };
+export type { AuditEntryInput } from "./adminAuditService";
+export { auditActorId, staffRefusal } from "./staffAccess";
+import * as adminGrantService from "./adminGrantService";
+export { adminGrantService };
+
 export type * from "./types";
 
 export const services = {
@@ -95,6 +102,8 @@ export const services = {
   userContact: userContactService,
   memberSharing: memberSharingService,
   carePeriod: carePeriodService,
+  adminAudit: adminAuditService,
+  adminGrant: adminGrantService,
 };
 
 export type ServiceTypeMap = typeof services;

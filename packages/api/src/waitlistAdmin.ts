@@ -4,10 +4,10 @@ import { waitlistFilterZSchema, waitlistService } from "@caretook/data";
 import { z } from "zod";
 import { iso } from "./dto";
 import { unwrap } from "./errors";
-import { adminProcedure } from "./procedures";
+import { staffProcedure } from "./procedures";
 
 // `admin.waitlist.*` (marketing slice 5): the waitlist for Caretook staff
-// (global admin only; a group's owner gets a 403 like anyone else). Each row
+// (admin and support; a group's owner gets a 403 like anyone else). Each row
 // is exactly what the visitor typed into the form, plus when they joined:
 // no ids of who wrote it, nothing else about them.
 
@@ -27,7 +27,7 @@ export type WaitlistEntryDto = ReturnType<typeof toWaitlistEntry>;
 
 export const waitlistAdmin = {
   /** One page of the matching entries, newest first, and how many match in all. */
-  list: adminProcedure
+  list: staffProcedure("waitlist.read")
     .input(waitlistFilterZSchema.extend({ page: z.number().int().min(1).max(100_000).default(1) }))
     .handler(async ({ context, input: { page, ...filter } }) => {
       const res = unwrap(await waitlistService.search(context, filter, { page, limit: WAITLIST_PAGE_SIZE }));
@@ -35,7 +35,7 @@ export const waitlistAdmin = {
     }),
 
   /** Every matching entry, newest first: what the CSV export holds. */
-  export: adminProcedure
+  export: staffProcedure("waitlist.read")
     .input(waitlistFilterZSchema)
     .handler(async ({ context, input }) =>
       unwrap(await waitlistService.exportAll(context, input)).map(toWaitlistEntry),
