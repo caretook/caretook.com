@@ -1,8 +1,8 @@
 import type { EntryCondition } from "../../../../lib/sync/timeline";
-import type { SearchIndexStatus } from "../../../../lib/sync/search";
+import type { SearchIndexStatus, SearchRange } from "../../../../lib/sync/search";
 
 import { parseSearch } from "@caretook/data/schema";
-import { entryMatchCondition } from "../../../../lib/sync/search";
+import { entryMatchCondition, entryRangeCondition } from "../../../../lib/sync/search";
 
 // The timeline's search (`?q=`) as its queries take it: a condition on the
 // entry's id for every window (`EntryFilters.match`), and what the screen
@@ -25,13 +25,28 @@ export const NO_MATCH: EntryCondition = { sql: "0", params: [] };
 
 const NONE: TimelineSearch = { state: "none", match: null };
 
-/** The search for `q` (from `parseFilters`) in one group, given the index's status. */
-export const timelineSearch = (groupId: string, q: string, status: SearchIndexStatus): TimelineSearch => {
+/**
+ * The search for `q` (from `parseFilters`) in one group, given the index's
+ * status, and narrowed to a care period's dates when there's a `range`
+ * (`periodRange`; an open period has no end, and the history ends at now).
+ */
+export const timelineSearch = (
+  groupId: string,
+  q: string,
+  status: SearchIndexStatus,
+  range: SearchRange | null = null,
+): TimelineSearch => {
   if (!q) return NONE;
   if (status === "preparing") return { state: "preparing", match: NO_MATCH };
   if (status === "unavailable") return { state: "unavailable", match: NO_MATCH };
   const match = entryMatchCondition("timeline_entry.id", groupId, parseSearch(q));
-  return match ? { state: "ready", match } : { state: "empty", match: NO_MATCH };
+  if (!match) return { state: "empty", match: NO_MATCH };
+  if (!range) return { state: "ready", match };
+  const within = entryRangeCondition("timeline_entry.occurred_at", range);
+  return {
+    state: "ready",
+    match: { sql: `${match.sql} AND ${within.sql}`, params: [...match.params, ...within.params] },
+  };
 };
 
 /** What the list says at its end while searching (else the timeline's own). */

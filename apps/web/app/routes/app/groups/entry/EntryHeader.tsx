@@ -14,6 +14,7 @@ import { Field } from "~/components/ui";
  *   [icon] [title ............] [editors] [actions]
  *          [time]
  *          [with ...........]
+ *          [suggestion .....]
  *          [place ..........]
  *
  * - `title`: `EntryTitle` (editable for writers) or plain text.
@@ -21,6 +22,7 @@ import { Field } from "~/components/ui";
  * - `editors`: who is typing now (avatars).
  * - `actions`: Share, the ⋯ menu.
  * - `with`: the providers it was with (notes and events).
+ * - `suggestion`: an offer drawn from the entry (an event's care period).
  * - `place`: where an event is (an appointment's address).
  *
  * Empty regions take no space.
@@ -32,6 +34,7 @@ export function EntryHeader({
   editors,
   actions,
   with: withRegion,
+  suggestion,
   place,
 }: {
   kind: TimelineEntryKind;
@@ -40,6 +43,7 @@ export function EntryHeader({
   editors?: ReactNode;
   actions?: ReactNode;
   with?: ReactNode;
+  suggestion?: ReactNode;
   place?: ReactNode;
 }) {
   return (
@@ -53,6 +57,11 @@ export function EntryHeader({
         {withRegion && (
           <div data-region="with" className="pt-1.5 empty:hidden">
             {withRegion}
+          </div>
+        )}
+        {suggestion && (
+          <div data-region="suggestion" className="pt-1.5 empty:hidden">
+            {suggestion}
           </div>
         )}
         {place && (

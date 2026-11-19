@@ -329,12 +329,13 @@ try {
       await A.press(GROUP_TRIGGER);
       await A.waitFor(menuItem("Grandma Pat's profile"), 5000).catch(() => undefined);
       const order = await A.evaluate(
-        `[...document.querySelectorAll('[role="menu"] [role="menuitem"], [role="menu"] [role="separator"]')].slice(-4).map((el) => el.getAttribute("role") + ":" + el.textContent.trim()).join(" > ")`,
+        `[...document.querySelectorAll('[role="menu"] [role="menuitem"], [role="menu"] [role="separator"]')].map((el) => el.getAttribute("role") + ":" + el.textContent.trim()).filter((t) => !t.startsWith("menuitem:Now: ")).slice(-5).join(" > ")`,
       );
+      // A current care period adds "Now: …" after the separator (care-periods); its own check covers it.
       check(
-        `group menu (${width}): a separator, then the profile, Group settings and New care group`,
+        `group menu (${width}): a separator, then the profile, Group settings, Care periods and New care group`,
         order ===
-          "separator: > menuitem:Grandma Pat's profile > menuitem:Group settings > menuitem:New care group",
+          "separator: > menuitem:Grandma Pat's profile > menuitem:Group settings > menuitem:Care periods > menuitem:New care group",
         order,
       );
       await A.press(menuItem("Grandma Pat's profile"));

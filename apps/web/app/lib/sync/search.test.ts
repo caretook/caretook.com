@@ -9,6 +9,7 @@ import {
   indexSearchChanges,
   prepareSearchIndex,
   SEARCH_INDEX_VERSION,
+  entryRangeCondition,
   searchEntryIds,
   searchGroup,
 } from "./search";
@@ -276,6 +277,47 @@ describe("the device search index", () => {
       { id: "m-lis", titleMatch: false },
     ]);
     expect((await searchGroup(s.db, G1, parseSearch("valley"))).provider.total).toBe(2);
+  });
+
+  it("narrows the page's results to a care period's dates: entries only, the end exclusive", async () => {
+    s.put("timeline_entry", "e-cardio", {
+      group_id: G1,
+      kind: "note",
+      title: "Cardiology questions",
+      created_by: "u-jo",
+      occurred_at: "2026-11-10T16:00:00.000000Z",
+    });
+    s.put("timeline_entry", "e-late", {
+      group_id: G1,
+      kind: "note",
+      title: "Cardiology follow-up",
+      created_by: "u-jo",
+      occurred_at: "2026-11-18T18:00:00.000000Z",
+    });
+    await indexSearchChanges(s.store);
+    const search = parseSearch("cardiology");
+    const rehab = { from: "2026-11-08T18:00:00.000Z", to: "2026-11-18T18:00:00.000Z" };
+    const within = await searchGroup(s.db, G1, search, {}, rehab);
+    expect(within.entry.hits.map((h) => h.id)).toEqual(["e-cardio"]);
+    expect(within.entry.total).toBe(1);
+    // Providers and medications have no dates.
+    expect(within.provider.total).toBe(0);
+    const open = await searchGroup(s.db, G1, search, {}, { from: rehab.to, to: null });
+    expect(open.entry.hits.map((h) => h.id)).toEqual(["e-late"]);
+    expect((await searchGroup(s.db, G1, search)).entry.total).toBe(2);
+  });
+
+  it("builds the timeline's range condition in the device's timestamp form", () => {
+    expect(entryRangeCondition("t.at", { from: "2026-11-08T18:00:00.000Z", to: null })).toEqual({
+      sql: "t.at >= ?",
+      params: ["2026-11-08T18:00:00.000000Z"],
+    });
+    expect(
+      entryRangeCondition("t.at", { from: "2026-11-08T18:00:00.000Z", to: "2026-11-13T19:00:00.000Z" }),
+    ).toEqual({
+      sql: "t.at >= ? AND t.at < ?",
+      params: ["2026-11-08T18:00:00.000000Z", "2026-11-13T19:00:00.000000Z"],
+    });
   });
 
   it("indexes provider and medication notes, and leaves deleted ones out", async () => {

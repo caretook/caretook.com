@@ -148,6 +148,9 @@ export const MODEL_ERRORS = {
   "waitlistEntryModel:search": {
     message: "Failed to search the waitlist",
   },
+  "carePeriodModel:remove": {
+    message: "Failed to delete the care period",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {
@@ -467,6 +470,38 @@ export const SERVICE_ERRORS = {
   },
   "searchService:query": {
     message: "Failed to search",
+  },
+  "carePeriodService:invalid": {
+    message: "The care period is invalid",
+    statusCode: 400,
+  },
+  "carePeriodService:notFound": {
+    message: "Care period not found",
+    statusCode: 404,
+  },
+  "carePeriodService:immutable": {
+    message: "A care period's group and recipient can't change",
+    statusCode: 400,
+  },
+  "carePeriodService:noRecipient": {
+    message: "This care group has no care recipient yet",
+    statusCode: 409,
+  },
+  "carePeriodService:recipientNotInGroup": {
+    message: "That care recipient isn't in this care group",
+    statusCode: 400,
+  },
+  "carePeriodService:badPlace": {
+    message: "The place must be a provider in this care group",
+    statusCode: 400,
+  },
+  "carePeriodService:futureStart": {
+    message: "A care period can't start in the future",
+    statusCode: 400,
+  },
+  "noteDocumentService:carePeriodNotFound": {
+    message: "That care period is gone. It may have been deleted.",
+    statusCode: 404,
   },
 } as const;
 

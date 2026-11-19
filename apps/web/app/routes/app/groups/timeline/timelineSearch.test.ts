@@ -18,6 +18,32 @@ describe("timelineSearch", () => {
     expect(String(match?.params[0])).toContain("walk");
   });
 
+  it("narrows the matches to a care period's dates", () => {
+    const closed = timelineSearch(GROUP, "walk", "ready", {
+      from: "2026-11-08T18:00:00.000Z",
+      to: "2026-11-13T19:00:00.000Z",
+    });
+    expect(closed.state).toBe("ready");
+    expect(closed.match?.sql).toMatch(
+      /AND timeline_entry\.occurred_at >= \? AND timeline_entry\.occurred_at < \?$/,
+    );
+    expect(closed.match?.params.slice(2)).toEqual([
+      "2026-11-08T18:00:00.000000Z",
+      "2026-11-13T19:00:00.000000Z",
+    ]);
+    // The current period: no end (the history ends at now).
+    const open = timelineSearch(GROUP, "walk", "ready", { from: "2026-11-13T19:00:00.000Z", to: null });
+    expect(open.match?.sql).toMatch(/AND timeline_entry\.occurred_at >= \?$/);
+    expect(open.match?.params).toHaveLength(3);
+    // Nothing to narrow without a search, or with nothing to search for.
+    expect(
+      timelineSearch(GROUP, "", "ready", { from: "2026-11-13T19:00:00.000Z", to: null }).match,
+    ).toBeNull();
+    expect(
+      timelineSearch(GROUP, "-pain", "ready", { from: "2026-11-13T19:00:00.000Z", to: null }).match,
+    ).toBe(NO_MATCH);
+  });
+
   it("only exclusions match nothing", () => {
     expect(timelineSearch(GROUP, "-pain", "ready")).toEqual({ state: "empty", match: NO_MATCH });
   });

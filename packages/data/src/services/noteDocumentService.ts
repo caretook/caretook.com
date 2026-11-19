@@ -22,6 +22,7 @@ import {
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
+  carePeriodModel,
   medicationModel,
   noteDocumentModel,
   noteUpdateModel,
@@ -56,7 +57,7 @@ export const COMPACT_AFTER_UPDATES = 20;
 export const COMPACT_AFTER_SECONDS = 60;
 
 /**
- * The document's owner (an entry, a provider or a medication), as the actor sees it.
+ * The document's owner (an entry, a provider, a medication or a care period), as the actor sees it.
  * Deleted owners are hidden, and so are their documents.
  */
 const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubject, id: string) => {
@@ -73,6 +74,13 @@ const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubje
     return medication
       ? { groupId: medication.groupId, kind: null }
       : newError({ code: "noteDocumentService:medicationNotFound" });
+  }
+  if (subject === "carePeriod") {
+    const period = await carePeriodModel.getById(id, { ...ctx, tx });
+    if (isError(period)) return period;
+    return period
+      ? { groupId: period.groupId, kind: null }
+      : newError({ code: "noteDocumentService:carePeriodNotFound" });
   }
   const entry = await timelineEntryModel.getById(id, { ...ctx, tx });
   if (isError(entry)) return entry;
@@ -94,11 +102,12 @@ const visibleDocument = async (ctx: ServiceContext, tx: Tx, id: string) => {
 const ownerColumns = (
   subject: NoteDocumentSubject,
   id: string,
-): Pick<NoteDocument, "subject" | "entryId" | "providerId" | "medicationId"> => ({
+): Pick<NoteDocument, "subject" | "entryId" | "providerId" | "medicationId" | "carePeriodId"> => ({
   subject,
   entryId: subject === "entry" ? id : null,
   providerId: subject === "provider" ? id : null,
   medicationId: subject === "medication" ? id : null,
+  carePeriodId: subject === "carePeriod" ? id : null,
 });
 
 // ---------------------------------------------------------------------------
@@ -134,10 +143,10 @@ export const currentText = (ctx: ServiceContext, id: string) =>
 // ---------------------------------------------------------------------------
 
 /**
- * Add a live document to an entry, a provider or a medication (`id` is the
- * owner's id; `subject` defaults to an entry). Only writers, only on a live
- * note or event, or a provider or medication that isn't deleted, in the
- * owner's own group.
+ * Add a live document to an entry, a provider, a medication or a care
+ * period (`id` is the owner's id; `subject` defaults to an entry). Only
+ * writers, only on a live note or event, or a provider, medication or care
+ * period that isn't deleted, in the owner's own group.
  *
  * Idempotent: if the entry already has one, that one is returned. That's
  * also PowerSync's replay, and two offline devices adding one at once.
