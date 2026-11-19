@@ -74,6 +74,8 @@ apps/web/app/components/groups/*         groups app-shell
 apps/web/app/routes/app/home/NewGroupLink.tsx groups app-shell first-sync
 apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx groups phase2
 packages/api/src/groups.ts               groups
+# The admin waitlist (marketing slice 5): its steps are in groups.mjs.
+packages/api/src/waitlistAdmin.ts        groups
 packages/data/src/db/schema/accessCode.ts groups
 packages/data/src/db/schema/newCareGroup.ts groups
 packages/data/src/db/seeds/accessCodes.ts groups
@@ -157,6 +159,8 @@ apps/web/public/*                        marketing
 packages/api/src/sync.ts                 roundtrip live-notes providers
 packages/api/src/invites.ts              invites
 packages/api/src/joinRequests.ts         invites
+packages/api/src/publicForms.ts          marketing
+packages/api/src/rateLimit.ts            marketing
 packages/api/src/*                       -
 apps/web/app/.server/*                   sign-in
 apps/web/app/routes/rpc.ts               sign-in
@@ -176,6 +180,10 @@ packages/data/src/db/schema/careGroup*.ts app-shell invites
 packages/data/src/db/schema/careRecipient.ts app-shell
 packages/data/src/db/schema/userPreferences.ts settings-layout
 packages/data/src/db/schema/notification.ts -
+packages/data/src/db/schema/publicForms.ts marketing
+packages/data/src/db/schema/publicFormRules.ts marketing
+packages/data/src/db/schema/waitlistEntry.ts marketing
+packages/data/src/db/schema/contactMessage.ts marketing
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 packages/data/src/db/seeds/providers.ts  providers
 packages/data/src/db/seeds/invites.ts    invites app-shell

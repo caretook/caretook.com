@@ -133,6 +133,12 @@ export const MODEL_ERRORS = {
   "accessCodeModel:countUse": {
     message: "Failed to count the access code's use",
   },
+  "waitlistEntryModel:upsertByEmail": {
+    message: "Failed to save the waitlist entry",
+  },
+  "waitlistEntryModel:search": {
+    message: "Failed to search the waitlist",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {
@@ -389,6 +395,10 @@ export const SERVICE_ERRORS = {
   "noteDocumentService:medicationNotFound": {
     message: "That medication is gone. It may have been deleted.",
     statusCode: 404,
+  },
+  "publicForms:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
   },
 } as const;
 

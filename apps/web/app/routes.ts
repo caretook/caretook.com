@@ -87,8 +87,10 @@ const webRoutes = [
     route("admin", "routes/admin/index/route.tsx"),
     route("admin/access-codes", "routes/admin/access-codes/route.tsx"),
     route("admin/new-group", "routes/admin/new-group/route.tsx"),
+    route("admin/waitlist", "routes/admin/waitlist/route.tsx"),
   ]),
   route("admin/access-codes/:id/print", "routes/admin/access-codes-print/route.tsx"),
+  route("admin/waitlist/export", "routes/admin/waitlist-export/route.ts"),
 ];
 
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.

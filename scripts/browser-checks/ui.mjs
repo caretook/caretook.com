@@ -26,6 +26,10 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // (details, members): the frame's nav or back link, each choice a named
 // radiogroup (arrow keys move it), every field labelled, help and errors
 // described.
+//
+// timeline-polish slice 6: the tooltip, on a row's author initials: opened by
+// a real mouse hover and by keyboard focus, closed by moving away and Escape,
+// the trigger's description (never its name), themed.
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 const PREFIX = process.env.UI_SHOT_PREFIX ?? "ui";
 const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -657,6 +661,83 @@ async function settings(p, width, scheme) {
   await p.screenshot(`${PREFIX}-${shot("settings-members")}`);
 }
 
+// ---- Tooltip (timeline-polish slice 6) --------------------------------------
+const TOOLTIP = `document.querySelector('[role="tooltip"]')`;
+const AUTHOR_INITIALS = `document.querySelector('main section > ol > li a[data-author]')`;
+
+/**
+ * The tooltip primitive, on a timeline row's author initials: a real mouse
+ * hover opens it and moving away closes it; keyboard focus (Tab) opens it and
+ * Escape closes it. It's the trigger's description, never its name, and its
+ * background follows the theme.
+ */
+async function tooltip(p, width, scheme) {
+  const tag = `${width} ${scheme}`;
+  const shown = (want) =>
+    p.waitFor(want ? `!!${TOOLTIP}` : `!${TOOLTIP}`, 3000, { quiet: true }).then(
+      () => true,
+      () => false,
+    );
+  const move = (point) => p.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...point });
+  await p.goto(TIMELINE);
+  await p.waitFor(`document.querySelectorAll("main ol > li").length > 0`, 45000);
+  if (await p.evaluate(`document.querySelector("main ol")?.dataset.view !== "rows"`)) {
+    await p.press(`document.querySelector('[role="group"][aria-label="Layout"] button[aria-label="Rows"]')`);
+    await p.waitFor(`document.querySelector("main ol")?.dataset.view === "rows"`, 5000);
+  }
+  await p.waitFor(AUTHOR_INITIALS, 10000);
+  await p.evaluate(`window.scrollTo(0, 0)`);
+  await sleep(300);
+  await move({ x: 2, y: 890 });
+  const point = await p.evaluate(
+    `(() => { const r = ${AUTHOR_INITIALS}.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`,
+  );
+  await move(point);
+  const hovered = await shown(true);
+  const info = hovered
+    ? await p.evaluate(`(() => { const a = ${AUTHOR_INITIALS}, t = ${TOOLTIP};
+        return { name: a.getAttribute("aria-label"), text: t.textContent.trim(), title: a.hasAttribute("title"),
+          describes: (a.getAttribute("aria-describedby") ?? "").split(" ").includes(t.id),
+          fits: t.getBoundingClientRect().left >= 0 && t.getBoundingClientRect().right <= window.innerWidth }; })()`)
+    : null;
+  check(
+    `${tag} tooltip: a mouse hover opens it, as the trigger's description`,
+    !!info &&
+      /^Show only .+'s entries$/.test(info.name) &&
+      info.describes &&
+      !info.title &&
+      info.fits &&
+      info.text.endsWith(info.name.replace(/^Show only (.+)'s entries$/, "$1")),
+    JSON.stringify(info),
+  );
+  const l = hovered ? await p.evaluate(lightnessOf(TOOLTIP)) : null;
+  check(
+    `${tag} tooltip: a ${scheme} background`,
+    l !== null && (scheme === "dark" ? l < 0.45 : l > 0.75),
+    `lightness ${l}`,
+  );
+  await p.screenshot(`${PREFIX}-tooltip-${width}-${scheme}`);
+  await move({ x: 2, y: 890 });
+  check(`${tag} tooltip: moving away closes it`, await shown(false));
+
+  // Keyboard: Tab from the row's kind icon reaches the initials (past "More", if any).
+  await p.evaluate(
+    `${AUTHOR_INITIALS}.closest("li").querySelector('a[aria-label^="Show only"]:not([data-author])').focus()`,
+  );
+  let reached = false;
+  for (let i = 0; i < 3 && !reached; i++) {
+    await key(p, "Tab", "Tab", 9);
+    await sleep(150);
+    reached = await p.evaluate(isTrigger(AUTHOR_INITIALS));
+  }
+  check(`${tag} tooltip: keyboard focus opens it`, reached && (await shown(true)));
+  await escape(p);
+  check(
+    `${tag} tooltip: Escape closes it, focus stays on the trigger`,
+    (await shown(false)) && (await p.evaluate(isTrigger(AUTHOR_INITIALS))),
+  );
+}
+
 async function pass(p, width, scheme) {
   const tag = `${width} ${scheme}`;
   const shot = (name) => `${name}-${width}-${scheme}`;
@@ -761,6 +842,7 @@ async function pass(p, width, scheme) {
   await p.waitFor(`!${SHEET}`, 5000).catch(() => {});
 
   await slice2(p, width, scheme);
+  await tooltip(p, width, scheme);
   await settings(p, width, scheme);
 }
 

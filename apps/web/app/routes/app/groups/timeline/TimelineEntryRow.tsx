@@ -15,6 +15,8 @@ import { LiveDot } from "./LiveDot";
 export type EntryViewProps = {
   entry: TimelineEntry;
   authorName: string;
+  /** The author's picture (the row's tooltip). */
+  authorImage?: string | null;
   units: UnitChoices;
   /** Fading out while its delete is saved. */
   removing?: boolean;
@@ -37,6 +39,7 @@ export type EntryViewProps = {
 export function TimelineEntryRow({
   entry,
   authorName,
+  authorImage,
   units,
   removing,
   open,
@@ -65,7 +68,12 @@ export function TimelineEntryRow({
         footer={elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
-      <AuthorFilterLink userId={entry.createdBy} name={authorName} initials={initials(authorName)} />
+      <AuthorFilterLink
+        userId={entry.createdBy}
+        name={authorName}
+        initials={initials(authorName)}
+        image={authorImage}
+      />
       {onDelete && (
         <EntryActions kind={entry.kind} label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />
       )}

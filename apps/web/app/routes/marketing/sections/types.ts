@@ -55,13 +55,6 @@ export type CtaBandContent = {
   actions: Cta[];
 };
 
-/** A page that isn't written yet (filled by a later slice). */
-export type ComingSoonContent = {
-  meta: PageMeta;
-  heading: string;
-  lead: string;
-};
-
 /** A page's opening: its only `h1` and a lead, with no calls to action. */
 export type PageIntroContent = {
   eyebrow?: string;
@@ -107,4 +100,49 @@ export type FaqGroup = {
   id: string;
   heading: string;
   items: FaqItem[];
+};
+
+/** A form field's copy: its label, and an optional hint under it. */
+export type FieldCopy = { label: string; hint?: string };
+
+/** What a public form says once it's sent (announced politely). */
+export type FormThanksContent = { heading: string; body: string };
+
+/** The waitlist form (home's waitlist band). */
+export type WaitlistFormContent = {
+  email: FieldCopy;
+  firstName: FieldCopy;
+  /** `none` is the empty first option. */
+  caringFor: FieldCopy & { none: string };
+  heardFrom: FieldCopy;
+  submit: string;
+  sending: string;
+  thanks: FormThanksContent;
+};
+
+/** The waitlist band on home: a heading and body, the form, and other ways in. */
+export type WaitlistBandContent = {
+  id: string;
+  heading: string;
+  body: string;
+  form: WaitlistFormContent;
+  actions: Cta[];
+};
+
+/** The contact page: its only `h1`, a lead, the form, and other ways to reach the team. */
+export type ContactPageContent = {
+  meta: PageMeta;
+  heading: string;
+  lead: string;
+  form: {
+    name: FieldCopy;
+    email: FieldCopy;
+    topic: FieldCopy & { none: string };
+    message: FieldCopy;
+    submit: string;
+    sending: string;
+    thanks: FormThanksContent;
+  };
+  /** Short notes beside the form (privacy requests, response times). */
+  notes: { heading: string; body: string }[];
 };

@@ -28,7 +28,8 @@ import {
   toTimelineEntries,
 } from "~/lib/sync/timeline";
 import { groupByDay } from "./timelineDays";
-import { PAGE_SIZE } from "./timelineRows";
+import { nextLimit, PAGE_SIZE, pageWindow } from "./timelinePaging";
+import { useLiveRows } from "./useLiveRows";
 
 // The timeline's data, live: the loader reads the first screenful
 // (`loadTimelineRows`), and live queries here take over from there, so other
@@ -37,9 +38,12 @@ import { PAGE_SIZE } from "./timelineRows";
 export type TimelineData = {
   /** The loaded entries, grouped by the viewer's day. Notes and events carry their document's preview as `body`. */
   days: TimelineDay<TimelineEntry>[];
-  /** There are older entries than the loaded ones; `showOlder` loads the next page. */
+  /** There are older entries than the loaded ones; `loadOlder` loads the next page. */
   hasOlder: boolean;
-  showOlder: () => void;
+  /** A page is loading (the shown entries stay as they are until it's in). */
+  loadingOlder: boolean;
+  /** Load the next page, unless one is loading or there's nothing older. */
+  loadOlder: () => void;
   /** Each vital type's newest reading (ignores the filters). */
   latestVitals: LatestVital[];
   /** Notes and events other members are writing in now, most recent first (the Live now banner). */
@@ -59,9 +63,11 @@ const liveTitle = (row: { kind: string; title: string | null }) =>
   row.title?.trim() || (isEntryKind(row.kind) ? KIND_META[row.kind].label : "Entry");
 
 /**
- * Everything the timeline shows, live. Paging is here: "Show older" grows the
- * local query's limit (it asks for one extra row to know there's more), and
- * a change to either filter starts over from one page.
+ * Everything the timeline shows, live. Paging is here: scrolling near the end
+ * calls `loadOlder`, which grows the local query's limit by a page (it asks
+ * for one extra row to know there's more), and a change to either filter
+ * starts over from one page. While a larger window loads, the previous one
+ * stays on screen, entries and "with …" lines alike (`pageWindow`).
  */
 export function useTimelineData({
   groupId,
@@ -77,10 +83,10 @@ export function useTimelineData({
   // The paging belongs to one pair of filters: under any other, it's one page again.
   const { kind, author } = filters;
   const [paging, setPaging] = useState({ kind, author, limit: PAGE_SIZE });
-  const limit = paging.kind === kind && paging.author === author ? paging.limit : PAGE_SIZE;
+  const requested = paging.kind === kind && paging.author === author ? paging.limit : PAGE_SIZE;
 
-  const entriesSql = entriesQuery(groupId, filters, limit);
-  const entryRows = useLiveQuery<EntryRow>(entriesSql.sql, entriesSql.params, initial.entryRows);
+  const entriesSql = entriesQuery(groupId, filters, requested);
+  const entries = useLiveRows<EntryRow>(entriesSql.sql, entriesSql.params, initial.entryRows);
   const membersSql = membersQuery(groupId);
   const memberRows = useLiveQuery<MemberRow>(membersSql.sql, membersSql.params, initial.memberRows);
   const readingsSql = readingsQuery(groupId);
@@ -90,11 +96,18 @@ export function useTimelineData({
   const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial.documentRows);
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
   // One query for every loaded entry's links (the same window as the entries), never one per row.
-  const linksSql = timelineLinksQuery(groupId, filters, limit);
-  const linkRows = useLiveQuery<EntryProviderLinkRow>(linksSql.sql, linksSql.params, initial.linkRows);
+  const linksSql = timelineLinksQuery(groupId, filters, requested);
+  const links = useLiveRows<EntryProviderLinkRow>(linksSql.sql, linksSql.params, initial.linkRows);
+  const linkRows = links.rows;
   const providersByEntry = useMemo(() => groupLinksByEntry(linkRows, fromLocalTimestamp), [linkRows]);
+  // The new page shows once both windows are in, so no "with …" line flickers.
+  const page = pageWindow({
+    rowCount: entries.rows.length,
+    requested,
+    fresh: entries.fresh && links.fresh,
+  });
   // Doses and medication changes are named by their medication: one query over the same window.
-  const medicationOf = useTimelineMedications(groupId, filters, limit);
+  const medicationOf = useTimelineMedications(groupId, filters, requested);
 
   const members = memberRows.map(toMember);
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
@@ -105,16 +118,20 @@ export function useTimelineData({
   );
 
   // A note's or event's text is its live document: its preview is the body.
-  const entries = toTimelineEntries(entryRows.slice(0, limit)).map((entry) =>
+  const shown = toTimelineEntries(entries.rows.slice(0, page.limit)).map((entry) =>
     isLiveEntryKind(entry.kind)
       ? { ...entry, body: previews.get(entry.id) || null }
       : withMedication(entry, medicationOf),
   );
 
   return {
-    days: groupByDay(entries, localTimeZone(), new Date()),
-    hasOlder: entryRows.length > limit,
-    showOlder: () => setPaging({ kind, author, limit: limit + PAGE_SIZE }),
+    days: groupByDay(shown, localTimeZone(), new Date()),
+    hasOlder: page.hasOlder,
+    loadingOlder: page.loading,
+    loadOlder: () => {
+      if (page.loading || !page.hasOlder) return;
+      setPaging({ kind, author, limit: nextLimit(page.limit) });
+    },
     latestVitals: toLatestVitals(readingRows),
     liveDocuments,
     liveLabelOf: (id) => liveLabels.get(id),

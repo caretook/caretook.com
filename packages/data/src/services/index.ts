@@ -45,6 +45,14 @@ import * as medicationService from "./medicationService";
 export { medicationService };
 export type { MedicationWriteOptions } from "./medicationService";
 
+import * as waitlistService from "./waitlistService";
+export { waitlistService };
+export type { JoinResult } from "./waitlistService";
+
+import * as contactMessageService from "./contactMessageService";
+export { contactMessageService };
+export type { ContactMailer, SendResult } from "./contactMessageService";
+
 export type * from "./types";
 
 export const services = {
@@ -62,6 +70,8 @@ export const services = {
   accessCode: accessCodeService,
   staffGroup: staffGroupService,
   medication: medicationService,
+  waitlist: waitlistService,
+  contactMessage: contactMessageService,
 };
 
 export type ServiceTypeMap = typeof services;

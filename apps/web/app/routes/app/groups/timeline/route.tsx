@@ -16,7 +16,7 @@ import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { QuickAddBar } from "./QuickAddBar";
 import { onlySheetChanged } from "./sheetGuard";
-import { TimelineEntryList } from "./TimelineEntryList";
+import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
 import { loadTimelineRows } from "./timelineRows";
@@ -71,7 +71,7 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
 
 /**
  * Live queries already reflect every write, so a submission doesn't rerun
- * the loader (that would reset "Show older"), and neither does opening or
+ * the loader (that would reset the loaded pages), and neither does opening or
  * closing a sheet over the timeline. Other navigation (a new filter) does.
  */
 export function shouldRevalidate({
@@ -99,11 +99,17 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <InviteSomeoneCard />
       <LatestVitals vitals={data.latestVitals} units={units} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
-      {canWrite && <QuickAddBar groupId={groupId} />}
-      <FilterChips
-        kind={kind}
-        author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
-      />
+      {canWrite && (
+        <div className={COLUMN_CAP}>
+          <QuickAddBar groupId={groupId} />
+        </div>
+      )}
+      <div className={COLUMN_CAP}>
+        <FilterChips
+          kind={kind}
+          author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
+        />
+      </div>
       <TimelineEntryList
         data={data}
         view={view}
