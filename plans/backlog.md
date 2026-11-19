@@ -1208,6 +1208,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user). .loops/.browser-flakes.log has timeouts with no contention: phase2 (load 10→7, 14→31), roundtrip (11→12), providers (8→8), medications (8→9); plus the providers.mjs 16-minute hang after the non-member 404 step (practiceDeleteSteps). Read each first-run log, find the step, and replace fixed sleeps or early checks with waits on state (as B-70 did with settlesOn). Cuts reruns (related to B-89).
+- 2026-11-19 (slice/quick-fixes/31): slice 31 (938bec1): CDP commands time out at 120 s; providers title-memory tie fixed; phase2/medications/roundtrip wait on state. phase2, roundtrip, providers, medications passed twice in a row at load ~25-40.
 
 ### B-94 · change · Account forms, sign-in and the marketing menu button onto the ui primitives
 
