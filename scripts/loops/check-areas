@@ -186,6 +186,10 @@ apps/web/app/routes/app/groups/medications/* medications
 apps/web/app/routes/app/groups/medication/* medications live-notes
 # The status actions (the medication page and the list's edit sheet).
 apps/web/app/components/medications/*    medications
+# Given all (medications-2): passes due today, the Undo offer, members' names for "who logged it".
+apps/web/app/lib/duePasses.ts            medications upcoming
+apps/web/app/lib/passUndo.ts             medications
+apps/web/app/lib/sync/memberNames.ts     medications
 apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 # The time fields and the reschedule sheet (the entry page's time chip, and
 # Reschedule from the timeline, Upcoming and the entry page).

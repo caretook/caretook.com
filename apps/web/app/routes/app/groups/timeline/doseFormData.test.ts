@@ -119,6 +119,19 @@ describe("doseSheetOptions", () => {
     expect(initial).toBe(`${A}@20:00`);
     expect(doseSheetOptions(choices, { slots: [] }, { medicationId: B, slot: null }).initial).toBe(B);
   });
+
+  it("leaves out due slots of the passes shown above it, unless asked for", () => {
+    const P = "cccccccc-2222-4333-8444-555555555555";
+    const inPass = (id: string, time: string) => ({ ...slot(id, time, "due"), passId: P }) as DoseSlot;
+    const due = { slots: [inPass(A, "08:00"), inPass(B, "08:00"), slot(A, "09:00", "due")] };
+    const shown = new Set([P]);
+    expect(doseSheetOptions(choices, due, { medicationId: null, slot: null }, shown).options[0]?.value).toBe(
+      `${A}@09:00`,
+    );
+    expect(
+      doseSheetOptions(choices, due, { medicationId: B, slot: "08:00" }, shown).options.map((o) => o.value),
+    ).toEqual([`${B}@08:00`, `${A}@09:00`, B, A]);
+  });
 });
 
 describe("doseFromForm with a slot choice", () => {

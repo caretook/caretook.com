@@ -367,3 +367,47 @@ export const dueSlotLabel = (
   slot: Pick<DoseSlot, "time" | "state"> & { medication: { name: string; strength?: string | null } },
 ) =>
   `${medicationTitle(slot.medication)} · ${clockTime(slot.time)} dose${slot.state === "overdue" ? ", overdue" : ""}`;
+
+// ---------------------------------------------------------------------------
+// Passes as Today, the Dose sheet and Upcoming show them (`duePasses`)
+// ---------------------------------------------------------------------------
+
+/** What pass wording needs of a `DuePass`. */
+type PassWording = {
+  name: string | null;
+  time: string;
+  state: "upcoming" | "due" | "overdue" | "done";
+  partly: boolean;
+  open: readonly unknown[];
+  slots: readonly { medication: { name: string; strength?: string | null } }[];
+};
+
+/** A pass's name, or, for a time of its own, its medication: "Morning", "Metformin 500 mg". */
+export const passTitle = (pass: Pick<PassWording, "name" | "slots">) =>
+  pass.name ?? (pass.slots[0] ? medicationTitle(pass.slots[0].medication) : "");
+
+/** A pass's state as it reads: "Later", "Due", "Overdue", "Done"; while partly done, "Due · 1 left". */
+export const passStateText = (pass: Pick<PassWording, "state" | "partly" | "open">) => {
+  const state = { upcoming: "Later", due: "Due", overdue: "Overdue", done: "Done" }[pass.state];
+  return pass.partly ? `${state} · ${pass.open.length} left` : state;
+};
+
+/** "1 medication", "3 medications". */
+export const medicationCountText = (count: number) => `${count} medication${count === 1 ? "" : "s"}`;
+
+/** Who logged a pass so far: "Ann logged 2 of 3", "Ann and you logged 3 of 3", or null. */
+export const passLoggedText = (
+  pass: Pick<PassWording, "slots" | "open"> & { loggedBy: readonly { userId: string }[] },
+  nameOf: (userId: string) => string,
+) => {
+  if (!pass.loggedBy.length) return null;
+  const logged = pass.slots.length - pass.open.length;
+  return `${listText(pass.loggedBy.map((l) => nameOf(l.userId)))} logged ${logged} of ${pass.slots.length}`;
+};
+
+/** What Undo's status says after Given all: "Morning logged", "Metformin 500 mg logged". */
+export const passLoggedLabel = (pass: Pick<PassWording, "name" | "slots">) => `${passTitle(pass)} logged`;
+
+/** Given all's accessible name: "Given all: Morning, 8:00". */
+export const givenAllLabel = (pass: Pick<PassWording, "name" | "slots" | "time">) =>
+  `Given all: ${passTitle(pass)}, ${clockTime(pass.time)}`;

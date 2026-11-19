@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { dueDoses } from "./dueDoses";
 import { upcomingSections } from "./upcomingDays";
 import {
+  doseItemText,
   doseLinkLabel,
   doseStateLabel,
   isUpcomingDose,
@@ -91,6 +92,36 @@ describe("upcomingDoses", () => {
       due([med("met", "Metformin", ["07:00", "20:00"]), med("lis", "Lisinopril", ["09:30"])], doses),
     );
     expect(items.map((d) => d.key)).toEqual(["met@20:00"]);
+  });
+
+  it("makes a pass one item while anything in it is open, and drops it once it's done", () => {
+    const P = "11111111-1111-4111-8111-111111111111";
+    const passes = [{ id: P, name: "Morning", time: "09:30", sortOrder: 0 }];
+    const inPass = (id: string, name: string) =>
+      med(id, name, [], { schedule: { type: "scheduled", slots: [{ passId: P }] } });
+    const meds = [inPass("met", "Metformin"), inPass("lis", "Lisinopril"), med("asp", "Aspirin", ["09:30"])];
+    const run = (doses: DueDose[] = []) =>
+      upcomingDoses(dueDoses({ medications: meds, passes, doses, now: NOW, timeZone: LA }), passes);
+    const items = run();
+    expect(items.map((d) => [d.key, d.state, d.count])).toEqual([
+      [`pass:${P}`, "due", 2],
+      ["asp@09:30", "due", 1],
+    ]);
+    expect(items[0]).toMatchObject({ passId: P, medicationId: null, title: "Morning" });
+    expect(doseItemText(items[0]!)).toBe("Morning · 2 medications");
+    expect(doseItemText(items[1]!)).toBe("Aspirin 10 mg dose");
+    expect(doseLinkLabel(items[0]!, "9:30 AM")).toBe("Log Morning, 9:30 AM, 2 medications, due");
+
+    const partly = run([given("d1", "met", "2026-11-18T17:35:00.000Z", "09:30")]);
+    expect(partly.map((d) => [d.key, d.count])).toEqual([
+      [`pass:${P}`, 1],
+      ["asp@09:30", 1],
+    ]);
+    const done = run([
+      given("d1", "met", "2026-11-18T17:35:00.000Z", "09:30"),
+      given("d2", "lis", "2026-11-18T17:36:00.000Z", "09:30"),
+    ]);
+    expect(done.map((d) => d.key)).toEqual(["asp@09:30"]);
   });
 
   it("leaves out yesterday's missed slots, as-needed, stopped and deleted medications", () => {

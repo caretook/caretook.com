@@ -116,7 +116,7 @@ export function useUpcomingData({
   const zone = localTimeZone();
   const shown = support.withPreview(toTimelineEntries(entryRows));
   const sections = upcomingSections(shown, at, zone);
-  const doses = showsDoses(filters) ? upcomingDoses(dueDoses.due) : [];
+  const doses = showsDoses(filters) ? upcomingDoses(dueDoses.due, dueDoses.passes) : [];
   return {
     sections: withDueDoses(sections, doses, at, zone),
     rescheduledOf: support.rescheduledOf,

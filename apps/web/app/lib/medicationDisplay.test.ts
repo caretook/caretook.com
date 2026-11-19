@@ -17,6 +17,12 @@ import {
   scheduleText,
   scheduleZoneNote,
   stoppedText,
+  givenAllLabel,
+  medicationCountText,
+  passLoggedLabel,
+  passLoggedText,
+  passStateText,
+  passTitle,
 } from "./medicationDisplay";
 
 const MED = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -321,5 +327,46 @@ describe("Today wording", () => {
     expect(dueSlotLabel({ medication, time: "08:00", state: "overdue" })).toBe(
       "Metformin 500 mg · 8:00 dose, overdue",
     );
+  });
+});
+
+describe("pass wording", () => {
+  const slots = [
+    { medication: { name: "Metformin", strength: "500 mg" } },
+    { medication: { name: "Lisinopril" } },
+  ];
+  const pass = {
+    name: "Morning",
+    time: "08:00",
+    slots,
+    open: [slots[1]],
+    state: "due" as const,
+    partly: true,
+  };
+
+  it("names a pass, or a time of its own by its medication", () => {
+    expect(passTitle(pass)).toBe("Morning");
+    expect(passTitle({ name: null, slots: slots.slice(0, 1) })).toBe("Metformin 500 mg");
+    expect(passLoggedLabel(pass)).toBe("Morning logged");
+    expect(givenAllLabel(pass)).toBe("Given all: Morning, 8:00");
+  });
+
+  it("says a pass's state, and what's left while it's partly done", () => {
+    expect(passStateText(pass)).toBe("Due · 1 left");
+    expect(passStateText({ ...pass, partly: false, state: "overdue" })).toBe("Overdue");
+    expect(passStateText({ ...pass, partly: false, state: "upcoming" })).toBe("Later");
+    expect(passStateText({ ...pass, partly: false, state: "done", open: [] })).toBe("Done");
+  });
+
+  it("says who logged it", () => {
+    const names: Record<string, string> = { ann: "Ann", me: "you" };
+    const nameOf = (id: string) => names[id] ?? "Former member";
+    expect(passLoggedText({ ...pass, loggedBy: [] }, nameOf)).toBeNull();
+    expect(passLoggedText({ ...pass, loggedBy: [{ userId: "ann" }] }, nameOf)).toBe("Ann logged 1 of 2");
+    expect(
+      passLoggedText({ ...pass, open: [], loggedBy: [{ userId: "ann" }, { userId: "me" }] }, nameOf),
+    ).toBe("Ann and you logged 2 of 2");
+    expect(medicationCountText(1)).toBe("1 medication");
+    expect(medicationCountText(3)).toBe("3 medications");
   });
 });

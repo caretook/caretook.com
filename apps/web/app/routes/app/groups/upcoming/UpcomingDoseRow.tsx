@@ -4,15 +4,17 @@ import { Link } from "react-router";
 import { KindIcon } from "~/components/entry";
 import { appUrls } from "~/lib/appUrls";
 import { SHEET_LINK_STATE } from "~/lib/timelineSheet";
-import { doseLinkLabel, doseStateLabel } from "~/lib/upcomingDoses";
+import { doseItemText, doseLinkLabel, doseStateLabel } from "~/lib/upcomingDoses";
 import { timeRange } from "~/lib/upcomingLabels";
 
 /**
- * One of today's open dose slots in Upcoming: the dose icon, its time (where
- * the viewer is, like the rows around it), "Metformin 500 mg dose" and its
+ * One of today's open passes in Upcoming, one row each: the dose icon, its
+ * time (where the viewer is, like the rows around it), "Morning · 3
+ * medications" (or, for a time of its own, "Metformin 500 mg dose") and its
  * state ("Due", "Overdue"). For writers the row opens the Dose sheet on that
- * medication and slot, over the timeline; closing it comes back here.
- * Viewers see it without a link. It's never an entry: logging one answers the slot.
+ * pass (Given all), or on that medication and slot, over the timeline;
+ * closing it comes back here. Viewers see it without a link. It's never an
+ * entry: logging answers it.
  */
 export function UpcomingDoseRow({
   dose,
@@ -33,7 +35,11 @@ export function UpcomingDoseRow({
     >
       {canWrite && (
         <Link
-          to={appUrls.newDose(groupId, { medicationId: dose.medicationId, slot: dose.time })}
+          to={
+            dose.passId
+              ? appUrls.newDose(groupId, { passId: dose.passId })
+              : appUrls.newDose(groupId, { medicationId: dose.medicationId ?? undefined, slot: dose.time })
+          }
           state={SHEET_LINK_STATE}
           prefetch="render"
           className="hover:bg-base-content/5 focus-visible:outline-primary absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:-outline-offset-2 focus-visible:outline-2"
@@ -49,7 +55,7 @@ export function UpcomingDoseRow({
         {when}
       </time>
       <p className="min-w-0 flex-1 pt-0.5 font-medium">
-        {dose.title} dose
+        {doseItemText(dose)}
         {state && (
           <>
             {" "}

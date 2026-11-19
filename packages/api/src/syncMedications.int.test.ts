@@ -441,6 +441,57 @@ describe("sync.upload: doses and medication notes", () => {
     expect(await timelineEntryService.getById(viewer.ctx, id)).toBeNull();
   });
 
+  it("keeps a Given all round's pass and round ids, and its Undo removes exactly those doses", async () => {
+    const { owner, viewer, group, recipient } = await setup();
+    const meds = [randomUUID(), randomUUID(), randomUUID()];
+    await owner.api.sync.upload({
+      ops: meds.map((id) => ({
+        op: "PUT" as const,
+        table: "medication",
+        id,
+        data: medicationRow(group.id, recipient.id),
+      })),
+    });
+    const passId = randomUUID();
+    const passLogId = randomUUID();
+    const dose = (medicationId: string, status = "given") => ({
+      group_id: group.id,
+      recipient_id: recipient.id,
+      kind: "dose",
+      occurred_at: "2026-11-18T16:05:00.000000Z",
+      time_zone: "America/Los_Angeles",
+      title: null,
+      body: null,
+      details: JSON.stringify({ medicationId, status, scheduledFor: "08:00", passId, passLogId }),
+    });
+    // One refused earlier, then Given all for the other two, in the same round.
+    const ids = meds.map(() => randomUUID());
+    const res = await owner.api.sync.upload({
+      ops: [
+        { op: "PUT", table: "timeline_entry", id: ids[0]!, data: dose(meds[0]!, "refused") },
+        { op: "PUT", table: "timeline_entry", id: ids[1]!, data: dose(meds[1]!) },
+        { op: "PUT", table: "timeline_entry", id: ids[2]!, data: dose(meds[2]!) },
+      ],
+    });
+    expect(res.results.map((r) => r.status)).toEqual(["applied", "applied", "applied"]);
+    for (const id of ids)
+      expect(ok(await timelineEntryService.getById(viewer.ctx, id))).toMatchObject({
+        details: { passId, passLogId, scheduledFor: "08:00" },
+      });
+
+    // Undo: the device soft-deletes exactly Given all's two.
+    await owner.api.sync.upload({
+      ops: ids.slice(1).map((id) => ({
+        op: "PATCH" as const,
+        table: "timeline_entry",
+        id,
+        data: { deleted_at: EDITED_AT },
+      })),
+    });
+    expect(await timelineEntryService.getById(viewer.ctx, ids[0]!)).not.toBeNull();
+    for (const id of ids.slice(1)) expect(await timelineEntryService.getById(viewer.ctx, id)).toBeNull();
+  });
+
   it("creates a medication's document from a device", async () => {
     const { owner, viewer, group, recipient } = await setup();
     const id = randomUUID();

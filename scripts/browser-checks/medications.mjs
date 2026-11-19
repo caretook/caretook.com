@@ -2509,7 +2509,10 @@ async function todaySteps(A, { B, C } = {}) {
         () => true,
         () => false,
       );
-      const controls = await C.evaluate(`${TODAY}?.querySelectorAll("button").length ?? -1`);
+      // A pass's expand isn't a logging control.
+      const controls = await C.evaluate(
+        `${TODAY}?.querySelectorAll("button:not([data-pass-expand])").length ?? -1`,
+      );
       await C.goto(timeline);
       const strip = await C.waitFor(`!!${stripSlot(k3)}`, 15000).then(
         () => true,
@@ -3139,7 +3142,12 @@ async function passDueSteps(A) {
     () => false,
   );
   const shown = await A.evaluate(`${todaySlot(key)}?.textContent ?? ""`);
-  if (due) await A.tap(`${todaySlot(key)}.querySelector("[data-give]")`);
+  if (due) {
+    // The slot is inside its pass's card: expand it first.
+    await A.tap(`${TODAY}.querySelector('[data-pass="pass:${passId}"] [data-pass-expand]')`);
+    await A.waitFor(`!${todaySlot(key)}.closest("ul").hidden`, 5000).catch(() => undefined);
+    await A.tap(`${todaySlot(key)}.querySelector("[data-give]")`);
+  }
   const given = await A.waitFor(`${todayState(key)} === "given"`, 8000).then(
     () => true,
     () => false,
@@ -3170,6 +3178,303 @@ async function passDueSteps(A) {
     moved.ok && kept,
     `${moved.ok}`,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Given all (medications-2 slice 4): passes on Today, Undo, the Dose sheet,
+// Upcoming, offline and a second device.
+// ---------------------------------------------------------------------------
+
+const passCard = (passId, root = TODAY) => `${root}?.querySelector('[data-pass="pass:${passId}"]')`;
+const passCardState = (passId, root = TODAY) => `(${passCard(passId, root)}?.dataset.passState ?? null)`;
+const passCardSlot = (passId, key, root = TODAY) =>
+  `${passCard(passId, root)}?.querySelector('[data-slot="${key}"]')`;
+const passSlotState = (passId, key, root = TODAY) =>
+  `(${passCardSlot(passId, key, root)}?.querySelector("[data-slot-state]")?.dataset.slotState ?? null)`;
+const UNDO_LABEL = `(document.querySelector("[data-pass-undo-label]")?.textContent.trim() ?? null)`;
+const passDosesSql = (ids) =>
+  `SELECT coalesce(string_agg(m.name || ':' || (e.details->>'status') || ':' || coalesce(e.details->>'passLogId', '-'), ',' ORDER BY m.name), '')
+     FROM timeline_entry e JOIN medication m ON m.id::text = e.details->>'medicationId'
+    WHERE e.kind = 'dose' AND e.deleted_at IS NULL AND m.id::text IN (${ids.map((id) => `'${id}'`).join(", ")})`;
+/** "X:given:<log>,Y:refused:<log>" → { X: ["given", log], … } */
+const passDoses = (text) =>
+  Object.fromEntries(
+    (text || "")
+      .split(",")
+      .filter(Boolean)
+      .map((d) => {
+        const [name, status, log] = d.split(":");
+        return [name.slice(TAG.length + 1), [status, log]];
+      }),
+  );
+
+async function expandPass(p, passId, root = TODAY) {
+  const open = await p.evaluate(
+    `${passCard(passId, root)}?.querySelector("[data-pass-expand]")?.getAttribute("aria-expanded")`,
+  );
+  if (open !== "true") await p.tap(`${passCard(passId, root)}.querySelector("[data-pass-expand]")`);
+  await p.waitFor(
+    `${passCard(passId, root)}?.querySelector("[data-pass-expand]")?.getAttribute("aria-expanded") === "true"`,
+    5000,
+  );
+}
+
+/**
+ * Given all, with this run's own passes a few minutes back in Los Angeles
+ * (whatever the clock) and three medications in the first: Given all then
+ * Undo (exactly its doses, back to open), one refused with a note and one
+ * given on a second device (who logged it), then Given all offline for the
+ * rest (one round), seen done on the second device; the Dose sheet and
+ * Upcoming offering the second pass; viewers without controls.
+ */
+async function givenAllSteps(A, { B, C, proxy } = {}) {
+  if (laMinutes() < 12) await sleep((12 - laMinutes()) * 60_000 + 5000);
+  const now = laMinutes();
+  const [t1, t2] = [hhmm(now - 7), hhmm(now - 4)];
+  const names = ["Xa", "Yb", "Zc", "Wd"].map((n) => `${TAG} ${n}`);
+  const made = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     const one = await medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(`${TAG} Rounds`)}, time: ${JSON.stringify(t1)} });
+     const two = await medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(`${TAG} Round 2`)}, time: ${JSON.stringify(t2)} });
+     if (!one.ok || !two.ok) return [one, two];
+     const med = (name, passId, amount) => medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name, strength: "5 mg", dose: "1 tablet",
+       schedule: { type: "scheduled", slots: [{ passId, ...(amount && { amount }) }] },
+     });
+     const names = ${JSON.stringify(names)};
+     return [one, two,
+       await med(names[0], one.id, "2 tablets"), await med(names[1], one.id), await med(names[2], one.id),
+       await med(names[3], two.id)];`,
+  );
+  if (!made.every((r) => r?.ok))
+    return check("passes and medications for Given all", false, JSON.stringify(made));
+  const [{ id: p1 }, { id: p2 }, ...meds] = made;
+  const [x, y, z, w] = meds.map((m) => m.id);
+  const key = (id, t = t1) => `${id}@${t}`;
+  const passIds = [x, y, z];
+
+  await A.goto(LIST);
+  const due = await A.waitFor(`${passCardState(p1)} === "due"`, 15000).then(
+    () => true,
+    () => false,
+  );
+  const card = await A.evaluate(`${passCard(p1)}?.textContent ?? ""`);
+  check(
+    "Today groups by pass: the pass's name, its state and Given all for writers",
+    due &&
+      card.includes(`${TAG} Rounds`) &&
+      card.includes("Due") &&
+      (await A.evaluate(`!!${passCard(p1)}.querySelector("[data-given-all]")`)),
+    card.slice(0, 160),
+  );
+
+  // Given all, then Undo: exactly its doses go, and the pass is open again.
+  await A.tap(`${passCard(p1)}.querySelector("[data-given-all]")`);
+  const done = await A.waitFor(`${passCardState(p1)} === "done"`, 8000).then(
+    () => true,
+    () => false,
+  );
+  const undoLabel = await A.waitFor(`${UNDO_LABEL} === ${JSON.stringify(`${TAG} Rounds logged`)}`, 5000).then(
+    () => true,
+    () => false,
+  );
+  const local = await localRows(
+    A,
+    `SELECT json_extract(details, '$.medicationId') AS m, json_extract(details, '$.passLogId') AS log, json_extract(details, '$.amount') AS amount
+       FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND json_extract(details, '$.passId') = ?`,
+    [p1],
+  );
+  const oneLog = new Set(local.map((r) => r.log)).size === 1 && !!local[0]?.log;
+  const amountX = local.find((r) => r.m === x)?.amount;
+  check(
+    "Given all logs every open medication in the pass at once, in one round, with each slot's amount; the pass is done and Undo is offered",
+    done && undoLabel && local.length === 3 && oneLog && amountX === "2 tablets",
+    `${done} ${undoLabel} ${local.length} ${oneLog} ${amountX}`,
+  );
+  await A.tap(`document.querySelector("[data-pass-undo-button]")`);
+  const reopened = await A.waitFor(
+    `${passCardState(p1)} === "due" && !${passCard(p1)}.hasAttribute("data-pass-partly") && !document.querySelector("[data-pass-undo-label]")`,
+    8000,
+  ).then(
+    () => true,
+    () => false,
+  );
+  const live = await localRows(
+    A,
+    `SELECT count(*) AS n FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND json_extract(details, '$.passId') = ?`,
+    [p1],
+  );
+  const removed = await waitForSql(
+    `SELECT count(*) FILTER (WHERE deleted_at IS NULL) || '/' || count(*) FROM timeline_entry WHERE kind = 'dose' AND details->>'passId' = '${p1}'`,
+    (v) => v === "0/3",
+    20000,
+  );
+  check(
+    "Undo removes exactly those doses, and the pass is open again",
+    reopened && live[0]?.n === 0 && removed === "0/3",
+    `${reopened} ${live[0]?.n} ${removed}`,
+  );
+  if (SMOKE) return cleanUp();
+
+  // One medication refused (with a note), one given on a second device: who logged it shows.
+  await expandPass(A, p1);
+  await A.tap(`${passCardSlot(p1, key(y))}.querySelector('[aria-label^="More for"]')`);
+  await A.waitFor(menuItem("Refused…"), 5000);
+  await A.tap(menuItem("Refused…"));
+  await A.waitFor(`${OPEN_DIALOG}?.querySelector("[data-mark-note]")`, 5000);
+  await A.type(`${OPEN_DIALOG}.querySelector("[data-mark-note]")`, `${TAG} spat out`);
+  await A.tap(dialogButton("Mark refused"));
+  const refused = await A.waitFor(`${passSlotState(p1, key(y))} === "refused" && !${OPEN_DIALOG}`, 8000).then(
+    () => true,
+    () => false,
+  );
+  check("a medication in a pass can be marked refused, with a note", refused);
+
+  if (B) {
+    await toFront(B);
+    await B.goto(LIST);
+    // Wait for the refusal (and its round) to reach B before B joins it.
+    await B.waitFor(`${passSlotState(p1, key(y))} === "refused"`, 30000).catch(() => undefined);
+    await expandPass(B, p1);
+    await B.tap(`${passCardSlot(p1, key(x))}.querySelector("[data-give]")`);
+    await B.waitFor(`${passSlotState(p1, key(x))} === "given"`, 8000).catch(() => undefined);
+    await toFront(A);
+    const byB = await A.waitFor(
+      `${passCardSlot(p1, key(x))}?.querySelector("[data-logged-by]")?.textContent.includes("Dev Member")`,
+      30000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const summary = await A.evaluate(
+      `${passCard(p1)}?.querySelector("[data-pass-summary]")?.textContent ?? ""`,
+    );
+    check(
+      "a medication given on a second device shows on Today, with who logged it",
+      byB && summary.includes("Dev Member") && summary.includes("logged 2 of 3"),
+      summary,
+    );
+  }
+
+  // Offline: Given all logs only what's still open, in the round already started.
+  if (proxy) {
+    proxy.setOnline(false);
+    await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+  }
+  const errorsBefore = A.errors.length;
+  await A.tap(`${passCard(p1)}.querySelector("[data-given-all]")`);
+  const offlineDone = await A.waitFor(`${passCardState(p1)} === "done"`, 8000).then(
+    () => true,
+    () => false,
+  );
+  if (proxy) {
+    proxy.setOnline(true);
+    await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+    A.errors.splice(errorsBefore);
+  }
+  const uploaded = passDoses(
+    await waitForSql(passDosesSql(passIds), (v) => (v.match(/,/g) ?? []).length === (B ? 2 : 1), 30000),
+  );
+  const logs = new Set(Object.values(uploaded).map(([, log]) => log));
+  check(
+    `Given all${proxy ? " offline" : ""} skips what's already logged, and the pass stays one round`,
+    offlineDone &&
+      uploaded.Zc?.[0] === "given" &&
+      uploaded.Yb?.[0] === "refused" &&
+      (!B || uploaded.Xa?.[0] === "given") &&
+      logs.size === 1 &&
+      !logs.has("-"),
+    JSON.stringify(uploaded),
+  );
+  if (B) {
+    const seen = await B.waitFor(`${passCardState(p1)} === "done"`, 30000).then(
+      () => true,
+      () => false,
+    );
+    check("a second device shows the pass done", seen);
+  }
+
+  // Upcoming: the second pass as one row; it opens the Dose sheet on that pass.
+  const upcoming = `/app/groups/${DEV_FAMILY}/upcoming`;
+  const upRow = `document.querySelector('main [data-upcoming-dose="pass:${p2}"]')`;
+  await A.goto(upcoming);
+  const upText = await A.waitFor(`!!${upRow}`, 15000).then(
+    () => A.evaluate(`${upRow}.textContent`),
+    () => "",
+  );
+  const firstGone = await A.evaluate(`!document.querySelector('main [data-upcoming-dose="pass:${p1}"]')`);
+  check(
+    "Upcoming shows an open pass as one row, and a done one not at all",
+    upText.includes(`${TAG} Round 2 · 1 medication`) && firstGone,
+    upText.slice(0, 120),
+  );
+  await A.tap(`${upRow}.querySelector("a")`);
+  const sheetPass = await A.waitFor(`!!${passCard(p2, SHEET)}`, 10000).then(
+    () => true,
+    () => false,
+  );
+  const repeated = await A.evaluate(
+    `!!${SHEET}?.querySelector('input[name="medicationId"][value="${key(w, t2)}"]')`,
+  );
+  check(
+    "the Dose sheet offers the due pass first, with Given all, and doesn't repeat its slots below",
+    sheetPass &&
+      !repeated &&
+      (await A.evaluate(`!!${passCard(p2, SHEET)}.querySelector("[data-given-all]")`)),
+    `${sheetPass} ${repeated}`,
+  );
+
+  // The viewer: states without controls, on Today, in Upcoming.
+  if (C) {
+    await toFront(C);
+    await C.goto(LIST);
+    const seen = await C.waitFor(`${passCardState(p2)} === "due"`, 30000).then(
+      () => true,
+      () => false,
+    );
+    const controls = await C.evaluate(
+      `${passCard(p2)}?.querySelectorAll("[data-given-all], [data-give], [aria-label^='More for']").length ?? -1`,
+    );
+    await C.goto(upcoming);
+    const row = await C.waitFor(`!!${upRow}`, 15000).then(
+      () => true,
+      () => false,
+    );
+    const links = await C.evaluate(`${upRow}?.querySelectorAll("a").length ?? -1`);
+    check(
+      "a viewer sees a pass's state on Today and in Upcoming, with no logging controls",
+      seen && controls === 0 && row && links === 0,
+      `${seen} ${controls} ${row} ${links}`,
+    );
+    await toFront(A);
+  }
+
+  await A.tap(`${passCard(p2, SHEET)}.querySelector("[data-given-all]")`);
+  const sheetDone = await A.waitFor(
+    `${passCardState(p2, SHEET)} === "done" && ${UNDO_LABEL} === ${JSON.stringify(`${TAG} Round 2 logged`)}`,
+    8000,
+  ).then(
+    () => true,
+    () => false,
+  );
+  const w2 = await waitForSql(doseCountSql(w, t2), (v) => v === "1", 15000);
+  check(
+    "Given all in the Dose sheet logs the pass and offers Undo there",
+    sheetDone && w2 === "1",
+    `${sheetDone} ${w2}`,
+  );
+
+  return cleanUp();
+
+  async function cleanUp() {
+    await onDevice(
+      A,
+      `const { medicationPasses } = await window.caretookModules();
+       for (const id of ${JSON.stringify(meds.map((m) => m.id))}) await medications.removeMedication(db, id);
+       for (const id of ${JSON.stringify([p1, p2])}) await medicationPasses.removePass(db, id);`,
+    );
+  }
 }
 
 // One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
@@ -3320,6 +3625,19 @@ try {
   // change entries don't push the seeded ones off its first page.
   await passScheduleSteps(A, proxy);
   await passDueSteps(A);
+
+  // Given all (medications-2 slice 4), in a tab of its own like Today's
+  // (Better Auth's per-page session limit); after the timeline's steps, so
+  // its medications' change entries don't push the seeded ones off its first page.
+  const G = await openPage(bA, "caretaker-given-all");
+  pages.push(G);
+  await G.goto(LIST);
+  await G.waitFor("!!window.caretookSync && !!document.querySelector('main [data-medication-list]')", 20000);
+  if (SMOKE) await givenAllSteps(G);
+  else await givenAllSteps(G, { B: pages[1], C: pages[2], proxy: proxyA });
+  await G.send("Page.close").catch(() => undefined);
+  G.close();
+  await A.send("Page.bringToFront");
 
   if (made) {
     const removed = await onDevice(A, `return medications.removeMedication(db, ${JSON.stringify(made)});`);
