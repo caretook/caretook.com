@@ -16,7 +16,7 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
-**Landing:** this PRD has a migration, so per the user's standing preference (from `profiles`) it lands **once, after every slice is merged**, with one full suite run then (ask the user before starting `--suite`). Slice 1 left the seeded medications on time slots; slice 2 moves them onto passes. Slice 3 adds a PATCH on `care_recipient` limited to `no_known_allergies_at`.
+**Landing:** this PRD has a migration, so per the user's standing preference (from `profiles`) it lands **once, after every slice is merged**, with one full suite run then (the user said 11-19 "just run the suite": no need to ask). Slice 1 left the seeded medications on time slots; slice 2 moves them onto passes. Slice 3 adds a PATCH on `care_recipient` limited to `no_known_allergies_at`.
 
 Backlog: B-76, B-86, B-51 and B-26 are `triaged`. Claim B-76 when slice 1 starts, B-26 with slice 3, B-51 with slice 7, B-86 with slice 5. Mark each `done` after its last slice merges (B-76 after slice 6). The PRD and this plan are on `plan/medications-2` until they land in `dev`.
 
