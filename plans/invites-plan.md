@@ -12,7 +12,7 @@
 | 4     | in progress (`.loops/invites-4`, slot 5)                                          |                                          |
 | 5     | in progress (`.loops/invites-5`, slot 6; regenerates its migration on top of 4's) |                                          |
 
-Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. **Wave 1 (slices 1 and 2) landed in `dev` as `3c1723a`** (2026-11-18): full suite 12/12 on a check build, including the check-build mail fix (`08a7de0`). Slice 3 merged (`5ca5d2d`) and is landing alone as wave 2; 4 and 5 run in parallel (the user asked for that), merging 4 first and having 5 regenerate the wave's migration.
+Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. **Wave 1 (slices 1 and 2) landed in `dev` as `3c1723a`** (2026-11-18): full suite 12/12 on a check build, including the check-build mail fix (`08a7de0`). **Wave 2 (slice 3) landed in `dev` as `04b1e61`** (full suite 12/12, 6m25s); 4 and 5 run in parallel (the user asked for that), merging 4 first and having 5 regenerate the wave's migration.
 
 **The user's go-ahead (2026-11-18): land the rest of this PRD's waves without asking**, once each is green (wave 1, then 3, then 4 and 5). Every other rule still applies.
 
