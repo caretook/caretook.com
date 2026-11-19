@@ -668,6 +668,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/appointments/3): slice 3 (Upcoming section + Past tab) committed on slice/appointments/3 (3f6c48c, 6bbf62c); upcoming.mjs 23/23
 - 2026-11-19 (slice/appointments/2): slice 2 (entry page: end time, all day, place, ?when=pick) ready on slice/appointments/2 at d14c8ca
 - 2026-11-19 (slice/appointments/4): slice 4 (cancel and undo cancel) ready on slice/appointments/4: 1395252, a00c38b
+- 2026-11-19 (slice/appointments/6): slice 6 (timeline: history ends at now, Next strip, Upcoming block) ready on slice/appointments/6 (11b210c, 15f4ec3)
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
