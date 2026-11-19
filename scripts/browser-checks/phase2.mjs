@@ -505,6 +505,20 @@ const withLineOf = (p, title) =>
  * shows on the row without a reload, and goes when it's removed.
  */
 async function withLines(p) {
+  // Events only: on the unfiltered timeline, upcoming events, doses and changes
+  // can push the seeded events past the first page.
+  const timeline = await p.evaluate("location.pathname");
+  await p.goto(`${timeline}?kind=event`);
+  await p.waitFor(`document.querySelector("ol > li [data-with]")`, 20000).catch(() => undefined);
+  try {
+    await withLinesOnEvents(p);
+  } finally {
+    await p.goto(timeline);
+    await p.waitFor(`${rows} > 0`, 20000);
+  }
+}
+
+async function withLinesOnEvents(p) {
   for (const view of ["Rows", "Cards"]) {
     await setView(p, view);
     const two = await withLineOf(p, "Pharmacy pickup");
@@ -1461,9 +1475,8 @@ async function infiniteScroll(p, offlineDevice) {
         `window.scrollTo(0, document.querySelectorAll("ol > li")[89].getBoundingClientRect().top + scrollY - 300)`,
       );
       await sleep(800);
-      await p.evaluate(
-        `window.__anchor = document.elementFromPoint(innerWidth / 2, innerHeight / 2).closest("ol > li"), true`,
-      );
+      // The row scrolled to (300 px down): the centre of the screen can be a day heading or a gap.
+      await p.evaluate(`window.__anchor = document.querySelectorAll("ol > li")[89], true`);
       const place = () =>
         p.evaluate(`({ rows: ${rows}, top: Math.round(window.__anchor?.getBoundingClientRect().top ?? NaN), y: Math.round(scrollY),
         connected: !!window.__anchor?.isConnected })`);
