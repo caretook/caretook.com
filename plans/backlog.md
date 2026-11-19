@@ -87,7 +87,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-55 | feature | inbox |  |  | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | inbox |  |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-57 | plan | inbox |  |  | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
-| B-58 | plan | inbox |  |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
+| B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-59 | chore | inbox |  |  | Clean up/truncate this file and the backlog periodically. |
 
 ## Items
@@ -711,8 +711,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-58 · plan · Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: assistant
 - owner:
 - commit:
 
