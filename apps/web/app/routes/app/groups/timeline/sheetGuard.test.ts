@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { editSheetGuard, newSheetGuard, onlySheetChanged } from "./sheetGuard";
+import { editSheetGuard, newDoseGuard, newSheetGuard, onlySheetChanged } from "./sheetGuard";
 
 const G = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const TIMELINE = `/app/groups/${G}/timeline`;
@@ -74,6 +74,37 @@ describe("editSheetGuard", () => {
   it("sends a viewer to the timeline", () => {
     expect(edit(symptom, false)).toEqual({ redirect: `${TIMELINE}?kind=symptom` });
   });
+
+  it("opens a writer's dose, and sends a medication change to the timeline", () => {
+    const dose = { ...symptom, kind: "dose" as const };
+    expect(edit(dose)).toEqual({ sheet: { entry: dose } });
+    expect(edit(dose, false)).toEqual({ redirect: `${TIMELINE}?kind=symptom` });
+    expect(edit({ ...symptom, kind: "medicationChange" })).toEqual({ redirect: `${TIMELINE}?kind=symptom` });
+  });
+});
+
+describe("newDoseGuard", () => {
+  const M = "11111111-2222-4333-8444-555555555555";
+  const dose = { groupId: G, canWrite: true, choiceIds: [M] };
+
+  it("opens the Dose sheet for a writer, on a listed medication and a slot", () => {
+    expect(newDoseGuard({ ...dose, search: "" })).toEqual({ sheet: { medicationId: null, slot: null } });
+    expect(newDoseGuard({ ...dose, search: `?medication=${M}&slot=08:00` })).toEqual({
+      sheet: { medicationId: M, slot: "08:00" },
+    });
+  });
+
+  it("drops a medication that isn't a choice, and a slot that isn't a time", () => {
+    expect(newDoseGuard({ ...dose, search: "?medication=other&slot=8am" })).toEqual({
+      sheet: { medicationId: null, slot: null },
+    });
+  });
+
+  it("sends a viewer to the timeline, keeping its filters", () => {
+    expect(
+      newDoseGuard({ ...dose, canWrite: false, search: `?kind=dose&medication=${M}&slot=08:00` }),
+    ).toEqual({ redirect: `${TIMELINE}?kind=dose` });
+  });
 });
 
 describe("onlySheetChanged", () => {
@@ -87,6 +118,10 @@ describe("onlySheetChanged", () => {
     expect(onlySheetChanged(G, url(`${TIMELINE}?kind=vital`), url(`${TIMELINE}/e1/edit?kind=vital`))).toBe(
       true,
     );
+  });
+
+  it("is true for the Dose sheet", () => {
+    expect(onlySheetChanged(G, url(TIMELINE), url(`${TIMELINE}/new/dose?medication=m1`))).toBe(true);
   });
 
   it("is false when the filters change", () => {

@@ -6,7 +6,14 @@ import { ChipGroup, IconButton, UserAvatar } from "~/components/ui";
 import { KIND_META } from "~/lib/entryDisplay";
 import { clearAuthor, clearKind, setKind } from "~/lib/timelineFilters";
 
-const FILTERS = ["note", "symptom", "event", "vital"] as const satisfies TimelineEntryKind[];
+const FILTERS = [
+  "note",
+  "symptom",
+  "event",
+  "vital",
+  "dose",
+  "medicationChange",
+] as const satisfies TimelineEntryKind[];
 
 /**
  * The filter chips: links that set `?kind=`, so the filter survives reloads

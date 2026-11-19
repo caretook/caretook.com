@@ -23,6 +23,8 @@ const appRoutes = [
           // Sheets over the timeline, which stays mounted underneath.
           route("new/:kind", "routes/app/groups/timeline/new/route.tsx"),
           route(":entryId/edit", "routes/app/groups/timeline/edit/route.tsx"),
+          // The Dose sheet (a static segment, so it wins over `new/:kind`).
+          route("new/dose", "routes/app/groups/timeline/new-dose/route.tsx"),
         ]),
         route("entries/:entryId", "routes/app/groups/entry/route.tsx"),
         route("settings", "routes/app/groups/settings/layout/route.tsx", [
@@ -36,6 +38,11 @@ const appRoutes = [
           route(":providerId/edit", "routes/app/groups/providers/edit/route.tsx"),
         ]),
         route("providers/:providerId", "routes/app/groups/provider/route.tsx"),
+        // The medication list (its sheets come as its children) and a medication's page.
+        route("medications", "routes/app/groups/medications/route.tsx"),
+        route("medications/:medicationId", "routes/app/groups/medication/route.tsx"),
+        // The printable sheet (a static segment, so it ranks above `:medicationId`).
+        route("medications/print", "routes/app/groups/medications/print/route.tsx"),
       ]),
       // Start another care group (a sheet over its own page; not a group route).
       route("groups/new", "routes/app/groups/new/route.tsx"),
