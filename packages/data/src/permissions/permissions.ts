@@ -132,6 +132,7 @@ export const PERMISSIONS: Permissions = {
         sharedFields: SYSTEM_ONLY,
         emergencyRank: SYSTEM_ONLY,
         isPrimaryContact: SYSTEM_ONLY,
+        emergencyDroppedAt: SYSTEM_ONLY,
       },
     },
     update: {
@@ -145,6 +146,7 @@ export const PERMISSIONS: Permissions = {
         sharedFields: SYSTEM_ONLY,
         emergencyRank: SYSTEM_ONLY,
         isPrimaryContact: SYSTEM_ONLY,
+        emergencyDroppedAt: SYSTEM_ONLY,
       },
     },
     // Managers remove members; anyone can remove themselves (leave).

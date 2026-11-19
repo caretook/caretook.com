@@ -11,6 +11,7 @@ import {
   jsonb,
   pgTable,
   text,
+  timestamp,
   unique,
   uniqueIndex,
   uuid,
@@ -20,6 +21,9 @@ import { GROUP_ROLE_NAMES } from "../../constants/roles";
 import { careGroupSchema } from "./careGroup";
 import { audits, enumCheck, id, timestamps } from "./columns";
 import { userSchema } from "./user";
+
+const timestampColumn = (name: string) =>
+  timestamp(name, { precision: 3, mode: "string", withTimezone: true });
 
 // Membership: which users belong to which care group, and with what group
 // role. Every `group` permission scope is a subquery on this table.
@@ -49,6 +53,10 @@ export const careGroupMemberSchema = pgTable(
     // sharing a phone may have either.
     emergencyRank: integer("emergency_rank"),
     isPrimaryContact: boolean("is_primary_contact").notNull().default(false),
+    // When the member fell off the emergency list because they stopped
+    // sharing a phone (null: they didn't). Managers see a note on the profile
+    // until they're back on the list or a manager saves the list. System only.
+    emergencyDroppedAt: timestampColumn("emergency_dropped_at"),
     ...timestamps,
     ...audits,
   },
