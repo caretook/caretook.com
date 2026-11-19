@@ -27,6 +27,7 @@ export function TimelineEntryList({
   groupId,
   canWrite,
   kind,
+  author,
 }: {
   data: Pick<TimelineData, "days" | "hasOlder" | "showOlder" | "liveLabelOf" | "nameOf" | "providersOf">;
   view: TimelineView;
@@ -34,6 +35,8 @@ export function TimelineEntryList({
   groupId: string;
   canWrite: boolean;
   kind: TimelineEntryKind | null;
+  /** The author filter's user id, when it's on (the empty list names them). */
+  author: string | null;
 }) {
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -46,7 +49,11 @@ export function TimelineEntryList({
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
-        {data.days.length === 0 && <p className="text-base-content/70">{emptyTimelineText(kind)}</p>}
+        {data.days.length === 0 && (
+          <p className="text-base-content/70" data-empty>
+            {emptyTimelineText(kind, author && data.nameOf(author))}
+          </p>
+        )}
         {data.days.map((day) => (
           <section key={day.key} aria-labelledby={`day-${day.key}`}>
             <h3

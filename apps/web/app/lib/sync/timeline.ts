@@ -112,16 +112,38 @@ export const toTimelineEntries = (rows: EntryRow[]) =>
 
 export type LocalQuery = { sql: string; params: unknown[] };
 
+/** The timeline's filters, as the queries take them (`TimelineFilters` in `lib/timelineFilters.ts`). */
+export type EntryFilters = { kind: TimelineEntryKind | null; author: string | null };
+
 /**
- * One group's entries, newest first. Asks for one row more than `limit`,
- * so the screen knows whether "Show older" has anything to show.
+ * The timeline's window: one group's live entries under the filters, newest
+ * first, as the tail of a `SELECT … FROM timeline_entry`. `entriesQuery` and
+ * `timelineLinksQuery` are both built on it, so the "with …" lines always
+ * cover exactly the listed entries. It asks for one row more than `limit`, so
+ * the screen knows whether there are older entries.
  */
-export const entriesQuery = (groupId: string, kind: TimelineEntryKind | null, limit: number): LocalQuery => ({
-  sql: `SELECT * FROM timeline_entry
-        WHERE group_id = ? AND deleted_at IS NULL ${kind ? "AND kind = ?" : ""}
-        ORDER BY occurred_at DESC, id DESC LIMIT ?`,
-  params: kind ? [groupId, kind, limit + 1] : [groupId, limit + 1],
-});
+export const entryWindow = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
+  const conditions = ["group_id = ?", "deleted_at IS NULL"];
+  const params: unknown[] = [groupId];
+  if (filters.kind) {
+    conditions.push("kind = ?");
+    params.push(filters.kind);
+  }
+  if (filters.author) {
+    conditions.push("created_by = ?");
+    params.push(filters.author);
+  }
+  return {
+    sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at DESC, id DESC LIMIT ?`,
+    params: [...params, limit + 1],
+  };
+};
+
+/** One group's entries under the filters, newest first (`entryWindow`). */
+export const entriesQuery = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
+  const window = entryWindow(groupId, filters, limit);
+  return { sql: `SELECT * ${window.sql}`, params: window.params };
+};
 
 export type GroupRow = {
   id: string;
