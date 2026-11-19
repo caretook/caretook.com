@@ -954,6 +954,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (prd/search): From the inbox: medication groups for doses. Often the same medication is taken at different times of the day every day. We need to be able to group doses together so that they can be taken at the same time as part of the schedule and allow for setting status of each medication in the group on dose logging in the timeline.
+- 2026-11-19 (prd/medications): medications orchestrator: proposed for medications as a follow-up (not in the six-slice plan): a 'dose group' (several medications taken at one time) touches the schedule, dueDoses, Today and the Dose sheet, so it needs its own PRD interview or a plan addendum before slicing. Partly covered today: Today lists every medication due at one time together, each with its own Given/Skipped/Refused.
 
 ### B-77 · plan · Data security and encryption review.
 
