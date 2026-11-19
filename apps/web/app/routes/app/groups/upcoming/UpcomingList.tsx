@@ -10,7 +10,9 @@ import { canReschedule } from "~/lib/eventReschedule";
 import { useGroup } from "~/lib/group";
 import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/sync/timeline";
+import { isUpcomingDose } from "~/lib/upcomingDoses";
 import { upcomingTitle } from "~/lib/upcomingLabels";
+import { UpcomingDoseRow } from "./UpcomingDoseRow";
 import { UpcomingRow } from "./UpcomingRow";
 
 // Upcoming lists notes and events only, which show no vital readings: the default units do.
@@ -24,6 +26,7 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * when there are none. `children` comes after the last section (the Past
  * tab's paging). Writers get each item's ⋯ menu (Reschedule, then Cancel or
  * Undo cancel for events, then Delete), with one Cancel and one Delete confirm for the list.
+ * Upcoming's sections can also hold today's open dose slots (`UpcomingDoseRow`).
  */
 export function UpcomingList({
   data,
@@ -86,20 +89,24 @@ export function UpcomingList({
             {section.label}
           </h3>
           <ol className={LIST_CLASS}>
-            {section.items.map((entry) => (
-              <UpcomingRow
-                key={entry.id}
-                entry={entry}
-                groupId={groupId}
-                now={data.now}
-                units={UNITS}
-                authorName={data.nameOf(entry.createdBy)}
-                authorImage={data.imageOf(entry.createdBy)}
-                contacts={data.contactsOf(entry.id)}
-                rescheduledTo={data.rescheduledOf(entry)}
-                menu={menuOf(entry)}
-              />
-            ))}
+            {section.items.map((entry) =>
+              isUpcomingDose(entry) ? (
+                <UpcomingDoseRow key={entry.key} dose={entry} groupId={groupId} canWrite={canWrite} />
+              ) : (
+                <UpcomingRow
+                  key={entry.id}
+                  entry={entry}
+                  groupId={groupId}
+                  now={data.now}
+                  units={UNITS}
+                  authorName={data.nameOf(entry.createdBy)}
+                  authorImage={data.imageOf(entry.createdBy)}
+                  contacts={data.contactsOf(entry.id)}
+                  rescheduledTo={data.rescheduledOf(entry)}
+                  menu={menuOf(entry)}
+                />
+              ),
+            )}
           </ol>
         </section>
       ))}

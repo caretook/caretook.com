@@ -5,6 +5,7 @@ import type { ContactRow } from "./upcomingContact";
 import type { RescheduledTargetRow } from "./upcomingQueries";
 
 import { PAGE_SIZE } from "~/lib/paging";
+import { loadDueDoses } from "~/lib/sync/dueDoses";
 import { groupDocumentsQuery } from "~/lib/sync/notes";
 import { membersQuery, readRows } from "~/lib/sync/timeline";
 import { historyCutoff } from "~/lib/upcoming";
@@ -21,15 +22,16 @@ const shared = (db: SyncDb, groupId: string) =>
     readRows<RescheduledTargetRow>(db, rescheduledTargetsQuery(groupId)),
   ]);
 
-/** Upcoming's rows at `now`. */
+/** Upcoming's rows at `now`, with what today's due doses are worked out from. */
 export const loadUpcoming = async (db: SyncDb, groupId: string, filters: EntryFilters, now = new Date()) => {
   const queries = upcomingQueries(groupId, filters, now);
-  const [entryRows, contactRows, [memberRows, documentRows, targetRows]] = await Promise.all([
+  const [entryRows, contactRows, [memberRows, documentRows, targetRows], dueRows] = await Promise.all([
     readRows<EntryRow>(db, queries.entries),
     readRows<ContactRow>(db, queries.contacts),
     shared(db, groupId),
+    loadDueDoses(db, groupId),
   ]);
-  return { entryRows, contactRows, memberRows, documentRows, targetRows };
+  return { entryRows, contactRows, memberRows, documentRows, targetRows, dueRows };
 };
 
 export type UpcomingRows = Awaited<ReturnType<typeof loadUpcoming>>;

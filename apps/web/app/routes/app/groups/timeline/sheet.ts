@@ -4,6 +4,7 @@ import { useCallback, useRef } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router";
 import { appUrls, withoutSheetParams } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
+import { openedOverTimeline } from "~/lib/timelineSheet";
 
 // Sheets over the timeline are child routes (`timeline/new/:kind`,
 // `timeline/:entryId/edit`): the timeline stays mounted underneath, with its
@@ -15,11 +16,7 @@ export type TimelineOutlet = { units: UnitChoices };
 
 export const useTimelineOutlet = () => useOutletContext<TimelineOutlet>();
 
-/** History state on a link that opens a sheet from the timeline. */
-export const SHEET_LINK_STATE = { sheetOverTimeline: true } as const;
-
-const openedOverTimeline = (state: unknown) =>
-  typeof state === "object" && state !== null && "sheetOverTimeline" in state;
+export { SHEET_LINK_STATE } from "~/lib/timelineSheet";
 
 /**
  * Close the sheet by leaving its route; Back, Escape, Cancel and a save all
