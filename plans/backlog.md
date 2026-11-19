@@ -114,7 +114,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-74 | bug | in-progress | medications | prd/medications | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
 | B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
 | B-76 | feature | triaged | medications |  | medication groups for doses. Often the same medication is taken at different times of the day every… |
-| B-77 | plan | inbox |  |  | Data security and encryption review. |
+| B-77 | plan | triaged | encryption |  | Data security and encryption review. |
 | B-78 | change | inbox |  |  | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
 
 ## Items
@@ -959,8 +959,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-77 · plan · Data security and encryption review.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: encryption
 - owner:
 - commit:
 
