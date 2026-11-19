@@ -134,6 +134,8 @@ apps/web/app/lib/groupContext.ts         routing app-shell
 apps/web/app/lib/groupSections.ts        app-shell routing
 # Your contact details (profiles slice 4).
 apps/web/app/routes/app/settings/contact/* profiles-contacts settings-layout routing
+# Devices: the account's sessions and signing them out (quick-fixes slice 29).
+apps/web/app/routes/app/settings/devices/* devices routing
 apps/web/app/routes/app/settings/*       routing settings-layout layout-offline ui
 apps/web/app/lib/me.ts                   settings-layout layout-offline
 apps/web/app/components/settings/*       routing settings-layout app-shell ui
