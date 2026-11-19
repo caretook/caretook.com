@@ -1401,3 +1401,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. Commit 82f41cb (an add from prd/admin) committed an untagged inbox bullet as '(B-106)'; re-filed as B-108. Writes should commit only their own change, and ingest/add should refuse duplicate ids.
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
