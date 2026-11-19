@@ -95,7 +95,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-55 | feature | triaged | tasks |  | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-57 | plan | in-progress | encryption | plan/encryption | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
+| B-57 | plan | ready | encryption | plan/encryption | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
 | B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-59 | chore | triaged | orchestration |  | Clean up/truncate this file and the backlog periodically. |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
@@ -784,10 +784,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-57 · plan · Discuss options for end to end encryption of data in transit and at rest where owner of the data is…
 
-- status: in-progress
+- status: ready
 - prd: encryption
 - owner: plan/encryption
-- commit:
+- commit: 8b07657
 
 - 2026-11-18 (prd/marketing): From the inbox: Discuss options for end to end encryption of data in transit and at rest where owner of the data is the only one who can decrypt it and share decryption keys with others.
 - 2026-11-18 (Robert Bo Davis): Proposed as a design discussion 'encryption' (to write, plan only). E2E encryption conflicts with what's built: the server validates and permission-checks every upload (sync.upload through services), compacts Yjs documents, and AI features (assistant) read text server side. The PRD should weigh at-rest encryption, per-field E2E for documents (B-56) and the loss of server features.
