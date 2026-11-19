@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appUrls, searchString } from "./appUrls";
+import { appUrls, searchString, withoutSheetParams } from "./appUrls";
 import { NEW_ENTRY } from "./liveEntry";
 
 const G = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -38,6 +38,19 @@ describe("appUrls", () => {
   it("builds a provider's page, with the id as a path segment", () => {
     expect(appUrls.provider(G, "p1")).toBe(`/app/groups/${G}/providers/p1`);
     expect(appUrls.provider("g", "a/b")).toBe("/app/groups/g/providers/a%2Fb");
+  });
+
+  it("builds the medication list with its search, and a medication's page", () => {
+    expect(appUrls.medications(G)).toBe(`/app/groups/${G}/medications`);
+    expect(appUrls.medications("g", "?q=blood&status=current")).toBe(
+      "/app/groups/g/medications?q=blood&status=current",
+    );
+    expect(appUrls.medications("g", { q: "", status: "completed" })).toBe(
+      "/app/groups/g/medications?status=completed",
+    );
+    expect(appUrls.medication(G, "m1")).toBe(`/app/groups/${G}/medications/m1`);
+    expect(appUrls.medication("g", "a/b")).toBe("/app/groups/g/medications/a%2Fb");
+    expect(appUrls.medicationsPrint(G)).toBe(`/app/groups/${G}/medications/print`);
   });
 
   it("builds a group's settings subpages, and drops an unknown one", () => {
@@ -146,6 +159,34 @@ describe("searchString", () => {
 describe("appUrls.newGroup", () => {
   it("is a static path the group route never claims", () => {
     expect(appUrls.newGroup()).toBe("/app/groups/new");
+  });
+});
+
+describe("appUrls.newDose", () => {
+  const M = "11111111-2222-4333-8444-555555555555";
+  it("is the Dose sheet over the timeline, carrying its filters", () => {
+    expect(appUrls.newDose(G)).toBe(`/app/groups/${G}/timeline/new/dose`);
+    expect(appUrls.newDose(G, { search: "?kind=dose&type=spo2" })).toBe(
+      `/app/groups/${G}/timeline/new/dose?kind=dose`,
+    );
+  });
+
+  it("can start on a medication and a slot, replacing ones already in the search", () => {
+    expect(appUrls.newDose(G, { medicationId: M, slot: "08:00", search: "?medication=x&slot=09:00" })).toBe(
+      `/app/groups/${G}/timeline/new/dose?medication=${M}&slot=08%3A00`,
+    );
+  });
+
+  it("is dropped from the timeline a sheet closes to", () => {
+    expect(appUrls.timeline(G, withoutSheetParams(`?kind=dose&medication=${M}&slot=08:00`))).toBe(
+      `/app/groups/${G}/timeline?kind=dose`,
+    );
+  });
+});
+
+describe("appUrls.medication", () => {
+  it("is a medication's page in its group", () => {
+    expect(appUrls.medication("g", "m 1")).toBe("/app/groups/g/medications/m%201");
   });
 });
 

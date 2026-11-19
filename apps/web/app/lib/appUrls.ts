@@ -43,10 +43,16 @@ export const VITAL_TYPE_PARAM = "type";
 export const isVitalType = (value: unknown): value is VitalType =>
   (VITAL_TYPES as readonly unknown[]).includes(value);
 
-/** `search` without the add sheet's own parameter: the timeline's filters, as a sheet carries them. */
+/** The Dose sheet's medication and the slot it answers: `?medication=<id>&slot=08:00`. */
+export const DOSE_MEDICATION_PARAM = "medication";
+export const DOSE_SLOT_PARAM = "slot";
+
+/** `search` without the add sheets' own parameters: the timeline's filters, as a sheet carries them. */
 export const withoutSheetParams = (search?: Search) => {
   const params = new URLSearchParams(searchString(search));
   params.delete(VITAL_TYPE_PARAM);
+  params.delete(DOSE_MEDICATION_PARAM);
+  params.delete(DOSE_SLOT_PARAM);
   return params;
 };
 
@@ -136,6 +142,27 @@ export const appUrls = {
   provider: (groupId: string, providerId: string) => `${groupHome(groupId)}/providers/${segment(providerId)}`,
   /** Start another care group: who you care for, then its timeline. */
   newGroup: () => `${HOME}/groups/new`,
+  /** A group's medication list, with its search and status filter (`?q=`, `?status=`) carried through. */
+  medications: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/medications${searchString(search)}`,
+  /**
+   * The Dose sheet over a group's timeline, carrying the timeline's filters.
+   * It can start on one medication, and the slot the dose answers ("08:00").
+   */
+  newDose: (
+    groupId: string,
+    { medicationId, slot, search }: { medicationId?: string; slot?: string; search?: Search } = {},
+  ) => {
+    const params = withoutSheetParams(search);
+    if (medicationId) params.set(DOSE_MEDICATION_PARAM, medicationId);
+    if (slot) params.set(DOSE_SLOT_PARAM, slot);
+    return `${groupHome(groupId)}/timeline/new/dose${searchString(params)}`;
+  },
+  /** A medication's page: details, schedule, providers, refills, its live notes and its history. */
+  medication: (groupId: string, medicationId: string) =>
+    `${groupHome(groupId)}/medications/${segment(medicationId)}`,
+  /** The printable medication sheet: current and recently stopped medications, and who to call. */
+  medicationsPrint: (groupId: string) => `${groupHome(groupId)}/medications/print`,
   /**
    * A group's Upcoming section, with its filters carried through: pass the
    * timeline's `{ kind, author }` (or a search string) and they're kept.

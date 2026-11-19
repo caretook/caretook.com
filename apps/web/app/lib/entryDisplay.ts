@@ -9,7 +9,7 @@ import {
   isVitalDetails,
   TIMELINE_LIMITS,
 } from "@caretook/data/schema";
-import { Bandage, CalendarCheck, ClipboardPen, HeartPulse, NotebookPen, Pill } from "lucide-react";
+import { Bandage, CalendarCheck, HeartPulse, NotebookPen, Pill, PillBottle } from "lucide-react";
 import { isTimelineKind } from "./timelineFilters";
 
 // How each kind of entry looks: label, icon and color. Colors avoid green,
@@ -32,13 +32,14 @@ export const KIND_META: Record<
     Icon: HeartPulse,
     iconClass: "bg-secondary text-secondary-content",
   },
-  // Not on the timeline yet (see `TIMELINE_KINDS`): medications slice 4 renders them.
+  // Medications: violet (the theme's primary), solid for a dose and soft for
+  // a change to the list, so the two read as one family, apart from vitals' pink.
   dose: { label: "Dose", plural: "Doses", Icon: Pill, iconClass: "bg-primary text-primary-content" },
   medicationChange: {
     label: "Medication change",
     plural: "Medication changes",
-    Icon: ClipboardPen,
-    iconClass: "bg-neutral text-neutral-content",
+    Icon: PillBottle,
+    iconClass: "bg-primary/15 text-primary",
   },
 };
 

@@ -13,8 +13,10 @@ import { groupLinksByEntry } from "~/lib/entryProviders";
 import { localTimeZone } from "~/lib/format";
 import { isLiveEntryKind } from "~/lib/liveEntry";
 import { liveDotLabel } from "~/lib/liveNow";
+import { withMedication } from "~/lib/medicationEntries";
 import { useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/sync/editors";
+import { useTimelineMedications } from "~/lib/sync/medicationTimeline";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import { timelineLinksQuery } from "~/lib/sync/providers";
 import {
@@ -129,6 +131,8 @@ export function useTimelineData({
     requested,
     fresh: entries.fresh && links.fresh,
   });
+  // Doses and medication changes are named by their medication: one query over the same window.
+  const medicationOf = useTimelineMedications(groupId, filters, requested, cutoff);
 
   const members = memberRows.map(toMember);
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
@@ -141,7 +145,9 @@ export function useTimelineData({
   // A note's or event's text is its live document: its preview is the body.
   const withPreview = (rows: EntryRow[]) =>
     toTimelineEntries(rows).map((entry) =>
-      isLiveEntryKind(entry.kind) ? { ...entry, body: previews.get(entry.id) || null } : entry,
+      isLiveEntryKind(entry.kind)
+        ? { ...entry, body: previews.get(entry.id) || null }
+        : withMedication(entry, medicationOf),
     );
   const shown = withPreview(entries.rows.slice(0, page.limit));
   const now = new Date(cutoff);

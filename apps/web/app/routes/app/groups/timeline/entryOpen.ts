@@ -1,19 +1,20 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 
-import { canHaveNoteDocument } from "@caretook/data/schema";
+import { canHaveNoteDocument, isSystemWrittenKind } from "@caretook/data/schema";
 import { appUrls } from "../../../../lib/appUrls";
 
 // What tapping a timeline entry does, by kind and role. Pure, so web:unit tests it.
 
 /**
  * - `page`: a note or event opens its page, for everyone (viewers read it there);
- * - `editSheet`: a symptom or vital opens its edit sheet, for writers;
- * - `null`: nothing (a viewer's symptom or vital).
+ * - `editSheet`: a symptom, vital or dose opens its edit sheet, for writers;
+ * - `null`: nothing (a viewer's symptom, vital or dose, and a medication
+ *   change for everyone: it's written with the medication, never edited).
  */
 export type OpenRule = "page" | "editSheet" | null;
 
 export const openRule = (kind: TimelineEntryKind, canWrite: boolean): OpenRule =>
-  canHaveNoteDocument(kind) ? "page" : canWrite ? "editSheet" : null;
+  canHaveNoteDocument(kind) ? "page" : canWrite && !isSystemWrittenKind(kind) ? "editSheet" : null;
 
 /** A row's open link: the entry's page, or (`sheet`) its edit sheet over the timeline. */
 export type EntryOpen = { to: string; sheet: boolean };

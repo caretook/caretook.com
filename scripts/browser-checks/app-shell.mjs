@@ -138,9 +138,9 @@ async function sections(p) {
     };
   })()`);
   check(
-    "420: a bottom tab bar (Timeline, Providers) with Timeline marked current",
+    "420: a bottom tab bar (Timeline, Providers, Medications, Upcoming) with Timeline marked current",
     bar &&
-      bar.labels === "Timeline,Providers,Upcoming" &&
+      bar.labels === "Timeline,Providers,Medications,Upcoming" &&
       bar.current === "Timeline" &&
       bar.href === timelinePath,
     JSON.stringify(bar),
@@ -250,7 +250,9 @@ async function sections(p) {
   check("1280: no tab bar (and no spacer)", !wide.bar && !wide.spacer, JSON.stringify(wide));
   check(
     "1280: the header shows the section links, Timeline current",
-    wide.headerNav && wide.labels === "Timeline,Providers,Upcoming" && wide.current === "Timeline",
+    wide.headerNav &&
+      wide.labels === "Timeline,Providers,Medications,Upcoming" &&
+      wide.current === "Timeline",
     JSON.stringify(wide),
   );
   await p.screenshot("app-shell-sections-wide");

@@ -6,14 +6,17 @@ import type { TimelineEntry } from "~/lib/rpc";
 import { useEffect, useRef, useState } from "react";
 import { entrySummary, KIND_META } from "~/lib/entryDisplay";
 import { chipLabel, withSummary, withText } from "~/lib/entryProviders";
+import { medicationEntryText } from "~/lib/medicationEntries";
+import { MedicationHeading } from "./MedicationEntryText";
 
 /** Readable lines on wide screens: the heading, the "with …" line and the text stop at about 75 characters. */
 const TEXT_CAP = "max-w-[75ch]";
 
 /**
  * What an entry says, the same in rows and cards: the kind (for screen
- * readers), then its heading (title or symptom name, with severity), its vital
- * readings, who it was with (linked providers) and its text, in that order. The first of those can share a line
+ * readers), then its heading (title or symptom name, with severity; a dose's
+ * or change's medication and what happened), its vital readings, who it was
+ * with (linked providers), a dose's or stop's note, and its text, in that order. The first of those can share a line
  * with `aside` (the card's live dot and time); `footer` comes last. Rows clamp
  * the text to two lines (`clamp`, with "More"); cards show all of it.
  */
@@ -35,7 +38,11 @@ export function EntryBody({
   className?: string;
 }) {
   const { heading, severity, readings, body } = entrySummary(entry, units);
+  const medication = medicationEntryText(entry);
   const [lead, ...rest] = [
+    medication && (
+      <MedicationHeading key="medication" entry={entry} what={medication.what} className={TEXT_CAP} />
+    ),
     heading && (
       <p key="heading" className={`font-semibold break-words ${TEXT_CAP}`}>
         {heading}
@@ -44,6 +51,11 @@ export function EntryBody({
     ),
     readings.length > 0 && <Readings key="readings" readings={readings} />,
     providers && providers.length > 0 && <WithLine key="with" providers={providers} />,
+    medication?.note && (
+      <p key="note" className={`text-base-content/80 break-words ${TEXT_CAP}`} data-medication-note>
+        {medication.note}
+      </p>
+    ),
     body && (clamp ? <ClampedText key="body" text={body} /> : <FullText key="body" text={body} />),
   ].filter(Boolean);
 

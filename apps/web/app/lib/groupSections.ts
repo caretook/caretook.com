@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-import { CalendarClock, History, Stethoscope } from "lucide-react";
+import { CalendarClock, History, Pill, Stethoscope } from "lucide-react";
 import { appUrls } from "./appUrls";
 
 /**
@@ -43,6 +43,13 @@ export const GROUP_SECTIONS: readonly GroupSection[] = [
     icon: Stethoscope,
     path: (groupId) => appUrls.providers(groupId),
     match: (subpath) => under(subpath, "/providers"),
+  },
+  {
+    id: "medications",
+    label: "Medications",
+    icon: Pill,
+    path: (groupId) => appUrls.medications(groupId),
+    match: (subpath) => under(subpath, "/medications"),
   },
   {
     id: "upcoming",

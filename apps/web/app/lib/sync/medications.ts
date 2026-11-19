@@ -30,7 +30,7 @@ import {
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
-import { medications, timelineEntries } from "./schema";
+import { medications, noteDocuments, timelineEntries } from "./schema";
 import {
   forbidden,
   fromLocalTimestamp,
@@ -601,6 +601,38 @@ export const removeMedication = async (db: SyncDb, id: string): Promise<ActionRe
   return { ok: true };
 };
 
+/**
+ * The medication's notes document (its id is the medication's), made on the
+ * first real change on its page, like a provider's. Making one that's
+ * already there is fine. The medication must be live and the user a writer.
+ */
+export const createMedicationDocument = async (db: SyncDb, medicationId: string): Promise<ActionResult> => {
+  const medication = await liveMedication(db, medicationId);
+  if (!medication) return medicationMissing;
+  if (!(await canWrite(db, medication.groupId))) return forbidden;
+  const existing = await readRows<{ id: string }>(db, {
+    sql: "SELECT id FROM note_document WHERE id = ?",
+    params: [medicationId],
+  });
+  if (existing.length) return { ok: true };
+  const now = nowTimestamp();
+  await db.drizzle.insert(noteDocuments).values({
+    id: medicationId,
+    groupId: medication.groupId,
+    subject: "medication",
+    entryId: null,
+    providerId: null,
+    medicationId,
+    snapshot: null,
+    text: "",
+    createdAt: now,
+    updatedAt: now,
+    createdBy: db.userId,
+    updatedBy: db.userId,
+  });
+  return { ok: true };
+};
+
 // ---------------------------------------------------------------------------
 // Doses
 // ---------------------------------------------------------------------------
@@ -716,3 +748,19 @@ export const removeMedicationEntry = async (db: SyncDb, id: string): Promise<Act
     .where(eq(timelineEntries.id, id));
   return { ok: true };
 };
+
+// ---------------------------------------------------------------------------
+// A provider's medications (the provider page)
+// ---------------------------------------------------------------------------
+
+/**
+ * The current medications (not deleted) that name a provider as their
+ * prescriber or their pharmacy, by name: the provider page's Medications.
+ */
+export const providerMedicationsQuery = (groupId: string, providerId: string): LocalQuery => ({
+  sql: `SELECT * FROM medication
+        WHERE group_id = ? AND deleted_at IS NULL AND status = 'current'
+          AND (prescriber_id = ? OR pharmacy_id = ?)
+        ORDER BY name COLLATE NOCASE, id`,
+  params: [groupId, providerId, providerId],
+});

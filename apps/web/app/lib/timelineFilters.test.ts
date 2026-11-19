@@ -40,14 +40,9 @@ describe("parseFilters", () => {
   });
 
   it("knows every kind", () => {
-    for (const kind of ["note", "symptom", "event", "vital"]) {
+    for (const kind of ["note", "symptom", "event", "vital", "dose", "medicationChange"]) {
       expect(parseFilters(`?kind=${kind}`).kind).toBe(kind);
     }
-  });
-
-  it("ignores the kinds the timeline doesn't show yet", () => {
-    expect(parseFilters("?kind=dose")).toEqual({ kind: null, author: null, upcoming: false });
-    expect(parseFilters("?kind=medicationChange")).toEqual({ kind: null, author: null, upcoming: false });
   });
 
   it("ignores an unknown kind", () => {

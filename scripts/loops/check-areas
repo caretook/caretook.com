@@ -101,6 +101,7 @@ apps/web/app/routes/app/groups/layout/*  routing app-shell
 apps/web/app/routes/app/groups/index/*   routing
 apps/web/app/lib/group.tsx               routing app-shell
 apps/web/app/lib/groupContext.ts         routing app-shell
+apps/web/app/lib/groupSections.ts        app-shell routing
 apps/web/app/routes/app/settings/*       routing settings-layout layout-offline ui
 apps/web/app/lib/me.ts                   settings-layout layout-offline
 apps/web/app/components/settings/*       routing settings-layout app-shell ui
@@ -116,6 +117,12 @@ apps/web/app/components/ui/*             ui app-shell
 apps/web/app/components/brand/*          app-shell marketing
 
 # The timeline, its rows, filters, vitals and sheets.
+# Doses and medication changes on the timeline (medications slice 4).
+apps/web/app/routes/app/groups/timeline/new-dose/* medications
+apps/web/app/routes/app/groups/timeline/DoseForm.tsx medications
+apps/web/app/routes/app/groups/timeline/doseFormData.ts medications
+apps/web/app/components/entry/MedicationEntryText.tsx medications phase2
+apps/web/app/lib/sync/medicationTimeline.ts medications phase2
 # The timeline's Next strip and Upcoming block, and the data they share with the history.
 apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
 apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
@@ -140,12 +147,16 @@ apps/web/app/lib/sync/editors.ts         live-notes
 apps/web/app/lib/sync/titleSuggestions.ts live-notes
 
 # Providers.
+apps/web/app/routes/app/groups/provider/ProviderMedications.tsx providers medications
 apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
 apps/web/app/lib/sync/providers.ts       providers
-# The medication list (no screens yet: `medications.mjs` drives the device module).
+# The medication list: the device module, the list and a medication's page
+# (its live notes run live-notes too).
 apps/web/app/lib/sync/medications.ts     medications
+apps/web/app/routes/app/groups/medications/* medications
+apps/web/app/routes/app/groups/medication/* medications live-notes
 apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 

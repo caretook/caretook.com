@@ -15,6 +15,10 @@ describe("openRule (kind × role)", () => {
     ["symptom", false, null],
     ["vital", true, "editSheet"],
     ["vital", false, null],
+    ["dose", true, "editSheet"],
+    ["dose", false, null],
+    ["medicationChange", true, null],
+    ["medicationChange", false, null],
   ] as const)("%s, writer %s → %s", (kind, canWrite, rule) => {
     expect(openRule(kind, canWrite)).toBe(rule);
   });
@@ -34,6 +38,18 @@ describe("entryOpen", () => {
     expect(
       entryOpen({ groupId: G, entry: { id: E, kind: "symptom" }, canWrite: true, search: "?kind=symptom" }),
     ).toEqual({ to: `${GROUP}/timeline/${E}/edit?kind=symptom`, sheet: true });
+  });
+
+  it("opens a dose's edit sheet for a writer, keeping the filters", () => {
+    expect(
+      entryOpen({ groupId: G, entry: { id: E, kind: "dose" }, canWrite: true, search: "?kind=dose" }),
+    ).toEqual({ to: `${GROUP}/timeline/${E}/edit?kind=dose`, sheet: true });
+  });
+
+  it("opens nothing for a medication change, even for a writer", () => {
+    expect(
+      entryOpen({ groupId: G, entry: { id: E, kind: "medicationChange" }, canWrite: true, search: "" }),
+    ).toBeUndefined();
   });
 
   it("opens nothing for a viewer's vital", () => {

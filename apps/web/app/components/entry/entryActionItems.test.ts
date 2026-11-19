@@ -13,6 +13,11 @@ describe("entryActionItems", () => {
     expect(entryActionItems("note", { canEdit: false })).toEqual(["delete"]);
   });
 
+  it("gives doses Edit, then Delete, and medication changes Delete only", () => {
+    expect(entryActionItems("dose", { canEdit: true })).toEqual(["edit", "delete"]);
+    expect(entryActionItems("medicationChange", { canEdit: true })).toEqual(["delete"]);
+  });
+
   it("drops Edit when there's nothing to edit with", () => {
     expect(entryActionItems("symptom", { canEdit: false })).toEqual(["delete"]);
   });

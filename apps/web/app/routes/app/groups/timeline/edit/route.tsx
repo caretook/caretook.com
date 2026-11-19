@@ -1,5 +1,6 @@
 import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/api";
+import type { MedicationRow } from "~/lib/sync/medications";
 import type { EntryRow } from "~/lib/sync/timeline";
 
 import { useEffect, useMemo } from "react";
@@ -8,17 +9,22 @@ import { KIND_META } from "~/lib/entryDisplay";
 import { formString } from "~/lib/form";
 import { getGroup } from "~/lib/group";
 import { sessionContext } from "~/lib/session";
+import { medicationIdOf, medicationLabel } from "~/lib/medicationEntries";
 import { useLiveQuery } from "~/lib/sync";
+import { medicationQuery, updateDose } from "~/lib/sync/medications";
 import { readRows, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
+import { DoseForm } from "../DoseForm";
+import { dosePatchFromForm } from "../doseFormData";
 import { entryUpdateFromForm, parseUnits } from "../entryFormData";
 import { EntryForm } from "../EntryForm";
 import { Sheet } from "~/components/ui";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { editSheetGuard } from "../sheetGuard";
 
-// Shared by web + native. `timeline/:entryId/edit`: a symptom's or vital's
-// edit sheet, over the timeline. A note or event goes to its page; a missing,
-// deleted or other group's entry, or a viewer, lands on the timeline.
+// Shared by web + native. `timeline/:entryId/edit`: a symptom's, vital's or
+// dose's edit sheet, over the timeline. A note or event goes to its page; a
+// medication change, a missing, deleted or other group's entry, or a viewer,
+// lands on the timeline.
 
 /** The entry as the device has it, in any group and deleted or not: the guard decides. */
 const entrySql = "SELECT * FROM timeline_entry WHERE id = ?";
@@ -36,7 +42,15 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     canWrite: group.canWrite,
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
-  return decision.sheet;
+  // A dose names its medication (deleted or not: the dose keeps it).
+  const medicationId = medicationIdOf(decision.sheet.entry);
+  const [medication] = medicationId ? await readRows<MedicationRow>(db, medicationQuery(medicationId)) : [];
+  return {
+    ...decision.sheet,
+    medicationName: medicationId
+      ? medicationLabel(medication?.name ? { name: medication.name, strength: medication.strength } : null)
+      : null,
+  };
 }
 
 /** The same local write as before sheets had URLs; live queries show it, and PowerSync uploads it. */
@@ -48,13 +62,19 @@ export async function clientAction({
   getGroup(context);
   const { db } = context.get(sessionContext);
   const form = await request.formData();
+  // A dose is written through the medications module (its medication is fixed).
+  const [row] = await readRows<EntryRow>(db, { sql: entrySql, params: [params.entryId] });
+  if (row?.kind === "dose") {
+    const result = await updateDose(db, params.entryId, dosePatchFromForm(form));
+    return result.ok ? { ok: true } : result;
+  }
   // The units the form displayed, so vitals convert back the way they were typed.
   const units = parseUnits(formString(form, "units"));
   return updateEntry(db, params.entryId, entryUpdateFromForm(form, units));
 }
 
 export default function EditEntrySheet({ loaderData, params }: Route.ComponentProps) {
-  const { entry } = loaderData;
+  const { entry, medicationName } = loaderData;
   const { units } = useTimelineOutlet();
   const close = useCloseSheet();
 
@@ -74,7 +94,17 @@ export default function EditEntrySheet({ loaderData, params }: Route.ComponentPr
       title={`Edit ${KIND_META[entry.kind].label.toLowerCase()}`}
     >
       {/* The entry as it was when the sheet opened; a new entry is a new form. */}
-      <EntryForm key={entry.id} entry={entry} units={units} onDone={close} onCancel={close} />
+      {entry.kind === "dose" ? (
+        <DoseForm
+          key={entry.id}
+          entry={entry}
+          medicationName={medicationName ?? ""}
+          onDone={close}
+          onCancel={close}
+        />
+      ) : (
+        <EntryForm key={entry.id} entry={entry} units={units} onDone={close} onCancel={close} />
+      )}
     </Sheet>
   );
 }
