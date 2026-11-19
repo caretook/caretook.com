@@ -351,3 +351,23 @@ export const fx = {
   medication,
   period,
 };
+
+// --- Added by slice 8 (timeline component tests) -----------------------------
+
+/** A medication pass (a named round, such as "Morning"), for pass logs: doses whose details carry its id. */
+export const medicationPass = (v: Partial<Values<"medicationPasses">> = {}) => {
+  const created = hoursAgo(24 * 30);
+  return row("medicationPasses", {
+    id: newId(),
+    groupId,
+    recipientId,
+    name: "Morning",
+    time: "08:00",
+    sortOrder: 0,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
