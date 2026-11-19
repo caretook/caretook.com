@@ -16,6 +16,14 @@ describe("dayLabel", () => {
   it("says Yesterday for the day before", () => {
     expect(label("2026-11-17T20:00:00.000Z", now)).toBe("Yesterday");
   });
+  it("says Tomorrow for the day after, then the weekday and date", () => {
+    expect(label("2026-11-19T20:00:00.000Z", now)).toBe("Tomorrow");
+    // 23:30 tonight in Los Angeles is still Today; 00:30 is Tomorrow.
+    expect(label("2026-11-19T07:30:00.000Z", now)).toBe("Today");
+    expect(label("2026-11-19T08:30:00.000Z", now)).toBe("Tomorrow");
+    expect(label("2026-11-20T20:00:00.000Z", now)).toBe("Friday, Nov 20");
+    expect(label("2027-01-01T20:00:00.000Z", "2026-12-31T20:00:00.000Z")).toBe("Tomorrow");
+  });
   it("names the weekday and date for older days this year", () => {
     expect(label("2026-11-16T20:00:00.000Z", now)).toBe("Monday, Nov 16");
     expect(label("2026-01-01T20:00:00.000Z", now)).toBe("Thursday, Jan 1");
@@ -78,7 +86,7 @@ describe("dayLabel", () => {
     });
   });
 
-  it("gives a date, not a relative name, to a day after now", () => {
-    expect(label("2026-11-19T20:00:00.000Z", now)).toBe("Thursday, Nov 19");
+  it("gives a date, not a relative name, to days after tomorrow", () => {
+    expect(label("2026-11-21T20:00:00.000Z", now)).toBe("Saturday, Nov 21");
   });
 });
