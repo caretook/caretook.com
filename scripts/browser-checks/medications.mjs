@@ -53,6 +53,13 @@
 // without controls, and no strip once nothing is due. `dueDoses` itself is
 // unit-tested (dueDoses.test.ts).
 //
+// Medications 2, slice 1 adds the Passes screen (`passesSteps`): the
+// seeded Morning and Evening from the list's link, adding a pass (a taken
+// name refused), the medications in a pass, a retime with its timeline
+// entry (live on a second device), Move up, an offline rename, a viewer
+// without controls, and a delete that leaves its medication the time. The
+// pass rules are unit-tested (medicationPass.test.ts).
+//
 // Schedule wording and the list's order and matching are unit-tested
 // (medicationDisplay.test.ts, medicationList.test.ts): the steps here check
 // one case each, on the page. Later slices add their screens' steps here.
@@ -161,6 +168,10 @@ const syncedTo = async (p, id, what, ms = 30000) => {
     console.log(`WAIT  ${what}: the medication didn't reach this device within ${ms / 1000} s`);
   return rows.length === 1;
 };
+
+/** A stored schedule's own times ("08:00,20:00"), in stored order: SQL over `schedule`'s slots. */
+const SLOT_TIMES = (column) =>
+  `(SELECT string_agg(s->>'time', ',') FROM jsonb_array_elements(${column}->'slots') s)`;
 
 const CHANGES_SQL = (id) =>
   `SELECT count(*) FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'medicationId' = '${id}'`;
@@ -294,10 +305,10 @@ async function writeSteps(p) {
   );
 
   const uploaded = await waitForSql(
-    `SELECT schedule->>'times' FROM medication WHERE id = '${id}'`,
+    `SELECT ${SLOT_TIMES("schedule")} FROM medication WHERE id = '${id}'`,
     (v) => v !== "",
   );
-  check("it uploads, with its schedule sorted", uploaded === '["08:00", "20:00"]', uploaded);
+  check("it uploads, with its schedule sorted (as slots)", uploaded === "08:00,20:00", uploaded);
   const started = await waitForSql(
     `SELECT string_agg(id::text, ',') FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'medicationId' = '${id}'`,
     (v) => v !== "",
@@ -1684,12 +1695,12 @@ async function addSteps(p, B) {
     JSON.stringify({ chip, listed }),
   );
   const server = await waitForSql(
-    `SELECT p.name || '|' || p.type || '|' || (m.schedule->>'times') FROM medication m JOIN provider p ON p.id = m.prescriber_id WHERE m.name = '${name}'`,
+    `SELECT p.name || '|' || p.type || '|' || ${SLOT_TIMES("m.schedule")} FROM medication m JOIN provider p ON p.id = m.prescriber_id WHERE m.name = '${name}'`,
     (v) => v !== "",
   );
   check(
     "the medication and its new prescriber (a clinician) upload together, linked",
-    server === `${doctor}|clinician|["08:00", "20:00"]` && chip === `${doctor} (new)`,
+    server === `${doctor}|clinician|08:00,20:00` && chip === `${doctor} (new)`,
     `${server} / ${chip}`,
   );
   if (B) {
@@ -2356,6 +2367,246 @@ async function todaySteps(A, { B, C } = {}) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Passes (medications-2 slice 1): the Passes screen and the device module.
+// ---------------------------------------------------------------------------
+
+const PASSES = `/app/groups/${DEV_FAMILY}/medications/passes`;
+const PASS_ROWS = `[...document.querySelectorAll("main [data-passes] > li")]`;
+/** The screen's passes as "Name HH:MM", in order. */
+const passList = (p) =>
+  p.evaluate(
+    `${PASS_ROWS}.map((li) => li.querySelector("[data-pass-name]").textContent + " " + li.querySelector("[data-pass-time]").dateTime)`,
+  );
+const passRow = (name) =>
+  `${PASS_ROWS}.find((li) => li.querySelector("[data-pass-name]")?.textContent === ${JSON.stringify(name)})`;
+const PASS_FORM = `document.querySelector("[role=dialog] [data-pass-form]")`;
+const passField = (name) => `${PASS_FORM}?.querySelector('[name="${name}"]')`;
+/** Its ⋯ menu's item, with real taps (the trigger, then the item where it is). */
+async function passAction(p, name, item) {
+  const button = `${passRow(name)}?.querySelector('button[aria-label=${JSON.stringify(`Actions for ${name}`)}]')`;
+  await toFront(p);
+  await p.waitFor(`!!${button}`, 15000);
+  await p.tap(button);
+  await p.waitFor(menuItem(item), 5000);
+  await tapInPlace(p, menuItem(item));
+}
+/** Fill the open pass sheet and save it. */
+async function savePassForm(p, { name, time }) {
+  await p.waitFor(`!!${PASS_FORM}`, 8000);
+  if (name !== undefined) await p.type(passField("name"), name);
+  if (time !== undefined) await p.type(passField("time"), time);
+  await p.press(`${PASS_FORM}.querySelector('button[type="submit"]')`);
+}
+const passSql = (name) =>
+  `SELECT time || ':' || sort_order || ':' || (deleted_at IS NOT NULL)::text FROM medication_pass WHERE group_id = '${DEV_FAMILY}' AND name = '${name}' ORDER BY created_at DESC LIMIT 1`;
+
+/**
+ * The Passes screen (caretaker@, A): the seeded Morning and Evening, the
+ * list header's link, adding a pass (a taken name refused), the medications
+ * in it, a retime with its timeline entry (seen live on a second device),
+ * reordering, an offline rename, and a delete that leaves the medication its
+ * time. A viewer (C) reads the screen with no controls.
+ */
+async function passesSteps(p, { B, C, proxy } = {}) {
+  const NOON = `${TAG} Noon`;
+  await toFront(p);
+  await p.goto(LIST);
+  await need(p, `!!document.querySelector("main [data-passes-link]")`, 20000, "the list's Passes link");
+  await p.tap(`document.querySelector("main [data-passes-link]")`);
+  await need(
+    p,
+    `location.pathname.endsWith("/medications/passes") && ${PASS_ROWS}.length >= 2`,
+    15000,
+    "the Passes screen",
+  );
+  const seeded = await passList(p);
+  check(
+    "the list's Passes link opens the group's passes: Morning 08:00 then Evening 20:00",
+    seeded[0] === "Morning 08:00" && seeded[1] === "Evening 20:00",
+    JSON.stringify(seeded),
+  );
+
+  // Add a pass; a taken name (any case) is refused on its field.
+  await p.tap(`document.querySelector("main [data-add-pass]")`);
+  await savePassForm(p, { name: "morning", time: "07:00" });
+  await need(
+    p,
+    `${passField("name")}?.getAttribute("aria-invalid") === "true"`,
+    8000,
+    "the taken name's error",
+  );
+  const taken = await p.evaluate(
+    `document.getElementById(${passField("name")}.getAttribute("aria-describedby")?.split(" ").pop())?.textContent ?? null`,
+  );
+  check("a pass's name must be free (case ignored)", taken === "Another pass already has that name", taken);
+  await savePassForm(p, { name: NOON, time: "12:00" });
+  await need(p, `!${PASS_FORM} && !!${passRow(NOON)}`, 10000, "the new pass in the list");
+  const added = await waitForSql(passSql(NOON), (v) => v.startsWith("12:00"));
+  const listed = await passList(p);
+  check(
+    "a writer adds a pass: last in the list, and uploaded",
+    listed.at(-1) === `${NOON} 12:00` && /^12:00:\d+:false$/.test(added),
+    `${JSON.stringify(listed)} ${added}`,
+  );
+  if (SMOKE) return;
+
+  // A medication in the pass (the form's pass choices come later): the screen lists it.
+  const passId = psql(`SELECT id FROM medication_pass WHERE name = '${NOON}' AND deleted_at IS NULL`);
+  const made = await onDevice(
+    p,
+    `return medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(`${TAG} Pass med`)}, strength: "5 mg", schedule: { type: "scheduled", slots: [{ passId: ${JSON.stringify(passId)}, amount: "2 tablets" }] } });`,
+  );
+  await need(
+    p,
+    `${passRow(NOON)}?.querySelector("[data-pass-medication]")?.textContent === ${JSON.stringify(`${TAG} Pass med 5 mg`)}`,
+    10000,
+    "the medication under its pass",
+  );
+  const inPass = await p.evaluate(
+    `${passRow(NOON)}?.querySelector("[data-pass-medication]")?.textContent ?? null`,
+  );
+  check(
+    "a pass lists the medications in it",
+    made.ok && inPass === `${TAG} Pass med 5 mg`,
+    `${JSON.stringify(made)} ${inPass}`,
+  );
+
+  // A second device follows along, live.
+  if (B) {
+    await B.goto(PASSES);
+    await need(B, `!!${passRow(NOON)}`, 30000, "the new pass on the second device");
+  }
+
+  // Retime: every medication moves with it, and the timeline says so.
+  await passAction(p, NOON, "Edit");
+  await savePassForm(p, { time: "12:30" });
+  await need(
+    p,
+    `!${PASS_FORM} && ${passRow(NOON)}?.querySelector("[data-pass-time]")?.dateTime === "12:30"`,
+    10000,
+    "the retimed pass",
+  );
+  const moved = await waitForSql(
+    `SELECT details->>'beforeTime' || '>' || (details->>'afterTime') || ':' || (details->'medicationIds'->>0 = '${made.id}')::text FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'passId' = '${passId}' AND deleted_at IS NULL`,
+    (v) => v.length > 0,
+  );
+  check(
+    "a retime uploads with one passMoved entry naming the pass's medication",
+    moved === "12:00>12:30:true",
+    moved,
+  );
+  if (B) {
+    const live = await B.waitFor(
+      `${passRow(NOON)}?.querySelector("[data-pass-time]")?.dateTime === "12:30"`,
+      20000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    check("a second device sees the retime without a reload", live);
+  }
+  await p.goto(`/app/groups/${DEV_FAMILY}/timeline?kind=medicationChange`);
+  const line = `${NOON} moved 12:00 → 12:30`;
+  await need(
+    p,
+    `[...document.querySelectorAll("main [data-pass-moved]")].some((el) => el.textContent === ${JSON.stringify(line)})`,
+    15000,
+    "the passMoved row",
+  );
+  const shown = await p.evaluate(
+    `[...document.querySelectorAll("main [data-pass-moved]")].map((el) => el.textContent).includes(${JSON.stringify(line)})`,
+  );
+  check("the timeline shows the move as one line, with no medication", shown, line);
+
+  // Reorder: up, above Evening.
+  await p.goto(PASSES);
+  await need(p, `!!${passRow(NOON)}`, 15000, "the Passes screen again");
+  await passAction(p, NOON, "Move up");
+  await need(
+    p,
+    `${PASS_ROWS}[1]?.querySelector("[data-pass-name]")?.textContent === ${JSON.stringify(NOON)}`,
+    10000,
+    "the pass moved up",
+  );
+  const order = await passList(p);
+  const sorted = await waitForSql(
+    `SELECT string_agg(name, ',' ORDER BY sort_order, time) FROM medication_pass WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL AND (name IN ('Morning', 'Evening') OR name = '${NOON}')`,
+    (v) => v === `Morning,${NOON},Evening`,
+  );
+  check(
+    "Move up puts the pass before Evening, and uploads",
+    order[1] === `${NOON} 12:30` && sorted === `Morning,${NOON},Evening`,
+    `${JSON.stringify(order)} ${sorted}`,
+  );
+
+  // Offline: a rename saves on the device and uploads on reconnecting.
+  const RENAMED = `${TAG} Lunch`;
+  if (proxy) {
+    const errorsBefore = p.errors.length;
+    proxy.setOnline(false);
+    await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+    await passAction(p, NOON, "Edit");
+    await savePassForm(p, { name: RENAMED });
+    const offline = await p.waitFor(`!${PASS_FORM} && !!${passRow(RENAMED)}`, 10000).then(
+      () => true,
+      () => false,
+    );
+    proxy.setOnline(true);
+    await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+    const uploaded = await waitForSql(
+      `SELECT count(*) FROM medication_pass WHERE id = '${passId}' AND name = '${RENAMED}'`,
+      (v) => v === "1",
+      30000,
+    );
+    check(
+      "offline, a rename saves on the device and uploads after",
+      offline && uploaded === "1",
+      `${offline} ${uploaded}`,
+    );
+    p.errors.splice(errorsBefore);
+  }
+  const name = proxy ? RENAMED : NOON;
+
+  // A viewer reads the screen, with no controls.
+  if (C) {
+    await C.goto(PASSES);
+    await need(C, `!!${passRow(name)}`, 30000, "the pass on the viewer's device");
+    const viewer = await C.evaluate(
+      `({ add: !!document.querySelector("main [data-add-pass]"), menus: document.querySelectorAll("main [data-passes] button").length, sub: document.querySelector("main header p")?.textContent ?? "" })`,
+    );
+    check(
+      "a viewer sees the passes and their medications, with no controls",
+      !viewer.add && viewer.menus === 0 && viewer.sub.includes("You can view the passes"),
+      JSON.stringify(viewer),
+    );
+  }
+
+  // Delete: the confirm says the medications keep the time; they do.
+  await passAction(p, name, "Delete");
+  await need(p, `!!${OPEN_DIALOG}`, 5000, "the delete confirm");
+  const message = await p.evaluate(`${OPEN_DIALOG}?.textContent ?? ""`);
+  await p.press(dialogButton("Delete"));
+  await need(p, `!${passRow(name)}`, 10000, "the pass to leave the list");
+  const gone = await waitForSql(
+    `SELECT (deleted_at IS NOT NULL)::text FROM medication_pass WHERE id = '${passId}'`,
+    (v) => v === "true",
+  );
+  const schedule = await waitForSql(`SELECT schedule::text FROM medication WHERE id = '${made.id}'`, (v) =>
+    v.includes('"time"'),
+  );
+  const changes = psql(CHANGES_SQL(made.id));
+  check(
+    "Delete (after a confirm saying so) leaves the medication the pass's time and amount, with no change entry",
+    message.includes("keep 12:30") &&
+      gone === "true" &&
+      JSON.stringify(JSON.parse(schedule)) ===
+        JSON.stringify({ type: "scheduled", slots: [{ time: "12:30", amount: "2 tablets" }] }) &&
+      changes === "1",
+    `${gone} ${schedule} ${changes} ${message.slice(0, 80)}`,
+  );
+}
+
 // One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
 // 9435, not 9434: slot 2's offset puts 9434 on 11434, Ollama's default port.
 const proxy = startProxy(9435);
@@ -2470,6 +2721,9 @@ try {
     await notFoundSteps(B, A);
   }
 
+  if (SMOKE) await passesSteps(A);
+  else await passesSteps(A, { B: pages[1], C: pages[2], proxy: proxyA });
+
   // Today's steps load many pages: a tab of its own (signed in through the
   // browser's cookie) keeps A under Better Auth's per-page session limit.
   const T = await openPage(bA, "caretaker-today");
@@ -2520,6 +2774,9 @@ try {
          AND details->>'medicationId' IN (SELECT id::text FROM medication WHERE name LIKE '${TAG}%');
        UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'dose' AND details->>'note' LIKE '${TAG}%';
        UPDATE medication SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%';
+       UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'medicationChange'
+         AND details->>'passId' IN (SELECT id::text FROM medication_pass WHERE name LIKE '${TAG}%');
+       UPDATE medication_pass SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%';
        UPDATE provider SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%'`,
     );
   } catch (e) {
