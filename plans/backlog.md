@@ -280,6 +280,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/search/6): slice 6 (server search) committed on slice/search/6 (dec4b03, d4a964d): migration 0016_search (unaccent + generated search_vector columns), searchService.search, oRPC search.query; 10k entries in ~30-45 ms
 - 2026-11-19 (slice/search/3): slice 3 (search page + header magnifier) handed off on slice/search/3 at 86ae5c5; app-shell.mjs members-other viewer sign-in times out on prd/search base code too (pre-existing, not slice 3)
 - 2026-11-19 (slice/search/2): Slice 2 (search on the timeline) committed on slice/search/2 (2b99de8, c32de63): ?q= in the history, Upcoming and Next windows, magnifier field and Matching chip; search.mjs 51/51.
+- 2026-11-19 (slice/search/5): slice 5 (recent searches and tips) built on slice/search/5 (e4a8f71, 13808d6); timeline field should call recordSearch(userId, q) once slice 2 merges
 
 ### B-12 · plan · Assistant: lightweight chat, with voice, for quick actions and questions about the timeline
 
