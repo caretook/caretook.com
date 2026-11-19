@@ -468,6 +468,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Left out of the medications PRD's v1 (2026-11-18). Likely a synced list of { substance, reaction, severity } on care_recipient; the print sheet gets an allergies line when it lands.
 - 2026-11-19 (plan/medications-2): In the medications-2 PRD (plans/medications-2-prd.md on plan/medications-2), interviewed 2026-11-19.
+- 2026-11-19 (slice/medications-2/3): slice 3 (allergies) built on slice/medications-2/3 (6938aaf, c74c009, 1b1efa5): region, sheet, print block, name warning, No known allergies via upload; medications.mjs 142/142
 
 ### B-27 · bug · routing.mjs fails: group settings blank after the entry step; account Sign out flaky
 
