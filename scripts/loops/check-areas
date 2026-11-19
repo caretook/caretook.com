@@ -85,6 +85,9 @@ packages/data/src/db/seeds/accessCodes.ts groups
 # Details' link). Above the timeline's, layout's and settings' general rules.
 apps/web/app/routes/app/groups/profile/* profiles
 apps/web/app/lib/sync/profile.ts         profiles phase2
+# The writers' details (profiles slice 3): Contact and Insurance and their sheets.
+apps/web/app/lib/sync/recipientDetails.ts profiles
+packages/data/src/db/schema/careRecipientDetails.ts profiles
 apps/web/app/routes/app/groups/timeline/RecipientCard.tsx profiles phase2
 apps/web/app/routes/app/groups/timeline/TimelineHeader.tsx profiles phase2
 apps/web/app/routes/app/layout/GroupMenu.tsx app-shell ui profiles
@@ -126,7 +129,6 @@ apps/web/app/routes/app/layout/*         app-shell
 apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
 apps/web/app/routes/app/home/*           app-shell first-sync
 # What each member shares, and your own choices (profiles slice 4).
-apps/web/app/routes/app/groups/settings/members/MemberContact.tsx profiles-contacts app-shell
 apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts app-shell
 apps/web/app/routes/app/groups/settings/members/* app-shell invites ui profiles-contacts
 apps/web/app/routes/app/groups/settings/* app-shell routing ui
@@ -176,6 +178,8 @@ apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
 # Phone fields shared by the provider sheet and your contact details (profiles slice 4).
+# Contact links shared by the Members page and the recipient's profile (profiles slice 3).
+apps/web/app/components/contact/ContactLines.tsx profiles-contacts profiles app-shell
 apps/web/app/components/contact/*        providers profiles-contacts
 apps/web/app/lib/sync/providers.ts       providers
 # The medication list: the device module, the list and a medication's page

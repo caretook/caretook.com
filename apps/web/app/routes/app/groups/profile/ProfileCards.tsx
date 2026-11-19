@@ -7,14 +7,35 @@ import { basicLines } from "~/lib/recipientDisplay";
 // helpers. Each is a titled region (`data-section`), like the writers' cards
 // later slices add after them.
 
-export function ProfileCard({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+export function ProfileCard({
+  id,
+  title,
+  action,
+  children,
+}: {
+  id: string;
+  title: string;
+  /** Beside the title: the card's Edit, for writers. */
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   const headingId = `profile-${id}-heading`;
+  const heading = (
+    <h2 id={headingId} className="card-title text-base">
+      {title}
+    </h2>
+  );
   return (
     <section aria-labelledby={headingId} data-section={id} className="card bg-base-100 shadow-sm">
       <div className="card-body gap-3">
-        <h2 id={headingId} className="card-title text-base">
-          {title}
-        </h2>
+        {action ? (
+          <div className="flex items-start justify-between gap-3">
+            {heading}
+            {action}
+          </div>
+        ) : (
+          heading
+        )}
         {children}
       </div>
     </section>
