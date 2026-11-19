@@ -110,7 +110,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
 | B-71 | bug | triaged | quick-fixes |  | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
 | B-72 | bug | triaged | quick-fixes |  | suggested provider list is too long on mobile. |
-| B-73 | bug | inbox |  |  | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
+| B-73 | bug | triaged | quick-fixes |  | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
 
 ## Items
 
@@ -900,7 +900,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-73 · bug · timeline entry add modal should take up the full screen on mobile, don't leave room for header.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
