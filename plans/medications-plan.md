@@ -7,11 +7,11 @@
 | Slice | State                                                                   | Merge into `prd/medications` (slice commits)                                      |
 | ----- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | 1     | **merged** and landed in `dev` (wave 1)                                 | `41b8930` (slice commit `febd581`); dev sync `fac86c4`, fixes `4bb35ac` `cf80fe4` |
-| 2     | **in progress** (`.loops/medications-2`, started 2026-11-18)            |                                                                                   |
-| 3     | blocked by 2                                                            |                                                                                   |
+| 2     | **merged** into `prd/medications` (wave 2)                              | `d7977c1` (slice commits `3f7e4bd`, `c051eab`)                                    |
+| 3     | ready (2 is merged)                                                     |                                                                                   |
 | 4     | **in progress** (`.loops/medications-4`, with B-43, started 2026-11-18) |                                                                                   |
 | 5     | blocked by 3 and 4                                                      |                                                                                   |
-| 6     | blocked by 2                                                            |                                                                                   |
+| 6     | **in progress** (`.loops/medications-6`, started 2026-11-18)            |                                                                                   |
 
 Every outside blocker is in `dev`. Wave 1 landed in `dev` as `4bcf119`. Wave 2 (slices 2 and 4) started 2026-11-18 at the user's word while `timeline-polish` slice 7 (infinite scroll) is still running: slice 4 keeps its edits to `TimelineEntryList`, `TimelineEntryRow`, `useTimelineData`, the timeline `route.tsx`, `timelineRows.ts` and `phase2.mjs` small, so expect a sync conflict there. B-43 (quick-add order Note, Event, Dose, Symptom, Vital) is in slice 4. B-51 (a printable dose checklist) is proposed as a slice 7 after 6. Both slices 2 and 4 may add `appUrls.medication`; keep slice 2's at merge. Slice 1's migration is `0013_medications` (regenerated on top of `invites`' 0011 and 0012 at the first sync; its last statement, `ALTER PUBLICATION "powersync" ADD TABLE "medication";`, is hand-written: keep it when regenerating). The sync also gave `invites`' group creation the creating device's time zone (`newGroupFromForm`, `/admin`'s hidden field, `FALLBACK_TIME_ZONE`).
 
