@@ -23,7 +23,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `components`      | [PRD](components-prd.md), [plan](components-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `ca39416`) | `routing` (done) | none now; new UI uses `components/ui/` and the feature folders (AGENTS.md, _Components_) |
 | `invites`         | [PRD](invites-prd.md), [plan](invites-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `e6286f4`) | (none) | none now; follow-ups (Withdraw for a join request, the recipient's time zone) and launch work are in AGENTS.md |
 | `marketing`       | [PRD](marketing-prd.md), [plan](marketing-plan.md): **done**, all 5 slices in `dev`. B-40 and B-54 wait on the user | `invites` (done) | none now |
-| `profiles`        | to write (B-45, B-46)                                        | `invites` (done); `medications` slice 1 (synced date of birth, time zone) | `care_recipient`, the `member_profiles` stream and publication columns, group settings Details and Members, the device schema |
+| `profiles`        | [PRD](profiles-prd.md), [plan](profiles-plan.md): 6 slices, in `dev` (`b1c1bee`). Waves 1 → (2, 4) → 3 → 5 → 6; slice 1 can start when a PRD slot frees | `invites`, `medications` slice 1 (both done); the sheet reads medications and providers | `care_recipient`, `care_group_member`, `PERMISSIONS`, `db/schema/index.ts`, `sync-config.yaml` (a new writers stream), the device schema, group settings Details and Members, the group menu, `ACCOUNT_SETTINGS`, one region in the timeline header, one migration |
 | `appointments`    | [PRD](appointments-prd.md), [plan](appointments-plan.md): slices 1–6 in `dev` (slice 5 `9cafb09`); **slice 7 blocked by `medications` slice 5** (B-47 claimed; follow-ups B-60–B-63) | `providers` (done); `medications` slice 5 (reminders) | the timeline route folder, `entryWindow` in `lib/sync/timeline.ts`, `KIND_META`, `EntryTimeChip` |
 | `care-periods`    | to write (B-50)                                              | `timeline-polish` (filters, infinite scroll)          | a new table, sync and upload registries, `lib/timelineFilters.ts`, the timeline route folder |
 | `data-rights`     | to write (B-52, B-53)                                        | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
@@ -104,7 +104,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-64 | feature | triaged | quick-fixes |  | Withdraw a pending join request from the requester's home |
 | B-65 | change | triaged | quick-fixes |  | New care groups get the recipient's time zone |
 | B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
-| B-67 | change | in-progress | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
+| B-67 | change | ready | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
@@ -649,6 +649,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/marketing): From the inbox: birthdate, contact information, address, and insurance information should optionally be added to the patient profile.
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'profiles' (to write): the care recipient's optional contact, address and insurance details. Date of birth already exists (careGroup.recipient, not synced; medications slice 1 makes it synced). Insurance-card photos are B-56 (documents). Decide in the PRD which fields sync and who can read them (viewers?).
+- 2026-11-19 (plan/profiles): PRD written on plan/profiles: plans/profiles-prd.md (interview 2026-11-19).
 
 ### B-46 · change · optional phone number, address, etc on group members that can be published to the group for…
 
@@ -659,6 +660,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/marketing): From the inbox: optional phone number, address, etc on group members that can be published to the group for contact. Flags for "emergency contacts" and "primary contact" for display later.
 - 2026-11-18 (Robert Bo Davis): Proposed for 'profiles' with B-45: members' optional phone and address, shared with the group by choice, plus emergency-contact and primary-contact flags. Today co-members sync only id, name and image; published fields need their own stream columns and an opt-in.
+- 2026-11-19 (plan/profiles): PRD written on plan/profiles: plans/profiles-prd.md (interview 2026-11-19).
 
 ### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
 
@@ -856,13 +858,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-67 · change · Access-code sign-up says when an address already has an account
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 0ddaaa7
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: /join/:code answers ticket:accountExists ('An account with this email already exists. Sign in instead.'), so anyone holding a code can check whether an address is registered. Link-invite sign-up (slice 4) gives the same answer either way; email invites lock the address. Option: answer the same as link sign-up and send the existing user a sign-in email instead.
 - 2026-11-19 (Robert Bo Davis): Decided (user, 2026-11-19): fix it as a quick-fixes slice, low priority, before launch. /join/:code answers the same 'Check your email' for every address. For an address that already has an account: create nothing, leave the code's use count alone, and queue a new email through notify (outbox, not awaited, like the auth emails): 'Someone tried to start a care group with your address; if it was you, sign in and choose New care group'. No health details. Both paths queue their email without waiting, so the response takes about the same time either way. Tests: an integration test for accessCode.signUp with an existing address, and groups.mjs steps (same screen, the mail in /dev/mail.json, no account or redemption created).
+- 2026-11-19 (slice/quick-fixes/19): Slice 19 built (46e8be0 on slice/quick-fixes/19): existing address on /join/:code gets the same 'Confirm your email' screen, nothing created, use count unchanged, new accessCodeExistingAccount email (outbox, background). accessCode.signUp now returns only { email }; confirmation link opens /app (goes to the only group). ticket:accountExists kept: email invites still use it.
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
