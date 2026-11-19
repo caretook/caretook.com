@@ -330,7 +330,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
   2. Add a `PERMISSIONS` entry (the type requires one).
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
-- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0013 so far.
+- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0014 so far.
   - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
   - Until the first deploy it's fine to delete and regenerate migrations.
 - **DB client:** the pool is created lazily (importing never needs `DATABASE_URL`). Only the **pool** survives HMR (`utils/remember.ts`); the drizzle wrapper is rebuilt, so new tables work without a restart.
@@ -357,7 +357,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
   - **Every account form submits through `useSubmitOnce()`** (`routes/account/AuthCard.tsx`): it ignores further submits until the request settles, so a double tap sends one email (B-1). A new account form uses it too.
   - **Sign-up only with a ticket:** `signUpWithTicket` (`packages/auth/src/tickets.ts`, server only) checks an invite ticket (`{ kind: "invite" }`) and the matching address, then creates a verified user and its password account through Better Auth's `internalAdapter`; errors are `ticket:*`. A **link** ticket takes any address and creates the account **unverified** (owners approve a confirmed email), and an address that already has an account gets the same answer and no new account. Public sign-up stays off. An **access-code** ticket (`{ kind: "accessCode", code, group }`) creates the account (unverified: a code doesn't prove the address), its password, and the redemption (group, recipient, owner membership, use count) in **one transaction**; any refusal leaves nothing. An address that already has an account gets `ticket:accountExists` ("Sign in instead"), which a code holder can see.
 - ❓ Before launch:
-  - rate-limit storage (the default is in-memory, per serverless instance);
+  - rate-limit storage (the default is in-memory, per serverless instance; the public forms' limiter in `packages/api/src/rateLimit.ts` too);
   - native bearer storage (secure storage) and `VITE_API_ORIGIN`.
 
 ### Sync: PowerSync
@@ -622,7 +622,7 @@ Built so far by [`plans/medications-prd.md`](plans/medications-prd.md) slice 1 (
 
 ### Marketing site
 
-Built so far by [`plans/marketing-prd.md`](plans/marketing-prd.md) slices 1–3.
+Built by [`plans/marketing-prd.md`](plans/marketing-prd.md) (done).
 
 - **Web only:** a `marketing` layout route (`routes/marketing/layout/`) in `routes.ts`'s web-only list, with `/`, `/features`, `/faq`, `/about`, `/contact`, `/privacy`, `/terms`, `/health-data-privacy`, plus `sitemap.xml` and `robots.txt` resource routes. Native's `/` still redirects to `/app`. Marketing code never imports from `routes/app/`, `lib/sync/` or the editor.
 - **Prerendered:** `react-router.config.ts` prerenders `PRERENDER_PATHS` for the web target only.
@@ -636,6 +636,11 @@ Built so far by [`plans/marketing-prd.md`](plans/marketing-prd.md) slices 1–3.
 - **Screenshots are SVG placeholders** (`public/screenshots/<name>.svg`, listed in `site/screenshots.ts`) until launch (B-40). `scripts/browser-checks/marketing-screenshots.mjs` generates real ones from seed data (viewport-only WebP); it isn't in use yet.
 - **Legal pages** (`/privacy`, `/terms`, `/health-data-privacy`) are drafts rendered by `sections/LegalPage.tsx` from content modules (`sections/legal.ts` types): a DRAFT banner (keep it until the user says the text is reviewed), the last-updated date, a table of contents, heading anchors, and a plain summary above the formal text. `[Placeholders]` show as written. Their promises match the FAQ (encryption in transit and at rest; staff see care data only with permission, recorded; deletion by request during early access).
 - **In-page hash links use React Router `Link`**, not a plain `<a href="#…">`: a native hash jump makes `ScrollRestoration` restore an old position and jump back.
+- **Waitlist and contact** (slice 4): tables `waitlist_entry` (email unique and lowercase, so repeats update the entry; first name, `caring_for`, `heard_from`, `source` jsonb with the page and `utm*`) and `contact_message` (name, email, topic, message ≤ 5,000). **No IP or user agent is stored.** Written by the system only (`waitlistService.join`, `contactMessageService.send`), read and deleted by staff only. The pure rules are in `db/schema/publicFormRules.ts` (no imports, so Zod stays off marketing pages); the Zod schemas in `publicForms.ts`.
+  - Public oRPC `public.waitlist.join` and `public.contact.send` (`packages/api/src/publicForms.ts`). Every accepted submit answers `{ ok: true }`, spam included. Spam rules: a honeypot field (`website`), at least 3 s on the page (`MIN_FORM_MS`), and 10 calls a minute per IP per form (`rateLimit.ts`, in memory; the 11th gets a 429). `routes/rpc.ts` passes the first `x-forwarded-for` (else `x-real-ip`) as `clientIp`, for the limit only.
+  - Contact queues the `contactMessage` email to `SUPPORT_EMAIL` in the message's transaction (`[Privacy]` in the subject for privacy topics). Production refuses to send without `SUPPORT_EMAIL`; elsewhere it defaults to `support@example.com`, and `new.sh` copies it into worktrees.
+  - Both forms use `sections/PublicForm.tsx` (`usePublicForm`: one submit at a time, focus on the first error, a polite `role="status"` thanks); the waitlist is home's band at `/#waitlist`.
+- **The admin waitlist** (slice 5): `/admin/waitlist` in the `/admin` frame (global admin only; others get the frame's 404). GET filters in the URL (`from`/`to` whole UTC days, `caringFor` or `none`, `source` matched in any page or UTM value), 50 a page, newest first, with a count. `admin.waitlist.list` and `admin.waitlist.export` (merged into the router's `admin` object). `/admin/waitlist/export` sends the filtered rows as CSV: RFC 4180, CRLF, UTF-8 with a BOM, and cells starting `= + - @`, tab or CR prefixed with `'` so spreadsheets don't run them. Contact messages aren't listed. `groups.mjs` covers it.
 - **Browser check:** `marketing.mjs` (no sign-in; about 10 s; run it with `CARETOOK_BROWSER_SLOTS=4` so it doesn't queue behind app checks). Screenshots only with `MARKETING_SHOTS=1`, viewport-only; never `captureBeyondViewport` (it hung headless Chrome for over an hour).
 
 ## Notifications (`packages/notifications`)
