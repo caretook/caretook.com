@@ -138,6 +138,7 @@ apps/web/app/components/providers/*      providers
 apps/web/app/lib/sync/providers.ts       providers
 # The medication list (no screens yet: `medications.mjs` drives the device module).
 apps/web/app/lib/sync/medications.ts     medications
+apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 
 # Marketing (web only).

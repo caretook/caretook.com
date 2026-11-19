@@ -13,6 +13,7 @@ import { appUrls } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
 import { isLiveEntryKind, savedTitle, shouldMaterialize } from "~/lib/liveEntry";
 import { getSync, useLiveQuery } from "~/lib/sync";
+import { cancelEvent, uncancelEvent } from "~/lib/sync/appointments";
 import { materializeLiveEntry } from "~/lib/sync/liveEntry";
 import { removeEntry, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
 import { entrySql } from "./loadEntry";
@@ -28,6 +29,10 @@ export type LiveEntry = {
     endsAt: string | null;
     allDay: boolean;
     place: string | null;
+    /** An event's cancel: when, by whom (the server's record) and why. */
+    cancelledAt: string | null;
+    cancelledBy: string | null;
+    cancelReason: string | null;
   };
   /** Whether the entry is stored (false while it's a draft). */
   stored: boolean;
@@ -45,6 +50,10 @@ export type LiveEntry = {
   changeSchedule: (schedule: Schedule) => void;
   /** An event's place (null clears it): a draft with a place is saved; a stored entry is updated. */
   commitPlace: (place: string | null) => void;
+  /** Cancels a stored event, with an optional reason (it stays, marked Cancelled). */
+  cancel: (reason: string) => void;
+  /** Undoes a cancel. */
+  uncancel: () => void;
   /** Soft-deletes the entry, then goes back to the timeline. */
   remove: () => Promise<void>;
   /** Saves a draft now (to link a provider to it); resolves true once it's stored. The editor stays mounted. */
@@ -170,6 +179,9 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     void updateEntry(getSync(), draft.id, { place: next }).then(reportWrite);
   };
 
+  const cancel = (reason: string) => void cancelEvent(getSync(), draft.id, reason).then(reportWrite);
+  const uncancel = () => void uncancelEvent(getSync(), draft.id).then(reportWrite);
+
   const remove = async () => {
     const res = await removeEntry(getSync(), draft.id);
     if (!res.ok) return setSaveError(res.error);
@@ -186,6 +198,9 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       endsAt: live ? (live.endsAt ?? null) : draftSchedule.endsAt,
       allDay: live ? !!live.allDay : draftSchedule.allDay,
       place: live ? (live.place ?? null) : draftPlace,
+      cancelledAt: live?.cancelledAt ?? null,
+      cancelledBy: live?.cancelledBy ?? null,
+      cancelReason: live?.cancelReason ?? null,
     },
     stored: !!live,
     isNew,
@@ -195,6 +210,8 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     commitTitle,
     changeSchedule,
     commitPlace,
+    cancel,
+    uncancel,
     remove,
     ensureStored: save,
     saveError,
