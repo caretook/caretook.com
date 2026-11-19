@@ -23,6 +23,9 @@ scripts/backlog/*                        -
 *.test.ts                                -
 *.int.test.ts                            -
 packages/*/test/*                        -
+# Component tests and the test device (web:components runs them in pnpm check).
+*.browser.test.tsx                       -
+apps/web/test/*                          -
 .nvmrc                                   -
 .gitignore                               -
 *.env.example                            -

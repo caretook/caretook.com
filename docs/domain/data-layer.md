@@ -33,6 +33,7 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
 - **DB client:** the pool is created lazily (importing never needs `DATABASE_URL`). Only the **pool** survives HMR (`utils/remember.ts`); the drizzle wrapper is rebuilt, so new tables work without a restart.
 - **Env:** `loadEnv.ts` loads `.env.<NODE_ENV>`, then `.env`, from `packages/data` (Node's `process.loadEnvFile`). Real env vars win. `.env.test` is committed; `.env` isn't (copy `.env.example`).
 - **Local Postgres:** Docker `postgres:18.7-alpine` with `wal_level=logical`, dev on :5434 and test on :5435, data in `.postgres/`.
+  - Integration tests: the main checkout uses its test database on :5435; a `.loops` worktree uses its own `caretook_test_<worktree>` database on the shared test Postgres (:5436, [loops](../loops.md)). The guard, `src/db/testDatabase.ts` (pure, tested), refuses a non-local host, a port other than `PG_TEST_PORT` and, on the shared server, any other database name.
   - `datastore:clear` refuses a non-localhost database, and drops the publication.
   - `datastore:seed` refuses production and uses `@example.com` accounts only.
 - ❓ The hosted database (same region as Vercel functions, with pooling), and how production migrations run.

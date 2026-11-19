@@ -1,3 +1,4 @@
+import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 // Vitest projects:
@@ -11,6 +12,12 @@ import { defineConfig } from "vitest/config";
 //                each run clears and migrates it first. One project (not one
 //                per package) because they share that database, and each
 //                project's globalSetup would clear it under the other.
+//   web:components  screens and components in real headless Chromium
+//                (*.browser.test.tsx beside what they test, and apps/web/test/):
+//                apps/web's Vite config (`~/`, Tailwind, daisyUI, the yjs and
+//                React dedupes), and the test device (apps/web/test/device.tsx),
+//                a local-only PowerSync database with fixtures. Chromium comes
+//                from `pnpm test:components:install` (once per machine).
 export default defineConfig({
   test: {
     projects: [
@@ -50,6 +57,27 @@ export default defineConfig({
           // Each test runs dozens of git commands (3–3.5 s alone), so the
           // 5 s default fails them whenever the rest of `pnpm check` runs beside them.
           testTimeout: 20_000,
+        },
+      },
+      {
+        extends: "./apps/web/vite.config.ts",
+        test: {
+          name: "web:components",
+          root: "./apps/web",
+          include: ["app/**/*.browser.test.tsx", "test/**/*.browser.test.tsx"],
+          setupFiles: ["./test/setup.ts"],
+          // Takes the machine-wide browser lease around Chromium (see the file).
+          globalSetup: ["./test/browserLease.ts"],
+          browser: {
+            enabled: true,
+            headless: true,
+            // The seeds' zone and an English locale, so times and dates read
+            // the same on every machine.
+            provider: playwright({ contextOptions: { timezoneId: "America/Los_Angeles", locale: "en-US" } }),
+            instances: [{ browser: "chromium" }],
+            viewport: { width: 420, height: 900 },
+            screenshotFailures: false,
+          },
         },
       },
       {

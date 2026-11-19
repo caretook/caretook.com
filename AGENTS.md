@@ -24,7 +24,7 @@ Feature work goes through a PRD, then a plan cut into slices that loops (paralle
 1. **PRD:** `write-a-prd` (interview, explore, sketch modules), saved as `plans/<topic>-prd.md`. No GitHub issues: the PRD, the plan and the backlog are the record.
 2. **Plan:** `prd-to-plan` turns the PRD into tracer-bullet vertical slices in `plans/<topic>-plan.md`. Each slice says what it **blocks and is blocked by**, so independent slices can run at once.
    - `pnpm prd plan <topic> --open [B-<n> …]` does both in one planning session: it makes the docs-only worktree and starts an agent there (`prompt.sh plan`) that interviews the user, writes both files, updates the backlog and lands them (see the planning exception under _Landing a wave_ in `docs/loops.md`).
-3. **Loops:** one agent per slice, each in its own worktree, branch and Docker stack, run by the PRD's orchestrator. See [`docs/loops.md`](docs/loops.md).
+3. **Loops:** one agent per slice, each in its own worktree and branch (a Docker stack only for `Stack: yes`), run by the PRD's orchestrator. See [`docs/loops.md`](docs/loops.md).
 4. When a PRD is done, move its lasting decisions into the area docs and mark the PRD done.
 
 ### Branches and roles
@@ -140,6 +140,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
     - `scripts:unit` runs the tooling's tests (`scripts/`) with a 20 s timeout: they spawn git and shells, which pass 5 s under load.
     - `integration` runs every package's `*.int.test.ts` against the test Postgres on :5435. Its globalSetup clears and migrates once per run, refuses any other host or port, and runs files one at a time. Tests build their own fixtures (`packages/data/test/fixtures.ts`).
     - `web:unit` runs apps/web's pure `app/**/*.test.ts` (no PowerSync; apps/web's vite.config isn't loaded, so tests import relatively, not through `~/`).
+    - `web:components` runs `*.browser.test.tsx` in headless Chromium (Vitest browser mode) on the test device, under a `browser` lease: see [components](docs/domain/components.md).
 - ✅ **React Router 8.5.1** (framework mode) with Vite 8, chosen over Next.js and TanStack Start: reads come from the local sync database, so server-centric frameworks gain little.
 - ✅ **UI:** Tailwind v4 + **daisyUI 5** for styling, **React Aria Components** only where HTML falls short (DateField, Menu, Modal, ComboBox…), and `lucide-react` icons. Mobile-first, with daisyUI themes following the device.
   - Prefer native elements (`<dialog>` with `showModal()` for simple confirms).
@@ -225,7 +226,7 @@ Read a doc when your work touches its area. A slice's `Reads` field names the on
 | [loops](docs/loops.md)                              | running PRDs and slices, `pnpm prd`, stacks, browser checks, landing            |
 | [orchestration](docs/orchestration.md)              | the human guide to the process                                                  |
 | [layout](docs/layout.md)                            | where a package, route or module lives                                          |
-| [components](docs/domain/components.md)             | any UI: `ui/` primitives, feature folders, route size, settings pages           |
+| [components](docs/domain/components.md)             | any UI: `ui/` primitives, feature folders, settings pages, component tests      |
 | [app-shell](docs/domain/app-shell.md)               | the `/app` header and menus, theme, sections, group route, `appUrls`, settings  |
 | [timeline](docs/domain/timeline.md)                 | entry kinds, vitals, preferences, the timeline screen, filters, sheets          |
 | [live-notes](docs/domain/live-notes.md)             | note and event documents, Yjs, the entry page, the editor                       |
