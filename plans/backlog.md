@@ -302,6 +302,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/medications/1): Slice 1 (the data layer) is ready on slice/medications/1 (febd581): medication table, dose and medicationChange kinds, sync, seeds, migration 0011. care_recipient.time_zone is now required: anything that creates a recipient must pass it.
 - 2026-11-18 (prd/medications): medications orchestrator: wave 1 (slice 1, data layer) landed in dev as 4bcf119; slices 2 (tab, list, page) and 4 (doses on the timeline, with B-43) started 2026-11-18.
 - 2026-11-18 (slice/medications/2): Slice 2 (tab, list, page) committed on slice/medications/2 (3f7e4bd, c051eab): lib/medicationDisplay.ts holds dose/change wording slice 4 may reuse.
+- 2026-11-18 (prd/medications): medications orchestrator: slice 2 (tab, list, page) merged into prd/medications as d7977c1; slice 6 (print sheet, provider page's medications) started; slice 4 still running.
 
 ### B-16 · question · How does the timeline's layout (rows or cards) persist?
 
