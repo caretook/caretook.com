@@ -935,3 +935,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: medications need to keep a history of past dose changes, frequency changes, etc. on each medication entry.
+- 2026-11-19 (Robert Bo Davis): Dropped (user, 2026-11-19): already exists. Medication change entries record dose, schedule and other tracked-field changes, and each medication's page lists its doses and changes.
