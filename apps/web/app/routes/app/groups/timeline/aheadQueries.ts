@@ -10,11 +10,10 @@ import { upcomingQuery, upcomingWindow } from "../../../../lib/sync/timeline";
 // progress, or an all-day item today, is in both, by design.) Pure, so
 // web:unit tests it.
 
-const NO_FILTERS: EntryFilters = { kind: null, author: null };
-
 /**
- * The Next strip's entries (the whole group: it ignores the filters), the
- * Upcoming block's (under the timeline's kind and author filters) and the
+ * The Next strip's entries (the whole group: it ignores the kind and author
+ * filters, but not the search), the Upcoming block's (under the timeline's
+ * kind and author filters and the search) and the
  * block's linked providers (its "with …" lines), at `cutoff` (`historyCutoff`).
  */
 export const aheadQueries = (
@@ -23,9 +22,10 @@ export const aheadQueries = (
   cutoff: string,
 ): { next: LocalQuery; block: LocalQuery; blockLinks: LocalQuery } => {
   const at = new Date(cutoff);
-  const scoped = { kind: filters.kind, author: filters.author };
+  const match = filters.match ?? null;
+  const scoped = { kind: filters.kind, author: filters.author, ...(match && { match }) };
   return {
-    next: upcomingQuery(groupId, NO_FILTERS, at),
+    next: upcomingQuery(groupId, { kind: null, author: null, ...(match && { match }) }, at),
     block: upcomingQuery(groupId, scoped, at),
     blockLinks: windowLinksQuery(upcomingWindow(groupId, scoped, at)),
   };

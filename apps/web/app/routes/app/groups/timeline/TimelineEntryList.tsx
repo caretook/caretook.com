@@ -1,6 +1,7 @@
 import type { TimelineData } from "./useTimelineData";
 import type { TimelineEntryKind, TimelineView, UnitChoices } from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/rpc";
+import type { TimelineSearchState } from "./timelineSearch";
 
 import { useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
@@ -8,6 +9,7 @@ import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } f
 import { ConfirmDialog } from "~/components/ui";
 import { canReschedule } from "~/lib/eventReschedule";
 import { emptyTimelineText } from "./entryLabels";
+import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/entryOpen";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
@@ -21,6 +23,8 @@ import { useEntryRemoval } from "./useEntryRemoval";
  * vitals line and the Live now banner keep the full width.
  */
 export const COLUMN_CAP = "mx-auto max-w-5xl";
+
+const NO_SEARCH = { q: "", state: "none" } as const;
 
 const LIST_CLASS: Record<TimelineView, string> = {
   rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",
@@ -43,6 +47,7 @@ export function TimelineEntryList({
   canWrite,
   kind,
   author,
+  search: searching = NO_SEARCH,
   upcoming,
 }: {
   data: Pick<
@@ -56,6 +61,8 @@ export function TimelineEntryList({
   kind: TimelineEntryKind | null;
   /** The author filter's user id, when it's on (the empty list names them). */
   author: string | null;
+  /** The search (`?q=`) and what it's doing (`timelineSearch`). */
+  search?: { q: string; state: TimelineSearchState };
   /** The Upcoming block, when it's on, and where its "See all in Upcoming" goes. */
   upcoming?: { items: TimelineData["upcoming"]; seeAll: string } | null;
 }) {
@@ -80,7 +87,7 @@ export function TimelineEntryList({
   // above the screen (a kind icon or author tapped far down), bring it back,
   // before the end of a shorter list could load another page.
   const list = useRef<HTMLElement>(null);
-  const filterKey = `${kind}|${author}`;
+  const filterKey = `${kind}|${author}|${searching.q}`;
   const lastFilter = useRef(filterKey);
   useLayoutEffect(() => {
     if (lastFilter.current === filterKey) return;
@@ -88,6 +95,15 @@ export function TimelineEntryList({
     const el = list.current;
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
   }, [filterKey]);
+
+  const emptyText = emptyTimelineText(kind, author && data.nameOf(author), searching.q);
+  const announcement = searchAnnouncement({
+    q: searching.q,
+    state: searching.state,
+    shown: data.days.reduce((n, day) => n + day.entries.length, 0),
+    hasOlder: data.hasOlder,
+    emptyText,
+  });
 
   const item = (entry: TimelineEntry) => {
     const open = entryOpen({ groupId, entry, canWrite, search });
@@ -135,9 +151,13 @@ export function TimelineEntryList({
             {cancelling.error}
           </p>
         )}
+        {/* Always there, so a search's first result is announced too. */}
+        <p role="status" className="sr-only" data-search-status>
+          {announcement}
+        </p>
         {data.days.length === 0 && (
           <p className="text-base-content/70" data-empty>
-            {emptyTimelineText(kind, author && data.nameOf(author))}
+            {searchStateText(searching.state) ?? emptyText}
           </p>
         )}
         {data.days.map((day) => (
@@ -159,6 +179,7 @@ export function TimelineEntryList({
           loading={data.loadingOlder}
           empty={data.days.length === 0}
           onLoadOlder={data.loadOlder}
+          endText={searching.q ? SEARCH_END_TEXT : undefined}
         />
       </section>
 

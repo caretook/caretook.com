@@ -134,15 +134,21 @@ apps/web/app/lib/sync/dueDoses.ts        medications phase2 upcoming
 # The timeline's Next strip and Upcoming block, and the data they share with the history.
 apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
 apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
-apps/web/app/routes/app/groups/timeline/aheadQueries.ts phase2 upcoming
+apps/web/app/routes/app/groups/timeline/aheadQueries.ts phase2 upcoming search
 apps/web/app/routes/app/groups/timeline/useHistoryCutoff.ts phase2 upcoming
 apps/web/app/routes/app/groups/timeline/useTimelineData.ts phase2 roundtrip upcoming
 apps/web/app/routes/app/groups/timeline/timelineRows.ts phase2 roundtrip upcoming
-apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx phase2 roundtrip upcoming
+apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx phase2 roundtrip upcoming search
+# The timeline's search: the field, the chip and ?q= in the windows (search slice 2).
+apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx phase2 search
+apps/web/app/routes/app/groups/timeline/useSearchField.ts phase2 search
+apps/web/app/routes/app/groups/timeline/timelineSearch.ts search
+apps/web/app/routes/app/groups/timeline/useSearchIndexStatus.ts search
+apps/web/app/routes/app/groups/timeline/route.tsx phase2 roundtrip search
 apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
 apps/web/app/components/entry/*          phase2 roundtrip live-notes upcoming
 apps/web/app/components/forms/*          roundtrip live-notes
-apps/web/app/lib/sync/timeline.ts        phase2 roundtrip upcoming
+apps/web/app/lib/sync/timeline.ts        phase2 roundtrip upcoming search
 apps/web/app/lib/entryDisplay.ts         phase2
 apps/web/app/lib/form.ts                 roundtrip
 

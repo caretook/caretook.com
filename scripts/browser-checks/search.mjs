@@ -9,6 +9,13 @@
 // rebuilding the index. Full mode also scales the group up (about 2,000
 // entries) to measure the rebuild and a query.
 //
+// Slice 2, search on the timeline (`?q=`): the magnifier's field narrows the
+// list as you type, the URL carries it through a reload and Back, it combines
+// with the kind filter and its chip's ✕ clears only it, the empty state and
+// the announcement name it, the Next strip and the Upcoming block show only
+// matches, paging reaches the oldest match and a new search starts from one
+// page; cards at 1280, offline and a viewer.
+//
 // The query language and the search documents are unit-tested
 // (search.test.ts, searchDocument.test.ts; the indexer in
 // lib/sync/search.test.ts against SQLite FTS5); the steps here check the
@@ -24,7 +31,8 @@
 //
 // Everything it makes carries this run's tag and is soft-deleted (or, for
 // the scaled-up rows, deleted) at the end. SMOKE=1: the index on the device,
-// one seeded and one written search, and one search on the page.
+// one seeded and one written search, one search on the page, and the
+// timeline's search online.
 import { execSync } from "node:child_process";
 import { launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
@@ -629,6 +637,235 @@ try {
       `${stats.lastRebuild?.items} items in ${Math.round(stats.lastRebuild?.ms)} ms`,
     );
     check("…and searches still work", (await findIds(A, "blood pressure")).length > 0);
+  });
+
+  await step("Search on the timeline", { smoke: true }, async () => {
+    // Its own tagged entries: three symptoms, one of them "alpha", and an
+    // appointment two days ahead, all carrying `tl`.
+    const tl = `${tag}tl`;
+    const ids = await onDevice(
+      A,
+      `const add = async (input) => {
+         const r = await timeline.createEntry(db, ${JSON.stringify(DEV_FAMILY)}, { timeZone: "America/Los_Angeles", ...input });
+         if (!r.ok) throw new Error(JSON.stringify(r));
+       };
+       for (const [i, name] of ["alpha", "beta", "gamma"].entries())
+         await add({ kind: "symptom", details: { name: "${tl} " + name, severity: 2 }, occurredAt: new Date(Date.now() - (i + 2) * 60000).toISOString() });
+       await add({ kind: "event", title: "${tl} visit", occurredAt: new Date(Date.now() + 2 * 86400000).toISOString() });
+       await search.searchIndexSettled();
+       const rows = await db.powersync.getAll(
+         "SELECT id FROM timeline_entry WHERE json_extract(details, '$.name') LIKE ? OR title = ? ORDER BY kind = 'event'",
+         ["${tl} %", "${tl} visit"]);
+       return rows.map((r) => r.id);`,
+    );
+    made.push(...ids);
+    const visit = ids[3];
+
+    const timelineUrl = (search = "") => `/app/groups/${DEV_FAMILY}/timeline${search}`;
+    const rows = (p) =>
+      p.evaluate(`[...document.querySelectorAll("[data-view] > li")].map((li) => li.textContent)`);
+    const waitRows = async (p, test, ms = 10000) => {
+      const end = Date.now() + ms;
+      let last = [];
+      while (Date.now() < end) {
+        last = await rows(p);
+        if (test(last)) return last;
+        await sleep(100);
+      }
+      return last;
+    };
+    const ours = (list) => list.length > 0 && list.every((t) => t.includes(tl));
+    const status = (p) => p.evaluate(`document.querySelector("[data-search-status]")?.textContent ?? ""`);
+    const query = (p) => p.evaluate(`new URLSearchParams(location.search).get("q")`);
+    const typeIn = async (p, text) => {
+      await p.press(`document.querySelector("[data-search-field]")`);
+      await p.send("Input.insertText", { text });
+    };
+    const openField = async (p) => {
+      await p.press(`document.querySelector('button[aria-label="Search entries"]')`);
+      await p.waitFor(`document.activeElement?.matches?.("[data-search-field]")`, 5000);
+    };
+
+    await A.goto(timelineUrl());
+    await A.waitFor(`document.querySelector("[data-view] > li")`, 20000);
+    const vitalsBefore = await A.evaluate(
+      `document.querySelector('section[aria-labelledby="latest-vitals"]')?.textContent ?? ""`,
+    );
+    await openField(A);
+    check(
+      "the magnifier opens a focused field, over the chips at 420",
+      await A.evaluate(`!document.querySelector('nav[aria-label="Show entries"]')?.checkVisibility()`),
+    );
+    await typeIn(A, tl);
+    let list = await waitRows(A, (l) => ours(l) && l.length === 3);
+    check(
+      "typing narrows the timeline to the matches",
+      ours(list) && list.length === 3,
+      `${list.length} rows`,
+    );
+    check("the URL carries q", (await query(A)) === tl);
+    check("the result is announced", /^3 entries match/.test(await status(A)), await status(A));
+    await typeIn(A, " alpha");
+    list = await waitRows(A, (l) => l.length === 1);
+    check(
+      "…and keeps narrowing as you type",
+      list.length === 1 && list[0].includes("alpha"),
+      `${list.length} rows`,
+    );
+    const nextId = await A.evaluate(`document.querySelector("[data-next]")?.dataset.next ?? null`);
+    check("the Next strip shows only a match (none for alpha)", nextId === null, String(nextId));
+    if (vitalsBefore)
+      check(
+        "latest vitals is unchanged by the search",
+        (await A.evaluate(
+          `document.querySelector('section[aria-labelledby="latest-vitals"]')?.textContent ?? ""`,
+        )) === vitalsBefore,
+      );
+
+    // Reload keeps it; the chip shows it, and its ✕ clears only the search.
+    await A.goto(timelineUrl(`?kind=symptom&q=${encodeURIComponent(tl)}`));
+    list = await waitRows(A, (l) => ours(l) && l.length === 3);
+    check(
+      "a reload keeps the search, with the kind filter",
+      ours(list) && list.length === 3,
+      `${list.length} rows`,
+    );
+    const chip = `[...document.querySelectorAll('nav[aria-label="Show entries"] a')].find((a) => a.textContent.startsWith("Matching"))`;
+    check("an active search is a Matching chip", await A.evaluate(`!!(${chip})`));
+    await A.goto(timelineUrl(`?kind=vital&q=${encodeURIComponent(tl)}`));
+    await A.waitFor(`document.querySelector("[data-empty]")`, 10000);
+    const empty = await A.evaluate(`document.querySelector("[data-empty]").textContent`);
+    check("the empty state names the search", empty === `No vitals match “${tl}”.`, empty);
+    await A.press(chip);
+    await A.waitFor(`!new URLSearchParams(location.search).has("q")`, 5000);
+    check(
+      "the chip's ✕ clears only the search",
+      (await A.evaluate(`new URLSearchParams(location.search).get("kind")`)) === "vital",
+    );
+
+    // What's ahead: the Next strip and the Upcoming block show only matches.
+    await A.goto(timelineUrl(`?upcoming=1&q=${encodeURIComponent(tl)}`));
+    await A.waitFor(`document.querySelector("[data-next]")`, 10000);
+    check(
+      "the Next strip names the matching appointment",
+      (await A.evaluate(`document.querySelector("[data-next]").dataset.next`)) === visit,
+    );
+    const block = await A.evaluate(
+      `[...document.querySelectorAll("[data-upcoming-block] [data-block-view] > li")].map((li) => li.textContent)`,
+    );
+    check(
+      "the Upcoming block shows only matches",
+      block.length === 1 && block[0].includes(tl),
+      JSON.stringify(block),
+    );
+
+    // Back after opening a match comes back to the search.
+    await A.goto(timelineUrl(`?q=${encodeURIComponent(`${tl} beta`)}`));
+    await waitRows(A, (l) => l.length === 1);
+    await A.press(`document.querySelector("[data-view] > li a[aria-label^='Edit']")`);
+    await A.waitFor(`location.pathname.endsWith("/edit")`, 10000);
+    await A.evaluate(`history.back()`);
+    await A.waitFor(`!location.pathname.endsWith("/edit")`, 10000);
+    list = await waitRows(A, (l) => l.length === 1);
+    check(
+      "Back after opening a match keeps the search",
+      (await query(A)) === `${tl} beta` && list.length === 1,
+    );
+    if (SMOKE) return;
+
+    // Paging: 35 matches load 30, then the rest by scrolling; a new search starts from one page.
+    const pg = `${tag}pg`;
+    const paged = await onDevice(
+      A,
+      `const out = [];
+       for (let i = 0; i < 35; i++) {
+         const r = await timeline.createEntry(db, ${JSON.stringify(DEV_FAMILY)}, {
+           kind: "symptom", details: { name: "${pg} " + i, severity: 1 },
+           occurredAt: new Date(Date.now() - (10 + i) * 60000).toISOString(), timeZone: "America/Los_Angeles" });
+         if (!r.ok) throw new Error(JSON.stringify(r));
+       }
+       const rows = await db.powersync.getAll("SELECT id FROM timeline_entry WHERE json_extract(details, '$.name') LIKE ?", ["${pg} %"]);
+       await search.searchIndexSettled();
+       return rows.map((r) => r.id);`,
+    );
+    made.push(...paged);
+    await A.goto(timelineUrl(`?q=${pg}`));
+    list = await waitRows(A, (l) => l.length === 30);
+    check("a search shows one page first", list.length === 30, `${list.length} rows`);
+    check("…announced as 30+", (await status(A)).startsWith("30+ entries match"), await status(A));
+    for (let i = 0; i < 10 && (await rows(A)).length < 35; i++) {
+      await A.evaluate(`document.querySelector("[data-older-entries]").scrollIntoView({ block: "end" })`);
+      await sleep(400);
+    }
+    list = await rows(A);
+    const end = await A.evaluate(`document.querySelector("[data-older-entries]")?.textContent ?? ""`);
+    check(
+      "scrolling reaches the oldest match",
+      list.length === 35 && end.includes("every match"),
+      `${list.length}, ${end}`,
+    );
+    await openField(A);
+    await A.evaluate(`document.querySelector("[data-search-field]").select()`);
+    await A.send("Input.insertText", { text: tag });
+    list = await waitRows(A, (l) => l.length === 30 && l.some((t) => t.includes(tl)));
+    check("a search change starts again from one page", list.length === 30, `${list.length} rows`);
+
+    // Cards at 1280: the field sits beside the chips.
+    await A.send("Emulation.setDeviceMetricsOverride", {
+      width: 1280,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await A.goto(timelineUrl(`?q=${encodeURIComponent(tl)}`));
+    await waitRows(A, (l) => l.length === 3);
+    await A.press(`document.querySelector('button[aria-label="Cards"]')`);
+    list = await waitRows(A, (l) => ours(l) && l.length === 3);
+    check(
+      "cards show the matches at 1280",
+      (await A.evaluate(`document.querySelector("[data-view]").dataset.view`)) === "cards" &&
+        list.length === 3,
+    );
+    await openField(A);
+    check(
+      "from sm the field sits beside the chips",
+      await A.evaluate(`document.querySelector('nav[aria-label="Show entries"]').checkVisibility()`),
+    );
+    await A.press(`document.querySelector('button[aria-label="Rows"]')`);
+    await A.send("Emulation.setDeviceMetricsOverride", {
+      width: 420,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: true,
+    });
+
+    // Offline: the search is local.
+    await A.goto(timelineUrl());
+    await A.waitFor(`document.querySelector("[data-view] > li")`, 20000);
+    proxy.setOnline(false);
+    await A.waitFor(`document.body.textContent.includes("Offline")`, 20000).catch(() => undefined);
+    await openField(A);
+    await typeIn(A, `${tl} gamma`);
+    list = await waitRows(A, (l) => l.length === 1 && l[0].includes("gamma"));
+    check("search works offline", list.length === 1 && list[0].includes("gamma"), `${list.length} rows`);
+    proxy.setOnline(true);
+
+    // A viewer searches too, on their own device.
+    const viewerBrowser = await launch(9713);
+    const V = await openPage(viewerBrowser, "V");
+    try {
+      await V.signIn("viewer@example.com", PW);
+      await waitForSql(
+        `SELECT count(*) FROM timeline_entry WHERE id IN ('${ids.join("','")}')`,
+        (n) => n === "4",
+      );
+      await V.goto(timelineUrl(`?q=${encodeURIComponent(tl)}`));
+      list = await waitRows(V, (l) => ours(l) && l.length === 3, 30000);
+      check("a viewer's timeline searches too", ours(list) && list.length === 3, `${list.length} rows`);
+    } finally {
+      V.close();
+      viewerBrowser.proc.kill();
+    }
   });
 
   await step("Performance with about 2,000 entries", async () => {
