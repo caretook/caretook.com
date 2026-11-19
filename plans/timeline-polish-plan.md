@@ -9,18 +9,18 @@
 | 1     | B-5     | landed in `dev` (`644f780`)      | `5d6678a` (`9b23d14`, `4c14096`)                 |
 | 2     | B-7     | landed in `dev` (`644f780`)      | `cf96edc` (`47a2792`)                            |
 | 3     | B-2     | landed in `dev` (`644f780`)      | `908d4fa` (`4b1b280`, `cf12f43`)                 |
-| 4     | B-6     | replanned, ready (wave 2)        |                                                  |
-| 5     | B-3     | replanned, ready (wave 2)        |                                                  |
+| 4     | B-6     | in flight (wave 2)               |                                                  |
+| 5     | B-3     | in flight (wave 2)               |                                                  |
 | 6     | B-4     | replanned, blocked by 4 (wave 3) |                                                  |
 | 7     | B-10    | replanned, blocked by 4 (wave 3) |                                                  |
 
 Wave 1 (slices 1–3) landed in `dev` as `644f780` (2026-11-18).
 
-**Restarted 2026-11-18** from `dev` at `85144b4`, after `routing` (B-23), `components` (B-24) and `providers` (B-14) had all landed. **Slices 4–7 below are rewritten against that code**; _What the replan changed_ lists the differences. Nothing is claimed or in flight yet.
+**Restarted 2026-11-18** from `dev` at `85144b4`, after `routing` (B-23), `components` (B-24) and `providers` (B-14) had all landed. **Slices 4–7 below are rewritten against that code**; _What the replan changed_ lists the differences. **The user's go-ahead (2026-11-18): run waves 2 and 3 and land each without asking**, once it's green, then remove the worktree. Wave 2 (slices 4 and 5) is in flight; B-6 and B-3 are claimed.
 
 Open issues:
 
-- **Phones hide the visible "Latest" label** on the vitals line (screen-reader only below `sm`), because only one seeded reading fits beside it at 420. The PRD asked for the label and two readings. Still waiting for the user's decision; no slice depends on it.
+- Decided (the user, 2026-11-18): phones keep the "Latest" label on the vitals line screen-reader only below `sm`, so two readings fit.
 - `phase2.mjs` steps that reload the page can log `[PowerSync]: Sync error` (the old page's connection closing). `kindIconFilters` filters it for its own steps only; the shared noise pattern doesn't cover it. A slice that adds a reload step (4, 7) adds it to the shared pattern.
 - **`invites` (unlanded) adds `<InviteSomeoneCard />` under `TimelineHeader` in the timeline's `route.tsx`**, two lines from the `<main>` class slice 5 changes. Expect an adjacent-line conflict at whichever sync comes second; keep both.
 - Closed: the `live-notes.mjs` timing failures under load are now handled by `pnpm prd browser`'s one automatic retry (recorded as FLAKY).
