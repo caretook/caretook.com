@@ -400,6 +400,10 @@ export const SERVICE_ERRORS = {
     message: "Check the form and try again",
     statusCode: 400,
   },
+  "timelineEntryService:rescheduledToNotInGroup": {
+    message: "A rescheduled event must point at another event in this care group",
+    statusCode: 400,
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {

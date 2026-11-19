@@ -562,7 +562,9 @@ try {
     check("dot: only on the row being written", await B.evaluate(`!${dotOf(E1)} && !${dotOf(E2)}`));
     check(
       "dot: taps go through to the row's open target",
-      await B.evaluate(`(() => { const r = ${dotOf(N1)}.getBoundingClientRect();
+      // Scrolled into view first: upcoming items can sit above the check's rows.
+      await B.evaluate(`(() => { ${rowOf(N1)}.scrollIntoView({ block: "center" });
+      const r = ${dotOf(N1)}.getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return hit?.matches('a[aria-label^="Open "]') && hit.closest("li") === ${rowOf(N1)}; })()`),
     );
@@ -828,7 +830,8 @@ try {
       Math.abs(occurredMs() - pickedMs) < 1000,
       new Date(occurredMs()).toISOString(),
     );
-    // Notes only: two days back can be past the first page once doses fill the timeline.
+    // Notes only: a note two days back stays on the first page however many
+    // recent or upcoming entries there are.
     await visit(B, `${TIMELINE}?kind=note`);
     await B.waitFor(dayOfRow(N4), 15000);
     const dayBefore = await B.evaluate(dayOfRow(N4));
