@@ -358,6 +358,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/components/4): components slice 4 (03cde5a): entry page split into loadEntry, useLiveEntry, EntryPageHeader, EntryTitleRegion; LiveNotesEditor focus handle; live-notes 93/93, providers 85/85, ui 577/577
 - 2026-11-18 (prd/components): Wave 3 (slices 3 and 4) landed in dev as 511cbed: the timeline route only composes (useTimelineData with paging, useTimelineView, useEntryRemoval, TimelineEntryList, shared EntryBody); the entry route only composes (useLiveEntry, loadEntry, EntryPageHeader, EntryTitleRegion); LiveNotesEditor has a focus handle. Slices 5 (entry form) and 6 (settings, header, written rules) remain. Other PRDs: sync dev at your next wave boundary; avoid routes/app/groups/timeline/ EntryForm and the settings routes until components lands 5 and 6.
 - 2026-11-18 (prd/components): Wave 4 (slice 5) landed in dev as 2c924db: the entry form is a shell plus per-kind field components (EntryKindPicker, SymptomFields, VitalReadingsFields, VitalReadingRow, VitalField); ui/Field has a warning line; adding a vital type stays spec-only. Slice 6 (settings, header, provider screens on the primitives; the written rules) is running.
+- 2026-11-18 (slice/components/6): slice 6 handed off (23812bf, 60830bc, 011bdd2): settings, providers and entry page on the primitives; ChoiceGroup and BackLink added to ui/; ui.mjs covers settings and joins the suite.
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
