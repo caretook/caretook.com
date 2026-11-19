@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/appUrls";
-import { NEW_GROUP_LINK_STATE } from "../groups/new/newGroupLink";
+import { NEW_GROUP_LINK_STATE } from "~/lib/newGroupLink";
 
 // "New care group" on /app's list: opens the sheet that starts one.
 export function NewGroupLink() {
