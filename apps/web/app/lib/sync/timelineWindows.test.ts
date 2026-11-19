@@ -21,7 +21,7 @@ describe("the history (historyWindow)", () => {
     const window = historyWindow(GROUP, NONE, 30, CUTOFF);
     expect(one(window.sql)).toBe(
       "FROM timeline_entry WHERE group_id = ? AND deleted_at IS NULL " +
-        `AND kind IN ('note', 'symptom', 'event', 'vital') ${ENDS} ${TAIL}`,
+        `AND kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange') ${ENDS} ${TAIL}`,
     );
     expect(window.params).toEqual([GROUP, local(CUTOFF), 31]);
   });
