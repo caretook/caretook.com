@@ -6,11 +6,11 @@
 
 | Slice | State                                     | Merge into `prd/care-periods` (slice commits) |
 | ----- | ----------------------------------------- | --------------------------------------------- |
-| 1     | in progress (wave 1)                      |                                               |
-| 2     | blocked by 1                              |                                               |
-| 3     | blocked by 1                              |                                               |
-| 4     | blocked by 1                              |                                               |
-| 5     | blocked by 1                              |                                               |
+| 1     | merged `9fb07f3` (f4f439c, abc3fa8)       | wave 1 landing                                |
+| 2     | in progress (wave 2)                      |                                               |
+| 3     | in progress (wave 2)                      |                                               |
+| 4     | in progress (wave 2)                      |                                               |
+| 5     | in progress (wave 2)                      |                                               |
 | 6     | blocked by 1, and `search` slices 2 and 3 |                                               |
 
 **Landing mode: run everything through** (the user queued this PRD with `pnpm prd queue care-periods`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
