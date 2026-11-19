@@ -956,7 +956,7 @@ const menuState = (p) =>
   p.evaluate(`(() => { const b = ${GROUP_MENU}; const icon = b?.querySelector("[data-period-icon]");
     return { label: b?.getAttribute("aria-label") ?? null, type: icon?.dataset.periodIcon ?? null,
       hint: icon?.getAttribute("title") ?? null, visible: !!icon && icon.getBoundingClientRect().width > 0 }; })()`);
-const menuItem = (start) =>
+const menuItemStarting = (start) =>
   `[...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find((el) => el.textContent.trim().startsWith(${JSON.stringify(start)}))`;
 const groupChoice = (text) =>
   `[...document.querySelectorAll('[role="menuitemradio"]')].find((el) => el.textContent.includes(${JSON.stringify(text)}))`;
@@ -1039,7 +1039,7 @@ async function groupMenuSteps(p) {
       items[at + 2] === "Care periods",
     JSON.stringify(items),
   );
-  await p.tap(menuItem("Now: "));
+  await p.tap(menuItemStarting("Now: "));
   const opened = await need(
     p,
     `location.pathname.endsWith(${JSON.stringify(`/periods/${current?.id}`)}) && document.querySelector("main[data-period-page]")`,
@@ -1048,7 +1048,7 @@ async function groupMenuSteps(p) {
   );
   check("the Now item opens the current period's page", opened);
   await openGroupMenu(p);
-  await p.tap(menuItem("Care periods"));
+  await p.tap(menuItemStarting("Care periods"));
   const list = await need(p, `location.pathname.endsWith("/periods") && ${LIST}`, 15000, "the periods page");
   check("Care periods opens the group's periods page", list);
 
@@ -1096,7 +1096,7 @@ async function groupMenuSteps(p) {
   );
   const louNow = await menuState(p);
   await openGroupMenu(p);
-  const louNowItem = await p.evaluate(`${menuItem("Now: ")}?.textContent.trim() ?? null`);
+  const louNowItem = await p.evaluate(`${menuItemStarting("Now: ")}?.textContent.trim() ?? null`);
   await closeMenu(p);
   check(
     "a new period changes the icon and the Now item without a reload",
