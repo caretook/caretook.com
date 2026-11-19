@@ -1,9 +1,12 @@
 import type { SyncStatus } from "@powersync/web";
 import type { SyncDb } from "./client";
+import type * as SearchModuleNs from "./search";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 export type { SyncDb };
+
+type SearchModule = typeof SearchModuleNs;
 
 // The one entry point to the local database for routes and components.
 // PowerSync itself loads lazily (./client), so importing this on the server
@@ -14,6 +17,7 @@ export type { SyncDb };
 
 let current: Promise<SyncDb> | null = null;
 let ready: SyncDb | null = null;
+let searchIndex: Promise<SearchModule> | null = null;
 
 /** Open (or reuse) the local database for this user. */
 export const openSync = async (userId: string): Promise<SyncDb> => {
@@ -35,8 +39,14 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
           timeline: await import("./timeline"),
           medications: await import("./medications"),
           appointments: await import("./appointments"),
+          search: await import("./search"),
         });
       }
+      // The search index follows the database (built in the background).
+      searchIndex = import("./search").then((m) => {
+        void m.startSearchIndex(db);
+        return m;
+      });
       return (ready = db);
     })
     .catch((e: unknown) => {
@@ -57,6 +67,9 @@ export const closeSync = async () => {
   const db = ready ?? (current ? await current.catch(() => null) : null);
   current = null;
   ready = null;
+  const search = searchIndex;
+  searchIndex = null;
+  await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
   const m = await import("./client");
   await m.clear(db);
 };
