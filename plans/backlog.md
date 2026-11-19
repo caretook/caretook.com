@@ -72,7 +72,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
-| B-43 | change | inbox |  |  | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
+| B-43 | change | triaged | medications |  | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
 | B-44 | change | inbox |  |  | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
 | B-45 | change | inbox |  |  | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | inbox |  |  | optional phone number, address, etc on group members that can be published to the group for… |
@@ -578,8 +578,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-43 · change · Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital"
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: medications
 - owner:
 - commit:
 
