@@ -152,6 +152,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-108 | change | triaged | orchestration |  | Browser testing without a timeout keeps causing hung processes. We need to always have a sane… |
 | B-109 | chore | triaged | orchestration |  | Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand |
 | B-110 | bug | triaged | orchestration |  | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
+| B-111 | bug | triaged | orchestration |  | Backlog writes can commit a half-typed inbox bullet and tag it with another item's id |
 
 ## Items
 
@@ -1384,3 +1385,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. 42 FLAKY retries logged: app-shell 11, phase2 6, ui 4, live-notes 4, medications 3, first-sync 3.
+
+### B-111 · bug · Backlog writes can commit a half-typed inbox bullet and tag it with another item's id
+
+- status: triaged
+- prd: orchestration
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. Commit 82f41cb (an add from prd/admin) committed an untagged inbox bullet as '(B-106)'; re-filed as B-108. Writes should commit only their own change, and ingest/add should refuse duplicate ids.
