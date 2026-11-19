@@ -13,10 +13,11 @@ import { TimelineEntryRow } from "./TimelineEntryRow";
 import { useEntryRemoval } from "./useEntryRemoval";
 
 /**
- * The entries' column stops at 64rem (1024 px) on wide screens, left-aligned
- * with the controls above it; the rest of the page keeps the full width.
+ * The entries' column stops at 64rem (1024 px) on wide screens, centered on
+ * the page. The quick-add bar and the filter chips share it; the header, the
+ * vitals line and the Live now banner keep the full width.
  */
-const COLUMN_CAP = "max-w-5xl";
+export const COLUMN_CAP = "mx-auto max-w-5xl";
 
 const LIST_CLASS: Record<TimelineView, string> = {
   rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",

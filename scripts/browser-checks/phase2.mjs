@@ -850,13 +850,15 @@ async function wideLayout(p) {
       const column = document.querySelector('[aria-labelledby="timeline-heading"]');
       return { main: box(document.querySelector("main")), inner: document.documentElement.clientWidth, cap: parseFloat(getComputedStyle(column).maxWidth), days, texts, ends };
     })()`);
-  // The page spans the window; the entries' column starts at the gutter and stops at its cap (1024 px).
+  // The page spans the window; the entries' column stops at its cap (1024 px), centered on the page.
   const spans = (m) =>
     Math.abs(m.main.left) < 1 &&
     Math.abs(m.main.width - m.inner) < 1 &&
     Math.abs(m.cap - 1024) < 1 &&
     m.days.every(
-      (d) => Math.abs(d.list.left - 16) < 1 && Math.abs(d.list.width - Math.min(m.inner - 32, m.cap)) < 1,
+      (d) =>
+        Math.abs(d.list.left - (m.inner - d.list.width) / 2) < 1 &&
+        Math.abs(d.list.width - Math.min(m.inner - 32, m.cap)) < 1,
     );
   // Cards sit one to a row at every width: each as wide as its day's list, one under another.
   const oneColumn = (m) =>
