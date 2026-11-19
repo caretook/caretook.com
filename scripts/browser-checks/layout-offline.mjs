@@ -7,6 +7,10 @@ import { startProxy } from "./proxy.mjs";
 // reaches the server on the next online load. Online it saves at once, and
 // sign-out clears pending changes.
 //
+// Units save the same way (quick-fixes slice 30): °F → °C chosen offline in
+// Settings is pending, the vitals sheet shows °C at once, and the next online
+// load sends it.
+//
 // The proxy cuts the whole browser's network (the rpc call is what matters).
 // A full page reload can't load at all while offline (there's no service
 // worker yet), so "reload while offline" is a revisit inside the app: open a
@@ -32,6 +36,17 @@ const rows = `document.querySelectorAll("ol > li").length`;
 const isCards = `(document.querySelector("ol")?.dataset.view === "cards")`;
 const pendingKeys = `Object.keys(localStorage).filter((k) => k.startsWith("caretook:settings-pending:"))`;
 const pendingView = `(() => { const k = ${pendingKeys}[0]; return k ? JSON.parse(localStorage.getItem(k)).timelineView ?? null : null; })()`;
+const serverTemp = () =>
+  psql(`SELECT coalesce(preferences->'units'->>'temperature', 'f') FROM "user" WHERE email = '${EMAIL}'`);
+const pendingTemp = `(() => { const k = ${pendingKeys}[0]; return k ? JSON.parse(localStorage.getItem(k)).units?.temperature ?? null : null; })()`;
+const TRIGGER = `document.querySelector('header [data-region="user"] button[aria-label^="Account menu for"]')`;
+const menuItem = (text) =>
+  `[...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent.trim() === ${JSON.stringify(text)})`;
+const tempRadio = (unit) => `document.querySelector('input[name="temperature"][value="${unit}"]')`;
+const button = (text, scope = "document") =>
+  `[...${scope}.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+const vitalsTile = `[...document.querySelectorAll('[aria-label="Add to the timeline"] button')].find((b) => b.textContent.trim().startsWith("Vitals"))`;
+const DIALOG = `document.querySelector("[role=dialog]")`;
 const noteRow = `[...document.querySelectorAll("ol > li")].find((li) => li.querySelector(".sr-only")?.textContent === "Note: ")`;
 
 async function setView(p, view) {
@@ -49,7 +64,9 @@ async function revisit(p, timeline) {
   await sleep(300);
 }
 
-psql(`UPDATE "user" SET preferences = preferences - 'timelineView' WHERE email = '${EMAIL}'`);
+const resetPrefs = () =>
+  psql(`UPDATE "user" SET preferences = preferences - 'timelineView' - 'units' WHERE email = '${EMAIL}'`);
+resetPrefs();
 
 const proxy = startProxy(9351);
 const b = await launch(9352, proxy.args);
@@ -97,6 +114,65 @@ try {
   check("online again: nothing left pending", (await p.evaluate(`${pendingKeys}.length`)) === 0);
   await p.screenshot("layout-offline-cards");
 
+  // Units: open Settings → Units inside the app while online (so the
+  // timeline's code stays loaded), then go offline and choose °C.
+  check("units: the server starts in °F", serverTemp() === "f", serverTemp());
+  await p.waitFor(TRIGGER, 15000);
+  await p.press(TRIGGER);
+  await p.waitFor(menuItem("Settings"), 5000);
+  await p.press(menuItem("Settings"));
+  const unitsLink = `document.querySelector('nav[data-settings-nav] a[href="/app/settings/units"]')`;
+  await p.waitFor(`location.pathname === "/app/settings" && ${unitsLink}`, 30000);
+  await p.evaluate(`${unitsLink}.click()`);
+  await p.waitFor(`location.pathname === "/app/settings/units" && ${tempRadio("c")}`, 30000);
+  check("units: °F is chosen", await p.evaluate(`${tempRadio("f")}.checked`));
+
+  proxy.setOnline(false);
+  await sleep(300);
+  await p.evaluate(`${tempRadio("c")}.click()`);
+  await p.press(button("Save"));
+  const unitsStatus = `document.querySelector('form [role="status"]')?.textContent.trim() ?? ""`;
+  await p.waitFor(`${unitsStatus}.startsWith("Saved on this device")`, 10000).then(
+    () => check("units offline: saved on this device, to sync later", true),
+    async () =>
+      check("units offline: saved on this device, to sync later", false, await p.evaluate(unitsStatus)),
+  );
+  check("units offline: °C is pending", (await p.evaluate(pendingTemp)) === "c");
+  check("units offline: the server still has °F", serverTemp() === "f", serverTemp());
+  check(
+    "units offline: no offline error",
+    !(await p.evaluate(`!!document.querySelector('form [role="alert"]')`)),
+  );
+
+  // Back to the timeline (still offline), then the vitals sheet's temperature.
+  await p.evaluate("history.go(-2)");
+  await p.waitFor(`location.pathname === ${JSON.stringify(timeline)} && ${rows} > 0`, 15000);
+  await sleep(300);
+  await p.press(vitalsTile);
+  await p.waitFor(menuItem("Temperature"), 5000);
+  await p.press(menuItem("Temperature"));
+  await p.waitFor(
+    `${DIALOG} && ${DIALOG}.querySelector('input[name="vital.0.type"]')?.value === "temperature"`,
+    10000,
+  );
+  const sheetUnits = `[...${DIALOG}.querySelectorAll(".label")].map((el) => el.textContent.trim()).join(",")`;
+  check(
+    "units offline: the vitals sheet shows °C at once",
+    (await p.evaluate(`${sheetUnits}.includes("°C") && !${sheetUnits}.includes("°F")`)) === true,
+    await p.evaluate(sheetUnits),
+  );
+  await p.press(button("Cancel", DIALOG));
+  await p.waitFor(`!${DIALOG}`, 5000).catch(() => {});
+
+  // Back online: the next load sends it.
+  proxy.setOnline(true);
+  await sleep(500);
+  await p.goto(timeline);
+  await p.waitFor(`${rows} > 0`, 20000);
+  await sleep(300);
+  check("units online again: the server has °C", serverTemp() === "c", serverTemp());
+  check("units online again: nothing left pending", (await p.evaluate(`${pendingKeys}.length`)) === 0);
+
   // Sign-out clears pending changes (one left by an offline switch).
   proxy.setOnline(false);
   await sleep(300);
@@ -123,7 +199,7 @@ try {
   console.log("ERROR", e.message);
   results.push(false);
 } finally {
-  psql(`UPDATE "user" SET preferences = preferences - 'timelineView' WHERE email = '${EMAIL}'`);
+  resetPrefs();
   b.proc.kill();
   proxy.close();
   console.log(`\n${results.filter(Boolean).length}/${results.length} passed`);
