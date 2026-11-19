@@ -16,16 +16,20 @@ const isFromField = (state: unknown) => typeof state === "object" && state !== n
  * `?q=` a moment after the last keystroke, replacing the history entry
  * (so Back leaves the page, and returns to the same search); the results
  * follow the URL. A URL change from elsewhere (the header's magnifier on
- * this page, Back) puts its text back in the field.
+ * this page, Back) puts its text back in the field. Leaving the field (or
+ * pressing Enter) with text in it counts as using that search (`onUsed`).
  */
 export function SearchField({
   groupId,
   urlQuery,
   label,
+  onUsed,
 }: {
   groupId: string;
   urlQuery: string;
   label: string;
+  /** The search was used: the field was left, or submitted, with text in it. */
+  onUsed: (q: string) => void;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -66,6 +70,7 @@ export function SearchField({
       onSubmit={(e) => {
         e.preventDefault();
         commit(text);
+        onUsed(text);
       }}
     >
       <Field label={label} labelHidden>
@@ -82,6 +87,7 @@ export function SearchField({
               enterKeyHint="search"
               value={text}
               data-search-field
+              onBlur={(e) => onUsed(e.currentTarget.value)}
               onChange={(e) => {
                 const next = e.currentTarget.value;
                 setText(next);

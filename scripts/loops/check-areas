@@ -185,6 +185,9 @@ apps/web/app/lib/sync/searchTables.ts    search sign-in signout-wipe
 # The search page (slice 3); its pure ranking and grouping (lib/searchResults.ts)
 # has unit tests. Entries open as on the timeline (lib/entryOpen.ts, also unit-tested).
 apps/web/app/routes/app/groups/search/*  search
+# Recent searches (slice 5): saved by the search page, cleared at sign-out; the
+# store has unit tests, the hook and the page's wiring are checked here.
+apps/web/app/lib/recentSearches.ts       search signout-wipe
 
 # Marketing (web only).
 apps/web/app/routes/marketing/*          marketing

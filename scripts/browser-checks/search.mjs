@@ -29,6 +29,11 @@
 // stopped medications marked, no matches, offline, the other group, and a
 // viewer.
 //
+// Slice 5, recent searches: the tips line on the empty page, a search saved
+// when the field is left or a result opened (not while typing), newest
+// first, five at most without repeats, one tap running one, and sign-out
+// clearing them before the next user on the device.
+//
 // Everything it makes carries this run's tag and is soft-deleted (or, for
 // the scaled-up rows, deleted) at the end. SMOKE=1: the index on the device,
 // one seeded and one written search, one search on the page, and the
@@ -138,6 +143,11 @@ const resultsOf = (p) =>
       totals: Object.fromEntries(sections.map((s) => [s.dataset.section, Number(s.querySelector("h2 span:last-child")?.textContent)])),
     };
   })()`);
+/** Leave the search page's field (focus it, then blur it), as a tap elsewhere would. */
+const leaveField = (p) =>
+  p.evaluate(
+    `(() => { const f = document.querySelector("[data-search-field]"); f.focus(); f.blur(); return true; })()`,
+  );
 const missing = (found, expected) => expected.filter((id) => !found.includes(id)).length;
 
 const proxy = SMOKE ? null : startProxy(9721);
@@ -440,6 +450,73 @@ try {
     );
   });
 
+  await step("Recent searches and tips", async () => {
+    const member = psql(`SELECT id FROM "user" WHERE email = 'member@example.com'`);
+    const key = `caretook:recentSearches:${member}`;
+    // Headless Chrome's page has no focus otherwise, so leaving the field would fire no blur.
+    await A.send("Emulation.setFocusEmulationEnabled", { enabled: true });
+    await A.goto(`/app/groups/${DEV_FAMILY}/search`);
+    await A.waitFor(ON_SEARCH, 30000);
+    await A.evaluate(`localStorage.removeItem(${JSON.stringify(key)})`);
+    const view = () =>
+      A.evaluate(`({
+        tips: !!document.querySelector("[data-search-tips]"),
+        recent: [...document.querySelectorAll("[data-recent-search]")].map((a) => a.dataset.recentSearch),
+        stored: JSON.parse(localStorage.getItem(${JSON.stringify(key)}) ?? "[]"),
+      })`);
+    check("the empty page shows the tips line", (await view()).tips);
+
+    // Leaving the field with a search saves it; typing alone doesn't.
+    await searchFor(A, "lisinopril");
+    const typing = await view();
+    check(
+      "while searching: no tips, no recents, nothing saved yet",
+      !typing.tips && !typing.recent.length && !typing.stored.length,
+      JSON.stringify(typing),
+    );
+    await leaveField(A);
+    // Opening a result saves its search too (the field may not have been left).
+    await searchFor(A, "metformin");
+    await A.tap(`document.querySelector('[data-result="medication"] a')`);
+    await A.waitFor(`location.pathname.includes("/medications/")`, 10000);
+    await A.evaluate("history.back()");
+    await A.waitFor(ON_SEARCH, 10000);
+    await searchFor(A, "");
+    await A.waitFor(`!!document.querySelector("[data-recent-search]")`, 5000);
+    const empty = await view();
+    check(
+      "the empty page lists used searches, newest first, with the tips",
+      empty.tips && JSON.stringify(empty.recent) === JSON.stringify(["metformin", "lisinopril"]),
+      JSON.stringify(empty),
+    );
+
+    // One tap runs a recent search, and it moves to the top.
+    await A.tap(`document.querySelector('[data-recent-search="lisinopril"]')`);
+    await A.waitFor(
+      `document.querySelector("[data-search-status]")?.dataset.for === "lisinopril" && document.querySelector("[data-search-field]").value === "lisinopril"`,
+      10000,
+    );
+    const ran = await resultsOf(A);
+    check("tapping a recent search runs it", ran.ids.medication?.length > 0, JSON.stringify(ran.ids));
+    check(
+      "…and it moves to the top, once",
+      JSON.stringify((await view()).stored) === JSON.stringify(["lisinopril", "metformin"]),
+      JSON.stringify((await view()).stored),
+    );
+
+    // Five at most, no repeats (case ignored).
+    for (const q of ["knee", "Lisinopril", "walk", "pharmacy", "blood"]) {
+      await searchFor(A, q);
+      await leaveField(A);
+    }
+    const capped = (await view()).stored;
+    check(
+      "five at most, without repeats",
+      JSON.stringify(capped) === JSON.stringify(["blood", "pharmacy", "walk", "Lisinopril", "knee"]),
+      JSON.stringify(capped),
+    );
+  });
+
   await step("The magnifier on every group screen", async () => {
     const [entryId] = lines(
       psql(
@@ -614,6 +691,36 @@ try {
     } finally {
       B.close();
       viewerBrowser.proc.kill();
+    }
+  });
+
+  await step("Recent searches are cleared at sign-out", async () => {
+    // Its own browser: caretaker@ searches, signs out; viewer@ on the same device sees none.
+    const shared = await launch(9713);
+    const C = await openPage(shared, "C");
+    try {
+      await C.send("Emulation.setFocusEmulationEnabled", { enabled: true });
+      await C.signIn("caretaker@example.com", PW);
+      await C.waitFor(MAGNIFIER, 30000);
+      await openSearch(C);
+      await searchFor(C, "lisinopril");
+      await leaveField(C);
+      const keys = `Object.keys(localStorage).filter((k) => k.startsWith("caretook:recentSearches:"))`;
+      check("a used search is saved for its user", (await C.evaluate(`${keys}.length`)) === 1);
+      await C.signOut();
+      await C.waitFor(`location.pathname === "/sign-in"`, 15000);
+      check("sign-out clears them", (await C.evaluate(`${keys}.length`)) === 0);
+      await C.signIn("viewer@example.com", PW);
+      await C.waitFor(MAGNIFIER, 30000);
+      await openSearch(C);
+      await C.waitFor(`!!document.querySelector("[data-search-tips]")`, 10000);
+      check(
+        "the next user on the device sees no recent searches",
+        (await C.evaluate(`document.querySelectorAll("[data-recent-search]").length`)) === 0,
+      );
+    } finally {
+      C.close();
+      shared.proc.kill();
     }
   });
 
