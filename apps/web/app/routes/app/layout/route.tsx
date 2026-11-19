@@ -8,6 +8,7 @@ import { IconButton } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { isFirstSyncPending } from "~/lib/firstSync";
 import { requireSession, sessionContext } from "~/lib/session";
+import { Announcement } from "./Announcement";
 import { GroupMenu } from "./GroupMenu";
 import { SectionNav, TabBar } from "./SectionNav";
 import { SyncIndicator } from "./SyncIndicator";
@@ -40,6 +41,7 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  * - header `search`: the magnifier that opens the group's search, on group routes;
  * - header `status`: `SyncIndicator`;
  * - header `user`: `UserMenu`;
+ * - `announcement`: staff's banner (`Announcement`), when there is one;
  * - the outlet;
  * - `TabBar` (phones) under the outlet, on group routes.
  *
@@ -74,6 +76,9 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
           <UserMenu user={user} />
         </div>
       </header>
+      <div data-region="announcement" className="print:hidden">
+        <Announcement pathname={pathname} />
+      </div>
       <Outlet />
       {groupId && <TabBar groupId={groupId} pathname={pathname} />}
     </>
