@@ -80,6 +80,14 @@ apps/web/app/routes/admin/audit/*        admin
 apps/web/app/routes/admin/AuditEntryList.tsx admin
 apps/web/app/routes/admin/auditDisplay.ts admin
 apps/web/app/routes/admin/auditFilters.ts admin
+# Settings (admin slice 5): /admin/settings, the registry and the service,
+# and the sign-up switches' consumers (access codes, invites).
+apps/web/app/routes/admin/settings/*     admin
+packages/api/src/settingsAdmin.ts        admin
+packages/data/src/db/schema/appSettings.ts admin groups invites
+packages/data/src/services/appSettingService.ts admin groups invites
+packages/data/src/models/appSetting/*    admin
+packages/data/src/services/careGroupInviteService.ts invites groups
 apps/web/app/routes/admin/*              admin groups
 apps/web/app/.server/admin.ts            admin groups
 packages/api/src/auditAdmin.ts           admin

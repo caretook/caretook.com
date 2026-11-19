@@ -8,6 +8,10 @@
 //   3. support@ reaches access codes, new group and the waitlist.
 //   4. member@ (a group's owner, not staff) has no Admin item, and every
 //      /admin page, the audit page included, is a 404; the audit API refuses them.
+//   5. Settings (slice 5): admin@ turns access-code sign-up off with a
+//      reason, /join/CARE-DEMO-0001 (signed out) says it isn't available,
+//      the audit log has the change, and admin@ turns it back on; support@
+//      sees the settings read-only.
 //
 // Order-independent and self-cleaning: it makes ADM<run> access codes and
 // deletes them, and their audit entries, at the end.
@@ -46,10 +50,15 @@ const check = (ok, what, detail = "") => {
   else failed++;
 };
 
+// Set when step 5 turned access-code sign-up off, so cleanup can turn it back on.
+let accessCodesTurnedOff = false;
+
 const cleanUp = () =>
   psql(`
     DELETE FROM admin_audit_log WHERE changes::text LIKE '%${TAG}%';
-    DELETE FROM access_code WHERE label LIKE '${TAG}%';`);
+    DELETE FROM access_code WHERE label LIKE '${TAG}%';
+    DELETE FROM admin_audit_log WHERE action = 'setting.set' AND reason LIKE '${TAG}%';
+    ${accessCodesTurnedOff ? `UPDATE app_setting SET value = 'true'::jsonb WHERE key = 'signup.accessCodes';` : ""}`);
 
 const q = (selector) => `document.querySelector(${JSON.stringify(selector)})`;
 const TRIGGER = `document.querySelector('header [data-region="user"] button[aria-label^="Account menu for"]')`;
@@ -75,7 +84,7 @@ const accountMenu = async (p, email) => {
   return p.evaluate(menuItems);
 };
 
-const STAFF_NAV = ["Access codes", "New group", "Waitlist", "Audit"];
+const STAFF_NAV = ["Access codes", "New group", "Waitlist", "Audit", "Settings"];
 
 try {
   // 1. Staff reach /admin from the account menu -------------------------------------
@@ -185,6 +194,76 @@ try {
     );
     check(api === 403, "and the audit API refuses them", String(api));
   });
+
+  // 5. Settings (slice 5) -----------------------------------------------------------------
+  await step(
+    "5. admin@ switches access-code sign-up off and on; support@ reads",
+    { smoke: true },
+    async () => {
+      const KEY = "signup.accessCodes";
+      const card = q(`[data-setting="${KEY}"]`);
+      const form = (sel) => q(`[data-setting-form="${KEY}"] ${sel}`);
+      const stored = (p) => p.evaluate(`${card}?.dataset.value`);
+      /** Picks on or off, gives the reason and saves; waits for the card to show it. */
+      const change = async (p, to, reason) => {
+        await p.evaluate(`${form(`input[name="value"][value="${to}"]`)}.click()`);
+        await p.type(form('[name="reason"]'), reason);
+        await p.press(form('button[type="submit"]'));
+        await p.waitFor(`${card}?.dataset.value === ${JSON.stringify(String(to === "on"))}`, 15000);
+      };
+
+      const admin = await open(9851, "admin-settings");
+      await admin.signIn("admin@example.com", PASSWORD, { home: true });
+      await admin.goto("/admin/settings");
+      await admin.waitFor(`${q("[data-settings]")} && ${card}`, 20000);
+      check((await stored(admin)) === "true", "access-code sign-up starts on", await stored(admin));
+      accessCodesTurnedOff = true;
+      await change(admin, "off", `${TAG} pause sign-up`);
+      check(true, "admin@ turns it off with a reason");
+
+      const visitor = await open(9852, "join-closed");
+      await visitor.goto("/join/CARE-DEMO-0001");
+      await visitor.waitFor(q("[data-code-state]"), 20000);
+      const closed = await visitor.evaluate(
+        `({ state: ${q("[data-code-state]")}.dataset.codeState, title: document.querySelector("h1, h2")?.textContent.trim() ?? "" })`,
+      );
+      check(
+        closed.state === "unavailable" && /not available right now/i.test(closed.title),
+        "/join/CARE-DEMO-0001 says it isn't available",
+        JSON.stringify(closed),
+      );
+
+      await admin.goto(`/admin/audit?action=setting.set`);
+      const entry = `[...document.querySelectorAll("[data-audit-entry]")].find((li) => li.textContent.includes(${JSON.stringify(`${TAG} pause sign-up`)}))`;
+      await admin.waitFor(entry, 15000);
+      check(true, "the audit log has the change with its reason");
+
+      await admin.goto("/admin/settings");
+      await admin.waitFor(card, 20000);
+      await change(admin, "on", `${TAG} resume sign-up`);
+      accessCodesTurnedOff = false;
+      await visitor.goto("/join/CARE-DEMO-0001");
+      await visitor.waitFor(q("[data-join-form]"), 20000);
+      check(true, "after turning it back on, /join/CARE-DEMO-0001 shows its form again");
+
+      const support = await open(9853, "support-settings");
+      await support.signIn("support@example.com", PASSWORD, { home: true });
+      await support.goto("/admin/settings");
+      await support.waitFor(card, 20000);
+      const view = await support.evaluate(
+        `({ cards: document.querySelectorAll("[data-setting]").length, forms: document.querySelectorAll("[data-setting-form]").length })`,
+      );
+      check(
+        view.cards > 0 && view.forms === 0,
+        "support@ sees every setting, read-only",
+        JSON.stringify(view),
+      );
+      const refused = await support.evaluate(
+        `fetch("/rpc/admin/settings/set", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: JSON.stringify({ json: { key: "${KEY}", value: false, reason: "${TAG} not allowed" } }) }).then((r) => r.status)`,
+      );
+      check(refused === 403, "and the API refuses support a change", String(refused));
+    },
+  );
 } catch (error) {
   failed++;
   console.log(`FAIL ${error instanceof Error ? error.message : String(error)}`);
