@@ -133,7 +133,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-90 | change | triaged | quick-fixes |  | Seed data with multiple care groups and user mix for improved manual testing. |
 | B-91 | feature | triaged | admin |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-92 | change | in-progress | quick-fixes | prd/quick-fixes | Units save offline: move the Units settings page onto saveSettings |
-| B-93 | bug | triaged | quick-fixes |  | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
+| B-93 | bug | in-progress | quick-fixes | prd/quick-fixes | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
 | B-94 | change | triaged | quick-fixes |  | Account forms, sign-in and the marketing menu button onto the ui primitives |
 | B-95 | chore | triaged | quick-fixes |  | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
 | B-96 | change | triaged | quick-fixes |  | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
@@ -1185,9 +1185,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-93 · bug · Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user). .loops/.browser-flakes.log has timeouts with no contention: phase2 (load 10→7, 14→31), roundtrip (11→12), providers (8→8), medications (8→9); plus the providers.mjs 16-minute hang after the non-member 404 step (practiceDeleteSteps). Read each first-run log, find the step, and replace fixed sleeps or early checks with waits on state (as B-70 did with settlesOn). Cuts reruns (related to B-89).
