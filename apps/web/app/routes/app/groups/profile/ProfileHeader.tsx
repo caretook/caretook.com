@@ -1,8 +1,8 @@
 import type { RecipientProfile } from "~/lib/sync/profile";
 
-import { Pencil } from "lucide-react";
+import { Pencil, Printer } from "lucide-react";
 import { Link } from "react-router";
-import { canEditRecipient } from "@caretook/data/schema";
+import { canEditRecipient, canReadRecipient } from "@caretook/data/schema";
 import { UserAvatar } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
@@ -12,7 +12,8 @@ import { PROFILE_SHEET_STATE, useOnline } from "./profileSheet";
 /**
  * The profile's heading: the name everyone uses, the full name when a
  * preferred one is set, the birthday and age (on the recipient's own day),
- * and, for writers, Edit (online only; offline it says why it's disabled).
+ * and, for writers, the emergency sheet's Print link (it opens offline too)
+ * and Edit (online only; offline it says why it's disabled).
  */
 export function ProfileHeader({ profile }: { profile: RecipientProfile }) {
   const group = useGroup();
@@ -36,7 +37,10 @@ export function ProfileHeader({ profile }: { profile: RecipientProfile }) {
           )}
         </div>
       </div>
-      {canEditRecipient(group.role, "basics") && <EditBasics groupId={group.id} />}
+      <div className="flex shrink-0 flex-wrap items-start justify-end gap-2">
+        {canReadRecipient(group.role, "details") && <PrintLink groupId={group.id} />}
+        {canEditRecipient(group.role, "basics") && <EditBasics groupId={group.id} />}
+      </div>
     </header>
   );
 }
@@ -78,6 +82,22 @@ function EditBasics({ groupId }: { groupId: string }) {
     >
       <Pencil className="size-4" aria-hidden="true" />
       Edit
+    </Link>
+  );
+}
+
+/** The emergency sheet (writers only: their devices have the details it prints). */
+function PrintLink({ groupId }: { groupId: string }) {
+  return (
+    <Link
+      to={appUrls.profilePrint(groupId)}
+      prefetch="render"
+      className="btn btn-sm"
+      aria-label="Print emergency sheet"
+      data-print-link=""
+    >
+      <Printer className="size-4" aria-hidden="true" />
+      Print
     </Link>
   );
 }

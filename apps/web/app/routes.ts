@@ -59,6 +59,8 @@ const appRoutes = [
           route("insurance", "routes/app/groups/profile/insurance/route.tsx"),
           route("emergency", "routes/app/groups/profile/emergency/route.tsx"),
         ]),
+        // The printable emergency sheet: a page of its own, not a sheet over the profile.
+        route("profile/print", "routes/app/groups/profile/print/route.tsx"),
       ]),
       // Start another care group (a sheet over its own page; not a group route).
       route("groups/new", "routes/app/groups/new/route.tsx"),

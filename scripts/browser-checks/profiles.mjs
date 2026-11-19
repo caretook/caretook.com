@@ -49,6 +49,18 @@
 // - the caretaker unshares their phone on the Members page: they leave the
 //   list and lose primary, and the owner's profile shows the managers' note.
 //
+// Slice 6, the emergency sheet (`…/profile/print`):
+//
+// - the owner's Print link opens the sheet: the name, birthday, age and day
+//   printed; the sections in order with the empty one (allergies) left out;
+//   the emergency contacts in order with the primary marked; current
+//   medications with dose and schedule; the primary providers and pharmacy;
+// - Print calls window.print(); in print media (420 and 1280) no frame or
+//   controls, within the page width, black on white (dark theme too), and
+//   Chrome's own PDF of it is one page;
+// - offline, it opens from the device's copy and prints;
+// - a viewer has no Print link, and the URL lands on the profile.
+//
 // Later slices add their steps in their own blocks below. The rules (age,
 // labels, the form's parsing) are unit-tested; the steps here check the
 // wiring, one case each. Grandma Pat's seeded profile is put back at the end
@@ -1217,6 +1229,202 @@ try {
   }
 
   // ─────────────────── end of slice 5: emergency contacts ───────────────────
+
+  // ─────────────────── Slice 6: the emergency sheet ───────────────────
+
+  const PRINT = `${PROFILE}/print`;
+  const PRINT_LINK = `document.querySelector('main [data-profile-header] a[data-print-link]')`;
+  const SHEET_DOC = `document.querySelector('main [data-emergency-sheet]')`;
+  const onSheet = `location.pathname === ${JSON.stringify(PRINT)} && !!${SHEET_DOC}?.querySelector('[data-sheet-section="medications"] li')`;
+  const SHEET_SECTIONS = ["basics", "note", "contact", "insurance", "emergency", "medications", "careTeam"];
+  const SHEET_MEDICATIONS = [
+    "Acetaminophen 500 mg",
+    "Latanoprost 0.005%",
+    "Lisinopril 10 mg",
+    "Metformin 500 mg",
+  ];
+  /** What the sheet shows (medications.mjs's own tagged medications left out). */
+  const sheetState = (p) =>
+    p.evaluate(`(() => {
+      const sheet = ${SHEET_DOC};
+      if (!sheet) return null;
+      const field = (f) => sheet.querySelector('[data-sheet-field="' + f + '"]')?.textContent.trim() ?? null;
+      const names = (sel) => [...sheet.querySelectorAll(sel)].map((el) => el.querySelector("[data-sheet-name]")?.textContent.trim() + (el.hasAttribute("data-primary") ? "*" : ""));
+      return {
+        name: field("name"), born: field("born"), printed: field("printed"),
+        sections: [...sheet.querySelectorAll("[data-sheet-section]")].map((s) => s.dataset.sheetSection),
+        codeStatus: sheet.querySelector('[data-sheet-basic="codeStatus"] dd')?.textContent.trim() ?? null,
+        contacts: names("[data-sheet-contact]"),
+        primaryBadge: !!sheet.querySelector('[data-sheet-contact][data-primary] [data-sheet-badge="primary"]'),
+        medications: names("[data-sheet-medication]").filter((n) => !n.startsWith("MV-")),
+        metformin: [...sheet.querySelectorAll("[data-sheet-medication]")].find((el) => el.textContent.startsWith("Metformin"))?.textContent ?? null,
+        team: names("[data-sheet-provider]"),
+        plans: sheet.querySelectorAll("[data-sheet-plan]").length,
+      };
+    })()`);
+  /** What printing would show: no frame or controls, black on white, nothing wider than the page. */
+  const sheetPrintLayout = (p) =>
+    p.evaluate(`(() => {
+      const shown = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+      const sheet = ${SHEET_DOC};
+      return {
+        header: shown(document.querySelector("header.navbar")),
+        tabBar: shown(document.querySelector('nav.dock[aria-label="Group sections"]')),
+        controls: [...document.querySelectorAll("button, a.btn, input, [role=button]")].filter(shown).map((el) => el.textContent.trim() || el.tagName),
+        fits: sheet.getBoundingClientRect().right <= document.documentElement.clientWidth + 0.5 && sheet.scrollWidth <= sheet.clientWidth + 1,
+        pageFits: document.documentElement.scrollWidth <= innerWidth,
+        background: getComputedStyle(document.body).backgroundColor,
+        color: getComputedStyle(sheet.querySelector("h1")).color,
+        text: getComputedStyle(sheet.querySelector("[data-sheet-section] li, [data-sheet-section] p")).color,
+      };
+    })()`);
+
+  await step(
+    "emergency sheet: the owner's Print link, the sheet, and print media",
+    { smoke: true },
+    async () => {
+      // Earlier steps edit the profile and details; the sheet is checked against the seeds.
+      restoreSeed();
+      restoreDetails();
+      await A.goto(PROFILE);
+      await A.waitFor(PRINT_LINK, 30000).catch(() => undefined);
+      await A.tap(PRINT_LINK);
+      const opened = await A.waitFor(
+        `${onSheet} && ${SHEET_DOC}.querySelector('[data-sheet-field="name"]').textContent.trim() === "Pat Example (Grandma Pat)" && ${SHEET_DOC}.querySelector('[data-sheet-basic="codeStatus"] dd')?.textContent.trim() === "DNR/POLST"`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      const sheet = await sheetState(A);
+      check(
+        "owner: the profile's Print link opens the sheet, with the name, birthday, age and the day printed",
+        opened &&
+          sheet?.name === "Pat Example (Grandma Pat)" &&
+          sheet.born === `Born March 14, 1941 · ${seedAge()}` &&
+          /^Printed \w{3} \d{1,2}, \d{4}$/.test(sheet.printed ?? ""),
+        JSON.stringify(sheet && { name: sheet.name, born: sheet.born, printed: sheet.printed }),
+      );
+      check(
+        "the sections in order, the empty one (allergies) left out, code status first",
+        JSON.stringify(sheet?.sections) === JSON.stringify(SHEET_SECTIONS) &&
+          sheet.codeStatus === "DNR/POLST" &&
+          sheet.plans === 2,
+        JSON.stringify(
+          sheet && { sections: sheet.sections, codeStatus: sheet.codeStatus, plans: sheet.plans },
+        ),
+      );
+      check(
+        "the emergency contacts in the one order, the primary contact marked",
+        JSON.stringify(sheet?.contacts) === JSON.stringify(SEEDED) && sheet.primaryBadge,
+        JSON.stringify(sheet?.contacts),
+      );
+      check(
+        "current medications only, with dose and schedule; the primary providers and the pharmacy",
+        JSON.stringify(sheet?.medications) === JSON.stringify(SHEET_MEDICATIONS) &&
+          /8:00 and 20:00/.test(sheet.metformin ?? "") &&
+          JSON.stringify(sheet.team) ===
+            JSON.stringify(["Dr. Elena Alvarez", "Westside Family Medicine", "Cornerstone Pharmacy"]),
+        JSON.stringify(
+          sheet && { medications: sheet.medications, metformin: sheet.metformin, team: sheet.team },
+        ),
+      );
+
+      // The Print button prints (stubbed: headless Chrome has no print dialog).
+      await A.evaluate(`window.__printed = 0; window.print = () => { window.__printed++; }; true`);
+      await A.tap(
+        `[...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Print")`,
+      );
+      check("the Print button calls window.print()", (await A.evaluate(`window.__printed`)) === 1);
+
+      // Print media: no frame, no buttons, black on white (in the dark theme too), within the page.
+      const layouts = {};
+      for (const width of [420, 1280]) {
+        await metrics(A, width);
+        await A.send("Emulation.setEmulatedMedia", { media: "print" });
+        await sleep(300);
+        layouts[width] = await sheetPrintLayout(A);
+        await A.screenshot(`profiles-print-${width}`);
+      }
+      await A.evaluate(`document.documentElement.dataset.theme = "dark"; true`);
+      await sleep(200);
+      const dark = await sheetPrintLayout(A);
+      await A.evaluate(`delete document.documentElement.dataset.theme; true`);
+      await A.send("Emulation.setEmulatedMedia", { media: "" });
+      await metrics(A, 420);
+      const clean = (l) => !l.header && !l.tabBar && l.controls.length === 0 && l.fits && l.pageFits;
+      check(
+        "printed, the sheet has no header, tab bar or buttons, and fits the page width, at 420 and 1280",
+        clean(layouts[420]) && clean(layouts[1280]),
+        JSON.stringify(layouts),
+      );
+      const black = (l) =>
+        l.background === "rgb(255, 255, 255)" && l.color === "rgb(0, 0, 0)" && l.text === "rgb(0, 0, 0)";
+      check(
+        "printed, it's black on white, in the dark theme too",
+        black(layouts[420]) && black(layouts[1280]) && black(dark),
+        JSON.stringify({
+          light: [layouts[1280].background, layouts[1280].color],
+          dark: [dark.background, dark.color],
+        }),
+      );
+
+      // One page: Chrome's own print of the page (Letter, the sheet's @page margins), counted.
+      const pdf = await A.send("Page.printToPDF", { preferCSSPageSize: true, printBackground: false });
+      const pageCount = (
+        Buffer.from(pdf.data, "base64")
+          .toString("latin1")
+          .match(/\/Type\s*\/Page(?!s)/g) ?? []
+      ).length;
+      check("printed, the seeded sheet is one page", pageCount === 1, `${pageCount} pages`);
+    },
+  );
+
+  if (!SMOKE) {
+    await step("emergency sheet: offline", async () => {
+      await A.goto(PROFILE);
+      await A.waitFor(PRINT_LINK, 30000).catch(() => undefined);
+      proxy.setOnline(false);
+      await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => undefined);
+      await A.tap(PRINT_LINK);
+      const opened = await A.waitFor(onSheet, 20000)
+        .then(() => true)
+        .catch(() => false);
+      const sheet = await sheetState(A);
+      await A.evaluate(`window.__printed = 0; window.print = () => { window.__printed++; }; true`);
+      await A.tap(
+        `[...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Print")`,
+      );
+      check(
+        "offline: the sheet opens from the device's copy, and prints",
+        opened &&
+          JSON.stringify(sheet?.sections) === JSON.stringify(SHEET_SECTIONS) &&
+          JSON.stringify(sheet.contacts) === JSON.stringify(SEEDED) &&
+          (await A.evaluate(`window.__printed`)) === 1,
+        JSON.stringify(sheet && { sections: sheet.sections, contacts: sheet.contacts }),
+      );
+      proxy.setOnline(true);
+      await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => undefined);
+    });
+
+    await step("emergency sheet: a viewer", async () => {
+      const C = pages[2]; // the viewer
+      await C.goto(PROFILE);
+      await C.waitFor(onProfile, 30000);
+      await sleep(500);
+      check("viewer: the profile has no Print link", !(await C.evaluate(`!!${PRINT_LINK}`)));
+      await C.goto(PRINT);
+      const redirected = await C.waitFor(`${onProfile} && !${SHEET_DOC}`, 30000)
+        .then(() => true)
+        .catch(() => false);
+      check(
+        "viewer: the sheet's URL lands on the profile",
+        redirected,
+        await C.evaluate(`location.pathname`),
+      );
+    });
+  }
+
+  // ─────────────────── end of slice 6: the emergency sheet ───────────────────
 
   // The offline step's cut connection: PowerSync's sync error ("network error",
   // or "Failed to fetch" when its token request is cut).

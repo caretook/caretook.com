@@ -198,4 +198,6 @@ export const appUrls = {
    */
   profile: (groupId: string, sheet?: ProfileSheet) =>
     `${groupHome(groupId)}/profile${isProfileSheet(sheet) ? `/${sheet}` : ""}`,
+  /** The recipient's printable emergency sheet (a page, not a sheet over the profile). */
+  profilePrint: (groupId: string) => `${groupHome(groupId)}/profile/print`,
 } as const;

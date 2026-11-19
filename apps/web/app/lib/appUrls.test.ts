@@ -236,4 +236,8 @@ describe("appUrls.newMedication and editMedication", () => {
     // @ts-expect-error: only the listed sheets exist.
     expect(appUrls.profile(G, "bogus")).toBe(`/app/groups/${G}/profile`);
   });
+
+  it("builds the recipient's emergency sheet", () => {
+    expect(appUrls.profilePrint(G)).toBe(`/app/groups/${G}/profile/print`);
+  });
 });
