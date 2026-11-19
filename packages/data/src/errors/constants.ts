@@ -133,6 +133,9 @@ export const MODEL_ERRORS = {
   "waitlistEntryModel:upsertByEmail": {
     message: "Failed to save the waitlist entry",
   },
+  "waitlistEntryModel:search": {
+    message: "Failed to search the waitlist",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {

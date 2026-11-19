@@ -74,6 +74,8 @@ apps/web/app/components/groups/*         groups app-shell
 apps/web/app/routes/app/home/NewGroupLink.tsx groups app-shell first-sync
 apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx groups phase2
 packages/api/src/groups.ts               groups
+# The admin waitlist (marketing slice 5): its steps are in groups.mjs.
+packages/api/src/waitlistAdmin.ts        groups
 packages/data/src/db/schema/accessCode.ts groups
 packages/data/src/db/schema/newCareGroup.ts groups
 packages/data/src/db/seeds/accessCodes.ts groups

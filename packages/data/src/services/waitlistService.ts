@@ -1,4 +1,4 @@
-import type { SpamVerdict, WaitlistJoinInput } from "../db/schema";
+import type { SpamVerdict, WaitlistFilter, WaitlistJoinInput } from "../db/schema";
 import type { WaitlistEntryModel } from "../models";
 import type { ServiceContext, ServiceSelectArgs } from "./types";
 
@@ -58,3 +58,24 @@ export const list = (ctx: ServiceContext, opts: ServiceSelectArgs<K> = {}) =>
   });
 
 export const getById = (ctx: ServiceContext, id: string) => waitlistEntryModel.getById(id, ctx);
+
+/** Staff: one page of the entries matching `filter`, newest first, with the matching count. */
+export const search = (
+  ctx: ServiceContext,
+  filter: Partial<WaitlistFilter> = {},
+  page: { page?: number; limit?: number } = {},
+) =>
+  waitlistEntryModel.search({
+    ...ctx,
+    filter,
+    paginate: { page: page.page ?? 1, limit: page.limit ?? DEFAULT_PAGE_SIZE },
+  });
+
+/**
+ * Staff: every entry matching `filter`, newest first, in one query (for the
+ * CSV export, so it holds exactly what the filtered list counted).
+ */
+export const exportAll = async (ctx: ServiceContext, filter: Partial<WaitlistFilter> = {}) => {
+  const res = await waitlistEntryModel.search({ ...ctx, filter });
+  return isError(res) ? res : res.data;
+};
