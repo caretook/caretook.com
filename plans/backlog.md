@@ -154,6 +154,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-110 | bug | triaged | orchestration |  | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-111 | bug | ready | orchestration | prd/orchestration | Backlog writes can commit a half-typed inbox bullet and tag it with another item's id |
 | B-112 | change | inbox |  |  | Show the recipient's allergies on the profile's printable emergency sheet |
+| B-113 | chore | triaged | admin |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 
 ## Items
 
@@ -1418,3 +1419,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (prd/medications-2): The emergency sheet (profiles) passes allergies: null, waiting for B-26. medications-2 built allergies (lib/sync/allergies.ts: allergiesQuery, loadAllergies; PrintAllergies), so the sheet can show them now. profiles.mjs's sheet step would need to expect them.
+
+### B-113 · chore · Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands
+
+- status: triaged
+- prd: admin
+- owner:
+- commit:
+
+- 2026-11-19 (prd/admin): Admin landed with two suite failures treated as flaky (the user's call): app-shell.mjs failed twice at low load in step 6g (viewer@'s sign-in on a page that signed out stays on /sign-in, no alert, 60 s timeout; slice 3 changed sign-in hooks, so rule that out); providers.mjs failed once at '1280: every suggestion shows' (chip count 1 at 420 vs 5 at 1280, likely a race). Logs: .git/worktrees/admin/caretook-browser/app-shell-20261119-172829.log and providers-20261119-173206.log. Run both on the new suite; if app-shell still fails there, it's a real bug from admin slice 3.
