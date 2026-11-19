@@ -62,11 +62,11 @@ export const careRecipientUpdateZSchema = createUpdateSchema(careRecipientSchema
 });
 
 /**
- * The profile fields group settings edits. Each is optional: what's left out
- * keeps its value. (`partial()` because a column override stays required in
- * drizzle-zod's update schema.)
+ * The profile fields group settings edits, the time zone included. Each is
+ * optional: what's left out keeps its value. (`partial()` because a column
+ * override stays required in drizzle-zod's update schema.)
  */
 export const careRecipientProfileZSchema = careRecipientUpdateZSchema
-  .pick({ name: true, preferredName: true, dateOfBirth: true })
+  .pick({ name: true, preferredName: true, dateOfBirth: true, timeZone: true })
   .partial();
 export type CareRecipientProfileInput = z.infer<typeof careRecipientProfileZSchema>;

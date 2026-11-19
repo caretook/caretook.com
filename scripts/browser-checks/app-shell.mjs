@@ -603,7 +603,13 @@ try {
       execSync(`docker exec ${PG_CONTAINER} psql -U caretook -d caretook -tAc ${JSON.stringify(sql)}`)
         .toString()
         .trim();
-    const SEED = { group: "Dev Family", name: "Pat Example", preferred: "Grandma Pat", dob: "1941-03-14" };
+    const SEED = {
+      group: "Dev Family",
+      name: "Pat Example",
+      preferred: "Grandma Pat",
+      dob: "1941-03-14",
+      zone: "America/Los_Angeles",
+    };
     const serverGroup = () => psql(`SELECT name FROM care_group WHERE id = '${DEV_FAMILY}'`);
     const serverRecipient = () =>
       psql(
@@ -612,9 +618,16 @@ try {
     const restoreSeeds = () => {
       psql(`UPDATE care_group SET name = '${SEED.group}' WHERE id = '${DEV_FAMILY}'`);
       psql(
-        `UPDATE care_recipient SET name = '${SEED.name}', preferred_name = '${SEED.preferred}', date_of_birth = '${SEED.dob}' WHERE group_id = '${DEV_FAMILY}'`,
+        `UPDATE care_recipient SET name = '${SEED.name}', preferred_name = '${SEED.preferred}', date_of_birth = '${SEED.dob}', time_zone = '${SEED.zone}' WHERE group_id = '${DEV_FAMILY}'`,
       );
     };
+    const serverZone = () => psql(`SELECT time_zone FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`);
+    const ZONE = `document.querySelector('main [data-section="care-recipient"]')?.querySelector('select[name="timeZone"]')`;
+    /** Choose a zone in the recipient's time zone select, as a person would. */
+    const chooseZone = (p, zone) =>
+      p.evaluate(`(() => { const el = ${ZONE};
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(el, ${JSON.stringify(zone)});
+        el.dispatchEvent(new Event("change", { bubbles: true })); return el.value; })()`);
     const tag = Date.now().toString(36);
     const NEW = {
       group: `Dev Family ${tag}`,
@@ -802,6 +815,63 @@ try {
         reopened,
       );
 
+      // 5c'. The recipient's time zone (quick-fixes slice 27, B-65): the owner
+      // picks another zone; it saves, syncs, and the medications page's Today
+      // note follows it. Then "Use this device's" picks the device's zone, and
+      // Los Angeles is put back through the page.
+      const device = await M.evaluate(`Intl.DateTimeFormat().resolvedOptions().timeZone`);
+      const other = device === "America/New_York" ? "America/Chicago" : "America/New_York";
+      const place = other.split("/")[1].replaceAll("_", " ");
+      const zoneField = await M.evaluate(`({ value: ${ZONE}?.value, options: ${ZONE}?.options.length ?? 0,
+        help: document.getElementById((${ZONE}?.getAttribute("aria-describedby") ?? "").split(" ")[0])?.textContent.trim() })`);
+      check(
+        "time zone: the owner's form has the zone (Los Angeles), every zone, and the note",
+        zoneField.value === SEED.zone &&
+          zoneField.options > 50 &&
+          zoneField.help === "Medication times follow this zone.",
+        JSON.stringify(zoneField),
+      );
+      await chooseZone(M, other);
+      const zoneSaved = await save(M, RECIPIENT);
+      check(
+        "time zone: the owner changes it online, and it saves",
+        zoneSaved === "ok: Saved." && serverZone() === other,
+        `${zoneSaved} / ${serverZone()}`,
+      );
+      await M.goto(`/app/groups/${DEV_FAMILY}/medications`);
+      const noteFollows = await M.waitFor(
+        `document.querySelector("main [data-today]")?.textContent.includes(${JSON.stringify(`Times are ${place} time`)})`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      check(
+        "time zone: it syncs, and the medications page's zone note follows it",
+        noteFollows,
+        await M.evaluate(
+          `document.querySelector("main [data-today]")?.textContent.slice(0, 120) ?? "no Today"`,
+        ),
+      );
+      await M.goto(DETAILS);
+      await onSettings(M);
+      await M.waitFor(`${ZONE}?.value === ${JSON.stringify(other)}`, 20000).catch(() => undefined);
+      const deviceButton = `document.querySelector("main [data-use-device-zone]")`;
+      const shortcut = await M.evaluate(`${deviceButton}?.textContent.trim() ?? ""`);
+      if (device !== other && shortcut) await M.tap(deviceButton);
+      const afterShortcut = await M.evaluate(`${ZONE}?.value`);
+      check(
+        "time zone: \"Use this device's\" picks this device's zone",
+        shortcut === `Use this device's (${device.replaceAll("_", " ")})` && afterShortcut === device,
+        `${shortcut} → ${afterShortcut}`,
+      );
+      await chooseZone(M, SEED.zone);
+      const zoneBack = await save(M, RECIPIENT);
+      check(
+        "time zone: Los Angeles is put back through the page",
+        zoneBack === "ok: Saved." && serverZone() === SEED.zone,
+        `${zoneBack} / ${serverZone()}`,
+      );
+
       // 5d. caretaker@: edits the recipient, but not the group's name.
       const O = await openPage(bO, "settings-other");
       pages.push(O);
@@ -843,6 +913,24 @@ try {
       // 5e. A viewer's cards are read-only like the caretaker's group card above
       // (groupSettingsAccess, groupSettings.test.ts), and another group's settings
       // is the 404 (routing.mjs, "non-member: another group's …/settings/members").
+      // The time zone (slice 27): a viewer sees it as text, with no select.
+      await O.signOut();
+      await O.waitFor(`location.pathname === "/sign-in"`, 30000);
+      await signIn(O, "viewer@example.com", { home: true });
+      await O.waitFor(GROUP_TRIGGER, 40000);
+      await O.goto(DETAILS);
+      await onSettings(O);
+      const viewerZone = await O.waitFor(`${text(RECIPIENT)}.includes("America/Los Angeles")`, 20000)
+        .then(() => true)
+        .catch(() => false);
+      const viewer5 = await O.evaluate(
+        `({ selects: document.querySelectorAll("main select").length, recipient: ${text(RECIPIENT)} })`,
+      );
+      check(
+        "viewer: the time zone is read-only text",
+        viewerZone && viewer5.selects === 0 && viewer5.recipient.includes("Time zone"),
+        JSON.stringify(viewer5),
+      );
 
       // 5f. Offline (the proxy cuts member@'s browser): read-only from local data, with the notice.
       await M.evaluate(`${BAR}.querySelector("a").click()`);
@@ -865,7 +953,8 @@ try {
           offline5.notice === "Needs a connection to edit." &&
           offline5.group.includes(NEW.group) &&
           offline5.recipient.includes(NEW.name) &&
-          offline5.recipient.includes(byCaretaker),
+          offline5.recipient.includes(byCaretaker) &&
+          offline5.recipient.includes("America/Los Angeles"),
         JSON.stringify(offline5),
       );
       check(
