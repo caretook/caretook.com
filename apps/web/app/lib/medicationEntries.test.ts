@@ -78,7 +78,7 @@ describe("changeText", () => {
         before: { strength: "5 mg", schedule: { type: "scheduled", times: ["08:00"] } },
         after: { strength: null, schedule: { type: "asNeeded", maxPerDay: 2 } },
       }),
-    ).toBe("Changed strength 5 mg → none; schedule 8:00 → As needed, up to 2 a day");
+    ).toBe("Changed strength 5 mg → none, schedule 8:00 → As needed, up to 2 a day");
   });
 
   it("says why it was stopped", () => {
@@ -100,7 +100,7 @@ describe("changeText", () => {
         before: { dose: "1 tablet" },
         after: { dose: "2 tablets" },
       }),
-    ).toBe("Resumed · dose 1 tablet → 2 tablets");
+    ).toBe("Resumed; changed dose 1 tablet → 2 tablets");
   });
 });
 

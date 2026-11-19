@@ -1,15 +1,11 @@
-import type {
-  DoseDetails,
-  MedicationChangeDetails,
-  MedicationSchedule,
-  MedicationStopReason,
-  MedicationSummary,
-  MedicationTrackedField,
-  TimelineEntryDetails,
-  TimelineEntryKind,
-} from "@caretook/data/schema";
+import type { TimelineEntryDetails, TimelineEntryKind } from "@caretook/data/schema";
 
 import { isDoseDetails, isMedicationChangeDetails } from "@caretook/data/schema";
+import { changeText, doseText } from "./medicationDisplay";
+
+// The dose, schedule and change wording is `medicationDisplay`'s, shared with
+// the medication page; re-exported so the timeline imports one module.
+export { changeText, doseText, scheduleText } from "./medicationDisplay";
 
 // What doses and medication changes say on the timeline: "Lisinopril 10 mg"
 // beside "Given 1 tablet", or "Changed dose 1 tablet → 2 tablets". No React or
@@ -58,80 +54,6 @@ export const withMedication = <
 /** The medication `withMedication` attached, if any. */
 export const entryMedication = (entry: object): EntryMedication | null | undefined =>
   "medication" in entry ? (entry as WithMedication).medication : undefined;
-
-const DOSE_STATUS_TEXT = { given: "Given", skipped: "Skipped", refused: "Refused" } as const;
-
-/** "Given 1 tablet", "Given", "Skipped" or "Refused". The amount is only said for a dose that was given. */
-export const doseText = (details: Pick<DoseDetails, "status" | "amount">) => {
-  const amount = details.amount?.trim();
-  return details.status === "given" && amount ? `Given ${amount}` : DOSE_STATUS_TEXT[details.status];
-};
-
-/** "08:00" → "8:00". */
-const time = (hhmm: string) => hhmm.replace(/^0(\d)/, "$1");
-
-/** "a", "a and b", "a, b and c". */
-const list = (items: string[]) =>
-  items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
-
-/** "8:00 and 20:00", "As needed", "As needed, up to 4 a day". */
-export const scheduleText = (schedule: MedicationSchedule) =>
-  schedule.type === "scheduled"
-    ? list(schedule.times.map(time))
-    : schedule.maxPerDay
-      ? `As needed, up to ${schedule.maxPerDay} a day`
-      : "As needed";
-
-const FIELD_LABEL: Record<MedicationTrackedField, string> = {
-  name: "name",
-  strength: "strength",
-  form: "form",
-  dose: "dose",
-  directions: "directions",
-  schedule: "schedule",
-};
-
-const fieldValue = (field: MedicationTrackedField, summary: MedicationSummary | undefined) => {
-  if (field === "schedule") return summary?.schedule ? scheduleText(summary.schedule) : "none";
-  return summary?.[field] || "none";
-};
-
-/** "dose 1 tablet → 2 tablets; schedule 8:00 → 8:00 and 20:00". */
-const editsText = (details: MedicationChangeDetails) =>
-  (details.fields ?? [])
-    .map((f) => `${FIELD_LABEL[f]} ${fieldValue(f, details.before)} → ${fieldValue(f, details.after)}`)
-    .join("; ");
-
-const STOP_REASON_TEXT: Record<MedicationStopReason, string> = {
-  sideEffects: "side effects",
-  ineffective: "not working",
-  prescriberStopped: "prescriber stopped it",
-  other: "other reason",
-};
-
-/**
- * What a change to the list did: "Started", "Changed dose 1 tablet → 2
- * tablets", "Discontinued: side effects", "Completed", "Resumed". A stop or
- * restart saved with edits says those too ("Resumed · dose 1 tablet → 2 tablets").
- */
-export const changeText = (details: MedicationChangeDetails) => {
-  const edits = editsText(details);
-  switch (details.change) {
-    case "started":
-      return "Started";
-    case "changed":
-      return edits ? `Changed ${edits}` : "Changed";
-    case "stopped": {
-      const stop =
-        details.stopStatus === "completed"
-          ? "Completed"
-          : `Discontinued${details.stopReason ? `: ${STOP_REASON_TEXT[details.stopReason]}` : ""}`;
-      return edits ? `${stop} · ${edits}` : stop;
-    }
-    case "resumed":
-      return edits ? `Resumed · ${edits}` : "Resumed";
-  }
-};
 
 /**
  * A dose's or change's two parts: what happened ("Given 1 tablet") and its
