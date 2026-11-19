@@ -649,6 +649,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/marketing): From the inbox: birthdate, contact information, address, and insurance information should optionally be added to the patient profile.
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'profiles' (to write): the care recipient's optional contact, address and insurance details. Date of birth already exists (careGroup.recipient, not synced; medications slice 1 makes it synced). Insurance-card photos are B-56 (documents). Decide in the PRD which fields sync and who can read them (viewers?).
+- 2026-11-19 (plan/profiles): PRD written on plan/profiles: plans/profiles-prd.md (interview 2026-11-19).
 
 ### B-46 · change · optional phone number, address, etc on group members that can be published to the group for…
 
