@@ -130,7 +130,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-86 | change | ready | medications-2 | prd/medications-2 | need an upcoming medication banner on the timeline page and a way to quickly add doses to the… |
 | B-87 | plan | triaged | assistant |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 | B-88 | change | landed | orchestration |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
-| B-89 | feature | triaged | orchestration |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
+| B-89 | feature | in-progress | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-90 | change | landed | quick-fixes | prd/quick-fixes | Seed data with multiple care groups and user mix for improved manual testing. |
 | B-91 | feature | ready | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-92 | change | landed | quick-fixes | prd/quick-fixes | Units save offline: move the Units settings page onto saveSettings |
@@ -1178,9 +1178,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-89 · feature · PRD tooling streamlining. We are using way too many resources for full docker stacks and browser…
 
-- status: triaged
+- status: in-progress
 - prd: orchestration
-- owner:
+- owner: prd/orchestration
 - commit:
 
 - 2026-11-19 (backlog planner): From the inbox: PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead.
