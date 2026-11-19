@@ -23,6 +23,15 @@
 //      /dev/mail.json.
 //   8. support@ sees the group's page without controls, and its actions are a 404.
 //
+//   Disable and staff roles (slice 3; smoke runs step 9):
+//   9. admin@ disables a tagged, signed-in account, with a reason: its page
+//      says who, when and why, its other browser's next request goes to
+//      sign-in, and its right password is answered as a wrong one; admin@
+//      re-enables it (sign-in works), makes it support (it gets the Admin
+//      item) and a member again (the item goes); the audit log shows each.
+//  10. admin@'s own page has no disable or role controls; support@ sees none
+//      on the tagged account, and posting them is a 404.
+//
 // Order-independent and self-cleaning: it makes ADM<run> access codes, an
 // adm<run>-… account and an ADM<run> group, and deletes them, their mail and
 // their audit entries, at the end.
@@ -481,6 +490,184 @@ try {
       `fetch(location.pathname, { method: "POST", credentials: "include", body: new URLSearchParams({ intent: "removeMember", userId: "00000000-0000-0000-0000-000000000001", reason: "x" }) }).then((r) => r.status)`,
     );
     check(status === 404, "and its actions are refused", String(status));
+  });
+  // 9. Disable, re-enable, staff roles (slice 3) -------------------------------------------
+  const ROLE_EMAIL = `${RUN}-disable@example.com`;
+  let roleUserId = null;
+  const makeRoleTarget = () => {
+    const SYS = "00000000-0000-0000-0000-000000000000";
+    const id = psql(`
+      INSERT INTO "user" (email, email_verified, name, created_by, updated_by)
+        VALUES ('${ROLE_EMAIL}', true, '${TAG} Disable', '${SYS}', '${SYS}') RETURNING id`);
+    psql(`
+      INSERT INTO account (user_id, provider_id, account_id, password)
+        SELECT '${id}', 'credential', '${id}', password FROM account
+        WHERE provider_id = 'credential' AND user_id = (SELECT id FROM "user" WHERE email = 'caretaker@example.com');`);
+    return id;
+  };
+  /** Sign in by password from `p` with fetch, as the sign-in form does: the status and code. */
+  const passwordSignIn = (p) =>
+    p.evaluate(
+      `fetch("/api/auth/sign-in/email", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: ${JSON.stringify(ROLE_EMAIL)}, password: ${JSON.stringify(PASSWORD)} }) }).then(async (r) => ({ status: r.status, code: (await r.json().catch(() => ({}))).code ?? null }))`,
+    );
+  /** Opens `intent`'s confirm in the Access card, gives a reason and confirms. */
+  const accessAction = async (p, intent, reason) => {
+    const box = `${q('[data-user-section="admin"]')}.querySelector('[data-help-action="${intent}"]')`;
+    await p.waitFor(`${box} && !${box}.querySelector("button").disabled`, 10000);
+    await p.press(`${box}.querySelector("button")`);
+    await p.waitFor(`${box}.querySelector("dialog")?.open`, 5000);
+    await p.type(`${box}.querySelector("textarea")`, reason);
+    const confirm = `[...${box}.querySelector("dialog").querySelectorAll("button")].at(-1)`;
+    await p.waitFor(`!${confirm}.disabled`, 5000);
+    await p.press(confirm);
+  };
+  const accessStatus = (p, intent, text) =>
+    p.waitFor(
+      `${q(`[data-user-section="admin"] [data-help-action="${intent}"] [role="status"]`)}?.textContent.includes(${JSON.stringify(text)})`,
+      15000,
+    );
+  const chooseRole = (p, role) =>
+    p.evaluate(`(() => { const el = ${q('[data-role-controls] select[name="role"]')};
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(el, ${JSON.stringify(role)});
+      el.dispatchEvent(new Event("change", { bubbles: true })); return true; })()`);
+  /** The target's account menu items, on a fresh /app load. */
+  const targetMenu = async (t) => {
+    await t.goto("/app");
+    await t.waitFor(TRIGGER, 30000);
+    await t.press(TRIGGER);
+    await t.waitFor(menuItem("Settings"), 5000);
+    const items = await t.evaluate(menuItems);
+    await t.evaluate(
+      `document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))`,
+    );
+    return items;
+  };
+
+  await step(
+    "9. admin@ disables an account, re-enables it and changes its staff role",
+    { smoke: true },
+    async () => {
+      roleUserId = makeRoleTarget();
+      const targetBrowser = await launch(9871);
+      browsers.push(targetBrowser);
+      const target = await openPage(targetBrowser, "role-target");
+      await target.signIn(ROLE_EMAIL, PASSWORD, { home: true });
+      await target.waitFor(`location.pathname.startsWith("/app")`, 20000);
+
+      const p = await open(9872, "admin-access");
+      await p.signIn("admin@example.com", PASSWORD, { home: true });
+      await p.goto(`/admin/users/${roleUserId}`);
+      await p.waitFor(q('[data-user-section="admin"] [data-help-action="disable"]'), 20000);
+
+      // Disable, with a reason.
+      await accessAction(p, "disable", `${TAG} reported as compromised`);
+      await accessStatus(p, "enable", "Disabled. Signed out of 1 session.");
+      check(true, "disabling signs its one session out");
+      const account = await p.evaluate(`${q('[data-user-section="account"]')}.textContent`);
+      check(
+        account.includes("Disabled") &&
+          account.includes("admin@example.com") &&
+          account.includes(`${TAG} reported as compromised`),
+        "the page says who disabled it and why",
+        account,
+      );
+      const badges = await p.evaluate(
+        `[...${q('[data-user-section="account"]')}.querySelectorAll("[data-badge]")].map((b) => b.dataset.badge).join()`,
+      );
+      check(badges.includes("disabled"), "with the Disabled badge", badges);
+      check(
+        !(await p.evaluate(`Boolean(${q("[data-help-actions]")})`)),
+        "and no reset or confirmation email to send",
+      );
+
+      await target.goto("/app");
+      await target.waitFor(`location.pathname === "/sign-in"`, 20000);
+      check(true, "its other browser's next request goes to sign-in");
+      const refused = await passwordSignIn(target);
+      check(
+        refused.status === 401 && refused.code === "INVALID_EMAIL_OR_PASSWORD",
+        "and the right password is answered as a wrong one",
+        JSON.stringify(refused),
+      );
+
+      // Re-enable: signing in works again (a fresh page, so the sign-in limit is its own).
+      await accessAction(p, "enable", `${TAG} the report was a mistake`);
+      await accessStatus(p, "disable", "Re-enabled");
+      const again = await openPage(targetBrowser, "role-target-again");
+      await again.signIn(ROLE_EMAIL, PASSWORD, { home: true });
+      await again.waitFor(`location.pathname.startsWith("/app")`, 20000);
+      check(true, "re-enabled, it signs in again");
+      check(!(await targetMenu(again)).includes("Admin"), "a member: no Admin item");
+
+      // Support, then a member again.
+      await chooseRole(p, "support");
+      await accessAction(p, "setRole", `${TAG} joined the support team`);
+      await accessStatus(p, "setRole", "They're support now.");
+      const asSupport = await targetMenu(again);
+      check(asSupport.includes("Admin"), "made support, it gets the Admin item", asSupport.join(", "));
+      await chooseRole(p, "member");
+      await accessAction(p, "setRole", `${TAG} left the support team`);
+      await accessStatus(p, "setRole", "They're a member now.");
+      check(!(await targetMenu(again)).includes("Admin"), "a member again, the item goes");
+
+      await p.goto(`/admin/audit?target=${roleUserId}`);
+      await p.waitFor(q("[data-audit-count]"), 20000);
+      const actions = await p.evaluate(
+        `[...document.querySelectorAll("[data-audit-entry]")].filter((li) => li.dataset.actor === "admin@example.com").map((li) => li.dataset.action).filter((a) => a !== "user.view").sort().join()`,
+      );
+      check(
+        actions === "user.disable,user.enable,user.setRole,user.setRole",
+        "the audit log shows each, by admin@",
+        actions,
+      );
+    },
+  );
+
+  await step("10. nobody changes their own access, and support sees no controls", async () => {
+    if (!roleUserId) roleUserId = makeRoleTarget();
+    const adminId = psql(`SELECT id FROM "user" WHERE email = 'admin@example.com'`);
+    const p = await open(9873, "admin-self");
+    await p.signIn("admin@example.com", PASSWORD, { home: true });
+    await p.goto(`/admin/users/${adminId}`);
+    await p.waitFor(q('[data-user-section="admin"]'), 20000);
+    const self = await p.evaluate(
+      `({ note: Boolean(${q("[data-self-note]")}), controls: ${q('[data-user-section="admin"]')}.querySelectorAll("button, select").length })`,
+    );
+    check(
+      self.note && self.controls === 0,
+      "admin@'s own page has no disable or role controls",
+      JSON.stringify(self),
+    );
+    const selfPost = await p.evaluate(
+      `fetch(location.pathname + ".data", { method: "POST", credentials: "include", body: new URLSearchParams({ intent: "disable", reason: "x" }) }).then((r) => r.text())`,
+    );
+    check(
+      selfPost.includes("You can't do that to your own account."),
+      "and posting a disable of itself is refused",
+      selfPost.slice(0, 200),
+    );
+
+    const s = await open(9874, "support-access");
+    await s.signIn("support@example.com", PASSWORD, { home: true });
+    await s.goto(`/admin/users/${roleUserId}`);
+    await s.waitFor(q('[data-user-section="account"]'), 20000);
+    check(
+      !(await s.evaluate(`Boolean(${q('[data-user-section="admin"]')})`)),
+      "support@ sees no disable or role controls",
+    );
+    const status = await s.evaluate(
+      `Promise.all(["disable", "enable", "setRole"].map((intent) => fetch(location.pathname, { method: "POST", credentials: "include", body: new URLSearchParams({ intent, reason: "x", role: "admin" }) }).then((r) => r.status)))`,
+    );
+    check(
+      status.every((code) => code === 404),
+      "and posting them is a 404",
+      JSON.stringify(status),
+    );
+    check(
+      psql(`SELECT role || ',' || (disabled_at IS NULL) FROM "user" WHERE id = '${roleUserId}'`) ===
+        "member,true",
+      "the account is unchanged",
+    );
   });
 } catch (error) {
   failed++;
