@@ -122,7 +122,7 @@ try {
   );
 
   const reachedApp = await p
-    .waitFor(`location.pathname.startsWith("/app") && !document.querySelector("#email")`, 20000)
+    .waitFor(`location.pathname.startsWith("/app") && !document.querySelector('input[name="email"]')`, 20000)
     .then(
       () => true,
       () => false,

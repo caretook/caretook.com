@@ -5,7 +5,7 @@ import type { Route } from "./+types/route";
 import { ATTESTATION_TEXT, CONSENT_TEXT, SHARED_WITH_MEMBERS } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { Form, Link, redirect, useNavigation } from "react-router";
-import { Field } from "~/components/ui";
+import { Field } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/accountUrls";
 import { appUrls } from "~/lib/appUrls";
 import { authClient } from "~/lib/auth-client";

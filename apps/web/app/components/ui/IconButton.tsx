@@ -12,6 +12,8 @@ import { Link } from "react-router";
  * `controls`); `ref` reaches the button, to return focus to it.
  * With `to` instead of `onPress` it's a link that looks the same (loaded
  * ahead with `prefetch="render"`, so it opens offline too).
+ * `size="md"` is the larger button with a larger icon (a page header's menu
+ * button); the default is small.
  */
 export function IconButton({
   label,
@@ -23,12 +25,15 @@ export function IconButton({
   controls,
   ref,
   to,
+  size = "sm",
   className = "",
 }: {
   label: string;
   icon: LucideIcon;
   /** Not available now (a Move up on the first row). */
   disabled?: boolean;
+  /** `sm` (the default) or `md`. */
+  size?: "sm" | "md";
   /** Classes for the button (the outer element), such as `join-item`. */
   className?: string;
 } & (
@@ -51,6 +56,8 @@ export function IconButton({
       ref?: never;
     }
 )) {
+  const box = size === "md" ? "btn-square" : "btn-sm btn-square";
+  const iconSize = size === "md" ? "size-6" : "size-4";
   const tone =
     pressed === undefined ? "btn-ghost" : pressed ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100";
   if (to !== undefined)
@@ -60,9 +67,9 @@ export function IconButton({
         prefetch="render"
         aria-label={label}
         title={label}
-        className={`btn btn-sm btn-square btn-ghost ${className}`}
+        className={`btn ${box} btn-ghost ${className}`}
       >
-        <Icon className="size-4" aria-hidden="true" />
+        <Icon className={iconSize} aria-hidden="true" />
       </Link>
     );
   return (
@@ -76,9 +83,9 @@ export function IconButton({
       aria-controls={controls}
       title={label}
       onClick={onPress}
-      className={`btn btn-sm btn-square ${tone} ${className}`}
+      className={`btn ${box} ${tone} ${className}`}
     >
-      <Icon className="size-4" aria-hidden="true" />
+      <Icon className={iconSize} aria-hidden="true" />
     </button>
   );
 }
