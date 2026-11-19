@@ -808,7 +808,9 @@ try {
 
     const timelineUrl = (search = "") => `/app/groups/${DEV_FAMILY}/timeline${search}`;
     const rows = (p) =>
-      p.evaluate(`[...document.querySelectorAll("[data-view] > li")].map((li) => li.textContent)`);
+      p.evaluate(
+        `[...document.querySelectorAll("[data-view] > li:not([data-marker])")].map((li) => li.textContent)`,
+      );
     const waitRows = async (p, test, ms = 10000) => {
       const end = Date.now() + ms;
       let last = [];
@@ -1068,8 +1070,8 @@ try {
         const after = text[at + m.textContent.length] ?? " ";
         return { text: m.textContent, whole: !/[\\p{L}\\p{N}]/u.test(before + after) };
       })`);
-    const noteRow = `[...document.querySelectorAll("[data-view] > li")].find((li) => li.textContent.includes(${JSON.stringify(`${tag} visit note`)}))`;
-    const symptomRow = `[...document.querySelectorAll("[data-view] > li")].find((li) => li.textContent.includes(${JSON.stringify(`${hl} sore knee`)}))`;
+    const noteRow = `[...document.querySelectorAll("[data-view] > li:not([data-marker])")].find((li) => li.textContent.includes(${JSON.stringify(`${tag} visit note`)}))`;
+    const symptomRow = `[...document.querySelectorAll("[data-view] > li:not([data-marker])")].find((li) => li.textContent.includes(${JSON.stringify(`${hl} sore knee`)}))`;
 
     // The timeline, rows at 420.
     await A.goto(`/app/groups/${DEV_FAMILY}/timeline?q=${hl}`);
@@ -1287,7 +1289,9 @@ try {
     // The timeline's search mode.
     const timelineUrl = (search) => `/app/groups/${DEV_FAMILY}/timeline${search}`;
     const rows = (p) =>
-      p.evaluate(`[...document.querySelectorAll("[data-view] > li")].map((li) => li.textContent)`);
+      p.evaluate(
+        `[...document.querySelectorAll("[data-view] > li:not([data-marker])")].map((li) => li.textContent)`,
+      );
     const waitRows = async (p, test, ms = 10000) => {
       const end = Date.now() + ms;
       let last = [];

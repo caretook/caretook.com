@@ -761,13 +761,19 @@ async function pass(p, width, scheme) {
     name: "Care groups",
     checked: await p.evaluate(`${GROUP}.textContent.trim()`),
     roles: {
-      name: "group radios, then the recipient's profile, Group settings and New care group",
-      test: (r) =>
-        r.length >= 5 &&
-        r.slice(0, -3).every((t) => t.startsWith("menuitemradio:")) &&
-        /^menuitem:.+'s profile$/.test(r.at(-3)) &&
-        r.at(-2) === "menuitem:Group settings" &&
-        r.at(-1) === "menuitem:New care group",
+      // A current care period adds "Now: …" after the groups (care-periods); its own check covers it.
+      name: "group radios, then the recipient's profile, Group settings, Care periods and New care group",
+      test: (r) => {
+        const items = r.filter((t) => !t.startsWith("menuitem:Now: "));
+        return (
+          items.length >= 6 &&
+          items.slice(0, -4).every((t) => t.startsWith("menuitemradio:")) &&
+          /^menuitem:.+'s profile$/.test(items.at(-4)) &&
+          items.at(-3) === "menuitem:Group settings" &&
+          items.at(-2) === "menuitem:Care periods" &&
+          items.at(-1) === "menuitem:New care group"
+        );
+      },
     },
     shot: shot("group"),
   });

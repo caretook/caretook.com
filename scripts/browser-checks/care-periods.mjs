@@ -1032,11 +1032,12 @@ async function groupMenuSteps(p) {
   const nowItem = items.find((t) => t.startsWith("Now: "));
   const at = items.indexOf(nowItem);
   check(
-    'the open menu has "Now: … · day N" first after the groups, then Group settings, then Care periods',
+    'the open menu has "Now: … · day N" first after the groups, then the profile, Group settings and Care periods',
     !!nowItem &&
       /^Now: .+ · day \d+$/.test(nowItem) &&
-      items[at + 1] === "Group settings" &&
-      items[at + 2] === "Care periods",
+      /'s profile$/.test(items[at + 1]) &&
+      items[at + 2] === "Group settings" &&
+      items[at + 3] === "Care periods",
     JSON.stringify(items),
   );
   await p.tap(menuItemStarting("Now: "));
@@ -1106,6 +1107,8 @@ async function groupMenuSteps(p) {
       louNowItem === "Now: In rehab · day 1",
     JSON.stringify({ made, louNow, louNowItem }),
   );
+  // Dev Family 2 goes back to no periods, which the timeline's prompt step needs.
+  if (made.ok) await onDevice(p, `return periods.removeCarePeriod(db, ${JSON.stringify(made.id)});`);
 
   // Back to Dev Family: its own period, never Grandpa Lou's.
   await openGroupMenu(p);
