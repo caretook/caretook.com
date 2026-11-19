@@ -1,3 +1,4 @@
+import { createServer } from "node:net";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
@@ -18,6 +19,19 @@ import { defineConfig } from "vitest/config";
 //                React dedupes), and the test device (apps/web/test/device.tsx),
 //                a local-only PowerSync database with fixtures. Chromium comes
 //                from `pnpm test:components:install` (once per machine).
+// A free port for the component tests' browser server: Vitest's default
+// (23315) is fixed, so two worktrees running component tests at once clash.
+const freePort = () =>
+  new Promise<number>((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address() as { port: number };
+      server.close(() => resolve(port));
+    });
+  });
+const browserPort = await freePort();
+
 export default defineConfig({
   test: {
     projects: [
@@ -77,6 +91,7 @@ export default defineConfig({
             instances: [{ browser: "chromium" }],
             viewport: { width: 420, height: 900 },
             screenshotFailures: false,
+            api: { port: browserPort },
           },
         },
       },
