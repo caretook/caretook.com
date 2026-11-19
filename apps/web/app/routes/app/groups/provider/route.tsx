@@ -9,7 +9,7 @@ import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { BackLink } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
-import { PROVIDER_SHEET_STATE } from "~/routes/app/groups/providers/providerSheet";
+import { PROVIDER_SHEET_STATE } from "~/lib/providerSheetLink";
 import { sessionContext } from "~/lib/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { providerQuery, toProvider } from "~/lib/sync/providers";
