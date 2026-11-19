@@ -14,13 +14,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): done | (none) | `entry.tsx`, `EntryHeader`, `TimelineEntryRow`/`Card`, `timeline.tsx` |
 | `quick-fixes`     | (no PRD: one slice per fix)                                  | (none)                                               | `sign-in.tsx`, `timeline.tsx`                                               |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
-| `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices; 1–3 in `dev` (wave 1). **Paused:** slices 4–7 resume after `routing` and `components` land | `live-notes-ux` (done), `app-shell` (done); slices 4–7 wait for `routing` and `components` | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
+| `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices; 1–3 in `dev` (wave 1). **Paused:** slices 4–7 are ready to replan now that `routing` and `components` are done (paging lives in `useTimelineData`) | `live-notes-ux` (done), `app-shell` (done), `routing` (done), `components` (done) | the timeline route folder (`useTimelineData`, `TimelineEntryList`, `EntryBody`, rows and cards), `TimelineFilters`, `LatestVitals` |
 | `search`          | to write | `timeline-polish`'s infinite scroll (slice 7, after `routing` and `components`) | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx` |
 | `providers`       | [PRD](providers-prd.md), [plan](providers-plan.md): 7 slices, not started; slice 1 (data) can run now | slice 1: none; 2: `routing` 1; 3: `routing` 2; 5–7 (linking): `components` 2–4 | new tables `provider`, `timeline_entry_provider`; a `note_document` change (reseed); sync config, upload switch, permissions, device schema, seeds; `GROUP_SECTIONS`, `routes.ts`, the entry header, timeline row/card body |
 | `medications`     | planned (6 slices) | `providers` slice 1 (data); `routing` (screens); `components` (primitives, soft) | `TIMELINE_ENTRY_KINDS`, `KIND_META`, timeline strips and quick add, `care_recipient`, `note_document`, sync and upload registries, `GROUP_SECTIONS`, `routes.ts` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started. **Runs next** | `app-shell` (done), `timeline-polish` wave 1 (in `dev`; its slices 4–7 wait for this) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
-| `components`      | [PRD](components-prd.md), [plan](components-plan.md): 6 slices, not started. Runs after `routing`, before `timeline-polish` slices 4–7 | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
+| `components`      | [PRD](components-prd.md), [plan](components-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `ca39416`) | `routing` (done) | none now; new UI uses `components/ui/` and the feature folders (AGENTS.md, _Components_) |
 | `invites`         | [PRD](invites-prd.md), [plan](invites-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 3 uses `routing` slice 5 (Members subpage) if in `dev` | a new `packages/notifications`; Better Auth config; `care_group_invite` + new tables; `PERMISSIONS`, `db/schema/index.ts`, the router, `routes.ts`; group settings Members; the group menu; `/app` home; `sign-in.tsx`; env examples and `scripts/loops/lib.sh` |
 | `marketing`       | [PRD](marketing-prd.md), [plan](marketing-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 4: `invites` 1 (outbox); slice 5: `invites` 5 (`/admin`) | web-only marketing routes in `routes.ts`, `react-router.config.ts` (prerender), `root.tsx` (icons, meta), a new public folder; `PERMISSIONS`, `db/schema/index.ts`, the router, `NOTIFICATIONS`, the admin nav |
 
@@ -32,18 +32,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | -- | ---- | ------ | --- | ----- | ----- |
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | landed | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
-| B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
+| B-3 | change | in-progress | timeline-polish | prd/timeline-polish | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
-| B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
+| B-6 | change | in-progress | timeline-polish | prd/timeline-polish | Tap an entry's author initials to filter by that author |
 | B-7 | change | landed | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
-| B-13 | plan | ready | providers | prd/providers | Provider directory with search, linked from events |
-| B-14 | plan | triaged | providers |  | Provider links and suggestions while writing events and live notes |
+| B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
+| B-14 | plan | landed | providers | prd/providers | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
@@ -52,24 +52,26 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-20 | chore | landed | live-notes-ux | prd/live-notes-ux | Browser check overhaul and documentation (live notes slice 10) |
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
-| B-23 | change | ready | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
-| B-24 | change | in-progress | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
+| B-23 | change | landed | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
+| B-24 | change | landed | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
-| B-27 | bug | ready | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
-| B-28 | chore | ready | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
-| B-29 | chore | ready | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
-| B-30 | plan | triaged | invites |  | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
+| B-27 | bug | landed | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
+| B-28 | chore | landed | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
+| B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
+| B-30 | plan | in-progress | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
-| B-34 | change | ready | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
-| B-35 | bug | ready | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
-| B-36 | chore | ready | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
-| B-37 | bug | inbox |  |  | Deleting a practice leaves its clinicians linked to it |
-| B-38 | bug | triaged | quick-fixes |  | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
-| B-39 | chore | triaged | quick-fixes |  | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
+| B-34 | change | landed | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
+| B-35 | bug | landed | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
+| B-36 | chore | landed | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
+| B-37 | bug | landed | quick-fixes | prd/quick-fixes | Deleting a practice leaves its clinicians linked to it |
+| B-38 | bug | landed | quick-fixes | prd/quick-fixes | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
+| B-39 | chore | landed | quick-fixes | prd/quick-fixes | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
+| B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
+| B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
 
 ## Items
 
@@ -98,9 +100,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-3 · change · Wider timeline entries on large screens, still mobile-first
 
-- status: triaged
+- status: in-progress
 - prd: timeline-polish
-- owner:
+- owner: prd/timeline-polish
 - commit:
 
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Full width at lg+, entry text capped ~75ch; cards in a 2–3 column grid.
@@ -133,9 +135,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-6 · change · Tap an entry's author initials to filter by that author
 
-- status: triaged
+- status: in-progress
 - prd: timeline-polish
-- owner:
+- owner: prd/timeline-polish
 - commit:
 
 - 2026-11-17 (dev keeper): A new `?author=` filter chip, beside `?kind=`.
@@ -221,7 +223,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-13 · plan · Provider directory with search, linked from events
 
-- status: ready
+- status: landed
 - prd: providers
 - owner: prd/providers
 - commit: 30f0d61
@@ -235,15 +237,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
-- status: triaged
+- status: landed
 - prd: providers
-- owner:
-- commit:
+- owner: prd/providers
+- commit: 1b1a039
 
 - 2026-11-17 (dev keeper): Tiptap mentions in the document, a field on the event, or both.
 - 2026-11-18 (Robert Bo Davis): PRD written (providers): timeline_entry_provider link table (pair-derived ids), With row on events and notes, picker with inline add, suggestions from title/text matches, title memory and recent links. No @-mentions.
 - 2026-11-18 (Robert Bo Davis): Planned: providers slices 5–7 (With row, suggestions, 'with …' on rows), after components slices 2–4 land.
 - 2026-11-18 (prd/providers): Providers orchestrator, end of session: slices 1–4 are in dev (slice 1 cc47b01, slices 2–4 5a2c8af); the plan's Status table in dev still says wave 2 is awaiting its go-ahead, but it landed. Slices 5–7 wait for components slices 2–4 in dev; then pnpm prd start providers, sync, and start slice 5. The prd/providers worktree was removed to free a PRD slot.
+- 2026-11-18 (slice/providers/5): slice 5 (With row, picker, linked entries) committed on slice/providers/5 (12722a3, 83b6249); providers.mjs 104/104, live-notes 93/93
+- 2026-11-18 (slice/providers/7): slice 7: timeline rows and cards show 'with <names>' (2 names, then +N, removed greyed) from one live query beside the entries; seeds: Pharmacy pickup has 2 providers, Primary care visit: Dr. Alvarez has 3
+- 2026-11-18 (slice/providers/6): slice 6 (suggestions) committed on slice/providers/6: suggestProviders in lib/providerSuggestions.ts, chips in the With row
 
 ### B-15 · plan · Medication list (current, past, discontinued), printable sheet, and tracking in the timeline
 
@@ -323,7 +328,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-23 · change · Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route
 
-- status: ready
+- status: landed
 - prd: routing
 - owner: prd/routing
 - commit: ff24df4
@@ -336,10 +341,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
-- status: in-progress
+- status: landed
 - prd: components
 - owner: prd/components
-- commit:
+- commit: 61fe082
 
 - 2026-11-18 (Robert Bo Davis): From the inbox: Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/components-prd.md. Four waves: UI primitives, timeline, entry page, then forms/shell/settings. Browser checks + pure unit tests, no new deps. Runs after routing.
@@ -348,6 +353,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/providers): From the providers orchestrator: providers wave 2 (slices 2–4, the directory) lands without a full-suite run under the new `pnpm prd browser` harness (quick-fixes B-28/B-29 synced in at the last moment). Its full suite passed on the old harness (only routing.mjs's B-27 step failed). During components' checks, run the full suite with `pnpm prd browser --suite` and confirm providers.mjs (85 steps) passes under the new harness. Also: slice 4 moved LiveNotesEditor, EditorAvatars, ContactActions and ProviderTypeIcon into components/; provider sheets import EntrySheet from routes/app/groups/timeline/ and should get it from components/.
 - 2026-11-18 (slice/components/1): components slice 1 committed on slice/components/1 (a071d12, 4c18db3): ui/Menu primitive, feature folders, one EntryActions; ui.mjs added.
 - 2026-11-18 (prd/components): Wave 1 (slice 1) landed in dev as 414b0a6: ui/Menu for every menu, shared components in feature folders (ui, entry, forms, notes, providers, settings, shell) imported through each index.ts, one EntryActions menu. Other PRDs: sync dev at your next wave boundary; new UI uses ui/ and the folders (AGENTS.md, Components). Slice 2 (sheets, popovers, dialogs, avatars, chips, fields) is next.
+- 2026-11-18 (slice/components/2): slice 2 ready on slice/components/2 (a2c2bd1): sheet, popover, field, chip group, avatar stack, icon button in ui/; DateTimeField in ui/date; forms/ removed
+- 2026-11-18 (prd/components): Wave 2 (slice 2) landed in dev as 666ebf9: ui/ primitives Sheet, Popover, ConfirmDialog, Field, ChipGroup, UserAvatar(size), AvatarStack, IconButton; DateTimeField moved to ui/date/ (own index); components/forms/ removed; only ui/ imports react-aria-components. Other PRDs: sync dev at your next wave boundary and build new UI on these. Slices 3 and 4 start now.
+- 2026-11-18 (slice/components/4): components slice 4 (03cde5a): entry page split into loadEntry, useLiveEntry, EntryPageHeader, EntryTitleRegion; LiveNotesEditor focus handle; live-notes 93/93, providers 85/85, ui 577/577
+- 2026-11-18 (prd/components): Wave 3 (slices 3 and 4) landed in dev as 511cbed: the timeline route only composes (useTimelineData with paging, useTimelineView, useEntryRemoval, TimelineEntryList, shared EntryBody); the entry route only composes (useLiveEntry, loadEntry, EntryPageHeader, EntryTitleRegion); LiveNotesEditor has a focus handle. Slices 5 (entry form) and 6 (settings, header, written rules) remain. Other PRDs: sync dev at your next wave boundary; avoid routes/app/groups/timeline/ EntryForm and the settings routes until components lands 5 and 6.
+- 2026-11-18 (prd/components): Wave 4 (slice 5) landed in dev as 2c924db: the entry form is a shell plus per-kind field components (EntryKindPicker, SymptomFields, VitalReadingsFields, VitalReadingRow, VitalField); ui/Field has a warning line; adding a vital type stays spec-only. Slice 6 (settings, header, provider screens on the primitives; the written rules) is running.
+- 2026-11-18 (slice/components/6): slice 6 handed off (23812bf, 60830bc, 011bdd2): settings, providers and entry page on the primitives; ChoiceGroup and BackLink added to ui/; ui.mjs covers settings and joins the suite.
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
@@ -370,7 +381,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-27 · bug · routing.mjs fails: group settings blank after the entry step; account Sign out flaky
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: e6fc148
@@ -386,7 +397,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-28 · chore · Limit browser checks machine-wide: a lock so at most two run at once
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 8eaf3c3
@@ -398,7 +409,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-29 · chore · Restart PowerSync inside datastore:reset, and fix the flakes it causes
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 8eaf3c3
@@ -409,14 +420,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-30 · plan · Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset
 
-- status: triaged
+- status: in-progress
 - prd: invites
-- owner:
+- owner: prd/invites
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/invites-prd.md, plans/invites-plan.md (5 slices; slice 1, the notifications package and outbox, can start now). New deps approved: resend, @react-email/components, @react-email/render, qrcode.
 - 2026-11-18 (slice/marketing/3): invites slice 3: the consent screen must link to /privacy and /health-data-privacy (marketing slice 3)
+- 2026-11-18 (slice/invites/1): invites slice 1 on slice/invites/1 (f1f6dc2, fe08cda, 36520d6): @caretook/notifications, outbox + dev_mail (migration 0009), /api/cron/outbox, /dev/mail. Dropped @react-email/components (deprecated on npm); templates use @react-email/render only.
+- 2026-11-18 (slice/invites/3): slice 3 (email invites with consent) built on slice/invites/3: migration 0010_email_invites, invite.* oRPC, /invite/:token, Members Invite sheet and Pending list. Not synced: invites and consent are read through oRPC; care_group_member gains synced invited_by and created_at.
+- 2026-11-18 (slice/invites/5): invites slice 5 ready on slice/invites/5 (649c1ab, 5eb7b6f): careGroup.create + New care group sheet, Invite someone card, access codes + /join/:code, /admin (codes, print QR, staff group + ownerInvite). Migration 0011_access_codes to regenerate after slice 4.
+- 2026-11-18 (slice/invites/4): slice 4 (invite links, join requests) committed on slice/invites/4: a413fd9, cc04093; migration 0011_link_invites
+- 2026-11-18 (prd/providers): invites.mjs hung (no output for 8+ min, load ~6) in step 6-7 (existing account joins from the link) during prd/providers' landing suite on 2026-11-18; a rerun passed 67/67. Its waits there have no timeout, so a hang never fails. Needs a timeout on those waits.
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 
@@ -448,7 +464,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-34 · change · Date picker for the When field: a calendar to pick the date, not only typed segments
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 483f768
@@ -458,7 +474,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-35 · bug · A practice's type can change to clinician or other while clinicians still point at it
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: e6fc148
@@ -468,7 +484,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-36 · chore · Independent integration tests: no shared group across describe blocks
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: e6fc148
@@ -478,31 +494,37 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-37 · bug · Deleting a practice leaves its clinicians linked to it
 
-- status: inbox
-- prd:
-- owner:
-- commit:
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 9c08e01
 
 - 2026-11-18 (prd/quick-fixes): Found in B-35 (quick-fixes slice 8). A soft-deleted practice stays as its clinicians' practice_id; their edit sheet shows '(removed practice)' and saving keeps it (the practice check runs only when practiceId changes). Decide: refuse the delete while clinicians name it, or clear their links.
+- 2026-11-18 (prd/quick-fixes): Decided with the user: refuse the soft delete while live providers name the practice (409 providerService:practiceHasProviders, server and device), mirroring B-35; never clear the clinicians' links. Spec is quick-fixes slice 14 in plans/quick-fixes-plan.md (on prd/quick-fixes).
+- 2026-11-18 (slice/quick-fixes/14): slice 14 (cf1f804): delete refused with 409 providerService:practiceHasProviders while live providers name it; device refuses too; edit sheet confirm shows the count with Delete disabled
 
 ### B-38 · bug · Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect
 
-- status: triaged
+- status: landed
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 94ce803
 
 - 2026-11-18 (Robert Bo Davis): Found 2026-11-18 running checks against pnpm prd serve --built (a check build, VITE_CHECK_BUILD=1) in a throwaway worktree: providers.mjs failed 'a deleted provider's URL is the 404, with no names' (main empty, body '') and on the retry 'a viewer gets no Add; …/providers/new and …/:id/edit show the list with no form' (path stayed …/providers/new); phase2.mjs failed on '[viewer console.warning] [PowerSync]: Sync aborted'. Both passed against the dev server right after. Could be real production bugs (the 404 and redirect paths) or check timing under a faster server. Fix, then make --built the default for checks (AGENTS.md, Browser check budget).
 - 2026-11-18 (Robert Bo Davis): Planned as quick-fixes slice 11 (find the cause of each failure, then make the check build the default).
+- 2026-11-18 (slice/quick-fixes/11): Root cause (slice 11): the back/forward cache. On a full load the old /app page is frozen in Chrome's bfcache instead of unloaded; PowerSync's shared workers only drop a page when its tab-close-signal Web Locks are released, so they keep waiting on the frozen page's database connection (often mid-transaction) and the next page's openSync never resolves: blank page, router not initialized, no errors. Evidence: hangs happened exactly when the previous page was bfcached (marker survives Back), 0 hangs with --disable-features=BackForwardCache; a probe that holds a write transaction then full-loads hung 1/5, 2/8, 1/8 before and 0/12, 0/20 after the fix. The dev server never shows it: Vite's HMR websocket keeps pages out of bfcache (0/6 cached on dev, about 1/3 on the build). Fix: lib/sync/pageCache.ts releases PowerSync's page-lifetime locks on pagehide(persisted) and reloads on pageshow(persisted). 'Sync aborted' is the shared sync worker's teardown log for a page that closed, broadcast to the next page: expected, now ignored by the checks.
+- 2026-11-18 (slice/quick-fixes/11): slice 11 done on slice/quick-fixes/11 (tip 7da2c38): lib/sync/pageCache.ts fix; checks fixed for the build (per-page x-forwarded-for for Better Auth's production rate limits, tap waits for its target to stop moving, Escape waits for menu focus, picker focus return, 'Sync aborted' ignored); pnpm prd browser now defaults to a check build (--dev opts out). Full suite and dev/build timing deferred to the orchestrator's landing run.
 
 ### B-39 · chore · Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode
 
-- status: triaged
+- status: landed
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 9c08e01
 
 - 2026-11-18 (Robert Bo Davis): Item 5 of the 2026-11-18 testing-churn plan (5804ae4 did items 1-4). phase2.mjs (107 steps) and app-shell.mjs (98) assert pure logic that now has unit tests. Keep checks to user flows, and give each a SMOKE=1 mode (~20 s) for after-merge runs. Run after components wave 2 lands: it reworks the same checks.
+- 2026-11-18 (prd/quick-fixes): components slice 5 (the entry form, split) is still pending, so slice 10 leaves roundtrip.mjs's sheet steps as they are apart from the smoke markers; revisit them after components 5 lands.
+- 2026-11-18 (slice/quick-fixes/10): Slice 10 committed on slice/quick-fixes/10 (1870973, 9e7d83b): --smoke mode, five checks leaner (full 311 s -> 219 s quiet, smoke 4-7 s each). One full + one smoke run each, per the user's instruction.
 
 ### B-40 · chore · Real app screenshots for the marketing site before launch
 
@@ -512,3 +534,25 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/marketing): The marketing site shows SVG placeholders (apps/web/public/screenshots/<name>.svg) to keep the repo small while the app's screens change. Before launch: run scripts/browser-checks/marketing-screenshots.mjs on a freshly reset stack (CARETOOK_BROWSER_SLOTS=4 pnpm prd browser marketing-screenshots --timeout 300), commit the WebP images, and point site/screenshots.ts and the Screenshot component back at them (light and dark sources, srcset).
+
+### B-41 · bug · /app stays blank after a full reload (app-shell.mjs last-group steps)
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 94ce803
+
+- 2026-11-18 (prd/quick-fixes): Seen in quick-fixes waves 3 and 4: after A.goto('/app') reloads, the page has no main and an empty body for 20 s, with no uncaught errors (page.diagnose()). It failed 4 of the last 5 app-shell.mjs runs at load 6–30, at either the 'goes to the last group after a reload' or the 'stale remembered group' step. It isn't a check race: waiting for GroupMenu's rememberGroup write before overwriting caretook:lastGroup didn't help. Probably session or sync startup on reload (requireSession/openSync, the DB lock from the previous page?). Triaged to quick-fixes as a candidate slice 12.
+- 2026-11-18 (slice/quick-fixes/11): slice 11 (B-38): providers.mjs's two build failures are this same hang, on the built server: after a full load (C.goto) of …/providers/<deleted id> or …/providers/new, body '' and no main, router state.initialized false, window.caretookSync unset (openSync never resolved), no Web Locks held or pending, no errors, for 20+ s. Reproduced 1 in 8 full loads in a throwaway loop (viewer: provider page, then full load of a deleted provider). So B-38's blank 404 and missing redirect are B-41's startup hang, not the 404 or guard code; slice 11 leaves the fix to slice 12.
+- 2026-11-18 (slice/quick-fixes/11): slice 11 found B-38's blank pages are the back/forward cache freezing the previous page with PowerSync's locks held (see B-38's note); fixed in lib/sync/pageCache.ts on slice/quick-fixes/11. On the dev server pages didn't enter bfcache in my tests (Vite's websocket), so B-41 on dev may be a different cause, but worth retesting app-shell.mjs with slice 11 merged.
+- 2026-11-18 (slice/quick-fixes/12): Root cause: every full load put the old page in Chrome's back/forward cache (pagehide persisted, then freeze) with its PowerSync connection open. Frozen mid-query, its DB lease was never returned (worker log: 'Closing connection lease that hasn't been returned' 7-13 s later, on eviction), so the next page's powersync.init() waited and /app stayed blank. Fix in lib/sync/client.ts (startup, not sign-out teardown): close the DB on a persisted pagehide, reload on a persisted pageshow. Also fixed app-shell.mjs's stale-group step racing GroupMenu's remember effect. Slice 11: the frozen page's close can log PowerSync's 'error closing database connection' in the shared worker. 41b5bcb, d75e3ba.
+
+### B-42 · change · App header uses the brand: the logo mark and wordmark, and the marketing header's look
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 94ce803
+
+- 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 12. The app header's plain 'Caretook' text link becomes the marketing LogoMark + wordmark (mark only on phones in a group, to keep one row at 420), with the marketing header's border, translucent background and height. LogoMark/Wordmark move to components/brand/ so both use one copy. Not the marketing nav, waitlist button or disclosure menu; not sticky.
+- 2026-11-18 (Robert Bo Davis): Quick-fixes slice 13 (slice 12 is B-41 on prd/quick-fixes).

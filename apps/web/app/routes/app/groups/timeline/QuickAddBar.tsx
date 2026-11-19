@@ -3,8 +3,10 @@ import type { SheetKind } from "~/lib/appUrls";
 import type { LiveEntryKind } from "~/lib/liveEntry";
 
 import { ChevronDown } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
+import { appUrls } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
+import { SHEET_LINK_STATE } from "./sheet";
 import { VitalTypeMenu } from "./VitalTypeMenu";
 
 const TILES = [
@@ -18,21 +20,18 @@ const TILE = "btn btn-ghost h-auto min-h-12 flex-col gap-0.5 px-1 py-1.5 text-xs
 /**
  * One tap to start an entry of a given kind: Note, Symptom, Event, or a vital
  * type from the Vitals menu. Four equal tiles, so it stays one row on phones.
- * Every tile is a link: notes and events to their page (`newEntryUrl`),
- * symptoms and vitals to the add sheet over the timeline (`newSheetUrl`,
- * which keeps the scroll position and carries `sheetLinkState`). The sheet's
- * route module is fetched as soon as the bar renders, so it opens offline.
+ * Every tile is a link: notes and events to their page, symptoms and vitals
+ * to the add sheet over the timeline (which keeps the scroll position and the
+ * filters, and carries `SHEET_LINK_STATE`). The sheet's route module is
+ * fetched as soon as the bar renders, so it opens offline.
  */
-export function QuickAddBar({
-  newEntryUrl,
-  newSheetUrl,
-  sheetLinkState,
-}: {
-  newEntryUrl: (kind: LiveEntryKind) => string;
-  newSheetUrl: (kind: SheetKind, type?: VitalType) => string;
-  sheetLinkState: object;
-}) {
+export function QuickAddBar({ groupId }: { groupId: string }) {
   const navigate = useNavigate();
+  const { search } = useLocation();
+  const newEntryUrl = (kind: LiveEntryKind) => appUrls.newEntry(groupId, kind);
+  const newSheetUrl = (kind: SheetKind, type?: VitalType) =>
+    appUrls.newSheet(groupId, kind, { type, search });
+  const sheetLinkState = SHEET_LINK_STATE;
   return (
     <div
       role="group"

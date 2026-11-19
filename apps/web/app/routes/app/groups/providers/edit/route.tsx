@@ -6,13 +6,18 @@ import type { ProviderRow } from "~/lib/sync/providers";
 import { useEffect, useMemo, useState } from "react";
 import { redirect, useFetcher } from "react-router";
 import { isPracticeType } from "@caretook/data/schema";
-import { ConfirmDialog } from "~/components/ui";
 import { formString } from "~/lib/form";
 import { getGroup } from "~/lib/group";
 import { sessionContext } from "~/lib/session";
-import { providerQuery, removeProvider, toProvider, updateProvider } from "~/lib/sync/providers";
+import {
+  deleteBlockedNote,
+  providerQuery,
+  removeProvider,
+  toProvider,
+  updateProvider,
+} from "~/lib/sync/providers";
 import { readRows } from "~/lib/sync/timeline";
-import { EntrySheet } from "~/components/forms";
+import { ConfirmDialog, Sheet } from "~/components/ui";
 import { ProviderForm } from "../ProviderForm";
 import { issuesForRows, providerFromForm } from "../providerFormData";
 import { useCloseProviderSheet, useProvidersOutlet } from "../providerSheet";
@@ -68,6 +73,11 @@ export default function EditProviderSheet({ loaderData }: Route.ComponentProps) 
   const remover = useFetcher<ActionResult>();
   const [confirming, setConfirming] = useState(false);
   const practices = useMemo(() => providers.filter((p) => isPracticeType(p.type)), [providers]);
+  // A practice that live providers name can't be deleted (the device and the server refuse it).
+  const blocked = deleteBlockedNote(
+    provider.type,
+    providers.filter((p) => p.practiceId === provider.id).length,
+  );
 
   // Deleted: the list no longer has it, so close the sheet.
   useEffect(() => {
@@ -76,7 +86,7 @@ export default function EditProviderSheet({ loaderData }: Route.ComponentProps) 
   const refusal = remover.state === "idle" && remover.data && !remover.data.ok ? remover.data.error : null;
 
   return (
-    <EntrySheet isOpen onOpenChange={(open) => !open && close()} title={`Edit ${provider.name}`}>
+    <Sheet isOpen onOpenChange={(open) => !open && close()} title={`Edit ${provider.name}`}>
       <ProviderForm
         key={provider.id}
         provider={provider}
@@ -90,19 +100,18 @@ export default function EditProviderSheet({ loaderData }: Route.ComponentProps) 
           {refusal}
         </p>
       )}
-      {/* Escape closes only the confirm, not the sheet under it. */}
-      <div onKeyDown={(e) => e.key === "Escape" && e.stopPropagation()} role="presentation">
-        <ConfirmDialog
-          open={confirming}
-          title={`Delete ${provider.name}?`}
-          confirmLabel="Delete"
-          onConfirm={() => {
-            setConfirming(false);
-            void remover.submit({ intent: "remove" }, { method: "post" });
-          }}
-          onClose={() => setConfirming(false)}
-        />
-      </div>
-    </EntrySheet>
+      <ConfirmDialog
+        open={confirming}
+        title={`Delete ${provider.name}?`}
+        confirmLabel="Delete"
+        message={blocked}
+        confirmDisabled={!!blocked}
+        onConfirm={() => {
+          setConfirming(false);
+          void remover.submit({ intent: "remove" }, { method: "post" });
+        }}
+        onClose={() => setConfirming(false)}
+      />
+    </Sheet>
   );
 }

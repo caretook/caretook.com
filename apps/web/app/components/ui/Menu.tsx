@@ -16,6 +16,7 @@ import {
 } from "react-aria-components";
 import { useHref, useNavigate } from "react-router";
 import { chosenKey, normalizeMenu, sectionName } from "./menuModel";
+import { SURFACE } from "./styles";
 
 const WIDTH = { sm: "w-44", md: "w-56", lg: "w-64" } as const;
 const ITEM =
@@ -69,7 +70,7 @@ export function Menu({
         </Button>
         <Popover
           placement={placement}
-          className={`rounded-box border-base-300 bg-base-100 border shadow-lg ${scrollable ? "max-h-80 overflow-y-auto" : ""}`}
+          className={`${SURFACE} ${scrollable ? "max-h-80 overflow-y-auto" : ""}`}
         >
           <AriaMenu aria-label={menuLabel} className={`menu ${WIDTH[width]} outline-none`}>
             {entries.map((entry) =>

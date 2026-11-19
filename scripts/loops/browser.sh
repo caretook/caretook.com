@@ -7,9 +7,15 @@
 #   browser.sh --suite [--timeout S]           every check in $suite, one at a time, then a table
 #   browser.sh --changed [--base REF] [--list] only the checks the changed files need
 #                                              (scripts/loops/check-areas), then a table
+#   browser.sh --dev …                         any of the above, against the dev server
+#   browser.sh --smoke …                       any of the above in smoke mode (SMOKE=1): each check
+#                                              runs only its core path (cdp.mjs step()); without
+#                                              it, checks run in full (SMOKE=0)
 #
-# In a worktree that serves a check build (pnpm prd serve --built), a build
-# older than the source is rebuilt and restarted first.
+# In a .loops worktree with a stack, checks run against a check build (pnpm prd
+# serve --built): one is started when no server is running, swapped in for a
+# running dev server, and rebuilt and restarted when the source is newer than
+# the build. --dev keeps (or starts) the dev server instead.
 #
 # --changed diffs REF (default: $BASE_BRANCH from .env.loop, else origin/dev,
 # else dev) against the working tree: committed, staged, unstaged and untracked
@@ -44,15 +50,16 @@
 #
 # Env: CARETOOK_BROWSER_SLOTS (leases, default 4), CARETOOK_BROWSER_WAIT (s),
 # CARETOOK_BROWSER_SUITE (the suite, space or comma separated),
-# CARETOOK_BROWSER_PAUSE (s between suite checks, default 10: Better Auth allows
-# about 3 sign-ins per 10 s), CARETOOK_BROWSER_RETRY (0: no retry), CARETOOK_BROWSER_BUSY
+# CARETOOK_BROWSER_PAUSE (s between suite checks, default 2: Better Auth allows
+# about 3 sign-ins per 10 s per client IP, and cdp.mjs gives every page its own),
+# CARETOOK_BROWSER_RETRY (0: no retry), CARETOOK_BROWSER_BUSY
 # (the load that counts as busy, default 40).
 set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 
 # The full suite: every check in AGENTS.md's Browser check budget table.
-suite_default="phase2 roundtrip live-notes app-shell routing settings-layout layout-offline sign-in first-sync signout-wipe providers"
+suite_default="phase2 roundtrip live-notes app-shell routing settings-layout layout-offline sign-in first-sync signout-wipe providers invites ui"
 hangs=" signout-wipe.mjs layout-offline.mjs "
 hang_timeout=300
 # The line each never-exiting check prints last, once its work is done.
@@ -60,7 +67,7 @@ hang_done='^([0-9]+/[0-9]+ passed|errors: )'
 hang_grace=2
 wait_max=${CARETOOK_BROWSER_WAIT:-1200}
 poll=${CARETOOK_BROWSER_POLL:-5}
-pause=${CARETOOK_BROWSER_PAUSE:-10}
+pause=${CARETOOK_BROWSER_PAUSE:-2}
 retry=${CARETOOK_BROWSER_RETRY:-1}
 busy=${CARETOOK_BROWSER_BUSY:-40}
 # Log lines that mean contention more often than a bug.
@@ -68,9 +75,9 @@ transient='(timed out|Timed out|timeout|TIMEOUT| 401|401 |PSYNC_S2101|ECONNRESET
 # Checks run for a changed file no rule covers (check-areas).
 unmapped_default="sign-in phase2 roundtrip"
 
-usage() { sed -n '2,49p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,56p' "$0" | sed 's/^# \{0,1\}//'; }
 
-mode=one timeout="" check="" args=() base_ref="" head_ref="" list_only=""
+mode=one timeout="" check="" args=() base_ref="" head_ref="" list_only="" use_dev="" smoke=""
 while (($#)); do
   case $1 in
     --suite) mode=suite; shift ;;
@@ -80,6 +87,8 @@ while (($#)); do
     --head) head_ref=${2:?--head needs a ref}; shift 2 ;;
     --list) list_only=1; shift ;;
     --no-retry) retry=0; shift ;;
+    --dev) use_dev=1; shift ;;
+    --smoke) smoke=1; shift ;;
     --timeout) timeout=${2:?--timeout needs seconds}; shift 2 ;;
     --timeout=*) timeout=${1#*=}; shift ;;
     -h | --help) usage; exit 0 ;;
@@ -198,18 +207,37 @@ if [[ -f .env.loop ]]; then
   source .env.loop
   set +a
 fi
+# Full mode unless --smoke, whatever the shell has set.
+export SMOKE=$([[ -n $smoke ]] && echo 1 || echo 0)
 
-# fresh_build → when this worktree serves a check build (pnpm prd serve --built)
-# and the source is newer than it, rebuild and restart it, so checks never run
-# against stale code.
-fresh_build() {
-  [[ $(cat "$top/.serve-mode" 2>/dev/null) == built ]] || return 0
-  local newer
-  newer=$(cd "$top" && find apps/web/app apps/web/vite.config.ts apps/web/react-router.config.ts \
-    packages/*/src -type f -newer .serve-built 2>/dev/null | head -1)
-  [[ -z $newer && -f $top/.serve-built ]] && return 0
-  echo "The check build is older than the source (${newer:-no build yet}): rebuilding."
-  "$(dirname "$0")/serve.sh" "$here" --restart --built
+# ensure_server → the server the checks run against, in a .loops worktree with
+# a stack: a check build (pnpm prd serve --built), started if nothing runs,
+# swapped in for a dev server, and rebuilt when the source (or the env baked
+# into it) is newer than the build, so checks never run against stale code.
+# With --dev, the dev server instead. The main checkout's server is the user's:
+# left alone.
+ensure_server() {
+  [[ $here != main && -n $(web_port "$top") ]] || return 0
+  local serve newer
+  serve=$(dirname "$0")/serve.sh
+  if [[ -n $use_dev ]]; then
+    "$serve" "$here" --dev
+    return
+  fi
+  if [[ $(cat "$top/.serve-mode" 2>/dev/null) == built && -n $(server_pids "$(web_port "$top")") ]]; then
+    newer=$(cd "$top" && find apps/web/app apps/web/public apps/web/vite.config.ts apps/web/react-router.config.ts \
+      apps/web/build-target.ts apps/web/package.json apps/web/.env packages/*/src packages/*/package.json \
+      pnpm-lock.yaml -type f ! -name '*.test.ts' -newer .serve-built 2>/dev/null | head -1)
+    if [[ -z $newer && -f $top/.serve-built ]]; then
+      "$serve" "$here" --built
+      return
+    fi
+    echo "The check build is older than the source (${newer:-no build yet}): rebuilding."
+    "$serve" "$here" --restart --built
+    return
+  fi
+  echo "Checks run against a check build (pnpm prd browser --dev for the dev server)."
+  "$serve" "$here" --built
 }
 
 # run_once FILE [args…] → runs it; sets verdict (pass, FAIL, TIMEOUT, ended),
@@ -225,7 +253,7 @@ run_once() {
   marker=$log.timedout finished=$log.finished
   [[ $hangs == *" $base "* ]] && hang=1
   start=$(date +%s) load0=$(load_avg)
-  echo "▶ $base in $here · lease $(basename "$lease")/$browser_slots · $(date +%H:%M:%S) · load $load0 · BASE ${BASE:-(default)}$([[ -n $t ]] && echo " · timeout ${t}s")"
+  echo "▶ $base in $here · lease $(basename "$lease")/$browser_slots · $(date +%H:%M:%S) · load $load0 · BASE ${BASE:-(default)}$([[ -n $t ]] && echo " · timeout ${t}s")$([[ -n $smoke ]] && echo " · smoke")"
   cd "$checks_dir"
   exec 3> >(tee "$log")
   tee_pid=$!
@@ -299,7 +327,7 @@ run_check() {
     ((waited == 0)) && echo "Waiting for the load ($(load_avg)) to drop below $busy before retrying…"
     sleep 15; waited=$((waited + 15))
   done
-  sleep "$pause" # Better Auth's sign-in limit
+  sleep "$pause"
   echo "↻ retrying $(basename "$file") once ($why)"
   run_once "$@"
   elapsed=$((elapsed + first_elapsed))
@@ -313,7 +341,7 @@ run_check() {
 
 if [[ $mode == one ]]; then
   file=$(resolve_check "$check") || die "no check $check in $checks_dir"
-  fresh_build
+  ensure_server
   acquire "$(basename "$file")"
   run_check "$file" "${args[@]}"
   exit "$rc"
@@ -405,7 +433,7 @@ fi
 # Both: one lease for the whole run, one check at a time, every check runs.
 suite=("${suite[@]//,/ }")
 read -r -a suite <<< "${suite[*]}"
-fresh_build
+ensure_server
 acquire "$mode"
 rows=() failed=0 i=0 suite_start=$(date +%s)
 echo "Running ${#suite[@]} checks: ${suite[*]}"
@@ -421,7 +449,7 @@ for c in "${suite[@]}"; do
   rows+=("$(printf '%-24s %-8s %s' "$(basename "$file")" "$verdict" "$(fmt_secs "$elapsed")")")
 done
 echo
-echo "Browser $([[ $mode == changed ]] && echo "checks for the changes" || echo suite) in $here: $((${#suite[@]} - failed))/${#suite[@]} passed in $(fmt_secs $(($(date +%s) - suite_start))) · load now $(load_avg)"
+echo "Browser $([[ $mode == changed ]] && echo "checks for the changes" || echo suite)$([[ -n $smoke ]] && echo " (smoke)") in $here: $((${#suite[@]} - failed))/${#suite[@]} passed in $(fmt_secs $(($(date +%s) - suite_start))) · load now $(load_avg)"
 printf '%-24s %-8s %s\n' CHECK RESULT TIME
 printf '%s\n' "${rows[@]}"
 [[ "${rows[*]}" == *" ended "* ]] && echo "(ended: a never-exiting check stopped without a tally; read its log in $logdir)"

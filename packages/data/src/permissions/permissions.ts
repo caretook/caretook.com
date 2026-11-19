@@ -120,11 +120,11 @@ export const PERMISSIONS: Permissions = {
     groupField: "groupId",
     read: groupEntry(ANY_GROUP_ROLE),
     list: groupEntry(ANY_GROUP_ROLE),
-    create: groupEntry(MANAGERS),
+    create: { ...groupEntry(MANAGERS), fields: { invitedBy: SYSTEM_ONLY } },
     update: {
       ...groupEntry(MANAGERS),
       // A membership can change role, never group or user.
-      fields: { groupId: SYSTEM_ONLY, userId: SYSTEM_ONLY },
+      fields: { groupId: SYSTEM_ONLY, userId: SYSTEM_ONLY, invitedBy: SYSTEM_ONLY },
     },
     // Managers remove members; anyone can remove themselves (leave).
     delete: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
@@ -147,7 +147,12 @@ export const PERMISSIONS: Permissions = {
     list: groupEntry(MANAGERS),
     create: {
       ...groupEntry(MANAGERS),
-      fields: { status: SYSTEM_ONLY, acceptedBy: SYSTEM_ONLY, respondedAt: SYSTEM_ONLY },
+      fields: {
+        status: SYSTEM_ONLY,
+        acceptedBy: SYSTEM_ONLY,
+        respondedAt: SYSTEM_ONLY,
+        useCount: SYSTEM_ONLY,
+      },
     },
     update: {
       ...groupEntry(MANAGERS),
@@ -160,6 +165,12 @@ export const PERMISSIONS: Permissions = {
         expiresAt: SYSTEM_ONLY,
         acceptedBy: SYSTEM_ONLY,
         respondedAt: SYSTEM_ONLY,
+        kind: SYSTEM_ONLY,
+        maxUses: SYSTEM_ONLY,
+        useCount: SYSTEM_ONLY,
+        consentAttestedBy: SYSTEM_ONLY,
+        consentAttestedAt: SYSTEM_ONLY,
+        consentVersion: SYSTEM_ONLY,
       },
     },
     delete: groupEntry(MANAGERS),
@@ -236,6 +247,23 @@ export const PERMISSIONS: Permissions = {
     create: groupEntry(WRITERS),
     update: SYSTEM_ONLY_ENTRY,
     delete: groupEntry(WRITERS),
+  },
+
+  // @caretook/notifications' outbox and the dev mailbox: the system's only.
+  notificationOutboxSchema: SYSTEM_ONLY_SCHEMA,
+  devMailSchema: SYSTEM_ONLY_SCHEMA,
+
+  // Who agreed to what a group shares, and when. Written only by the system
+  // (careGroupInviteService.accept); read by the group's owners and admins,
+  // and by the member themselves.
+  careGroupConsentSchema: {
+    ownerField: "userId",
+    groupField: "groupId",
+    read: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    list: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
   },
 };
 

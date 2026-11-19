@@ -10,7 +10,22 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // entry actions menu on a note row, a symptom row and the entry page (the same
 // items for the same kind), and the vital type menus (quick add, the add
 // sheet's kind picker, and "Add a reading" inside the sheet, where Escape
-// closes only the menu). Later slices append sheets, popovers, dialogs and chips.
+// closes only the menu).
+//
+// Slice 2: every sheet (add, edit, provider add and edit), popover (the time
+// chip, the When field's calendar in a sheet and in the time chip), confirm
+// dialog (the timeline's Delete, and the provider sheet's Delete, where Escape
+// closes only the dialog), opened by tap and by keyboard: named, focus inside
+// on open and back on the opener after Escape, themed; sheets are bottom sheets
+// at 420 that cover the tab bar. The chip groups (kind and provider type
+// filters as links with aria-current, the event title suggestions as buttons),
+// the field primitive's label and error (a symptom with no name), and the icon
+// buttons' names (Close, Rows, Cards).
+//
+// Slice 6: settings, account (units, timeline layout, account) and group
+// (details, members): the frame's nav or back link, each choice a named
+// radiogroup (arrow keys move it), every field labelled, help and errors
+// described.
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 const PREFIX = process.env.UI_SHOT_PREFIX ?? "ui";
 const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -71,6 +86,12 @@ const key = async (p, k, code, keyCode) => {
   await p.send("Input.dispatchKeyEvent", { type: "keyUp", key: k, code, windowsVirtualKeyCode: keyCode });
 };
 const enter = (p) => key(p, "Enter", "Enter", 13);
+/** Enter as a keyboard types it (with its "\r" text, so a focused button or link activates natively too). */
+const typedEnter = async (p) => {
+  const base = { key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13 };
+  await p.send("Input.dispatchKeyEvent", { type: "keyDown", ...base, text: "\r" });
+  await p.send("Input.dispatchKeyEvent", { type: "keyUp", ...base });
+};
 const escape = (p) => key(p, "Escape", "Escape", 27);
 const down = (p) => key(p, "ArrowDown", "ArrowDown", 40);
 const focusedIn = (sel) => `!!${sel} && ${sel}.contains(document.activeElement)`;
@@ -169,6 +190,471 @@ async function themed(p, label, trigger, scheme) {
   await escape(p);
   await p.waitFor(`!${MENU}`, 5000);
   await sleep(150);
+}
+
+// ---- Sheets, popovers and dialogs (slice 2) ---------------------------------
+const DIALOGS = `[...document.querySelectorAll('[role="dialog"], dialog[open]')]`;
+const TOP = `${DIALOGS}.at(-1)`;
+/** The top dialog's accessible name: aria-label, else the text of what labels it. */
+const TOP_NAME = `(() => { const m = ${TOP}; if (!m) return "";
+  return m.getAttribute("aria-label") || (m.getAttribute("aria-labelledby") ?? "").split(" ")
+    .map((id) => { const el = document.getElementById(id); return el?.getAttribute("aria-label") || el?.textContent.trim() || ""; })
+    .join(" ").trim(); })()`;
+const lightnessOf = (start) => MENU_LIGHTNESS.replace(MENU, start);
+const QUICK = (label) =>
+  `[...document.querySelectorAll('[aria-label="Add to the timeline"] a')].find((a) => a.textContent.trim() === ${JSON.stringify(label)})`;
+const SYMPTOM_ROW_LINK = `document.querySelector('main ol > li a[aria-label^="Edit symptom"]')`;
+const TIME_CHIP = `document.querySelector('main header button[aria-label="Change when it happened"]')`;
+const PICK = `document.querySelector('[role="dialog"] [aria-label="Pick a date"]')`;
+const button = (text, within = "document") =>
+  `[...${within}.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+const ACTIVE = `document.activeElement?.outerHTML.slice(0, 160)`;
+const count = (p) => p.evaluate(`${DIALOGS}.length`);
+
+/**
+ * A sheet, popover or dialog, opened from `trigger` by tap, then by keyboard
+ * (focus, Enter): it is named `name`, focus moves into it, Escape closes it
+ * (and only it), and focus returns to `trigger`. `sheet` adds the layout checks.
+ */
+async function overlay(p, label, trigger, { name, shot, scheme, sheet, width, key = typedEnter }) {
+  for (const how of ["tap", "keyboard"]) {
+    await p.waitFor(trigger, 30000);
+    const before = await count(p);
+    if (how === "tap") await p.tap(trigger);
+    else {
+      await p.evaluate(`${trigger}.focus()`);
+      await key(p);
+    }
+    const opened = await p.waitFor(`${DIALOGS}.length === ${before + 1}`, 15000).then(
+      () => true,
+      () => false,
+    );
+    check(`${label}: ${how === "tap" ? "a tap" : "Enter"} opens it`, opened);
+    if (!opened) return;
+    await sleep(400);
+    const n = await p.evaluate(TOP_NAME);
+    check(`${label}: named`, name instanceof RegExp ? name.test(n) : n === name, n);
+    check(`${label}: focus moves into it`, await p.evaluate(focusedIn(TOP)));
+    if (how === "tap") {
+      const l = await p.evaluate(lightnessOf(TOP));
+      check(
+        `${label}: a ${scheme} background`,
+        l !== null && (scheme === "dark" ? l < 0.45 : l > 0.75),
+        `lightness ${l}`,
+      );
+      if (sheet) {
+        const g =
+          await p.evaluate(`(() => { let el = ${TOP}; while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement;
+          const r = el.getBoundingClientRect(); const o = el.parentElement.getBoundingClientRect(); const vw = Math.round(o.width); const hit = document.elementFromPoint(r.left + r.width / 2, Math.min(r.bottom, innerHeight) - 4);
+          return { bottom: Math.round(r.bottom), left: Math.round(r.left - o.left), width: Math.round(r.width), vw, vh: innerHeight, onTop: el.contains(hit) }; })()`);
+        if (width < 640)
+          check(
+            `${label}: a bottom sheet, full width, above the tab bar`,
+            Math.abs(g.bottom - g.vh) <= 1 && g.width === g.vw && g.onTop,
+            JSON.stringify(g),
+          );
+        else
+          check(
+            `${label}: a centred dialog`,
+            g.bottom < g.vh && Math.abs(g.left * 2 + g.width - g.vw) <= 2 && g.onTop,
+            JSON.stringify(g),
+          );
+        const close = await p.evaluate(`!!${TOP}.querySelector('button[aria-label="Close"]')`);
+        check(`${label}: a Close button, named`, close);
+      }
+      await p.screenshot(`${PREFIX}-${shot}`);
+    }
+    await escape(p);
+    const closed = await p.waitFor(`${DIALOGS}.length === ${before}`, 5000).then(
+      () => true,
+      () => false,
+    );
+    await sleep(300);
+    check(
+      `${label}: Escape closes only it, and focus returns to the opener (${how})`,
+      closed && (await p.evaluate(isTrigger(trigger))),
+      await p.evaluate(ACTIVE),
+    );
+  }
+}
+
+/** A chip group: its role and name, its chips, and the current one. */
+async function chipGroup(p, label, sel, { tag, chipRole, current, shot }) {
+  await p.waitFor(sel, 30000);
+  const info =
+    await p.evaluate(`(() => { const g = ${sel}; const chips = [...g.querySelectorAll(${JSON.stringify(chipRole)})];
+    return { tag: g.tagName.toLowerCase(), n: chips.length, current: chips.filter((c) => c.getAttribute("aria-current") === "true").map((c) => c.textContent.trim()).join(","),
+      pressed: chips.filter((c) => c.hasAttribute("aria-pressed")).length }; })()`);
+  check(`${label}: a ${tag} of ${chipRole} chips`, info.tag === tag && info.n > 0, JSON.stringify(info));
+  if (current !== undefined)
+    check(`${label}: "${current}" is current`, info.current === current, info.current);
+  else check(`${label}: no current or pressed chip`, info.current === "" && info.pressed === 0);
+  await p.evaluate(`${sel}.scrollIntoView({ block: "center" })`);
+  await sleep(150);
+  await p.screenshot(`${PREFIX}-${shot}`);
+}
+
+async function slice2(p, width, scheme) {
+  const tag = `${width} ${scheme}`;
+  const shot = (name) => `${name}-${width}-${scheme}`;
+  await p.goto(TIMELINE);
+  await p.waitFor(`document.querySelectorAll("main ol > li").length > 0 && ${QUICK("Symptom")}`, 45000);
+  await sleep(500);
+
+  // Chips and icon buttons on the timeline.
+  await chipGroup(p, `${tag} kind filter`, `document.querySelector('nav[aria-label="Show entries"]')`, {
+    tag: "nav",
+    chipRole: "a",
+    current: "All",
+    shot: shot("kind-chips"),
+  });
+  await p.tap(
+    `[...document.querySelectorAll('nav[aria-label="Show entries"] a')].find((a) => a.textContent.trim() === "Symptoms")`,
+  );
+  const filtered = await p
+    .waitFor(
+      `location.search === "?kind=symptom" && document.querySelector('nav[aria-label="Show entries"] a[aria-current="true"]')?.textContent.trim() === "Symptoms"`,
+      5000,
+    )
+    .then(
+      () => true,
+      () => false,
+    );
+  check(`${tag} kind filter: a tap on Symptoms filters, and it becomes current`, filtered);
+  await p.tap(`document.querySelector('nav[aria-label="Show entries"] a')`);
+  await p.waitFor(`location.search === ""`, 5000).catch(() => {});
+  const toggles = await p.evaluate(
+    `[...document.querySelectorAll('[role="group"][aria-label="Layout"] button')].map((b) => b.getAttribute("aria-label") + ":" + b.getAttribute("aria-pressed")).join(",")`,
+  );
+  check(
+    `${tag} layout icon buttons: named, one pressed`,
+    /^Rows:(true|false),Cards:(true|false)$/.test(toggles) && toggles.split("true").length === 2,
+    toggles,
+  );
+
+  // Sheets: add (from the quick-add link) and edit (from a symptom row).
+  await overlay(p, `${tag} add sheet`, QUICK("Symptom"), {
+    name: "Add to the timeline",
+    shot: shot("sheet-add"),
+    scheme,
+    sheet: true,
+    width,
+  });
+  await overlay(p, `${tag} edit sheet`, SYMPTOM_ROW_LINK, {
+    name: "Edit symptom",
+    shot: shot("sheet-edit"),
+    scheme,
+    sheet: true,
+    width,
+  });
+
+  // The field primitive: a symptom with no name, then the calendar popover inside the sheet.
+  await p.tap(QUICK("Symptom"));
+  await p.waitFor(`document.querySelector('[role="dialog"] input[name="symptomName"]')`, 15000);
+  await sleep(300);
+  await p.press(`document.querySelector('[role="dialog"] button[type="submit"]')`);
+  await p
+    .waitFor(
+      `document.querySelector('[role="dialog"] input[name="symptomName"]')?.getAttribute("aria-invalid") === "true"`,
+      5000,
+    )
+    .catch(() => {});
+  const field =
+    await p.evaluate(`(() => { const i = document.querySelector('[role="dialog"] input[name="symptomName"]');
+    const label = document.querySelector('label[for="' + i.id + '"]')?.textContent.trim();
+    const described = (i.getAttribute("aria-describedby") ?? "").split(" ").map((id) => document.getElementById(id)?.textContent.trim()).join(" ");
+    return { label, invalid: i.getAttribute("aria-invalid"), described }; })()`);
+  check(
+    `${tag} field: labelled, and its error is invalid and described`,
+    field.label === "Symptom" && field.invalid === "true" && field.described === "Name the symptom.",
+    JSON.stringify(field),
+  );
+  await p.screenshot(`${PREFIX}-${shot("field-error")}`);
+  await overlay(p, `${tag} sheet calendar`, PICK, {
+    name: /\S/,
+    shot: shot("sheet-calendar"),
+    scheme,
+    width,
+  });
+  check(`${tag} sheet calendar: the sheet stays open`, await p.evaluate(`!!${SHEET}`));
+  await escape(p);
+  await p.waitFor(`!${SHEET}`, 5000).catch(() => {});
+
+  // The confirm dialog: the timeline's Delete, from a symptom row's ⋯ (by tap, then by keyboard).
+  const trig = rowActions("symptom");
+  for (const how of ["tap", "keyboard"]) {
+    if (how === "tap") {
+      await p.tap(trig);
+      await p.waitFor(MENU, 5000);
+      await sleep(200);
+      await p.tap(`${ITEMS}.find((el) => el.textContent.trim() === "Delete")`);
+    } else {
+      await p.evaluate(`${trig}.focus()`);
+      await enter(p);
+      await p.waitFor(MENU, 5000);
+      await sleep(200);
+      await down(p);
+      await sleep(100);
+      await enter(p);
+    }
+    const open = await p.waitFor(`document.querySelector("dialog[open]")`, 5000).then(
+      () => true,
+      () => false,
+    );
+    await sleep(300);
+    check(
+      `${tag} confirm (${how}): opens, named`,
+      open && (await p.evaluate(TOP_NAME)) === "Delete this entry?",
+      await p.evaluate(TOP_NAME),
+    );
+    check(
+      `${tag} confirm (${how}): focus moves into it`,
+      await p.evaluate(focusedIn(`document.querySelector("dialog[open]")`)),
+    );
+    if (how === "tap") {
+      const l = await p.evaluate(lightnessOf(`document.querySelector("dialog[open] .modal-box")`));
+      check(
+        `${tag} confirm: a ${scheme} background`,
+        l !== null && (scheme === "dark" ? l < 0.45 : l > 0.75),
+        `lightness ${l}`,
+      );
+      await p.screenshot(`${PREFIX}-${shot("confirm")}`);
+    }
+    await escape(p);
+    const closed = await p.waitFor(`!document.querySelector("dialog[open]")`, 5000).then(
+      () => true,
+      () => false,
+    );
+    await sleep(200);
+    check(
+      `${tag} confirm (${how}): Escape closes it, focus back on the ⋯ button`,
+      closed && (await p.evaluate(isTrigger(trig))),
+      await p.evaluate(ACTIVE),
+    );
+  }
+
+  // The popovers on the entry page: the time chip, and its calendar inside it.
+  await p.evaluate(`window.scrollTo(0, 0)`);
+  await p.press(NOTE_LINK);
+  await p.waitFor(TIME_CHIP, 30000);
+  await sleep(300);
+  await overlay(p, `${tag} time chip`, TIME_CHIP, {
+    name: "When it happened",
+    shot: shot("time-chip"),
+    scheme,
+    width,
+  });
+  await p.tap(TIME_CHIP);
+  await p.waitFor(PICK, 5000);
+  await sleep(300);
+  await overlay(p, `${tag} time chip calendar`, PICK, {
+    name: /\S/,
+    shot: shot("time-chip-calendar"),
+    scheme,
+    width,
+  });
+  check(`${tag} time chip calendar: the time popover stays open`, await p.evaluate(`!!${PICK}`));
+  await escape(p);
+  await p.waitFor(`!${PICK}`, 5000).catch(() => {});
+
+  // Title suggestions on a new, unnamed event (nothing is saved until a change).
+  await p.goto(`/app/groups/${DEV_FAMILY}/entries/new?kind=event`);
+  await chipGroup(
+    p,
+    `${tag} title chips`,
+    `document.querySelector('main header ul[aria-label="Suggested titles"]')`,
+    {
+      tag: "ul",
+      chipRole: "li > button",
+      shot: shot("title-chips"),
+    },
+  );
+
+  // Providers: the type chips, the add sheet, and the edit sheet's Delete confirm.
+  const providers = `/app/groups/${DEV_FAMILY}/providers`;
+  await p.goto(providers);
+  await chipGroup(
+    p,
+    `${tag} provider type filter`,
+    `document.querySelector('main nav[aria-label="Show providers"]')`,
+    {
+      tag: "nav",
+      chipRole: "a",
+      current: "All",
+      shot: shot("provider-chips"),
+    },
+  );
+  await overlay(p, `${tag} provider add sheet`, `document.querySelector("main a[data-add-provider]")`, {
+    name: "Add a provider",
+    shot: shot("sheet-provider-add"),
+    scheme,
+    sheet: true,
+    width,
+  });
+  const id = await p.evaluate(`document.querySelector("main [data-provider-id]")?.dataset.providerId`);
+  await p.goto(`${providers}/${id}/edit`);
+  await p.waitFor(`${SHEET} && ${button("Delete provider", SHEET)}`, 30000);
+  await sleep(300);
+  const sheetName = await p.evaluate(TOP_NAME);
+  check(`${tag} provider edit sheet: named`, /^Edit /.test(sheetName), sheetName);
+  await p.tap(button("Delete provider", SHEET));
+  await p.waitFor(`document.querySelector("dialog[open]")`, 5000);
+  await sleep(300);
+  check(
+    `${tag} provider delete confirm: named`,
+    /^Delete .+\?$/.test(await p.evaluate(TOP_NAME)),
+    await p.evaluate(TOP_NAME),
+  );
+  await p.screenshot(`${PREFIX}-${shot("provider-confirm")}`);
+  await escape(p);
+  await p.waitFor(`!document.querySelector("dialog[open]")`, 5000).catch(() => {});
+  await sleep(300);
+  check(
+    `${tag} provider delete confirm: Escape closes only it, focus back on Delete provider`,
+    (await p.evaluate(`!!${SHEET}`)) && (await p.evaluate(isTrigger(button("Delete provider", SHEET)))),
+    await p.evaluate(ACTIVE),
+  );
+  await escape(p);
+  await p.waitFor(`!${SHEET}`, 5000).catch(() => {});
+}
+
+// ---- Settings (slice 6) ---------------------------------------------------------
+const GROUP_SETTINGS = `/app/groups/${DEV_FAMILY}/settings`;
+/** The accessible name of a radiogroup, from what labels it. */
+const groupName = (g) =>
+  `(document.getElementById(${g}.getAttribute("aria-labelledby") ?? "")?.textContent.trim() ?? "")`;
+const RADIOGROUPS = `[...document.querySelectorAll('main [role="radiogroup"]')]`;
+/** What a labelled control is called and described by: `label[for]`, then its description lines. */
+const fieldOf = (sel) => `(() => { const i = ${sel}; if (!i) return null;
+  const label = document.querySelector('label[for="' + i.id + '"]')?.textContent.trim();
+  const described = (i.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean).map((id) => document.getElementById(id)?.textContent.trim()).join(" | ");
+  return { label, invalid: i.getAttribute("aria-invalid"), described }; })()`;
+
+/** Settings frame: at 1280 the side nav marks the page current; at 420 the page has a back link. */
+async function settingsFrame(p, tag, width, listPath, page) {
+  const frame = await p.evaluate(`({
+    current: document.querySelector('nav[data-settings-nav] a[aria-current="page"]')?.getAttribute("href") ?? "",
+    navShown: !!document.querySelector('nav[data-settings-nav]')?.offsetParent,
+    back: [...document.querySelectorAll("main a")].some((a) => a.getAttribute("href") === ${JSON.stringify(listPath)} && a.offsetParent),
+  })`);
+  check(
+    `${tag} settings frame (${page}): ${width < 768 ? "a back link, no side nav" : "the side nav, this page current"}`,
+    frame.current.endsWith(`/${page}`) &&
+      (width < 768 ? frame.back && !frame.navShown : frame.navShown && !frame.back),
+    JSON.stringify(frame),
+  );
+}
+
+async function settings(p, width, scheme) {
+  const tag = `${width} ${scheme}`;
+  const shot = (name) => `${name}-${width}-${scheme}`;
+
+  // Units: one named choice per measure, each a radiogroup of joined radios with one chosen.
+  await p.goto("/app/settings/units");
+  await p.waitFor(`document.querySelector('main input[name="temperature"]')`, 30000);
+  await sleep(300);
+  const units = await p.evaluate(
+    `${RADIOGROUPS}.map((g) => ${groupName("g")} + "=" + g.querySelectorAll("input:checked").length).join(",")`,
+  );
+  check(
+    `${tag} units: four named choices, one option chosen in each`,
+    units === "Temperature=1,Weight=1,Blood sugar=1,Fluid volume=1",
+    units,
+  );
+  await settingsFrame(p, tag, width, "/app/settings", "units");
+  // The arrow keys move the choice (native radios); nothing saves until Save.
+  const temp = `[...document.querySelectorAll('main input[name="temperature"]')]`;
+  const before = await p.evaluate(`${temp}.findIndex((i) => i.checked)`);
+  await p.evaluate(`${temp}[${before}].focus()`);
+  await key(p, "ArrowRight", "ArrowRight", 39);
+  await sleep(100);
+  const after = await p.evaluate(`${temp}.findIndex((i) => i.checked)`);
+  check(
+    `${tag} units: an arrow key moves the choice`,
+    after !== before && after >= 0,
+    `${before} → ${after}`,
+  );
+  await p.screenshot(`${PREFIX}-${shot("settings-units")}`);
+
+  // Timeline layout: one choice named by the page's heading.
+  await p.goto("/app/settings/timeline");
+  await p.waitFor(`document.querySelector('main input[name="timelineView"]')`, 30000);
+  await sleep(300);
+  const layout = await p.evaluate(
+    `${RADIOGROUPS}.map((g) => ${groupName("g")} + ":" + [...g.querySelectorAll("input")].map((i) => i.getAttribute("aria-label")).join("/")).join(",")`,
+  );
+  check(
+    `${tag} timeline layout: one choice, named by the heading`,
+    layout === "Timeline layout:Rows/Cards",
+    layout,
+  );
+  await settingsFrame(p, tag, width, "/app/settings", "timeline");
+  await p.screenshot(`${PREFIX}-${shot("settings-layout")}`);
+
+  // Account: read-only details and Sign out.
+  await p.goto("/app/settings/account");
+  await p.waitFor(`document.querySelector('main [data-field="email"]')`, 30000);
+  const account = await p.evaluate(`({
+    email: document.querySelector('main [data-field="email"]')?.textContent.trim(),
+    signOut: !!document.querySelector('main form[action="/sign-out"] button[type="submit"]'),
+  })`);
+  check(
+    `${tag} account: the email and Sign out`,
+    account.email === "member@example.com" && account.signOut,
+    JSON.stringify(account),
+  );
+  await p.screenshot(`${PREFIX}-${shot("settings-account")}`);
+
+  // Group details (member@ owns Dev Family): every input labelled, help described, an error on the field.
+  await p.goto(`${GROUP_SETTINGS}/details`);
+  const RECIPIENT = `document.querySelector('main [data-section="care-recipient"]')`;
+  const NAME = `document.querySelector('main [data-section="group-details"] input[name="name"]')`;
+  await p.waitFor(`${NAME} && ${RECIPIENT}?.querySelector("input")`, 30000);
+  await sleep(300);
+  await settingsFrame(p, tag, width, GROUP_SETTINGS, "details");
+  const labels = await p.evaluate(
+    `[...document.querySelectorAll('main input:not([type=hidden])')].map((i) => document.querySelector('label[for="' + i.id + '"]')?.textContent.trim() ?? "?").join(",")`,
+  );
+  check(
+    `${tag} group details: every input has its label`,
+    labels === "Name,Name,Preferred name,Date of birth",
+    labels,
+  );
+  const preferred = await p.evaluate(fieldOf(`${RECIPIENT}.querySelector('input[name="preferredName"]')`));
+  check(
+    `${tag} group details: the preferred name is described by its help`,
+    preferred?.described.startsWith("What everyone calls them") && preferred.invalid === null,
+    JSON.stringify(preferred),
+  );
+  // A blank name is refused on the device (nothing is sent); leaving the page drops it.
+  await p.evaluate(`(() => { const i = ${NAME};
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, "");
+    i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+  await p.press(`document.querySelector('main [data-section="group-details"] button[type="submit"]')`);
+  await p.waitFor(`${NAME}?.getAttribute("aria-invalid") === "true"`, 10000).catch(() => {});
+  const named = await p.evaluate(fieldOf(NAME));
+  check(
+    `${tag} group details: a blank name is invalid, described by its error`,
+    named?.label === "Name" && named.invalid === "true" && named.described === "Enter a name.",
+    JSON.stringify(named),
+  );
+  await p.screenshot(`${PREFIX}-${shot("settings-details-error")}`);
+
+  // Members: a card of members, each role control named for its member.
+  await p.goto(`${GROUP_SETTINGS}/members`);
+  await p.waitFor(`document.querySelector('main [data-section="members"] li[data-member]')`, 30000);
+  await sleep(300);
+  const members = await p.evaluate(`({
+    rows: document.querySelectorAll('main [data-section="members"] li[data-member]').length,
+    selects: [...document.querySelectorAll('main [data-section="members"] select')].every((s) => /^Role for /.test(s.getAttribute("aria-label") ?? "")),
+  })`);
+  check(
+    `${tag} members: listed, role controls named`,
+    members.rows >= 3 && members.selects,
+    JSON.stringify(members),
+  );
+  await settingsFrame(p, tag, width, GROUP_SETTINGS, "members");
+  await p.screenshot(`${PREFIX}-${shot("settings-members")}`);
 }
 
 async function pass(p, width, scheme) {
@@ -272,14 +758,32 @@ async function pass(p, width, scheme) {
   }
   await escape(p);
   await p.waitFor(`!${SHEET}`, 5000).catch(() => {});
+
+  await slice2(p, width, scheme);
+  await settings(p, width, scheme);
 }
 
 const browser = await launch(9491);
 let p;
 try {
   p = await openPage(browser, "ui");
+  // Keep the page focused, as a real window would be: in headless Chrome the
+  // page can lose focus (after a native <dialog> closes), and then nothing
+  // returns focus anywhere.
+  await p.send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await p.signIn("member@example.com", PW);
-  for (const width of [420, 1280]) for (const scheme of ["light", "dark"]) await pass(p, width, scheme);
+  for (const width of [420, 1280])
+    for (const scheme of ["light", "dark"]) {
+      // A fresh client IP per pass. A check build rate-limits per IP, and
+      // Better Auth's memory limiter only resets after 10 s with no request,
+      // so one IP for all four passes can reach 100 session checks and get a
+      // 429 (which signs the page out) whenever the run has no 10 s pause.
+      const ip = () => Math.floor(Math.random() * 254) + 1;
+      await p.send("Network.setExtraHTTPHeaders", {
+        headers: { "x-forwarded-for": `10.${ip()}.${ip()}.${ip()}` },
+      });
+      await pass(p, width, scheme);
+    }
   const thrown = p.errors.filter((e) => e.includes("exception]"));
   check("no uncaught exceptions", thrown.length === 0, thrown.join(" | "));
   if (p.errors.length) console.log(p.errors.join("\n"));

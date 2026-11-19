@@ -2,8 +2,8 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink } from "react-router";
 
+import { Wordmark } from "~/components/brand";
 import { MARKETING_LINKS, MARKETING_PAGES } from "../site/pages";
-import { Wordmark } from "./Logo";
 
 const HEADER_PAGES = MARKETING_PAGES.filter((p) => "header" in p && p.header);
 

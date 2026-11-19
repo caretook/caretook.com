@@ -236,6 +236,8 @@ try {
   );
   await key(A, "Escape");
   await A.waitFor(`!${GRID}`, 3000);
+  // React Aria hands focus back to the button a moment after the popover goes.
+  await A.waitFor(`document.activeElement === ${PICK}`, 3000, { quiet: true }).catch(() => undefined);
   check(
     "picker: Escape closes it, focus back on the button, date unchanged",
     (await A.evaluate(`document.activeElement === ${PICK}`)) &&
@@ -376,7 +378,7 @@ try {
   // fail its first connect after a reset (a 401 while it refetches the JWKS),
   // and a full page load closes the previous page's database.
   const noise =
-    /401|Failed to load resource|ERR_INTERNET_DISCONNECTED|Failed to fetch|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|Error loading route module/;
+    /401|Failed to load resource|ERR_INTERNET_DISCONNECTED|Failed to fetch|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|\[PowerSync\]: Sync aborted|Error loading route module/;
   const errors = pages.flatMap((p) => p.errors).filter((e) => !noise.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 5).join(" | ").slice(0, 800));
 } catch (e) {

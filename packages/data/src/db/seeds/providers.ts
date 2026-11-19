@@ -64,6 +64,7 @@ export const DEV_FAMILY_PROVIDERS: SeedProvider[] = [
     address: "1200 Westside Ave, Suite 300\nSpringfield, CA 90000",
     website: "westsidefamily.example",
     isPrimary: true,
+    links: ["Primary care visit: Dr. Alvarez"],
     notes: [
       "Park on level 2 of the garage; the elevator is by the blue doors.",
       "Check in at the kiosk, then ask for Rosa at the front desk if anything is off.",
@@ -93,6 +94,7 @@ export const DEV_FAMILY_PROVIDERS: SeedProvider[] = [
     phones: [{ label: "Office", number: "(555) 010-3300" }],
     address: "48 Harbor Heart Center\nSpringfield, CA 90000",
     website: "https://harborheart.example/patel",
+    links: ["Pharmacy pickup"],
   },
   {
     key: "cornerstone",
@@ -115,7 +117,11 @@ export const DEV_FAMILY_PROVIDERS: SeedProvider[] = [
     specialty: "Home health aide",
     phones: [{ label: "Mobile", number: "+1 555 010 5500" }],
     email: "maria.reyes@example.com",
-    links: ["Meet-and-greet with Maria (aide)", "Phone call with Maria about today"],
+    links: [
+      "Meet-and-greet with Maria (aide)",
+      "Phone call with Maria about today",
+      "Primary care visit: Dr. Alvarez",
+    ],
   },
   {
     key: "whitford",

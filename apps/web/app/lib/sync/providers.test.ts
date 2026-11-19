@@ -1,7 +1,14 @@
 import type { ProviderRow } from "./providers";
 
 import { describe, expect, it } from "vitest";
-import { practiceDependentsQuery, practiceInUseRefusal, toProvider, toProviders } from "./providers";
+import {
+  deleteBlockedNote,
+  practiceDependentsQuery,
+  practiceHasProvidersRefusal,
+  practiceInUseRefusal,
+  toProvider,
+  toProviders,
+} from "./providers";
 
 const row = (overrides: Partial<ProviderRow> = {}): ProviderRow => ({
   id: "p1",
@@ -87,5 +94,30 @@ describe("practiceInUseRefusal", () => {
     expect(q.sql).toMatch(/group_id = \?/);
     expect(q.sql).toMatch(/practice_id = \?/);
     expect(q.sql).toMatch(/deleted_at IS NULL/);
+  });
+});
+
+describe("practiceHasProvidersRefusal", () => {
+  it("refuses deleting a provider others name as their practice, with the server's message", () => {
+    expect(practiceHasProvidersRefusal(2)).toEqual({
+      ok: false,
+      error: "Providers are linked to this practice. Move them to another practice, or delete them, first.",
+      issues: [],
+    });
+    expect(practiceHasProvidersRefusal(0)).toBeNull();
+  });
+});
+
+describe("deleteBlockedNote", () => {
+  it("counts the providers that name a practice or pharmacy", () => {
+    expect(deleteBlockedNote("practice", 1)).toBe(
+      "1 provider is linked to this practice. Move them to another practice, or delete them, first.",
+    );
+    expect(deleteBlockedNote("pharmacy", 2)).toMatch(/^2 providers are linked to this pharmacy\./);
+  });
+
+  it("is null when nothing names it", () => {
+    expect(deleteBlockedNote("practice", 0)).toBeNull();
+    expect(deleteBlockedNote("clinician", 3)).toBeNull();
   });
 });

@@ -66,6 +66,16 @@ describe("provider seeds", () => {
     expect(SECOND_GROUP_ENTRIES.some((e) => e.title === "Hearing aid fitting")).toBe(true);
   });
 
+  it("give the timeline an event with two providers and one with three", () => {
+    const [devFamily] = seedRows();
+    const counts = new Map<string, number>();
+    for (const link of devFamily?.links ?? []) counts.set(link.entryId, (counts.get(link.entryId) ?? 0) + 1);
+    const countFor = (title: string) =>
+      counts.get(devFamilyEntryId(SEED_ENTRIES.findIndex((e) => e.title === title)));
+    expect(countFor("Pharmacy pickup")).toBe(2);
+    expect(countFor("Primary care visit: Dr. Alvarez")).toBe(3);
+  });
+
   it("give each group its own ids", () => {
     const ids = seedRows().flatMap(({ rows }) => rows.map((r) => r.id));
     expect(new Set(ids).size).toBe(ids.length);

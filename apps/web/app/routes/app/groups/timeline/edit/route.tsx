@@ -12,7 +12,7 @@ import { useLiveQuery } from "~/lib/sync";
 import { readRows, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
 import { entryUpdateFromForm, parseUnits } from "../entryFormData";
 import { EntryForm } from "../EntryForm";
-import { EntrySheet } from "~/components/forms";
+import { Sheet } from "~/components/ui";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { editSheetGuard } from "../sheetGuard";
 
@@ -68,13 +68,13 @@ export default function EditEntrySheet({ loaderData, params }: Route.ComponentPr
   }, [gone, close]);
 
   return (
-    <EntrySheet
+    <Sheet
       isOpen={!gone}
       onOpenChange={(open) => !open && close()}
       title={`Edit ${KIND_META[entry.kind].label.toLowerCase()}`}
     >
       {/* The entry as it was when the sheet opened; a new entry is a new form. */}
       <EntryForm key={entry.id} entry={entry} units={units} onDone={close} onCancel={close} />
-    </EntrySheet>
+    </Sheet>
   );
 }

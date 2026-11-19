@@ -85,6 +85,9 @@ export const MODEL_ERRORS = {
   "careGroupMemberModel:insertFirstOwner": {
     message: "Failed to add the group's first owner",
   },
+  "careGroupInviteModel:getByToken": {
+    message: "Failed to look up the invitation",
+  },
   "timelineEntryModel:badCursor": {
     message: "Invalid page cursor",
     statusCode: 400,
@@ -106,6 +109,9 @@ export const MODEL_ERRORS = {
   },
   "providerModel:remove": {
     message: "Failed to delete the provider",
+  },
+  "providerModel:lock": {
+    message: "Failed to lock the provider",
   },
   "userModel:notFound": {
     message: "User not found",
@@ -210,6 +216,10 @@ export const SERVICE_ERRORS = {
     message: "Clinicians are linked to this practice. Move them to another practice first.",
     statusCode: 400,
   },
+  "providerService:practiceHasProviders": {
+    message: "Providers are linked to this practice. Move them to another practice, or delete them, first.",
+    statusCode: 409,
+  },
   "entryProviderService:invalid": {
     message: "The provider link is invalid",
     statusCode: 400,
@@ -230,6 +240,54 @@ export const SERVICE_ERRORS = {
     message: "A link's entry and provider must be in its care group",
     statusCode: 400,
   },
+  "careGroupInviteService:notAllowed": {
+    message: "You can't invite someone with that role",
+    statusCode: 403,
+  },
+  "careGroupInviteService:notAttested": {
+    message: "Confirm the care recipient agreed to share with this person first",
+    statusCode: 400,
+  },
+  "careGroupInviteService:alreadyMember": {
+    message: "That person is already in this care group",
+    statusCode: 409,
+  },
+  "careGroupInviteService:alreadyInvited": {
+    message: "That address already has an invitation waiting. Send it again instead.",
+    statusCode: 409,
+  },
+  "careGroupInviteService:unusable": {
+    message: "This invitation can't be used any more",
+    statusCode: 409,
+  },
+  "careGroupInviteService:wrongEmail": {
+    message: "This invitation is for a different email address",
+    statusCode: 403,
+  },
+  "careGroupInviteService:noConsent": {
+    message: "Agree to what the care group shares before joining",
+    statusCode: 400,
+  },
+  "careGroupInviteService:wrongKind": {
+    message: "That isn't an email invitation",
+    statusCode: 400,
+  },
+  "ticket:invalid": {
+    message: "This invitation can't be used to create an account",
+    statusCode: 403,
+  },
+  "ticket:emailMismatch": {
+    message: "Use the email address the invitation was sent to",
+    statusCode: 400,
+  },
+  "ticket:accountExists": {
+    message: "An account with this email already exists. Sign in instead.",
+    statusCode: 409,
+  },
+  "ticket:weakPassword": {
+    message: "Use at least 12 characters",
+    statusCode: 400,
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {
@@ -247,6 +305,26 @@ export const PERMISSION_ERRORS = {
   },
 } as const;
 
+// @caretook/notifications: notify(), the outbox and the senders.
+export const NOTIFICATION_ERRORS = {
+  "notify:invalidData": {
+    message: "The notification's data is invalid",
+    statusCode: 400,
+  },
+  "notify:render": {
+    message: "Failed to render the notification",
+  },
+  "notify:enqueue": {
+    message: "Failed to queue the notification",
+  },
+  "notify:deliver": {
+    message: "Failed to deliver queued notifications",
+  },
+  "notify:send": {
+    message: "The mail sender refused the message",
+  },
+} as const;
+
 export const ERRORS = {
   error: {
     message: "An error occurred",
@@ -255,6 +333,7 @@ export const ERRORS = {
   ...MODEL_ERRORS,
   ...SERVICE_ERRORS,
   ...PERMISSION_ERRORS,
+  ...NOTIFICATION_ERRORS,
 } as const;
 
 export const ERROR_KEYS = Object.keys(ERRORS) as (keyof typeof ERRORS)[];

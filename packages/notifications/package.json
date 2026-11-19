@@ -1,0 +1,28 @@
+{
+  "name": "@caretook/notifications",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@caretook/data": "workspace:*",
+    "@react-email/render": "2.3.1",
+    "drizzle-orm": "^0.45.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-email": "6.11.13",
+    "resend": "6.38.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "typescript": "^5.9.3"
+  }
+}

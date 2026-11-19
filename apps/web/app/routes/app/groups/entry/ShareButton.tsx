@@ -2,6 +2,7 @@ import type { ShareOutcome } from "./share";
 
 import { Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { IconButton } from "~/components/ui";
 import { shareLink, shareUrl } from "./share";
 
 /**
@@ -25,15 +26,11 @@ export function ShareButton({ title, path }: { title: string; path: string }) {
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        className="btn btn-ghost btn-sm btn-square"
-        aria-label="Share"
-        title="Share"
-        onClick={() => void shareLink(navigator, { title, url: linkUrl() }).then(setOutcome)}
-      >
-        <Share2 className="size-5" aria-hidden="true" />
-      </button>
+      <IconButton
+        label="Share"
+        icon={Share2}
+        onPress={() => void shareLink(navigator, { title, url: linkUrl() }).then(setOutcome)}
+      />
       <div role="status" className="absolute top-full right-0 z-10 mt-1">
         {outcome === "copied" && (
           <span className="badge badge-neutral whitespace-nowrap shadow">Link copied</span>

@@ -41,6 +41,11 @@ const appRoutes = [
   ]),
   route("sign-in", "routes/sign-in.tsx"),
   route("sign-out", "routes/sign-out.tsx"),
+  // Signed-out account pages, reached from emailed links and from sign-in.
+  route("reset-password", "routes/account/reset-password/route.tsx"),
+  route("verify-email", "routes/account/verify-email/route.tsx"),
+  // An emailed invite's link: sign up or sign in, agree, join (or decline).
+  route("invite/:token", "routes/account/invite/route.tsx"),
 ];
 
 // Web-only: marketing, auth callbacks, anything needing server loaders.
@@ -61,6 +66,11 @@ const webRoutes = [
   route("rpc/*", "routes/rpc.ts"),
   route("sitemap.xml", "routes/marketing/sitemap/route.ts"),
   route("robots.txt", "routes/marketing/robots/route.ts"),
+  // The outbox sweep (CRON_SECRET) and the dev mailbox (404 in production).
+  route("api/cron/outbox", "routes/api/cron/outbox.ts"),
+  route("dev/mail", "routes/dev/mail/list/route.tsx"),
+  route("dev/mail.json", "routes/dev/mail/json/route.ts"),
+  route("dev/mail/:id", "routes/dev/mail/message/route.tsx"),
 ];
 
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.

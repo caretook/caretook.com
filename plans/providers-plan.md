@@ -4,19 +4,20 @@
 
 ## Status
 
-| Slice | State                                                                               | Merge into `prd/providers` (slice commits) |
-| ----- | ----------------------------------------------------------------------------------- | ------------------------------------------ |
-| 1     | landed in `dev` (`cc47b01`)                                                         | `8624622` (`09b62bd`, `17b861d`)           |
-| 2     | merged                                                                              | `5dbd62d` (`ffd9b57`, `f131be7`)           |
-| 3     | merged                                                                              | `a87e072` (`41ee0b6`, `280cef2`)           |
-| 4     | merged; Edit wired by the orchestrator (`de2f2c1`), `appUrls` merge fix (`30f0d61`) | `b2b8120` (`e773c21`, `f76862d`)           |
-| 5     | blocked by `components` slices 2, 3 and 4 (in `dev`)                                |                                            |
-| 6     | blocked by 5                                                                        |                                            |
-| 7     | blocked by 5                                                                        |                                            |
+| Slice | State                                                                                | Merge into `prd/providers` (slice commits)  |
+| ----- | ------------------------------------------------------------------------------------ | ------------------------------------------- |
+| 1     | landed in `dev` (`cc47b01`)                                                          | `8624622` (`09b62bd`, `17b861d`)            |
+| 2     | landed in `dev` (`5a2c8af`)                                                          | `5dbd62d` (`ffd9b57`, `f131be7`)            |
+| 3     | landed in `dev` (`5a2c8af`)                                                          | `a87e072` (`41ee0b6`, `280cef2`)            |
+| 4     | landed in `dev` (`5a2c8af`); Edit wired (`de2f2c1`), `appUrls` merge fix (`30f0d61`) | `b2b8120` (`e773c21`, `f76862d`)            |
+| 5     | merged; landing with 6–7                                                             | `10ae781` (`12722a3`, `83b6249`)            |
+| 6     | merged; landing with 5, 7                                                            | `37330ff` (`78ecfa4`, `9d3cc7f`, `8ebc08e`) |
+| 7     | merged; landing with 5–6                                                             | `1b1a039` (`80af750`, `39959af`)            |
+| 8     | fix, merged: live queries watch nothing once sign-out has closed the database        | `cbe2116` (`b8641d8`)                       |
 
-Wave 2 (slices 2–4, a usable directory) is merged and synced with `dev` at `82eb690` (routing done); awaiting the user's go-ahead to land.
+Wave 2 (slices 2–4, a usable directory) landed in `dev` (`5a2c8af`). The PRD restarted from `dev` on 2026-11-18 after `components` slices 2–4 landed, and wave 3 (slices 5–7, linking, plus fix slice 8) lands as one, with the user's standing go-ahead. **The plan is done** once it's in `dev`.
 
-Backlog: B-13 is `ready` (done at `30f0d61`, after slice 4). B-14 is `triaged` (slices 5–7). B-25 (@-mentions) is triaged to `providers` as a follow-up after slice 5, not part of this plan. B-27 (routing.mjs flakes, owned by routing) and B-28 (a machine-wide browser check lock; note on leftover Chromes) came up while running this PRD.
+Backlog: B-13 is `landed`. B-14 is `ready` (done at `1b1a039`). B-25 (@-mentions) is triaged to `providers` as the follow-up, not part of this plan. Open: "other" contacts match suggestions by last name like clinicians (slice 6's call; the PRD didn't say). `withProviders.ts` re-exports `chipLabel` from `lib/entryProviders.ts`; point its imports at `lib` when next touched. B-27 (routing.mjs flakes, owned by routing) and B-28 (a machine-wide browser check lock; note on leftover Chromes) came up while running this PRD.
 
 Slice 1 notes for later slices:
 

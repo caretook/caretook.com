@@ -25,6 +25,7 @@ scripts/backlog/*                        -
 packages/*/test/*                        -
 .nvmrc                                   -
 .gitignore                               -
+*.env.example                            -
 eslint.config.*                          -
 .prettier*                               -
 vitest.config.*                          -
@@ -54,18 +55,28 @@ packages/data/src/db/client.ts           @suite
 packages/data/package.json               @suite
 packages/api/package.json                @suite
 packages/auth/package.json               @suite
+packages/notifications/package.json      @suite
+
+# Email: the notifications package, the outbox sweep and the dev mailbox are
+# server only (no screen of the app); their unit and integration tests cover them.
+packages/notifications/src/*             -
+apps/web/app/routes/api/cron/*           -
+apps/web/app/routes/dev/*                -
+apps/web/app/.server/notifications.ts    -
 
 # Sign-in, session, the sync client and first sync.
-apps/web/app/routes/sign-in.tsx          sign-in first-sync
-apps/web/app/routes/sign-out.tsx         signout-wipe sign-in
+apps/web/app/routes/sign-in.tsx          sign-in first-sync invites
+apps/web/app/routes/account/*            invites sign-in
+apps/web/app/routes/sign-out.tsx         signout-wipe sign-in invites
 apps/web/app/routes/api/*                sign-in first-sync
 apps/web/app/lib/session.ts              sign-in first-sync signout-wipe
 apps/web/app/lib/firstSync.ts            first-sync
 apps/web/app/lib/auth-client.ts          sign-in signout-wipe
 apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe
+apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell providers
 apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
 apps/web/app/lib/sync/schema.ts          roundtrip live-notes providers phase2
-packages/auth/src/*                      sign-in first-sync signout-wipe
+packages/auth/src/*                      sign-in first-sync signout-wipe invites
 apps/web/app/components/shell/*          first-sync
 
 # Routes, URLs, the group route and settings subpages.
@@ -74,16 +85,18 @@ apps/web/app/routes/app/groups/layout/*  routing app-shell
 apps/web/app/routes/app/groups/index/*   routing
 apps/web/app/lib/group.tsx               routing app-shell
 apps/web/app/lib/groupContext.ts         routing app-shell
-apps/web/app/routes/app/settings/*       routing settings-layout layout-offline
+apps/web/app/routes/app/settings/*       routing settings-layout layout-offline ui
 apps/web/app/lib/me.ts                   settings-layout layout-offline
-apps/web/app/components/settings/*       routing settings-layout app-shell
+apps/web/app/components/settings/*       routing settings-layout app-shell ui
 
 # The /app frame, menus, theme, group settings and members.
 apps/web/app/routes/app/layout/*         app-shell
 apps/web/app/routes/app/home/*           app-shell
-apps/web/app/routes/app/groups/settings/* app-shell routing
-apps/web/app/lib/sync/members.ts         app-shell
+apps/web/app/routes/app/groups/settings/members/* app-shell invites ui
+apps/web/app/routes/app/groups/settings/* app-shell routing ui
+apps/web/app/lib/sync/members.ts         app-shell invites
 apps/web/app/components/ui/*             ui app-shell
+apps/web/app/components/brand/*          app-shell marketing
 
 # The timeline, its rows, filters, vitals and sheets.
 apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
@@ -94,7 +107,7 @@ apps/web/app/lib/entryDisplay.ts         phase2
 apps/web/app/lib/form.ts                 roundtrip
 
 # The entry page and live notes.
-apps/web/app/routes/app/groups/entry/*   live-notes
+apps/web/app/routes/app/groups/entry/*   live-notes providers
 apps/web/app/components/notes/*          live-notes providers
 apps/web/app/lib/sync/notes.ts           live-notes providers
 apps/web/app/lib/sync/liveEntry.ts       live-notes
@@ -106,6 +119,7 @@ apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
 apps/web/app/lib/sync/providers.ts       providers
+apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 
 # Marketing (web only).
 apps/web/app/routes/marketing/*          marketing
@@ -113,6 +127,7 @@ apps/web/public/*                        marketing
 
 # Server code the device reaches. The upload switch carries every synced write.
 packages/api/src/sync.ts                 roundtrip live-notes providers
+packages/api/src/invites.ts              invites
 packages/api/src/*                       -
 apps/web/app/.server/*                   sign-in
 apps/web/app/routes/rpc.ts               sign-in
@@ -125,9 +140,11 @@ packages/data/src/db/schema/noteYjs.ts   live-notes
 packages/data/src/db/schema/noteEditors.ts live-notes
 packages/data/src/db/schema/provider.ts  providers
 packages/data/src/db/schema/entryProvider.ts providers
-packages/data/src/db/schema/careGroup*.ts app-shell
+packages/data/src/db/schema/inviteRules.ts invites app-shell
+packages/data/src/db/schema/careGroup*.ts app-shell invites
 packages/data/src/db/schema/careRecipient.ts app-shell
 packages/data/src/db/schema/userPreferences.ts settings-layout
+packages/data/src/db/schema/notification.ts -
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 packages/data/src/db/seeds/providers.ts  providers
 packages/data/src/db/seeds/*             app-shell
