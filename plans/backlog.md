@@ -109,7 +109,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
 | B-71 | bug | in-progress | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
-| B-72 | bug | triaged | quick-fixes |  | suggested provider list is too long on mobile. |
+| B-72 | bug | in-progress | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
 | B-73 | bug | triaged | quick-fixes |  | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
 
 ## Items
@@ -895,9 +895,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-72 · bug · suggested provider list is too long on mobile.
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: cap the suggested-provider chips on phones (entry With row, providerSuggestions); one slice.
