@@ -127,6 +127,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-86 | change | triaged | medications-2 |  | need an upcoming medication banner on the timeline page and a way to quickly add doses to the… |
 | B-87 | plan | triaged | simple-mode |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
+| B-88 | change | inbox |  |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
+| B-89 | feature | inbox |  |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 
 ## Items
 
@@ -1103,3 +1105,21 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to and view the timeline without having to learn the full interface. This is a pre-launch feature once other features are in place.
 - 2026-11-19 (backlog planner): Proposed as its own PRD (simple-mode), pre-launch, written once the feature set settles (after care-periods and the medication follow-ups). Touches the timeline route folder, quick add, the entry sheets and a per-user setting in user.preferences (no migration). Related: B-31 (demo group) and onboarding.
+
+### B-88 · change · PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): From the inbox: PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the user wants to prompt for landing or just work through everything and which slices to land automatically. Add command to spin up new planning session.
+
+### B-89 · feature · PRD tooling streamlining. We are using way too many resources for full docker stacks and browser…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): From the inbox: PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead.
