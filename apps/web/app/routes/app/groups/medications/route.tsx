@@ -3,7 +3,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/api";
 import type { MedicationRow } from "~/lib/sync/medications";
 
-import { Clock, Plus, Printer } from "lucide-react";
+import { Clock, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { AllergiesRegion } from "~/components/medications";
@@ -19,6 +19,7 @@ import { logDose, medicationsQuery, toMedications } from "~/lib/sync/medications
 import { readRows } from "~/lib/sync/timeline";
 import { MedicationSearch, StatusFilter } from "./MedicationFilters";
 import { MedicationList } from "./MedicationList";
+import { PrintMenu } from "./PrintMenu";
 import { todayDoseFromForm } from "./todayDose";
 import { TodaySection } from "./TodaySection";
 
@@ -109,15 +110,7 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
             <Clock className="size-4" aria-hidden="true" />
             Passes
           </Link>
-          <Link
-            to={appUrls.medicationsPrint(params.groupId)}
-            prefetch="render"
-            className="btn btn-ghost btn-sm gap-1.5"
-            data-print-link
-          >
-            <Printer className="size-4" aria-hidden="true" />
-            Print
-          </Link>
+          <PrintMenu groupId={params.groupId} />
           {group.canWrite && (
             <Link
               to={appUrls.newMedication(params.groupId, search)}

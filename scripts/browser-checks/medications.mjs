@@ -1320,6 +1320,16 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
 // Slice 6: the printable sheet and the provider page's medications
 // ---------------------------------------------------------------------------
 
+/** The list's Print menu button, and choosing one of its sheets. */
+const PRINT_MENU = `[...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Print")`;
+const printMenuItem = (label) =>
+  `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim().startsWith(${JSON.stringify(label)}))`;
+async function choosePrint(p, label) {
+  await p.tap(PRINT_MENU);
+  await p.waitFor(`!!${printMenuItem(label)}`, 5000).catch(() => {});
+  await p.tap(printMenuItem(label));
+}
+
 const onPrint = `location.pathname.endsWith("/medications/print") && document.querySelectorAll("main [data-print-medication]").length >= 4`;
 /** The sheet as the DOM has it, leaving out every run's tagged medications. */
 const printState = (p) =>
@@ -1355,13 +1365,13 @@ const printLayout = (p) =>
 /** The sheet from the list's Print link: what's on it, the Print button, and print media at 420 and 1280 (A). */
 async function printSteps(p) {
   await p.goto(LIST);
-  await p.waitFor(`!!document.querySelector("main a[data-print-link]")`, 20000).catch(() => {});
-  await p.tap(`document.querySelector("main a[data-print-link]")`);
+  await p.waitFor(`!!${PRINT_MENU}`, 20000).catch(() => {});
+  await choosePrint(p, "Medication list");
   await p.waitFor(onPrint, 20000).catch(() => {});
   const sheet = await printState(p);
   const dob = psql(`SELECT date_of_birth FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`);
   check(
-    "the list's Print link opens the sheet: the recipient, the date of birth, the group and the day printed",
+    "the list's Print menu opens the sheet: the recipient, the date of birth, the group and the day printed",
     sheet.name?.includes("Grandma Pat") &&
       dob === "1941-03-14" &&
       sheet.dob === "Mar 14, 1941" &&
@@ -1447,17 +1457,284 @@ async function printSteps(p) {
 /** Offline (A behind `proxy`): the sheet opens from the device's copy. */
 async function printOfflineSteps(p, proxy) {
   await p.goto(LIST);
-  await p.waitFor(`!!document.querySelector("main a[data-print-link]")`, 20000).catch(() => {});
+  await p.waitFor(`!!${PRINT_MENU}`, 20000).catch(() => {});
   const errorsBefore = p.errors.length;
   proxy.setOnline(false);
   await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
-  await p.tap(`document.querySelector("main a[data-print-link]")`);
+  await choosePrint(p, "Medication list");
   await p.waitFor(onPrint, 15000).catch(() => {});
   const sheet = await printState(p);
   check(
     "offline: the sheet opens from the device's copy, with the date of birth and phones",
     same(sheet.current, SEEDED_CURRENT) && sheet.dob === "Mar 14, 1941" && sheet.contacts.length === 2,
     JSON.stringify({ current: sheet.current, dob: sheet.dob, contacts: sheet.contacts.length }),
+  );
+  proxy.setOnline(true);
+  await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  p.errors.splice(errorsBefore);
+}
+
+// ---------------------------------------------------------------------------
+// medications-2 slice 7: the weekly bedside sheet
+// ---------------------------------------------------------------------------
+
+const onWeek = `location.pathname.endsWith("/medications/print/week") && !!document.querySelector("main [data-week-sheet]")`;
+/** The weekly sheet as the DOM has it, leaving out every run's tagged medications. */
+const weekState = (p) =>
+  p.evaluate(`(() => {
+    const untagged = (t) => !t.startsWith("${TAG}") && !t.startsWith("MV-");
+    const groups = [...document.querySelectorAll("main tbody[data-week-group]")].map((g) => [
+      g.querySelector("[data-week-group-name]")?.textContent.trim(),
+      [...g.querySelectorAll("tr[data-week-row], tr[data-week-as-needed] th")].map((r) => {
+        const th = r.matches("th") ? r : r.querySelector("th");
+        return [th?.querySelector("[data-week-title]")?.textContent.trim(), [...th.querySelectorAll(".block")].map((m) => m.textContent.trim())];
+      }).filter(([t]) => t && untagged(t)),
+    ]).filter(([, rows]) => rows.length > 0);
+    const allergies = document.querySelector("main [data-print-allergies]");
+    const table = document.querySelector("main [data-week-table]");
+    return {
+      search: location.search,
+      days: [...document.querySelectorAll("main th[data-week-day]")].map((d) => d.dataset.weekDay),
+      weekdays: [...document.querySelectorAll("main th[data-week-day]")].map((d) => d.firstChild?.textContent.trim()),
+      groups,
+      asNeededLines: document.querySelectorAll("main tr[data-week-as-needed]").length,
+      boxes: document.querySelectorAll("main tr[data-week-row] td[data-week-cell]").length,
+      rows: document.querySelectorAll("main tr[data-week-row]").length,
+      allergiesFirst: !!allergies && !!table && !!(allergies.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING),
+      name: document.querySelector('main [data-print-field="name"]')?.textContent.trim(),
+    };
+  })()`);
+/** This week's Monday in Los Angeles (the seeds' zone), and a day moved by `n` days. */
+const laMonday = () => {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
+  const dow = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7;
+  return shiftDay(today, -dow);
+};
+const shiftDay = (day, n) => {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+const weekOf = (start) => Array.from({ length: 7 }, (_, i) => shiftDay(start, i));
+/** Pages in a PDF from Page.printToPDF (the page objects, not the page tree), and the first page's size. */
+const pdfPages = (base64) => {
+  const text = Buffer.from(base64, "base64").toString("latin1");
+  const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(text);
+  return {
+    pages: (text.match(/\/Type\s*\/Page\b(?!s)/g) ?? []).length,
+    width: Number(box?.[1]),
+    height: Number(box?.[2]),
+  };
+};
+
+/**
+ * The weekly sheet from the list's Print menu (A): both sheets offered; the
+ * seeded medications under their passes with amounts, as-needed rows, the
+ * allergies first; the week picker (next, previous, this week, a start day
+ * across the fall clock change); print media at 420 and 1280, black on white,
+ * one landscape page.
+ */
+async function weeklySteps(p) {
+  await p.goto(LIST);
+  await p.waitFor(`!!${PRINT_MENU}`, 20000).catch(() => {});
+  await p.tap(PRINT_MENU);
+  await p.waitFor(`!!${printMenuItem("Weekly chart")}`, 5000).catch(() => {});
+  const items = await p.evaluate(
+    `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.querySelector(".truncate")?.textContent.trim())`,
+  );
+  check(
+    "the list's Print menu offers the medication list and the weekly chart",
+    same(items, ["Medication list", "Weekly chart"]),
+    JSON.stringify(items),
+  );
+  await p.tap(printMenuItem("Weekly chart"));
+  const opened = await need(
+    p,
+    `${onWeek} && document.querySelectorAll("main tr[data-week-row]").length >= 4`,
+    20000,
+    "the weekly sheet",
+  );
+  const monday = laMonday();
+  const sheet = await weekState(p);
+  check(
+    "the weekly sheet opens on this week, Monday to Sunday in the recipient's zone",
+    opened &&
+      same(sheet.days, weekOf(monday)) &&
+      sheet.weekdays[0] === "Mon" &&
+      sheet.weekdays[6] === "Sun" &&
+      sheet.search === "",
+    JSON.stringify({ days: sheet.days, weekdays: sheet.weekdays, monday }),
+  );
+  check(
+    "it lists the current scheduled medications under their passes with amounts, then times of their own, then as-needed rows",
+    same(sheet.groups, [
+      [
+        "Morning · 8:00",
+        [
+          ["Lisinopril 10 mg", ["1 tablet"]],
+          ["Metformin 500 mg", ["1 tablet"]],
+        ],
+      ],
+      ["Evening · 20:00", [["Metformin 500 mg", ["1 tablet"]]]],
+      ["21:00", [["Latanoprost 0.005%", ["1 drop in each eye"]]]],
+      ["As needed · write the time", [["Acetaminophen 500 mg", ["2 tablets", "Up to 4 a day"]]]],
+    ]),
+    JSON.stringify(sheet.groups),
+  );
+  check(
+    "…with a box under each day for every row, and blank as-needed lines",
+    sheet.boxes === sheet.rows * 7 && sheet.asNeededLines >= 2,
+    JSON.stringify({ boxes: sheet.boxes, rows: sheet.rows, asNeeded: sheet.asNeededLines }),
+  );
+  check(
+    "the allergies are at the top, above the chart",
+    sheet.allergiesFirst && sheet.name?.includes("Grandma Pat"),
+    JSON.stringify({ first: sheet.allergiesFirst, name: sheet.name }),
+  );
+
+  // The week picker.
+  await p.tap(`document.querySelector("main [data-week-next]")`);
+  const next = await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === ${JSON.stringify(shiftDay(monday, 7))}`,
+    5000,
+    "next week",
+  );
+  await p.tap(`document.querySelector("main [data-week-previous]")`);
+  await p.tap(`document.querySelector("main [data-week-previous]")`);
+  const previous = await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === ${JSON.stringify(shiftDay(monday, -7))}`,
+    5000,
+    "last week",
+  );
+  await p.tap(`document.querySelector("main [data-week-this]")`);
+  const back = await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === ${JSON.stringify(monday)} && document.querySelector("main [data-week-this]")?.getAttribute("aria-current") === "true"`,
+    5000,
+    "this week",
+  );
+  check(
+    "Next week, Previous week and This week move the chart by a week",
+    next && previous && back,
+    `${next} ${previous} ${back}`,
+  );
+  // A start day of your own, in the week the clocks go back (Sunday, Nov 1, 2026 in Los Angeles).
+  await p.evaluate(`(() => {
+    const input = document.querySelector("main input[data-week-start]");
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "2026-10-26");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+  })()`);
+  await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === "2026-10-26"`,
+    5000,
+    "the chosen week",
+  );
+  const dst = await weekState(p);
+  check(
+    "a chosen start day shows that week, seven calendar days across the clock change",
+    dst.search === "?start=2026-10-26" &&
+      same(dst.days, weekOf("2026-10-26")) &&
+      dst.days[6] === "2026-11-01" &&
+      dst.weekdays[6] === "Sun",
+    JSON.stringify({ search: dst.search, days: dst.days, weekdays: dst.weekdays }),
+  );
+  await p.tap(`document.querySelector("main [data-week-this]")`);
+  await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === ${JSON.stringify(monday)}`,
+    5000,
+    "this week again",
+  );
+
+  // Print media: no frame or controls, black on white in both themes, within the page; one landscape page.
+  const layout = () =>
+    p.evaluate(`(() => {
+      const shown = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+      const table = document.querySelector("main [data-week-table]");
+      const box = document.querySelector("main td[data-week-cell] span span");
+      return {
+        header: shown(document.querySelector("header.navbar")),
+        tabBar: shown(document.querySelector('nav.dock[aria-label="Group sections"]')),
+        controls: [...document.querySelectorAll("button, a.btn, input, [role=button]")].filter(shown).map((el) => el.textContent.trim() || el.tagName),
+        fits: !!table && table.getBoundingClientRect().right <= document.documentElement.clientWidth + 0.5 && table.scrollWidth <= table.clientWidth + 1,
+        pageFits: document.documentElement.scrollWidth <= innerWidth,
+        background: getComputedStyle(document.body).backgroundColor,
+        color: getComputedStyle(document.querySelector("main [data-week-sheet] h1")).color,
+        cell: getComputedStyle(document.querySelector("main [data-week-sheet] th[data-week-day]")).color,
+        box: box ? getComputedStyle(box).borderTopColor : null,
+      };
+    })()`);
+  const layouts = {};
+  for (const [width, mobile] of [
+    [420, true],
+    [1280, false],
+  ]) {
+    await metrics(p, width, mobile);
+    await p.send("Emulation.setEmulatedMedia", { media: "print" });
+    await sleep(300);
+    layouts[width] = await layout();
+    await p.screenshot(`medications-week-${width}`);
+  }
+  await p.evaluate(`document.documentElement.dataset.theme = "dark"; true`);
+  await sleep(200);
+  const dark = await layout();
+  // One landscape page, as the browser would print it (the page's own `@page` size).
+  const pdf = await Promise.race([
+    p
+      .send("Page.printToPDF", { preferCSSPageSize: true, printBackground: true })
+      .then((r) => pdfPages(r.data)),
+    sleep(30000).then(() => ({ pages: -1, width: 0, height: 0 })),
+  ]);
+  await p.evaluate(`delete document.documentElement.dataset.theme; true`);
+  await p.send("Emulation.setEmulatedMedia", { media: "" });
+  await metrics(p, 420, true);
+  const clean = (l) => !l.header && !l.tabBar && l.controls.length === 0 && l.fits && l.pageFits;
+  check(
+    "printed, the chart has no header, tab bar or controls, and fits the width at 420 and 1280",
+    clean(layouts[420]) && clean(layouts[1280]),
+    JSON.stringify(layouts),
+  );
+  const black = (l) =>
+    l.background === "rgb(255, 255, 255)" &&
+    l.color === "rgb(0, 0, 0)" &&
+    l.cell === "rgb(0, 0, 0)" &&
+    l.box === "rgb(0, 0, 0)";
+  check(
+    "printed, it's black on white, in the dark theme too",
+    black(layouts[1280]) && black(dark),
+    JSON.stringify({ light: layouts[1280], dark }),
+  );
+  check(
+    "Grandma Pat's chart prints on one landscape page",
+    pdf.pages === 1 && pdf.width > pdf.height,
+    JSON.stringify(pdf),
+  );
+}
+
+/** Offline (A behind `proxy`): the weekly sheet opens from the Print menu, from the device's copy. */
+async function weeklyOfflineSteps(p, proxy) {
+  await p.goto(LIST);
+  await p.waitFor(`!!${PRINT_MENU}`, 20000).catch(() => {});
+  await sleep(1000); // the Print menu's pages' modules, fetched ahead
+  const errorsBefore = p.errors.length;
+  proxy.setOnline(false);
+  await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+  await choosePrint(p, "Weekly chart");
+  const opened = await need(
+    p,
+    `${onWeek} && document.querySelectorAll("main tr[data-week-row]").length >= 4`,
+    15000,
+    "the weekly sheet offline",
+  );
+  const sheet = await weekState(p);
+  check(
+    "offline: the weekly sheet opens from the Print menu, from the device's copy",
+    opened && sheet.groups.length === 4 && sheet.allergiesFirst,
+    JSON.stringify(sheet.groups.map(([name]) => name)),
   );
   proxy.setOnline(true);
   await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
@@ -3069,7 +3346,7 @@ async function allergySteps(p, { B, C, proxy } = {}) {
       "Latex in the region",
     );
     const offlineRegion = await regionInfo(p);
-    await p.tap(`document.querySelector("main a[data-print-link]")`);
+    await choosePrint(p, "Medication list");
     await need(
       p,
       `!!document.querySelector("main [data-print-allergies]")`,
@@ -3495,6 +3772,7 @@ try {
   await listSteps(A);
   await pageSteps(A);
   await printSteps(A);
+  await weeklySteps(A);
   await providerMedicationSteps(A);
   // Slice 3 on A; the second device (B) only in a full run.
   if (SMOKE) await addSteps(A);
@@ -3532,6 +3810,7 @@ try {
     await formOfflineSteps(A, proxy, B);
     await offlineSteps(A, proxy);
     await printOfflineSteps(A, proxy);
+    await weeklyOfflineSteps(A, proxy);
     if (made) {
       const synced = await waitForLocal(
         B,
