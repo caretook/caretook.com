@@ -99,6 +99,7 @@ apps/web/app/routes/app/groups/layout/*  routing app-shell
 apps/web/app/routes/app/groups/index/*   routing
 apps/web/app/lib/group.tsx               routing app-shell
 apps/web/app/lib/groupContext.ts         routing app-shell
+apps/web/app/lib/groupSections.ts        app-shell routing
 apps/web/app/routes/app/settings/*       routing settings-layout layout-offline ui
 apps/web/app/lib/me.ts                   settings-layout layout-offline
 apps/web/app/components/settings/*       routing settings-layout app-shell ui
@@ -134,8 +135,11 @@ apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
 apps/web/app/lib/sync/providers.ts       providers
-# The medication list (no screens yet: `medications.mjs` drives the device module).
+# The medication list: the device module, the list and a medication's page
+# (its live notes run live-notes too).
 apps/web/app/lib/sync/medications.ts     medications
+apps/web/app/routes/app/groups/medications/* medications
+apps/web/app/routes/app/groups/medication/* medications live-notes
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 
 # Marketing (web only).

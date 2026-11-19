@@ -132,4 +132,10 @@ export const appUrls = {
   provider: (groupId: string, providerId: string) => `${groupHome(groupId)}/providers/${segment(providerId)}`,
   /** Start another care group: who you care for, then its timeline. */
   newGroup: () => `${HOME}/groups/new`,
+  /** A group's medication list, with its search and status filter (`?q=`, `?status=`) carried through. */
+  medications: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/medications${searchString(search)}`,
+  /** A medication's page: details, schedule, providers, refills, its live notes and its history. */
+  medication: (groupId: string, medicationId: string) =>
+    `${groupHome(groupId)}/medications/${segment(medicationId)}`,
 } as const;
