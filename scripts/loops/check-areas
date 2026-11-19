@@ -114,6 +114,12 @@ apps/web/app/components/ui/*             ui app-shell
 apps/web/app/components/brand/*          app-shell marketing
 
 # The timeline, its rows, filters, vitals and sheets.
+# Doses and medication changes on the timeline (medications slice 4).
+apps/web/app/routes/app/groups/timeline/new-dose/* medications
+apps/web/app/routes/app/groups/timeline/DoseForm.tsx medications
+apps/web/app/routes/app/groups/timeline/doseFormData.ts medications
+apps/web/app/routes/app/groups/timeline/MedicationEntryText.tsx medications phase2
+apps/web/app/lib/sync/medicationTimeline.ts medications phase2
 apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
 apps/web/app/components/entry/*          phase2 roundtrip live-notes
 apps/web/app/components/forms/*          roundtrip live-notes

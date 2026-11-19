@@ -9,21 +9,26 @@ import { KIND_META } from "~/lib/entryDisplay";
 import { SHEET_LINK_STATE } from "./sheet";
 import { VitalTypeMenu } from "./VitalTypeMenu";
 
+// In bar order: Note, Event, Dose, Symptom, then the Vitals menu.
 const TILES = [
-  { kind: "note", page: true },
-  { kind: "symptom", page: false },
-  { kind: "event", page: true },
-] as const satisfies readonly ({ kind: LiveEntryKind; page: true } | { kind: SheetKind; page: false })[];
+  { kind: "note", to: "page" },
+  { kind: "event", to: "page" },
+  { kind: "dose", to: "dose" },
+  { kind: "symptom", to: "sheet" },
+] as const satisfies readonly (
+  { kind: LiveEntryKind; to: "page" } | { kind: SheetKind; to: "sheet" } | { kind: "dose"; to: "dose" }
+)[];
 
 const TILE = "btn btn-ghost h-auto min-h-12 flex-col gap-0.5 px-1 py-1.5 text-xs font-medium";
 
 /**
- * One tap to start an entry of a given kind: Note, Symptom, Event, or a vital
- * type from the Vitals menu. Four equal tiles, so it stays one row on phones.
- * Every tile is a link: notes and events to their page, symptoms and vitals
- * to the add sheet over the timeline (which keeps the scroll position and the
- * filters, and carries `SHEET_LINK_STATE`). The sheet's route module is
- * fetched as soon as the bar renders, so it opens offline.
+ * One tap to start an entry of a given kind: Note, Event, Dose, Symptom, or a
+ * vital type from the Vitals menu. Five equal tiles, so it stays one row on
+ * phones (writers only: the timeline leaves the bar out for viewers). Every
+ * tile is a link: notes and events to their page, doses, symptoms and vitals
+ * to their add sheet over the timeline (which keeps the scroll position and
+ * the filters, and carries `SHEET_LINK_STATE`). The sheets' route modules are
+ * fetched as soon as the bar renders, so they open offline.
  */
 export function QuickAddBar({ groupId }: { groupId: string }) {
   const navigate = useNavigate();
@@ -36,18 +41,17 @@ export function QuickAddBar({ groupId }: { groupId: string }) {
     <div
       role="group"
       aria-label="Add to the timeline"
-      className="rounded-box border-base-300 bg-base-100 grid grid-cols-4 gap-1 border p-1"
+      className="rounded-box border-base-300 bg-base-100 grid grid-cols-5 gap-1 border p-1"
     >
       {TILES.map((tile) => {
         const { Icon, label } = KIND_META[tile.kind];
-        const link = tile.page
-          ? { to: newEntryUrl(tile.kind) }
-          : {
-              to: newSheetUrl(tile.kind),
-              state: sheetLinkState,
-              preventScrollReset: true,
-              prefetch: "render" as const,
-            };
+        const sheet = { state: sheetLinkState, preventScrollReset: true, prefetch: "render" as const };
+        const link =
+          tile.to === "page"
+            ? { to: newEntryUrl(tile.kind) }
+            : tile.to === "dose"
+              ? { to: appUrls.newDose(groupId, { search }), ...sheet }
+              : { to: newSheetUrl(tile.kind), ...sheet };
         return (
           <Link key={tile.kind} {...link} className={TILE}>
             <Icon className="size-5" aria-hidden="true" />
