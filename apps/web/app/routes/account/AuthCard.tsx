@@ -2,6 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 
 import { useCallback, useRef } from "react";
 import { useSubmit } from "react-router";
+import { Field } from "~/components/ui/plain";
 
 // The card every signed-out account page sits in (sign-in, reset password,
 // verify email). Shared by those routes only, so it lives beside them.
@@ -48,20 +49,19 @@ export function AuthCard({ title, children }: { title: string; children: ReactNo
 /** An email field (the same on every account form). */
 export function EmailField({ defaultValue }: { defaultValue?: string }) {
   return (
-    <fieldset className="fieldset">
-      <label className="fieldset-legend" htmlFor="email">
-        Email
-      </label>
-      <input
-        id="email"
-        className="input w-full"
-        type="email"
-        name="email"
-        autoComplete="email"
-        defaultValue={defaultValue}
-        required
-      />
-    </fieldset>
+    <Field label="Email">
+      {(control) => (
+        <input
+          {...control}
+          className="input w-full"
+          type="email"
+          name="email"
+          autoComplete="email"
+          defaultValue={defaultValue}
+          required
+        />
+      )}
+    </Field>
   );
 }
 

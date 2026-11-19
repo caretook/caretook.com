@@ -154,7 +154,7 @@ const submit = (label) =>
   `[...document.querySelectorAll('main button[type="submit"]')].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`;
 const statusText = `(${q('[role="status"]')}?.textContent.trim() ?? "")`;
 const alertText = `(${q('[role="alert"]')}?.textContent.trim() ?? "")`;
-const onApp = `location.pathname.startsWith("/app") && !document.querySelector("#email")`;
+const onApp = `location.pathname.startsWith("/app") && !document.querySelector('input[name="email"]')`;
 
 /**
  * Press a submit button twice before the page can re-render (a double tap
@@ -192,7 +192,7 @@ try {
       `[...document.querySelectorAll('nav[aria-label="Ways to sign in"] a')].find((a) => a.textContent.trim() === "Email link")`,
     );
     await p.waitFor(`location.search.includes("with=link") && ${submit("Email me a link")}`);
-    await p.type(q("#email"), linkUser);
+    await p.type(q('input[name="email"]'), linkUser);
     await doublePress(p, submit("Email me a link"));
     await p.waitFor(`${statusText}.startsWith("Check your email")`, 15000);
     const sentLink = await p.evaluate(statusText);
@@ -215,7 +215,7 @@ try {
     const u = await open(9502, "link-unknown");
     await u.goto("/sign-in?with=link");
     await u.waitFor(submit("Email me a link"));
-    await u.type(q("#email"), unknown);
+    await u.type(q('input[name="email"]'), unknown);
     await u.press(submit("Email me a link"));
     await u.waitFor(`${statusText}.startsWith("Check your email")`, 15000);
     await sleep(QUIET_MS);
@@ -238,9 +238,9 @@ try {
     const p = await open(9503, "code");
     await p.goto("/sign-in?with=code");
     await p.waitFor(submit("Email me a code"));
-    await p.type(q("#email"), codeUser);
+    await p.type(q('input[name="email"]'), codeUser);
     await doublePress(p, submit("Email me a code"));
-    await p.waitFor(`${statusText}.startsWith("Check your email") && ${q("#code")}`, 15000);
+    await p.waitFor(`${statusText}.startsWith("Check your email") && ${q('input[name="code"]')}`, 15000);
     const mail = await waitForMail(codeUser, "signInCode");
     const code = mail.text.match(/\b(\d{6})\b/)?.[1];
     check(Boolean(code), "the email has a 6-digit code", mail.subject);
@@ -249,14 +249,14 @@ try {
     check((await mailTo(codeUser)).length === 1, "a double press sends one code");
 
     const wrong = code === "000000" ? "111111" : "000000";
-    await p.type(q("#code"), wrong);
+    await p.type(q('input[name="code"]'), wrong);
     await p.press(submit("Sign in"));
     await p.waitFor(`${alertText}.length > 0`, 15000);
     check((await p.evaluate(alertText)).startsWith("That code didn't work"), "a wrong code is refused");
     check(!(await p.evaluate(onApp)), "and doesn't sign in");
 
     await pause();
-    await p.type(q("#code"), code);
+    await p.type(q('input[name="code"]'), code);
     await p.press(submit("Sign in"));
     await sleep(50);
     check(
@@ -275,15 +275,15 @@ try {
     const e = await open(9504, "code-expired");
     await e.goto("/sign-in?with=code");
     await e.waitFor(submit("Email me a code"));
-    await e.type(q("#email"), codeUser);
+    await e.type(q('input[name="email"]'), codeUser);
     await e.press(submit("Email me a code"));
-    await e.waitFor(q("#code"), 15000);
+    await e.waitFor(q('input[name="code"]'), 15000);
     const second = await waitForMail(codeUser, "signInCode", 2);
     const secondCode = second.text.match(/\b(\d{6})\b/)?.[1];
     psql(
       `UPDATE verification SET expires_at = now() - interval '1 minute' WHERE identifier LIKE '%${codeUser}%'`,
     );
-    await e.type(q("#code"), secondCode);
+    await e.type(q('input[name="code"]'), secondCode);
     await e.press(submit("Sign in"));
     await e.waitFor(`${alertText}.length > 0`, 15000);
     check(
@@ -296,7 +296,7 @@ try {
     await pause();
     await e.goto("/sign-in?with=code");
     await e.waitFor(submit("Email me a code"));
-    await e.type(q("#email"), unknown);
+    await e.type(q('input[name="email"]'), unknown);
     await e.press(submit("Email me a code"));
     await e.waitFor(`${statusText}.startsWith("Check your email")`, 15000);
     await sleep(QUIET_MS);
@@ -314,7 +314,7 @@ try {
       `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Forgot password?")`,
     );
     await p.waitFor(`location.pathname === "/reset-password" && ${submit("Email me a link")}`);
-    await p.type(q("#email"), resetUser);
+    await p.type(q('input[name="email"]'), resetUser);
     await doublePress(p, submit("Email me a link"));
     await p.waitFor(`${statusText}.startsWith("Check your email")`, 15000);
     const mail = await waitForMail(resetUser, "resetPassword");
@@ -331,8 +331,8 @@ try {
     await p.goto(path);
     await p.waitFor(submit("Save new password"));
     const newPassword = `new ${RUN} passphrase`;
-    await p.type(q("#password"), newPassword);
-    await p.type(q("#confirm"), newPassword);
+    await p.type(q('input[name="password"]'), newPassword);
+    await p.type(q('input[name="confirm"]'), newPassword);
     await p.press(submit("Save new password"));
     await p.waitFor(`document.querySelector("main h1")?.textContent === "Password changed"`, 15000);
     check(true, "the emailed link sets a new password");
@@ -341,8 +341,8 @@ try {
     await pause();
     await p.goto("/sign-in");
     await p.waitFor(submit("Sign in"));
-    await p.type(q("#email"), resetUser);
-    await p.type(q("#password"), PASSWORD);
+    await p.type(q('input[name="email"]'), resetUser);
+    await p.type(q('input[name="password"]'), PASSWORD);
     await p.press(submit("Sign in"));
     await p.waitFor(`${alertText}.length > 0`, 15000);
     check(
@@ -357,8 +357,8 @@ try {
     const again = await open(9506, "reset-again");
     await again.goto(path);
     await again.waitFor(submit("Save new password"));
-    await again.type(q("#password"), "another long passphrase");
-    await again.type(q("#confirm"), "another long passphrase");
+    await again.type(q('input[name="password"]'), "another long passphrase");
+    await again.type(q('input[name="confirm"]'), "another long passphrase");
     await again.press(submit("Save new password"));
     await again.waitFor(`${alertText}.includes("expired or was already used")`, 15000);
     check(true, "the reset link works only once");
@@ -366,7 +366,7 @@ try {
     // An unknown email: the same message, no mail.
     await again.goto("/reset-password");
     await again.waitFor(submit("Email me a link"));
-    await again.type(q("#email"), unknown);
+    await again.type(q('input[name="email"]'), unknown);
     await again.press(submit("Email me a link"));
     await again.waitFor(`${statusText}.startsWith("Check your email")`, 15000);
     await sleep(QUIET_MS);
@@ -378,8 +378,8 @@ try {
     const p = await open(9507, "unverified");
     await p.goto("/sign-in");
     await p.waitFor(submit("Sign in"));
-    await p.type(q("#email"), unverifiedUser);
-    await p.type(q("#password"), PASSWORD);
+    await p.type(q('input[name="email"]'), unverifiedUser);
+    await p.type(q('input[name="password"]'), PASSWORD);
     await p.press(submit("Sign in"));
     await p.waitFor(`location.pathname === "/verify-email"`, 15000);
     check(
@@ -624,8 +624,8 @@ try {
     );
     await p.press(`[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Sign in")`);
     await p.waitFor(`location.pathname === "/sign-in" && ${submit("Sign in")}`);
-    await p.type(q("#email"), existing);
-    await p.type(q("#password"), PASSWORD);
+    await p.type(q('input[name="email"]'), existing);
+    await p.type(q('input[name="password"]'), PASSWORD);
     await p.press(submit("Sign in"));
     await p.waitFor(
       `location.pathname === ${JSON.stringify(pathOf(link))} && document.querySelector('[data-invite-form="accept"]')`,

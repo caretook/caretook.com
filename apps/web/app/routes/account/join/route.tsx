@@ -7,7 +7,7 @@ import { ORPCError } from "@orpc/client";
 import { useRef, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { NewGroupFields, newGroupFromForm } from "~/components/groups";
-import { Field } from "~/components/ui";
+import { Field } from "~/components/ui/plain";
 import { toActionResult } from "~/lib/api";
 import { accountUrls } from "~/lib/accountUrls";
 import { appUrls } from "~/lib/appUrls";

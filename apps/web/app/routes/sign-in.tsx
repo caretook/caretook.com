@@ -2,6 +2,7 @@ import type { SignInMethod } from "~/lib/accountUrls";
 import type { Route } from "./+types/sign-in";
 
 import { Form, Link, redirect, useNavigation } from "react-router";
+import { Field } from "~/components/ui/plain";
 import { accountUrls, parseSignInMethod } from "~/lib/accountUrls";
 import { authClient } from "~/lib/auth-client";
 import { authMessages, isCodeShaped, isUnverified, normalizeCode, requestFailure } from "~/lib/authMessages";
@@ -123,19 +124,18 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
           <input type="hidden" name="intent" value="password" />
           <input type="hidden" name="redirectTo" value={redirectTo} />
           <EmailField />
-          <fieldset className="fieldset">
-            <label className="fieldset-legend" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              className="input w-full"
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              required
-            />
-          </fieldset>
+          <Field label="Password">
+            {(control) => (
+              <input
+                {...control}
+                className="input w-full"
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                required
+              />
+            )}
+          </Field>
           {result?.error && <ErrorMessage>{result.error}</ErrorMessage>}
           <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
             {busy ? "Signing in…" : "Sign in"}
@@ -188,24 +188,23 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
             <input type="hidden" name="intent" value="code" />
             <input type="hidden" name="email" value={result.sentTo} />
             <input type="hidden" name="redirectTo" value={redirectTo} />
-            <fieldset className="fieldset">
-              <label className="fieldset-legend" htmlFor="code">
-                Code
-              </label>
-              <input
-                id="code"
-                className="input w-full text-center font-mono text-2xl tracking-[0.4em]"
-                name="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="\s*(\d\s*){6}"
-                maxLength={11}
-                // The code is the one thing to type next.
-                // eslint-disable-next-line jsx-a11y/no-autofocus
-                autoFocus
-                required
-              />
-            </fieldset>
+            <Field label="Code">
+              {(control) => (
+                <input
+                  {...control}
+                  className="input w-full text-center font-mono text-2xl tracking-[0.4em]"
+                  name="code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="\s*(\d\s*){6}"
+                  maxLength={11}
+                  // The code is the one thing to type next.
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
+                  autoFocus
+                  required
+                />
+              )}
+            </Field>
             {result.error && <ErrorMessage>{result.error}</ErrorMessage>}
             <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
               {busy && busyIntent === "code" ? "Signing in…" : "Sign in"}
