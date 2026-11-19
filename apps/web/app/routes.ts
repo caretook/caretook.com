@@ -44,6 +44,8 @@ const appRoutes = [
           // static, so it ranks above the page's `:medicationId`).
           route("new", "routes/app/groups/medications/new/route.tsx"),
           route(":medicationId/edit", "routes/app/groups/medications/edit/route.tsx"),
+          // The recipient's allergies (writers), opened from the list and from a medication's page.
+          route("allergies", "routes/app/groups/medications/allergies/route.tsx"),
         ]),
         route("medications/:medicationId", "routes/app/groups/medication/route.tsx"),
         // The printable sheet (a static segment, so it ranks above `:medicationId`).

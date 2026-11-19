@@ -347,3 +347,45 @@ describe("recipientAllergyService", () => {
     ).toHaveLength(1);
   });
 });
+
+describe("recipientAllergyService.setNoKnownAllergies", () => {
+  const noKnownOf = async (recipientId: string) => {
+    const [row] = await getDb()
+      .select()
+      .from(careRecipientSchema)
+      .where(eq(careRecipientSchema.id, recipientId));
+    return row?.noKnownAllergiesAt ?? null;
+  };
+
+  it("lets writers record and clear it, refuses others, and refuses it while allergies are on file", async () => {
+    const { u, group, recipient } = await setup();
+    const at = "2026-11-18T09:00:00.000Z";
+
+    for (const who of [u.viewer, u.outsider, u.staff])
+      expect(codeOf(await recipientAllergyService.setNoKnownAllergies(who.ctx, recipient.id, at))).not.toBe(
+        "ok",
+      );
+    expect(await noKnownOf(recipient.id)).toBeNull();
+
+    ok(await recipientAllergyService.setNoKnownAllergies(u.caretaker.ctx, recipient.id, at));
+    expect(await noKnownOf(recipient.id)).toMatch(/^2026-11-18/);
+    // A replay is fine.
+    ok(await recipientAllergyService.setNoKnownAllergies(u.caretaker.ctx, recipient.id, at));
+    expect(codeOf(await recipientAllergyService.setNoKnownAllergies(u.owner.ctx, recipient.id, "soon"))).toBe(
+      "recipientAllergyService:invalidNoKnown",
+    );
+    ok(await recipientAllergyService.setNoKnownAllergies(u.owner.ctx, recipient.id, null));
+    expect(await noKnownOf(recipient.id)).toBeNull();
+
+    const allergy = ok(
+      await recipientAllergyService.create(u.caretaker.ctx, { groupId: group.id, substance: "Sulfa" }),
+    );
+    expect(codeOf(await recipientAllergyService.setNoKnownAllergies(u.owner.ctx, recipient.id, at))).toBe(
+      "recipientAllergyService:hasAllergies",
+    );
+    // A deleted allergy doesn't count.
+    ok(await recipientAllergyService.remove(u.caretaker.ctx, allergy!.id));
+    ok(await recipientAllergyService.setNoKnownAllergies(u.owner.ctx, recipient.id, at));
+    expect(await noKnownOf(recipient.id)).toMatch(/^2026-11-18/);
+  });
+});

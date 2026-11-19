@@ -1,6 +1,7 @@
 import type { AuthUser, PassMovedDetails } from "@caretook/data";
 
 import {
+  careRecipientService,
   medicationPassService,
   medicationService,
   passMovedId,
@@ -271,5 +272,83 @@ describe("sync.upload: recipient_allergy", () => {
     expect(
       (await owner.api.sync.upload({ ops: [{ op: "DELETE", table: "recipient_allergy", id }] })).results,
     ).toEqual([{ id, status: "applied" }]);
+  });
+});
+
+describe("sync.upload: care_recipient (No known allergies)", () => {
+  const noKnownOf = async (recipientId: string, ctx: Parameters<typeof careRecipientService.getById>[0]) =>
+    ok(await careRecipientService.getById(ctx, recipientId))?.noKnownAllergiesAt ?? null;
+
+  it("sets and clears No known allergies, and refuses other columns, other ops and viewers", async () => {
+    const { owner, viewer, group, recipient } = await setup();
+    const set = await owner.api.sync.upload({
+      ops: [
+        { op: "PATCH", table: "care_recipient", id: recipient.id, data: { no_known_allergies_at: MOVED_AT } },
+      ],
+    });
+    expect(set.results).toEqual([{ id: recipient.id, status: "applied" }]);
+    expect(await noKnownOf(recipient.id, viewer.ctx)).toMatch(/^2026-11-18/);
+
+    const refused = await owner.api.sync.upload({
+      ops: [
+        { op: "PATCH", table: "care_recipient", id: recipient.id, data: { name: "Someone else" } },
+        {
+          op: "PATCH",
+          table: "care_recipient",
+          id: recipient.id,
+          data: { no_known_allergies_at: null, name: "Someone else" },
+        },
+        { op: "PUT", table: "care_recipient", id: recipient.id, data: { no_known_allergies_at: null } },
+        { op: "DELETE", table: "care_recipient", id: recipient.id },
+      ],
+    });
+    expect(refused.results.map((r) => r.status === "rejected" && r.code)).toEqual([
+      "sync:readOnlyTable",
+      "sync:readOnlyTable",
+      "sync:readOnlyTable",
+      "sync:readOnlyTable",
+    ]);
+    expect(ok(await careRecipientService.getById(viewer.ctx, recipient.id))?.name).toBe(recipient.name);
+
+    const byViewer = await viewer.api.sync.upload({
+      ops: [
+        { op: "PATCH", table: "care_recipient", id: recipient.id, data: { no_known_allergies_at: null } },
+      ],
+    });
+    expect(byViewer.results[0]?.status).toBe("rejected");
+    expect(await noKnownOf(recipient.id, viewer.ctx)).not.toBeNull();
+
+    // Adding an allergy clears it; then recording it again is refused while one is on file.
+    const allergyId = randomUUID();
+    const added = await owner.api.sync.upload({
+      ops: [
+        { op: "PUT", table: "recipient_allergy", id: allergyId, data: allergyRow(group.id, recipient.id) },
+        { op: "PATCH", table: "care_recipient", id: recipient.id, data: { no_known_allergies_at: null } },
+        { op: "PATCH", table: "care_recipient", id: recipient.id, data: { no_known_allergies_at: MOVED_AT } },
+      ],
+    });
+    expect(added.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
+      "applied",
+      "applied",
+      "recipientAllergyService:hasAllergies",
+    ]);
+    expect(await noKnownOf(recipient.id, viewer.ctx)).toBeNull();
+  });
+
+  it("refuses another group's recipient", async () => {
+    const { owner } = await setup();
+    const other = await setup();
+    const res = await owner.api.sync.upload({
+      ops: [
+        {
+          op: "PATCH",
+          table: "care_recipient",
+          id: other.recipient.id,
+          data: { no_known_allergies_at: MOVED_AT },
+        },
+      ],
+    });
+    expect(res.results[0]?.status).toBe("rejected");
+    expect(await noKnownOf(other.recipient.id, other.viewer.ctx)).toBeNull();
   });
 });

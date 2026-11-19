@@ -1,4 +1,3 @@
-import type { z } from "zod";
 import type {
   RecipientAllergyCreateInput,
   RecipientAllergyUpdateInput,
@@ -8,6 +7,7 @@ import type {
 import type { IncludeDeleted } from "../models/recipientAllergy";
 import type { ServiceContext } from "./types";
 
+import { z } from "zod";
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
@@ -146,4 +146,47 @@ export const remove = (ctx: ServiceContext, id: string) =>
     const visible = await recipientAllergyModel.getById(id, { ...ctx, tx });
     if (isError(visible)) return visible;
     return visible ? rejectError(ctx.authUser) : notFound();
+  }, ctx);
+
+// ---------------------------------------------------------------------------
+// "No known allergies" (`care_recipient.no_known_allergies_at`)
+// ---------------------------------------------------------------------------
+
+const noKnownAtZSchema = z.iso.datetime({ offset: true }).nullable();
+
+/**
+ * Record "No known allergies" (a time) or clear it (null): the one
+ * care_recipient column a device may change. Permission is
+ * care_recipient's update rule (writers). Recording it while allergies are
+ * on file is refused: the list would contradict itself. Safe to replay.
+ */
+export const setNoKnownAllergies = (ctx: ServiceContext, recipientId: string, at: string | null) =>
+  withTransaction(async (tx) => {
+    const parsed = noKnownAtZSchema.safeParse(at);
+    if (!parsed.success) return newError({ code: "recipientAllergyService:invalidNoKnown" });
+
+    const recipient = await careRecipientModel.getById(recipientId, { ...ctx, tx });
+    if (isError(recipient)) return recipient;
+    if (!recipient) return rejectError(ctx.authUser);
+
+    if (parsed.data) {
+      const allergies = await recipientAllergyModel.list({
+        authUser: SYSTEM_USER,
+        tx,
+        filter: { recipientId: { type: "eq", value: recipientId } },
+      });
+      if (isError(allergies)) return allergies;
+      if (allergies.data.length) return newError({ code: "recipientAllergyService:hasAllergies" });
+    }
+
+    const updated = await careRecipientModel.update({
+      ...ctx,
+      tx,
+      filter: { id: { type: "eq", value: recipientId } },
+      data: { noKnownAllergiesAt: parsed.data },
+    });
+    if (isError(updated) && updated.code === "baseModel:update:nothingUpdated")
+      return rejectError(ctx.authUser);
+    if (isError(updated)) return updated;
+    return updated[0] ?? null;
   }, ctx);

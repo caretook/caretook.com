@@ -48,6 +48,7 @@ describe("onlyMedicationSheetChanged", () => {
     expect(onlyMedicationSheetChanged(G, url(LIST), url(`${LIST}/new`))).toBe(true);
     expect(onlyMedicationSheetChanged(G, url(`${LIST}/m1/edit`), url(`${LIST}?q=a`))).toBe(true);
     expect(onlyMedicationSheetChanged(G, url(`${LIST}/new`), url(`${LIST}/m1/edit`))).toBe(true);
+    expect(onlyMedicationSheetChanged(G, url(LIST), url(`${LIST}/allergies`))).toBe(true);
   });
   it("is false for a medication's page, the print sheet, another group or the same path", () => {
     expect(onlyMedicationSheetChanged(G, url(LIST), url(`${LIST}/m1`))).toBe(false);
