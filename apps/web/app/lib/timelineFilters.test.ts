@@ -12,6 +12,8 @@ import {
   setAuthor,
   setKind,
   setQuery,
+  setPeriod,
+  clearPeriod,
   setUpcoming,
   setVital,
 } from "./timelineFilters";
@@ -21,8 +23,22 @@ const SAM = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0aaa";
 
 describe("parseFilters", () => {
   it("reads no filters from an empty search", () => {
-    expect(parseFilters("")).toEqual({ kind: null, author: null, upcoming: false, q: "", vital: null });
-    expect(parseFilters("?")).toEqual({ kind: null, author: null, upcoming: false, q: "", vital: null });
+    expect(parseFilters("")).toEqual({
+      kind: null,
+      author: null,
+      upcoming: false,
+      q: "",
+      period: null,
+      vital: null,
+    });
+    expect(parseFilters("?")).toEqual({
+      kind: null,
+      author: null,
+      upcoming: false,
+      q: "",
+      period: null,
+      vital: null,
+    });
   });
 
   it("reads a kind, an author, or both", () => {
@@ -31,6 +47,7 @@ describe("parseFilters", () => {
       author: null,
       upcoming: false,
       q: "",
+      period: null,
       vital: null,
     });
     expect(parseFilters(`?author=${ALEX}`)).toEqual({
@@ -38,6 +55,7 @@ describe("parseFilters", () => {
       author: ALEX,
       upcoming: false,
       q: "",
+      period: null,
       vital: null,
     });
     expect(parseFilters(`?kind=vital&author=${ALEX}`)).toEqual({
@@ -46,6 +64,7 @@ describe("parseFilters", () => {
       upcoming: false,
       vital: null,
       q: "",
+      period: null,
     });
     expect(parseFilters(`?author=${ALEX}&kind=note`)).toEqual({
       kind: "note",
@@ -53,6 +72,7 @@ describe("parseFilters", () => {
       upcoming: false,
       vital: null,
       q: "",
+      period: null,
     });
   });
 
@@ -62,6 +82,7 @@ describe("parseFilters", () => {
       author: null,
       upcoming: false,
       q: "",
+      period: null,
       vital: null,
     });
   });
@@ -78,14 +99,23 @@ describe("parseFilters", () => {
       author: null,
       upcoming: false,
       q: "",
+      period: null,
       vital: null,
     });
-    expect(parseFilters("?kind=")).toEqual({ kind: null, author: null, upcoming: false, q: "", vital: null });
+    expect(parseFilters("?kind=")).toEqual({
+      kind: null,
+      author: null,
+      upcoming: false,
+      q: "",
+      period: null,
+      vital: null,
+    });
     expect(parseFilters("?kind=Symptom")).toEqual({
       kind: null,
       author: null,
       upcoming: false,
       q: "",
+      period: null,
       vital: null,
     });
   });
@@ -96,6 +126,7 @@ describe("parseFilters", () => {
       author: null,
       upcoming: false,
       q: "",
+      period: null,
       vital: null,
     });
     expect(parseFilters("?author=")).toEqual({
@@ -103,6 +134,7 @@ describe("parseFilters", () => {
       author: null,
       upcoming: false,
       q: "",
+      period: null,
       vital: null,
     });
     expect(parseFilters(`?author=${ALEX}'%20OR%201=1`)).toEqual({
@@ -111,6 +143,7 @@ describe("parseFilters", () => {
       upcoming: false,
       vital: null,
       q: "",
+      period: null,
     });
   });
 
@@ -121,6 +154,7 @@ describe("parseFilters", () => {
       upcoming: false,
       vital: null,
       q: "",
+      period: null,
     });
     expect(parseFilters("?kind=note&author=nope")).toEqual({
       kind: "note",
@@ -128,6 +162,7 @@ describe("parseFilters", () => {
       upcoming: false,
       vital: null,
       q: "",
+      period: null,
     });
   });
 
@@ -142,6 +177,7 @@ describe("parseFilters", () => {
       upcoming: false,
       vital: null,
       q: "",
+      period: null,
     });
   });
 });
@@ -268,13 +304,28 @@ describe("a round trip", () => {
       author: ALEX,
       upcoming: false,
       q: "",
+      period: null,
       vital: null,
     });
     search = clearKind(search);
-    expect(parseFilters(search)).toEqual({ kind: null, author: ALEX, upcoming: false, q: "", vital: null });
+    expect(parseFilters(search)).toEqual({
+      kind: null,
+      author: ALEX,
+      upcoming: false,
+      q: "",
+      period: null,
+      vital: null,
+    });
     search = setKind(search, "note");
     search = clearAuthor(search);
-    expect(parseFilters(search)).toEqual({ kind: "note", author: null, upcoming: false, q: "", vital: null });
+    expect(parseFilters(search)).toEqual({
+      kind: "note",
+      author: null,
+      upcoming: false,
+      q: "",
+      period: null,
+      vital: null,
+    });
   });
 });
 
@@ -289,6 +340,7 @@ describe("the Upcoming block (?upcoming=1)", () => {
       upcoming: true,
       vital: null,
       q: "",
+      period: null,
     });
   });
 
@@ -427,5 +479,49 @@ describe("the vital type (?vital=)", () => {
 
   it("is a filter", () => {
     expect(hasFilters(parseFilters("?kind=vital&vital=weight"))).toBe(true);
+  });
+});
+
+describe("the search's care period (?period=)", () => {
+  const PERIOD = "3f2b8c1e-5d1a-4c2e-9a77-0b6f3c1e0042";
+
+  it("is read only while searching", () => {
+    expect(parseFilters(`?q=knee&period=${PERIOD}`).period).toBe(PERIOD);
+    expect(parseFilters(`?q=knee&period=${PERIOD.toUpperCase()}`).period).toBe(PERIOD);
+    expect(parseFilters(`?period=${PERIOD}`).period).toBeNull();
+    expect(parseFilters(`?kind=note&period=${PERIOD}`)).toEqual({
+      kind: "note",
+      author: null,
+      upcoming: false,
+      q: "",
+      period: null,
+    });
+    expect(parseFilters("?q=knee&period=rehab").period).toBeNull();
+  });
+
+  it("is set only while searching, after the search, keeping the rest", () => {
+    expect(setPeriod("?q=knee&kind=note&x=1", PERIOD)).toBe(`?kind=note&q=knee&period=${PERIOD}&x=1`);
+    expect(setPeriod("?kind=note", PERIOD)).toBe("?kind=note");
+    expect(setPeriod("?q=knee", "rehab")).toBe("?q=knee");
+    const on = `?q=knee&period=${PERIOD}`;
+    expect(setPeriod(on, PERIOD)).toBe(on);
+  });
+
+  it("clears alone, keeping the search and the other filters", () => {
+    expect(clearPeriod(`?kind=note&q=knee&period=${PERIOD}`)).toBe("?kind=note&q=knee");
+    expect(clearPeriod("?q=knee")).toBe("?q=knee");
+  });
+
+  it("goes with the search", () => {
+    const on = `?kind=note&q=knee&period=${PERIOD}`;
+    expect(clearQuery(on)).toBe("?kind=note");
+    expect(setQuery(on, "  ")).toBe("?kind=note");
+    expect(clearFilters(on)).toBe("");
+    expect(setQuery(on, "hip")).toBe(`?kind=note&q=hip&period=${PERIOD}`);
+  });
+
+  it("is dropped by any change while there's no search", () => {
+    expect(setKind(`?period=${PERIOD}`, "note")).toBe("?kind=note");
+    expect(clearKind(`?period=${PERIOD}`)).toBe(`?period=${PERIOD}`);
   });
 });

@@ -2,7 +2,7 @@ import type { MyGroup } from "~/lib/rpc";
 import type { clientLoader as layoutLoader } from "./route";
 import type { GroupRow } from "~/lib/sync/timeline";
 
-import { ChevronDown, Plus, Settings, UserRound } from "lucide-react";
+import { ChevronDown, History, Plus, Settings, UserRound } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useNavigate, useRouteLoaderData } from "react-router";
 import { Menu, SEPARATOR } from "~/components/ui";
@@ -11,6 +11,8 @@ import { rememberGroup } from "~/lib/lastGroup";
 import { useLiveQuery } from "~/lib/sync";
 import { myGroupsQuery, toMyGroup } from "~/lib/sync/timeline";
 import { NEW_GROUP_LINK_STATE } from "~/lib/newGroupLink";
+import { menuNowText, periodName, periodTypeMeta } from "~/lib/periodDisplay";
+import { useCurrentCarePeriod } from "~/lib/sync/currentPeriod";
 
 /** What a group is called in the header: its recipient (preferred name first), then the group's name. */
 const displayName = (group: MyGroup) => group.recipient?.displayName || group.name;
@@ -26,6 +28,11 @@ const NO_ROWS: GroupRow[] = [];
  * the current group's settings, and "New
  * care group" the New care group sheet (closing it comes back). Loading a
  * group route also remembers it for `/app`.
+ *
+ * With a care period, the button shows the current period's type icon after
+ * the name (the period's name as its text and hover hint), and the menu opens
+ * with "Now: In hospital · day 4", linking to the period; "Care periods"
+ * opens the group's periods page.
  */
 export function GroupMenu({ groupId }: { groupId: string }) {
   const navigate = useNavigate();
@@ -33,8 +40,11 @@ export function GroupMenu({ groupId }: { groupId: string }) {
   // throws while signing out, when the database closes under this header).
   const userId = useRouteLoaderData<typeof layoutLoader>("app")?.user.id ?? "";
   const query = useMemo(() => myGroupsQuery(userId), [userId]);
-  const groups = useLiveQuery<GroupRow>(query.sql, query.params, NO_ROWS).map(toMyGroup);
+  const rows = useLiveQuery<GroupRow>(query.sql, query.params, NO_ROWS);
+  const groups = rows.map(toMyGroup);
   const current = groups.find((g) => g.id === groupId);
+  const timeZone = rows.find((row) => row.id === groupId)?.recipient_time_zone || null;
+  const period = useCurrentCarePeriod(groupId, timeZone);
 
   // Only a group you're in is remembered (a stale link to another one isn't).
   const isMember = !!current;
@@ -44,10 +54,12 @@ export function GroupMenu({ groupId }: { groupId: string }) {
 
   if (!current) return null;
   const name = displayName(current);
+  const periodLabel = period ? periodName(period.span.period) : null;
+  const PeriodIcon = period ? periodTypeMeta(period.span.period.type).icon : null;
 
   return (
     <Menu
-      label={`${name}: switch care group`}
+      label={periodLabel ? `${name}, ${periodLabel}: switch care group` : `${name}: switch care group`}
       menuLabel="Care groups"
       className="btn btn-ghost btn-sm min-w-0 gap-1 px-2 font-semibold"
       placement="bottom start"
@@ -65,6 +77,16 @@ export function GroupMenu({ groupId }: { groupId: string }) {
           selection: { selected: groupId, onChange: (id) => void navigate(appUrls.timeline(id)) },
         },
         SEPARATOR,
+        ...(period && PeriodIcon
+          ? [
+              {
+                id: "period-now",
+                label: menuNowText(period.span.period, period.day),
+                icon: PeriodIcon,
+                href: appUrls.period(groupId, period.span.period.id),
+              },
+            ]
+          : []),
         ...(current.recipient
           ? [
               {
@@ -82,6 +104,12 @@ export function GroupMenu({ groupId }: { groupId: string }) {
           href: appUrls.groupSettings(groupId),
         },
         {
+          id: "care-periods",
+          label: "Care periods",
+          icon: History,
+          href: appUrls.periods(groupId),
+        },
+        {
           id: "new-group",
           label: "New care group",
           icon: Plus,
@@ -91,6 +119,12 @@ export function GroupMenu({ groupId }: { groupId: string }) {
       ]}
     >
       <span className="truncate">{name}</span>
+      {PeriodIcon && periodLabel && (
+        // The button's label already names the period; this is the hover hint and the checks' hook.
+        <span title={periodLabel} data-period-icon={period?.span.period.type} className="flex shrink-0">
+          <PeriodIcon aria-hidden="true" className="size-4" />
+        </span>
+      )}
       <ChevronDown aria-hidden="true" className="size-4 shrink-0" />
     </Menu>
   );

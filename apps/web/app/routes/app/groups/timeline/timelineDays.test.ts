@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayKeyIn, groupByDay } from "./timelineDays";
+import { dayKeyIn, groupByDay, withMarkers } from "./timelineDays";
 
 const LA = "America/Los_Angeles";
 // Wednesday, Nov 18 2026, 10:00 in Los Angeles.
@@ -50,5 +50,64 @@ describe("groupByDay", () => {
       ["b"],
       ["c"],
     ]);
+  });
+});
+
+describe("withMarkers", () => {
+  const marker = (id: string, iso: string) => ({ id, at: iso });
+  it("is the days unchanged with no markers", () => {
+    const days = groupByDay(
+      [at("2026-11-18T17:00:00Z", "a"), at("2026-11-15T20:00:00Z", "b")],
+      LA,
+      NOW,
+      "en-US",
+    );
+    const placed = withMarkers(days, [], LA, NOW, "en-US");
+    expect(placed.map((d) => [d.key, d.label, d.entries.map((i) => i.key)])).toEqual(
+      days.map((d) => [d.key, d.label, d.entries.map((e) => e.id)]),
+    );
+  });
+
+  it("places a marker between the entries around its moment, an entry at the same moment above it", () => {
+    const days = groupByDay(
+      [at("2026-11-18T17:00:00Z", "a"), at("2026-11-18T16:00:00Z", "b"), at("2026-11-18T15:00:00Z", "c")],
+      LA,
+      NOW,
+    );
+    const placed = withMarkers(days, [marker("m", "2026-11-18T16:00:00Z")], LA, NOW);
+    expect(placed).toHaveLength(1);
+    expect(placed[0]!.entries.map((i) => i.key)).toEqual(["a", "b", "marker-m", "c"]);
+    expect(placed[0]!.entries[2]).toMatchObject({ type: "marker", marker: { id: "m" } });
+  });
+
+  it("gives a day with only a marker its own section, in day order", () => {
+    const days = groupByDay(
+      [at("2026-11-18T17:00:00Z", "a"), at("2026-11-14T20:00:00Z", "b")],
+      LA,
+      NOW,
+      "en-US",
+    );
+    const placed = withMarkers(days, [marker("m", "2026-11-16T20:00:00Z")], LA, NOW, "en-US");
+    expect(placed.map((d) => [d.key, d.entries.map((i) => i.key)])).toEqual([
+      ["2026-11-18", ["a"]],
+      ["2026-11-16", ["marker-m"]],
+      ["2026-11-14", ["b"]],
+    ]);
+    expect(placed[1]!.label).toBe("Monday, Nov 16");
+  });
+
+  it("puts markers older than every entry after them, and markers alone into days", () => {
+    const days = groupByDay([at("2026-11-18T17:00:00Z", "a")], LA, NOW);
+    const placed = withMarkers(
+      days,
+      [marker("m2", "2026-11-18T09:00:00Z"), marker("m1", "2026-11-10T20:00:00Z")],
+      LA,
+      NOW,
+    );
+    expect(placed.map((d) => [d.key, d.entries.map((i) => i.key)])).toEqual([
+      ["2026-11-18", ["a", "marker-m2"]],
+      ["2026-11-10", ["marker-m1"]],
+    ]);
+    expect(withMarkers([], [marker("m", "2026-11-18T09:00:00Z")], LA, NOW)).toHaveLength(1);
   });
 });

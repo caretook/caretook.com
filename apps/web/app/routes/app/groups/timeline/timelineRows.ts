@@ -2,13 +2,17 @@ import type { SyncDb } from "~/lib/sync";
 import type { EntryProviderLinkRow } from "~/lib/entryProviders";
 import type { NoteDocRow } from "~/lib/sync/notes";
 import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
+import type { CarePeriodRow } from "~/lib/sync/carePeriods";
+import type { PlaceNameRow } from "./timelinePeriods";
 
 import { groupDocumentsQuery } from "~/lib/sync/notes";
 import { timelineLinksQuery } from "~/lib/sync/providers";
 import { historyQuery, membersQuery, readingsQuery, readRows } from "~/lib/sync/timeline";
 import { PAGE_SIZE } from "~/lib/paging";
 import { historyCutoff } from "~/lib/upcoming";
+import { carePeriodsQuery } from "~/lib/sync/carePeriods";
 import { aheadQueries } from "./aheadQueries";
+import { placeNamesQuery } from "./timelinePeriods";
 
 // The timeline's first screenful, read from the device's local copy
 // (PowerSync) by the route's loader; `useTimelineData` takes over from there
@@ -23,17 +27,30 @@ export const loadTimelineRows = async (
   cutoff = historyCutoff(new Date()),
 ) => {
   const ahead = aheadQueries(groupId, filters, cutoff);
-  const [entryRows, memberRows, readingRows, documentRows, linkRows, nextRows, blockRows, blockLinkRows] =
-    await Promise.all([
-      readRows<EntryRow>(db, historyQuery(groupId, filters, PAGE_SIZE, cutoff)),
-      readRows<MemberRow>(db, membersQuery(groupId)),
-      readRows<ReadingRow>(db, readingsQuery(groupId)),
-      readRows<NoteDocRow>(db, groupDocumentsQuery(groupId)),
-      readRows<EntryProviderLinkRow>(db, timelineLinksQuery(groupId, filters, PAGE_SIZE, cutoff)),
-      readRows<EntryRow>(db, ahead.next),
-      readRows<EntryRow>(db, ahead.block),
-      readRows<EntryProviderLinkRow>(db, ahead.blockLinks),
-    ]);
+  const [
+    entryRows,
+    memberRows,
+    readingRows,
+    documentRows,
+    linkRows,
+    nextRows,
+    blockRows,
+    blockLinkRows,
+    periodRows,
+    placeRows,
+  ] = await Promise.all([
+    readRows<EntryRow>(db, historyQuery(groupId, filters, PAGE_SIZE, cutoff)),
+    readRows<MemberRow>(db, membersQuery(groupId)),
+    readRows<ReadingRow>(db, readingsQuery(groupId)),
+    readRows<NoteDocRow>(db, groupDocumentsQuery(groupId)),
+    readRows<EntryProviderLinkRow>(db, timelineLinksQuery(groupId, filters, PAGE_SIZE, cutoff)),
+    readRows<EntryRow>(db, ahead.next),
+    readRows<EntryRow>(db, ahead.block),
+    readRows<EntryProviderLinkRow>(db, ahead.blockLinks),
+    // The care periods' track and its places (the current-period line and the markers).
+    readRows<CarePeriodRow>(db, carePeriodsQuery(groupId)),
+    readRows<PlaceNameRow>(db, placeNamesQuery(groupId)),
+  ]);
   return {
     cutoff,
     entryRows,
@@ -44,6 +61,8 @@ export const loadTimelineRows = async (
     nextRows,
     blockRows,
     blockLinkRows,
+    periodRows,
+    placeRows,
   };
 };
 

@@ -22,11 +22,14 @@ const isFromField = (state: unknown) => typeof state === "object" && state !== n
 export function SearchField({
   groupId,
   urlQuery,
+  period,
   label,
   onUsed,
 }: {
   groupId: string;
   urlQuery: string;
+  /** The care period the search is narrowed to: kept as the text changes (and dropped with it). */
+  period: string | null;
   label: string;
   /** The search was used: the field was left, or submitted, with text in it. */
   onUsed: (q: string) => void;
@@ -57,7 +60,7 @@ export function SearchField({
 
   const commit = (value: string) => {
     clearTimeout(timer.current);
-    void navigate(appUrls.search(groupId, value), {
+    void navigate(appUrls.search(groupId, value, { period }), {
       replace: true,
       preventScrollReset: true,
       state: FROM_FIELD,

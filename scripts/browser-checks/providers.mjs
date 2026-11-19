@@ -132,6 +132,7 @@ const SEEDED_CURRENT = [
   "Westside Family Medicine",
   "Dr. Samuel Patel",
   "Maria Reyes",
+  "Mercy General Hospital",
 ];
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const waitForList = (p, test, ms = 15000) =>

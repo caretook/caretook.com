@@ -38,7 +38,9 @@ import { FIELD_ERROR, FIELD_LABEL } from "../styles";
  * "day" shows the date alone (an all-day item). `dayPickTime` sets the time
  * the first time the day changes (an appointment whose day is picked first
  * starts at 9:00); after that, picking a day keeps the time as usual.
- * `calendarOpen` opens the calendar as the field mounts.
+ * `calendarOpen` opens the calendar as the field mounts. `timeZone` shows
+ * and edits the time in that zone (the care recipient's) instead of the
+ * device's.
  */
 export function DateTimeField({
   name,
@@ -50,6 +52,7 @@ export function DateTimeField({
   granularity = "minute",
   dayPickTime,
   calendarOpen,
+  timeZone,
 }: {
   name?: string;
   label: string;
@@ -64,11 +67,12 @@ export function DateTimeField({
   dayPickTime?: { hour: number; minute: number };
   /** Open the calendar on mount. */
   calendarOpen?: boolean;
+  /** The IANA zone the time is shown and typed in; the device's by default. */
+  timeZone?: string;
 }) {
+  const zone = timeZone ?? localTimeZone();
   const [value, setValue] = useState<ZonedDateTime>(() =>
-    defaultValue
-      ? parseAbsolute(defaultValue, localTimeZone())
-      : now(localTimeZone()).set({ second: 0, millisecond: 0 }),
+    defaultValue ? parseAbsolute(defaultValue, zone) : now(zone).set({ second: 0, millisecond: 0 }),
   );
   const [timeSet, setTimeSet] = useState(!dayPickTime);
   // Opened after mount, so inside another popover it stacks above it (a tap in
@@ -98,7 +102,7 @@ export function DateTimeField({
       isOpen={open}
       onOpenChange={setOpen}
       granularity={granularity}
-      maxValue={max ? parseAbsolute(max, localTimeZone()) : undefined}
+      maxValue={max ? parseAbsolute(max, zone) : undefined}
       isRequired
       isInvalid={error ? true : undefined}
       onChange={change}

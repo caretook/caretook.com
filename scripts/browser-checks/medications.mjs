@@ -896,7 +896,7 @@ async function notFoundSteps(member, caretaker) {
 // Doses and changes on the timeline (slice 4).
 // ---------------------------------------------------------------------------
 
-const ROWS = `[...document.querySelectorAll("main ol > li")]`;
+const ROWS = `[...document.querySelectorAll("main ol > li:not([data-marker])")]`;
 const rowWith = (text) => `${ROWS}.find((li) => li.textContent.includes(${JSON.stringify(text)}))`;
 const rowKinds = `[...new Set(${ROWS}.map((li) => li.querySelector(".sr-only")?.textContent))].join(",")`;
 const SHEET = `document.querySelector("[role=dialog]")`;

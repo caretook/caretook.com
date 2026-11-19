@@ -4,16 +4,22 @@
 
 ## Status
 
-| Slice | State                                     | Merge into `prd/care-periods` (slice commits) |
-| ----- | ----------------------------------------- | --------------------------------------------- |
-| 1     | not started (ready)                       |                                               |
-| 2     | blocked by 1                              |                                               |
-| 3     | blocked by 1                              |                                               |
-| 4     | blocked by 1                              |                                               |
-| 5     | blocked by 1                              |                                               |
-| 6     | blocked by 1, and `search` slices 2 and 3 |                                               |
+| Slice | State                                     | Merge into `prd/care-periods` (slice commits)                                                      |
+| ----- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 1     | merged `9fb07f3` (f4f439c, abc3fa8)       | not landed: one landing at the end                                                                 |
+| 2     | merged `2699559` (a2938cc)                |                                                                                                    |
+| 3     | merged `3c03446` (2696c88, 5af07a0)       | markers hide when a filter or search matches nothing                                               |
+| 4     | merged `ff7ceb1` (b425b2a), fix `af28304` |                                                                                                    |
+| 5     | merged `286b8a5` (0d6b10e, 2afb30a)       | Home and Hospice at home suggest no place (the discharging practice isn't where they are)          |
+| 6     | merged `e9e1f61` (6cab48e)                | with a period picked, search shows timeline entries only (providers and medications have no dates) |
 
-Backlog: B-50 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. The PRD and this plan are on `plan/care-periods`, not yet in `dev`.
+**Landing mode: run everything through** (the user queued this PRD with `pnpm prd queue care-periods`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**One landing at the end** (the user's preference for PRDs with a migration): merge every slice, then ask the user before the one full suite (never start `--suite` unasked), `pnpm prd check`, land. The `475bf7c` sync brought `search` from `dev`, including its `0016_search` migration; ours was regenerated as `0017_care_periods` (the hand-written `ALTER PUBLICATION` kept). Slices 2–5 branched before that sync, so their merges may conflict in `appUrls`, `routes.ts`, `check-areas` and the timeline (search mode): resolve them additively. Slice 6's test database couldn't start (Docker ran out of networks); its agent retries `pnpm datastore:start:test` once a stack is removed.
+
+**2026-11-19 sync (`eea8ae4`):** `dev` brought `profiles` with `0017_profiles`; ours is regenerated as `0018_care_periods` (hand-written `ALTER PUBLICATION` kept). The group menu reads separator → "Now: …" → "<Name>'s profile" → Group settings → Care periods → New care group (`app-shell.mjs` updated). Browser checks (`--changed --base dev`, all 20): 15 passed; ui, profiles, care-periods, search and phase2 failed on the merge (the group menu's order, markers counted as rows, a Dev Family 2 period left live) and load; fixed in `4b145de`, and all five pass on rerun. Landed in `dev`.
+
+Backlog: B-50 is `ready` at `e9e1f61` (every slice merged). The user chose `pnpm prd browser --changed --base dev` before landing (it maps to every check because of the migration and sync-config). AGENTS.md has the _Care periods_ section folded in. Next: land, then `pnpm prd rm care-periods`. The PRD and this plan are in `dev`. B-78 (strip restyle) is already in `dev`, so slice 3 matches the current `STRIP_CLASS` style. Slice 6 waits for `search` slices 2 and 3 in `dev` (only slice 1 is there as of 2026-11-19).
 
 Fold into AGENTS.md at the final landing: a _Care periods_ section (the table, the track rules, the period-track module, the device module, the routes, the timeline line and markers, the group menu icon, suggestions, the search filter), `care_period` in the permissions table, the `carePeriod` document subject, and the stream and upload switch entries.
 

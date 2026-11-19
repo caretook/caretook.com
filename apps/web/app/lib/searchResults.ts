@@ -1,7 +1,8 @@
 import type { SearchItemType } from "@caretook/data/schema";
 
 import { SEARCH_MAX_LENGTH } from "@caretook/data/schema";
-import { isSearchItemType, SEARCH_ALL_PARAM, SEARCH_QUERY_PARAM } from "./appUrls";
+import { isSearchItemType, SEARCH_ALL_PARAM, SEARCH_PERIOD_PARAM, SEARCH_QUERY_PARAM } from "./appUrls";
+import { isRowId } from "./timelineFilters";
 
 // The search page's results: what its URL asks for, which sections it shows
 // in what order, the order of results inside each, how many each shows, and
@@ -24,8 +25,8 @@ export type RankedHit = {
 /** One type's matches: the first few, and how many there are in all. */
 export type HitSection = { hits: readonly RankedHit[]; total: number };
 
-/** What the page's URL asks for: the text (as typed) and the section shown in full. */
-export type SearchPageQuery = { q: string; all: SearchItemType | null };
+/** What the page's URL asks for: the text (as typed), the section shown in full, and the care period it's narrowed to. */
+export type SearchPageQuery = { q: string; all: SearchItemType | null; period: string | null };
 
 /** Sections in page order: the things you'd look up by name first, then the timeline's entries. */
 export const SECTION_ORDER: readonly SearchItemType[] = ["provider", "medication", "entry"];
@@ -48,12 +49,22 @@ const NOUNS: Record<SearchItemType, [one: string, many: string]> = {
   entry: ["entry", "entries"],
 };
 
-/** `?q=` (capped at the parser's length) and `?all=` (only a known type, and only with a search). */
+/**
+ * `?q=` (capped at the parser's length), `?all=` (only a known type) and
+ * `?period=` (a row id; whether it's a period of the group is the page's
+ * to check), the last two only with a search.
+ */
 export const parseSearchPage = (search: string): SearchPageQuery => {
   const params = new URLSearchParams(search);
   const q = (params.get(SEARCH_QUERY_PARAM) ?? "").slice(0, SEARCH_MAX_LENGTH);
   const all = params.get(SEARCH_ALL_PARAM);
-  return { q, all: q.trim() && isSearchItemType(all) ? all : null };
+  const period = params.get(SEARCH_PERIOD_PARAM);
+  const searching = !!q.trim();
+  return {
+    q,
+    all: searching && isSearchItemType(all) ? all : null,
+    period: searching && isRowId(period) ? period.toLowerCase() : null,
+  };
 };
 
 /** How many of each type to ask the index for: a few, or (for the section shown in full) many. */

@@ -4,6 +4,7 @@ import * as accessCodes from "./accessCodes";
 import * as accounts from "./accounts";
 import * as appointments from "./appointments";
 import * as careGroups from "./careGroups";
+import * as carePeriods from "./carePeriods";
 import * as invites from "./invites";
 import * as medications from "./medications";
 import * as moreGroups from "./moreGroups";
@@ -33,6 +34,7 @@ export const seed = async () => {
     await medications.seed();
     await appointments.seed();
     await profiles.seed();
+    await carePeriods.seed();
     await moreGroups.seed();
   }, "db:seed");
 };

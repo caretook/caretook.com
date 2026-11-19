@@ -64,6 +64,13 @@ const appRoutes = [
         route("profile/print", "routes/app/groups/profile/print/route.tsx"),
         // Search the group's entries, providers and medications (not a section; the header's magnifier).
         route("search", "routes/app/groups/search/route.tsx"),
+        // Care periods (where care happens, over time; not a section): the
+        // page with its sheets as children, and a period's page.
+        route("periods", "routes/app/groups/periods/route.tsx", [
+          route("new", "routes/app/groups/periods/new/route.tsx"),
+          route(":periodId/edit", "routes/app/groups/periods/edit/route.tsx"),
+        ]),
+        route("periods/:periodId", "routes/app/groups/period/route.tsx"),
       ]),
       // Start another care group (a sheet over its own page; not a group route).
       route("groups/new", "routes/app/groups/new/route.tsx"),
