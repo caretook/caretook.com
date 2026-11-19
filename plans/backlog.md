@@ -103,6 +103,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
 | B-64 | feature | triaged | quick-fixes |  | Withdraw a pending join request from the requester's home |
 | B-65 | change | triaged | quick-fixes |  | New care groups get the recipient's time zone |
+| B-66 | question | inbox |  |  | Access codes are stored as plain text: keep that, or hash them? |
 
 ## Items
 
@@ -808,3 +809,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: careGroup.create sets no time zone because care_recipient has no time_zone column yet. Adds a migration (the column, then fill it from the creating device's IANA zone); small and standalone, so quick-fixes.
+
+### B-66 · question · Access codes are stored as plain text: keep that, or hash them?
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/invites orchestrator): From invites slice 5: access_code.code is stored plain so staff can reprint a code from /admin (print page with QR). Only global admins and system can read it; a code is a sign-up ticket, not health data. Hashing would mean codes can only be printed once, at creation.
