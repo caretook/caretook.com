@@ -130,6 +130,9 @@ export const MODEL_ERRORS = {
   "accessCodeModel:countUse": {
     message: "Failed to count the access code's use",
   },
+  "waitlistEntryModel:upsertByEmail": {
+    message: "Failed to save the waitlist entry",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {
@@ -342,6 +345,10 @@ export const SERVICE_ERRORS = {
   "staffGroupService:staffOnly": {
     message: "Only Caretook staff can do that",
     statusCode: 403,
+  },
+  "publicForms:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
   },
 } as const;
 

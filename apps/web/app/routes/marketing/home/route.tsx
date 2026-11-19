@@ -4,6 +4,7 @@ import { Gallery } from "../sections/PageSections";
 import { CtaBand, FeatureGrid, Hero, PromiseSection, Steps } from "../sections/Sections";
 import { marketingMeta, organizationJsonLd, siteUrlFrom } from "../site/meta";
 import { homeContent } from "./content";
+import { WaitlistBand } from "./WaitlistBand";
 
 export function meta({ matches }: Route.MetaArgs) {
   const siteUrl = siteUrlFrom(matches);
@@ -24,7 +25,7 @@ export default function Home() {
       <Steps content={homeContent.steps} />
       <PromiseSection content={homeContent.promise} />
       <CtaBand content={homeContent.earlyAccess} />
-      <CtaBand content={homeContent.waitlist} tone="accent" />
+      <WaitlistBand content={homeContent.waitlist} />
     </>
   );
 }
