@@ -33,20 +33,20 @@
 | 25    | B-69 | merged             | 2431a55 (14da487)                                     |
 | 26    | B-78 | merged             | 17a89b1 (484d825)                                     |
 | 27    | B-65 | merged             | 5d8af6e (07ab7bf)                                     |
-| 28    | B-79 | wave 9             |                                                       |
+| 28    | B-79 | merged             | 6573d31 (036c039)                                     |
 | 29    | B-80 | wave 9             |                                                       |
-| 30    | B-92 | wave 9             |                                                       |
+| 30    | B-92 | merged             | dab620f (51f5fb8)                                     |
 | 31    | B-93 | wave 9             |                                                       |
 | 32    | B-95 | merged             | 420d5e9 (280d527)                                     |
-| 33    | B-83 | wave 10            |                                                       |
+| 33    | B-83 | running            |                                                       |
 | 34    | B-90 | wave 10            |                                                       |
-| 35    | B-94 | wave 10 (after 28) |                                                       |
+| 35    | B-94 | running            |                                                       |
 | 36    | B-97 | wave 10            |                                                       |
 | 37    | B-96 | wave 10 (after 35) |                                                       |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
-Wave 9 restarted 2026-11-19 11:10 after the previous orchestrator's session and every Docker stack stopped: slice 32 was committed and is merged; loops for 28–31 were respawned to finish the uncommitted work left in their worktrees (stacks restarted).
+Wave 9 restarted 2026-11-19 11:10 after the previous orchestrator's session and every Docker stack stopped: slice 32 was committed and is merged; loops for 28–31 were respawned to finish the uncommitted work left in their worktrees (stacks restarted). 28 and 30 merged; their stacks went to wave 10's 35 and 33, started early. AGENTS.md at landing: `session-end.mjs` in the session row; `lib/session.ts`'s 3-day offline cap and wipe on signed-out, `wipeDevice` the one sign-out path; drop "units still save online only".
 
 Waves 1–8 (slices 1–27) are all in `dev` (wave 8 as 9ffb9d8). Wave 9 (slices 28–32) and wave 10 (33–37) were written 2026-11-19 from the items triaged to quick-fixes; split in two to stay under Docker's network limit (about five stacks at once beside care-periods and medications-2). Slice 32 runs without a stack.
 
