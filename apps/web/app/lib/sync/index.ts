@@ -18,6 +18,8 @@ type SearchModule = typeof SearchModuleNs;
 let current: Promise<SyncDb> | null = null;
 let ready: SyncDb | null = null;
 let searchIndex: Promise<SearchModule> | null = null;
+/** Set by `installTestDatabase` only: whether a test device counts as synced. */
+let testFirstSyncDone: boolean | null = null;
 
 /** Open (or reuse) the local database for this user. */
 export const openSync = async (userId: string): Promise<SyncDb> => {
@@ -57,6 +59,35 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
   return current;
 };
 
+/**
+ * The test seam (component tests only: Vitest's mode is "test"): put a
+ * database in place of `openSync`'s, so `getSync`, `useLiveQuery` and the
+ * local writes use it. `apps/web/test/device.tsx` opens a local-only
+ * database (no connector, no upload) and installs it here; `null` takes it
+ * out again. `firstSyncDone` (default true) stands in for PowerSync's
+ * `hasSynced`, which a database that never connects never sets. `search`
+ * starts the search index on it, as `openSync` does.
+ */
+export const installTestDatabase = async (
+  db: SyncDb | null,
+  options: { firstSyncDone?: boolean; search?: boolean } = {},
+) => {
+  if (import.meta.env.MODE !== "test") throw new Error("installTestDatabase is for component tests only.");
+  const search = searchIndex;
+  searchIndex = null;
+  await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
+  current = db ? Promise.resolve(db) : null;
+  ready = db;
+  testFirstSyncDone = db ? (options.firstSyncDone ?? true) : null;
+  if (db && options.search) {
+    searchIndex = import("./search").then((m) => {
+      void m.startSearchIndex(db);
+      return m;
+    });
+    await searchIndex;
+  }
+};
+
 /** The open database. Only valid below the /app layout, after its loader ran. */
 export const getSync = (): SyncDb => {
   if (!ready) throw new Error("The local database isn't open yet (it opens in the /app layout's loader).");
@@ -88,7 +119,8 @@ export const FIRST_SYNC_WAIT_MS = 1_000;
  * so a missing row really is missing. True at once on later visits (and
  * offline), since PowerSync keeps it with the local copy.
  */
-export const isFirstSyncDone = (db: SyncDb): boolean => !!db.powersync.currentStatus.hasSynced;
+export const isFirstSyncDone = (db: SyncDb): boolean =>
+  testFirstSyncDone ?? !!db.powersync.currentStatus.hasSynced;
 
 /**
  * Wait for the first full download on a new device, so screens don't flash

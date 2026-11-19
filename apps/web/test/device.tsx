@@ -1,0 +1,298 @@
+import type { ComponentType, ReactNode } from "react";
+import type { RenderResult } from "vitest-browser-react";
+import type { SessionUser } from "~/lib/session";
+import type { SyncDb } from "~/lib/sync";
+import type { Fixture, Fixtures, GroupRole } from "./fixtures";
+
+import { useEffect } from "react";
+import { createRoutesStub, Outlet, RouterContextProvider, useLocation } from "react-router";
+import { page } from "vitest/browser";
+import { render } from "vitest-browser-react";
+import { sessionContext } from "~/lib/session";
+import { installTestDatabase } from "~/lib/sync";
+import * as appLayout from "~/routes/app/layout/route";
+import * as groupLayout from "~/routes/app/groups/layout/route";
+import { openTestDatabase, queuedWrites, syncDown, syncRemove } from "./database";
+import { flattenFixtures, fx, TEST_GROUP, TEST_USER } from "./fixtures";
+
+// The test device: a screen rendered as it runs on a phone, with the real
+// route modules (middleware, loaders, actions, components), the real live
+// queries and local writes, on a local-only PowerSync database in this
+// Chromium tab. No server, no sync service, no Docker.
+//
+//   const device = await renderWithDevice({
+//     route: { path: "/app/groups/:groupId/timeline", module: timeline },
+//     url: `/app/groups/${TEST_GROUP.id}/timeline`,
+//     role: "viewer",
+//     fixtures: [fx.note({ text: "Slept well" })],
+//   });
+//   await expect.element(device.screen.getByText("Slept well")).toBeVisible();
+//
+// The stub mirrors routes.ts: the /app layout (id "app"; its middleware puts
+// the session in the router context, as `requireSession` would), the group
+// route (id "group", its real module) for paths under /app/groups/:groupId,
+// then your routes. Paths are absolute patterns, nested by prefix.
+
+/** A route module as React Router's framework mode reads it (only what the stub uses). */
+export type RouteModule = {
+  // Route components take generated prop types; the stub passes the same props.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  default?: ComponentType<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ErrorBoundary?: ComponentType<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  clientLoader?: (args: any) => unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  clientAction?: (args: any) => unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  clientMiddleware?: ((args: any, next: any) => unknown)[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  shouldRevalidate?: (args: any) => boolean;
+};
+
+/** One route to render: an absolute path pattern, its module, and child routes (sheets). */
+export type DeviceRoute = {
+  path: string;
+  module: RouteModule;
+  /** The route's id (`useRouteLoaderData`); defaults to the path. */
+  id?: string;
+  children?: DeviceRoute[];
+};
+
+export type DeviceOptions = {
+  /** The route(s) under test. Give this or `element`. */
+  route?: DeviceRoute | DeviceRoute[];
+  /** Or any element, rendered at `url` inside the /app (and group) routes, so `useGroup()` works. */
+  element?: ReactNode;
+  /** Where the device starts. Defaults to the default group's root. */
+  url?: string;
+  /** The signed-in user (`TEST_USER` by default). Their public profile is inserted for you. */
+  user?: SessionUser;
+  /** Their role in `TEST_GROUP` (default "owner"); null for not a member. */
+  role?: GroupRole | null;
+  /** Rows on the device before the screen opens (`fx` builders, nested freely). */
+  fixtures?: Fixtures;
+  /** Leave out the default group, recipient and membership (you bring your own). */
+  bareDevice?: boolean;
+  /** Viewport width in CSS pixels (default 420) and height (default 900). */
+  width?: number;
+  height?: number;
+  /** The app's theme: "light" or "dark" set `data-theme` as the user menu does; default is the system's. */
+  theme?: "light" | "dark";
+  /** Render the real /app frame (header, menus, tab bar) around the screen. */
+  frame?: boolean;
+  /** Whether the device counts as synced (default true; false shows "Getting your care groups…" states). */
+  firstSyncDone?: boolean;
+  /** Build the search index (only search tests need it). */
+  search?: boolean;
+  /**
+   * The server, as far as this test needs one. The device is offline by
+   * default: every request to `/rpc/*` and `/api/*` fails as a lost
+   * connection does. Give oRPC handlers by procedure path (`"me.get"`,
+   * `"careGroup.update"`) to answer those calls; a handler gets the input
+   * and returns the output, or a `Response` (an error, say) as it is.
+   */
+  api?: Record<string, (input: unknown) => unknown>;
+};
+
+export type Device = {
+  /** The rendered screen: locators (`getByRole`, `getByText`…) for `expect.element`. */
+  screen: RenderResult;
+  /** The device's database, for reading what a screen wrote. */
+  db: SyncDb;
+  user: SessionUser;
+  /** The router's current location (pathname + search), after any navigation. */
+  location: () => string;
+  /** Rows arriving from the server (another device's change), as a sync would apply them. */
+  sync: (fixtures: Fixtures) => Promise<void>;
+  /** Rows leaving the device as a sync would remove them. */
+  unsync: (fixtures: readonly Pick<Fixture, "table" | "id">[]) => Promise<void>;
+  /** Writes this device has queued for upload (PowerSync's `ps_crud`). */
+  queued: () => ReturnType<typeof queuedWrites>;
+  /** Run a query against the device's copy. */
+  query: <T>(sql: string, params?: unknown[]) => Promise<T[]>;
+};
+
+const GROUP_PREFIX = "/app/groups/:groupId";
+
+/** Devices still open, closed after each test by `closeDevices()` (test/setup.ts). */
+const open = new Set<SyncDb>();
+
+const realFetch = window.fetch.bind(window);
+
+/** The device's network: `/rpc` and `/api` go to `api` handlers, or fail as offline; the rest is real (Vite). */
+const deviceFetch =
+  (api: DeviceOptions["api"] = {}): typeof fetch =>
+  async (input, init) => {
+    const request = new Request(input, init);
+    const { pathname, origin } = new URL(request.url);
+    if (origin !== location.origin || !/^\/(rpc|api)\//.test(pathname)) return realFetch(input, init);
+    const handler = pathname.startsWith("/rpc/") ? api[pathname.slice(5).replaceAll("/", ".")] : undefined;
+    if (!handler) throw new TypeError("Failed to fetch (the test device is offline)");
+    const body =
+      request.method === "GET"
+        ? null
+        : ((await request.json().catch(() => null)) as { json?: unknown } | null);
+    const result = await handler(body?.json);
+    if (result instanceof Response) return result;
+    return Response.json({ json: result ?? null, meta: [] });
+  };
+
+let currentLocation = "";
+
+/** Records where the router is, for `device.location()`. */
+function LocationProbe() {
+  const location = useLocation();
+  useEffect(() => {
+    currentLocation = location.pathname + location.search;
+  }, [location]);
+  return null;
+}
+
+type StubRoute = Parameters<typeof createRoutesStub>[0][number];
+
+const toStub = ({ path, module, id, children }: DeviceRoute): StubRoute => ({
+  id: id ?? path,
+  path,
+  Component: module.default,
+  ErrorBoundary: module.ErrorBoundary,
+  loader: module.clientLoader,
+  action: module.clientAction,
+  middleware: module.clientMiddleware as StubRoute["middleware"],
+  shouldRevalidate: module.shouldRevalidate,
+  children: children?.map(toStub),
+});
+
+/** The /app route's component: the location probe, then the real frame or a bare outlet. */
+const withProbe =
+  (Frame: RouteModule["default"] | null) =>
+  // The stub passes route component props (loaderData, params, matches) through.
+  (props: object) => (
+    <>
+      <LocationProbe />
+      {Frame ? <Frame {...props} /> : <Outlet />}
+    </>
+  );
+
+/** The user, their group and recipient, and their membership: what a signed-in member's device always has. */
+const deviceBasics = (user: SessionUser, role: GroupRole | null, bare: boolean): Fixtures => [
+  fx.user({ id: user.id, name: user.name, image: user.image ?? null }),
+  !bare && [fx.group(), fx.recipient(), role && fx.member({ userId: user.id, role })],
+];
+
+/** Open a test device on a screen. See the top of this file. */
+export const renderWithDevice = async (options: DeviceOptions): Promise<Device> => {
+  const user: SessionUser = options.user ?? { ...TEST_USER };
+  const role = options.role === undefined ? "owner" : options.role;
+  const url = options.url ?? `/app/groups/${TEST_GROUP.id}`;
+
+  window.fetch = deviceFetch(options.api);
+  const db = await openTestDatabase(user.id);
+  open.add(db);
+  await syncDown(db, flattenFixtures([deviceBasics(user, role, !!options.bareDevice), options.fixtures]));
+  await installTestDatabase(db, { firstSyncDone: options.firstSyncDone ?? true, search: options.search });
+
+  await page.viewport(options.width ?? 420, options.height ?? 900);
+  if (options.theme) document.documentElement.dataset.theme = options.theme;
+
+  // An element renders at any url under its parent: as the index and as a splat.
+  const elementRoutes = (prefix: string): StubRoute[] => {
+    const Element = () => options.element;
+    return [
+      { id: "element-index", index: true, Component: Element },
+      { id: "element", path: `${prefix}/*`, Component: Element },
+    ];
+  };
+  const elementInGroup = !options.route && url.startsWith("/app/groups/");
+  const routes = options.route ? [options.route].flat() : [];
+  const inGroup = [
+    ...routes.filter((r) => r.path.startsWith(GROUP_PREFIX)).map(toStub),
+    ...(elementInGroup ? elementRoutes(GROUP_PREFIX) : []),
+  ];
+  const inApp = [
+    ...routes.filter((r) => !r.path.startsWith(GROUP_PREFIX)).map(toStub),
+    ...(!options.route && !elementInGroup ? elementRoutes("/app") : []),
+  ];
+
+  const context = new RouterContextProvider();
+  const Stub = createRoutesStub(
+    [
+      {
+        id: "app",
+        path: "/app",
+        middleware: [({ context: ctx }, next) => (ctx.set(sessionContext, { user, db }), next())],
+        loader: () => ({ user }),
+        Component: withProbe(options.frame ? (appLayout.default as RouteModule["default"]) : null),
+        ErrorBoundary: appLayout.ErrorBoundary,
+        children: [
+          ...inApp,
+          ...(inGroup.length
+            ? [
+                {
+                  ...toStub({ id: "group", path: "groups/:groupId", module: groupLayout }),
+                  children: inGroup,
+                },
+              ]
+            : []),
+        ],
+      },
+    ],
+    context,
+  );
+
+  currentLocation = url;
+  const screen = await render(<Stub initialEntries={[url]} />);
+
+  return {
+    screen,
+    db,
+    user,
+    location: () => currentLocation,
+    sync: (fixtures) => syncDown(db, flattenFixtures(fixtures)),
+    unsync: (fixtures) => syncRemove(db, fixtures),
+    queued: () => queuedWrites(db),
+    query: (sql, params = []) => db.powersync.getAll(sql, params),
+  };
+};
+
+/**
+ * Render an element in a router (no database): for `ui/` primitives and
+ * other pieces that only need links to work. Same `width` and `theme`.
+ */
+export const renderInRouter = async (
+  element: ReactNode,
+  options: { url?: string; width?: number; height?: number; theme?: "light" | "dark" } = {},
+) => {
+  await page.viewport(options.width ?? 420, options.height ?? 900);
+  if (options.theme) document.documentElement.dataset.theme = options.theme;
+  const url = options.url ?? "/";
+  const Stub = createRoutesStub([
+    {
+      id: "root",
+      path: "*",
+      Component: () => (
+        <>
+          <LocationProbe />
+          {element}
+        </>
+      ),
+    },
+  ]);
+  currentLocation = url;
+  const screen = await render(<Stub initialEntries={[url]} />);
+  return { screen, location: () => currentLocation };
+};
+
+/** After each test: unmount first (test/setup.ts), then close every device and reset the page. */
+export const closeDevices = async () => {
+  await installTestDatabase(null);
+  for (const db of open) await db.powersync.close().catch(() => undefined);
+  open.clear();
+  window.fetch = realFetch;
+  delete document.documentElement.dataset.theme;
+  try {
+    localStorage.clear();
+  } catch {
+    // No storage: nothing kept.
+  }
+};

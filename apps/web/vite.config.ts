@@ -14,7 +14,10 @@ for (const file of [".env", "../../packages/data/.env"]) {
 }
 
 export default defineConfig({
-  plugins: [tailwindcss(), reactRouter()],
+  // Component tests (Vitest's `web:components` project) load this config for
+  // `~/`, Tailwind, daisyUI and the dedupes, but render routes in React
+  // Router's test stub: the framework plugin isn't for tests.
+  plugins: [tailwindcss(), !process.env.VITEST && reactRouter()],
   // One copy each of yjs (Yjs breaks with two: its `instanceof` checks fail),
   // React, and ProseMirror's packages.
   resolve: {
