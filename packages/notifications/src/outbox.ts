@@ -8,6 +8,7 @@ import {
   dbMayFail,
   getDb,
   isError,
+  logError,
   newError,
   notificationOutboxSchema as outbox,
   txOrDb,
@@ -42,7 +43,7 @@ export const retryDelayMs = (attempts: number) =>
 type BackgroundRunner = (work: Promise<unknown>) => void;
 
 const fireAndForget: BackgroundRunner = (work) => {
-  work.catch((error: unknown) => console.error("[mail] background delivery failed", error));
+  work.catch((error: unknown) => logError("mail: background delivery failed", error));
 };
 
 let runInBackground: BackgroundRunner = fireAndForget;
@@ -268,7 +269,12 @@ export const deliverDue = async ({
           .where(mine(row.id));
       } else if (row.attempts >= MAX_ATTEMPTS) {
         summary.failed++;
-        console.error(`[mail] ${row.name} ${row.id} failed after ${row.attempts} attempts: ${result.error}`);
+        // The sender's error text can name the address: it stays in `last_error`, not the log.
+        logError("mail: delivery failed for good", "sender error", {
+          notification: row.name,
+          recordId: row.id,
+          attempts: row.attempts,
+        });
         await db
           .update(outbox)
           .set({ status: "failed", lastError: errorText(result.error), ...redactedBody(row.name) })
@@ -287,7 +293,7 @@ export const deliverDue = async ({
     }, "notify:deliver");
     // The row stays `sending` and is reclaimed after STALE_CLAIM_MINUTES;
     // the idempotency key keeps that from becoming a second email.
-    if (isError(done)) console.error(`[mail] couldn't record delivery of ${row.id}`, done);
+    if (isError(done)) logError("mail: couldn't record a delivery", done, { recordId: row.id });
   }
   return summary;
 };
