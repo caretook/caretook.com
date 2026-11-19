@@ -12,12 +12,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
 | `orchestration`   | (this tooling; no PRD)                                       | (none)                                               | `AGENTS.md`, `scripts/loops/`, `scripts/backlog/`, `.githooks/`             |
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done**, all 10 slices in `dev` | (none) | none now |
-| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–14 in `dev`; new fixes append as slice 15 on. Triaged and waiting: B-44, B-64, B-65, B-69, B-70, B-71, B-72, B-73 | (none) | varies by slice; B-44 the providers route folder (`ProviderListItem`); B-73 `components/ui/Sheet` (after `medications` slice 3); B-71 `components/ui/date/` |
+| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–14 in `dev`; new fixes append as slice 15 on. Triaged and waiting: B-64, B-69, B-70, B-78, and from the security review B-79 to B-83 |  (none) | varies by slice; B-44 the providers route folder (`ProviderListItem`); B-73 `components/ui/Sheet` (after `medications` slice 3); B-71 `components/ui/date/` |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | none now |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done**, all 7 slices in `dev` | `live-notes-ux`, `app-shell`, `routing`, `components` (all done) | none now |
 | `search`          | [PRD](search-prd.md), [plan](search-plan.md): 6 slices, in `dev` (`56e6cd6`). Waves 1 → (2, 3, 6) → (4, 5); slice 1 can start when a PRD slot frees | `timeline-polish` (done); slice 2 waits for `appointments` to land | `lib/sync/timeline.ts` (the timeline windows), `lib/timelineFilters.ts`, the timeline route folder (slices 2, 4), the `/app` header and `routes.ts` (slice 3), one migration (slice 6) |
 | `providers`       | [PRD](providers-prd.md), [plan](providers-plan.md): **done**, all slices in `dev` (`7c075d1`); follow-ups B-25, B-48 | (none) | none now |
-| `medications`     | [PRD](medications-prd.md), [plan](medications-plan.md): slices 1, 2, 4 and 6 in `dev`; **slice 3 running** (B-15 claimed); 5 waits for 3. Follow-ups B-26, B-51 | `providers`, `routing`, `components` (all done) | `TIMELINE_ENTRY_KINDS`, `KIND_META`, timeline strips and quick add, `care_recipient`, `note_document`, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`, the Dose sheet |
+| `medications`     | [PRD](medications-prd.md), [plan](medications-plan.md): **done**, all six slices in `dev` (`8ff8354`; Today and Due now are in, so `appointments` slice 7 is unblocked). Follow-ups B-26, B-51 | `providers`, `routing`, `components` (all done) | `TIMELINE_ENTRY_KINDS`, `KIND_META`, timeline strips and quick add, `care_recipient`, `note_document`, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`, the Dose sheet |
 | `assistant`       | to write (B-12, B-49, B-58) | `search`'s server side; `providers`, `medications`, `care-periods` (soft) | `routes/app/layout/route.tsx`, `packages/api`, a new AI package |
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): **done**, all 5 slices in `dev` (`ff25ef2`) | (none) | none now; new routes go through `routes.ts` and `appUrls` |
 | `components`      | [PRD](components-prd.md), [plan](components-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `ca39416`) | `routing` (done) | none now; new UI uses `components/ui/` and the feature folders (AGENTS.md, _Components_) |
@@ -29,8 +29,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `data-rights`     | to write (B-52, B-53)                                        | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
 | `tasks`           | to write (B-55)                                              | (none); `notifications` for reminders (soft)          | a new table, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`     |
 | `documents`       | to write (B-56)                                              | hosting (B-33, file storage); `profiles` (soft); `encryption` decision | file storage, `routes.ts`, `GROUP_SECTIONS`, `PERMISSIONS`              |
-| `encryption`      | to write (B-57; a design discussion first)                   | (none); affects `assistant` and `documents`          | everything server side that reads content (`sync.ts`, `noteDocumentService`) |
+| `encryption`      | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 | (none); affects `assistant` and `documents` | none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
 | `onboarding`      | to write (B-31)                                              | `invites` (done)                                     | seeds, `careGroupService`, `/app` home                                     |
+| `account-security` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) | `invites` (done); B-80 (the Devices page) first (soft) | `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 
 ## Summary
 
@@ -48,11 +49,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | landed | timeline-polish | prd/timeline-polish | Infinite scroll through the whole timeline |
-| B-11 | feature | triaged | search |  | Search the timeline |
+| B-11 | feature | in-progress | search | prd/search | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
 | B-14 | plan | landed | providers | prd/providers | Provider links and suggestions while writing events and live notes |
-| B-15 | plan | in-progress | medications | prd/medications | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
+| B-15 | plan | ready | medications | prd/medications | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
 | B-18 | feature | landed | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
@@ -84,7 +85,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-44 | change | ready | quick-fixes | prd/quick-fixes | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
 | B-45 | change | triaged | profiles |  | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | triaged | profiles |  | optional phone number, address, etc on group members that can be published to the group for… |
-| B-47 | feature | in-progress | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
+| B-47 | feature | ready | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
 | B-49 | feature | triaged | assistant |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-50 | feature | triaged | care-periods |  | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
@@ -94,7 +95,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-55 | feature | triaged | tasks |  | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-57 | plan | triaged | encryption |  | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
+| B-57 | plan | ready | encryption | plan/encryption | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
 | B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-59 | chore | triaged | orchestration |  | Clean up/truncate this file and the backlog periodically. |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
@@ -102,7 +103,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
 | B-64 | feature | triaged | quick-fixes |  | Withdraw a pending join request from the requester's home |
-| B-65 | change | triaged | quick-fixes |  | New care groups get the recipient's time zone |
+| B-65 | change | triaged | quick-fixes |  | A screen to change the care recipient's time zone |
 | B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
 | B-67 | change | ready | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
@@ -111,8 +112,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-71 | bug | ready | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
 | B-72 | bug | ready | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
 | B-73 | bug | ready | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
-| B-74 | bug | triaged | medications |  | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
+| B-74 | bug | triaged | quick-fixes |  | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
 | B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
+| B-76 | feature | triaged | medications |  | medication groups for doses. Often the same medication is taken at different times of the day every… |
+| B-77 | plan | ready | encryption | plan/encryption | Data security and encryption review. |
+| B-78 | change | triaged | quick-fixes |  | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
+| B-79 | bug | triaged | quick-fixes |  | Device keeps its synced data after the session ends; offline sign-in never expires |
+| B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
+| B-81 | change | triaged | quick-fixes |  | Security headers and a CSP for every web response |
+| B-82 | change | triaged | quick-fixes |  | Server logs carry error codes and ids only, never values or meta |
+| B-83 | change | triaged | quick-fixes |  | Co-members read only id, name and image of each other's user row |
+| B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
+| B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 
 ## Items
 
@@ -249,13 +260,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-11 · feature · Search the timeline
 
-- status: triaged
+- status: in-progress
 - prd: search
-- owner:
+- owner: prd/search
 - commit:
 
 - 2026-11-17 (dev keeper): Asked for as Elasticsearch. Recommended instead: SQLite FTS5 on the device (works offline) plus Postgres full-text search on the server (API, AI). Elasticsearch is server only, another service to host, and another copy of health data. Check that PowerSync's web SQLite build has FTS5.
 - 2026-11-19 (plan/search): PRD written on plan/search: plans/search-prd.md (interview 2026-11-19). Covers entries, providers, medications and their notes; a timeline ?q= filter plus a group search page (header magnifier); FTS5 on the device (porter stemming, prefix, phrases, -exclusions, indexes unsynced text) and Postgres FTS on the server (searchService, search.query) for the assistant. Run after appointments lands.
+- 2026-11-19 (prd/search): Slice 1 started. Slice 2 waits for appointments slice 7 to land in dev (user's call, 2026-11-19).
+- 2026-11-19 (slice/search/1): search slice 1 (device index) committed on slice/search/1 at 34f68fd: FTS5 gate passed (wa-sqlite 2.0.10 / SQLite 3.53.0, porter unicode61 remove_diacritics 2); rebuild of 2,022 items 140 ms, queries 2-15 ms on desktop Chrome
 
 ### B-12 · plan · Assistant: lightweight chat, with voice, for quick actions and questions about the timeline
 
@@ -266,6 +279,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-17 (dev keeper): Quick actions go through the same local write paths as the forms (offline, synced), as a draft the user confirms. Questions need server-side retrieval and an AI vendor that doesn't retain or train on our data.
 - 2026-11-18 (plan/assistant): Draft PRD written on plan/assistant: plans/assistant-prd.md. Interview 2026-11-18: actions first then questions; floating button + sheet; server transcription (vendor open); conversations not saved; drafts confirmed; offline queue (text + audio, drafts wait); opt-in per group (owner consents, members acknowledge); read tools over services; Anthropic TS SDK; model chosen by an eval; create + edit recent; Save as note; 'via assistant' marker; daily caps per user. Questions wait on search's server side.
+- 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-12: the assistant PRD must set AI vendor rules: zero retention in writing, least data per request, no health data in logs, per-group owner opt-in, on-device where possible.
 
 ### B-13 · plan · Provider directory with search, linked from events
 
@@ -298,10 +312,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-15 · plan · Medication list (current, past, discontinued), printable sheet, and tracking in the timeline
 
-- status: in-progress
+- status: ready
 - prd: medications
 - owner: prd/medications
-- commit:
+- commit: fbc8dae
 
 - 2026-11-17 (dev keeper): Place "a dose was given" with the kind definitions first (a new kind, not a vital). Prescriber links depend on providers.
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/medications-prd.md. New kinds dose and medicationChange (auto-written with the medication), simple schedules in the recipient's zone, missed doses derived, print page with print CSS, date of birth synced. Data layer waits on providers slice 1; screens on routing.
@@ -521,6 +535,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Not planned yet; the user will say when. Covers the open questions in AGENTS.md: hosted database (same region as Vercel functions, pooling), how production migrations run, PowerSync Cloud (replication role with column-limited grants, sslmode verify-full, how it reaches the JWKS), rate-limit storage, env and secrets, a real staging environment, and confirming the first Vercel deploy runs pnpm 12. Invites (B-30) and marketing (B-32) need it to go live.
 - 2026-11-18 (prd/invites orchestrator): Email sending setup for launch (tracking off, SPF/DKIM/DMARC, bounce webhooks, the outbox cron, rate-limit storage) is filed as B-68.
+- 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-4 and S-6 (launch): separate database roles (app, migrations, column-limited replication), named and audited human access, a break-glass procedure; and a register of every data copy (Postgres, backups, PowerSync storage, Resend, logs) with region, encryption at rest, retention, access and breach terms.
 
 ### B-34 · change · Date picker for the When field: a calendar to pick the date, not only typed segments
 
@@ -665,10 +680,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
 
-- status: in-progress
+- status: ready
 - prd: appointments
 - owner: prd/appointments
-- commit:
+- commit: 315f0a1
 
 - 2026-11-18 (prd/marketing): From the inbox: Deal with future event display (appointments) notes can be set to the future date as well. Symptoms and vitals cannot. Medication reminders may be a specialized type of future item on the timeline. Display of future events on timeline should be toggled somehow.
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'appointments' (to write): future-dated notes and events (appointments, with place and provider, which AGENTS.md defers), never symptoms or vitals; a toggle or section for upcoming items on the timeline. Medication reminders as future items depend on medications slice 5 (Today/due doses).
@@ -678,6 +693,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/appointments/2): slice 2 (entry page: end time, all day, place, ?when=pick) ready on slice/appointments/2 at d14c8ca
 - 2026-11-19 (slice/appointments/4): slice 4 (cancel and undo cancel) ready on slice/appointments/4: 1395252, a00c38b
 - 2026-11-19 (slice/appointments/6): slice 6 (timeline: history ends at now, Next strip, Upcoming block) ready on slice/appointments/6 (11b210c, 15f4ec3)
+- 2026-11-19 (slice/appointments/7): slice 7 (due doses in Upcoming) handed off: 629b705, a57571c on slice/appointments/7
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
@@ -736,6 +752,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for 'data-rights' with B-52. Needs scoping in the PRD: 'delete ALL data' could mean this device's copy, one group (owners), or the whole account. Ties to the open question about a last owner deleting their account.
+- 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-1 is filed as B-84 for data-rights: soft delete scrubs content; plan it with delete-all.
 
 ### B-54 · feature · privacy policy and terms of service.
 
@@ -745,6 +762,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/marketing): Proposed for marketing (orchestrator): draft /privacy, /terms and /health-data-privacy landed with marketing slice 3 (DRAFT banners, [Review: …] notes). What's left is the user's legal review and removing the banners; no slice planned until the user reviews the text.
+- 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-4: the draft pages promise staff see care data only with permission, recorded, and encryption at rest; neither is built yet. Promise only what's built, or build S-4 first (open, 2026-11-19).
 
 ### B-55 · feature · Todos list with assignment to group members, due dates, and completion status.
 
@@ -763,16 +781,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'documents' (to write): photos and files (ID, insurance card, DNR) per recipient. Needs file storage, which waits on hosting (B-33), plus encryption and sync decisions (files likely online-first, not in PowerSync). Pairs with profiles (B-45).
+- 2026-11-19 (plan/encryption): Security review (plans/security-review.md): E2E decision (2026-11-19) is option C for files: plan end-to-end encrypted uploads (a group key wrapped per member device, recovery codes) as part of the documents PRD.
 
 ### B-57 · plan · Discuss options for end to end encryption of data in transit and at rest where owner of the data is…
 
-- status: triaged
+- status: ready
 - prd: encryption
-- owner:
-- commit:
+- owner: plan/encryption
+- commit: 8b07657
 
 - 2026-11-18 (prd/marketing): From the inbox: Discuss options for end to end encryption of data in transit and at rest where owner of the data is the only one who can decrypt it and share decryption keys with others.
 - 2026-11-18 (Robert Bo Davis): Proposed as a design discussion 'encryption' (to write, plan only). E2E encryption conflicts with what's built: the server validates and permission-checks every upload (sync.upload through services), compacts Yjs documents, and AI features (assistant) read text server side. The PRD should weigh at-rest encryption, per-field E2E for documents (B-56) and the loss of server features.
+- 2026-11-19 (plan/encryption): Decided 2026-11-19 (user): option A (harden what's built) for launch, C (E2E for uploaded files) with the documents PRD, no full E2E. Fix list filed as B-79 to B-85.
 
 ### B-58 · plan · Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions…
 
@@ -792,6 +812,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for orchestration: a 'pnpm backlog archive' that moves live (or landed) items out of backlog.md into an archive file and prunes their inbox bullets, run by hand or at landing.
+- 2026-11-19 (Robert Bo Davis): 2026-11-19: removed the inbox's 18 stale 'Status (…)' lines; the tracker holds status.
 
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
 
@@ -837,8 +858,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 4: joinRequest.withdraw exists in the API and service, but home/PendingRequests.tsx has no Withdraw button. A standalone UI change, so quick-fixes.
+- 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
 
-### B-65 · change · New care groups get the recipient's time zone
+### B-65 · change · A screen to change the care recipient's time zone
 
 - status: triaged
 - prd: quick-fixes
@@ -846,6 +868,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: careGroup.create sets no time zone because care_recipient has no time_zone column yet. Adds a migration (the column, then fill it from the creating device's IANA zone); small and standalone, so quick-fixes.
+- 2026-11-19 (Robert Bo Davis): Retitled (user, 2026-11-19): the column and creating-device zone landed with medications slice 1; what's left is editing it (group settings Details, careGroup.updateRecipient). Pairs with profiles' recipient work.
 
 ### B-66 · question · Access codes are stored as plain text: keep that, or hash them?
 
@@ -876,6 +899,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From the invites PRD (AGENTS.md, Notifications → Before launch): turn off Resend's open and click tracking on the sending domain (not per message); SPF, DKIM and DMARC on the sending subdomain; verified bounce webhooks (Svix); a host cron for /api/cron/outbox with CRON_SECRET; and Better Auth's rate-limit storage (in-memory per serverless instance today). Part of launch work, related to B-33.
+- 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-7: shared rate-limit storage is a launch blocker (Better Auth and packages/api/src/rateLimit.ts are per instance).
 
 ### B-69 · chore · Move the New care group link state into components/groups
 
@@ -885,6 +909,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 6: NEW_GROUP_LINK_STATE and openedFromApp stay in routes/app/groups/new/newGroupLink.ts, but three other route folders import them (home/NewGroupLink, account/join, layout/GroupMenu), against the folder-per-route rule. Also drop the unused error code careGroupInviteService:notAllowed. A small refactor, so quick-fixes.
+- 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
 
 ### B-70 · bug · ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check
 
@@ -894,6 +919,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): Flaked in the invites wave 3 suite (2026-11-18 19:46, load 18→27, not auto-retried): '1280 dark provider add sheet: Escape closes only it, and focus returns to the opener (tap)'. The failure detail showed focus on the opener, so likely the sheet's close wasn't finished when the step checked. Passed 625/625 on a rerun; ui.mjs also flaked earlier in providers-5 (timeout). In .loops/.browser-flakes.log. A browser-check fix, so quick-fixes.
+- 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
 
 ### B-71 · bug · date picker entry box mobile-friendly. it expands outside of elements on small screens.
 
@@ -927,11 +953,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-74 · bug · medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out)
 
 - status: triaged
-- prd: medications
+- prd: quick-fixes
 - owner:
 - commit:
 
 - 2026-11-19 (prd/quick-fixes): Seen by the quick-fixes orchestrator on prd/quick-fixes 579a66c (dev + quick-fixes wave 7, which touches no medication screen): run 1 failed 64/65 at statusSteps' Discontinue dialog wait (5 s); its retry failed 50/52 at 'a second browser sees the notes as they're written' after 12m33s, load ~20-27. Logs: .git/worktrees/quick-fixes/caretook-browser/medications-20261119-0545{28,02}.log
+- 2026-11-19 (prd/medications): medications orchestrator: handed to quick-fixes when the medications PRD gave up its slot (PRD done). A near-finished fix is on branch slice/medications/7 (b4e8190, one WIP commit on dev's medications code): it changes components/ui/ConfirmDialog.tsx (34 lines) and medications.mjs. Its agent had medications.mjs passing 3 times in a row; still to do: ui.mjs and app-shell.mjs for the ConfirmDialog change, pnpm check, and a real commit message. Cherry-pick or rebase it onto a quick-fixes slice.
+- 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
 
 ### B-75 · feature · medications need to keep a history of past dose changes, frequency changes, etc. on each medication…
 
@@ -942,3 +970,100 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: medications need to keep a history of past dose changes, frequency changes, etc. on each medication entry.
 - 2026-11-19 (Robert Bo Davis): Dropped (user, 2026-11-19): already exists. Medication change entries record dose, schedule and other tracked-field changes, and each medication's page lists its doses and changes.
+
+### B-76 · feature · medication groups for doses. Often the same medication is taken at different times of the day every…
+
+- status: triaged
+- prd: medications
+- owner:
+- commit:
+
+- 2026-11-19 (prd/search): From the inbox: medication groups for doses. Often the same medication is taken at different times of the day every day. We need to be able to group doses together so that they can be taken at the same time as part of the schedule and allow for setting status of each medication in the group on dose logging in the timeline.
+- 2026-11-19 (prd/medications): medications orchestrator: proposed for medications as a follow-up (not in the six-slice plan): a 'dose group' (several medications taken at one time) touches the schedule, dueDoses, Today and the Dose sheet, so it needs its own PRD interview or a plan addendum before slicing. Partly covered today: Today lists every medication due at one time together, each with its own Given/Skipped/Refused.
+
+### B-77 · plan · Data security and encryption review.
+
+- status: ready
+- prd: encryption
+- owner: plan/encryption
+- commit: 8b07657
+
+- 2026-11-19 (Robert Bo Davis): Proposed for encryption, with B-57: a review of data security (in transit, at rest, on devices, backups, staff access, AI vendors) to run before any encryption PRD. A design discussion first, as B-57's row says.
+- 2026-11-19 (plan/encryption): Review written: plans/security-review.md (12 findings, 8 launch). Fix list filed as B-79 (device wipe, 3-day offline), B-80 (Devices page), B-81 (headers), B-82 (logs), B-83 (co-member reads), B-84 (scrub on delete, data-rights), B-85 (2FA, new account-security PRD); notes on B-33, B-68, B-54, B-56, B-12, B-53.
+
+### B-78 · change · improve timeline page display for vitals and upcoming banner. They should be limited. We should…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the inbox: improve timeline page display for vitals and upcoming banner. They should be limited. We should replace the word "latest" with the vitals icon and match the style of the upcoming header. Width should be limited on very large screens. larger than the timeline column, but not too wide.
+- 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: a contained timeline display change to LatestVitals and the Upcoming block (appointments' header style): the vitals icon instead of 'Latest', a limited number of items, and a width cap on very large screens (wider than the entries' 1024 px column, but capped). Run it after appointments lands (it owns the Upcoming block), and coordinate with search slice 2 (timeline filter row).
+
+### B-79 · bug · Device keeps its synced data after the session ends; offline sign-in never expires
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-2 (launch): wipe the device copy (the sign-out path) when the server says the session has ended; allow the cached user offline only within 3 days of the last confirmed session (decided 2026-11-19), then require sign-in, and wipe once online and still signed out.
+- 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
+
+### B-80 · feature · Devices page in account settings: see sessions, sign out one or all others
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-3 (launch): Better Auth's listSessions, revokeSession and revokeOtherSessions (built in, no new dependency); a new ACCOUNT_SETTINGS subpage. Pairs with the S-2 wipe.
+- 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
+
+### B-81 · change · Security headers and a CSP for every web response
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-5 (launch): CSP (default-src 'self', connect-src for PowerSync and the API, frame-ancestors 'none', a hash for THEME_SCRIPT), HSTS, Referrer-Policy no-referrer (keeps /invite/:token and /join/:code private), X-Content-Type-Options, Permissions-Policy; the same CSP as a meta tag for Capacitor; a dev exception for the mailbox iframe.
+- 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
+
+### B-82 · change · Server logs carry error codes and ids only, never values or meta
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-8 (launch): toORPCError logs the whole AppError on a 500, and rpc.ts and .server/admin.ts log the authUser error. Log code, procedure and ids; a unit test that a care field never reaches the log line.
+- 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
+
+### B-83 · change · Co-members read only id, name and image of each other's user row
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-10 (later): closes the AGENTS.md open question; invites read email as system.
+
+### B-84 · feature · Deleting an entry, provider or medication scrubs its content everywhere
+
+- status: triaged
+- prd: data-rights
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-1 (launch): soft-deleted rows keep title, body, details and the document, and sync to every member's device. Scrub to a tombstone and purge later. The undo window and retention are open for the data-rights interview (user, 2026-11-19).
+
+### B-85 · feature · Two-factor sign-in, required for owners, admins and staff; breached-password check
+
+- status: triaged
+- prd: account-security
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-9 (later): Better Auth's twoFactor and haveIBeenPwned plugins (built in). Required for owners, admins and global staff, optional for others (decided 2026-11-19). The PRD settles group creation, promotion, a grace period for existing owners, and recovery.
