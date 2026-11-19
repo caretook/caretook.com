@@ -980,6 +980,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): Proposed for encryption, with B-57: a review of data security (in transit, at rest, on devices, backups, staff access, AI vendors) to run before any encryption PRD. A design discussion first, as B-57's row says.
+- 2026-11-19 (plan/encryption): Review written: plans/security-review.md (12 findings, 8 launch). Fix list filed as B-79 (device wipe, 3-day offline), B-80 (Devices page), B-81 (headers), B-82 (logs), B-83 (co-member reads), B-84 (scrub on delete, data-rights), B-85 (2FA, new account-security PRD); notes on B-33, B-68, B-54, B-56, B-12, B-53.
 
 ### B-78 · change · improve timeline page display for vitals and upcoming banner. They should be limited. We should…
 
