@@ -6,15 +6,17 @@
 
 | Slice | State                           | Merge into `prd/medications-2` (slice commits) |
 | ----- | ------------------------------- | ---------------------------------------------- |
-| 1     | in progress                     |                                                |
-| 2     | blocked by 1                    |                                                |
-| 3     | blocked by 1                    |                                                |
+| 1     | merged                          | d92771a (05033d4, 9f776b7, 1b52df3)            |
+| 2     | in progress                     |                                                |
+| 3     | in progress                     |                                                |
 | 4     | blocked by 2                    |                                                |
 | 5     | blocked by 4 (B-78 is in `dev`) |                                                |
 | 6     | blocked by 4                    |                                                |
 | 7     | blocked by 2 and 3              |                                                |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**Landing:** this PRD has a migration, so per the user's standing preference (from `profiles`) it lands **once, after every slice is merged**, with one full suite run then (ask the user before starting `--suite`). Slice 1 left the seeded medications on time slots; slice 2 moves them onto passes. Slice 3 adds a PATCH on `care_recipient` limited to `no_known_allergies_at`.
 
 Backlog: B-76, B-86, B-51 and B-26 are `triaged`. Claim B-76 when slice 1 starts, B-26 with slice 3, B-51 with slice 7, B-86 with slice 5. Mark each `done` after its last slice merges (B-76 after slice 6). The PRD and this plan are on `plan/medications-2` until they land in `dev`.
 
