@@ -80,7 +80,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
-| B-43 | change | in-progress | medications | prd/medications | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
+| B-43 | change | ready | medications | prd/medications | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
 | B-44 | change | triaged | quick-fixes |  | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
 | B-45 | change | triaged | profiles |  | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | triaged | profiles |  | optional phone number, address, etc on group members that can be published to the group for… |
@@ -609,10 +609,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-43 · change · Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital"
 
-- status: in-progress
+- status: ready
 - prd: medications
 - owner: prd/medications
-- commit:
+- commit: 46c675b
 
 - 2026-11-18 (Robert Bo Davis): Proposed for medications: Dose joins quick add in slice 4, so that slice can set the order Note, Event, Dose, Symptom, Vital (grouping free text, then dose, then measures). The plan's slice 4 is not running yet, so it can take this in scope.
 - 2026-11-18 (prd/medications): medications orchestrator: fits slice 4, which adds Dose to the quick-add bar; reorder the bar to Note, Event, Dose, Symptom, Vital there rather than in a separate slice.
