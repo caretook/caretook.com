@@ -9,6 +9,7 @@ import { formString } from "~/lib/form";
 import { getGroup, useGroup } from "~/lib/group";
 import { loadSettings } from "~/lib/me";
 import { sessionContext } from "~/lib/session";
+import { loadSearchPeriods, searchPeriodRange } from "~/lib/sync/periodSearch";
 import { removeEntry } from "~/lib/sync/timeline";
 import { parseFilters } from "~/lib/timelineFilters";
 import { CurrentPeriodLine } from "./CurrentPeriodLine";
@@ -25,6 +26,7 @@ import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
 import { loadTimelineRows } from "./timelineRows";
 import { timelineSearch } from "./timelineSearch";
+import { usePeriodSearch } from "./usePeriodSearch";
 import { settledSearchIndexStatus, useSearchIndexStatus } from "./useSearchIndexStatus";
 import { useTimelineData } from "./useTimelineData";
 import { useTimelineView } from "./useTimelineView";
@@ -40,6 +42,9 @@ import { useTimelineView } from "./useTimelineView";
  * extra chunks, and the loader is the first thing the route runs anyway.
  */
 const pageTitle = (groupName?: string) => `${groupName || "Timeline"} · Caretook`;
+
+/** No care periods read: only a search offers them (`?period=`). */
+const NO_SEARCH_PERIODS: never[] = [];
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: loaderData?.title ?? pageTitle() }];
@@ -57,13 +62,17 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const filters = parseFilters(new URL(request.url).search);
-  const status = await (filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const));
-  const { match } = timelineSearch(params.groupId, filters.q, status);
+  const [status, searchPeriods] = await Promise.all([
+    filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const),
+    filters.q ? loadSearchPeriods(db, params.groupId) : NO_SEARCH_PERIODS,
+  ]);
+  const range = searchPeriodRange(searchPeriods, filters.period);
+  const { match } = timelineSearch(params.groupId, filters.q, status, range);
   const [rows, settings] = await Promise.all([
     loadTimelineRows(db, params.groupId, { kind: filters.kind, author: filters.author, match }),
     loadSettings(request, db.userId),
   ]);
-  return { userId: db.userId, title: pageTitle(group.name), ...filters, ...rows, ...settings };
+  return { userId: db.userId, title: pageTitle(group.name), ...filters, searchPeriods, ...rows, ...settings };
 }
 
 /**
@@ -101,7 +110,8 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const { userId, units, kind, author, q, upcoming } = loaderData;
   const { groupId } = params;
   const { canWrite } = useGroup();
-  const search = timelineSearch(groupId, q, useSearchIndexStatus());
+  const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
+  const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
   const filters = { kind, author, match: search.match };
   const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
   const [view, setView] = useTimelineView(userId, loaderData.timelineView);
@@ -125,6 +135,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
           kind={kind}
           author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
           q={q}
+          period={period}
         />
       </div>
       <TimelineEntryList

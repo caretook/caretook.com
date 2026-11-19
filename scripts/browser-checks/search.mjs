@@ -41,6 +41,14 @@
 // matched only in their notes show a line from them; no marks without a
 // search. The rules themselves are unit-tested (searchHighlight.test.ts).
 //
+// care-periods slice 6, search within a care period: the search page's
+// period choice (any time, then the periods newest first) narrowing to the
+// entries within one period's dates, the current one's up to now, kept in
+// the URL through a reload; the timeline search's "Within a period" menu and
+// its "During …" chip, whose ✕ clears only the period, kept through a reload
+// and Back; clearing the search clears it; and `?period=` alone changing
+// nothing.
+//
 // Everything it makes carries this run's tag and is soft-deleted (or, for
 // the scaled-up rows, deleted) at the end. SMOKE=1: the index on the device,
 // one seeded and one written search, one search on the page, and the
@@ -1171,6 +1179,192 @@ try {
       "a medication matched only in its notes shows a snippet from them",
       page.medication?.mark === hl && page.medication.text.includes("Take with"),
       JSON.stringify(page.medication),
+    );
+  });
+
+  await step("Search within a care period", async () => {
+    // care-periods slice 6. Its own tagged symptoms around Grandma Pat's
+    // seeded rehab stay and the current period (home): one just before rehab
+    // (in hospital), one inside it, one at the moment rehab ended (the
+    // current period's start: not rehab's), one a few minutes ago; and an
+    // event two days ahead (in the current period, but after now).
+    const pd = `${tag}pd`;
+    const setup = await onDevice(
+      A,
+      `const periods = await db.powersync.getAll(
+         "SELECT id, type, started_at FROM care_period WHERE group_id = ? AND deleted_at IS NULL ORDER BY started_at, created_at, id",
+         [${JSON.stringify(DEV_FAMILY)}]);
+       const at = (row) => new Date(timeline.fromLocalTimestamp(row.started_at)).getTime();
+       const r = periods.findIndex((p) => p.type === "rehab");
+       const rehab = periods[r], after = periods[r + 1], current = periods[periods.length - 1];
+       if (!rehab || !after || after.id !== current.id) throw new Error("expected the seeded rehab stay, then home: run pnpm datastore:reset");
+       const made = {};
+       const add = async (key, input) => {
+         const res = await timeline.createEntry(db, ${JSON.stringify(DEV_FAMILY)}, { timeZone: "America/Los_Angeles", ...input });
+         if (!res.ok) throw new Error(JSON.stringify(res));
+       };
+       const symptom = (name, ms) => ({ kind: "symptom", details: { name: "${pd} knee " + name, severity: 3 }, occurredAt: new Date(ms).toISOString() });
+       await add("before", symptom("before", at(rehab) - 2 * 60000));
+       await add("inrehab", symptom("inrehab", at(rehab) + 2 * 86400000));
+       await add("edge", symptom("edge", at(current)));
+       await add("now", symptom("now", Date.now() - 3 * 60000));
+       await add("visit", { kind: "event", title: "${pd} knee visit", occurredAt: new Date(Date.now() + 2 * 86400000).toISOString() });
+       await search.searchIndexSettled();
+       const rows = await db.powersync.getAll(
+         "SELECT id, coalesce(json_extract(details, '$.name'), title) AS name FROM timeline_entry WHERE json_extract(details, '$.name') LIKE ? OR title = ?",
+         ["${pd} knee %", "${pd} knee visit"]);
+       for (const row of rows) made[row.name.split(" ").pop()] = row.id;
+       return { rehab: rehab.id, current: current.id, made };`,
+    );
+    const ids = setup.made;
+    made.push(...Object.values(ids));
+    const sorted = (list) => [...list].sort().join(",");
+    const pageUrl = (period) =>
+      `/app/groups/${DEV_FAMILY}/search?q=${encodeURIComponent(`${pd} knee`)}${period ? `&period=${period}` : ""}`;
+    const entryIds = async (p, test, ms = 10000) => {
+      const end = Date.now() + ms;
+      let last = [];
+      while (Date.now() < end) {
+        last = (await resultsOf(p)).ids.entry ?? [];
+        if (test(last)) return last;
+        await sleep(100);
+      }
+      return last;
+    };
+    const urlPeriod = (p) => p.evaluate(`new URLSearchParams(location.search).get("period")`);
+    const pick = (p, value) =>
+      p.evaluate(`(() => { const el = document.querySelector("[data-search-period]");
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(el, ${JSON.stringify(value)});
+        el.dispatchEvent(new Event("change", { bubbles: true })); return true; })()`);
+
+    // The search page.
+    await A.goto(pageUrl());
+    await A.waitFor(`!!document.querySelector("[data-search-period]")`, 20000);
+    let found = await entryIds(A, (l) => l.length === 5);
+    check("the search page finds every tagged entry with any time", found.length === 5, `${found.length}`);
+    const options = await A.evaluate(
+      `[...document.querySelector("[data-search-period]").options].map((o) => [o.value, o.textContent])`,
+    );
+    check(
+      "the period choice lists any time, then the periods newest first",
+      options[0]?.[0] === "" &&
+        options[0]?.[1] === "Any time" &&
+        options[1]?.[0] === setup.current &&
+        options.some(
+          ([v, t]) => v === setup.rehab && /^Rehab · Oak Hills Rehab · \w{3} \d+ – \w{3} \d+$/.test(t),
+        ),
+      JSON.stringify(options.slice(0, 3)),
+    );
+    await pick(A, setup.rehab);
+    found = await entryIds(A, (l) => sorted(l) === ids.inrehab);
+    check("a period shows only the matches within it", sorted(found) === ids.inrehab, JSON.stringify(found));
+    check("the period is in the URL", (await urlPeriod(A)) === setup.rehab);
+    check(
+      "the timeline link carries the period",
+      await A.evaluate(
+        `document.querySelector("[data-see-timeline]")?.getAttribute("href")?.includes("period=${setup.rehab}") ?? false`,
+      ),
+    );
+    await A.goto(pageUrl(setup.rehab));
+    await A.waitFor(`!!document.querySelector("[data-search-period]")`, 20000);
+    found = await entryIds(A, (l) => sorted(l) === ids.inrehab);
+    check(
+      "a reload keeps the period and its matches",
+      sorted(found) === ids.inrehab &&
+        (await A.evaluate(`document.querySelector("[data-search-period]").value`)) === setup.rehab,
+    );
+    await pick(A, setup.current);
+    found = await entryIds(A, (l) => sorted(l) === sorted([ids.edge, ids.now]));
+    check(
+      "the current period's matches run from its start up to now",
+      sorted(found) === sorted([ids.edge, ids.now]),
+      JSON.stringify(found),
+    );
+    await pick(A, "");
+    found = await entryIds(A, (l) => l.length === 5);
+    check("any time again drops the period", found.length === 5 && (await urlPeriod(A)) === null);
+
+    // The timeline's search mode.
+    const timelineUrl = (search) => `/app/groups/${DEV_FAMILY}/timeline${search}`;
+    const rows = (p) =>
+      p.evaluate(`[...document.querySelectorAll("[data-view] > li")].map((li) => li.textContent)`);
+    const waitRows = async (p, test, ms = 10000) => {
+      const end = Date.now() + ms;
+      let last = [];
+      while (Date.now() < end) {
+        last = await rows(p);
+        if (test(last)) return last;
+        await sleep(100);
+      }
+      return last;
+    };
+    const names = (list) =>
+      list
+        .map((t) => t.match(new RegExp(`${pd} knee (\\w+)`))?.[1])
+        .sort()
+        .join(",");
+    const CHIP = `document.querySelector('nav[aria-label="Show entries"] a[aria-label^="During "]')`;
+    const WITHIN = `[...document.querySelectorAll("[data-timeline-filters] button")].find((b) => b.textContent.trim() === "Within a period")`;
+    await A.goto(timelineUrl(`?q=${encodeURIComponent(`${pd} knee`)}`));
+    let list = await waitRows(A, (l) => names(l) === "before,edge,inrehab,now");
+    check(
+      "the timeline's search lists the past matches",
+      names(list) === "before,edge,inrehab,now",
+      names(list),
+    );
+    await A.waitFor(WITHIN, 10000);
+    await A.press(WITHIN);
+    const item = `[...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent.includes("Oak Hills Rehab"))`;
+    await A.waitFor(item, 5000);
+    await A.press(item);
+    list = await waitRows(A, (l) => names(l) === "inrehab");
+    check("the period chip narrows the matches", names(list) === "inrehab", names(list));
+    check("…with the period in the URL", (await urlPeriod(A)) === setup.rehab);
+    const chip = await A.evaluate(
+      `${CHIP} && { text: ${CHIP}.textContent, name: ${CHIP}.getAttribute("aria-label") }`,
+    );
+    check(
+      "the chip reads During <period>",
+      chip?.text === "During Rehab · Oak Hills Rehab" && /: search every date$/.test(chip.name ?? ""),
+      JSON.stringify(chip),
+    );
+    await A.goto(timelineUrl(`?q=${encodeURIComponent(`${pd} knee`)}&period=${setup.rehab}`));
+    list = await waitRows(A, (l) => names(l) === "inrehab");
+    check("a reload keeps it", names(list) === "inrehab" && (await A.evaluate(`!!${CHIP}`)), names(list));
+    await A.goto(`/app/groups/${DEV_FAMILY}/periods`);
+    await A.waitFor(`location.pathname.endsWith("/periods")`, 10000);
+    await A.evaluate(`history.back()`);
+    await A.waitFor(`location.pathname.endsWith("/timeline")`, 15000);
+    list = await waitRows(A, (l) => names(l) === "inrehab", 15000);
+    check("Back keeps it", names(list) === "inrehab" && (await urlPeriod(A)) === setup.rehab, names(list));
+    await A.tap(CHIP);
+    list = await waitRows(A, (l) => names(l) === "before,edge,inrehab,now");
+    check(
+      "its ✕ clears only the period",
+      names(list) === "before,edge,inrehab,now" &&
+        (await urlPeriod(A)) === null &&
+        (await A.evaluate(`new URLSearchParams(location.search).get("q")`)) === `${pd} knee`,
+      names(list),
+    );
+    // Clearing the search clears the period.
+    await A.goto(timelineUrl(`?kind=symptom&q=${encodeURIComponent(`${pd} knee`)}&period=${setup.current}`));
+    list = await waitRows(A, (l) => names(l) === "edge,now");
+    check("the current period's matches on the timeline", names(list) === "edge,now", names(list));
+    await A.tap(`document.querySelector('nav[aria-label="Show entries"] a[aria-label^="Matching"]')`);
+    await A.waitFor(`!new URLSearchParams(location.search).has("q")`, 10000);
+    check(
+      "clearing the search clears the period, keeping the kind",
+      (await A.evaluate(`location.search`)) === "?kind=symptom",
+      await A.evaluate(`location.search`),
+    );
+    // A period without a search changes nothing.
+    await A.goto(timelineUrl(""));
+    const plain = (await waitRows(A, (l) => l.length > 3)).slice(0, 8);
+    await A.goto(timelineUrl(`?period=${setup.rehab}`));
+    const withPeriod = (await waitRows(A, (l) => l.length > 3)).slice(0, 8);
+    check(
+      "?period= without a search changes nothing on the timeline",
+      JSON.stringify(plain) === JSON.stringify(withPeriod) && !(await A.evaluate(`!!${CHIP} || !!${WITHIN}`)),
     );
   });
 

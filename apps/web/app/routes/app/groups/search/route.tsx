@@ -3,10 +3,13 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { getGroup, useGroup } from "~/lib/group";
 import { loadSettings } from "~/lib/me";
+import { findPeriodChoice } from "~/lib/periodSearch";
 import { recordSearch } from "~/lib/recentSearches";
 import { parseSearchPage } from "~/lib/searchResults";
 import { sessionContext } from "~/lib/session";
+import { loadSearchPeriods, useSearchPeriods } from "~/lib/sync/periodSearch";
 import { loadSearch } from "./loadSearch";
+import { PeriodField } from "./PeriodField";
 import { RecentSearches } from "./RecentSearches";
 import { SearchField } from "./SearchField";
 import { SearchResults } from "./SearchResults";
@@ -17,20 +20,22 @@ import { useSearchPage } from "./useSearchPage";
 // (`?q=`) and the section shown in full (`?all=`) live in the URL, so Back
 // from a result comes back to the same results. A search that's used
 // (the field left with it, or one of its results opened) joins this
-// device's recent searches, which the empty page offers with a tip.
+// device's recent searches, which the empty page offers with a tip. A
+// search can be narrowed to one care period (`?period=`).
 
 export const meta = () => [{ title: "Search · Caretook" }];
 
-/** The first results (and the units entries show in), read before the page renders. */
+/** The first results (and the units entries show in, and the care periods to search within), read before the page renders. */
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   getGroup(context);
   const { db } = context.get(sessionContext);
   const query = parseSearchPage(new URL(request.url).search);
-  const [data, settings] = await Promise.all([
+  const [data, settings, periodRows] = await Promise.all([
     loadSearch(db, params.groupId, query),
     loadSettings(request, db.userId),
+    loadSearchPeriods(db, params.groupId),
   ]);
-  return { data, units: settings.units };
+  return { data, units: settings.units, periodRows };
 }
 
 /**
@@ -48,16 +53,28 @@ export function shouldRevalidate({
 
 export default function SearchPage({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
-  const { q, data, preparing, unavailable } = useSearchPage(params.groupId, loaderData.data);
+  const { q, period, data, preparing, unavailable } = useSearchPage(params.groupId, loaderData.data);
+  const periods = useSearchPeriods(params.groupId, loaderData.periodRows, group.recipient?.timeZone ?? "UTC");
+  const currentPeriod = findPeriodChoice(periods, period);
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-search-page>
       <h1 className="sr-only">Search {group.displayName}</h1>
       <SearchField
         groupId={params.groupId}
         urlQuery={q}
+        period={currentPeriod?.id ?? null}
         label={`Search ${group.displayName}`}
         onUsed={(text) => recordSearch(group.userId, text)}
       />
+      {q.trim() && periods.length > 0 && (
+        <PeriodField
+          groupId={params.groupId}
+          q={q}
+          all={data.all}
+          choices={periods}
+          current={currentPeriod}
+        />
+      )}
       {/* Opening a result (any link in them) uses the search they're for. */}
       <div
         className="space-y-4"

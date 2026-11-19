@@ -1,13 +1,15 @@
 import type { TimelineEntryKind, TimelineView } from "@caretook/data/schema";
+import type { PeriodChoice } from "~/lib/periodSearch";
 
-import { LayoutList, List, Search, X } from "lucide-react";
+import { CalendarRange, ChevronDown, LayoutList, List, Search, X } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
-import { useLocation } from "react-router";
-import { ChipGroup, Field, IconButton, UserAvatar } from "~/components/ui";
+import { useLocation, useNavigate } from "react-router";
+import { ChipGroup, Field, IconButton, Menu, UserAvatar } from "~/components/ui";
 import { KIND_META } from "~/lib/entryDisplay";
 import { useGroup } from "~/lib/group";
+import { duringChipName, duringText } from "~/lib/periodSearch";
 import { recordSearch } from "~/lib/recentSearches";
-import { clearAuthor, clearKind, clearQuery, setKind } from "~/lib/timelineFilters";
+import { clearAuthor, clearKind, clearPeriod, clearQuery, setKind, setPeriod } from "~/lib/timelineFilters";
 import { useSearchField } from "./useSearchField";
 
 const FILTERS = [
@@ -25,7 +27,9 @@ const FILTERS = [
  * kind (see `lib/timelineFilters.ts`). With an author filter on (`author`:
  * that person's name and picture), a chip names them and clears it, keeping
  * the kind; with a search on (`q`), a last "Matching “…”" chip clears only
- * the search. The magnifier opens the search field: over the chips on
+ * the search (and its period). While searching, "Within a period" narrows
+ * the matches to one care period's dates (`?period=`), and a "During …"
+ * chip clears only the period. The magnifier opens the search field: over the chips on
  * phones, beside them from `sm`. A search used there (Enter, leaving the
  * field) is saved to the recent searches the search page lists.
  */
@@ -33,12 +37,16 @@ export function FilterChips({
   kind,
   author,
   q,
+  period,
 }: {
   kind: TimelineEntryKind | null;
   author: { name: string; image: string | null } | null;
   q: string;
+  /** The search's care period: the group's choices, and the chosen one. */
+  period: { choices: readonly PeriodChoice[]; current: PeriodChoice | null };
 }) {
   const { search } = useLocation();
+  const navigate = useNavigate();
   const { userId } = useGroup();
   const field = useSearchField(q, (text) => recordSearch(userId, text));
   const fieldId = useId();
@@ -133,8 +141,44 @@ export function FilterChips({
                   },
                 ]
               : []),
+            ...(q && !field.open && period.current
+              ? [
+                  {
+                    id: "period",
+                    label: duringText(period.current),
+                    name: duringChipName(period.current),
+                    to: { search: clearPeriod(search) },
+                    current: true,
+                    leading: <CalendarRange className="size-3.5" aria-hidden="true" />,
+                    trailing: <X className="size-3.5" aria-hidden="true" />,
+                  },
+                ]
+              : []),
           ]}
         />
+        {q && !field.open && !period.current && period.choices.length > 0 && (
+          <Menu
+            className="btn btn-ghost btn-sm border-base-300 bg-base-100 mt-1.5 rounded-full px-3"
+            menuLabel="Search within a care period"
+            placement="bottom start"
+            width="lg"
+            scrollable
+            items={period.choices.map((choice) => ({
+              id: choice.id,
+              label: choice.name,
+              description: choice.dates,
+              onAction: () =>
+                void navigate(
+                  { search: setPeriod(search, choice.id) },
+                  { replace: true, preventScrollReset: true },
+                ),
+            }))}
+          >
+            <CalendarRange className="size-4" aria-hidden="true" />
+            Within a period
+            <ChevronDown className="size-3.5" aria-hidden="true" />
+          </Menu>
+        )}
       </div>
     </div>
   );
