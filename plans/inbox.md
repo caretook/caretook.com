@@ -24,6 +24,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - birthdate, contact information, address, and insurance information should optionally be added to the patient profile. (B-45)
 - optional phone number, address, etc on group members that can be published to the group for contact. Flags for "emergency contacts" and "primary contact" for display later. (B-46)
 - improve timeline page display for vitals and upcoming banner. They should be limited. We should replace the word "latest" with the vitals icon and match the style of the upcoming header. Width should be limited on very large screens. larger than the timeline column, but not too wide. (B-78)
+- need an upcoming medication banner on the timeline page and a way to quickly add doses to the timeline from it (or some other simplification). This needs to wait on medication groups.
 
 ## Feature requests
 

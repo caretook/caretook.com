@@ -269,6 +269,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (plan/search): PRD written on plan/search: plans/search-prd.md (interview 2026-11-19). Covers entries, providers, medications and their notes; a timeline ?q= filter plus a group search page (header magnifier); FTS5 on the device (porter stemming, prefix, phrases, -exclusions, indexes unsynced text) and Postgres FTS on the server (searchService, search.query) for the assistant. Run after appointments lands.
 - 2026-11-19 (prd/search): Slice 1 started. Slice 2 waits for appointments slice 7 to land in dev (user's call, 2026-11-19).
 - 2026-11-19 (slice/search/1): search slice 1 (device index) committed on slice/search/1 at 34f68fd: FTS5 gate passed (wa-sqlite 2.0.10 / SQLite 3.53.0, porter unicode61 remove_diacritics 2); rebuild of 2,022 items 140 ms, queries 2-15 ms on desktop Chrome
+- 2026-11-19 (prd/search): Slice 1 landed (5016b1d). Appointments fully landed, so slice 2 started alongside 3 and 6.
 
 ### B-12 · plan · Assistant: lightweight chat, with voice, for quick actions and questions about the timeline
 
