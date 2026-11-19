@@ -84,6 +84,7 @@ How PRDs, orchestrators and loops run: the `pnpm prd` commands, worktree isolati
 | session, sign-in, sign-out, sync client, first sync                          | `sign-in.mjs`, `first-sync.mjs`, `signout-wipe.mjs` (timeout), `session-end.mjs`, `devices.mjs` (Devices) |
 | account emails, `/reset-password`, `/verify-email`, `packages/auth`          | `invites.mjs` (and `sign-in.mjs` for the account pages)                                                   |
 | new care group, `/join/:code`, `/admin`, access codes, the invite card       | `groups.mjs`                                                                                              |
+| `/admin` staff pages, staff services and procedures, the announcement banner | `admin.mjs` (and `groups`, `invites` for the sign-up switches)                                            |
 | the Upcoming section, `lib/upcoming*`, cancel and reschedule                 | `upcoming.mjs`                                                                                            |
 | care periods (`periods/`, `period/`, `lib/period*`), the line, markers, menu | `care-periods.mjs` (and `phase2`, `app-shell`, `search`)                                                  |
 | a feature's own screens                                                      | its own check (`providers.mjs`, `medications.mjs`, …)                                                     |

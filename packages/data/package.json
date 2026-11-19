@@ -16,7 +16,8 @@
     "datastore:seed": "tsx scripts/seed.ts",
     "datastore:clear": "tsx scripts/clear.ts",
     "datastore:powersync": "tsx scripts/powersync.ts",
-    "datastore:studio": "drizzle-kit studio"
+    "datastore:studio": "drizzle-kit studio",
+    "admin:grant": "tsx scripts/adminGrant.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",

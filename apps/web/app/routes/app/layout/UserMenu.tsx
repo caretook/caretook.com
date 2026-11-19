@@ -2,10 +2,11 @@ import type { SessionUser } from "~/lib/session";
 
 import type { Theme } from "~/lib/theme";
 
-import { LogOut, Monitor, Moon, Settings, Sun } from "lucide-react";
+import { LogOut, Monitor, Moon, Settings, ShieldCheck, Sun } from "lucide-react";
 import { useState } from "react";
 import { useSubmit } from "react-router";
 import { Menu, SEPARATOR, UserAvatar } from "~/components/ui";
+import { adminLink } from "~/lib/adminLink";
 import { appUrls } from "~/lib/appUrls";
 import { readTheme, setTheme } from "~/lib/theme";
 
@@ -24,6 +25,7 @@ const isTheme = (id: string): id is Theme => THEME_ITEMS.some((t) => t.id === id
 export function UserMenu({ user }: { user: SessionUser }) {
   const submit = useSubmit();
   const who = user.name || user.email;
+  const admin = adminLink(user.role, import.meta.env.VITE_API_ORIGIN);
   // Only read when the menu renders on the client (the popover is closed during SSR).
   const [theme, setThemeState] = useState<Theme>(() =>
     typeof window === "undefined" ? "system" : readTheme(),
@@ -40,7 +42,24 @@ export function UserMenu({ user }: { user: SessionUser }) {
           type: "section",
           id: "account",
           header: { title: user.name || undefined, subtitle: user.email },
-          items: [{ id: "settings", label: "Settings", icon: Settings, href: appUrls.settings() }],
+          items: [
+            { id: "settings", label: "Settings", icon: Settings, href: appUrls.settings() },
+            // Staff only. /admin is its own server-rendered frame: a full load on
+            // the web, the system browser from the native build.
+            ...(admin
+              ? [
+                  {
+                    id: "admin",
+                    label: "Admin",
+                    icon: ShieldCheck,
+                    onAction: () =>
+                      admin.kind === "external"
+                        ? void window.open(admin.href, "_blank", "noopener")
+                        : window.location.assign(admin.href),
+                  },
+                ]
+              : []),
+          ],
         },
         SEPARATOR,
         // Theme: per device (lib/theme.ts), never sent to the server.

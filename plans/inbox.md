@@ -6,7 +6,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs
 
-
 ## Change requests
 
 - Hide add to timeline buttons behind a + icon in the timeline header. (B-98)
@@ -36,6 +35,4 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Questions
 
-
 ## Chores
-

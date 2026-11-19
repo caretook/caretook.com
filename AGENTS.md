@@ -221,29 +221,30 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 
 Read a doc when your work touches its area. A slice's `Reads` field names the ones it needs; this table finds the rest. Orchestrators fold each landing's lasting decisions into the matching doc, and add a row here for a new area.
 
-| Doc                                                 | Read it when your work touches                                                         |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [loops](docs/loops.md)                              | running PRDs and slices, `pnpm prd`, stacks, browser checks, landing                   |
-| [orchestration](docs/orchestration.md)              | the human guide to the process                                                         |
-| [layout](docs/layout.md)                            | where a package, route or module lives                                                 |
-| [components](docs/domain/components.md)             | any UI: `ui/` primitives, feature folders, route size, settings pages, component tests |
-| [app-shell](docs/domain/app-shell.md)               | the `/app` header and menus, theme, sections, group route, `appUrls`, settings         |
-| [timeline](docs/domain/timeline.md)                 | entry kinds, vitals, preferences, the timeline screen, filters, sheets                 |
-| [live-notes](docs/domain/live-notes.md)             | note and event documents, Yjs, the entry page, the editor                              |
-| [care-groups](docs/domain/care-groups.md)           | groups, roles, the permission table, invites, join requests, access codes              |
-| [providers](docs/domain/providers.md)               | the directory, provider pages, links from notes and events                             |
-| [medications](docs/domain/medications.md)           | medications, doses, changes, what's due, the print sheet                               |
-| [appointments](docs/domain/appointments.md)         | future events, Upcoming, cancel and reschedule                                         |
-| [care-periods](docs/domain/care-periods.md)         | the period track, its screens, timeline markers                                        |
-| [search](docs/domain/search.md)                     | the query language, the device index, search screens, server search                    |
-| [profiles](docs/domain/profiles.md)                 | the recipient's profile, contact sharing, emergency contacts                           |
-| [marketing](docs/domain/marketing.md)               | public pages, SEO, brand assets, waitlist and contact                                  |
-| [notifications](docs/domain/notifications.md)       | email, the outbox, senders, the dev mailbox                                            |
-| [auth](docs/domain/auth.md)                         | Better Auth, sign-in methods, sign-up tickets, account pages                           |
-| [api](docs/domain/api.md)                           | oRPC procedures, errors, logging, DTOs                                                 |
-| [data-layer](docs/domain/data-layer.md)             | tables, permissions, models, services, migrations                                      |
-| [sync](docs/domain/sync.md)                         | PowerSync, streams, uploads, the device database, session, settings cache              |
-| [security-headers](docs/domain/security-headers.md) | the CSP, a new script, origin or inline style                                          |
+| Doc                                                 | Read it when your work touches                                                  |
+| --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [loops](docs/loops.md)                              | running PRDs and slices, `pnpm prd`, stacks, browser checks, landing            |
+| [orchestration](docs/orchestration.md)              | the human guide to the process                                                  |
+| [layout](docs/layout.md)                            | where a package, route or module lives                                          |
+| [components](docs/domain/components.md)             | any UI: `ui/` primitives, feature folders, settings pages, component tests      |
+| [app-shell](docs/domain/app-shell.md)               | the `/app` header and menus, theme, sections, group route, `appUrls`, settings  |
+| [timeline](docs/domain/timeline.md)                 | entry kinds, vitals, preferences, the timeline screen, filters, sheets          |
+| [live-notes](docs/domain/live-notes.md)             | note and event documents, Yjs, the entry page, the editor                       |
+| [care-groups](docs/domain/care-groups.md)           | groups, roles, the permission table, invites, join requests, access codes       |
+| [providers](docs/domain/providers.md)               | the directory, provider pages, links from notes and events                      |
+| [medications](docs/domain/medications.md)           | medications, doses, changes, what's due, the print sheet                        |
+| [appointments](docs/domain/appointments.md)         | future events, Upcoming, cancel and reschedule                                  |
+| [care-periods](docs/domain/care-periods.md)         | the period track, its screens, timeline markers                                 |
+| [search](docs/domain/search.md)                     | the query language, the device index, search screens, server search             |
+| [profiles](docs/domain/profiles.md)                 | the recipient's profile, contact sharing, emergency contacts                    |
+| [marketing](docs/domain/marketing.md)               | public pages, SEO, brand assets, waitlist and contact                           |
+| [notifications](docs/domain/notifications.md)       | email, the outbox, senders, the dev mailbox                                     |
+| [auth](docs/domain/auth.md)                         | Better Auth, sign-in methods, sign-up tickets, account pages                    |
+| [api](docs/domain/api.md)                           | oRPC procedures, errors, logging, DTOs                                          |
+| [data-layer](docs/domain/data-layer.md)             | tables, permissions, models, services, migrations                               |
+| [sync](docs/domain/sync.md)                         | PowerSync, streams, uploads, the device database, session, settings cache       |
+| [security-headers](docs/domain/security-headers.md) | the CSP, a new script, origin or inline style                                   |
+| [admin](docs/domain/admin.md)                       | staff roles and capabilities, `/admin`, the audit log, app settings, the banner |
 
 ## Next steps
 

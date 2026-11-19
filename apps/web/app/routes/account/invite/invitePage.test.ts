@@ -31,7 +31,15 @@ describe("inviteView", () => {
   });
 
   it("says plainly when an invite can't be used, naming nothing", () => {
-    for (const state of ["notFound", "expired", "revoked", "usedUp", "accepted", "declined"] as const) {
+    for (const state of [
+      "notFound",
+      "expired",
+      "revoked",
+      "usedUp",
+      "accepted",
+      "declined",
+      "unavailable",
+    ] as const) {
       const view = inviteView({ state }, null);
       expect(view.view).toBe("closed");
       if (view.view !== "closed") continue;
@@ -39,6 +47,7 @@ describe("inviteView", () => {
       expect(`${view.title} ${view.message}`).not.toContain("Grandma");
     }
     expect(inviteView({ state: "expired" }, null)).toMatchObject({ title: "This invitation has expired" });
+    expect(inviteView({ state: "unavailable" }, null)).toMatchObject({ title: "Not available right now" });
   });
 });
 
