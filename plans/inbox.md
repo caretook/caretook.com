@@ -34,7 +34,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Add "recent vita averages" to the profile page. (B-100)
 - Hide add to timeline buttons behind a + icon in the timeline header. (B-101)
 - Don't display recent vitals in the timeline header in mobile, (B-102)
-- Add "recent vita averages" to the profile page. (B-103)
+- Add "recent vital averages" to the profile page. (B-103)
 
 ## Feature requests
 
