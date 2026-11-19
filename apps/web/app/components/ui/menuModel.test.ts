@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MenuSection } from "./menuModel";
 
-import { chosenKey, normalizeMenu, SEPARATOR, sectionName } from "./menuModel";
+import { chosenKey, linkOptions, normalizeMenu, SEPARATOR, sectionName } from "./menuModel";
 
 const a = { id: "a", label: "A" };
 const b = { id: "b", label: "B" };
@@ -53,6 +53,23 @@ describe("sectionName", () => {
     expect(sectionName({ title: "Theme", ariaLabel: "x" })).toBe("Theme");
     expect(sectionName({ ariaLabel: "Switch care group" })).toBe("Switch care group");
     expect(sectionName({})).toBeUndefined();
+  });
+});
+
+describe("linkOptions", () => {
+  it("carries a link's history state", () => {
+    const state = { fromMenu: true };
+    expect(linkOptions({ href: "/app/x", state })).toEqual({ state });
+  });
+
+  it("is undefined for a link without state, or state without a link", () => {
+    expect(linkOptions({ href: "/app/x" })).toBeUndefined();
+    expect(linkOptions({ state: { fromMenu: true } })).toBeUndefined();
+  });
+
+  it("keeps the item's state through normalizeMenu", () => {
+    const [entry] = normalizeMenu([{ id: "n", label: "N", href: "/app/n", state: { s: 1 } }]);
+    expect(entry && entry.type === "item" && linkOptions(entry)).toEqual({ state: { s: 1 } });
   });
 });
 
