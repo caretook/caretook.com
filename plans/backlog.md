@@ -740,6 +740,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/marketing): From the inbox: printable medication schedule sheet that can be printed to be checked off with a pen at patient's bedside. (once we have ai, we can allow photo of the sheet to be used to update timeline)
 - 2026-11-18 (Robert Bo Davis): Proposed for medications, as a later slice after slice 6 (the printable list): a printable day/week schedule grid with check boxes for pen sign-off at the bedside. The photo-of-the-sheet-to-timeline part belongs to assistant later. B-15 is in progress, so this becomes a new slice, not a change to a running one.
 - 2026-11-18 (prd/medications): medications orchestrator: a new slice after 6 (it reuses slice 6's print route, print CSS and the schedule from slice 1; a grid of today's or this week's scheduled slots with check boxes). Proposed as slice 7 in a later wave.
+- 2026-11-19 (plan/medications-2): In the medications-2 PRD (plans/medications-2-prd.md on plan/medications-2), interviewed 2026-11-19.
 
 ### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
 
