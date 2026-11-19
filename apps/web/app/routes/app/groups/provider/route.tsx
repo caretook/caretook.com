@@ -14,6 +14,7 @@ import { sessionContext } from "~/lib/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { providerQuery, toProvider } from "~/lib/sync/providers";
 import { ContactList } from "./ContactList";
+import { LinkedEntries } from "./LinkedEntries";
 import { loadProvider } from "./loadProvider";
 import { ProviderHeader } from "./ProviderHeader";
 import { useProviderNotes } from "./useProviderNotes";
@@ -125,6 +126,8 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
               ensureSaved={ensureSaved}
             />
           </section>
+
+          <LinkedEntries groupId={groupId} providerId={providerId} />
         </>
       )}
     </main>

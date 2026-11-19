@@ -18,6 +18,7 @@ export function EntryTitleRegion({
   groupId,
   onCommit,
   onPick,
+  onTextChange,
 }: {
   state: TitleState;
   heading: string;
@@ -27,6 +28,8 @@ export function EntryTitleRegion({
   onCommit: (title: string) => void;
   /** A suggested name was chosen. */
   onPick: (title: string) => void;
+  /** The title field's text as it's typed (before it's committed). */
+  onTextChange?: (text: string) => void;
 }) {
   const [typed, setTyped] = useState("");
 
@@ -43,7 +46,10 @@ export function EntryTitleRegion({
         value={state.value}
         placeholder={state.placeholder}
         onCommit={onCommit}
-        onTextChange={setTyped}
+        onTextChange={(text) => {
+          setTyped(text);
+          onTextChange?.(text);
+        }}
       />
       {showTitleChips({ editable: true, kind, title, typed }) && (
         <EventTitleChips groupId={groupId} onPick={onPick} />

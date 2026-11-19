@@ -1,14 +1,16 @@
 import type { UnitChoices } from "@caretook/data/schema";
 import type { ReactNode } from "react";
+import type { LinkedProviderName } from "~/lib/entryProviders";
 import type { TimelineEntry } from "~/lib/rpc";
 
 import { useEffect, useRef, useState } from "react";
 import { entrySummary, KIND_META } from "~/lib/entryDisplay";
+import { chipLabel, withSummary, withText } from "~/lib/entryProviders";
 
 /**
  * What an entry says, the same in rows and cards: the kind (for screen
  * readers), then its heading (title or symptom name, with severity), its vital
- * readings and its text, in that order. The first of those can share a line
+ * readings, who it was with (linked providers) and its text, in that order. The first of those can share a line
  * with `aside` (the card's live dot and time); `footer` comes last. Rows clamp
  * the text to two lines (`clamp`, with "More"); cards show all of it.
  */
@@ -16,6 +18,7 @@ export function EntryBody({
   entry,
   units,
   clamp = false,
+  providers,
   aside,
   footer,
   className = "",
@@ -23,6 +26,7 @@ export function EntryBody({
   entry: TimelineEntry;
   units: UnitChoices;
   clamp?: boolean;
+  providers?: readonly LinkedProviderName[];
   aside?: ReactNode;
   footer?: ReactNode;
   className?: string;
@@ -36,6 +40,7 @@ export function EntryBody({
       </p>
     ),
     readings.length > 0 && <Readings key="readings" readings={readings} />,
+    providers && providers.length > 0 && <WithLine key="with" providers={providers} />,
     body && (clamp ? <ClampedText key="body" text={body} /> : <FullText key="body" text={body} />),
   ].filter(Boolean);
 
@@ -66,6 +71,32 @@ function Readings({ readings }: { readings: string[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * "with Dr. A, Dr. B +1": up to two names, a removed provider greyed with
+ * "(removed)". Text only (no links), so a tap still reaches the row's open
+ * target; screen readers get the sentence ("… and 1 more").
+ */
+function WithLine({ providers }: { providers: readonly LinkedProviderName[] }) {
+  const { names, more } = withSummary(providers);
+  return (
+    <p className="text-base-content/70 text-sm break-words" data-with>
+      <span className="sr-only">{withText(providers)}</span>
+      <span aria-hidden="true">
+        with{" "}
+        {names.map((p, i) => (
+          <span key={p.id}>
+            {i > 0 && ", "}
+            <span data-with-name={p.id} className={p.deletedAt ? "text-base-content/50" : undefined}>
+              {chipLabel(p)}
+            </span>
+          </span>
+        ))}
+        {more > 0 && <span data-with-more> +{more}</span>}
+      </span>
+    </p>
   );
 }
 

@@ -32,10 +32,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | -- | ---- | ------ | --- | ----- | ----- |
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | landed | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
-| B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
+| B-3 | change | in-progress | timeline-polish | prd/timeline-polish | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
-| B-6 | change | triaged | timeline-polish |  | Tap an entry's author initials to filter by that author |
+| B-6 | change | in-progress | timeline-polish | prd/timeline-polish | Tap an entry's author initials to filter by that author |
 | B-7 | change | landed | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
@@ -43,7 +43,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
-| B-14 | plan | ready | providers | prd/providers | Provider links and suggestions while writing events and live notes |
+| B-14 | plan | landed | providers | prd/providers | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
@@ -100,9 +100,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-3 · change · Wider timeline entries on large screens, still mobile-first
 
-- status: triaged
+- status: in-progress
 - prd: timeline-polish
-- owner:
+- owner: prd/timeline-polish
 - commit:
 
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Full width at lg+, entry text capped ~75ch; cards in a 2–3 column grid.
@@ -135,9 +135,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-6 · change · Tap an entry's author initials to filter by that author
 
-- status: triaged
+- status: in-progress
 - prd: timeline-polish
-- owner:
+- owner: prd/timeline-polish
 - commit:
 
 - 2026-11-17 (dev keeper): A new `?author=` filter chip, beside `?kind=`.
@@ -237,7 +237,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
-- status: ready
+- status: landed
 - prd: providers
 - owner: prd/providers
 - commit: 1b1a039
@@ -432,6 +432,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/invites/3): slice 3 (email invites with consent) built on slice/invites/3: migration 0010_email_invites, invite.* oRPC, /invite/:token, Members Invite sheet and Pending list. Not synced: invites and consent are read through oRPC; care_group_member gains synced invited_by and created_at.
 - 2026-11-18 (slice/invites/5): invites slice 5 ready on slice/invites/5 (649c1ab, 5eb7b6f): careGroup.create + New care group sheet, Invite someone card, access codes + /join/:code, /admin (codes, print QR, staff group + ownerInvite). Migration 0011_access_codes to regenerate after slice 4.
 - 2026-11-18 (slice/invites/4): slice 4 (invite links, join requests) committed on slice/invites/4: a413fd9, cc04093; migration 0011_link_invites
+- 2026-11-18 (prd/providers): invites.mjs hung (no output for 8+ min, load ~6) in step 6-7 (existing account joins from the link) during prd/providers' landing suite on 2026-11-18; a rerun passed 67/67. Its waits there have no timeout, so a hang never fails. Needs a timeout on those waits.
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 

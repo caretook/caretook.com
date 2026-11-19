@@ -1,9 +1,11 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 import type { SyncDb } from "~/lib/sync";
+import type { EntryProviderLinkRow } from "~/lib/entryProviders";
 import type { NoteDocRow } from "~/lib/sync/notes";
 import type { EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
 
 import { groupDocumentsQuery } from "~/lib/sync/notes";
+import { timelineLinksQuery } from "~/lib/sync/providers";
 import { entriesQuery, membersQuery, readingsQuery, readRows } from "~/lib/sync/timeline";
 
 // The timeline's first screenful, read from the device's local copy
@@ -16,13 +18,14 @@ export const PAGE_SIZE = 30;
 
 /** The rows the first render needs. */
 export const loadTimelineRows = async (db: SyncDb, groupId: string, kind: TimelineEntryKind | null) => {
-  const [entryRows, memberRows, readingRows, documentRows] = await Promise.all([
+  const [entryRows, memberRows, readingRows, documentRows, linkRows] = await Promise.all([
     readRows<EntryRow>(db, entriesQuery(groupId, kind, PAGE_SIZE)),
     readRows<MemberRow>(db, membersQuery(groupId)),
     readRows<ReadingRow>(db, readingsQuery(groupId)),
     readRows<NoteDocRow>(db, groupDocumentsQuery(groupId)),
+    readRows<EntryProviderLinkRow>(db, timelineLinksQuery(groupId, kind, PAGE_SIZE)),
   ]);
-  return { entryRows, memberRows, readingRows, documentRows };
+  return { entryRows, memberRows, readingRows, documentRows, linkRows };
 };
 
 export type TimelineRows = Awaited<ReturnType<typeof loadTimelineRows>>;

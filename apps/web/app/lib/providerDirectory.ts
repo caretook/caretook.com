@@ -103,7 +103,7 @@ export const compareProviders = (a: ListedProvider, b: ListedProvider) =>
   rank(a) - rank(b) || collator.compare(a.name, b.name) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 /** Lowercased, without accents, so "jose" finds "José". */
-const fold = (text: string) =>
+export const fold = (text: string) =>
   text
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
