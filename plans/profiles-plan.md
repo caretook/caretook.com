@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | State              | Merge into `prd/profiles` (slice commits) |
-| ----- | ------------------ | ----------------------------------------- |
-| 1     | merged             | `925d469` (9a56249, b1f1464, bd9a562)     |
-| 2     | merged `fd4d0e0`   |                                           |
-| 3     | in progress        |                                           |
-| 4     | merged `f07de69`   |                                           |
-| 5     | blocked by 3 and 4 |                                           |
-| 6     | blocked by 5       |                                           |
+| Slice | State            | Merge into `prd/profiles` (slice commits) |
+| ----- | ---------------- | ----------------------------------------- |
+| 1     | merged           | `925d469` (9a56249, b1f1464, bd9a562)     |
+| 2     | merged `fd4d0e0` |                                           |
+| 3     | merged `9fcda5a` |                                           |
+| 4     | merged `f07de69` |                                           |
+| 5     | in progress      |                                           |
+| 6     | blocked by 5     |                                           |
 
-Backlog: B-45 and B-46 are claimed by `prd/profiles`; mark B-45 `done` after slice 3 merges and B-46 after slice 5 (or both after slice 6).
+Backlog: B-45 is done (ready); B-46 is claimed by `prd/profiles`; mark B-45 `done` after slice 3 merges and B-46 after slice 5 (or both after slice 6).
 
-Notes from slice 1: `care_group_writers` filters on `role != 'viewer'` (PowerSync 1.28.3 rejects `IN (...)`), so a future read-only role must be excluded there too. Migration `0016_profiles` ends with a hand-written `ALTER PUBLICATION`: keep it when regenerating. Membership removal leaves a gap in the emergency order until the next renumber. Slice 4 writes its browser steps to `profiles-contacts.mjs` (slice 2 owns `profiles.mjs`), to avoid a conflict. The timeline's recipient card can't be dismissed (an open question in the PRD; not built).
+Notes from slice 1: `care_group_writers` filters on `role != 'viewer'` (PowerSync 1.28.3 rejects `IN (...)`), so a future read-only role must be excluded there too. Migration `0016_profiles` ends with a hand-written `ALTER PUBLICATION`: keep it when regenerating. Membership removal leaves a gap in the emergency order until the next renumber. Slice 4 writes its browser steps to `profiles-contacts.mjs` (slice 2 owns `profiles.mjs`), to avoid a conflict. The timeline's recipient card can't be dismissed (an open question in the PRD; not built). **Landing:** the user chose to hold landing until all six slices are merged, then run the full suite once and land everything.
 
 ## Architectural decisions
 
