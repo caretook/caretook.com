@@ -1364,6 +1364,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (Robert Bo Davis): From the inbox: Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests (blocker, major, minor, etc.) an only run the blocker/major tests? The test suite takes too long to run and is not very reliable.
 - 2026-11-19 (Robert Bo Davis): Proposed for orchestration with B-89 and B-108: check priorities (blocker/major/minor tags on steps or checks, --changed running only blocker+major, full tiers before staging). Needs an interview; the smoke mode (B-39) is a partial version already.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+- 2026-11-19 (slice/orchestration/6): Slice 6 handed off (9d8c353): web:components project, test device (renderWithDevice, fx builders), ui primitive tests; 53 tests in ~16 s.
 
 ### B-108 · change · Browser testing without a timeout keeps causing hung processes. We need to always have a sane…
 
