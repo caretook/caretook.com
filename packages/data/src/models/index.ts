@@ -62,6 +62,9 @@ export type * from "./accessCode/types";
 import * as accessCodeRedemptionModel from "./accessCodeRedemption";
 export { accessCodeRedemptionModel };
 export type * from "./accessCodeRedemption/types";
+import * as medicationModel from "./medication";
+export { medicationModel };
+export type * from "./medication/types";
 
 import * as waitlistEntryModel from "./waitlistEntry";
 export { waitlistEntryModel };

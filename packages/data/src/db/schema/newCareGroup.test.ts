@@ -21,12 +21,19 @@ describe("resolveNewCareGroup", () => {
     });
     expect(resolveNewCareGroup(input)).toEqual({
       name: "Lou's care",
-      recipient: { name: "Lou Example", preferredName: null },
+      recipient: { name: "Lou Example", preferredName: null, timeZone: "UTC" },
     });
     expect(
       resolveNewCareGroup(newCareGroupZSchema.parse({ recipientName: "Lou", groupName: " The Examples " }))
         .name,
     ).toBe("The Examples");
+  });
+  it("gives the recipient the creating device's time zone, and refuses an unknown one", () => {
+    const input = newCareGroupZSchema.parse({ recipientName: "Lou", timeZone: "America/Chicago" });
+    expect(resolveNewCareGroup(input).recipient.timeZone).toBe("America/Chicago");
+    expect(newCareGroupZSchema.safeParse({ recipientName: "Lou", timeZone: "Mars/Olympus" }).success).toBe(
+      false,
+    );
   });
   it("needs the recipient's name", () => {
     const parsed = newCareGroupZSchema.safeParse({ recipientName: "  " });

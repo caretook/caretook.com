@@ -29,7 +29,7 @@ const serverView = () =>
   psql(`SELECT coalesce(preferences->>'timelineView', 'rows') FROM "user" WHERE email = '${EMAIL}'`);
 
 const rows = `document.querySelectorAll("ol > li").length`;
-const isCards = `document.querySelector("ol")?.className.includes("space-y-2")`;
+const isCards = `(document.querySelector("ol")?.dataset.view === "cards")`;
 const pendingKeys = `Object.keys(localStorage).filter((k) => k.startsWith("caretook:settings-pending:"))`;
 const pendingView = `(() => { const k = ${pendingKeys}[0]; return k ? JSON.parse(localStorage.getItem(k)).timelineView ?? null : null; })()`;
 const noteRow = `[...document.querySelectorAll("ol > li")].find((li) => li.querySelector(".sr-only")?.textContent === "Note: ")`;

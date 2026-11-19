@@ -15,15 +15,22 @@ import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   canHaveNoteDocument,
+  isDoseDetails,
+  isSystemWrittenKind,
   timelineEntryContentZSchema,
   timelineEntryCreateZSchema,
   timelineEntryUpdateZSchema,
   timelineEntryUpsertZSchema,
 } from "../db/schema";
 import { isError, newError } from "../errors";
-import { careGroupModel, careRecipientModel, noteDocumentModel, timelineEntryModel } from "../models";
-import { rejectError } from "../permissions";
-
+import {
+  careGroupModel,
+  careRecipientModel,
+  medicationModel,
+  noteDocumentModel,
+  timelineEntryModel,
+} from "../models";
+import { isSystemUser, rejectError } from "../permissions";
 export const serviceName = "timelineEntry";
 export const schemaName = timelineEntryModel.schemaName;
 
@@ -36,6 +43,43 @@ const invalid = (error: z.ZodError) =>
   });
 
 const notFound = () => newError({ code: "timelineEntryService:notFound" });
+
+/**
+ * Medication changes are written by `medicationService`, with the
+ * medication: nobody creates or edits one by hand. (Deleting one is fine.)
+ */
+const refuseSystemWritten = (ctx: ServiceContext, kind: string) =>
+  isSystemWrittenKind(kind) && !isSystemUser(ctx.authUser)
+    ? newError({ code: "timelineEntryService:systemWrittenKind" })
+    : null;
+
+/**
+ * A dose's medication must be in the entry's group, as the actor sees it. A
+ * deleted medication still counts: its doses stay, and a replayed upload of
+ * one must still land.
+ */
+const checkDoseMedication = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  groupId: string,
+  details: TimelineEntry["details"] | undefined,
+) => {
+  if (!isDoseDetails(details)) return null;
+  const medication = await medicationModel.getById(details.medicationId, {
+    ...ctx,
+    tx,
+    includeDeleted: true,
+  });
+  if (isError(medication)) return medication;
+  return medication?.groupId === groupId
+    ? null
+    : newError({
+        code: "timelineEntryService:medicationNotInGroup",
+        meta: {
+          issues: [{ path: "details.medicationId", message: "Choose a medication in this care group" }],
+        },
+      });
+};
 
 /** Postgres timestamptz text → ISO 8601, so stored rows re-validate. */
 const toIso = (value: string) => new Date(value).toISOString();
@@ -158,8 +202,14 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput) =>
     if (!parsed.success) return invalid(parsed.error);
     const { recipientId, details, ...data } = parsed.data;
 
+    const refused = refuseSystemWritten(ctx, data.kind);
+    if (refused) return refused;
+
     const resolved = await resolveRecipient(ctx, tx, data.groupId, recipientId);
     if (isError(resolved)) return resolved;
+
+    const medication = await checkDoseMedication(ctx, tx, data.groupId, details);
+    if (medication) return medication;
 
     return timelineEntryModel.create({
       ...ctx,
@@ -182,6 +232,9 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
+    const refused = refuseSystemWritten(ctx, existing.kind);
+    if (refused) return refused;
+
     const merged = timelineEntryContentZSchema.safeParse({
       kind: existing.kind,
       title: existing.title,
@@ -193,6 +246,9 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
     });
     if (!merged.success) return invalid(merged.error);
     const { kind: _kind, ...content } = merged.data;
+
+    const medication = await checkDoseMedication(ctx, tx, existing.groupId, content.details);
+    if (medication) return medication;
 
     const updated = await timelineEntryModel.update({
       ...ctx,
@@ -215,6 +271,9 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
  * - A deleted entry stays deleted (a delete wins over a late edit).
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
+ * - A medication change is never created or edited here: one that exists
+ *   (written by `medicationService` with the medication) is left as it is,
+ *   and one that doesn't is refused.
  */
 export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
   withTransaction(async (tx) => {
@@ -243,8 +302,16 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
     )
       return newError({ code: "timelineEntryService:immutable" });
     if (visible.deletedAt) return visible;
+    // A device's copy of a change entry the service already wrote with the
+    // medication: the service's stands.
+    if (isSystemWrittenKind(visible.kind)) return visible;
 
-    return update({ ...ctx, tx }, id, { title, body, occurredAt, timeZone, details: details ?? null });
+    return update(
+      { ...ctx, tx },
+      id,
+      // Checked against the entry's kind once merged with the stored row.
+      { title, body, occurredAt, timeZone, details: details ?? null } as TimelineEntryUpdateInput,
+    );
   }, ctx);
 
 /** Soft delete. The entry disappears from the timeline but syncs as deleted. */

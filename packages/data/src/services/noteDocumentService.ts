@@ -21,11 +21,17 @@ import {
   parseNoteEditors,
 } from "../db/schema";
 import { isError, newError } from "../errors";
-import { noteDocumentModel, noteUpdateModel, providerModel, timelineEntryModel } from "../models";
+import {
+  medicationModel,
+  noteDocumentModel,
+  noteUpdateModel,
+  providerModel,
+  timelineEntryModel,
+} from "../models";
 import { rejectError } from "../permissions";
 
-// Live documents (collaborative notes) on note and event entries, and on
-// providers. Write documents and updates through here, not the models: this
+// Live documents (collaborative notes) on note and event entries, on
+// providers and on medications. Write documents and updates through here, not the models: this
 // is where the owner's kind, group and deletion are checked.
 //
 // A document's state is its snapshot plus its pending updates. Devices only
@@ -50,7 +56,7 @@ export const COMPACT_AFTER_UPDATES = 20;
 export const COMPACT_AFTER_SECONDS = 60;
 
 /**
- * The document's owner (an entry or a provider), as the actor sees it.
+ * The document's owner (an entry, a provider or a medication), as the actor sees it.
  * Deleted owners are hidden, and so are their documents.
  */
 const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubject, id: string) => {
@@ -60,6 +66,13 @@ const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubje
     return provider
       ? { groupId: provider.groupId, kind: null }
       : newError({ code: "noteDocumentService:providerNotFound" });
+  }
+  if (subject === "medication") {
+    const medication = await medicationModel.getById(id, { ...ctx, tx });
+    if (isError(medication)) return medication;
+    return medication
+      ? { groupId: medication.groupId, kind: null }
+      : newError({ code: "noteDocumentService:medicationNotFound" });
   }
   const entry = await timelineEntryModel.getById(id, { ...ctx, tx });
   if (isError(entry)) return entry;
@@ -81,10 +94,12 @@ const visibleDocument = async (ctx: ServiceContext, tx: Tx, id: string) => {
 const ownerColumns = (
   subject: NoteDocumentSubject,
   id: string,
-): Pick<NoteDocument, "subject" | "entryId" | "providerId"> =>
-  subject === "provider"
-    ? { subject, entryId: null, providerId: id }
-    : { subject, entryId: id, providerId: null };
+): Pick<NoteDocument, "subject" | "entryId" | "providerId" | "medicationId"> => ({
+  subject,
+  entryId: subject === "entry" ? id : null,
+  providerId: subject === "provider" ? id : null,
+  medicationId: subject === "medication" ? id : null,
+});
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -119,9 +134,10 @@ export const currentText = (ctx: ServiceContext, id: string) =>
 // ---------------------------------------------------------------------------
 
 /**
- * Add a live document to an entry or a provider (`id` is the owner's id;
- * `subject` defaults to an entry). Only writers, only on a live note or
- * event or a provider that isn't deleted, in the owner's own group.
+ * Add a live document to an entry, a provider or a medication (`id` is the
+ * owner's id; `subject` defaults to an entry). Only writers, only on a live
+ * note or event, or a provider or medication that isn't deleted, in the
+ * owner's own group.
  *
  * Idempotent: if the entry already has one, that one is returned. That's
  * also PowerSync's replay, and two offline devices adding one at once.

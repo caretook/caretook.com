@@ -1,5 +1,5 @@
 {
-  "id": "65d62d92-c775-4422-8ada-e96831145321",
+  "id": "36d96a26-d4ed-4281-9772-ff9ffb2a86da",
   "prevId": "fa34f4de-4e39-4238-8bb3-6d2194f02cb4",
   "version": "7",
   "dialect": "postgresql",
@@ -334,6 +334,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "time_zone": {
+          "name": "time_zone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -812,7 +818,7 @@
       "checkConstraints": {
         "timeline_entry_kind_check": {
           "name": "timeline_entry_kind_check",
-          "value": "\"timeline_entry\".\"kind\" IN ('note', 'symptom', 'event', 'vital')"
+          "value": "\"timeline_entry\".\"kind\" IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange')"
         }
       },
       "isRLSEnabled": false
@@ -848,6 +854,12 @@
         },
         "provider_id": {
           "name": "provider_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "medication_id": {
+          "name": "medication_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -930,6 +942,21 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "note_document_medication_fk": {
+          "name": "note_document_medication_fk",
+          "tableFrom": "note_document",
+          "tableTo": "medication",
+          "columnsFrom": [
+            "group_id",
+            "medication_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -947,11 +974,11 @@
       "checkConstraints": {
         "note_document_subject_check": {
           "name": "note_document_subject_check",
-          "value": "\"note_document\".\"subject\" IN ('entry', 'provider')"
+          "value": "\"note_document\".\"subject\" IN ('entry', 'provider', 'medication')"
         },
         "note_document_owner_check": {
           "name": "note_document_owner_check",
-          "value": "(\"note_document\".\"subject\" = 'entry' AND \"note_document\".\"entry_id\" = \"note_document\".\"id\" AND \"note_document\".\"provider_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'provider' AND \"note_document\".\"provider_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL)"
+          "value": "(\"note_document\".\"subject\" = 'entry' AND \"note_document\".\"entry_id\" = \"note_document\".\"id\" AND \"note_document\".\"provider_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'provider' AND \"note_document\".\"provider_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'medication' AND \"note_document\".\"medication_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"provider_id\" IS NULL)"
         }
       },
       "isRLSEnabled": false
@@ -2617,8 +2644,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.waitlist_entry": {
-      "name": "waitlist_entry",
+    "public.medication": {
+      "name": "medication",
       "schema": "",
       "columns": {
         "id": {
@@ -2628,33 +2655,130 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "email": {
-          "name": "email",
+        "group_id": {
+          "name": "group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "first_name": {
-          "name": "first_name",
+        "strength": {
+          "name": "strength",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "caring_for": {
-          "name": "caring_for",
+        "form": {
+          "name": "form",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "heard_from": {
-          "name": "heard_from",
+        "dose": {
+          "name": "dose",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "source": {
-          "name": "source",
+        "directions": {
+          "name": "directions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "schedule": {
+          "name": "schedule",
           "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'current'"
+        },
+        "started_on": {
+          "name": "started_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stopped_on": {
+          "name": "stopped_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stop_reason": {
+          "name": "stop_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stop_note": {
+          "name": "stop_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prescriber_id": {
+          "name": "prescriber_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pharmacy_id": {
+          "name": "pharmacy_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_filled_on": {
+          "name": "last_filled_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refills_left": {
+          "name": "refills_left",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rx_number": {
+          "name": "rx_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp(3) with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -2686,117 +2810,112 @@
         }
       },
       "indexes": {
-        "waitlist_entry_email_unique": {
-          "name": "waitlist_entry_email_unique",
+        "medication_group_name_idx": {
+          "name": "medication_group_name_idx",
           "columns": [
             {
-              "expression": "email",
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": true,
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
         }
       },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "waitlist_entry_email_lower": {
-          "name": "waitlist_entry_email_lower",
-          "value": "\"waitlist_entry\".\"email\" = lower(\"waitlist_entry\".\"email\")"
+      "foreignKeys": {
+        "medication_group_id_care_group_id_fk": {
+          "name": "medication_group_id_care_group_id_fk",
+          "tableFrom": "medication",
+          "tableTo": "care_group",
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
-        "waitlist_entry_caring_for_check": {
-          "name": "waitlist_entry_caring_for_check",
-          "value": "\"waitlist_entry\".\"caring_for\" IN ('parent', 'spouse', 'child', 'sibling', 'friend', 'other')"
+        "medication_recipient_fk": {
+          "name": "medication_recipient_fk",
+          "tableFrom": "medication",
+          "tableTo": "care_recipient",
+          "columnsFrom": [
+            "group_id",
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
-        "waitlist_entry_heard_from_length": {
-          "name": "waitlist_entry_heard_from_length",
-          "value": "char_length(\"waitlist_entry\".\"heard_from\") <= 200"
+        "medication_prescriber_fk": {
+          "name": "medication_prescriber_fk",
+          "tableFrom": "medication",
+          "tableTo": "provider",
+          "columnsFrom": [
+            "group_id",
+            "prescriber_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "medication_pharmacy_fk": {
+          "name": "medication_pharmacy_fk",
+          "tableFrom": "medication",
+          "tableTo": "provider",
+          "columnsFrom": [
+            "group_id",
+            "pharmacy_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.contact_message": {
-      "name": "contact_message",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "topic": {
-          "name": "topic",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "message": {
-          "name": "message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "medication_group_id_id_unique": {
+          "name": "medication_group_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "group_id",
+            "id"
+          ]
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "contact_message_topic_check": {
-          "name": "contact_message_topic_check",
-          "value": "\"contact_message\".\"topic\" IN ('question', 'help', 'privacy', 'other')"
+        "medication_form_check": {
+          "name": "medication_form_check",
+          "value": "\"medication\".\"form\" IN ('tablet', 'capsule', 'liquid', 'injection', 'patch', 'inhaler', 'drops', 'cream', 'other')"
         },
-        "contact_message_message_length": {
-          "name": "contact_message_message_length",
-          "value": "char_length(\"contact_message\".\"message\") <= 5000"
+        "medication_status_check": {
+          "name": "medication_status_check",
+          "value": "\"medication\".\"status\" IN ('current', 'completed', 'discontinued')"
+        },
+        "medication_stop_reason_check": {
+          "name": "medication_stop_reason_check",
+          "value": "\"medication\".\"stop_reason\" IN ('sideEffects', 'ineffective', 'prescriberStopped', 'other')"
         }
       },
       "isRLSEnabled": false

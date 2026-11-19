@@ -3,6 +3,7 @@ import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
+import { FALLBACK_TIME_ZONE } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupInviteModel, careGroupModel, careRecipientModel } from "../models";
 import * as careGroupInviteService from "./careGroupInviteService";
@@ -20,6 +21,8 @@ export type StaffGroupInput = {
   groupName: string;
   recipientName: string;
   ownerEmail: string;
+  /** The recipient's zone (the staff member's browser's); none is `FALLBACK_TIME_ZONE`. */
+  timeZone?: string | null;
   /** The staff member confirms the recipient (or their representative) agreed to share. */
   attested: boolean;
 };
@@ -47,7 +50,11 @@ export const createWithOwnerInvite = (
 
     const recipient = await careRecipientModel.create({
       ...system,
-      data: { groupId: group.id, name: input.recipientName.trim() },
+      data: {
+        groupId: group.id,
+        name: input.recipientName.trim(),
+        timeZone: input.timeZone || FALLBACK_TIME_ZONE,
+      },
     });
     if (isError(recipient)) return recipient;
 

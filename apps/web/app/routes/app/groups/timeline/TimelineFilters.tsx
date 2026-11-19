@@ -1,18 +1,26 @@
 import type { TimelineEntryKind, TimelineView } from "@caretook/data/schema";
 
-import { LayoutList, List } from "lucide-react";
+import { LayoutList, List, X } from "lucide-react";
 import { useLocation } from "react-router";
-import { ChipGroup, IconButton } from "~/components/ui";
+import { ChipGroup, IconButton, UserAvatar } from "~/components/ui";
 import { KIND_META } from "~/lib/entryDisplay";
-import { clearKind, setKind } from "~/lib/timelineFilters";
+import { clearAuthor, clearKind, setKind } from "~/lib/timelineFilters";
 
 const FILTERS = ["note", "symptom", "event", "vital"] as const satisfies TimelineEntryKind[];
 
 /**
- * Kind filter chips: links that set `?kind=`, so the filter survives reloads
- * and Back. They change only the kind (see `lib/timelineFilters.ts`).
+ * The filter chips: links that set `?kind=`, so the filter survives reloads
+ * and Back. They change only the kind (see `lib/timelineFilters.ts`). With an
+ * author filter on (`author`: that person's name and picture), a last chip
+ * names them and clears it, keeping the kind.
  */
-export function KindFilter({ kind }: { kind: TimelineEntryKind | null }) {
+export function FilterChips({
+  kind,
+  author,
+}: {
+  kind: TimelineEntryKind | null;
+  author: { name: string; image: string | null } | null;
+}) {
   const { search } = useLocation();
   return (
     <ChipGroup
@@ -27,6 +35,19 @@ export function KindFilter({ kind }: { kind: TimelineEntryKind | null }) {
           to: { search: setKind(search, k) },
           current: kind === k,
         })),
+        ...(author
+          ? [
+              {
+                id: "author",
+                label: `By ${author.name}`,
+                name: `By ${author.name}: clear this filter`,
+                to: { search: clearAuthor(search) },
+                current: true,
+                leading: <UserAvatar name={author.name} image={author.image} size="xs" className="-ml-1.5" />,
+                trailing: <X className="size-3.5" aria-hidden="true" />,
+              },
+            ]
+          : []),
       ]}
     />
   );

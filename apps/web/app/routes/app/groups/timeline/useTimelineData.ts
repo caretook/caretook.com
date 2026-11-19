@@ -1,9 +1,8 @@
-import type { TimelineEntryKind } from "@caretook/data/schema";
 import type { EntryProviderLinkRow, LinkedProviderName } from "~/lib/entryProviders";
 import type { LiveDocument } from "~/lib/liveNow";
 import type { LatestVital, TimelineEntry } from "~/lib/rpc";
 import type { NoteDocRow } from "~/lib/sync/notes";
-import type { EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
+import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
 import type { TimelineRows } from "./timelineRows";
 import type { TimelineDay } from "./timelineDays";
 
@@ -47,6 +46,8 @@ export type TimelineData = {
   liveLabelOf: (entryId: string) => string | undefined;
   /** A member's name, or "Former member". */
   nameOf: (userId: string) => string;
+  /** A member's picture, when they have one (and are still a member). */
+  imageOf: (userId: string) => string | null;
   /** A note's or event's linked providers, in link order (the "with …" line). */
   providersOf: (entryId: string) => LinkedProviderName[] | undefined;
 };
@@ -58,23 +59,25 @@ const liveTitle = (row: { kind: string; title: string | null }) =>
 /**
  * Everything the timeline shows, live. Paging is here: "Show older" grows the
  * local query's limit (it asks for one extra row to know there's more), and
- * a new kind filter starts over from one page.
+ * a change to either filter starts over from one page.
  */
 export function useTimelineData({
   groupId,
   userId,
-  kind,
+  filters,
   initial,
 }: {
   groupId: string;
   userId: string;
-  kind: TimelineEntryKind | null;
+  filters: EntryFilters;
   initial: TimelineRows;
 }): TimelineData {
-  const [paging, setPaging] = useState({ kind, limit: PAGE_SIZE });
-  const limit = paging.kind === kind ? paging.limit : PAGE_SIZE;
+  // The paging belongs to one pair of filters: under any other, it's one page again.
+  const { kind, author } = filters;
+  const [paging, setPaging] = useState({ kind, author, limit: PAGE_SIZE });
+  const limit = paging.kind === kind && paging.author === author ? paging.limit : PAGE_SIZE;
 
-  const entriesSql = entriesQuery(groupId, kind, limit);
+  const entriesSql = entriesQuery(groupId, filters, limit);
   const entryRows = useLiveQuery<EntryRow>(entriesSql.sql, entriesSql.params, initial.entryRows);
   const membersSql = membersQuery(groupId);
   const memberRows = useLiveQuery<MemberRow>(membersSql.sql, membersSql.params, initial.memberRows);
@@ -85,7 +88,7 @@ export function useTimelineData({
   const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial.documentRows);
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
   // One query for every loaded entry's links (the same window as the entries), never one per row.
-  const linksSql = timelineLinksQuery(groupId, kind, limit);
+  const linksSql = timelineLinksQuery(groupId, filters, limit);
   const linkRows = useLiveQuery<EntryProviderLinkRow>(linksSql.sql, linksSql.params, initial.linkRows);
   const providersByEntry = useMemo(() => groupLinksByEntry(linkRows, fromLocalTimestamp), [linkRows]);
 
@@ -105,11 +108,12 @@ export function useTimelineData({
   return {
     days: groupByDay(entries, localTimeZone(), new Date()),
     hasOlder: entryRows.length > limit,
-    showOlder: () => setPaging({ kind, limit: limit + PAGE_SIZE }),
+    showOlder: () => setPaging({ kind, author, limit: limit + PAGE_SIZE }),
     latestVitals: toLatestVitals(readingRows),
     liveDocuments,
     liveLabelOf: (id) => liveLabels.get(id),
     nameOf,
+    imageOf: (id) => members.find((m) => m.userId === id)?.image ?? null,
     providersOf: (id) => providersByEntry.get(id),
   };
 }

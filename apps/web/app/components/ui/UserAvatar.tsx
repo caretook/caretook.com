@@ -4,6 +4,8 @@ import { useState } from "react";
 import { userInitials } from "~/lib/initials";
 
 const SIZE = {
+  /** 20px: inside a chip. */
+  xs: "size-5 text-[0.6rem]",
   /** 28px: editor avatars. */
   sm: "size-7 text-[0.7rem]",
   /** 32px: the account menu's button. */
