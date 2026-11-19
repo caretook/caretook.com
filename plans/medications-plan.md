@@ -4,16 +4,18 @@
 
 ## Status
 
-| Slice | State                                                 | Merge into `prd/medications` (slice commits) |
-| ----- | ----------------------------------------------------- | -------------------------------------------- |
-| 1     | ready (`providers` is in `dev`)                       |                                              |
-| 2     | blocked by 1 (`routing` is in `dev`)                  |                                              |
-| 3     | blocked by 2 (`routing` and `providers` are in `dev`) |                                              |
-| 4     | blocked by 1 (`components` is in `dev`)               |                                              |
-| 5     | blocked by 3 and 4                                    |                                              |
-| 6     | blocked by 2 (`providers` is in `dev`)                |                                              |
+| Slice | State                                                  | Merge into `prd/medications` (slice commits)                                      |
+| ----- | ------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| 1     | **merged** and landed in `dev` (wave 1)                | `41b8930` (slice commit `febd581`); dev sync `fac86c4`, fixes `4bb35ac` `cf80fe4` |
+| 2     | ready; held until `timeline-polish` is finished (user) |                                                                                   |
+| 3     | blocked by 2                                           |                                                                                   |
+| 4     | ready; held until `timeline-polish` is finished (user) |                                                                                   |
+| 5     | blocked by 3 and 4                                     |                                                                                   |
+| 6     | blocked by 2                                           |                                                                                   |
 
-Every outside blocker (`providers`, `routing`, `components`) is in `dev` as of 2026-11-18; only the plan's own order remains. Running beside this PRD: `invites` (about to land a migration: keep `dev`'s and regenerate ours on top at the first sync) and `timeline-polish` (changing the timeline route folder, which slices 4 and 5 touch).
+Every outside blocker is in `dev`. The user asked to wait for `timeline-polish` (it's changing the timeline route folder) before starting slices 2 onward. Slice 1's migration is `0013_medications` (regenerated on top of `invites`' 0011 and 0012 at the first sync; its last statement, `ALTER PUBLICATION "powersync" ADD TABLE "medication";`, is hand-written: keep it when regenerating). The sync also gave `invites`' group creation the creating device's time zone (`newGroupFromForm`, `/admin`'s hidden field, `FALLBACK_TIME_ZONE`).
+
+Notes for later slices: slice 2 needs a `createMedicationDocument` device write (the columns are there). Slice 4 appends `dose` and `medicationChange` to `TIMELINE_KINDS` in `lib/timelineFilters.ts` (that removes the `SHOWN_KINDS_SQL` guard's effect), restyles the placeholder `KIND_META` entries, and uses the medications module's writes for doses (`timeline.ts`'s `updateEntry`/`removeEntry` ignore them). The prescriber and pharmacy FKs are `NO ACTION`, not `SET NULL` (Drizzle can't express a column-list `SET NULL`).
 
 Backlog: B-15 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. B-26 (allergies) is not part of this plan.
 
