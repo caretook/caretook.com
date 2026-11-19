@@ -698,6 +698,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner:
 - commit:
 
+- 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'tasks' (to write): a todo list per group with assignees, due dates and done state, as a group section. Due dates could show with appointments (B-47); reminders would go through notifications.
+
 ### B-56 · feature · ability to upload photos of patient drivers license, insurance card, DNR, etc.
 
 - status: inbox
