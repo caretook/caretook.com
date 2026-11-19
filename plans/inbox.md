@@ -35,7 +35,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Hide add to timeline buttons behind a + icon in the timeline header. (B-101)
 - Don't display recent vitals in the timeline header in mobile, (B-102)
 - Add "recent vital averages" to the profile page. (B-103)
-- Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header.
+- Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header. (B-105)
 
 ## Feature requests
 
