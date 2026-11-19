@@ -6,7 +6,7 @@
 
 | Slice | State                                    | Merge into `prd/search` (slice commits)     |
 | ----- | ---------------------------------------- | ------------------------------------------- |
-| 1     | merged; landing in `dev`                 | `8f0d824` (`8a89d76`, `07989af`, `34f68fd`) |
+| 1     | landed in `dev` (`5016b1d`)              | `8f0d824` (`8a89d76`, `07989af`, `34f68fd`) |
 | 2     | blocked by 1, and `appointments` slice 7 |                                             |
 | 3     | in progress (`.loops/search-3`)          |                                             |
 | 4     | blocked by 2 and 3                       |                                             |
