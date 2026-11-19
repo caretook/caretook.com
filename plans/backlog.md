@@ -76,7 +76,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-44 | change | triaged | quick-fixes |  | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
 | B-45 | change | triaged | profiles |  | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | triaged | profiles |  | optional phone number, address, etc on group members that can be published to the group for… |
-| B-47 | feature | inbox |  |  | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
+| B-47 | feature | triaged | appointments |  | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
 | B-49 | feature | inbox |  |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-50 | feature | inbox |  |  | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
@@ -617,8 +617,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: appointments
 - owner:
 - commit:
 
