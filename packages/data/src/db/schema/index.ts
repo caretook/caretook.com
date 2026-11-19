@@ -46,3 +46,4 @@ export * from "./carePeriodTrack";
 export * from "./staffRules";
 export * from "./adminAudit";
 export * from "./appSetting";
+export * from "./groupAdminRules";

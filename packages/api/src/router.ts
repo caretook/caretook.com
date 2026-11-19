@@ -26,6 +26,7 @@ import { authedProcedure } from "./procedures";
 import { invite } from "./invites";
 import { joinRequest } from "./joinRequests";
 import { accessCode, admin, createCareGroup } from "./groups";
+import { groupsAdmin } from "./groupsAdmin";
 import { publicForms } from "./publicForms";
 import { profileCareGroup, profileMe } from "./profiles";
 import { search } from "./search";
@@ -336,6 +337,7 @@ export const router = {
     ...admin,
     waitlist: waitlistAdmin,
     audit: auditAdmin,
+    groups: groupsAdmin,
   },
   public: publicForms,
   search,

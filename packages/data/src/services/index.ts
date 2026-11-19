@@ -78,6 +78,9 @@ export { auditActorId, staffRefusal } from "./staffAccess";
 import * as adminGrantService from "./adminGrantService";
 export { adminGrantService };
 
+import * as groupAdminService from "./groupAdminService";
+export { groupAdminService };
+
 export type * from "./types";
 
 export const services = {
@@ -104,6 +107,7 @@ export const services = {
   carePeriod: carePeriodService,
   adminAudit: adminAuditService,
   adminGrant: adminGrantService,
+  groupAdmin: groupAdminService,
 };
 
 export type ServiceTypeMap = typeof services;
