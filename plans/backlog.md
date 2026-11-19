@@ -133,7 +133,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-89 | feature | triaged | orchestration |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-90 | change | triaged | quick-fixes |  | Seed data with multiple care groups and user mix for improved manual testing. |
 | B-91 | feature | triaged | admin |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
-| B-92 | change | in-progress | quick-fixes | prd/quick-fixes | Units save offline: move the Units settings page onto saveSettings |
+| B-92 | change | ready | quick-fixes | prd/quick-fixes | Units save offline: move the Units settings page onto saveSettings |
 | B-93 | bug | in-progress | quick-fixes | prd/quick-fixes | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
 | B-94 | change | triaged | quick-fixes |  | Account forms, sign-in and the marketing menu button onto the ui primitives |
 | B-95 | chore | ready | quick-fixes | prd/quick-fixes | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
@@ -1191,10 +1191,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-92 · change · Units save offline: move the Units settings page onto saveSettings
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: dab620f
 
 - 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user, in the backlog planning session). AGENTS.md (Sync, not built): units still save online only; routes/app/settings/units/route.tsx calls rpc.me.updatePreferences directly. Use saveSettings like the timeline layout (pending offline, sent later; loadSettings shows the pending change), and drop the offline notice. Checks: settings-layout, layout-offline.
 - 2026-11-19 (slice/quick-fixes/30): slice 30 (51f5fb8): units save through saveSettings; offline pending, vitals sheet shows the new unit at once, sent on next online load. layout-offline has a units step.
