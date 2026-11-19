@@ -43,6 +43,9 @@ const appRoutes = [
         route("medications/:medicationId", "routes/app/groups/medication/route.tsx"),
         // The printable sheet (a static segment, so it ranks above `:medicationId`).
         route("medications/print", "routes/app/groups/medications/print/route.tsx"),
+        // Appointments and reminders still to come, and the Past tab (past events).
+        route("upcoming", "routes/app/groups/upcoming/route.tsx"),
+        route("upcoming/past", "routes/app/groups/upcoming/past/route.tsx"),
       ]),
       // Start another care group (a sheet over its own page; not a group route).
       route("groups/new", "routes/app/groups/new/route.tsx"),

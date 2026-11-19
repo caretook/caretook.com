@@ -1,6 +1,7 @@
 import type { ZonedDateTime } from "@internationalized/date";
 
 import { now, parseAbsolute } from "@internationalized/date";
+import { useEffect, useState } from "react";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Button,
@@ -33,7 +34,11 @@ import { FIELD_ERROR, FIELD_LABEL } from "../styles";
  * one open. `error` shows under the field (it describes the segments, which
  * are marked invalid), styled like the field primitive's. `max` (ISO 8601)
  * is the latest time it takes: later days can't be picked in the calendar,
- * and a later typed time is invalid (the form won't submit).
+ * and a later typed time is invalid (the form won't submit). `granularity`
+ * "day" shows the date alone (an all-day item). `dayPickTime` sets the time
+ * the first time the day changes (an appointment whose day is picked first
+ * starts at 9:00); after that, picking a day keeps the time as usual.
+ * `calendarOpen` opens the calendar as the field mounts.
  */
 export function DateTimeField({
   name,
@@ -42,6 +47,9 @@ export function DateTimeField({
   onChange,
   error,
   max,
+  granularity = "minute",
+  dayPickTime,
+  calendarOpen,
 }: {
   name?: string;
   label: string;
@@ -51,22 +59,49 @@ export function DateTimeField({
   error?: string;
   /** ISO 8601: the latest time allowed. */
   max?: string;
+  granularity?: "minute" | "day";
+  /** The time the first change of day sets. */
+  dayPickTime?: { hour: number; minute: number };
+  /** Open the calendar on mount. */
+  calendarOpen?: boolean;
 }) {
-  const initial: ZonedDateTime = defaultValue
-    ? parseAbsolute(defaultValue, localTimeZone())
-    : now(localTimeZone()).set({ second: 0, millisecond: 0 });
+  const [value, setValue] = useState<ZonedDateTime>(() =>
+    defaultValue
+      ? parseAbsolute(defaultValue, localTimeZone())
+      : now(localTimeZone()).set({ second: 0, millisecond: 0 }),
+  );
+  const [timeSet, setTimeSet] = useState(!dayPickTime);
+  // Opened after mount, so inside another popover it stacks above it (a tap in
+  // the calendar then isn't a tap outside the outer one).
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!calendarOpen) return;
+    const timer = setTimeout(() => setOpen(true), 50);
+    return () => clearTimeout(timer);
+  }, [calendarOpen]);
+
+  const change = (next: ZonedDateTime | null) => {
+    if (!next) return;
+    let picked = next;
+    if (!timeSet && next.toString().slice(0, 10) !== value.toString().slice(0, 10)) {
+      setTimeSet(true);
+      picked = next.set({ ...dayPickTime, second: 0, millisecond: 0 });
+    }
+    setValue(picked);
+    onChange?.(picked.toAbsoluteString());
+  };
 
   return (
     <DatePicker
       name={name}
-      defaultValue={initial}
-      granularity="minute"
+      value={value}
+      isOpen={open}
+      onOpenChange={setOpen}
+      granularity={granularity}
       maxValue={max ? parseAbsolute(max, localTimeZone()) : undefined}
       isRequired
       isInvalid={error ? true : undefined}
-      onChange={(value) => {
-        if (value && onChange) onChange(value.toAbsoluteString());
-      }}
+      onChange={change}
       className="fieldset"
     >
       <Label className={FIELD_LABEL}>{label}</Label>

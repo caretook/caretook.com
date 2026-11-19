@@ -108,6 +108,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
+| B-71 | bug | inbox |  |  | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
+| B-72 | bug | inbox |  |  | suggested provider list is too long on mobile. |
+| B-73 | bug | inbox |  |  | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
 
 ## Items
 
@@ -662,6 +665,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'appointments' (to write): future-dated notes and events (appointments, with place and provider, which AGENTS.md defers), never symptoms or vitals; a toggle or section for upcoming items on the timeline. Medication reminders as future items depend on medications slice 5 (Today/due doses).
 - 2026-11-18 (plan/appointments): PRD written on plan/appointments: plans/appointments-prd.md (interview 2026-11-18). Follow-ups B-60–B-63.
 - 2026-11-19 (slice/appointments/1): slice 1 (data layer and time rules) ready on slice/appointments/1 at e7bafce: migration 0014_appointments, future-date rule (dose not a future kind), lib/upcoming + windows, seeds
+- 2026-11-19 (slice/appointments/3): slice 3 (Upcoming section + Past tab) committed on slice/appointments/3 (3f6c48c, 6bbf62c); upcoming.mjs 23/23
+- 2026-11-19 (slice/appointments/2): slice 2 (entry page: end time, all day, place, ?when=pick) ready on slice/appointments/2 at d14c8ca
+- 2026-11-19 (slice/appointments/4): slice 4 (cancel and undo cancel) ready on slice/appointments/4: 1395252, a00c38b
+- 2026-11-19 (slice/appointments/6): slice 6 (timeline: history ends at now, Next strip, Upcoming block) ready on slice/appointments/6 (11b210c, 15f4ec3)
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
@@ -875,3 +882,24 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): Flaked in the invites wave 3 suite (2026-11-18 19:46, load 18→27, not auto-retried): '1280 dark provider add sheet: Escape closes only it, and focus returns to the opener (tap)'. The failure detail showed focus on the opener, so likely the sheet's close wasn't finished when the step checked. Passed 625/625 on a rerun; ui.mjs also flaked earlier in providers-5 (timeout). In .loops/.browser-flakes.log. A browser-check fix, so quick-fixes.
+
+### B-71 · bug · date picker entry box mobile-friendly. it expands outside of elements on small screens.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-72 · bug · suggested provider list is too long on mobile.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-73 · bug · timeline entry add modal should take up the full screen on mobile, don't leave room for header.
+
+- status: inbox
+- prd:
+- owner:
+- commit:

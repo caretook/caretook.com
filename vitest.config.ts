@@ -47,6 +47,9 @@ export default defineConfig({
           root: "./scripts",
           include: ["**/*.test.mjs"],
           exclude: ["browser-checks/**"],
+          // Each test runs dozens of git commands (3–3.5 s alone), so the
+          // 5 s default fails them whenever the rest of `pnpm check` runs beside them.
+          testTimeout: 20_000,
         },
       },
       {

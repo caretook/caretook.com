@@ -17,7 +17,7 @@ import {
   isTooFarAhead,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { isEntryKind } from "../entryDisplay";
 import { TIMELINE_KINDS } from "../timelineFilters";
 import { timelineEntries } from "./schema";
@@ -170,9 +170,10 @@ const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonl
 
 /**
  * The timeline's window: one group's live entries under the filters, newest
- * first, as the tail of a `SELECT … FROM timeline_entry`. `entriesQuery` and
- * `timelineLinksQuery` are both built on it, so the "with …" lines always
- * cover exactly the listed entries. It asks for one row more than `limit`, so
+ * first, as the tail of a `SELECT … FROM timeline_entry`. `historyWindow`
+ * adds the history's end to it (the timeline reads `historyQuery` and
+ * `timelineLinksQuery`, so the "with …" lines always cover exactly the
+ * listed entries). It asks for one row more than `limit`, so
  * the screen knows whether there are older entries.
  */
 export const entryWindow = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
@@ -262,6 +263,23 @@ export const pastEventsWindow = (
 /** One group's entries under the filters, newest first (`entryWindow`). */
 export const entriesQuery = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
   const window = entryWindow(groupId, filters, limit);
+  return { sql: `SELECT * ${window.sql}`, params: window.params };
+};
+
+/** The timeline's history: one group's entries under the filters, newest first, ending at `cutoff` (`historyWindow`). */
+export const historyQuery = (
+  groupId: string,
+  filters: EntryFilters,
+  limit: number,
+  cutoff: string,
+): LocalQuery => {
+  const window = historyWindow(groupId, filters, limit, cutoff);
+  return { sql: `SELECT * ${window.sql}`, params: window.params };
+};
+
+/** Upcoming notes and events under the filters, soonest first (`upcomingWindow`): the Next strip and the Upcoming block. */
+export const upcomingQuery = (groupId: string, filters: EntryFilters, now: Date): LocalQuery => {
+  const window = upcomingWindow(groupId, filters, now);
   return { sql: `SELECT * ${window.sql}`, params: window.params };
 };
 
@@ -482,7 +500,11 @@ export const updateEntry = async (
   return { ok: true };
 };
 
-/** Soft delete, so the deletion syncs to everyone's devices. */
+/**
+ * Soft delete, so the deletion syncs to everyone's devices. Deleting an
+ * event that others were rescheduled to leaves them cancelled, with no
+ * link (in the same local transaction).
+ */
 export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const entry = await existingEntry(db, id);
   if (!entry) return { ok: true };
@@ -490,9 +512,23 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
   if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden;
 
   const now = nowTimestamp();
-  await db.drizzle
-    .update(timelineEntries)
-    .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
-    .where(eq(timelineEntries.id, id));
+  await db.drizzle.transaction(async (tx) => {
+    await tx
+      .update(timelineEntries)
+      .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+      .where(eq(timelineEntries.id, id));
+    if (entry.kind === "event") {
+      await tx
+        .update(timelineEntries)
+        .set({ rescheduledTo: null, updatedAt: now, updatedBy: db.userId })
+        .where(
+          and(
+            eq(timelineEntries.groupId, entry.groupId),
+            eq(timelineEntries.rescheduledTo, id),
+            isNull(timelineEntries.deletedAt),
+          ),
+        );
+    }
+  });
   return { ok: true };
 };

@@ -979,6 +979,225 @@ try {
     );
   });
 
+  await step("appointments: pick a day first, end time, all day, place, viewer, offline", async () => {
+    // member@ (A) adds an appointment; caretaker@ (B) and viewer@ (C) watch its page.
+    const PICK = (kind) => `/app/groups/${GROUP}/entries/new?kind=${kind}&when=pick`;
+    const CHIP_DIALOG = `document.querySelector('[role=dialog][aria-label="When it happened"]')`;
+    const seg = (type, n = 0) => `document.querySelectorAll('[role=dialog] [data-type="${type}"]')[${n}]`;
+    const FIELD_ERR = `${CHIP_DIALOG}?.textContent.includes("Must be after the start")`;
+    const PLACE = `document.querySelector('main [data-region="place"] input')`;
+    const PLACE_REGION = `document.querySelector('main [data-region="place"]')`;
+    const MAP = `${PLACE_REGION}?.querySelector('a[data-action="map"]')`;
+    const HEADER_TEXT = `${HEADER_TIME}?.textContent ?? ""`;
+    const epoch = (col, id) =>
+      Number(
+        psql(
+          `SELECT coalesce((extract(epoch FROM ${col}) * 1000)::bigint, 0) FROM timeline_entry WHERE id = '${id}'`,
+        ) || 0,
+      );
+    // A day three days ahead (in the page's zone), and 9:00 that day.
+    const ahead =
+      await A.evaluate(`(() => { const d = new Date(); d.setDate(d.getDate() + 3); d.setHours(9, 0, 0, 0);
+      return { day: String(d.getDate()), heading: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }), at: d.getTime() }; })()`);
+    const pickAheadDay = async () => {
+      await A.waitFor(`${CHIP_DIALOG} && ${CAL_GRID}`, 10000);
+      if ((await A.evaluate(CAL_HEADING)) !== ahead.heading) await A.press(NEXT_MONTH);
+      await A.waitFor(`${CAL_HEADING} === ${JSON.stringify(ahead.heading)}`, 3000);
+      await A.tap(calDay(ahead.day));
+      await A.waitFor(`!${CAL_GRID} && !!${seg("hour")}`, 3000);
+    };
+    const atAhead = `SELECT count(*) FROM timeline_entry WHERE group_id = '${GROUP}' AND occurred_at = to_timestamp(${ahead.at / 1000})`;
+    const before = psql(atAhead);
+
+    section("Appointments: ?when=pick");
+    await visit(A, PICK("event"));
+    await A.waitFor(`${ON_DRAFT} && ${CHIP_DIALOG} && ${CAL_GRID}`, 15000);
+    check("pick: the time chip and its calendar open on arrival", true);
+    await pickAheadDay();
+    check(
+      "pick: a picked day starts at 9:00",
+      await A.evaluate(`${seg("hour")}.textContent === "9" && ${seg("minute")}.textContent === "00"`),
+      await A.evaluate(`${seg("hour")}.textContent + ":" + ${seg("minute")}.textContent`),
+    );
+    await A.press(button("Done"));
+    await A.waitFor(`!${CHIP_DIALOG}`, 5000);
+    check(
+      "pick: the header shows the picked time, and nothing is saved yet",
+      (await headerTimeMs(A)) === ahead.at && (await A.evaluate(ON_DRAFT)),
+    );
+    await A.press(TIMELINE_LINK);
+    await A.waitFor(`location.pathname === ${JSON.stringify(TIMELINE)}`, 10000);
+    await sleep(1500);
+    check("pick: Back before any change saves nothing", psql(atAhead) === before);
+
+    await visit(A, PICK("event"));
+    await pickAheadDay();
+    await A.press(button("Done"));
+    await A.waitFor(`!${CHIP_DIALOG}`, 5000);
+    const apptTitle = `${tag} appointment`;
+    await setTitle(A, apptTitle);
+    await blurTitle(A);
+    await A.waitFor(ON_ENTRY, 5000);
+    const AP = idFromPath(await A.evaluate("location.pathname"));
+    made.push(AP);
+    await waitForSql(`SELECT count(*) FROM timeline_entry WHERE id = '${AP}'`, (r) => r === "1");
+    check("pick: saved with the picked day at 9:00", epoch("occurred_at", AP) === ahead.at);
+
+    section("Appointments: end time");
+    await visit(B, entryPath(AP));
+    await visit(C, entryPath(AP));
+    for (const p of [B, C]) await p.waitFor(`${HEADER_TIME} && ${EDITOR}`, 15000);
+    await A.press(TIME_CHIP);
+    await A.waitFor(button("Add an end time"), 5000);
+    await A.press(button("Add an end time"));
+    await A.waitFor(`!!${seg("hour", 1)}`, 3000);
+    check(
+      "end: defaults to an hour after the start",
+      await A.evaluate(`${seg("hour", 1)}.textContent === "10"`),
+    );
+    await A.evaluate(`${seg("hour", 1)}.focus()`);
+    for (let i = 0; i < 2; i++) await pressKey(A, "ArrowDown", "ArrowDown", 40);
+    await A.waitFor(FIELD_ERR, 3000);
+    await A.press(button("Done"));
+    await sleep(300);
+    check(
+      "end: before the start shows the field error, and Done stays open",
+      await A.evaluate(`!!${CHIP_DIALOG} && ${FIELD_ERR}`),
+    );
+    await A.evaluate(`${seg("hour", 1)}.focus()`);
+    for (let i = 0; i < 3; i++) await pressKey(A, "ArrowUp", "ArrowUp", 38);
+    await A.waitFor(`!${FIELD_ERR}`, 3000);
+    await A.press(button("Done"));
+    await A.waitFor(`!${CHIP_DIALOG}`, 5000);
+    const endAt = ahead.at + 2 * 3_600_000;
+    await waitForSql(
+      `SELECT (extract(epoch FROM ends_at) * 1000)::bigint FROM timeline_entry WHERE id = '${AP}'`,
+      (r) => Number(r) === endAt,
+    );
+    check("end: saved (9:00–11:00)", epoch("ends_at", AP) === endAt);
+    check(
+      "end: the header shows the range",
+      /–/.test(await A.evaluate(HEADER_TEXT)),
+      await A.evaluate(HEADER_TEXT),
+    );
+    await B.waitFor(`/–/.test(${HEADER_TEXT})`, 15000);
+    await C.waitFor(`/–/.test(${HEADER_TEXT})`, 15000);
+    check("end: a writer and a viewer on the page see the range", true, await C.evaluate(HEADER_TEXT));
+    await visit(A, entryPath(AP));
+    await A.waitFor(`/–/.test(${HEADER_TEXT})`, 15000);
+    check("end: still shown after a reload", true);
+
+    section("Appointments: place");
+    const [provId, provName, provAddress] = psql(
+      `SELECT id || '|' || name || '|' || replace(address, E'\\n', ', ') FROM provider WHERE group_id = '${GROUP}' AND address IS NOT NULL AND deleted_at IS NULL ORDER BY name LIMIT 1`,
+    ).split("|");
+    check(
+      "place: empty with no linked provider, and no map action",
+      await A.evaluate(`${PLACE}?.placeholder === "Add a place" && !${MAP}`),
+    );
+    check(
+      "place: a viewer sees no place row when there's none",
+      await C.evaluate(`!${PLACE_REGION}?.textContent`),
+    );
+    psql(`INSERT INTO timeline_entry_provider (id, group_id, entry_id, provider_id, created_by, updated_by)
+      VALUES (gen_random_uuid(), '${GROUP}', '${AP}', '${provId}', '${MEMBER}', '${MEMBER}')`);
+    await A.waitFor(`${PLACE}?.placeholder === ${JSON.stringify(provAddress)}`, 15000);
+    check(
+      "place: defaults to the linked provider's address, greyed, 'from <provider>'",
+      await A.evaluate(
+        `${PLACE}.value === "" && ${PLACE_REGION}.textContent.includes(${JSON.stringify(`from ${provName}`)})`,
+      ),
+    );
+    check(
+      "place: the map action searches for the provider's address",
+      await A.evaluate(`${MAP}?.href.includes(${JSON.stringify(encodeURIComponent(provAddress))})`),
+      await A.evaluate(`${MAP}?.href`),
+    );
+    await C.waitFor(
+      `${PLACE_REGION}?.textContent.includes(${JSON.stringify(provAddress)}) && !${PLACE} && !!${MAP}`,
+      15000,
+    );
+    check("place: a viewer sees the default and its map action, with no field", true);
+    const typedPlace = `${tag} Lab, 2nd floor`;
+    await A.evaluate(`${PLACE}.focus()`);
+    await A.type(PLACE, typedPlace);
+    await pressKey(A, "Enter", "Enter", 13, "\r");
+    await waitForSql(`SELECT place FROM timeline_entry WHERE id = '${AP}'`, (r) => r === typedPlace);
+    check(
+      "place: a typed place saves",
+      psql(`SELECT place FROM timeline_entry WHERE id = '${AP}'`) === typedPlace,
+    );
+    check(
+      "place: the typed place replaces the default, and the map action follows it",
+      await A.evaluate(
+        `!${PLACE_REGION}.textContent.includes("from ") && ${MAP}?.href.includes(${JSON.stringify(encodeURIComponent(typedPlace))})`,
+      ),
+    );
+    await C.waitFor(`${PLACE_REGION}?.textContent.includes(${JSON.stringify(typedPlace)})`, 15000);
+    check("place: a viewer sees the typed place", true);
+
+    section("Appointments: all day");
+    await A.press(TIME_CHIP);
+    await A.waitFor(`${CHIP_DIALOG}?.querySelector('input[type=checkbox]')`, 5000);
+    await A.tap(`${CHIP_DIALOG}.querySelector('input[type=checkbox]')`);
+    await A.waitFor(`!${seg("hour")} && !${button("Add an end time")}`, 3000);
+    check("all day: the field shows the day alone, and no end", true);
+    await A.press(button("Done"));
+    await A.waitFor(`!${CHIP_DIALOG}`, 5000);
+    await waitForSql(`SELECT all_day::text FROM timeline_entry WHERE id = '${AP}'`, (r) => r === "true");
+    check(
+      "all day: saved, with no end",
+      psql(
+        `SELECT all_day::text || ',' || (ends_at IS NULL)::text FROM timeline_entry WHERE id = '${AP}'`,
+      ) === "true,true",
+    );
+    check("all day: the header says All day", /All day/.test(await A.evaluate(HEADER_TEXT)));
+    await C.waitFor(`/All day/.test(${HEADER_TEXT})`, 15000);
+    check(
+      "viewer: all day and the place show, with no time chip, place field or ⋯ menu",
+      await C.evaluate(`!${TIME_CHIP} && !${PLACE} && !${MENU}`),
+    );
+    await visit(A, entryPath(AP));
+    await A.waitFor(`/All day/.test(${HEADER_TEXT})`, 15000);
+    check("all day: still shown after a reload", true);
+
+    section("Appointments: offline");
+    proxyA.setOnline(false);
+    await A.waitFor(`document.body.textContent.includes("Offline")`, 20000).catch(() => undefined);
+    const offPlace = `${tag} offline place`;
+    await A.evaluate(`${PLACE}.focus()`);
+    await A.type(PLACE, offPlace);
+    await pressKey(A, "Enter", "Enter", 13, "\r");
+    await A.press(TIME_CHIP);
+    await A.waitFor(`${CHIP_DIALOG}?.querySelector('input[type=checkbox]')`, 5000);
+    await A.tap(`${CHIP_DIALOG}.querySelector('input[type=checkbox]')`);
+    await A.waitFor(`!!${seg("hour")}`, 3000);
+    await A.press(button("Done"));
+    await A.waitFor(`!${CHIP_DIALOG}`, 5000);
+    await sleep(1500);
+    check(
+      "offline: the edits show locally, not on the server yet",
+      (await A.evaluate(
+        `${PLACE}.value === ${JSON.stringify(offPlace)} && !/All day/.test(${HEADER_TEXT})`,
+      )) && psql(`SELECT all_day::text FROM timeline_entry WHERE id = '${AP}'`) === "true",
+    );
+    proxyA.setOnline(true);
+    await waitForSql(
+      `SELECT (place = '${offPlace}' AND NOT all_day)::text FROM timeline_entry WHERE id = '${AP}'`,
+      (r) => r === "true",
+      30000,
+    );
+    check(
+      "offline: they reach the server after reconnecting (9:00 again)",
+      epoch("occurred_at", AP) === ahead.at,
+    );
+    await C.waitFor(
+      `${PLACE_REGION}?.textContent.includes(${JSON.stringify(offPlace)}) && !/All day/.test(${HEADER_TEXT})`,
+      15000,
+    );
+    check("offline: another device gets them", true);
+  });
+
   // Known noise: the proxied browser can't reach Vite's HMR websocket (dev
   // only); PowerSync reports the sync error while that browser is offline,
   // can fail its first connect (a 401 while it refetches the JWKS after a

@@ -26,10 +26,10 @@ import {
 import { eq } from "drizzle-orm";
 import { noteDocuments, providers, timelineEntryProviders } from "./schema";
 import {
-  entryWindow,
   forbidden,
   fromLocalTimestamp,
   groupFor,
+  historyWindow,
   nowTimestamp,
   readRows,
   WRITER_ROLES,
@@ -498,19 +498,26 @@ export const createProviderDocument = async (db: SyncDb, providerId: string): Pr
 // ---------------------------------------------------------------------------
 
 /**
- * The providers linked to the timeline's loaded entries, in link order, for
- * one live query beside the entries (never one per row). The subquery is
- * `entriesQuery`'s window (`entryWindow`: the same group, filters and limit),
- * so paging and the filters change this query with it. Deleted providers are
- * included (greyed).
+ * The providers linked to the entries in `window` (a `… FROM timeline_entry
+ * WHERE …` tail), in link order, for one live query beside the entries
+ * (never one per row). Deleted providers are included (greyed).
  */
-export const timelineLinksQuery = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
-  const window = entryWindow(groupId, filters, limit);
-  return {
-    sql: `SELECT l.entry_id, l.provider_id, p.name, p.deleted_at
-          FROM timeline_entry_provider l JOIN provider p ON p.id = l.provider_id
-          WHERE l.entry_id IN (SELECT id ${window.sql})
-          ORDER BY l.entry_id, l.created_at, l.id`,
-    params: window.params,
-  };
-};
+export const windowLinksQuery = (window: LocalQuery): LocalQuery => ({
+  sql: `SELECT l.entry_id, l.provider_id, p.name, p.deleted_at
+        FROM timeline_entry_provider l JOIN provider p ON p.id = l.provider_id
+        WHERE l.entry_id IN (SELECT id ${window.sql})
+        ORDER BY l.entry_id, l.created_at, l.id`,
+  params: window.params,
+});
+
+/**
+ * The providers linked to the timeline's loaded entries: `historyQuery`'s
+ * window (`historyWindow`: the same group, filters, limit and cutoff), so
+ * paging, the filters and the clock change this query with it.
+ */
+export const timelineLinksQuery = (
+  groupId: string,
+  filters: EntryFilters,
+  limit: number,
+  cutoff: string,
+): LocalQuery => windowLinksQuery(historyWindow(groupId, filters, limit, cutoff));

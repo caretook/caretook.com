@@ -59,6 +59,10 @@ export const withoutSheetParams = (search?: Search) => {
 /** A new provider's type (`providers/new?type=pharmacy`), the same parameter as the directory's type filter. */
 export const PROVIDER_TYPE_PARAM = "type";
 
+/** A new entry that opens the time picker first: `entries/new?kind=event&when=pick`. */
+export const WHEN_PARAM = "when";
+export const WHEN_PICK = "pick";
+
 const HOME = "/app";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
@@ -159,4 +163,21 @@ export const appUrls = {
     `${groupHome(groupId)}/medications/${segment(medicationId)}`,
   /** The printable medication sheet: current and recently stopped medications, and who to call. */
   medicationsPrint: (groupId: string) => `${groupHome(groupId)}/medications/print`,
+  /**
+   * A group's Upcoming section, with its filters carried through: pass the
+   * timeline's `{ kind, author }` (or a search string) and they're kept.
+   */
+  upcoming: (groupId: string, search?: Search) => `${groupHome(groupId)}/upcoming${searchString(search)}`,
+  /** Upcoming's Past tab (past events, newest first), with its filters carried through. */
+  pastEvents: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/upcoming/past${searchString(search)}`,
+  /**
+   * A new appointment (an event) or reminder (a note) that opens the time
+   * picker first (`?when=pick`): a draft like `newEntry`. An unknown kind is dropped.
+   */
+  newUpcomingEntry: (groupId: string, kind: LiveEntryKind) =>
+    `${groupHome(groupId)}/entries/${NEW_ENTRY}${searchString({
+      kind: isLiveEntryKind(kind) ? kind : null,
+      [WHEN_PARAM]: WHEN_PICK,
+    })}`,
 } as const;

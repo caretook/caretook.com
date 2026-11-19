@@ -1,6 +1,7 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 
-// The timeline's filters live in the URL: `?kind=<kind>&author=<userId>`.
+// The timeline's filters live in the URL: `?kind=<kind>&author=<userId>`,
+// plus the Upcoming block's switch (`?upcoming=1`), kept with them.
 // This module owns that state: reading it from a search string, and the
 // search string for each change. No React or database here; every filter
 // control (the chips, a row's kind icon and author, the author chip) is a
@@ -16,10 +17,13 @@ export type TimelineFilters = {
   kind: TimelineEntryKind | null;
   /** The user id of one author (`created_by`), or null for everyone. */
   author: string | null;
+  /** The Upcoming block above Today is on (`?upcoming=1`). Not a filter: `clearFilters` keeps it. */
+  upcoming: boolean;
 };
 
 export const KIND_PARAM = "kind";
 export const AUTHOR_PARAM = "author";
+export const UPCOMING_PARAM = "upcoming";
 
 /**
  * The kinds the timeline lists and filters by. A kind left out of here is
@@ -50,20 +54,26 @@ export const parseFilters = (search: string): TimelineFilters => {
   const params = new URLSearchParams(search);
   const kind = params.get(KIND_PARAM);
   const author = params.get(AUTHOR_PARAM);
-  return { kind: isKind(kind) ? kind : null, author: isAuthor(author) ? author.toLowerCase() : null };
+  return {
+    kind: isKind(kind) ? kind : null,
+    author: isAuthor(author) ? author.toLowerCase() : null,
+    upcoming: params.get(UPCOMING_PARAM) === "1",
+  };
 };
 
 /** True when either filter is on. */
 export const hasFilters = (filters: TimelineFilters) => !!filters.kind || !!filters.author;
 
-/** `search` with the filters replaced: kind first, then author, then whatever else was there. */
+/** `search` with the filters replaced: kind first, then author, then upcoming, then whatever else was there. */
 const withFilters = (search: string, next: TimelineFilters) => {
   const params = new URLSearchParams(search);
   params.delete(KIND_PARAM);
   params.delete(AUTHOR_PARAM);
+  params.delete(UPCOMING_PARAM);
   const out = new URLSearchParams();
   if (next.kind) out.set(KIND_PARAM, next.kind);
   if (next.author) out.set(AUTHOR_PARAM, next.author);
+  if (next.upcoming) out.set(UPCOMING_PARAM, "1");
   for (const [key, value] of params) out.append(key, value);
   const text = out.toString();
   return text ? `?${text}` : "";
@@ -73,7 +83,8 @@ const withFilters = (search: string, next: TimelineFilters) => {
 const change = (search: string, patch: Partial<TimelineFilters>) => {
   const current = parseFilters(search);
   const next = { ...current, ...patch };
-  if (next.kind === current.kind && next.author === current.author) return search;
+  if (next.kind === current.kind && next.author === current.author && next.upcoming === current.upcoming)
+    return search;
   return withFilters(search, next);
 };
 
@@ -91,5 +102,11 @@ export const clearKind = (search: string) => change(search, { kind: null });
 /** Everyone's entries again; the kind filter stays. */
 export const clearAuthor = (search: string) => change(search, { author: null });
 
-/** No filters. */
+/** No filters (the Upcoming block stays as it is). */
 export const clearFilters = (search: string) => change(search, { kind: null, author: null });
+
+/** Show the Upcoming block above Today; the filters stay. */
+export const setUpcoming = (search: string) => change(search, { upcoming: true });
+
+/** Hide the Upcoming block; the filters stay. */
+export const clearUpcoming = (search: string) => change(search, { upcoming: false });

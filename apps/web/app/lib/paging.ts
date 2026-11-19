@@ -1,6 +1,7 @@
-// The timeline's paging rules, pure: how far the window reaches, whether
-// there's more, and what the list says at its end. `useTimelineData` holds
-// the state; the list's `OlderEntries` shows it.
+// Paging rules for a growing local list (the timeline, Upcoming's Past tab),
+// pure: how far the window reaches, whether there's more, and what the list
+// says at its end. A screen's data hook holds the state; `OlderEntries`
+// (`components/entry`) shows it.
 
 /** How many entries a page adds (scrolling near the end loads the next). */
 export const PAGE_SIZE = 30;
@@ -39,17 +40,26 @@ export const pageWindow = ({
   return { limit, hasOlder: rowCount > limit, loading };
 };
 
-/** The polite status at the end of the list: empty while there's nothing to say. */
+/** What the timeline says once there's nothing older. */
+export const TIMELINE_END_TEXT = "That's the beginning of the timeline";
+
+/**
+ * The polite status at the end of the list: empty while there's nothing to
+ * say. `endText` is what it says once there's nothing older (the timeline's
+ * by default).
+ */
 export const endOfListText = ({
   empty,
   loading,
   hasOlder,
+  endText = TIMELINE_END_TEXT,
 }: {
   empty: boolean;
   loading: boolean;
   hasOlder: boolean;
+  endText?: string;
 }) => {
   if (loading) return "Loading older…";
   if (empty || hasOlder) return "";
-  return "That's the beginning of the timeline";
+  return endText;
 };

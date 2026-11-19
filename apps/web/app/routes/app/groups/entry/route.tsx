@@ -6,12 +6,13 @@ import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { BackLink } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls, WHEN_PARAM } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
 import { getGroup } from "~/lib/group";
 import { NEW_ENTRY } from "~/lib/liveEntry";
 import { sessionContext } from "~/lib/session";
 import { getSync } from "~/lib/sync";
+import { EntryCancelledBanner } from "./EntryCancelledBanner";
 import { EntryPageHeader } from "./EntryPageHeader";
 import { entryHeading, titleState } from "./entryPage";
 import { loadEntry } from "./loadEntry";
@@ -30,8 +31,14 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const { canWrite } = getGroup(context);
   const { db } = context.get(sessionContext);
-  const kind = new URL(request.url).searchParams.get("kind");
-  return loadEntry(db, { groupId: params.groupId, entryId: params.entryId, kind, canWrite });
+  const search = new URL(request.url).searchParams;
+  return loadEntry(db, {
+    groupId: params.groupId,
+    entryId: params.entryId,
+    kind: search.get("kind"),
+    when: search.get(WHEN_PARAM),
+    canWrite,
+  });
 }
 
 /**
@@ -78,12 +85,23 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
         groupId={groupId}
         heading={heading}
         title={title}
+        pickDay={loaderData.pickDay}
         onPickTitle={(next) => {
           live.commitTitle(next);
           editor.current?.focus();
         }}
         editors={!deleted && <EditorAvatars documentId={entry.id} groupId={groupId} viewerId={db.userId} />}
       />
+      {!deleted && (
+        <EntryCancelledBanner
+          groupId={groupId}
+          cancelledAt={entry.cancelledAt}
+          cancelledBy={entry.cancelledBy}
+          cancelReason={entry.cancelReason}
+          rescheduledTo={entry.rescheduledTo}
+          onUndo={canWrite ? live.uncancel : undefined}
+        />
+      )}
       {saveError && (
         <p role="alert" className="text-error text-sm">
           {saveError}
@@ -98,18 +116,26 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
           </Link>
         </div>
       ) : (
-        <LiveNotesEditor
-          key={entry.id}
-          ref={editor}
-          label={`${label} text`}
-          db={db}
-          documentId={entry.id}
-          groupId={groupId}
-          canWrite={canWrite}
-          initial={loaderData.initial}
-          autofocus={live.isNew}
-          ensureSaved={live.ensureSaved}
-        />
+        <>
+          {entry.rescheduledTo && (
+            <h2 className="text-base-content/70 text-sm font-semibold" data-earlier-notes>
+              Earlier notes (read-only: they carry on in the new event)
+            </h2>
+          )}
+          <LiveNotesEditor
+            key={entry.id}
+            ref={editor}
+            label={`${label} text`}
+            db={db}
+            documentId={entry.id}
+            groupId={groupId}
+            // A rescheduled event's notes carried on in the new one: these stay as they were.
+            canWrite={canWrite && !entry.rescheduledTo}
+            initial={loaderData.initial}
+            autofocus={live.isNew && !loaderData.pickDay}
+            ensureSaved={live.ensureSaved}
+          />
+        </>
       )}
     </main>
   );

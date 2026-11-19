@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
-import { endOfListText } from "./timelinePaging";
+import { endOfListText } from "~/lib/paging";
 
 /**
- * The end of the timeline: a sentinel that loads the next page when it comes
+ * The end of a growing list (the timeline, Upcoming's Past tab): a sentinel that loads the next page when it comes
  * within about a screen of the viewport, and one polite status that says
  * "Loading older…" while a page loads and "That's the beginning of the
  * timeline" once there's nothing older (shown, too). It sits after the last
@@ -13,12 +13,15 @@ export function OlderEntries({
   loading,
   empty,
   onLoadOlder,
+  endText,
 }: {
   hasOlder: boolean;
   loading: boolean;
   /** The timeline shows its empty state instead (no end message). */
   empty: boolean;
   onLoadOlder: () => void;
+  /** What it says once there's nothing older (default: the timeline's). */
+  endText?: string;
 }) {
   const sentinel = useRef<HTMLDivElement>(null);
   // The latest callback, so the observer isn't rebuilt for a new function each render.
@@ -42,7 +45,7 @@ export function OlderEntries({
     return () => observer.disconnect();
   }, [hasOlder, loading]);
 
-  const text = endOfListText({ empty, loading, hasOlder });
+  const text = endOfListText({ empty, loading, hasOlder, endText });
   return (
     <div data-older-entries>
       {hasOlder && <div ref={sentinel} aria-hidden="true" className="h-px" data-older-sentinel />}

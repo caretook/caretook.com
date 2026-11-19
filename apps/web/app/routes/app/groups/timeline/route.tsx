@@ -14,7 +14,9 @@ import { parseFilters } from "~/lib/timelineFilters";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
+import { NextStrip } from "./NextStrip";
 import { QuickAddBar } from "./QuickAddBar";
+import { seeAllSearch } from "./aheadQueries";
 import { onlySheetChanged } from "./sheetGuard";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { FilterChips } from "./TimelineFilters";
@@ -40,9 +42,11 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 /**
- * The first screenful, read locally so the page renders complete. `?kind=`
- * shows one kind and `?author=` one person's entries. The group itself comes from the group route (which has
- * already turned away a group not on the device).
+ * The first screenful, read locally so the page renders complete: the
+ * history up to now, and what's ahead of it (the Next strip, and the
+ * Upcoming block with `?upcoming=1`). `?kind=` shows one kind and `?author=`
+ * one person's entries. The group itself comes from the group route (which
+ * has already turned away a group not on the device).
  */
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
@@ -87,7 +91,7 @@ export function shouldRevalidate({
 }
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { userId, units, kind, author } = loaderData;
+  const { userId, units, kind, author, upcoming } = loaderData;
   const { groupId } = params;
   const { canWrite } = useGroup();
   const data = useTimelineData({ groupId, userId, filters: { kind, author }, initial: loaderData });
@@ -98,6 +102,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <TimelineHeader view={view} onViewChange={setView} />
       <InviteSomeoneCard />
       <LatestVitals vitals={data.latestVitals} units={units} />
+      <NextStrip next={data.next} now={data.now} groupId={groupId} showing={upcoming} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
       {canWrite && (
         <div className={COLUMN_CAP}>
@@ -118,6 +123,11 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         canWrite={canWrite}
         kind={kind}
         author={author}
+        upcoming={
+          upcoming
+            ? { items: data.upcoming, seeAll: appUrls.upcoming(groupId, seeAllSearch({ kind, author })) }
+            : null
+        }
       />
 
       {/* The sheets (`new/:kind`, `:entryId/edit`), over the timeline. */}

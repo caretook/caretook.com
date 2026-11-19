@@ -121,12 +121,20 @@ apps/web/app/components/brand/*          app-shell marketing
 apps/web/app/routes/app/groups/timeline/new-dose/* medications
 apps/web/app/routes/app/groups/timeline/DoseForm.tsx medications
 apps/web/app/routes/app/groups/timeline/doseFormData.ts medications
-apps/web/app/routes/app/groups/timeline/MedicationEntryText.tsx medications phase2
+apps/web/app/components/entry/MedicationEntryText.tsx medications phase2
 apps/web/app/lib/sync/medicationTimeline.ts medications phase2
+# The timeline's Next strip and Upcoming block, and the data they share with the history.
+apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
+apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
+apps/web/app/routes/app/groups/timeline/aheadQueries.ts phase2 upcoming
+apps/web/app/routes/app/groups/timeline/useHistoryCutoff.ts phase2 upcoming
+apps/web/app/routes/app/groups/timeline/useTimelineData.ts phase2 roundtrip upcoming
+apps/web/app/routes/app/groups/timeline/timelineRows.ts phase2 roundtrip upcoming
+apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx phase2 roundtrip upcoming
 apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
-apps/web/app/components/entry/*          phase2 roundtrip live-notes
+apps/web/app/components/entry/*          phase2 roundtrip live-notes upcoming
 apps/web/app/components/forms/*          roundtrip live-notes
-apps/web/app/lib/sync/timeline.ts        phase2 roundtrip
+apps/web/app/lib/sync/timeline.ts        phase2 roundtrip upcoming
 apps/web/app/lib/entryDisplay.ts         phase2
 apps/web/app/lib/form.ts                 roundtrip
 
@@ -149,6 +157,10 @@ apps/web/app/lib/sync/providers.ts       providers
 apps/web/app/lib/sync/medications.ts     medications
 apps/web/app/routes/app/groups/medications/* medications
 apps/web/app/routes/app/groups/medication/* medications live-notes
+apps/web/app/lib/sync/appointments.ts    upcoming live-notes
+# The time fields and the reschedule sheet (the entry page's time chip, and
+# Reschedule from the timeline, Upcoming and the entry page).
+apps/web/app/components/schedule/*       upcoming live-notes
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 
 # Marketing (web only).
@@ -194,3 +206,12 @@ packages/data/src/db/seeds/*             app-shell
 # integration tests; the browser reaches it only through the upload switch above.
 packages/data/src/*                      -
 packages/data/scripts/*                  -
+
+# Upcoming (appointments): the section, its Past tab, the time rules and the
+# list pieces it shares with the timeline.
+apps/web/app/routes/app/groups/upcoming/* upcoming
+apps/web/app/lib/upcoming.ts             upcoming
+apps/web/app/lib/upcomingLabels.ts       upcoming
+apps/web/app/lib/upcomingDays.ts         upcoming
+apps/web/app/lib/sync/useLiveRows.ts     phase2 upcoming
+apps/web/app/lib/groupSections.ts        app-shell routing upcoming
