@@ -115,7 +115,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-74 | bug | triaged | quick-fixes |  | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
 | B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
 | B-76 | feature | triaged | medications |  | medication groups for doses. Often the same medication is taken at different times of the day every… |
-| B-77 | plan | in-progress | encryption | plan/encryption | Data security and encryption review. |
+| B-77 | plan | ready | encryption | plan/encryption | Data security and encryption review. |
 | B-78 | change | triaged | quick-fixes |  | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
 | B-79 | bug | triaged | quick-fixes |  | Device keeps its synced data after the session ends; offline sign-in never expires |
 | B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
@@ -976,10 +976,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-77 · plan · Data security and encryption review.
 
-- status: in-progress
+- status: ready
 - prd: encryption
 - owner: plan/encryption
-- commit:
+- commit: 8b07657
 
 - 2026-11-19 (Robert Bo Davis): Proposed for encryption, with B-57: a review of data security (in transit, at rest, on devices, backups, staff access, AI vendors) to run before any encryption PRD. A design discussion first, as B-57's row says.
 - 2026-11-19 (plan/encryption): Review written: plans/security-review.md (12 findings, 8 launch). Fix list filed as B-79 (device wipe, 3-day offline), B-80 (Devices page), B-81 (headers), B-82 (logs), B-83 (co-member reads), B-84 (scrub on delete, data-rights), B-85 (2FA, new account-security PRD); notes on B-33, B-68, B-54, B-56, B-12, B-53.
