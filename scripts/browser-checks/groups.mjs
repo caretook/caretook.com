@@ -13,10 +13,13 @@
 //   6. A group with other members shows no Invite someone card.
 //   7. caretaker@ (one group): the group menu's "New care group" opens the
 //      sheet, and closing it goes back to the timeline.
+//   8. admin@ filters the waitlist (marketing slice 5): the count matches,
+//      newest first, and the CSV export holds exactly the filtered rows,
+//      escaped. (Step 5 checks a group's owner gets the 404 there too.)
 //
 // Order-independent and self-cleaning: it makes grp<run>-…@example.com
-// accounts and GR<run> groups and codes, and deletes them, their mail,
-// outbox and verification rows at the end.
+// accounts and GR<run> groups and codes, and grp<run>-… waitlist entries, and
+// deletes them, their mail, outbox and verification rows at the end.
 import { execFileSync } from "node:child_process";
 import { BASE, launch, openPage, sleep, step } from "./cdp.mjs";
 
@@ -66,7 +69,8 @@ const cleanUp = () => {
     DELETE FROM access_code WHERE label LIKE '${TAG}%';
     DELETE FROM verification WHERE identifier LIKE '%${RUN}-%' OR value LIKE '%${RUN}-%';
     DELETE FROM dev_mail WHERE recipient LIKE ${like};
-    DELETE FROM notification_outbox WHERE recipient LIKE ${like};`);
+    DELETE FROM notification_outbox WHERE recipient LIKE ${like};
+    DELETE FROM waitlist_entry WHERE email LIKE ${like};`);
 };
 
 // --- Mail ---------------------------------------------------------------------
@@ -328,7 +332,7 @@ try {
     const p = await open(9604, "owner-not-staff");
     await p.signIn("member@example.com", PASSWORD, { home: true });
     const status = await p.evaluate(
-      `Promise.all(["/admin", "/admin/access-codes", "/admin/new-group"].map((u) => fetch(u, { credentials: "include" }).then((r) => r.status)))`,
+      `Promise.all(["/admin", "/admin/access-codes", "/admin/new-group", "/admin/waitlist", "/admin/waitlist/export"].map((u) => fetch(u, { credentials: "include" }).then((r) => r.status)))`,
     );
     check(
       status.every((s) => s === 404),
@@ -339,6 +343,10 @@ try {
       `fetch("/rpc/admin/accessCode/list", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: "{}" }).then((r) => r.status)`,
     );
     check(api === 403, "and the admin API refuses them", String(api));
+    const waitlistApi = await p.evaluate(
+      `fetch("/rpc/admin/waitlist/list", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: "{}" }).then((r) => r.status)`,
+    );
+    check(waitlistApi === 403, "the waitlist API too", String(waitlistApi));
     const anon = await fetch(`${BASE}/admin/access-codes`, { redirect: "manual" });
     check(
       anon.status === 302 && (anon.headers.get("location") ?? "").startsWith("/sign-in"),
@@ -376,6 +384,89 @@ try {
       10000,
     );
     check(true, "closing it goes back to the timeline", timeline);
+  });
+
+  // 8. The waitlist (marketing slice 5) ------------------------------------------------
+  await step("8. admin@ filters the waitlist and exports exactly those rows", async () => {
+    const src = `${TAG}src`;
+    const row = (who, caringFor, heardFrom, page, at) =>
+      `('${email(who)}', '${who}', ${caringFor ? `'${caringFor}'` : "NULL"}, ${heardFrom ?? "NULL"}, '{"page":"${page}","utmSource":"${src}"}', '${at}', '${SYSTEM}', '${SYSTEM}')`;
+    psql(`INSERT INTO waitlist_entry (email, first_name, caring_for, heard_from, source, created_at, created_by, updated_by) VALUES
+      ${row("wl1", "parent", `E'A friend, "Jo"\\nat church'`, "/", "2026-10-01T12:00:00Z")},
+      ${row("wl2", "spouse", null, "/features", "2026-10-20T12:00:00Z")},
+      ${row("wl3", "parent", `'=1+1'`, "/", "2026-11-05T12:00:00Z")}`);
+
+    const p = await open(9606, "admin-waitlist");
+    await p.signIn("admin@example.com", PASSWORD, { home: true });
+    await p.goto("/admin/access-codes");
+    const navLink = `[...document.querySelectorAll('nav[aria-label="Admin sections"] a')].find((a) => a.textContent.trim() === "Waitlist")`;
+    await p.waitFor(navLink, 20000);
+    await p.press(navLink);
+    await p.waitFor(`location.pathname === "/admin/waitlist" && ${q("[data-waitlist-filters]")}`, 15000);
+    check(true, "the admin nav opens the waitlist");
+
+    // Filter by source through the form.
+    await fill(p, "source", src.toLowerCase());
+    await p.press(`${q('[data-waitlist-filters] button[type="submit"]')}`);
+    const shown = `[...document.querySelectorAll("[data-waitlist] tbody tr")].map((tr) => tr.dataset.entry)`;
+    await p.waitFor(`${q("[data-waitlist-count]")}?.dataset.waitlistCount === "3"`, 15000);
+    const order = await p.evaluate(shown);
+    check(
+      JSON.stringify(order) === JSON.stringify(["wl3", "wl2", "wl1"].map(email)),
+      "a source filter finds the three, newest first",
+      JSON.stringify(order),
+    );
+
+    // Then by who they care for and a date range.
+    await p.evaluate(
+      `(() => { const s = ${q('[name="caringFor"]')}; s.value = "parent"; s.dispatchEvent(new Event("change", { bubbles: true })); })()`,
+    );
+    await p.evaluate(`${q('[name="from"]')}.value = "2026-10-01"`);
+    await p.evaluate(`${q('[name="to"]')}.value = "2026-10-31"`);
+    await p.press(`${q('[data-waitlist-filters] button[type="submit"]')}`);
+    await p.waitFor(
+      `new URLSearchParams(location.search).get("caringFor") === "parent" && ${q("[data-waitlist-count]")}?.dataset.waitlistCount === "1"`,
+      15000,
+    );
+    const one = await p.evaluate(shown);
+    check(
+      JSON.stringify(one) === JSON.stringify([email("wl1")]),
+      "cares for and dates narrow it to one",
+      JSON.stringify(one),
+    );
+    const status = await p.evaluate(`${q("[data-waitlist-count]")}.textContent`);
+    check(status.startsWith("1 person match"), "with a matching count", status);
+
+    // Export: the same filters, exactly that row, escaped.
+    const csv = await p.evaluate(`(async () => {
+      const a = ${q("[data-waitlist-export]")};
+      const res = await fetch(a.getAttribute("href"), { credentials: "include" });
+      return { href: a.getAttribute("href"), type: res.headers.get("content-type"), disposition: res.headers.get("content-disposition"), text: await res.text() };
+    })()`);
+    const lines = csv.text.replace(/^\uFEFF/, "").split("\r\n");
+    check(
+      csv.type === "text/csv; charset=utf-8" &&
+        /^attachment; filename="caretook-waitlist-\d{4}-\d{2}-\d{2}\.csv"$/.test(csv.disposition ?? ""),
+      "the export downloads a CSV",
+      `${csv.type} ${csv.disposition}`,
+    );
+    check(
+      lines.length === 3 &&
+        lines[2] === "" &&
+        lines[1].startsWith(
+          `2026-10-01T12:00:00.000Z,${email("wl1")},wl1,A parent,"A friend, ""Jo""\nat church",/,${src}`,
+        ),
+      "with exactly the filtered row, its comma, quotes and newline escaped",
+      JSON.stringify(lines.slice(0, 2)),
+    );
+    const formula = await p.evaluate(
+      `fetch(${JSON.stringify(`/admin/waitlist/export?source=${src}&from=2026-11-01`)}, { credentials: "include" }).then((r) => r.text())`,
+    );
+    check(
+      formula.includes(`,'=1+1,`),
+      "and a formula-looking answer is defused",
+      JSON.stringify(formula.split("\r\n")[1]),
+    );
   });
 } catch (error) {
   failed++;
