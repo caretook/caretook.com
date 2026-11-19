@@ -119,6 +119,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-79 | bug | triaged | quick-fixes |  | Device keeps its synced data after the session ends; offline sign-in never expires |
 | B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
 | B-81 | change | triaged | quick-fixes |  | Security headers and a CSP for every web response |
+| B-82 | change | triaged | quick-fixes |  | Server logs carry error codes and ids only, never values or meta |
 
 ## Items
 
@@ -1006,3 +1007,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-5 (launch): CSP (default-src 'self', connect-src for PowerSync and the API, frame-ancestors 'none', a hash for THEME_SCRIPT), HSTS, Referrer-Policy no-referrer (keeps /invite/:token and /join/:code private), X-Content-Type-Options, Permissions-Policy; the same CSP as a meta tag for Capacitor; a dev exception for the mailbox iframe.
+
+### B-82 · change · Server logs carry error codes and ids only, never values or meta
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-8 (launch): toORPCError logs the whole AppError on a 500, and rpc.ts and .server/admin.ts log the authUser error. Log code, procedure and ids; a unit test that a care field never reaches the log line.
