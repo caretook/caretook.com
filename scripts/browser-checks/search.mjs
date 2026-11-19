@@ -34,6 +34,13 @@
 // first, five at most without repeats, one tap running one, and sign-out
 // clearing them before the next user on the device.
 //
+// Slice 4, highlights and snippets: matched words marked as whole words in
+// rows (420) and cards (1280) and on the search page, with contrast in light
+// and dark; a note matched deep in its text gets a snippet line in rows and
+// on the page (not in cards, which show it all); a provider and a medication
+// matched only in their notes show a line from them; no marks without a
+// search. The rules themselves are unit-tested (searchHighlight.test.ts).
+//
 // Everything it makes carries this run's tag and is soft-deleted (or, for
 // the scaled-up rows, deleted) at the end. SMOKE=1: the index on the device,
 // one seeded and one written search, one search on the page, and the
@@ -155,6 +162,7 @@ const browser = await launch(9711, proxy ? proxy.args : []);
 const A = await openPage(browser, "A");
 const made = [];
 const perfIds = [];
+const highlightOwners = { provider: [], medication: [] };
 
 try {
   await A.signIn("member@example.com", PW);
@@ -997,6 +1005,175 @@ try {
     }
   });
 
+  await step("Highlights and snippets", async () => {
+    // Its own tagged rows, written on the server: a note whose match is deep
+    // in its text, a symptom named with the word, and a provider and a
+    // medication with the word only in their notes.
+    const hl = `${tag}hl`;
+    const owner = psql(`SELECT id FROM "user" WHERE email = 'member@example.com'`);
+    const recipient = psql(`SELECT id FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`);
+    const noteText = `${"A long quiet morning with tea and the radio. ".repeat(4)}Then ${hl} came by to fix the step.`;
+    const [noteId] = lines(
+      psql(`WITH e AS (
+              INSERT INTO timeline_entry (group_id, recipient_id, kind, occurred_at, time_zone, title, created_by, updated_by)
+              VALUES ('${DEV_FAMILY}', '${recipient}', 'note', now() - interval '3 minutes', 'America/Los_Angeles',
+                      '${tag} visit note', '${owner}', '${owner}') RETURNING id)
+            INSERT INTO note_document (id, group_id, entry_id, text, created_by, updated_by)
+            SELECT id, '${DEV_FAMILY}', id, '${noteText}', '${owner}', '${owner}' FROM e RETURNING id`),
+    );
+    const [symptomId] = lines(
+      psql(`INSERT INTO timeline_entry (group_id, recipient_id, kind, occurred_at, time_zone, details, created_by, updated_by)
+            VALUES ('${DEV_FAMILY}', '${recipient}', 'symptom', now() - interval '4 minutes', 'America/Los_Angeles',
+                    '{"name": "${hl} sore knee", "severity": 3}', '${owner}', '${owner}') RETURNING id`),
+    );
+    made.push(noteId, symptomId);
+    const [providerId] = lines(
+      psql(`WITH p AS (
+              INSERT INTO provider (group_id, type, name, created_by, updated_by)
+              VALUES ('${DEV_FAMILY}', 'clinician', '${tag} Dr. Highlight', '${owner}', '${owner}') RETURNING id)
+            INSERT INTO note_document (id, group_id, subject, provider_id, text, created_by, updated_by)
+            SELECT id, '${DEV_FAMILY}', 'provider', id, 'Parking is behind the building. Ask for ${hl} at the desk.', '${owner}', '${owner}'
+            FROM p RETURNING id`),
+    );
+    const [medicationId] = lines(
+      psql(`WITH m AS (
+              INSERT INTO medication (group_id, recipient_id, name, schedule, created_by, updated_by)
+              VALUES ('${DEV_FAMILY}', '${recipient}', '${tag}med', '{"type": "asNeeded"}', '${owner}', '${owner}') RETURNING id)
+            INSERT INTO note_document (id, group_id, subject, medication_id, text, created_by, updated_by)
+            SELECT id, '${DEV_FAMILY}', 'medication', id, 'Take with ${hl} in the morning, never on an empty stomach.', '${owner}', '${owner}'
+            FROM m RETURNING id`),
+    );
+    highlightOwners.provider.push(providerId);
+    highlightOwners.medication.push(medicationId);
+    const synced = await waitForIds(A, hl, (found) => containsAll(found, [noteId, symptomId]), 30000);
+    check("the tagged rows reach the device's index", synced !== null);
+
+    /** Each mark in `scope`: its text, and whether it's a whole word (no letter or digit right before or after). */
+    const marksIn = (p, scope) =>
+      p.evaluate(`[...(${scope})?.querySelectorAll("mark") ?? []].map((m) => {
+        const text = m.closest("p, li")?.textContent ?? "";
+        const r = document.createRange();
+        r.setStart(m.closest("p, li"), 0);
+        r.setEndBefore(m);
+        const at = r.toString().length;
+        const before = text[at - 1] ?? " ";
+        const after = text[at + m.textContent.length] ?? " ";
+        return { text: m.textContent, whole: !/[\\p{L}\\p{N}]/u.test(before + after) };
+      })`);
+    const noteRow = `[...document.querySelectorAll("[data-view] > li")].find((li) => li.textContent.includes(${JSON.stringify(`${tag} visit note`)}))`;
+    const symptomRow = `[...document.querySelectorAll("[data-view] > li")].find((li) => li.textContent.includes(${JSON.stringify(`${hl} sore knee`)}))`;
+
+    // The timeline, rows at 420.
+    await A.goto(`/app/groups/${DEV_FAMILY}/timeline?q=${hl}`);
+    await A.waitFor(`!!(${noteRow}) && !!(${symptomRow})`, 20000);
+    const symptomMarks = await marksIn(A, symptomRow);
+    check(
+      "rows mark the matched word in a symptom's name",
+      symptomMarks.length === 1 && symptomMarks[0].text === hl && symptomMarks[0].whole,
+      JSON.stringify(symptomMarks),
+    );
+    const snippet = await A.evaluate(`(() => { const s = (${noteRow})?.querySelector("[data-snippet]");
+      return s && { text: s.textContent, mark: s.querySelector("mark")?.textContent }; })()`);
+    check(
+      "a note matched deep in its text gets a snippet line around the match",
+      !!snippet && snippet.mark === hl && snippet.text.startsWith("…") && snippet.text.length <= 125,
+      JSON.stringify(snippet),
+    );
+    const noteMarks = await marksIn(A, noteRow);
+    check(
+      "the note's marks are whole words",
+      noteMarks.length >= 2 && noteMarks.every((m) => m.text === hl && m.whole),
+      JSON.stringify(noteMarks),
+    );
+
+    // Contrast of a mark, light and dark (canvas turns any CSS colour into RGB).
+    const contrast = () =>
+      A.evaluate(`(() => {
+        const m = (${symptomRow}).querySelector("mark");
+        const cs = getComputedStyle(m);
+        const rgb = (c) => { const cv = document.createElement("canvas"); cv.width = cv.height = 1;
+          const x = cv.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, 1, 1); x.fillStyle = c; x.fillRect(0, 0, 1, 1);
+          return [...x.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+        const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+          .reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const [a, b] = [lum(rgb(cs.color)), lum(rgb(cs.backgroundColor))].sort((x, y) => y - x);
+        return Math.round(((a + 0.05) / (b + 0.05)) * 10) / 10;
+      })()`);
+    const light = await contrast();
+    await A.evaluate(`document.documentElement.dataset.theme = "dark"`);
+    await sleep(100);
+    const dark = await contrast();
+    await A.evaluate(`delete document.documentElement.dataset.theme`);
+    check(
+      "marks keep contrast in light and dark (4.5:1)",
+      light >= 4.5 && dark >= 4.5,
+      `light ${light}, dark ${dark}`,
+    );
+
+    // Cards at 1280: marks, and no snippet (the whole text shows).
+    await A.send("Emulation.setDeviceMetricsOverride", {
+      width: 1280,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await A.press(`document.querySelector('button[aria-label="Cards"]')`);
+    await A.waitFor(
+      `document.querySelector("[data-view]")?.dataset.view === "cards" && !!(${noteRow})`,
+      10000,
+    );
+    const card = await A.evaluate(`(() => { const li = ${noteRow};
+      return { marks: li.querySelectorAll("mark").length, snippet: !!li.querySelector("[data-snippet]") }; })()`);
+    check(
+      "cards mark matches, with no snippet (all the text shows)",
+      card.marks >= 1 && !card.snippet,
+      JSON.stringify(card),
+    );
+    await A.press(`document.querySelector('button[aria-label="Rows"]')`);
+    await A.send("Emulation.setDeviceMetricsOverride", {
+      width: 420,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: true,
+    });
+
+    // Without a search, nothing is marked.
+    await A.goto(`/app/groups/${DEV_FAMILY}/timeline?kind=symptom`);
+    await A.waitFor(`!!(${symptomRow})`, 20000);
+    check("no marks without a search", (await marksIn(A, symptomRow)).length === 0);
+
+    // The search page.
+    await A.goto(`/app/groups/${DEV_FAMILY}/search?q=${hl}`);
+    await A.waitFor(
+      `(() => { const s = document.querySelector("[data-search-status]");
+         return s?.dataset.for === ${JSON.stringify(hl)} && ["provider", "medication", "entry"].every((t) =>
+           document.querySelector('section[data-section="' + t + '"]')); })()`,
+      20000,
+    );
+    const page = await A.evaluate(`(() => {
+      const item = (type, id) => document.querySelector('[data-result="' + type + '"][data-result-id="' + id + '"]');
+      const snip = (li) => li && { text: li.querySelector("[data-snippet]")?.textContent ?? null,
+        mark: li.querySelector("[data-snippet] mark")?.textContent ?? null, marks: li.querySelectorAll("mark").length };
+      return { note: snip(item("entry", ${JSON.stringify(noteId)})), symptom: snip(item("entry", ${JSON.stringify(symptomId)})),
+        provider: snip(item("provider", ${JSON.stringify(providerId)})), medication: snip(item("medication", ${JSON.stringify(medicationId)})) };
+    })()`);
+    check(
+      "the search page marks an entry's match and snippets a note's deep match",
+      page.symptom?.marks === 1 && page.note?.mark === hl,
+      JSON.stringify({ symptom: page.symptom, note: page.note }),
+    );
+    check(
+      "a provider matched only in its notes shows a snippet from them",
+      page.provider?.mark === hl && page.provider.text.includes("Ask for"),
+      JSON.stringify(page.provider),
+    );
+    check(
+      "a medication matched only in its notes shows a snippet from them",
+      page.medication?.mark === hl && page.medication.text.includes("Take with"),
+      JSON.stringify(page.medication),
+    );
+  });
+
   await step("Performance with about 2,000 entries", async () => {
     // Fictional filler notes on the server, older than the seeds; deleted at the end.
     const sentences = [
@@ -1086,6 +1263,9 @@ try {
     psql(
       `UPDATE timeline_entry SET deleted_at = now(), updated_at = now() WHERE id IN ('${all.join("','")}') AND deleted_at IS NULL`,
     );
+  for (const [table, ids] of Object.entries(highlightOwners))
+    if (ids.length)
+      psql(`UPDATE ${table} SET deleted_at = now(), updated_at = now() WHERE id IN ('${ids.join("','")}')`);
   if (perfIds.length) psql(`DELETE FROM timeline_entry WHERE title LIKE '${tag} perf %'`);
   A.close();
   browser.proc.kill();

@@ -2,6 +2,8 @@ import type { SearchPageData } from "./loadSearch";
 import type { UnitChoices } from "@caretook/data/schema";
 import type { ResultSection } from "~/lib/searchResults";
 
+import { parseSearch } from "@caretook/data/schema";
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { resultCountText } from "~/lib/searchResults";
@@ -29,6 +31,8 @@ export function SearchResults({
 }) {
   const searching = data.q.trim() !== "";
   const now = new Date();
+  // The results' own search (they can be the previous text's for a moment), for marking matches.
+  const search = useMemo(() => parseSearch(data.q), [data.q]);
   const status = unavailable
     ? "Search isn't available on this device right now."
     : preparing && !data.sections.length
@@ -63,16 +67,35 @@ export function SearchResults({
                       canWrite={canWrite}
                       units={units}
                       now={now}
+                      search={search}
                     />
                   )
                 );
               }
               if (section.type === "provider") {
                 const provider = data.providers[hit.id];
-                return provider && <ProviderResultItem key={hit.id} provider={provider} />;
+                return (
+                  provider && (
+                    <ProviderResultItem
+                      key={hit.id}
+                      provider={provider}
+                      notes={data.notes[hit.id]}
+                      search={search}
+                    />
+                  )
+                );
               }
               const medication = data.medications[hit.id];
-              return medication && <MedicationResultItem key={hit.id} medication={medication} />;
+              return (
+                medication && (
+                  <MedicationResultItem
+                    key={hit.id}
+                    medication={medication}
+                    notes={data.notes[hit.id]}
+                    search={search}
+                  />
+                )
+              );
             })}
           </ul>
           <SectionLinks section={section} groupId={groupId} q={data.q} />
