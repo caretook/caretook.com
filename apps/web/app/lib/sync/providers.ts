@@ -267,8 +267,12 @@ const contentColumns = (content: ProviderContent) => ({
   isPrimary: content.isPrimary ? 1 : 0,
 });
 
-/** A provider's row, validated: shared by `createProvider` and `createAndLinkProvider`. */
-const newProviderRow = async (db: SyncDb, groupId: string, input: ProviderContentInput) => {
+/**
+ * A provider's row, validated: shared by `createProvider`,
+ * `createAndLinkProvider` and the medication writes that add a prescriber or
+ * pharmacy with the medication (`lib/sync/medications.ts`).
+ */
+export const newProviderRow = async (db: SyncDb, groupId: string, input: ProviderContentInput) => {
   if (!(await canWrite(db, groupId))) return forbidden as Refusal;
   const parsed = providerContentZSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);

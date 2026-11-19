@@ -11,8 +11,8 @@ import { FORM_LABELS, medicationTitle, STATUS_LABELS } from "~/lib/medicationDis
  *          [form · dose · reason]
  *
  * - `editors`: who is editing the notes now (avatars).
- * - `actions`: Edit and the status actions, for writers (empty until the
- *   edit sheet lands).
+ * - `actions`: Edit (the edit sheet) and the status actions' ⋯ menu, for
+ *   writers.
  *
  * Empty regions take no space.
  */
