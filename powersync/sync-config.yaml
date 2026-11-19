@@ -29,9 +29,12 @@ streams:
       # `time_zone`: a medication's schedule times are in the recipient's zone.
       # `date_of_birth`: the printable medication sheet works offline.
       - SELECT id, group_id, name, preferred_name, time_zone, date_of_birth FROM care_recipient WHERE group_id IN my_groups
+      # `ends_at`, `all_day`, `place`, the cancel fields and `rescheduled_to`:
+      # appointments and reminders (future events and notes).
       - >-
         SELECT id, group_id, recipient_id, kind, occurred_at, time_zone, title, body, details,
-        deleted_at, created_at, updated_at, created_by, updated_by
+        deleted_at, created_at, updated_at, created_by, updated_by,
+        ends_at, all_day, place, cancelled_at, cancelled_by, cancel_reason, rescheduled_to
         FROM timeline_entry WHERE group_id IN my_groups
       # Live documents: the compacted snapshot and every pending Yjs update,
       # so any document opens and edits offline. Viewers get them too (read-only).

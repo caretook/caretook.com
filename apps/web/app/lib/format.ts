@@ -34,7 +34,7 @@ const calendarDay = (date: Date, timeZone: string) => {
 };
 
 /**
- * A timeline day heading in the viewer's zone: "Today", "Yesterday", then
+ * A timeline day heading in the viewer's zone: "Today", "Yesterday", "Tomorrow", then
  * "Monday, Nov 16", with the year ("Monday, Nov 16, 2025") when it isn't
  * `now`'s. Days are compared as calendar days in `timeZone`, never as 24-hour
  * spans, so it holds around midnight and across a DST change.
@@ -46,6 +46,7 @@ export const dayLabel = (iso: string, timeZone: string, now: Date, locale?: stri
   const daysAgo = Math.round((today.day - then.day) / DAY_MS);
   if (daysAgo === 0) return "Today";
   if (daysAgo === 1) return "Yesterday";
+  if (daysAgo === -1) return "Tomorrow";
   return new Intl.DateTimeFormat(locale, {
     timeZone,
     weekday: "long",

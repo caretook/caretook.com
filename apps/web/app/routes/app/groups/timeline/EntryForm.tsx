@@ -2,7 +2,13 @@ import type { TimelineEntryKind, UnitChoices, VitalType } from "@caretook/data/s
 import type { TimelineEntry } from "~/lib/rpc";
 
 import { useState } from "react";
-import { isKnownReading, isSymptomDetails, isVitalDetails, TIMELINE_LIMITS } from "@caretook/data/schema";
+import {
+  DEVICE_FUTURE_SKEW_MS,
+  isKnownReading,
+  isSymptomDetails,
+  isVitalDetails,
+  TIMELINE_LIMITS,
+} from "@caretook/data/schema";
 import { Field } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { EntryKindPicker } from "./EntryKindPicker";
@@ -10,6 +16,13 @@ import { issueFor } from "./formIssues";
 import { SymptomFields } from "./SymptomFields";
 import { useEntryFormSave } from "./useEntryFormSave";
 import { VitalReadingsFields } from "./VitalReadingsFields";
+
+/** The latest time a symptom or vital can be given: now plus the device's skew, or a later stored time. */
+const latestTime = (stored?: string) => {
+  const limit = Date.now() + DEVICE_FUTURE_SKEW_MS;
+  const at = stored ? new Date(stored).getTime() : 0;
+  return new Date(Math.max(limit, at)).toISOString();
+};
 
 /**
  * Add or edit a symptom or vitals entry (notes and events are written in
@@ -36,6 +49,9 @@ export function EntryForm({
 }) {
   const { Form, formRef, resetKey, busy, result, issues } = useEntryFormSave({ adding: !entry, onDone });
   const [kind, setKind] = useState<TimelineEntryKind>(entry?.kind ?? initialKind);
+  // Symptoms and vitals can't be in the future: the picker stops at now
+  // (with the device's few minutes of skew), or at the stored time if later.
+  const [latest] = useState(() => latestTime(entry?.occurredAt));
   const storedReadings = isVitalDetails(entry?.details) ? entry.details.readings.filter(isKnownReading) : [];
   const [vitalTypes, setVitalTypes] = useState<VitalType[]>(
     entry ? storedReadings.map((r) => r.type) : initialVitalType ? [initialVitalType] : [],
@@ -95,6 +111,7 @@ export function EntryForm({
         name="occurredAt"
         label="When"
         defaultValue={entry?.occurredAt}
+        max={latest}
         error={issueFor(issues, "occurredAt")}
       />
 

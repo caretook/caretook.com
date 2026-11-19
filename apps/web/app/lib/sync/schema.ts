@@ -57,6 +57,14 @@ export const timelineEntries = sqliteTable(
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),
     updatedBy: text("updated_by"),
+    // Appointments and reminders. `all_day` is 1 or 0.
+    endsAt: text("ends_at"),
+    allDay: integer("all_day"),
+    place: text("place"),
+    cancelledAt: text("cancelled_at"),
+    cancelledBy: text("cancelled_by"),
+    cancelReason: text("cancel_reason"),
+    rescheduledTo: text("rescheduled_to"),
   },
   (t) => [index("timeline_entry_group_occurred").on(t.groupId, t.occurredAt)],
 );

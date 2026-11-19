@@ -88,6 +88,14 @@ const json = (value: unknown): unknown => {
   }
 };
 
+/** SQLite has no boolean: PowerSync stores 1/0. */
+const bool = (value: unknown) =>
+  value === 1 || value === "1" || value === true
+    ? true
+    : value === 0 || value === "0" || value === false
+      ? false
+      : value;
+
 // Content columns a device may set. Ids, kind and audit columns are fixed.
 const CONTENT_COLUMNS = {
   title: (v: unknown) => ["title", text(v)],
@@ -95,6 +103,13 @@ const CONTENT_COLUMNS = {
   occurred_at: (v: unknown) => ["occurredAt", toIsoTimestamp(v)],
   time_zone: (v: unknown) => ["timeZone", text(v)],
   details: (v: unknown) => ["details", json(v)],
+  // Appointments. `cancelled_by` isn't here: the service sets it, like the audit columns.
+  ends_at: (v: unknown) => ["endsAt", toIsoTimestamp(v)],
+  all_day: (v: unknown) => ["allDay", bool(v) ?? false],
+  place: (v: unknown) => ["place", text(v)],
+  cancelled_at: (v: unknown) => ["cancelledAt", toIsoTimestamp(v)],
+  cancel_reason: (v: unknown) => ["cancelReason", text(v)],
+  rescheduled_to: (v: unknown) => ["rescheduledTo", text(v)],
 } as const satisfies Record<string, (v: unknown) => [string, unknown]>;
 
 const FIXED_COLUMNS = ["group_id", "recipient_id", "kind"];
@@ -138,6 +153,9 @@ const timelineEntryOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise
   const content = contentFrom(data);
   if (Object.keys(content).length === 0) return applied;
   const res = await timelineEntryService.update(ctx, op.id, content);
+  // A member who can read but not write (a viewer): refused, not retried.
+  if (isError(res) && res.code === "baseModel:update:nothingUpdated")
+    return newError({ code: "permissions:unauthorized" });
   if (isError(res)) return res;
   return res ? applied : notFound();
 };
@@ -189,14 +207,6 @@ const noteUpdateOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Ou
 // ---------------------------------------------------------------------------
 // provider: like timeline_entry. Soft deletes, and the group never changes.
 // ---------------------------------------------------------------------------
-
-/** SQLite has no boolean: PowerSync stores 1/0. */
-const bool = (value: unknown) =>
-  value === 1 || value === "1" || value === true
-    ? true
-    : value === 0 || value === "0" || value === false
-      ? false
-      : value;
 
 const PROVIDER_COLUMNS = {
   type: (v: unknown) => ["type", text(v)],

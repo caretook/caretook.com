@@ -3,12 +3,23 @@ import type { ProtectedField } from "./columns";
 import type { DoseDetails, MedicationChangeDetails } from "./medication";
 import type { VitalDetails } from "./vitals";
 
-import { foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  foreignKey,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { careGroupSchema } from "./careGroup";
 import { careRecipientSchema } from "./careRecipient";
 import { audits, enumCheck, id, timestamps } from "./columns";
+import { isStartOfDay } from "./entryTiming";
 import { doseDetailsZSchema, medicationChangeDetailsZSchema } from "./medication";
 import { timeZoneZSchema } from "./timeZone";
 import { vitalDetailsZSchema } from "./vitals";
@@ -79,6 +90,20 @@ export const timelineEntrySchema = pgTable(
     // Validated by the Zod schemas below (per kind); the database doesn't check its shape.
     details: jsonb("details").$type<TimelineEntryDetails>(),
     deletedAt: timestampColumn("deleted_at"),
+    // Appointments and reminders (a future event or note; see entryTiming.ts).
+    // When it ends: events only, after `occurred_at`, null when all-day.
+    endsAt: timestampColumn("ends_at"),
+    // Notes and events. `occurred_at` is then the start of its day in `time_zone`.
+    allDay: boolean("all_day").notNull().default(false),
+    // Where: events only.
+    place: text("place"),
+    // Cancelled ⇔ `cancelled_at` is set: events only. `cancelled_by` is
+    // audit-style (set by the service, not an FK).
+    cancelledAt: timestampColumn("cancelled_at"),
+    cancelledBy: uuid("cancelled_by"),
+    cancelReason: text("cancel_reason"),
+    // The event a cancelled one was moved to, in the same group.
+    rescheduledTo: uuid("rescheduled_to"),
     ...timestamps,
     ...audits,
   },
@@ -97,6 +122,14 @@ export const timelineEntrySchema = pgTable(
     // Target of composite FKs (note_document), so a row attached to an entry
     // is guaranteed to be in the entry's group.
     unique("timeline_entry_group_id_id_unique").on(t.groupId, t.id),
+    // A rescheduled event points at its replacement in the same group. The
+    // migration makes it ON DELETE SET NULL (rescheduled_to), which Drizzle
+    // 0.45 can't express: deleting the new event only clears the link.
+    foreignKey({
+      name: "timeline_entry_rescheduled_to_fk",
+      columns: [t.groupId, t.rescheduledTo],
+      foreignColumns: [t.groupId, t.id],
+    }),
   ],
 );
 
@@ -115,7 +148,14 @@ const occurredAt = z.iso.datetime({ offset: true });
 const optionalText = (max: number) => z.string().trim().max(max).nullish();
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
 
-export const TIMELINE_LIMITS = { title: 200, body: 10_000, symptomName: 120, severityMax: 10 } as const;
+export const TIMELINE_LIMITS = {
+  title: 200,
+  body: 10_000,
+  symptomName: 120,
+  severityMax: 10,
+  place: 200,
+  cancelReason: 500,
+} as const;
 
 export const symptomDetailsZSchema = z.strictObject({
   name: requiredText(TIMELINE_LIMITS.symptomName),
@@ -131,6 +171,62 @@ const entryFields = {
 };
 
 const noDetails = z.null().optional();
+
+const timestampText = z.iso.datetime({ offset: true });
+const onlyEvents = z.null({ error: "Only events have this" }).optional();
+
+/** Kinds other than notes and events: never all-day, and none of an event's appointment fields. */
+const notScheduled = {
+  allDay: z.literal(false, { error: "Only notes and events can be all day" }).optional(),
+  endsAt: onlyEvents,
+  place: onlyEvents,
+  cancelledAt: onlyEvents,
+  cancelReason: onlyEvents,
+  rescheduledTo: onlyEvents,
+};
+
+/** A note: it may be all day (a reminder for a day), nothing else an event has. */
+const noteScheduling = { ...notScheduled, allDay: z.boolean().optional() };
+
+/** An event's appointment fields: an end, all day, a place, and being cancelled or moved. */
+const eventScheduling = {
+  allDay: z.boolean().optional(),
+  endsAt: timestampText.nullish(),
+  place: optionalText(TIMELINE_LIMITS.place),
+  cancelledAt: timestampText.nullish(),
+  cancelReason: optionalText(TIMELINE_LIMITS.cancelReason),
+  rescheduledTo: z.uuid().nullish(),
+};
+
+type Scheduled = {
+  occurredAt: string;
+  timeZone: string;
+  allDay?: boolean;
+  endsAt?: string | null;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
+  rescheduledTo?: string | null;
+};
+
+/**
+ * Rules across a note's or event's time fields: an all-day item starts at
+ * the start of its day and has no end; an end is after the start; a reason
+ * and a replacement only on a cancelled event.
+ */
+const checkScheduling = (value: Scheduled, ctx: z.core.$RefinementCtx) => {
+  const issue = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
+  if (value.allDay) {
+    if (value.endsAt) issue("endsAt", "An all-day item has no end time");
+    if (!isStartOfDay(value.occurredAt, value.timeZone))
+      issue("occurredAt", "An all-day item starts at the start of its day");
+  }
+  if (value.endsAt && new Date(value.endsAt).getTime() <= new Date(value.occurredAt).getTime())
+    issue("endsAt", "Must be after the start");
+  if (!value.cancelledAt) {
+    if (value.cancelReason) issue("cancelReason", "Only a cancelled event has a reason");
+    if (value.rescheduledTo) issue("rescheduledTo", "Only a cancelled event can be rescheduled");
+  }
+};
 
 /** A note's or event's text is its live document (note_document), never `body`. */
 const noBody = z.null({ error: "Its text is its live document, not a body" }).optional();
@@ -149,18 +245,24 @@ const noText = z.null({ error: "It has no body: a dose's note is in its details"
  * against the merged row.
  */
 export const timelineEntryContentZSchema = z.discriminatedUnion("kind", [
-  z.object({ ...entryFields, kind: z.literal("note"), body: noBody, details: noDetails }),
-  z.object({ ...entryFields, kind: z.literal("symptom"), details: symptomDetailsZSchema }),
+  z
+    .object({ ...entryFields, ...noteScheduling, kind: z.literal("note"), body: noBody, details: noDetails })
+    .superRefine(checkScheduling),
+  z.object({ ...entryFields, ...notScheduled, kind: z.literal("symptom"), details: symptomDetailsZSchema }),
+  z
+    .object({
+      ...entryFields,
+      ...eventScheduling,
+      kind: z.literal("event"),
+      title: requiredText(TIMELINE_LIMITS.title),
+      body: noBody,
+      details: noDetails,
+    })
+    .superRefine(checkScheduling),
+  z.object({ ...entryFields, ...notScheduled, kind: z.literal("vital"), details: vitalDetailsZSchema }),
   z.object({
     ...entryFields,
-    kind: z.literal("event"),
-    title: requiredText(TIMELINE_LIMITS.title),
-    body: noBody,
-    details: noDetails,
-  }),
-  z.object({ ...entryFields, kind: z.literal("vital"), details: vitalDetailsZSchema }),
-  z.object({
-    ...entryFields,
+    ...notScheduled,
     kind: z.literal("dose"),
     title: noTitle,
     body: noText,
@@ -168,6 +270,7 @@ export const timelineEntryContentZSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     ...entryFields,
+    ...notScheduled,
     kind: z.literal("medicationChange"),
     title: noTitle,
     body: noText,
@@ -201,6 +304,13 @@ export const timelineEntryUpdateZSchema = z.strictObject({
   timeZone: timeZone.optional(),
   // Checked against the entry's kind once merged with the stored row.
   details: z.union([symptomDetailsZSchema, vitalDetailsZSchema, doseDetailsZSchema]).nullish(),
+  // Appointment fields, also checked against the kind once merged.
+  allDay: z.boolean().optional(),
+  endsAt: timestampText.nullish(),
+  place: optionalText(TIMELINE_LIMITS.place),
+  cancelledAt: timestampText.nullish(),
+  cancelReason: optionalText(TIMELINE_LIMITS.cancelReason),
+  rescheduledTo: z.uuid().nullish(),
 });
 export type TimelineEntryUpdateInput = z.input<typeof timelineEntryUpdateZSchema>;
 
