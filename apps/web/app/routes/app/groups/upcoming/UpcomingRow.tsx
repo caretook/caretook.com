@@ -2,6 +2,7 @@ import type { UnitChoices } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 import type { TimelineEntry } from "~/lib/rpc";
 import type { LinkedContact } from "./upcomingContact";
+import type { RescheduledTarget } from "./useUpcomingData";
 
 import { MapPin } from "lucide-react";
 import { Link } from "react-router";
@@ -42,7 +43,7 @@ export function UpcomingRow({
   authorImage: string | null;
   contacts?: LinkedContact[];
   /** A cancelled event's new one, when it was rescheduled and that's on the device. */
-  rescheduledTo?: TimelineEntry;
+  rescheduledTo?: RescheduledTarget;
   /** The entry's ⋯ menu (writers only). */
   menu?: ReactNode;
 }) {
@@ -93,7 +94,16 @@ export function UpcomingRow({
           <p className="text-sm" data-cancelled-label>
             <span className="badge badge-sm badge-ghost">{cancelled}</span>
             {rescheduledTo && (
-              <span className="text-base-content/70"> · {rescheduledLabel(rescheduledTo)}</span>
+              <>
+                {" · "}
+                <Link
+                  to={appUrls.entry(groupId, rescheduledTo.id)}
+                  className="link text-base-content/70 relative z-10"
+                  data-rescheduled-to={rescheduledTo.id}
+                >
+                  {rescheduledLabel(rescheduledTo)}
+                </Link>
+              </>
             )}
           </p>
         )}

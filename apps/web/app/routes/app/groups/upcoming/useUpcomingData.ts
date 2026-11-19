@@ -4,6 +4,7 @@ import type { EntryFilters, EntryRow, MemberRow } from "~/lib/sync/timeline";
 import type { ContactRow, LinkedContact } from "./upcomingContact";
 import type { UpcomingSection } from "~/lib/upcomingDays";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
+import type { RescheduledTargetRow } from "./upcomingQueries";
 
 import { useMemo, useState } from "react";
 import { localTimeZone } from "~/lib/format";
@@ -16,7 +17,7 @@ import { fromLocalTimestamp, membersQuery, toMember, toTimelineEntries } from "~
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { contactsByEntry } from "./upcomingContact";
 import { pastSections, upcomingSections } from "~/lib/upcomingDays";
-import { pastQueries, upcomingQueries } from "./upcomingQueries";
+import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
 
 // Upcoming's and the Past tab's data, live: the loaders read the first
 // render's rows (`loadUpcoming`, `loadPast`), and live queries here take
@@ -28,8 +29,8 @@ export const UPCOMING_TICK_MS = 30_000;
 
 export type UpcomingListData = {
   sections: UpcomingSection<TimelineEntry>[];
-  /** Every listed entry by id (a cancelled one's "Rescheduled to …" looks its new event up here). */
-  byId: Map<string, TimelineEntry>;
+  /** A rescheduled event's new one (for "Rescheduled to …"), while it's on the device and not deleted. */
+  rescheduledOf: (entry: TimelineEntry) => RescheduledTarget | undefined;
   /** The clock the sections were cut with. */
   now: Date;
   nameOf: (userId: string) => string;
@@ -38,10 +39,12 @@ export type UpcomingListData = {
   contactsOf: (entryId: string) => LinkedContact[] | undefined;
 };
 
-/** Members, previews and contacts: what both lists need besides their entries. */
+/** Where a cancelled event was rescheduled to. */
+export type RescheduledTarget = { id: string; occurredAt: string };
+/** Members, previews, contacts and reschedules: what both lists need besides their entries. */
 function useListSupport(
   groupId: string,
-  initial: { memberRows: MemberRow[]; documentRows: NoteDocRow[] },
+  initial: { memberRows: MemberRow[]; documentRows: NoteDocRow[]; targetRows: RescheduledTargetRow[] },
   contactRows: ContactRow[],
 ) {
   const membersSql = membersQuery(groupId);
@@ -51,6 +54,23 @@ function useListSupport(
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
   const contacts = useMemo(() => contactsByEntry(contactRows, fromLocalTimestamp), [contactRows]);
   const members = memberRows.map(toMember);
+  const targetsSql = rescheduledTargetsQuery(groupId);
+  const targetRows = useLiveQuery<RescheduledTargetRow>(
+    targetsSql.sql,
+    targetsSql.params,
+    initial.targetRows,
+  );
+  const targets = useMemo(
+    () =>
+      new Map(
+        targetRows.flatMap((row) =>
+          row.occurred_at
+            ? [[row.id, { id: row.id, occurredAt: fromLocalTimestamp(row.occurred_at) }] as const]
+            : [],
+        ),
+      ),
+    [targetRows],
+  );
   return {
     // A note's or event's text is its live document: its preview is the body.
     withPreview: (entries: TimelineEntry[]) =>
@@ -60,6 +80,8 @@ function useListSupport(
     nameOf: (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member",
     imageOf: (id: string) => members.find((m) => m.userId === id)?.image ?? null,
     contactsOf: (id: string) => contacts.get(id),
+    rescheduledOf: (entry: TimelineEntry) =>
+      entry.rescheduledTo ? targets.get(entry.rescheduledTo) : undefined,
   };
 }
 
@@ -86,7 +108,7 @@ export function useUpcomingData({
   const shown = support.withPreview(toTimelineEntries(entryRows));
   return {
     sections: upcomingSections(shown, at, localTimeZone()),
-    byId: new Map(shown.map((e) => [e.id, e])),
+    rescheduledOf: support.rescheduledOf,
     now: at,
     nameOf: support.nameOf,
     imageOf: support.imageOf,
@@ -136,7 +158,7 @@ export function usePastEvents({
   const shown = support.withPreview(toTimelineEntries(entries.rows.slice(0, page.limit)));
   return {
     sections: pastSections(shown, at, localTimeZone()),
-    byId: new Map(shown.map((e) => [e.id, e])),
+    rescheduledOf: support.rescheduledOf,
     now: at,
     nameOf: support.nameOf,
     imageOf: support.imageOf,
