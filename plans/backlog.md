@@ -108,6 +108,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
+| B-71 | chore | inbox |  |  | Pre-launch screenshots: capture real app screens for the marketing site and store listings, one of the last tasks before launch |
 
 ## Items
 
@@ -869,3 +870,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): Flaked in the invites wave 3 suite (2026-11-18 19:46, load 18→27, not auto-retried): '1280 dark provider add sheet: Escape closes only it, and focus returns to the opener (tap)'. The failure detail showed focus on the opener, so likely the sheet's close wasn't finished when the step checked. Passed 625/625 on a rerun; ui.mjs also flaked earlier in providers-5 (timeout). In .loops/.browser-flakes.log. A browser-check fix, so quick-fixes.
+
+### B-71 · chore · Pre-launch screenshots: capture real app screens for the marketing site and store listings, one of the last tasks before launch
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (user): Requested by the user to run close to the end, before launch (B-33), once the screens are final and the launch-ready product map exists; don't start it earlier. The marketing site's mechanics are already in B-40 (placeholder SVGs, marketing-screenshots.mjs, WebP light and dark with srcset): do that work here, then close B-40.
