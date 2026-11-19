@@ -47,7 +47,7 @@ apps/web/vite.config.ts                  @suite
 apps/web/react-router.config.ts          @suite
 apps/web/build-target.ts                 @suite
 apps/web/app/root.tsx                    @suite
-apps/web/app/app.css                     phase2 app-shell ui
+apps/web/app/app.css                     phase2 app-shell ui medications profiles
 powersync/*                              @suite
 docker-compose*.yml                      @suite
 packages/data/src/db/migrations/*        @suite
@@ -83,6 +83,8 @@ packages/data/src/db/seeds/accessCodes.ts groups
 # Profiles (profiles slice 2): the recipient's profile, its Basics sheet, and
 # the ways in (the group menu, the timeline's recipient card, group settings
 # Details' link). Above the timeline's, layout's and settings' general rules.
+# The emergency sheet (profiles slice 6): its own print media steps, and the shared print CSS's.
+apps/web/app/routes/app/groups/profile/print/* profiles
 apps/web/app/routes/app/groups/profile/* profiles
 apps/web/app/lib/sync/profile.ts         profiles phase2
 # The writers' details (profiles slice 3): Contact and Insurance and their sheets.
