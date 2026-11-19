@@ -36,6 +36,9 @@ const appRoutes = [
           route(":providerId/edit", "routes/app/groups/providers/edit/route.tsx"),
         ]),
         route("providers/:providerId", "routes/app/groups/provider/route.tsx"),
+        // Appointments and reminders still to come, and the Past tab (past events).
+        route("upcoming", "routes/app/groups/upcoming/route.tsx"),
+        route("upcoming/past", "routes/app/groups/upcoming/past/route.tsx"),
       ]),
       // Start another care group (a sheet over its own page; not a group route).
       route("groups/new", "routes/app/groups/new/route.tsx"),
