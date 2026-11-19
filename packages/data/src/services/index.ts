@@ -41,6 +41,9 @@ export { accessCodeService };
 import * as staffGroupService from "./staffGroupService";
 export { staffGroupService };
 export type { StaffGroupInput } from "./staffGroupService";
+import * as medicationService from "./medicationService";
+export { medicationService };
+export type { MedicationWriteOptions } from "./medicationService";
 
 export type * from "./types";
 
@@ -58,6 +61,7 @@ export const services = {
   joinRequest: joinRequestService,
   accessCode: accessCodeService,
   staffGroup: staffGroupService,
+  medication: medicationService,
 };
 
 export type ServiceTypeMap = typeof services;

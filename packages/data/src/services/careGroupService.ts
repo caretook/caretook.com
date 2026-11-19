@@ -3,7 +3,8 @@ import type { ServiceContext, ServiceSelectArgs, ServiceUpdateArgs } from "./typ
 
 import { DEFAULT_PAGE_SIZE } from "../constants";
 import { withTransaction } from "../db";
-import { isError } from "../errors";
+import { isTimeZone } from "../db/schema";
+import { isError, newError } from "../errors";
 import { careGroupModel, careRecipientModel } from "../models";
 
 export const serviceName = "careGroup";
@@ -27,6 +28,8 @@ export const create = (ctx: ServiceContext, { recipient, ...data }: CareGroupCre
     if (!group) return { group: null, recipient: null };
 
     if (!recipient) return { group, recipient: null };
+    // Where the recipient lives: the zone of the device that creates the group, unless it says otherwise.
+    if (!isTimeZone(recipient.timeZone)) return newError({ code: "careRecipientService:invalidTimeZone" });
 
     const created = await careRecipientModel.create({
       ...ctx,

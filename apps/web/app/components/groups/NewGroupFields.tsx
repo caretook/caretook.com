@@ -69,9 +69,14 @@ export function NewGroupFields({ issues = [] }: { issues?: FieldIssue[] }) {
   );
 }
 
-/** The form's three fields, for `newCareGroupZSchema`. */
+/**
+ * The form's three fields, for `newCareGroupZSchema`, plus this device's time
+ * zone for the recipient. Called from client actions only, so `Intl` is the
+ * browser's.
+ */
 export const newGroupFromForm = (form: FormData) => ({
   recipientName: formString(form, "recipientName"),
   preferredName: formString(form, "preferredName"),
   groupName: formString(form, "groupName"),
+  timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 });

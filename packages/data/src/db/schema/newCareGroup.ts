@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FALLBACK_TIME_ZONE, timeZoneZSchema } from "./timeZone";
 
 // "Who do you care for?": the form that starts a care group, shared by the
 // New care group sheet, /join/:code and the API (invites slice 5). Pure and
@@ -22,8 +23,17 @@ const recipientName = z.string().trim().min(1, "Enter their name").max(120, "At 
 const preferredName = z.string().trim().max(120, "At most 120 characters").nullish();
 const groupName = z.string().trim().max(120, "At most 120 characters").nullish();
 
-/** What the form sends. An empty preferred name or group name is none. */
-export const newCareGroupZSchema = z.object({ recipientName, preferredName, groupName });
+/**
+ * What the form sends. An empty preferred name or group name is none. The
+ * time zone is the creating device's (the recipient's schedules use it); none
+ * falls back to `FALLBACK_TIME_ZONE`.
+ */
+export const newCareGroupZSchema = z.object({
+  recipientName,
+  preferredName,
+  groupName,
+  timeZone: timeZoneZSchema.nullish(),
+});
 export type NewCareGroupInput = z.input<typeof newCareGroupZSchema>;
 
 /** The group and recipient to create: the group name defaults from the recipient's names. */
@@ -33,6 +43,10 @@ export const resolveNewCareGroup = (input: z.output<typeof newCareGroupZSchema>)
     name:
       input.groupName?.trim() ||
       defaultGroupName({ recipientName: input.recipientName, preferredName: preferred }),
-    recipient: { name: input.recipientName.trim(), preferredName: preferred },
+    recipient: {
+      name: input.recipientName.trim(),
+      preferredName: preferred,
+      timeZone: input.timeZone || FALLBACK_TIME_ZONE,
+    },
   };
 };

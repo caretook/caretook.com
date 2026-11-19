@@ -9,6 +9,7 @@ import {
   codeState,
   inviteEmailZ,
   newCareGroupZSchema,
+  timeZoneZSchema,
   resolveNewCareGroup,
   staffGroupService,
 } from "@caretook/data";
@@ -150,6 +151,7 @@ export const admin = {
           groupName: z.string().trim().min(1, "Enter the group's name").max(120),
           recipientName: z.string().trim().min(1, "Enter the care recipient's name").max(120),
           ownerEmail: inviteEmailZ,
+          timeZone: timeZoneZSchema.nullish(),
           attested: z.literal(true),
         }),
       )

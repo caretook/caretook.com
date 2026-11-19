@@ -113,6 +113,9 @@ export const MODEL_ERRORS = {
   "providerModel:lock": {
     message: "Failed to lock the provider",
   },
+  "medicationModel:remove": {
+    message: "Failed to delete the medication",
+  },
   "userModel:notFound": {
     message: "User not found",
     statusCode: 404,
@@ -342,6 +345,50 @@ export const SERVICE_ERRORS = {
   "staffGroupService:staffOnly": {
     message: "Only Caretook staff can do that",
     statusCode: 403,
+  },
+  "careRecipientService:invalidTimeZone": {
+    message: "The care recipient needs a valid time zone",
+    statusCode: 400,
+  },
+  "medicationService:invalid": {
+    message: "The medication is invalid",
+    statusCode: 400,
+  },
+  "medicationService:notFound": {
+    message: "Medication not found",
+    statusCode: 404,
+  },
+  "medicationService:immutable": {
+    message: "A medication's group and recipient can't change",
+    statusCode: 400,
+  },
+  "medicationService:noRecipient": {
+    message: "This care group has no care recipient yet",
+    statusCode: 409,
+  },
+  "medicationService:recipientNotInGroup": {
+    message: "That care recipient isn't in this care group",
+    statusCode: 400,
+  },
+  "medicationService:badPrescriber": {
+    message: "The prescriber must be a clinician or practice in this care group",
+    statusCode: 400,
+  },
+  "medicationService:badPharmacy": {
+    message: "The pharmacy must be a pharmacy in this care group",
+    statusCode: 400,
+  },
+  "timelineEntryService:medicationNotInGroup": {
+    message: "That medication isn't in this care group",
+    statusCode: 400,
+  },
+  "timelineEntryService:systemWrittenKind": {
+    message: "Medication changes are written with the medication, not by hand",
+    statusCode: 403,
+  },
+  "noteDocumentService:medicationNotFound": {
+    message: "That medication is gone. It may have been deleted.",
+    statusCode: 404,
   },
 } as const;
 
