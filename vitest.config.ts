@@ -1,5 +1,6 @@
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
+import { deviceCommands } from "./apps/web/test/commands.ts";
 
 // Vitest projects:
 //   data:unit    pure functions, no database (packages/data *.test.ts)
@@ -18,6 +19,13 @@ import { defineConfig } from "vitest/config";
 //                React dedupes), and the test device (apps/web/test/device.tsx),
 //                a local-only PowerSync database with fixtures. Chromium comes
 //                from `pnpm test:components:install` (once per machine).
+// The component tests' browser server port, one per checkout: Vitest's fixed
+// default (23315) fails with "Port 23315 is already in use" when two worktrees
+// run component tests at once (the browser lease allows four).
+let hash = 7;
+for (const c of process.cwd()) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+const browserPort = 23400 + (hash % 2000);
+
 export default defineConfig({
   test: {
     projects: [
@@ -68,6 +76,8 @@ export default defineConfig({
           setupFiles: ["./test/setup.ts"],
           // Takes the machine-wide browser lease around Chromium (see the file).
           globalSetup: ["./test/browserLease.ts"],
+          // The browser server's port, one per checkout (see `browserPort`).
+          api: { port: browserPort, strictPort: false },
           browser: {
             enabled: true,
             headless: true,
@@ -77,6 +87,8 @@ export default defineConfig({
             instances: [{ browser: "chromium" }],
             viewport: { width: 420, height: 900 },
             screenshotFailures: false,
+            // Page-level commands for tests (apps/web/test/commands.ts).
+            commands: deviceCommands,
           },
         },
       },
