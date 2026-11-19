@@ -4,17 +4,21 @@
 
 ## Status
 
-| Slice | State                                         | Merge into `prd/marketing` (slice commits) |
-| ----- | --------------------------------------------- | ------------------------------------------ |
-| 1     | **landed in `dev`** (wave 1, `c59898d`)       | `3eb46f0` (`32ab6a6`, `672687e`)           |
-| 2     | in progress (wave 2, `.loops/marketing-2`)    |                                            |
-| 3     | in progress (wave 2, `.loops/marketing-3`)    |                                            |
-| 4     | blocked by 1 and `invites` slice 1 (in `dev`) |                                            |
-| 5     | blocked by 4 and `invites` slice 5 (in `dev`) |                                            |
+| Slice | State                                   | Merge into `prd/marketing` (slice commits) |
+| ----- | --------------------------------------- | ------------------------------------------ |
+| 1     | **landed in `dev`** (wave 1, `c59898d`) | `3eb46f0` (`32ab6a6`, `672687e`)           |
+| 2     | **landed in `dev`** (wave 2, `249ba1c`) | `20860b7` (`9f0813f`, `c3fb347`)           |
+| 3     | **landed in `dev`** (wave 2, `249ba1c`) | `498be06` (`ee7f320`, `0c5bd0f`)           |
+| 4     | **landed in `dev`** (wave 3)            | `1ac4bd2` (`9602ad0`, `583e5d5`)           |
+| 5     | **landed in `dev`** (wave 3)            | `87a9d35` (`0a7a7f8`, `6a9b7d6`)           |
 
-Backlog: B-32 is claimed by `prd/marketing` (in progress); mark it `done` after the last slice merges.
+Backlog: B-32 is done (all five slices merged). B-40 (real screenshots) waits until the user has a launch-ready product map: don't generate screenshots before then. B-54 (privacy policy and terms) is triaged here: the drafts exist; what's left is the user's review and removing the DRAFT banners.
 
-Wave 1 notes: home loads ~129 KB gzipped JS (over the ~100 KB budget; ~110 KB is React and React Router). `/join` 404s until `invites` builds it. `marketing.mjs` screenshots are off unless `MARKETING_SHOTS=1` (a full-page capture hung it for an hour); always run checks with `--timeout`. The user asked for minimal testing: no app checks unless app code changes.
+Wave 1 notes: home loads ~129 KB gzipped JS (over the ~100 KB budget; ~110 KB is React and React Router). `/join` 404s until `invites` builds it. `marketing.mjs` screenshots are off unless `MARKETING_SHOTS=1` (a full-page capture hung it for an hour); always run checks with `--timeout`. The user asked for minimal testing: no app checks unless app code changes, and marketing checks skip the shared queue with `CARETOOK_BROWSER_SLOTS=4`.
+
+Wave 2 notes: screenshots are SVG placeholders (`public/screenshots/<name>.svg`) until launch (B-40; the generator `marketing-screenshots.mjs` is kept). Providers is a main feature on `/features` (it's in `dev`); medications stays coming soon. The legal pages have `[Review: …]` notes for the user: what account deletion removes, soft-deleted entries not purged, and group deletion untested end to end. B-30 has a note: `invites` slice 3's consent screen links to `/privacy` and `/health-data-privacy`. In-page hash links on marketing pages use React Router `Link`, or ScrollRestoration jumps back.
+
+Wave 3 notes: the sync with `dev` brought `medications`' migration 0013, so the waitlist and contact migration is 0014 (the same SQL, regenerated). Home's JS grew about 11 KB gzipped (the oRPC client and `PublicForm`). The CSV export has no row cap. Dates on the admin waitlist are UTC.
 
 ## Architectural decisions
 

@@ -7,19 +7,23 @@ import { sql } from "drizzle-orm";
 import { check, foreignKey, index, jsonb, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { audits, enumCheck, timestamps } from "./columns";
+import { medicationSchema } from "./medication";
 import { isYjsUpdate } from "./noteYjs";
 import { providerSchema } from "./provider";
 import { timelineEntrySchema } from "./timelineEntry";
 
-// Live documents: collaborative notes attached to a timeline entry or to a
-// provider (see noteYjs.ts for the Yjs side). Only notes and events have one
+// Live documents: collaborative notes attached to a timeline entry, a
+// provider or a medication (see noteYjs.ts for the Yjs side). Only notes and events have one
 // among entries.
 export const NOTE_DOCUMENT_KINDS = ["note", "event"] as const satisfies readonly TimelineEntryKind[];
 export const canHaveNoteDocument = (kind: string): kind is (typeof NOTE_DOCUMENT_KINDS)[number] =>
   (NOTE_DOCUMENT_KINDS as readonly string[]).includes(kind);
 
-/** What a document belongs to: an entry (its text), or a provider (shared notes about them). */
-export const NOTE_DOCUMENT_SUBJECTS = ["entry", "provider"] as const;
+/**
+ * What a document belongs to: an entry (its text), a provider (shared notes
+ * about them) or a medication (shared notes about it).
+ */
+export const NOTE_DOCUMENT_SUBJECTS = ["entry", "provider", "medication"] as const;
 export type NoteDocumentSubject = (typeof NOTE_DOCUMENT_SUBJECTS)[number];
 
 // One live document per entry or provider, and its id **is** the owner's id. Two
@@ -34,8 +38,9 @@ export type NoteDocumentSubject = (typeof NOTE_DOCUMENT_SUBJECTS)[number];
 // from the updates compaction folds in, so "who's typing" (noteEditors.ts)
 // outlives the deleted updates. System only, like the snapshot.
 //
-// `subject` says which owner column is set: `entry_id` or `provider_id`, each
-// equal to `id` (a check enforces it), each with its own cascading FK.
+// `subject` says which owner column is set: `entry_id`, `provider_id` or
+// `medication_id`, each equal to `id` (a check enforces it), each with its
+// own cascading FK.
 //
 // Deleting the owner (hard) cascades. A soft-deleted owner hides its document.
 export const noteDocumentSchema = pgTable(
@@ -48,6 +53,7 @@ export const noteDocumentSchema = pgTable(
     // Exactly one is set, and equals `id`.
     entryId: uuid("entry_id"),
     providerId: uuid("provider_id"),
+    medicationId: uuid("medication_id"),
     snapshot: text("snapshot"),
     text: text("text").notNull().default(""),
     editors: jsonb("editors").$type<NoteEditors>().notNull().default({}),
@@ -66,11 +72,17 @@ export const noteDocumentSchema = pgTable(
       columns: [t.groupId, t.providerId],
       foreignColumns: [providerSchema.groupId, providerSchema.id],
     }).onDelete("cascade"),
+    foreignKey({
+      name: "note_document_medication_fk",
+      columns: [t.groupId, t.medicationId],
+      foreignColumns: [medicationSchema.groupId, medicationSchema.id],
+    }).onDelete("cascade"),
     enumCheck("note_document_subject_check", t.subject, NOTE_DOCUMENT_SUBJECTS),
     check(
       "note_document_owner_check",
-      sql`(${t.subject} = 'entry' AND ${t.entryId} = ${t.id} AND ${t.providerId} IS NULL)
-        OR (${t.subject} = 'provider' AND ${t.providerId} = ${t.id} AND ${t.entryId} IS NULL)`,
+      sql`(${t.subject} = 'entry' AND ${t.entryId} = ${t.id} AND ${t.providerId} IS NULL AND ${t.medicationId} IS NULL)
+        OR (${t.subject} = 'provider' AND ${t.providerId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.medicationId} IS NULL)
+        OR (${t.subject} = 'medication' AND ${t.medicationId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.providerId} IS NULL)`,
     ),
     // Target of note_update's composite FK.
     unique("note_document_group_id_id_unique").on(t.groupId, t.id),
@@ -121,7 +133,7 @@ export const NOTE_LIMITS = {
   updateChars: 1_000_000,
 } as const;
 
-/** Add a live document to an entry or a provider. `id` is the owner's id; the subject defaults to an entry. */
+/** Add a live document to an entry, a provider or a medication. `id` is the owner's id; the subject defaults to an entry. */
 export const noteDocumentCreateZSchema = z.strictObject({
   id: z.uuid(),
   groupId: z.uuid(),

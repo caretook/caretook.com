@@ -297,6 +297,40 @@ export const PERMISSIONS: Permissions = {
     update: SYSTEM_ONLY_ENTRY,
     delete: SYSTEM_ONLY_ENTRY,
   },
+
+  // The group's medication list. Any writer adds, edits and deletes any
+  // medication; deletes are soft (medicationModel.remove sets deletedAt under
+  // this delete permission), so its doses and changes keep its name. Write
+  // through medicationService, which checks the prescriber and pharmacy and
+  // writes the timeline's change entry.
+  medicationSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+    },
+    delete: groupEntry(WRITERS),
+  },
+  // The marketing site's waitlist and contact messages: what visitors typed
+  // into the public forms. Written only by the system (waitlistService.join,
+  // contactMessageService.send); read, and removed on request, by staff.
+  waitlistEntrySchema: {
+    create: SYSTEM_ONLY_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: ADMIN_ONLY_PERMISSION_ENTRY,
+  },
+  contactMessageSchema: {
+    create: SYSTEM_ONLY_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: ADMIN_ONLY_PERMISSION_ENTRY,
+  },
 };
 
 // ---------------------------------------------------------------------------

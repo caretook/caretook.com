@@ -31,6 +31,7 @@ export async function action({ request }: Route.ActionArgs): Promise<AdminAction
       groupName: field("groupName"),
       recipientName: field("recipientName"),
       ownerEmail: field("ownerEmail"),
+      timeZone: field("timeZone") || null,
       attested: true,
     });
     return {
@@ -51,6 +52,10 @@ export default function NewGroup({ actionData }: Route.ComponentProps) {
         className="card-body gap-1"
         data-admin-form="newGroup"
         key={actionData?.ok ? "done" : "form"}
+        onSubmit={(event) => {
+          const zone = event.currentTarget.elements.namedItem("timeZone");
+          if (zone instanceof HTMLInputElement) zone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }}
       >
         <h1 id="new-group" className="card-title">
           New care group
@@ -58,6 +63,8 @@ export default function NewGroup({ actionData }: Route.ComponentProps) {
         <p className="text-base-content/70 text-sm">
           For a family set up by hand. Its owner gets an email invitation; you won't be a member.
         </p>
+        {/* The action runs on the server, so the recipient's zone is this browser's, filled in on submit. */}
+        <input type="hidden" name="timeZone" defaultValue="" />
         <Field label="Group name" error={issueFor(actionData, "groupName")}>
           {(control) => (
             <input {...control} name="groupName" className="input w-full" maxLength={120} required />

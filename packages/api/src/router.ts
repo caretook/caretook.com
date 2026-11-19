@@ -26,7 +26,9 @@ import { authedProcedure } from "./procedures";
 import { invite } from "./invites";
 import { joinRequest } from "./joinRequests";
 import { accessCode, admin, createCareGroup } from "./groups";
+import { publicForms } from "./publicForms";
 import { sync } from "./sync";
+import { waitlistAdmin } from "./waitlistAdmin";
 
 const id = z.uuid();
 const ids = (values: string[]) => ({ type: "inArray" as const, value: values });
@@ -309,5 +311,15 @@ const timeline = {
   }),
 };
 
-export const router = { me, careGroup, timeline, sync, invite, joinRequest, accessCode, admin };
+export const router = {
+  me,
+  careGroup,
+  timeline,
+  sync,
+  invite,
+  joinRequest,
+  accessCode,
+  admin: { ...admin, waitlist: waitlistAdmin },
+  public: publicForms,
+};
 export type Router = typeof router;

@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import { MARKETING_LINKS } from "../site/pages";
 import { MarketingIcon } from "./icons";
 import type {
-  ComingSoonContent,
   Cta,
   CtaBandContent,
   FeatureGridContent,
@@ -165,26 +164,6 @@ export function CtaBand({ content, tone = "plain" }: { content: CtaBandContent; 
           </div>
         )}
       </div>
-    </section>
-  );
-}
-
-/** A placeholder page: one `h1`, a line of copy, and the way back. */
-export function ComingSoon({ content }: { content: ComingSoonContent }) {
-  return (
-    <section aria-labelledby="page-heading" className={`${CONTAINER} py-14 sm:py-20`}>
-      <h1 id="page-heading" className="text-4xl font-bold tracking-tight">
-        {content.heading}
-      </h1>
-      <p className="mt-4 max-w-2xl leading-relaxed text-base-content/80">{content.lead}</p>
-      <p className="mt-8 flex flex-wrap gap-3">
-        <Link to="/" className="btn btn-ghost">
-          Back to home
-        </Link>
-        <Link to={MARKETING_LINKS.waitlist} className="btn btn-primary">
-          Join the waitlist
-        </Link>
-      </p>
     </section>
   );
 }

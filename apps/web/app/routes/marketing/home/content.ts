@@ -6,6 +6,7 @@ import type {
   PageMeta,
   PromiseContent,
   StepsContent,
+  WaitlistBandContent,
 } from "../sections/types";
 import { MARKETING_LINKS } from "../site/pages";
 
@@ -129,10 +130,21 @@ export const homeContent = {
   waitlist: {
     id: "waitlist",
     heading: "Join the waitlist",
-    body: "We're letting families in a few at a time. Leave your email and we'll tell you when there's room for yours.",
-    note: "The waitlist opens soon.",
+    body: "We're letting families in a few at a time. Leave your email and we'll tell you when there's room for yours. We won't send you anything else.",
+    form: {
+      email: { label: "Email" },
+      firstName: { label: "First name" },
+      caringFor: { label: "Who do you care for?", none: "Choose one" },
+      heardFrom: { label: "How did you hear about Caretook?" },
+      submit: "Join the waitlist",
+      sending: "Joining…",
+      thanks: {
+        heading: "Thanks, you're on the list.",
+        body: "We'll email you when there's room for your family. If you signed up before, we've updated your details.",
+      },
+    },
     actions: [{ label: "Have an access code?", href: MARKETING_LINKS.join }],
-  } satisfies CtaBandContent,
+  } satisfies WaitlistBandContent,
 };
 
 export type HomeContent = typeof homeContent;

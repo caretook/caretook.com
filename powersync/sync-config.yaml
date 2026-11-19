@@ -26,7 +26,9 @@ streams:
       - SELECT id, name FROM care_group WHERE id IN my_groups
       # `invited_by` and `created_at`: who invited each member and when they joined (the Members page).
       - SELECT id, group_id, user_id, role, invited_by, created_at FROM care_group_member WHERE group_id IN my_groups
-      - SELECT id, group_id, name, preferred_name FROM care_recipient WHERE group_id IN my_groups
+      # `time_zone`: a medication's schedule times are in the recipient's zone.
+      # `date_of_birth`: the printable medication sheet works offline.
+      - SELECT id, group_id, name, preferred_name, time_zone, date_of_birth FROM care_recipient WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, recipient_id, kind, occurred_at, time_zone, title, body, details,
         deleted_at, created_at, updated_at, created_by, updated_by
@@ -34,10 +36,11 @@ streams:
       # Live documents: the compacted snapshot and every pending Yjs update,
       # so any document opens and edits offline. Viewers get them too (read-only).
       # `editors` (who edited, and when) carries "who's typing" past compaction.
-      # `subject` says whose document it is: an entry's (`entry_id`) or a provider's (`provider_id`).
+      # `subject` says whose document it is: an entry's (`entry_id`), a provider's
+      # (`provider_id`) or a medication's (`medication_id`).
       - >-
         SELECT id, group_id, snapshot, text, editors, created_at, updated_at, created_by, updated_by,
-        subject, entry_id, provider_id
+        subject, entry_id, provider_id, medication_id
         FROM note_document WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, document_id, data, created_at, created_by
@@ -52,6 +55,14 @@ streams:
       - >-
         SELECT id, group_id, entry_id, provider_id, created_at, updated_at, created_by, updated_by
         FROM timeline_entry_provider WHERE group_id IN my_groups
+      # The medication list, soft-deleted ones included (so deletes reach
+      # devices, and doses and changes on the timeline can still show the name).
+      - >-
+        SELECT id, group_id, recipient_id, name, strength, form, dose, directions, reason, schedule,
+        status, started_on, stopped_on, stop_reason, stop_note, prescriber_id, pharmacy_id,
+        last_filled_on, quantity, refills_left, rx_number,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM medication WHERE group_id IN my_groups
 
   # Co-members' public profiles (name and picture) for author names.
   member_profiles:

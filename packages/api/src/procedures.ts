@@ -2,8 +2,12 @@ import type { AuthUser } from "@caretook/data";
 
 import { ORPCError, os } from "@orpc/server";
 
-/** Per-request context. The mount point resolves the session; procedures never read requests. */
-export type ApiContext = { authUser: AuthUser | null };
+/**
+ * Per-request context. The mount point resolves the session (and the
+ * caller's IP address, for the public forms' rate limit); procedures never
+ * read requests.
+ */
+export type ApiContext = { authUser: AuthUser | null; clientIp?: string | null };
 
 export const publicProcedure = os.$context<ApiContext>();
 

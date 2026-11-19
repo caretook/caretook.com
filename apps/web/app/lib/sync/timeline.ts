@@ -12,6 +12,7 @@ import type { SyncDb } from "./index";
 import { isKnownReading, timelineEntryContentZSchema } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { isEntryKind } from "../entryDisplay";
+import { TIMELINE_KINDS } from "../timelineFilters";
 import { timelineEntries } from "./schema";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
@@ -116,6 +117,13 @@ export type LocalQuery = { sql: string; params: unknown[] };
 export type EntryFilters = { kind: TimelineEntryKind | null; author: string | null };
 
 /**
+ * The kinds the timeline shows, as SQL (`TIMELINE_KINDS`). The timeline's
+ * window leaves the other kinds out here, not after loading, so a day of
+ * doses never shortens a page.
+ */
+export const SHOWN_KINDS_SQL = `kind IN (${TIMELINE_KINDS.map((k) => `'${k}'`).join(", ")})`;
+
+/**
  * The timeline's window: one group's live entries under the filters, newest
  * first, as the tail of a `SELECT … FROM timeline_entry`. `entriesQuery` and
  * `timelineLinksQuery` are both built on it, so the "with …" lines always
@@ -128,6 +136,8 @@ export const entryWindow = (groupId: string, filters: EntryFilters, limit: numbe
   if (filters.kind) {
     conditions.push("kind = ?");
     params.push(filters.kind);
+  } else {
+    conditions.push(SHOWN_KINDS_SQL);
   }
   if (filters.author) {
     conditions.push("created_by = ?");
