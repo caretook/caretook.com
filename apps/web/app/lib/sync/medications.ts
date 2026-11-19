@@ -30,6 +30,7 @@ import {
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
+import { dayInZone } from "../zonedDay";
 import { newProviderRow } from "./providers";
 import { medications, noteDocuments, providers, timelineEntries } from "./schema";
 import {
@@ -298,58 +299,9 @@ export const recipientQuery = (groupId: string): LocalQuery => ({
 // Days in the recipient's zone
 // ---------------------------------------------------------------------------
 
-const zoneParts = (date: Date, timeZone: string) => {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      hourCycle: "h23",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    })
-      .formatToParts(date)
-      .map((p) => [p.type, p.value]),
-  );
-  return {
-    day: `${parts.year}-${parts.month}-${parts.day}`,
-    asUtc: Date.UTC(
-      Number(parts.year),
-      Number(parts.month) - 1,
-      Number(parts.day),
-      Number(parts.hour),
-      Number(parts.minute),
-      Number(parts.second),
-    ),
-  };
-};
-
-/** The calendar day ("YYYY-MM-DD") it is in `timeZone` at `now`. */
-export const dayInZone = (now: Date, timeZone: string) => zoneParts(now, timeZone).day;
-
-/** The moment a "YYYY-MM-DD" day starts in `timeZone` (DST-safe: it settles on the zone's own offset). */
-const startOfDay = (day: string, timeZone: string) => {
-  const [y, m, d] = day.split("-").map(Number);
-  const wall = Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1);
-  let guess = wall;
-  for (let i = 0; i < 3; i++) {
-    guess += wall - zoneParts(new Date(guess), timeZone).asUtc;
-  }
-  return new Date(guess);
-};
-
-/**
- * The day it is in `timeZone` at `now`, as `[from, to)` moments, for
- * `groupDosesQuery`. A day is 23 or 25 hours long when the clocks change.
- */
-export const dayBounds = (now: Date, timeZone: string) => {
-  const day = dayInZone(now, timeZone);
-  const [y, m, d] = day.split("-").map(Number);
-  const next = new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, (d ?? 1) + 1)).toISOString().slice(0, 10);
-  return { day, from: startOfDay(day, timeZone), to: startOfDay(next, timeZone) };
-};
+// The recipient's day (`dayInZone`) and its `[from, to)` moments for
+// `groupDosesQuery` (`dayBounds`), DST-safe: see `lib/zonedDay.ts`.
+export { dayBounds, dayInZone } from "../zonedDay";
 
 // ---------------------------------------------------------------------------
 // Writes

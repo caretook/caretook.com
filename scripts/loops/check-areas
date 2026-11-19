@@ -125,6 +125,10 @@ apps/web/app/routes/app/groups/timeline/DoseForm.tsx medications
 apps/web/app/routes/app/groups/timeline/doseFormData.ts medications
 apps/web/app/components/entry/MedicationEntryText.tsx medications phase2
 apps/web/app/lib/sync/medicationTimeline.ts medications phase2
+# Today and the Due now strip (medications slice 5).
+apps/web/app/routes/app/groups/timeline/DueNowStrip.tsx medications phase2
+apps/web/app/routes/app/groups/timeline/useDueNow.ts medications phase2
+apps/web/app/lib/sync/dueDoses.ts        medications phase2
 # The timeline's Next strip and Upcoming block, and the data they share with the history.
 apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
 apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
