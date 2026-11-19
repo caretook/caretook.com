@@ -137,7 +137,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-94 | change | triaged | quick-fixes |  | Account forms, sign-in and the marketing menu button onto the ui primitives |
 | B-95 | chore | triaged | quick-fixes |  | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
 | B-96 | change | inbox |  |  | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
-| B-97 | change | inbox |  |  | Vitals filter on timeline should bring up a sub-filter for vital type. |
+| B-97 | change | triaged | quick-fixes |  | Vitals filter on timeline should bring up a sub-filter for vital type. |
 
 ## Items
 
@@ -1221,7 +1221,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-97 · change · Vitals filter on timeline should bring up a sub-filter for vital type.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
