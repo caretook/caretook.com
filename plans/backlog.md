@@ -1114,6 +1114,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (backlog planner): From the inbox: PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the user wants to prompt for landing or just work through everything and which slices to land automatically. Add command to spin up new planning session.
+- 2026-11-19 (backlog planner): Built directly on dev (uncommitted until the user says): GitHub-issue steps removed from AGENTS.md, the guide and the medications-2 PRD; the orchestrator prompt now asks for a landing mode (ask each time, run everything through, or land chosen waves/slices automatically) and records it in the plan's Status; pnpm prd plan <topic> --open [B-n…] starts a planning session (prompt.sh plan) that interviews, writes, lands and cleans up; plus pnpm prd queue <topic> (wait for a slot, then a run-through orchestrator).
 
 ### B-89 · feature · PRD tooling streamlining. We are using way too many resources for full docker stacks and browser…
 
