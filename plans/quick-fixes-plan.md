@@ -40,13 +40,13 @@
 | 32    | B-95 | merged             | 420d5e9 (280d527)                                     |
 | 33    | B-83 | running            |                                                       |
 | 34    | B-90 | wave 10            |                                                       |
-| 35    | B-94 | running            |                                                       |
+| 35    | B-94 | merged             | 1fc9168 (81fdddf)                                     |
 | 36    | B-97 | running            |                                                       |
-| 37    | B-96 | wave 10 (after 35) |                                                       |
+| 37    | B-96 | running            |                                                       |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
-Wave 9 restarted 2026-11-19 11:10 after the previous orchestrator's session and every Docker stack stopped: slice 32 was committed and is merged; loops for 28–31 were respawned to finish the uncommitted work left in their worktrees (stacks restarted). 28 and 30 merged; their stacks went to wave 10's 35 and 33, started early. AGENTS.md at landing: `session-end.mjs` in the session row; `lib/session.ts`'s 3-day offline cap and wipe on signed-out, `wipeDevice` the one sign-out path; drop "units still save online only". Slice 31 merged ahead of 29 (no shared files) to free its stack for 36; `cdp.mjs` commands now time out at 120 s (`CDP_TIMEOUT_MS`). Open from 31: seeded entry-provider links can share a millisecond `created_at`, so recency ranks can tie.
+Wave 9 restarted 2026-11-19 11:10 after the previous orchestrator's session and every Docker stack stopped: slice 32 was committed and is merged; loops for 28–31 were respawned to finish the uncommitted work left in their worktrees (stacks restarted). 28 and 30 merged; their stacks went to wave 10's 35 and 33, started early. AGENTS.md at landing: `session-end.mjs` in the session row; `lib/session.ts`'s 3-day offline cap and wipe on signed-out, `wipeDevice` the one sign-out path; drop "units still save online only". Slice 31 merged ahead of 29 (no shared files) to free its stack for 36; `cdp.mjs` commands now time out at 120 s (`CDP_TIMEOUT_MS`). Open from 31: seeded entry-provider links can share a millisecond `created_at`, so recency ranks can tie. Slice 35 merged: light pages import `Field`/`IconButton` from `~/components/ui/plain` (AGENTS.md _Components_ at landing; drop them from "not yet on the primitives"); `IconButton` has `size`; checks select account inputs by `name`. Docker hit 21 networks starting 37: the integration worktree's stack (loop4) was stopped to make room; restart it (`pnpm datastore:start && pnpm datastore:start:test`) before landing. Slice 34 waits for a free stack.
 
 Waves 1–8 (slices 1–27) are all in `dev` (wave 8 as 9ffb9d8). Wave 9 (slices 28–32) and wave 10 (33–37) were written 2026-11-19 from the items triaged to quick-fixes; split in two to stay under Docker's network limit (about five stacks at once beside care-periods and medications-2). Slice 32 runs without a stack.
 
