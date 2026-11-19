@@ -109,12 +109,14 @@ const webRoutes = [
   route("dev/mail", "routes/dev/mail/list/route.tsx"),
   route("dev/mail.json", "routes/dev/mail/json/route.ts"),
   route("dev/mail/:id", "routes/dev/mail/message/route.tsx"),
-  // Caretook staff only (global admin): access codes and staff-made groups.
+  // Caretook staff only (admin and support): accounts, groups, access codes,
+  // staff-made groups, the waitlist, the audit log and settings.
   layout("routes/admin/layout/route.tsx", { id: "admin" }, [
     route("admin", "routes/admin/index/route.tsx"),
     route("admin/access-codes", "routes/admin/access-codes/route.tsx"),
     route("admin/new-group", "routes/admin/new-group/route.tsx"),
     route("admin/waitlist", "routes/admin/waitlist/route.tsx"),
+    route("admin/audit", "routes/admin/audit/route.tsx"),
   ]),
   route("admin/access-codes/:id/print", "routes/admin/access-codes-print/route.tsx"),
   route("admin/waitlist/export", "routes/admin/waitlist-export/route.ts"),
