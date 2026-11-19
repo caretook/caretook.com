@@ -29,6 +29,12 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Seed data with multiple care groups and user mix for improved manual testing. (B-90)
 - Email link and code shouldn't really be two different login options, should they? Can't we email a link and a code at the same time? (B-96)
 - Vitals filter on timeline should bring up a sub-filter for vital type. (B-97)
+- Hide add to timeline buttons behind a + icon in the timeline header. (B-98)
+- Don't display recent vitals in the timeline header in mobile, (B-99)
+- Add "recent vita averages" to the profile page. (B-100)
+- Hide add to timeline buttons behind a + icon in the timeline header. (B-101)
+- Don't display recent vitals in the timeline header in mobile, (B-102)
+- Add "recent vita averages" to the profile page. (B-103)
 
 ## Feature requests
 

@@ -138,6 +138,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-95 | chore | in-progress | quick-fixes | prd/quick-fixes | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
 | B-96 | change | triaged | quick-fixes |  | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
 | B-97 | change | triaged | quick-fixes |  | Vitals filter on timeline should bring up a sub-filter for vital type. |
+| B-98 | change | inbox |  |  | Hide add to timeline buttons behind a + icon in the timeline header. |
+| B-99 | change | inbox |  |  | Don't display recent vitals in the timeline header in mobile, |
+| B-100 | change | inbox |  |  | Add "recent vita averages" to the profile page. |
+| B-101 | change | inbox |  |  | Hide add to timeline buttons behind a + icon in the timeline header. |
+| B-102 | change | inbox |  |  | Don't display recent vitals in the timeline header in mobile, |
+| B-103 | change | inbox |  |  | Add "recent vita averages" to the profile page. |
 
 ## Items
 
@@ -1229,3 +1235,45 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (prd/quick-fixes): Proposed for quick-fixes (orchestrator): one slice. With ?kind=vital, a second chip row of vital types (VITAL_TYPES, only types present in the group) as ?vital=<type> through lib/timelineFilters; entries filtered by json_each on details.readings. Overlaps care-periods' search slice on timelineFilters (additive).
+
+### B-98 · change · Hide add to timeline buttons behind a + icon in the timeline header.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-99 · change · Don't display recent vitals in the timeline header in mobile,
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-100 · change · Add "recent vita averages" to the profile page.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-101 · change · Hide add to timeline buttons behind a + icon in the timeline header.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-102 · change · Don't display recent vitals in the timeline header in mobile,
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-103 · change · Add "recent vita averages" to the profile page.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
