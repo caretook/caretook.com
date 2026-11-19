@@ -6,7 +6,8 @@ import { getAuth } from "./auth";
 /**
  * Resolve a request's session (cookie or bearer token) to the AuthUser that
  * services expect: global role plus a role per care group. Returns null when
- * there's no valid session.
+ * there's no valid session, or the account is disabled (admin PRD: its
+ * sessions are revoked when it's disabled; this covers one already in use).
  *
  * `groupRoles` is for UI checks only; the model layer re-checks membership
  * in SQL on every query.
@@ -17,7 +18,7 @@ export const getAuthUser = async (headers: Headers): Promise<AuthUser | null | A
 
   const user = await userModel.getById(session.user.id, { authUser: SYSTEM_USER });
   if (isError(user)) return user;
-  if (!user) return null;
+  if (!user || user.disabledAt) return null;
 
   const memberships = await careGroupMemberModel.list({
     authUser: SYSTEM_USER,
