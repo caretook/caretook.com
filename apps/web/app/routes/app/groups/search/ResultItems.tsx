@@ -1,11 +1,13 @@
 import type { EntryResult, ProviderResult } from "./loadSearch";
-import type { UnitChoices } from "@caretook/data/schema";
+import type { ParsedSearch, Snippet, UnitChoices } from "@caretook/data/schema";
 import type { LocalMedication } from "~/lib/sync/medications";
 
+import { highlightRanges, notesSnippet } from "@caretook/data/schema";
 import { Pill } from "lucide-react";
 import { Link } from "react-router";
 import { EntryBody, KindIcon } from "~/components/entry";
 import { ProviderTypeIcon } from "~/components/providers";
+import { Highlight } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
 import { entryOpen, SHEET_LINK_STATE } from "~/lib/entryOpen";
@@ -19,6 +21,22 @@ const STRETCHED =
 
 const ROW = "relative isolate flex items-start gap-3 px-3 py-2.5";
 
+/** `text` with the search's matches marked. */
+const Marked = ({ text, search }: { text: string; search: ParsedSearch }) => (
+  <Highlight text={text} ranges={highlightRanges(text, search)} />
+);
+
+/** A line from the notes, around the match that's only there. */
+function NotesSnippet({ snippet }: { snippet: Snippet | null }) {
+  if (!snippet) return null;
+  return (
+    <p className="text-base-content/80 text-sm break-words" data-snippet>
+      <span className="sr-only">From the notes: </span>
+      <Highlight text={snippet.text} ranges={snippet.ranges} />
+    </p>
+  );
+}
+
 /**
  * A timeline entry as a result: its kind, what it says (as on the timeline),
  * when and who. It opens as the timeline would: a note or event's page for
@@ -31,12 +49,14 @@ export function EntryResultItem({
   canWrite,
   units,
   now,
+  search,
 }: {
   entry: EntryResult;
   groupId: string;
   canWrite: boolean;
   units: UnitChoices;
   now: Date;
+  search: ParsedSearch;
 }) {
   const open = entryOpen({ groupId, entry, canWrite, search: "" });
   const day = dayLabel(entry.occurredAt, localTimeZone(), now);
@@ -63,6 +83,7 @@ export function EntryResultItem({
         units={units}
         clamp
         providers={entry.providers}
+        search={search}
         footer={
           <p className="text-base-content/60 mt-0.5 text-xs">
             <time dateTime={entry.occurredAt}>
@@ -76,12 +97,26 @@ export function EntryResultItem({
   );
 }
 
-/** A provider as a result: name, type, specialty and practice; a past provider is marked. */
-export function ProviderResultItem({ provider }: { provider: ProviderResult }) {
+/**
+ * A provider as a result: name, type, specialty and practice; a past
+ * provider is marked. Matches are marked, and a match only in its notes
+ * shows a line from them.
+ */
+export function ProviderResultItem({
+  provider,
+  notes,
+  search,
+}: {
+  provider: ProviderResult;
+  notes?: string;
+  search: ParsedSearch;
+}) {
   const past = provider.status === "past";
   const details = [PROVIDER_TYPE_META[provider.type].label, provider.specialty, provider.practiceName].filter(
     Boolean,
   );
+  const line = details.join(" · ");
+  const snippet = notesSnippet([provider.name, line], notes, search);
   return (
     <li
       className={`${ROW} hover:bg-base-200/50`}
@@ -96,7 +131,7 @@ export function ProviderResultItem({ provider }: { provider: ProviderResult }) {
             to={appUrls.provider(provider.groupId, provider.id)}
             className={`truncate font-medium ${STRETCHED} ${past ? "text-base-content/70" : ""}`}
           >
-            {provider.name}
+            <Marked text={provider.name} search={search} />
           </Link>
           {past && (
             <span className="badge badge-ghost badge-sm shrink-0" data-marker>
@@ -104,15 +139,33 @@ export function ProviderResultItem({ provider }: { provider: ProviderResult }) {
             </span>
           )}
         </p>
-        <p className="text-base-content/70 truncate text-sm">{details.join(" · ")}</p>
+        <p className="text-base-content/70 truncate text-sm">
+          <Marked text={line} search={search} />
+        </p>
+        <NotesSnippet snippet={snippet} />
       </div>
     </li>
   );
 }
 
-/** A medication as a result: name and strength, dose and schedule; a stopped one is marked with how. */
-export function MedicationResultItem({ medication }: { medication: LocalMedication }) {
+/**
+ * A medication as a result: name and strength, dose and schedule; a stopped
+ * one is marked with how. Matches are marked, and a match only in its notes
+ * shows a line from them.
+ */
+export function MedicationResultItem({
+  medication,
+  notes,
+  search,
+}: {
+  medication: LocalMedication;
+  notes?: string;
+  search: ParsedSearch;
+}) {
   const stopped = medication.status !== "current";
+  const title = medicationTitle(medication);
+  const summary = medicationSummaryLine(medication);
+  const snippet = notesSnippet([title, summary], notes, search);
   return (
     <li
       className={`${ROW} hover:bg-base-200/50`}
@@ -132,7 +185,7 @@ export function MedicationResultItem({ medication }: { medication: LocalMedicati
             to={appUrls.medication(medication.groupId, medication.id)}
             className={`font-medium wrap-break-word ${STRETCHED} ${stopped ? "text-base-content/70" : ""}`}
           >
-            {medicationTitle(medication)}
+            <Marked text={title} search={search} />
           </Link>
           {stopped && (
             <span className="badge badge-ghost badge-sm shrink-0" data-marker>
@@ -140,7 +193,10 @@ export function MedicationResultItem({ medication }: { medication: LocalMedicati
             </span>
           )}
         </p>
-        <p className="text-base-content/70 text-sm">{medicationSummaryLine(medication)}</p>
+        <p className="text-base-content/70 text-sm">
+          <Marked text={summary} search={search} />
+        </p>
+        <NotesSnippet snippet={snippet} />
       </div>
     </li>
   );

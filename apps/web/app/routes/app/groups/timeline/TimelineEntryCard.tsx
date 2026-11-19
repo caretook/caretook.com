@@ -20,6 +20,7 @@ export function TimelineEntryCard({
   cancel,
   liveLabel,
   providers,
+  search,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -34,6 +35,7 @@ export function TimelineEntryCard({
         entry={entry}
         units={units}
         providers={providers}
+        search={search}
         className={`space-y-0.5 ${cancelled ? CANCELLED_TEXT : ""}`}
         aside={
           <>

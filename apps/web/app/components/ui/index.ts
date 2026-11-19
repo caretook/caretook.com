@@ -21,3 +21,4 @@ export { ChipList } from "./ChipList";
 export type { ListChip } from "./ChipList";
 export { ComboBox } from "./ComboBox";
 export type { ComboBoxOption } from "./ComboBox";
+export { Highlight, MARK_CLASS } from "./Highlight";

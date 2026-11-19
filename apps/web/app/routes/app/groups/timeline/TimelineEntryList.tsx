@@ -3,7 +3,8 @@ import type { TimelineEntryKind, TimelineView, UnitChoices } from "@caretook/dat
 import type { TimelineEntry } from "~/lib/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 
-import { useLayoutEffect, useRef } from "react";
+import { parseSearch } from "@caretook/data/schema";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
@@ -105,7 +106,9 @@ export function TimelineEntryList({
     emptyText,
   });
 
-  const item = (entry: TimelineEntry) => {
+  // Matches are marked in the history's rows and cards (the Upcoming block stays as it is).
+  const parsed = useMemo(() => (searching.q ? parseSearch(searching.q) : undefined), [searching.q]);
+  const item = (entry: TimelineEntry, marked = false) => {
     const open = entryOpen({ groupId, entry, canWrite, search });
     return (
       <Entry
@@ -125,6 +128,7 @@ export function TimelineEntryList({
         cancel={cancelOf(entry)}
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
+        search={marked ? parsed : undefined}
       />
     );
   };
@@ -138,7 +142,7 @@ export function TimelineEntryList({
             view={view}
             listClass={LIST_CLASS[view]}
             seeAll={upcoming.seeAll}
-            entry={item}
+            entry={(entry) => item(entry)}
           />
         </div>
       )}
@@ -169,7 +173,7 @@ export function TimelineEntryList({
               {day.label}
             </h3>
             <ol className={LIST_CLASS[view]} data-view={view}>
-              {day.entries.map(item)}
+              {day.entries.map((entry) => item(entry, true))}
             </ol>
           </section>
         ))}
