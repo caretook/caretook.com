@@ -888,6 +888,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From the invites PRD (AGENTS.md, Notifications → Before launch): turn off Resend's open and click tracking on the sending domain (not per message); SPF, DKIM and DMARC on the sending subdomain; verified bounce webhooks (Svix); a host cron for /api/cron/outbox with CRON_SECRET; and Better Auth's rate-limit storage (in-memory per serverless instance today). Part of launch work, related to B-33.
+- 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-7: shared rate-limit storage is a launch blocker (Better Auth and packages/api/src/rateLimit.ts are per instance).
 
 ### B-69 · chore · Move the New care group link state into components/groups
 
