@@ -1219,6 +1219,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (prd/medications-2): From the inbox: Email link and code shouldn't really be two different login options, should they? Can't we email a link and a code at the same time?
 - 2026-11-19 (prd/quick-fixes): Proposed for quick-fixes (orchestrator): one slice after B-94 (both touch sign-in.tsx): one 'Email me a sign-in link' option whose email carries both the link and the 6-digit code; the page then offers 'Enter the code'. Shape asked of the user.
+- 2026-11-19 (prd/quick-fixes): The user chose (2026-11-19): one 'Email me a sign-in link' option; one email with both link and code; the page then shows a code box. Slice 37, after slice 35.
 
 ### B-97 · change · Vitals filter on timeline should bring up a sub-filter for vital type.
 
