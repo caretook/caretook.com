@@ -48,7 +48,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
 | B-10 | feature | landed | timeline-polish | prd/timeline-polish | Infinite scroll through the whole timeline |
-| B-11 | feature | triaged | search |  | Search the timeline |
+| B-11 | feature | in-progress | search | prd/search | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
 | B-14 | plan | landed | providers | prd/providers | Provider links and suggestions while writing events and live notes |
@@ -251,9 +251,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-11 · feature · Search the timeline
 
-- status: triaged
+- status: in-progress
 - prd: search
-- owner:
+- owner: prd/search
 - commit:
 
 - 2026-11-17 (dev keeper): Asked for as Elasticsearch. Recommended instead: SQLite FTS5 on the device (works offline) plus Postgres full-text search on the server (API, AI). Elasticsearch is server only, another service to host, and another copy of health data. Check that PowerSync's web SQLite build has FTS5.
