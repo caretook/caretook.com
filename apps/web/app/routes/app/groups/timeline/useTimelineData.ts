@@ -92,7 +92,12 @@ export function useTimelineData({
   initial: TimelineRows;
 }): TimelineData {
   // The paging belongs to one set of filters (kind, author and search): under any other, it's one page again.
-  const filterKey = JSON.stringify([filters.kind, filters.author, filters.match ?? null]);
+  const filterKey = JSON.stringify([
+    filters.kind,
+    filters.author,
+    filters.match ?? null,
+    filters.vital ?? null,
+  ]);
   const [paging, setPaging] = useState({ filterKey, limit: PAGE_SIZE });
   const requested = paging.filterKey === filterKey ? paging.limit : PAGE_SIZE;
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { historyWindow, pastEventsWindow, upcomingWindow } from "./timeline";
+import { timelineMedicationsQuery } from "./medicationTimeline";
+import { timelineLinksQuery } from "./providers";
+import { entryWindow, historyWindow, pastEventsWindow, upcomingWindow } from "./timeline";
 
 // The history, upcoming and past-events windows: their conditions and
 // parameters, with and without the kind and author filters.
@@ -109,6 +111,43 @@ describe("the search (EntryFilters.match)", () => {
 
   it("no match is no condition", () => {
     expect(historyWindow(GROUP, { ...NONE, match: null }, 30, CUTOFF)).toEqual(
+      historyWindow(GROUP, NONE, 30, CUTOFF),
+    );
+  });
+});
+
+describe("the vital type (EntryFilters.vital)", () => {
+  const TYPE =
+    "EXISTS (SELECT 1 FROM json_each(details, '$.readings') r WHERE json_extract(r.value, '$.type') = ?)";
+
+  it("keeps only entries with a reading of that type, after the kind and author", () => {
+    const window = historyWindow(
+      GROUP,
+      { kind: "vital", author: AUTHOR, vital: "bloodPressure" },
+      30,
+      CUTOFF,
+    );
+    expect(one(window.sql)).toContain(`AND kind = ? AND created_by = ? AND ${TYPE} AND (NOT kind`);
+    expect(window.params).toEqual([GROUP, "vital", AUTHOR, "bloodPressure", local(CUTOFF), 31]);
+  });
+
+  it("is in the shared window (entryWindow), so the links and medications follow it", () => {
+    const window = entryWindow(GROUP, { kind: "vital", author: null, vital: "weight" }, 30);
+    expect(one(window.sql)).toBe(
+      `FROM timeline_entry WHERE group_id = ? AND deleted_at IS NULL AND kind = ? AND ${TYPE} ` +
+        "ORDER BY occurred_at DESC, id DESC LIMIT ?",
+    );
+    expect(window.params).toEqual([GROUP, "vital", "weight", 31]);
+    expect(
+      one(timelineLinksQuery(GROUP, { kind: "vital", author: null, vital: "weight" }, 30, CUTOFF).sql),
+    ).toContain(TYPE);
+    expect(
+      one(timelineMedicationsQuery(GROUP, { kind: "vital", author: null, vital: "weight" }, 30, CUTOFF).sql),
+    ).toContain(TYPE);
+  });
+
+  it("no type is no condition", () => {
+    expect(historyWindow(GROUP, { ...NONE, vital: null }, 30, CUTOFF)).toEqual(
       historyWindow(GROUP, NONE, 30, CUTOFF),
     );
   });
