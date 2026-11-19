@@ -4,45 +4,45 @@
 
 ## Status
 
-| Slice | Item | State                                       | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ---- | ------------------------------------------- | ----------------------------------------------------- |
-| 1     | B-1  | merged                                      | 1e00754 (5ab3b67)                                     |
-| 2     | B-17 | merged                                      | 4629e8c (32355db)                                     |
-| 3     | B-22 | merged                                      | b0325d0 (46ef320)                                     |
-| 4     | B-28 | merged                                      | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29 | merged                                      | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34 | merged                                      | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27 | merged                                      | 75127be (004abfe)                                     |
-| 8     | B-35 | merged                                      | 6dcc71d (7c0725f)                                     |
-| 9     | B-36 | merged                                      | e6fc148 (cc12901)                                     |
-| 10    | B-39 | merged                                      | 2052075 (1870973, 9e7d83b)                            |
-| 11    | B-38 | merged                                      | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41 | merged                                      | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42 | merged                                      | 94ce803 (eccbd1a)                                     |
-| 14    | B-37 | merged                                      | 9c08e01 (cf1f804)                                     |
-| 15    | B-71 | landed                                      | 23e1be2 (wave 7)                                      |
-| 16    | B-72 | landed                                      | 23e1be2 (wave 7)                                      |
-| 17    | B-44 | landed                                      | 23e1be2 (wave 7)                                      |
-| 18    | B-73 | merged                                      | 59f380a (f6a783e)                                     |
-| 19    | B-67 | merged                                      | 0ddaaa7 (46e8be0)                                     |
-| 20    | B-74 | merged                                      | 679fa87 (d7a1631)                                     |
-| 21    | B-70 | merged                                      | 27c2c74 (62a459a)                                     |
-| 22    | B-81 | merged                                      | 376f8b7 (22470b8)                                     |
-| 23    | B-82 | merged                                      | 5047c71 (8d6f089)                                     |
-| 24    | B-64 | merged                                      | 290fd21 (fbbf94f)                                     |
-| 25    | B-69 | merged                                      | 2431a55 (14da487)                                     |
-| 26    | B-78 | merged                                      | 17a89b1 (484d825)                                     |
-| 27    | B-65 | merged                                      | 5d8af6e (07ab7bf)                                     |
-| 28    | B-79 | wave 9                                      |                                                       |
-| 29    | B-80 | wave 9                                      |                                                       |
-| 30    | B-92 | wave 9                                      |                                                       |
-| 31    | B-93 | wave 9                                      |                                                       |
-| 32    | B-95 | wave 9                                      |                                                       |
-| 33    | B-83 | wave 10                                     |                                                       |
-| 34    | B-90 | wave 10                                     |                                                       |
-| 35    | B-94 | wave 10 (after 28)                          |                                                       |
-| 36    | B-97 | wave 10                                     |                                                       |
-| 37    | B-96 | wave 10 (after 35; shape asked of the user) |                                                       |
+| Slice | Item | State              | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ---- | ------------------ | ----------------------------------------------------- |
+| 1     | B-1  | merged             | 1e00754 (5ab3b67)                                     |
+| 2     | B-17 | merged             | 4629e8c (32355db)                                     |
+| 3     | B-22 | merged             | b0325d0 (46ef320)                                     |
+| 4     | B-28 | merged             | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29 | merged             | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34 | merged             | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27 | merged             | 75127be (004abfe)                                     |
+| 8     | B-35 | merged             | 6dcc71d (7c0725f)                                     |
+| 9     | B-36 | merged             | e6fc148 (cc12901)                                     |
+| 10    | B-39 | merged             | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38 | merged             | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41 | merged             | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42 | merged             | 94ce803 (eccbd1a)                                     |
+| 14    | B-37 | merged             | 9c08e01 (cf1f804)                                     |
+| 15    | B-71 | landed             | 23e1be2 (wave 7)                                      |
+| 16    | B-72 | landed             | 23e1be2 (wave 7)                                      |
+| 17    | B-44 | landed             | 23e1be2 (wave 7)                                      |
+| 18    | B-73 | merged             | 59f380a (f6a783e)                                     |
+| 19    | B-67 | merged             | 0ddaaa7 (46e8be0)                                     |
+| 20    | B-74 | merged             | 679fa87 (d7a1631)                                     |
+| 21    | B-70 | merged             | 27c2c74 (62a459a)                                     |
+| 22    | B-81 | merged             | 376f8b7 (22470b8)                                     |
+| 23    | B-82 | merged             | 5047c71 (8d6f089)                                     |
+| 24    | B-64 | merged             | 290fd21 (fbbf94f)                                     |
+| 25    | B-69 | merged             | 2431a55 (14da487)                                     |
+| 26    | B-78 | merged             | 17a89b1 (484d825)                                     |
+| 27    | B-65 | merged             | 5d8af6e (07ab7bf)                                     |
+| 28    | B-79 | wave 9             |                                                       |
+| 29    | B-80 | wave 9             |                                                       |
+| 30    | B-92 | wave 9             |                                                       |
+| 31    | B-93 | wave 9             |                                                       |
+| 32    | B-95 | wave 9             |                                                       |
+| 33    | B-83 | wave 10            |                                                       |
+| 34    | B-90 | wave 10            |                                                       |
+| 35    | B-94 | wave 10 (after 28) |                                                       |
+| 36    | B-97 | wave 10            |                                                       |
+| 37    | B-96 | wave 10 (after 35) |                                                       |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
@@ -907,6 +907,16 @@ Both checks passed against the dev server minutes later, from the same code. So 
 
 **Problem** (the user's words). "Email link and code shouldn't really be two different login options, should they? Can't we email a link and a code at the same time?"
 
-**Build.** Shape to confirm with the user before starting (see _Status_).
+**Build** (the user's choice, 2026-11-19: one email with the link and the code).
+
+- The sign-in page has one **Email me a sign-in link** option in place of the separate link and code options. One request sends **one email** holding both the magic link and a 6-digit code (Better Auth's `magicLink` and `emailOTP` stay; generate both in one server call, e.g. a small auth endpoint or a combined `notify` template, so only one email goes out; keep `useSubmitOnce`, the same answer whether or not an account exists, and both tokens hashed).
+- After sending, the page says "Check your email" and shows a **code box**, so the code works when the email is opened on another device. The link signs in as today.
+- One template (`signInEmail` or the `magicLink` one extended) with both, plain text too; retire the unused template only if nothing else sends it.
+
+**Acceptance criteria.**
+
+- [ ] One press → one email in `/dev/mail.json` with a link and a code; either signs in; a double press still sends one.
+- [ ] An unknown address gets the same page and no email.
+- [ ] `invites.mjs`' emailed-link and emailed-code steps updated; `sign-in` and `invites` pass; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
 
 **Blocks:** none. **Blocked by:** slice 35.
