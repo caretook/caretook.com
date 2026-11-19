@@ -83,7 +83,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
 | B-43 | change | ready | medications | prd/medications | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
 | B-44 | change | ready | quick-fixes | prd/quick-fixes | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
-| B-45 | change | triaged | profiles |  | birthdate, contact information, address, and insurance information should optionally be added to… |
+| B-45 | change | in-progress | profiles | prd/profiles | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | triaged | profiles |  | optional phone number, address, etc on group members that can be published to the group for… |
 | B-47 | feature | ready | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
@@ -658,9 +658,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-45 · change · birthdate, contact information, address, and insurance information should optionally be added to…
 
-- status: triaged
+- status: in-progress
 - prd: profiles
-- owner:
+- owner: prd/profiles
 - commit:
 
 - 2026-11-18 (prd/marketing): From the inbox: birthdate, contact information, address, and insurance information should optionally be added to the patient profile.
