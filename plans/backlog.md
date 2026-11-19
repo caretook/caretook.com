@@ -131,7 +131,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-87 | plan | triaged | assistant |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 | B-88 | change | triaged | orchestration |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
 | B-89 | feature | triaged | orchestration |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
-| B-90 | change | in-progress | quick-fixes | prd/quick-fixes | Seed data with multiple care groups and user mix for improved manual testing. |
+| B-90 | change | ready | quick-fixes | prd/quick-fixes | Seed data with multiple care groups and user mix for improved manual testing. |
 | B-91 | feature | triaged | admin |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-92 | change | ready | quick-fixes | prd/quick-fixes | Units save offline: move the Units settings page onto saveSettings |
 | B-93 | bug | ready | quick-fixes | prd/quick-fixes | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
@@ -1177,10 +1177,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-90 · change · Seed data with multiple care groups and user mix for improved manual testing.
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: dd5f4f3
 
 - 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: one slice adding a new seed file with its own ids (seeds are append-only): more groups and a mix of users and roles (a user in three groups, an admin-only group member, a viewer in two groups, an empty group). Existing seeded users' memberships stay as they are, because browser checks rely on them (member@ has two groups; caretaker@ and viewer@ one each). Also feeds onboarding's demo group (B-31).
 - 2026-11-19 (slice/quick-fixes/34): Slice 34: seeds/moreGroups.ts adds trio@, groupadmin@, viewer2@, owner2@, solo@ (all SEED_USER_PASSWORD) in Rivera, Okafor, Chen and Solo Care; existing users' memberships unchanged.
