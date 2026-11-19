@@ -9,7 +9,7 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
 - **Layers, bottom up:**
   - `errors/`: typescript-errors, with every code in `errors/constants.ts`. Errors are **returned, not thrown**; narrow with `isError()`. Wrap db calls as `dbMayFail(() => …, code)`.
   - `permissions/`: `PERMISSIONS[table][create|read|update|delete|list][role] = all | owned | none | { group: [...] }`, plus `ownerField`, field-level write restrictions and **`groupFields`**: a read reached only through a group rule returns just those fields (`user`: `PUBLIC_PROFILE_FIELDS`, id, name, image). The model enforces it in SQL (each hidden column is `CASE WHEN <the other rules> THEN col END`; filters and orders on a hidden field match whole rows only). User reads return `publicOnly`; code that needs a co-member's email reads `userModel.getWhole*`/`listWhole` as `SYSTEM_USER` (else `userModel:notWhole`).
-    - Roles are `admin` and `member` (`user.role`), `system` and `unauthenticated`. A resolved scope is `all` or an OR of `owned`, `group` and `groupUser` rules.
+    - Roles are `admin`, `support` and `member` (`user.role`), `system` and `unauthenticated`. `support` gets `owned` wherever members do; staff-only tables use `STAFF_PERMISSION_ENTRY`. A resolved scope is `all` or an OR of `owned`, `group` and `groupUser` rules.
     - `hasPermission()` is for UI checks.
   - `models/`: `baseModel.getFunctions(...)` gives `create/get/getById/list/update/remove/upsert`, with **RBAC enforced in SQL**.
     - Every query is ANDed with the actor's scope; group rules become subqueries on `care_group_member`.
@@ -27,7 +27,7 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
   2. Add a `PERMISSIONS` entry (the type requires one).
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
-- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0019 so far.
+- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0020 so far.
   - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
   - Until the first deploy it's fine to delete and regenerate migrations.
 - **DB client:** the pool is created lazily (importing never needs `DATABASE_URL`). Only the **pool** survives HMR (`utils/remember.ts`); the drizzle wrapper is rebuilt, so new tables work without a restart.

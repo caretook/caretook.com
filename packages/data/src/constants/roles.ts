@@ -1,13 +1,19 @@
 // Global (account-level) roles stored on the user row. Care group roles
 // (below) live on group membership, not here.
-export const USER_ROLE_NAMES = ["admin", "member"] as const;
+// `admin` and `support` are Caretook staff; what each may do is decided in
+// one place, db/schema/staffRules.ts. Neither grants any care data.
+export const USER_ROLE_NAMES = ["admin", "support", "member"] as const;
 
 export type UserRoleName = (typeof USER_ROLE_NAMES)[number];
 
 export const ROLES = [
   {
     name: "admin",
-    description: "Caretook staff. Can manage every account.",
+    description: "Caretook staff. Can manage every account, staff roles and settings.",
+  },
+  {
+    name: "support",
+    description: "Caretook support staff. Looks accounts up and helps with sign-in.",
   },
   {
     name: "member",

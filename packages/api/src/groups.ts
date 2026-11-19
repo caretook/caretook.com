@@ -19,7 +19,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 import { iso } from "./dto";
 import { unwrap } from "./errors";
-import { adminProcedure, authedProcedure, publicProcedure } from "./procedures";
+import { authedProcedure, publicProcedure, staffProcedure } from "./procedures";
 
 // Starting care groups (invites slice 5): `careGroup.create` for anyone
 // signed in, `accessCode.*` for people starting one from a staff code, and
@@ -124,20 +124,24 @@ const ownerInviteMailer =
 export const admin = {
   accessCode: {
     /** Every code, newest first, with its uses. */
-    list: adminProcedure.handler(async ({ context }) =>
+    list: staffProcedure("accessCodes.write").handler(async ({ context }) =>
       unwrap(await accessCodeService.list(context)).map(toAccessCode),
     ),
-    get: adminProcedure.input(z.object({ id })).handler(async ({ context, input }) => {
-      const row = unwrap(await accessCodeService.getById(context, input.id));
-      if (!row) throw new ORPCError("NOT_FOUND");
-      return toAccessCode(row);
-    }),
-    create: adminProcedure.input(accessCodeCreateZSchema).handler(async ({ context, input }) => {
-      const row = unwrap(await accessCodeService.create(context, input));
-      if (!row) throw new ORPCError("INTERNAL_SERVER_ERROR");
-      return toAccessCode(row);
-    }),
-    revoke: adminProcedure
+    get: staffProcedure("accessCodes.write")
+      .input(z.object({ id }))
+      .handler(async ({ context, input }) => {
+        const row = unwrap(await accessCodeService.getById(context, input.id));
+        if (!row) throw new ORPCError("NOT_FOUND");
+        return toAccessCode(row);
+      }),
+    create: staffProcedure("accessCodes.write")
+      .input(accessCodeCreateZSchema)
+      .handler(async ({ context, input }) => {
+        const row = unwrap(await accessCodeService.create(context, input));
+        if (!row) throw new ORPCError("INTERNAL_SERVER_ERROR");
+        return toAccessCode(row);
+      }),
+    revoke: staffProcedure("accessCodes.write")
       .input(z.object({ id }))
       .handler(async ({ context, input }) =>
         toAccessCode(unwrap(await accessCodeService.revoke(context, input.id))),
@@ -148,7 +152,7 @@ export const admin = {
      * A group with its recipient and no members, and an owner invite to
      * `ownerEmail` (the `ownerInvite` email). The staff member doesn't join it.
      */
-    createWithOwnerInvite: adminProcedure
+    createWithOwnerInvite: staffProcedure("staffGroups.create")
       .input(
         z.object({
           groupName: z.string().trim().min(1, "Enter the group's name").max(120),

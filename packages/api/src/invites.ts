@@ -3,6 +3,7 @@ import type { AuthUser, CareGroupInviteModel, InviteMailer } from "@caretook/dat
 import { createHash } from "node:crypto";
 import { signUpWithTicket } from "@caretook/auth";
 import {
+  appSettingService,
   careGroupInviteService,
   careGroupMemberService,
   GROUP_MANAGER_ROLES,
@@ -193,9 +194,10 @@ export const invite = {
   }),
 
   /**
-   * Make an invite link (owners and admins): caretaker or viewer only, 1–90
-   * days (default 7), and an optional maximum number of uses. Returns the
-   * link's token, to share at once.
+   * Make an invite link (owners and admins): caretaker or viewer only, an
+   * expiry within the `invites.link*` settings (their default when none is
+   * given), and an optional maximum number of uses. Returns the link's
+   * token, to share at once.
    */
   createLink: authedProcedure
     .input(linkInviteOptionsZ.extend({ groupId: id }))
@@ -273,6 +275,21 @@ export const invite = {
       if (result.queued.length) deliverSoon(result.queued);
       return { status: result.status, groupId: result.groupId, role: result.role };
     }),
+
+  /**
+   * What the Members page's invite controls may offer (owners and admins):
+   * whether email invites and invite links are switched on (admin settings),
+   * and the limits a new link follows.
+   */
+  options: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
+    await requireManager(context, input.groupId);
+    const settings = await appSettingService.getSettings();
+    return {
+      emailInvites: settings["signup.emailInvites"],
+      linkInvites: settings["signup.linkInvites"],
+      link: await appSettingService.getLinkLimits(),
+    };
+  }),
 
   /** Say no. Anyone with the link may, signed in or not. */
   decline: publicProcedure.input(z.object({ token })).handler(async ({ input }) => {

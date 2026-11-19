@@ -10,15 +10,20 @@ export const isAllowlisted = (email: string, allowlist: readonly string[]) => {
   return allowlist.some((entry) => entry === address || (entry.startsWith("@") && entry === domain));
 };
 
+/** A fixed allowlist, or one read at send time (the `mail.allowlist` app setting). */
+export type Allowlist = readonly string[] | (() => Promise<readonly string[]>);
+
 /**
  * Outside production, real email goes only to allowlisted addresses; others
  * are skipped (recorded, not sent, not retried). An empty allowlist sends
  * nothing.
  */
-export const withAllowlist = (sender: Sender, allowlist: readonly string[]): Sender => ({
+export const withAllowlist = (sender: Sender, allowlist: Allowlist): Sender => ({
   name: `${sender.name}+allowlist`,
-  send: async (message) =>
-    isAllowlisted(message.to, allowlist)
+  send: async (message) => {
+    const list = typeof allowlist === "function" ? await allowlist() : allowlist;
+    return isAllowlisted(message.to, list)
       ? sender.send(message)
-      : { status: "skipped", reason: "Not on MAIL_ALLOWLIST (outside production)" },
+      : { status: "skipped", reason: "Not on the email allowlist (outside production)" };
+  },
 });

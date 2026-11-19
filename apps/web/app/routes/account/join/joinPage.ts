@@ -2,7 +2,8 @@
 // Plain words, and nothing about who made the code or how often it was used.
 
 export type CodePreview =
-  { state: "usable"; code: string } | { state: "notFound" | "expired" | "revoked" | "usedUp" };
+  | { state: "usable"; code: string }
+  | { state: "notFound" | "expired" | "revoked" | "usedUp" | "unavailable" };
 
 export const CLOSED_CODE: Record<
   Exclude<CodePreview["state"], "usable">,
@@ -23,6 +24,11 @@ export const CLOSED_CODE: Record<
   usedUp: {
     title: "This code has been used up",
     message: "It's been used as many times as it allows. Ask whoever gave it to you for a new one.",
+  },
+  // Access-code sign-up is switched off for now (admin settings).
+  unavailable: {
+    title: "Not available right now",
+    message: "Starting a care group with a code isn't available right now. Try again later.",
   },
 };
 

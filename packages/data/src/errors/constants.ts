@@ -164,6 +164,39 @@ export const MODEL_ERRORS = {
   "carePeriodModel:remove": {
     message: "Failed to delete the care period",
   },
+  "adminAuditLogModel:insert": {
+    message: "Failed to record the audit entry",
+  },
+  "adminAuditLogModel:search": {
+    message: "Failed to search the audit log",
+  },
+  "adminAuditLogModel:actors": {
+    message: "Failed to list the audit log's staff",
+  },
+  "groupDirectoryModel:search": {
+    message: "Failed to search care groups",
+  },
+  "groupDirectoryModel:owners": {
+    message: "Failed to list the care groups' owners",
+  },
+  "groupDirectoryModel:get": {
+    message: "Failed to look up the care group",
+  },
+  "groupDirectoryModel:members": {
+    message: "Failed to list the care group's members",
+  },
+  "groupDirectoryModel:activity": {
+    message: "Failed to count the care group's activity",
+  },
+  "appSettingModel:all": {
+    message: "Failed to read the settings",
+  },
+  "appSettingModel:get": {
+    message: "Failed to read the setting",
+  },
+  "appSettingModel:put": {
+    message: "Failed to save the setting",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {
@@ -515,6 +548,111 @@ export const SERVICE_ERRORS = {
   "noteDocumentService:carePeriodNotFound": {
     message: "That care period is gone. It may have been deleted.",
     statusCode: 404,
+  },
+  "adminAuditService:invalid": {
+    message: "The audit entry is invalid",
+    statusCode: 400,
+  },
+  "staff:notAllowed": {
+    message: "Your staff role doesn't allow that",
+    statusCode: 403,
+  },
+  "adminGrant:unknownAddress": {
+    message: "No account has that email address",
+    statusCode: 404,
+  },
+  "adminGrant:invalidRole": {
+    message: "The role must be admin or support",
+    statusCode: 400,
+  },
+  "accountAdmin:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "accountAdmin:notFound": {
+    message: "No account has that id",
+    statusCode: 404,
+  },
+  "accountAdmin:sessionNotFound": {
+    message: "That session has already ended",
+    statusCode: 404,
+  },
+  "accountAdmin:alreadyVerified": {
+    message: "That address is already confirmed",
+    statusCode: 409,
+  },
+  "accountAdmin:query": {
+    message: "Failed to read the account",
+  },
+  // The four below are staffRules' STAFF_REFUSAL_MESSAGES (a test keeps
+  // them equal). 409, not 403: the page shows the message as it is.
+  "accountAdmin:self": {
+    message: "You can't do that to your own account.",
+    statusCode: 409,
+  },
+  "accountAdmin:lastAdmin": {
+    message: "There must always be at least one admin.",
+    statusCode: 409,
+  },
+  "accountAdmin:unknownRole": {
+    message: "That isn't a staff role.",
+    statusCode: 400,
+  },
+  "accountAdmin:unchanged": {
+    message: "They already have that role.",
+    statusCode: 409,
+  },
+  "accountAdmin:alreadyDisabled": {
+    message: "That account is already disabled",
+    statusCode: 409,
+  },
+  "accountAdmin:notDisabled": {
+    message: "That account isn't disabled",
+    statusCode: 409,
+  },
+  "accountAdmin:disabled": {
+    message: "That account is disabled. Re-enable it first.",
+    statusCode: 409,
+  },
+  "groupAdminService:notFound": {
+    message: "Care group not found",
+    statusCode: 404,
+  },
+  "groupAdminService:notMember": {
+    message: "That person isn't in this care group",
+    statusCode: 404,
+  },
+  "groupAdminService:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "groupAdminService:unchanged": {
+    message: "They already have that role.",
+    statusCode: 409,
+  },
+  "settings:signupClosed": {
+    message: "This isn't available right now. Try again later.",
+    statusCode: 403,
+  },
+  "settings:unknownKey": {
+    message: "There's no such setting",
+    statusCode: 404,
+  },
+  "settings:invalid": {
+    message: "Check the setting's value",
+    statusCode: 400,
+  },
+  "settings:noReason": {
+    message: "Say why you're changing it",
+    statusCode: 400,
+  },
+  "careGroupInviteService:linkTooLong": {
+    message: "That's longer than invite links may work",
+    statusCode: 400,
+  },
+  "careGroupInviteService:tooManyUses": {
+    message: "That's more uses than invite links may have",
+    statusCode: 400,
   },
   "medicationService:badPass": {
     message: "A medication's passes must be passes in this care group",

@@ -5,7 +5,7 @@ import { formString } from "~/lib/form";
 import { rpc } from "~/lib/rpc";
 import { failedSave } from "../api";
 import { inviteRefusal } from "./invites";
-import { linkRoles, parseLinkForm, requestRefusal } from "./linkRules";
+import { DEFAULT_INVITE_OPTIONS, linkRoles, parseLinkForm, requestRefusal } from "./linkRules";
 
 // How the Members page reads and changes invite links and join requests.
 // Neither syncs (requests carry addresses, links their tokens), so both come
@@ -14,16 +14,28 @@ import { linkRoles, parseLinkForm, requestRefusal } from "./linkRules";
 
 export type LinkActionResult = { ok: true; created?: boolean } | Extract<ActionResult, { ok: false }>;
 
-/** The group's links and waiting requests, or none (offline, or not a manager). */
+/**
+ * The group's links and waiting requests, and what the invite controls may
+ * offer (admin settings), or none (offline, or not a manager).
+ */
 export const loadLinksAndRequests = async (groupId: string, myRole: string | null, online: boolean) => {
-  const none = { links: [] as LinkRow[], requests: [] as JoinRequestRow[] };
+  const none = {
+    links: [] as LinkRow[],
+    requests: [] as JoinRequestRow[],
+    inviteOptions: DEFAULT_INVITE_OPTIONS,
+  };
   if (!online || !linkRoles(myRole).length) return none;
   try {
-    const [links, requests] = await Promise.all([
+    const [links, requests, inviteOptions] = await Promise.all([
       rpc.invite.listLinks({ groupId }),
       rpc.joinRequest.list({ groupId }),
+      rpc.invite.options({ groupId }),
     ]);
-    return { links: links as LinkRow[], requests: requests as JoinRequestRow[] };
+    return {
+      links: links as LinkRow[],
+      requests: requests as JoinRequestRow[],
+      inviteOptions,
+    };
   } catch (e) {
     // Lost the connection since the page started loading.
     if (e instanceof TypeError) return none;

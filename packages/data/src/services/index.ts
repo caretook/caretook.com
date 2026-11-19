@@ -78,6 +78,22 @@ export type { SearchHit, SearchOptions, SearchResult } from "./searchService";
 import * as carePeriodService from "./carePeriodService";
 export { carePeriodService };
 
+import * as adminAuditService from "./adminAuditService";
+export { adminAuditService };
+export type { AuditEntryInput } from "./adminAuditService";
+export { auditActorId, staffRefusal } from "./staffAccess";
+import * as adminGrantService from "./adminGrantService";
+export { adminGrantService };
+// Not in `services` below: it reads several tables and has no model of its own.
+import * as accountAdminService from "./accountAdminService";
+export { accountAdminService };
+export type { AccountMailer, AccountMailUser } from "./accountAdminService";
+
+import * as groupAdminService from "./groupAdminService";
+export { groupAdminService };
+import * as appSettingService from "./appSettingService";
+export { appSettingService };
+
 export type * from "./types";
 
 export const services = {
@@ -104,6 +120,10 @@ export const services = {
   carePeriod: carePeriodService,
   medicationPass: medicationPassService,
   recipientAllergy: recipientAllergyService,
+  adminAudit: adminAuditService,
+  adminGrant: adminGrantService,
+  groupAdmin: groupAdminService,
+  appSetting: appSettingService,
 };
 
 export type ServiceTypeMap = typeof services;
