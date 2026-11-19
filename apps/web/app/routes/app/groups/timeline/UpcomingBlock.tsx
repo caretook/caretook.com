@@ -3,8 +3,9 @@ import type { TimelineView } from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/rpc";
 import type { TimelineData } from "./useTimelineData";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CalendarClock } from "lucide-react";
 import { Link } from "react-router";
+import { STRIP_ICON } from "./layout";
 
 /**
  * The Upcoming block above Today (`?upcoming=1`): the first upcoming items
@@ -30,7 +31,8 @@ export function UpcomingBlock({
   const shown = upcoming.sections.reduce((n, s) => n + s.items.length, 0);
   return (
     <section aria-labelledby="upcoming-block-heading" className="space-y-2" data-upcoming-block>
-      <h2 id="upcoming-block-heading" className="text-base font-semibold lg:text-lg">
+      <h2 id="upcoming-block-heading" className="flex items-center gap-2 text-base font-semibold lg:text-lg">
+        <CalendarClock className={`${STRIP_ICON} text-base-content/70`} aria-hidden="true" />
         Upcoming
       </h2>
       {upcoming.sections.length === 0 && (
