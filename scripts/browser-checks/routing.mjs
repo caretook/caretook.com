@@ -595,7 +595,7 @@ try {
   check("the timeline's heading is the group's display name", (await c.evaluate(h1)) === "Grandma Pat");
 
   // A route's first visit on a fresh server can make Vite re-optimize and
-  // reload the page mid-wait (AGENTS.md, Gotchas), so a miss gets one reload.
+  // reload the page mid-wait (docs/loops.md, Loop gotchas), so a miss gets one reload.
   // A real bug fails both tries; the detail says which try it was, and where
   // the page was.
   const editable = `document.querySelector("[contenteditable=true]")`;
