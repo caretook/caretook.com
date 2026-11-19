@@ -4,37 +4,48 @@
 
 ## Status
 
-| Slice | Item | State   | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ---- | ------- | ----------------------------------------------------- |
-| 1     | B-1  | merged  | 1e00754 (5ab3b67)                                     |
-| 2     | B-17 | merged  | 4629e8c (32355db)                                     |
-| 3     | B-22 | merged  | b0325d0 (46ef320)                                     |
-| 4     | B-28 | merged  | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29 | merged  | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34 | merged  | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27 | merged  | 75127be (004abfe)                                     |
-| 8     | B-35 | merged  | 6dcc71d (7c0725f)                                     |
-| 9     | B-36 | merged  | e6fc148 (cc12901)                                     |
-| 10    | B-39 | merged  | 2052075 (1870973, 9e7d83b)                            |
-| 11    | B-38 | merged  | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41 | merged  | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42 | merged  | 94ce803 (eccbd1a)                                     |
-| 14    | B-37 | merged  | 9c08e01 (cf1f804)                                     |
-| 15    | B-71 | landed  | 23e1be2 (wave 7)                                      |
-| 16    | B-72 | landed  | 23e1be2 (wave 7)                                      |
-| 17    | B-44 | landed  | 23e1be2 (wave 7)                                      |
-| 18    | B-73 | merged  | 59f380a (f6a783e)                                     |
-| 19    | B-67 | merged  | 0ddaaa7 (46e8be0)                                     |
-| 20    | B-74 | planned |                                                       |
-| 21    | B-70 | planned |                                                       |
-| 22    | B-81 | planned |                                                       |
-| 23    | B-82 | planned |                                                       |
-| 24    | B-64 | planned |                                                       |
-| 25    | B-69 | planned |                                                       |
-| 26    | B-78 | planned |                                                       |
-| 27    | B-65 | planned |                                                       |
+| Slice | Item | State  | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ---- | ------ | ----------------------------------------------------- |
+| 1     | B-1  | merged | 1e00754 (5ab3b67)                                     |
+| 2     | B-17 | merged | 4629e8c (32355db)                                     |
+| 3     | B-22 | merged | b0325d0 (46ef320)                                     |
+| 4     | B-28 | merged | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29 | merged | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34 | merged | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27 | merged | 75127be (004abfe)                                     |
+| 8     | B-35 | merged | 6dcc71d (7c0725f)                                     |
+| 9     | B-36 | merged | e6fc148 (cc12901)                                     |
+| 10    | B-39 | merged | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38 | merged | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41 | merged | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42 | merged | 94ce803 (eccbd1a)                                     |
+| 14    | B-37 | merged | 9c08e01 (cf1f804)                                     |
+| 15    | B-71 | landed | 23e1be2 (wave 7)                                      |
+| 16    | B-72 | landed | 23e1be2 (wave 7)                                      |
+| 17    | B-44 | landed | 23e1be2 (wave 7)                                      |
+| 18    | B-73 | merged | 59f380a (f6a783e)                                     |
+| 19    | B-67 | merged | 0ddaaa7 (46e8be0)                                     |
+| 20    | B-74 | merged | 679fa87 (d7a1631)                                     |
+| 21    | B-70 | merged | 27c2c74 (62a459a)                                     |
+| 22    | B-81 | merged | 376f8b7 (22470b8)                                     |
+| 23    | B-82 | merged | 5047c71 (8d6f089)                                     |
+| 24    | B-64 | merged | 290fd21 (fbbf94f)                                     |
+| 25    | B-69 | merged | 2431a55 (14da487)                                     |
+| 26    | B-78 | merged | 17a89b1 (484d825)                                     |
+| 27    | B-65 | merged | 5d8af6e (07ab7bf)                                     |
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 landed as 8e0c2c0. Wave 6 (slices 10 and 14) is merged into `prd/quick-fixes`.
+
+Wave 8 (slices 20–27) is merged into `prd/quick-fixes` and synced with `dev`; the full suite runs before landing (the user's call).
+
+- Slice 20: `medications.mjs` flaked because a background check tab gets no animation frames (`toFront()`) and B/C opened a medication page before it synced (`syncedTo()`). b4e8190's `ConfirmDialog` change was dropped (hidden tabs only). Its "Delete asks first, then goes to the list" step still failed once under load 179 in slice 26's run (passed on retry); the check now logs dialogs and the device row if it recurs.
+- Slice 21: `ui.mjs` read focus after a fixed 300 ms; `settlesOn()` waits for closed state and focus together. Other checks may have the same pattern.
+- Slice 22: the CSP and headers (AGENTS.md, _Security headers_). Open until hosting: Vercel's header merging and root directory.
+- Slice 23: `logError` and the `logFailures` middleware.
+- Slice 24: Withdraw on home; `invites.mjs` step 12 uses its own account and link.
+- Slice 25: moved to `lib/newGroupLink.ts` (`openedNewGroupFromApp`); `careGroupInviteService:notAllowed` is in use, so it stays.
+- Slice 26: the strip family at 1152 px (`timeline/layout.ts`).
+- Slice 27: the time zone in group settings Details; no migration.
 
 Wave 7 (slices 15–17) landed in `dev` as 23e1be2. Slice 18 (B-73) lands on its own: `ui/Sheet` is full screen below `sm` (every sheet measured 0,0,420×900 and scrolling); the title row scrolls with the content, and on iOS the keyboard doesn't shrink `dvh`, so the sheet's own scroll keeps Save reachable. Slice 19 (B-67): `/join/:code` answers alike for existing and new addresses; an existing one gets the `accessCodeExistingAccount` email (outbox key: address, code, UTC day), nothing is created, and refused codes are refused alike. `accessCode.signUp` returns only `{ email }`; the confirmation `callbackURL` is `/app`. `medications.mjs` failed twice at landing in slice 3's own steps (B-74, filed for medications).
 
