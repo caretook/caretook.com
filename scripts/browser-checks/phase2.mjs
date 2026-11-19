@@ -1016,7 +1016,8 @@ async function wideLayout(p) {
       }
       await p.evaluate(`window.scrollTo(0, 0)`);
 
-      // The entry sheet and the delete confirm at 1280: centred, over the wide page.
+      // The entry sheet and the delete confirm at 1280: centred, over the wide page. Within 10 px: an open
+      // modal hides the page's scrollbar and pads for it, so its centre can sit half a scrollbar off.
       const centred = (sel) =>
         p.evaluate(`(() => { const el = ${sel}; if (!el) return null; const r = el.getBoundingClientRect();
         return { off: Math.round(r.left + r.width / 2 - document.documentElement.clientWidth / 2), width: Math.round(r.width), inside: r.left >= 0 && r.right <= document.documentElement.clientWidth && r.top >= 0 && r.bottom <= window.innerHeight }; })()`);
@@ -1026,7 +1027,7 @@ async function wideLayout(p) {
       const sheet = await centred(`document.querySelector("[role=dialog]")`);
       check(
         "1280: the entry sheet is a centred modal, not stretched",
-        !!sheet && Math.abs(sheet.off) <= 2 && sheet.inside && sheet.width < 800,
+        !!sheet && Math.abs(sheet.off) <= 10 && sheet.inside && sheet.width < 800,
         JSON.stringify(sheet),
       );
       await p.screenshot("phase2-wide-1280-sheet");
@@ -1046,7 +1047,7 @@ async function wideLayout(p) {
       );
       check(
         "1280: the delete confirm is centred, not stretched",
-        !!confirm && Math.abs(confirm.off) <= 2 && confirm.inside && confirm.width < 800,
+        !!confirm && Math.abs(confirm.off) <= 10 && confirm.inside && confirm.width < 800,
         JSON.stringify(confirm),
       );
       await p.screenshot("phase2-wide-1280-confirm");
@@ -1257,9 +1258,13 @@ async function infiniteScroll(p, offlineDevice) {
   const END = "That's the beginning of the timeline";
   const LOADING = "Loading older…";
   const status = `document.querySelector("[data-older-entries] [role=status]")`;
+  // The kinds the timeline lists (`TIMELINE_KINDS`): doses and medication changes aren't on it yet.
+  const SHOWN_KINDS = "'note', 'symptom', 'event', 'vital'";
   const liveCount = () =>
     Number(
-      psql(`SELECT count(*) FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL`),
+      psql(
+        `SELECT count(*) FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL AND kind IN (${SHOWN_KINDS})`,
+      ),
     );
   // Dev Family's timeline (the page may be on a sheet's URL here).
   const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
