@@ -305,6 +305,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/medications): medications orchestrator: slice 2 (tab, list, page) merged into prd/medications as d7977c1; slice 6 (print sheet, provider page's medications) started; slice 4 still running.
 - 2026-11-18 (slice/medications/4): Slice 4 (doses and changes on the timeline, Dose sheet) ready for merge on slice/medications/4 (63d73d2, a021378).
 - 2026-11-18 (prd/medications): medications orchestrator: slice 4 (doses and changes on the timeline, Dose sheet, B-43) merged as 46c675b; its wording now reuses slice 2's medicationDisplay. Slice 6 still running.
+- 2026-11-19 (slice/medications/6): medications slice 6 (print sheet + provider page Medications) committed on slice/medications/6 as 74388c4; phase2's 8 wide-layout failures (15 px off at 1280) reproduce on the base d7977c1 too
 
 ### B-16 · question · How does the timeline's layout (rows or cards) persist?
 
