@@ -2,7 +2,7 @@
 
 Topic `medications-2`. Backlog: **B-76** (medication groups), **B-86** (the medication strip on the timeline, quick dose logging), **B-51** (a printable check-off sheet), **B-26** (allergies). Builds on the done `medications` PRD ([medications-prd.md](medications-prd.md)) and `appointments` (due doses in Upcoming).
 
-Interviewed 2026-11-19. GitHub issue: to file once `gh` can see the repo.
+Interviewed 2026-11-19.
 
 ## Problem Statement
 

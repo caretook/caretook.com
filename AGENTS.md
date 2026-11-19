@@ -21,8 +21,9 @@ Legend: ✅ decided/built · 🟡 proposed, not built · ❓ open.
 
 Feature work goes through a PRD, then a plan cut into slices that loops (parallel agents) pick up. Several PRDs run at once, each with its own orchestrator and branch, and everything planned is tracked in one live backlog.
 
-1. **PRD:** `write-a-prd` (interview, explore, sketch modules), saved as `plans/<topic>-prd.md`, then filed as a GitHub issue. `gh` can't see `caretook/caretook.com` yet (git over SSH works); file the issues once it can.
-2. **Plan:** `prd-to-plan` turns the PRD into tracer-bullet vertical slices in `plans/<topic>-plan.md`. Each slice says what it **blocks and is blocked by**, so independent slices can run at once. `prd-to-issues` makes one issue per slice.
+1. **PRD:** `write-a-prd` (interview, explore, sketch modules), saved as `plans/<topic>-prd.md`. No GitHub issues: the PRD, the plan and the backlog are the record.
+2. **Plan:** `prd-to-plan` turns the PRD into tracer-bullet vertical slices in `plans/<topic>-plan.md`. Each slice says what it **blocks and is blocked by**, so independent slices can run at once.
+   - `pnpm prd plan <topic> --open [B-<n> …]` does both in one planning session: it makes the docs-only worktree and starts an agent there (`prompt.sh plan`) that interviews the user, writes both files, updates the backlog and lands them (see the planning exception under _Landing a wave_).
 3. **Loops:** one agent per slice, each in its own worktree, branch and Docker stack, run by the PRD's orchestrator. See _Running loops_.
 4. When a PRD is done, move its lasting decisions into this file and mark the PRD done.
 
@@ -73,21 +74,22 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 
 **`pnpm prd <command>`** is the one front door (`scripts/loops/prd.sh`; run it from any worktree, and `pnpm prd help` lists it):
 
-| Command                               | What it does                                                                                                                          |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm prd status`                     | every worktree: branch, commits ahead, dirty or clean, containers, its dev server link, and the load averages                         |
-| `pnpm prd status-watch [seconds]`     | `status`, redrawn every few seconds (default 5) until Ctrl-C                                                                          |
-| `pnpm prd start <topic>`              | create (or find) the PRD's worktree and stack, and print the command that opens its orchestrator                                      |
-| `pnpm prd plan <topic>`               | a docs-only worktree for writing a PRD or plan                                                                                        |
-| `pnpm prd slice <topic> <n>`          | a slice's worktree and stack                                                                                                          |
-| `pnpm prd serve [name] [--restart]`   | run that worktree's dev server in the background (it outlives the session) and print the link; `--built` serves a check build instead |
-| `pnpm prd check`                      | `pnpm check`, then record that this commit passed                                                                                     |
-| `pnpm prd browser <check> [args…]`    | run one check under a machine-wide lease (four at once); `--changed` for what the diff needs; `--suite`; `--timeout <s>`              |
-| `pnpm prd sync`                       | merge `dev` into this PRD branch                                                                                                      |
-| `pnpm prd ready [topic]`              | the ready-to-land report: the link, the backlog items it addresses, what changed, any blockers                                        |
-| `pnpm prd land <topic> [-m subject]`  | merge `prd/<topic>` into `dev` in the main checkout: **only when the user says to land it**                                           |
-| `pnpm prd rm <name>`                  | remove a worktree, its stack, its dev server and, if merged, its branch                                                               |
-| `pnpm prd prompt orchestrator\|slice` | the first prompt for a session                                                                                                        |
+| Command                                     | What it does                                                                                                                          |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm prd status`                           | every worktree: branch, commits ahead, dirty or clean, containers, its dev server link, and the load averages                         |
+| `pnpm prd status-watch [seconds]`           | `status`, redrawn every few seconds (default 5) until Ctrl-C                                                                          |
+| `pnpm prd start <topic>`                    | create (or find) the PRD's worktree and stack, and print the command that opens its orchestrator                                      |
+| `pnpm prd queue <topic> [--manual]`         | wait for a free PRD slot (in queue order), then create the worktree and open a fully autonomous orchestrator in that terminal         |
+| `pnpm prd plan <topic> [--open] [B-n…]`     | a docs-only worktree for writing a PRD and plan; `--open` starts its planning session in that terminal                                |
+| `pnpm prd slice <topic> <n>`                | a slice's worktree and stack                                                                                                          |
+| `pnpm prd serve [name] [--restart]`         | run that worktree's dev server in the background (it outlives the session) and print the link; `--built` serves a check build instead |
+| `pnpm prd check`                            | `pnpm check`, then record that this commit passed                                                                                     |
+| `pnpm prd browser <check> [args…]`          | run one check under a machine-wide lease (four at once); `--changed` for what the diff needs; `--suite`; `--timeout <s>`              |
+| `pnpm prd sync`                             | merge `dev` into this PRD branch                                                                                                      |
+| `pnpm prd ready [topic]`                    | the ready-to-land report: the link, the backlog items it addresses, what changed, any blockers                                        |
+| `pnpm prd land <topic> [-m subject]`        | merge `prd/<topic>` into `dev` in the main checkout: **only when the user says to land it**                                           |
+| `pnpm prd rm <name>`                        | remove a worktree, its stack, its dev server and, if merged, its branch                                                               |
+| `pnpm prd prompt orchestrator\|plan\|slice` | the first prompt for a session (`orchestrator <topic> --auto` for the run-through mode)                                               |
 
 **Isolation** (the scripts behind those commands, in `scripts/loops/`; `lib.sh` holds the shared parts):
 
@@ -146,7 +148,11 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 
 The table's machine-readable form is `scripts/loops/check-areas`; keep the two in step.
 
-**Starting a PRD (the user):** `pnpm prd start <topic>`, then run the command it prints in a new terminal (`cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic>)"`). From then on the user steers that PRD from its orchestrator's console: which slices to run, and when to land.
+**Starting a PRD (the user):** `pnpm prd start <topic>`, then run the command it prints in a new terminal (`cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic>)"`). From then on the user steers that PRD from its orchestrator's console. **The orchestrator first asks for a landing mode** (unless the plan's _Status_ records one): ask before each landing, run everything through (start every ready slice, land each green wave, clean up, ask only real questions), or land chosen waves or slices automatically; it records the answer in _Status_.
+
+**Queueing a PRD (the user):** `pnpm prd queue <topic>` in a terminal of its own, left running. It waits until fewer than `CARETOOK_MAX_PRDS` PRD worktrees exist (a slot frees when a finished PRD is removed with `pnpm prd rm`), taking slots in queue order (tickets in `.loops/.queue/`, one lock around count-and-create in `.loops/.prd-start.lock`), then creates the worktree and opens its orchestrator there in run-through mode (`prompt.sh orchestrator <topic> --auto`; `--manual` for the asking prompt). Queueing is the user's go-ahead for every landing of that PRD.
+
+**Waiting on another PRD:** an orchestrator whose next slice is blocked by another PRD's work asks that orchestrator (ListAgents, SendMessage) to message it when the work lands in `dev`, and sets a background check that exits when `git log dev` or `pnpm backlog list` shows it, then syncs and carries on. Both prompts say so.
 
 **Keep each orchestrator's context small.** A session may run wave after wave; start a fresh one (the same command) whenever it gets slow or confused. The plan's _Status_ section makes that safe at any wave boundary.
 
@@ -172,7 +178,7 @@ The table's machine-readable form is `scripts/loops/check-areas`; keep the two i
 5. Other orchestrators run `pnpm prd sync` at their next wave boundary, not mid-wave.
 6. When a PRD is finished and landed, `pnpm prd rm <topic>` removes its worktree and deletes `prd/<topic>`.
 
-A go-ahead covers one landing. An agent never lands on its own judgment, never with `--force` unless the user says so, and never for another PRD.
+A go-ahead covers one landing, unless the user chose a landing mode that lands waves automatically (or queued the PRD), which covers those landings. An agent never lands on its own judgment, never with `--force` unless the user says so, and never for another PRD.
 
 **Planning agents are the exception:** a `plan/<topic>` branch touches no code, so its agent may land it whenever its PRD or plan is ready, without waiting for a go-ahead, and may pass `--force` (`pnpm prd land plan/<topic> --force -m "docs(<topic>): …"`). Before landing, check that `git diff --stat dev...plan/<topic>` lists only `plans/` and `docs/` files; if anything else changed, it's not a planning branch, so ask first.
 
@@ -798,7 +804,7 @@ powersync/                service.yaml, sync-config.yaml (Sync Streams)
 docs/                     orchestration.md: the human guide to branches, the inbox and running PRDs (README.md links it)
 plans/                    inbox.md (the user's list) and backlog.md (the tracker), both only on dev; PRDs and slice plans
 scripts/browser-checks/   headless Chrome checks
-scripts/loops/            pnpm prd (prd.sh) → new/ls/rm/prompt/serve/ready/land/browser (+ lib.sh): worktrees in .loops/, slot and browser leases, a Docker stack each
+scripts/loops/            pnpm prd (prd.sh) → new/ls/rm/prompt/queue/serve/ready/land/browser (+ lib.sh): worktrees in .loops/, slot and browser leases, a Docker stack each
 scripts/backlog/          pnpm backlog: the live backlog CLI (format.mjs parses and renders)
 .githooks/                protects main, staging and dev; commit-msg checks Conventional Commits (pnpm hooks:install)
 apps/web/                 @caretook/web (React Router 8, Vite 8)
@@ -846,8 +852,7 @@ packages/data/            @caretook/data
 
 ## Next steps
 
-1. **Live notes follow-ups** (the PRD is done): file the PRD and slice issues once `gh` can see the repo.
-2. **The backlog** (`pnpm backlog list`): write the PRDs its table marks "to write" (`pnpm prd plan <topic>`, one `write-a-prd` interview each), then run them, at most three at once.
-3. **Tests:** cover every role against every table (the integration tests are independent now: each builds its own fixtures).
-4. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
-5. **After invites:** the follow-ups in its _Active PRDs_ entry (Withdraw for a join request, the recipient's time zone), and the launch work under _Notifications_. Then Capacitor (bearer storage, `VITE_API_ORIGIN`).
+1. **The backlog** (`pnpm backlog list`): write the PRDs its table marks "to write" (`pnpm prd plan <topic>`, one `write-a-prd` interview each), then run them, at most three at once.
+2. **Tests:** cover every role against every table (the integration tests are independent now: each builds its own fixtures).
+3. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
+4. **After invites:** the follow-ups in its _Active PRDs_ entry (Withdraw for a join request, the recipient's time zone), and the launch work under _Notifications_. Then Capacitor (bearer storage, `VITE_API_ORIGIN`).
