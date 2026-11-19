@@ -1,7 +1,7 @@
 import type { AppError } from "@caretook/data";
 import type { Queued } from "@caretook/notifications";
 
-import { getDb, isError, userSchema } from "@caretook/data";
+import { getDb, isError, logError, userSchema } from "@caretook/data";
 import { inBackground, notify } from "@caretook/notifications";
 import { createHash, randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
@@ -20,7 +20,7 @@ const keyFor = (name: string, secret: string) =>
   `${name}:${createHash("sha256").update(secret).digest("base64url")}`;
 
 const logFailure = (name: string) => (queued: Queued | AppError) => {
-  if (isError(queued)) console.error(`[auth] couldn't queue ${name}`, queued);
+  if (isError(queued)) logError("auth: couldn't queue an email", queued, { notification: name });
 };
 
 /** An app path other than the bare root (Better Auth's default callback). */
