@@ -1427,7 +1427,7 @@ async function providerMedicationSteps(p) {
   );
 }
 
-// One proxy for caretaker@'s browser: the list's offline steps the print sheet's and the timeline's.
+// One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
 const proxy = startProxy(9434);
 const proxyA = proxy;
 const bA = await launch(9431, proxy.args);
