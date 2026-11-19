@@ -679,14 +679,14 @@ async function authorFilters(users, offlineDevice) {
     if (who !== "writer") continue;
 
     await step(`${at}: the re-tap, the page reset, vitals and the "with …" line`, async () => {
-      // "Show older", then a filter: one page again, from the newest.
+      // Scrolled into an older page, then a filter: one page again, from the newest.
       const before = await state(p);
-      await p.press(button("Show older entries"));
-      await p.waitFor(`${rows} === 60`, 5000).catch(() => undefined);
+      await p.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`);
+      await p.waitFor(`${rows} >= 60`, 5000).catch(() => undefined);
       const { id, after } = await filterBy(p, AUTHOR);
       check(
-        `${at}: after "Show older", a filter starts again with one page`,
-        after.rows === 30 && (await p.evaluate(`!!${button("Show older entries")}`)),
+        `${at}: after scrolling into older pages, a filter starts again with one page`,
+        after.rows === 30 && (await p.evaluate(`!!document.querySelector("[data-older-sentinel]")`)),
         `${after.rows} rows`,
       );
       check(
@@ -1089,6 +1089,283 @@ async function wideLayout(p) {
   );
 }
 
+/**
+ * Infinite scroll (timeline-polish slice 7): scrolling loads older pages with
+ * no button, down to "That's the beginning of the timeline", in rows (the
+ * smoke block) and cards; each page is announced once in the polite status,
+ * and the entries on screen don't move (nor lose a "with …" line) while one
+ * loads. Then, in full mode: a filter starts again from the newest entry with
+ * one page, a short filter ends at once, an empty one shows only its empty
+ * state; an entry arriving at the top (written on the server, as another
+ * device's upload would be) and its deletion leave what's on screen where it
+ * is and keep the loaded pages; and offline, every page loads from the device.
+ * The pure rules (the next limit, the end, the wording) are timelinePaging.test.ts.
+ */
+async function infiniteScroll(p, offlineDevice) {
+  const END = "That's the beginning of the timeline";
+  const LOADING = "Loading older…";
+  const status = `document.querySelector("[data-older-entries] [role=status]")`;
+  const liveCount = () =>
+    Number(
+      psql(`SELECT count(*) FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL`),
+    );
+  // Dev Family's timeline (the page may be on a sheet's URL here).
+  const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
+  /** A fresh load of the unfiltered timeline: one page. */
+  const fresh = async (pg) => {
+    // Loading on scroll needs a rendered (visible) page: an earlier step can leave this tab hidden behind another.
+    await pg.send("Page.bringToFront");
+    await pg.goto(timeline);
+    await pg.waitFor(`${rows} > 0`, 20000);
+    await sleep(500);
+  };
+  /** Records the status's changes and, while each page loads, how far the last entry moved and whether a "with …" line went. */
+  const record = (pg) =>
+    pg.evaluate(`(() => {
+      const log = [], moves = [];
+      const st = () => ${status};
+      let last = st()?.textContent ?? "", sampling = null;
+      const withs = (s) => s.rowsAt.filter((li) => li.isConnected && li.querySelector("[data-with]")).length;
+      const sample = () => {
+        if (!sampling) return;
+        sampling.max = Math.max(sampling.max, Math.abs(sampling.el.getBoundingClientRect().top - sampling.top));
+        sampling.minWith = Math.min(sampling.minWith, withs(sampling));
+        requestAnimationFrame(sample);
+      };
+      new MutationObserver(() => {
+        const t = st()?.textContent ?? "";
+        if (t === last) return;
+        last = t;
+        log.push(t);
+        if (t === ${JSON.stringify(LOADING)}) {
+          const rowsAt = [...document.querySelectorAll("ol > li")], el = rowsAt.at(-1);
+          sampling = { el, rowsAt, top: el.getBoundingClientRect().top, max: 0 };
+          sampling.withs = sampling.minWith = withs(sampling);
+          requestAnimationFrame(sample);
+        } else if (sampling) {
+          moves.push({ max: sampling.max, withs: sampling.withs, minWith: sampling.minWith });
+          sampling = null;
+        }
+      }).observe(document.querySelector("main"), { childList: true, subtree: true, characterData: true });
+      window.__olderLog = { log, moves };
+    })()`);
+  /** Scroll to the end (never while a page loads, so the moves measured are the page's own) until the end message. */
+  const toTheBeginning = async (pg) => {
+    const started = Date.now();
+    while (Date.now() - started < 60000) {
+      const text = await pg.evaluate(`(() => {
+        const t = ${status}?.textContent ?? "";
+        if (t !== ${JSON.stringify(LOADING)}) window.scrollTo(0, document.documentElement.scrollHeight);
+        return t;
+      })()`);
+      if (text === END) break;
+      await sleep(300);
+    }
+    await pg.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`);
+    await sleep(300);
+    return JSON.parse(
+      await pg.evaluate(`JSON.stringify((() => {
+        const s = ${status}, r = s?.getBoundingClientRect();
+        return { rows: ${rows}, text: s?.textContent ?? null, visible: !!r && r.height > 0 && r.bottom <= innerHeight,
+          sentinel: !!document.querySelector("[data-older-sentinel]"), button: !!${button("Show older entries")},
+          ...(window.__olderLog ?? {}) };
+      })())`),
+    );
+  };
+  const reachesTheBeginning = async (pg, at) => {
+    await record(pg);
+    const end = await toTheBeginning(pg);
+    const total = liveCount();
+    const pagesLoaded = Math.ceil(total / 30) - 1;
+    check(
+      `${at}: scrolling loads every page with no button, and ends with "${END}"`,
+      end.rows === total && end.text === END && end.visible && !end.sentinel && !end.button,
+      `${end.rows}/${total} rows, "${end.text}"`,
+    );
+    check(
+      `${at}: each page is announced once, and the end once`,
+      end.log.filter((t) => t === LOADING).length === pagesLoaded &&
+        end.log.filter((t) => t === END).length === 1,
+      JSON.stringify(end.log),
+    );
+    check(
+      `${at}: while a page loads, the entries on screen don't move and keep their "with …" lines`,
+      end.moves.length === pagesLoaded && end.moves.every((m) => m.max <= 1 && m.minWith === m.withs),
+      JSON.stringify(end.moves),
+    );
+  };
+
+  await step("infinite scroll: rows, to the beginning", { smoke: true }, async () => {
+    await fresh(p);
+    check("infinite scroll: a fresh load shows one page", (await p.evaluate(rows)) === 30);
+    await reachesTheBeginning(p, "writer, rows");
+    await p.screenshot("phase2-infinite-end");
+  });
+
+  await step("infinite scroll: cards, to the beginning", async () => {
+    await setView(p, "Cards");
+    await sleep(1500);
+    await fresh(p);
+    await reachesTheBeginning(p, "writer, cards");
+    await setView(p, "Rows");
+    await sleep(1500);
+  });
+
+  await step("infinite scroll: a filter starts again from the newest, with one page", async () => {
+    await fresh(p);
+    // Three pages down.
+    for (let i = 0; i < 20 && (await p.evaluate(`${rows} < 90`)); i++) {
+      await p.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`);
+      await sleep(400);
+    }
+    await p.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight - 2 * innerHeight)`);
+    await sleep(500);
+    const vitalIcon = `[...document.querySelectorAll("ol > li")].find((li) => {
+      const r = li.getBoundingClientRect();
+      return r.top > 100 && r.bottom < innerHeight - 100 && li.querySelector(".sr-only")?.textContent === "Vitals: ";
+    })?.querySelector('a[aria-label^="Show only"]:not([data-author])')`;
+    const deep = await p.evaluate(`({ rows: ${rows}, icon: !!${vitalIcon} })`);
+    await tap(p, vitalIcon);
+    await p.waitFor(`location.search === "?kind=vital" && ${rows} > 0`, 8000).catch(() => undefined);
+    await sleep(800);
+    const newest = psql(
+      `SELECT id FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND kind = 'vital' AND deleted_at IS NULL ORDER BY occurred_at DESC, id DESC LIMIT 1`,
+    );
+    const after = await p.evaluate(`({
+      search: location.search, rows: ${rows},
+      top: Math.round(document.querySelector('section[aria-labelledby="timeline-heading"]').getBoundingClientRect().top),
+      first: document.querySelector("ol > li a[href*='/timeline/']")?.getAttribute("href") ?? "",
+      sentinel: !!document.querySelector("[data-older-sentinel]") })`);
+    check(
+      "a vital's icon tapped three pages down shows the newest vital first, with one page",
+      deep.rows >= 90 &&
+        deep.icon &&
+        after.search === "?kind=vital" &&
+        after.rows === 30 &&
+        after.top >= -1 &&
+        after.first.includes(newest) &&
+        after.sentinel,
+      JSON.stringify({ deep, after }),
+    );
+
+    // Fewer than a page of events: the end at once, nothing left to load.
+    await p.press(
+      `[...document.querySelectorAll('nav[aria-label="Show entries"] a')].find((a) => a.textContent.trim() === "Events")`,
+    );
+    await p.waitFor(`location.search === "?kind=event" && ${rows} > 0`, 8000).catch(() => undefined);
+    await sleep(800);
+    const events = Number(
+      psql(
+        `SELECT count(*) FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND kind = 'event' AND deleted_at IS NULL`,
+      ),
+    );
+    const short = await p.evaluate(
+      `({ rows: ${rows}, text: ${status}?.textContent, sentinel: !!document.querySelector("[data-older-sentinel]") })`,
+    );
+    check(
+      `a filter with fewer than 30 matches (${events} events) shows the end, and loads nothing more`,
+      events < 30 && short.rows === events && short.text === END && !short.sentinel,
+      JSON.stringify(short),
+    );
+
+    // An empty timeline: its empty state, not the end message (member@ wrote no symptoms).
+    const memberId = psql(`SELECT id FROM "user" WHERE email = 'member@example.com'`);
+    await p.goto(`${timeline}?kind=symptom&author=${memberId}`);
+    await p.waitFor(`!!document.querySelector("[data-empty]")`, 20000).catch(() => undefined);
+    const empty = await p.evaluate(
+      `({ empty: !!document.querySelector("[data-empty]"), text: ${status}?.textContent ?? null })`,
+    );
+    check(
+      "an empty timeline shows its empty state, not the end message",
+      empty.empty && empty.text === "",
+      JSON.stringify(empty),
+    );
+  });
+
+  await step(
+    "infinite scroll: an entry arriving at the top keeps your place and the loaded pages",
+    async () => {
+      await fresh(p);
+      for (let i = 0; i < 20 && (await p.evaluate(`${rows} < 120`)); i++) {
+        await p.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`);
+        await sleep(400);
+      }
+      // Three pages down, where nothing more loads.
+      await p.evaluate(
+        `window.scrollTo(0, document.querySelectorAll("ol > li")[89].getBoundingClientRect().top + scrollY - 300)`,
+      );
+      await sleep(800);
+      await p.evaluate(
+        `window.__anchor = document.elementFromPoint(innerWidth / 2, innerHeight / 2).closest("ol > li"), true`,
+      );
+      const place = () =>
+        p.evaluate(`({ rows: ${rows}, top: Math.round(window.__anchor?.getBoundingClientRect().top ?? NaN), y: Math.round(scrollY),
+        connected: !!window.__anchor?.isConnected })`);
+      const before = await place();
+      const tag = `P2-IS-${Date.now().toString(36)}`;
+      const caretaker = psql(`SELECT id FROM "user" WHERE email = 'caretaker@example.com'`);
+      const id = psql(
+        `INSERT INTO timeline_entry (group_id, recipient_id, kind, occurred_at, time_zone, details, created_by, updated_by)
+       SELECT group_id, id, 'symptom', now(), 'America/Los_Angeles', '{"name": "${tag}", "severity": 2}'::jsonb, '${caretaker}', '${caretaker}'
+       FROM care_recipient WHERE group_id = '${DEV_FAMILY}' RETURNING id`,
+      );
+      try {
+        const arrived = await p
+          .waitFor(`document.querySelector("main").textContent.includes(${JSON.stringify(tag)})`, 30000, {
+            quiet: true,
+          })
+          .then(
+            () => true,
+            () => false,
+          );
+        await sleep(500);
+        const after = await place();
+        check(
+          "three pages down, an entry arriving at the top leaves what's on screen where it is",
+          arrived && after.connected && Math.abs(after.top - before.top) <= 1 && after.rows >= before.rows,
+          JSON.stringify({ arrived, before, after }),
+        );
+        psql(`UPDATE timeline_entry SET deleted_at = now() WHERE id = '${id}'`);
+        await p
+          .waitFor(`!document.querySelector("main").textContent.includes(${JSON.stringify(tag)})`, 30000, {
+            quiet: true,
+          })
+          .catch(() => undefined);
+        await sleep(500);
+        const gone = await place();
+        check(
+          "…and its deletion too, keeping the loaded pages",
+          gone.connected && Math.abs(gone.top - before.top) <= 1 && gone.rows === before.rows,
+          JSON.stringify({ before, gone }),
+        );
+      } finally {
+        psql(`UPDATE timeline_entry SET deleted_at = now() WHERE id = '${id}' AND deleted_at IS NULL`);
+      }
+    },
+  );
+
+  await step("infinite scroll: offline, every page loads from the device", async () => {
+    const { page: o, proxy } = await offlineDevice();
+    await fresh(o);
+    proxy.setOnline(false);
+    try {
+      await sleep(1000);
+      const end = await toTheBeginning(o);
+      const total = liveCount();
+      check(
+        "offline: scrolling loads every page from the device",
+        end.rows === total && end.text === END,
+        `${end.rows}/${total} rows, "${end.text}"`,
+      );
+    } finally {
+      proxy.setOnline(true);
+    }
+  });
+
+  await fresh(p);
+  await p.evaluate(`window.scrollTo(0, 0)`);
+}
+
 const bM = await launch(9341);
 // The viewer's browser only in full mode: smoke runs one role.
 const bV = SMOKE ? null : await launch(9342);
@@ -1121,16 +1398,18 @@ try {
   check("latest vitals strip shows", vitalsShown);
 
   const path = await p.evaluate("location.pathname");
-  await step("Show older, More and Less, the ⋯ menu", async () => {
+  await step("scrolling adds a page, More and Less, the ⋯ menu", async () => {
     check(
       "no live notes links or menu items anywhere",
       !(await p.evaluate(`/live notes/i.test(document.body.innerText)`)),
     );
-    await p.press(button("Show older entries"));
-    await p.waitFor(`${rows} === 60`, 5000).then(
-      () => check("Show older adds a page (local)", true),
-      async () => check("Show older adds a page (local)", false, `${await p.evaluate(rows)}`),
+    await p.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`);
+    await p.waitFor(`${rows} >= 60`, 5000).then(
+      () => check("scrolling near the end adds a page (local)", true),
+      async () => check("scrolling near the end adds a page (local)", false, `${await p.evaluate(rows)}`),
     );
+    await p.evaluate(`window.scrollTo(0, 0)`);
+    await sleep(300);
 
     // More/Less toggles the text without opening the entry.
     const more = await p.evaluate(`!!${button("More")}`);
@@ -1241,23 +1520,29 @@ try {
   await step("providers on notes and events", { smoke: true }, () => withLines(p));
   await step("day headings", () => dayHeadings(p));
   await step("the latest vitals line", () => latestVitalsLine(p));
-  await authorFilters([["writer", p], ...(v ? [["viewer", v]] : [])], async () => {
-    // Its own browser, behind a proxy that can be cut (CDP's offline doesn't cut PowerSync's stream).
-    offline = { proxy: startProxy(9324) };
-    offline.browser = await launch(9343, offline.proxy.args);
-    // Not in `pages`: a cut connection logs errors of its own.
-    const page = await signedIn(offline.browser, "offline", "caretaker@example.com");
-    return { page, proxy: offline.proxy };
-  });
+  /** A signed-in device behind a proxy that can be cut, opened once (CDP's offline doesn't cut PowerSync's stream). */
+  const offlineDevice = async () => {
+    if (!offline) {
+      offline = { proxy: startProxy(9324) };
+      offline.browser = await launch(9343, offline.proxy.args);
+      // Not in `pages`: a cut connection logs errors of its own.
+      offline.page = await signedIn(offline.browser, "offline", "caretaker@example.com");
+    }
+    return { page: offline.page, proxy: offline.proxy };
+  };
+  await authorFilters([["writer", p], ...(v ? [["viewer", v]] : [])], offlineDevice);
   await wideLayout(p);
+  await infiniteScroll(p, offlineDevice);
 
   // PowerSync warns when a full page load closes the previous page's database,
   // and its shared sync worker logs "Sync aborted" to every page when it stops
   // the sync for a page that closed (on a check build the next page is already
   // connected and gets it; B-38), and can fail its first connect right after a reset (a 401 while it
-  // refetches the JWKS); a first visit can make Vite reload a route module.
+  // refetches the JWKS); a full load while it syncs logs "Sync error" (the old
+  // page's connection closing; infinite scroll's fresh loads); a first visit
+  // can make Vite reload a route module.
   const noise =
-    /error closing database connection|\[PowerSync\]: Sync aborted|\[PowerSync\]: Initial connect attempt|status of 401|Error loading route module|Failed to fetch dynamically imported module/;
+    /error closing database connection|\[PowerSync\]: Sync aborted|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|status of 401|Error loading route module|Failed to fetch dynamically imported module/;
   const errors = pages.flatMap((pg) => pg.errors).filter((e) => !noise.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 3).join(" | ").slice(0, 500));
 } catch (e) {
