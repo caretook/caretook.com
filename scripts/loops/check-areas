@@ -80,6 +80,19 @@ packages/data/src/db/schema/accessCode.ts groups
 packages/data/src/db/schema/newCareGroup.ts groups
 packages/data/src/db/seeds/accessCodes.ts groups
 
+# Profiles (profiles slice 2): the recipient's profile, its Basics sheet, and
+# the ways in (the group menu, the timeline's recipient card, group settings
+# Details' link). Above the timeline's, layout's and settings' general rules.
+apps/web/app/routes/app/groups/profile/* profiles
+apps/web/app/lib/sync/profile.ts         profiles phase2
+apps/web/app/routes/app/groups/timeline/RecipientCard.tsx profiles phase2
+apps/web/app/routes/app/groups/timeline/TimelineHeader.tsx profiles phase2
+apps/web/app/routes/app/layout/GroupMenu.tsx app-shell ui profiles
+apps/web/app/routes/app/groups/settings/details/* app-shell profiles
+packages/data/src/db/schema/careRecipient.ts profiles app-shell
+packages/data/src/db/schema/profileVisibility.ts profiles
+packages/data/src/db/seeds/profiles.ts   profiles app-shell
+
 # Sign-in, session, the sync client and first sync.
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites
 apps/web/app/routes/account/*            invites sign-in

@@ -613,27 +613,17 @@ async function settings(p, width, scheme) {
   );
   await p.screenshot(`${PREFIX}-${shot("settings-account")}`);
 
-  // Group details (member@ owns Dev Family): every input labelled, help described, an error on the field.
+  // Group details (member@ owns Dev Family): the group's name, labelled, with an error on the
+  // field. (The recipient is edited on their profile now: profiles.mjs.)
   await p.goto(`${GROUP_SETTINGS}/details`);
-  const RECIPIENT = `document.querySelector('main [data-section="care-recipient"]')`;
   const NAME = `document.querySelector('main [data-section="group-details"] input[name="name"]')`;
-  await p.waitFor(`${NAME} && ${RECIPIENT}?.querySelector("input")`, 30000);
+  await p.waitFor(NAME, 30000);
   await sleep(300);
   await settingsFrame(p, tag, width, GROUP_SETTINGS, "details");
   const labels = await p.evaluate(
     `[...document.querySelectorAll('main input:not([type=hidden])')].map((i) => document.querySelector('label[for="' + i.id + '"]')?.textContent.trim() ?? "?").join(",")`,
   );
-  check(
-    `${tag} group details: every input has its label`,
-    labels === "Name,Name,Preferred name,Date of birth",
-    labels,
-  );
-  const preferred = await p.evaluate(fieldOf(`${RECIPIENT}.querySelector('input[name="preferredName"]')`));
-  check(
-    `${tag} group details: the preferred name is described by its help`,
-    preferred?.described.startsWith("What everyone calls them") && preferred.invalid === null,
-    JSON.stringify(preferred),
-  );
+  check(`${tag} group details: every input has its label`, labels === "Name", labels);
   // A blank name is refused on the device (nothing is sent); leaving the page drops it.
   await p.evaluate(`(() => { const i = ${NAME};
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, "");
@@ -767,10 +757,11 @@ async function pass(p, width, scheme) {
     name: "Care groups",
     checked: await p.evaluate(`${GROUP}.textContent.trim()`),
     roles: {
-      name: "group radios, then Group settings and New care group",
+      name: "group radios, then the recipient's profile, Group settings and New care group",
       test: (r) =>
-        r.length >= 4 &&
-        r.slice(0, -2).every((t) => t.startsWith("menuitemradio:")) &&
+        r.length >= 5 &&
+        r.slice(0, -3).every((t) => t.startsWith("menuitemradio:")) &&
+        /^menuitem:.+'s profile$/.test(r.at(-3)) &&
         r.at(-2) === "menuitem:Group settings" &&
         r.at(-1) === "menuitem:New care group",
     },
