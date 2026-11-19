@@ -7,7 +7,7 @@
 | Slice | State                                     | Merge into `prd/care-periods` (slice commits) |
 | ----- | ----------------------------------------- | --------------------------------------------- |
 | 1     | merged `9fb07f3` (f4f439c, abc3fa8)       | not landed: one landing at the end            |
-| 2     | in progress (wave 2)                      |                                               |
+| 2     | merged `2699559` (a2938cc)                   |                                               |
 | 3     | in progress (wave 2)                      |                                               |
 | 4     | in progress (wave 2)                      |                                               |
 | 5     | merged `286b8a5` (0d6b10e, 2afb30a)       | Home and Hospice at home suggest no place (the discharging practice isn't where they are) |
