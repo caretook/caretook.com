@@ -28,7 +28,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the user wants to prompt for landing or just work through everything and which slices to land automatically. Add command to spin up new planning session. (B-88)
 - Seed data with multiple care groups and user mix for improved manual testing. (B-90)
 - Email link and code shouldn't really be two different login options, should they? Can't we email a link and a code at the same time? (B-96)
-- Vitals filter on timeline should bring up a sub-filter for vital type.
+- Vitals filter on timeline should bring up a sub-filter for vital type. (B-97)
 
 ## Feature requests
 
