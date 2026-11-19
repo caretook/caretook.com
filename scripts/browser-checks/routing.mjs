@@ -133,6 +133,7 @@ const SETTINGS_ITEMS = [
   { id: "timeline", label: "Timeline layout", path: "/app/settings/timeline" },
   { id: "account", label: "Account", path: "/app/settings/account" },
   { id: "contact", label: "Contact details", path: "/app/settings/contact" },
+  { id: "devices", label: "Devices", path: "/app/settings/devices" },
 ];
 const settingsNav = `document.querySelector("nav[data-settings-nav]")`;
 const settingsLink = (id) => `${settingsNav}?.querySelector('[data-settings-item="${id}"]')`;
