@@ -1,7 +1,7 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
 
-import { date, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { date, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import { careGroupSchema } from "./careGroup";
@@ -47,6 +47,13 @@ export const careRecipientSchema = pgTable(
     bloodType: text("blood_type", { enum: BLOOD_TYPES }),
     primaryLanguage: text("primary_language"),
     pronouns: text("pronouns"),
+    // When someone recorded "No known allergies" (an empty allergy list then
+    // means none, not unknown). Cleared when an allergy is added.
+    noKnownAllergiesAt: timestamp("no_known_allergies_at", {
+      precision: 3,
+      mode: "string",
+      withTimezone: true,
+    }),
     ...timestamps,
     ...audits,
   },

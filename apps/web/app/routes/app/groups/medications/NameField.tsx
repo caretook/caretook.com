@@ -1,15 +1,24 @@
+import type { AllergyRows } from "~/lib/sync/allergies";
 import type { MedicationNameRow } from "~/lib/sync/medications";
 
 import { useMemo, useRef, useState } from "react";
 import { MEDICATION_LIMITS } from "@caretook/data/schema";
 import { ChipGroup, Field } from "~/components/ui";
+import { allergyMatches, allergyWarning } from "~/lib/allergies";
+import { useGroup } from "~/lib/group";
+import { useAllergies } from "~/lib/sync/allergies";
 import { suggestMedicationNames } from "~/lib/medicationNames";
 import { FIELD } from "./medicationFormData";
+
+// The allergies before the live query's first answer (a module constant: see `useLiveQuery`).
+const NO_ALLERGIES: AllergyRows = { allergyRows: [], statusRows: [] };
 
 /**
  * The medication's name, with names the group has used before suggested
  * under it as you type ("lis" → Lisinopril): a tap fills the name, nothing
- * else, and puts the cursor back in the field.
+ * else, and puts the cursor back in the field. A name that matches one of
+ * the recipient's allergies gets a warning ("Matches an allergy on file:
+ * Penicillin (severe)"), which never blocks the save.
  */
 export function NameField({
   defaultValue,
@@ -23,10 +32,16 @@ export function NameField({
   const [name, setName] = useState(defaultValue);
   const input = useRef<HTMLInputElement>(null);
   const suggestions = useMemo(() => suggestMedicationNames(name, names), [name, names]);
+  const { id: groupId } = useGroup();
+  const { allergies } = useAllergies(groupId, NO_ALLERGIES);
+  const warning = useMemo(
+    () => allergyWarning(allergyMatches(name, allergies)) ?? undefined,
+    [name, allergies],
+  );
 
   return (
     <div>
-      <Field label="Name" error={error}>
+      <Field label="Name" error={error} warning={warning}>
         {(control) => (
           <input
             {...control}

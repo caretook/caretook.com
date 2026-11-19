@@ -25,8 +25,10 @@ const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
  * deleting ask first; Discontinue asks why (required), with an optional note
  * and the day it stopped (today in the recipient's zone unless changed);
  * Restart goes ahead. Each posts to the route it's on (its clientAction
- * makes the device write, `statusRequestFromForm`), and `onDone` hears of
- * each write that went through.
+ * makes the device write, `statusRequestFromForm`), `onSubmit` hears of
+ * each one as it's sent, and `onDone` of each write that went through.
+ * (`onDone` can miss a Delete: the live row may show it deleted, and its
+ * caller hide these actions, before the write's result arrives.)
  *
  * `layout` "menu" is a ⋯ menu (the medication page's header); "buttons" is a
  * row of buttons under the current status (the edit sheet).
@@ -35,11 +37,13 @@ export function MedicationStatusActions({
   medication,
   recipientTimeZone,
   layout,
+  onSubmit,
   onDone,
 }: {
   medication: LocalMedication;
   recipientTimeZone: string | null;
   layout: "menu" | "buttons";
+  onSubmit?: (intent: StatusIntent) => void;
   onDone?: (intent: StatusIntent) => void;
 }) {
   const fetcher = useFetcher<ActionResult>();
@@ -68,6 +72,7 @@ export function MedicationStatusActions({
 
   const submit = (intent: StatusIntent, fields: Record<string, string> = {}) => {
     sent.current = intent;
+    onSubmit?.(intent);
     void fetcher.submit({ [STATUS_FIELD.intent]: intent, ...fields }, { method: "post" });
   };
 

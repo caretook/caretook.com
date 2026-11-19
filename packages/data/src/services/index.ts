@@ -64,6 +64,13 @@ export { userContactService };
 
 import * as memberSharingService from "./memberSharingService";
 export { memberSharingService };
+import * as medicationPassService from "./medicationPassService";
+export { medicationPassService };
+export type { PassWriteOptions } from "./medicationPassService";
+
+import * as recipientAllergyService from "./recipientAllergyService";
+export { recipientAllergyService };
+
 // Not in `services` below: it reads several tables and has no model of its own.
 import * as searchService from "./searchService";
 export { searchService };
@@ -111,6 +118,8 @@ export const services = {
   userContact: userContactService,
   memberSharing: memberSharingService,
   carePeriod: carePeriodService,
+  medicationPass: medicationPassService,
+  recipientAllergy: recipientAllergyService,
   adminAudit: adminAuditService,
   adminGrant: adminGrantService,
   groupAdmin: groupAdminService,

@@ -34,9 +34,20 @@ describe("doseFromForm", () => {
       status: "given",
       amount: "1 tablet",
       scheduledFor: "08:00",
+      passId: null,
       note: null,
       occurredAt: "2026-11-17T16:05:00.000Z",
     });
+  });
+
+  it("reads a slot's pass with the slot only", () => {
+    const PASS = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d1001";
+    expect(doseFromForm(form({ medicationId: `${M}@08:00`, status: "given", passId: PASS }))).toMatchObject({
+      medicationId: M,
+      scheduledFor: "08:00",
+      passId: PASS,
+    });
+    expect(doseFromForm(form({ medicationId: M, status: "given", passId: PASS })).passId).toBeNull();
   });
 
   it("leaves blanks null and an unreadable time empty, for the write to refuse", () => {
@@ -107,6 +118,19 @@ describe("doseSheetOptions", () => {
     expect(options[0]).toMatchObject({ value: `${A}@20:00`, label: "Metformin 500 mg · 20:00 dose" });
     expect(initial).toBe(`${A}@20:00`);
     expect(doseSheetOptions(choices, { slots: [] }, { medicationId: B, slot: null }).initial).toBe(B);
+  });
+
+  it("leaves out due slots of the passes shown above it, unless asked for", () => {
+    const P = "cccccccc-2222-4333-8444-555555555555";
+    const inPass = (id: string, time: string) => ({ ...slot(id, time, "due"), passId: P }) as DoseSlot;
+    const due = { slots: [inPass(A, "08:00"), inPass(B, "08:00"), slot(A, "09:00", "due")] };
+    const shown = new Set([P]);
+    expect(doseSheetOptions(choices, due, { medicationId: null, slot: null }, shown).options[0]?.value).toBe(
+      `${A}@09:00`,
+    );
+    expect(
+      doseSheetOptions(choices, due, { medicationId: B, slot: "08:00" }, shown).options.map((o) => o.value),
+    ).toEqual([`${B}@08:00`, `${A}@09:00`, B, A]);
   });
 });
 

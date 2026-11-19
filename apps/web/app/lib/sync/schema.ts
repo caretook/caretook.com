@@ -51,6 +51,8 @@ export const careRecipients = sqliteTable(
     primaryLanguage: text("primary_language"),
     pronouns: text("pronouns"),
     notes: text("notes"),
+    // When "No known allergies" was recorded (cleared when an allergy is added).
+    noKnownAllergiesAt: text("no_known_allergies_at"),
   },
   (t) => [index("care_recipient_group").on(t.groupId)],
 );
@@ -254,6 +256,47 @@ export const careRecipientDetails = sqliteTable(
 );
 
 /**
+ * The group's medication passes (Morning, Evening…): `time` is "HH:MM" in the
+ * recipient's zone. Deletes are soft. Schedules name them (`{ passId }` slots).
+ */
+export const medicationPasses = sqliteTable(
+  "medication_pass",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    recipientId: text("recipient_id"),
+    name: text("name"),
+    time: text("time"),
+    sortOrder: integer("sort_order"),
+    deletedAt: text("deleted_at"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("medication_pass_group").on(t.groupId)],
+);
+
+/** The recipient's allergies. Deletes are soft. */
+export const recipientAllergies = sqliteTable(
+  "recipient_allergy",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    recipientId: text("recipient_id"),
+    substance: text("substance"),
+    reaction: text("reaction"),
+    severity: text("severity"),
+    deletedAt: text("deleted_at"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("recipient_allergy_group").on(t.groupId)],
+);
+
+/**
  * The group's care periods (where care happens, over time): one track,
  * stored by start only. `date_only` is 1 or 0. Deletes are soft.
  */
@@ -291,5 +334,7 @@ export const drizzleSchema = {
   medications,
   memberContactShares,
   careRecipientDetails,
+  medicationPasses,
+  recipientAllergies,
   carePeriods,
 };

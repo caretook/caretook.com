@@ -85,6 +85,9 @@ const MANAGERS = GROUP_MANAGER_ROLES;
 const OWNERS: readonly GroupRoleName[] = ["owner"];
 const WRITERS: readonly GroupRoleName[] = ["owner", "admin", "caretaker"];
 
+/** What a co-member may read of another member's `user` row. */
+export const PUBLIC_PROFILE_FIELDS = ["id", "name", "image"] as const;
+
 const SYSTEM_ONLY_ENTRY = { ...NO_ACCESS, system: ["all"] } as const satisfies PermissionEntry<DbSchemaName>;
 
 const SYSTEM_ONLY_SCHEMA = {
@@ -102,13 +105,15 @@ const SYSTEM_ONLY_SCHEMA = {
 export const PERMISSIONS: Permissions = {
   userSchema: {
     ownerField: "id",
-    // Co-members of a care group can read each other (name, image, email).
+    // Co-members of a care group can read each other's public profile only:
+    // id, name and image. Email, role and preferences stay with the user and
+    // staff; services that must email a co-member read the row as the system.
     groupUserField: "id",
     // Accounts are created by the auth flow (running as SYSTEM_USER) or by staff.
     create: ADMIN_ONLY_PERMISSION_ENTRY,
     // Staff (support too) look accounts up; members read themselves and co-members.
-    read: { ...DEFAULT_PERMISSION_ENTRY, support: ["all"], group: ANY_GROUP_ROLE },
-    list: { ...DEFAULT_PERMISSION_ENTRY, support: ["all"], group: ANY_GROUP_ROLE },
+    read: { ...DEFAULT_PERMISSION_ENTRY, support: ["all"], group: ANY_GROUP_ROLE, groupFields: PUBLIC_PROFILE_FIELDS },
+    list: { ...DEFAULT_PERMISSION_ENTRY, support: ["all"], group: ANY_GROUP_ROLE, groupFields: PUBLIC_PROFILE_FIELDS },
     update: {
       ...DEFAULT_PERMISSION_ENTRY,
       // Members can edit their profile but not escalate their role, and
@@ -426,6 +431,33 @@ export const PERMISSIONS: Permissions = {
     update: SYSTEM_ONLY_ENTRY,
     delete: SYSTEM_ONLY_ENTRY,
   },
+  // The group's medication passes (Morning, Evening…): like medication. Any
+  // writer adds, renames, retimes, reorders and soft-deletes them. Write
+  // through medicationPassService, which keeps names unique, writes a
+  // retime's change entry and rewrites schedules when a pass is deleted.
+  medicationPassSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+    },
+    delete: groupEntry(WRITERS),
+  },
+  // The recipient's allergies: like medication (soft deletes, writers write).
+  recipientAllergySchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+    },
+    delete: groupEntry(WRITERS),
+  },
 
   // Where the recipient's care happens, over time (one track per group). Any
   // writer adds, edits and deletes any period; deletes are soft
@@ -534,14 +566,17 @@ export const getPermissionScope = (
   }
 
   const groupRoles = schemaEntry[permission].group;
+  const groupFields = schemaEntry[permission].groupFields as readonly string[] | undefined;
+  const limit = groupFields ? { fields: groupFields } : {};
   if (groupRoles?.length && isSignedInUser(authUser)) {
     // A misconfigured entry must fail loudly, never silently widen or drop access.
     if (!groupField && !groupUserField) {
       throw new Error(`${schemaName}.${permission} has group roles but no groupField or groupUserField`);
     }
-    if (groupField) rules.push({ type: "group", field: groupField, userId: authUser.id, groupRoles });
+    if (groupField)
+      rules.push({ type: "group", field: groupField, userId: authUser.id, groupRoles, ...limit });
     if (groupUserField) {
-      rules.push({ type: "groupUser", field: groupUserField, userId: authUser.id, groupRoles });
+      rules.push({ type: "groupUser", field: groupUserField, userId: authUser.id, groupRoles, ...limit });
     }
   }
 

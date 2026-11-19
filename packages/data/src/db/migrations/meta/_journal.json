@@ -138,8 +138,15 @@
     {
       "idx": 19,
       "version": "7",
-      "when": 1795114493048,
-      "tag": "0019_admin",
+      "when": 1795113960879,
+      "tag": "0019_medication_passes_allergies",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795128996998,
+      "tag": "0020_admin",
       "breakpoints": true
     }
   ]

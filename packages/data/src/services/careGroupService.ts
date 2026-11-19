@@ -6,6 +6,7 @@ import { withTransaction } from "../db";
 import { isTimeZone } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupModel, careRecipientModel } from "../models";
+import { addDefaults as addDefaultPasses } from "./medicationPassService";
 
 export const serviceName = "careGroup";
 export const schemaName = careGroupModel.schemaName;
@@ -37,6 +38,10 @@ export const create = (ctx: ServiceContext, { recipient, ...data }: CareGroupCre
       data: { ...recipient, groupId: group.id },
     });
     if (isError(created)) return created;
+    if (created) {
+      const passes = await addDefaultPasses(tx, { groupId: group.id, recipientId: created.id });
+      if (passes) return passes;
+    }
     return { group, recipient: created };
   }, ctx);
 

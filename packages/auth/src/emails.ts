@@ -93,20 +93,34 @@ const canSignIn = async (email: string) => {
   return Boolean(row && !row.disabledAt);
 };
 
+/** Makes a sign-in code for an address and stores it hashed (auth.ts passes it in). */
+export type CreateSignInCode = (email: string) => Promise<string>;
+
 /**
- * Better Auth's magic-link plugin calls this for any address (it would
- * create the account on first use; ours has `disableSignUp`). Only an
- * existing, enabled account gets an email; the check runs after the response.
+ * "Email me a sign-in link" (B-96): one email with the magic link and a
+ * 6-digit code. Better Auth's magic-link plugin calls this for any address
+ * (it would create the account on first use; ours has `disableSignUp`). Only
+ * an existing, enabled account gets a code and an email; the check runs after the
+ * response. The code is the email-OTP plugin's own (`createSignInCode`, its
+ * server-only `createVerificationOTP`), so `signIn.emailOtp` checks it.
  */
-export const sendMagicLink = ({ email, url, token }: { email: string; url: string; token: string }) => {
+export const sendSignInEmail = (
+  { email, url, token }: { email: string; url: string; token: string },
+  createSignInCode: CreateSignInCode,
+) => {
   inBackground(async () => {
     if (!(await canSignIn(email))) return;
+    const code = await createSignInCode(email).catch((error: unknown) => {
+      logError("auth: couldn't create a sign-in code", error, { notification: "signInEmail" });
+      return undefined;
+    });
+    if (!code) return;
     const next = callbackPathOf(url);
-    logFailure("magicLink")(
-      await notify("magicLink", {
+    logFailure("signInEmail")(
+      await notify("signInEmail", {
         to: email,
-        data: { token, ...(next ? { next } : {}) },
-        idempotencyKey: keyFor("magicLink", token),
+        data: { token, code, ...(next ? { next } : {}) },
+        idempotencyKey: keyFor("signInEmail", token),
       }),
     );
   });
@@ -114,24 +128,11 @@ export const sendMagicLink = ({ email, url, token }: { email: string; url: strin
 };
 
 /**
- * The email-OTP plugin only calls this for existing accounts (it has
- * `disableSignUp`). Only sign-in codes are sent: the plugin's other uses
- * (reset, email change, verification by code) are turned off in auth.ts.
+ * The email-OTP plugin requires a sender, but nothing sends a code on its
+ * own: its send endpoint is off (auth.ts), and sign-in codes go out with the
+ * link in `sendSignInEmail`.
  */
-export const sendVerificationOTP = ({ email, otp, type }: { email: string; otp: string; type: string }) => {
-  if (type !== "sign-in") return Promise.resolve();
-  inBackground(async () => {
-    if (await isDisabledEmail(email)) return;
-    logFailure("signInCode")(
-      await notify("signInCode", {
-        to: email,
-        data: { code: otp },
-        idempotencyKey: keyFor("signInCode", `${email}:${otp}:${Date.now()}`),
-      }),
-    );
-  });
-  return Promise.resolve();
-};
+export const sendVerificationOTP = () => Promise.resolve();
 
 /**
  * An access code's sign-up (/join/:code) with an address that already has an

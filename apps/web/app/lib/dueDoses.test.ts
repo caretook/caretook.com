@@ -1,5 +1,6 @@
 import type { DueDose, DueMedication } from "./dueDoses";
 
+import { normalizeSchedule } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { doseWarnings, dueDoses, dueNow } from "./dueDoses";
 
@@ -11,7 +12,7 @@ const med = (over: Partial<DueMedication> & { id: string }): DueMedication => ({
   name: over.id,
   strength: null,
   dose: "1 tablet",
-  schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+  schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
   status: "current",
   deletedAt: null,
   createdAt: "2026-01-01T00:00:00.000Z",
@@ -50,7 +51,10 @@ describe("dueDoses", () => {
   });
 
   it("holds on the spring-forward day", () => {
-    const m = med({ id: "a", schedule: { type: "scheduled", times: ["02:30", "08:00"] } });
+    const m = med({
+      id: "a",
+      schedule: { type: "scheduled", slots: [{ time: "02:30" }, { time: "08:00" }] },
+    });
     const result = run([m], [], new Date("2026-03-08T15:30:00Z")); // 8:30 PDT
     expect(result.day).toBe("2026-03-08");
     expect(result.slots.map((s) => [s.time, s.at, s.state])).toEqual([
@@ -65,7 +69,10 @@ describe("dueDoses", () => {
   });
 
   it("holds on the fall-back day", () => {
-    const m = med({ id: "a", schedule: { type: "scheduled", times: ["01:30", "08:00"] } });
+    const m = med({
+      id: "a",
+      schedule: { type: "scheduled", slots: [{ time: "01:30" }, { time: "08:00" }] },
+    });
     const result = run([m], [], new Date("2026-11-01T15:59:00Z")); // 7:59 PST
     expect(result.slots.map((s) => [s.time, s.at, s.state])).toEqual([
       ["01:30", "2026-11-01T08:30:00.000Z", "overdue"],
@@ -74,7 +81,7 @@ describe("dueDoses", () => {
   });
 
   it("moves upcoming → due → overdue at the boundaries", () => {
-    const m = [med({ id: "a", schedule: { type: "scheduled", times: ["08:00"] } })];
+    const m = [med({ id: "a", schedule: { type: "scheduled", slots: [{ time: "08:00" }] } })];
     expect(states(run(m, [], plus(AM, -1)))).toEqual(["08:00 upcoming"]);
     expect(states(run(m, [], new Date(AM)))).toEqual(["08:00 due"]);
     expect(states(run(m, [], plus(AM, 59)))).toEqual(["08:00 due"]);
@@ -124,7 +131,9 @@ describe("dueDoses", () => {
   });
 
   it("never moves a second dose named for an answered slot onto another one", () => {
-    const m = [med({ id: "a", schedule: { type: "scheduled", times: ["08:00", "09:00"] } })];
+    const m = [
+      med({ id: "a", schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "09:00" }] } }),
+    ];
     const result = run(
       m,
       [
@@ -146,7 +155,7 @@ describe("dueDoses", () => {
   });
 
   it("matches a late-night slot answered after midnight to yesterday", () => {
-    const m = [med({ id: "a", schedule: { type: "scheduled", times: ["23:30"] } })];
+    const m = [med({ id: "a", schedule: { type: "scheduled", slots: [{ time: "23:30" }] } })];
     const now = new Date("2026-11-19T08:30:00Z"); // 0:30 on the 19th
     const result = run(m, [dose("a", "2026-11-19T08:15:00Z", "refused", "23:30")], now);
     expect(result.yesterday.map((s) => s.state)).toEqual(["refused"]);
@@ -210,6 +219,114 @@ describe("dueDoses", () => {
       ["p", 2, 3, 1],
       ["q", 0, null, null],
     ]);
+  });
+});
+
+describe("dueDoses with passes", () => {
+  const MORNING = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d1001";
+  const EVENING = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d1002";
+  const passes = (morning = "08:00", evening = "20:00") => [
+    { id: MORNING, time: morning },
+    { id: EVENING, time: evening },
+  ];
+  const inPasses = (over: Partial<DueMedication> & { id: string }) =>
+    med({
+      schedule: {
+        type: "scheduled",
+        slots: [{ passId: MORNING, amount: "1000 mg" }, { passId: EVENING }, { time: "14:00" }],
+      },
+      ...over,
+    });
+  const passDose = (medicationId: string, occurredAt: string, passId: string, scheduledFor: string) => ({
+    id: `d${++doseId}`,
+    occurredAt,
+    details: { medicationId, status: "given" as const, scheduledFor, passId },
+  });
+  const runWith = (medications: DueMedication[], doses: DueDose[], now: Date, p = passes(), timeZone = LA) =>
+    dueDoses({ medications, passes: p, doses, now, timeZone });
+
+  it("places pass slots at their pass's time, with the slot's amount, else the dose", () => {
+    const result = runWith([inPasses({ id: "a" })], [], plus(AM, 10));
+    expect(result.slots.map((s) => [s.time, s.passId, s.amount, s.state])).toEqual([
+      ["08:00", MORNING, "1000 mg", "due"],
+      ["14:00", null, "1 tablet", "upcoming"],
+      ["20:00", EVENING, "1 tablet", "upcoming"],
+    ]);
+    // A pass this device doesn't know has no slot.
+    expect(runWith([inPasses({ id: "a" })], [], plus(AM, 10), []).slots.map((s) => s.time)).toEqual([
+      "14:00",
+    ]);
+  });
+
+  it("keeps a retimed pass's answered dose, and makes the new time due", () => {
+    // Given at 8:05 for the Morning pass; then Morning moved to 9:30, Evening to 10:00.
+    const given = passDose("a", plus(AM, 5).toISOString(), MORNING, "08:00");
+    const result = runWith([inPasses({ id: "a" })], [given], plus(AM, 125), passes("09:30", "10:00"));
+    expect(result.slots.map((s) => `${s.time} ${s.state}`)).toEqual([
+      "09:30 given",
+      "10:00 due",
+      "14:00 upcoming",
+    ]);
+    expect(result.slots[0]?.dose).toBe(given);
+  });
+
+  it("answers a pass slot by its time when the dose names no pass (an older build's)", () => {
+    const old = dose("a", plus(PM, -30).toISOString(), "given", "08:00");
+    const result = runWith([inPasses({ id: "a" })], [old], plus(PM, -20));
+    expect(states(result)).toEqual(["08:00 given", "14:00 overdue", "20:00 upcoming"]);
+  });
+
+  it("ignores a pass the medication isn't in, matching the dose like an unnamed one", () => {
+    const m = med({ id: "a", schedule: { type: "scheduled", slots: [{ passId: EVENING }] } });
+    // Logged in the Morning pass at 19:45 (a mistake): it answers the nearby Evening slot.
+    const result = runWith(
+      [m],
+      [passDose("a", plus(PM, -15).toISOString(), MORNING, "08:00")],
+      plus(PM, -10),
+    );
+    expect(states(result)).toEqual(["20:00 given"]);
+  });
+
+  it("keeps one slot when a pass and a time of its own fall together", () => {
+    const m = med({
+      id: "a",
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }, { passId: MORNING }] },
+    });
+    expect(runWith([m], [], plus(AM, 10)).slots.map((s) => [s.time, s.passId])).toEqual([["08:00", MORNING]]);
+  });
+
+  it("holds pass slots on the spring-forward day", () => {
+    const early = [
+      { id: MORNING, time: "02:30" },
+      { id: EVENING, time: "20:00" },
+    ];
+    const m = med({ id: "a", schedule: { type: "scheduled", slots: [{ passId: MORNING }] } });
+    const result = runWith([m], [], new Date("2026-03-08T15:30:00Z"), early);
+    expect(result.slots.map((s) => [s.time, s.at])).toEqual([["02:30", "2026-03-08T10:30:00.000Z"]]);
+  });
+
+  it("reads an old-shape schedule (times) as time slots", () => {
+    const m = med({
+      id: "a",
+      schedule: normalizeSchedule({ type: "scheduled", times: ["20:00", "08:00"] }) ?? { type: "asNeeded" },
+    });
+    expect(states(runWith([m], [], plus(AM, 10)))).toEqual(["08:00 due", "20:00 upcoming"]);
+  });
+
+  it("warns before a second dose in a pass already given, even after the pass moved", () => {
+    const due = runWith(
+      [inPasses({ id: "a" })],
+      [passDose("a", plus(AM, 5).toISOString(), MORNING, "08:00")],
+      plus(AM, 125),
+      passes("09:30", "20:00"),
+    );
+    expect(
+      doseWarnings(
+        due,
+        { medicationId: "a", status: "given", passId: MORNING, scheduledFor: "09:30" },
+        plus(AM, 125),
+      ),
+    ).toEqual([{ type: "alreadyGiven", time: "09:30", givenAt: plus(AM, 5).toISOString() }]);
   });
 });
 

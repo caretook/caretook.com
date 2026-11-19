@@ -13,10 +13,10 @@ import { loadSearchPeriods, searchPeriodRange } from "~/lib/sync/periodSearch";
 import { removeEntry } from "~/lib/sync/timeline";
 import { parseFilters } from "~/lib/timelineFilters";
 import { CurrentPeriodLine } from "./CurrentPeriodLine";
-import { DueNowStrip } from "./DueNowStrip";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
+import { MedicationStrip } from "./MedicationStrip";
 import { NextStrip } from "./NextStrip";
 import { QuickAddBar } from "./QuickAddBar";
 import { seeAllSearch } from "./aheadQueries";
@@ -53,7 +53,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 /**
  * The first screenful, read locally so the page renders complete: the
  * history up to now, and what's ahead of it (the Next strip, and the
- * Upcoming block with `?upcoming=1`). `?kind=` shows one kind, `?author=`
+ * Upcoming block with `?upcoming=1`). `?kind=` shows one kind (`?vital=` one vital type), `?author=`
  * one person's entries and `?q=` the entries matching a search (through the
  * device's search index; a reload waits a moment for it). The group itself comes from the group route (which
  * has already turned away a group not on the device).
@@ -69,7 +69,12 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const range = searchPeriodRange(searchPeriods, filters.period);
   const { match } = timelineSearch(params.groupId, filters.q, status, range);
   const [rows, settings] = await Promise.all([
-    loadTimelineRows(db, params.groupId, { kind: filters.kind, author: filters.author, match }),
+    loadTimelineRows(db, params.groupId, {
+      kind: filters.kind,
+      author: filters.author,
+      vital: filters.vital,
+      match,
+    }),
     loadSettings(request, db.userId),
   ]);
   return { userId: db.userId, title: pageTitle(group.name), ...filters, searchPeriods, ...rows, ...settings };
@@ -107,12 +112,12 @@ export function shouldRevalidate({
 }
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { userId, units, kind, author, q, upcoming } = loaderData;
+  const { userId, units, kind, author, q, upcoming, vital } = loaderData;
   const { groupId } = params;
   const { canWrite } = useGroup();
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
-  const filters = { kind, author, match: search.match };
+  const filters = { kind, author, vital, match: search.match };
   const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
   const [view, setView] = useTimelineView(userId, loaderData.timelineView);
 
@@ -124,7 +129,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <LatestVitals vitals={data.latestVitals} units={units} />
       <NextStrip next={data.next} now={data.now} groupId={groupId} showing={upcoming} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
-      <DueNowStrip groupId={groupId} canWrite={canWrite} />
+      <MedicationStrip groupId={groupId} canWrite={canWrite} />
       {canWrite && (
         <div className={COLUMN_CAP}>
           <QuickAddBar groupId={groupId} />
@@ -135,6 +140,8 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
           kind={kind}
           author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
           q={q}
+          vital={vital}
+          vitalTypes={data.latestVitals.map((v) => v.reading.type)}
           period={period}
         />
       </div>
@@ -146,6 +153,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         canWrite={canWrite}
         kind={kind}
         author={author}
+        vital={vital}
         search={{ q, state: search.state }}
         upcoming={
           upcoming
@@ -158,6 +166,8 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <Outlet context={{ units } satisfies TimelineOutlet} />
       {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
       {canWrite && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
+      {/* The pass sheet's too, so a pass log opens it offline. */}
+      {canWrite && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
     </main>
   );
 }

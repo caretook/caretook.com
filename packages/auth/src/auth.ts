@@ -1,3 +1,5 @@
+import type { CreateSignInCode } from "./emails";
+
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createAuthMiddleware } from "better-auth/api";
@@ -14,14 +16,16 @@ import {
 } from "@caretook/data";
 import { getAuthConfig } from "./config";
 import { isDisabledEmail, isDisabledUser, noSession, wrongCode, wrongPassword } from "./disabled";
-import { sendMagicLink, sendResetPassword, sendVerificationEmail, sendVerificationOTP } from "./emails";
+import { sendResetPassword, sendSignInEmail, sendVerificationEmail, sendVerificationOTP } from "./emails";
 
 // Capacitor's WebView origins. The native app talks to the web server's /api/auth.
 const NATIVE_ORIGINS = ["capacitor://localhost", "https://localhost"];
 
 // The email-OTP plugin's endpoints we don't use: a code only signs in.
 // Resets go through the emailed link, and verification through its own link.
+// Codes are sent only with the sign-in link (B-96), never on their own.
 const UNUSED_OTP_PATHS = [
+  "/email-otp/send-verification-otp",
   "/email-otp/check-verification-otp",
   "/email-otp/verify-email",
   "/email-otp/request-password-reset",
@@ -57,7 +61,11 @@ const createAuth = () => {
   const { secret, baseURL, trustedOrigins, powersyncURL } = getAuthConfig();
   if (!secret) throw new Error("BETTER_AUTH_SECRET is not set");
 
-  return betterAuth({
+  // Set once the instance exists: the email's code comes from its own
+  // email-OTP plugin (typed here, so the instance's type doesn't loop).
+  let createSignInCode: CreateSignInCode = () => Promise.reject(new Error("auth isn't ready"));
+
+  const instance = betterAuth({
     appName: "Caretook",
     secret,
     baseURL,
@@ -89,6 +97,11 @@ const createAuth = () => {
         },
       },
     },
+    // Account settings' Devices page lists the account's sessions. Better
+    // Auth's list-sessions refuses a session older than `freshAge` (a day by
+    // default), which would hide the list from anyone signed in for longer.
+    // Nothing else we use checks freshness (deleteUser and unlink-account are off).
+    session: { freshAge: 0 },
     // Accounts come only from invitations (invites slices 3–5), never from
     // public sign-up. An unverified account can't sign in with a password:
     // it gets a fresh verification email and EMAIL_NOT_VERIFIED instead.
@@ -121,8 +134,14 @@ const createAuth = () => {
     plugins: [
       // `Authorization: Bearer <session token>` for Capacitor, where cookies don't work.
       bearer(),
-      // "Email me a link" and "Email me a code": existing accounts only.
-      magicLink({ disableSignUp: true, expiresIn: 5 * 60, storeToken: "hashed", sendMagicLink }),
+      // "Email me a sign-in link": one email with the link and a code
+      // (B-96), existing accounts only.
+      magicLink({
+        disableSignUp: true,
+        expiresIn: 5 * 60,
+        storeToken: "hashed",
+        sendMagicLink: (data) => sendSignInEmail(data, (email) => createSignInCode(email)),
+      }),
       emailOTP({
         disableSignUp: true,
         otpLength: 6,
@@ -147,6 +166,8 @@ const createAuth = () => {
       }),
     ],
   });
+  createSignInCode = (email) => instance.api.createVerificationOTP({ body: { email, type: "sign-in" } });
+  return instance;
 };
 
 export type Auth = ReturnType<typeof createAuth>;

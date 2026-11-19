@@ -11,7 +11,15 @@ import { dbMayFail, getSchema, txOrDb } from "../../db";
 import { PROTECTED_FIELDS } from "../../db/schema";
 import { isError, newError } from "../../errors";
 import { getPermissionScope, getUnauthorizedFields, rejectError } from "../../permissions";
-import { generateOrderBy, generateQueryWhere, isFilterEmpty, paginate, scopeRuleToSql } from "./queryHelpers";
+import {
+  applyLimits,
+  generateOrderBy,
+  generateQueryWhere,
+  isFilterEmpty,
+  limitedSelection,
+  paginate,
+  scopeRuleToSql,
+} from "./queryHelpers";
 
 export type BaseModelArgs<K extends DbSchemaName, TRow, TModel> = {
   schemaName: K;
@@ -27,15 +35,19 @@ export type BaseModelArgs<K extends DbSchemaName, TRow, TModel> = {
 // models built on top stay fully typed.
 // ---------------------------------------------------------------------------
 
+type Selection = { columns?: Record<string, boolean>; extras?: Record<string, SQL.Aliased> };
+
 type RelationalQuery = {
-  findFirst(config: { where?: SQL; with?: unknown }): PromiseLike<unknown>;
-  findMany(config: {
-    where?: SQL;
-    with?: unknown;
-    orderBy?: SQL[];
-    limit?: number;
-    offset?: number;
-  }): PromiseLike<unknown[]>;
+  findFirst(config: { where?: SQL; with?: unknown } & Selection): PromiseLike<unknown>;
+  findMany(
+    config: {
+      where?: SQL;
+      with?: unknown;
+      orderBy?: SQL[];
+      limit?: number;
+      offset?: number;
+    } & Selection,
+  ): PromiseLike<unknown[]>;
 };
 
 type IdTable = PgTable & { id: PgColumn };
@@ -97,15 +109,22 @@ export const get =
   async (args: QuerySelectArgs<K>) => {
     const where = generateQueryWhere(schemaName, "read", args);
     if (isError(where)) return where;
+    const limited = limitedSelection(schemaName, "read", args.authUser);
 
     const row = await dbMayFail(
-      () => relationalQuery(schemaName, args.tx).findFirst({ where, with: args.with ?? getWith?.() }),
+      () =>
+        relationalQuery(schemaName, args.tx).findFirst({
+          where,
+          with: args.with ?? getWith?.(),
+          ...(limited && { columns: limited.columns, extras: limited.extras }),
+        }),
       "baseModel:get",
       { schemaName },
     );
     if (isError(row)) return row;
+    if (!row) return null;
 
-    return row ? dbToModel(row as TRow) : null;
+    return dbToModel((limited ? applyLimits(row as Row, limited.visible) : row) as TRow);
   };
 
 export const getById =
@@ -125,6 +144,7 @@ export const list =
 
     const orderBy = generateOrderBy(schemaName, args.orderBy);
     if (isError(orderBy)) return orderBy;
+    const limited = limitedSelection(schemaName, "list", args.authUser);
 
     const rows = await dbMayFail(
       () =>
@@ -133,6 +153,7 @@ export const list =
           orderBy,
           ...paginate(args),
           with: args.with ?? getWith?.(),
+          ...(limited && { columns: limited.columns, extras: limited.extras }),
         }),
       "baseModel:list",
       { schemaName },
@@ -148,7 +169,7 @@ export const list =
 
     return {
       count: countRes[0]?.count ?? 0,
-      data: rows.map((row) => dbToModel(row as TRow)),
+      data: rows.map((row) => dbToModel((limited ? applyLimits(row as Row, limited.visible) : row) as TRow)),
     };
   };
 

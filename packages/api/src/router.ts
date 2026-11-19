@@ -91,7 +91,7 @@ const toRecipientProfile = (recipient: {
 const me = {
   /** The signed-in user and their role in each care group. */
   get: authedProcedure.handler(async ({ context }) => {
-    const user = unwrap(await userService.getById(context, context.authUser.id));
+    const user = unwrap(await userService.getWholeById(context, context.authUser.id));
     // The account was deleted after the session was issued.
     if (!user) throw new ORPCError("UNAUTHORIZED");
     return {
@@ -110,7 +110,7 @@ const me = {
   /** Change your own settings. Fields left out keep their current value. */
   updatePreferences: authedProcedure.input(userPreferencesZSchema).handler(async ({ context, input }) => {
     const self = { id: { type: "eq" as const, value: context.authUser.id } };
-    const user = unwrap(await userService.getById(context, context.authUser.id));
+    const user = unwrap(await userService.getWholeById(context, context.authUser.id));
     if (!user) throw new ORPCError("UNAUTHORIZED");
     const preferences = {
       ...user.preferences,

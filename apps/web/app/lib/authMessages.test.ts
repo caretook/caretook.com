@@ -20,7 +20,7 @@ describe("requestFailure", () => {
 
 describe("the sent messages", () => {
   it("never say whether the address has an account", () => {
-    for (const message of [authMessages.linkSent, authMessages.codeSent, authMessages.resetSent]) {
+    for (const message of [authMessages.signInSent, authMessages.resetSent]) {
       expect(message("a@example.com")).toMatch(
         /^Check your email\. If a@example\.com has a Caretook account/,
       );

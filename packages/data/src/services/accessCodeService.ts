@@ -18,6 +18,7 @@ import { accessCodeModel, accessCodeRedemptionModel, careGroupModel, careRecipie
 import * as adminAuditService from "./adminAuditService";
 import { signupRefusal } from "./appSettingService";
 import { auditActorId, staffRefusal } from "./staffAccess";
+import { addDefaults as addDefaultPasses } from "./medicationPassService";
 
 export const serviceName = "accessCode";
 export const schemaName = accessCodeModel.schemaName;
@@ -182,6 +183,9 @@ export const redeem = async (
     data: { ...recipient, groupId: created.id },
   });
   if (isError(recipientRow)) return recipientRow;
+  if (!recipientRow) return newError({ code: "baseModel:create:nothingCreated" });
+  const passes = await addDefaultPasses(tx, { groupId: created.id, recipientId: recipientRow.id });
+  if (passes) return passes;
 
   const counted = await accessCodeModel.countUse(row.id, tx);
   if (isError(counted)) return counted;

@@ -32,7 +32,8 @@ const Muted = ({ children }: { children: ReactNode }) => (
   <span className="text-base-content/70 block">{children}</span>
 );
 
-export function MedicationSheet({ sheet }: { sheet: PrintSheet }) {
+/** `allergies` is the allergies block, shown first under the header. */
+export function MedicationSheet({ sheet, allergies }: { sheet: PrintSheet; allergies?: ReactNode }) {
   return (
     <article
       className="rounded-box border-base-300 bg-base-100 space-y-5 border p-4 sm:p-6 print:rounded-none print:border-0 print:p-0"
@@ -54,6 +55,8 @@ export function MedicationSheet({ sheet }: { sheet: PrintSheet }) {
           <dd data-print-field="printed">{sheet.printedOn}</dd>
         </dl>
       </header>
+
+      {allergies}
 
       <Section id="print-current" title="Current medications">
         {sheet.current.length === 0 ? (

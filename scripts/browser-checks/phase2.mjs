@@ -64,12 +64,21 @@ async function signedIn(b, label, email) {
   await sleep(500);
   return p;
 }
+/** The settings change this device hasn't sent yet (`lib/me.ts`), if any. */
+const SETTINGS_PENDING = `Object.keys(localStorage).some((k) => k.startsWith("caretook:settings-pending:"))`;
+/**
+ * Switch the view, then wait for the server to have it (no pending change
+ * left), so a reload or the next step reads it back: a fixed 1.5 s sleep did
+ * this before, and was short on a busy machine (B-93).
+ */
 async function setView(p, view) {
   await p.press(`document.querySelector('[aria-label="${view}"]')`);
   await p.waitFor(
     `document.querySelector("ol")?.dataset.view === ${JSON.stringify(view.toLowerCase())}`,
-    5000,
+    10000,
   );
+  // Not a step's assertion: a slow save shows in the step that reads it back.
+  await p.waitFor(`!(${SETTINGS_PENDING})`, 15000, { quiet: true }).catch(() => undefined);
 }
 
 /**
@@ -224,7 +233,6 @@ async function kindIconFilters(users) {
         await p.screenshot(`phase2-kind-icon-${who}-cards`);
         await clear(p);
         await setView(p, "Rows");
-        await sleep(1500);
       });
     }
     dropReloadNoise();
@@ -357,7 +365,6 @@ async function dayHeadings(p) {
     await p.evaluate(`window.scrollTo(0, 0)`);
   }
   await setView(p, "Rows");
-  await sleep(1500);
 }
 
 /**
@@ -515,6 +522,64 @@ async function latestVitalsLine(p) {
   );
 }
 
+/**
+ * The medication strip (medications-2 slice 5): Dev Family always has
+ * scheduled medications, so it's there whatever the clock: one 32 px line at
+ * 420, in the strip family's width and centre at 1280, Given all for a writer
+ * only while a pass is due or overdue, and text only for a viewer. Its
+ * states and Given all are medications.mjs's (`stripSteps`), with passes it
+ * places itself.
+ */
+async function medicationStripLine(users) {
+  const read = (p) =>
+    p.evaluate(`(() => { const s = document.querySelector("main [data-med-strip]"); if (!s) return null;
+      const r = s.getBoundingClientRect(); const page = document.documentElement.clientWidth;
+      return { state: s.dataset.stripState, height: r.height, width: r.width, page,
+        centre: Math.round(r.left + r.width / 2 - page / 2),
+        givenAll: !!s.querySelector("[data-strip-given-all]"), controls: s.querySelectorAll("a, button").length,
+        text: s.textContent.trim() }; })()`);
+  for (const [who, p] of users) {
+    await p.goto(`/app/groups/${DEV_FAMILY}/timeline`);
+    await p.waitFor(`!!document.querySelector("main [data-med-strip]")`, 15000).catch(() => undefined);
+    const phone = await read(p);
+    const dueNow = phone?.state === "due" || phone?.state === "overdue";
+    check(
+      `${who}: the medication strip is one line at 420, with Given all ${who === "viewer" ? "never" : "only while a pass is due"}`,
+      !!phone &&
+        phone.height > 0 &&
+        phone.height <= 34 &&
+        /^(Next|Due|Overdue): .+ · /.test(phone.text) &&
+        (who === "viewer" ? phone.controls === 0 : phone.givenAll === dueNow),
+      JSON.stringify(phone),
+    );
+  }
+  const [, p] = users[0];
+  await p.send("Emulation.setDeviceMetricsOverride", {
+    width: 1280,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await sleep(400);
+  const wide = await read(p);
+  check(
+    "1280: the medication strip is one line, wider than the column, narrower than the page, centred",
+    !!wide &&
+      wide.height <= 34 &&
+      wide.width > 1024 &&
+      wide.width < wide.page - 32 &&
+      Math.abs(wide.centre) <= 1,
+    JSON.stringify(wide),
+  );
+  await p.send("Emulation.setDeviceMetricsOverride", {
+    width: 420,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  await sleep(400);
+}
+
 const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
 const psql = (sql) =>
@@ -523,6 +588,75 @@ const psql = (sql) =>
   })
     .toString()
     .trim();
+
+/**
+ * The vital-type filter (B-97): the Vitals chip brings up a row of type
+ * chips; "Blood pressure" lists only entries with a blood pressure reading
+ * (as many as the server has, up to a page); "All" clears the kind and the
+ * type with it. The URLs themselves are timelineFilters.test.ts's. Starts
+ * and ends on the unfiltered timeline.
+ */
+async function vitalTypeFilters(p) {
+  const kinds = `[...document.querySelectorAll('nav[aria-label="Show entries"] a')]`;
+  const types = `[...document.querySelectorAll('nav[aria-label="Show vital types"] a')]`;
+  const chip = (list, label) => `${list}.find((a) => a.textContent.trim() === ${JSON.stringify(label)})`;
+  const state = () =>
+    p.evaluate(`JSON.stringify({
+      search: location.search,
+      types: ${types}.map((a) => a.textContent.trim()),
+      current: ${types}.filter((a) => a.getAttribute("aria-current") === "true").map((a) => a.textContent.trim()),
+      rows: ${rows},
+      bp: [...document.querySelectorAll("ol > li")].filter((li) => /BP \\d+\\/\\d+ mmHg/.test(li.textContent)).length,
+    })`);
+  const timeline = await p.evaluate("location.pathname");
+  await p.goto(timeline);
+  await p.waitFor(`${rows} > 0`, 20000);
+  check("vital types: no type chips without the Vitals filter", (await p.evaluate(`${types}.length`)) === 0);
+
+  await p.press(chip(kinds, "Vitals"));
+  await p.waitFor(`location.search === "?kind=vital" && ${types}.length > 1`, 8000).catch(() => undefined);
+  const vitals = JSON.parse(await state());
+  check(
+    "vital types: the Vitals chip brings up the type chips, All vitals current",
+    vitals.search === "?kind=vital" &&
+      vitals.types[0] === "All vitals" &&
+      vitals.types.includes("Blood pressure") &&
+      vitals.current.join() === "All vitals",
+    `${vitals.search}: ${vitals.types.join(", ")}`,
+  );
+
+  const expected = Math.min(
+    30,
+    Number(
+      psql(`SELECT count(*) FROM timeline_entry
+        WHERE group_id = '${DEV_FAMILY}' AND kind = 'vital' AND deleted_at IS NULL
+          AND details->'readings' @> '[{"type": "bloodPressure"}]';`),
+    ),
+  );
+  await p.press(chip(types, "Blood pressure"));
+  await p
+    .waitFor(
+      `location.search === "?kind=vital&vital=bloodPressure" && ${rows} === ${expected} && [...document.querySelectorAll("ol > li")].every((li) => /BP \\d+\\/\\d+ mmHg/.test(li.textContent))`,
+      8000,
+    )
+    .catch(() => undefined);
+  const bp = JSON.parse(await state());
+  check(
+    "vital types: Blood pressure lists only entries with a blood pressure reading",
+    bp.search === "?kind=vital&vital=bloodPressure" &&
+      bp.rows === expected &&
+      bp.bp === expected &&
+      bp.current.join() === "Blood pressure",
+    `${bp.search}, ${bp.rows} rows (${bp.bp} with BP, ${expected} expected), current "${bp.current.join()}"`,
+  );
+  await p.screenshot("phase2-vital-types");
+
+  await p.press(chip(kinds, "All"));
+  await p.waitFor(`location.search === "" && ${types}.length === 0`, 8000).then(
+    () => check("vital types: clearing the kind clears the type", true),
+    async () => check("vital types: clearing the kind clears the type", false, await state()),
+  );
+}
 
 /** The "with …" line of the first entry titled `title`: the names shown and the "+N". */
 const withLineOf = (p, title) =>
@@ -846,7 +980,6 @@ async function authorFilters(users, offlineDevice) {
       await p.screenshot("phase2-author-cards");
       await clear(p);
       await setView(p, "Rows");
-      await sleep(1500);
     });
   }
 
@@ -1428,11 +1561,9 @@ async function infiniteScroll(p, offlineDevice) {
 
   await step("infinite scroll: cards, to the beginning", async () => {
     await setView(p, "Cards");
-    await sleep(1500);
     await fresh(p);
     await reachesTheBeginning(p, "writer, cards");
     await setView(p, "Rows");
-    await sleep(1500);
   });
 
   await step("infinite scroll: a filter starts again from the newest, with one page", async () => {
@@ -1594,6 +1725,101 @@ const bM = await launch(9341);
 const bV = SMOKE ? null : await launch(9342);
 const pages = [];
 let offline = null;
+/**
+ * Pass logs (medications-2 slice 6): doses logged in one round, through the
+ * device module on seeded Morning medications a couple of minutes back, are
+ * one row in rows and in cards that expands to each medication; writers'
+ * opens the pass sheet, viewers' doesn't. Its doses are deleted at the end.
+ */
+async function passLogRows(p, v) {
+  const tag = `P2-${Date.now().toString(36)}`;
+  const made = await p.evaluate(`(async () => {
+    const db = window.caretookSync;
+    const { medications } = await window.caretookModules();
+    const one = async (sql, params) => (await db.powersync.getAll(sql, params))[0]?.id;
+    const g = ${JSON.stringify(DEV_FAMILY)};
+    const pass = await one("SELECT id FROM medication_pass WHERE group_id = ? AND name = 'Morning' AND deleted_at IS NULL", [g]);
+    const med = (name) => one("SELECT id FROM medication WHERE group_id = ? AND name = ? AND deleted_at IS NULL", [g, name]);
+    const [a, b] = [await med("Lisinopril"), await med("Metformin")];
+    if (!pass || !a || !b) return { ok: false, error: "no Morning pass or seeded medications" };
+    const log = crypto.randomUUID();
+    const at = new Date(Date.now() - 2 * 60_000).toISOString();
+    const dose = (medicationId, status) => ({ medicationId, status, passId: pass, passLogId: log, occurredAt: at, note: ${JSON.stringify(tag)} });
+    const r = await medications.logDoses(db, g, [dose(a, "given"), dose(b, "refused")]);
+    return { ...r, log };
+  })()`);
+  if (!made?.ok) return check("pass logs: a round to show", false, JSON.stringify(made));
+  const row = `document.querySelector('main [data-pass-log="${made.log}"]')`;
+  const text = `${row}?.querySelector("[data-pass-log-text]")?.textContent`;
+  const tagged = `[...document.querySelectorAll("main ol > li")].filter((li) => li.textContent.includes(${JSON.stringify(tag)})).length`;
+  const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
+  try {
+    await p.goto(timeline);
+    await step("pass logs: one row in rows and cards", { smoke: true }, async () => {
+      const shown = await p.waitFor(`${text} === "Morning: 1 given, 1 refused"`, 15000).then(
+        () => true,
+        () => false,
+      );
+      check(
+        "rows: a round logged together is one row, with a link to its pass sheet",
+        shown &&
+          (await p.evaluate(tagged)) === 1 &&
+          (await p.evaluate(`!!${row}?.querySelector('a[aria-label^="Edit Morning log"]')`)),
+        `${shown} ${await p.evaluate(tagged)}`,
+      );
+      await p.tap(`${row}.querySelector("[data-pass-log-toggle]")`);
+      const open = await p.waitFor(`!${row}.querySelector("[data-pass-log-doses]").hidden`, 5000).then(
+        () => true,
+        () => false,
+      );
+      const lines = await p.evaluate(`${row}.querySelectorAll("[data-pass-log-doses] li").length`);
+      check("rows: the toggle lists each medication", open && lines === 2, `${open} ${lines}`);
+      await setView(p, "Cards");
+      const card = await p.waitFor(`${text} === "Morning: 1 given, 1 refused"`, 5000).then(
+        () => true,
+        () => false,
+      );
+      check("cards: the round is one card", card && (await p.evaluate(tagged)) === 1);
+      await p.screenshot("phase2-pass-log-cards");
+      await setView(p, "Rows");
+    });
+    if (v)
+      await step("pass logs: the viewer's row", async () => {
+        await v.goto(timeline);
+        const seen = await v.waitFor(`${text} === "Morning: 1 given, 1 refused"`, 30000).then(
+          () => true,
+          () => false,
+        );
+        check(
+          "viewer: the pass row with its toggle, and no pass sheet",
+          seen &&
+            (await v.evaluate(
+              `!!${row}?.querySelector("[data-pass-log-toggle]") && !${row}?.querySelector("a[aria-label^='Edit']")`,
+            )),
+        );
+      });
+  } finally {
+    await p
+      .evaluate(
+        `(async () => {
+      const db = window.caretookSync;
+      const { medications } = await window.caretookModules();
+      const rows = await db.powersync.getAll("SELECT id FROM timeline_entry WHERE json_extract(details, '$.passLogId') = ?", [${JSON.stringify(made.log)}]);
+      return medications.removeDoses(db, rows.map((r) => r.id));
+    })()`,
+      )
+      .catch(() => undefined);
+    // Wait for the delete to upload: the run ends (and Chrome closes) soon after.
+    for (let i = 0; i < 40; i++) {
+      const left = psql(
+        `SELECT count(*) FROM timeline_entry WHERE deleted_at IS NULL AND details->>'passLogId' = '${made.log}'`,
+      );
+      if (left === "0") break;
+      await sleep(500);
+    }
+  }
+}
+
 try {
   const p = await signedIn(bM, "member", "member@example.com");
   pages.push(p);
@@ -1734,7 +1960,6 @@ try {
   await step("cards: the view survives a reload, and a vital's tap", async () => {
     // The view survives a reload.
     await setView(p, "Cards");
-    await sleep(1500);
     await p.goto(await p.evaluate("location.pathname"));
     await p.waitFor(`${rows} > 0`, 20000);
     const cardsAfter = await p.evaluate(`document.querySelector("ol")?.dataset.view === "cards"`);
@@ -1753,7 +1978,6 @@ try {
     await escape(p);
     await p.waitFor(`!document.querySelector("[role=dialog]")`, 5000);
     await setView(p, "Rows");
-    await sleep(1500);
   });
 
   // The viewer: a note opens, a symptom does nothing, no ⋯ menu.
@@ -1781,6 +2005,10 @@ try {
   await step("providers on notes and events", { smoke: true }, () => withLines(p));
   await step("day headings", () => dayHeadings(p));
   await step("the latest vitals line", () => latestVitalsLine(p));
+  await step("the vital-type filter", { smoke: true }, () => vitalTypeFilters(p));
+  await step("the medication strip", { smoke: true }, () =>
+    medicationStripLine([["writer", p], ...(v ? [["viewer", v]] : [])]),
+  );
   /** A signed-in device behind a proxy that can be cut, opened once (CDP's offline doesn't cut PowerSync's stream). */
   const offlineDevice = async () => {
     if (!offline) {
@@ -1795,6 +2023,7 @@ try {
   await wideLayout(p);
   await authorTooltip(p);
   await infiniteScroll(p, offlineDevice);
+  await passLogRows(p, v);
 
   // PowerSync warns when a full page load closes the previous page's database,
   // and its shared sync worker logs "Sync aborted" to every page when it stops

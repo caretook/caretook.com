@@ -71,6 +71,51 @@ describe("reading", () => {
     expect(ids).not.toContain(u.staff.user.id);
   });
 
+  it("shows a co-member only id, name and image; yourself and staff the whole row", async () => {
+    const { u } = await setup();
+    const publicProfile = (who: Users[keyof Users]) => ({
+      id: who.user.id,
+      name: who.user.name,
+      image: who.user.image,
+      publicOnly: true,
+    });
+
+    expect(ok(await userService.getById(u.viewer.ctx, u.owner.user.id))).toEqual(publicProfile(u.owner));
+    const listed = ok(
+      await userService.list(u.caretaker.ctx, { filter: { id: { type: "eq", value: u.admin.user.id } } }),
+    );
+    expect(listed.data).toEqual([publicProfile(u.admin)]);
+
+    // Yourself, in a list with co-members: your row whole, theirs public.
+    const all = ok(await userService.list(u.viewer.ctx)).data;
+    const self = all.find((x) => x.id === u.viewer.user.id);
+    expect(self).toMatchObject({ publicOnly: false, email: u.viewer.user.email, role: "member" });
+    for (const other of all.filter((x) => x.id !== u.viewer.user.id)) {
+      expect(Object.keys(other).sort()).toEqual(["id", "image", "name", "publicOnly"]);
+    }
+
+    // Staff read any row whole (account access, not care data).
+    expect(ok(await userService.getById(u.staff.ctx, u.owner.user.id))).toMatchObject({
+      publicOnly: false,
+      email: u.owner.user.email,
+    });
+    expect(ok(await userService.getWholeById(u.owner.ctx, u.owner.user.id))?.email).toBe(u.owner.user.email);
+    expect(codeOf(await userService.getWholeById(u.viewer.ctx, u.owner.user.id))).toBe("userModel:notWhole");
+  });
+
+  it("never lets a co-member match or sort on hidden fields", async () => {
+    const { u } = await setup();
+    const byEmail = { filter: { email: { type: "eq", value: u.owner.user.email } } } as const;
+    expect(ok(await userService.get(u.viewer.ctx, byEmail))).toBeNull();
+    expect(codeOf(await userService.getByEmail(u.viewer.ctx, u.owner.user.email))).toBe("userModel:notFound");
+    expect(ok(await userService.get(u.owner.ctx, byEmail))?.id).toBe(u.owner.user.id);
+    // Ordering by a hidden field leaves only whole rows (here, yourself).
+    const sorted = ok(
+      await userService.list(u.viewer.ctx, { orderBy: [{ field: "email", direction: "asc" }] }),
+    );
+    expect(sorted.data.map((x) => x.id)).toEqual([u.viewer.user.id]);
+  });
+
   it("rejects unauthenticated callers", async () => {
     expect(codeOf(await careGroupService.list({ authUser: null }))).toBe("permissions:unauthenticated");
   });

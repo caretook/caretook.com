@@ -4,6 +4,8 @@ import type { ProviderRow } from "~/lib/sync/providers";
 import type { EntryRow, MemberRow } from "~/lib/sync/timeline";
 
 import { data } from "react-router";
+import { loadAllergies } from "~/lib/sync/allergies";
+import { loadSchedulePasses } from "~/lib/sync/medicationPasses";
 import {
   medicationEntriesQuery,
   medicationQuery,
@@ -15,7 +17,7 @@ import { membersQuery, readRows } from "~/lib/sync/timeline";
 
 /**
  * The medication, its notes document and pending updates, its history (doses
- * and changes) and who wrote them, and the recipient (whose time zone the
+ * and changes) and who wrote them, the group's passes, and the recipient (whose time zone the
  * schedule is in). A medication that isn't on the device, is deleted, or is
  * in another group is a 404 with no names. (The group route has already
  * turned away a non-member.)
@@ -39,13 +41,16 @@ export async function loadMedication(db: SyncDb, groupId: string, medicationId: 
     : [];
   const providerRows = (id: string | null) =>
     id ? readRows<ProviderRow>(db, providerQuery(id)) : Promise.resolve([]);
-  const [historyRows, memberRows, recipientRows, prescriberRows, pharmacyRows] = await Promise.all([
-    readRows<EntryRow>(db, medicationEntriesQuery(medicationId)),
-    readRows<MemberRow>(db, membersQuery(groupId)),
-    readRows<RecipientRow>(db, recipientQuery(groupId)),
-    providerRows(medication.prescriberId),
-    providerRows(medication.pharmacyId),
-  ]);
+  const [historyRows, memberRows, recipientRows, prescriberRows, pharmacyRows, passRows, allergies] =
+    await Promise.all([
+      readRows<EntryRow>(db, medicationEntriesQuery(medicationId)),
+      readRows<MemberRow>(db, membersQuery(groupId)),
+      readRows<RecipientRow>(db, recipientQuery(groupId)),
+      providerRows(medication.prescriberId),
+      providerRows(medication.pharmacyId),
+      loadSchedulePasses(db, groupId),
+      loadAllergies(db, groupId),
+    ]);
 
   return {
     medication,
@@ -55,8 +60,12 @@ export async function loadMedication(db: SyncDb, groupId: string, medicationId: 
     medicationRows,
     historyRows,
     memberRows,
+    // The group's passes (deleted ones too), so the schedule and history read by pass name.
+    passRows,
     // The prescriber and pharmacy as the page opens, so they show on the first render.
     providerRows: [...prescriberRows, ...pharmacyRows],
     recipientTimeZone: recipientRows[0]?.time_zone ?? null,
+    // The recipient's allergies, shown above the details.
+    allergies,
   };
 }

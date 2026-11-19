@@ -46,6 +46,8 @@ export const isVitalType = (value: unknown): value is VitalType =>
 /** The Dose sheet's medication and the slot it answers: `?medication=<id>&slot=08:00`. */
 export const DOSE_MEDICATION_PARAM = "medication";
 export const DOSE_SLOT_PARAM = "slot";
+/** The Dose sheet's pass, shown first (with Given all): `?pass=<passId>`. */
+export const DOSE_PASS_PARAM = "pass";
 
 /** `search` without the add sheets' own parameters: the timeline's filters, as a sheet carries them. */
 export const withoutSheetParams = (search?: Search) => {
@@ -53,6 +55,7 @@ export const withoutSheetParams = (search?: Search) => {
   params.delete(VITAL_TYPE_PARAM);
   params.delete(DOSE_MEDICATION_PARAM);
   params.delete(DOSE_SLOT_PARAM);
+  params.delete(DOSE_PASS_PARAM);
   return params;
 };
 
@@ -87,7 +90,7 @@ export type PeriodPrefill = { type?: string; startedAt?: string; dateOnly?: bool
 const HOME = "/app";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
-export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account", "contact"] as const;
+export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account", "contact", "devices"] as const;
 export type AccountSettingsPage = (typeof ACCOUNT_SETTINGS_PAGES)[number];
 const isAccountSettingsPage = (page: unknown): page is AccountSettingsPage =>
   (ACCOUNT_SETTINGS_PAGES as readonly unknown[]).includes(page);
@@ -172,11 +175,17 @@ export const appUrls = {
    */
   newDose: (
     groupId: string,
-    { medicationId, slot, search }: { medicationId?: string; slot?: string; search?: Search } = {},
+    {
+      medicationId,
+      slot,
+      passId,
+      search,
+    }: { medicationId?: string; slot?: string; passId?: string; search?: Search } = {},
   ) => {
     const params = withoutSheetParams(search);
     if (medicationId) params.set(DOSE_MEDICATION_PARAM, medicationId);
     if (slot) params.set(DOSE_SLOT_PARAM, slot);
+    if (passId) params.set(DOSE_PASS_PARAM, passId);
     return `${groupHome(groupId)}/timeline/new/dose${searchString(params)}`;
   },
   /** A medication's page: details, schedule, providers, refills, its live notes and its history. */
@@ -249,4 +258,15 @@ export const appUrls = {
   /** The edit sheet for one care period, over the periods page. */
   editPeriod: (groupId: string, periodId: string) =>
     `${groupHome(groupId)}/periods/${segment(periodId)}/edit`,
+  /** The group's medication passes (Morning, Evening…), with the medications in each. */
+  medicationPasses: (groupId: string) => `${groupHome(groupId)}/medications/passes`,
+  /** The allergies sheet over the medication list (writers), carrying the list's search and status filter. */
+  medicationAllergies: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/medications/allergies${searchString(search)}`,
+  /** The weekly bedside sheet, starting on `start` ("YYYY-MM-DD"; none is this week). */
+  medicationsPrintWeek: (groupId: string, start?: string | null) =>
+    `${groupHome(groupId)}/medications/print/week${searchString({ start })}`,
+  /** The pass sheet over a group's timeline: one pass log's doses, carrying the timeline's filters. */
+  passSheet: (groupId: string, passLogId: string, { search }: { search?: Search } = {}) =>
+    `${groupHome(groupId)}/timeline/pass/${segment(passLogId)}/edit${searchString(withoutSheetParams(search))}`,
 } as const;

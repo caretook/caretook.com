@@ -1,7 +1,7 @@
 import type { SettingsItem } from "~/lib/settingsNav";
 import type { AccountSettingsPage } from "~/lib/appUrls";
 
-import { LayoutList, Phone, Ruler, UserRound } from "lucide-react";
+import { LayoutList, MonitorSmartphone, Phone, Ruler, UserRound } from "lucide-react";
 import { appUrls } from "~/lib/appUrls";
 
 /**
@@ -38,5 +38,12 @@ export const ACCOUNT_SETTINGS: readonly (SettingsItem & { id: AccountSettingsPag
     description: "Your phones, email and address, for your care groups",
     icon: Phone,
     path: appUrls.settings("contact"),
+  },
+  {
+    id: "devices",
+    label: "Devices",
+    description: "Where you're signed in, and signing a device out",
+    icon: MonitorSmartphone,
+    path: appUrls.settings("devices"),
   },
 ];

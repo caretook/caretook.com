@@ -86,6 +86,11 @@
   @page {
     margin: 12mm;
   }
+  /* The weekly bedside sheet (`[page:weekly]` on its page) prints landscape. */
+  @page weekly {
+    size: landscape;
+    margin: 10mm;
+  }
   :root,
   :root:not([data-theme]),
   :root[data-theme] {

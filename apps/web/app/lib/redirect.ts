@@ -4,7 +4,12 @@ import { appUrls } from "./appUrls";
 export const safeRedirect = (to: string | null | undefined, fallback = appUrls.home()) =>
   to?.startsWith("/") && !to.startsWith("//") && !to.startsWith("/\\") ? to : fallback;
 
-export const signInUrl = (request: Request) => {
+/** Why sign-in was asked for, when the sign-in page should say so. */
+export type SignInReason = "offline";
+
+export const signInUrl = (request: Request, { reason }: { reason?: SignInReason } = {}) => {
   const { pathname, search } = new URL(request.url);
-  return `/sign-in?${new URLSearchParams({ redirectTo: pathname + search }).toString()}`;
+  const params = new URLSearchParams({ redirectTo: pathname + search });
+  if (reason) params.set("reason", reason);
+  return `/sign-in?${params.toString()}`;
 };

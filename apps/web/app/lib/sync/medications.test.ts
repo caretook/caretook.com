@@ -74,7 +74,8 @@ describe("toMedication", () => {
       recipientId: "r1",
       name: "Lisinopril",
       form: "tablet",
-      schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+      // Stored in the old shape (an older build's), read as time slots.
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
       status: "current",
       startedOn: "2026-10-01",
       refillsLeft: 2,

@@ -146,7 +146,7 @@ export const createEmail = (
     if (refused) return refused;
 
     // Nothing to invite: they're in already, or an invite is waiting.
-    const existing = await userModel.get({
+    const existing = await userModel.getWhole({
       ...system(tx),
       filter: { email: { type: "eq", value: userModel.normalizeEmail(data.email) } },
     });
@@ -431,7 +431,7 @@ export const accept = (
     if (!invite) return newError({ code: "careGroupInviteService:notFound" });
     if (invite.kind === "link") return askWithLink(invite, userId, tx, opts.joinMail);
 
-    const user = await userModel.getById(userId, system(tx));
+    const user = await userModel.getWholeById(userId, system(tx));
     if (isError(user)) return user;
     if (!user) return newError({ code: "permissions:unauthenticated" });
     if (!emailMatches(invite, user)) return newError({ code: "careGroupInviteService:wrongEmail" });

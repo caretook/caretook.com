@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type {
   Medication,
   MedicationContent,
+  MedicationSchedule,
   MedicationCreateInput,
   MedicationUpdateInput,
   MedicationUpsertInput,
@@ -24,14 +25,17 @@ import {
   medicationCreateZSchema,
   medicationUpdateZSchema,
   medicationUpsertZSchema,
+  schedulePassIds,
   timelineEntryContentZSchema,
   toChangeTime,
+  withoutPass,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
   careGroupModel,
   careRecipientModel,
   medicationModel,
+  medicationPassModel,
   providerModel,
   timelineEntryModel,
 } from "../models";
@@ -73,7 +77,12 @@ const changeTimeOf = (opts: MedicationWriteOptions) =>
  * the group), else the group's only recipient. Reads are scoped to the
  * actor, so a non-member learns nothing about the group.
  */
-const resolveRecipient = async (ctx: ServiceContext, tx: Tx, groupId: string, recipientId?: string) => {
+export const resolveRecipient = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  groupId: string,
+  recipientId?: string,
+) => {
   const group = await careGroupModel.getById(groupId, { ...ctx, tx });
   if (isError(group)) return group;
   if (!group) return rejectError(ctx.authUser);
@@ -117,6 +126,32 @@ const checkProviders = async (
     if (!pharmacy || pharmacy.groupId !== groupId || !isPharmacyType(pharmacy.type)) return badPharmacy();
   }
   return null;
+};
+
+const badPass = () =>
+  newError({
+    code: "medicationService:badPass",
+    meta: { issues: [{ path: "schedule", message: "Choose passes in this care group" }] },
+  });
+
+/**
+ * The schedule's passes must be the group's. One deleted since the device
+ * last synced becomes a time of its own (as the pass's deletion made every
+ * other medication's), so the schedule stored never names a deleted pass.
+ */
+const checkPasses = async (tx: Tx, groupId: string, schedule: MedicationSchedule) => {
+  let checked: MedicationSchedule = schedule;
+  for (const passId of schedulePassIds(schedule)) {
+    const pass = await medicationPassModel.getById(passId, {
+      authUser: SYSTEM_USER,
+      tx,
+      includeDeleted: true,
+    });
+    if (isError(pass)) return pass;
+    if (!pass || pass.groupId !== groupId) return badPass();
+    if (pass.deletedAt) checked = withoutPass(checked, pass);
+  }
+  return checked;
 };
 
 /**
@@ -216,11 +251,13 @@ export const create = (
 
     const providers = await checkProviders(ctx, tx, data.groupId, data);
     if (providers) return providers;
+    const schedule = await checkPasses(tx, data.groupId, data.schedule);
+    if (isError(schedule)) return schedule;
 
     const created = await medicationModel.create({
       ...ctx,
       tx,
-      data: { ...data, recipientId: recipient.id },
+      data: { ...data, schedule, recipientId: recipient.id },
     });
     if (isError(created) || !created) return created;
 
@@ -255,7 +292,9 @@ export const update = (
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
-    const before = medicationContentOf(existing);
+    // Read through the schema, so an old-shape stored schedule compares as slots.
+    const stored = medicationContentZSchema.safeParse(medicationContentOf(existing));
+    const before = stored.success ? stored.data : medicationContentOf(existing);
     const merged = medicationContentZSchema.safeParse({ ...before, ...patch });
     if (!merged.success) return invalid(merged.error);
 
@@ -264,12 +303,14 @@ export const update = (
       pharmacyId: merged.data.pharmacyId !== existing.pharmacyId ? merged.data.pharmacyId : null,
     });
     if (providers) return providers;
+    const schedule = await checkPasses(tx, existing.groupId, merged.data.schedule);
+    if (isError(schedule)) return schedule;
 
     const updated = await medicationModel.update({
       ...ctx,
       tx,
       filter: { id: { type: "eq", value: id } },
-      data: merged.data,
+      data: { ...merged.data, schedule },
     });
     // Visible but not writable: a viewer.
     if (isError(updated) && updated.code === "baseModel:update:nothingUpdated")

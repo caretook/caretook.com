@@ -3,8 +3,12 @@ import type { SyncDb } from "./sync";
 import { createContext, redirect } from "react-router";
 import { accountUrls } from "./accountUrls";
 import { authClient } from "./auth-client";
+import { forgetGroups } from "./lastGroup";
+import { forgetSettings } from "./me";
+import { forgetRecentSearches } from "./recentSearches";
 import { signInUrl } from "./redirect";
-import { openSync } from "./sync";
+import { offlineAllowed, sessionOutcome } from "./sessionRules";
+import { closeSync, openSync } from "./sync";
 
 // The signed-in user and their local database, for /app clientLoaders.
 //
@@ -46,10 +50,34 @@ const cacheUser = (user: SessionUser) => {
   }
 };
 
-/** Forget the cached user (sign-out). */
-export const forgetSessionUser = () => {
+const CONFIRMED_PREFIX = "caretook:session-confirmed:";
+
+/** When the server last confirmed this user's session on this device (ms), or null. */
+const lastConfirmed = (userId: string): number | null => {
+  try {
+    const raw = localStorage.getItem(CONFIRMED_PREFIX + userId);
+    return raw === null ? null : Number(raw);
+  } catch {
+    return null;
+  }
+};
+
+const confirmNow = (userId: string) => {
+  try {
+    localStorage.setItem(CONFIRMED_PREFIX + userId, String(Date.now()));
+  } catch {
+    // Storage unavailable: offline starts go to sign-in instead.
+  }
+};
+
+/** Forget the cached user and when their session was last confirmed. */
+const forgetSessionUser = () => {
   try {
     localStorage.removeItem(SESSION_KEY);
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(CONFIRMED_PREFIX)) localStorage.removeItem(key);
+    }
   } catch {
     // Nothing cached.
   }
@@ -62,37 +90,60 @@ const roleOf = (user: object) => {
 };
 
 /**
- * Offline (no response at all), the last signed-in user carries on with
- * their local data. The server still checks the session before accepting
- * any upload, and PowerSync before sending any data.
+ * Wipe this device's copy: stop syncing, empty the local database (vacuumed,
+ * so no freed page keeps a deleted row) and drop its search index, and forget the cached user, settings (pending changes too),
+ * last group and recent searches. Sign-out, and a session the server says
+ * has ended, both go through here. Changes not uploaded yet are lost.
  */
-const resolveUser = async (): Promise<SessionUser | null | "unverified"> => {
-  try {
-    const { data, error } = await authClient.getSession();
-    // Better Auth doesn't sign in an unconfirmed address; this guards the rest.
-    if (data && !data.user.emailVerified) return "unverified";
-    if (data)
-      return {
-        id: data.user.id,
-        name: data.user.name,
-        email: data.user.email,
-        image: data.user.image ?? null,
-        role: roleOf(data.user),
-      };
-    // An error without a status means the request never reached the server.
-    return error && !error.status ? cachedUser() : null;
-  } catch (e) {
-    if (!(e instanceof TypeError)) throw e;
-    return cachedUser();
-  }
+export const wipeDevice = async () => {
+  await closeSync().catch((e: unknown) => console.error("Couldn't clear local data", e));
+  forgetSessionUser();
+  forgetSettings();
+  forgetGroups();
+  forgetRecentSearches();
 };
 
-let inflight: Promise<Session | null | "unverified"> | null = null;
+type Resolved = SessionUser | "signedOut" | "offlineTooLong" | "unverified";
+
+/**
+ * Ask the server. With no answer to go on (offline, a rate limit, a server
+ * error), the last signed-in user carries on with their local data, but only
+ * within 3 days of the last confirmed check (`offlineAllowed`); past that,
+ * sign-in, with the local copy kept so unsynced changes still upload after.
+ * The server still checks the session before accepting any upload, and
+ * PowerSync before sending any data. When the server says there's no
+ * session, the device's copy is wiped.
+ */
+const resolveUser = async (): Promise<Resolved> => {
+  let answer;
+  try {
+    answer = sessionOutcome(await authClient.getSession());
+  } catch (e) {
+    if (!(e instanceof TypeError)) throw e;
+    answer = { kind: "unknown" } as const;
+  }
+  if (answer.kind === "ok") {
+    const { user } = answer.data;
+    // Better Auth doesn't sign in an unconfirmed address; this guards the rest.
+    if (!user.emailVerified) return "unverified";
+    confirmNow(user.id);
+    return { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: roleOf(user) };
+  }
+  if (answer.kind === "signedOut") {
+    if (cachedUser()) await wipeDevice();
+    return "signedOut";
+  }
+  const cached = cachedUser();
+  if (!cached) return "signedOut";
+  return offlineAllowed(lastConfirmed(cached.id), Date.now()) ? cached : "offlineTooLong";
+};
+
+let inflight: Promise<Session | Exclude<Resolved, SessionUser>> | null = null;
 
 const check = () =>
   (inflight ??= (async () => {
     const user = await resolveUser();
-    if (!user || user === "unverified") return user;
+    if (typeof user === "string") return user;
     cacheUser(user);
     return { user, db: await openSync(user.id) };
   })().finally(() => {
@@ -103,7 +154,8 @@ const check = () =>
 export const requireSession = async (request: Request): Promise<Session> => {
   const session = await check();
   if (session === "unverified") throw redirect(accountUrls.verifyEmail());
-  if (!session) throw redirect(signInUrl(request));
+  if (session === "offlineTooLong") throw redirect(signInUrl(request, { reason: "offline" }));
+  if (session === "signedOut") throw redirect(signInUrl(request));
   return session;
 };
 

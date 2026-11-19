@@ -1,10 +1,10 @@
-import type { TimelineEntryKind } from "@caretook/data/schema";
+import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
-import { SEARCH_MAX_LENGTH } from "@caretook/data/schema";
+import { SEARCH_MAX_LENGTH, VITAL_TYPES } from "@caretook/data/schema";
 
 // The timeline's filters live in the URL: `?kind=<kind>&author=<userId>`
 // and the search `?q=<text>` (narrowed to one care period by `?period=<id>`
-// while it's on), plus the Upcoming block's switch (`?upcoming=1`), kept with them.
+// while it's on), with `?vital=<type>` under `kind=vital`, plus the Upcoming block's switch (`?upcoming=1`), kept with them.
 // This module owns that state: reading it from a search string, and the
 // search string for each change. No React or database here; every filter
 // control (the chips, a row's kind icon and author, the author chip) is a
@@ -24,6 +24,8 @@ export type TimelineFilters = {
   q: string;
   /** The Upcoming block above Today is on (`?upcoming=1`). Not a filter: `clearFilters` keeps it. */
   upcoming: boolean;
+  /** One vital type (`?vital=`), only while the kind is `vital`; null for every type. */
+  vital: VitalType | null;
   /**
    * One care period's id: the search's matches within its dates. Only with a
    * search (`q`): without one it reads as null, and clearing the search clears it.
@@ -35,6 +37,7 @@ export const KIND_PARAM = "kind";
 export const AUTHOR_PARAM = "author";
 export const QUERY_PARAM = "q";
 export const UPCOMING_PARAM = "upcoming";
+export const VITAL_PARAM = "vital";
 export const PERIOD_PARAM = "period";
 
 /**
@@ -80,6 +83,7 @@ export const parseFilters = (search: string): TimelineFilters => {
     author: isAuthor(author) ? author.toLowerCase() : null,
     q,
     upcoming: params.get(UPCOMING_PARAM) === "1",
+    vital: kind === "vital" ? vitalType(params.get(VITAL_PARAM)) : null,
     period: q && isRowId(period) ? period.toLowerCase() : null,
   };
 };
@@ -87,13 +91,14 @@ export const parseFilters = (search: string): TimelineFilters => {
 /** True when any filter (kind, author or search) is on. */
 export const hasFilters = (filters: TimelineFilters) => !!filters.kind || !!filters.author || !!filters.q;
 
-/** `search` with the filters replaced: kind first, then author, then q, then period, then upcoming, then whatever else was there. */
+/** `search` with the filters replaced: kind first, then author, then q, then period, then upcoming, then vital, then whatever else was there. */
 const withFilters = (search: string, next: TimelineFilters) => {
   const params = new URLSearchParams(search);
   params.delete(KIND_PARAM);
   params.delete(AUTHOR_PARAM);
   params.delete(QUERY_PARAM);
   params.delete(UPCOMING_PARAM);
+  params.delete(VITAL_PARAM);
   params.delete(PERIOD_PARAM);
   const out = new URLSearchParams();
   if (next.kind) out.set(KIND_PARAM, next.kind);
@@ -101,6 +106,7 @@ const withFilters = (search: string, next: TimelineFilters) => {
   if (next.q) out.set(QUERY_PARAM, next.q);
   if (next.q && next.period) out.set(PERIOD_PARAM, next.period);
   if (next.upcoming) out.set(UPCOMING_PARAM, "1");
+  if (next.vital && next.kind === "vital") out.set(VITAL_PARAM, next.vital);
   for (const [key, value] of params) out.append(key, value);
   const text = out.toString();
   return text ? `?${text}` : "";
@@ -117,7 +123,8 @@ const change = (search: string, patch: Partial<TimelineFilters>) => {
     next.author === current.author &&
     next.q === current.q &&
     next.upcoming === current.upcoming &&
-    next.period === current.period
+    next.period === current.period &&
+    (next.kind === "vital" ? next.vital : null) === current.vital
   )
     return search;
   return withFilters(search, next);
@@ -152,6 +159,15 @@ export const setUpcoming = (search: string) => change(search, { upcoming: true }
 /** Hide the Upcoming block; the filters stay. */
 export const clearUpcoming = (search: string) => change(search, { upcoming: false });
 
+const vitalType = (value: string | null): VitalType | null =>
+  (VITAL_TYPES as readonly string[]).includes(value ?? "") ? (value as VitalType) : null;
+
+/** Show one vital type (and so only vitals); the author filter and the search stay. An unknown type changes nothing. */
+export const setVital = (search: string, vital: VitalType) =>
+  vitalType(vital) ? change(search, { kind: "vital", vital }) : search;
+
+/** Every vital type again; the kind (vitals) stays. */
+export const clearVital = (search: string) => change(search, { vital: null });
 /**
  * Narrow the search to one care period's dates. Only while searching: with
  * no search, or an id that isn't a row id, it changes nothing.

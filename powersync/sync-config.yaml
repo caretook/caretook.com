@@ -35,9 +35,10 @@ streams:
       # `time_zone`: a medication's schedule times are in the recipient's zone.
       # `date_of_birth`: the printable medication sheet works offline.
       # The medical basics and `notes` (the note for helpers): every member sees them.
+      # `no_known_allergies_at`: "No known allergies" was recorded (medications-2).
       - >-
         SELECT id, group_id, name, preferred_name, time_zone, date_of_birth,
-        code_status, blood_type, primary_language, pronouns, notes
+        code_status, blood_type, primary_language, pronouns, notes, no_known_allergies_at
         FROM care_recipient WHERE group_id IN my_groups
       # `ends_at`, `all_day`, `place`, the cancel fields and `rescheduled_to`:
       # appointments and reminders (future events and notes).
@@ -88,6 +89,17 @@ streams:
         SELECT id, group_id, recipient_id, type, label, place_provider_id, place_detail,
         started_at, date_only, deleted_at, created_at, updated_at, created_by, updated_by
         FROM care_period WHERE group_id IN my_groups
+      # The medication passes (Morning, Evening…), soft-deleted ones included
+      # (a medication naming a deleted pass keeps its last time).
+      - >-
+        SELECT id, group_id, recipient_id, name, time, sort_order,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM medication_pass WHERE group_id IN my_groups
+      # The recipient's allergies, soft-deleted ones included.
+      - >-
+        SELECT id, group_id, recipient_id, substance, reaction, severity,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM recipient_allergy WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,
   # outside contacts) for owners, admins and caretakers only: viewers' devices

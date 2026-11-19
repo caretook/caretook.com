@@ -33,6 +33,8 @@ export const doseFromForm = (form: FormData): DoseInput & { occurredAt: string }
     status: statusOf(form),
     amount: optional(formString(form, "amount")),
     scheduledFor: choice.slot ?? optional(formString(form, "scheduledFor")),
+    // Only with a slot: the pass that slot is in.
+    passId: choice.slot ? optional(formString(form, "passId")) : null,
     note: optional(formString(form, "note")),
     occurredAt: parseOccurredAt(formString(form, "occurredAt")),
   };
@@ -52,6 +54,9 @@ export type DoseOption = {
   label: string;
   medicationId: string;
   slot: string | null;
+  /** The pass the slot is in, when it's in one. */
+  passId: string | null;
+  /** What's given: the slot's amount, else the medication's dose. */
   dose: string | null;
 };
 
@@ -69,16 +74,22 @@ export const parseDoseOption = (value: string) => {
  * with the slot the sheet was opened for at the top when it isn't one of
  * them; then every current medication without a slot, as `choices` orders
  * them (most recently given first). `initial` is the choice to start on.
+ * Slots in `shownPasses` (the passes the sheet shows above, with Given all
+ * and each medication) aren't repeated here, unless asked for.
  */
 export function doseSheetOptions(
   choices: readonly DoseChoice[],
   due: Pick<DueDoses, "slots">,
   requested: { medicationId: string | null; slot: string | null },
+  shownPasses: ReadonlySet<string> = new Set(),
 ): { options: DoseOption[]; initial: string | null } {
   const byId = new Map(choices.map((c) => [c.id, c]));
   const slotOptions: DoseOption[] = [];
   const seen = new Set<string>();
-  const add = (slot: Pick<DoseSlot, "time" | "state"> & { medicationId: string }) => {
+  const add = (
+    slot: Pick<DoseSlot, "time" | "state"> &
+      Partial<Pick<DoseSlot, "passId" | "amount">> & { medicationId: string },
+  ) => {
     const choice = byId.get(slot.medicationId);
     const value = optionValue(slot.medicationId, slot.time);
     if (!choice || seen.has(value)) return;
@@ -88,16 +99,23 @@ export function doseSheetOptions(
       label: dueSlotLabel({ medication: choice, time: slot.time, state: slot.state }),
       medicationId: choice.id,
       slot: slot.time,
-      dose: choice.dose,
+      passId: slot.passId ?? null,
+      dose: slot.amount !== undefined ? slot.amount : choice.dose,
     });
   };
   if (requested.medicationId && requested.slot) {
     const today = due.slots.find(
       (s) => s.medication.id === requested.medicationId && s.time === requested.slot,
     );
-    add({ medicationId: requested.medicationId, time: requested.slot, state: today?.state ?? "upcoming" });
+    add({
+      medicationId: requested.medicationId,
+      time: requested.slot,
+      state: today?.state ?? "upcoming",
+      ...(today && { passId: today.passId, amount: today.amount }),
+    });
   }
-  for (const slot of due.slots.filter(isDueNow)) add({ ...slot, medicationId: slot.medication.id });
+  for (const slot of due.slots.filter(isDueNow))
+    if (!slot.passId || !shownPasses.has(slot.passId)) add({ ...slot, medicationId: slot.medication.id });
 
   const options = [
     ...slotOptions,
@@ -106,6 +124,7 @@ export function doseSheetOptions(
       label: medicationLabel(c),
       medicationId: c.id,
       slot: null,
+      passId: null,
       dose: c.dose,
     })),
   ];

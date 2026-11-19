@@ -9,6 +9,7 @@ import { careGroupInviteModel, careGroupModel, careRecipientModel } from "../mod
 import * as adminAuditService from "./adminAuditService";
 import * as careGroupInviteService from "./careGroupInviteService";
 import { staffRefusal } from "./staffAccess";
+import { addDefaults as addDefaultPasses } from "./medicationPassService";
 
 export const serviceName = "staffGroup";
 export const schemaName = careGroupModel.schemaName;
@@ -60,6 +61,9 @@ export const createWithOwnerInvite = (
       },
     });
     if (isError(recipient)) return recipient;
+    if (!recipient) return newError({ code: "baseModel:create:nothingCreated" });
+    const passes = await addDefaultPasses(tx, { groupId: group.id, recipientId: recipient.id });
+    if (passes) return passes;
 
     const sent = await careGroupInviteService.createEmail(
       system,

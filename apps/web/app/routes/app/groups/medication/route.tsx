@@ -5,9 +5,9 @@ import type { StatusIntent } from "~/lib/medicationStatusForm";
 import type { MedicationRow } from "~/lib/sync/medications";
 
 import { Pencil } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { MedicationStatusActions } from "~/components/medications";
+import { AllergiesRegion, MedicationStatusActions } from "~/components/medications";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { BackLink } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
@@ -17,6 +17,8 @@ import { MEDICATION_SHEET_STATE } from "~/lib/medicationSheets";
 import { statusRequestFromForm } from "~/lib/medicationStatusForm";
 import { sessionContext } from "~/lib/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
+import { useAllergies } from "~/lib/sync/allergies";
+import { useSchedulePasses } from "~/lib/sync/medicationPasses";
 import {
   changeMedicationStatus,
   medicationQuery,
@@ -89,17 +91,22 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   const live = rows[0] ? toMedication(rows[0]) : null;
   const medication = live ?? loaderData.medication;
   const deleted = !live || !!live.deletedAt || live.groupId !== groupId;
+  const passes = useSchedulePasses(groupId, loaderData.passRows);
 
+  const { state: allergies } = useAllergies(groupId, loaderData.allergies);
   const { ensureSaved, saveError } = useMedicationNotes(medicationId, loaderData.hasDocument);
   const title = medicationTitle(medication);
   const navigate = useNavigate();
   // Deleted from here: back to the list (the page would only say it's gone).
-  const statusDone = useCallback(
-    (intent: StatusIntent) => {
-      if (intent === "remove") void navigate(listUrl, { replace: true });
-    },
-    [navigate, listUrl],
-  );
+  // Keyed on the live row, not the write's result: the row can show the
+  // delete first, which unmounts the actions before they hear the result.
+  const removedHere = useRef(false);
+  const statusSent = useCallback((intent: StatusIntent) => {
+    if (intent === "remove") removedHere.current = true;
+  }, []);
+  useEffect(() => {
+    if (deleted && removedHere.current) void navigate(listUrl, { replace: true });
+  }, [deleted, navigate, listUrl]);
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
@@ -111,8 +118,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
           !deleted && <EditorAvatars documentId={medicationId} groupId={groupId} viewerId={db.userId} />
         }
         actions={
-          canWrite &&
-          !deleted && (
+          canWrite && (
             <>
               <Link
                 to={appUrls.editMedication(groupId, medicationId)}
@@ -129,7 +135,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
                 medication={medication}
                 recipientTimeZone={loaderData.recipientTimeZone}
                 layout="menu"
-                onDone={statusDone}
+                onSubmit={statusSent}
               />
             </>
           )
@@ -145,7 +151,13 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
         </div>
       ) : (
         <>
-          <MedicationDetails medication={medication} recipientTimeZone={loaderData.recipientTimeZone} />
+          <AllergiesRegion groupId={groupId} state={allergies} canWrite={canWrite} />
+
+          <MedicationDetails
+            medication={medication}
+            passes={passes}
+            recipientTimeZone={loaderData.recipientTimeZone}
+          />
 
           <MedicationProviders
             groupId={groupId}
@@ -189,6 +201,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
             medicationId={medicationId}
             initialRows={loaderData.historyRows}
             initialMembers={loaderData.memberRows}
+            passes={passes}
           />
         </>
       )}

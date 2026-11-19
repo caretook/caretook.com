@@ -1,6 +1,7 @@
-import type { TimelineEntryKind, TimelineView } from "@caretook/data/schema";
+import type { TimelineEntryKind, TimelineView, VitalType } from "@caretook/data/schema";
 import type { PeriodChoice } from "~/lib/periodSearch";
 
+import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { CalendarRange, ChevronDown, LayoutList, List, Search, X } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
@@ -9,7 +10,16 @@ import { KIND_META } from "~/lib/entryDisplay";
 import { useGroup } from "~/lib/group";
 import { duringChipName, duringText } from "~/lib/periodSearch";
 import { recordSearch } from "~/lib/recentSearches";
-import { clearAuthor, clearKind, clearPeriod, clearQuery, setKind, setPeriod } from "~/lib/timelineFilters";
+import {
+  clearAuthor,
+  clearKind,
+  clearPeriod,
+  clearQuery,
+  clearVital,
+  setKind,
+  setPeriod,
+  setVital,
+} from "~/lib/timelineFilters";
 import { useSearchField } from "./useSearchField";
 
 const FILTERS = [
@@ -31,17 +41,25 @@ const FILTERS = [
  * the matches to one care period's dates (`?period=`), and a "During …"
  * chip clears only the period. The magnifier opens the search field: over the chips on
  * phones, beside them from `sm`. A search used there (Enter, leaving the
- * field) is saved to the recent searches the search page lists.
+ * field) is saved to the recent searches the search page lists. Under the
+ * Vitals chip, a second row filters by vital type (`?vital=`): one chip per
+ * type the group has readings of (`vitalTypes`).
  */
 export function FilterChips({
   kind,
   author,
   q,
+  vital = null,
+  vitalTypes = [],
   period,
 }: {
   kind: TimelineEntryKind | null;
   author: { name: string; image: string | null } | null;
   q: string;
+  /** The vital-type filter, under the vital kind. */
+  vital?: VitalType | null;
+  /** The vital types the group has readings of (any order). */
+  vitalTypes?: readonly string[];
   /** The search's care period: the group's choices, and the chosen one. */
   period: { choices: readonly PeriodChoice[]; current: PeriodChoice | null };
 }) {
@@ -156,6 +174,7 @@ export function FilterChips({
               : []),
           ]}
         />
+        {kind === "vital" && <VitalTypeChips search={search} vital={vital} present={vitalTypes} />}
         {q && !field.open && !period.current && period.choices.length > 0 && (
           <Menu
             className="btn btn-ghost btn-sm border-base-300 bg-base-100 mt-1.5 rounded-full px-3"
@@ -181,6 +200,37 @@ export function FilterChips({
         )}
       </div>
     </div>
+  );
+}
+
+/** The vital-type row: "All vitals", then each type the group has (and the current one), in the spec's order. */
+function VitalTypeChips({
+  search,
+  vital,
+  present,
+}: {
+  search: string;
+  vital: VitalType | null;
+  present: readonly string[];
+}) {
+  const types = VITAL_TYPES.filter((t) => t === vital || present.includes(t));
+  if (types.length === 0) return null;
+  return (
+    <ChipGroup
+      label="Show vital types"
+      replace
+      preventScrollReset
+      className="mt-1.5"
+      links={[
+        { id: "all-vitals", label: "All vitals", to: { search: clearVital(search) }, current: !vital },
+        ...types.map((t) => ({
+          id: `vital-${t}`,
+          label: VITALS[t].label,
+          to: { search: setVital(search, t) },
+          current: vital === t,
+        })),
+      ]}
+    />
   );
 }
 

@@ -1,11 +1,14 @@
 import type { ActionResult, FieldIssue } from "~/lib/api";
+import type { LocalPass } from "~/lib/sync/medicationPasses";
 import type { LocalMedication, MedicationNameRow } from "~/lib/sync/medications";
 import type { LocalProvider } from "~/lib/sync/providers";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { MEDICATION_FORMS, MEDICATION_LIMITS } from "@caretook/data/schema";
 import { Field } from "~/components/ui";
+import { appUrls } from "~/lib/appUrls";
+import { useGroup } from "~/lib/group";
 import { FORM_LABELS } from "~/lib/medicationDisplay";
 import { FIELD, isFieldIssue } from "./medicationFormData";
 import { NameField } from "./NameField";
@@ -22,6 +25,7 @@ function TextField({
   max,
   issues,
   placeholder,
+  onChange,
 }: {
   label: string;
   name: (typeof FIELD)[keyof typeof FIELD];
@@ -29,6 +33,7 @@ function TextField({
   max: number;
   issues: FieldIssue[];
   placeholder?: string;
+  onChange?: (value: string) => void;
 }) {
   return (
     <Field label={label} error={issueFor(issues, name)}>
@@ -41,6 +46,7 @@ function TextField({
           defaultValue={defaultValue ?? ""}
           placeholder={placeholder}
           autoComplete="off"
+          onChange={onChange && ((e) => onChange(e.target.value))}
         />
       )}
     </Field>
@@ -84,6 +90,7 @@ function DayField({
 export function MedicationForm({
   medication,
   providers,
+  passes,
   names,
   zoneNote,
   onDone,
@@ -92,6 +99,8 @@ export function MedicationForm({
   /** Editing this medication; omit to add one. */
   medication?: LocalMedication;
   providers: readonly LocalProvider[];
+  /** The group's passes, deleted ones too (`useSchedulePasses`). */
+  passes: readonly LocalPass[];
   names: readonly MedicationNameRow[];
   zoneNote: string | null;
   onDone: () => void;
@@ -102,6 +111,9 @@ export function MedicationForm({
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
   const issues = result && !result.ok ? result.issues : [];
   const busy = fetcher.state !== "idle";
+  const { id: groupId } = useGroup();
+  // The usual dose as typed: the schedule's amounts show it as their placeholder.
+  const [dose, setDose] = useState(medication?.dose ?? "");
 
   // A save closes the sheet; a refusal moves focus to the first field it's about.
   const handled = useRef<ActionResult | undefined>(undefined);
@@ -117,7 +129,7 @@ export function MedicationForm({
     const invalid = form?.querySelector<HTMLElement>('[aria-invalid="true"]');
     const target =
       invalid instanceof HTMLFieldSetElement
-        ? invalid.querySelector<HTMLElement>("input")
+        ? invalid.querySelector<HTMLElement>("input, button")
         : (invalid ??
           form?.querySelector<HTMLElement>(
             '[data-provider-picker]:has([data-picker-error]) input:not([type="hidden"])',
@@ -172,9 +184,17 @@ export function MedicationForm({
         max={MEDICATION_LIMITS.dose}
         issues={issues}
         placeholder="e.g. 1 tablet"
+        onChange={setDose}
       />
 
-      <ScheduleFields initial={medication?.schedule ?? null} issues={issues} zoneNote={zoneNote} />
+      <ScheduleFields
+        initial={medication?.schedule ?? null}
+        passes={passes}
+        dose={dose}
+        passesHref={appUrls.medicationPasses(groupId)}
+        issues={issues}
+        zoneNote={zoneNote}
+      />
 
       <Field label="Directions (optional)" error={issueFor(issues, "directions")}>
         {(control) => (

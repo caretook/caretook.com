@@ -3,20 +3,23 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/api";
 import type { MedicationRow } from "~/lib/sync/medications";
 
-import { Plus, Printer } from "lucide-react";
+import { Clock, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
+import { AllergiesRegion } from "~/components/medications";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
 import { medicationList, parseMedicationFilters } from "~/lib/medicationList";
 import { MEDICATION_SHEET_STATE, onlyMedicationSheetChanged } from "~/lib/medicationSheets";
 import { sessionContext } from "~/lib/session";
 import { useLiveQuery } from "~/lib/sync";
+import { loadAllergies, useAllergies } from "~/lib/sync/allergies";
 import { loadDueDoses, useDueDoses } from "~/lib/sync/dueDoses";
 import { logDose, medicationsQuery, toMedications } from "~/lib/sync/medications";
 import { readRows } from "~/lib/sync/timeline";
 import { MedicationSearch, StatusFilter } from "./MedicationFilters";
 import { MedicationList } from "./MedicationList";
+import { PrintMenu } from "./PrintMenu";
 import { todayDoseFromForm } from "./todayDose";
 import { TodaySection } from "./TodaySection";
 
@@ -32,11 +35,12 @@ export const meta = () => [{ title: "Medications · Caretook" }];
 export async function clientLoader({ params, context }: Route.ClientLoaderArgs) {
   getGroup(context);
   const { db } = context.get(sessionContext);
-  const [rows, due] = await Promise.all([
+  const [rows, due, allergies] = await Promise.all([
     readRows<MedicationRow>(db, medicationsQuery(params.groupId)),
     loadDueDoses(db, params.groupId),
+    loadAllergies(db, params.groupId),
   ]);
-  return { rows, due };
+  return { rows, due, allergies };
 }
 
 /** Today's doses (Given, Skipped, Refused, an as-needed Log): local writes, logged now. */
@@ -76,7 +80,8 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
   const query = medicationsQuery(params.groupId);
   const rows = useLiveQuery<MedicationRow>(query.sql, query.params, loaderData.rows);
   const medications = useMemo(() => toMedications(rows), [rows]);
-  const { due } = useDueDoses(params.groupId, loaderData.due);
+  const { due, passes } = useDueDoses(params.groupId, loaderData.due);
+  const { state: allergies } = useAllergies(params.groupId, loaderData.allergies);
 
   // The box filters as you type; the URL follows (see `MedicationSearch`).
   const [text, setText] = useState(filters.q);
@@ -97,14 +102,15 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
           <Link
-            to={appUrls.medicationsPrint(params.groupId)}
+            to={appUrls.medicationPasses(params.groupId)}
             prefetch="render"
             className="btn btn-ghost btn-sm gap-1.5"
-            data-print-link
+            data-passes-link
           >
-            <Printer className="size-4" aria-hidden="true" />
-            Print
+            <Clock className="size-4" aria-hidden="true" />
+            Passes
           </Link>
+          <PrintMenu groupId={params.groupId} />
           {group.canWrite && (
             <Link
               to={appUrls.newMedication(params.groupId, search)}
@@ -122,14 +128,28 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
         </div>
       </header>
 
-      <TodaySection due={due} groupId={params.groupId} canWrite={group.canWrite} />
+      <AllergiesRegion groupId={params.groupId} state={allergies} canWrite={group.canWrite} />
+
+      <TodaySection
+        due={due}
+        passes={passes}
+        groupId={params.groupId}
+        userId={group.userId}
+        canWrite={group.canWrite}
+      />
 
       <MedicationSearch value={text} urlQuery={filters.q} onChange={setText} />
       <StatusFilter status={filters.status} />
 
-      <MedicationList total={medications.length} list={list} text={text} status={filters.status} />
+      <MedicationList
+        total={medications.length}
+        list={list}
+        passes={passes}
+        text={text}
+        status={filters.status}
+      />
 
-      {/* The add and edit sheets render here, over the list. */}
+      {/* The add, edit and allergies sheets render here, over the list. */}
       <Outlet />
     </main>
   );

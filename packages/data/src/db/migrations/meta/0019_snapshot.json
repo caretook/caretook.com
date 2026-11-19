@@ -1,5 +1,5 @@
 {
-  "id": "93fe7e66-5f18-428f-847f-54c598c2bce3",
+  "id": "b4bca86a-271e-4ae5-8858-52b46c59c20d",
   "prevId": "23df8308-f696-4559-8d2f-a458bff53e55",
   "version": "7",
   "dialect": "postgresql",
@@ -54,24 +54,6 @@
           "notNull": true,
           "default": "'{}'::jsonb"
         },
-        "disabled_at": {
-          "name": "disabled_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "disabled_by": {
-          "name": "disabled_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "disabled_reason": {
-          "name": "disabled_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp(3) with time zone",
@@ -115,7 +97,7 @@
       "checkConstraints": {
         "user_role_check": {
           "name": "user_role_check",
-          "value": "\"user\".\"role\" IN ('admin', 'support', 'member')"
+          "value": "\"user\".\"role\" IN ('admin', 'member')"
         }
       },
       "isRLSEnabled": false
@@ -428,6 +410,12 @@
         "pronouns": {
           "name": "pronouns",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_known_allergies_at": {
+          "name": "no_known_allergies_at",
+          "type": "timestamp(3) with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -3785,8 +3773,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.admin_audit_log": {
-      "name": "admin_audit_log",
+    "public.medication_pass": {
+      "name": "medication_pass",
       "schema": "",
       "columns": {
         "id": {
@@ -3796,42 +3784,42 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "actor_id": {
-          "name": "actor_id",
+        "group_id": {
+          "name": "group_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "action": {
-          "name": "action",
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "target_user_id": {
-          "name": "target_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "target_group_id": {
-          "name": "target_group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reason": {
-          "name": "reason",
+        "time": {
+          "name": "time",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "changes": {
-          "name": "changes",
-          "type": "jsonb",
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{}'::jsonb"
+          "default": 0
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -3839,59 +3827,177 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {
-        "admin_audit_log_created_at_idx": {
-          "name": "admin_audit_log_created_at_idx",
+        "medication_pass_group_name_live_unique": {
+          "name": "medication_pass_group_name_live_unique",
           "columns": [
             {
-              "expression": "created_at",
+              "expression": "group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "admin_audit_log_actor_idx": {
-          "name": "admin_audit_log_actor_idx",
-          "columns": [
+            },
             {
-              "expression": "actor_id",
-              "isExpression": false,
+              "expression": "lower(\"name\")",
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],
-          "isUnique": false,
+          "isUnique": true,
+          "where": "\"medication_pass\".\"deleted_at\" IS NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "admin_audit_log_target_user_idx": {
-          "name": "admin_audit_log_target_user_idx",
-          "columns": [
-            {
-              "expression": "target_user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
+        }
+      },
+      "foreignKeys": {
+        "medication_pass_group_id_care_group_id_fk": {
+          "name": "medication_pass_group_id_care_group_id_fk",
+          "tableFrom": "medication_pass",
+          "tableTo": "care_group",
+          "columnsFrom": [
+            "group_id"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
-        "admin_audit_log_target_group_idx": {
-          "name": "admin_audit_log_target_group_idx",
+        "medication_pass_recipient_fk": {
+          "name": "medication_pass_recipient_fk",
+          "tableFrom": "medication_pass",
+          "tableTo": "care_recipient",
+          "columnsFrom": [
+            "group_id",
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "medication_pass_group_id_id_unique": {
+          "name": "medication_pass_group_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "group_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.recipient_allergy": {
+      "name": "recipient_allergy",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "group_id": {
+          "name": "group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "substance": {
+          "name": "substance",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reaction": {
+          "name": "reaction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "severity": {
+          "name": "severity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "recipient_allergy_group_idx": {
+          "name": "recipient_allergy_group_idx",
           "columns": [
             {
-              "expression": "target_group_id",
+              "expression": "group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3904,80 +4010,53 @@
         }
       },
       "foreignKeys": {
-        "admin_audit_log_target_user_id_user_id_fk": {
-          "name": "admin_audit_log_target_user_id_user_id_fk",
-          "tableFrom": "admin_audit_log",
-          "tableTo": "user",
-          "columnsFrom": [
-            "target_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "admin_audit_log_target_group_id_care_group_id_fk": {
-          "name": "admin_audit_log_target_group_id_care_group_id_fk",
-          "tableFrom": "admin_audit_log",
+        "recipient_allergy_group_id_care_group_id_fk": {
+          "name": "recipient_allergy_group_id_care_group_id_fk",
+          "tableFrom": "recipient_allergy",
           "tableTo": "care_group",
           "columnsFrom": [
-            "target_group_id"
+            "group_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "recipient_allergy_recipient_fk": {
+          "name": "recipient_allergy_recipient_fk",
+          "tableFrom": "recipient_allergy",
+          "tableTo": "care_recipient",
+          "columnsFrom": [
+            "group_id",
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "recipient_allergy_group_id_id_unique": {
+          "name": "recipient_allergy_group_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "group_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {
-        "admin_audit_log_reason_length": {
-          "name": "admin_audit_log_reason_length",
-          "value": "char_length(\"admin_audit_log\".\"reason\") <= 500"
+        "recipient_allergy_severity_check": {
+          "name": "recipient_allergy_severity_check",
+          "value": "\"recipient_allergy\".\"severity\" IN ('mild', 'moderate', 'severe', 'unknown')"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.app_setting": {
-      "name": "app_setting",
-      "schema": "",
-      "columns": {
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "value": {
-          "name": "value",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     }
   },
