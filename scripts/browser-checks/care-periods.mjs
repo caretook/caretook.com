@@ -21,6 +21,15 @@
 // - a period's page shows its type, place and dates; another group's or a
 //   missing period is the 404.
 //
+// Slice 4, the group menu (member@, who has two groups):
+// - the trigger shows the current period's type icon after the recipient's
+//   name on every group screen at 420 and 1280, the period's name in the
+//   button's accessible name and as the icon's hover hint;
+// - the open menu's "Now: … · day N" opens the period, "Care periods" the list;
+// - switching to Dev Family 2 (no periods) drops the icon and the Now item;
+//   a period added there shows its icon without a reload, and switching back
+//   shows Dev Family's own.
+//
 // Every period this run makes carries its tag (in its label) and is
 // soft-deleted at the end, with any place it added, so it passes run after
 // run without a reset. SMOKE=1: the seeded list, and adding a period.
@@ -474,6 +483,189 @@ async function pageSteps(p, member) {
   );
 }
 
+// The group menu (slice 4).
+const GROUP_MENU = `document.querySelector('header button[aria-label$="switch care group"]')`;
+const menuState = (p) =>
+  p.evaluate(`(() => { const b = ${GROUP_MENU}; const icon = b?.querySelector("[data-period-icon]");
+    return { label: b?.getAttribute("aria-label") ?? null, type: icon?.dataset.periodIcon ?? null,
+      hint: icon?.getAttribute("title") ?? null, visible: !!icon && icon.getBoundingClientRect().width > 0 }; })()`);
+const menuItem = (start) =>
+  `[...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find((el) => el.textContent.trim().startsWith(${JSON.stringify(start)}))`;
+const groupChoice = (text) =>
+  `[...document.querySelectorAll('[role="menuitemradio"]')].find((el) => el.textContent.includes(${JSON.stringify(text)}))`;
+const setWidth = (p, width) =>
+  p.send("Emulation.setDeviceMetricsOverride", {
+    width,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: width < 640,
+  });
+/** The latest live period on the device (the current one), or null. */
+const latestLocal = async (p, groupId) =>
+  (
+    await localRows(
+      p,
+      "SELECT id, type, label FROM care_period WHERE group_id = ? AND deleted_at IS NULL ORDER BY started_at DESC, created_at DESC, id DESC LIMIT 1",
+      [groupId],
+    )
+  )[0] ?? null;
+async function openGroupMenu(p) {
+  await p.press(GROUP_MENU);
+  return need(p, `document.querySelector('[role="menu"]')`, 5000, "the group menu");
+}
+async function closeMenu(p) {
+  // Escape on the menu itself (wherever focus is), then wait for it to go.
+  await p.evaluate(
+    `document.querySelector('[role="menu"]')?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))`,
+  );
+  await need(p, `!document.querySelector('[role="menu"]')`, 5000, "the menu to close");
+}
+
+/** The group menu: the period icon on every group screen, its items, and switching groups. */
+async function groupMenuSteps(p) {
+  await toFront(p);
+  const current = await latestLocal(p, DEV_FAMILY);
+  const names = { home: "Home", emergency: "Emergency room", hospital: "Hospital", rehab: "Rehab" };
+  const name = current?.type === "other" ? current.label : names[current?.type];
+  const screens = ["timeline", "providers", "medications", "upcoming", "periods", "settings"];
+  const seen = [];
+  for (const width of [420, 1280]) {
+    await setWidth(p, width);
+    for (const screen of screens) {
+      await p.goto(`/app/groups/${DEV_FAMILY}/${screen}`);
+      await need(p, `${GROUP_MENU}?.querySelector("[data-period-icon]")`, 20000, `the icon on ${screen}`);
+      const state = await menuState(p);
+      seen.push({ width, screen, ...state });
+    }
+  }
+  check(
+    "the group menu shows the current period's icon on every group screen at 420 and 1280, its name in the button's label and as the hint",
+    !!current &&
+      seen.every(
+        (s) =>
+          s.type === current.type &&
+          s.visible &&
+          s.hint === name &&
+          s.label === `Grandma Pat, ${name}: switch care group`,
+      ),
+    JSON.stringify({
+      current,
+      bad: seen.filter((s) => s.type !== current?.type || !s.visible || s.hint !== name),
+    }),
+  );
+
+  // Phone width from here: the menu's items.
+  await setWidth(p, 420);
+  await p.goto(`/app/groups/${DEV_FAMILY}/timeline`);
+  await need(p, `${GROUP_MENU}?.querySelector("[data-period-icon]")`, 20000, "the icon");
+  await openGroupMenu(p);
+  const items = await p.evaluate(
+    `[...document.querySelectorAll('[role="menu"] [role="menuitem"], [role="menu"] [role="menuitemradio"]')].map((el) => el.textContent.trim())`,
+  );
+  const nowItem = items.find((t) => t.startsWith("Now: "));
+  const at = items.indexOf(nowItem);
+  check(
+    'the open menu has "Now: … · day N" first after the groups, then Group settings, then Care periods',
+    !!nowItem &&
+      /^Now: .+ · day \d+$/.test(nowItem) &&
+      items[at + 1] === "Group settings" &&
+      items[at + 2] === "Care periods",
+    JSON.stringify(items),
+  );
+  await p.tap(menuItem("Now: "));
+  const opened = await need(
+    p,
+    `location.pathname.endsWith(${JSON.stringify(`/periods/${current?.id}`)}) && document.querySelector("main[data-period-page]")`,
+    15000,
+    "the period page",
+  );
+  check("the Now item opens the current period's page", opened);
+  await openGroupMenu(p);
+  await p.tap(menuItem("Care periods"));
+  const list = await need(p, `location.pathname.endsWith("/periods") && ${LIST}`, 15000, "the periods page");
+  check("Care periods opens the group's periods page", list);
+
+  // Switch to Dev Family 2: no periods, so no icon and no Now item.
+  await openGroupMenu(p);
+  await p.tap(groupChoice("Grandpa Lou"));
+  await need(
+    p,
+    `location.pathname.startsWith(${JSON.stringify(`/app/groups/${DEV_FAMILY_2}/timeline`)})`,
+    15000,
+    "Dev Family 2",
+  );
+  await need(
+    p,
+    `${GROUP_MENU}?.getAttribute("aria-label")?.startsWith("Grandpa Lou")`,
+    15000,
+    "Grandpa Lou's menu",
+  );
+  await sleep(500);
+  const lou = await menuState(p);
+  await openGroupMenu(p);
+  const louItems = await p.evaluate(
+    `[...document.querySelectorAll('[role="menu"] [role="menuitem"]')].map((el) => el.textContent.trim())`,
+  );
+  await closeMenu(p);
+  check(
+    "switching to a group without periods removes the icon and the Now item (Care periods stays)",
+    lou.type === null &&
+      lou.label === "Grandpa Lou: switch care group" &&
+      !louItems.some((t) => t.startsWith("Now: ")) &&
+      louItems.includes("Care periods"),
+    JSON.stringify({ lou, louItems }),
+  );
+
+  // A period added there (as another device would) shows without a reload.
+  const made = await onDevice(
+    p,
+    `return periods.createCarePeriod(db, ${JSON.stringify(DEV_FAMILY_2)}, { type: "rehab", label: ${JSON.stringify(`${TAG} lou`)}, startedAt: new Date(Date.now() - 60000).toISOString() });`,
+  );
+  const live = await need(
+    p,
+    `${GROUP_MENU}?.querySelector('[data-period-icon="rehab"]')`,
+    10000,
+    "the new icon",
+  );
+  const louNow = await menuState(p);
+  await openGroupMenu(p);
+  const louNowItem = await p.evaluate(`${menuItem("Now: ")}?.textContent.trim() ?? null`);
+  await closeMenu(p);
+  check(
+    "a new period changes the icon and the Now item without a reload",
+    made.ok &&
+      live &&
+      louNow.label === "Grandpa Lou, Rehab: switch care group" &&
+      louNowItem === "Now: In rehab · day 1",
+    JSON.stringify({ made, louNow, louNowItem }),
+  );
+
+  // Back to Dev Family: its own period, never Grandpa Lou's.
+  await openGroupMenu(p);
+  await p.tap(groupChoice("Grandma Pat"));
+  await need(
+    p,
+    `location.pathname.startsWith(${JSON.stringify(`/app/groups/${DEV_FAMILY}/timeline`)})`,
+    15000,
+    "Dev Family",
+  );
+  await need(
+    p,
+    `${GROUP_MENU}?.getAttribute("aria-label")?.startsWith("Grandma Pat")`,
+    15000,
+    "Grandma Pat's menu",
+  );
+  // Its rows arrive a moment after the switch; never Grandpa Lou's meanwhile.
+  await need(p, `${GROUP_MENU}?.querySelector("[data-period-icon]")`, 10000, "Dev Family's icon");
+  const back = await menuState(p);
+  check(
+    "switching back shows Dev Family's own period",
+    back.type === current?.type && back.label === `Grandma Pat, ${name}: switch care group`,
+    JSON.stringify(back),
+  );
+  await p.send("Emulation.clearDeviceMetricsOverride");
+}
+
 const proxy = SMOKE ? null : startProxy(9745);
 const bA = await launch(9741, proxy ? proxy.args : []);
 const bB = SMOKE ? null : await launch(9742);
@@ -499,6 +691,7 @@ try {
     await C.signIn("viewer@example.com", PW);
     await step("a viewer", () => viewerSteps(C));
     await step("a period's page and the 404s", () => pageSteps(A, B));
+    await step("the group menu", () => groupMenuSteps(B));
   }
 
   const noise =
