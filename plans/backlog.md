@@ -812,6 +812,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for orchestration: a 'pnpm backlog archive' that moves live (or landed) items out of backlog.md into an archive file and prunes their inbox bullets, run by hand or at landing.
+- 2026-11-19 (Robert Bo Davis): 2026-11-19: removed the inbox's 18 stale 'Status (…)' lines; the tracker holds status.
 
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
 
