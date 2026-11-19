@@ -47,3 +47,4 @@ export * from "./staffRules";
 export * from "./adminAudit";
 export * from "./appSetting";
 export * from "./accountAdmin";
+export * from "./groupAdminRules";

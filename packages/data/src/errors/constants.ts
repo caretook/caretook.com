@@ -160,6 +160,21 @@ export const MODEL_ERRORS = {
   "adminAuditLogModel:actors": {
     message: "Failed to list the audit log's staff",
   },
+  "groupDirectoryModel:search": {
+    message: "Failed to search care groups",
+  },
+  "groupDirectoryModel:owners": {
+    message: "Failed to list the care groups' owners",
+  },
+  "groupDirectoryModel:get": {
+    message: "Failed to look up the care group",
+  },
+  "groupDirectoryModel:members": {
+    message: "Failed to list the care group's members",
+  },
+  "groupDirectoryModel:activity": {
+    message: "Failed to count the care group's activity",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {
@@ -546,6 +561,22 @@ export const SERVICE_ERRORS = {
   },
   "accountAdmin:query": {
     message: "Failed to read the account",
+  },
+  "groupAdminService:notFound": {
+    message: "Care group not found",
+    statusCode: 404,
+  },
+  "groupAdminService:notMember": {
+    message: "That person isn't in this care group",
+    statusCode: 404,
+  },
+  "groupAdminService:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "groupAdminService:unchanged": {
+    message: "They already have that role.",
+    statusCode: 409,
   },
 } as const;
 

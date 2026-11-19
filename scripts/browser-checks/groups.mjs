@@ -293,9 +293,7 @@ try {
     async () => {
       const p = await open(9603, "admin");
       await p.signIn("admin@example.com", PASSWORD, { home: true });
-      // /admin opens Users (admin PRD); access codes are a section of it.
-      await p.goto("/admin");
-      await p.waitFor(`location.pathname === "/admin/users"`, 20000);
+      // Where /admin itself opens is admin.mjs's to check (it moves as sections are built).
       await p.goto("/admin/access-codes");
       await p.waitFor(
         `location.pathname === "/admin/access-codes" && ${q('[data-admin-form="newCode"]')}`,

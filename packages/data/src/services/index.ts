@@ -82,6 +82,9 @@ import * as accountAdminService from "./accountAdminService";
 export { accountAdminService };
 export type { AccountMailer, AccountMailUser } from "./accountAdminService";
 
+import * as groupAdminService from "./groupAdminService";
+export { groupAdminService };
+
 export type * from "./types";
 
 export const services = {
@@ -108,6 +111,7 @@ export const services = {
   carePeriod: carePeriodService,
   adminAudit: adminAuditService,
   adminGrant: adminGrantService,
+  groupAdmin: groupAdminService,
 };
 
 export type ServiceTypeMap = typeof services;

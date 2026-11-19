@@ -119,6 +119,8 @@ const webRoutes = [
     route("admin/audit", "routes/admin/audit/route.tsx"),
     route("admin/users", "routes/admin/users/route.tsx"),
     route("admin/users/:userId", "routes/admin/user/route.tsx"),
+    route("admin/groups", "routes/admin/groups/route.tsx"),
+    route("admin/groups/:groupId", "routes/admin/group/route.tsx"),
   ]),
   route("admin/access-codes/:id/print", "routes/admin/access-codes-print/route.tsx"),
   route("admin/waitlist/export", "routes/admin/waitlist-export/route.ts"),
