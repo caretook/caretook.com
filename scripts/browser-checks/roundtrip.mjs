@@ -105,13 +105,16 @@ async function calendarScreenshots(p, name) {
   });
 }
 
+// Waits on state get 10 s: they return as soon as the state is there, and the
+// 3–5 s they had timed out at low load on a cold check build (B-93).
+
 /** Add a symptom through the sheet. */
 async function addSymptom(p, name) {
   await p.press(tile("Symptom"));
   await p.waitFor(NAME);
   await p.type(NAME, name);
   await p.press(SUBMIT);
-  await p.waitFor(`!${SHEET}`, 5000);
+  await p.waitFor(`!${SHEET}`, 10000);
 }
 async function timeUntil(p, expr, ms = 20000) {
   const t0 = Date.now();
@@ -146,7 +149,7 @@ try {
   const name = `${tag} knee pain`;
   const t0 = Date.now();
   await addSymptom(A, name);
-  await A.waitFor(rowWith(name), 5000);
+  await A.waitFor(rowWith(name), 10000);
   const localMs = Date.now() - t0;
   const remoteMs = await timeUntil(B, rowWith(name));
   check("add: shows on this device at once", localMs < 2000, `${localMs} ms`);
@@ -176,7 +179,7 @@ try {
   await A.press(tile("Symptom"));
   await A.waitFor(NAME);
   await A.press(SUBMIT);
-  await A.waitFor(`${NAME}?.getAttribute("aria-invalid") === "true"`, 5000).then(
+  await A.waitFor(`${NAME}?.getAttribute("aria-invalid") === "true"`, 10000).then(
     () => check("validation: a symptom with no name shows a field error", true),
     async () =>
       check(
@@ -194,7 +197,7 @@ try {
   await A.press(menuItem("Delete"));
   await A.waitFor(`document.querySelector("dialog[open] .btn-error")`);
   await A.press(`document.querySelector("dialog[open] .btn-error")`);
-  await A.waitFor(`!${rowWith(name)}`, 5000);
+  await A.waitFor(`!${rowWith(name)}`, 10000);
   const delMs = await timeUntil(B, `!${rowWith(name)}`);
   check("delete: disappears for the other member", true, `${delMs} ms`);
   check(
@@ -216,12 +219,13 @@ try {
   const sameTime = (s) => s.hour === s0.hour && s.minute === s0.minute && s.dayPeriod === s0.dayPeriod;
   await A.evaluate(`[...document.querySelectorAll('[role=dialog] [data-type]')].at(-1).focus()`);
   await key(A, "Tab");
+  await A.waitFor(`document.activeElement === ${PICK}`, 5000, { quiet: true }).catch(() => undefined);
   check(
     "picker: Tab from the segments reaches Pick a date",
     await A.evaluate(`document.activeElement === ${PICK}`),
   );
   await key(A, "Enter");
-  await A.waitFor(`${GRID} && ${FOCUSED_DAY}`, 5000);
+  await A.waitFor(`${GRID} && ${FOCUSED_DAY}`, 10000);
   check(
     "picker: Enter opens the calendar on the current month, focus on the selected day",
     (await A.evaluate(FOCUSED_DAY)) === s0.day &&
@@ -230,14 +234,14 @@ try {
     `${await A.evaluate(CAL_HEADING)}, ${await A.evaluate(FOCUSED_DAY)}`,
   );
   await key(A, "ArrowLeft");
-  await A.waitFor(`${FOCUSED_DAY} === ${JSON.stringify(yesterday.day)}`, 3000).then(
+  await A.waitFor(`${FOCUSED_DAY} === ${JSON.stringify(yesterday.day)}`, 10000).then(
     () => check("picker: arrow keys move the focused day", true),
     async () => check("picker: arrow keys move the focused day", false, await A.evaluate(FOCUSED_DAY)),
   );
   await key(A, "Escape");
-  await A.waitFor(`!${GRID}`, 3000);
+  await A.waitFor(`!${GRID}`, 10000);
   // React Aria hands focus back to the button a moment after the popover goes.
-  await A.waitFor(`document.activeElement === ${PICK}`, 3000, { quiet: true }).catch(() => undefined);
+  await A.waitFor(`document.activeElement === ${PICK}`, 10000, { quiet: true }).catch(() => undefined);
   check(
     "picker: Escape closes it, focus back on the button, date unchanged",
     (await A.evaluate(`document.activeElement === ${PICK}`)) &&
@@ -245,11 +249,11 @@ try {
       (await A.evaluate(`!!${SHEET}`)),
   );
   await key(A, "Enter");
-  await A.waitFor(`${GRID} && ${FOCUSED_DAY}`, 5000);
+  await A.waitFor(`${GRID} && ${FOCUSED_DAY}`, 10000);
   await key(A, "ArrowLeft");
-  await A.waitFor(`${FOCUSED_DAY} === ${JSON.stringify(yesterday.day)}`, 3000);
+  await A.waitFor(`${FOCUSED_DAY} === ${JSON.stringify(yesterday.day)}`, 10000);
   await key(A, "Enter");
-  await A.waitFor(`!${GRID}`, 3000);
+  await A.waitFor(`!${GRID}`, 10000);
   const s1 = await A.evaluate(SEGMENTS);
   check(
     "picker: Enter picks the day, keeps the time and closes the calendar",
@@ -261,7 +265,7 @@ try {
   await key(A, "ArrowUp");
   const typed = await A.evaluate(SEGMENTS);
   await A.tap(PICK);
-  await A.waitFor(`${GRID} && ${SELECTED_DAY}`, 5000);
+  await A.waitFor(`${GRID} && ${SELECTED_DAY}`, 10000);
   check(
     "picker: typing still works, and the calendar shows the typed date",
     typed.day !== s1.day &&
@@ -271,7 +275,7 @@ try {
   );
   await calendarScreenshots(A, "roundtrip-calendar");
   await A.tap(dayCell(yesterday.day));
-  await A.waitFor(`!${GRID}`, 3000).then(
+  await A.waitFor(`!${GRID}`, 10000).then(
     () => true,
     () => null,
   );
@@ -285,17 +289,17 @@ try {
     `${s2.month}/${s2.day} ${s2.hour}:${s2.minute}`,
   );
   await A.press(SUBMIT);
-  await A.waitFor(`!${SHEET}`, 5000);
-  await A.waitFor(rowWith(picked), 5000);
+  await A.waitFor(`!${SHEET}`, 10000);
+  await A.waitFor(rowWith(picked), 10000);
   check(
     "picker: the saved entry is under Yesterday",
     (await A.evaluate(dayHeaderOf(picked))) === "Yesterday",
     await A.evaluate(dayHeaderOf(picked)),
   );
   await A.press(`${rowWith(picked)}.querySelector('a[aria-label^="Edit "]')`);
-  await A.waitFor(`${SHEET}?.textContent.includes("Edit symptom") && ${PICK}`, 5000);
+  await A.waitFor(`${SHEET}?.textContent.includes("Edit symptom") && ${PICK}`, 10000);
   await A.tap(PICK);
-  await A.waitFor(`${GRID} && ${SELECTED_DAY}`, 5000);
+  await A.waitFor(`${GRID} && ${SELECTED_DAY}`, 10000);
   check(
     "picker: editing opens the calendar on the entry's date, not today's",
     (await A.evaluate(SELECTED_DAY)) === yesterday.day &&
@@ -303,9 +307,9 @@ try {
     `${await A.evaluate(CAL_HEADING)} ${await A.evaluate(SELECTED_DAY)}`,
   );
   await key(A, "Escape");
-  await A.waitFor(`!${GRID}`, 3000);
+  await A.waitFor(`!${GRID}`, 10000);
   await A.press(button("Cancel", SHEET));
-  await A.waitFor(`!${SHEET}`, 5000);
+  await A.waitFor(`!${SHEET}`, 10000);
 
   // 5. Offline on A.
   const offName = `${tag} offline dizziness`;
@@ -315,7 +319,7 @@ try {
     () => check("offline: the header says Offline", false),
   );
   await addSymptom(A, offName);
-  await A.waitFor(rowWith(offName), 5000);
+  await A.waitFor(rowWith(offName), 10000);
   check("offline: the entry shows on this device", true);
   await sleep(3000);
   check(
