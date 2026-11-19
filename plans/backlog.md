@@ -77,7 +77,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-45 | change | inbox |  |  | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | inbox |  |  | optional phone number, address, etc on group members that can be published to the group for… |
 | B-47 | feature | inbox |  |  | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
-| B-48 | feature | inbox |  |  | Allow import of providers from other care groups that you have access to. |
+| B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
 | B-49 | feature | inbox |  |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-50 | feature | inbox |  |  | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
 | B-51 | feature | inbox |  |  | printable medication schedule sheet that can be printed to be checked off with a pen at patient's… |
@@ -624,8 +624,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: providers
 - owner:
 - commit:
 
