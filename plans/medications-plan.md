@@ -4,14 +4,16 @@
 
 ## Status
 
-| Slice | State                                                              | Merge into `prd/medications` (slice commits) |
-| ----- | ------------------------------------------------------------------ | -------------------------------------------- |
-| 1     | blocked by `providers` slice 1 (in `dev`)                          |                                              |
-| 2     | blocked by 1 and `routing` slice 1 (in `dev`)                      |                                              |
-| 3     | blocked by 2, `routing` slice 2 and `providers` slice 3 (in `dev`) |                                              |
-| 4     | blocked by 1 and `components` slices 3 and 5 (in `dev`)            |                                              |
-| 5     | blocked by 3 and 4                                                 |                                              |
-| 6     | blocked by 2 and `providers` slice 4 (in `dev`)                    |                                              |
+| Slice | State                                                 | Merge into `prd/medications` (slice commits) |
+| ----- | ----------------------------------------------------- | -------------------------------------------- |
+| 1     | ready (`providers` is in `dev`)                       |                                              |
+| 2     | blocked by 1 (`routing` is in `dev`)                  |                                              |
+| 3     | blocked by 2 (`routing` and `providers` are in `dev`) |                                              |
+| 4     | blocked by 1 (`components` is in `dev`)               |                                              |
+| 5     | blocked by 3 and 4                                    |                                              |
+| 6     | blocked by 2 (`providers` is in `dev`)                |                                              |
+
+Every outside blocker (`providers`, `routing`, `components`) is in `dev` as of 2026-11-18; only the plan's own order remains. Running beside this PRD: `invites` (about to land a migration: keep `dev`'s and regenerate ours on top at the first sync) and `timeline-polish` (changing the timeline route folder, which slices 4 and 5 touch).
 
 Backlog: B-15 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. B-26 (allergies) is not part of this plan.
 
