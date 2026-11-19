@@ -32,7 +32,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | -- | ---- | ------ | --- | ----- | ----- |
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | landed | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
-| B-3 | change | triaged | timeline-polish |  | Wider timeline entries on large screens, still mobile-first |
+| B-3 | change | in-progress | timeline-polish | prd/timeline-polish | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | in-progress | timeline-polish | prd/timeline-polish | Tap an entry's author initials to filter by that author |
@@ -100,9 +100,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-3 · change · Wider timeline entries on large screens, still mobile-first
 
-- status: triaged
+- status: in-progress
 - prd: timeline-polish
-- owner:
+- owner: prd/timeline-polish
 - commit:
 
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Full width at lg+, entry text capped ~75ch; cards in a 2–3 column grid.
