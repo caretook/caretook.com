@@ -15,7 +15,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–14 in `dev`; new fixes append as slice 15 on. Triaged and waiting: B-44, B-64, B-65, B-69, B-70, B-71, B-72, B-73 | (none) | varies by slice; B-44 the providers route folder (`ProviderListItem`); B-73 `components/ui/Sheet` (after `medications` slice 3); B-71 `components/ui/date/` |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | none now |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done**, all 7 slices in `dev` | `live-notes-ux`, `app-shell`, `routing`, `components` (all done) | none now |
-| `search`          | to write | `timeline-polish` (done); best run after `appointments` finishes (same timeline files) | `lib/sync/schema.ts`, `lib/sync/timeline.ts` (`entryWindow`), `lib/timelineFilters.ts`, the timeline route folder |
+| `search`          | [PRD](search-prd.md), [plan](search-plan.md): 6 slices, in `dev` (`56e6cd6`). Waves 1 → (2, 3, 6) → (4, 5); slice 1 can start when a PRD slot frees | `timeline-polish` (done); slice 2 waits for `appointments` to land | `lib/sync/timeline.ts` (the timeline windows), `lib/timelineFilters.ts`, the timeline route folder (slices 2, 4), the `/app` header and `routes.ts` (slice 3), one migration (slice 6) |
 | `providers`       | [PRD](providers-prd.md), [plan](providers-plan.md): **done**, all slices in `dev` (`7c075d1`); follow-ups B-25, B-48 | (none) | none now |
 | `medications`     | [PRD](medications-prd.md), [plan](medications-plan.md): slices 1, 2, 4 and 6 in `dev`; **slice 3 running** (B-15 claimed); 5 waits for 3. Follow-ups B-26, B-51 | `providers`, `routing`, `components` (all done) | `TIMELINE_ENTRY_KINDS`, `KIND_META`, timeline strips and quick add, `care_recipient`, `note_document`, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`, the Dose sheet |
 | `assistant`       | to write (B-12, B-49, B-58) | `search`'s server side; `providers`, `medications`, `care-periods` (soft) | `routes/app/layout/route.tsx`, `packages/api`, a new AI package |
@@ -103,14 +103,16 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
 | B-64 | feature | triaged | quick-fixes |  | Withdraw a pending join request from the requester's home |
 | B-65 | change | triaged | quick-fixes |  | New care groups get the recipient's time zone |
-| B-66 | question | inbox |  |  | Access codes are stored as plain text: keep that, or hash them? |
-| B-67 | question | inbox |  |  | Access-code sign-up says when an address already has an account |
+| B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
+| B-67 | change | in-progress | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
 | B-71 | bug | ready | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
 | B-72 | bug | ready | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
-| B-73 | bug | in-progress | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
+| B-73 | bug | ready | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
+| B-74 | bug | triaged | medications |  | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
+| B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
 
 ## Items
 
@@ -844,21 +846,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-66 · question · Access codes are stored as plain text: keep that, or hash them?
 
-- status: inbox
+- status: dropped
 - prd:
 - owner:
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: access_code.code is stored plain so staff can reprint a code from /admin (print page with QR). Only global admins and system can read it; a code is a sign-up ticket, not health data. Hashing would mean codes can only be printed once, at creation.
+- 2026-11-19 (Robert Bo Davis): Decided (user, 2026-11-19): keep access codes in plain text. A code only lets a new account start its own care group; it gives no access to any existing group's data, so staff can keep reprinting it.
 
-### B-67 · question · Access-code sign-up says when an address already has an account
+### B-67 · change · Access-code sign-up says when an address already has an account
 
-- status: inbox
-- prd:
-- owner:
+- status: in-progress
+- prd: quick-fixes
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: /join/:code answers ticket:accountExists ('An account with this email already exists. Sign in instead.'), so anyone holding a code can check whether an address is registered. Link-invite sign-up (slice 4) gives the same answer either way; email invites lock the address. Option: answer the same as link sign-up and send the existing user a sign-in email instead.
+- 2026-11-19 (Robert Bo Davis): Decided (user, 2026-11-19): fix it as a quick-fixes slice, low priority, before launch. /join/:code answers the same 'Check your email' for every address. For an address that already has an account: create nothing, leave the code's use count alone, and queue a new email through notify (outbox, not awaited, like the auth emails): 'Someone tried to start a care group with your address; if it was you, sign in and choose New care group'. No health details. Both paths queue their email without waiting, so the response takes about the same time either way. Tests: an integration test for accessCode.signUp with an existing address, and groups.mjs steps (same screen, the mail in /dev/mail.json, no account or redemption created).
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
@@ -909,9 +913,28 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-73 · bug · timeline entry add modal should take up the full screen on mobile, don't leave room for header.
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 59f380a
 
 - 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: the shared ui/Sheet goes full screen below sm. Merge after medications slice 3 (its new sheets use Sheet).
+
+### B-74 · bug · medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out)
+
+- status: triaged
+- prd: medications
+- owner:
+- commit:
+
+- 2026-11-19 (prd/quick-fixes): Seen by the quick-fixes orchestrator on prd/quick-fixes 579a66c (dev + quick-fixes wave 7, which touches no medication screen): run 1 failed 64/65 at statusSteps' Discontinue dialog wait (5 s); its retry failed 50/52 at 'a second browser sees the notes as they're written' after 12m33s, load ~20-27. Logs: .git/worktrees/quick-fixes/caretook-browser/medications-20261119-0545{28,02}.log
+
+### B-75 · feature · medications need to keep a history of past dose changes, frequency changes, etc. on each medication…
+
+- status: dropped
+- prd: medications
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the inbox: medications need to keep a history of past dose changes, frequency changes, etc. on each medication entry.
+- 2026-11-19 (Robert Bo Davis): Dropped (user, 2026-11-19): already exists. Medication change entries record dose, schedule and other tracked-field changes, and each medication's page lists its doses and changes.
