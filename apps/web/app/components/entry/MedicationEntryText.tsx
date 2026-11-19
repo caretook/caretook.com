@@ -1,6 +1,10 @@
+import type { ParsedSearch } from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/rpc";
 
+import { highlightRanges } from "@caretook/data/schema";
+
 import { Link } from "react-router";
+import { Highlight } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
 import { entryMedication, medicationLabel } from "~/lib/medicationEntries";
@@ -14,15 +18,19 @@ import { entryMedication, medicationLabel } from "~/lib/medicationEntries";
 export function MedicationHeading({
   entry,
   what,
+  search,
   className = "",
 }: {
   entry: TimelineEntry;
   what: string;
+  /** Mark the medication's name where the search matches it. */
+  search?: ParsedSearch;
   className?: string;
 }) {
   const { id: groupId } = useGroup();
   const medication = entryMedication(entry);
   const label = medicationLabel(medication);
+  const shown = <Highlight text={label} ranges={search ? highlightRanges(label, search) : undefined} />;
   return (
     <p className={`font-semibold break-words ${className}`} data-medication-entry>
       {medication && !medication.deletedAt ? (
@@ -31,11 +39,11 @@ export function MedicationHeading({
           className="link link-hover relative z-10"
           data-medication={medication.id}
         >
-          {label}
+          {shown}
         </Link>
       ) : (
         <span className={medication ? "text-base-content/50" : undefined}>
-          {label}
+          {shown}
           {medication && " (removed)"}
         </span>
       )}

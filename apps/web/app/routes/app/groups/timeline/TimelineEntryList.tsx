@@ -1,14 +1,17 @@
 import type { TimelineData } from "./useTimelineData";
 import type { TimelineEntryKind, TimelineView, UnitChoices } from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/rpc";
+import type { TimelineSearchState } from "./timelineSearch";
 
-import { useLayoutEffect, useRef } from "react";
+import { parseSearch } from "@caretook/data/schema";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { canReschedule } from "~/lib/eventReschedule";
 import { emptyTimelineText } from "./entryLabels";
-import { entryOpen } from "./entryOpen";
+import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
+import { entryOpen } from "~/lib/entryOpen";
 import { COLUMN_CAP } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
@@ -18,6 +21,8 @@ import { useEntryRemoval } from "./useEntryRemoval";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
 export { COLUMN_CAP } from "./layout";
+
+const NO_SEARCH = { q: "", state: "none" } as const;
 
 const LIST_CLASS: Record<TimelineView, string> = {
   rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",
@@ -40,6 +45,7 @@ export function TimelineEntryList({
   canWrite,
   kind,
   author,
+  search: searching = NO_SEARCH,
   upcoming,
 }: {
   data: Pick<
@@ -53,6 +59,8 @@ export function TimelineEntryList({
   kind: TimelineEntryKind | null;
   /** The author filter's user id, when it's on (the empty list names them). */
   author: string | null;
+  /** The search (`?q=`) and what it's doing (`timelineSearch`). */
+  search?: { q: string; state: TimelineSearchState };
   /** The Upcoming block, when it's on, and where its "See all in Upcoming" goes. */
   upcoming?: { items: TimelineData["upcoming"]; seeAll: string } | null;
 }) {
@@ -77,7 +85,7 @@ export function TimelineEntryList({
   // above the screen (a kind icon or author tapped far down), bring it back,
   // before the end of a shorter list could load another page.
   const list = useRef<HTMLElement>(null);
-  const filterKey = `${kind}|${author}`;
+  const filterKey = `${kind}|${author}|${searching.q}`;
   const lastFilter = useRef(filterKey);
   useLayoutEffect(() => {
     if (lastFilter.current === filterKey) return;
@@ -86,7 +94,18 @@ export function TimelineEntryList({
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
   }, [filterKey]);
 
-  const item = (entry: TimelineEntry) => {
+  const emptyText = emptyTimelineText(kind, author && data.nameOf(author), searching.q);
+  const announcement = searchAnnouncement({
+    q: searching.q,
+    state: searching.state,
+    shown: data.days.reduce((n, day) => n + day.entries.length, 0),
+    hasOlder: data.hasOlder,
+    emptyText,
+  });
+
+  // Matches are marked in the history's rows and cards (the Upcoming block stays as it is).
+  const parsed = useMemo(() => (searching.q ? parseSearch(searching.q) : undefined), [searching.q]);
+  const item = (entry: TimelineEntry, marked = false) => {
     const open = entryOpen({ groupId, entry, canWrite, search });
     return (
       <Entry
@@ -106,6 +125,7 @@ export function TimelineEntryList({
         cancel={cancelOf(entry)}
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
+        search={marked ? parsed : undefined}
       />
     );
   };
@@ -119,7 +139,7 @@ export function TimelineEntryList({
             view={view}
             listClass={LIST_CLASS[view]}
             seeAll={upcoming.seeAll}
-            entry={item}
+            entry={(entry) => item(entry)}
           />
         </div>
       )}
@@ -132,9 +152,13 @@ export function TimelineEntryList({
             {cancelling.error}
           </p>
         )}
+        {/* Always there, so a search's first result is announced too. */}
+        <p role="status" className="sr-only" data-search-status>
+          {announcement}
+        </p>
         {data.days.length === 0 && (
           <p className="text-base-content/70" data-empty>
-            {emptyTimelineText(kind, author && data.nameOf(author))}
+            {searchStateText(searching.state) ?? emptyText}
           </p>
         )}
         {data.days.map((day) => (
@@ -146,7 +170,7 @@ export function TimelineEntryList({
               {day.label}
             </h3>
             <ol className={LIST_CLASS[view]} data-view={view}>
-              {day.entries.map(item)}
+              {day.entries.map((entry) => item(entry, true))}
             </ol>
           </section>
         ))}
@@ -156,6 +180,7 @@ export function TimelineEntryList({
           loading={data.loadingOlder}
           empty={data.days.length === 0}
           onLoadOlder={data.loadOlder}
+          endText={searching.q ? SEARCH_END_TEXT : undefined}
         />
       </section>
 

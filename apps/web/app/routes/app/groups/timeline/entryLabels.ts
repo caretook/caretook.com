@@ -22,9 +22,18 @@ export const actionsLabel = (entry: Labelled) =>
 
 /**
  * What an empty timeline says, naming the filters that are on: "No symptoms
- * by Alex Rivera yet." (`authorName` is the author filter's name.)
+ * by Alex Rivera yet." (`authorName` is the author filter's name.) With a
+ * search (`q`): "No symptoms by Alex Rivera match “fall”."
  */
-export const emptyTimelineText = (kind: TimelineEntryKind | null, authorName?: string | null) => {
+export const emptyTimelineText = (
+  kind: TimelineEntryKind | null,
+  authorName?: string | null,
+  q?: string | null,
+) => {
+  if (q) {
+    const what = kind ? KIND_META[kind].plural.toLowerCase() : "entries";
+    return `No ${what}${authorName ? ` by ${authorName}` : ""} match “${q}”.`;
+  }
   if (!kind && !authorName) return "Nothing on the timeline yet.";
   const what = kind ? KIND_META[kind].plural.toLowerCase() : "entries";
   return authorName ? `No ${what} by ${authorName} yet.` : `No ${what} on the timeline yet.`;

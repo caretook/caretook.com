@@ -87,3 +87,29 @@ describe("past events (pastEventsWindow)", () => {
     expect(window.params).toEqual([GROUP, "event", AUTHOR, local(CUTOFF), 21]);
   });
 });
+
+describe("the search (EntryFilters.match)", () => {
+  const match = { sql: "timeline_entry.id IN (SELECT x)", params: ["walk*", GROUP] };
+
+  it("is ANDed into the history after the other filters, before the cutoff", () => {
+    const window = historyWindow(GROUP, { kind: "note", author: AUTHOR, match }, 30, CUTOFF);
+    expect(one(window.sql)).toContain(
+      "AND kind = ? AND created_by = ? AND (timeline_entry.id IN (SELECT x)) AND (NOT kind IN",
+    );
+    expect(window.params).toEqual([GROUP, "note", AUTHOR, "walk*", GROUP, local(CUTOFF), 31]);
+  });
+
+  it("is ANDed into upcoming and past events", () => {
+    const upcoming = upcomingWindow(GROUP, { ...NONE, match }, NOW);
+    expect(one(upcoming.sql)).toContain("AND kind IN (?, ?) AND (timeline_entry.id IN (SELECT x)) AND");
+    expect(upcoming.params.slice(0, 5)).toEqual([GROUP, "note", "event", "walk*", GROUP]);
+    const past = pastEventsWindow(GROUP, { ...NONE, match }, 20, CUTOFF);
+    expect(past.params).toEqual([GROUP, "event", "walk*", GROUP, local(CUTOFF), 21]);
+  });
+
+  it("no match is no condition", () => {
+    expect(historyWindow(GROUP, { ...NONE, match: null }, 30, CUTOFF)).toEqual(
+      historyWindow(GROUP, NONE, 30, CUTOFF),
+    );
+  });
+});
