@@ -17,6 +17,7 @@ import { ContactList } from "./ContactList";
 import { LinkedEntries } from "./LinkedEntries";
 import { loadProvider } from "./loadProvider";
 import { ProviderHeader } from "./ProviderHeader";
+import { ProviderMedications } from "./ProviderMedications";
 import { useProviderNotes } from "./useProviderNotes";
 
 // Shared by web + native. A provider's page: who they are, every way to
@@ -128,6 +129,8 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
           </section>
 
           <LinkedEntries groupId={groupId} providerId={providerId} />
+
+          <ProviderMedications groupId={groupId} providerId={providerId} />
         </>
       )}
     </main>

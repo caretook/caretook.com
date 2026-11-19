@@ -39,6 +39,8 @@ const appRoutes = [
         // The medication list (its sheets come as its children) and a medication's page.
         route("medications", "routes/app/groups/medications/route.tsx"),
         route("medications/:medicationId", "routes/app/groups/medication/route.tsx"),
+        // The printable sheet (a static segment, so it ranks above `:medicationId`).
+        route("medications/print", "routes/app/groups/medications/print/route.tsx"),
       ]),
       // Start another care group (a sheet over its own page; not a group route).
       route("groups/new", "routes/app/groups/new/route.tsx"),

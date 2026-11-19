@@ -138,4 +138,6 @@ export const appUrls = {
   /** A medication's page: details, schedule, providers, refills, its live notes and its history. */
   medication: (groupId: string, medicationId: string) =>
     `${groupHome(groupId)}/medications/${segment(medicationId)}`,
+  /** The printable medication sheet: current and recently stopped medications, and who to call. */
+  medicationsPrint: (groupId: string) => `${groupHome(groupId)}/medications/print`,
 } as const;

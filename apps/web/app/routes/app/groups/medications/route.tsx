@@ -2,8 +2,10 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { MedicationRow } from "~/lib/sync/medications";
 
+import { Printer } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Outlet, useLocation } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
+import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
 import { medicationList, parseMedicationFilters } from "~/lib/medicationList";
 import { sessionContext } from "~/lib/session";
@@ -69,6 +71,15 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
             {!group.canWrite && " · You can view this list"}
           </p>
         </div>
+        <Link
+          to={appUrls.medicationsPrint(params.groupId)}
+          prefetch="render"
+          className="btn btn-ghost btn-sm shrink-0 gap-1.5"
+          data-print-link
+        >
+          <Printer className="size-4" aria-hidden="true" />
+          Print
+        </Link>
         {/* Writers' "Add medication" goes here (the add sheet). */}
       </header>
 

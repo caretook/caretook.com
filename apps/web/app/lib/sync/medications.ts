@@ -748,3 +748,19 @@ export const removeMedicationEntry = async (db: SyncDb, id: string): Promise<Act
     .where(eq(timelineEntries.id, id));
   return { ok: true };
 };
+
+// ---------------------------------------------------------------------------
+// A provider's medications (the provider page)
+// ---------------------------------------------------------------------------
+
+/**
+ * The current medications (not deleted) that name a provider as their
+ * prescriber or their pharmacy, by name: the provider page's Medications.
+ */
+export const providerMedicationsQuery = (groupId: string, providerId: string): LocalQuery => ({
+  sql: `SELECT * FROM medication
+        WHERE group_id = ? AND deleted_at IS NULL AND status = 'current'
+          AND (prescriber_id = ? OR pharmacy_id = ?)
+        ORDER BY name COLLATE NOCASE, id`,
+  params: [groupId, providerId, providerId],
+});
