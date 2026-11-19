@@ -143,7 +143,8 @@ describe("medicationService: writing", () => {
       rxNumber: "RX 0104",
     });
     expect(medication).toMatchObject({
-      schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+      // Written in the old shape (an older build's), stored as slots.
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
       startedOn: "2026-10-01",
       lastFilledOn: "2026-11-01",
       quantity: "30 tablets",

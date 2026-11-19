@@ -1,5 +1,6 @@
 import type { DoseDetails, MedicationSchedule, MedicationStatus } from "@caretook/data/schema";
 
+import { ownTimes } from "@caretook/data/schema";
 import { addDays, dayInZone, zonedInstant } from "./zonedDay";
 
 // What's due today: a plain function of `now`, so a timer re-evaluates it
@@ -130,7 +131,8 @@ export function dueDoses({
     if (medication.schedule.type !== "scheduled") continue;
     for (const d of [yesterdayDay, day]) {
       if (!scheduledOn(medication, d, timeZone)) continue;
-      for (const time of medication.schedule.times) {
+      // Time slots only for now: pass slots need the group's passes.
+      for (const time of ownTimes(medication.schedule)) {
         const at = zonedInstant(d, time, timeZone);
         working.push({
           slot: { medication, day: d, time, at: at.toISOString() },

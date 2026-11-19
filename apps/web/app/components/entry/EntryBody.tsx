@@ -58,6 +58,7 @@ export function EntryBody({
         key="medication"
         entry={entry}
         what={medication.what}
+        standalone={medication.standalone}
         search={search}
         className={TEXT_CAP}
       />

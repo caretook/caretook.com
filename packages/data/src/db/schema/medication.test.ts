@@ -9,7 +9,11 @@ import {
   medicationContentZSchema,
   medicationScheduleZSchema,
   medicationUpdateZSchema,
+  normalizeSchedule,
+  ownTimes,
   parseMedicationSchedule,
+  sameSchedule,
+  schedulePassIds,
   toChangeTime,
 } from "./medication";
 import { timelineEntryContentZSchema, timelineEntryUpdateZSchema } from "./timelineEntry";
@@ -35,10 +39,9 @@ const issuePaths = (schema: { safeParse: (v: unknown) => unknown }, value: unkno
 
 describe("medicationScheduleZSchema", () => {
   it("takes one to eight times of day, and stores them sorted", () => {
-    expect(medicationScheduleZSchema.parse({ type: "scheduled", times: ["20:00", "08:00"] })).toEqual({
-      type: "scheduled",
-      times: ["08:00", "20:00"],
-    });
+    expect(
+      medicationScheduleZSchema.parse({ type: "scheduled", slots: [{ time: "20:00" }, { time: "08:00" }] }),
+    ).toEqual({ type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] });
     const eight = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00"];
     expect(medicationScheduleZSchema.safeParse({ type: "scheduled", times: eight }).success).toBe(true);
     expect(
@@ -80,13 +83,92 @@ describe("medicationScheduleZSchema", () => {
       type: "asNeeded",
       maxPerDay: 2,
     });
-    expect(parseMedicationSchedule('{"type":"scheduled","times":["08:00"]}')).toEqual({
+    expect(parseMedicationSchedule('{"type":"scheduled","slots":[{"time":"08:00"}]}')).toEqual({
       type: "scheduled",
-      times: ["08:00"],
+      slots: [{ time: "08:00" }],
     });
     expect(parseMedicationSchedule("{")).toBeNull();
     expect(parseMedicationSchedule(null)).toBeNull();
     expect(parseMedicationSchedule({ type: "everyOtherDay" })).toBeNull();
+  });
+});
+
+describe("the schedule's slots", () => {
+  const MORNING = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d1001";
+  const EVENING = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d1002";
+
+  it("reads the old `times` shape (older builds) as time slots, from jsonb or JSON text", () => {
+    expect(normalizeSchedule({ type: "scheduled", times: ["20:00", "08:00"] })).toEqual({
+      type: "scheduled",
+      slots: [{ time: "08:00" }, { time: "20:00" }],
+    });
+    expect(normalizeSchedule('{"type":"scheduled","times":["08:00"]}')).toEqual({
+      type: "scheduled",
+      slots: [{ time: "08:00" }],
+    });
+    // Through the content schema too: what the service and the device validate with.
+    expect(parsed({ schedule: { type: "scheduled", times: ["08:00"] } }).schedule).toEqual({
+      type: "scheduled",
+      slots: [{ time: "08:00" }],
+    });
+    // Its old rules still hold.
+    expect(normalizeSchedule({ type: "scheduled", times: ["08:00", "08:00"] })).toBeNull();
+    expect(normalizeSchedule({ type: "scheduled", times: [] })).toBeNull();
+  });
+
+  it("takes passes and times, each with an optional amount, passes first", () => {
+    expect(
+      normalizeSchedule({
+        type: "scheduled",
+        slots: [
+          { time: "14:00", amount: " 500 mg " },
+          { passId: EVENING, amount: "" },
+          { passId: MORNING, amount: "1000 mg" },
+        ],
+      }),
+    ).toEqual({
+      type: "scheduled",
+      slots: [
+        { passId: MORNING, amount: "1000 mg" },
+        { passId: EVENING },
+        { time: "14:00", amount: "500 mg" },
+      ],
+    });
+  });
+
+  it("refuses a repeated pass or time, a slot with both or neither, and over eight", () => {
+    const paths = (slots: unknown[]) => issuePaths(medicationScheduleZSchema, { type: "scheduled", slots });
+    expect(paths([{ passId: MORNING }, { passId: MORNING }])).toEqual(["slots"]);
+    expect(paths([{ time: "08:00" }, { time: "08:00", amount: "1" }])).toEqual(["slots"]);
+    expect(paths([{ passId: MORNING, time: "08:00" }])).toEqual(["slots.0"]);
+    expect(paths([{}])).toEqual(["slots.0"]);
+    expect(paths([{ time: "25:00" }])).toEqual(["slots.0.time"]);
+    expect(paths([{ passId: "not-an-id" }])).toEqual(["slots.0.passId"]);
+    const nine = Array.from({ length: 9 }, (_, i) => ({ time: `${String(10 + i)}:00` }));
+    expect(paths(nine)).toEqual(["slots"]);
+    // A pass and a time at the same moment are two slots: the pass's time is the pass's.
+    expect(paths([{ passId: MORNING }, { time: "08:00" }])).toEqual([]);
+  });
+
+  it("knows the same schedule in any order, and a changed amount as a change", () => {
+    const read = (value: unknown) => {
+      const schedule = normalizeSchedule(value);
+      if (!schedule) throw new Error("not a schedule");
+      return schedule;
+    };
+    const a = read({ type: "scheduled", slots: [{ passId: MORNING }, { time: "14:00" }] });
+    const b = read({ type: "scheduled", slots: [{ time: "14:00" }, { passId: MORNING }] });
+    expect(sameSchedule(a, b)).toBe(true);
+    const c = read({ type: "scheduled", slots: [{ passId: MORNING, amount: "2" }, { time: "14:00" }] });
+    expect(sameSchedule(a, c)).toBe(false);
+    expect(sameSchedule(a, { type: "asNeeded" })).toBe(false);
+    expect(
+      ownTimes(
+        read({ type: "scheduled", slots: [{ time: "20:00" }, { passId: MORNING }, { time: "14:00" }] }),
+      ),
+    ).toEqual(["14:00", "20:00"]);
+    expect(schedulePassIds(a)).toEqual([MORNING]);
+    expect(ownTimes({ type: "asNeeded" })).toEqual([]);
   });
 });
 
@@ -297,12 +379,12 @@ describe("medicationChange", () => {
         form: "tablet",
         dose: "1 tablet",
         directions: "With food",
-        schedule: { type: "scheduled", times: ["08:00"] },
+        schedule: { type: "scheduled", slots: [{ time: "08:00" }] },
       },
     });
     expect(medicationChange(null, parsed({ strength: null, form: null, dose: null }))).toEqual({
       change: "started",
-      after: { name: "Lisinopril", schedule: { type: "scheduled", times: ["08:00"] } },
+      after: { name: "Lisinopril", schedule: { type: "scheduled", slots: [{ time: "08:00" }] } },
     });
   });
 
@@ -319,17 +401,21 @@ describe("medicationChange", () => {
         parsed({
           name: "Lisinopril HCTZ",
           strength: "20 mg",
-          schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+          schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
         }),
       ),
     ).toEqual({
       change: "changed",
       fields: ["name", "strength", "schedule"],
-      before: { name: "Lisinopril", strength: "10 mg", schedule: { type: "scheduled", times: ["08:00"] } },
+      before: {
+        name: "Lisinopril",
+        strength: "10 mg",
+        schedule: { type: "scheduled", slots: [{ time: "08:00" }] },
+      },
       after: {
         name: "Lisinopril HCTZ",
         strength: "20 mg",
-        schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+        schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
       },
     });
   });
@@ -357,7 +443,7 @@ describe("medicationChange", () => {
     expect(
       medicationChange(
         parsed({ schedule: { type: "asNeeded" } }),
-        parsed({ schedule: { type: "scheduled", times: ["08:00"] } }),
+        parsed({ schedule: { type: "scheduled", slots: [{ time: "08:00" }] } }),
       ),
     ).toMatchObject({ change: "changed", fields: ["schedule"] });
   });
@@ -378,8 +464,8 @@ describe("medicationChange", () => {
     // The same schedule written in another order is the same schedule.
     expect(
       medicationChange(
-        parsed({ schedule: { type: "scheduled", times: ["08:00", "20:00"] } }),
-        parsed({ schedule: { type: "scheduled", times: ["20:00", "08:00"] } }),
+        parsed({ schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] } }),
+        parsed({ schedule: { type: "scheduled", slots: [{ time: "20:00" }, { time: "08:00" }] } }),
       ),
     ).toBeNull();
   });

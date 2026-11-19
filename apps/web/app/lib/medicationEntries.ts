@@ -1,11 +1,11 @@
 import type { TimelineEntryDetails, TimelineEntryKind } from "@caretook/data/schema";
 
-import { isDoseDetails, isMedicationChangeDetails } from "@caretook/data/schema";
-import { changeText, doseText } from "./medicationDisplay";
+import { isDoseDetails, isMedicationChangeDetails, isPassMovedDetails } from "@caretook/data/schema";
+import { changeText, doseText, passMovedText } from "./medicationDisplay";
 
 // The dose, schedule and change wording is `medicationDisplay`'s, shared with
 // the medication page; re-exported so the timeline imports one module.
-export { changeText, doseText, scheduleText } from "./medicationDisplay";
+export { changeText, doseText, passMovedText, scheduleText } from "./medicationDisplay";
 
 // What doses and medication changes say on the timeline: "Lisinopril 10 mg"
 // beside "Given 1 tablet", or "Changed dose 1 tablet → 2 tablets". No React or
@@ -57,12 +57,16 @@ export const entryMedication = (entry: object): EntryMedication | null | undefin
 
 /**
  * A dose's or change's two parts: what happened ("Given 1 tablet") and its
- * note (a dose's note, a stop's note), or null for any other entry.
+ * note (a dose's note, a stop's note), or null for any other entry. A pass's
+ * move names no medication: its `what` is the whole line ("Morning moved
+ * 8:00 → 8:30"), shown on its own (`standalone`).
  */
 export const medicationEntryText = (entry: {
   kind: TimelineEntryKind;
   details: TimelineEntryDetails | null;
-}): { what: string; note: string | null } | null => {
+}): { what: string; note: string | null; standalone?: true } | null => {
+  if (entry.kind === "medicationChange" && isPassMovedDetails(entry.details))
+    return { what: passMovedText(entry.details), note: null, standalone: true };
   if (entry.kind === "dose" && isDoseDetails(entry.details))
     return { what: doseText(entry.details), note: entry.details.note?.trim() || null };
   if (entry.kind === "medicationChange" && isMedicationChangeDetails(entry.details))

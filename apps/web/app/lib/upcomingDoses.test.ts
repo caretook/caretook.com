@@ -26,7 +26,7 @@ const med = (
   name,
   strength: "10 mg",
   dose: "1 tablet",
-  schedule: { type: "scheduled", times },
+  schedule: { type: "scheduled", slots: times.map((time) => ({ time })) },
   status: "current",
   deletedAt: null,
   ...extra,

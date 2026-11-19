@@ -44,7 +44,7 @@ describe("medication seeds", () => {
     expect(byStatus("discontinued")[0]).toMatchObject({ stopReason: "sideEffects" });
 
     const current = byStatus("current");
-    expect(current.some((m) => m.schedule.type === "scheduled" && m.schedule.times.length === 2)).toBe(true);
+    expect(current.some((m) => m.schedule.type === "scheduled" && m.schedule.slots.length === 2)).toBe(true);
     expect(current.filter((m) => m.schedule.type === "asNeeded")).toHaveLength(1);
     expect(current.some((m) => m.refillsLeft !== null && m.lastFilledOn && m.quantity)).toBe(true);
     expect(DEV_FAMILY_MEDICATIONS.some((m) => m.notes)).toBe(true);

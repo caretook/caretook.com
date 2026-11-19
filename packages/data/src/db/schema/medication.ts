@@ -51,11 +51,23 @@ export const MEDICATION_STOP_REASONS = ["sideEffects", "ineffective", "prescribe
 export type MedicationStopReason = (typeof MEDICATION_STOP_REASONS)[number];
 
 /**
- * Every day at fixed times ("08:00", in the recipient's time zone), or as
- * needed with an optional maximum per day.
+ * One time of day a scheduled medication is taken: in one of the group's
+ * passes (`passId`, at the pass's time) or at a time of its own ("14:00").
+ * `amount` is what's given then, when it differs from the medication's dose
+ * ("1000 mg" in the Morning, "500 mg" in the Evening).
+ */
+export type ScheduleSlot = { passId: string; amount?: string } | { time: string; amount?: string };
+
+/**
+ * Every day in the slots' passes and at their own times (in the recipient's
+ * time zone), or as needed with an optional maximum per day.
+ *
+ * Older builds wrote `{ type: "scheduled", times }`: every read goes through
+ * `normalizeSchedule` (and the Zod schema, which uses it), so those read as
+ * time slots. Writes always use `slots`.
  */
 export type MedicationSchedule =
-  { type: "scheduled"; times: string[] } | { type: "asNeeded"; maxPerDay?: number };
+  { type: "scheduled"; slots: ScheduleSlot[] } | { type: "asNeeded"; maxPerDay?: number };
 
 const timestampColumn = (name: string) =>
   timestamp(name, { precision: 3, mode: "string", withTimezone: true });
@@ -185,34 +197,105 @@ const SCHEDULE_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 /** A time of day, 24-hour "HH:MM". */
 export const scheduleTimeZSchema = z.string().regex(SCHEDULE_TIME_RE, { error: "Use a time like 08:00" });
 
-/**
- * A medication's schedule. Scheduled times are unique and stored sorted;
- * they're times of day in the recipient's time zone, every day.
- */
-export const medicationScheduleZSchema = z.discriminatedUnion("type", [
-  z.strictObject({
-    type: z.literal("scheduled"),
-    times: z
-      .array(scheduleTimeZSchema)
-      .min(1, { error: "Add at least one time" })
-      .max(MEDICATION_LIMITS.scheduleTimes, {
-        error: `At most ${MEDICATION_LIMITS.scheduleTimes} times a day`,
-      })
-      .refine((times) => new Set(times).size === times.length, { error: "List each time once" })
-      .transform((times) => [...times].sort()),
-  }),
-  z.strictObject({
-    type: z.literal("asNeeded"),
-    maxPerDay: z
-      .int({ error: "Enter a whole number" })
-      .min(1, { error: "At least 1 a day" })
-      .max(MEDICATION_LIMITS.maxPerDay, { error: `At most ${MEDICATION_LIMITS.maxPerDay} a day` })
-      .optional(),
-  }),
-]);
+/** Whether a slot is in a pass (else it has a time of its own). */
+export const isPassSlot = (slot: ScheduleSlot): slot is { passId: string; amount?: string } =>
+  "passId" in slot;
 
-/** Parse a `schedule` as stored (jsonb, or JSON text on a device); null when it's malformed. */
-export const parseMedicationSchedule = (value: unknown): MedicationSchedule | null => {
+/** A slot's identity within a schedule: `pass:<id>` or `time:HH:MM`. */
+export const slotKey = (slot: ScheduleSlot) =>
+  isPassSlot(slot) ? `pass:${slot.passId}` : `time:${slot.time}`;
+
+/**
+ * Slots in their stored order: pass slots first (by pass id, so two equal
+ * schedules store alike), then time slots by time.
+ */
+const slotOrder = (a: ScheduleSlot, b: ScheduleSlot) => {
+  if (isPassSlot(a) !== isPassSlot(b)) return isPassSlot(a) ? -1 : 1;
+  return slotKey(a).localeCompare(slotKey(b));
+};
+
+/**
+ * An old-shape schedule (`{ type: "scheduled", times }`, from builds before
+ * passes) as time slots; anything else as it is. Used inside the Zod schema,
+ * so field messages for a new-shape schedule keep their paths.
+ */
+const upgradeScheduleShape = (value: unknown): unknown => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const raw = value as Record<string, unknown>;
+  if (raw.type !== "scheduled" || "slots" in raw || !("times" in raw)) return value;
+  const { times, ...rest } = raw;
+  return { ...rest, slots: Array.isArray(times) ? times.map((time: unknown) => ({ time })) : times };
+};
+
+const slotAmountZSchema = z
+  .string()
+  .trim()
+  .max(MEDICATION_LIMITS.doseAmount)
+  .nullish()
+  .transform((v) => v || undefined);
+
+/** One slot: a pass or a time (exactly one), and an optional amount. */
+const scheduleSlotZSchema = z
+  .strictObject({
+    passId: z.uuid({ error: "Choose a pass" }).optional(),
+    time: scheduleTimeZSchema.optional(),
+    amount: slotAmountZSchema,
+  })
+  .superRefine((slot, ctx) => {
+    if ((slot.passId === undefined) === (slot.time === undefined))
+      ctx.addIssue({ code: "custom", message: "Choose a pass or a time" });
+  })
+  .transform(({ passId, time, amount }): ScheduleSlot => {
+    const at = passId !== undefined ? { passId } : { time: time ?? "" };
+    return amount ? { ...at, amount } : at;
+  });
+
+/**
+ * A medication's schedule: 1–8 slots, no pass or time twice, stored in
+ * `slotOrder`; or as needed. Accepts the old `times` shape too (as time slots).
+ */
+export const medicationScheduleZSchema = z.preprocess(
+  upgradeScheduleShape,
+  z.discriminatedUnion("type", [
+    z.strictObject({
+      type: z.literal("scheduled"),
+      slots: z
+        .array(scheduleSlotZSchema)
+        .min(1, { error: "Add at least one time" })
+        .max(MEDICATION_LIMITS.scheduleTimes, {
+          error: `At most ${MEDICATION_LIMITS.scheduleTimes} times a day`,
+        })
+        .refine((slots) => new Set(slots.map(slotKey)).size === slots.length, {
+          error: "List each time once",
+        })
+        .transform((slots) => [...slots].sort(slotOrder)),
+    }),
+    z.strictObject({
+      type: z.literal("asNeeded"),
+      maxPerDay: z
+        .int({ error: "Enter a whole number" })
+        .min(1, { error: "At least 1 a day" })
+        .max(MEDICATION_LIMITS.maxPerDay, { error: `At most ${MEDICATION_LIMITS.maxPerDay} a day` })
+        .optional(),
+    }),
+  ]),
+) as z.ZodType<MedicationSchedule, MedicationScheduleInput>;
+
+/** A schedule as callers may write it: the slots shape, or (from older builds) `times`. */
+export type MedicationScheduleInput =
+  | {
+      type: "scheduled";
+      slots: ({ passId: string; amount?: string | null } | { time: string; amount?: string | null })[];
+    }
+  | { type: "scheduled"; times: string[] }
+  | { type: "asNeeded"; maxPerDay?: number };
+
+/**
+ * The one normaliser every read goes through: a `schedule` as stored (jsonb,
+ * or JSON text on a device), in either shape, as a `MedicationSchedule` with
+ * slots; null when it's malformed.
+ */
+export const normalizeSchedule = (value: unknown): MedicationSchedule | null => {
   let raw = value;
   if (typeof raw === "string") {
     try {
@@ -224,6 +307,21 @@ export const parseMedicationSchedule = (value: unknown): MedicationSchedule | nu
   const parsed = medicationScheduleZSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
 };
+
+/** `normalizeSchedule`, by its older name. */
+export const parseMedicationSchedule = normalizeSchedule;
+
+/** The time slots' times ("08:00"), sorted: what a schedule says without knowing its passes. */
+export const ownTimes = (schedule: MedicationSchedule) =>
+  schedule.type === "scheduled"
+    ? schedule.slots.flatMap((slot) => (isPassSlot(slot) ? [] : [slot.time])).sort()
+    : [];
+
+/** The passes a schedule's slots are in. */
+export const schedulePassIds = (schedule: MedicationSchedule) =>
+  schedule.type === "scheduled"
+    ? schedule.slots.flatMap((slot) => (isPassSlot(slot) ? [slot.passId] : []))
+    : [];
 
 /** Every content field, as stored. */
 const medicationFields = {
@@ -390,6 +488,8 @@ export type DoseStatus = (typeof DOSE_STATUSES)[number];
 /**
  * A `dose` entry: a medication was given, skipped or refused at the entry's
  * time. `scheduledFor` is the slot it answers ("08:00"), when it answers one.
+ * A dose logged in a pass round also has the pass (`passId`) and the round
+ * (`passLogId`, shared by every dose logged together).
  */
 export const doseDetailsZSchema = z.strictObject({
   medicationId: z.uuid(),
@@ -397,6 +497,8 @@ export const doseDetailsZSchema = z.strictObject({
   amount: z.string().trim().max(MEDICATION_LIMITS.doseAmount).nullish(),
   scheduledFor: scheduleTimeZSchema.nullish(),
   note: z.string().trim().max(MEDICATION_LIMITS.doseNote).nullish(),
+  passId: z.uuid().nullish(),
+  passLogId: z.uuid().nullish(),
 });
 export type DoseDetails = z.infer<typeof doseDetailsZSchema>;
 
@@ -451,13 +553,39 @@ export const medicationChangeDetailsZSchema = z.strictObject({
 });
 export type MedicationChangeDetails = z.infer<typeof medicationChangeDetailsZSchema>;
 
+/**
+ * A `medicationChange` entry for a pass whose time moved ("Morning moved
+ * 08:00 → 08:30"): written with the pass (see medicationPass.ts), naming the
+ * medications that moved with it. It has no one medication.
+ */
+export const passMovedDetailsZSchema = z.strictObject({
+  change: z.literal("passMoved"),
+  passId: z.uuid(),
+  passName: z.string(),
+  beforeTime: scheduleTimeZSchema,
+  afterTime: scheduleTimeZSchema,
+  medicationIds: z.array(z.uuid()),
+});
+export type PassMovedDetails = z.infer<typeof passMovedDetailsZSchema>;
+
+/** What a `medicationChange` entry's details may be: one medication's change, or a pass's move. */
+export const medicationChangeEntryDetailsZSchema = z.union([
+  medicationChangeDetailsZSchema,
+  passMovedDetailsZSchema,
+]);
+export type MedicationChangeEntryDetails = z.infer<typeof medicationChangeEntryDetailsZSchema>;
+
 type ChangeSource = Pick<MedicationContent, MedicationTrackedField | "status" | "stopReason" | "stopNote">;
 
-const sameSchedule = (a: MedicationSchedule, b: MedicationSchedule) => {
+/** Whether two schedules are the same: the same slots (in any order), with the same amounts. */
+export const sameSchedule = (a: MedicationSchedule, b: MedicationSchedule) => {
   if (a.type === "scheduled") {
-    return (
-      b.type === "scheduled" && a.times.length === b.times.length && a.times.every((t, i) => t === b.times[i])
-    );
+    if (b.type !== "scheduled" || a.slots.length !== b.slots.length) return false;
+    const amounts = new Map(b.slots.map((slot) => [slotKey(slot), slot.amount ?? null]));
+    return a.slots.every((slot) => {
+      const key = slotKey(slot);
+      return amounts.has(key) && amounts.get(key) === (slot.amount ?? null);
+    });
   }
   return b.type === "asNeeded" && (a.maxPerDay ?? null) === (b.maxPerDay ?? null);
 };

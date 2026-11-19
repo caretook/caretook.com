@@ -3,7 +3,7 @@ import type { MedicationSchedule } from "@caretook/data/schema";
 
 import { Plus, X } from "lucide-react";
 import { useId, useState } from "react";
-import { MEDICATION_LIMITS } from "@caretook/data/schema";
+import { MEDICATION_LIMITS, ownTimes } from "@caretook/data/schema";
 import { ChoiceGroup, Field, IconButton } from "~/components/ui";
 import { FIELD } from "./medicationFormData";
 
@@ -35,7 +35,9 @@ export function ScheduleFields({
   const [type, setType] = useState<ScheduleType>(initial?.type ?? "scheduled");
   // Each row keeps its key as rows come and go, so typing stays in its field.
   const [times, setTimes] = useState(() =>
-    (initial?.type === "scheduled" ? initial.times : ["08:00"]).map((value, key) => ({ key, value })),
+    (initial?.type === "scheduled" && ownTimes(initial).length ? ownTimes(initial) : ["08:00"]).map(
+      (value, key) => ({ key, value }),
+    ),
   );
   const timesId = useId();
   const timesError = issueFor(issues, "schedule.times");

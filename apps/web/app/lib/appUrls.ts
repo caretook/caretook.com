@@ -202,4 +202,6 @@ export const appUrls = {
       [SEARCH_QUERY_PARAM]: q,
       [SEARCH_ALL_PARAM]: q?.trim() && isSearchItemType(all) ? all : null,
     })}`,
+  /** The group's medication passes (Morning, Evening…), with the medications in each. */
+  medicationPasses: (groupId: string) => `${groupHome(groupId)}/medications/passes`,
 } as const;

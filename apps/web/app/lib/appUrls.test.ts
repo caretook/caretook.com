@@ -51,6 +51,7 @@ describe("appUrls", () => {
     expect(appUrls.medication(G, "m1")).toBe(`/app/groups/${G}/medications/m1`);
     expect(appUrls.medication("g", "a/b")).toBe("/app/groups/g/medications/a%2Fb");
     expect(appUrls.medicationsPrint(G)).toBe(`/app/groups/${G}/medications/print`);
+    expect(appUrls.medicationPasses(G)).toBe(`/app/groups/${G}/medications/passes`);
   });
 
   it("builds a group's settings subpages, and drops an unknown one", () => {

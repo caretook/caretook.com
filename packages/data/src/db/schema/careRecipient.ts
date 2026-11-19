@@ -1,7 +1,7 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
 
-import { date, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { date, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import { careGroupSchema } from "./careGroup";
@@ -26,6 +26,13 @@ export const careRecipientSchema = pgTable(
     // The recipient's IANA time zone: where they live. A medication's schedule
     // times are in it, so "8:00" is the same moment for a caretaker elsewhere.
     timeZone: text("time_zone").notNull(),
+    // When someone recorded "No known allergies" (an empty allergy list then
+    // means none, not unknown). Cleared when an allergy is added.
+    noKnownAllergiesAt: timestamp("no_known_allergies_at", {
+      precision: 3,
+      mode: "string",
+      withTimezone: true,
+    }),
     ...timestamps,
     ...audits,
   },

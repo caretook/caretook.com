@@ -18,16 +18,25 @@ import { entryMedication, medicationLabel } from "~/lib/medicationEntries";
 export function MedicationHeading({
   entry,
   what,
+  standalone = false,
   search,
   className = "",
 }: {
   entry: TimelineEntry;
   what: string;
+  /** `what` is the whole line (a pass's move names no medication). */
+  standalone?: boolean;
   /** Mark the medication's name where the search matches it. */
   search?: ParsedSearch;
   className?: string;
 }) {
   const { id: groupId } = useGroup();
+  if (standalone)
+    return (
+      <p className={`font-semibold break-words ${className}`} data-medication-entry data-pass-moved>
+        <Highlight text={what} ranges={search ? highlightRanges(what, search) : undefined} />
+      </p>
+    );
   const medication = entryMedication(entry);
   const label = medicationLabel(medication);
   const shown = <Highlight text={label} ranges={search ? highlightRanges(label, search) : undefined} />;

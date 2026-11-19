@@ -53,6 +53,13 @@ import * as contactMessageService from "./contactMessageService";
 export { contactMessageService };
 export type { ContactMailer, SendResult } from "./contactMessageService";
 
+import * as medicationPassService from "./medicationPassService";
+export { medicationPassService };
+export type { PassWriteOptions } from "./medicationPassService";
+
+import * as recipientAllergyService from "./recipientAllergyService";
+export { recipientAllergyService };
+
 // Not in `services` below: it reads several tables and has no model of its own.
 import * as searchService from "./searchService";
 export { searchService };
@@ -77,6 +84,8 @@ export const services = {
   medication: medicationService,
   waitlist: waitlistService,
   contactMessage: contactMessageService,
+  medicationPass: medicationPassService,
+  recipientAllergy: recipientAllergyService,
 };
 
 export type ServiceTypeMap = typeof services;

@@ -8,11 +8,15 @@ const form = (fields: [string, string][]) => {
   return data;
 };
 
+/** The schema's issues as the form shows them (`issuesForTimeRows`, as the routes do). */
 const issuesOf = (input: unknown) => {
   const parsed = medicationContentZSchema.safeParse(input);
   return parsed.success
     ? []
-    : parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message }));
+    : issuesForTimeRows(
+        parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+        [],
+      );
 };
 
 describe("medicationFromForm", () => {
@@ -39,7 +43,7 @@ describe("medicationFromForm", () => {
       strength: "50 mg",
       form: "tablet",
       dose: "1 tablet",
-      schedule: { type: "scheduled", times: ["20:00", "08:00"] },
+      schedule: { type: "scheduled", slots: [{ time: "20:00" }, { time: "08:00" }] },
       startedOn: "2026-11-01",
       prescriberId: "p1",
       pharmacyId: null,
@@ -111,6 +115,21 @@ describe("medicationFromForm", () => {
 });
 
 describe("issuesForTimeRows", () => {
+  it("moves the schedule's slot issues to the form's time rows", () => {
+    expect(
+      issuesForTimeRows(
+        [
+          { path: "schedule.slots.1.time", message: "Use a time like 08:00" },
+          { path: "schedule.slots", message: "List each time once" },
+        ],
+        [0, 2],
+      ),
+    ).toEqual([
+      { path: "schedule.times.2", message: "Use a time like 08:00" },
+      { path: "schedule.times", message: "List each time once" },
+    ]);
+  });
+
   it("moves a sent time's issue to its row in the form", () => {
     expect(
       issuesForTimeRows(

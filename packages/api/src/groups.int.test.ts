@@ -9,6 +9,7 @@ import {
   careRecipientModel,
   getDb,
   isError,
+  medicationPassModel,
   SYSTEM_USER,
   userModel,
 } from "@caretook/data";
@@ -57,6 +58,20 @@ const userByEmail = async (email: string) => {
   return user;
 };
 
+/** A group's passes as [name, time], in order: every new group starts with Morning and Evening. */
+const passesOf = async (groupId: string) => {
+  const res = await medicationPassModel.list({
+    ...system,
+    filter: { groupId: { type: "eq", value: groupId } },
+  });
+  if (isError(res)) throw new Error(String(res.code));
+  return res.data.map((p) => [p.name, p.time]);
+};
+const DEFAULT_PASS_LIST = [
+  ["Morning", "08:00"],
+  ["Evening", "20:00"],
+];
+
 const staff = async () => {
   const admin = await createUser("api-staff", "admin");
   return { ...admin, api: clientFor(admin.ctx.authUser) };
@@ -77,6 +92,7 @@ describe("careGroup.create", () => {
       filter: { groupId: { type: "eq", value: groupId } },
     });
     expect(recipient).toMatchObject({ name: "Lou Example", preferredName: "Grandpa Lou" });
+    expect(await passesOf(groupId)).toEqual(DEFAULT_PASS_LIST);
 
     const named = await api.careGroup.create({
       recipientName: "Ann Example",
@@ -129,6 +145,7 @@ describe("access codes", () => {
     expect(await careGroupMemberModel.getRole(groupId, user!.id)).toBe("owner");
     const group = await careGroupModel.getById(groupId, system);
     expect(group).toMatchObject({ name: "Nana Rose's care" });
+    expect(await passesOf(groupId)).toEqual(DEFAULT_PASS_LIST);
     const redemptions = await accessCodeRedemptionModel.list({
       ...system,
       filter: { codeId: { type: "eq", value: code.id } },
@@ -311,6 +328,7 @@ describe("admin.*", () => {
     expect(await careGroupMemberModel.getRole(groupId, staffUser.id)).toBeNull();
     const group = await careGroupModel.getById(groupId, system);
     expect(group).toMatchObject({ name: "Example family", createdBy: staffUser.id });
+    expect(await passesOf(groupId)).toEqual(DEFAULT_PASS_LIST);
 
     const [mail] = await mailTo(ownerEmail);
     expect(mail?.subject).toContain("Pat Example");
