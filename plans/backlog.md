@@ -852,6 +852,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: access_code.code is stored plain so staff can reprint a code from /admin (print page with QR). Only global admins and system can read it; a code is a sign-up ticket, not health data. Hashing would mean codes can only be printed once, at creation.
+- 2026-11-19 (Robert Bo Davis): Decided (user, 2026-11-19): keep access codes in plain text. A code only lets a new account start its own care group; it gives no access to any existing group's data, so staff can keep reprinting it.
 
 ### B-67 · question · Access-code sign-up says when an address already has an account
 
