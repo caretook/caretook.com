@@ -75,7 +75,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 
 | Command                               | What it does                                                                                                                          |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm prd status`                     | every worktree: branch, commits ahead, dirty or clean, containers, and its dev server link                                            |
+| `pnpm prd status`                     | every worktree: branch, commits ahead, dirty or clean, containers, its dev server link, and the load averages                         |
 | `pnpm prd status-watch [seconds]`     | `status`, redrawn every few seconds (default 5) until Ctrl-C                                                                          |
 | `pnpm prd start <topic>`              | create (or find) the PRD's worktree and stack, and print the command that opens its orchestrator                                      |
 | `pnpm prd plan <topic>`               | a docs-only worktree for writing a PRD or plan                                                                                        |
