@@ -8,11 +8,11 @@
 
 | Slice | Wave | State                | Merge into `prd/orchestration` (slice commits) |
 | ----- | ---- | -------------------- | ---------------------------------------------- |
-| 1     | 1    | running (2026-11-19) |                                                |
+| 1     | 1    | merged               | db65cca (a6ac71a, 3cf23d0)                     |
 | 2     | 1    | running (2026-11-19) |                                                |
-| 3     | 1    | running (2026-11-19) |                                                |
+| 3     | 1    | merged               | 399fb18 (8af746c); doc fold 7a144a0            |
 | 4     | 2    | blocked by 2         |                                                |
-| 5     | 2    | blocked by 1         |                                                |
+| 5     | 2    | running (2026-11-19) |                                                |
 | 6     | 2    | running (2026-11-19) |                                                |
 | 7     | 3    | blocked by 4 and 6   |                                                |
 | 8     | 3    | blocked by 4 and 6   |                                                |
@@ -20,7 +20,7 @@
 
 Backlog: all seven items are `triaged`. Claim B-109 with slice 1, B-108 with slice 2, B-111 and B-59 with slice 3, B-89 with slice 5, B-107 with slice 6, B-110 with slice 7. Mark B-109 `done` after slice 1, B-108 after 2, B-111 and B-59 after 3, B-89 after 5, B-107 and B-110 after 9.
 
-Slices 1, 2, 3 and 6 started 2026-11-19 in stackless worktrees (`new.sh --no-stack`; slice 5 isn't built yet), so loops run `typecheck`, `lint`, `format:check` and `test:unit` instead of `pnpm check`. B-109, B-108, B-111, B-59 and B-107 are claimed by `prd/orchestration`.
+Slices 1, 2, 3 and 6 started 2026-11-19 in stackless worktrees (`new.sh --no-stack`; slice 5 isn't built yet), so loops run `typecheck`, `lint`, `format:check` and `test:unit` instead of `pnpm check`. B-109, B-108, B-111, B-59, B-107 and B-89 are claimed by `prd/orchestration`; B-109, B-111 and B-59 are done (ready). Slice 1 touched `new.sh` (prints the plan's Stack only). Slice 2's doc text goes into `docs/loops.md`, and it should repoint the "AGENTS.md's Browser check budget" comments in `browser.sh`, `check-areas` and `routing.mjs:598` to `docs/loops.md`. After landing: run `pnpm backlog doctor --fix`, then `archive`, on the real backlog; B-104's inbox tag (line 63) is a mis-tag for the user.
 
 ## Architectural decisions
 
