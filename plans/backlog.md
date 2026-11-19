@@ -127,7 +127,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-86 | change | triaged | medications-2 |  | need an upcoming medication banner on the timeline page and a way to quickly add doses to the… |
-| B-87 | plan | triaged | simple-mode |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
+| B-87 | plan | triaged | assistant |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 | B-88 | change | triaged | orchestration |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
 | B-89 | feature | triaged | orchestration |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-90 | change | triaged | quick-fixes |  | Seed data with multiple care groups and user mix for improved manual testing. |
@@ -1135,7 +1135,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-87 · plan · "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to…
 
 - status: triaged
-- prd: simple-mode
+- prd: assistant
 - owner:
 - commit:
 
