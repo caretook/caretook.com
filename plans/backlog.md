@@ -66,7 +66,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-23 | change | landed | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
 | B-24 | change | landed | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
-| B-26 | feature | in-progress | medications-2 | prd/medications-2 | Allergies on the care recipient, shown on the medications page and printed sheet |
+| B-26 | feature | ready | medications-2 | prd/medications-2 | Allergies on the care recipient, shown on the medications page and printed sheet |
 | B-27 | bug | landed | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | landed | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
@@ -461,10 +461,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-26 · feature · Allergies on the care recipient, shown on the medications page and printed sheet
 
-- status: in-progress
+- status: ready
 - prd: medications-2
 - owner: prd/medications-2
-- commit:
+- commit: eff620e
 
 - 2026-11-18 (Robert Bo Davis): Left out of the medications PRD's v1 (2026-11-18). Likely a synced list of { substance, reaction, severity } on care_recipient; the print sheet gets an allergies line when it lands.
 - 2026-11-19 (plan/medications-2): In the medications-2 PRD (plans/medications-2-prd.md on plan/medications-2), interviewed 2026-11-19.
