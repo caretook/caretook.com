@@ -894,6 +894,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: a layout fix in ui/date's DateTimeField on narrow screens; one slice.
+- 2026-11-19 (slice/quick-fixes/15): slice/quick-fixes/15: date field fits at 360–420 (min-w-0 group, wrapping segments, 44 px Pick a date); ui.mjs date-fit steps; ready for review
 
 ### B-72 · bug · suggested provider list is too long on mobile.
 
