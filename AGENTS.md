@@ -24,7 +24,7 @@ Feature work goes through a PRD, then a plan cut into slices that loops (paralle
 1. **PRD:** `write-a-prd` (interview, explore, sketch modules), saved as `plans/<topic>-prd.md`. No GitHub issues: the PRD, the plan and the backlog are the record.
 2. **Plan:** `prd-to-plan` turns the PRD into tracer-bullet vertical slices in `plans/<topic>-plan.md`. Each slice says what it **blocks and is blocked by**, so independent slices can run at once.
    - `pnpm prd plan <topic> --open [B-<n> …]` does both in one planning session: it makes the docs-only worktree and starts an agent there (`prompt.sh plan`) that interviews the user, writes both files, updates the backlog and lands them (see the planning exception under _Landing a wave_ in `docs/loops.md`).
-3. **Loops:** one agent per slice, each in its own worktree, branch and Docker stack, run by the PRD's orchestrator. See [`docs/loops.md`](docs/loops.md).
+3. **Loops:** one agent per slice, each in its own worktree and branch (a Docker stack only for `Stack: yes`), run by the PRD's orchestrator. See [`docs/loops.md`](docs/loops.md).
 4. When a PRD is done, move its lasting decisions into the area docs and mark the PRD done.
 
 ### Branches and roles
