@@ -78,10 +78,10 @@
   content: "\200b";
 }
 
-/* Printing (the medication sheet, `/medications/print`): black on white
-   whatever the theme, and table rows that never split across pages. The
-   /app frame's header and tab bar are `print:hidden`. Unlayered, so these
-   win over daisyUI's theme tokens. */
+/* Printing (the medication sheet, `/medications/print`, and the emergency
+   sheet, `/profile/print`): black on white whatever the theme, and table
+   rows that never split across pages. The /app frame's header and tab bar
+   are `print:hidden`. Unlayered, so these win over daisyUI's theme tokens. */
 @media print {
   @page {
     margin: 12mm;

@@ -18,6 +18,7 @@ export function IconButton({
   icon: Icon,
   onPress,
   pressed,
+  disabled,
   expanded,
   controls,
   ref,
@@ -26,6 +27,8 @@ export function IconButton({
 }: {
   label: string;
   icon: LucideIcon;
+  /** Not available now (a Move up on the first row). */
+  disabled?: boolean;
   /** Classes for the button (the outer element), such as `join-item`. */
   className?: string;
 } & (
@@ -68,6 +71,7 @@ export function IconButton({
       aria-label={label}
       ref={ref}
       aria-pressed={pressed}
+      disabled={disabled}
       aria-expanded={expanded}
       aria-controls={controls}
       title={label}

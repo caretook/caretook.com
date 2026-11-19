@@ -88,7 +88,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 ### Starting a PRD
 
-1. A PRD needs a written PRD and plan first. Run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that interviews you, writes the PRD and plan, updates the backlog and lands them in `dev`.
+1. A PRD needs a written PRD and plan first. Not sure which? `pnpm prd plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that interviews you, writes the PRD and plan, updates the backlog and lands them in `dev`.
 2. `pnpm prd start <topic>` creates the PRD's worktree and stack, and prints a command.
 3. Open a **new terminal** and run that command. It starts the orchestrator session with the right first prompt:
 
@@ -169,6 +169,7 @@ chore(app-shell): merge dev into prd/app-shell
 | `pnpm prd start <topic>`          | create or reopen a PRD's worktree; prints the orchestrator command                 |
 | `pnpm prd queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
 | `pnpm prd plan <topic> --open`    | a docs-only worktree and a planning session that writes and lands the PRD and plan |
+| `pnpm prd plan`                   | a backlog and inbox session in the main checkout that helps you decide what's next |
 | `pnpm prd serve [name]`           | run a worktree's dev server (`--restart`, `--stop`)                                |
 | `pnpm prd ready [topic]`          | the ready-to-land report                                                           |
 | `pnpm prd land <topic>`           | merge the PRD's branch into `dev`                                                  |

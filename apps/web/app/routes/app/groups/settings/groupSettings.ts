@@ -1,5 +1,4 @@
 import type { AuthUser } from "@caretook/data/permissions";
-import type { CareRecipientProfileInput } from "@caretook/data/schema";
 import type { ActionResult } from "~/lib/api";
 
 import { hasPermission } from "@caretook/data/permissions";
@@ -47,7 +46,6 @@ const TOO_LONG = "Use 120 characters or fewer.";
 /** What each field's error says (the schemas' own messages aren't written for people). */
 const fieldMessage = (field: string, value: string) => {
   if (field === "name") return value.trim() ? TOO_LONG : "Enter a name.";
-  if (field === "dateOfBirth") return "Enter a valid date.";
   if (field === "timeZone") return "Choose a time zone from the list.";
   return TOO_LONG;
 };
@@ -73,28 +71,16 @@ export const parseGroupName = (values: { name: string }): Parsed<{ name: string 
 };
 
 /**
- * A submitted recipient profile. An empty preferred name or date of birth
- * clears it; an empty name, a date that isn't one, or a time zone the
- * runtime doesn't know is a field error. An empty time zone keeps the
- * stored one.
+ * A submitted recipient time zone (group settings Details; the rest of the
+ * recipient is edited on their profile). An empty zone keeps the stored one;
+ * a zone the runtime doesn't know is a field error.
  */
-export const parseRecipientProfile = (values: {
-  name: string;
-  preferredName: string;
-  dateOfBirth: string;
-  timeZone?: string;
-}): Parsed<CareRecipientProfileInput> => {
-  const timeZone = values.timeZone?.trim();
-  const parsed = careRecipientProfileZSchema.safeParse({
-    name: values.name,
-    preferredName: values.preferredName.trim() || null,
-    dateOfBirth: values.dateOfBirth.trim() || null,
-    ...(timeZone && { timeZone }),
-  });
-  if (!parsed.success) return failure(parsed.error.issues, values, "Check the care recipient's details.");
-  const { name = "", preferredName = null, dateOfBirth = null } = parsed.data;
-  const zone = parsed.data.timeZone;
-  return { ok: true, data: { name, preferredName, dateOfBirth, ...(zone && { timeZone: zone }) } };
+export const parseRecipientTimeZone = (values: { timeZone: string }): Parsed<{ timeZone?: string }> => {
+  const timeZone = values.timeZone.trim();
+  if (!timeZone) return { ok: true, data: {} };
+  const parsed = careRecipientProfileZSchema.pick({ timeZone: true }).safeParse({ timeZone });
+  if (!parsed.success) return failure(parsed.error.issues, values, "Check the care recipient's time zone.");
+  return { ok: true, data: parsed.data.timeZone ? { timeZone: parsed.data.timeZone } : {} };
 };
 
 // ---------------------------------------------------------------------------
@@ -126,13 +112,6 @@ const supportedTimeZones = (): readonly string[] => {
   } catch {
     return [];
   }
-};
-
-/** A stored date of birth (`1941-03-09`) as a long date, in no particular time zone. */
-export const formatDateOfBirth = (value: string, locale?: string) => {
-  const date = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(locale, { timeZone: "UTC", dateStyle: "long" });
 };
 
 // ---------------------------------------------------------------------------

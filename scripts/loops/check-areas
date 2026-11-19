@@ -54,7 +54,7 @@ apps/web/app/.server/securityHeaders.ts  sign-in phase2 roundtrip live-notes mar
 apps/web/app/lib/csp.ts                  sign-in phase2 roundtrip live-notes marketing invites
 apps/web/app/routes/web/*                sign-in marketing invites
 apps/web/vercel.json                     sign-in marketing
-apps/web/app/app.css                     phase2 app-shell ui
+apps/web/app/app.css                     phase2 app-shell ui medications profiles
 powersync/*                              @suite
 docker-compose*.yml                      @suite
 packages/data/src/db/migrations/*        @suite
@@ -87,6 +87,29 @@ packages/data/src/db/schema/accessCode.ts groups
 packages/data/src/db/schema/newCareGroup.ts groups
 packages/data/src/db/seeds/accessCodes.ts groups
 
+# Profiles (profiles slice 2): the recipient's profile, its Basics sheet, and
+# the ways in (the group menu, the timeline's recipient card, group settings
+# Details' link). Above the timeline's, layout's and settings' general rules.
+# The emergency sheet (profiles slice 6): its own print media steps, and the shared print CSS's.
+apps/web/app/routes/app/groups/profile/print/* profiles
+apps/web/app/routes/app/groups/profile/* profiles
+apps/web/app/lib/sync/profile.ts         profiles phase2
+# The writers' details (profiles slice 3): Contact and Insurance and their sheets.
+apps/web/app/lib/sync/recipientDetails.ts profiles
+packages/data/src/db/schema/careRecipientDetails.ts profiles
+apps/web/app/routes/app/groups/timeline/RecipientCard.tsx profiles phase2
+apps/web/app/routes/app/groups/timeline/TimelineHeader.tsx profiles phase2
+apps/web/app/routes/app/layout/GroupMenu.tsx app-shell ui profiles
+apps/web/app/routes/app/groups/settings/details/* app-shell profiles
+packages/data/src/db/schema/careRecipient.ts profiles app-shell
+packages/data/src/db/schema/profileVisibility.ts profiles
+packages/data/src/db/seeds/profiles.ts   profiles app-shell
+# Emergency contacts (profiles slice 5): the list on the profile, its sheet, and the Members page's badges.
+apps/web/app/lib/emergencyList.ts        profiles
+packages/data/src/db/schema/emergencyContacts.ts profiles
+packages/data/src/db/schema/careGroupMember.ts profiles profiles-contacts app-shell
+apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profiles profiles-contacts
+
 # Sign-in, session, the sync client and first sync.
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites
 apps/web/app/routes/account/*            invites sign-in
@@ -109,6 +132,8 @@ apps/web/app/routes/app/groups/index/*   routing
 apps/web/app/lib/group.tsx               routing app-shell
 apps/web/app/lib/groupContext.ts         routing app-shell
 apps/web/app/lib/groupSections.ts        app-shell routing
+# Your contact details (profiles slice 4).
+apps/web/app/routes/app/settings/contact/* profiles-contacts settings-layout routing
 apps/web/app/routes/app/settings/*       routing settings-layout layout-offline ui
 apps/web/app/lib/me.ts                   settings-layout layout-offline
 apps/web/app/components/settings/*       routing settings-layout app-shell ui
@@ -119,9 +144,11 @@ apps/web/app/routes/app/layout/route.tsx app-shell search
 apps/web/app/routes/app/layout/*         app-shell
 apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
 apps/web/app/routes/app/home/*           app-shell first-sync
-apps/web/app/routes/app/groups/settings/members/* app-shell invites ui
+# What each member shares, and your own choices (profiles slice 4).
+apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts app-shell
+apps/web/app/routes/app/groups/settings/members/* app-shell invites ui profiles-contacts
 apps/web/app/routes/app/groups/settings/* app-shell routing ui
-apps/web/app/lib/sync/members.ts         app-shell invites
+apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts profiles
 # The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
 apps/web/app/components/ui/date/*        ui roundtrip live-notes medications
 apps/web/app/components/ui/*             ui app-shell
@@ -172,6 +199,10 @@ apps/web/app/routes/app/groups/provider/ProviderMedications.tsx providers medica
 apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
+# Phone fields shared by the provider sheet and your contact details (profiles slice 4).
+# Contact links shared by the Members page and the recipient's profile (profiles slice 3).
+apps/web/app/components/contact/ContactLines.tsx profiles-contacts profiles app-shell
+apps/web/app/components/contact/*        providers profiles-contacts
 apps/web/app/lib/sync/providers.ts       providers
 # The medication list: the device module, the list and a medication's page
 # (its live notes run live-notes too).

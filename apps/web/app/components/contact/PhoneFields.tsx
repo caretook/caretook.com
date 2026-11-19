@@ -4,7 +4,7 @@ import { PROVIDER_LIMITS } from "@caretook/data/schema";
 import { Plus, X } from "lucide-react";
 import { useId, useState } from "react";
 import { IconButton } from "~/components/ui";
-import { FIELD } from "./providerFormData";
+import { PHONE_FIELD } from "~/lib/contactForm";
 
 type PhoneRow = { key: number; label: string; number: string };
 
@@ -15,17 +15,21 @@ const phoneRow = (label = "", number = ""): PhoneRow => ({ key: phoneKeys++, lab
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 
 /**
- * The provider form's phone numbers: up to `PROVIDER_LIMITS.phones` rows of
- * a label and a number (posted as `phoneLabel` and `phoneNumber`, in order),
+ * A form's phone numbers (a provider's, your own contact details): up to
+ * `PROVIDER_LIMITS.phones` rows of a label and a number (posted as
+ * `phoneLabel` and `phoneNumber`, in order; `phonesFromForm` reads them),
  * each removable, plus "Add a phone number". Each input is described by its
  * own message; the group by the message about the list (too many).
+ * `labelPlaceholder` is the label's example ("Office", "Mobile").
  */
 export function PhoneFields({
   initial,
   issues,
+  labelPlaceholder = "Office",
 }: {
   initial: readonly { label: string; number: string }[] | undefined;
   issues: FieldIssue[];
+  labelPlaceholder?: string;
 }) {
   const id = useId();
   const [phones, setPhones] = useState<PhoneRow[]>(() =>
@@ -56,17 +60,17 @@ export function PhoneFields({
             <li key={phone.key} className="space-y-1" data-phone-row>
               <div className="flex items-center gap-2">
                 <input
-                  name={FIELD.phoneLabel}
+                  name={PHONE_FIELD.label}
                   aria-label={`Phone ${n} label`}
                   className="input w-28 shrink-0"
                   maxLength={PROVIDER_LIMITS.phoneLabel}
                   defaultValue={phone.label}
-                  placeholder="Office"
+                  placeholder={labelPlaceholder}
                   autoComplete="off"
                   {...label.props}
                 />
                 <input
-                  name={FIELD.phoneNumber}
+                  name={PHONE_FIELD.number}
                   type="tel"
                   aria-label={`Phone ${n} number`}
                   className="input min-w-0 flex-1"

@@ -1,16 +1,25 @@
+import type { ContactValues } from "@caretook/data/schema";
 import type { ActionResult } from "~/lib/api";
 import type { MemberDetailRow } from "~/lib/sync/members";
 
+import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
+import { ContactLines } from "~/components/contact";
 import { ConfirmDialog, UserAvatar } from "~/components/ui";
+import { emergencyBadges } from "~/lib/emergencyList";
 import { useLiveQuery } from "~/lib/sync";
+import { memberContactLines, memberShare, parseSharedFields, sharedSummary } from "~/lib/memberContact";
 import { memberDetailsQuery } from "~/lib/sync/members";
 import { memberAccess, memberName, roleLabel, sortMembers } from "../groupSettings";
 import { memberHistory } from "./invites";
+import { SharingForm } from "./SharingForm";
 
 // The members list and its rows. Each change posts an intent (`changeRole`,
-// `removeMember`) to the route's action.
+// `removeMember`, `updateSharing`) to the route's action. Every row shows the
+// member's relationship to the recipient and what they share with the group;
+// your own row has "What this group sees" (online, from your account's
+// contact details).
 
 type RemoveTarget = { userId: string; name: string; isSelf: boolean };
 
@@ -25,12 +34,17 @@ export function Members({
   myRole,
   online,
   initial,
+  myContact,
+  recipientName,
 }: {
   groupId: string;
   userId: string;
   myRole: string | null;
   online: boolean;
   initial: MemberDetailRow[];
+  /** Your own contact details (online only): what the sharing choices offer. */
+  myContact: ContactValues | null;
+  recipientName: string;
 }) {
   const [seed] = useState(initial);
   const query = memberDetailsQuery(groupId);
@@ -60,6 +74,8 @@ export function Members({
               key={member.user_id}
               member={member}
               isSelf={isSelf}
+              myContact={isSelf && online ? myContact : null}
+              recipientName={recipientName}
               access={online ? memberAccess({ actorRole: myRole, memberRole: member.role, isSelf }) : null}
               removing={mine && busy}
               removeError={mine && result && !result.ok ? result.error : undefined}
@@ -91,6 +107,8 @@ export function Members({
 function MemberItem({
   member,
   isSelf,
+  myContact,
+  recipientName,
   access,
   removing,
   removeError,
@@ -98,6 +116,9 @@ function MemberItem({
 }: {
   member: MemberDetailRow;
   isSelf: boolean;
+  /** Your contact details, on your own row while online; else null (no sharing form). */
+  myContact: ContactValues | null;
+  recipientName: string;
   /** What you may do to this member; null offline (nothing). */
   access: ReturnType<typeof memberAccess> | null;
   removing: boolean;
@@ -106,6 +127,11 @@ function MemberItem({
 }) {
   const name = memberName(member.name);
   const history = memberHistory(member);
+  const relationship = member.relationship?.trim();
+  const sharedFields = parseSharedFields(member.shared_fields);
+  const share = memberShare(member);
+  const contactLines = memberContactLines(name, share);
+  const badges = emergencyBadges(member);
   const fetcher = useFetcher<ActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
@@ -130,6 +156,24 @@ function MemberItem({
             {name}
             {isSelf && <span className="text-base-content/70 font-normal"> (you)</span>}
           </p>
+          {badges.length > 0 && (
+            <p className="flex flex-wrap gap-1 py-0.5" data-member-badges="">
+              {badges.map((badge) => (
+                <span
+                  key={badge}
+                  className={`badge badge-sm ${badge === "Primary contact" ? "badge-primary" : "badge-outline"}`}
+                  data-badge={badge === "Primary contact" ? "primary" : "emergency"}
+                >
+                  {badge}
+                </span>
+              ))}
+            </p>
+          )}
+          {relationship && (
+            <p data-member-relationship="" className="truncate text-sm">
+              {relationship}
+            </p>
+          )}
           {history && (
             <p data-member-history="" className="text-base-content/70 truncate text-sm">
               {history}
@@ -176,6 +220,24 @@ function MemberItem({
           {error}
         </p>
       )}
+      {contactLines.length > 0 && (
+        <div className="pl-12">
+          <ContactLines lines={contactLines} data-member-contact="" />
+        </div>
+      )}
+      {isSelf &&
+        (myContact ? (
+          <SharingForm
+            contact={myContact}
+            sharedFields={sharedFields}
+            relationship={member.relationship}
+            recipientName={recipientName}
+          />
+        ) : (
+          <p data-sharing-summary="" className="text-base-content/70 pl-12 text-sm">
+            {sharedSummary(visibleSharedFields(share))}
+          </p>
+        ))}
     </li>
   );
 }

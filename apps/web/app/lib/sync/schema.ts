@@ -22,6 +22,15 @@ export const careGroupMembers = sqliteTable(
     role: text("role"),
     invitedBy: text("invited_by"),
     createdAt: text("created_at"),
+    // Profiles: the member's relationship to the recipient and what they
+    // share (`shared_fields`, JSON text), and the emergency list
+    // (`is_primary_contact` is 1 or 0).
+    relationship: text("relationship"),
+    sharedFields: text("shared_fields"),
+    emergencyRank: integer("emergency_rank"),
+    isPrimaryContact: integer("is_primary_contact"),
+    // When they fell off the list by no longer sharing a phone (the managers' note).
+    emergencyDroppedAt: text("emergency_dropped_at"),
   },
   (t) => [index("care_group_member_group").on(t.groupId), index("care_group_member_user").on(t.userId)],
 );
@@ -36,6 +45,12 @@ export const careRecipients = sqliteTable(
     // The recipient's IANA zone (schedule times are in it) and "YYYY-MM-DD" date of birth.
     timeZone: text("time_zone"),
     dateOfBirth: text("date_of_birth"),
+    // The medical basics and the note for helpers (profiles).
+    codeStatus: text("code_status"),
+    bloodType: text("blood_type"),
+    primaryLanguage: text("primary_language"),
+    pronouns: text("pronouns"),
+    notes: text("notes"),
     // When "No known allergies" was recorded (cleared when an allergy is added).
     noKnownAllergiesAt: text("no_known_allergies_at"),
   },
@@ -200,6 +215,45 @@ export const medications = sqliteTable(
 );
 
 /**
+ * What each member shares with the group (profiles): only the values they
+ * chose, null for the rest. `phones` is JSON text. Its id is the membership's.
+ */
+export const memberContactShares = sqliteTable(
+  "member_contact_share",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    userId: text("user_id"),
+    phones: text("phones"),
+    email: text("email"),
+    address: text("address"),
+    updatedAt: text("updated_at"),
+  },
+  (t) => [index("member_contact_share_group").on(t.groupId)],
+);
+
+/**
+ * The recipient's sensitive details (profiles), on owners', admins' and
+ * caretakers' devices only (the `care_group_writers` stream). `phones`,
+ * `insurance` and `outside_contacts` are JSON text. Its id is the recipient's.
+ */
+export const careRecipientDetails = sqliteTable(
+  "care_recipient_details",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    recipientId: text("recipient_id"),
+    phones: text("phones"),
+    email: text("email"),
+    address: text("address"),
+    insurance: text("insurance"),
+    outsideContacts: text("outside_contacts"),
+    updatedAt: text("updated_at"),
+  },
+  (t) => [index("care_recipient_details_group").on(t.groupId)],
+);
+
+/**
  * The group's medication passes (Morning, Evening…): `time` is "HH:MM" in the
  * recipient's zone. Deletes are soft. Schedules name them (`{ passId }` slots).
  */
@@ -251,6 +305,8 @@ export const drizzleSchema = {
   providers,
   timelineEntryProviders,
   medications,
+  memberContactShares,
+  careRecipientDetails,
   medicationPasses,
   recipientAllergies,
 };

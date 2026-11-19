@@ -2,7 +2,7 @@ import type { MyGroup } from "~/lib/rpc";
 import type { clientLoader as layoutLoader } from "./route";
 import type { GroupRow } from "~/lib/sync/timeline";
 
-import { ChevronDown, Plus, Settings } from "lucide-react";
+import { ChevronDown, Plus, Settings, UserRound } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useNavigate, useRouteLoaderData } from "react-router";
 import { Menu, SEPARATOR } from "~/components/ui";
@@ -22,7 +22,8 @@ const NO_ROWS: GroupRow[] = [];
  * The header's `group` region on `/app/groups/:groupId/*`: the current
  * group's display name as a menu listing every group on this device (live,
  * so it works offline), the current one checked. Choosing one opens its
- * timeline; "Group settings" opens the current group's settings, and "New
+ * timeline; "<Name>'s profile" opens the recipient's profile, "Group settings"
+ * the current group's settings, and "New
  * care group" the New care group sheet (closing it comes back). Loading a
  * group route also remembers it for `/app`.
  */
@@ -64,6 +65,16 @@ export function GroupMenu({ groupId }: { groupId: string }) {
           selection: { selected: groupId, onChange: (id) => void navigate(appUrls.timeline(id)) },
         },
         SEPARATOR,
+        ...(current.recipient
+          ? [
+              {
+                id: "profile",
+                label: `${current.recipient.displayName}'s profile`,
+                icon: UserRound,
+                href: appUrls.profile(groupId),
+              },
+            ]
+          : []),
         {
           id: "group-settings",
           label: "Group settings",

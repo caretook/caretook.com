@@ -27,6 +27,7 @@ import { invite } from "./invites";
 import { joinRequest } from "./joinRequests";
 import { accessCode, admin, createCareGroup } from "./groups";
 import { publicForms } from "./publicForms";
+import { profileCareGroup, profileMe } from "./profiles";
 import { search } from "./search";
 import { sync } from "./sync";
 import { waitlistAdmin } from "./waitlistAdmin";
@@ -51,7 +52,7 @@ const removed = <T>(result: T) => {
   return unwrap(result);
 };
 
-/** A care recipient's profile: what group settings shows and edits. */
+/** A care recipient's profile: what every member sees (and writers edit). */
 const toRecipientProfile = (recipient: {
   id: string;
   groupId: string;
@@ -59,6 +60,11 @@ const toRecipientProfile = (recipient: {
   preferredName: string | null;
   dateOfBirth: string | null;
   timeZone: string;
+  codeStatus: string | null;
+  bloodType: string | null;
+  primaryLanguage: string | null;
+  pronouns: string | null;
+  notes: string | null;
 }) => ({
   id: recipient.id,
   groupId: recipient.groupId,
@@ -66,6 +72,11 @@ const toRecipientProfile = (recipient: {
   preferredName: recipient.preferredName,
   dateOfBirth: recipient.dateOfBirth,
   timeZone: recipient.timeZone,
+  codeStatus: recipient.codeStatus,
+  bloodType: recipient.bloodType,
+  primaryLanguage: recipient.primaryLanguage,
+  pronouns: recipient.pronouns,
+  notes: recipient.notes,
 });
 
 // ---------------------------------------------------------------------------
@@ -104,6 +115,9 @@ const me = {
     unwrap(await userService.update(context, { filter: self, data: { preferences } }));
     return { preferences, units: resolveUnits(preferences), timelineView: resolveTimelineView(preferences) };
   }),
+
+  /** Your own contact details (profiles.ts). */
+  ...profileMe,
 };
 
 // ---------------------------------------------------------------------------
@@ -170,8 +184,9 @@ const careGroup = {
     }),
 
   /**
-   * The group's care recipient: name, preferred name, date of birth and time
-   * zone. Members only; null when the group has none.
+   * The group's care recipient: name, preferred name, date of birth, time
+   * zone, the medical basics and the note for helpers. Members only; null
+   * when the group has none.
    */
   recipient: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
     const group = unwrap(await careGroupService.getById(context, input.groupId));
@@ -181,27 +196,16 @@ const careGroup = {
   }),
 
   /**
-   * Edit the recipient's profile and time zone (owners, admins and
-   * caretakers). Fields left out keep their value; an empty preferred name
-   * clears it. An unknown zone is a 400 naming `timeZone`.
+   * Edit the recipient's profile: name, preferred name, birthday, time zone,
+   * the medical basics and the note for helpers (owners, admins and
+   * caretakers). Fields left out keep their value; empty text clears it. An
+   * unknown zone is a 400 naming `timeZone`.
    */
   updateRecipient: authedProcedure
     .input(careRecipientProfileZSchema.extend({ groupId: id }))
     .handler(async ({ context, input }) => {
       const { groupId, ...profile } = input;
-      const recipient = unwrap(await careRecipientService.get(context, { filter: { groupId: eq(groupId) } }));
-      if (!recipient) throw new ORPCError("NOT_FOUND");
-      const data = {
-        ...(profile.name !== undefined && { name: profile.name }),
-        ...(profile.preferredName !== undefined && { preferredName: profile.preferredName || null }),
-        ...(profile.dateOfBirth !== undefined && { dateOfBirth: profile.dateOfBirth }),
-        ...(profile.timeZone !== undefined && { timeZone: profile.timeZone }),
-      };
-      if (!Object.keys(data).length) return toRecipientProfile(recipient);
-      const [saved = recipient] = updated(
-        await careRecipientService.update(context, { filter: { id: eq(recipient.id) }, data }),
-      );
-      return toRecipientProfile(saved);
+      return toRecipientProfile(unwrap(await careRecipientService.updateProfile(context, groupId, profile)));
     }),
 
   /**
@@ -246,6 +250,9 @@ const careGroup = {
 
   /** Start a care group with its recipient; the creator is its owner (groups.ts). */
   create: createCareGroup,
+
+  /** Profiles: the recipient's details, the emergency list, and sharing (profiles.ts). */
+  ...profileCareGroup,
 };
 
 // ---------------------------------------------------------------------------

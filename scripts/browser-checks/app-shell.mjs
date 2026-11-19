@@ -603,23 +603,14 @@ try {
       execSync(`docker exec ${PG_CONTAINER} psql -U caretook -d caretook -tAc ${JSON.stringify(sql)}`)
         .toString()
         .trim();
-    const SEED = {
-      group: "Dev Family",
-      name: "Pat Example",
-      preferred: "Grandma Pat",
-      dob: "1941-03-14",
-      zone: "America/Los_Angeles",
-    };
+    // The care recipient is edited on their profile now (profiles.mjs); Details
+    // keeps the group's name and the recipient's time zone, and links there.
+    const SEED = { group: "Dev Family", preferred: "Grandma Pat", zone: "America/Los_Angeles" };
+    const PROFILE = `/app/groups/${DEV_FAMILY}/profile`;
     const serverGroup = () => psql(`SELECT name FROM care_group WHERE id = '${DEV_FAMILY}'`);
-    const serverRecipient = () =>
-      psql(
-        `SELECT name || '|' || coalesce(preferred_name, '') || '|' || coalesce(date_of_birth::text, '') FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`,
-      );
     const restoreSeeds = () => {
       psql(`UPDATE care_group SET name = '${SEED.group}' WHERE id = '${DEV_FAMILY}'`);
-      psql(
-        `UPDATE care_recipient SET name = '${SEED.name}', preferred_name = '${SEED.preferred}', date_of_birth = '${SEED.dob}', time_zone = '${SEED.zone}' WHERE group_id = '${DEV_FAMILY}'`,
-      );
+      psql(`UPDATE care_recipient SET time_zone = '${SEED.zone}' WHERE group_id = '${DEV_FAMILY}'`);
     };
     const serverZone = () => psql(`SELECT time_zone FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`);
     const ZONE = `document.querySelector('main [data-section="care-recipient"]')?.querySelector('select[name="timeZone"]')`;
@@ -629,20 +620,16 @@ try {
         Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(el, ${JSON.stringify(zone)});
         el.dispatchEvent(new Event("change", { bubbles: true })); return el.value; })()`);
     const tag = Date.now().toString(36);
-    const NEW = {
-      group: `Dev Family ${tag}`,
-      name: `Pat Example ${tag}`,
-      preferred: `Pat ${tag}`,
-      dob: "1941-03-09",
-    };
+    const NEW = { group: `Dev Family ${tag}` };
     const settingsOf = (groupId) => `/app/groups/${groupId}/settings`;
     const SETTINGS = settingsOf(DEV_FAMILY);
-    // The list (phones) opens Details, where the group and the recipient are.
+    // The list (phones) opens Details, where the group's name is.
     const DETAILS = `${SETTINGS}/details`;
     const listItem = (id) => `document.querySelector('main [data-settings-item="${id}"]')`;
     const section = (id) => `document.querySelector('main [data-section="${id}"]')`;
     const GROUP = section("group-details");
     const RECIPIENT = section("care-recipient");
+    const PROFILE_LINK = `document.querySelector('main [data-profile-note] a')`;
     const input = (sec, name) => `${sec}?.querySelector('input[name="${name}"]')`;
     // A field's error: the line its input is described by (`ui/Field`'s `<id>-error`).
     const fieldError = (sec, name) =>
@@ -650,7 +637,7 @@ try {
     const controls = (sec) => `(${sec}?.querySelectorAll("input:not([type=hidden]), button").length ?? -1)`;
     const text = (sec) => `(${sec}?.textContent ?? "")`;
     const onSettings = (p, ms = 40000) =>
-      p.waitFor(`location.pathname === ${JSON.stringify(DETAILS)} && ${GROUP} && ${RECIPIENT}`, ms);
+      p.waitFor(`location.pathname === ${JSON.stringify(DETAILS)} && ${GROUP}`, ms);
     /** Press a section's Save and wait for its result ("Saved." or an alert). */
     const save = async (p, sec) => {
       await p.evaluate(`${sec}.querySelector('button[type="submit"]').click()`);
@@ -663,7 +650,7 @@ try {
         `(${sec}.querySelector('[role="status"]') ? "ok: " : "error: ") + ${sec}.querySelector('[role="status"], [role="alert"]').textContent.trim()`,
       );
     };
-    /** Count this page's saves (`careGroup.update` and `updateRecipient` calls) from now on, until a reload. */
+    /** Count this page's saves (`careGroup.update` calls) from now on, until a reload. */
     const countRpc = (p) =>
       p.evaluate(`(() => { if (window.__rpc !== undefined) return; window.__rpc = 0; const f = window.fetch;
         window.fetch = (...a) => { if (String(a[0]?.url ?? a[0]).includes("/rpc/careGroup/update")) window.__rpc++; return f(...a); }; })()`);
@@ -692,11 +679,12 @@ try {
       await M.waitFor(item("Group settings"), 5000);
       const menuEnd = await M.evaluate(
         `(() => { const all = [...${MENU}.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [role="separator"]')];
-          return all.slice(-3).map((el) => el.getAttribute("role") + ":" + el.textContent.trim()).join(" > "); })()`,
+          return all.slice(-4).map((el) => el.getAttribute("role") + ":" + el.textContent.trim()).join(" > "); })()`,
       );
       check(
-        "group menu: ends with a separator, then Group settings and New care group",
-        menuEnd === "separator: > menuitem:Group settings > menuitem:New care group",
+        "group menu: ends with a separator, then the recipient's profile, Group settings and New care group",
+        menuEnd ===
+          `separator: > menuitem:${SEED.preferred}'s profile > menuitem:Group settings > menuitem:New care group`,
         menuEnd,
       );
       await M.press(item("Group settings"));
@@ -709,26 +697,22 @@ try {
       check("group menu: Group settings opens /app/groups/:groupId/settings (the list)", opened5);
       await M.press(listItem("details"));
       await onSettings(M);
-      await M.waitFor(input(RECIPIENT, "dateOfBirth"), 20000);
+      await M.waitFor(input(GROUP, "name"), 20000);
       const first5 = await M.evaluate(`({
         h1: document.querySelector("main h1")?.textContent.trim(),
         group: ${input(GROUP, "name")}?.value,
-        name: ${input(RECIPIENT, "name")}?.value,
-        preferred: ${input(RECIPIENT, "preferredName")}?.value,
-        dob: ${input(RECIPIENT, "dateOfBirth")}?.value,
         sections: [...document.querySelectorAll("main [data-section]")].map((s) => s.dataset.section).join(","),
+        profile: ${PROFILE_LINK}?.getAttribute("href"),
         bar: ${shown(BAR)},
         current: [...(${BAR}?.querySelectorAll("a[aria-current]") ?? [])].length,
         notice: !!document.querySelector("[data-needs-connection]"),
       })`);
       check(
-        "owner: the page shows the group's name and the recipient's name, preferred name and date of birth",
+        "owner: the page shows the group's name and the recipient's time zone, and links to the recipient's profile",
         first5.h1 === "Details" &&
           first5.group === SEED.group &&
-          first5.name === SEED.name &&
-          first5.preferred === SEED.preferred &&
-          first5.dob === SEED.dob &&
           first5.sections === "group-details,care-recipient" &&
+          first5.profile === PROFILE &&
           !first5.notice,
         JSON.stringify(first5),
       );
@@ -740,8 +724,7 @@ try {
       await M.screenshot("app-shell-group-settings-owner");
 
       // 5b. Invalid input: the field's error, nothing sent, nothing saved. One case;
-      // the rules and their messages are parseGroupName's and parseRecipientProfile's
-      // (groupSettings.test.ts).
+      // the rules and their messages are parseGroupName's (groupSettings.test.ts).
       await M.evaluate(`window.__stay = ${JSON.stringify(tag)}`);
       await countRpc(M);
       await M.type(input(GROUP, "name"), "   ");
@@ -759,7 +742,7 @@ try {
         `${emptyGroup} ${JSON.stringify(emptyGroupState)} rpc ${await rpcs(M)}`,
       );
 
-      // 5c. The owner renames the group and edits the recipient.
+      // 5c. The owner renames the group.
       await M.type(input(GROUP, "name"), `  ${NEW.group} `);
       const renamed = await save(M, GROUP);
       check(
@@ -768,52 +751,25 @@ try {
         `${renamed} / ${serverGroup()}`,
       );
       check("a save goes through the API", (await rpcs(M)) === 1, String(await rpcs(M)));
-      await M.type(input(RECIPIENT, "name"), NEW.name);
-      await M.type(input(RECIPIENT, "preferredName"), NEW.preferred);
-      await M.type(input(RECIPIENT, "dateOfBirth"), NEW.dob);
-      const edited = await save(M, RECIPIENT);
-      check(
-        "owner: edits the recipient's name, preferred name and date of birth",
-        edited === "ok: Saved." && serverRecipient() === `${NEW.name}|${NEW.preferred}|${NEW.dob}`,
-        `${edited} / ${serverRecipient()}`,
-      );
-      const headerNew = await M.waitFor(
-        `${GROUP_TRIGGER}?.textContent.trim() === ${JSON.stringify(NEW.preferred)}`,
-        20000,
-      )
-        .then(() => true)
-        .catch(() => false);
-      check(
-        "owner: the header shows the new name without a reload (through sync)",
-        headerNew,
-        await M.evaluate(`${GROUP_TRIGGER}?.textContent.trim() ?? ""`),
-      );
       await M.evaluate(`${BAR}.querySelector("a").click()`);
       const timelineNew = await M.waitFor(
-        `location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))} && document.querySelector("main h1")?.textContent.trim() === ${JSON.stringify(NEW.preferred)} && document.querySelector("main header p")?.textContent.includes(${JSON.stringify(NEW.group)})`,
+        `location.pathname === ${JSON.stringify(timelineOf(DEV_FAMILY))} && document.querySelector("main h1")?.textContent.trim() === ${JSON.stringify(SEED.preferred)} && document.querySelector("main header p")?.textContent.includes(${JSON.stringify(NEW.group)})`,
         20000,
       )
         .then(() => true)
         .catch(() => false);
       check(
-        "owner: the timeline shows the new recipient and group names, still without a reload",
+        "owner: the timeline shows the new group name without a reload (through sync)",
         timelineNew && (await M.evaluate(`window.__stay`)) === tag,
         await M.evaluate(`document.querySelector("main header")?.textContent ?? ""`),
       );
       await openGroupSettings(M);
       await onSettings(M);
-      await M.waitFor(
-        `${input(RECIPIENT, "dateOfBirth")}?.value === ${JSON.stringify(NEW.dob)}`,
-        20000,
-      ).catch(() => undefined);
-      const reopened = await M.evaluate(
-        `[${input(GROUP, "name")}?.value, ${input(RECIPIENT, "name")}?.value, ${input(RECIPIENT, "preferredName")}?.value, ${input(RECIPIENT, "dateOfBirth")}?.value].join("|")`,
+      await M.waitFor(`${input(GROUP, "name")}?.value === ${JSON.stringify(NEW.group)}`, 20000).catch(
+        () => undefined,
       );
-      check(
-        "owner: coming back, the forms hold the saved values",
-        reopened === `${NEW.group}|${NEW.name}|${NEW.preferred}|${NEW.dob}`,
-        reopened,
-      );
+      const reopened = await M.evaluate(`${input(GROUP, "name")}?.value`);
+      check("owner: coming back, the form holds the saved name", reopened === NEW.group, String(reopened));
 
       // 5c'. The recipient's time zone (quick-fixes slice 27, B-65): the owner
       // picks another zone; it saves, syncs, and the medications page's Today
@@ -872,42 +828,24 @@ try {
         `${zoneBack} / ${serverZone()}`,
       );
 
-      // 5d. caretaker@: edits the recipient, but not the group's name.
+      // 5d. caretaker@: the group's name is read-only; the profile link is there.
       const O = await openPage(bO, "settings-other");
       pages.push(O);
       await signIn(O, "caretaker@example.com", { home: true });
       await O.waitFor(GROUP_TRIGGER, 40000);
       await openGroupSettings(O);
       await onSettings(O);
-      await O.waitFor(input(RECIPIENT, "dateOfBirth"), 20000);
+      await O.waitFor(`${text(GROUP)}.includes(${JSON.stringify(NEW.group)})`, 20000).catch(() => undefined);
       const caretaker = await O.evaluate(
-        `({ groupControls: ${controls(GROUP)}, groupText: ${text(GROUP)}, recipientInputs: ${RECIPIENT}.querySelectorAll("input:not([type=hidden])").length, dob: ${input(RECIPIENT, "dateOfBirth")}.value })`,
+        `({ groupControls: ${controls(GROUP)}, groupText: ${text(GROUP)}, profile: ${PROFILE_LINK}?.getAttribute("href") })`,
       );
       check(
-        "caretaker: the group's name is read-only, with no edit controls",
-        caretaker.groupControls === 0 && caretaker.groupText.includes(NEW.group),
+        "caretaker: the group's name is read-only, with no edit controls, and the profile is linked",
+        caretaker.groupControls === 0 &&
+          caretaker.groupText.includes(NEW.group) &&
+          caretaker.profile === PROFILE,
         JSON.stringify(caretaker),
       );
-      check(
-        "caretaker: the recipient's form is there, with the saved date of birth",
-        caretaker.recipientInputs === 3 && caretaker.dob === NEW.dob,
-        JSON.stringify(caretaker),
-      );
-      const byCaretaker = `${NEW.preferred} c`;
-      await O.type(input(RECIPIENT, "preferredName"), byCaretaker);
-      const caretakerSaved = await save(O, RECIPIENT);
-      check(
-        "caretaker: edits the recipient",
-        caretakerSaved === "ok: Saved." && serverRecipient() === `${NEW.name}|${byCaretaker}|${NEW.dob}`,
-        `${caretakerSaved} / ${serverRecipient()}`,
-      );
-      const seenByOwner = await M.waitFor(
-        `${GROUP_TRIGGER}?.textContent.trim() === ${JSON.stringify(byCaretaker)} && ${input(RECIPIENT, "preferredName")}?.value === ${JSON.stringify(byCaretaker)}`,
-        20000,
-      )
-        .then(() => true)
-        .catch(() => false);
-      check("caretaker's edit reaches the owner's header and form without a reload", seenByOwner);
       await O.screenshot("app-shell-group-settings-caretaker");
 
       // 5e. A viewer's cards are read-only like the caretaker's group card above
@@ -952,45 +890,25 @@ try {
         offlineLoaded &&
           offline5.notice === "Needs a connection to edit." &&
           offline5.group.includes(NEW.group) &&
-          offline5.recipient.includes(NEW.name) &&
-          offline5.recipient.includes(byCaretaker) &&
           offline5.recipient.includes("America/Los Angeles"),
         JSON.stringify(offline5),
       );
-      check(
-        "offline: nothing to save with (no forms), and the date of birth says why it's missing",
-        offline5.controls === 0 && offline5.recipient.includes("Not available offline"),
-        JSON.stringify(offline5),
-      );
+      check("offline: nothing to save with (no forms)", offline5.controls === 0, JSON.stringify(offline5));
       await M.screenshot("app-shell-group-settings-offline");
       proxy.setOnline(true);
       await sleep(1000);
 
-      // 5g. Put the seeds' names back, through the page.
+      // 5g. Put the seeds' name back, through the page.
       await M.goto(DETAILS);
       await onSettings(M);
-      await M.waitFor(input(RECIPIENT, "dateOfBirth"), 30000);
+      await M.waitFor(input(GROUP, "name"), 30000);
       await M.type(input(GROUP, "name"), SEED.group);
       const groupBack = await save(M, GROUP);
-      await M.type(input(RECIPIENT, "name"), SEED.name);
-      await M.type(input(RECIPIENT, "preferredName"), SEED.preferred);
-      await M.type(input(RECIPIENT, "dateOfBirth"), SEED.dob);
-      const recipientBack = await save(M, RECIPIENT);
       check(
-        "online again: the forms are back, and the seeds' names are restored",
-        groupBack === "ok: Saved." &&
-          recipientBack === "ok: Saved." &&
-          serverGroup() === SEED.group &&
-          serverRecipient() === `${SEED.name}|${SEED.preferred}|${SEED.dob}`,
-        `${groupBack} ${recipientBack} / ${serverGroup()} / ${serverRecipient()}`,
+        "online again: the form is back, and the seeds' name is restored",
+        groupBack === "ok: Saved." && serverGroup() === SEED.group,
+        `${groupBack} / ${serverGroup()}`,
       );
-      const headerBack = await M.waitFor(
-        `${GROUP_TRIGGER}?.textContent.trim() === ${JSON.stringify(SEED.preferred)}`,
-        20000,
-      )
-        .then(() => true)
-        .catch(() => false);
-      check("the header is back to Grandma Pat", headerBack);
     } finally {
       restoreSeeds();
       proxy.close();
@@ -1119,7 +1037,8 @@ try {
         heading: ${MEMBERS}.querySelector("h1").textContent.trim(),
         avatars: [...${MEMBERS}.querySelectorAll("li[data-member] > div > span[aria-hidden]")].map((a) => a.textContent.trim()).join(","),
         options: ${options("Dev Viewer")},
-        labels: [...${MEMBERS}.querySelectorAll("li[data-member] select, li[data-member] button")].map((el) => el.getAttribute("aria-label")).join("|"),
+        // The member controls (your own row's sharing form is profiles-contacts.mjs's).
+        labels: [...${MEMBERS}.querySelectorAll("li[data-member] select, li[data-member] button")].filter((el) => !el.closest("[data-sharing-form]")).map((el) => el.getAttribute("aria-label")).join("|"),
         // The members themselves (invites and requests to join show addresses on purpose).
         text: [...${MEMBERS}.querySelectorAll("li[data-member]")].map((li) => li.textContent).join(" "),
       })`);
@@ -1139,7 +1058,11 @@ try {
             "Role for Dev Member|Leave this care group|Role for Dev Caretaker|Remove Dev Caretaker|Role for Dev Viewer|Remove Dev Viewer",
         JSON.stringify({ avatars: ownerView.avatars, options: ownerView.options, labels: ownerView.labels }),
       );
-      check("members: no email anywhere in the list", !/@|example\.com/.test(ownerView.text));
+      // Shared contact emails show on purpose (profiles); sign-in emails never do.
+      check(
+        "members: no sign-in email anywhere in the list",
+        !/\b(member|caretaker|viewer)@example\.com/.test(ownerView.text),
+      );
       await M.evaluate(`${MEMBERS}.scrollIntoView({ block: "center" })`);
       await M.screenshot("app-shell-members-owner");
 
@@ -1341,8 +1264,9 @@ try {
       await signIn(O, "viewer@example.com", { home: true });
       await openGroupSettings(O);
       const viewerList = await listed(O);
+      // Besides your own row's sharing form (profiles-contacts.mjs checks it).
       const viewerControls = await O.evaluate(
-        `[...document.querySelectorAll("main input, main select, main button")].filter((el) => !el.closest("dialog:not([open])")).map((el) => el.textContent.trim()).join(",")`,
+        `[...document.querySelectorAll("main input, main select, main button")].filter((el) => !el.closest("dialog:not([open])") && !el.closest("[data-sharing-form]")).map((el) => el.textContent.trim()).join(",")`,
       );
       check(
         "viewer: the only control on the whole page is Leave, on their own row",

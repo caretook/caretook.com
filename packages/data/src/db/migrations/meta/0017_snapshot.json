@@ -1,5 +1,5 @@
 {
-  "id": "c9f9ae6d-3c57-4991-9d77-b725a1052d10",
+  "id": "74a0e597-8f5f-43b7-8c50-8e5ba15309f8",
   "prevId": "ed28824c-57a1-40aa-9952-0509b417523f",
   "version": "7",
   "dialect": "postgresql",
@@ -189,6 +189,38 @@
           "primaryKey": false,
           "notNull": false
         },
+        "relationship": {
+          "name": "relationship",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shared_fields": {
+          "name": "shared_fields",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "emergency_rank": {
+          "name": "emergency_rank",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_primary_contact": {
+          "name": "is_primary_contact",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "emergency_dropped_at": {
+          "name": "emergency_dropped_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp(3) with time zone",
@@ -228,6 +260,22 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "care_group_member_primary_contact_unique": {
+          "name": "care_group_member_primary_contact_unique",
+          "columns": [
+            {
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"care_group_member\".\"is_primary_contact\"",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -341,9 +389,27 @@
           "primaryKey": false,
           "notNull": true
         },
-        "no_known_allergies_at": {
-          "name": "no_known_allergies_at",
-          "type": "timestamp(3) with time zone",
+        "code_status": {
+          "name": "code_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "blood_type": {
+          "name": "blood_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "primary_language": {
+          "name": "primary_language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pronouns": {
+          "name": "pronouns",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -409,7 +475,16 @@
         }
       },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "care_recipient_code_status_check": {
+          "name": "care_recipient_code_status_check",
+          "value": "\"care_recipient\".\"code_status\" IN ('fullCode', 'dnr', 'dnrPolst')"
+        },
+        "care_recipient_blood_type_check": {
+          "name": "care_recipient_blood_type_check",
+          "value": "\"care_recipient\".\"blood_type\" IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.care_group_invite": {
@@ -3168,8 +3243,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.medication_pass": {
-      "name": "medication_pass",
+    "public.care_recipient_details": {
+      "name": "care_recipient_details",
       "schema": "",
       "columns": {
         "id": {
@@ -3191,30 +3266,38 @@
           "primaryKey": false,
           "notNull": true
         },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "time": {
-          "name": "time",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
+        "phones": {
+          "name": "phones",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": 0
+          "default": "'[]'::jsonb"
         },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp(3) with time zone",
+        "email": {
+          "name": "email",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "insurance": {
+          "name": "insurance",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "outside_contacts": {
+          "name": "outside_contacts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
         },
         "created_at": {
           "name": "created_at",
@@ -3243,34 +3326,11 @@
           "notNull": true
         }
       },
-      "indexes": {
-        "medication_pass_group_name_live_unique": {
-          "name": "medication_pass_group_name_live_unique",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "lower(\"name\")",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"medication_pass\".\"deleted_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "medication_pass_group_id_care_group_id_fk": {
-          "name": "medication_pass_group_id_care_group_id_fk",
-          "tableFrom": "medication_pass",
+        "care_recipient_details_group_id_care_group_id_fk": {
+          "name": "care_recipient_details_group_id_care_group_id_fk",
+          "tableFrom": "care_recipient_details",
           "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
@@ -3281,9 +3341,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "medication_pass_recipient_fk": {
-          "name": "medication_pass_recipient_fk",
-          "tableFrom": "medication_pass",
+        "care_recipient_details_recipient_fk": {
+          "name": "care_recipient_details_recipient_fk",
+          "tableFrom": "care_recipient_details",
           "tableTo": "care_recipient",
           "columnsFrom": [
             "group_id",
@@ -3293,18 +3353,17 @@
             "group_id",
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "medication_pass_group_id_id_unique": {
-          "name": "medication_pass_group_id_id_unique",
+        "care_recipient_details_group_id_unique": {
+          "name": "care_recipient_details_group_id_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "group_id",
-            "id"
+            "group_id"
           ]
         }
       },
@@ -3312,8 +3371,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.recipient_allergy": {
-      "name": "recipient_allergy",
+    "public.user_contact": {
+      "name": "user_contact",
       "schema": "",
       "columns": {
         "id": {
@@ -3323,40 +3382,28 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "group_id": {
-          "name": "group_id",
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "recipient_id": {
-          "name": "recipient_id",
-          "type": "uuid",
+        "phones": {
+          "name": "phones",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "'[]'::jsonb"
         },
-        "substance": {
-          "name": "substance",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reaction": {
-          "name": "reaction",
+        "contact_email": {
+          "name": "contact_email",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "severity": {
-          "name": "severity",
+        "address": {
+          "name": "address",
           "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'unknown'"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp(3) with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -3387,71 +3434,135 @@
           "notNull": true
         }
       },
-      "indexes": {
-        "recipient_allergy_group_idx": {
-          "name": "recipient_allergy_group_idx",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "recipient_allergy_group_id_care_group_id_fk": {
-          "name": "recipient_allergy_group_id_care_group_id_fk",
-          "tableFrom": "recipient_allergy",
-          "tableTo": "care_group",
+        "user_contact_user_id_user_id_fk": {
+          "name": "user_contact_user_id_user_id_fk",
+          "tableFrom": "user_contact",
+          "tableTo": "user",
           "columnsFrom": [
-            "group_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_contact_user_id_unique": {
+          "name": "user_contact_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.member_contact_share": {
+      "name": "member_contact_share",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "recipient_allergy_recipient_fk": {
-          "name": "recipient_allergy_recipient_fk",
-          "tableFrom": "recipient_allergy",
-          "tableTo": "care_recipient",
+        "group_id": {
+          "name": "group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phones": {
+          "name": "phones",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "member_contact_share_member_fk": {
+          "name": "member_contact_share_member_fk",
+          "tableFrom": "member_contact_share",
+          "tableTo": "care_group_member",
           "columnsFrom": [
             "group_id",
-            "recipient_id"
+            "user_id"
           ],
           "columnsTo": [
             "group_id",
-            "id"
+            "user_id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "recipient_allergy_group_id_id_unique": {
-          "name": "recipient_allergy_group_id_id_unique",
+        "member_contact_share_group_user_unique": {
+          "name": "member_contact_share_group_user_unique",
           "nullsNotDistinct": false,
           "columns": [
             "group_id",
-            "id"
+            "user_id"
           ]
         }
       },
       "policies": {},
-      "checkConstraints": {
-        "recipient_allergy_severity_check": {
-          "name": "recipient_allergy_severity_check",
-          "value": "\"recipient_allergy\".\"severity\" IN ('mild', 'moderate', 'severe', 'unknown')"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     }
   },

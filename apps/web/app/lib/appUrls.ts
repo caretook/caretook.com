@@ -66,6 +66,11 @@ export const PROVIDER_TYPE_PARAM = "type";
 export const WHEN_PARAM = "when";
 export const WHEN_PICK = "pick";
 
+/** The recipient's profile's edit sheets, in the order the page shows them (`…/profile/<sheet>`). */
+export const PROFILE_SHEETS = ["basics", "contact", "insurance", "emergency"] as const;
+export type ProfileSheet = (typeof PROFILE_SHEETS)[number];
+const isProfileSheet = (sheet: unknown): sheet is ProfileSheet =>
+  (PROFILE_SHEETS as readonly unknown[]).includes(sheet);
 /** The search page's text (`?q=`), and the one section it shows in full (`?all=provider`). */
 export const SEARCH_QUERY_PARAM = "q";
 export const SEARCH_ALL_PARAM = "all";
@@ -75,7 +80,7 @@ export const isSearchItemType = (value: unknown): value is SearchItemType =>
 const HOME = "/app";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
-export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account"] as const;
+export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account", "contact"] as const;
 export type AccountSettingsPage = (typeof ACCOUNT_SETTINGS_PAGES)[number];
 const isAccountSettingsPage = (page: unknown): page is AccountSettingsPage =>
   (ACCOUNT_SETTINGS_PAGES as readonly unknown[]).includes(page);
@@ -201,6 +206,14 @@ export const appUrls = {
   /** The edit sheet for one medication, over the list, carrying the list's search and status filter. */
   editMedication: (groupId: string, medicationId: string, search?: Search) =>
     `${groupHome(groupId)}/medications/${segment(medicationId)}/edit${searchString(search)}`,
+  /**
+   * The care recipient's profile (not a group section), or one of its edit
+   * sheets over it. An unknown sheet is dropped (the profile).
+   */
+  profile: (groupId: string, sheet?: ProfileSheet) =>
+    `${groupHome(groupId)}/profile${isProfileSheet(sheet) ? `/${sheet}` : ""}`,
+  /** The recipient's printable emergency sheet (a page, not a sheet over the profile). */
+  profilePrint: (groupId: string) => `${groupHome(groupId)}/profile/print`,
   /**
    * A group's search page, with what's searched for (`?q=`, untrimmed: it's
    * the field's text) and the section shown in full (`?all=`; an unknown

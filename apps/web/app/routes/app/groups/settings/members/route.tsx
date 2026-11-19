@@ -6,12 +6,14 @@ import type { LinkActionResult } from "./linkApi";
 
 import { ORPCError } from "@orpc/client";
 import { redirect } from "react-router";
+import { load } from "~/lib/api";
 import { SettingsCard, SettingsPage } from "~/components/settings";
 import { appUrls } from "~/lib/appUrls";
 import { formString } from "~/lib/form";
 import { getGroup, useGroup } from "~/lib/group";
 import { rpc } from "~/lib/rpc";
 import { sessionContext } from "~/lib/session";
+import { sharingFromForm } from "~/lib/memberContact";
 import { memberDetailsQuery, waitForMembershipGone } from "~/lib/sync/members";
 import { readRows } from "~/lib/sync/timeline";
 import { failedSave, loadRecipientProfile } from "../api";
@@ -30,7 +32,10 @@ import { PendingInvites } from "./PendingInvites";
 // members' changes). Changing a role, removing and leaving go through the
 // API: online only. So do invites (`InviteSheet`, `PendingInvites`), which
 // owners and admins send, resend and revoke here, and invite links and the
-// requests to join they bring (`InviteLinks`, `JoinRequests`).
+// requests to join they bring (`InviteLinks`, `JoinRequests`). Each member's
+// relationship and shared contact details come from the local copy too; your
+// own choices for the group save through the API (`updateSharing`), offered
+// from your account's contact details (`me.contact`, online only).
 
 export const meta = () => [{ title: "Members · Group settings · Caretook" }];
 
@@ -47,12 +52,19 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const { db } = context.get(sessionContext);
   const members = await readRows<MemberDetailRow>(db, memberDetailsQuery(groupId));
   const { online } = await loadRecipientProfile(request, groupId);
-  const [invites, { links, requests }] = await Promise.all([
+  const [invites, { links, requests }, myContact] = await Promise.all([
     loadInvites(groupId, group.role, online),
     loadLinksAndRequests(groupId, group.role, online),
+    online ? load(request, rpc.me.contact()).catch(offlineIsNull) : null,
   ]);
-  return { userId: db.userId, groupId, members, online, invites, links, requests };
+  return { userId: db.userId, groupId, members, online, invites, links, requests, myContact };
 }
+
+/** A read that lost the connection after the page's first one: nothing, as offline. */
+const offlineIsNull = (e: unknown) => {
+  if (e instanceof TypeError) return null;
+  throw e;
+};
 
 export async function clientAction({
   request,
@@ -70,6 +82,10 @@ export async function clientAction({
       const role = MEMBER_ROLES.find((known) => known === chosen);
       if (!role) return { ok: false, error: "Choose a role.", issues: [] };
       await rpc.careGroup.changeRole({ groupId, userId: formString(form, "userId"), role });
+      return { ok: true };
+    }
+    if (intent === "updateSharing") {
+      await rpc.careGroup.updateMySharing({ groupId, ...sharingFromForm(form) });
       return { ok: true };
     }
     if (intent === "removeMember") {
@@ -117,6 +133,8 @@ export default function GroupMembers({ loaderData }: Route.ComponentProps) {
           myRole={group.role}
           online={online}
           initial={loaderData.members}
+          myContact={loaderData.myContact}
+          recipientName={group.recipient?.displayName || "them"}
         />
       </SettingsCard>
       {online && emailInviteRoles(group.role).length > 0 && (

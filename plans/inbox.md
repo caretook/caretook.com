@@ -27,6 +27,14 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - need an upcoming medication banner on the timeline page and a way to quickly add doses to the timeline from it (or some other simplification). This needs to wait on medication groups. (B-86)
 - PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the user wants to prompt for landing or just work through everything and which slices to land automatically. Add command to spin up new planning session. (B-88)
 - Seed data with multiple care groups and user mix for improved manual testing. (B-90)
+- Email link and code shouldn't really be two different login options, should they? Can't we email a link and a code at the same time? (B-96)
+- Vitals filter on timeline should bring up a sub-filter for vital type. (B-97)
+- Hide add to timeline buttons behind a + icon in the timeline header. (B-98)
+- Don't display recent vitals in the timeline header in mobile, (B-99)
+- Add "recent vita averages" to the profile page. (B-100)
+- Hide add to timeline buttons behind a + icon in the timeline header. (B-101)
+- Don't display recent vitals in the timeline header in mobile, (B-102)
+- Add "recent vital averages" to the profile page. (B-103)
 
 ## Feature requests
 
@@ -50,6 +58,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - medication groups for doses. Often the same medication is taken at different times of the day every day. We need to be able to group doses together so that they can be taken at the same time as part of the schedule and allow for setting status of each medication in the group on dose logging in the timeline. (B-76)
 - PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead. (B-89)
 - Need an Admin panel for caretook global administrators to manage users, care groups, and settings. (B-91)
+- PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When disk space gets low, we have to be able to restart the system and recover the state of the system. (B-104)
 
 ## Big plans
 

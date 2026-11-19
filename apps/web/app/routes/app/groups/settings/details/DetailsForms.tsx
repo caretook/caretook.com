@@ -6,8 +6,8 @@ import { SaveRow } from "~/components/settings";
 import { Field } from "~/components/ui";
 import { timeZoneLabel, timeZoneOptions } from "../groupSettings";
 
-// The Details page's forms (online, with the role): the group's name, and the
-// care recipient's profile. Each posts its own intent to the route's action.
+// The Details page's forms (online, with the role): the group's name and the
+// recipient's time zone. Each posts its intent to the route's action.
 
 export function GroupNameForm({ name }: { name: string }) {
   const fetcher = useFetcher<ActionResult>();
@@ -21,35 +21,15 @@ export function GroupNameForm({ name }: { name: string }) {
   );
 }
 
-export function RecipientForm(props: {
-  name: string;
-  preferredName: string;
-  dateOfBirth: string;
-  timeZone: string | null;
-}) {
+/** The recipient's time zone (the rest of the recipient is edited on their profile). */
+export function RecipientTimeZoneForm({ timeZone }: { timeZone: string | null }) {
   const fetcher = useFetcher<ActionResult>();
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
   return (
     <fetcher.Form method="post" noValidate className="space-y-3">
       <input type="hidden" name="intent" value="updateRecipient" />
-      <TextField label="Name" name="name" value={props.name} result={result} maxLength={120} />
-      <TextField
-        label="Preferred name"
-        name="preferredName"
-        value={props.preferredName}
-        result={result}
-        maxLength={120}
-        help="What everyone calls them. Shown in place of the name."
-      />
-      <TextField
-        label="Date of birth"
-        name="dateOfBirth"
-        type="date"
-        value={props.dateOfBirth}
-        result={result}
-      />
       {/* Keyed on the saved zone, like TextField: a synced change resets the choice. */}
-      <TimeZoneField key={props.timeZone ?? ""} value={props.timeZone} result={result} />
+      <TimeZoneField key={timeZone ?? ""} value={timeZone} result={result} />
       <SaveRow busy={fetcher.state !== "idle"} result={result} />
     </fetcher.Form>
   );
@@ -59,7 +39,7 @@ const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /**
  * The recipient's time zone: every zone the device knows, with a shortcut to
- * this device's own. Submitted with the rest of the profile.
+ * this device's own.
  */
 function TimeZoneField({ value, result }: { value: string | null; result: ActionResult | undefined }) {
   const device = deviceZone();
