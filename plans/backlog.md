@@ -475,7 +475,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - status: ready
 - prd: medications-2
 - owner: prd/medications-2
-- commit: eff620e
+- commit: 39b8de0
 
 - 2026-11-18 (Robert Bo Davis): Left out of the medications PRD's v1 (2026-11-18). Likely a synced list of { substance, reaction, severity } on care_recipient; the print sheet gets an allergies line when it lands.
 - 2026-11-19 (plan/medications-2): In the medications-2 PRD (plans/medications-2-prd.md on plan/medications-2), interviewed 2026-11-19.
