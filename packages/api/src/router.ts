@@ -27,6 +27,7 @@ import { invite } from "./invites";
 import { joinRequest } from "./joinRequests";
 import { accessCode, admin, createCareGroup } from "./groups";
 import { publicForms } from "./publicForms";
+import { search } from "./search";
 import { sync } from "./sync";
 import { waitlistAdmin } from "./waitlistAdmin";
 
@@ -321,5 +322,6 @@ export const router = {
   accessCode,
   admin: { ...admin, waitlist: waitlistAdmin },
   public: publicForms,
+  search,
 };
 export type Router = typeof router;
