@@ -80,6 +80,9 @@ apps/web/app/routes/admin/audit/*        admin
 apps/web/app/routes/admin/AuditEntryList.tsx admin
 apps/web/app/routes/admin/auditDisplay.ts admin
 apps/web/app/routes/admin/auditFilters.ts admin
+apps/web/app/routes/admin/groups/*       admin
+apps/web/app/routes/admin/group/*        admin
+apps/web/app/routes/admin/groupDisplay.ts admin
 apps/web/app/routes/admin/*              admin groups
 apps/web/app/.server/admin.ts            admin groups
 packages/api/src/auditAdmin.ts           admin
@@ -89,6 +92,10 @@ packages/data/src/db/schema/adminAudit.ts admin
 packages/data/src/services/adminAuditService.ts admin
 packages/data/src/services/staffAccess.ts admin groups
 packages/data/src/models/adminAuditLog/* admin
+packages/data/src/services/groupAdminService.ts admin
+packages/data/src/models/groupDirectory/* admin
+packages/data/src/db/schema/groupAdminRules.ts admin
+packages/api/src/groupsAdmin.ts          admin
 packages/data/src/db/seeds/staff.ts      admin
 packages/data/src/services/accessCodeService.ts groups admin
 packages/data/src/services/staffGroupService.ts groups admin

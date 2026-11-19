@@ -9,10 +9,18 @@
 //   4. member@ (a group's owner, not staff) has no Admin item, and every
 //      /admin page, the audit page included, is a 404; the audit API refuses them.
 //
-// Order-independent and self-cleaning: it makes ADM<run> access codes and
-// deletes them, and their audit entries, at the end.
+// Care groups (slice 4; smoke runs step 5):
+//   5. admin@ finds a tagged ownerless group (viewer@ its only member) with
+//      the No owner filter and makes viewer@ an owner, with a reason; viewer@'s
+//      own Members page shows Owner after sync, without a reload.
+//   6. admin@ invites an owner by email: the ownerInvite email appears in
+//      /dev/mail.json.
+//   7. support@ sees the group's page without controls, and its actions are a 404.
+//
+// Order-independent and self-cleaning: it makes ADM<run> access codes and an
+// ADM<run> group, and deletes them, and their audit entries, at the end.
 import { execFileSync } from "node:child_process";
-import { launch, openPage, sleep, step } from "./cdp.mjs";
+import { BASE, launch, openPage, sleep, step } from "./cdp.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
 const PASSWORD = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
@@ -75,7 +83,42 @@ const accountMenu = async (p, email) => {
   return p.evaluate(menuItems);
 };
 
-const STAFF_NAV = ["Access codes", "New group", "Waitlist", "Audit"];
+const STAFF_NAV = ["Groups", "Access codes", "New group", "Waitlist", "Audit"];
+
+// --- Care groups (slice 4) ------------------------------------------------------------
+
+const SYSTEM_ID = "00000000-0000-0000-0000-000000000000";
+const GROUP_NAME = `${TAG} Family`;
+const OWNER_INVITE = `${RUN}-owner@example.com`;
+
+/** A tagged group whose only member is viewer@ (a viewer): it has no owner. Returns its id. */
+const makeOwnerlessGroup = () =>
+  psql(`
+    WITH g AS (
+      INSERT INTO care_group (name, created_by, updated_by)
+      VALUES ('${GROUP_NAME}', '${SYSTEM_ID}', '${SYSTEM_ID}') RETURNING id
+    ), r AS (
+      INSERT INTO care_recipient (group_id, name, time_zone, created_by, updated_by)
+      SELECT id, '${TAG} Recipient', 'America/Los_Angeles', '${SYSTEM_ID}', '${SYSTEM_ID}' FROM g
+    ), m AS (
+      INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by)
+      SELECT g.id, u.id, 'viewer', '${SYSTEM_ID}', '${SYSTEM_ID}' FROM g, "user" u
+      WHERE u.email = 'viewer@example.com'
+    )
+    SELECT id FROM g;`);
+
+const cleanUpGroups = () =>
+  psql(`
+    DELETE FROM admin_audit_log WHERE target_group_id IN (SELECT id FROM care_group WHERE name LIKE '${TAG}%');
+    DELETE FROM care_group WHERE name LIKE '${TAG}%';
+    DELETE FROM dev_mail WHERE recipient LIKE '${RUN}-%@example.com';
+    DELETE FROM notification_outbox WHERE recipient LIKE '${RUN}-%@example.com';`);
+
+const memberRow = (email) => `document.querySelector('[data-admin-member="${email}"]')`;
+const buttonIn = (scope, text) =>
+  `[...(${scope}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim().startsWith(${JSON.stringify(text)}))`;
+const openDialog = `document.querySelector("dialog[open]")`;
+let groupId = null;
 
 try {
   // 1. Staff reach /admin from the account menu -------------------------------------
@@ -92,7 +135,7 @@ try {
         items.join(", "),
       );
       await p.press(menuItem("Admin"));
-      await p.waitFor(`location.pathname === "/admin/access-codes" && ${q("[data-admin-nav]")}`, 20000);
+      await p.waitFor(`location.pathname === "/admin/groups" && ${q("[data-admin-nav]")}`, 20000);
       const nav = await p.evaluate(navLabels);
       check(JSON.stringify(nav) === JSON.stringify(STAFF_NAV), `${email}: the admin nav`, nav.join(", "));
     }
@@ -185,6 +228,122 @@ try {
     );
     check(api === 403, "and the audit API refuses them", String(api));
   });
+
+  // 5. Owner recovery: the No owner filter and Make owner --------------------------------
+  await step("5. admin@ finds an ownerless group and makes viewer@ its owner", { smoke: true }, async () => {
+    groupId = makeOwnerlessGroup();
+    const viewerId = psql(`SELECT id FROM "user" WHERE email = 'viewer@example.com'`);
+
+    // viewer@ sees themself as a viewer on the group's Members page.
+    const v = await open(9861, "viewer-members");
+    await v.signIn("viewer@example.com", PASSWORD, { home: true });
+    await v.goto(`/app/groups/${groupId}/settings/members`);
+    const ownRole = `(() => { const li = document.querySelector('li[data-member="${viewerId}"]'); return li ? (li.querySelector("select")?.value ?? li.querySelector("[data-role]")?.textContent.trim()) : null; })()`;
+    await v.waitFor(`${ownRole} === "Viewer"`, 45000);
+    check(true, "viewer@'s Members page shows them as a viewer");
+
+    const p = await open(9862, "admin-groups");
+    await p.signIn("admin@example.com", PASSWORD, { home: true });
+    await p.goto("/admin/groups");
+    await p.waitFor(q("[data-group-filters]"), 20000);
+    await fill(p, "q", TAG);
+    await p.evaluate(`${q('[name="noOwner"]')}.checked = true`);
+    await p.press(q("[data-group-filters] button[type='submit']"));
+    await p.waitFor(`new URLSearchParams(location.search).get("noOwner") === "1"`, 10000);
+    const row = `document.querySelector('[data-group="${groupId}"]')`;
+    await p.waitFor(row, 10000);
+    const listed = await p.evaluate(
+      `({ ids: [...document.querySelectorAll("[data-group]")].map((li) => li.dataset.group), owners: ${row}.querySelector("[data-owners]").dataset.owners, text: ${row}.textContent })`,
+    );
+    check(
+      listed.ids.length === 1 && listed.owners === "0" && listed.text.includes(`${TAG} Recipient`),
+      "the No owner filter finds the tagged group, with no owner",
+      JSON.stringify(listed),
+    );
+    await p.goto(`/admin/groups?q=${encodeURIComponent("Dev Family")}&noOwner=1`);
+    await p.waitFor(q("[data-group-count]"), 10000);
+    const devFamily = await p.evaluate(`${q("[data-group-count]")}.dataset.groupCount`);
+    check(devFamily === "0", "and leaves out groups with an owner", devFamily);
+
+    await p.goto(`/admin/groups/${groupId}`);
+    await p.waitFor(`${q("[data-admin-group]")} && ${memberRow("viewer@example.com")}`, 20000);
+    const page = await p.evaluate(
+      `({ noOwner: Boolean(${q("[data-no-owner]")}), counts: ${q("[data-counts]")}.textContent, userLink: ${memberRow("viewer@example.com")}.querySelector("a").getAttribute("href") })`,
+    );
+    check(page.noOwner, "the group's page says it has no owner");
+    check(page.counts.includes("0 entries"), "and shows counts, not content", page.counts);
+    check(page.userLink === `/admin/users/${viewerId}`, "each member links to their account", page.userLink);
+
+    await p.press(buttonIn(memberRow("viewer@example.com"), "Make owner"));
+    await p.waitFor(`${openDialog}?.querySelector('[data-member-dialog="promoteOwner"]')`, 5000);
+    const confirm = `[...${openDialog}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Make owner")`;
+    check(await p.evaluate(`${confirm}.disabled`), "Make owner waits for a reason");
+    await p.type(`${openDialog}.querySelector("textarea")`, `${TAG} the family asked by phone`);
+    await p.waitFor(`!${confirm}.disabled`, 3000);
+    await p.press(confirm);
+    await p.waitFor(`${memberRow("viewer@example.com")}?.dataset.role === "owner"`, 15000);
+    const after = await p.evaluate(
+      `({ result: ${q("[data-admin-result]")}?.textContent, noOwner: Boolean(${q("[data-no-owner]")}), audit: [...document.querySelectorAll("[data-audit-entry]")].map((li) => li.dataset.action) })`,
+    );
+    check(!after.noOwner && /now an owner/.test(after.result ?? ""), "viewer@ is an owner", after.result);
+    check(
+      after.audit.includes("group.promoteOwner"),
+      "and the page's staff activity lists it",
+      after.audit.join(),
+    );
+    const recorded = psql(
+      `SELECT reason FROM admin_audit_log WHERE action = 'group.promoteOwner' AND target_group_id = '${groupId}'`,
+    );
+    check(recorded === `${TAG} the family asked by phone`, "with its reason in the audit log", recorded);
+
+    // viewer@'s Members page follows, live.
+    await v.waitFor(`["Owner", "owner"].includes(${ownRole})`, 45000);
+    check(true, "viewer@'s Members page shows them as an owner after sync");
+  });
+
+  // 6. Invite an owner -------------------------------------------------------------------
+  await step("6. admin@ sends an owner invite", async () => {
+    if (!groupId) groupId = makeOwnerlessGroup();
+    const p = await open(9863, "admin-invite");
+    await p.signIn("admin@example.com", PASSWORD, { home: true });
+    await p.goto(`/admin/groups/${groupId}`);
+    await p.waitFor(q('[data-admin-form="inviteOwner"]'), 20000);
+    await fill(p, "email", OWNER_INVITE);
+    await fill(p, "reason", `${TAG} nobody suitable to promote`);
+    await p.press(q('[data-admin-form="inviteOwner"] button[type="submit"]'));
+    await p.waitFor(q("[data-admin-result]"), 15000);
+    const result = await p.evaluate(`${q("[data-admin-result]")}.textContent`);
+    check(result.includes(OWNER_INVITE), "the invite is sent", result);
+    const end = Date.now() + 15000;
+    let mail = [];
+    while (Date.now() < end && !mail.length) {
+      const res = await fetch(`${BASE}/dev/mail.json?to=${encodeURIComponent(OWNER_INVITE)}`);
+      mail = res.ok ? (await res.json()).messages.filter((m) => m.name === "ownerInvite") : [];
+      if (!mail.length) await sleep(300);
+    }
+    check(mail.length === 1, "the ownerInvite email is in /dev/mail.json", String(mail.length));
+  });
+
+  // 7. Support reads, without controls ---------------------------------------------------
+  await step("7. support@ sees the group's page without controls", async () => {
+    if (!groupId) groupId = makeOwnerlessGroup();
+    const p = await open(9864, "support-group");
+    await p.signIn("support@example.com", PASSWORD, { home: true });
+    await p.goto(`/admin/groups/${groupId}`);
+    await p.waitFor(`${q("[data-admin-group]")} && ${q("[data-admin-members]")}`, 20000);
+    const controls = await p.evaluate(
+      `({ buttons: document.querySelectorAll("[data-admin-members] button").length, invite: Boolean(${q('[data-admin-form="inviteOwner"]')}) })`,
+    );
+    check(
+      controls.buttons === 0 && !controls.invite,
+      "no member actions and no invite form",
+      JSON.stringify(controls),
+    );
+    const status = await p.evaluate(
+      `fetch(location.pathname, { method: "POST", credentials: "include", body: new URLSearchParams({ intent: "removeMember", userId: "00000000-0000-0000-0000-000000000001", reason: "x" }) }).then((r) => r.status)`,
+    );
+    check(status === 404, "and its actions are refused", String(status));
+  });
 } catch (error) {
   failed++;
   console.log(`FAIL ${error instanceof Error ? error.message : String(error)}`);
@@ -194,6 +353,11 @@ try {
     cleanUp();
   } catch (error) {
     console.log(`cleanup failed: ${String(error)}`);
+  }
+  try {
+    cleanUpGroups();
+  } catch (error) {
+    console.log(`group cleanup failed: ${String(error)}`);
   }
 }
 
