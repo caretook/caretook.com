@@ -13,9 +13,9 @@
 #   e2e          yes: in the suite (--suite, and --changed's @suite)
 #
 # check            usual  cap  never-exits  e2e
-phase2              166   500  no           yes
+phase2               15   120  no           yes
 roundtrip            30   120  no           yes
-live-notes          313   950  no           yes
+live-notes           55   170  no           yes
 app-shell           208   630  no           yes
 routing              40   150  no           yes
 settings-layout      15   120  no           yes

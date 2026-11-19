@@ -462,6 +462,13 @@ describe("404s and the sheet", () => {
     expect(SHARE()).toBeNull();
   });
 
+  test("someone outside the group (it was never on their device) sees Not found", async () => {
+    const note = fx.note({ title: "Private title", text: "Private words" });
+    const device = await open(entryPath(note.id), { bareDevice: true, fixtures: [] });
+    await expect.element(device.screen.getByRole("heading", { name: "Not found" })).toBeVisible();
+    expect(document.body.textContent).not.toContain("Private");
+  });
+
   test("the add sheet offers only Symptom and Vitals (notes and events have their own page)", async () => {
     await open(TIMELINE);
     await waitUntil(() => !!tile("Symptom"));
