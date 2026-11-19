@@ -887,6 +887,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: careGroup.create sets no time zone because care_recipient has no time_zone column yet. Adds a migration (the column, then fill it from the creating device's IANA zone); small and standalone, so quick-fixes.
 - 2026-11-19 (Robert Bo Davis): Retitled (user, 2026-11-19): the column and creating-device zone landed with medications slice 1; what's left is editing it (group settings Details, careGroup.updateRecipient). Pairs with profiles' recipient work.
+- 2026-11-19 (slice/quick-fixes/27): slice 27 built on slice/quick-fixes/27 (07ab7bf): Time zone select in group settings Details; updateRecipient/recipient carry timeZone; pnpm check and browser --changed (6/6) pass
 
 ### B-66 · question · Access codes are stored as plain text: keep that, or hash them?
 
