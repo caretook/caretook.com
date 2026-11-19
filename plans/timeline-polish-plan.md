@@ -11,12 +11,12 @@
 | 3     | B-2     | landed in `dev` (`644f780`) | `908d4fa` (`4b1b280`, `cf12f43`)                 |
 | 4     | B-6     | merged; wave 2 landing      | `5e5496b` (`8a7595e`, `fd2a8b0`)                 |
 | 5     | B-3     | merged; wave 2 landing      | `f787e1a` (`2af9c9c`)                            |
-| 6     | B-4     | in flight (wave 3)          |                                                  |
-| 7     | B-10    | in flight (wave 3)          |                                                  |
+| 6     | B-4     | merged; wave 3 landing      | `7e44461` (`646ee61`, `2461c2c`)                 |
+| 7     | B-10    | merged; wave 3 landing      | `ced7e14` (`fd2f9bd`, `89676c5`)                 |
 
 Wave 1 (slices 1–3) landed in `dev` as `644f780` (2026-11-18).
 
-**Restarted 2026-11-18** from `dev` at `85144b4`, after `routing` (B-23), `components` (B-24) and `providers` (B-14) had all landed. **Slices 4–7 below are rewritten against that code**; _What the replan changed_ lists the differences. **The user's go-ahead (2026-11-18): run waves 2 and 3 and land each without asking**, once it's green, then remove the worktree. **Wave 2 (slices 4 and 5) landed in `dev` as `8ea9427`** (2026-11-18): `pnpm prd check` and `pnpm prd browser --changed --base dev` (8/8: phase2, roundtrip, live-notes, app-shell, settings-layout, layout-offline, providers, ui), no retries. Wave 3 (slices 6 and 7) is in flight; B-4 and B-10 are claimed.
+**Restarted 2026-11-18** from `dev` at `85144b4`, after `routing` (B-23), `components` (B-24) and `providers` (B-14) had all landed. **Slices 4–7 below are rewritten against that code**; _What the replan changed_ lists the differences. **The user's go-ahead (2026-11-18): run waves 2 and 3 and land each without asking**, once it's green, then remove the worktree. **Wave 2 (slices 4 and 5) landed in `dev` as `8ea9427`** (2026-11-18): `pnpm prd check` and `pnpm prd browser --changed --base dev` (8/8: phase2, roundtrip, live-notes, app-shell, settings-layout, layout-offline, providers, ui), no retries. Wave 3 (slices 6 and 7) is merged; B-4 and B-10 are `done`. Two fixes on top: `c882d48` (the wide-layout steps measured `window.innerWidth`, which counts a 15 px scrollbar) and **`059d1de`, the user's change during wave 3: the entries' column stops at 1024 px (`max-w-5xl`) while the rest of the page keeps the full width, and cards stay in one column at every width** (side-by-side cards broke the time order). This replaces slice 5's card grid.
 
 Open issues:
 
@@ -26,6 +26,9 @@ Open issues:
 - Decided (the user, 2026-11-18): keep slice 5's `75ch` text cap (`TEXT_CAP` in `EntryBody.tsx`; 800 px in this font, about 95 characters of prose a line).
 - `pnpm prd browser phase2 --smoke` ran every block for slice 4's loop (79 checks). Not looked into.
 - For slice 6: wrap `AuthorFilterLink`'s initials variant and drop its `title`; `phase2.mjs` selects the control by `data-author`. For slice 7: paging state is `{ kind, author, limit }` in `useTimelineData`; the sentinel goes after the last day's section, never inside an `ol` (`wideLayout` counts `section > ol` children as entries).
+- Slice 7: by the end of a `phase2` run the member tab can be `visibilityState: hidden` (rAF and IntersectionObserver stop); `infiniteScroll` calls `Page.bringToFront`. Which earlier step hides it isn't known.
+- Slice 7: scrolling stays smooth up to about 300 loaded rows, then about 1 ms per loaded row per page; virtualising the list is the fix (not planned).
+- `ui.mjs` failed once in 4 passes on "1280 dark provider add sheet: Escape closes only it, and focus returns to the opener (tap)" during slice 6 (the providers sheet, not the tooltip).
 - Closed: the `live-notes.mjs` timing failures under load are now handled by `pnpm prd browser`'s one automatic retry (recorded as FLAKY).
 
 ## What the replan changed
