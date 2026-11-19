@@ -1371,6 +1371,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: Browser testing without a timeout keeps causing hung processes. We need to always have a sane timeout for browser tests.
 - 2026-11-19 (Robert Bo Davis): Proposed for orchestration: browser.sh only kills on --timeout <s>; make a default per-check timeout (and a suite-wide one) mandatory. Seen live 2026-11-19: medications-2's suite held a lease 3 h on medications.mjs. Small enough to do directly on dev.
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
 
 ### B-109 · chore · Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand
 
