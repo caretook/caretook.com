@@ -108,6 +108,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
+| B-71 | bug | inbox |  |  | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
+| B-72 | bug | inbox |  |  | suggested provider list is too long on mobile. |
+| B-73 | bug | inbox |  |  | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
 
 ## Items
 
@@ -877,3 +880,24 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): Flaked in the invites wave 3 suite (2026-11-18 19:46, load 18→27, not auto-retried): '1280 dark provider add sheet: Escape closes only it, and focus returns to the opener (tap)'. The failure detail showed focus on the opener, so likely the sheet's close wasn't finished when the step checked. Passed 625/625 on a rerun; ui.mjs also flaked earlier in providers-5 (timeout). In .loops/.browser-flakes.log. A browser-check fix, so quick-fixes.
+
+### B-71 · bug · date picker entry box mobile-friendly. it expands outside of elements on small screens.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-72 · bug · suggested provider list is too long on mobile.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-73 · bug · timeline entry add modal should take up the full screen on mobile, don't leave room for header.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
