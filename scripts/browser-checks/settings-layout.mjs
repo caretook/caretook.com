@@ -38,7 +38,7 @@ const TRIGGER = `document.querySelector('header [data-region="user"] button[aria
 const menuItem = (text) =>
   `[...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent.trim() === ${JSON.stringify(text)})`;
 const rows = `document.querySelectorAll("ol > li").length`;
-const isCards = `document.querySelector("ol")?.className.includes("space-y-2")`;
+const isCards = `(document.querySelector("ol")?.dataset.view === "cards")`;
 const GROUP = `document.querySelector('[role="radiogroup"]')`;
 const radio = (label) => `document.querySelector('input[name="timelineView"][aria-label="${label}"]')`;
 const chosen = `[...document.querySelectorAll('input[name="timelineView"]')].filter((el) => el.checked).map((el) => el.getAttribute("aria-label")).join(",")`;
