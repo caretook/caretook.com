@@ -756,9 +756,9 @@ async function blockSteps(p, laterId) {
   check("the block survives a reload", (await p.evaluate(`location.search`)) === "?upcoming=1");
 
   // The kind chips keep it on, and it shows that kind only.
-  await p.tap(
-    `[...document.querySelectorAll('main nav[aria-label="Show entries"] a')].find((a) => a.textContent.trim() === "Notes")`,
-  );
+  const notesChip = `[...document.querySelectorAll('main nav[aria-label="Show entries"] a')].find((a) => a.textContent.trim() === "Notes")`;
+  await p.waitFor(notesChip, 20000);
+  await p.tap(notesChip);
   await p.waitFor(`location.search === "?kind=note&upcoming=1"`, 10000);
   await p
     .waitFor(
