@@ -696,6 +696,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/profiles/1): profiles slice 1: member contact details reach groups only through member_contact_share (never user rows), so B-83 can land without changes here.
 - 2026-11-19 (slice/profiles/4): slice 4 (members' contact details, per-group sharing) committed on slice/profiles/4 at 2b3605b; awaiting merge
 - 2026-11-19 (slice/profiles/5): slice 5 (slice/profiles/5, 9183532): emergency list on the profile, profile/emergency sheet, Members badges; adds care_group_member.emergency_dropped_at to the pending 0016 migration for the managers' note
+- 2026-11-19 (slice/profiles/6): slice 6 (emergency sheet at profile/print) committed on slice/profiles/6 (a20bf8e, d08c7e7); allergies section waits for B-26
 
 ### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
 
