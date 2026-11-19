@@ -1030,7 +1030,8 @@ try {
         heading: ${MEMBERS}.querySelector("h1").textContent.trim(),
         avatars: [...${MEMBERS}.querySelectorAll("li[data-member] > div > span[aria-hidden]")].map((a) => a.textContent.trim()).join(","),
         options: ${options("Dev Viewer")},
-        labels: [...${MEMBERS}.querySelectorAll("li[data-member] select, li[data-member] button")].map((el) => el.getAttribute("aria-label")).join("|"),
+        // The member controls (your own row's sharing form is profiles-contacts.mjs's).
+        labels: [...${MEMBERS}.querySelectorAll("li[data-member] select, li[data-member] button")].filter((el) => !el.closest("[data-sharing-form]")).map((el) => el.getAttribute("aria-label")).join("|"),
         // The members themselves (invites and requests to join show addresses on purpose).
         text: [...${MEMBERS}.querySelectorAll("li[data-member]")].map((li) => li.textContent).join(" "),
       })`);
@@ -1050,7 +1051,11 @@ try {
             "Role for Dev Member|Leave this care group|Role for Dev Caretaker|Remove Dev Caretaker|Role for Dev Viewer|Remove Dev Viewer",
         JSON.stringify({ avatars: ownerView.avatars, options: ownerView.options, labels: ownerView.labels }),
       );
-      check("members: no email anywhere in the list", !/@|example\.com/.test(ownerView.text));
+      // Shared contact emails show on purpose (profiles); sign-in emails never do.
+      check(
+        "members: no sign-in email anywhere in the list",
+        !/\b(member|caretaker|viewer)@example\.com/.test(ownerView.text),
+      );
       await M.evaluate(`${MEMBERS}.scrollIntoView({ block: "center" })`);
       await M.screenshot("app-shell-members-owner");
 
@@ -1252,8 +1257,9 @@ try {
       await signIn(O, "viewer@example.com", { home: true });
       await openGroupSettings(O);
       const viewerList = await listed(O);
+      // Besides your own row's sharing form (profiles-contacts.mjs checks it).
       const viewerControls = await O.evaluate(
-        `[...document.querySelectorAll("main input, main select, main button")].filter((el) => !el.closest("dialog:not([open])")).map((el) => el.textContent.trim()).join(",")`,
+        `[...document.querySelectorAll("main input, main select, main button")].filter((el) => !el.closest("dialog:not([open])") && !el.closest("[data-sharing-form]")).map((el) => el.textContent.trim()).join(",")`,
       );
       check(
         "viewer: the only control on the whole page is Leave, on their own row",
