@@ -891,6 +891,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner:
 - commit:
 
+- 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: a layout fix in ui/date's DateTimeField on narrow screens; one slice.
+
 ### B-72 · bug · suggested provider list is too long on mobile.
 
 - status: triaged
