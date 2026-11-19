@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | State                                     | Merge into `prd/care-periods` (slice commits) |
-| ----- | ----------------------------------------- | --------------------------------------------- |
-| 1     | merged `9fb07f3` (f4f439c, abc3fa8)       | not landed: one landing at the end            |
-| 2     | merged `2699559` (a2938cc)                   |                                               |
-| 3     | in progress (wave 2)                      |                                               |
-| 4     | merged `ff7ceb1` (b425b2a), fix `af28304`  |                                               |
-| 5     | merged `286b8a5` (0d6b10e, 2afb30a)       | Home and Hospice at home suggest no place (the discharging practice isn't where they are) |
-| 6     | ready on `slice/care-periods/6` (6cab48e); merge after 3 and 4 | with a period picked, search shows timeline entries only (providers and medications have no dates) |                                               |
+| Slice | State                                                          | Merge into `prd/care-periods` (slice commits)                                                      |
+| ----- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 1     | merged `9fb07f3` (f4f439c, abc3fa8)                            | not landed: one landing at the end                                                                 |
+| 2     | merged `2699559` (a2938cc)                                     |                                                                                                    |
+| 3     | in progress (wave 2)                                           |                                                                                                    |
+| 4     | merged `ff7ceb1` (b425b2a), fix `af28304`                      |                                                                                                    |
+| 5     | merged `286b8a5` (0d6b10e, 2afb30a)                            | Home and Hospice at home suggest no place (the discharging practice isn't where they are)          |
+| 6     | ready on `slice/care-periods/6` (6cab48e); merge after 3 and 4 | with a period picked, search shows timeline entries only (providers and medications have no dates) |     |
 
 **Landing mode: run everything through** (the user queued this PRD with `pnpm prd queue care-periods`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 

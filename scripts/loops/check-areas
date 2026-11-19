@@ -129,6 +129,13 @@ apps/web/app/components/ui/date/*        ui roundtrip live-notes medications car
 apps/web/app/components/ui/*             ui app-shell
 apps/web/app/components/brand/*          app-shell marketing
 
+# The timeline's care periods (care-periods slice 3): the current-period line
+# and the boundary markers among the entries.
+apps/web/app/routes/app/groups/timeline/CurrentPeriodLine.tsx care-periods
+apps/web/app/routes/app/groups/timeline/PeriodMarkerItem.tsx phase2 care-periods
+apps/web/app/routes/app/groups/timeline/timelinePeriods.ts care-periods phase2
+apps/web/app/routes/app/groups/timeline/timelineDays.ts phase2 care-periods
+apps/web/app/lib/periodMarkers.ts        care-periods
 # The timeline, its rows, filters, vitals and sheets.
 # Doses and medication changes on the timeline (medications slice 4).
 apps/web/app/routes/app/groups/timeline/new-dose/* medications
@@ -145,9 +152,9 @@ apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
 apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
 apps/web/app/routes/app/groups/timeline/aheadQueries.ts phase2 upcoming search
 apps/web/app/routes/app/groups/timeline/useHistoryCutoff.ts phase2 upcoming
-apps/web/app/routes/app/groups/timeline/useTimelineData.ts phase2 roundtrip upcoming
-apps/web/app/routes/app/groups/timeline/timelineRows.ts phase2 roundtrip upcoming
-apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx phase2 roundtrip upcoming search
+apps/web/app/routes/app/groups/timeline/useTimelineData.ts phase2 roundtrip upcoming care-periods
+apps/web/app/routes/app/groups/timeline/timelineRows.ts phase2 roundtrip upcoming care-periods
+apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx phase2 roundtrip upcoming search care-periods
 # The timeline's search: the field, the chip and ?q= in the windows (search slice 2).
 apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx phase2 search
 apps/web/app/routes/app/groups/timeline/useSearchField.ts phase2 search

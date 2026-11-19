@@ -11,6 +11,7 @@ import { loadSettings } from "~/lib/me";
 import { sessionContext } from "~/lib/session";
 import { removeEntry } from "~/lib/sync/timeline";
 import { parseFilters } from "~/lib/timelineFilters";
+import { CurrentPeriodLine } from "./CurrentPeriodLine";
 import { DueNowStrip } from "./DueNowStrip";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LatestVitals } from "./LatestVitals";
@@ -108,6 +109,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
       <TimelineHeader view={view} onViewChange={setView} />
+      <CurrentPeriodLine groupId={groupId} periods={data.periods} />
       <InviteSomeoneCard />
       <LatestVitals vitals={data.latestVitals} units={units} />
       <NextStrip next={data.next} now={data.now} groupId={groupId} showing={upcoming} />

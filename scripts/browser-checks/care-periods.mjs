@@ -1133,6 +1133,259 @@ async function groupMenuSteps(p) {
   await p.send("Emulation.clearDeviceMetricsOverride");
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3: the timeline's current-period line and boundary markers.
+// ---------------------------------------------------------------------------
+
+const TIMELINE = `/app/groups/${DEV_FAMILY}/timeline`;
+const LINE = `document.querySelector("main [data-period-line]")`;
+const LINE_TEXT = `(document.querySelector("main [data-period-current]")?.textContent.trim() ?? null)`;
+const markerLi = (id) => `document.querySelector('main ol > li[data-marker="${id}"]')`;
+/** Every row of the history in DOM order: entries by their time, markers by their start. */
+const listOrder = (p) =>
+  p.evaluate(`[...document.querySelectorAll('main section[aria-labelledby="timeline-heading"] ol > li')].map((li) => ({
+    marker: li.dataset.marker ?? null,
+    at: li.dataset.at ?? li.querySelector("time")?.dateTime ?? null,
+    text: li.dataset.marker ? li.textContent.trim() : null,
+    label: li.dataset.marker ? li.querySelector("a")?.getAttribute("aria-label") : null,
+    day: li.closest("section")?.querySelector("h3")?.textContent.trim() ?? null,
+  }))`);
+/** Newest first all the way down: no row is newer than the one above it. */
+const inOrder = (rows) =>
+  rows.every((r, i) => i === 0 || !r.at || !rows[i - 1].at || new Date(r.at) <= new Date(rows[i - 1].at));
+const latestLocalId = async (p, groupId) =>
+  (
+    await localRows(
+      p,
+      "SELECT id FROM care_period WHERE group_id = ? AND deleted_at IS NULL ORDER BY started_at DESC, created_at DESC, id DESC LIMIT 1",
+      [groupId],
+    )
+  )[0]?.id ?? null;
+const END_TEXT = "That's the beginning of the timeline";
+const OLDER_STATUS = `(document.querySelector("[data-older-entries] [role=status]")?.textContent ?? "")`;
+
+/** The line on a filtered timeline; Change opens the add sheet; saving comes back with the filter, and the marker. */
+async function lineSteps(p) {
+  await toFront(p);
+  await p.goto(`${TIMELINE}?kind=dose`);
+  await need(p, `${LINE_TEXT} !== null`, 20000, "the current-period line");
+  const latest = await latestLocalId(p, DEV_FAMILY);
+  const line = await p.evaluate(`({
+    text: ${LINE_TEXT},
+    href: document.querySelector("main [data-period-current]")?.getAttribute("href"),
+    change: !!document.querySelector("main [data-period-change]"),
+  })`);
+  check(
+    "the timeline's line names the current period with its day count, links to it, and gives a writer Change",
+    !!latest &&
+      line.href?.endsWith(`/periods/${latest}`) &&
+      / · day \d+$/.test(line.text ?? "") &&
+      line.change,
+    JSON.stringify({ latest, line }),
+  );
+
+  await p.tap(`document.querySelector("main [data-period-change]")`);
+  const opened = await need(
+    p,
+    `${FORM} && location.pathname.endsWith("/periods/new")`,
+    10000,
+    "the add sheet from Change",
+  );
+  check("Change opens the add sheet", opened);
+  await p.press(typeRadio("Rehab or skilled nursing"));
+  await p.type(formField("label"), `${TAG} line`);
+  await p.press(SUBMIT);
+  const back = await need(
+    p,
+    `!${SHEET} && location.pathname === ${JSON.stringify(TIMELINE)} && location.search === "?kind=dose" && ${LINE_TEXT} === ${JSON.stringify(`In rehab · ${TAG} line · day 1`)}`,
+    15000,
+    "back on the filtered timeline with the new line",
+  );
+  check("saving closes the sheet back to the timeline, its filter kept, and the line follows", back);
+
+  const [row] = await localRows(p, "SELECT id FROM care_period WHERE label = ? AND deleted_at IS NULL", [
+    `${TAG} line`,
+  ]);
+  const id = row?.id ?? null;
+  await need(p, `!!${markerLi(id)}`, 10000, "the new period's marker");
+  const rows = await listOrder(p);
+  const mine = rows.find((r) => r.marker === id);
+  check(
+    "a marker for it shows at its moment under Today, even with the kind filter on, read as one sentence",
+    !!mine &&
+      new RegExp(`^.+ → Rehab · ${TAG} line · \\d\\d:\\d\\d$`).test(mine.text ?? "") &&
+      /^Moved from .+ to Rehab, .+, at \d\d:\d\d$/.test(mine.label ?? "") &&
+      mine.day === "Today" &&
+      inOrder(rows),
+    JSON.stringify({ mine, n: rows.length }),
+  );
+  await p.screenshot("care-period-timeline-marker");
+
+  await p.tap(`${markerLi(id)}.querySelector("a")`);
+  const markerOpens = await need(
+    p,
+    `location.pathname.endsWith("/periods/${id}") && !!document.querySelector("[data-period-page]")`,
+    10000,
+    "the marker's period page",
+  );
+  await p.goto(TIMELINE);
+  await need(p, `${LINE_TEXT} !== null`, 20000, "the line");
+  await p.tap(`document.querySelector("main [data-period-current]")`);
+  const lineOpens = await need(
+    p,
+    `location.pathname.endsWith("/periods/${id}") && !!document.querySelector("[data-period-page]")`,
+    10000,
+    "the line's period page",
+  );
+  check("the marker and the line each open the period", markerOpens && lineOpens);
+  return id;
+}
+
+/** The marker with an author filter on, in cards, and for a viewer (line without Change). */
+async function markerViewSteps(p, viewer, id) {
+  const caretaker = psql(`SELECT id FROM "user" WHERE email = 'caretaker@example.com'`);
+  await toFront(p);
+  await p.goto(`${TIMELINE}?author=${caretaker}`);
+  const byAuthor = await need(p, `!!${markerLi(id)}`, 20000, "the marker under the author filter");
+  check("the marker shows with an author filter on", byAuthor);
+
+  await p.goto(TIMELINE);
+  await need(p, `!!${markerLi(id)}`, 20000, "the marker");
+  await p.press(`document.querySelector('[aria-label="Cards"]')`);
+  const cards = await need(
+    p,
+    `document.querySelector('main ol[data-view="cards"] > li[data-marker="${id}"]')`,
+    8000,
+    "the marker in cards",
+  );
+  await p.screenshot("care-period-marker-cards");
+  await p.press(`document.querySelector('[aria-label="Rows"]')`);
+  await need(p, `document.querySelector("main ol")?.dataset.view === "rows"`, 8000, "rows again");
+  check("the marker shows in the cards view too", cards);
+
+  await toFront(viewer);
+  await viewer.goto(TIMELINE);
+  await need(viewer, `${LINE_TEXT} !== null && !!${markerLi(id)}`, 30000, "the viewer's line and marker");
+  const seen = await viewer.evaluate(
+    `({ text: ${LINE_TEXT}, change: !!document.querySelector("main [data-period-change]") })`,
+  );
+  check(
+    "a viewer sees the line (no Change) and the marker",
+    seen.text === `In rehab · ${TAG} line · day 1` && !seen.change,
+    JSON.stringify(seen),
+  );
+}
+
+/** A group with no periods: a writer is asked where the recipient is (the sheet closes back); a viewer sees nothing. */
+async function promptSteps(writer, viewer) {
+  const timeline2 = `/app/groups/${DEV_FAMILY_2}/timeline`;
+  await toFront(writer);
+  await writer.goto(timeline2);
+  await need(writer, `document.querySelector('main [data-period-line="empty"]')`, 20000, "the prompt");
+  const prompt = await writer.evaluate(
+    `document.querySelector('main [data-period-line="empty"]')?.textContent.trim()`,
+  );
+  check(
+    "a writer on a group with no periods is asked where the recipient is, with Add care period",
+    /^Where is .+ now\?Add care period$/.test(prompt ?? ""),
+    prompt,
+  );
+  await writer.tap(`document.querySelector("main [data-period-add]")`);
+  await need(writer, `${FORM} && location.pathname.endsWith("/periods/new")`, 10000, "the add sheet");
+  await writer.press(
+    `[...${FORM}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")`,
+  );
+  const closed = await need(
+    writer,
+    `!${SHEET} && location.pathname === ${JSON.stringify(timeline2)}`,
+    10000,
+    "back to the timeline",
+  );
+  check("Add care period opens the add sheet, and Cancel comes back to the timeline", closed);
+
+  // viewer@ joins Dev Family 2 as a viewer for this step only.
+  const viewerId = psql(`SELECT id FROM "user" WHERE email = 'viewer@example.com'`);
+  psql(
+    `INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by) VALUES ('${DEV_FAMILY_2}', '${viewerId}', 'viewer', '${viewerId}', '${viewerId}') ON CONFLICT DO NOTHING`,
+  );
+  try {
+    await waitForLocal(
+      viewer,
+      "SELECT id FROM care_group WHERE id = ?",
+      [DEV_FAMILY_2],
+      (rows) => rows.length === 1,
+      20000,
+    );
+    await toFront(viewer);
+    await viewer.goto(timeline2);
+    await need(
+      viewer,
+      `document.querySelectorAll("main ol > li").length > 0`,
+      30000,
+      "the viewer's timeline",
+    );
+    await sleep(1000);
+    const line = await viewer.evaluate(`!!${LINE}`);
+    check("a viewer on a group with no periods sees no line", !line);
+  } finally {
+    psql(`DELETE FROM care_group_member WHERE group_id = '${DEV_FAMILY_2}' AND user_id = '${viewerId}'`);
+  }
+}
+
+/** Scrolling back: markers come with their part of the timeline, never out of place; at the beginning, every one shows. */
+async function scrollSteps(p) {
+  await toFront(p);
+  await p.goto(TIMELINE);
+  await need(p, `document.querySelectorAll("main ol > li:not([data-marker])").length >= 30`, 20000, "a page");
+  const first = await listOrder(p);
+  const oldest = first.filter((r) => !r.marker).at(-1)?.at;
+  check(
+    "on the first page, only markers at or after its oldest entry show",
+    first.filter((r) => r.marker).every((r) => new Date(r.at) >= new Date(oldest)) && inOrder(first),
+    JSON.stringify(first.filter((r) => r.marker).map((r) => r.at)),
+  );
+  const started = Date.now();
+  let samples = 0;
+  let outOfOrder = null;
+  while (Date.now() - started < 90000) {
+    const status = await p.evaluate(`(() => { const t = ${OLDER_STATUS};
+      if (t !== "Loading older…") window.scrollTo(0, document.documentElement.scrollHeight); return t; })()`);
+    const rows = await listOrder(p);
+    samples++;
+    const entries = rows.filter((r) => !r.marker);
+    const low = entries.at(-1)?.at;
+    if (
+      !outOfOrder &&
+      (!inOrder(rows) ||
+        (status !== END_TEXT && rows.some((r) => r.marker && low && new Date(r.at) < new Date(low))))
+    )
+      outOfOrder = { status, rows: rows.length, low };
+    if (status === END_TEXT) break;
+    await sleep(300);
+  }
+  const all = await listOrder(p);
+  const seeded = all.filter((r) => r.marker?.startsWith("0b6f3c1e-5d1a-4c2e-9a77-3f1d2bc1"));
+  check(
+    "scrolling back never shows a marker out of place",
+    !outOfOrder && samples > 1,
+    JSON.stringify(outOfOrder),
+  );
+  check(
+    'at the beginning every seeded marker shows, oldest "Started: Home", with the hospital\'s place and room',
+    (await p.evaluate(OLDER_STATUS)) === END_TEXT &&
+      seeded.length === 5 &&
+      seeded.at(-1).text?.startsWith("Started: Home") &&
+      seeded.some((r) =>
+        /^Emergency room → Hospital · Mercy General Hospital, room 412, bed B · \d\d:\d\d$/.test(
+          r.text ?? "",
+        ),
+      ) &&
+      inOrder(all),
+    JSON.stringify(seeded.map((r) => r.text)),
+  );
+  await p.screenshot("care-period-markers-beginning");
+}
+
 const proxy = SMOKE ? null : startProxy(9745);
 const bA = await launch(9741, proxy ? proxy.args : []);
 const bB = SMOKE ? null : await launch(9742);
@@ -1164,6 +1417,17 @@ try {
     );
     await step("the group menu", () => groupMenuSteps(B));
     await step("suggestions from events", () => suggestionSteps(A, proxy, C));
+  }
+
+  // Slice 3: the timeline.
+  const lined = await step("the timeline's line, Change and the marker", { smoke: true }, () => lineSteps(A));
+  if (!SMOKE) {
+    const [, B, C] = pages;
+    await step("markers under an author filter, in cards, and for a viewer", () =>
+      lined ? markerViewSteps(A, C, lined) : undefined,
+    );
+    await step("the prompt on a group with no periods", () => promptSteps(B, C));
+    await step("markers while scrolling back", () => scrollSteps(A));
   }
 
   const noise =
