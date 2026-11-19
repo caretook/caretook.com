@@ -1333,6 +1333,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (prd/admin): From the inbox: Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header.
+- 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: moves CurrentPeriodLine into the sticky day header. Same timeline-header area as B-98/B-99 (hot for medications-2's strip): fold into that one slice after medications-2 lands.
 
 ### B-106 · bug · Turning email invites off also blocks staff owner invites from /admin
 
