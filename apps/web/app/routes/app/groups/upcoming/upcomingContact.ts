@@ -1,10 +1,12 @@
 import type { ContactAction } from "../../../../lib/contactActions";
+import type { ShownPlace } from "../../../../lib/entryPlace";
 import type { LinkedProviderName } from "../../../../lib/entryProviders";
 import type { LocalQuery } from "../../../../lib/sync/timeline";
 import type { ProviderPhone } from "@caretook/data/schema";
 
 import { parseProviderPhones } from "@caretook/data/schema";
 import { callAction, mapsHref } from "../../../../lib/contactActions";
+import { shownPlace } from "../../../../lib/entryPlace";
 
 // What an Upcoming row says about where and with whom, and its one-tap
 // actions: call the first linked provider, and map the place. Pure (the
@@ -57,20 +59,11 @@ export const contactsByEntry = (
   return byEntry;
 };
 
-/**
- * Where an item is: its own place, else (as on the entry page) the first
- * linked provider's address, with `from` naming that provider. Null when
- * there's neither.
- */
+/** Where an item is: the entry page's rule (`shownPlace`), over its linked contacts. */
 export const placeOf = (
   entry: { place?: string | null },
   contacts: readonly LinkedContact[] = [],
-): { text: string; from: string | null } | null => {
-  const own = entry.place?.trim();
-  if (own) return { text: own, from: null };
-  const provider = contacts.find((c) => !c.deletedAt && c.address?.trim());
-  return provider?.address ? { text: provider.address.trim(), from: provider.name } : null;
-};
+): ShownPlace | null => shownPlace(entry.place, contacts);
 
 /** A place on one line: "1200 Westside Ave, Suite 300, Springfield". */
 export const placeLine = (text: string) =>

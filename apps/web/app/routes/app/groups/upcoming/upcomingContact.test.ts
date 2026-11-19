@@ -48,7 +48,10 @@ describe("contactsByEntry", () => {
 describe("placeOf", () => {
   it("is the entry's own place, else the first linked provider's address", () => {
     expect(placeOf({ place: " Room 4 " }, [patel])).toEqual({ text: "Room 4", from: null });
-    expect(placeOf({ place: null }, [nurse, patel])).toEqual({ text: patel.address, from: "Dr. Patel" });
+    expect(placeOf({ place: null }, [nurse, patel])).toEqual({
+      text: "48 Harbor Heart Center, Springfield, CA 90000",
+      from: "Dr. Patel",
+    });
     expect(placeOf({ place: "" }, [removed])).toBeNull();
     expect(placeOf({})).toBeNull();
   });
@@ -75,7 +78,7 @@ describe("upcomingActions", () => {
           "https://www.google.com/maps/search/?api=1&query=48%20Harbor",
         ) as string,
         label: "Open 48 Harbor Heart Center, Springfield, CA 90000 in maps",
-        value: patel.address,
+        value: "48 Harbor Heart Center, Springfield, CA 90000",
       },
     ]);
   });
