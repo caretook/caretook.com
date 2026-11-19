@@ -270,6 +270,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (prd/search): Slice 1 started. Slice 2 waits for appointments slice 7 to land in dev (user's call, 2026-11-19).
 - 2026-11-19 (slice/search/1): search slice 1 (device index) committed on slice/search/1 at 34f68fd: FTS5 gate passed (wa-sqlite 2.0.10 / SQLite 3.53.0, porter unicode61 remove_diacritics 2); rebuild of 2,022 items 140 ms, queries 2-15 ms on desktop Chrome
 - 2026-11-19 (prd/search): Slice 1 landed (5016b1d). Appointments fully landed, so slice 2 started alongside 3 and 6.
+- 2026-11-19 (slice/search/6): slice 6 (server search) committed on slice/search/6 (dec4b03, d4a964d): migration 0016_search (unaccent + generated search_vector columns), searchService.search, oRPC search.query; 10k entries in ~30-45 ms
 
 ### B-12 · plan · Assistant: lightweight chat, with voice, for quick actions and questions about the timeline
 
