@@ -11,16 +11,18 @@
 | 1     | 1    | landed (27f5eb2)                           | db65cca (a6ac71a, 3cf23d0)                                    |
 | 2     | 1    | landed (27f5eb2)                           | 4982bd0 (66e02bd); doc fold 5c0989c                           |
 | 3     | 1    | landed (27f5eb2)                           | 399fb18 (8af746c); doc fold 7a144a0                           |
-| 4     | 2    | merged                                     | 35e384f (679e4c6)                                             |
-| 5     | 2    | running (2026-11-19)                       |                                                               |
-| 6     | 2    | merged                                     | 56ee562 (f808af4, 9d8c353); lease wiring and doc fold d9bf270 |
+| 4     | 2    | landed (07bc4eb)                           | 35e384f (679e4c6)                                             |
+| 5     | 2    | landed (07bc4eb)                           | b0076a1 (2b59955)                                             |
+| 6     | 2    | landed (07bc4eb)                           | 56ee562 (f808af4, 9d8c353); lease wiring and doc fold d9bf270 |
 | 7     | 3    | running (2026-11-19, with a stack, slot 2) |                                                               |
 | 8     | 3    | running (2026-11-19, with a stack, slot 5) |                                                               |
 | 9     | 4    | blocked by 7 and 8                         |                                                               |
 
 Wave 1 landed in `dev` as 27f5eb2 (not pushed; the user pushes). The sync before it brought medications-2's landing; its AGENTS.md additions were moved into `docs/domain/` (f7581b4). After landing, `pnpm backlog doctor --fix` and `archive` ran on the real backlog (cad38ca, 831792c: 80 items to `plans/backlog-archive.md`). `doctor` still reports B-104's inbox tag (a "PRD tooling needs a way to recover after system restarts" bullet tagged with the Connectors item): the user's to fix. The admin orchestrator was told about the split; medications-2's wasn't reachable (done).
 
-Backlog: B-109, B-108, B-111, B-59 landed. B-89 (slice 5), B-107 (slices 6, 9) and B-110 (slices 7, 8) are claimed by `prd/orchestration`. Mark B-89 `done` after slice 5; B-107 and B-110 after slice 9.
+Wave 2 landed in `dev` as 07bc4eb (the user chose no browser checks for it; `pnpm prd check` passed on fe0aa02). Fixes made at that landing: the medication fixture's schedule `slots` (08ec2e8; medications-2's shape), the archive leaving the inbox formatted and `plans/backlog-archive.md` in `.prettierignore` (ad hoc commit before the sync; admin made the same ignore fix on dev), and `vite.config.ts` loading server env only outside Vitest (3bd2e1d), without which `web:components` leaked the dev `DATABASE_URL` into the integration project. Synced admin's landing (fe0aa02; its `docs/domain/admin.md` row kept).
+
+Backlog: B-109, B-108, B-111, B-59 and B-89 landed. B-107 (slices 6, 9) and B-110 (slices 7, 8) are claimed by `prd/orchestration`; mark them `done` after slice 9. B-113 (admin's item: recheck app-shell, providers and admin on the new suite) was passed to slice 7 for app-shell step 6g; note its result on B-113 at the wave 3 landing.
 
 Slices 7 and 8 got stacks (they run shrunken e2e checks); the others are stackless (`new.sh --no-stack`) and run `typecheck`, `lint`, `format:check` and the unit projects. Merged slices 4 and 6 before 5 (no dependency between them). Slice 4's follow-up for slice 9: move the browser kind to `.loops/.lease/browser` and drop the `lease.sh(browser.sh)` re-exec. Slice 2 made `marketing` part of `--suite` (its manifest `e2e` is yes).
 

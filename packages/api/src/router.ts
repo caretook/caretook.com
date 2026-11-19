@@ -26,11 +26,16 @@ import { authedProcedure } from "./procedures";
 import { invite } from "./invites";
 import { joinRequest } from "./joinRequests";
 import { accessCode, admin, createCareGroup } from "./groups";
+import { groupsAdmin } from "./groupsAdmin";
 import { publicForms } from "./publicForms";
+import { announcement } from "./announcement";
 import { profileCareGroup, profileMe } from "./profiles";
 import { search } from "./search";
 import { sync } from "./sync";
 import { waitlistAdmin } from "./waitlistAdmin";
+import { auditAdmin } from "./auditAdmin";
+import { usersAdmin } from "./usersAdmin";
+import { settingsAdmin } from "./settingsAdmin";
 
 const id = z.uuid();
 const ids = (values: string[]) => ({ type: "inArray" as const, value: values });
@@ -331,8 +336,15 @@ export const router = {
   invite,
   joinRequest,
   accessCode,
-  admin: { ...admin, waitlist: waitlistAdmin },
-  public: publicForms,
+  admin: {
+    ...admin,
+    waitlist: waitlistAdmin,
+    audit: auditAdmin,
+    users: usersAdmin,
+    groups: groupsAdmin,
+    settings: settingsAdmin,
+  },
+  public: { ...publicForms, announcement },
   search,
 };
 export type Router = typeof router;

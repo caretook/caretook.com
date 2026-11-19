@@ -29,7 +29,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           providerSheet, providerFormData, new/, edit/),
                           groups/provider/ (loadProvider, useProviderNotes, ProviderHeader, ContactList),
                           groups/settings/ (layout, index, details/ + DetailsForms, members/ + MembersList; api, groupSettings)
-  app/routes/admin/       web only (staff: access codes, print, new group)
+  app/routes/admin/       web only (staff: users, user, groups, group, access codes, print, new group, waitlist, audit, settings)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx; app/routes/account/ (reset-password, verify-email, invite/, AuthCard)
   app/routes/dev/mail/, app/routes/api/cron/outbox.ts   web only (the dev mailbox; the outbox sweep)

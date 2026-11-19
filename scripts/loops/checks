@@ -35,4 +35,5 @@ profiles             55   180  no           yes
 profiles-contacts    20   120  no           yes
 care-periods         75   230  no           yes
 devices              40   150  no           yes
+admin                75   230  no           yes
 marketing            10   120  no           yes

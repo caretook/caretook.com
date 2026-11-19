@@ -96,3 +96,14 @@ export type * from "./medicationPass/types";
 import * as recipientAllergyModel from "./recipientAllergy";
 export { recipientAllergyModel };
 export type * from "./recipientAllergy/types";
+
+import * as adminAuditLogModel from "./adminAuditLog";
+export { adminAuditLogModel };
+export type * from "./adminAuditLog/types";
+
+import * as groupDirectoryModel from "./groupDirectory";
+export { groupDirectoryModel };
+export type * from "./groupDirectory/types";
+import * as appSettingModel from "./appSetting";
+export { appSettingModel };
+export type * from "./appSetting/types";

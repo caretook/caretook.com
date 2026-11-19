@@ -5,7 +5,7 @@ import { emailMatches } from "@caretook/data/schema";
 // for, so a forwarded or old link leaks nothing.
 
 export type InvitePreview =
-  | { state: "notFound" | "expired" | "revoked" | "usedUp" | "accepted" | "declined" }
+  | { state: "notFound" | "expired" | "revoked" | "usedUp" | "accepted" | "declined" | "unavailable" }
   | {
       state: "usable";
       kind: "email" | "link";
@@ -48,6 +48,11 @@ const CLOSED: Record<Exclude<InvitePreview["state"], "usable">, { title: string;
   declined: {
     title: "This invitation was declined",
     message: "Ask the person who invited you to send a new one if you change your mind.",
+  },
+  // Invites of this kind are switched off for now (admin settings).
+  unavailable: {
+    title: "Not available right now",
+    message: "Joining with an invitation isn't available right now. Try again later.",
   },
 };
 

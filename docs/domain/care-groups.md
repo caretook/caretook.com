@@ -14,7 +14,7 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - `access_code` (`code` unique, `XXXX-XXXX-XXXX` from an alphabet without 0/O/1/I/L, **stored plain** so staff can reprint it; `label`, `expires_at`, `max_uses` (null = unlimited), `use_count`, `revoked_at`) and `access_code_redemption` (`code_id`, `user_id`, `group_id` set null on group delete). Global admins and `system` only; a code is a sign-up ticket, not health data. Pure helpers in `db/schema/accessCode.ts` (`normalizeAccessCode`, `formatAccessCode`, `codeState`); `db/schema/newCareGroup.ts` has `defaultGroupName` ("<preferred or first name>'s care") and `newCareGroupZSchema`.
   - **Not synced:** invites and consent rows are managers' data with addresses, read through oRPC. Only the member's `invited_by` and `created_at` sync (the Members page's "Invited by X · Joined <date>").
   - Deleting a group cascades to everything in it. Deleting a user cascades to their memberships.
-- **Two role systems:** global (`admin`, `member`) covers account access only. Group roles on the membership are `owner`, `admin`, `caretaker` and `viewer`. **Writers** = owner, admin and caretaker.
+- **Two role systems:** global (`admin`, `support`, `member`) covers account and staff access only (see [admin](admin.md)). Group roles on the membership are `owner`, `admin`, `caretaker` and `viewer`. **Writers** = owner, admin and caretaker.
 - **Permissions:**
 
   | Table                   | read/list                                 | create                                   | update                     | delete                            |

@@ -5,11 +5,16 @@ import { defineConfig } from "vite";
 // Server-side env for dev and builds: apps/web/.env (auth), then
 // packages/data/.env (DATABASE_URL), so there's one copy of each value. Real
 // env vars win, and missing files are fine (Vercel sets real env vars).
-for (const file of [".env", "../../packages/data/.env"]) {
-  try {
-    process.loadEnvFile(new URL(file, import.meta.url));
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+// Not under Vitest: the web:components project extends this config in the same
+// process as the integration project, and the dev DATABASE_URL loaded here
+// would win over packages/data/.env.test(.local).
+if (!process.env.VITEST) {
+  for (const file of [".env", "../../packages/data/.env"]) {
+    try {
+      process.loadEnvFile(new URL(file, import.meta.url));
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+    }
   }
 }
 

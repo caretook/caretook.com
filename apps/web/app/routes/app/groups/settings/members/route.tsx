@@ -52,12 +52,12 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const { db } = context.get(sessionContext);
   const members = await readRows<MemberDetailRow>(db, memberDetailsQuery(groupId));
   const { online } = await loadRecipientProfile(request, groupId);
-  const [invites, { links, requests }, myContact] = await Promise.all([
+  const [invites, { links, requests, inviteOptions }, myContact] = await Promise.all([
     loadInvites(groupId, group.role, online),
     loadLinksAndRequests(groupId, group.role, online),
     online ? load(request, rpc.me.contact()).catch(offlineIsNull) : null,
   ]);
-  return { userId: db.userId, groupId, members, online, invites, links, requests, myContact };
+  return { userId: db.userId, groupId, members, online, invites, links, requests, inviteOptions, myContact };
 }
 
 /** A read that lost the connection after the page's first one: nothing, as offline. */
@@ -123,8 +123,8 @@ export default function GroupMembers({ loaderData }: Route.ComponentProps) {
   const group = useGroup();
   return (
     <SettingsPage id="members" title="Members" offlineNotice={online ? undefined : NEEDS_CONNECTION}>
-      <InviteButton myRole={group.role} online={online} />
-      <CreateLinkButton myRole={group.role} online={online} />
+      <InviteButton myRole={group.role} online={online} enabled={loaderData.inviteOptions.emailInvites} />
+      <CreateLinkButton myRole={group.role} online={online} options={loaderData.inviteOptions} />
       {online && <JoinRequests requests={loaderData.requests} />}
       <SettingsCard>
         <Members

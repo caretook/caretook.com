@@ -1,3 +1,4 @@
+import { createServer } from "node:net";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import { deviceCommands } from "./apps/web/test/commands.ts";
@@ -19,12 +20,18 @@ import { deviceCommands } from "./apps/web/test/commands.ts";
 //                React dedupes), and the test device (apps/web/test/device.tsx),
 //                a local-only PowerSync database with fixtures. Chromium comes
 //                from `pnpm test:components:install` (once per machine).
-// The component tests' browser server port, one per checkout: Vitest's fixed
-// default (23315) fails with "Port 23315 is already in use" when two worktrees
-// run component tests at once (the browser lease allows four).
-let hash = 7;
-for (const c of process.cwd()) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
-const browserPort = 23400 + (hash % 2000);
+// A free port for the component tests' browser server: Vitest's default
+// (23315) is fixed, so two worktrees running component tests at once clash.
+const freePort = () =>
+  new Promise<number>((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address() as { port: number };
+      server.close(() => resolve(port));
+    });
+  });
+const browserPort = await freePort();
 
 export default defineConfig({
   test: {
@@ -76,8 +83,6 @@ export default defineConfig({
           setupFiles: ["./test/setup.ts"],
           // Takes the machine-wide browser lease around Chromium (see the file).
           globalSetup: ["./test/browserLease.ts"],
-          // The browser server's port, one per checkout (see `browserPort`).
-          api: { port: browserPort, strictPort: false },
           browser: {
             enabled: true,
             headless: true,
@@ -87,6 +92,7 @@ export default defineConfig({
             instances: [{ browser: "chromium" }],
             viewport: { width: 420, height: 900 },
             screenshotFailures: false,
+            api: { port: browserPort },
             // Page-level commands for tests (apps/web/test/commands.ts).
             commands: deviceCommands,
           },
