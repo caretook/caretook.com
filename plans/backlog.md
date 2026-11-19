@@ -63,7 +63,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-87 | plan | triaged | assistant |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
-| B-89 | feature | in-progress | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
+| B-89 | feature | ready | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-91 | feature | ready | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-98 | change | triaged | quick-fixes |  | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-99 | change | triaged | quick-fixes |  | Don't display recent vitals in the timeline header in mobile, |
@@ -72,7 +72,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-105 | change | triaged | quick-fixes |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | triaged | admin |  | Turning email invites off also blocks staff owner invites from /admin |
 | B-107 | feature | in-progress | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
-| B-110 | bug | triaged | orchestration |  | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
+| B-110 | bug | in-progress | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-112 | change | inbox |  |  | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | admin |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 
@@ -289,14 +289,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-89 · feature · PRD tooling streamlining. We are using way too many resources for full docker stacks and browser…
 
-- status: in-progress
+- status: ready
 - prd: orchestration
 - owner: prd/orchestration
-- commit:
+- commit: b0076a1
 
 - 2026-11-19 (backlog planner): From the inbox: PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead.
 - 2026-11-19 (backlog planner): Proposed for orchestration as a discussion first (no PRD yet): options include shared stacks (one Postgres with a database per worktree, one PowerSync), stackless slices for pure-module work, fewer browser checks per landing, and a lower browser lease count. Needs an interview before any change.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+- 2026-11-19 (slice/orchestration/5): slice 5 built on slice/orchestration/5 (2b59955): stackless slices by default, shared test Postgres (caretook-shared-test, :5436, db per worktree), pnpm prd stack up|down, gc, test-db; awaiting merge
 
 ### B-91 · feature · Need an Admin panel for caretook global administrators to manage users, care groups, and settings.
 
@@ -382,9 +383,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-110 · bug · Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes)
 
-- status: triaged
+- status: in-progress
 - prd: orchestration
-- owner:
+- owner: prd/orchestration
 - commit:
 
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. 42 FLAKY retries logged: app-shell 11, phase2 6, ui 4, live-notes 4, medications 3, first-sync 3.
