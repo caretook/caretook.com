@@ -113,7 +113,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-73 | bug | ready | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
 | B-74 | bug | triaged | medications |  | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
 | B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
-| B-76 | feature | inbox |  |  | medication groups for doses. Often the same medication is taken at different times of the day every… |
+| B-76 | feature | triaged | medications |  | medication groups for doses. Often the same medication is taken at different times of the day every… |
 | B-77 | plan | inbox |  |  | Data security and encryption review. |
 
 ## Items
@@ -948,8 +948,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-76 · feature · medication groups for doses. Often the same medication is taken at different times of the day every…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: medications
 - owner:
 - commit:
 
