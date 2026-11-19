@@ -1,6 +1,8 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 
 import { Link, useLocation } from "react-router";
+import { UserAvatar } from "~/components/ui";
+import { Tooltip } from "~/components/ui/tooltip";
 import { KIND_META } from "~/lib/entryDisplay";
 import { setAuthor, setKind } from "~/lib/timelineFilters";
 
@@ -58,17 +60,21 @@ const AUTHOR_FOCUS =
  * entries (`?author=`), named "Show only Alex Rivera's entries". Like the
  * kind icon it sits above the row's open target (`relative z-10`), and goes
  * where you already are when that author is already showing. With `initials`
- * it's the small circle a row shows (the full name on hover); without, the
- * name as text (a card's footer).
+ * it's the small circle a row shows, with a tooltip (their avatar and full
+ * name) on hover and keyboard focus; without, the name as text (a card's
+ * footer), which needs no tooltip.
  */
 export function AuthorFilterLink({
   userId,
   name,
   initials,
+  image,
 }: {
   userId: string;
   name: string;
   initials?: string;
+  /** Their picture, for the tooltip's avatar. */
+  image?: string | null;
 }) {
   const { search } = useLocation();
   const link = {
@@ -86,12 +92,20 @@ export function AuthorFilterLink({
     );
   }
   return (
-    <Link
-      {...link}
-      title={name}
-      className={`${AUTHOR_FOCUS} bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold hover:brightness-95`}
+    <Tooltip
+      content={
+        <span className="flex items-center gap-2" data-author-tooltip={userId}>
+          <UserAvatar name={name} image={image} size="sm" />
+          <span className="font-medium">{name}</span>
+        </span>
+      }
     >
-      <span aria-hidden="true">{initials}</span>
-    </Link>
+      <Link
+        {...link}
+        className={`${AUTHOR_FOCUS} bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold hover:brightness-95`}
+      >
+        <span aria-hidden="true">{initials}</span>
+      </Link>
+    </Tooltip>
   );
 }

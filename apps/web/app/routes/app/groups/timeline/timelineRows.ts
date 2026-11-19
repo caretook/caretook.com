@@ -6,14 +6,12 @@ import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/sync/t
 import { groupDocumentsQuery } from "~/lib/sync/notes";
 import { timelineLinksQuery } from "~/lib/sync/providers";
 import { entriesQuery, membersQuery, readingsQuery, readRows } from "~/lib/sync/timeline";
+import { PAGE_SIZE } from "./timelinePaging";
 
 // The timeline's first screenful, read from the device's local copy
 // (PowerSync) by the route's loader; `useTimelineData` takes over from there
 // with live queries over the same rows. Its own module (no hooks), so the
 // loader's chunk stays small.
-
-/** How many entries a page adds ("Show older"). */
-export const PAGE_SIZE = 30;
 
 /** The rows the first render needs. */
 export const loadTimelineRows = async (db: SyncDb, groupId: string, filters: EntryFilters) => {

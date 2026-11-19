@@ -6,7 +6,7 @@ import { adminUrls } from "../adminUrls";
 
 // /admin: Caretook staff only (the global `admin` role; web only, server
 // loaders). Anyone else, a group's owner included, gets a 404. Staff see
-// access codes and the groups they set up, never a group's care data.
+// access codes, the groups they set up and the waitlist, never a group's care data.
 
 export const meta = () => [{ title: "Admin · Caretook" }, { name: "robots", content: "noindex" }];
 
@@ -35,6 +35,9 @@ export default function AdminLayout() {
           </NavLink>
           <NavLink to={adminUrls.newGroup()} className={tab}>
             New group
+          </NavLink>
+          <NavLink to={adminUrls.waitlist()} className={tab}>
+            Waitlist
           </NavLink>
         </nav>
         <Outlet />

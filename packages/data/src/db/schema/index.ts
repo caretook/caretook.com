@@ -27,4 +27,8 @@ export * from "./accessCode";
 export * from "./newCareGroup";
 export * from "./timeZone";
 export * from "./medication";
+export * from "./publicFormRules";
+export * from "./publicForms";
+export * from "./waitlistEntry";
+export * from "./contactMessage";
 export * from "./entryTiming";

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getMailConfig, isCheckBuild, parseAllowlist } from "./config";
+import { DEV_SUPPORT_EMAIL, getMailConfig, getSupportEmail, isCheckBuild, parseAllowlist } from "./config";
+import { contactSubject, PRIVACY_SUBJECT_FLAG } from "./templates/contactMessage";
 import { extractLinks } from "./devMail";
 import { linkBuilder } from "./links";
 import { retryDelayMs } from "./outbox";
@@ -39,10 +40,17 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
   },
   joinDeclined: { name: "Robin", groupName: "Grandma Example" },
   ownerInvite: { groupName: "Grandpa Example", token: "ownerTok_456-y" },
+  contactMessage: {
+    messageId: "6f1c2a3b-4d5e-4f60-8a71-92b3c4d5e6f7",
+    name: "Robin Example",
+    email: "robin@example.com",
+    topic: "question",
+    message: "Can my brother use it on his phone?\nThanks!",
+  },
 };
 
 // Notifications whose email carries no link (a code to type in).
-const LINKLESS = new Set<keyof typeof NOTIFICATIONS>(["signInCode"]);
+const LINKLESS = new Set<keyof typeof NOTIFICATIONS>(["signInCode", "contactMessage"]);
 
 describe("the registry", () => {
   it("has a sample for every notification, keyed by its own name", () => {
@@ -284,5 +292,26 @@ describe("join request emails", () => {
       ctx,
     );
     expect("code" in out && out.code).toBe("notify:invalidData");
+  });
+});
+
+describe("contact messages", () => {
+  it("flag privacy topics in the subject, and only those", () => {
+    expect(contactSubject({ name: "Robin", topic: "privacy" })).toMatch(/^\[Privacy\] /);
+    for (const topic of ["question", "help", "other"] as const)
+      expect(contactSubject({ name: "Robin", topic })).not.toContain(PRIVACY_SUBJECT_FLAG);
+  });
+
+  it("carry the visitor's address and message in the body", async () => {
+    const out = await renderNotification("contactMessage", SAMPLES.contactMessage, ctx);
+    if ("code" in out) throw new Error(String(out.code));
+    expect(out.text).toContain("robin@example.com");
+    expect(out.text).toContain("Can my brother use it on his phone?");
+  });
+
+  it("go to SUPPORT_EMAIL, with a fictional default outside production", () => {
+    expect(getSupportEmail({ SUPPORT_EMAIL: " help@caretook.test " })).toBe("help@caretook.test");
+    expect(getSupportEmail({ NODE_ENV: "development" })).toBe(DEV_SUPPORT_EMAIL);
+    expect(() => getSupportEmail({ NODE_ENV: "production" })).toThrow(/SUPPORT_EMAIL/);
   });
 });

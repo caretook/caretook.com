@@ -68,4 +68,12 @@ describe("homeContent", () => {
     const text = homeContent.promise.items.map((i) => `${i.title} ${i.body}`).join(" ");
     for (const point of [/no ads/i, /sell/i, /trackers/i, /train/i, /delete/i]) expect(text).toMatch(point);
   });
+
+  it("labels every waitlist field and thanks the visitor", () => {
+    const { email, firstName, caringFor, heardFrom, submit, sending, thanks } = homeContent.waitlist.form;
+    for (const field of [email, firstName, caringFor, heardFrom]) expect(nonEmpty(field.label)).toBe(true);
+    expect(nonEmpty(caringFor.none) && nonEmpty(submit) && nonEmpty(sending)).toBe(true);
+    expect(nonEmpty(thanks.heading) && nonEmpty(thanks.body)).toBe(true);
+    expect(homeContent.waitlist.actions.map((a) => a.href)).toContain(MARKETING_LINKS.join);
+  });
 });

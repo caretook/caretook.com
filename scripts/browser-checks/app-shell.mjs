@@ -147,28 +147,38 @@ async function sections(p) {
     bar && Math.abs(bar.bottom - bar.height) < 2 && !bar.headerNav,
   );
 
-  // The quick-add bar and the end of the page (the last entry, Show older) clear the bar.
+  // The quick-add bar and the end of the page (the last entry, the end message) clear the bar.
   const quick = await p.evaluate(`(() => {
     const q = document.querySelector('[role="group"][aria-label="Add to the timeline"]');
     const r = q.getBoundingClientRect(), top = ${BAR}.getBoundingClientRect().top;
     return { bottom: r.bottom, top, clear: r.bottom <= top };
   })()`);
   check("420: the quick-add bar is clear of the tab bar", quick.clear, JSON.stringify(quick));
+  // Scrolling to the end loads every older page (infinite scroll), down to the end message.
+  const endStatus = `document.querySelector("[data-older-entries] [role=status]")`;
+  for (let i = 0; i < 40; i++) {
+    await p.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`);
+    await sleep(300);
+    if (await p.evaluate(`${endStatus}?.textContent === "That's the beginning of the timeline"`)) break;
+  }
   await p.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`);
   await sleep(300);
   const end = await p.evaluate(`(() => {
     const top = ${BAR}.getBoundingClientRect().top;
     const last = [...document.querySelectorAll("ol > li")].at(-1).getBoundingClientRect().bottom;
-    const older = [...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Show older entries");
+    const status = ${endStatus};
     const section = document.querySelector('section[aria-labelledby="timeline-heading"]').getBoundingClientRect().bottom;
-    const tail = older ?? [...document.querySelectorAll("ol > li")].at(-1);
-    const r = tail.getBoundingClientRect();
+    const r = status.getBoundingClientRect();
     const hit = document.elementFromPoint(r.left + r.width / 2, r.bottom - 4);
-    return { top, last, section, older: older?.getBoundingClientRect().bottom, hitInTail: tail.contains(hit) };
+    return { top, last, section, text: status.textContent, endBottom: r.bottom, hitInEnd: status.contains(hit) };
   })()`);
   check(
-    "420: scrolled to the end, the last entry and Show older are above the bar, not under it",
-    end.last <= end.top && end.section <= end.top && end.hitInTail,
+    "420: scrolled to the end, the last entry and the end message are above the bar, not under it",
+    end.text === "That's the beginning of the timeline" &&
+      end.last <= end.top &&
+      end.endBottom <= end.top &&
+      end.section <= end.top &&
+      end.hitInEnd,
     JSON.stringify(end),
   );
   await p.screenshot("app-shell-tabbar-end");

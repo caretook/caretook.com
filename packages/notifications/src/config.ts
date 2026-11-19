@@ -82,3 +82,18 @@ export const getMailConfig = (env: NodeJS.ProcessEnv = process.env): MailConfig 
     allowlist: parseAllowlist(env.MAIL_ALLOWLIST),
   };
 };
+
+/** Where contact messages go outside production when SUPPORT_EMAIL isn't set (fictional). */
+export const DEV_SUPPORT_EMAIL = "support@example.com";
+
+/**
+ * The team's support address: where the marketing site's contact messages
+ * are emailed. Production refuses to send them without SUPPORT_EMAIL.
+ */
+export const getSupportEmail = (env: NodeJS.ProcessEnv = process.env): string => {
+  const value = env.SUPPORT_EMAIL?.trim();
+  if (value) return value;
+  if (env.NODE_ENV === "production" && !isCheckBuild(env))
+    throw new Error("SUPPORT_EMAIL is required in production");
+  return DEV_SUPPORT_EMAIL;
+};

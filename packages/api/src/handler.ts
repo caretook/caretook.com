@@ -32,8 +32,13 @@ export const createRpcHandler = ({ prefix, allowedOrigins = [] }: RpcHandlerOpti
     ],
   });
 
-  return async (request: Request, authUser: AuthUser | null) => {
-    const { matched, response } = await handler.handle(request, { prefix, context: { authUser } });
+  /** `clientIp` is the caller's address as the mount point trusts it (only for rate limits; never stored). */
+  return async (
+    request: Request,
+    authUser: AuthUser | null,
+    { clientIp }: { clientIp?: string | null } = {},
+  ) => {
+    const { matched, response } = await handler.handle(request, { prefix, context: { authUser, clientIp } });
     return matched ? response : new Response("Not found", { status: 404 });
   };
 };

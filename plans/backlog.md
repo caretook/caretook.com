@@ -41,13 +41,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | landed | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
 | B-3 | change | landed | timeline-polish | prd/timeline-polish | Wider timeline entries on large screens, still mobile-first |
-| B-4 | change | ready | timeline-polish | prd/timeline-polish | Tooltip with the author's name and avatar on an entry's initials |
+| B-4 | change | landed | timeline-polish | prd/timeline-polish | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's author initials to filter by that author |
 | B-7 | change | landed | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
-| B-10 | feature | in-progress | timeline-polish | prd/timeline-polish | Infinite scroll through the whole timeline |
+| B-10 | feature | landed | timeline-polish | prd/timeline-polish | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
@@ -69,7 +69,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | landed | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
-| B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
+| B-32 | plan | landed | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-34 | change | landed | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
 | B-35 | bug | landed | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
@@ -80,11 +80,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
-| B-43 | change | in-progress | medications | prd/medications | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
+| B-43 | change | ready | medications | prd/medications | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
 | B-44 | change | triaged | quick-fixes |  | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
 | B-45 | change | triaged | profiles |  | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | triaged | profiles |  | optional phone number, address, etc on group members that can be published to the group for… |
-| B-47 | feature | triaged | appointments |  | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
+| B-47 | feature | in-progress | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
 | B-49 | feature | triaged | assistant |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-50 | feature | triaged | care-periods |  | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
@@ -148,7 +148,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-4 · change · Tooltip with the author's name and avatar on an entry's initials
 
-- status: ready
+- status: landed
 - prd: timeline-polish
 - owner: prd/timeline-polish
 - commit: 7e44461
@@ -231,15 +231,16 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
-- status: in-progress
+- status: landed
 - prd: timeline-polish
 - owner: prd/timeline-polish
-- commit:
+- commit: ced7e14
 
 - 2026-11-17 (dev keeper): Replaces "Show older".
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). IntersectionObserver auto-load (limit +30), 'Loading older…' and end-of-timeline message; button removed.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 7. Infinite scroll. Blocked by slice 4. Wave 3.
 - 2026-11-18 (Robert Bo Davis): Paused 2026-11-18 by the user: routing (B-23) and then components (B-24) run before timeline-polish continues. Wave 1 (slices 1-3) is in dev as 644f780. Slice 7; blocked by slice 4 (B-6). search (B-11) waits on it.
+- 2026-11-18 (slice/timeline-polish/7): slice 7 built on slice/timeline-polish/7: infinite scroll (OlderEntries, useLiveRows, timelinePaging). pnpm check green; --changed: roundtrip, app-shell, routing pass; phase2 passes all its own steps, fails only the 8 known wideLayout scrollbar steps (orchestrator fixing on prd). Smooth up to ~300 loaded rows.
 
 ### B-11 · feature · Search the timeline
 
@@ -300,6 +301,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/medications-prd.md. New kinds dose and medicationChange (auto-written with the medication), simple schedules in the recipient's zone, missed doses derived, print page with print CSS, date of birth synced. Data layer waits on providers slice 1; screens on routing.
 - 2026-11-18 (slice/medications/1): Slice 1 (the data layer) is ready on slice/medications/1 (febd581): medication table, dose and medicationChange kinds, sync, seeds, migration 0011. care_recipient.time_zone is now required: anything that creates a recipient must pass it.
 - 2026-11-18 (prd/medications): medications orchestrator: wave 1 (slice 1, data layer) landed in dev as 4bcf119; slices 2 (tab, list, page) and 4 (doses on the timeline, with B-43) started 2026-11-18.
+- 2026-11-18 (slice/medications/2): Slice 2 (tab, list, page) committed on slice/medications/2 (3f7e4bd, c051eab): lib/medicationDisplay.ts holds dose/change wording slice 4 may reuse.
+- 2026-11-18 (prd/medications): medications orchestrator: slice 2 (tab, list, page) merged into prd/medications as d7977c1; slice 6 (print sheet, provider page's medications) started; slice 4 still running.
+- 2026-11-18 (slice/medications/4): Slice 4 (doses and changes on the timeline, Dose sheet) ready for merge on slice/medications/4 (63d73d2, a021378).
+- 2026-11-18 (prd/medications): medications orchestrator: slice 4 (doses and changes on the timeline, Dose sheet, B-43) merged as 46c675b; its wording now reuses slice 2's medicationDisplay. Slice 6 still running.
 
 ### B-16 · question · How does the timeline's layout (rows or cards) persist?
 
@@ -487,10 +492,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-32 · plan · Landing page and basic marketing pages
 
-- status: in-progress
+- status: landed
 - prd: marketing
 - owner: prd/marketing
-- commit:
+- commit: df55253
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. The public site at caretook.com (web build only).
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/marketing-prd.md, plans/marketing-plan.md (5 slices; slice 1, the frame and home page, can start now). No new dependencies; waitlist and contact need invites slice 1, the admin list invites slice 5.
@@ -579,6 +584,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/marketing): The marketing site shows SVG placeholders (apps/web/public/screenshots/<name>.svg) to keep the repo small while the app's screens change. Before launch: run scripts/browser-checks/marketing-screenshots.mjs on a freshly reset stack (CARETOOK_BROWSER_SLOTS=4 pnpm prd browser marketing-screenshots --timeout 300), commit the WebP images, and point site/screenshots.ts and the Screenshot component back at them (light and dark sources, srcset).
+- 2026-11-18 (Robert Bo Davis): Timing (the user, 2026-11-18): one of the last tasks before launch. Do it after the launch-ready product map and once the screens it shows have stopped changing, alongside the launch work in B-33, so the images match what ships. Not part of any current marketing wave.
 
 ### B-41 · bug · /app stays blank after a full reload (app-shell.mjs last-group steps)
 
@@ -604,14 +610,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-43 · change · Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital"
 
-- status: in-progress
+- status: ready
 - prd: medications
 - owner: prd/medications
-- commit:
+- commit: 46c675b
 
 - 2026-11-18 (Robert Bo Davis): Proposed for medications: Dose joins quick add in slice 4, so that slice can set the order Note, Event, Dose, Symptom, Vital (grouping free text, then dose, then measures). The plan's slice 4 is not running yet, so it can take this in scope.
 - 2026-11-18 (prd/medications): medications orchestrator: fits slice 4, which adds Dose to the quick-add bar; reorder the bar to Note, Event, Dose, Symptom, Vital there rather than in a separate slice.
 - 2026-11-18 (prd/medications): medications orchestrator: claimed for slice 4 (started 2026-11-18): the quick-add bar becomes Note, Event, Dose, Symptom, Vital.
+- 2026-11-18 (slice/medications/4): Built in slice/medications/4 (63d73d2): quick add is Note, Event, Dose, Symptom, Vitals; Dose for writers only.
 
 ### B-44 · change · Display phone number, address, email, etc. in provider directory without a click. Use that as link…
 
@@ -645,14 +652,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
 
-- status: triaged
+- status: in-progress
 - prd: appointments
-- owner:
+- owner: prd/appointments
 - commit:
 
 - 2026-11-18 (prd/marketing): From the inbox: Deal with future event display (appointments) notes can be set to the future date as well. Symptoms and vitals cannot. Medication reminders may be a specialized type of future item on the timeline. Display of future events on timeline should be toggled somehow.
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'appointments' (to write): future-dated notes and events (appointments, with place and provider, which AGENTS.md defers), never symptoms or vitals; a toggle or section for upcoming items on the timeline. Medication reminders as future items depend on medications slice 5 (Today/due doses).
 - 2026-11-18 (plan/appointments): PRD written on plan/appointments: plans/appointments-prd.md (interview 2026-11-18). Follow-ups B-60–B-63.
+- 2026-11-19 (slice/appointments/1): slice 1 (data layer and time rules) ready on slice/appointments/1 at e7bafce: migration 0014_appointments, future-date rule (dose not a future kind), lib/upcoming + windows, seeds
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 

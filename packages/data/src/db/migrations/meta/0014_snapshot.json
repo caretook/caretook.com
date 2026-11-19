@@ -1,5 +1,5 @@
 {
-  "id": "97f7b781-90b7-413f-83d2-5199cf89b8bf",
+  "id": "045a8854-ebf1-44af-8061-ce44bce3461b",
   "prevId": "36d96a26-d4ed-4281-9772-ff9ffb2a86da",
   "version": "7",
   "dialect": "postgresql",
@@ -717,49 +717,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "ends_at": {
-          "name": "ends_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "all_day": {
-          "name": "all_day",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "place": {
-          "name": "place",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cancelled_at": {
-          "name": "cancelled_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cancelled_by": {
-          "name": "cancelled_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cancel_reason": {
-          "name": "cancel_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rescheduled_to": {
-          "name": "rescheduled_to",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp(3) with time zone",
@@ -837,21 +794,6 @@
           "columnsFrom": [
             "group_id",
             "recipient_id"
-          ],
-          "columnsTo": [
-            "group_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "timeline_entry_rescheduled_to_fk": {
-          "name": "timeline_entry_rescheduled_to_fk",
-          "tableFrom": "timeline_entry",
-          "tableTo": "timeline_entry",
-          "columnsFrom": [
-            "group_id",
-            "rescheduled_to"
           ],
           "columnsTo": [
             "group_id",
@@ -2974,6 +2916,190 @@
         "medication_stop_reason_check": {
           "name": "medication_stop_reason_check",
           "value": "\"medication\".\"stop_reason\" IN ('sideEffects', 'ineffective', 'prescriberStopped', 'other')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.waitlist_entry": {
+      "name": "waitlist_entry",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "caring_for": {
+          "name": "caring_for",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heard_from": {
+          "name": "heard_from",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "waitlist_entry_email_unique": {
+          "name": "waitlist_entry_email_unique",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "waitlist_entry_email_lower": {
+          "name": "waitlist_entry_email_lower",
+          "value": "\"waitlist_entry\".\"email\" = lower(\"waitlist_entry\".\"email\")"
+        },
+        "waitlist_entry_caring_for_check": {
+          "name": "waitlist_entry_caring_for_check",
+          "value": "\"waitlist_entry\".\"caring_for\" IN ('parent', 'spouse', 'child', 'sibling', 'friend', 'other')"
+        },
+        "waitlist_entry_heard_from_length": {
+          "name": "waitlist_entry_heard_from_length",
+          "value": "char_length(\"waitlist_entry\".\"heard_from\") <= 200"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.contact_message": {
+      "name": "contact_message",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "topic": {
+          "name": "topic",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "contact_message_topic_check": {
+          "name": "contact_message_topic_check",
+          "value": "\"contact_message\".\"topic\" IN ('question', 'help', 'privacy', 'other')"
+        },
+        "contact_message_message_length": {
+          "name": "contact_message_message_length",
+          "value": "char_length(\"contact_message\".\"message\") <= 5000"
         }
       },
       "isRLSEnabled": false
