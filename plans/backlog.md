@@ -117,6 +117,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-77 | plan | in-progress | encryption | plan/encryption | Data security and encryption review. |
 | B-78 | change | triaged | quick-fixes |  | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
 | B-79 | bug | triaged | quick-fixes |  | Device keeps its synced data after the session ends; offline sign-in never expires |
+| B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
 
 ## Items
 
@@ -986,3 +987,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-2 (launch): wipe the device copy (the sign-out path) when the server says the session has ended; allow the cached user offline only within 3 days of the last confirmed session (decided 2026-11-19), then require sign-in, and wipe once online and still signed out.
+
+### B-80 · feature · Devices page in account settings: see sessions, sign out one or all others
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-3 (launch): Better Auth's listSessions, revokeSession and revokeOtherSessions (built in, no new dependency); a new ACCOUNT_SETTINGS subpage. Pairs with the S-2 wipe.
