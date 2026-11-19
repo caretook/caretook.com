@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { launch, openPage, sleep } from "./cdp.mjs";
+import { launch, localCopyHolds, openPage, sleep } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 // The device copy ends with the session (quick-fixes slice 28, S-2):
@@ -31,7 +31,6 @@ const psql = (sql) =>
 
 const keys = `Object.keys(localStorage).filter((k) => k.startsWith("caretook:"))`;
 const confirmedKey = `${keys}.find((k) => k.startsWith("caretook:session-confirmed:"))`;
-const hasDbFile = `indexedDB.databases().then((d) => d.some((x) => x.name === "caretook.sqlite"))`;
 const statusText = `document.querySelector('[role="status"]')?.textContent ?? ""`;
 const OFFLINE_MESSAGE = "You've been offline for 3 days. Sign in to keep going.";
 
@@ -66,7 +65,10 @@ try {
     lockedKeys.includes("caretook:session-user") && lockedKeys.includes("caretook:sync-owner"),
     lockedKeys,
   );
-  check("offline past 3 days: the database file stays", await p.evaluate(hasDbFile));
+  check(
+    "offline past 3 days: the database still holds the care data",
+    (await p.evaluate(localCopyHolds("Grandma Pat"))) === "holds it",
+  );
   check(
     "offline past 3 days: its rows are still there",
     (await p.evaluate(
@@ -102,16 +104,9 @@ try {
     wipedKeys,
   );
   check("signed out: no message about being offline", !(await p.evaluate(statusText)).includes("offline"));
-  // The file's delete can be blocked until PowerSync's shared worker lets go;
-  // after a fresh load it must be gone.
-  await p.goto("/sign-in");
-  await sleep(1500);
-  let gone = false;
-  for (let i = 0; i < 10 && !gone; i++) {
-    gone = !(await p.evaluate(hasDbFile));
-    if (!gone) await sleep(1000);
-  }
-  check("signed out: the database file is gone", gone);
+  // The file stays, vacuumed: none of the care data is left in its bytes.
+  const left = await p.evaluate(localCopyHolds("Grandma Pat"));
+  check("signed out: the database holds none of the care data", left === "clean" || left === "no file", left);
   // Offline, PowerSync logs its failed connection attempts: expected here.
   const errors = p.errors.filter((e) => !e.includes("[PowerSync]: Sync error"));
   check("no page errors", errors.length === 0, errors.join(" | "));

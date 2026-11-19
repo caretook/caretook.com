@@ -7,7 +7,7 @@
 // and sign-out wiping the device. Every entry it writes has this run's tag,
 // so it passes run after run without a reset.
 import { execSync } from "node:child_process";
-import { launch, openPage, sleep } from "./cdp.mjs";
+import { launch, localCopyHolds, openPage, sleep } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -352,25 +352,11 @@ try {
   await A.waitFor(`!${rowWith(offName)}`, 15000);
   await A.signOut();
   await A.waitFor(`location.pathname === "/sign-in"`, 15000);
-  // The database is deleted, or (while a delete is pending) holds nothing.
-  await sleep(1000);
-  const left = await A.evaluate(`(async () => {
-    if (!(await indexedDB.databases()).some((d) => d.name === "caretook.sqlite")) return "deleted";
-    const db = await Promise.race([
-      new Promise((res, rej) => { const r = indexedDB.open("caretook.sqlite"); r.onsuccess = () => res(r.result); r.onerror = rej; }),
-      new Promise((res) => setTimeout(() => res(null), 3000)),
-    ]);
-    if (!db) return "delete pending";
-    let n = 0;
-    for (const name of db.objectStoreNames) {
-      n += await new Promise((res) => { const r = db.transaction(name).objectStore(name).count(); r.onsuccess = () => res(r.result); });
-    }
-    db.close();
-    return n === 0 ? "empty" : n + " records";
-  })()`);
+  // The file stays, vacuumed: none of the care data is left in its bytes.
+  const left = await A.evaluate(localCopyHolds("Grandma Pat"));
   check(
     "sign-out: lands on sign-in, and the local database is wiped",
-    /deleted|pending|empty/.test(left),
+    left === "clean" || left === "no file",
     left,
   );
   await A.goto("/app");
