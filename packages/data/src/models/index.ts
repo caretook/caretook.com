@@ -47,3 +47,41 @@ export type * from "./provider/types";
 import * as timelineEntryProviderModel from "./timelineEntryProvider";
 export { timelineEntryProviderModel };
 export type * from "./timelineEntryProvider/types";
+
+import * as careGroupConsentModel from "./careGroupConsent";
+export { careGroupConsentModel };
+export type * from "./careGroupConsent/types";
+
+import * as careGroupJoinRequestModel from "./careGroupJoinRequest";
+export { careGroupJoinRequestModel };
+export type * from "./careGroupJoinRequest/types";
+import * as accessCodeModel from "./accessCode";
+export { accessCodeModel };
+export type * from "./accessCode/types";
+
+import * as accessCodeRedemptionModel from "./accessCodeRedemption";
+export { accessCodeRedemptionModel };
+export type * from "./accessCodeRedemption/types";
+import * as medicationModel from "./medication";
+export { medicationModel };
+export type * from "./medication/types";
+
+import * as waitlistEntryModel from "./waitlistEntry";
+export { waitlistEntryModel };
+export type * from "./waitlistEntry/types";
+
+import * as contactMessageModel from "./contactMessage";
+export { contactMessageModel };
+export type * from "./contactMessage/types";
+
+import * as careRecipientDetailsModel from "./careRecipientDetails";
+export { careRecipientDetailsModel };
+export type * from "./careRecipientDetails/types";
+
+import * as userContactModel from "./userContact";
+export { userContactModel };
+export type * from "./userContact/types";
+
+import * as memberContactShareModel from "./memberContactShare";
+export { memberContactShareModel };
+export type * from "./memberContactShare/types";

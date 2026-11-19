@@ -2,12 +2,39 @@ import { describe, expect, it } from "vitest";
 import {
   allActions,
   callLabel,
+  contactDetails,
   mailtoHref,
   mapsHref,
   quickActions,
+  smsHref,
   telHref,
+  textAction,
   websiteHref,
 } from "./contactActions";
+
+describe("smsHref", () => {
+  it("texts the main number, without an extension", () => {
+    expect(smsHref("(555) 010-2200")).toBe("sms:5550102200");
+    expect(smsHref("+1 555 010 5500")).toBe("sms:+15550105500");
+    expect(smsHref("(555) 010-2200 x214")).toBe("sms:5550102200");
+  });
+  it("is null without digits", () => {
+    expect(smsHref("text me")).toBeNull();
+  });
+});
+
+describe("textAction", () => {
+  it("is named for who and which number", () => {
+    expect(textAction("Sam", { label: "Mobile", number: "555 0102" })).toEqual({
+      kind: "text",
+      href: "sms:5550102",
+      label: "Text Sam, mobile",
+      value: "555 0102",
+    });
+    expect(textAction("Sam", { label: "", number: "555" })?.label).toBe("Text Sam");
+    expect(textAction("Sam", { label: "", number: "none" })).toBeNull();
+  });
+});
 
 describe("telHref", () => {
   it("keeps the digits and a leading +", () => {
@@ -126,5 +153,31 @@ describe("allActions", () => {
       ["website", "Open Dr. Elena Alvarez's website"],
     ]);
     expect(allActions(alvarez).at(-1)?.href).toBe("https://westsidefamily.example/");
+  });
+});
+
+describe("contactDetails", () => {
+  it("shows every number with its label, then the address on one line and the email", () => {
+    expect(contactDetails(alvarez).map((d) => [d.action.kind, d.action.label, d.text, d.caption])).toEqual([
+      ["call", "Call Dr. Elena Alvarez, office", "(555) 010-2200 x214", "Office"],
+      ["call", "Call Dr. Elena Alvarez, after hours", "(555) 010-2299", "After hours"],
+      ["map", "Open Dr. Elena Alvarez's address in maps", "1200 Westside Ave, Springfield, CA 90000", null],
+      ["email", "Email Dr. Elena Alvarez", "e.alvarez@westsidefamily.example", null],
+    ]);
+  });
+
+  it("leaves out what's missing or can't be dialled, and an unlabelled number has no caption", () => {
+    expect(contactDetails({ name: "Aide", phones: [], email: null, address: null })).toEqual([]);
+    expect(
+      contactDetails({
+        name: "Aide",
+        phones: [
+          { label: "", number: "555 0100" },
+          { label: "Home", number: "ask" },
+        ],
+        email: " ",
+        address: null,
+      }).map((d) => [d.action.kind, d.caption]),
+    ).toEqual([["call", null]]);
   });
 });

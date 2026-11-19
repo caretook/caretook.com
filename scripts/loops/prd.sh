@@ -12,39 +12,79 @@ usage() {
 pnpm prd <command>
 
   See what's going on
-    status                    every worktree: branch, changes, dev server link
+    status                    every worktree: branch, changes, dev server link; the load
+    status-watch [seconds]    status, redrawn every few seconds (default 5) until Ctrl-C
     ready [topic]             the ready-to-land report: link, what it addresses, blockers
 
   Start and stop work
     start <topic>             create (or resume) a PRD's worktree and stack; prints how to open its orchestrator
-    plan <topic>              a docs-only worktree for writing a PRD or plan
+    queue <topic> [--manual]  wait for a free PRD slot (in queue order), then create the worktree and open a
+                              fully autonomous orchestrator in this terminal (--manual: it asks how to land)
+    plan <topic> [--open] [B-n …]   a docs-only worktree for writing a PRD and plan; --open starts its
+                              planning session here (it interviews you, writes both, lands them)
+    plan                      no topic: a backlog and inbox planning session in the main checkout, here
+                              (it reads the backlog and helps you decide what's next)
     slice <topic> <n>         a slice's worktree and stack (orchestrators run this)
     rm <name> [--force]       remove a worktree, its stack and, if merged, its branch
 
   Inside a worktree (name or topic defaults to the one you're in)
-    serve [name] [--restart|--stop]   its dev server, in the background; prints the link
+    serve [name] [--restart|--stop|--built|--dev]   its server in the background (--built: a check build)
     check                     pnpm check, and record that this commit passed
     sync                      merge dev into this PRD branch
-    browser <check> [args…]   run one browser check, at most two at once machine-wide
-                              (--timeout S; --suite runs the full suite with a table)
+    browser <check>           one browser check; at most four run at once machine-wide
+    browser --changed         the checks this worktree's changes need (--base REF, --list)
+    browser --smoke …         any of these in smoke mode: each check's core path only (after a merge)
+    browser --suite           every check, with a table (--timeout S; one retry on contention)
 
   Land
     land <topic> [-m subject] merge prd/<topic> into dev (only when the dev keeper says so)
 
-  prompt orchestrator|slice <topic> [n]   the first prompt for a session
+  prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
 USAGE
 }
 
 cmd=${1:-help}; (($#)) && shift
 case $cmd in
   status | ls) exec "$bin/ls.sh" "$@" ;;
+  status-watch | watch)
+    every=${1:-5}
+    [[ $every =~ ^[0-9]+$ ]] && ((every > 0)) || die "status-watch takes a whole number of seconds (default 5)"
+    trap 'echo; exit 0' INT TERM
+    while :; do
+      # Collect first, then redraw, so the screen never sits empty while ls.sh
+      # runs. A failed poll shows its error and the watch carries on.
+      out=$("$bin/ls.sh" 2>&1) || out+=$'\n'"(pnpm prd status failed; retrying)"
+      [[ -t 1 ]] && printf '\033[H\033[2J\033[3J'
+      printf '%s\n\n%s  ·  every %ss  ·  Ctrl-C to stop\n' "$out" "$(date '+%H:%M:%S')" "$every"
+      sleep "$every"
+    done
+    ;;
   ready) exec "$bin/ready.sh" "$@" ;;
   land) exec "$bin/land.sh" "$@" ;;
   serve) exec "$bin/serve.sh" "$@" ;;
   browser) exec "$bin/browser.sh" "$@" ;;
   rm) exec "$bin/rm.sh" "$@" ;;
   prompt) exec "$bin/prompt.sh" "$@" ;;
-  plan) exec "$bin/new.sh" plan "$@" ;;
+  queue) exec "$bin/queue.sh" "$@" ;;
+  plan)
+    if [[ ${1:-} == "" || ${1:-} == --open ]]; then
+      (($# <= 1)) || die "plan: give a topic before other arguments"
+      cd "$main" && exec claude --remote-control backlog "$("$bin/prompt.sh" backlog)"
+    fi
+    topic=$1; shift; open=0 items=()
+    for a in "$@"; do
+      case $a in --open) open=1 ;; B-[0-9]*) items+=("$a") ;; *) die "plan: unknown argument $a" ;; esac
+    done
+    dir=$loops/plan-$topic
+    [[ -d $dir ]] || "$bin/new.sh" plan "$topic"
+    cmd_line="cd $dir && claude --remote-control plan-$topic \"\$(scripts/loops/prompt.sh plan $topic ${items[*]:-})\""
+    if ((open)); then
+      cd "$dir" && exec claude --remote-control "plan-$topic" "$("$bin/prompt.sh" plan "$topic" ${items[@]+"${items[@]}"})"
+    fi
+    echo
+    echo "Start its planning session in a new terminal (or rerun with --open):"
+    echo "  $cmd_line"
+    ;;
   slice) exec "$bin/new.sh" slice "$@" ;;
   start)
     topic=${1:?topic}

@@ -8,13 +8,16 @@ import type {
 } from "@caretook/data/schema";
 import type { ActionResult } from "../api";
 import type { SyncDb } from "./index";
-import type { LocalQuery } from "./timeline";
+import type { EntryFilters, LocalQuery } from "./timeline";
 
 import {
   canLinkProviders,
   entryProviderId,
   isPracticeType,
+  leavesPracticeTypes,
   parseProviderPhones,
+  PRACTICE_HAS_PROVIDERS_MESSAGE,
+  PRACTICE_IN_USE_ISSUE,
   PROVIDER_STATUSES,
   PROVIDER_TYPES,
   providerContentZSchema,
@@ -22,7 +25,15 @@ import {
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { noteDocuments, providers, timelineEntryProviders } from "./schema";
-import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows, WRITER_ROLES } from "./timeline";
+import {
+  forbidden,
+  fromLocalTimestamp,
+  groupFor,
+  historyWindow,
+  nowTimestamp,
+  readRows,
+  WRITER_ROLES,
+} from "./timeline";
 
 // The provider directory and entry links on this device: local queries for
 // `useLiveQuery` and loaders, and local writes that validate with the shared
@@ -193,6 +204,37 @@ const badPractice = refuse("The practice must be a practice or pharmacy in this 
   { path: "practiceId", message: "Choose a practice or pharmacy in this care group" },
 ]);
 
+/**
+ * A practice or pharmacy can't stop being one while live providers name it
+ * as their practice (the server refuses it too, as providerService:practiceInUse).
+ * `dependents` is how many live providers in the group point at it.
+ */
+export const practiceInUseRefusal = (from: ProviderType, to: ProviderType, dependents: number) =>
+  leavesPracticeTypes(from, to) && dependents > 0
+    ? refuse("Clinicians are linked to this practice. Move them to another practice first.", [
+        { ...PRACTICE_IN_USE_ISSUE },
+      ])
+    : null;
+
+/**
+ * A practice or pharmacy can't be deleted while live providers name it as
+ * their practice (the server refuses it too, as providerService:practiceHasProviders).
+ */
+export const practiceHasProvidersRefusal = (dependents: number) =>
+  dependents > 0 ? refuse(PRACTICE_HAS_PROVIDERS_MESSAGE) : null;
+
+/** What the delete dialog says instead of letting you delete it, or null when it can go. */
+export const deleteBlockedNote = (type: ProviderType, dependents: number) =>
+  isPracticeType(type) && dependents > 0
+    ? `${dependents} ${dependents === 1 ? "provider is" : "providers are"} linked to this ${type}. Move them to another practice, or delete them, first.`
+    : null;
+
+/** How many live providers in the group name this one as their practice. */
+export const practiceDependentsQuery = (groupId: string, practiceId: string): LocalQuery => ({
+  sql: `SELECT COUNT(*) AS n FROM provider WHERE group_id = ? AND practice_id = ? AND deleted_at IS NULL`,
+  params: [groupId, practiceId],
+});
+
 const canWrite = async (db: SyncDb, groupId: string) => {
   const group = await groupFor(db, groupId);
   return !!group?.role && WRITER_ROLES.includes(group.role);
@@ -225,8 +267,12 @@ const contentColumns = (content: ProviderContent) => ({
   isPrimary: content.isPrimary ? 1 : 0,
 });
 
-/** A provider's row, validated: shared by `createProvider` and `createAndLinkProvider`. */
-const newProviderRow = async (db: SyncDb, groupId: string, input: ProviderContentInput) => {
+/**
+ * A provider's row, validated: shared by `createProvider`,
+ * `createAndLinkProvider` and the medication writes that add a prescriber or
+ * pharmacy with the medication (`lib/sync/medications.ts`).
+ */
+export const newProviderRow = async (db: SyncDb, groupId: string, input: ProviderContentInput) => {
   if (!(await canWrite(db, groupId))) return forbidden as Refusal;
   const parsed = providerContentZSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
@@ -284,6 +330,11 @@ export const updateProvider = async (
     ...defined,
   });
   if (!merged.success) return invalid(merged.error);
+  if (leavesPracticeTypes(existing.type, merged.data.type)) {
+    const [count] = await readRows<{ n: number }>(db, practiceDependentsQuery(existing.groupId, id));
+    const inUse = practiceInUseRefusal(existing.type, merged.data.type, count?.n ?? 0);
+    if (inUse) return inUse;
+  }
   if (
     merged.data.practiceId !== existing.practiceId &&
     !(await practiceOk(db, existing.groupId, id, merged.data.practiceId))
@@ -298,11 +349,18 @@ export const updateProvider = async (
   return { ok: true, id };
 };
 
-/** Soft delete, so the deletion syncs and linked entries keep the name. */
+/**
+ * Soft delete, so the deletion syncs and linked entries keep the name. A
+ * practice that live providers name is refused here, not left for the upload
+ * to reject (which would bring it back on the next sync with no reason given).
+ */
 export const removeProvider = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const existing = await liveProvider(db, id);
   if (!existing) return { ok: true };
   if (!(await canWrite(db, existing.groupId))) return forbidden;
+  const [count] = await readRows<{ n: number }>(db, practiceDependentsQuery(existing.groupId, id));
+  const inUse = practiceHasProvidersRefusal(count?.n ?? 0);
+  if (inUse) return inUse;
   const now = nowTimestamp();
   await db.drizzle
     .update(providers)
@@ -438,3 +496,32 @@ export const createProviderDocument = async (db: SyncDb, providerId: string): Pr
   });
   return { ok: true };
 };
+
+// ---------------------------------------------------------------------------
+// The timeline's "with …" line
+// ---------------------------------------------------------------------------
+
+/**
+ * The providers linked to the entries in `window` (a `… FROM timeline_entry
+ * WHERE …` tail), in link order, for one live query beside the entries
+ * (never one per row). Deleted providers are included (greyed).
+ */
+export const windowLinksQuery = (window: LocalQuery): LocalQuery => ({
+  sql: `SELECT l.entry_id, l.provider_id, p.name, p.deleted_at
+        FROM timeline_entry_provider l JOIN provider p ON p.id = l.provider_id
+        WHERE l.entry_id IN (SELECT id ${window.sql})
+        ORDER BY l.entry_id, l.created_at, l.id`,
+  params: window.params,
+});
+
+/**
+ * The providers linked to the timeline's loaded entries: `historyQuery`'s
+ * window (`historyWindow`: the same group, filters, limit and cutoff), so
+ * paging, the filters and the clock change this query with it.
+ */
+export const timelineLinksQuery = (
+  groupId: string,
+  filters: EntryFilters,
+  limit: number,
+  cutoff: string,
+): LocalQuery => windowLinksQuery(historyWindow(groupId, filters, limit, cutoff));

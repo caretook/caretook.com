@@ -10,6 +10,7 @@ const row = (patch: Partial<GroupRow> = {}): GroupRow => ({
   recipient_id: "r1",
   recipient_name: "Patricia",
   recipient_preferred_name: "Grandma Pat",
+  recipient_time_zone: "America/Los_Angeles",
   ...patch,
 });
 
@@ -22,7 +23,13 @@ describe("toGroupContext", () => {
       displayName: "Grandma Pat",
       role: "caretaker",
       canWrite: true,
-      recipient: { id: "r1", name: "Patricia", preferredName: "Grandma Pat", displayName: "Grandma Pat" },
+      recipient: {
+        id: "r1",
+        name: "Patricia",
+        preferredName: "Grandma Pat",
+        displayName: "Grandma Pat",
+        timeZone: "America/Los_Angeles",
+      },
     });
   });
 

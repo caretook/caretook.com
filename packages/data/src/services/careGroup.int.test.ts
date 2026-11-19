@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok, system } from "../../test/fixtures";
 import { careGroupMemberModel, careGroupInviteModel } from "../models";
 import { isError } from "../errors";
@@ -18,22 +18,10 @@ type Users = Record<
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 const byId = (id: string) => ({ filter: { id: { type: "eq", value: id } } }) as const;
 
-let u: Users;
-let groupId: string;
-let recipientId: string;
+// Every test builds its own group and users, so tests never depend on each other.
 
-const membershipOf = async (user: Users[keyof Users]) => {
-  const m = ok(
-    await careGroupMemberService.get(system, {
-      filter: { groupId: { type: "eq", value: groupId }, userId: { type: "eq", value: user.user.id } },
-    }),
-  );
-  if (!m) throw new Error("no membership");
-  return m;
-};
-
-beforeAll(async () => {
-  u = {
+const setup = async () => {
+  const u: Users = {
     owner: await createUser("owner"),
     admin: await createUser("admin"),
     caretaker: await createUser("caretaker"),
@@ -46,12 +34,22 @@ beforeAll(async () => {
     { user: u.caretaker.user, role: "caretaker" },
     { user: u.viewer.user, role: "viewer" },
   ]);
-  groupId = group.id;
-  recipientId = recipient.id;
-});
+  const groupId = group.id;
+  const membershipOf = async (user: Users[keyof Users]) => {
+    const m = ok(
+      await careGroupMemberService.get(system, {
+        filter: { groupId: { type: "eq", value: groupId }, userId: { type: "eq", value: user.user.id } },
+      }),
+    );
+    if (!m) throw new Error("no membership");
+    return m;
+  };
+  return { u, groupId, recipientId: recipient.id, membershipOf };
+};
 
 describe("reading", () => {
   it("shows a group to every member and nobody else", async () => {
+    const { u, groupId } = await setup();
     for (const role of ["owner", "admin", "caretaker", "viewer"] as const) {
       expect(await careGroupService.getById(u[role].ctx, groupId)).toMatchObject({ id: groupId });
     }
@@ -59,11 +57,13 @@ describe("reading", () => {
   });
 
   it("gives Caretook staff no access to care data", async () => {
+    const { u, groupId, recipientId } = await setup();
     expect(await careGroupService.getById(u.staff.ctx, groupId)).toBeNull();
     expect(await careRecipientService.getById(u.staff.ctx, recipientId)).toBeNull();
   });
 
   it("lets co-members read each other, but not outsiders", async () => {
+    const { u } = await setup();
     const res = ok(await userService.list(u.viewer.ctx));
     const ids = res.data.map((x) => x.id);
     expect(ids).toEqual(expect.arrayContaining([u.owner.user.id, u.caretaker.user.id, u.viewer.user.id]));
@@ -78,6 +78,7 @@ describe("reading", () => {
 
 describe("care recipient", () => {
   it("lets caretakers edit the profile but not viewers", async () => {
+    const { u, recipientId } = await setup();
     expect(
       codeOf(await careRecipientService.update(u.viewer.ctx, { ...byId(recipientId), data: { notes: "x" } })),
     ).toBe("baseModel:update:nothingUpdated");
@@ -91,16 +92,29 @@ describe("care recipient", () => {
   });
 
   it("won't create rows in a group the actor can't manage", async () => {
+    const { u } = await setup();
     const other = await createGroup(u.outsider);
     expect(
-      codeOf(await careRecipientService.create(u.caretaker.ctx, { groupId: other.group.id, name: "X" })),
+      codeOf(
+        await careRecipientService.create(u.caretaker.ctx, {
+          groupId: other.group.id,
+          name: "X",
+          timeZone: "UTC",
+        }),
+      ),
     ).toBe("permissions:unauthorized");
   });
 });
 
 describe("creating a group", () => {
   it("makes the creator its only owner, with the recipient, atomically", async () => {
-    const res = ok(await careGroupService.create(u.viewer.ctx, { name: "Mine", recipient: { name: "Sam" } }));
+    const { u } = await setup();
+    const res = ok(
+      await careGroupService.create(u.viewer.ctx, {
+        name: "Mine",
+        recipient: { name: "Sam", timeZone: "America/Chicago" },
+      }),
+    );
     expect(res.recipient).toMatchObject({ name: "Sam", displayName: "Sam" });
     const members = ok(
       await careGroupMemberService.list(u.viewer.ctx, {
@@ -111,11 +125,12 @@ describe("creating a group", () => {
   });
 
   it("rolls back the group when the recipient fails", async () => {
+    const { u } = await setup();
     const id = crypto.randomUUID();
     const res = await careGroupService.create(u.viewer.ctx, {
       id,
       name: "Broken",
-      recipient: { name: null as never },
+      recipient: { name: null as never, timeZone: "UTC" },
     });
     expect(isError(res)).toBe(true);
     expect(await careGroupService.getById(system, id)).toBeNull();
@@ -130,6 +145,7 @@ describe("creating a group", () => {
 
 describe("membership rules", () => {
   it("only lets managers change roles, and never the group or user", async () => {
+    const { u, membershipOf } = await setup();
     const viewer = await membershipOf(u.viewer);
     expect(
       codeOf(await careGroupMemberService.updateRole(u.caretaker.ctx, { id: viewer.id, role: "caretaker" })),
@@ -146,6 +162,7 @@ describe("membership rules", () => {
   });
 
   it("keeps owners in the hands of owners", async () => {
+    const { u, membershipOf } = await setup();
     const owner = await membershipOf(u.owner);
     const viewer = await membershipOf(u.viewer);
     expect(
@@ -160,6 +177,7 @@ describe("membership rules", () => {
   });
 
   it("never leaves a group without an owner", async () => {
+    const { u, groupId, membershipOf } = await setup();
     const owner = await membershipOf(u.owner);
     expect(codeOf(await careGroupMemberService.leave(u.owner.ctx, groupId))).toBe(
       "careGroupMemberService:lastOwner",
@@ -170,6 +188,7 @@ describe("membership rules", () => {
   });
 
   it("allows handing over ownership and then leaving", async () => {
+    const { u } = await setup();
     const { group } = await createGroup(u.owner, [{ user: u.caretaker.user, role: "caretaker" }]);
     const filter = (userId: string) =>
       ({
@@ -187,6 +206,7 @@ describe("membership rules", () => {
   });
 
   it("lets any member leave", async () => {
+    const { u } = await setup();
     const { group } = await createGroup(u.owner, [{ user: u.viewer.user, role: "viewer" }]);
     expect(codeOf(await careGroupMemberService.leave(u.viewer.ctx, group.id))).toBe("ok");
     expect(await careGroupService.getById(u.viewer.ctx, group.id)).toBeNull();
@@ -195,11 +215,13 @@ describe("membership rules", () => {
 
 describe("invites", () => {
   it("lets managers invite, returning the token once and never the hash", async () => {
+    const { u, groupId } = await setup();
     const res = ok(
-      await careGroupInviteService.create(u.admin.ctx, {
+      await careGroupInviteService.createEmail(u.admin.ctx, {
         groupId,
         email: "New.Person@Example.com",
         role: "caretaker",
+        attested: true,
       }),
     );
     expect(res.token.length).toBeGreaterThan(30);
@@ -213,44 +235,64 @@ describe("invites", () => {
     // One pending invite per email per group.
     expect(
       codeOf(
-        await careGroupInviteService.create(u.owner.ctx, {
+        await careGroupInviteService.createEmail(u.owner.ctx, {
           groupId,
           email: "new.person@example.com",
           role: "viewer",
+          attested: true,
         }),
       ),
-    ).toBe("baseModel:create");
+    ).toBe("careGroupInviteService:alreadyInvited");
   });
 
   it("only lets owners invite owners", async () => {
+    const { u, groupId } = await setup();
     expect(
       codeOf(
-        await careGroupInviteService.create(u.admin.ctx, { groupId, email: "o@example.com", role: "owner" }),
+        await careGroupInviteService.createEmail(u.admin.ctx, {
+          groupId,
+          email: "o@example.com",
+          role: "owner",
+          attested: true,
+        }),
       ),
     ).toBe("careGroupInviteService:ownerOnly");
     expect(
       codeOf(
-        await careGroupInviteService.create(u.owner.ctx, { groupId, email: "o@example.com", role: "owner" }),
+        await careGroupInviteService.createEmail(u.owner.ctx, {
+          groupId,
+          email: "o@example.com",
+          role: "owner",
+          attested: true,
+        }),
       ),
     ).toBe("ok");
   });
 
   it("hides invites from non-managers", async () => {
+    const { u, groupId } = await setup();
     expect(ok(await careGroupInviteService.list(u.caretaker.ctx)).count).toBe(0);
     expect(
       codeOf(
-        await careGroupInviteService.create(u.caretaker.ctx, {
+        await careGroupInviteService.createEmail(u.caretaker.ctx, {
           groupId,
           email: "c@example.com",
           role: "viewer",
+          attested: true,
         }),
       ),
     ).toBe("permissions:unauthorized");
   });
 
   it("revokes pending invites only, and can't be used to forge acceptance", async () => {
+    const { u, groupId } = await setup();
     const { invite } = ok(
-      await careGroupInviteService.create(u.owner.ctx, { groupId, email: "r@example.com", role: "viewer" }),
+      await careGroupInviteService.createEmail(u.owner.ctx, {
+        groupId,
+        email: "r@example.com",
+        role: "viewer",
+        attested: true,
+      }),
     );
     if (!invite) throw new Error("invite not readable");
     expect(
@@ -273,6 +315,7 @@ describe("invites", () => {
 
 describe("deleting a group", () => {
   it("is for owners only and cascades", async () => {
+    const { u } = await setup();
     const { group, recipient } = await createGroup(u.owner, [{ user: u.admin.user, role: "admin" }]);
     expect(codeOf(await careGroupService.remove(u.admin.ctx, byId(group.id)))).toBe(
       "baseModel:remove:nothingRemoved",

@@ -88,7 +88,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 ### Starting a PRD
 
-1. A PRD needs a written PRD and plan first. To write one, run `pnpm prd plan <topic>` and ask an agent there to use `write-a-prd` and then `prd-to-plan`. It will interview you.
+1. A PRD needs a written PRD and plan first. Not sure which? `pnpm prd plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that interviews you, writes the PRD and plan, updates the backlog and lands them in `dev`.
 2. `pnpm prd start <topic>` creates the PRD's worktree and stack, and prints a command.
 3. Open a **new terminal** and run that command. It starts the orchestrator session with the right first prompt:
 
@@ -96,9 +96,11 @@ Every change is committed straight onto `dev` (only those two files), so every s
    cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic>)"
    ```
 
-4. The orchestrator summarises the plan and the backlog, and asks which slices to run. Tell it. It can run wave after wave in one session; if a session gets slow or confused, close it and run the same command again (`pnpm prd start <topic>` reprints it). It picks up from the plan's _Status_ section.
+4. The orchestrator summarises the plan and the backlog, then asks how to land (before each landing, run everything through, or automatically for the waves or slices you pick) and which slices to run. Tell it. It can run wave after wave in one session; if a session gets slow or confused, close it and run the same command again (`pnpm prd start <topic>` reprints it). It picks up from the plan's _Status_ section.
 
 **At most three PRDs run at once.** `pnpm prd start` refuses a fourth (raise `CARETOOK_MAX_PRDS` to override).
+
+**Queue one for later:** `pnpm prd queue <topic>` in a terminal of its own. It waits for a free slot (a finished PRD removed with `pnpm prd rm`), in the order PRDs were queued, then creates the worktree and opens the orchestrator in that terminal. A queued orchestrator runs the whole plan through and lands each wave without asking (`--manual` makes it ask instead); it waits on other PRDs' work by asking their orchestrators to tell it when it lands.
 
 ### What runs where
 
@@ -163,8 +165,11 @@ chore(app-shell): merge dev into prd/app-shell
 | Command                           | What it's for                                                                      |
 | --------------------------------- | ---------------------------------------------------------------------------------- |
 | `pnpm prd status`                 | every worktree: branch, changes, dev server link                                   |
+| `pnpm prd status-watch [seconds]` | the same, redrawn every few seconds (default 5) until Ctrl-C                       |
 | `pnpm prd start <topic>`          | create or reopen a PRD's worktree; prints the orchestrator command                 |
-| `pnpm prd plan <topic>`           | a docs-only worktree for writing a PRD or plan                                     |
+| `pnpm prd queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
+| `pnpm prd plan <topic> --open`    | a docs-only worktree and a planning session that writes and lands the PRD and plan |
+| `pnpm prd plan`                   | a backlog and inbox session in the main checkout that helps you decide what's next |
 | `pnpm prd serve [name]`           | run a worktree's dev server (`--restart`, `--stop`)                                |
 | `pnpm prd ready [topic]`          | the ready-to-land report                                                           |
 | `pnpm prd land <topic>`           | merge the PRD's branch into `dev`                                                  |

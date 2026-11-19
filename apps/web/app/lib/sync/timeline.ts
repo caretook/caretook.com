@@ -9,9 +9,17 @@ import type { ActionResult } from "../api";
 import type { GroupMember, LatestVital, MyGroup, TimelineEntry } from "../rpc";
 import type { SyncDb } from "./index";
 
-import { isKnownReading, timelineEntryContentZSchema } from "@caretook/data/schema";
-import { eq } from "drizzle-orm";
+import {
+  DEVICE_FUTURE_SKEW_MS,
+  FUTURE_DATE_MESSAGE,
+  FUTURE_KINDS,
+  isKnownReading,
+  isTooFarAhead,
+  timelineEntryContentZSchema,
+} from "@caretook/data/schema";
+import { and, eq, isNull } from "drizzle-orm";
 import { isEntryKind } from "../entryDisplay";
+import { TIMELINE_KINDS } from "../timelineFilters";
 import { timelineEntries } from "./schema";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
@@ -77,6 +85,14 @@ export type EntryRow = {
   updated_at: string | null;
   created_by: string | null;
   updated_by: string | null;
+  // Appointments and reminders (optional: rows from before they synced).
+  ends_at?: string | null;
+  all_day?: number | null;
+  place?: string | null;
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
+  cancel_reason?: string | null;
+  rescheduled_to?: string | null;
 };
 
 /**
@@ -100,6 +116,13 @@ export const toTimelineEntry = (row: EntryRow): TimelineEntry | null => {
     updatedAt: row.updated_at ? fromLocalTimestamp(row.updated_at) : "",
     createdBy: row.created_by ?? "",
     updatedBy: row.updated_by ?? "",
+    endsAt: row.ends_at ? fromLocalTimestamp(row.ends_at) : null,
+    allDay: row.all_day === 1,
+    place: row.place ?? null,
+    cancelledAt: row.cancelled_at ? fromLocalTimestamp(row.cancelled_at) : null,
+    cancelledBy: row.cancelled_by ?? null,
+    cancelReason: row.cancel_reason ?? null,
+    rescheduledTo: row.rescheduled_to ?? null,
   };
 };
 
@@ -113,15 +136,168 @@ export const toTimelineEntries = (rows: EntryRow[]) =>
 export type LocalQuery = { sql: string; params: unknown[] };
 
 /**
- * One group's entries, newest first. Asks for one row more than `limit`,
- * so the screen knows whether "Show older" has anything to show.
+ * A condition on an entry's id (`timeline_entry.id`) that the windows AND in:
+ * the timeline's search (`entryMatchCondition` in `./search`, or one that
+ * matches nothing while the index is preparing).
  */
-export const entriesQuery = (groupId: string, kind: TimelineEntryKind | null, limit: number): LocalQuery => ({
-  sql: `SELECT * FROM timeline_entry
-        WHERE group_id = ? AND deleted_at IS NULL ${kind ? "AND kind = ?" : ""}
-        ORDER BY occurred_at DESC, id DESC LIMIT ?`,
-  params: kind ? [groupId, kind, limit + 1] : [groupId, limit + 1],
-});
+export type EntryCondition = { sql: string; params: unknown[] };
+
+/** The timeline's filters, as the queries take them (`TimelineFilters` in `lib/timelineFilters.ts`). */
+export type EntryFilters = {
+  kind: TimelineEntryKind | null;
+  author: string | null;
+  /** Only the entries this condition holds for (the search); none means every entry. */
+  match?: EntryCondition | null;
+};
+
+/**
+ * The kinds the timeline shows, as SQL (`TIMELINE_KINDS`). The timeline's
+ * window leaves the other kinds out here, not after loading, so a day of
+ * doses never shortens a page.
+ */
+export const SHOWN_KINDS_SQL = `kind IN (${TIMELINE_KINDS.map((k) => `'${k}'`).join(", ")})`;
+
+const FUTURE_KINDS_SQL = `kind IN (${FUTURE_KINDS.map((k) => `'${k}'`).join(", ")})`;
+
+/** The conditions every window shares: one group, live entries, the kind and author filters, the search. */
+const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonly string[] | null) => {
+  const conditions = ["group_id = ?", "deleted_at IS NULL"];
+  const params: unknown[] = [groupId];
+  if (filters.kind) {
+    conditions.push("kind = ?");
+    params.push(filters.kind);
+  }
+  if (kinds) {
+    conditions.push(`kind IN (${kinds.map(() => "?").join(", ")})`);
+    params.push(...kinds);
+  } else if (!filters.kind) {
+    conditions.push(SHOWN_KINDS_SQL);
+  }
+  if (filters.author) {
+    conditions.push("created_by = ?");
+    params.push(filters.author);
+  }
+  if (filters.match) {
+    conditions.push(`(${filters.match.sql})`);
+    params.push(...filters.match.params);
+  }
+  return { conditions, params };
+};
+
+/**
+ * The timeline's window: one group's live entries under the filters, newest
+ * first, as the tail of a `SELECT … FROM timeline_entry`. `historyWindow`
+ * adds the history's end to it (the timeline reads `historyQuery` and
+ * `timelineLinksQuery`, so the "with …" lines always cover exactly the
+ * listed entries). It asks for one row more than `limit`, so
+ * the screen knows whether there are older entries.
+ */
+export const entryWindow = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
+  const { conditions, params } = filterConditions(groupId, filters, null);
+  return {
+    sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at DESC, id DESC LIMIT ?`,
+    params: [...params, limit + 1],
+  };
+};
+
+/**
+ * The timeline's history: `entryWindow` ending at `cutoff` (`historyCutoff`
+ * in `lib/upcoming`, from a once-a-minute clock). Notes and events count
+ * once they've started; other kinds always do (they can't be in the future
+ * beyond a few minutes of skew, and a vital saved "now" must show at once).
+ * Newest first, one row more than `limit`, so paging counts past items only.
+ */
+export const historyWindow = (
+  groupId: string,
+  filters: EntryFilters,
+  limit: number,
+  cutoff: string,
+): LocalQuery => {
+  const { conditions, params } = filterConditions(groupId, filters, null);
+  conditions.push(`(NOT ${FUTURE_KINDS_SQL} OR occurred_at <= ?)`);
+  params.push(toLocalTimestamp(cutoff));
+  return {
+    sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at DESC, id DESC LIMIT ?`,
+    params: [...params, limit + 1],
+  };
+};
+
+/** How far ahead Upcoming looks before "Show later". */
+export const UPCOMING_HORIZON_DAYS = 90;
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Upcoming notes and events under the filters, soonest first, starting
+ * before `now` plus `horizonDays`. Uncapped: everything in the horizon.
+ * Cancelled ones are included (shown struck through).
+ *
+ * A candidate set: it holds every item `entryTiming` (`lib/upcoming`) calls
+ * upcoming or now (starting after now, ending after now, or all day and
+ * starting within the last 25 hours, the longest day), and a few all-day
+ * items whose day has just ended. Screens filter it through `entryTiming`
+ * and sort it with `upcomingOrder` (all-day items first in their day).
+ */
+export const upcomingWindow = (
+  groupId: string,
+  filters: EntryFilters,
+  now: Date,
+  horizonDays = UPCOMING_HORIZON_DAYS,
+): LocalQuery => {
+  const { conditions, params } = filterConditions(groupId, filters, FUTURE_KINDS);
+  const at = now.getTime();
+  conditions.push("(occurred_at > ? OR ends_at > ? OR (all_day = 1 AND occurred_at > ?))");
+  params.push(toLocalTimestamp(now), toLocalTimestamp(now), toLocalTimestamp(new Date(at - 25 * 3_600_000)));
+  conditions.push("occurred_at < ?");
+  params.push(toLocalTimestamp(new Date(at + horizonDays * DAY_MS)));
+  return {
+    sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at ASC, id ASC`,
+    params,
+  };
+};
+
+/**
+ * Past events under the filters (the Upcoming section's Past tab): events
+ * that have started by `cutoff`, as in the history, cancelled ones included.
+ * Newest first, one row more than `limit`.
+ */
+export const pastEventsWindow = (
+  groupId: string,
+  filters: EntryFilters,
+  limit: number,
+  cutoff: string,
+): LocalQuery => {
+  const { conditions, params } = filterConditions(groupId, filters, ["event"]);
+  conditions.push("occurred_at <= ?");
+  params.push(toLocalTimestamp(cutoff));
+  return {
+    sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at DESC, id DESC LIMIT ?`,
+    params: [...params, limit + 1],
+  };
+};
+
+/** One group's entries under the filters, newest first (`entryWindow`). */
+export const entriesQuery = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
+  const window = entryWindow(groupId, filters, limit);
+  return { sql: `SELECT * ${window.sql}`, params: window.params };
+};
+
+/** The timeline's history: one group's entries under the filters, newest first, ending at `cutoff` (`historyWindow`). */
+export const historyQuery = (
+  groupId: string,
+  filters: EntryFilters,
+  limit: number,
+  cutoff: string,
+): LocalQuery => {
+  const window = historyWindow(groupId, filters, limit, cutoff);
+  return { sql: `SELECT * ${window.sql}`, params: window.params };
+};
+
+/** Upcoming notes and events under the filters, soonest first (`upcomingWindow`): the Next strip and the Upcoming block. */
+export const upcomingQuery = (groupId: string, filters: EntryFilters, now: Date): LocalQuery => {
+  const window = upcomingWindow(groupId, filters, now);
+  return { sql: `SELECT * ${window.sql}`, params: window.params };
+};
 
 export type GroupRow = {
   id: string;
@@ -130,12 +306,13 @@ export type GroupRow = {
   recipient_id: string | null;
   recipient_name: string | null;
   recipient_preferred_name: string | null;
+  recipient_time_zone: string | null;
 };
 
 /** The groups `userId` belongs to, with their role and the recipient. */
 export const myGroupsQuery = (userId: string): LocalQuery => ({
   sql: `SELECT g.id, g.name, m.role, r.id AS recipient_id, r.name AS recipient_name,
-               r.preferred_name AS recipient_preferred_name
+               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone
         FROM care_group g
         JOIN care_group_member m ON m.group_id = g.id AND m.user_id = ?
         LEFT JOIN care_recipient r ON r.group_id = g.id
@@ -146,7 +323,7 @@ export const myGroupsQuery = (userId: string): LocalQuery => ({
 /** One group `userId` belongs to (no row when they aren't a member, or it isn't on the device). */
 export const myGroupQuery = (userId: string, groupId: string): LocalQuery => ({
   sql: `SELECT g.id, g.name, m.role, r.id AS recipient_id, r.name AS recipient_name,
-               r.preferred_name AS recipient_preferred_name
+               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone
         FROM care_group g
         JOIN care_group_member m ON m.group_id = g.id AND m.user_id = ?
         LEFT JOIN care_recipient r ON r.group_id = g.id
@@ -245,7 +422,19 @@ export const contentColumns = (content: Omit<TimelineEntryContent, "kind">) => (
   title: content.title ?? null,
   body: content.body ?? null,
   details: content.details ? JSON.stringify(content.details) : null,
+  endsAt: content.endsAt ? toLocalTimestamp(content.endsAt) : null,
+  allDay: content.allDay ? 1 : 0,
+  place: content.place ?? null,
+  cancelledAt: content.cancelledAt ? toLocalTimestamp(content.cancelledAt) : null,
+  cancelReason: content.cancelReason ?? null,
+  rescheduledTo: content.rescheduledTo ?? null,
 });
+
+/** The refusal when an entry of this kind is dated past now plus the device's skew (5 minutes). */
+export const futureRefusal = (kind: string, occurredAt: string, now = new Date()): ActionResult | null =>
+  isTooFarAhead(kind, occurredAt, now, DEVICE_FUTURE_SKEW_MS)
+    ? invalid({ issues: [{ path: ["occurredAt"], message: FUTURE_DATE_MESSAGE }] })
+    : null;
 
 /** Add an entry on this device. It syncs when the device is online. */
 export const createEntry = async (db: SyncDb, groupId: string, input: unknown): Promise<ActionResult> => {
@@ -255,6 +444,8 @@ export const createEntry = async (db: SyncDb, groupId: string, input: unknown): 
 
   const parsed = timelineEntryContentZSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
+  const future = futureRefusal(parsed.data.kind, parsed.data.occurredAt);
+  if (future) return future;
 
   const now = nowTimestamp();
   await db.drizzle.insert(timelineEntries).values({
@@ -263,6 +454,7 @@ export const createEntry = async (db: SyncDb, groupId: string, input: unknown): 
     recipientId: group.recipient.id,
     kind: parsed.data.kind,
     ...contentColumns(parsed.data),
+    cancelledBy: parsed.data.cancelledAt ? db.userId : null,
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -302,18 +494,34 @@ export const updateEntry = async (
     occurredAt: entry.occurredAt,
     timeZone: entry.timeZone,
     details: entry.details,
+    allDay: entry.allDay,
+    endsAt: entry.endsAt,
+    place: entry.place,
+    cancelledAt: entry.cancelledAt,
+    cancelReason: entry.cancelReason,
+    rescheduledTo: entry.rescheduledTo,
     ...defined,
   });
   if (!merged.success) return invalid(merged.error);
+  if (new Date(merged.data.occurredAt).getTime() !== new Date(entry.occurredAt).getTime()) {
+    const future = futureRefusal(entry.kind, merged.data.occurredAt);
+    if (future) return future;
+  }
+  // Who cancelled is shown at once here; the server sets its own copy.
+  const cancelledBy = merged.data.cancelledAt ? (entry.cancelledAt ? entry.cancelledBy : db.userId) : null;
 
   await db.drizzle
     .update(timelineEntries)
-    .set({ ...contentColumns(merged.data), updatedAt: nowTimestamp(), updatedBy: db.userId })
+    .set({ ...contentColumns(merged.data), cancelledBy, updatedAt: nowTimestamp(), updatedBy: db.userId })
     .where(eq(timelineEntries.id, id));
   return { ok: true };
 };
 
-/** Soft delete, so the deletion syncs to everyone's devices. */
+/**
+ * Soft delete, so the deletion syncs to everyone's devices. Deleting an
+ * event that others were rescheduled to leaves them cancelled, with no
+ * link (in the same local transaction).
+ */
 export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const entry = await existingEntry(db, id);
   if (!entry) return { ok: true };
@@ -321,9 +529,23 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
   if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden;
 
   const now = nowTimestamp();
-  await db.drizzle
-    .update(timelineEntries)
-    .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
-    .where(eq(timelineEntries.id, id));
+  await db.drizzle.transaction(async (tx) => {
+    await tx
+      .update(timelineEntries)
+      .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+      .where(eq(timelineEntries.id, id));
+    if (entry.kind === "event") {
+      await tx
+        .update(timelineEntries)
+        .set({ rescheduledTo: null, updatedAt: now, updatedBy: db.userId })
+        .where(
+          and(
+            eq(timelineEntries.groupId, entry.groupId),
+            eq(timelineEntries.rescheduledTo, id),
+            isNull(timelineEntries.deletedAt),
+          ),
+        );
+    }
+  });
   return { ok: true };
 };

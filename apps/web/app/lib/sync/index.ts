@@ -1,9 +1,12 @@
 import type { SyncStatus } from "@powersync/web";
 import type { SyncDb } from "./client";
+import type * as SearchModuleNs from "./search";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 export type { SyncDb };
+
+type SearchModule = typeof SearchModuleNs;
 
 // The one entry point to the local database for routes and components.
 // PowerSync itself loads lazily (./client), so importing this on the server
@@ -14,6 +17,7 @@ export type { SyncDb };
 
 let current: Promise<SyncDb> | null = null;
 let ready: SyncDb | null = null;
+let searchIndex: Promise<SearchModule> | null = null;
 
 /** Open (or reuse) the local database for this user. */
 export const openSync = async (userId: string): Promise<SyncDb> => {
@@ -22,8 +26,27 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
   current ??= import("./client")
     .then((m) => m.open(userId))
     .then((db) => {
-      // Dev only: lets browser checks and the console query the local copy.
-      if (import.meta.env.DEV) (window as { caretookSync?: SyncDb }).caretookSync = db;
+      // Dev and check builds only (`pnpm prd serve --built` sets
+      // VITE_CHECK_BUILD): lets browser checks and the console query the local
+      // copy, and load the device modules without Vite's source imports. A
+      // production build drops this block.
+      if (import.meta.env.DEV || import.meta.env.VITE_CHECK_BUILD === "1") {
+        const w = window as { caretookSync?: SyncDb; caretookModules?: () => Promise<unknown> };
+        w.caretookSync = db;
+        w.caretookModules = async () => ({
+          providers: await import("./providers"),
+          liveEntry: await import("./liveEntry"),
+          timeline: await import("./timeline"),
+          medications: await import("./medications"),
+          appointments: await import("./appointments"),
+          search: await import("./search"),
+        });
+      }
+      // The search index follows the database (built in the background).
+      searchIndex = import("./search").then((m) => {
+        void m.startSearchIndex(db);
+        return m;
+      });
       return (ready = db);
     })
     .catch((e: unknown) => {
@@ -44,6 +67,9 @@ export const closeSync = async () => {
   const db = ready ?? (current ? await current.catch(() => null) : null);
   current = null;
   ready = null;
+  const search = searchIndex;
+  searchIndex = null;
+  await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
   const m = await import("./client");
   await m.clear(db);
 };
@@ -85,6 +111,29 @@ const subscribeToStatus = (onChange: () => void) =>
 const firstSyncDoneSnapshot = () => !!ready && isFirstSyncDone(ready);
 
 /**
+ * Watch a query (`key` is `JSON.stringify([sql, params])`) and pass each
+ * result to `onRows`; returns the cleanup. With no database open it watches
+ * nothing: a component can still mount while sign-out is closing the
+ * database (a watch result arriving mid-sign-out renders a new child), and
+ * there's nothing left to show it then.
+ */
+export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (() => void) => {
+  if (!ready) return () => undefined;
+  const controller = new AbortController();
+  const [watchSql, watchParams] = JSON.parse(key) as [string, unknown[]];
+  ready.powersync.watch(
+    watchSql,
+    watchParams,
+    {
+      onResult: (result) => onRows((result.rows?._array ?? []) as T[]),
+      onError: (error) => console.error("Local query failed", error),
+    },
+    { signal: controller.signal, throttleMs: 30 },
+  );
+  return () => controller.abort();
+};
+
+/**
  * Rows of a local query, kept up to date as the database changes (local
  * writes, or other members' changes arriving through sync). `initial` is
  * what the loader read, shown until the watch reports.
@@ -97,20 +146,7 @@ export const useLiveQuery = <T>(sql: string, params: unknown[], initial: T[]): T
   const [state, setState] = useState({ initial, rows: initial });
   if (state.initial !== initial) setState({ initial, rows: initial });
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const [watchSql, watchParams] = JSON.parse(key) as [string, unknown[]];
-    getSync().powersync.watch(
-      watchSql,
-      watchParams,
-      {
-        onResult: (result) => setState((s) => ({ ...s, rows: (result.rows?._array ?? []) as T[] })),
-        onError: (error) => console.error("Local query failed", error),
-      },
-      { signal: controller.signal, throttleMs: 30 },
-    );
-    return () => controller.abort();
-  }, [key]);
+  useEffect(() => watchLiveQuery<T>(key, (rows) => setState((s) => ({ ...s, rows }))), [key]);
 
   return state.initial === initial ? state.rows : initial;
 };

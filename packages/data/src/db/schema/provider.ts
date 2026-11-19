@@ -37,6 +37,26 @@ export const PRACTICE_TYPES = ["practice", "pharmacy"] as const satisfies readon
 export const isPracticeType = (type: string): type is (typeof PRACTICE_TYPES)[number] =>
   (PRACTICE_TYPES as readonly string[]).includes(type);
 
+/**
+ * A practice or pharmacy becoming something clinicians can't work at. Refused
+ * while live providers name it as their practice (practice ↔ pharmacy is fine).
+ */
+export const leavesPracticeTypes = (from: string, to: string) => isPracticeType(from) && !isPracticeType(to);
+
+/** The field issue for that refusal, the same on the device and the server. */
+export const PRACTICE_IN_USE_ISSUE = {
+  path: "type",
+  message: "Clinicians are linked to this practice. Move them to another practice first.",
+} as const;
+
+/**
+ * Why a practice or pharmacy can't be deleted while live providers name it
+ * as their practice: the same on the device and the server
+ * (providerService:practiceHasProviders).
+ */
+export const PRACTICE_HAS_PROVIDERS_MESSAGE =
+  "Providers are linked to this practice. Move them to another practice, or delete them, first.";
+
 /** A labelled phone number ("Office", "Fax", "After hours"). */
 export type ProviderPhone = { label: string; number: string };
 

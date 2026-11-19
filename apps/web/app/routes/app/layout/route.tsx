@@ -1,7 +1,10 @@
 import type { Route } from "./+types/route";
 
 import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "react-router";
+import { Search } from "lucide-react";
+import { Wordmark } from "~/components/brand";
 import { FirstSyncPending } from "~/components/shell";
+import { IconButton } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { isFirstSyncPending } from "~/lib/firstSync";
 import { requireSession, sessionContext } from "~/lib/session";
@@ -34,6 +37,7 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  *
  * - header `group` (left): the Caretook link, then `GroupMenu` on group routes;
  * - header `sections` (wide screens): `SectionNav` on group routes;
+ * - header `search`: the magnifier that opens the group's search, on group routes;
  * - header `status`: `SyncIndicator`;
  * - header `user`: `UserMenu`;
  * - the outlet;
@@ -48,16 +52,21 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const { pathname } = useLocation();
   return (
     <>
-      <header className="navbar bg-base-100 gap-2 px-4 shadow-sm">
+      <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur sm:px-6 print:hidden">
         <div data-region="group" className="flex min-w-0 flex-1 items-center gap-2">
-          <Link to={appUrls.home()} className="text-lg font-semibold">
-            Caretook
+          <Link to={appUrls.home()} className="shrink-0 rounded-field">
+            <Wordmark wordHiddenBelow={groupId ? "sm" : undefined} />
           </Link>
           {groupId && <GroupMenu groupId={groupId} />}
         </div>
         <div data-region="sections" className="hidden items-center sm:flex">
           {groupId && <SectionNav groupId={groupId} pathname={pathname} />}
         </div>
+        {groupId && (
+          <div data-region="search" className="flex items-center">
+            <IconButton to={appUrls.search(groupId)} icon={Search} label="Search this care group" />
+          </div>
+        )}
         <div data-region="status" className="flex items-center">
           <SyncIndicator />
         </div>

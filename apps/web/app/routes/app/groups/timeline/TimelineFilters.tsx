@@ -1,48 +1,147 @@
 import type { TimelineEntryKind, TimelineView } from "@caretook/data/schema";
-import type { ReactNode } from "react";
 
-import { LayoutList, List } from "lucide-react";
-import { Link, useLocation } from "react-router";
+import { LayoutList, List, Search, X } from "lucide-react";
+import { useEffect, useId, useRef } from "react";
+import { useLocation } from "react-router";
+import { ChipGroup, Field, IconButton, UserAvatar } from "~/components/ui";
 import { KIND_META } from "~/lib/entryDisplay";
-import { clearKind, setKind } from "~/lib/timelineFilters";
+import { useGroup } from "~/lib/group";
+import { recordSearch } from "~/lib/recentSearches";
+import { clearAuthor, clearKind, clearQuery, setKind } from "~/lib/timelineFilters";
+import { useSearchField } from "./useSearchField";
 
-const FILTERS = ["note", "symptom", "event", "vital"] as const satisfies TimelineEntryKind[];
-
-const chip = (active: boolean) =>
-  `btn btn-sm rounded-full px-3 ${active ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100"}`;
+const FILTERS = [
+  "note",
+  "symptom",
+  "event",
+  "vital",
+  "dose",
+  "medicationChange",
+] as const satisfies TimelineEntryKind[];
 
 /**
- * Kind filter chips: links that set `?kind=`, so the filter survives reloads
- * and Back. They change only the kind (see `lib/timelineFilters.ts`).
+ * The filter row: the search magnifier, then the filter chips, links that
+ * set `?kind=`, so the filter survives reloads and Back. They change only the
+ * kind (see `lib/timelineFilters.ts`). With an author filter on (`author`:
+ * that person's name and picture), a chip names them and clears it, keeping
+ * the kind; with a search on (`q`), a last "Matching “…”" chip clears only
+ * the search. The magnifier opens the search field: over the chips on
+ * phones, beside them from `sm`. A search used there (Enter, leaving the
+ * field) is saved to the recent searches the search page lists.
  */
-export function KindFilter({ kind }: { kind: TimelineEntryKind | null }) {
+export function FilterChips({
+  kind,
+  author,
+  q,
+}: {
+  kind: TimelineEntryKind | null;
+  author: { name: string; image: string | null } | null;
+  q: string;
+}) {
   const { search } = useLocation();
+  const { userId } = useGroup();
+  const field = useSearchField(q, (text) => recordSearch(userId, text));
+  const fieldId = useId();
+  const magnifier = useRef<HTMLButtonElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (field.open) input.current?.focus();
+  }, [field.open]);
+  const close = () => {
+    field.close();
+    magnifier.current?.focus();
+  };
+
   return (
-    <nav aria-label="Show entries" className="flex flex-wrap gap-1.5">
-      <Link
-        to={{ search: clearKind(search) }}
-        replace
-        preventScrollReset
-        className={chip(!kind)}
-        aria-current={!kind ? "true" : undefined}
-      >
-        All
-      </Link>
-      {FILTERS.map((k) => (
-        <Link
-          key={k}
-          to={{ search: setKind(search, k) }}
+    <div className="flex items-start gap-1.5" data-timeline-filters>
+      <IconButton
+        ref={magnifier}
+        label="Search entries"
+        icon={Search}
+        expanded={field.open}
+        controls={field.open ? fieldId : undefined}
+        onPress={field.toggle}
+        className="border-base-300 bg-base-100 shrink-0 rounded-full"
+      />
+      {field.open && (
+        <div id={fieldId} className="min-w-0 flex-1 sm:w-64 sm:flex-none">
+          <Field label="Search entries" labelHidden>
+            {(control) => (
+              <input
+                {...control}
+                ref={input}
+                type="search"
+                autoComplete="off"
+                enterKeyHint="search"
+                placeholder="Search entries"
+                className="input input-sm w-full rounded-full"
+                value={field.value}
+                onChange={(e) => field.change(e.currentTarget.value)}
+                onBlur={field.used}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    field.submit();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    close();
+                  }
+                }}
+                data-search-field
+              />
+            )}
+          </Field>
+        </div>
+      )}
+      <div className={field.open ? "hidden min-w-0 flex-1 sm:block" : "min-w-0 flex-1"}>
+        <ChipGroup
+          label="Show entries"
           replace
           preventScrollReset
-          className={chip(kind === k)}
-          aria-current={kind === k ? "true" : undefined}
-        >
-          {KIND_META[k].plural}
-        </Link>
-      ))}
-    </nav>
+          links={[
+            { id: "all", label: "All", to: { search: clearKind(search) }, current: !kind },
+            ...FILTERS.map((k) => ({
+              id: k,
+              label: KIND_META[k].plural,
+              to: { search: setKind(search, k) },
+              current: kind === k,
+            })),
+            ...(author
+              ? [
+                  {
+                    id: "author",
+                    label: `By ${author.name}`,
+                    name: `By ${author.name}: clear this filter`,
+                    to: { search: clearAuthor(search) },
+                    current: true,
+                    leading: (
+                      <UserAvatar name={author.name} image={author.image} size="xs" className="-ml-1.5" />
+                    ),
+                    trailing: <X className="size-3.5" aria-hidden="true" />,
+                  },
+                ]
+              : []),
+            ...(q && !field.open
+              ? [
+                  {
+                    id: "search",
+                    label: `Matching “${chipText(q)}”`,
+                    name: `Matching “${q}”: clear the search`,
+                    to: { search: clearQuery(search) },
+                    current: true,
+                    trailing: <X className="size-3.5" aria-hidden="true" />,
+                  },
+                ]
+              : []),
+          ]}
+        />
+      </div>
+    </div>
   );
 }
+
+/** The search as its chip shows it: long text is cut short (the chip's name has it all). */
+const chipText = (q: string) => (q.length > 32 ? `${q.slice(0, 31).trimEnd()}…` : q);
 
 /** The rows/cards switch. */
 export function ViewToggle({
@@ -54,37 +153,20 @@ export function ViewToggle({
 }) {
   return (
     <div role="group" aria-label="Layout" className="join shrink-0">
-      <ViewButton label="Rows" pressed={view === "rows"} onPress={() => onChange("rows")}>
-        <List className="size-4" aria-hidden="true" />
-      </ViewButton>
-      <ViewButton label="Cards" pressed={view === "cards"} onPress={() => onChange("cards")}>
-        <LayoutList className="size-4" aria-hidden="true" />
-      </ViewButton>
+      <IconButton
+        label="Rows"
+        icon={List}
+        pressed={view === "rows"}
+        onPress={() => onChange("rows")}
+        className="join-item"
+      />
+      <IconButton
+        label="Cards"
+        icon={LayoutList}
+        pressed={view === "cards"}
+        onPress={() => onChange("cards")}
+        className="join-item"
+      />
     </div>
-  );
-}
-
-function ViewButton({
-  label,
-  pressed,
-  onPress,
-  children,
-}: {
-  label: string;
-  pressed: boolean;
-  onPress: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={pressed}
-      title={label}
-      onClick={onPress}
-      className={`join-item btn btn-sm btn-square ${pressed ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100"}`}
-    >
-      {children}
-    </button>
   );
 }

@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  formatDateOfBirth,
   groupSettingsAccess,
   memberAccess,
   memberName,
   parseGroupName,
-  parseRecipientProfile,
+  parseRecipientTimeZone,
   roleLabel,
   sortMembers,
+  timeZoneLabel,
+  timeZoneOptions,
 } from "./groupSettings";
 
 const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -50,54 +51,40 @@ describe("parseGroupName", () => {
   });
 });
 
-describe("parseRecipientProfile", () => {
-  it("trims names and keeps a date", () => {
-    expect(
-      parseRecipientProfile({ name: " Pat Example ", preferredName: " Pat ", dateOfBirth: "1941-03-09" }),
-    ).toEqual({ ok: true, data: { name: "Pat Example", preferredName: "Pat", dateOfBirth: "1941-03-09" } });
-  });
-  it("clears an empty preferred name and date of birth", () => {
-    expect(parseRecipientProfile({ name: "Pat Example", preferredName: "  ", dateOfBirth: "" })).toEqual({
+describe("parseRecipientTimeZone", () => {
+  it("keeps a known zone", () => {
+    expect(parseRecipientTimeZone({ timeZone: " America/New_York " })).toEqual({
       ok: true,
-      data: { name: "Pat Example", preferredName: null, dateOfBirth: null },
+      data: { timeZone: "America/New_York" },
     });
   });
-  it("refuses an empty name", () => {
-    expect(parseRecipientProfile({ name: " ", preferredName: "", dateOfBirth: "" })).toMatchObject({
+  it("leaves an empty zone out, so the stored one stays", () => {
+    expect(parseRecipientTimeZone({ timeZone: "" })).toEqual({ ok: true, data: {} });
+  });
+  it("refuses an unknown zone with the field's error", () => {
+    expect(parseRecipientTimeZone({ timeZone: "Mars/Olympus_Mons" })).toMatchObject({
       ok: false,
-      issues: [{ path: "name", message: "Enter a name." }],
+      issues: [{ path: "timeZone", message: "Choose a time zone from the list." }],
     });
-  });
-  it("refuses a date of birth that isn't a date", () => {
-    for (const dateOfBirth of ["not a date", "1941-02-30", "03/09/1941"]) {
-      expect(parseRecipientProfile({ name: "Pat Example", preferredName: "", dateOfBirth })).toMatchObject({
-        ok: false,
-        issues: [{ path: "dateOfBirth", message: "Enter a valid date." }],
-      });
-    }
-  });
-  it("accepts a future date (the shared schema has no such rule)", () => {
-    expect(
-      parseRecipientProfile({ name: "Pat Example", preferredName: "", dateOfBirth: "2999-01-01" }),
-    ).toMatchObject({ ok: true });
-  });
-  it("reports every invalid field once", () => {
-    const result = parseRecipientProfile({ name: "", preferredName: "x".repeat(121), dateOfBirth: "nope" });
-    expect(result.ok).toBe(false);
-    expect(!result.ok && result.issues.map((i) => i.path).sort()).toEqual([
-      "dateOfBirth",
-      "name",
-      "preferredName",
-    ]);
   });
 });
 
-describe("formatDateOfBirth", () => {
-  it("shows the stored day whatever the device's zone", () => {
-    expect(formatDateOfBirth("1941-03-09", "en-US")).toBe("March 9, 1941");
+describe("timeZoneOptions", () => {
+  it("sorts the supported zones and adds the current and device zones when missing", () => {
+    expect(timeZoneOptions("UTC", "Europe/Paris", ["America/New_York", "America/Los_Angeles"])).toEqual([
+      "America/Los_Angeles",
+      "America/New_York",
+      "Europe/Paris",
+      "UTC",
+    ]);
   });
-  it("falls back to the stored text", () => {
-    expect(formatDateOfBirth("unknown")).toBe("unknown");
+  it("lists each zone once", () => {
+    expect(timeZoneOptions("America/New_York", "America/New_York", ["America/New_York"])).toEqual([
+      "America/New_York",
+    ]);
+  });
+  it("labels a zone without underscores", () => {
+    expect(timeZoneLabel("America/Los_Angeles")).toBe("America/Los Angeles");
   });
 });
 

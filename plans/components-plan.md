@@ -4,22 +4,31 @@
 
 ## Status
 
-| Slice | State                  | Merge into `prd/components` (slice commits) |
-| ----- | ---------------------- | ------------------------------------------- |
-| 1     | merged; wave 1 landing | `934428f` (`a071d12`, `4c18db3`)            |
-| 2     | ready (1 merged)       |                                             |
-| 3     | blocked by 2           |                                             |
-| 4     | blocked by 2           |                                             |
-| 5     | blocked by 3           |                                             |
-| 6     | blocked by 3, 4 and 5  |                                             |
+| Slice | State                       | Merge into `prd/components` (slice commits) |
+| ----- | --------------------------- | ------------------------------------------- |
+| 1     | landed in `dev` (`414b0a6`) | `934428f` (`a071d12`, `4c18db3`)            |
+| 2     | landed in `dev` (`666ebf9`) | `c25170c` (`0032dd6`, `a2c2bd1`)            |
+| 3     | landed in `dev` (`511cbed`) | `f916469` (`a711ad6`, `963c22b`)            |
+| 4     | landed in `dev` (`511cbed`) | `3215617` (`03cde5a`)                       |
+| 5     | landed in `dev` (`2c924db`) | `abd2635` (`1c755d2`, `7336e9d`, `249444d`) |
+| 6     | merged; final landing       | `61fe082` (`23812bf`, `60830bc`, `011bdd2`) |
 
-Backlog: B-24 is claimed by `prd/components`; mark it `done` after slice 6 merges.
+**Done.** All six slices are merged; B-24 is `done` at `61fe082`. Lasting rules are in AGENTS.md (_Components_).
 
-Notes for later slices (from slice 1):
+Notes for later slices:
+
+- Slice 5: the form lives in the timeline route folder (`EntryForm` shell, `EntryKindPicker`, `SymptomFields`, `VitalReadingsFields`, `VitalReadingRow`, `VitalField`, `useEntryFormSave`; pure `formIssues`, `vitalInputs`, `entryFormData`, all tested). `ui/Field` has a `warning` line (never `aria-invalid`). Vital labels now use the `Field` label style. `ui.mjs` gives each pass a fresh `x-forwarded-for`, or a fast run hits Better Auth's session rate limit (429 → `/sign-in`).
+
+- Slice 3: the timeline has no infinite scroll yet ("Show older"); paging lives in `useTimelineData`, so `timeline-polish` slice 7 swaps it there. Timeline route +379 B gzipped (accepted as noise). `lib/format.ts` lost the unused `dayKey`.
+- Slice 4: `typed` (an uncommitted title) now lives in `EntryTitleRegion`, so it resets if the region flips read-only mid-edit. Entry route +854 B (+0.4%, chunk reshuffle). After writing a new file an existing module imports, restart the dev server (Vite can cache the failed resolve).
+- A full disk (ENOSPC) on 2026-11-18 stalled slice 3 and wedged Docker until a reboot; check `df` if tests fail with ENOSPC.
+
+From slice 1:
 
 - The entry route grew 1.6 KB gzipped (+0.8%): the `forms` index puts `EntrySheet` in the entry route's chunk beside `DateTimeField`. Slice 2 undoes it when the sheet moves into `ui/` (or by splitting `forms`).
 - `components/notes/` (not in the folder list above) holds `LiveNotesEditor` and `EditorAvatars`, so Tiptap never reaches the timeline through an index. `providers/` holds `ContactActions` and `ProviderTypeIcon`. No `timeline/` folder yet.
-- Quick-fixes B-34 (a calendar on `DateTimeField`) may land first; slice 2 then builds the field primitive on top of it.
+- Slice 2 moved `DateTimeField` (with B-34's calendar) to `ui/date/` and deleted `components/forms/`; slice 5 may recreate `forms/`. `ProviderForm`'s own fields are for slice 6.
+- Slice 2's bundle: the entry route's +1.6 KB is gone; every `/app` page carries +2.4 KB of primitives (1.2 KB of it `Sheet`, kept in the `ui` index because splitting it costs each sheet route 2.5 KB); provider sheets dropped 51.6 KB (they no longer load the date picker).
 - Wave 1's full suite: 11/11 (phase2 failed once on its first step at load 44 right after a server restart, then passed 107/107 at load 6); `ui.mjs` 253/253.
 
 ## Architectural decisions

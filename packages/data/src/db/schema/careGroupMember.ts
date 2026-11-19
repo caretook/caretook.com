@@ -1,12 +1,29 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "./columns";
 
-import { index, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import type { SharedField } from "./memberContactShare";
+
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { GROUP_ROLE_NAMES } from "../../constants/roles";
 import { careGroupSchema } from "./careGroup";
 import { audits, enumCheck, id, timestamps } from "./columns";
 import { userSchema } from "./user";
+
+const timestampColumn = (name: string) =>
+  timestamp(name, { precision: 3, mode: "string", withTimezone: true });
 
 // Membership: which users belong to which care group, and with what group
 // role. Every `group` permission scope is a subquery on this table.
@@ -21,6 +38,25 @@ export const careGroupMemberSchema = pgTable(
       .notNull()
       .references(() => userSchema.id, { onDelete: "cascade" }),
     role: text("role", { enum: GROUP_ROLE_NAMES }).notNull(),
+    // Who sent the invite this member joined through (null: added another
+    // way, such as founding the group). Set by the system on acceptance.
+    invitedBy: uuid("invited_by").references(() => userSchema.id, { onDelete: "set null" }),
+    // How the member is related to the recipient ("daughter", "aide from
+    // Sunrise"), and which of their contact details this group sees
+    // (`member_contact_share` holds the values). Both set by the member,
+    // through memberSharingService.
+    relationship: text("relationship"),
+    sharedFields: jsonb("shared_fields").$type<SharedField[]>().notNull().default([]),
+    // The member's place on the emergency list (one order with outside
+    // contacts), and whether they're the primary contact providers call. Set
+    // by owners and admins, through emergencyContactService; only members
+    // sharing a phone may have either.
+    emergencyRank: integer("emergency_rank"),
+    isPrimaryContact: boolean("is_primary_contact").notNull().default(false),
+    // When the member fell off the emergency list because they stopped
+    // sharing a phone (null: they didn't). Managers see a note on the profile
+    // until they're back on the list or a manager saves the list. System only.
+    emergencyDroppedAt: timestampColumn("emergency_dropped_at"),
     ...timestamps,
     ...audits,
   },
@@ -29,6 +65,10 @@ export const careGroupMemberSchema = pgTable(
     // The permission subqueries look up memberships by user.
     index("care_group_member_user_idx").on(t.userId),
     enumCheck("care_group_member_role_check", t.role, GROUP_ROLE_NAMES),
+    // At most one primary contact per group.
+    uniqueIndex("care_group_member_primary_contact_unique")
+      .on(t.groupId)
+      .where(sql`${t.isPrimaryContact}`),
   ],
 );
 

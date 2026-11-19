@@ -1,13 +1,22 @@
+import type { Route } from "./+types/sign-out";
+
 import { redirect } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { authClient } from "~/lib/auth-client";
 import { forgetGroups } from "~/lib/lastGroup";
 import { forgetSettings } from "~/lib/me";
+import { forgetRecentSearches } from "~/lib/recentSearches";
 import { forgetSessionUser } from "~/lib/session";
+import { formString } from "~/lib/form";
+import { safeRedirect } from "~/lib/redirect";
 import { closeSync } from "~/lib/sync";
 
 // POST-only (a GET link could be triggered by any page). Shared by web + native.
-export async function clientAction() {
+// An optional `redirectTo` (a same-site path) is where to go next, e.g. back to
+// an invite that's for another account; by default, sign-in.
+export async function clientAction({ request }: Route.ClientActionArgs) {
+  const form = await request.formData().catch(() => new FormData());
+  const next = safeRedirect(formString(form, "redirectTo"), "/sign-in");
   // Wipe the device's copy of the care data first: it may be a shared device.
   // Changes not uploaded yet are lost, which is the price of signing out offline.
   await closeSync().catch((e: unknown) => console.error("Couldn't clear local data", e));
@@ -15,7 +24,8 @@ export async function clientAction() {
   forgetSessionUser();
   forgetSettings();
   forgetGroups();
-  throw redirect("/sign-in");
+  forgetRecentSearches();
+  throw redirect(next);
 }
 
 export function clientLoader() {

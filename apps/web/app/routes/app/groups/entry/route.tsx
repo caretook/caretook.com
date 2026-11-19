@@ -1,107 +1,44 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type * as Y from "yjs";
-import type { MaterializeInput } from "~/lib/sync/liveEntry";
-import type { EntryRow } from "~/lib/sync/timeline";
+import type { LiveNotesEditorHandle } from "~/components/notes";
 
-import { canHaveNoteDocument, noteText } from "@caretook/data/schema";
-import { ArrowLeft } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
-import { data, Link, useNavigate } from "react-router";
-import { EntryActions } from "~/components/entry";
-import { ConfirmDialog } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { KIND_META } from "~/lib/entryDisplay";
-import { localTimeZone } from "~/lib/format";
-import { getGroup, useGroup } from "~/lib/group";
-import {
-  isLiveEntryKind,
-  isUnnamedEvent,
-  NEW_ENTRY,
-  savedTitle,
-  shouldMaterialize,
-  titleField,
-} from "~/lib/liveEntry";
-import { sessionContext } from "~/lib/session";
-import { getSync, useLiveQuery } from "~/lib/sync";
-import { materializeLiveEntry } from "~/lib/sync/liveEntry";
-import { readRows, removeEntry, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
+import { useRef, useState } from "react";
+import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { EntryHeader, EntryTime, EntryTitle } from "./EntryHeader";
-import { EntryTimeChip } from "./EntryTimeChip";
-import { EventTitleChips } from "./EventTitleChips";
-import { ShareButton } from "./ShareButton";
+import { BackLink } from "~/components/ui";
+import { appUrls, WHEN_PARAM } from "~/lib/appUrls";
+import { KIND_META } from "~/lib/entryDisplay";
+import { getGroup } from "~/lib/group";
+import { NEW_ENTRY } from "~/lib/liveEntry";
+import { sessionContext } from "~/lib/session";
+import { getSync } from "~/lib/sync";
+import { EntryCancelledBanner } from "./EntryCancelledBanner";
+import { EntryPageHeader } from "./EntryPageHeader";
+import { entryHeading, titleState } from "./entryPage";
+import { loadEntry } from "./loadEntry";
+import { useLiveEntry } from "./useLiveEntry";
 
 // Shared by web + native. A note (or event) is its live document: this page
 // is where it's written, by several people at once (Yjs), offline included.
 // Everything is local; edits sync through PowerSync like the rest of the
-// timeline.
-//
-// `/entries/new?kind=note|event` is a draft: an id made here, nothing written.
-// The first real change saves the entry and its document together (see
-// lib/liveEntry.ts), and the URL is replaced with `/entries/:id`. It's the
-// same route, so the editor stays mounted and keeps the cursor.
+// timeline. `/entries/new?kind=note|event` is a draft: the same route, so the
+// editor stays mounted when it's saved (see useLiveEntry).
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: loaderData ? `${loaderData.heading} · Caretook` : "Caretook" }];
 }
 
-const entrySql = "SELECT * FROM timeline_entry WHERE id = ? AND group_id = ? AND deleted_at IS NULL";
-
-/**
- * The entry, its document and pending updates (or a new draft). Anything not
- * on the device, or not allowed, is a 404. (The group route has already
- * turned away a group that isn't on the device.)
- */
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
-  const { groupId, entryId } = params;
   const { canWrite } = getGroup(context);
   const { db } = context.get(sessionContext);
-
-  if (entryId === NEW_ENTRY) {
-    const kind = new URL(request.url).searchParams.get("kind");
-    if (!isLiveEntryKind(kind) || !canWrite) throw data("Not found", { status: 404 });
-    return {
-      isNew: true,
-      entry: {
-        id: crypto.randomUUID(),
-        kind,
-        title: null as string | null,
-        body: null as string | null,
-        occurredAt: new Date().toISOString(),
-        timeZone: localTimeZone(),
-      },
-      heading: `New ${KIND_META[kind].label.toLowerCase()}`,
-      hasDocument: false,
-      initial: { snapshot: null, updates: [] },
-      entryRows: [] as EntryRow[],
-    };
-  }
-
-  const entryRows = await readRows<EntryRow>(db, { sql: entrySql, params: [entryId, groupId] });
-  const entry = entryRows[0] ? toTimelineEntry(entryRows[0]) : null;
-  if (!entry || !canHaveNoteDocument(entry.kind)) throw data("Not found", { status: 404 });
-
-  const [doc] = await readRows<{ id: string; snapshot: string | null }>(db, {
-    sql: "SELECT id, snapshot FROM note_document WHERE id = ?",
-    params: [entryId],
+  const search = new URL(request.url).searchParams;
+  return loadEntry(db, {
+    groupId: params.groupId,
+    entryId: params.entryId,
+    kind: search.get("kind"),
+    when: search.get(WHEN_PARAM),
+    canWrite,
   });
-  const updates = doc
-    ? await readRows<{ id: string; data: string | null }>(db, {
-        sql: "SELECT id, data FROM note_update WHERE document_id = ?",
-        params: [entryId],
-      })
-    : [];
-
-  return {
-    isNew: false,
-    entry: { ...entry, kind: entry.kind },
-    heading: entry.title || KIND_META[entry.kind].label,
-    hasDocument: !!doc,
-    initial: { snapshot: doc?.snapshot ?? null, updates },
-    // Starting rows for the live query (stable, so it doesn't reset each render).
-    entryRows,
-  };
 }
 
 /**
@@ -126,184 +63,45 @@ export default function Entry(props: Route.ComponentProps) {
 }
 
 function EntryPage({ loaderData, params }: Route.ComponentProps) {
-  const { initial } = loaderData;
-  // Live: a role changed on another device shows without a reload.
-  const { canWrite } = useGroup();
   const { groupId } = params;
+  const live = useLiveEntry(loaderData, groupId);
+  const { entry, canWrite, deleted, saveError } = live;
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
-  const navigate = useNavigate();
-
-  // The draft's fields, read when it's saved. The id never changes, so the
-  // URL swap from `new` to the entry's own keeps this component and editor.
-  const [draft] = useState(loaderData.entry);
-  const [isNew] = useState(loaderData.isNew);
+  const editor = useRef<LiveNotesEditorHandle>(null);
   const timelineUrl = appUrls.timeline(groupId);
 
-  // The stored entry, live: other members' renames, and deletion.
-  const rows = useLiveQuery<EntryRow>(entrySql, [draft.id, groupId], loaderData.entryRows);
-  const live = rows[0] ? toTimelineEntry(rows[0]) : null;
-  const [seen, setSeen] = useState(!!live);
-  if (live && !seen) setSeen(true);
-  const deleted = seen && !live;
-  const kind = live?.kind ?? draft.kind;
-  const title = live ? live.title : draft.title;
-
-  // Saving: once, on the first real change (text or a title).
-  const saved = useRef(!isNew && loaderData.hasDocument);
-  const titleRef = useRef(draft.title ?? "");
-  // A time picked on a draft is the time it's saved with.
-  const [draftOccurredAt, setDraftOccurredAt] = useState(draft.occurredAt);
-  const occurredAtRef = useRef(draft.occurredAt);
-  const saving = useRef<Promise<boolean> | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  const save = useCallback((): Promise<boolean> => {
-    if (saved.current) return Promise.resolve(true);
-    saving.current ??= (async () => {
-      if (!canHaveNoteDocument(draft.kind)) return false;
-      const input: MaterializeInput = {
-        id: draft.id,
-        groupId,
-        kind: draft.kind,
-        title: isLiveEntryKind(draft.kind) ? savedTitle(draft.kind, titleRef.current) : draft.title,
-        occurredAt: occurredAtRef.current,
-        timeZone: draft.timeZone,
-      };
-      const res = await materializeLiveEntry(getSync(), input);
-      saving.current = null;
-      if (!res.ok) {
-        setSaveError(res.error);
-        return false;
-      }
-      setSaveError(null);
-      saved.current = true;
-      // Back from here goes to the timeline, and the link is the entry's own.
-      if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true });
-      return true;
-    })();
-    return saving.current;
-  }, [draft, groupId, isNew, navigate]);
-
-  // The editor asks on each local change until this says it's saved.
-  const ensureSaved = useCallback(
-    (doc: Y.Doc) => {
-      if (saved.current) return Promise.resolve(true);
-      // An existing entry only lacks its document: the text decides.
-      const ready = shouldMaterialize({
-        saved: false,
-        text: noteText(doc),
-        title: isNew ? titleRef.current : "",
-      });
-      return ready ? save() : Promise.resolve(false);
-    },
-    [save, isNew],
-  );
-
-  const commitTitle = (next: string) => {
-    titleRef.current = next;
-    // A draft's title is saved with it. (An existing entry is renamed, even one still without its document.)
-    if (isNew && !saved.current) {
-      if (shouldMaterialize({ saved: false, text: "", title: next })) void save();
-      return;
-    }
-    if (!isLiveEntryKind(kind)) return;
-    void updateEntry(getSync(), draft.id, { title: savedTitle(kind, next) }).then((res) => {
-      setSaveError(res.ok ? null : res.error);
-    });
-  };
-
-  const changeTime = (next: string) => {
-    occurredAtRef.current = next;
-    setDraftOccurredAt(next);
-    if (!saved.current) return;
-    void updateEntry(getSync(), draft.id, { occurredAt: next }).then((res) => {
-      setSaveError(res.ok ? null : res.error);
-    });
-  };
-
-  // Delete (⋯ menu): confirm, soft-delete, back to the timeline.
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const deleteEntry = async () => {
-    setConfirmDelete(false);
-    const res = await removeEntry(getSync(), draft.id);
-    if (!res.ok) {
-      setSaveError(res.error);
-      return;
-    }
-    void navigate(timelineUrl);
-  };
-
-  const label = KIND_META[kind].label;
-  const heading = title || (isNew && !live ? `New ${label.toLowerCase()}` : label);
-  // Named here, by writers. An unnamed event (saved as "Event") shows an empty field asking for a title.
-  const titleEditable = canWrite && isLiveEntryKind(kind) && !deleted;
-  const field = isLiveEntryKind(kind) ? titleField(kind, title, !!live) : null;
-  // Suggested names while an event is unnamed and nothing is typed in the field.
-  const [typedTitle, setTypedTitle] = useState("");
-  const showChips = titleEditable && isUnnamedEvent(kind, title) && typedTitle.trim() === "";
+  const label = KIND_META[entry.kind].label;
+  const heading = entryHeading(label, entry.title, live.isNew && !live.stored);
+  const title = titleState({ kind: entry.kind, title: entry.title, saved: live.stored, canWrite, deleted });
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <Link to={timelineUrl} className="btn btn-ghost btn-sm -ml-3 gap-1">
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Timeline
-      </Link>
+      <BackLink to={timelineUrl} label="Timeline" />
 
       <h1 className="sr-only">{heading}</h1>
-      <EntryHeader
-        kind={kind}
-        title={
-          titleEditable && field ? (
-            <>
-              <EntryTitle
-                value={field.value}
-                placeholder={field.placeholder}
-                onCommit={commitTitle}
-                onTextChange={setTypedTitle}
-              />
-              {showChips && <EventTitleChips groupId={groupId} onPick={commitTitle} />}
-            </>
-          ) : (
-            <p aria-hidden="true" className="text-xl font-semibold break-words">
-              {heading}
-            </p>
-          )
-        }
-        time={
-          canWrite && !deleted ? (
-            <EntryTimeChip occurredAt={live?.occurredAt ?? draftOccurredAt} onChange={changeTime} />
-          ) : (
-            <>
-              <EntryTime occurredAt={live?.occurredAt ?? draftOccurredAt} />
-              {!canWrite && " · You can view this"}
-            </>
-          )
-        }
-        // Once there's an entry to link to (not a draft): Share for everyone, the ⋯ menu for writers.
-        actions={
-          live && (
-            <>
-              <ShareButton title={heading} path={appUrls.entry(groupId, draft.id)} />
-              {canWrite && (
-                <EntryActions
-                  kind={live.kind}
-                  label={`Actions for this ${label.toLowerCase()}`}
-                  onDelete={() => setConfirmDelete(true)}
-                />
-              )}
-            </>
-          )
-        }
-        editors={!deleted && <EditorAvatars documentId={draft.id} groupId={groupId} viewerId={db.userId} />}
+      <EntryPageHeader
+        live={live}
+        groupId={groupId}
+        heading={heading}
+        title={title}
+        pickDay={loaderData.pickDay}
+        onPickTitle={(next) => {
+          live.commitTitle(next);
+          editor.current?.focus();
+        }}
+        editors={!deleted && <EditorAvatars documentId={entry.id} groupId={groupId} viewerId={db.userId} />}
       />
-      <ConfirmDialog
-        open={confirmDelete}
-        title={`Delete this ${label.toLowerCase()}?`}
-        confirmLabel="Delete"
-        onConfirm={() => void deleteEntry()}
-        onClose={() => setConfirmDelete(false)}
-      />
+      {!deleted && (
+        <EntryCancelledBanner
+          groupId={groupId}
+          cancelledAt={entry.cancelledAt}
+          cancelledBy={entry.cancelledBy}
+          cancelReason={entry.cancelReason}
+          rescheduledTo={entry.rescheduledTo}
+          onUndo={canWrite ? live.uncancel : undefined}
+        />
+      )}
       {saveError && (
         <p role="alert" className="text-error text-sm">
           {saveError}
@@ -318,17 +116,26 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
           </Link>
         </div>
       ) : (
-        <LiveNotesEditor
-          key={draft.id}
-          label={`${label} text`}
-          db={db}
-          documentId={draft.id}
-          groupId={groupId}
-          canWrite={canWrite}
-          initial={initial}
-          autofocus={isNew}
-          ensureSaved={ensureSaved}
-        />
+        <>
+          {entry.rescheduledTo && (
+            <h2 className="text-base-content/70 text-sm font-semibold" data-earlier-notes>
+              Earlier notes (read-only: they carry on in the new event)
+            </h2>
+          )}
+          <LiveNotesEditor
+            key={entry.id}
+            ref={editor}
+            label={`${label} text`}
+            db={db}
+            documentId={entry.id}
+            groupId={groupId}
+            // A rescheduled event's notes carried on in the new one: these stay as they were.
+            canWrite={canWrite && !entry.rescheduledTo}
+            initial={loaderData.initial}
+            autofocus={live.isNew && !loaderData.pickDay}
+            ensureSaved={live.ensureSaved}
+          />
+        </>
       )}
     </main>
   );

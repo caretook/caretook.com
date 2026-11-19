@@ -3,15 +3,17 @@ import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
 import {
   appUrls,
+  DOSE_MEDICATION_PARAM,
+  DOSE_SLOT_PARAM,
   isSheetKind,
   isVitalType,
   VITAL_TYPE_PARAM,
   withoutSheetParams,
 } from "../../../../lib/appUrls";
-import { canHaveNoteDocument } from "@caretook/data/schema";
+import { canHaveNoteDocument, isSystemWrittenKind, scheduleTimeZSchema } from "@caretook/data/schema";
 import { parseFilters } from "../../../../lib/timelineFilters";
 
-// The timeline's sheet routes (`timeline/new/:kind`, `timeline/:entryId/edit`): which sheet a URL
+// The timeline's sheet routes (`timeline/new/:kind`, `timeline/new/dose`, `timeline/:entryId/edit`): which sheet a URL
 // opens, or where it goes instead. Pure, so web:unit tests it; the routes'
 // loaders apply it.
 
@@ -53,10 +55,10 @@ export type EditSheetEntry = {
 };
 
 /**
- * `timeline/:entryId/edit`: a writer's symptom or vital in this group. A
- * note or event has its own page (for viewers too); a missing, deleted or
- * other group's entry, or a viewer, is the timeline. Redirects keep the
- * timeline's filters.
+ * `timeline/:entryId/edit`: a writer's symptom, vital or dose in this group.
+ * A note or event has its own page (for viewers too); a medication change is
+ * never edited; a missing, deleted or other group's entry, or a viewer, is
+ * the timeline. Redirects keep the timeline's filters.
  */
 export const editSheetGuard = <Entry extends EditSheetEntry>({
   groupId,
@@ -72,8 +74,40 @@ export const editSheetGuard = <Entry extends EditSheetEntry>({
   const timeline = { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
   if (!entry || entry.groupId !== groupId || entry.deletedAt) return timeline;
   if (canHaveNoteDocument(entry.kind)) return { redirect: appUrls.entry(groupId, entry.id) };
-  if (!canWrite) return timeline;
+  if (!canWrite || isSystemWrittenKind(entry.kind)) return timeline;
   return { sheet: { entry } };
+};
+
+/** The Dose sheet: the medication to start on and the slot the dose answers, when the URL names them. */
+export type NewDoseSheet = { medicationId: string | null; slot: string | null };
+
+/**
+ * `timeline/new/dose`: a writer logging a dose. A viewer is the timeline
+ * (filters kept, the sheet's own parameters dropped). `?medication=` that
+ * isn't one of the sheet's choices (`choiceIds`) and a `?slot=` that isn't a
+ * time are dropped.
+ */
+export const newDoseGuard = ({
+  groupId,
+  search,
+  canWrite,
+  choiceIds,
+}: {
+  groupId: string;
+  search: string;
+  canWrite: boolean;
+  choiceIds: readonly string[];
+}): SheetDecision<NewDoseSheet> => {
+  if (!canWrite) return { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
+  const params = new URLSearchParams(search);
+  const medicationId = params.get(DOSE_MEDICATION_PARAM);
+  const slot = params.get(DOSE_SLOT_PARAM);
+  return {
+    sheet: {
+      medicationId: medicationId && choiceIds.includes(medicationId) ? medicationId : null,
+      slot: slot && scheduleTimeZSchema.safeParse(slot).success ? slot : null,
+    },
+  };
 };
 
 const within = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
@@ -89,5 +123,5 @@ export const onlySheetChanged = (groupId: string, current: URL, next: URL) => {
   if (current.pathname === next.pathname) return false;
   if (!within(current.pathname, base) || !within(next.pathname, base)) return false;
   const [a, b] = [parseFilters(current.search), parseFilters(next.search)];
-  return a.kind === b.kind && a.author === b.author;
+  return a.kind === b.kind && a.author === b.author && a.upcoming === b.upcoming;
 };

@@ -1,7 +1,8 @@
 import type { ProviderContentInput, ProviderType } from "@caretook/data/schema";
-import type { FieldIssue } from "../../../../lib/api";
-
 import { isPracticeType, PROVIDER_TYPES } from "@caretook/data/schema";
+import { PHONE_FIELD, phonesFromForm } from "../../../../lib/contactForm";
+
+export { issuesForRows } from "../../../../lib/contactForm";
 
 // The provider sheet's form as a provider: the fields `ProviderForm` posts,
 // read into the shape the device writes (`createProvider`, `updateProvider`)
@@ -13,8 +14,8 @@ export const FIELD = {
   name: "name",
   specialty: "specialty",
   practiceId: "practiceId",
-  phoneLabel: "phoneLabel",
-  phoneNumber: "phoneNumber",
+  phoneLabel: PHONE_FIELD.label,
+  phoneNumber: PHONE_FIELD.number,
   email: "email",
   address: "address",
   website: "website",
@@ -26,8 +27,6 @@ const text = (form: FormData, name: string) => {
   const value = form.get(name);
   return typeof value === "string" ? value : "";
 };
-const texts = (form: FormData, name: string) =>
-  form.getAll(name).map((value) => (typeof value === "string" ? value : ""));
 
 const isProviderType = (value: string): value is ProviderType =>
   (PROVIDER_TYPES as readonly string[]).includes(value);
@@ -49,16 +48,7 @@ export type ProviderFormData = {
 export const providerFromForm = (form: FormData): ProviderFormData => {
   const rawType = text(form, FIELD.type);
   const type: ProviderType = isProviderType(rawType) ? rawType : "clinician";
-  const labels = texts(form, FIELD.phoneLabel);
-  const numbers = texts(form, FIELD.phoneNumber);
-  const phones: { label: string; number: string }[] = [];
-  const phoneRows: number[] = [];
-  numbers.forEach((number, row) => {
-    const label = labels[row] ?? "";
-    if (!label.trim() && !number.trim()) return;
-    phones.push({ label, number });
-    phoneRows.push(row);
-  });
+  const { phones, phoneRows } = phonesFromForm(form);
   const practiceId = hasPractice(type) ? text(form, FIELD.practiceId) : "";
   return {
     input: {
@@ -76,12 +66,3 @@ export const providerFromForm = (form: FormData): ProviderFormData => {
     phoneRows,
   };
 };
-
-/** Issues on sent phones (`phones.1.number`) moved to the form's rows, so they show on the right field. */
-export const issuesForRows = (issues: FieldIssue[], phoneRows: number[]): FieldIssue[] =>
-  issues.map((issue) => {
-    const match = /^phones\.(\d+)(\..*)?$/.exec(issue.path);
-    if (!match) return issue;
-    const row = phoneRows[Number(match[1])];
-    return row === undefined ? issue : { ...issue, path: `phones.${row}${match[2] ?? ""}` };
-  });

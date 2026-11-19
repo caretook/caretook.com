@@ -14,7 +14,7 @@ export const groupSettingsPages = (groupId: string): (SettingsItem & { id: Group
   {
     id: "details",
     label: "Details",
-    description: "The care group's name and the care recipient",
+    description: "The care group's name and the recipient's time zone",
     icon: Info,
     path: appUrls.groupSettings(groupId, "details"),
   },

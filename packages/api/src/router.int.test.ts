@@ -175,6 +175,12 @@ describe("careGroup: group settings", () => {
     name: "Pat Example",
     preferredName: null,
     dateOfBirth: null,
+    codeStatus: null,
+    bloodType: null,
+    primaryLanguage: null,
+    pronouns: null,
+    notes: null,
+    timeZone: "America/Los_Angeles",
     ...over,
   });
 
@@ -298,6 +304,37 @@ describe("careGroup: group settings", () => {
         expect(JSON.stringify(error.data?.issues)).toContain(field);
       }
       expect(await s.owner.careGroup.recipient({ groupId })).toEqual(profileOf(s.recipient));
+    });
+
+    it("changes the time zone alone, keeping the profile", async () => {
+      const s = await settingsSetup();
+      const groupId = s.group.id;
+      await s.owner.careGroup.updateRecipient({ groupId, preferredName: "Pat" });
+      const expected = profileOf(s.recipient, { preferredName: "Pat", timeZone: "America/New_York" });
+      expect(await s.caretaker.careGroup.updateRecipient({ groupId, timeZone: "America/New_York" })).toEqual(
+        expected,
+      );
+      expect(await s.viewer.careGroup.recipient({ groupId })).toEqual(expected);
+    });
+
+    it("refuses an unknown time zone, naming the field, and keeps the old one", async () => {
+      const s = await settingsSetup();
+      const groupId = s.group.id;
+      for (const timeZone of ["Mars/Olympus_Mons", "", "not a zone"]) {
+        const error = await rejection(s.owner.careGroup.updateRecipient({ groupId, timeZone }));
+        expect(error.code).toBe("BAD_REQUEST");
+        expect(JSON.stringify(error.data?.issues)).toContain("timeZone");
+      }
+      expect(await s.owner.careGroup.recipient({ groupId })).toEqual(profileOf(s.recipient));
+    });
+
+    it("refuses a viewer's time zone change with a 403", async () => {
+      const s = await settingsSetup();
+      const error = await rejection(
+        s.viewer.careGroup.updateRecipient({ groupId: s.group.id, timeZone: "America/New_York" }),
+      );
+      expect(error.code).toBe("FORBIDDEN");
+      expect(await s.owner.careGroup.recipient({ groupId: s.group.id })).toEqual(profileOf(s.recipient));
     });
 
     it("accepts a future date of birth (the shared schema has no such rule)", async () => {

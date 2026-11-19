@@ -120,11 +120,34 @@ export const PERMISSIONS: Permissions = {
     groupField: "groupId",
     read: groupEntry(ANY_GROUP_ROLE),
     list: groupEntry(ANY_GROUP_ROLE),
-    create: groupEntry(MANAGERS),
+    // Sharing (relationship, shared fields) is the member's own and the
+    // emergency list (rank, primary contact) the managers', but both need
+    // rules the map can't express: memberSharingService and
+    // emergencyContactService check them and write as the system.
+    create: {
+      ...groupEntry(MANAGERS),
+      fields: {
+        invitedBy: SYSTEM_ONLY,
+        relationship: SYSTEM_ONLY,
+        sharedFields: SYSTEM_ONLY,
+        emergencyRank: SYSTEM_ONLY,
+        isPrimaryContact: SYSTEM_ONLY,
+        emergencyDroppedAt: SYSTEM_ONLY,
+      },
+    },
     update: {
       ...groupEntry(MANAGERS),
       // A membership can change role, never group or user.
-      fields: { groupId: SYSTEM_ONLY, userId: SYSTEM_ONLY },
+      fields: {
+        groupId: SYSTEM_ONLY,
+        userId: SYSTEM_ONLY,
+        invitedBy: SYSTEM_ONLY,
+        relationship: SYSTEM_ONLY,
+        sharedFields: SYSTEM_ONLY,
+        emergencyRank: SYSTEM_ONLY,
+        isPrimaryContact: SYSTEM_ONLY,
+        emergencyDroppedAt: SYSTEM_ONLY,
+      },
     },
     // Managers remove members; anyone can remove themselves (leave).
     delete: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
@@ -147,7 +170,12 @@ export const PERMISSIONS: Permissions = {
     list: groupEntry(MANAGERS),
     create: {
       ...groupEntry(MANAGERS),
-      fields: { status: SYSTEM_ONLY, acceptedBy: SYSTEM_ONLY, respondedAt: SYSTEM_ONLY },
+      fields: {
+        status: SYSTEM_ONLY,
+        acceptedBy: SYSTEM_ONLY,
+        respondedAt: SYSTEM_ONLY,
+        useCount: SYSTEM_ONLY,
+      },
     },
     update: {
       ...groupEntry(MANAGERS),
@@ -160,6 +188,13 @@ export const PERMISSIONS: Permissions = {
         expiresAt: SYSTEM_ONLY,
         acceptedBy: SYSTEM_ONLY,
         respondedAt: SYSTEM_ONLY,
+        kind: SYSTEM_ONLY,
+        maxUses: SYSTEM_ONLY,
+        useCount: SYSTEM_ONLY,
+        consentAttestedBy: SYSTEM_ONLY,
+        consentAttestedAt: SYSTEM_ONLY,
+        consentVersion: SYSTEM_ONLY,
+        tokenCiphertext: SYSTEM_ONLY,
       },
     },
     delete: groupEntry(MANAGERS),
@@ -236,6 +271,134 @@ export const PERMISSIONS: Permissions = {
     create: groupEntry(WRITERS),
     update: SYSTEM_ONLY_ENTRY,
     delete: groupEntry(WRITERS),
+  },
+
+  // @caretook/notifications' outbox and the dev mailbox: the system's only.
+  notificationOutboxSchema: SYSTEM_ONLY_SCHEMA,
+  devMailSchema: SYSTEM_ONLY_SCHEMA,
+
+  // Who agreed to what a group shares, and when. Written only by the system
+  // (careGroupInviteService.accept); read by the group's owners and admins,
+  // and by the member themselves.
+  careGroupConsentSchema: {
+    ownerField: "userId",
+    groupField: "groupId",
+    read: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    list: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
+  },
+
+  // Requests to join from an invite link. Read by the group's owners and
+  // admins, and by the requester themselves; written only by the system
+  // (joinRequestService, careGroupInviteService.accept).
+  careGroupJoinRequestSchema: {
+    ownerField: "userId",
+    groupField: "groupId",
+    read: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    list: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
+  },
+
+  // Access codes (staff-made tickets for starting a group) and who used
+  // them: Caretook staff (global admin) only. Redeeming a code runs as the
+  // system, inside sign-up (accessCodeService.redeem).
+  accessCodeSchema: {
+    create: ADMIN_ONLY_PERMISSION_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    update: { ...ADMIN_ONLY_PERMISSION_ENTRY, fields: { code: SYSTEM_ONLY, useCount: SYSTEM_ONLY } },
+    delete: ADMIN_ONLY_PERMISSION_ENTRY,
+  },
+  accessCodeRedemptionSchema: {
+    create: SYSTEM_ONLY_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
+  },
+
+  // The group's medication list. Any writer adds, edits and deletes any
+  // medication; deletes are soft (medicationModel.remove sets deletedAt under
+  // this delete permission), so its doses and changes keep its name. Write
+  // through medicationService, which checks the prescriber and pharmacy and
+  // writes the timeline's change entry.
+  medicationSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+    },
+    delete: groupEntry(WRITERS),
+  },
+  // The marketing site's waitlist and contact messages: what visitors typed
+  // into the public forms. Written only by the system (waitlistService.join,
+  // contactMessageService.send); read, and removed on request, by staff.
+  waitlistEntrySchema: {
+    create: SYSTEM_ONLY_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: ADMIN_ONLY_PERMISSION_ENTRY,
+  },
+  contactMessageSchema: {
+    create: SYSTEM_ONLY_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: ADMIN_ONLY_PERMISSION_ENTRY,
+  },
+
+  // The recipient's sensitive details (profiles): phones, email, address,
+  // insurance and outside contacts. Owners, admins and caretakers only;
+  // viewers get none (and the writers stream keeps it off their devices).
+  // Outside contacts are the managers': careRecipientDetailsService checks
+  // the role and writes them as the system.
+  careRecipientDetailsSchema: {
+    groupField: "groupId",
+    read: groupEntry(WRITERS),
+    list: groupEntry(WRITERS),
+    create: { ...groupEntry(WRITERS), fields: { outsideContacts: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, outsideContacts: SYSTEM_ONLY },
+    },
+    delete: SYSTEM_ONLY_ENTRY,
+  },
+
+  // A member's own contact details: theirs alone (staff included), never
+  // replicated. Groups see only what's shared, through member_contact_share.
+  userContactSchema: {
+    ownerField: "userId",
+    create: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+    read: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+    list: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+    update: {
+      ...NO_ACCESS,
+      admin: ["owned"],
+      member: ["owned"],
+      system: ["all"],
+      fields: { userId: SYSTEM_ONLY },
+    },
+    delete: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+  },
+
+  // What each member shares with a group: read by the group, written only
+  // by the services that keep it in step (userContactService,
+  // memberSharingService), as the system.
+  memberContactShareSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
   },
 };
 

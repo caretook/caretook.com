@@ -158,6 +158,79 @@ describe("sync.upload: provider", () => {
   });
 });
 
+describe("sync.upload: practice in use", () => {
+  it("rejects a PATCH that turns a practice with live clinicians into a clinician", async () => {
+    const { owner, group } = await setup();
+    const practiceId = randomUUID();
+    const clinicianId = randomUUID();
+    await owner.api.sync.upload({
+      ops: [
+        { op: "PUT", table: "provider", id: practiceId, data: providerRow(group.id, { type: "practice" }) },
+        {
+          op: "PUT",
+          table: "provider",
+          id: clinicianId,
+          data: providerRow(group.id, { practice_id: practiceId }),
+        },
+      ],
+    });
+
+    const res = await owner.api.sync.upload({
+      ops: [{ op: "PATCH", table: "provider", id: practiceId, data: { type: "clinician" } }],
+    });
+    expect(res.results).toEqual([
+      expect.objectContaining({ id: practiceId, status: "rejected", code: "providerService:practiceInUse" }),
+    ]);
+    expect(ok(await providerService.getById(owner.ctx, practiceId))?.type).toBe("practice");
+  });
+});
+
+describe("sync.upload: practice has providers", () => {
+  it("rejects a PATCH setting deleted_at, and a DELETE, on a practice live clinicians name", async () => {
+    const { owner, group } = await setup();
+    const practiceId = randomUUID();
+    const clinicianId = randomUUID();
+    await owner.api.sync.upload({
+      ops: [
+        { op: "PUT", table: "provider", id: practiceId, data: providerRow(group.id, { type: "practice" }) },
+        {
+          op: "PUT",
+          table: "provider",
+          id: clinicianId,
+          data: providerRow(group.id, { practice_id: practiceId }),
+        },
+      ],
+    });
+
+    const res = await owner.api.sync.upload({
+      ops: [
+        {
+          op: "PATCH",
+          table: "provider",
+          id: practiceId,
+          data: { deleted_at: "2026-11-18T08:00:00.000000Z" },
+        },
+        { op: "DELETE", table: "provider", id: practiceId },
+      ],
+    });
+    const rejected = { id: practiceId, status: "rejected", code: "providerService:practiceHasProviders" };
+    expect(res.results).toEqual([expect.objectContaining(rejected), expect.objectContaining(rejected)]);
+    expect(ok(await providerService.getById(owner.ctx, practiceId))?.deletedAt).toBeNull();
+
+    // Once the clinician is deleted too, the practice goes.
+    const after = await owner.api.sync.upload({
+      ops: [
+        { op: "DELETE", table: "provider", id: clinicianId },
+        { op: "DELETE", table: "provider", id: practiceId },
+      ],
+    });
+    expect(after.results).toEqual([
+      { id: clinicianId, status: "applied" },
+      { id: practiceId, status: "applied" },
+    ]);
+  });
+});
+
 describe("sync.upload: timeline_entry_provider", () => {
   it("links offline: an event, a new provider and the link in one batch, replayed safely", async () => {
     const { owner, viewer, group, recipient } = await setup();

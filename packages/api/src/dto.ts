@@ -11,6 +11,8 @@ export const toTimelineEntry = (entry: TimelineEntryModel) => ({
   createdAt: iso(entry.createdAt),
   updatedAt: iso(entry.updatedAt),
   deletedAt: entry.deletedAt ? iso(entry.deletedAt) : null,
+  endsAt: entry.endsAt ? iso(entry.endsAt) : null,
+  cancelledAt: entry.cancelledAt ? iso(entry.cancelledAt) : null,
 });
 
 export type TimelineEntryDto = ReturnType<typeof toTimelineEntry>;

@@ -1,7 +1,7 @@
-import type { ProviderType, TimelineEntryKind, VitalType } from "@caretook/data/schema";
+import type { ProviderType, SearchItemType, TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { LiveEntryKind } from "./liveEntry";
 
-import { PROVIDER_TYPES, VITAL_TYPES } from "@caretook/data/schema";
+import { PROVIDER_TYPES, SEARCH_ITEM_TYPES, VITAL_TYPES } from "@caretook/data/schema";
 import { isLiveEntryKind, NEW_ENTRY } from "./liveEntry";
 
 // Every path inside the app, built in one place. Links, redirects and
@@ -43,20 +43,41 @@ export const VITAL_TYPE_PARAM = "type";
 export const isVitalType = (value: unknown): value is VitalType =>
   (VITAL_TYPES as readonly unknown[]).includes(value);
 
-/** `search` without the add sheet's own parameter: the timeline's filters, as a sheet carries them. */
+/** The Dose sheet's medication and the slot it answers: `?medication=<id>&slot=08:00`. */
+export const DOSE_MEDICATION_PARAM = "medication";
+export const DOSE_SLOT_PARAM = "slot";
+
+/** `search` without the add sheets' own parameters: the timeline's filters, as a sheet carries them. */
 export const withoutSheetParams = (search?: Search) => {
   const params = new URLSearchParams(searchString(search));
   params.delete(VITAL_TYPE_PARAM);
+  params.delete(DOSE_MEDICATION_PARAM);
+  params.delete(DOSE_SLOT_PARAM);
   return params;
 };
 
 /** A new provider's type (`providers/new?type=pharmacy`), the same parameter as the directory's type filter. */
 export const PROVIDER_TYPE_PARAM = "type";
 
+/** A new entry that opens the time picker first: `entries/new?kind=event&when=pick`. */
+export const WHEN_PARAM = "when";
+export const WHEN_PICK = "pick";
+
+/** The recipient's profile's edit sheets, in the order the page shows them (`…/profile/<sheet>`). */
+export const PROFILE_SHEETS = ["basics", "contact", "insurance", "emergency"] as const;
+export type ProfileSheet = (typeof PROFILE_SHEETS)[number];
+const isProfileSheet = (sheet: unknown): sheet is ProfileSheet =>
+  (PROFILE_SHEETS as readonly unknown[]).includes(sheet);
+/** The search page's text (`?q=`), and the one section it shows in full (`?all=provider`). */
+export const SEARCH_QUERY_PARAM = "q";
+export const SEARCH_ALL_PARAM = "all";
+export const isSearchItemType = (value: unknown): value is SearchItemType =>
+  (SEARCH_ITEM_TYPES as readonly unknown[]).includes(value);
+
 const HOME = "/app";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
-export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account"] as const;
+export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account", "contact"] as const;
 export type AccountSettingsPage = (typeof ACCOUNT_SETTINGS_PAGES)[number];
 const isAccountSettingsPage = (page: unknown): page is AccountSettingsPage =>
   (ACCOUNT_SETTINGS_PAGES as readonly unknown[]).includes(page);
@@ -130,4 +151,68 @@ export const appUrls = {
     `${groupHome(groupId)}/providers/${segment(providerId)}/edit${searchString(search)}`,
   /** A provider's page: details, contact actions and their shared live notes. */
   provider: (groupId: string, providerId: string) => `${groupHome(groupId)}/providers/${segment(providerId)}`,
+  /** Start another care group: who you care for, then its timeline. */
+  newGroup: () => `${HOME}/groups/new`,
+  /** A group's medication list, with its search and status filter (`?q=`, `?status=`) carried through. */
+  medications: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/medications${searchString(search)}`,
+  /**
+   * The Dose sheet over a group's timeline, carrying the timeline's filters.
+   * It can start on one medication, and the slot the dose answers ("08:00").
+   */
+  newDose: (
+    groupId: string,
+    { medicationId, slot, search }: { medicationId?: string; slot?: string; search?: Search } = {},
+  ) => {
+    const params = withoutSheetParams(search);
+    if (medicationId) params.set(DOSE_MEDICATION_PARAM, medicationId);
+    if (slot) params.set(DOSE_SLOT_PARAM, slot);
+    return `${groupHome(groupId)}/timeline/new/dose${searchString(params)}`;
+  },
+  /** A medication's page: details, schedule, providers, refills, its live notes and its history. */
+  medication: (groupId: string, medicationId: string) =>
+    `${groupHome(groupId)}/medications/${segment(medicationId)}`,
+  /** The printable medication sheet: current and recently stopped medications, and who to call. */
+  medicationsPrint: (groupId: string) => `${groupHome(groupId)}/medications/print`,
+  /**
+   * A group's Upcoming section, with its filters carried through: pass the
+   * timeline's `{ kind, author }` (or a search string) and they're kept.
+   */
+  upcoming: (groupId: string, search?: Search) => `${groupHome(groupId)}/upcoming${searchString(search)}`,
+  /** Upcoming's Past tab (past events, newest first), with its filters carried through. */
+  pastEvents: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/upcoming/past${searchString(search)}`,
+  /**
+   * A new appointment (an event) or reminder (a note) that opens the time
+   * picker first (`?when=pick`): a draft like `newEntry`. An unknown kind is dropped.
+   */
+  newUpcomingEntry: (groupId: string, kind: LiveEntryKind) =>
+    `${groupHome(groupId)}/entries/${NEW_ENTRY}${searchString({
+      kind: isLiveEntryKind(kind) ? kind : null,
+      [WHEN_PARAM]: WHEN_PICK,
+    })}`,
+  /** The add sheet over the medication list, carrying the list's search and status filter. */
+  newMedication: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/medications/new${searchString(search)}`,
+  /** The edit sheet for one medication, over the list, carrying the list's search and status filter. */
+  editMedication: (groupId: string, medicationId: string, search?: Search) =>
+    `${groupHome(groupId)}/medications/${segment(medicationId)}/edit${searchString(search)}`,
+  /**
+   * The care recipient's profile (not a group section), or one of its edit
+   * sheets over it. An unknown sheet is dropped (the profile).
+   */
+  profile: (groupId: string, sheet?: ProfileSheet) =>
+    `${groupHome(groupId)}/profile${isProfileSheet(sheet) ? `/${sheet}` : ""}`,
+  /** The recipient's printable emergency sheet (a page, not a sheet over the profile). */
+  profilePrint: (groupId: string) => `${groupHome(groupId)}/profile/print`,
+  /**
+   * A group's search page, with what's searched for (`?q=`, untrimmed: it's
+   * the field's text) and the section shown in full (`?all=`; an unknown
+   * type, or one without a search, is dropped).
+   */
+  search: (groupId: string, q?: string | null, { all }: { all?: SearchItemType | null } = {}) =>
+    `${groupHome(groupId)}/search${searchString({
+      [SEARCH_QUERY_PARAM]: q,
+      [SEARCH_ALL_PARAM]: q?.trim() && isSearchItemType(all) ? all : null,
+    })}`,
 } as const;

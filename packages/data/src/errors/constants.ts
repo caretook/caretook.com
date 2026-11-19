@@ -82,8 +82,20 @@ export const MODEL_ERRORS = {
   "careGroupMemberModel:lockOwners": {
     message: "Failed to lock group owners",
   },
+  "careGroupMemberModel:lockGroupMembers": {
+    message: "Failed to lock group members",
+  },
+  "careGroupMemberModel:listForUser": {
+    message: "Failed to list the user's memberships",
+  },
+  "careRecipientDetailsModel:lockForGroup": {
+    message: "Failed to lock the care recipient's details",
+  },
   "careGroupMemberModel:insertFirstOwner": {
     message: "Failed to add the group's first owner",
+  },
+  "careGroupInviteModel:getByToken": {
+    message: "Failed to look up the invitation",
   },
   "timelineEntryModel:badCursor": {
     message: "Invalid page cursor",
@@ -107,9 +119,34 @@ export const MODEL_ERRORS = {
   "providerModel:remove": {
     message: "Failed to delete the provider",
   },
+  "providerModel:lock": {
+    message: "Failed to lock the provider",
+  },
+  "medicationModel:remove": {
+    message: "Failed to delete the medication",
+  },
   "userModel:notFound": {
     message: "User not found",
     statusCode: 404,
+  },
+  "careGroupInviteModel:getSealedToken": {
+    message: "Failed to read the invite link",
+  },
+  "careGroupJoinRequestModel:lock": {
+    message: "Failed to look up the join request",
+    statusCode: 403,
+  },
+  "accessCodeModel:getByCode": {
+    message: "Failed to look up the access code",
+  },
+  "accessCodeModel:countUse": {
+    message: "Failed to count the access code's use",
+  },
+  "waitlistEntryModel:upsertByEmail": {
+    message: "Failed to save the waitlist entry",
+  },
+  "waitlistEntryModel:search": {
+    message: "Failed to search the waitlist",
   },
 } as const;
 
@@ -206,6 +243,14 @@ export const SERVICE_ERRORS = {
     message: "The practice must be a practice or pharmacy in this care group",
     statusCode: 400,
   },
+  "providerService:practiceInUse": {
+    message: "Clinicians are linked to this practice. Move them to another practice first.",
+    statusCode: 400,
+  },
+  "providerService:practiceHasProviders": {
+    message: "Providers are linked to this practice. Move them to another practice, or delete them, first.",
+    statusCode: 409,
+  },
   "entryProviderService:invalid": {
     message: "The provider link is invalid",
     statusCode: 400,
@@ -226,6 +271,203 @@ export const SERVICE_ERRORS = {
     message: "A link's entry and provider must be in its care group",
     statusCode: 400,
   },
+  "careGroupInviteService:notAllowed": {
+    message: "You can't invite someone with that role",
+    statusCode: 403,
+  },
+  "careGroupInviteService:notAttested": {
+    message: "Confirm the care recipient agreed to share with this person first",
+    statusCode: 400,
+  },
+  "careGroupInviteService:alreadyMember": {
+    message: "That person is already in this care group",
+    statusCode: 409,
+  },
+  "careGroupInviteService:alreadyInvited": {
+    message: "That address already has an invitation waiting. Send it again instead.",
+    statusCode: 409,
+  },
+  "careGroupInviteService:unusable": {
+    message: "This invitation can't be used any more",
+    statusCode: 409,
+  },
+  "careGroupInviteService:wrongEmail": {
+    message: "This invitation is for a different email address",
+    statusCode: 403,
+  },
+  "careGroupInviteService:noConsent": {
+    message: "Agree to what the care group shares before joining",
+    statusCode: 400,
+  },
+  "careGroupInviteService:wrongKind": {
+    message: "That isn't an email invitation",
+    statusCode: 400,
+  },
+  "ticket:invalid": {
+    message: "This invitation can't be used to create an account",
+    statusCode: 403,
+  },
+  "ticket:emailMismatch": {
+    message: "Use the email address the invitation was sent to",
+    statusCode: 400,
+  },
+  "ticket:accountExists": {
+    message: "An account with this email already exists. Sign in instead.",
+    statusCode: 409,
+  },
+  "ticket:weakPassword": {
+    message: "Use at least 12 characters",
+    statusCode: 400,
+  },
+  "careGroupInviteService:linkRole": {
+    message: "An invite link can make caretakers and viewers only",
+    statusCode: 403,
+  },
+  "careGroupInviteService:notLink": {
+    message: "That isn't an invite link",
+    statusCode: 400,
+  },
+  "careGroupInviteService:linkInactive": {
+    message: "That link has expired, been used up or been withdrawn, so it can't be copied",
+    statusCode: 409,
+  },
+  "careGroupInviteService:linkKeyMissing": {
+    message: "INVITE_LINK_KEY is not set, so invite links can't be made",
+  },
+  "joinRequestService:notFound": {
+    message: "That request is no longer waiting",
+    statusCode: 404,
+  },
+  "joinRequestService:notAllowed": {
+    message: "Only the care group's owners and admins can answer requests to join",
+    statusCode: 403,
+  },
+  "accessCodeService:notFound": {
+    message: "That access code isn't valid",
+    statusCode: 404,
+  },
+  "accessCodeService:unusable": {
+    message: "This access code can't be used any more",
+    statusCode: 409,
+  },
+  "accessCodeService:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "accessCodeService:noUniqueCode": {
+    message: "Couldn't make a new access code. Try again.",
+  },
+  "staffGroupService:staffOnly": {
+    message: "Only Caretook staff can do that",
+    statusCode: 403,
+  },
+  "careRecipientService:invalidTimeZone": {
+    message: "The care recipient needs a valid time zone",
+    statusCode: 400,
+  },
+  "medicationService:invalid": {
+    message: "The medication is invalid",
+    statusCode: 400,
+  },
+  "medicationService:notFound": {
+    message: "Medication not found",
+    statusCode: 404,
+  },
+  "medicationService:immutable": {
+    message: "A medication's group and recipient can't change",
+    statusCode: 400,
+  },
+  "medicationService:noRecipient": {
+    message: "This care group has no care recipient yet",
+    statusCode: 409,
+  },
+  "medicationService:recipientNotInGroup": {
+    message: "That care recipient isn't in this care group",
+    statusCode: 400,
+  },
+  "medicationService:badPrescriber": {
+    message: "The prescriber must be a clinician or practice in this care group",
+    statusCode: 400,
+  },
+  "medicationService:badPharmacy": {
+    message: "The pharmacy must be a pharmacy in this care group",
+    statusCode: 400,
+  },
+  "timelineEntryService:medicationNotInGroup": {
+    message: "That medication isn't in this care group",
+    statusCode: 400,
+  },
+  "timelineEntryService:systemWrittenKind": {
+    message: "Medication changes are written with the medication, not by hand",
+    statusCode: 403,
+  },
+  "noteDocumentService:medicationNotFound": {
+    message: "That medication is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "publicForms:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "timelineEntryService:rescheduledToNotInGroup": {
+    message: "A rescheduled event must point at another event in this care group",
+    statusCode: 400,
+  },
+  "careRecipientService:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "careRecipientService:notFound": {
+    message: "Care recipient not found",
+    statusCode: 404,
+  },
+  "careRecipientDetailsService:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "careRecipientDetailsService:notAllowed": {
+    message: "Only owners, admins and caretakers can see or change these details",
+    statusCode: 403,
+  },
+  "careRecipientDetailsService:managersOnly": {
+    message: "Only owners and admins can change emergency contacts",
+    statusCode: 403,
+  },
+  "emergencyContactService:invalid": {
+    message: "Check the emergency contacts and try again",
+    statusCode: 400,
+  },
+  "emergencyContactService:notAllowed": {
+    message: "Only owners and admins can change emergency contacts",
+    statusCode: 403,
+  },
+  "emergencyContactService:noPhone": {
+    message: "Only members who share a phone number with the group can be emergency contacts",
+    statusCode: 409,
+  },
+  "userContactService:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "memberSharingService:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "memberSharingService:notFound": {
+    message: "Care group not found",
+    statusCode: 404,
+  },
+  "searchService:notFound": {
+    message: "Care group not found",
+    statusCode: 404,
+  },
+  "searchService:badCursor": {
+    message: "Invalid page cursor",
+    statusCode: 400,
+  },
+  "searchService:query": {
+    message: "Failed to search",
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {
@@ -243,6 +485,26 @@ export const PERMISSION_ERRORS = {
   },
 } as const;
 
+// @caretook/notifications: notify(), the outbox and the senders.
+export const NOTIFICATION_ERRORS = {
+  "notify:invalidData": {
+    message: "The notification's data is invalid",
+    statusCode: 400,
+  },
+  "notify:render": {
+    message: "Failed to render the notification",
+  },
+  "notify:enqueue": {
+    message: "Failed to queue the notification",
+  },
+  "notify:deliver": {
+    message: "Failed to deliver queued notifications",
+  },
+  "notify:send": {
+    message: "The mail sender refused the message",
+  },
+} as const;
+
 export const ERRORS = {
   error: {
     message: "An error occurred",
@@ -251,6 +513,7 @@ export const ERRORS = {
   ...MODEL_ERRORS,
   ...SERVICE_ERRORS,
   ...PERMISSION_ERRORS,
+  ...NOTIFICATION_ERRORS,
 } as const;
 
 export const ERROR_KEYS = Object.keys(ERRORS) as (keyof typeof ERRORS)[];

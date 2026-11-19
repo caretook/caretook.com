@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Draft Caretook mark: a heart with a check. Matches LogoMark (routes/marketing/layout/Logo.tsx). -->
+  <rect width="64" height="64" rx="14" fill="#432dd7"/>
+  <path d="M32 49C16 39 11 30 14 22.5 17 15.5 27 14.5 32 22c5-7.5 15-6.5 18 .5 3 7.5-2 16.5-18 26.5Z" fill="none" stroke="#e0e7ff" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m24 31.5 5.5 5.5L40 26.5" fill="none" stroke="#e0e7ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

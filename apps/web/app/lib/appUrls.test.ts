@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appUrls, searchString } from "./appUrls";
+import { appUrls, searchString, withoutSheetParams } from "./appUrls";
 import { NEW_ENTRY } from "./liveEntry";
 
 const G = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -14,6 +14,7 @@ describe("appUrls", () => {
     expect(appUrls.settings("units")).toBe("/app/settings/units");
     expect(appUrls.settings("timeline")).toBe("/app/settings/timeline");
     expect(appUrls.settings("account")).toBe("/app/settings/account");
+    expect(appUrls.settings("contact")).toBe("/app/settings/contact");
     // @ts-expect-error: only the listed subpages exist.
     expect(appUrls.settings("bogus")).toBe("/app/settings");
   });
@@ -38,6 +39,19 @@ describe("appUrls", () => {
   it("builds a provider's page, with the id as a path segment", () => {
     expect(appUrls.provider(G, "p1")).toBe(`/app/groups/${G}/providers/p1`);
     expect(appUrls.provider("g", "a/b")).toBe("/app/groups/g/providers/a%2Fb");
+  });
+
+  it("builds the medication list with its search, and a medication's page", () => {
+    expect(appUrls.medications(G)).toBe(`/app/groups/${G}/medications`);
+    expect(appUrls.medications("g", "?q=blood&status=current")).toBe(
+      "/app/groups/g/medications?q=blood&status=current",
+    );
+    expect(appUrls.medications("g", { q: "", status: "completed" })).toBe(
+      "/app/groups/g/medications?status=completed",
+    );
+    expect(appUrls.medication(G, "m1")).toBe(`/app/groups/${G}/medications/m1`);
+    expect(appUrls.medication("g", "a/b")).toBe("/app/groups/g/medications/a%2Fb");
+    expect(appUrls.medicationsPrint(G)).toBe(`/app/groups/${G}/medications/print`);
   });
 
   it("builds a group's settings subpages, and drops an unknown one", () => {
@@ -140,5 +154,103 @@ describe("searchString", () => {
 
   it("keeps repeated parameters and their order", () => {
     expect(searchString("b=1&a=2&b=3")).toBe("?b=1&a=2&b=3");
+  });
+});
+
+describe("appUrls.newGroup", () => {
+  it("is a static path the group route never claims", () => {
+    expect(appUrls.newGroup()).toBe("/app/groups/new");
+  });
+});
+
+describe("appUrls.newDose", () => {
+  const M = "11111111-2222-4333-8444-555555555555";
+  it("is the Dose sheet over the timeline, carrying its filters", () => {
+    expect(appUrls.newDose(G)).toBe(`/app/groups/${G}/timeline/new/dose`);
+    expect(appUrls.newDose(G, { search: "?kind=dose&type=spo2" })).toBe(
+      `/app/groups/${G}/timeline/new/dose?kind=dose`,
+    );
+  });
+
+  it("can start on a medication and a slot, replacing ones already in the search", () => {
+    expect(appUrls.newDose(G, { medicationId: M, slot: "08:00", search: "?medication=x&slot=09:00" })).toBe(
+      `/app/groups/${G}/timeline/new/dose?medication=${M}&slot=08%3A00`,
+    );
+  });
+
+  it("is dropped from the timeline a sheet closes to", () => {
+    expect(appUrls.timeline(G, withoutSheetParams(`?kind=dose&medication=${M}&slot=08:00`))).toBe(
+      `/app/groups/${G}/timeline?kind=dose`,
+    );
+  });
+});
+
+describe("appUrls.medication", () => {
+  it("is a medication's page in its group", () => {
+    expect(appUrls.medication("g", "m 1")).toBe("/app/groups/g/medications/m%201");
+  });
+});
+
+describe("appUrls.upcoming", () => {
+  const G = "11111111-1111-4111-8111-111111111111";
+  const A = "22222222-2222-4222-8222-222222222222";
+
+  it("is the group's Upcoming section, carrying the timeline's filters", () => {
+    expect(appUrls.upcoming(G)).toBe(`/app/groups/${G}/upcoming`);
+    expect(appUrls.upcoming(G, { kind: "event", author: A })).toBe(
+      `/app/groups/${G}/upcoming?kind=event&author=${A}`,
+    );
+    expect(appUrls.upcoming(G, { kind: null, author: null })).toBe(`/app/groups/${G}/upcoming`);
+    expect(appUrls.upcoming(G, "?author=" + A)).toBe(`/app/groups/${G}/upcoming?author=${A}`);
+  });
+
+  it("has a Past tab", () => {
+    expect(appUrls.pastEvents(G)).toBe(`/app/groups/${G}/upcoming/past`);
+    expect(appUrls.pastEvents(G, { author: A })).toBe(`/app/groups/${G}/upcoming/past?author=${A}`);
+  });
+
+  it("adds appointments and reminders through the time picker first", () => {
+    expect(appUrls.newUpcomingEntry(G, "event")).toBe(`/app/groups/${G}/entries/new?kind=event&when=pick`);
+    expect(appUrls.newUpcomingEntry(G, "note")).toBe(`/app/groups/${G}/entries/new?kind=note&when=pick`);
+  });
+});
+
+describe("appUrls.newMedication and editMedication", () => {
+  it("are sheets over the list, carrying its search and status filter", () => {
+    expect(appUrls.newMedication("g")).toBe("/app/groups/g/medications/new");
+    expect(appUrls.newMedication("g", "?q=lis&status=current")).toBe(
+      "/app/groups/g/medications/new?q=lis&status=current",
+    );
+    expect(appUrls.editMedication("g", "m 1")).toBe("/app/groups/g/medications/m%201/edit");
+    expect(appUrls.editMedication("g", "m1", { q: "", status: "discontinued" })).toBe(
+      "/app/groups/g/medications/m1/edit?status=discontinued",
+    );
+  });
+
+  it("builds the recipient's profile and its sheets, and drops an unknown sheet", () => {
+    expect(appUrls.profile(G)).toBe(`/app/groups/${G}/profile`);
+    expect(appUrls.profile(G, "basics")).toBe(`/app/groups/${G}/profile/basics`);
+    expect(appUrls.profile(G, "contact")).toBe(`/app/groups/${G}/profile/contact`);
+    expect(appUrls.profile(G, "insurance")).toBe(`/app/groups/${G}/profile/insurance`);
+    expect(appUrls.profile(G, "emergency")).toBe(`/app/groups/${G}/profile/emergency`);
+    // @ts-expect-error: only the listed sheets exist.
+    expect(appUrls.profile(G, "bogus")).toBe(`/app/groups/${G}/profile`);
+  });
+
+  it("builds the recipient's emergency sheet", () => {
+    expect(appUrls.profilePrint(G)).toBe(`/app/groups/${G}/profile/print`);
+  });
+
+  it("builds the search page, with its text and the section shown in full", () => {
+    expect(appUrls.search(G)).toBe(`/app/groups/${G}/search`);
+    expect(appUrls.search(G, "")).toBe(`/app/groups/${G}/search`);
+    expect(appUrls.search(G, "knee pain")).toBe(`/app/groups/${G}/search?q=knee+pain`);
+    expect(appUrls.search(G, "knee", { all: "entry" })).toBe(`/app/groups/${G}/search?q=knee&all=entry`);
+  });
+
+  it("drops a full section without a search, or of an unknown type", () => {
+    expect(appUrls.search(G, " ", { all: "entry" })).toBe(`/app/groups/${G}/search?q=+`);
+    // @ts-expect-error: only the search's item types exist.
+    expect(appUrls.search(G, "knee", { all: "bogus" })).toBe(`/app/groups/${G}/search?q=knee`);
   });
 });

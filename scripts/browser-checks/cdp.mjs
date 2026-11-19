@@ -62,20 +62,58 @@ export async function openPage(browser, label) {
       pending.set(n, { resolve, reject });
       ws.send(JSON.stringify({ id: n, method, params }));
     });
+  // Everything the page reports, for checks' own error assertions (`errors`)
+  // and for a failed wait's diagnosis (`uncaught`, `diagnose()`). Vite's dev
+  // client forwards console errors and uncaught errors to the server, and when
+  // its socket is down it logs only "Failed to send error to Vite server",
+  // which hides the real error: so take them from CDP directly, with where
+  // they came from.
+  const uncaught = [];
+  const where = (d) => (d?.url ? ` (${d.url.replace(BASE, "")}:${(d.lineNumber ?? 0) + 1})` : "");
+  // A plain object logs as "Object": show its preview's fields instead (PowerSync
+  // logs its errors as objects with a name and message).
+  const preview = (a) =>
+    a.type === "object" && !a.subtype && a.preview?.properties?.length
+      ? `{${a.preview.properties.map((p) => `${p.name}: ${p.value ?? p.type}`).join(", ")}}`
+      : null;
+  const argText = (a) => a.value ?? preview(a) ?? a.description ?? a.unserializableValue ?? "";
   listeners.push((msg) => {
     if (msg.method === "Runtime.consoleAPICalled" && ["error", "warning"].includes(msg.params.type)) {
-      const text = msg.params.args.map((a) => a.value ?? a.description ?? "").join(" ");
+      const text = msg.params.args.map(argText).join(" ");
       errors.push(`[${label} console.${msg.params.type}] ${text}`);
+      if (msg.params.type === "error") uncaught.push(`console.error: ${text}`);
     }
     if (msg.method === "Runtime.exceptionThrown") {
-      errors.push(
-        `[${label} exception] ${msg.params.exceptionDetails.exception?.description ?? msg.params.exceptionDetails.text}`,
-      );
+      const d = msg.params.exceptionDetails;
+      const text = d.exception?.description ?? d.text;
+      errors.push(`[${label} exception] ${text}`);
+      uncaught.push(`uncaught: ${text}${where(d.stackTrace?.callFrames?.[0] ?? d)}`);
+    }
+    if (msg.method === "Log.entryAdded" && msg.params.entry.level === "error") {
+      const e = msg.params.entry;
+      uncaught.push(`${e.source}: ${e.text}${e.url ? ` (${e.url.replace(BASE, "")})` : ""}`);
+    }
+    // A Content-Security-Policy violation (quick-fixes slice 22) fails every
+    // check: it's in `errors` for their assertions, and the exit code is set
+    // at exit (below) for checks that don't assert on `errors`.
+    if (msg.method === "Log.entryAdded" && /Content Security Policy/i.test(msg.params.entry.text)) {
+      const e = msg.params.entry;
+      const text = `${e.text}${e.url ? ` (${e.url.replace(BASE, "")})` : ""}`;
+      errors.push(`[${label} CSP] ${text}`);
+      console.log(`FAIL CSP violation (${label}): ${text}`);
+      cspViolations.push(text);
     }
   });
   await send("Page.enable");
   await send("Runtime.enable");
+  await send("Log.enable");
   await send("Network.enable");
+  // Each page is its own device, with its own client IP as real users have. A
+  // built server (NODE_ENV=production) turns on Better Auth's rate limits (3
+  // sign-ins per 10 s, 100 session checks per 10 s, per IP and path), and with
+  // no proxy header every page would share one bucket.
+  const ip = () => Math.floor(Math.random() * 254) + 1;
+  await send("Network.setExtraHTTPHeaders", { headers: { "x-forwarded-for": `10.${ip()}.${ip()}.${ip()}` } });
   await send("Emulation.setDeviceMetricsOverride", {
     width: 420,
     height: 900,
@@ -93,7 +131,34 @@ export async function openPage(browser, label) {
     await send("Page.navigate", { url: BASE + path });
     await waitFor(`document.readyState === "complete"`, 15000);
   };
-  const waitFor = async (expression, ms = 10000) => {
+  /**
+   * The page's state for a failed step: its URL, the errors it reported since
+   * the last diagnosis (uncaught errors, rejections, console errors and failed
+   * loads, newest last) and the start of `main`'s HTML.
+   */
+  let diagnosed = 0;
+  const diagnose = async () => {
+    // A page that's gone never answers, so give up after 3 s.
+    const page = await Promise.race([
+      evaluate(
+        `JSON.stringify({ url: location.href, main: document.querySelector("main")?.outerHTML.slice(0, 600) ?? null, body: document.querySelector("main") ? undefined : document.body?.innerText.slice(0, 300) })`,
+      ),
+      sleep(3000).then(() => {
+        throw new Error("no answer in 3 s");
+      }),
+    ])
+      .then(JSON.parse)
+      .catch((e) => ({ url: "?", main: `(can't evaluate: ${e.message})` }));
+    const fresh = uncaught.slice(diagnosed).slice(-8);
+    diagnosed = uncaught.length;
+    return [
+      `[${label}] at ${page.url.replace(BASE, "")}`,
+      fresh.length ? fresh.map((e) => `  ${e.slice(0, 600)}`).join("\n") : "  (no errors reported)",
+      `  main: ${page.main ?? `none; body: ${JSON.stringify(page.body ?? "")}`}`,
+    ].join("\n");
+  };
+  /** Waits for `expression`; on a timeout, prints `diagnose()` (unless `quiet`) and throws. */
+  const waitFor = async (expression, ms = 10000, { quiet = false } = {}) => {
     const end = Date.now() + ms;
     while (Date.now() < end) {
       try {
@@ -103,6 +168,8 @@ export async function openPage(browser, label) {
       }
       await sleep(100);
     }
+    if (!quiet)
+      console.log(`${label}: timed out waiting for ${expression.slice(0, 200)}\n${await diagnose()}`);
     throw new Error(`${label}: timed out waiting for ${expression}`);
   };
   const screenshot = async (name) => {
@@ -123,12 +190,23 @@ export async function openPage(browser, label) {
       el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); el.click(); return true; })()`);
   // A real tap (mouse press and release) at the centre of an element, after
   // scrolling it into view: it goes through whatever is on top, as a finger would.
+  // It aims where the element is once it has stopped moving: content arriving
+  // above it (a banner from a live query) can shift it after it first renders,
+  // and a fast (built) server makes the tap race that shift.
   const tap = async (selector) => {
-    const point = await evaluate(`(() => { const el = ${selector}; if (!el) return null;
+    const where = `(() => { const el = ${selector}; if (!el) return null;
       el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect();
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`;
+    let point = await evaluate(where);
     if (!point) throw new Error(`${label}: nothing to tap: ${selector}`);
-    await sleep(100);
+    for (let i = 0; i < 20; i++) {
+      await sleep(100);
+      const next = await evaluate(where);
+      if (!next) throw new Error(`${label}: nothing to tap: ${selector}`);
+      const still = next.x === point.x && next.y === point.y;
+      point = next;
+      if (still) break;
+    }
     for (const type of ["mousePressed", "mouseReleased"]) {
       await send("Input.dispatchMouseEvent", { type, ...point, button: "left", clickCount: 1 });
     }
@@ -217,6 +295,39 @@ export async function openPage(browser, label) {
     openDevFamily,
     signOut,
     errors,
+    uncaught,
+    diagnose,
     close: () => ws.close(),
   };
+}
+
+/**
+ * Smoke mode (`SMOKE=1`; `pnpm prd browser --smoke` sets it): each check runs
+ * only its core path (one role, one happy path, no offline, no second device),
+ * in about 20 s. Hand-offs and landings run the full check.
+ */
+export const SMOKE = process.env.SMOKE === "1";
+
+/** Every page's CSP violations; any at all fails the run, whatever the check's own verdict. */
+const cspViolations = [];
+process.on("exit", () => {
+  if (cspViolations.length) {
+    console.log(`FAIL ${cspViolations.length} Content-Security-Policy violation(s)`);
+    process.exitCode = 1;
+  }
+});
+
+/**
+ * A block of a check's steps: `await step(name, fn)`, or `step(name, { smoke:
+ * true }, fn)` for a block on the core path. In smoke mode a block that isn't
+ * marked smoke is skipped, with one "SKIP" line, and returns `skipped`
+ * instead of `fn`'s result. Full mode runs every block.
+ */
+export async function step(name, opts, fn) {
+  if (typeof opts === "function") [fn, opts] = [opts, {}];
+  if (SMOKE && !opts.smoke) {
+    console.log(`SKIP  ${name} (smoke)`);
+    return opts.skipped;
+  }
+  return fn();
 }

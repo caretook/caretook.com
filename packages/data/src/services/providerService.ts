@@ -7,6 +7,8 @@ import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   isPracticeType,
+  leavesPracticeTypes,
+  PRACTICE_IN_USE_ISSUE,
   providerContentZSchema,
   providerCreateZSchema,
   providerUpdateZSchema,
@@ -38,6 +40,42 @@ const badPractice = () =>
     },
   });
 
+const practiceInUse = () =>
+  newError({ code: "providerService:practiceInUse", meta: { issues: [{ ...PRACTICE_IN_USE_ISSUE }] } });
+
+const practiceHasProviders = () => newError({ code: "providerService:practiceHasProviders" });
+
+/** Whether any live provider in the group names this one as its practice. Deleted ones don't count. */
+const hasLiveDependents = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  { id, groupId }: { id: string; groupId: string },
+) => {
+  const dependents = await providerModel.list({
+    ...ctx,
+    tx,
+    filter: { groupId: { type: "eq", value: groupId }, practiceId: { type: "eq", value: id } },
+    paginate: { limit: 1, page: 1 },
+  });
+  if (isError(dependents)) return dependents;
+  return dependents.data.length > 0;
+};
+
+/**
+ * A practice or pharmacy can't stop being one while live providers in its
+ * group name it as their practice.
+ */
+const checkPracticeInUse = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  { id, groupId, from, to }: { id: string; groupId: string; from: string; to: string },
+) => {
+  if (!leavesPracticeTypes(from, to)) return null;
+  const inUse = await hasLiveDependents(ctx, tx, { id, groupId });
+  if (isError(inUse)) return inUse;
+  return inUse ? practiceInUse() : null;
+};
+
 /** The practice must be a live practice or pharmacy in the group, and not the provider itself. */
 const checkPractice = async (
   ctx: ServiceContext,
@@ -46,7 +84,10 @@ const checkPractice = async (
 ) => {
   if (!practiceId) return null;
   if (practiceId === id) return badPractice();
-  const practice = await providerModel.getById(practiceId, { ...ctx, tx });
+  // Locked until the save commits, so a concurrent delete of the practice
+  // either waits for it (and then sees this provider) or goes first (and
+  // this reads it as deleted). The group check below scopes it.
+  const practice = await providerModel.lockLive(practiceId, tx, "share");
   if (isError(practice)) return practice;
   if (!practice || practice.groupId !== groupId || !isPracticeType(practice.type)) return badPractice();
   return null;
@@ -115,6 +156,14 @@ export const update = (ctx: ServiceContext, id: string, input: ProviderUpdateInp
     });
     if (!merged.success) return invalid(merged.error);
 
+    const inUse = await checkPracticeInUse(ctx, tx, {
+      id,
+      groupId: existing.groupId,
+      from: existing.type,
+      to: merged.data.type,
+    });
+    if (inUse) return inUse;
+
     if (merged.data.practiceId !== existing.practiceId) {
       const practice = await checkPractice(ctx, tx, { id, groupId: existing.groupId, ...merged.data });
       if (practice) return practice;
@@ -158,12 +207,27 @@ export const upsert = (ctx: ServiceContext, input: ProviderUpsertInput) =>
     return update({ ...ctx, tx }, id, content);
   }, ctx);
 
-/** Soft delete. The provider leaves the directory but syncs as deleted; links stay. */
-export const remove = async (ctx: ServiceContext, id: string) => {
-  const res = await providerModel.remove({ ...ctx, filter: { id: { type: "eq", value: id } } });
-  if (!isError(res) || res.code !== "baseModel:remove:nothingRemoved") return res;
-  // Visible but not removable: a viewer. Otherwise gone, or never theirs.
-  const visible = await providerModel.getById(id, ctx);
-  if (isError(visible)) return visible;
-  return visible ? rejectError(ctx.authUser) : notFound();
-};
+/**
+ * Soft delete. The provider leaves the directory but syncs as deleted; links
+ * stay. A practice or pharmacy that live providers name as their practice is
+ * refused (409): they move, or are deleted, first. Its row is locked, so a
+ * concurrent save naming it can't slip in between.
+ */
+export const remove = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const locked = await providerModel.lockLive(id, tx, "update");
+    if (isError(locked)) return locked;
+    if (locked) {
+      // Scoped to the actor: a non-member sees no dependents, and gets the 404 below.
+      const inUse = await hasLiveDependents(ctx, tx, { id, groupId: locked.groupId });
+      if (isError(inUse)) return inUse;
+      if (inUse) return practiceHasProviders();
+    }
+
+    const res = await providerModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
+    if (!isError(res) || res.code !== "baseModel:remove:nothingRemoved") return res;
+    // Visible but not removable: a viewer. Otherwise gone, or never theirs.
+    const visible = await providerModel.getById(id, { ...ctx, tx });
+    if (isError(visible)) return visible;
+    return visible ? rejectError(ctx.authUser) : notFound();
+  }, ctx);

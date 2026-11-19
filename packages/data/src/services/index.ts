@@ -15,6 +15,7 @@ export { careRecipientService };
 
 import * as careGroupInviteService from "./careGroupInviteService";
 export { careGroupInviteService };
+export type { InviteEmail, InviteMailer } from "./careGroupInviteService";
 
 import * as timelineEntryService from "./timelineEntryService";
 export { timelineEntryService };
@@ -28,6 +29,46 @@ export { providerService };
 import * as entryProviderService from "./entryProviderService";
 export { entryProviderService };
 
+import * as careGroupConsentService from "./careGroupConsentService";
+export { careGroupConsentService };
+
+import * as joinRequestService from "./joinRequestService";
+export { joinRequestService };
+export type { JoinMailer, JoinNotice, JoinRecipient } from "./joinRequestService";
+import * as accessCodeService from "./accessCodeService";
+export { accessCodeService };
+
+import * as staffGroupService from "./staffGroupService";
+export { staffGroupService };
+export type { StaffGroupInput } from "./staffGroupService";
+import * as medicationService from "./medicationService";
+export { medicationService };
+export type { MedicationWriteOptions } from "./medicationService";
+
+import * as waitlistService from "./waitlistService";
+export { waitlistService };
+export type { JoinResult } from "./waitlistService";
+
+import * as contactMessageService from "./contactMessageService";
+export { contactMessageService };
+export type { ContactMailer, SendResult } from "./contactMessageService";
+
+import * as careRecipientDetailsService from "./careRecipientDetailsService";
+export { careRecipientDetailsService };
+
+import * as emergencyContactService from "./emergencyContactService";
+export { emergencyContactService };
+
+import * as userContactService from "./userContactService";
+export { userContactService };
+
+import * as memberSharingService from "./memberSharingService";
+export { memberSharingService };
+// Not in `services` below: it reads several tables and has no model of its own.
+import * as searchService from "./searchService";
+export { searchService };
+export type { SearchHit, SearchOptions, SearchResult } from "./searchService";
+
 export type * from "./types";
 
 export const services = {
@@ -40,6 +81,17 @@ export const services = {
   noteDocument: noteDocumentService,
   provider: providerService,
   entryProvider: entryProviderService,
+  careGroupConsent: careGroupConsentService,
+  joinRequest: joinRequestService,
+  accessCode: accessCodeService,
+  staffGroup: staffGroupService,
+  medication: medicationService,
+  waitlist: waitlistService,
+  contactMessage: contactMessageService,
+  careRecipientDetails: careRecipientDetailsService,
+  emergencyContact: emergencyContactService,
+  userContact: userContactService,
+  memberSharing: memberSharingService,
 };
 
 export type ServiceTypeMap = typeof services;

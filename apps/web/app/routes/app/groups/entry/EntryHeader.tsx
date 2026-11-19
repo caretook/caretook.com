@@ -1,10 +1,11 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
-import { formatDay, formatTime } from "~/lib/format";
+import { scheduleText } from "~/lib/entrySchedule";
 import { KindIcon } from "~/components/entry";
+import { Field } from "~/components/ui";
 
 /**
  * The entry page's header, in four regions so each feature fills only its
@@ -12,11 +13,15 @@ import { KindIcon } from "~/components/entry";
  *
  *   [icon] [title ............] [editors] [actions]
  *          [time]
+ *          [with ...........]
+ *          [place ..........]
  *
  * - `title`: `EntryTitle` (editable for writers) or plain text.
  * - `time`: when it happened (`EntryTimeChip` for writers, `EntryTime` otherwise).
  * - `editors`: who is typing now (avatars).
  * - `actions`: Share, the ⋯ menu.
+ * - `with`: the providers it was with (notes and events).
+ * - `place`: where an event is (an appointment's address).
  *
  * Empty regions take no space.
  */
@@ -26,12 +31,16 @@ export function EntryHeader({
   time,
   editors,
   actions,
+  with: withRegion,
+  place,
 }: {
   kind: TimelineEntryKind;
   title: ReactNode;
   time: ReactNode;
   editors?: ReactNode;
   actions?: ReactNode;
+  with?: ReactNode;
+  place?: ReactNode;
 }) {
   return (
     <header className="flex items-start gap-3">
@@ -41,6 +50,16 @@ export function EntryHeader({
         <div data-region="time" className="text-base-content/70 text-sm">
           {time}
         </div>
+        {withRegion && (
+          <div data-region="with" className="pt-1.5 empty:hidden">
+            {withRegion}
+          </div>
+        )}
+        {place && (
+          <div data-region="place" className="pt-1 empty:hidden">
+            {place}
+          </div>
+        )}
       </div>
       {editors && (
         <div data-region="editors" className="flex shrink-0 items-center -space-x-1.5 pt-1">
@@ -56,11 +75,24 @@ export function EntryHeader({
   );
 }
 
-/** When the entry happened, read-only. */
-export function EntryTime({ occurredAt }: { occurredAt: string }) {
+/**
+ * When the entry is, read-only: "Today, 2:15 PM", a range ("Tomorrow, 10:30
+ * AM–11:15 AM") or "Friday, Nov 20 · All day". `dateTime` is the start.
+ */
+export function EntryTime({
+  occurredAt,
+  endsAt = null,
+  allDay = false,
+  timeZone,
+}: {
+  occurredAt: string;
+  endsAt?: string | null;
+  allDay?: boolean;
+  timeZone: string;
+}) {
   return (
-    <time dateTime={occurredAt}>
-      {formatDay(occurredAt)}, {formatTime(occurredAt)}
+    <time dateTime={occurredAt} data-all-day={allDay || undefined}>
+      {scheduleText({ id: "", occurredAt, endsAt, allDay, timeZone }, new Date())}
     </time>
   );
 }
@@ -83,7 +115,6 @@ export function EntryTitle({
   /** Called with the field's text as it's typed (before it's committed). */
   onTextChange?: (text: string) => void;
 }) {
-  const id = useId();
   const stored = value ?? "";
   const [text, setText] = useState(stored);
   const [editing, setEditing] = useState(false);
@@ -102,32 +133,31 @@ export function EntryTitle({
   };
 
   return (
-    <>
-      <label htmlFor={id} className="sr-only">
-        Title
-      </label>
-      <input
-        id={id}
-        type="text"
-        value={text}
-        maxLength={TIMELINE_LIMITS.title}
-        placeholder={placeholder}
-        autoComplete="off"
-        enterKeyHint="done"
-        onFocus={() => setEditing(true)}
-        onChange={(e) => {
-          setText(e.target.value);
-          onTextChange?.(e.target.value);
-        }}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            e.currentTarget.blur();
-          }
-        }}
-        className="input input-ghost h-auto w-full px-1 -ml-1 py-0.5 text-xl font-semibold"
-      />
-    </>
+    <Field label="Title" labelHidden>
+      {(control) => (
+        <input
+          {...control}
+          type="text"
+          value={text}
+          maxLength={TIMELINE_LIMITS.title}
+          placeholder={placeholder}
+          autoComplete="off"
+          enterKeyHint="done"
+          onFocus={() => setEditing(true)}
+          onChange={(e) => {
+            setText(e.target.value);
+            onTextChange?.(e.target.value);
+          }}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          className="input input-ghost h-auto w-full px-1 -ml-1 py-0.5 text-xl font-semibold"
+        />
+      )}
+    </Field>
   );
 }

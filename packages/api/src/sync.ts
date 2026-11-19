@@ -1,9 +1,17 @@
-import type { AppError, AuthUser, ProviderUpsertInput, TimelineEntryUpsertInput } from "@caretook/data";
+import type {
+  AppError,
+  AuthUser,
+  MedicationUpsertInput,
+  ProviderUpsertInput,
+  TimelineEntryUpsertInput,
+} from "@caretook/data";
 
 import {
   entryProviderService,
   ERRORS,
   isError,
+  logError,
+  medicationService,
   newError,
   noteDocumentService,
   providerService,
@@ -81,6 +89,14 @@ const json = (value: unknown): unknown => {
   }
 };
 
+/** SQLite has no boolean: PowerSync stores 1/0. */
+const bool = (value: unknown) =>
+  value === 1 || value === "1" || value === true
+    ? true
+    : value === 0 || value === "0" || value === false
+      ? false
+      : value;
+
 // Content columns a device may set. Ids, kind and audit columns are fixed.
 const CONTENT_COLUMNS = {
   title: (v: unknown) => ["title", text(v)],
@@ -88,6 +104,13 @@ const CONTENT_COLUMNS = {
   occurred_at: (v: unknown) => ["occurredAt", toIsoTimestamp(v)],
   time_zone: (v: unknown) => ["timeZone", text(v)],
   details: (v: unknown) => ["details", json(v)],
+  // Appointments. `cancelled_by` isn't here: the service sets it, like the audit columns.
+  ends_at: (v: unknown) => ["endsAt", toIsoTimestamp(v)],
+  all_day: (v: unknown) => ["allDay", bool(v) ?? false],
+  place: (v: unknown) => ["place", text(v)],
+  cancelled_at: (v: unknown) => ["cancelledAt", toIsoTimestamp(v)],
+  cancel_reason: (v: unknown) => ["cancelReason", text(v)],
+  rescheduled_to: (v: unknown) => ["rescheduledTo", text(v)],
 } as const satisfies Record<string, (v: unknown) => [string, unknown]>;
 
 const FIXED_COLUMNS = ["group_id", "recipient_id", "kind"];
@@ -131,6 +154,9 @@ const timelineEntryOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise
   const content = contentFrom(data);
   if (Object.keys(content).length === 0) return applied;
   const res = await timelineEntryService.update(ctx, op.id, content);
+  // A member who can read but not write (a viewer): refused, not retried.
+  if (isError(res) && res.code === "baseModel:update:nothingUpdated")
+    return newError({ code: "permissions:unauthorized" });
   if (isError(res)) return res;
   return res ? applied : notFound();
 };
@@ -162,7 +188,7 @@ const noteDocumentOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<
     id: op.id,
     groupId: text(op.data?.group_id) ?? "",
     // An entry's, unless the device says otherwise (older devices never do).
-    subject: (text(op.data?.subject) ?? undefined) as "entry" | "provider" | undefined,
+    subject: (text(op.data?.subject) ?? undefined) as "entry" | "provider" | "medication" | undefined,
   });
   return isError(res) ? res : applied;
 };
@@ -182,14 +208,6 @@ const noteUpdateOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Ou
 // ---------------------------------------------------------------------------
 // provider: like timeline_entry. Soft deletes, and the group never changes.
 // ---------------------------------------------------------------------------
-
-/** SQLite has no boolean: PowerSync stores 1/0. */
-const bool = (value: unknown) =>
-  value === 1 || value === "1" || value === true
-    ? true
-    : value === 0 || value === "0" || value === false
-      ? false
-      : value;
 
 const PROVIDER_COLUMNS = {
   type: (v: unknown) => ["type", text(v)],
@@ -268,6 +286,88 @@ const entryProviderOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise
 };
 
 // ---------------------------------------------------------------------------
+// medication: like provider. Soft deletes, and the group and recipient never
+// change. The service writes the timeline's change entry with each save,
+// with an id derived from the medication and the device's `updated_at`, so
+// the copy of that entry the device uploads next lands on the same row.
+// ---------------------------------------------------------------------------
+
+/** An integer column. Other values pass through for the service to reject. */
+const int = (value: unknown) =>
+  typeof value === "string" && /^-?\d+$/.test(value) ? Number(value) : (value ?? null);
+
+const MEDICATION_COLUMNS = {
+  name: (v: unknown) => ["name", text(v)],
+  strength: (v: unknown) => ["strength", text(v)],
+  form: (v: unknown) => ["form", text(v)],
+  dose: (v: unknown) => ["dose", text(v)],
+  directions: (v: unknown) => ["directions", text(v)],
+  reason: (v: unknown) => ["reason", text(v)],
+  schedule: (v: unknown) => ["schedule", json(v)],
+  status: (v: unknown) => ["status", text(v)],
+  started_on: (v: unknown) => ["startedOn", text(v)],
+  stopped_on: (v: unknown) => ["stoppedOn", text(v)],
+  stop_reason: (v: unknown) => ["stopReason", text(v)],
+  stop_note: (v: unknown) => ["stopNote", text(v)],
+  prescriber_id: (v: unknown) => ["prescriberId", text(v)],
+  pharmacy_id: (v: unknown) => ["pharmacyId", text(v)],
+  last_filled_on: (v: unknown) => ["lastFilledOn", text(v)],
+  quantity: (v: unknown) => ["quantity", text(v)],
+  refills_left: (v: unknown) => ["refillsLeft", int(v)],
+  rx_number: (v: unknown) => ["rxNumber", text(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const medicationContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = MEDICATION_COLUMNS[column as keyof typeof MEDICATION_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a medication that's already deleted is a replay: fine. */
+const removeMedication = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await medicationService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "medicationService:notFound") return res;
+  const medication = await medicationService.getById(ctx, id, { includeDeleted: true });
+  if (isError(medication)) return medication;
+  return medication?.deletedAt ? applied : res;
+};
+
+const medicationOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  // When the device saved it: the change entry's time, and half of its id.
+  const opts = { changedAt: text(data.updated_at) };
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...medicationContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await medicationService.upsert(ctx, input as unknown as MedicationUpsertInput, opts);
+    if (isError(res)) return res;
+    // Created and deleted before it was uploaded.
+    if (data.deleted_at) return removeMedication(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeMedication(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data || "recipient_id" in data) return newError({ code: "medicationService:immutable" });
+  if (data.deleted_at) return removeMedication(ctx, op.id);
+  const content = medicationContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await medicationService.update(ctx, op.id, content, opts);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "medicationService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -277,6 +377,7 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   note_update: noteUpdateOp,
   provider: providerOp,
   timeline_entry_provider: entryProviderOp,
+  medication: medicationOp,
 };
 
 /**
@@ -293,7 +394,7 @@ const compactTouched = async (ops: CrudOp[], results: CrudResult[]) => {
   for (const id of ids) {
     if (!id) continue;
     const res = await noteDocumentService.compactIfDue(id);
-    if (isError(res)) console.error("Live document compaction failed", { documentId: id, code: res.code });
+    if (isError(res)) logError("sync: live document compaction failed", res, { recordId: id });
   }
 };
 

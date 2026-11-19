@@ -1,4 +1,5 @@
 import type { Editor } from "@tiptap/react";
+import type { Ref } from "react";
 import type { BindNoteDocOptions, NoteDocParts } from "~/lib/sync/notes";
 
 import { NOTE_FRAGMENT } from "@caretook/data/schema";
@@ -6,24 +7,33 @@ import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Heading2, Italic, List, ListOrdered } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { bindNoteDoc, createNoteDoc } from "~/lib/sync/notes";
+
+/** What a page can do with the editor it shows. */
+export type LiveNotesEditorHandle = {
+  /** Put the cursor back in the document (where it was, else the start). */
+  focus: () => void;
+};
 
 /**
  * A live document: a Tiptap editor on a Y.Doc that's kept in step with the
  * local database (see lib/sync/notes.ts). Writers edit; viewers watch the
  * same document update, read-only. Remount it (`key`) for another document.
+ * `ref` gives a `LiveNotesEditorHandle` (optional).
  */
 export function LiveNotesEditor({
   label,
   initial,
   autofocus = false,
+  ref,
   ...options
 }: BindNoteDocOptions & {
   label: string;
   initial: NoteDocParts;
   /** Put the cursor in the document on open (a writer starting a new entry). */
   autofocus?: boolean;
+  ref?: Ref<LiveNotesEditorHandle>;
 }) {
   const { db, documentId, groupId, canWrite, ensureSaved } = options;
   // One Y.Doc for the component's lifetime, holding what the loader read,
@@ -67,6 +77,8 @@ export function LiveNotesEditor({
       }),
     },
   });
+
+  useImperativeHandle(ref, () => ({ focus: () => void editor?.commands.focus() }), [editor]);
 
   useEffect(() => {
     canWriteRef.current = canWrite;

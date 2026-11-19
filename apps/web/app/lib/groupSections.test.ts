@@ -8,22 +8,31 @@ const G = "11111111-1111-4111-8111-111111111111";
 const base = appUrls.groupHome(G);
 const timeline = GROUP_SECTIONS.find((s) => s.id === "timeline")!;
 const providers = GROUP_SECTIONS.find((s) => s.id === "providers")!;
+const medications = GROUP_SECTIONS.find((s) => s.id === "medications")!;
+const upcoming = GROUP_SECTIONS.find((s) => s.id === "upcoming")!;
 
-// A throwaway second section, as a later PRD would append it.
-const medications: GroupSection = {
-  id: "medications",
-  label: "Medications",
+// A throwaway extra section, as a later PRD would append it.
+const assistant: GroupSection = {
+  id: "assistant",
+  label: "Assistant",
   icon: timeline.icon,
-  path: (groupId) => `${appUrls.groupHome(groupId)}/medications`,
-  match: (subpath) => subpath === "/medications" || subpath.startsWith("/medications/"),
+  path: (groupId) => `${appUrls.groupHome(groupId)}/assistant`,
+  match: (subpath) => subpath === "/assistant" || subpath.startsWith("/assistant/"),
 };
-const withMeds = [...GROUP_SECTIONS, medications];
+const withMore = [...GROUP_SECTIONS, assistant];
 
 describe("GROUP_SECTIONS", () => {
-  it("starts with Timeline, then Providers", () => {
-    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual(["timeline", "providers"]);
+  it("is Timeline, then Providers, then Medications, then Upcoming", () => {
+    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual(["timeline", "providers", "medications", "upcoming"]);
     expect(timeline.path(G)).toBe(appUrls.timeline(G));
     expect(providers.path(G)).toBe(appUrls.providers(G));
+    expect(medications.path(G)).toBe(appUrls.medications(G));
+    expect(upcoming.path(G)).toBe(appUrls.upcoming(G));
+  });
+  it("puts the Past tab inside Upcoming", () => {
+    expect(sectionCurrent(upcoming, appUrls.upcoming(G), G)).toBe("page");
+    expect(sectionCurrent(upcoming, appUrls.pastEvents(G), G)).toBe("true");
+    expect(sectionCurrent(timeline, appUrls.pastEvents(G), G)).toBeUndefined();
   });
   it("has unique ids", () => {
     expect(new Set(GROUP_SECTIONS.map((s) => s.id)).size).toBe(GROUP_SECTIONS.length);
@@ -62,9 +71,14 @@ describe("activeSection", () => {
     expect(activeSection(`${base}`, G)).toBeNull();
     expect(activeSection(appUrls.settings(), G)).toBeNull();
   });
+  it("is Medications on the list, and inside it below /medications", () => {
+    expect(activeSection(`${base}/medications`, G)).toEqual({ section: medications, isPage: true });
+    expect(activeSection(`${base}/medications/abc`, G)).toEqual({ section: medications, isPage: false });
+    expect(activeSection(`${base}/medicationsx`, G)).toBeNull();
+  });
   it("picks an appended section by its own match", () => {
-    expect(activeSection(`${base}/medications`, G, withMeds)?.section.id).toBe("medications");
-    expect(activeSection(`${base}/timeline`, G, withMeds)?.section.id).toBe("timeline");
+    expect(activeSection(`${base}/assistant`, G, withMore)?.section.id).toBe("assistant");
+    expect(activeSection(`${base}/timeline`, G, withMore)?.section.id).toBe("timeline");
   });
 });
 
@@ -73,8 +87,11 @@ describe("sectionCurrent", () => {
     expect(sectionCurrent(timeline, `${base}/timeline`, G)).toBe("page");
     expect(sectionCurrent(timeline, `${base}/entries/abc`, G)).toBe("true");
     expect(sectionCurrent(timeline, `${base}/settings`, G)).toBeUndefined();
-    expect(sectionCurrent(timeline, `${base}/medications`, G, withMeds)).toBeUndefined();
-    expect(sectionCurrent(medications, `${base}/medications`, G, withMeds)).toBe("page");
+    expect(sectionCurrent(timeline, `${base}/medications`, G)).toBeUndefined();
+    expect(sectionCurrent(medications, `${base}/medications`, G)).toBe("page");
+    expect(sectionCurrent(medications, `${base}/medications/abc`, G)).toBe("true");
+    expect(sectionCurrent(providers, `${base}/medications`, G)).toBeUndefined();
+    expect(sectionCurrent(assistant, `${base}/assistant`, G, withMore)).toBe("page");
     expect(sectionCurrent(providers, `${base}/providers`, G)).toBe("page");
     expect(sectionCurrent(timeline, `${base}/providers`, G)).toBeUndefined();
   });
@@ -85,6 +102,8 @@ describe("isTabBarHidden", () => {
     expect(isTabBarHidden(`${base}/timeline`, G)).toBe(false);
     expect(isTabBarHidden(`${base}/settings`, G)).toBe(false);
     expect(isTabBarHidden(`${base}/providers`, G)).toBe(false);
+    expect(isTabBarHidden(`${base}/medications`, G)).toBe(false);
+    expect(isTabBarHidden(`${base}/medications/abc`, G)).toBe(false);
   });
   it("hides it on an entry's page and a new entry", () => {
     expect(isTabBarHidden(`${base}/entries/abc`, G)).toBe(true);

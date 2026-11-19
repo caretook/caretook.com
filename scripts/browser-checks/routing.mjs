@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { launch, openPage, sleep } from "./cdp.mjs";
+import { launch, openPage, sleep, step } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 // Routing (the routing PRD): every page has its own path, nested where the UI
@@ -17,7 +17,7 @@ import { startProxy } from "./proxy.mjs";
 //
 // - Quick add → Symptom goes to `…/timeline/new/symptom?<filters>`;
 // - Back, Escape, Cancel and a save each close it, keeping the scroll
-//   position, the loaded ("Show older") entries and the filters, and leave
+//   position, the loaded (scrolled-in) entries and the filters, and leave
 //   no sheet ahead of you in the history (Back after a save doesn't reopen it);
 // - a deep link (and a reload) to `new/vital?type=heartRate` opens the sheet
 //   with Heart rate; `?type=bogus` with no type; closing a deep-linked sheet
@@ -60,7 +60,14 @@ import { startProxy } from "./proxy.mjs";
 // - at 1280, group settings opens Details beside the side nav, and the side
 //   nav opens Members with aria-current following;
 // - another group's `…/settings/members` is the /app 404, with no names.
-// Run against your stack: `set -a; source .env.loop; set +a`.
+//
+// Where a URL leads is decided by pure guards, left to their unit tests: the
+// add sheet's kind and type (newSheetGuard), a note's, deleted or other
+// group's edit URL (editSheetGuard), in sheetGuard.test.ts; the settings nav's
+// aria-current (settingsNav.test.ts). This check covers that the routes use
+// them: one case each. SMOKE=1 runs caretaker@'s core path: the group route,
+// the add sheet and the edit sheet, online.
+// Run it through `pnpm prd browser routing` (it sources .env.loop).
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
@@ -125,6 +132,7 @@ const SETTINGS_ITEMS = [
   { id: "units", label: "Units", path: "/app/settings/units" },
   { id: "timeline", label: "Timeline layout", path: "/app/settings/timeline" },
   { id: "account", label: "Account", path: "/app/settings/account" },
+  { id: "contact", label: "Contact details", path: "/app/settings/contact" },
 ];
 const settingsNav = `document.querySelector("nav[data-settings-nav]")`;
 const settingsLink = (id) => `${settingsNav}?.querySelector('[data-settings-item="${id}"]')`;
@@ -157,17 +165,19 @@ async function settingsSteps(p) {
   await p.waitFor(`${settingsLink("account")}`, 30000).catch(() => {});
   let s = await state();
   check(
-    "420: /app/settings is the list of three items, with no subpage and no back link",
+    "420: /app/settings is the list of four items, with no subpage and no back link",
     s.path === "/app/settings" &&
       s.navShown &&
       !s.back &&
       s.h1.join() === "Settings" &&
-      (await p.evaluate(`${settingsNav}.querySelectorAll("[data-settings-item]").length`)) === 3 &&
+      (await p.evaluate(`${settingsNav}.querySelectorAll("[data-settings-item]").length`)) ===
+        SETTINGS_ITEMS.length &&
       s.items.join() === SETTINGS_ITEMS.map((i) => i.label).join(),
     JSON.stringify(s),
   );
   await p.screenshot("routing-settings-list-420");
-  for (const item of SETTINGS_ITEMS) {
+  // One item stands for them all: they're one list, rendered from ACCOUNT_SETTINGS.
+  for (const item of SETTINGS_ITEMS.slice(0, 1)) {
     await p.waitFor(settingsLink(item.id), 10000);
     await p.evaluate(`${settingsLink(item.id)}.click()`);
     await p
@@ -339,97 +349,81 @@ async function editSheetSteps(p) {
   check("…and the row shows the change", await p.evaluate(`!!${rowWith(edited)}`));
   check("…and leaves no sheet ahead in the history", (await where(p)).idx === before.idx);
 
-  // ⋯ → Edit opens the same URL.
-  await p.press(`${rowWith(edited)}.querySelector('button[aria-label^="Actions"]')`);
-  await p.waitFor(menuItem("Edit"), 5000);
-  await p.press(menuItem("Edit"));
-  await p.waitFor(`${DIALOG} && ${NAME_INPUT}`, 10000).catch(() => {});
-  const viaMenu = await where(p);
-  check(
-    "⋯ → Edit goes to the same edit URL, the form filled",
-    viaMenu.path === editPath(id) &&
-      viaMenu.search === filters &&
-      (await p.evaluate(`${NAME_INPUT}?.value`)) === edited,
-    JSON.stringify(viaMenu),
-  );
-  await escape();
-  await closedOn("Escape closes the edit sheet, filters kept", filters);
-
-  // Offline, a row tap still opens the sheet (its module was prefetched).
-  const errorsOnline = p.errors.length;
-  proxy.setOnline(false);
-  await p.waitFor(`document.body.innerText.includes("Offline")`, 20000).catch(() => {});
-  await p.press(`${rowWith(edited)}.querySelector('a[aria-label^="Edit "]')`);
-  await p.waitFor(`${DIALOG} && ${NAME_INPUT}?.value === ${JSON.stringify(edited)}`, 10000).then(
-    () => check("offline: a row tap opens the edit sheet", true),
-    async () => check("offline: a row tap opens the edit sheet", false, JSON.stringify(await where(p))),
-  );
-  await p.press(button("Cancel", DIALOG));
-  await closedOn("offline: Cancel closes it", filters);
-  proxy.setOnline(true);
-  await p.waitFor(`!document.body.innerText.includes("Offline")`, 20000).catch(() => {});
-  p.errors.splice(errorsOnline); // Offline fetch failures aren't the app's errors.
-
-  // A reload shows the entry's current values: changed on the server since.
-  await p.goto(`${editPath(id)}${filters}`);
-  await p.waitFor(`${DIALOG} && ${NAME_INPUT}`, 30000).catch(() => {});
-  const fromServer = `${name} from server`;
-  psql(
-    `UPDATE timeline_entry SET details = jsonb_set(details, '{name}', '"${fromServer}"'), updated_at = now() WHERE id = '${id}'`,
-  );
-  await p.waitFor(
-    `window.caretookSync.powersync.getAll("SELECT 1 FROM timeline_entry WHERE json_extract(details, '$.name') = ?", [${JSON.stringify(fromServer)}]).then((r) => r.length === 1)`,
-    20000,
-  );
-  // Give the local database time to persist the synced row (a reload straight
-  // after a download can reopen the copy from before it).
-  await sleep(3000);
-  // A marker on the old page, so the wait can't be met before the reload has happened.
-  await p.evaluate("window.__beforeReload = 1");
-  await p.send("Page.reload", { ignoreCache: false });
-  await p
-    .waitFor(`!window.__beforeReload && document.readyState === "complete" && ${NAME_INPUT}`, 30000)
-    .catch(() => {});
-  check(
-    "a reload reopens the edit sheet with the entry's current values",
-    (await p.evaluate(`${NAME_INPUT}?.value`)) === fromServer,
-    await p.evaluate(`${NAME_INPUT}?.value ?? "no form"`),
-  );
-
-  // Deleted on another device while open: the sheet closes onto the timeline.
-  const errorsBefore = p.errors.length;
-  psql(`UPDATE timeline_entry SET deleted_at = now(), updated_at = now() WHERE id = '${id}'`);
-  await closedOn("an entry deleted elsewhere while its sheet is open closes the sheet", filters);
-  check(
-    "…with no error",
-    p.errors.length === errorsBefore && !(await p.evaluate(`document.body.innerText.includes("Not found")`)),
-    p.errors.slice(errorsBefore).join(" | "),
-  );
-
-  // Edit URLs that aren't a sheet.
-  await p.goto(`${editPath(noteId)}${filters}`);
-  await p
-    .waitFor(`location.pathname === ${JSON.stringify(`/app/groups/${G}/entries/${noteId}`)}`, 30000)
-    .catch(() => {});
-  check(
-    "a note's edit URL lands on its page",
-    (await p.evaluate("location.pathname")) === `/app/groups/${G}/entries/${noteId}`,
-    await p.evaluate("location.pathname"),
-  );
-  const otherGroupEntry = psql(`SELECT id FROM timeline_entry WHERE group_id <> '${G}' LIMIT 1`);
-  for (const [what, entryId] of [
-    ["a deleted entry's", id],
-    ["another group's entry's", otherGroupEntry],
-  ]) {
-    await p.goto(`${editPath(entryId)}${filters}`);
-    await p.waitFor(`location.pathname === ${JSON.stringify(T)} && ${ROWS} > 0`, 30000).catch(() => {});
-    const landed = await where(p);
+  await step("the edit sheet: ⋯ → Edit, offline, a reload, deleted elsewhere", async () => {
+    // ⋯ → Edit opens the same URL.
+    await p.press(`${rowWith(edited)}.querySelector('button[aria-label^="Actions"]')`);
+    await p.waitFor(menuItem("Edit"), 5000);
+    await p.press(menuItem("Edit"));
+    await p.waitFor(`${DIALOG} && ${NAME_INPUT}`, 10000).catch(() => {});
+    const viaMenu = await where(p);
     check(
-      `${what} edit URL lands on the timeline, filters kept`,
-      landed.path === T && landed.search === filters && !landed.dialog,
-      JSON.stringify(landed),
+      "⋯ → Edit goes to the same edit URL, the form filled",
+      viaMenu.path === editPath(id) &&
+        viaMenu.search === filters &&
+        (await p.evaluate(`${NAME_INPUT}?.value`)) === edited,
+      JSON.stringify(viaMenu),
     );
-  }
+    await escape();
+    await closedOn("Escape closes the edit sheet, filters kept", filters);
+
+    // Offline, a row tap still opens the sheet (its module was prefetched).
+    const errorsOnline = p.errors.length;
+    proxy.setOnline(false);
+    await p.waitFor(`document.body.innerText.includes("Offline")`, 20000).catch(() => {});
+    await p.press(`${rowWith(edited)}.querySelector('a[aria-label^="Edit "]')`);
+    await p.waitFor(`${DIALOG} && ${NAME_INPUT}?.value === ${JSON.stringify(edited)}`, 10000).then(
+      () => check("offline: a row tap opens the edit sheet", true),
+      async () => check("offline: a row tap opens the edit sheet", false, JSON.stringify(await where(p))),
+    );
+    await p.press(button("Cancel", DIALOG));
+    await closedOn("offline: Cancel closes it", filters);
+    proxy.setOnline(true);
+    await p.waitFor(`!document.body.innerText.includes("Offline")`, 20000).catch(() => {});
+    p.errors.splice(errorsOnline); // Offline fetch failures aren't the app's errors.
+
+    // A reload shows the entry's current values: changed on the server since.
+    await p.goto(`${editPath(id)}${filters}`);
+    await p.waitFor(`${DIALOG} && ${NAME_INPUT}`, 30000).catch(() => {});
+    const fromServer = `${name} from server`;
+    psql(
+      `UPDATE timeline_entry SET details = jsonb_set(details, '{name}', '"${fromServer}"'), updated_at = now() WHERE id = '${id}'`,
+    );
+    // Poll through evaluate: waitFor wraps its expression in !!(…), so a promise would pass at once.
+    const synced = () =>
+      p.evaluate(
+        `window.caretookSync.powersync.getAll("SELECT 1 FROM timeline_entry WHERE json_extract(details, '$.name') = ?", [${JSON.stringify(fromServer)}]).then((r) => r.length === 1)`,
+      );
+    for (const end = Date.now() + 20000; Date.now() < end && !(await synced());) await sleep(200);
+    // Give the local database time to persist the synced row (a reload straight
+    // after a download can reopen the copy from before it).
+    await sleep(3000);
+    // A marker on the old page, so the wait can't be met before the reload has happened.
+    await p.evaluate("window.__beforeReload = 1");
+    await p.send("Page.reload", { ignoreCache: false });
+    await p
+      .waitFor(`!window.__beforeReload && document.readyState === "complete" && ${NAME_INPUT}`, 30000)
+      .catch(() => {});
+    check(
+      "a reload reopens the edit sheet with the entry's current values",
+      (await p.evaluate(`${NAME_INPUT}?.value`)) === fromServer,
+      await p.evaluate(`${NAME_INPUT}?.value ?? "no form"`),
+    );
+
+    // Deleted on another device while open: the sheet closes onto the timeline.
+    const errorsBefore = p.errors.length;
+    psql(`UPDATE timeline_entry SET deleted_at = now(), updated_at = now() WHERE id = '${id}'`);
+    await closedOn("an entry deleted elsewhere while its sheet is open closes the sheet", filters);
+    check(
+      "…with no error",
+      p.errors.length === errorsBefore &&
+        !(await p.evaluate(`document.body.innerText.includes("Not found")`)),
+      p.errors.slice(errorsBefore).join(" | "),
+    );
+
+    // Edit URLs that aren't a sheet (a note's, a deleted or another group's
+    // entry's) go where editSheetGuard sends them (sheetGuard.test.ts); the
+    // viewer's edit URL below covers the redirect.
+  });
 }
 
 /** Slice 3: viewer@'s edit URL is the timeline, with no form and no edit targets. */
@@ -499,7 +493,8 @@ async function groupSettingsSteps(p) {
     JSON.stringify(s),
   );
   await p.screenshot("routing-group-settings-list-420");
-  for (const item of ITEMS) {
+  // One item stands for both: they're one list, rendered from groupSettingsPages.
+  for (const item of ITEMS.slice(1)) {
     await p.evaluate(`${settingsLink(item.id)}.click()`);
     await p
       .waitFor(`location.pathname === ${JSON.stringify(item.path)} && ${item.ready}`, 30000)
@@ -639,51 +634,62 @@ try {
       ),
   );
 
-  // Live: a rename on the server reaches the heading without a reload.
-  await c.goto(`/app/groups/${G}/timeline`);
-  await c.waitFor(`document.querySelector("ol > li")`, 20000);
-  await c.evaluate("window.__stay = 1");
-  const renamed = `Grandma Pat ${Date.now().toString(36)}`;
-  psql(`UPDATE care_recipient SET preferred_name = '${renamed}' WHERE group_id = '${G}'`);
-  await c.waitFor(`${h1} === ${JSON.stringify(renamed)}`, 20000).then(
-    () => check("a recipient renamed on the server shows in the heading without a reload", true),
-    async () =>
-      check(
-        "a recipient renamed on the server shows in the heading without a reload",
-        false,
-        await c.evaluate(h1),
-      ),
-  );
-  check("…and the page wasn't reloaded", (await c.evaluate("window.__stay")) === 1);
-  psql(
-    `UPDATE care_recipient SET preferred_name = ${foundName ? `'${foundName}'` : "NULL"} WHERE group_id = '${G}'`,
-  );
+  await step("the group context is live (a rename, a role change)", async () => {
+    // Live: a rename on the server reaches the heading without a reload.
+    await c.goto(`/app/groups/${G}/timeline`);
+    await c.waitFor(`document.querySelector("ol > li")`, 20000);
+    await c.evaluate("window.__stay = 1");
+    const renamed = `Grandma Pat ${Date.now().toString(36)}`;
+    psql(`UPDATE care_recipient SET preferred_name = '${renamed}' WHERE group_id = '${G}'`);
+    await c.waitFor(`${h1} === ${JSON.stringify(renamed)}`, 20000).then(
+      () => check("a recipient renamed on the server shows in the heading without a reload", true),
+      async () =>
+        check(
+          "a recipient renamed on the server shows in the heading without a reload",
+          false,
+          await c.evaluate(h1),
+        ),
+    );
+    check("…and the page wasn't reloaded", (await c.evaluate("window.__stay")) === 1);
+    psql(
+      `UPDATE care_recipient SET preferred_name = ${foundName ? `'${foundName}'` : "NULL"} WHERE group_id = '${G}'`,
+    );
 
-  // Live: a role changed on the server takes the entry page's writer controls away.
-  await c.goto(`/app/groups/${G}/entries/${noteId}`);
-  await c.waitFor(`document.querySelector("[contenteditable=true]") && ${titleInput}`, 20000);
-  await c.evaluate("window.__stay = 1");
-  setCaretakerRole("viewer");
-  await c.waitFor(`!${titleInput} && !document.querySelector("[contenteditable=true]")`, 20000).then(
-    () => check("a role changed to viewer on the server makes the entry read-only without a reload", true),
-    () => check("a role changed to viewer on the server makes the entry read-only without a reload", false),
-  );
-  check("…and the page wasn't reloaded", (await c.evaluate("window.__stay")) === 1);
-  setCaretakerRole(foundRole);
-  await c.waitFor(`!!${titleInput}`, 20000).then(
-    () => check("the role back to caretaker brings the controls back", true),
-    () => check("the role back to caretaker brings the controls back", false),
-  );
+    // Live: a role changed on the server takes the entry page's writer controls away.
+    await c.goto(`/app/groups/${G}/entries/${noteId}`);
+    await c.waitFor(`document.querySelector("[contenteditable=true]") && ${titleInput}`, 20000);
+    await c.evaluate("window.__stay = 1");
+    setCaretakerRole("viewer");
+    await c.waitFor(`!${titleInput} && !document.querySelector("[contenteditable=true]")`, 20000).then(
+      () => check("a role changed to viewer on the server makes the entry read-only without a reload", true),
+      () => check("a role changed to viewer on the server makes the entry read-only without a reload", false),
+    );
+    check("…and the page wasn't reloaded", (await c.evaluate("window.__stay")) === 1);
+    setCaretakerRole(foundRole);
+    await c.waitFor(`!!${titleInput}`, 20000).then(
+      () => check("the role back to caretaker brings the controls back", true),
+      () => check("the role back to caretaker brings the controls back", false),
+    );
+  });
 
   // ── The add sheet (slice 2) ──
   // A filtered timeline with an older page loaded, scrolled down.
   const filters = `?kind=vital&author=${caretakerId}`;
   await c.goto(`${T}${filters}`);
-  await c.waitFor(`${ROWS} > 0 && ${button("Show older entries")}`, 30000);
-  await c.press(button("Show older entries"));
+  // Scrolling near the end loads the next page (infinite scroll).
+  await c.waitFor(`${ROWS} > 0 && document.querySelector("[data-older-sentinel]")`, 30000);
+  await c.evaluate(`scrollTo(0, document.documentElement.scrollHeight)`);
   await c.waitFor(`${ROWS} > 30`, 10000);
   await c.evaluate(`scrollTo(0, 1500)`);
-  await sleep(500);
+  // Settled: no page loading, and the count steady (1500 down can be near enough the end for another).
+  for (let last = -1, i = 0; i < 20; i++) {
+    await sleep(500);
+    const now = await c.evaluate(
+      `document.querySelector("[data-older-entries] [role=status]")?.textContent === "Loading older…" ? -1 : ${ROWS}`,
+    );
+    if (now >= 0 && now === last) break;
+    last = now;
+  }
   const before = await where(c);
   check(
     "sheet setup: an older page is loaded and the timeline is scrolled",
@@ -725,24 +731,13 @@ try {
   await c.evaluate("history.back()");
   await sameTimeline("Back");
 
-  await openSymptom();
-  await c.send("Input.dispatchKeyEvent", {
-    type: "keyDown",
-    key: "Escape",
-    code: "Escape",
-    windowsVirtualKeyCode: 27,
+  // Escape closes it the same way as Cancel (one close); the edit sheet's
+  // steps below press Escape.
+  await step("the add sheet: Cancel", async () => {
+    await openSymptom();
+    await c.press(button("Cancel", DIALOG));
+    await sameTimeline("Cancel");
   });
-  await c.send("Input.dispatchKeyEvent", {
-    type: "keyUp",
-    key: "Escape",
-    code: "Escape",
-    windowsVirtualKeyCode: 27,
-  });
-  await sameTimeline("Escape");
-
-  await openSymptom();
-  await c.press(button("Cancel", DIALOG));
-  await sameTimeline("Cancel");
 
   const saved = `${tag} sheet symptom`;
   await openSymptom();
@@ -764,155 +759,150 @@ try {
     back,
   );
 
-  // A deep link with a vital type, then a reload.
-  await c.goto(`${T}/new/vital?kind=vital&type=heartRate`);
-  await c.waitFor(DIALOG, 30000).catch(() => {});
-  check(
-    "a deep link to new/vital?type=heartRate opens the sheet with Heart rate",
-    (await c.evaluate(VITAL_TYPE)) === "heartRate",
-  );
-  await c.send("Page.reload", { ignoreCache: false });
-  await sleep(500);
-  await c.waitFor(`document.readyState === "complete" && ${DIALOG}`, 30000).catch(() => {});
-  check("…and so does a reload", (await c.evaluate(VITAL_TYPE)) === "heartRate");
-  const deep = await where(c);
-  await c.press(button("Cancel", DIALOG));
-  await c.waitFor(`!${DIALOG} && location.pathname === ${JSON.stringify(T)}`, 10000).catch(() => {});
-  const deepClosed = await where(c);
-  check(
-    "closing a deep-linked sheet replaces it with the timeline, filters kept",
-    !deepClosed.dialog &&
-      deepClosed.path === T &&
-      deepClosed.search === "?kind=vital" &&
-      deepClosed.idx === deep.idx,
-    JSON.stringify({ deep, deepClosed }),
-  );
+  await step("the add sheet: deep links, and offline", async () => {
+    // A deep link with a vital type, then a reload.
+    await c.goto(`${T}/new/vital?kind=vital&type=heartRate`);
+    await c.waitFor(DIALOG, 30000).catch(() => {});
+    check(
+      "a deep link to new/vital?type=heartRate opens the sheet with Heart rate",
+      (await c.evaluate(VITAL_TYPE)) === "heartRate",
+    );
+    await c.send("Page.reload", { ignoreCache: false });
+    await sleep(500);
+    await c.waitFor(`document.readyState === "complete" && ${DIALOG}`, 30000).catch(() => {});
+    check("…and so does a reload", (await c.evaluate(VITAL_TYPE)) === "heartRate");
+    const deep = await where(c);
+    await c.press(button("Cancel", DIALOG));
+    await c.waitFor(`!${DIALOG} && location.pathname === ${JSON.stringify(T)}`, 10000).catch(() => {});
+    const deepClosed = await where(c);
+    check(
+      "closing a deep-linked sheet replaces it with the timeline, filters kept",
+      !deepClosed.dialog &&
+        deepClosed.path === T &&
+        deepClosed.search === "?kind=vital" &&
+        deepClosed.idx === deep.idx,
+      JSON.stringify({ deep, deepClosed }),
+    );
 
-  await c.goto(`${T}/new/vital?type=bogus`);
-  await c.waitFor(DIALOG, 30000).catch(() => {});
-  check(
-    "new/vital?type=bogus opens the sheet with no type chosen",
-    (await c.evaluate(`!!${DIALOG} && ${VITAL_TYPE} === null`)) === true,
-  );
+    // An unknown type, and new/note or new/anything, go where newSheetGuard
+    // sends them (sheetGuard.test.ts).
 
-  for (const kind of ["note", "anything"]) {
-    await c.goto(`${T}/new/${kind}?kind=vital`);
+    // Offline: the add links open the sheet, and a save lands on the device.
+    // After a full load the sheets open offline only once React Router has
+    // loaded their route modules (prefetched by the quick-add links and the
+    // timeline), which can finish after the rows show: cutting the network
+    // before that made it reload the page offline ("Error loading route module
+    // …, reloading page", then a TypeError: Illegal invocation in the next step).
+    await c.goto(T);
+    await c.waitFor(`${ROWS} > 0`, 30000);
+    await c.waitFor(
+      `["new", "edit"].every((r) => window.__reactRouterRouteModules?.["routes/app/groups/timeline/" + r + "/route"])`,
+      20000,
+    );
+    const errorsOnline = c.errors.length;
+    proxy.setOnline(false);
+    await c.waitFor(`document.body.innerText.includes("Offline")`, 20000).catch(() => {});
+    const offName = `${tag} offline symptom`;
+    await openSymptom().then(
+      () => check("offline: Quick add → Symptom opens the sheet", true),
+      () => check("offline: Quick add → Symptom opens the sheet", false),
+    );
+    await c.type(`document.querySelector('[role=dialog] input[name="symptomName"]')`, offName);
+    await c.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
     await c
       .waitFor(
-        `location.pathname === ${JSON.stringify(T)} && location.search === "?kind=vital" && ${ROWS} > 0`,
-        30000,
+        `!${DIALOG} && [...document.querySelectorAll("main ol > li")].some((li) => li.textContent.includes(${JSON.stringify(offName)}))`,
+        10000,
       )
-      .catch(() => {});
-    const landed = await where(c);
+      .then(
+        () => check("offline: a save closes the sheet and shows the entry", true),
+        () => check("offline: a save closes the sheet and shows the entry", false),
+      );
     check(
-      `new/${kind} lands on the timeline, filters kept`,
-      landed.path === T && landed.search === "?kind=vital" && !landed.dialog,
-      JSON.stringify(landed),
+      "offline: not on the server yet",
+      psql(`SELECT count(*) FROM timeline_entry WHERE details->>'name' = '${offName}'`) === "0",
     );
-  }
-
-  // Offline: the add links open the sheet, and a save lands on the device.
-  await c.goto(T);
-  await c.waitFor(`${ROWS} > 0`, 30000);
-  const errorsOnline = c.errors.length;
-  proxy.setOnline(false);
-  await c.waitFor(`document.body.innerText.includes("Offline")`, 20000).catch(() => {});
-  const offName = `${tag} offline symptom`;
-  await openSymptom().then(
-    () => check("offline: Quick add → Symptom opens the sheet", true),
-    () => check("offline: Quick add → Symptom opens the sheet", false),
-  );
-  await c.type(`document.querySelector('[role=dialog] input[name="symptomName"]')`, offName);
-  await c.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
-  await c
-    .waitFor(
-      `!${DIALOG} && [...document.querySelectorAll("main ol > li")].some((li) => li.textContent.includes(${JSON.stringify(offName)}))`,
-      10000,
-    )
-    .then(
-      () => check("offline: a save closes the sheet and shows the entry", true),
-      () => check("offline: a save closes the sheet and shows the entry", false),
+    await c.press(tile("Vitals"));
+    await c.waitFor(menuItem("Heart rate"), 5000);
+    await c.press(menuItem("Heart rate"));
+    await c.waitFor(DIALOG, 10000).catch(() => {});
+    check(
+      "offline: Vitals → Heart rate opens new/vital?type=heartRate with Heart rate",
+      (await c.evaluate(
+        `location.pathname.endsWith("/new/vital") && location.search === "?type=heartRate" && ${VITAL_TYPE} === "heartRate"`,
+      )) === true,
     );
-  check(
-    "offline: not on the server yet",
-    psql(`SELECT count(*) FROM timeline_entry WHERE details->>'name' = '${offName}'`) === "0",
-  );
-  await c.press(tile("Vitals"));
-  await c.waitFor(menuItem("Heart rate"), 5000);
-  await c.press(menuItem("Heart rate"));
-  await c.waitFor(DIALOG, 10000).catch(() => {});
-  check(
-    "offline: Vitals → Heart rate opens new/vital?type=heartRate with Heart rate",
-    (await c.evaluate(
-      `location.pathname.endsWith("/new/vital") && location.search === "?type=heartRate" && ${VITAL_TYPE} === "heartRate"`,
-    )) === true,
-  );
-  await c.press(button("Cancel", DIALOG));
-  await c.waitFor(`!${DIALOG}`, 10000).catch(() => {});
-  proxy.setOnline(true);
-  let uploaded = "0";
-  for (let i = 0; i < 60 && uploaded === "0"; i++) {
-    await sleep(1000);
-    uploaded = psql(`SELECT count(*) FROM timeline_entry WHERE details->>'name' = '${offName}'`);
-  }
-  check("online again: the offline entry reaches the server", uploaded === "1");
-  c.errors.splice(errorsOnline); // Offline fetch failures aren't the app's errors.
+    await c.press(button("Cancel", DIALOG));
+    await c.waitFor(`!${DIALOG}`, 10000).catch(() => {});
+    proxy.setOnline(true);
+    let uploaded = "0";
+    for (let i = 0; i < 60 && uploaded === "0"; i++) {
+      await sleep(1000);
+      uploaded = psql(`SELECT count(*) FROM timeline_entry WHERE details->>'name' = '${offName}'`);
+    }
+    check("online again: the offline entry reaches the server", uploaded === "1");
+    c.errors.splice(errorsOnline); // Offline fetch failures aren't the app's errors.
+  });
 
   // Slice 3: the edit sheet's URL.
   await editSheetSteps(c);
 
   // Slice 5: a group's settings list and subpages.
-  await groupSettingsSteps(c);
+  await step("group settings' subpages", () => groupSettingsSteps(c));
 
   // Slice 4: the account's settings list and subpages.
-  await settingsSteps(c);
+  await step("account settings' subpages", () => settingsSteps(c));
 
-  // admin@: in no care group, so every group URL is a 404 that names nothing.
-  await sleep(4000); // Better Auth's sign-in rate limit.
-  browsers.push(await launch(9482));
-  const a = await openPage(browsers[1], "admin");
-  await a.signIn("admin@example.com", PW, { home: true });
-  for (const sub of ["", "/timeline", `/entries/${noteId}`, "/settings"]) {
-    await a.goto(`/app/groups/${G}${sub}`);
-    await a.waitFor(`${h1} === "Not found"`, 20000).catch(() => {});
-    const page = JSON.parse(
-      await a.evaluate(`JSON.stringify({ h1: ${h1}, leaks: ${leaks}, path: location.pathname })`),
+  const a = await step("admin@ (no group): 404s", async () => {
+    // admin@: in no care group, so every group URL is a 404 that names nothing.
+    browsers.push(await launch(9482));
+    const a = await openPage(browsers[1], "admin");
+    await a.signIn("admin@example.com", PW, { home: true });
+    // The group route's middleware answers for every child: the group's own URL and an entry's stand for all.
+    for (const sub of ["", `/entries/${noteId}`]) {
+      await a.goto(`/app/groups/${G}${sub}`);
+      await a.waitFor(`${h1} === "Not found"`, 20000).catch(() => {});
+      const page = JSON.parse(
+        await a.evaluate(`JSON.stringify({ h1: ${h1}, leaks: ${leaks}, path: location.pathname })`),
+      );
+      check(
+        `non-member: /app/groups/<id>${sub.replace(noteId, "<id>")} is the /app 404, with no names`,
+        page.h1 === "Not found" && !page.leaks && page.path === `/app/groups/${G}${sub}`,
+        JSON.stringify(page),
+      );
+    }
+    const frame = JSON.parse(
+      await a.evaluate(
+        `JSON.stringify({ main: [...document.querySelectorAll("main a")].map((l) => l.getAttribute("href")) })`,
+      ),
     );
+    check("non-member: the 404 has a way back to /app", frame.main.includes("/app"), JSON.stringify(frame));
+    return a;
+  });
+
+  await step("viewer@: sheet URLs", async () => {
+    // viewer@: a sheet URL is the timeline, with no form.
+    browsers.push(await launch(9483));
+    const v = await openPage(browsers[2], "viewer");
+    await v.signIn("viewer@example.com", PW);
+    await v.goto(`${T}/new/symptom?kind=vital`);
+    await v.waitFor(`location.pathname === ${JSON.stringify(T)} && ${ROWS} > 0`, 30000).catch(() => {});
+    const viewer = await where(v);
     check(
-      `non-member: /app/groups/<id>${sub.replace(noteId, "<id>")} is the /app 404, with no names`,
-      page.h1 === "Not found" && !page.leaks && page.path === `/app/groups/${G}${sub}`,
-      JSON.stringify(page),
+      "viewer: new/symptom is the timeline, with no form",
+      viewer.path === T &&
+        viewer.search === "?kind=vital" &&
+        !viewer.dialog &&
+        (await v.evaluate(
+          `!document.querySelector('input[name="symptomName"], form[method="post"] [name="units"]')`,
+        )),
+      JSON.stringify(viewer),
     );
-  }
-  const frame = JSON.parse(
-    await a.evaluate(
-      `JSON.stringify({ main: [...document.querySelectorAll("main a")].map((l) => l.getAttribute("href")) })`,
-    ),
-  );
-  check("non-member: the 404 has a way back to /app", frame.main.includes("/app"), JSON.stringify(frame));
+    await editSheetViewerSteps(v);
+    errorsFrom.push(v);
+  });
 
-  // viewer@: a sheet URL is the timeline, with no form.
-  await sleep(4000); // Better Auth's sign-in rate limit.
-  browsers.push(await launch(9483));
-  const v = await openPage(browsers[2], "viewer");
-  await v.signIn("viewer@example.com", PW);
-  await v.goto(`${T}/new/symptom?kind=vital`);
-  await v.waitFor(`location.pathname === ${JSON.stringify(T)} && ${ROWS} > 0`, 30000).catch(() => {});
-  const viewer = await where(v);
-  check(
-    "viewer: new/symptom is the timeline, with no form",
-    viewer.path === T &&
-      viewer.search === "?kind=vital" &&
-      !viewer.dialog &&
-      (await v.evaluate(
-        `!document.querySelector('input[name="symptomName"], form[method="post"] [name="units"]')`,
-      )),
-    JSON.stringify(viewer),
-  );
-  await editSheetViewerSteps(v);
-  errorsFrom.push(v);
-
-  const errors = [...c.errors, ...a.errors, ...errorsFrom.flatMap((p) => p.errors)].filter(
+  const errors = [...c.errors, ...(a?.errors ?? []), ...errorsFrom.flatMap((p) => p.errors)].filter(
     (e) =>
       !/vite|PowerSync|WebSocket|Error loading route module|Failed to fetch dynamically imported module|status of 40[14]/i.test(
         e,

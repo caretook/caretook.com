@@ -1,0 +1,58 @@
+import type { EntryRow } from "~/lib/sync/timeline";
+
+import { Link } from "react-router";
+import { KindIcon } from "~/components/entry";
+import { appUrls } from "~/lib/appUrls";
+import { KIND_META } from "~/lib/entryDisplay";
+import { formatDay, formatTime } from "~/lib/format";
+import { useLiveQuery } from "~/lib/sync";
+import { providerEntriesQuery } from "~/lib/sync/providers";
+import { toTimelineEntries } from "~/lib/sync/timeline";
+
+const NO_ROWS: EntryRow[] = [];
+
+/**
+ * Every note and event linked to the provider, newest first, live (links
+ * made on another device show without a reload). Each opens its entry.
+ */
+export function LinkedEntries({ groupId, providerId }: { groupId: string; providerId: string }) {
+  const query = providerEntriesQuery(providerId);
+  const rows = useLiveQuery<EntryRow>(query.sql, query.params, NO_ROWS);
+  const entries = toTimelineEntries(rows);
+
+  return (
+    <section aria-labelledby="linked-entries-heading" className="space-y-2" data-linked-entries>
+      <h2 id="linked-entries-heading" className="font-semibold">
+        Linked entries
+      </h2>
+      {entries.length === 0 ? (
+        <p className="text-base-content/70 text-sm">
+          No notes or events yet. Link this provider from a note or event's With row.
+        </p>
+      ) : (
+        <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
+          {entries.map((entry) => (
+            <li key={entry.id}>
+              <Link
+                to={appUrls.entry(groupId, entry.id)}
+                className="hover:bg-base-200/50 flex items-center gap-3 px-3 py-2.5"
+                data-entry-id={entry.id}
+              >
+                <KindIcon kind={entry.kind} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{entry.title || KIND_META[entry.kind].label}</span>
+                  <span className="text-base-content/70 block text-sm">
+                    <span className="sr-only">{KIND_META[entry.kind].label}, </span>
+                    <time dateTime={entry.occurredAt}>
+                      {formatDay(entry.occurredAt)}, {formatTime(entry.occurredAt)}
+                    </time>
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

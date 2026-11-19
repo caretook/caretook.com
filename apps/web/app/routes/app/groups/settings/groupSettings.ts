@@ -1,5 +1,4 @@
 import type { AuthUser } from "@caretook/data/permissions";
-import type { CareRecipientProfileInput } from "@caretook/data/schema";
 import type { ActionResult } from "~/lib/api";
 
 import { hasPermission } from "@caretook/data/permissions";
@@ -47,7 +46,7 @@ const TOO_LONG = "Use 120 characters or fewer.";
 /** What each field's error says (the schemas' own messages aren't written for people). */
 const fieldMessage = (field: string, value: string) => {
   if (field === "name") return value.trim() ? TOO_LONG : "Enter a name.";
-  if (field === "dateOfBirth") return "Enter a valid date.";
+  if (field === "timeZone") return "Choose a time zone from the list.";
   return TOO_LONG;
 };
 
@@ -72,29 +71,47 @@ export const parseGroupName = (values: { name: string }): Parsed<{ name: string 
 };
 
 /**
- * A submitted recipient profile. An empty preferred name or date of birth
- * clears it; an empty name, or a date that isn't one, is a field error.
+ * A submitted recipient time zone (group settings Details; the rest of the
+ * recipient is edited on their profile). An empty zone keeps the stored one;
+ * a zone the runtime doesn't know is a field error.
  */
-export const parseRecipientProfile = (values: {
-  name: string;
-  preferredName: string;
-  dateOfBirth: string;
-}): Parsed<Required<CareRecipientProfileInput>> => {
-  const parsed = careRecipientProfileZSchema.safeParse({
-    name: values.name,
-    preferredName: values.preferredName.trim() || null,
-    dateOfBirth: values.dateOfBirth.trim() || null,
-  });
-  if (!parsed.success) return failure(parsed.error.issues, values, "Check the care recipient's details.");
-  const { name = "", preferredName = null, dateOfBirth = null } = parsed.data;
-  return { ok: true, data: { name, preferredName, dateOfBirth } };
+export const parseRecipientTimeZone = (values: { timeZone: string }): Parsed<{ timeZone?: string }> => {
+  const timeZone = values.timeZone.trim();
+  if (!timeZone) return { ok: true, data: {} };
+  const parsed = careRecipientProfileZSchema.pick({ timeZone: true }).safeParse({ timeZone });
+  if (!parsed.success) return failure(parsed.error.issues, values, "Check the care recipient's time zone.");
+  return { ok: true, data: parsed.data.timeZone ? { timeZone: parsed.data.timeZone } : {} };
 };
 
-/** A stored date of birth (`1941-03-09`) as a long date, in no particular time zone. */
-export const formatDateOfBirth = (value: string, locale?: string) => {
-  const date = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(locale, { timeZone: "UTC", dateStyle: "long" });
+// ---------------------------------------------------------------------------
+// Time zone
+// ---------------------------------------------------------------------------
+
+/** An IANA zone as people read it: "America/Los_Angeles" → "America/Los Angeles". */
+export const timeZoneLabel = (zone: string) => zone.replaceAll("_", " ");
+
+/**
+ * The zones the time zone field offers: every zone the runtime supports,
+ * sorted, plus `current` and `device` when the runtime's list leaves them out
+ * ("UTC" often isn't in it). `supported` is for tests.
+ */
+export const timeZoneOptions = (
+  current: string | null,
+  device: string,
+  supported: readonly string[] = supportedTimeZones(),
+): string[] => {
+  const zones = new Set(supported);
+  if (current) zones.add(current);
+  if (device) zones.add(device);
+  return [...zones].sort((a, b) => a.localeCompare(b));
+};
+
+const supportedTimeZones = (): readonly string[] => {
+  try {
+    return Intl.supportedValuesOf("timeZone");
+  } catch {
+    return [];
+  }
 };
 
 // ---------------------------------------------------------------------------

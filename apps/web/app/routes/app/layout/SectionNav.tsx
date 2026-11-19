@@ -35,14 +35,14 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
  * to the bottom, so it also renders a spacer of its height (`--tab-bar-height`)
  * in the page flow: the last thing on any group screen scrolls clear of it,
  * with no screen needing to know the bar exists. It sits under modals
- * (`z-40`; `EntrySheet`'s overlay is `z-50`), so a bottom sheet covers it.
+ * (`z-40`; `Sheet`'s overlay is `z-50`), so a bottom sheet covers it.
  */
 export function TabBar({ groupId, pathname }: { groupId: string; pathname: string }) {
   if (isTabBarHidden(pathname, groupId)) return null;
   return (
     <>
-      <div aria-hidden="true" data-tab-bar-spacer className="h-(--tab-bar-height) sm:hidden" />
-      <nav aria-label="Group sections" className="dock z-40 h-(--tab-bar-height) sm:hidden">
+      <div aria-hidden="true" data-tab-bar-spacer className="h-(--tab-bar-height) sm:hidden print:hidden" />
+      <nav aria-label="Group sections" className="dock z-40 h-(--tab-bar-height) sm:hidden print:hidden">
         {GROUP_SECTIONS.map((section) => {
           const current = sectionCurrent(section, pathname, groupId);
           const Icon = section.icon;

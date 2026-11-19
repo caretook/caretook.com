@@ -4,12 +4,18 @@ import { DrizzleAppSchema, wrapPowerSyncWithDrizzle } from "@powersync/drizzle-d
 import { PowerSyncDatabase } from "@powersync/web";
 import { authClient } from "../auth-client";
 import { rpc } from "../rpc";
+import { releaseSyncLocksWhenCached } from "./pageCache";
+import { dropSearchTables } from "./searchTables";
 import { drizzleSchema } from "./schema";
 
 // The PowerSync database and its connection. Browser only: load it through
 // `openSync()` in ./index.ts, never import it statically (it starts workers).
 
 const AppSchema = new DrizzleAppSchema(drizzleSchema);
+
+// A page frozen in the back/forward cache must let go of the database, or the
+// next page's never opens (see ./pageCache). Before PowerSync takes any lock.
+if (navigator.locks) releaseSyncLocksWhenCached(navigator.locks, window);
 
 /** Ops per upload request. Matches SYNC_BATCH_LIMIT in packages/api/src/sync.ts. */
 const UPLOAD_BATCH = 100;
@@ -96,6 +102,8 @@ export const open = async (userId: string): Promise<SyncDb> => {
   const powersync = createDatabase();
   await powersync.init();
   if (readOwner() !== userId) {
+    // The search index holds the same text, outside PowerSync's tables.
+    await dropSearchTables(powersync);
     await powersync.disconnectAndClear();
     writeOwner(userId);
   }
@@ -127,6 +135,7 @@ const deleteFiles = async () => {
 /** Stop syncing and delete everything stored locally (sign-out). */
 export const clear = async (db: SyncDb | null) => {
   const powersync = db?.powersync ?? createDatabase();
+  await dropSearchTables(powersync).catch((e: unknown) => console.warn("Couldn't drop the search index", e));
   await powersync.disconnectAndClear();
   await powersync.close();
   writeOwner(null);

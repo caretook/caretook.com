@@ -1,7 +1,12 @@
 import { newError } from "../../errors";
 import { dbMayFail } from "../client";
+import * as accessCodes from "./accessCodes";
 import * as accounts from "./accounts";
+import * as appointments from "./appointments";
 import * as careGroups from "./careGroups";
+import * as invites from "./invites";
+import * as medications from "./medications";
+import * as profiles from "./profiles";
 import * as providers from "./providers";
 import * as secondGroup from "./secondGroup";
 import * as timelineEntries from "./timelineEntries";
@@ -22,5 +27,10 @@ export const seed = async () => {
     await timelineEntries.seed();
     await secondGroup.seed();
     await providers.seed();
+    await invites.seed();
+    await accessCodes.seed();
+    await medications.seed();
+    await appointments.seed();
+    await profiles.seed();
   }, "db:seed");
 };

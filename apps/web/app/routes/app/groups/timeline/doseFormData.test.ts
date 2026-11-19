@@ -1,0 +1,121 @@
+import type { DoseSlot } from "../../../../lib/dueDoses";
+
+import { describe, expect, it } from "vitest";
+import {
+  doseFromForm,
+  dosePatchFromForm,
+  doseSheetOptions,
+  DOSE_STATUS_OPTIONS,
+  parseDoseOption,
+} from "./doseFormData";
+
+const M = "11111111-2222-4333-8444-555555555555";
+const form = (fields: Record<string, string>) => {
+  const data = new FormData();
+  for (const [key, value] of Object.entries(fields)) data.set(key, value);
+  return data;
+};
+
+describe("doseFromForm", () => {
+  it("reads a new dose, with the time in UTC", () => {
+    expect(
+      doseFromForm(
+        form({
+          medicationId: M,
+          status: "given",
+          amount: " 1 tablet ",
+          scheduledFor: "08:00",
+          note: "",
+          occurredAt: "2026-11-17T08:05:00-08:00[America/Los_Angeles]",
+        }),
+      ),
+    ).toEqual({
+      medicationId: M,
+      status: "given",
+      amount: "1 tablet",
+      scheduledFor: "08:00",
+      note: null,
+      occurredAt: "2026-11-17T16:05:00.000Z",
+    });
+  });
+
+  it("leaves blanks null and an unreadable time empty, for the write to refuse", () => {
+    const dose = doseFromForm(form({ medicationId: M, status: "skipped", occurredAt: "soon" }));
+    expect(dose).toMatchObject({ amount: null, scheduledFor: null, note: null, occurredAt: "" });
+  });
+});
+
+describe("dosePatchFromForm", () => {
+  it("reads an edit, clearing a blank amount", () => {
+    expect(
+      dosePatchFromForm(
+        form({
+          status: "refused",
+          amount: "",
+          note: "Spat it out",
+          occurredAt: "2026-11-17T20:00:00-08:00[America/Los_Angeles]",
+        }),
+      ),
+    ).toEqual({
+      status: "refused",
+      amount: null,
+      note: "Spat it out",
+      occurredAt: "2026-11-18T04:00:00.000Z",
+    });
+  });
+});
+
+describe("DOSE_STATUS_OPTIONS", () => {
+  it("offers given, skipped and refused, in that order", () => {
+    expect(DOSE_STATUS_OPTIONS.map((o) => o.label)).toEqual(["Given", "Skipped", "Refused"]);
+  });
+});
+
+describe("doseSheetOptions", () => {
+  const A = "aaaaaaaa-2222-4333-8444-555555555555";
+  const B = "bbbbbbbb-2222-4333-8444-555555555555";
+  const choices = [
+    { id: B, name: "Lisinopril", strength: "10 mg", dose: "1 tablet" },
+    { id: A, name: "Metformin", strength: "500 mg", dose: "2 tablets" },
+  ];
+  const slot = (id: string, time: string, state: "due" | "overdue" | "upcoming" | "given") =>
+    ({ medication: { id }, time, state }) as unknown as DoseSlot;
+
+  it("lists due slots first, then every medication", () => {
+    const { options, initial } = doseSheetOptions(
+      choices,
+      { slots: [slot(A, "08:00", "overdue"), slot(B, "08:00", "given"), slot(A, "20:00", "due")] },
+      { medicationId: null, slot: null },
+    );
+    expect(options.map((o) => [o.value, o.label, o.dose])).toEqual([
+      [`${A}@08:00`, "Metformin 500 mg · 8:00 dose, overdue", "2 tablets"],
+      [`${A}@20:00`, "Metformin 500 mg · 20:00 dose", "2 tablets"],
+      [B, "Lisinopril 10 mg", "1 tablet"],
+      [A, "Metformin 500 mg", "2 tablets"],
+    ]);
+    expect(initial).toBe(`${A}@08:00`);
+    expect(parseDoseOption(`${A}@08:00`)).toEqual({ medicationId: A, slot: "08:00" });
+    expect(parseDoseOption(B)).toEqual({ medicationId: B, slot: null });
+  });
+
+  it("starts on the slot it was opened for, even one that isn't due", () => {
+    const { options, initial } = doseSheetOptions(
+      choices,
+      { slots: [slot(A, "20:00", "upcoming")] },
+      { medicationId: A, slot: "20:00" },
+    );
+    expect(options[0]).toMatchObject({ value: `${A}@20:00`, label: "Metformin 500 mg · 20:00 dose" });
+    expect(initial).toBe(`${A}@20:00`);
+    expect(doseSheetOptions(choices, { slots: [] }, { medicationId: B, slot: null }).initial).toBe(B);
+  });
+});
+
+describe("doseFromForm with a slot choice", () => {
+  it("reads the medication and the slot from one choice", () => {
+    const data = new FormData();
+    data.set("medicationId", `${M}@20:00`);
+    data.set("status", "given");
+    data.set("occurredAt", "2026-11-17T20:05:00-08:00[America/Los_Angeles]");
+    expect(doseFromForm(data)).toMatchObject({ medicationId: M, scheduledFor: "20:00" });
+  });
+});
