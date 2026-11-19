@@ -987,7 +987,21 @@ async function pick(p, text, option) {
   await p.waitFor(`${PICKER} && document.activeElement === ${PICKER}`, 10000);
   await p.type(PICKER, text);
   await p.waitFor(optionNamed(option), 10000);
-  await p.tap(optionNamed(option));
+  await tapInPlace(p, optionNamed(option));
+}
+
+/**
+ * A real tap without scrolling first: the picker's list closes when the page
+ * scrolls (React Aria), and `tap()` scrolls its target to the middle, which
+ * moves a page only a little taller than the window (an event's header with
+ * chips and its place row).
+ */
+async function tapInPlace(p, selector) {
+  const point = await p.evaluate(`(() => { const r = ${selector}.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  for (const type of ["mousePressed", "mouseReleased"]) {
+    await p.send("Input.dispatchMouseEvent", { type, ...point, button: "left", clickCount: 1 });
+  }
 }
 
 const linkCount = (entryId) =>
