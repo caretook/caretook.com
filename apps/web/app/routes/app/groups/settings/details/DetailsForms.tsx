@@ -4,8 +4,8 @@ import { useFetcher } from "react-router";
 import { SaveRow } from "~/components/settings";
 import { Field } from "~/components/ui";
 
-// The Details page's forms (online, with the role): the group's name, and the
-// care recipient's profile. Each posts its own intent to the route's action.
+// The Details page's form (online, with the role): the group's name. It posts
+// its intent to the route's action.
 
 export function GroupNameForm({ name }: { name: string }) {
   const fetcher = useFetcher<ActionResult>();
@@ -14,33 +14,6 @@ export function GroupNameForm({ name }: { name: string }) {
     <fetcher.Form method="post" noValidate className="space-y-3">
       <input type="hidden" name="intent" value="renameGroup" />
       <TextField label="Name" name="name" value={name} result={result} maxLength={120} />
-      <SaveRow busy={fetcher.state !== "idle"} result={result} />
-    </fetcher.Form>
-  );
-}
-
-export function RecipientForm(props: { name: string; preferredName: string; dateOfBirth: string }) {
-  const fetcher = useFetcher<ActionResult>();
-  const result = fetcher.state === "idle" ? fetcher.data : undefined;
-  return (
-    <fetcher.Form method="post" noValidate className="space-y-3">
-      <input type="hidden" name="intent" value="updateRecipient" />
-      <TextField label="Name" name="name" value={props.name} result={result} maxLength={120} />
-      <TextField
-        label="Preferred name"
-        name="preferredName"
-        value={props.preferredName}
-        result={result}
-        maxLength={120}
-        help="What everyone calls them. Shown in place of the name."
-      />
-      <TextField
-        label="Date of birth"
-        name="dateOfBirth"
-        type="date"
-        value={props.dateOfBirth}
-        result={result}
-      />
       <SaveRow busy={fetcher.state !== "idle"} result={result} />
     </fetcher.Form>
   );
