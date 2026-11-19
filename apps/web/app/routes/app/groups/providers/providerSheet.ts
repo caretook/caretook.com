@@ -4,6 +4,7 @@ import { useCallback, useRef } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
+import { openedOverProviders } from "~/lib/providerSheetLink";
 
 // Sheets over the directory are child routes (`providers/new`,
 // `providers/:providerId/edit`): the list stays mounted underneath, with its
@@ -17,12 +18,6 @@ export type ProvidersOutlet = {
 };
 
 export const useProvidersOutlet = () => useOutletContext<ProvidersOutlet>();
-
-/** History state on a link that opens a sheet from the directory. */
-export const PROVIDER_SHEET_STATE = { sheetOverProviders: true } as const;
-
-const openedOverProviders = (state: unknown) =>
-  typeof state === "object" && state !== null && "sheetOverProviders" in state;
 
 /**
  * Close the sheet by leaving its route; Back, Escape, Cancel, a save and a

@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink } from "react-router";
 
 import { Wordmark } from "~/components/brand";
+import { IconButton } from "~/components/ui/plain";
 import { MARKETING_LINKS, MARKETING_PAGES } from "../site/pages";
 
 const HEADER_PAGES = MARKETING_PAGES.filter((p) => "header" in p && p.header);
@@ -53,21 +54,16 @@ export function MarketingHeader() {
         <Link to={MARKETING_LINKS.waitlist} onClick={close} className="btn btn-primary btn-sm sm:btn-md">
           Join the waitlist
         </Link>
-        <button
+        <IconButton
           ref={buttonRef}
-          type="button"
-          className="btn btn-ghost btn-square md:hidden"
-          aria-expanded={open}
-          aria-controls={menuId}
-          aria-label="Menu"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? (
-            <X aria-hidden="true" className="size-6" />
-          ) : (
-            <Menu aria-hidden="true" className="size-6" />
-          )}
-        </button>
+          label="Menu"
+          icon={open ? X : Menu}
+          size="md"
+          className="md:hidden"
+          expanded={open}
+          controls={menuId}
+          onPress={() => setOpen((v) => !v)}
+        />
       </div>
       <nav
         id={menuId}

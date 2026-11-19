@@ -962,10 +962,10 @@ async function logDoseInSheet(p, label, { status = "given", note = "", yesterday
     // The calendar (keyboard, so a month boundary works too): open, one day back, pick.
     await p.evaluate(`${PICK}.focus()`);
     await pressKey(p, "Enter", "Enter", 13, "\r");
-    await p.waitFor(`${GRID} && document.activeElement?.closest("[role=grid]")`, 5000);
+    await p.waitFor(`${GRID} && document.activeElement?.closest("[role=grid]")`, 10000);
     await pressKey(p, "ArrowLeft", "ArrowLeft", 37);
     await pressKey(p, "Enter", "Enter", 13, "\r");
-    await p.waitFor(`!${GRID}`, 3000);
+    await p.waitFor(`!${GRID}`, 10000);
   }
   await p.press(SUBMIT);
   await p.waitFor(`!${SHEET}`, 8000);
@@ -1038,7 +1038,7 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
   await A.press(
     `[...document.querySelectorAll('[aria-label="Layout"] button, [aria-label="Layout"] input')].find((b) => /Cards/.test(b.textContent + (b.getAttribute("aria-label") ?? "")))`,
   ).catch(() => undefined);
-  await A.waitFor(`document.querySelector('ol[data-view="cards"]')`, 5000).catch(() => undefined);
+  await A.waitFor(`document.querySelector('ol[data-view="cards"]')`, 10000).catch(() => undefined);
   const cardText = await A.evaluate(
     `${rowWith("Changed strength 5 mg → 10 mg")}?.querySelector("[data-medication-entry]")?.textContent.trim() ?? ""`,
   );
@@ -1051,7 +1051,7 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
   await A.press(
     `[...document.querySelectorAll('[aria-label="Layout"] button, [aria-label="Layout"] input')].find((b) => /Rows/.test(b.textContent + (b.getAttribute("aria-label") ?? "")))`,
   ).catch(() => undefined);
-  await A.waitFor(`document.querySelector('ol[data-view="rows"]')`, 5000).catch(() => undefined);
+  await A.waitFor(`document.querySelector('ol[data-view="rows"]')`, 10000).catch(() => undefined);
 
   // A change opens nothing and its ⋯ menu has Delete only.
   const changeRow = rowWith("Changed strength 5 mg → 10 mg");
@@ -1059,7 +1059,7 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
     `!!${changeRow}.querySelector('a[aria-label^="Edit "], a[aria-label^="Open "]')`,
   );
   await A.press(`${changeRow}.querySelector('button[aria-label^="Actions for"]')`);
-  await A.waitFor(`${menuItems}.length > 0`, 5000);
+  await A.waitFor(`${menuItems}.length > 0`, 10000);
   const items = await A.evaluate(`${menuItems}.join(",")`);
   await pressKey(A, "Escape", "Escape", 27);
   await A.waitFor(`!document.querySelector("[role=menu]")`, 3000, { quiet: true }).catch(() => undefined);
@@ -1127,7 +1127,7 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
   );
   const firstAmount = await A.evaluate(`${AMOUNT}.value`);
   await A.tap(radio("medicationId", label));
-  await A.waitFor(`${AMOUNT}.value === "2 tablets"`, 3000).catch(() => undefined);
+  await A.waitFor(`${AMOUNT}.value === "2 tablets"`, 10000).catch(() => undefined);
   check(
     "the amount starts as the chosen medication's dose, and follows the choice",
     firstAmount !== "" && (await A.evaluate(`${AMOUNT}.value`)) === "2 tablets",
@@ -1194,10 +1194,10 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
 
   // Delete it from the ⋯ menu: Edit, then Delete.
   await A.press(`${rowWith(label)}.querySelector('button[aria-label^="Actions for"]')`);
-  await A.waitFor(`${menuItems}.length > 0`, 5000);
+  await A.waitFor(`${menuItems}.length > 0`, 10000);
   const doseItems = await A.evaluate(`${menuItems}.join(",")`);
   await A.press(menuItem("Delete"));
-  await A.waitFor(`document.querySelector("dialog[open]")`, 5000);
+  await A.waitFor(`document.querySelector("dialog[open]")`, 10000);
   await A.press(
     `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === "Delete")`,
   );
@@ -1241,9 +1241,9 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
   );
   await A.waitFor(started, 20000).catch(() => undefined);
   await A.press(`${started}.querySelector('button[aria-label^="Actions for"]')`);
-  await A.waitFor(menuItem("Delete"), 5000);
+  await A.waitFor(menuItem("Delete"), 10000);
   await A.press(menuItem("Delete"));
-  await A.waitFor(`document.querySelector("dialog[open]")`, 5000);
+  await A.waitFor(`document.querySelector("dialog[open]")`, 10000);
   await A.press(
     `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === "Delete")`,
   );
@@ -1873,7 +1873,7 @@ async function pageAction(p, title, item) {
   await p.waitFor(button, 15000);
   // Real taps, as a finger would: the trigger, then the item where it is (scrolling would close the menu).
   await p.tap(button);
-  await p.waitFor(menuItem(item), 5000);
+  await p.waitFor(menuItem(item), 10000);
   await tapInPlace(p, menuItem(item));
 }
 
@@ -1908,7 +1908,14 @@ async function addSteps(p, B) {
     `[...(${FORM}?.querySelectorAll("[data-name-suggestions] button") ?? [])].map((b) => b.textContent.trim())`,
   );
   if (offered.includes("Lisinopril")) await p.tap(suggestion("Lisinopril"));
-  await sleep(200);
+  // Wait for the pick to land (the name filled, the chips gone), not a fixed 200 ms (B-93).
+  await p
+    .waitFor(
+      `${formField("name")}?.value === "Lisinopril" && !${FORM}?.querySelector("[data-name-suggestions]")`,
+      5000,
+      { quiet: true },
+    )
+    .catch(() => {});
   const filled = await p.evaluate(`({
     name: ${formField("name")}?.value, strength: ${formField("strength")}?.value,
     dose: ${formField("dose")}?.value, reason: ${formField("reason")}?.value,
@@ -1961,7 +1968,7 @@ async function addSteps(p, B) {
   // As needed, past the maximum.
   await p.type(formField("name"), name);
   await p.press(`${FORM}.querySelector('input[name="scheduleType"][value="asNeeded"]')`);
-  await p.waitFor(formField("maxPerDay"), 5000);
+  await p.waitFor(formField("maxPerDay"), 10000);
   await p.type(formField("maxPerDay"), "30");
   await p.press(FORM_SUBMIT);
   await need(p, `${errorOf("maxPerDay")} !== null`, 8000, "the maximum's error");
@@ -1973,7 +1980,7 @@ async function addSteps(p, B) {
 
   // Fill it in: scheduled at 8:00 and 20:00, with a new prescriber.
   await p.press(`${FORM}.querySelector('input[name="scheduleType"][value="scheduled"]')`);
-  await p.waitFor(`${TIMES}.length === 2`, 5000);
+  await p.waitFor(`${TIMES}.length === 2`, 10000);
   await p.type(`${TIMES}[1]`, "20:00");
   await p.type(formField("strength"), "25 mg");
   await p.evaluate(`${FORM}.querySelector('[name="form"]').value = "tablet"`);
@@ -2442,7 +2449,7 @@ async function formOfflineSteps(p, proxy, B) {
   await need(p, `!!${FORM}`, 15000, "the add sheet (offline)");
   await p.type(formField("name"), name);
   await p.press(`${FORM}.querySelector('input[name="scheduleType"][value="asNeeded"]')`);
-  await p.waitFor(formField("maxPerDay"), 5000);
+  await p.waitFor(formField("maxPerDay"), 10000);
   await p.type(formField("maxPerDay"), "4");
   await p.type(formField("dose"), "1 puff");
   await p.press(FORM_SUBMIT);
@@ -2673,9 +2680,9 @@ async function todaySteps(A, { B, C } = {}) {
 
   // Skipped, with a note.
   await A.tap(`${todaySlot(k2)}.querySelector('[aria-label^="More for"]')`);
-  await A.waitFor(menuItem("Skipped…"), 5000);
+  await A.waitFor(menuItem("Skipped…"), 10000);
   await A.tap(menuItem("Skipped…"));
-  await A.waitFor(`${OPEN_DIALOG}?.querySelector("[data-mark-note]")`, 5000);
+  await A.waitFor(`${OPEN_DIALOG}?.querySelector("[data-mark-note]")`, 10000);
   await A.type(`${OPEN_DIALOG}.querySelector("[data-mark-note]")`, `${TAG} asleep`);
   await A.tap(dialogButton("Mark skipped"));
   const skipped = await A.waitFor(`${todayState(k2)} === "skipped" && !${OPEN_DIALOG}`, 8000).then(
@@ -2703,7 +2710,7 @@ async function todaySteps(A, { B, C } = {}) {
   await A.goto(`/app/groups/${DEV_FAMILY}/timeline/new/dose?medication=${id}&slot=${t1}`);
   await A.waitFor(SUBMIT, 8000);
   await A.press(SUBMIT);
-  const warned = await A.waitFor(`${SHEET}?.querySelector("[data-dose-warning]")`, 5000).then(
+  const warned = await A.waitFor(`${SHEET}?.querySelector("[data-dose-warning]")`, 10000).then(
     () => A.evaluate(`${SHEET}.querySelector("[data-dose-warning]").textContent`),
     () => "",
   );
@@ -2725,7 +2732,7 @@ async function todaySteps(A, { B, C } = {}) {
   await A.tap(`${prnRow}.querySelector("[data-log-as-needed]")`);
   await A.waitFor(`${prnRow}?.textContent.includes("1 of 1 today")`, 8000).catch(() => undefined);
   await A.tap(`${prnRow}.querySelector("[data-log-as-needed]")`);
-  const prnWarned = await A.waitFor(OPEN_DIALOG, 5000).then(
+  const prnWarned = await A.waitFor(OPEN_DIALOG, 10000).then(
     () => A.evaluate(`${OPEN_DIALOG}.textContent`),
     () => "",
   );

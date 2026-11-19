@@ -113,31 +113,30 @@ export const open = async (userId: string): Promise<SyncDb> => {
 };
 
 /**
- * Delete the database's storage itself. Clearing tables isn't enough:
- * SQLite keeps freed pages, so deleted rows could still be read off the disk.
- * The file lives in IndexedDB, or in OPFS when PowerSync picks that VFS.
+ * Clearing tables isn't enough: SQLite keeps freed pages, so deleted rows
+ * could still be read off the disk. VACUUM rewrites the file without them
+ * (IndexedDB's blocks past the new end are deleted). The file itself stays:
+ * deleting the IndexedDB database is blocked while PowerSync's shared worker
+ * still holds it, and a blocked delete stays queued, so the next sign-in's
+ * open waited behind it for good (app-shell 6g, quick-fixes slice 38).
  */
-const deleteFiles = async () => {
-  const idb = new Promise<void>((resolve) => {
-    const req = indexedDB.deleteDatabase(DB_FILENAME);
-    req.onsuccess = req.onerror = () => resolve();
-    // PowerSync's shared worker (or another tab) still has it open. The rows
-    // are already cleared; the file goes once the worker exits (next reload).
-    req.onblocked = () => resolve();
-  });
-  const opfs = navigator.storage
+const purgeFreedPages = (powersync: AbstractPowerSyncDatabase) =>
+  powersync.execute("VACUUM").catch((e: unknown) => console.warn("Couldn't vacuum the local database", e));
+
+/** OPFS, when PowerSync picks that VFS: removing a file still in use fails, and never waits. */
+const deleteOpfsFile = () =>
+  navigator.storage
     ?.getDirectory?.()
     .then((dir) => dir.removeEntry(DB_FILENAME, { recursive: true }))
     .catch(() => undefined);
-  await Promise.all([idb, opfs]);
-};
 
 /** Stop syncing and delete everything stored locally (sign-out). */
 export const clear = async (db: SyncDb | null) => {
   const powersync = db?.powersync ?? createDatabase();
   await dropSearchTables(powersync).catch((e: unknown) => console.warn("Couldn't drop the search index", e));
   await powersync.disconnectAndClear();
+  await purgeFreedPages(powersync);
   await powersync.close();
   writeOwner(null);
-  await deleteFiles();
+  await deleteOpfsFile();
 };

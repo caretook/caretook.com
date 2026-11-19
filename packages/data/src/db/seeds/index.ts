@@ -8,6 +8,7 @@ import * as carePeriods from "./carePeriods";
 import * as invites from "./invites";
 import * as medicationPasses from "./medicationPasses";
 import * as medications from "./medications";
+import * as moreGroups from "./moreGroups";
 import * as profiles from "./profiles";
 import * as providers from "./providers";
 import * as secondGroup from "./secondGroup";
@@ -36,5 +37,6 @@ export const seed = async () => {
     await appointments.seed();
     await profiles.seed();
     await carePeriods.seed();
+    await moreGroups.seed();
   }, "db:seed");
 };

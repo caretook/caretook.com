@@ -10,7 +10,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | PRD               | Doc                                                          | Depends on                                           | Hot files                                                                   |
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
-| `orchestration`   | (this tooling; no PRD)                                       | (none)                                               | `AGENTS.md`, `scripts/loops/`, `scripts/backlog/`, `.githooks/`             |
+| `orchestration`   | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): 9 slices, waves (1, 2, 3) → (4, 5, 6) → (7, 8) → 9, run-through landing: AGENTS.md split, check watchdog and caps, backlog safety and archive, leases, stackless slices with a shared test Postgres, component tests on a local test device, the lean end-to-end set (B-59, B-89, B-107–B-111) | (none); can run beside any PRD | `AGENTS.md` and `docs/` (slice 1: land between other PRDs' landings), `scripts/loops/`, `scripts/backlog/`, `scripts/browser-checks/` (slices 7–9), `vitest.config.ts`, root and apps/web `package.json` (new dev deps), `lib/sync/index.ts` (a test seam), `packages/data/test/` globalSetup |
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done**, all 10 slices in `dev` | (none) | none now |
 | `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–14 in `dev`; new fixes append as slice 15 on. Triaged and waiting: B-64, B-69, B-70, B-78, and from the security review B-79 to B-83 |  (none) | varies by slice; B-44 the providers route folder (`ProviderListItem`); B-73 `components/ui/Sheet` (after `medications` slice 3); B-71 `components/ui/date/` |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | none now |
@@ -100,7 +100,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-57 | plan | ready | encryption | plan/encryption | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
 | B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
-| B-59 | chore | triaged | orchestration |  | Clean up/truncate this file and the backlog periodically. |
+| B-59 | chore | in-progress | orchestration | prd/orchestration | Clean up/truncate this file and the backlog periodically. |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
@@ -129,10 +129,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-86 | change | ready | medications-2 | prd/medications-2 | need an upcoming medication banner on the timeline page and a way to quickly add doses to the… |
 | B-87 | plan | triaged | assistant |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
-| B-88 | change | triaged | orchestration |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
+| B-88 | change | landed | orchestration |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
 | B-89 | feature | triaged | orchestration |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-90 | change | ready | quick-fixes | prd/quick-fixes | Seed data with multiple care groups and user mix for improved manual testing. |
-| B-91 | feature | triaged | admin |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
+| B-91 | feature | ready | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-92 | change | ready | quick-fixes | prd/quick-fixes | Units save offline: move the Units settings page onto saveSettings |
 | B-93 | bug | ready | quick-fixes | prd/quick-fixes | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
 | B-94 | change | ready | quick-fixes | prd/quick-fixes | Account forms, sign-in and the marketing menu button onto the ui primitives |
@@ -146,6 +146,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-102 | change | dropped |  |  | Don't display recent vitals in the timeline header in mobile, |
 | B-103 | change | dropped |  |  | Add "recent vita averages" to the profile page. |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
+| B-105 | change | triaged | quick-fixes |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
+| B-106 | bug | triaged | admin |  | Turning email invites off also blocks staff owner invites from /admin |
+| B-107 | feature | in-progress | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
+| B-108 | change | in-progress | orchestration | prd/orchestration | Browser testing without a timeout keeps causing hung processes. We need to always have a sane… |
+| B-109 | chore | in-progress | orchestration | prd/orchestration | Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand |
+| B-110 | bug | triaged | orchestration |  | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
+| B-111 | bug | in-progress | orchestration | prd/orchestration | Backlog writes can commit a half-typed inbox bullet and tag it with another item's id |
 
 ## Items
 
@@ -852,13 +859,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-59 · chore · Clean up/truncate this file and the backlog periodically.
 
-- status: triaged
+- status: in-progress
 - prd: orchestration
-- owner:
+- owner: prd/orchestration
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for orchestration: a 'pnpm backlog archive' that moves live (or landed) items out of backlog.md into an archive file and prunes their inbox bullets, run by hand or at landing.
 - 2026-11-19 (Robert Bo Davis): 2026-11-19: removed the inbox's 18 stale 'Status (…)' lines; the tracker holds status.
+- 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD; also regenerate the summary's derived statuses on every write (it shows B-11, B-15 as ready).
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
 
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
 
@@ -1069,6 +1078,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-2 (launch): wipe the device copy (the sign-out path) when the server says the session has ended; allow the cached user offline only within 3 days of the last confirmed session (decided 2026-11-19), then require sign-in, and wipe once online and still signed out.
 - 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
 - 2026-11-19 (slice/quick-fixes/28): slice 28 built on slice/quick-fixes/28 (036c039): wipe on a definite signed-out answer through the sign-out path, 429 = unknown, 3-day offline cap; session-end.mjs added
+- 2026-11-19 (slice/quick-fixes/38): slice 38: sign-out no longer deletes the IndexedDB file: a blocked deleteDatabase stayed queued and the next sign-in's open waited behind it (app-shell 6g). It now VACUUMs after disconnectAndClear (no care data left in the bytes, checked by cdp.mjs localCopyHolds); before, the blocked delete left the data readable.
 
 ### B-80 · feature · Devices page in account settings: see sessions, sign out one or all others
 
@@ -1157,13 +1167,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-88 · change · PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the…
 
-- status: triaged
+- status: landed
 - prd: orchestration
 - owner:
 - commit:
 
 - 2026-11-19 (backlog planner): From the inbox: PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the user wants to prompt for landing or just work through everything and which slices to land automatically. Add command to spin up new planning session.
 - 2026-11-19 (backlog planner): Built directly on dev (uncommitted until the user says): GitHub-issue steps removed from AGENTS.md, the guide and the medications-2 PRD; the orchestrator prompt now asks for a landing mode (ask each time, run everything through, or land chosen waves/slices automatically) and records it in the plan's Status; pnpm prd plan <topic> --open [B-n…] starts a planning session (prompt.sh plan) that interviews, writes, lands and cleans up; plus pnpm prd queue <topic> (wait for a slot, then a run-through orchestrator).
+- 2026-11-19 (plan/orchestration): Left out of the orchestration PRD: already built on dev (landing mode, plan --open, queue); marked landed, confirm.
 
 ### B-89 · feature · PRD tooling streamlining. We are using way too many resources for full docker stacks and browser…
 
@@ -1174,6 +1185,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (backlog planner): From the inbox: PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead.
 - 2026-11-19 (backlog planner): Proposed for orchestration as a discussion first (no PRD yet): options include shared stacks (one Postgres with a database per worktree, one PowerSync), stackless slices for pure-module work, fewer browser checks per landing, and a lower browser lease count. Needs an interview before any change.
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
 
 ### B-90 · change · Seed data with multiple care groups and user mix for improved manual testing.
 
@@ -1187,13 +1199,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-91 · feature · Need an Admin panel for caretook global administrators to manage users, care groups, and settings.
 
-- status: triaged
+- status: ready
 - prd: admin
-- owner:
-- commit:
+- owner: prd/admin
+- commit: 27c83fc
 
 - 2026-11-19 (Robert Bo Davis): Proposed for a new PRD 'admin' (to write): extends the existing web-only /admin (access codes, new group, waitlist) with users (find, verify, disable, sign out everywhere, reset), care groups (list, members and roles, owner recovery) and settings. Staff still see no care data (AGENTS.md: support access only as an explicit, audited grant), so it needs an audit log. Soft dependency on account-security (B-85: 2FA required for staff) first.
 - 2026-11-19 (plan/admin): PRD and plan written (interview 2026-11-19): plans/admin-prd.md, plans/admin-plan.md. Six slices, waves 1 → (2, 4, 5) → (3, 6): staff foundation (support role, staff rules, audit log, Admin menu item, admin:grant), users, disable and staff roles, care groups, settings, announcement banner. Staff never see care data; no group delete (data-rights); 2FA later (account-security). Start after profiles lands.
+- 2026-11-19 (slice/admin/1): admin slice 1 (staff foundation) committed on slice/admin/1 at 2b4825f: support role, audit log, staffProcedure, Audit page, Admin menu item, admin:grant
+- 2026-11-19 (slice/admin/3): slice 3 (disable and staff roles) ready on slice/admin/3 at 39719c6: auth refuses disabled accounts; admin.users.disable|enable|setRole; Access card on the user page
 
 ### B-92 · change · Units save offline: move the Units settings page onto saveSettings
 
@@ -1318,3 +1332,76 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the 2026-11-19 planning discussion. A remote MCP server over the assistant PRD's actions layer (Claude connectors and ChatGPT's Apps SDK both speak MCP). Reads and writes; each write is confirmed in the chat, labelled as from an assistant on the timeline, and deletable as usual. Needs OAuth (check Better Auth's OAuth-provider plugins), tokens limited to one group with read and write scopes, revocable on the Devices page (B-80), a per-group consent record, an owners' on/off group setting, and a privacy-page change (data goes to the user's chosen AI vendor). Online only. Siri and Alexa are out for now: dictation only.
+
+### B-105 · change · Care period display on timeline should be a part of the sticky header that includes date instead of…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (prd/admin): From the inbox: Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header.
+- 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: moves CurrentPeriodLine into the sticky day header. Same timeline-header area as B-98/B-99 (hot for medications-2's strip): fold into that one slice after medications-2 lands.
+
+### B-106 · bug · Turning email invites off also blocks staff owner invites from /admin
+
+- status: triaged
+- prd: admin
+- owner:
+- commit:
+
+- 2026-11-19 (prd/admin): From the user while admin slice 5 merged: not the intended behaviour. careGroupInviteService.createEmail refuses with settings:signupClosed when signup.emailInvites is off, and groupAdminService.inviteOwner and staffGroupService.createWithOwnerInvite go through it, so staff can't invite an owner. Staff owner invites should bypass the switch. Not addressed in the admin PRD's current slices; fix later.
+- 2026-11-19 (Robert Bo Davis): Inbox bullet 'Browser testing without a timeout…' had been mis-tagged (B-106) by an add commit; untagged and re-filed as B-108.
+
+### B-107 · feature · Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests…
+
+- status: in-progress
+- prd: orchestration
+- owner: prd/orchestration
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the inbox: Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests (blocker, major, minor, etc.) an only run the blocker/major tests? The test suite takes too long to run and is not very reliable.
+- 2026-11-19 (Robert Bo Davis): Proposed for orchestration with B-89 and B-108: check priorities (blocker/major/minor tags on steps or checks, --changed running only blocker+major, full tiers before staging). Needs an interview; the smoke mode (B-39) is a partial version already.
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+
+### B-108 · change · Browser testing without a timeout keeps causing hung processes. We need to always have a sane…
+
+- status: in-progress
+- prd: orchestration
+- owner: prd/orchestration
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the inbox: Browser testing without a timeout keeps causing hung processes. We need to always have a sane timeout for browser tests.
+- 2026-11-19 (Robert Bo Davis): Proposed for orchestration: browser.sh only kills on --timeout <s>; make a default per-check timeout (and a suite-wide one) mandatory. Seen live 2026-11-19: medications-2's suite held a lease 3 h on medications.mjs. Small enough to do directly on dev.
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+
+### B-109 · chore · Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand
+
+- status: in-progress
+- prd: orchestration
+- owner: prd/orchestration
+- commit:
+
+- 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. AGENTS.md is ~195 KB (~50k tokens) and loads into every session, loops included.
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+
+### B-110 · bug · Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes)
+
+- status: triaged
+- prd: orchestration
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. 42 FLAKY retries logged: app-shell 11, phase2 6, ui 4, live-notes 4, medications 3, first-sync 3.
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+
+### B-111 · bug · Backlog writes can commit a half-typed inbox bullet and tag it with another item's id
+
+- status: in-progress
+- prd: orchestration
+- owner: prd/orchestration
+- commit:
+
+- 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. Commit 82f41cb (an add from prd/admin) committed an untagged inbox bullet as '(B-106)'; re-filed as B-108. Writes should commit only their own change, and ingest/add should refuse duplicate ids.
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+- 2026-11-19 (prd/orchestration): Slice 3 at 8af746c: writes commit only what they changed (temp index), ids never reused, doctor and archive. Waiting to merge after slice 1.

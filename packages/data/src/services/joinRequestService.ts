@@ -90,7 +90,7 @@ const managersOf = async (groupId: string, tx: Tx) => {
   if (isError(members)) return members;
   const ids = members.data.map((m) => m.userId);
   if (!ids.length) return [];
-  const users = await userModel.list({
+  const users = await userModel.listWhole({
     ...system(tx),
     filter: { id: { type: "inArray", value: ids } },
     paginate: { page: 1, limit: 100 },
@@ -100,7 +100,7 @@ const managersOf = async (groupId: string, tx: Tx) => {
 };
 
 const userOf = async (userId: string, tx: Tx) => {
-  const user = await userModel.getById(userId, system(tx));
+  const user = await userModel.getWholeById(userId, system(tx));
   if (isError(user)) return user;
   return user ?? newError({ code: "joinRequestService:notFound" });
 };

@@ -33,6 +33,22 @@
 | 25    | B-69 | merged | 2431a55 (14da487)                                     |
 | 26    | B-78 | merged | 17a89b1 (484d825)                                     |
 | 27    | B-65 | merged | 5d8af6e (07ab7bf)                                     |
+| 28    | B-79 | merged | 6573d31 (036c039)                                     |
+| 29    | B-80 | merged | 25757d4 (e392d3c, 21941f0)                            |
+| 30    | B-92 | merged | dab620f (51f5fb8)                                     |
+| 31    | B-93 | merged | 998cc44 (938bec1)                                     |
+| 32    | B-95 | merged | 420d5e9 (280d527)                                     |
+| 33    | B-83 | merged | dac3172 (b27a1ec)                                     |
+| 34    | B-90 | merged | dd5f4f3 (d366cac)                                     |
+| 35    | B-94 | merged | 1fc9168 (81fdddf)                                     |
+| 36    | B-97 | merged | 0065420 (6273693)                                     |
+| 37    | B-96 | merged | 8b28fda (5f1d8de)                                     |
+
+**Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+Wave 9 restarted 2026-11-19 11:10 after the previous orchestrator's session and every Docker stack stopped: slice 32 was committed and is merged; loops for 28–31 were respawned to finish the uncommitted work left in their worktrees (stacks restarted). 28 and 30 merged; their stacks went to wave 10's 35 and 33, started early. AGENTS.md at landing: `session-end.mjs` in the session row; `lib/session.ts`'s 3-day offline cap and wipe on signed-out, `wipeDevice` the one sign-out path; drop "units still save online only". Slice 31 merged ahead of 29 (no shared files) to free its stack for 36; `cdp.mjs` commands now time out at 120 s (`CDP_TIMEOUT_MS`). Open from 31: seeded entry-provider links can share a millisecond `created_at`, so recency ranks can tie. Slice 35 merged: light pages import `Field`/`IconButton` from `~/components/ui/plain` (AGENTS.md _Components_ at landing; drop them from "not yet on the primitives"); `IconButton` has `size`; checks select account inputs by `name`. Docker hit 21 networks starting 37: the integration worktree's stack (loop4) was stopped to make room; restart it (`pnpm datastore:start && pnpm datastore:start:test`) before landing. Slice 29 merged (`browser.sh` suite conflict with 28 resolved: both `session-end` and `devices`); it sets Better Auth `session.freshAge: 0` so `list-sessions` works past a day (flag at landing); AGENTS.md: the Devices subpage, `devices.mjs` in the suite and table. Slice 34 started on 29's stack. Slice 33 merged: `PermissionEntry.groupFields` (user: `PUBLIC_PROFILE_FIELDS`), enforced in SQL by `CASE WHEN`; `userModel.getWhole*`/`listWhole` (as `SYSTEM_USER`) for emails; `userModel:notWhole`. AGENTS.md: close the open question, fix the permissions table's user cell. Slice 36 merged: `?vital=<type>` under `kind=vital` (`setVital`, `clearVital`), a `json_each` condition in `filterConditions`; type chips from the group's latest vitals. Slice 37 merged: one `signInEmail` (link + code; `magicLink`/`signInCode` templates gone), sign-in methods `password | email`, the send-OTP endpoint blocked. Slice 34 merged (`seeds/moreGroups.ts`: trio@, groupadmin@, viewer2@, owner2@, solo@). Its loop saw `app-shell`'s members step (viewer@ signs in, stays on `/sign-in`, no `/api/auth/token`) fail 4 of 6 runs on its base (28 and 33 included); watch it at landing. All ten slices merged; AGENTS.md folded in 57cbce6. Synced with `dev` (d2f0efb; care-periods: conflicts in `timelineFilters`, `TimelineFilters.tsx`, the timeline route, the seeds index, `browser.sh` and AGENTS.md's table, resolved by keeping both `?period=` and `?vital=`), then 29ccc10. Full suite (16/22) found a sign-in hang after sign-out (a blocked IndexedDB delete), a medication-page delete race and two check races: slice 38 fixed them (merged f2a9079). Full suite rerun before landing.
+
+Waves 1–8 (slices 1–27) are all in `dev` (wave 8 as 9ffb9d8). Wave 9 (slices 28–32) and wave 10 (33–37) were written 2026-11-19 from the items triaged to quick-fixes; split in two to stay under Docker's network limit (about five stacks at once beside care-periods and medications-2). Slice 32 runs without a stack.
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 landed as 8e0c2c0. Wave 6 (slices 10 and 14) is merged into `prd/quick-fixes`.
 
@@ -738,3 +754,191 @@ Both checks passed against the dev server minutes later, from the same code. So 
 - [ ] A step in `app-shell.mjs` (group settings) or `ui.mjs`; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
 
 **Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 28: The device copy ends with the session (B-79)
+
+**Problem.** Security review S-2 (`plans/security-review.md`). `lib/session.ts` lets the cached last user carry on offline with no time limit, and when the server says the session has ended (expired, 401) the app goes to sign-in but leaves the SQLite file and `localStorage` in place.
+
+**Build.**
+
+- When the server answers that there's no session (a definite answer, not a network error), wipe the device copy through the **sign-out path** (`disconnectAndClear`, `dropSearchTables`, delete the file, forget the cached user, settings, pending settings, last group and recent searches), then go to sign-in. Reuse the sign-out code; don't duplicate it. A rate-limit 429 is **not** "signed out" (AGENTS.md notes `requireSession` treats it so today: fix that too, as "unknown", which keeps the cached user).
+- **3-day offline cap** (decided 2026-11-19): record the time of the last confirmed online session check per user (`localStorage`); every successful check restarts it. Offline, the cached user is allowed only within 3 days of it; past that, go to sign-in with "You've been offline for 3 days. Sign in to keep going." **Don't wipe while offline** (unsynced writes still upload after sign-in); wipe once online and the server says signed out. Pure rule in a small module with unit tests (`offlineAllowed(lastConfirmed, now)`).
+- Keep pending uploads in mind: signing back in as the **same** user must not wipe the file (today's "different user" rule stays).
+
+**Acceptance criteria.**
+
+- [ ] Unit tests for the 3-day rule (edges) and the session outcome (ok, signed out, network error, 429).
+- [ ] A browser check (extend `signout-wipe.mjs` or a new small check, with a `check-areas` rule): delete the session row in Postgres, reload online → sign-in, and the device's database and cached user are gone. Offline with the last-confirmed time set back 4 days → sign-in with the message, and the local file still there.
+- [ ] `sign-in`, `first-sync` and `signout-wipe` pass; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none. Touches `lib/session.ts`, `lib/sync/client.ts` (or wherever sign-out's wipe lives), `sign-in.tsx` (the message only).
+
+---
+
+## Slice 29: Devices page in account settings (B-80)
+
+**Problem.** Security review S-3: no way to see sessions or sign a lost device out.
+
+**Build.**
+
+- A new `ACCOUNT_SETTINGS` subpage **Devices** (`settings/devices`, `appUrls.settings("devices")`, appended before or after Contact details; a route folder `routes/app/settings/devices/`), on `SettingsPage`/`SettingsCard`.
+- Better Auth's built-in `listSessions`, `revokeSession`, `revokeOtherSessions` through `authClient` (no new dependency). Each session: "This device" first, browser and OS from the user agent (a small pure parser with unit tests; no library), last active, and **Sign out** (others only, behind `ConfirmDialog`); then **Sign out everywhere else**.
+- Online only: offline the page says "Needs a connection" and shows no list.
+- Pairs with slice 28: a revoked device stops syncing within 15 minutes (JWT) and wipes on its next online start.
+
+**Acceptance criteria.**
+
+- [ ] Two browsers signed in as one user: the first lists two sessions, signs the other out; the other's next session check goes to sign-in (with slice 28, wiped; without it merged yet, just signed out).
+- [ ] Sign out everywhere else leaves this device signed in.
+- [ ] A browser check (extend `ui.mjs`' account settings pass or a new `devices.mjs` with a `check-areas` rule); unit tests for the user-agent labels; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none. Shared edits: `ACCOUNT_SETTINGS`, `routes.ts`, `appUrls` (append only).
+
+---
+
+## Slice 30: Units save offline (B-92)
+
+**Problem.** `routes/app/settings/units/route.tsx` calls `rpc.me.updatePreferences` directly, so units save online only (AGENTS.md, _Sync_, not built).
+
+**Build.** Move it onto `saveSettings(userId, change)` like the timeline layout (cached at once, pending offline, sent later; `loadSettings` shows a pending change). Drop the offline notice. The timeline and entry forms read units through the same settings, so a pending change applies at once.
+
+**Acceptance criteria.**
+
+- [ ] Offline, change °F → °C: it saves as pending, the vitals sheet shows °C at once, and after reconnecting it reaches the server (`layout-offline.mjs` gets a units step, or `settings-layout.mjs`).
+- [ ] `settings-layout` and `layout-offline` pass; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+- [ ] Delete the "units still save online only" line from your hand-off's AGENTS.md notes (the orchestrator edits AGENTS.md).
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 31: Browser-check timeouts at low load (B-93)
+
+**Problem.** `.loops/.browser-flakes.log` (in the main checkout) has timeouts with no contention: `phase2` (load 10→7, 14→31), `roundtrip` (11→12), `providers` (8→8), `medications` (8→9); and a 16-minute `providers.mjs` hang after the non-member 404 step (`practiceDeleteSteps`).
+
+**Build.** Read each first-run log named in the flakes log, find the step, and replace fixed sleeps or early checks with waits on state (as B-70 did with `ui.mjs`'s `settlesOn`, and B-74 with `toFront()` and `syncedTo()`). Fix the `providers.mjs` hang so a stuck step fails within its timeout instead of hanging. Check files only, unless a step reveals a real app bug (keep any app fix small and call it out).
+
+**Acceptance criteria.**
+
+- [ ] Each flaky step named, with its cause and fix, in the hand-off.
+- [ ] Each of the four checks passes twice in a row in full mode (this slice's exception to "run each check once": that's the evidence).
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 32: `PROVIDER_SHEET_STATE` into `lib/` (B-95)
+
+**Problem.** `provider/route.tsx` imports `PROVIDER_SHEET_STATE` from the providers route folder (against folder-per-route, like B-69), and `entry/withProviders.ts` re-exports `chipLabel` from `lib/entryProviders`.
+
+**Build.** Move `PROVIDER_SHEET_STATE` (and anything that must travel with it) into a pure `lib/` module (like `lib/newGroupLink.ts`); point every import at it. Import `chipLabel` from `lib/entryProviders` directly and drop the re-export. No behaviour change. List the AGENTS.md lines that go stale in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] `pnpm check` passes. No stack (this worktree has none): `pnpm typecheck`, `lint`, `format:check` and the unit projects. The orchestrator runs `providers.mjs` at landing.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 33: Co-members read only id, name and image (B-83)
+
+**Problem.** Security review S-10: `PERMISSIONS.user` lets co-members read the full `user` row (email, role, preferences) in the data layer; only the API's public-profile shape hides it.
+
+**Build.** A field-limited read for co-members in the permission map (id, name, image), enforced in the model's SQL like the other rules; the places that need a co-member's email (invites, join requests to managers, notifications) read it as `system`. Close the AGENTS.md open question in the hand-off notes.
+
+**Acceptance criteria.**
+
+- [ ] Integration tests: a co-member reading another member's `user` gets id, name and image only; self and staff still get the full row; invite and join-request flows still email the right address.
+- [ ] `invites`, `groups` and `app-shell` pass; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none. Shared edit: `PERMISSIONS` (the `user` entry only).
+
+---
+
+## Slice 34: Seeds with more groups and a mix of users (B-90)
+
+**Problem.** Manual testing needs more groups and role mixes.
+
+**Build.** A new seed file with its own ids (seeds are append-only; appended last in the seed runner): new fictional `@example.com` users and groups (a user in three groups, an admin-only member of a group, a viewer in two groups, an empty group with one owner), each with a few entries, a provider and a medication. **Existing seeded users' memberships don't change** (checks rely on member@ having two groups and caretaker@ and viewer@ one each). List the new accounts in the hand-off (the orchestrator adds them to AGENTS.md's seeds line).
+
+**Acceptance criteria.**
+
+- [ ] `pnpm datastore:reset` works; the seed validation test covers the new entries.
+- [ ] Each new user signs in and sees their groups (one manual pass, or a short step in `app-shell.mjs`).
+- [ ] The full suite isn't needed: `pnpm prd browser --changed` (seeds map to every screen check; run `app-shell`, `phase2`, `groups` if the list is the whole suite, and say so). `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 35: Account forms, sign-in and the marketing menu button onto the primitives (B-94)
+
+**Problem.** AGENTS.md, _Components_ ("not yet on the primitives"): `routes/account/` (`AuthCard` forms), `sign-in.tsx` and the marketing header's menu button.
+
+**Build.** `Field` for every labelled control, `IconButton` for icon-only buttons; keep `useSubmitOnce` and every message as it is. No visible change.
+
+**Acceptance criteria.**
+
+- [ ] `sign-in`, `invites`, `groups` and `marketing` pass; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** slice 37. **Blocked by:** slice 28 merged (it touches `sign-in.tsx`'s message).
+
+---
+
+## Slice 36: A vital-type filter on the timeline (B-97)
+
+**Problem** (the user's words). "Vitals filter on timeline should bring up a sub-filter for vital type."
+
+**Build.** With `?kind=vital`, a second row of chips under the kind chips: one per vital type present in the group's vitals (labels from `VITALS`), as `?vital=<type>` through `lib/timelineFilters` (`parseFilters` ignores unknown types and drops `vital` without `kind=vital`; `setVital`, `clearVital`; tests). Entries filtered in `entryWindow`'s shared condition (`json_each` over `details.readings`), so links and medications lookups follow. Latest vitals ignores it. The empty state names it.
+
+**Acceptance criteria.**
+
+- [ ] Unit tests for the filter functions and the window condition.
+- [ ] `phase2.mjs` step: Vitals chip → type chips appear → "Blood pressure" lists only entries with a blood pressure reading; clearing the kind clears the type.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none. Touches `TimelineFilters.tsx` and `lib/timelineFilters.ts` (care-periods' search slice touches the latter too: keep additions at the end).
+
+---
+
+## Slice 37: One sign-in email with both a link and a code (B-96)
+
+**Problem** (the user's words). "Email link and code shouldn't really be two different login options, should they? Can't we email a link and a code at the same time?"
+
+**Build** (the user's choice, 2026-11-19: one email with the link and the code).
+
+- The sign-in page has one **Email me a sign-in link** option in place of the separate link and code options. One request sends **one email** holding both the magic link and a 6-digit code (Better Auth's `magicLink` and `emailOTP` stay; generate both in one server call, e.g. a small auth endpoint or a combined `notify` template, so only one email goes out; keep `useSubmitOnce`, the same answer whether or not an account exists, and both tokens hashed).
+- After sending, the page says "Check your email" and shows a **code box**, so the code works when the email is opened on another device. The link signs in as today.
+- One template (`signInEmail` or the `magicLink` one extended) with both, plain text too; retire the unused template only if nothing else sends it.
+
+**Acceptance criteria.**
+
+- [ ] One press → one email in `/dev/mail.json` with a link and a code; either signs in; a double press still sends one.
+- [ ] An unknown address gets the same page and no email.
+- [ ] `invites.mjs`' emailed-link and emailed-code steps updated; `sign-in` and `invites` pass; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** slice 35.
+
+---
+
+## Slice 38: Landing fixes for wave 9–10 (B-79, B-90, B-97)
+
+**Problem.** The full suite on `prd/quick-fixes` after syncing with `dev` (care-periods), 2026-11-19 at load 13–60, failed checks that don't look like contention:
+
+- `app-shell.mjs` 6g, both runs: on one page, the removed caretaker signs out (`page.signOut()`), then `signIn(O, "viewer@…")` posts the sign-in, but the page stays on `/sign-in` for 60 s. Slice 34's loop saw this 4 of 6 times (sign-in POST and get-session 200, then no `/api/auth/token`). Suspect slice 28 (`wipeDevice` on sign-out, the sign-in loader's session check, `sessionOutcome`), possibly an IndexedDB delete blocked by PowerSync's shared worker; or slice 37's sign-in page. The retry also failed (the account menu never appeared).
+- `search.mjs`: "?period= without a search changes nothing on the timeline" (compares the first 8 rows of two loads). Check it isn't the `?period=`/`?vital=` merge in `lib/timelineFilters.ts` (d2f0efb).
+- `care-periods.mjs`: "no console errors or warnings": `Sync: the server refused a change … timelineEntryService:notFound` for the caretaker. Check it isn't slice 33's field-limited reads in `baseModel`.
+- Also failed once: `roundtrip.mjs` "add: shows on this device at once (2420 ms)", `medications.mjs` "Delete asks first…" (the known slice 20 step), `invites.mjs` "Chrome didn't start". `live-notes` and `upcoming` passed on retry.
+
+**Build.** Reproduce each, find the cause and fix it (app or check), smallest change. A cause in a merged slice is fixed here, called out in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Each failure: cause and fix (or why it's contention), with evidence.
+- [ ] `app-shell`, `search`, `care-periods`, `roundtrip`, `medications`, `invites` each pass in full mode; `pnpm check` passes.
+
+**Blocks:** landing. **Blocked by:** none.

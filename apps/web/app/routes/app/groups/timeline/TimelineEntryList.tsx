@@ -1,5 +1,5 @@
 import type { TimelineData } from "./useTimelineData";
-import type { TimelineEntryKind, TimelineView, UnitChoices } from "@caretook/data/schema";
+import type { TimelineEntryKind, TimelineView, UnitChoices, VitalType } from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 
@@ -54,6 +54,7 @@ export function TimelineEntryList({
   canWrite,
   kind,
   author,
+  vital = null,
   search: searching = NO_SEARCH,
   upcoming,
 }: {
@@ -78,6 +79,8 @@ export function TimelineEntryList({
   kind: TimelineEntryKind | null;
   /** The author filter's user id, when it's on (the empty list names them). */
   author: string | null;
+  /** The vital-type filter (`?vital=`), when it's on (the empty list names it). */
+  vital?: VitalType | null;
   /** The search (`?q=`) and what it's doing (`timelineSearch`). */
   search?: { q: string; state: TimelineSearchState };
   /** The Upcoming block, when it's on, and where its "See all in Upcoming" goes. */
@@ -107,7 +110,7 @@ export function TimelineEntryList({
   // above the screen (a kind icon or author tapped far down), bring it back,
   // before the end of a shorter list could load another page.
   const list = useRef<HTMLElement>(null);
-  const filterKey = `${kind}|${author}|${searching.q}`;
+  const filterKey = `${kind}|${vital}|${author}|${searching.q}`;
   const lastFilter = useRef(filterKey);
   useLayoutEffect(() => {
     if (lastFilter.current === filterKey) return;
@@ -116,7 +119,7 @@ export function TimelineEntryList({
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
   }, [filterKey]);
 
-  const emptyText = emptyTimelineText(kind, author && data.nameOf(author), searching.q);
+  const emptyText = emptyTimelineText(kind, author && data.nameOf(author), searching.q, vital);
   const announcement = searchAnnouncement({
     q: searching.q,
     state: searching.state,

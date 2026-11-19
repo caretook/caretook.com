@@ -17,8 +17,6 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
   testMessage: { name: "Avery", message: "Hello from the dev mailbox", path: "/app/settings" },
   verifyEmail: { name: "Avery", token: "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImEifQ.sig-_x" },
   resetPassword: { name: "Avery", token: "resetToken123" },
-  magicLink: { token: "magicTokenABC", next: "/app/groups/x/timeline" },
-  signInCode: { code: "135790" },
   groupInvite: {
     groupName: "Grandma Example",
     inviterName: "Avery",
@@ -48,10 +46,11 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
     message: "Can my brother use it on his phone?\nThanks!",
   },
   accessCodeExistingAccount: {},
+  signInEmail: { token: "magicTokenABC", code: "135790", next: "/app/groups/x/timeline" },
 };
 
-// Notifications whose email carries no link (a code to type in).
-const LINKLESS = new Set<keyof typeof NOTIFICATIONS>(["signInCode", "contactMessage"]);
+// Notifications whose email carries no link.
+const LINKLESS = new Set<keyof typeof NOTIFICATIONS>(["contactMessage"]);
 
 describe("the registry", () => {
   it("has a sample for every notification, keyed by its own name", () => {
@@ -94,26 +93,31 @@ describe("the registry", () => {
     expect(extractLinks((await render("resetPassword")).html)).toEqual([
       `${APP_URL}/reset-password?token=resetToken123`,
     ]);
-    const [magic] = extractLinks((await render("magicLink")).html);
+    const signIn = await render("signInEmail");
+    const [magic] = extractLinks(signIn.html);
     const url = new URL(magic ?? "");
     expect(`${url.origin}${url.pathname}`).toBe(`${APP_URL}/api/auth/magic-link/verify`);
     expect(url.searchParams.get("token")).toBe("magicTokenABC");
     expect(url.searchParams.get("callbackURL")).toBe("/app/groups/x/timeline");
-    const code = await render("signInCode");
-    expect(code.text).toContain("135790");
-    expect(code.subject).not.toContain("135790");
+    expect(url.searchParams.get("errorCallbackURL")).toBe("/sign-in?with=email&expired=1");
+    // One email, both ways in: the link and the code, in HTML and plain text.
+    expect(signIn.html).toContain("135790");
+    expect(signIn.text).toContain("135790");
+    expect(signIn.subject).not.toContain("135790");
     const existing = await render("accessCodeExistingAccount");
     expect(extractLinks(existing.html)).toEqual([`${APP_URL}/sign-in?redirectTo=%2Fapp%2Fgroups%2Fnew`]);
   });
 
   it("refuses a sign-in code that isn't six digits, and a token with odd characters", async () => {
-    expect(await renderNotification("signInCode", { code: "12345" }, ctx)).toMatchObject({
+    expect(await renderNotification("signInEmail", { token: "t", code: "12345" }, ctx)).toMatchObject({
       code: "notify:invalidData",
     });
     expect(await renderNotification("resetPassword", { token: 'x" onclick="y' }, ctx)).toMatchObject({
       code: "notify:invalidData",
     });
-    expect(await renderNotification("magicLink", { token: "t", next: "//evil.example" }, ctx)).toMatchObject({
+    expect(
+      await renderNotification("signInEmail", { token: "t", code: "123456", next: "//evil.example" }, ctx),
+    ).toMatchObject({
       code: "notify:invalidData",
     });
   });

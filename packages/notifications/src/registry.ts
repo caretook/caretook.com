@@ -2,10 +2,9 @@ import { accessCodeExistingAccount } from "./templates/accessCodeExistingAccount
 import { contactMessage } from "./templates/contactMessage";
 import { groupInvite } from "./templates/groupInvite";
 import { joinApproved, joinDeclined, joinRequested } from "./templates/joinRequests";
-import { magicLink } from "./templates/magicLink";
 import { ownerInvite } from "./templates/ownerInvite";
 import { resetPassword } from "./templates/resetPassword";
-import { signInCode } from "./templates/signInCode";
+import { signInEmail } from "./templates/signInEmail";
 import { testMessage } from "./templates/testMessage";
 import { verifyEmail } from "./templates/verifyEmail";
 
@@ -16,8 +15,6 @@ export const NOTIFICATIONS = {
   testMessage,
   verifyEmail,
   resetPassword,
-  magicLink,
-  signInCode,
   groupInvite,
   joinRequested,
   joinApproved,
@@ -25,6 +22,7 @@ export const NOTIFICATIONS = {
   ownerInvite,
   contactMessage,
   accessCodeExistingAccount,
+  signInEmail,
 } as const;
 
 export type Notifications = typeof NOTIFICATIONS;
