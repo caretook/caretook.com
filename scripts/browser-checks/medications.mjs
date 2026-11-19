@@ -60,6 +60,13 @@
 // without controls, and a delete that leaves its medication the time. The
 // pass rules are unit-tested (medicationPass.test.ts).
 //
+// Medications 2, slice 3 adds allergies (`allergySteps`): the region on the
+// list and a medication's page in its three states, the allergies sheet (No
+// known allergies, add, edit, remove; a second device; offline), the print
+// block in print media, the name field's warning on adding and renaming
+// (still saving), and a viewer without controls. `allergyMatches` is
+// unit-tested (allergies.test.ts).
+
 // Schedule wording and the list's order and matching are unit-tested
 // (medicationDisplay.test.ts, medicationList.test.ts): the steps here check
 // one case each, on the page. Later slices add their screens' steps here.
@@ -2607,6 +2614,322 @@ async function passesSteps(p, { B, C, proxy } = {}) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Allergies (medications-2 slice 3): the region, the sheet, the print block
+// and the name field's warning.
+// ---------------------------------------------------------------------------
+
+const ALLERGIES_URL = `${LIST}/allergies`;
+const REGION = `document.querySelector("main [data-allergies]")`;
+const regionInfo = (p) =>
+  p.evaluate(`({ state: ${REGION}?.dataset.allergies ?? null,
+    text: ${REGION}?.querySelector("[data-allergies-text]")?.textContent.trim() ?? null,
+    link: ${REGION}?.querySelector("[data-edit-allergies]")?.textContent.trim() ?? null })`);
+const ALLERGY_SHEET = `document.querySelector("[role=dialog] [data-allergies-sheet]")`;
+const ALLERGY_ADD = `${ALLERGY_SHEET}?.querySelector('[data-allergy-form="add"]')`;
+const ALLERGY_EDIT = `${ALLERGY_SHEET}?.querySelector('[data-allergy-form="edit"]')`;
+const allergyRows = (p) =>
+  p.evaluate(
+    `[...(${ALLERGY_SHEET}?.querySelectorAll("[data-allergy-row]") ?? [])].map((li) => li.textContent.trim())`,
+  );
+const allergySql = (substance) =>
+  `SELECT coalesce(reaction, '-') || ':' || severity || ':' || (deleted_at IS NOT NULL)::text FROM recipient_allergy WHERE substance = '${substance}' ORDER BY created_at DESC LIMIT 1`;
+const NO_KNOWN_SQL = `SELECT coalesce(no_known_allergies_at::text, '') FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`;
+/** What the end of the run puts back: the recipient's "No known allergies" as it was. */
+let restoreNoKnown = null;
+
+/** Fill one of the sheet's allergy forms and save it. */
+async function saveAllergy(p, form, { substance, reaction, severity }) {
+  await p.waitFor(`!!${form}`, 8000);
+  if (substance !== undefined) await p.type(`${form}.querySelector('[name="substance"]')`, substance);
+  if (reaction !== undefined) await p.type(`${form}.querySelector('[name="reaction"]')`, reaction);
+  if (severity)
+    await p.evaluate(`${form}.querySelector('input[name="severity"][value="${severity}"]').click()`);
+  await p.press(`${form}.querySelector('button[type="submit"]')`);
+}
+
+/** The name field's warning line in the open medication form, or null. */
+const nameWarning = `(() => { const i = ${formField("name")}; return i ? (document.getElementById(i.id + "-warn")?.textContent.trim() ?? null) : null; })()`;
+
+/**
+ * Allergies (caretaker@, A): the region on the list in its three states,
+ * "No known allergies" recorded and then cleared by adding one, adding,
+ * editing and removing allergies (a second device, B, sees them live), the
+ * region on a medication's page with the sheet closing back there, the print
+ * block (print media, offline), an offline add, and the name field's
+ * warning on adding and renaming, which still saves. A viewer (C) reads the
+ * region with no controls, and the sheet's URL sends them to the list.
+ */
+async function allergySteps(p, { B, C, proxy } = {}) {
+  const PEN = `${TAG} Penicillin`;
+  const SULFA = `${TAG} Sulfa`;
+  const LATEX = `${TAG} Latex`;
+  const orig = psql(NO_KNOWN_SQL);
+  restoreNoKnown = `UPDATE care_recipient SET no_known_allergies_at = ${orig ? `'${orig}'` : "NULL"} WHERE group_id = '${DEV_FAMILY}'`;
+  psql(`UPDATE care_recipient SET no_known_allergies_at = NULL WHERE group_id = '${DEV_FAMILY}'`);
+  // Allergies someone added by hand: the region then starts with them.
+  const others = Number(
+    psql(`SELECT count(*) FROM recipient_allergy WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL`),
+  );
+
+  await toFront(p);
+  await p.goto(LIST);
+  await need(p, `!!window.caretookSync && !!${REGION}`, 20000, "the list and the device database");
+  await waitForLocal(
+    p,
+    "SELECT no_known_allergies_at AS n FROM care_recipient WHERE group_id = ?",
+    [DEV_FAMILY],
+    (rows) => !!rows[0] && !rows[0].n,
+  );
+  await need(p, `!!${REGION}?.querySelector("[data-edit-allergies]")`, 20000, "the allergies region");
+  const first = await regionInfo(p);
+  const top = await p.evaluate(`document.querySelector("main > header")?.nextElementSibling === ${REGION}`);
+  if (others === 0)
+    check(
+      'the list starts with the allergies region: "Allergies not recorded", and "Add allergies" for a writer',
+      top &&
+        first.state === "notRecorded" &&
+        first.text === "Allergies not recorded" &&
+        first.link === "Add allergies",
+      JSON.stringify({ top, ...first }),
+    );
+  else console.log(`NOTE  Dev Family has ${others} allergies of its own: the not-recorded steps are skipped`);
+
+  await p.tap(`${REGION}.querySelector("[data-edit-allergies]")`);
+  await need(
+    p,
+    `location.pathname === ${JSON.stringify(ALLERGIES_URL)} && !!${ALLERGY_ADD}`,
+    15000,
+    "the allergies sheet",
+  );
+
+  if (others === 0) {
+    await p.tap(`${ALLERGY_SHEET}.querySelector("[data-record-no-known]")`);
+    await need(p, `${REGION}?.dataset.allergies === "none"`, 8000, "No known allergies in the region");
+    const recorded = await waitForSql(NO_KNOWN_SQL, (v) => v !== "");
+    const region = await regionInfo(p);
+    check(
+      '"No known allergies" records at once and uploads',
+      region.text === "No known allergies" && recorded !== "",
+      JSON.stringify({ region, recorded }),
+    );
+  }
+
+  // Add one: "No known allergies" goes, on the device and the server.
+  await saveAllergy(p, ALLERGY_ADD, { substance: PEN, reaction: "hives", severity: "severe" });
+  await need(p, `${ALLERGY_SHEET}?.querySelector("[data-allergy-row]")`, 8000, "the added allergy");
+  const added = await waitForSql(allergySql(PEN), (v) => v === "hives:severe:false");
+  const cleared = await waitForSql(NO_KNOWN_SQL, (v) => v === "");
+  check(
+    "adding an allergy shows it in the sheet, uploads it, and clears No known allergies",
+    (await allergyRows(p)).some((t) => t.startsWith(`${PEN} (hives, severe)`)) &&
+      added === "hives:severe:false" &&
+      cleared === "",
+    JSON.stringify({ rows: await allergyRows(p), added, cleared }),
+  );
+
+  if (B && !SMOKE) {
+    await B.goto(LIST);
+    const live = await need(
+      B,
+      `${REGION}?.textContent.includes(${JSON.stringify(`${PEN} (hives, severe)`)})`,
+      30000,
+      "the allergy on the second device",
+    );
+    check("a second device shows the new allergy in its region", live, JSON.stringify(await regionInfo(B)));
+  }
+
+  if (!SMOKE) {
+    // Add, edit and remove a second one.
+    await saveAllergy(p, ALLERGY_ADD, { substance: SULFA });
+    await need(
+      p,
+      `${ALLERGY_SHEET}?.querySelector('button[aria-label=${JSON.stringify(`Edit ${SULFA}`)}]')`,
+      8000,
+      "Sulfa's row",
+    );
+    await p.tap(`${ALLERGY_SHEET}.querySelector('button[aria-label=${JSON.stringify(`Edit ${SULFA}`)}]')`);
+    await saveAllergy(p, ALLERGY_EDIT, { reaction: "rash" });
+    await need(p, `!${ALLERGY_EDIT}`, 8000, "the edit form to close");
+    const edited = await waitForSql(allergySql(SULFA), (v) => v === "rash:unknown:false");
+    const rows = await allergyRows(p);
+    check(
+      "an allergy edits in place: its reaction shows and uploads, a severe one listed first",
+      edited === "rash:unknown:false" &&
+        rows[0]?.startsWith(PEN) &&
+        rows.some((t) => t.startsWith(`${SULFA} (rash)`)),
+      JSON.stringify({ edited, rows }),
+    );
+    await p.tap(`${ALLERGY_SHEET}.querySelector('button[aria-label=${JSON.stringify(`Remove ${SULFA}`)}]')`);
+    await need(p, enabledDialogButton("Remove"), 5000, "the remove confirm");
+    await p.press(dialogButton("Remove"));
+    const removed = await waitForSql(allergySql(SULFA), (v) => v.endsWith(":true"));
+    await need(p, `!${ALLERGY_SHEET}?.textContent.includes(${JSON.stringify(SULFA)})`, 8000, "Sulfa to go");
+    check(
+      "removing an allergy (after a confirm) takes it off the sheet and deletes it softly on the server",
+      removed.endsWith(":true") && !(await allergyRows(p)).some((t) => t.includes(SULFA)),
+      removed,
+    );
+  }
+
+  // Done closes back to the list.
+  await p.press(`${ALLERGY_SHEET}.querySelector("[data-allergies-done]")`);
+  await need(p, `!${ALLERGY_SHEET} && location.pathname === ${JSON.stringify(LIST)}`, 8000, "the list");
+  const listed = await regionInfo(p);
+  check(
+    "Done closes the sheet back to the list, whose region lists the allergy with Edit",
+    listed.state === "recorded" &&
+      listed.text?.startsWith("Allergies:") &&
+      listed.text.includes(`${PEN} (hives, severe)`) &&
+      listed.link?.startsWith("Edit"),
+    JSON.stringify(listed),
+  );
+
+  // A medication's page shows it too, and its Edit comes back to the page.
+  const lisinopril = await medicationId(p, "Lisinopril");
+  await p.goto(medPath(lisinopril));
+  await need(p, `${onMedPage(lisinopril)} && !!${REGION}`, 20000, "Lisinopril's allergies region");
+  const onPage = await regionInfo(p);
+  await p.tap(`${REGION}.querySelector("[data-edit-allergies]")`);
+  await need(p, `!!${ALLERGY_ADD}`, 15000, "the sheet from the page");
+  await p.press(`${ALLERGY_SHEET}.querySelector("[data-allergies-done]")`);
+  const back = await need(p, `!${ALLERGY_SHEET} && ${onMedPage(lisinopril)}`, 8000, "back on the page");
+  check(
+    "a medication's page shows the allergies, and the sheet opened there closes back to it",
+    onPage.text?.includes(`${PEN} (hives, severe)`) && back,
+    JSON.stringify(onPage),
+  );
+
+  // The printed list has them at the top, in print media too.
+  await p.goto(`${LIST}/print`);
+  await need(p, `!!document.querySelector("main [data-print-allergies]")`, 20000, "the print block");
+  const printBlock = async () =>
+    p.evaluate(`(() => { const b = document.querySelector("main [data-print-allergies]");
+      const current = document.querySelector('main [data-print-section="print-current"]');
+      return { state: b?.dataset.printAllergies, items: [...(b?.querySelectorAll("[data-print-allergy]") ?? [])].map((li) => li.textContent.trim()),
+        first: !!b && !!current && !!(b.compareDocumentPosition(current) & Node.DOCUMENT_POSITION_FOLLOWING),
+        shown: !!b && b.getClientRects().length > 0 && b.getBoundingClientRect().right <= document.documentElement.clientWidth + 0.5 }; })()`);
+  const printed = {};
+  for (const [width, mobile] of [
+    [420, true],
+    [1280, false],
+  ]) {
+    await metrics(p, width, mobile);
+    await p.send("Emulation.setEmulatedMedia", { media: "print" });
+    await sleep(300);
+    printed[width] = await printBlock();
+  }
+  await p.send("Emulation.setEmulatedMedia", { media: "" });
+  await metrics(p, 420, true);
+  const good = (b) =>
+    b.state === "recorded" && b.items.includes(`${PEN} (hives, severe)`) && b.first && b.shown;
+  check(
+    "the printed list shows the allergies above the medications, in print media at 420 and 1280",
+    good(printed[420]) && good(printed[1280]),
+    JSON.stringify(printed),
+  );
+
+  // The warning: adding a matching name shows it; renaming to one shows it and still saves.
+  await openAddSheet(p);
+  await p.type(formField("name"), `${PEN.toLowerCase()} VK`);
+  await need(p, `${nameWarning} !== null`, 8000, "the add sheet's warning");
+  const onAdd = await p.evaluate(nameWarning);
+  await p.type(formField("name"), "Amoxicillin");
+  await sleep(200);
+  const partial = await p.evaluate(nameWarning);
+  check(
+    "adding a medication whose name matches an allergy warns on the name field; a partial-word match doesn't",
+    onAdd === `Matches an allergy on file: ${PEN} (severe)` && partial === null,
+    JSON.stringify({ onAdd, partial }),
+  );
+  const made = await onDevice(
+    p,
+    `return medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name: ${JSON.stringify(`${TAG} Allergy check`)}, schedule: { type: "asNeeded" } });`,
+  );
+  if (made.ok) {
+    await p.goto(`${LIST}/${made.id}/edit`);
+    await need(p, `!!${formField("name")}`, 15000, "the edit sheet");
+    const renamed = `${PEN} VK`;
+    await p.type(formField("name"), renamed);
+    await need(p, `${nameWarning} !== null`, 8000, "the edit sheet's warning");
+    const onEdit = await p.evaluate(nameWarning);
+    const invalid = await p.evaluate(`${formField("name")}.getAttribute("aria-invalid")`);
+    await p.press(FORM_SUBMIT);
+    await need(p, `!${FORM}`, 10000, "the edit sheet to close");
+    const saved = await waitForSql(
+      `SELECT name FROM medication WHERE id = '${made.id}'`,
+      (v) => v === renamed,
+    );
+    check(
+      "renaming a medication to a matching name shows the warning (not an error) and still saves",
+      onEdit === `Matches an allergy on file: ${PEN} (severe)` && invalid !== "true" && saved === renamed,
+      JSON.stringify({ onEdit, invalid, saved }),
+    );
+  } else check("a tagged medication for the rename", false, JSON.stringify(made));
+
+  if (proxy && !SMOKE) {
+    // Offline: add one from the sheet; the list and the print block show it; it uploads once back online.
+    await p.goto(LIST);
+    await need(p, `!!${REGION}?.querySelector("[data-edit-allergies]")`, 20000, "the region");
+    const errorsBefore = p.errors.length;
+    proxy.setOnline(false);
+    await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+    await p.tap(`${REGION}.querySelector("[data-edit-allergies]")`);
+    await need(p, `!!${ALLERGY_ADD}`, 15000, "the sheet offline");
+    await saveAllergy(p, ALLERGY_ADD, { substance: LATEX, severity: "mild" });
+    await need(p, `${ALLERGY_SHEET}?.textContent.includes(${JSON.stringify(LATEX)})`, 8000, "Latex offline");
+    await p.press(`${ALLERGY_SHEET}.querySelector("[data-allergies-done]")`);
+    await need(
+      p,
+      `${REGION}?.textContent.includes(${JSON.stringify(`${LATEX} (mild)`)})`,
+      8000,
+      "Latex in the region",
+    );
+    const offlineRegion = await regionInfo(p);
+    await p.tap(`document.querySelector("main a[data-print-link]")`);
+    await need(
+      p,
+      `!!document.querySelector("main [data-print-allergies]")`,
+      15000,
+      "the print sheet offline",
+    );
+    const offlinePrint = await printBlock();
+    proxy.setOnline(true);
+    await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+    const uploaded = await waitForSql(allergySql(LATEX), (v) => v === "-:mild:false", 30000);
+    p.errors.splice(errorsBefore);
+    check(
+      "offline, an allergy is added from the sheet, shows on the list and the print sheet, and uploads once online",
+      offlineRegion.text?.includes(`${LATEX} (mild)`) &&
+        offlinePrint.items.includes(`${LATEX} (mild)`) &&
+        uploaded === "-:mild:false",
+      JSON.stringify({ offlineRegion, items: offlinePrint.items, uploaded }),
+    );
+  }
+
+  if (C && !SMOKE) {
+    await toFront(C);
+    await C.goto(LIST);
+    await need(C, `${REGION}?.textContent.includes(${JSON.stringify(PEN)})`, 30000, "the viewer's region");
+    const viewer = await regionInfo(C);
+    const controls = await C.evaluate(`${REGION}?.querySelectorAll("a, button").length ?? -1`);
+    await C.goto(ALLERGIES_URL);
+    const sent = await need(
+      C,
+      `location.pathname === ${JSON.stringify(LIST)} && !!${REGION} && !document.querySelector("[role=dialog]")`,
+      15000,
+      "the viewer on the list",
+    );
+    check(
+      "a viewer reads the allergies with no controls, and the sheet's URL sends them to the list",
+      viewer.state === "recorded" && controls === 0 && sent,
+      JSON.stringify({ viewer, controls }),
+    );
+    await toFront(p);
+  }
+}
+
 // One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
 // 9435, not 9434: slot 2's offset puts 9434 on 11434, Ollama's default port.
 const proxy = startProxy(9435);
@@ -2724,6 +3047,17 @@ try {
   if (SMOKE) await passesSteps(A);
   else await passesSteps(A, { B: pages[1], C: pages[2], proxy: proxyA });
 
+  // Allergies in a tab of their own too (Better Auth's per-page session limit, as Today's below).
+  const L = await openPage(bA, "caretaker-allergies");
+  pages.push(L);
+  await L.goto(LIST);
+  await L.waitFor("!!window.caretookSync && !!document.querySelector('main [data-medication-list]')", 20000);
+  if (SMOKE) await allergySteps(L);
+  else await allergySteps(L, { B: pages[1], C: pages[2], proxy: proxyA });
+  await L.send("Page.close").catch(() => undefined);
+  L.close();
+  await A.send("Page.bringToFront");
+
   // Today's steps load many pages: a tab of its own (signed in through the
   // browser's cookie) keeps A under Better Auth's per-page session limit.
   const T = await openPage(bA, "caretaker-today");
@@ -2777,8 +3111,10 @@ try {
        UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'medicationChange'
          AND details->>'passId' IN (SELECT id::text FROM medication_pass WHERE name LIKE '${TAG}%');
        UPDATE medication_pass SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%';
-       UPDATE provider SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%'`,
+       UPDATE provider SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%';
+       UPDATE recipient_allergy SET deleted_at = now() WHERE deleted_at IS NULL AND substance LIKE '${TAG}%'`,
     );
+    if (restoreNoKnown) psql(restoreNoKnown);
   } catch (e) {
     console.log(`clean-up failed: ${e.message}`);
   }
