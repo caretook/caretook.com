@@ -124,6 +124,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-83 | change | triaged | quick-fixes |  | Co-members read only id, name and image of each other's user row |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
+| B-86 | change | inbox |  |  | need an upcoming medication banner on the timeline page and a way to quickly add doses to the… |
+| B-87 | plan | inbox |  |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 
 ## Items
 
@@ -1071,3 +1073,21 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-9 (later): Better Auth's twoFactor and haveIBeenPwned plugins (built in). Required for owners, admins and global staff, optional for others (decided 2026-11-19). The PRD settles group creation, promotion, a grace period for existing owners, and recovery.
+
+### B-86 · change · need an upcoming medication banner on the timeline page and a way to quickly add doses to the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the inbox: need an upcoming medication banner on the timeline page and a way to quickly add doses to the timeline from it (or some other simplification). This needs to wait on medication groups.
+
+### B-87 · plan · "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the inbox: "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to and view the timeline without having to learn the full interface. This is a pre-launch feature once other features are in place.

@@ -24,7 +24,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - birthdate, contact information, address, and insurance information should optionally be added to the patient profile. (B-45)
 - optional phone number, address, etc on group members that can be published to the group for contact. Flags for "emergency contacts" and "primary contact" for display later. (B-46)
 - improve timeline page display for vitals and upcoming banner. They should be limited. We should replace the word "latest" with the vitals icon and match the style of the upcoming header. Width should be limited on very large screens. larger than the timeline column, but not too wide. (B-78)
-- need an upcoming medication banner on the timeline page and a way to quickly add doses to the timeline from it (or some other simplification). This needs to wait on medication groups.
+- need an upcoming medication banner on the timeline page and a way to quickly add doses to the timeline from it (or some other simplification). This needs to wait on medication groups. (B-86)
 
 ## Feature requests
 
@@ -56,7 +56,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Discuss options for end to end encryption of data in transit and at rest where owner of the data is the only one who can decrypt it and share decryption keys with others. (B-57)
 - Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions for provider appointments. (B-58)
 - Data security and encryption review. (B-77)
-- "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to and view the timeline without having to learn the full interface. This is a pre-launch feature once other features are in place.
+- "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to and view the timeline without having to learn the full interface. This is a pre-launch feature once other features are in place. (B-87)
 
 ## Questions
 
