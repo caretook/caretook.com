@@ -6,13 +6,13 @@ It's a mobile-first web app (and later a native app through Capacitor), built as
 
 ## Documentation
 
-| Read this                                      | For                                                                                                                  |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| [docs/orchestration.md](docs/orchestration.md) | **How work gets done:** branches, the inbox and tracker, running several PRDs in parallel, landing work. Start here. |
-| [plans/inbox.md](plans/inbox.md)               | **Your list.** Add bugs, changes, features and questions as plain lines.                                             |
-| [plans/backlog.md](plans/backlog.md)           | The tracker agents keep from the inbox: ids, status, which PRD, notes. Review it.                                    |
-| [plans/](plans/)                               | PRDs (`<topic>-prd.md`) and their slice plans (`<topic>-plan.md`).                                                   |
-| [AGENTS.md](AGENTS.md)                         | The detailed project record for agents and developers: stack decisions, architecture, conventions, gotchas.          |
+| Read this                                      | For                                                                                                                        |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| [docs/orchestration.md](docs/orchestration.md) | **How work gets done:** branches, the inbox and tracker, running several PRDs in parallel, landing work. Start here.       |
+| [plans/inbox.md](plans/inbox.md)               | **Your list.** Add bugs, changes, features and questions as plain lines.                                                   |
+| [plans/backlog.md](plans/backlog.md)           | The tracker agents keep from the inbox: ids, status, which PRD, notes. Review it.                                          |
+| [plans/](plans/)                               | PRDs (`<topic>-prd.md`) and their slice plans (`<topic>-plan.md`).                                                         |
+| [AGENTS.md](AGENTS.md)                         | The project record's core for agents and developers: rules, stack, architecture, and an index of the area docs in `docs/`. |
 
 ## Stack
 
