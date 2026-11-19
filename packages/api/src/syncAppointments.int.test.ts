@@ -1,10 +1,16 @@
 import type { AuthUser } from "@caretook/data";
 
-import { timelineEntryService } from "@caretook/data";
+import {
+  encodeNoteDoc,
+  entryProviderId,
+  entryProviderService,
+  noteDocumentService,
+  timelineEntryService,
+} from "@caretook/data";
 import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../data/test/fixtures";
+import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../data/test/fixtures";
 import { router } from ".";
 
 // sync.upload for appointments and reminders: the new timeline_entry columns
@@ -170,5 +176,128 @@ describe("sync.upload: appointment columns", () => {
     });
     expect(res.results[0]).toMatchObject({ status: "rejected", code: "permissions:unauthorized" });
     expect(ok(await timelineEntryService.getById(viewer.ctx, id))).toMatchObject({ cancelledAt: null });
+  });
+});
+
+describe("sync.upload: a reschedule that keeps the old event", () => {
+  /** An event with notes and a provider, uploaded by the owner. */
+  const withEvent = async () => {
+    const ctx = await setup();
+    const { owner, group, row } = ctx;
+    const oldId = randomUUID();
+    const providerId = randomUUID();
+    const doc = newYDoc();
+    const res = await owner.api.sync.upload({
+      ops: [
+        { op: "PUT", table: "timeline_entry", id: oldId, data: row({ place: "Valley Heart, Suite 200" }) },
+        {
+          op: "PUT",
+          table: "provider",
+          id: providerId,
+          data: {
+            group_id: group.id,
+            type: "clinician",
+            name: "Dr. Moved",
+            status: "current",
+            is_primary: 0,
+          },
+        },
+        {
+          op: "PUT",
+          table: "note_document",
+          id: oldId,
+          data: { group_id: group.id, subject: "entry", entry_id: oldId },
+        },
+        {
+          op: "PUT",
+          table: "note_update",
+          id: randomUUID(),
+          data: { group_id: group.id, document_id: oldId, data: typeParagraph(doc, "Bring the cuff log") },
+        },
+        {
+          op: "PUT",
+          table: "timeline_entry_provider",
+          id: entryProviderId(oldId, providerId),
+          data: { group_id: group.id, entry_id: oldId, provider_id: providerId },
+        },
+      ],
+    });
+    expect(res.results.map((r) => r.status)).toEqual(Array(5).fill("applied"));
+    return { ...ctx, oldId, providerId, doc };
+  };
+
+  /** The ops a device's `rescheduleEvent` queues, in its transaction's order. */
+  const rescheduleOps = (
+    { group, row, oldId, providerId, doc }: Awaited<ReturnType<typeof withEvent>>,
+    newId: string,
+  ) => [
+    {
+      op: "PUT" as const,
+      table: "timeline_entry",
+      id: newId,
+      data: row({ occurred_at: local(96 * HOUR), place: "Valley Heart, Suite 200" }),
+    },
+    {
+      op: "PUT" as const,
+      table: "note_document",
+      id: newId,
+      data: { group_id: group.id, subject: "entry", entry_id: newId },
+    },
+    {
+      op: "PUT" as const,
+      table: "note_update",
+      id: randomUUID(),
+      data: { group_id: group.id, document_id: newId, data: encodeNoteDoc(doc) },
+    },
+    {
+      op: "PUT" as const,
+      table: "timeline_entry_provider",
+      id: entryProviderId(newId, providerId),
+      data: { group_id: group.id, entry_id: newId, provider_id: providerId },
+    },
+    {
+      op: "PATCH" as const,
+      table: "timeline_entry",
+      id: oldId,
+      data: { cancelled_at: local(0), rescheduled_to: newId },
+    },
+  ];
+
+  it("applies the new event, its notes and providers, then the old one cancelled and linking to it", async () => {
+    const event = await withEvent();
+    const { owner, viewer, oldId, providerId } = event;
+    const newId = randomUUID();
+    const res = await owner.api.sync.upload({ ops: rescheduleOps(event, newId) });
+    expect(res.results.map((r) => r.status)).toEqual(Array(5).fill("applied"));
+
+    expect(ok(await timelineEntryService.getById(viewer.ctx, newId))).toMatchObject({
+      kind: "event",
+      title: "Cardiology",
+      place: "Valley Heart, Suite 200",
+      cancelledAt: null,
+    });
+    expect(ok(await noteDocumentService.currentText(viewer.ctx, newId))).toBe("Bring the cuff log");
+    expect(
+      ok(await entryProviderService.listForEntry(viewer.ctx, newId)).data.map((l) => l.providerId),
+    ).toEqual([providerId]);
+    expect(ok(await timelineEntryService.getById(viewer.ctx, oldId))).toMatchObject({
+      rescheduledTo: newId,
+      cancelledBy: owner.user.id,
+    });
+    // The old notes stay as they were.
+    expect(ok(await noteDocumentService.currentText(viewer.ctx, oldId))).toBe("Bring the cuff log");
+  });
+
+  it("refuses every one of a viewer's reschedule writes", async () => {
+    const event = await withEvent();
+    const { viewer, oldId } = event;
+    const newId = randomUUID();
+    const res = await viewer.api.sync.upload({ ops: rescheduleOps(event, newId) });
+    expect(res.results.map((r) => r.status)).toEqual(Array(5).fill("rejected"));
+    expect(await timelineEntryService.getById(viewer.ctx, newId)).toBeNull();
+    expect(ok(await timelineEntryService.getById(viewer.ctx, oldId))).toMatchObject({
+      cancelledAt: null,
+      rescheduledTo: null,
+    });
   });
 });

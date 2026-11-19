@@ -39,4 +39,21 @@ describe("entryActionItems", () => {
   it("gives no Cancel when the caller can't cancel (no handler)", () => {
     expect(entryActionItems("event", { canEdit: false, cancelled: true })).toEqual(["delete"]);
   });
+
+  it("gives an event Reschedule before Cancel (or Undo cancel), events only", () => {
+    expect(entryActionItems("event", { canEdit: false, canCancel: true, canReschedule: true })).toEqual([
+      "reschedule",
+      "cancel",
+      "delete",
+    ]);
+    expect(
+      entryActionItems("event", { canEdit: false, canCancel: true, cancelled: true, canReschedule: true }),
+    ).toEqual(["reschedule", "uncancel", "delete"]);
+    for (const kind of ["note", "symptom", "vital", "dose", "medicationChange"] as const)
+      expect(entryActionItems(kind, { canEdit: true, canReschedule: true })).not.toContain("reschedule");
+  });
+
+  it("gives no Reschedule when the caller can't reschedule (a viewer, or one already rescheduled)", () => {
+    expect(entryActionItems("event", { canEdit: false, canCancel: true })).toEqual(["cancel", "delete"]);
+  });
 });

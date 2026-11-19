@@ -3,9 +3,10 @@ import type { TitleState } from "./entryPage";
 import type { LiveEntry } from "./useLiveEntry";
 
 import { useState } from "react";
-import { CancelEventDialog, EntryActions } from "~/components/entry";
+import { CancelEventDialog, EntryActions, useEventReschedule } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
+import { canReschedule } from "~/lib/eventReschedule";
 import { KIND_META } from "~/lib/entryDisplay";
 import { EntryHeader, EntryTime } from "./EntryHeader";
 import { EntryPlaceRow } from "./EntryPlaceRow";
@@ -17,8 +18,8 @@ import { ShareButton } from "./ShareButton";
 /**
  * The entry page's header, filled from its live entry: the title, when it
  * happened (a chip for writers), who's writing, and, once there's an entry to
- * link to, Share for everyone and the ⋯ menu for writers (an event's Cancel or
- * Undo cancel, then Delete, each confirmed but Undo);
+ * link to, Share for everyone and the ⋯ menu for writers (an event's
+ * Reschedule, its Cancel or Undo cancel, then Delete, each confirmed but Undo);
  * who it was with (providers); and, for events, where it is.
  */
 export function EntryPageHeader({
@@ -44,6 +45,7 @@ export function EntryPageHeader({
   const noun = KIND_META[entry.kind].label.toLowerCase();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const rescheduling = useEventReschedule(groupId, canWrite && entry.kind === "event");
   // The title being typed counts for suggestions until it's saved (or someone else renames it).
   const [typed, setTyped] = useState<{ text: string; over: string | null } | null>(null);
   const currentTitle = typed && typed.over === entry.title ? typed.text : entry.title;
@@ -96,6 +98,7 @@ export function EntryPageHeader({
                           cancelled: !!entry.cancelledAt,
                           onCancel: () => setConfirmCancel(true),
                           onUncancel: live.uncancel,
+                          onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
                         }
                       : undefined
                   }
@@ -147,6 +150,7 @@ export function EntryPageHeader({
         }}
         onClose={() => setConfirmCancel(false)}
       />
+      {rescheduling.sheet}
     </>
   );
 }

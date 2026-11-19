@@ -3,16 +3,8 @@ import type { Schedule } from "~/lib/entrySchedule";
 import { CalendarClock } from "lucide-react";
 import { useRef, useState } from "react";
 import { Popover } from "~/components/ui";
-import { DateTimeField } from "~/components/ui/date";
-import {
-  DEFAULT_START,
-  defaultEnd,
-  endError,
-  scheduleToSave,
-  withAllDay,
-  withEnd,
-  withStart,
-} from "~/lib/entrySchedule";
+import { ScheduleFields } from "~/components/schedule";
+import { endError, scheduleToSave } from "~/lib/entrySchedule";
 import { EntryTime } from "./EntryHeader";
 
 /**
@@ -99,64 +91,20 @@ function SchedulePanel({
   onDone: () => void;
 }) {
   const [schedule, setSchedule] = useState(initial);
-  // Each field is uncontrolled: a remount (a new key) starts it from the schedule.
-  const [version, setVersion] = useState(0);
   const error = endError(schedule);
-
-  const edit = (next: Schedule, remount = false) => {
-    setSchedule(next);
-    onEdit(next);
-    if (remount) setVersion((v) => v + 1);
-  };
 
   return (
     <>
-      <DateTimeField
-        key={`start-${version}`}
-        label={schedule.allDay ? "Day" : kind === "event" ? "Starts" : "When"}
-        granularity={schedule.allDay ? "day" : "minute"}
-        defaultValue={schedule.occurredAt}
-        dayPickTime={pickDay && version === 0 && !schedule.allDay ? DEFAULT_START : undefined}
-        calendarOpen={pickDay && version === 0}
-        onChange={(iso) => edit(withStart(schedule, iso, timeZone))}
+      <ScheduleFields
+        kind={kind}
+        schedule={schedule}
+        timeZone={timeZone}
+        pickDay={pickDay}
+        onChange={(next) => {
+          setSchedule(next);
+          onEdit(next);
+        }}
       />
-      <label className="label text-base-content cursor-pointer gap-2 text-sm">
-        <input
-          type="checkbox"
-          className="toggle toggle-sm"
-          checked={schedule.allDay}
-          onChange={(e) => edit(withAllDay(schedule, e.target.checked, timeZone), true)}
-        />
-        All day
-      </label>
-      {kind === "event" &&
-        !schedule.allDay &&
-        (schedule.endsAt ? (
-          <div>
-            <DateTimeField
-              key={`end-${version}`}
-              label="Ends"
-              defaultValue={schedule.endsAt}
-              error={error ?? undefined}
-              onChange={(iso) => edit(withEnd(schedule, iso))}
-            />
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs"
-              onClick={() => edit(withEnd(schedule, null), true)}
-            >
-              No end time
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => edit(withEnd(schedule, defaultEnd(schedule)), true)}
-          >
-            Add an end time
-          </button>
-        ))}
       <div className="flex justify-end">
         <button
           type="button"
