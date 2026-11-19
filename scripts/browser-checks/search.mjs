@@ -515,6 +515,28 @@ try {
       JSON.stringify(capped) === JSON.stringify(["blood", "pharmacy", "walk", "Lisinopril", "knee"]),
       JSON.stringify(capped),
     );
+
+    // The timeline's field saves a search used there (Enter) to the same list.
+    await A.goto(`/app/groups/${DEV_FAMILY}/timeline`);
+    await A.waitFor(`document.querySelector("[data-view] > li")`, 20000);
+    await A.press(`document.querySelector('button[aria-label="Search entries"]')`);
+    await A.waitFor(`document.activeElement?.matches?.("[data-search-field]")`, 5000);
+    await A.press(`document.querySelector("[data-search-field]")`);
+    await A.send("Input.insertText", { text: "metformin" });
+    for (const type of ["keyDown", "keyUp"])
+      await A.send("Input.dispatchKeyEvent", {
+        type,
+        key: "Enter",
+        code: "Enter",
+        windowsVirtualKeyCode: 13,
+      });
+    await A.waitFor(`new URLSearchParams(location.search).get("q") === "metformin"`, 10000);
+    const fromTimeline = (await view()).stored;
+    check(
+      "a search used in the timeline's field is a recent search",
+      fromTimeline[0] === "metformin",
+      JSON.stringify(fromTimeline),
+    );
   });
 
   await step("The magnifier on every group screen", async () => {
@@ -958,7 +980,7 @@ try {
     proxy.setOnline(true);
 
     // A viewer searches too, on their own device.
-    const viewerBrowser = await launch(9713);
+    const viewerBrowser = await launch(9714);
     const V = await openPage(viewerBrowser, "V");
     try {
       await V.signIn("viewer@example.com", PW);

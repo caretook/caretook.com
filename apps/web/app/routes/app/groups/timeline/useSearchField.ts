@@ -9,9 +9,10 @@ export const SEARCH_DEBOUNCE_MS = 250;
  * The timeline's search field: whether it's open, what's typed, and the URL
  * following the typing (`?q=`, debounced, replacing the history entry and
  * keeping the scroll). `q` is the search in the URL now; a change from
- * elsewhere (the chip's ✕, Back) shows in the field.
+ * elsewhere (the chip's ✕, Back) shows in the field. `onUsed` hears a
+ * search that was used (Enter, leaving the field, closing it), never keystrokes.
  */
-export function useSearchField(q: string) {
+export function useSearchField(q: string, onUsed?: (text: string) => void) {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -55,11 +56,17 @@ export function useSearchField(q: string) {
       timer.current = setTimeout(() => send(text), SEARCH_DEBOUNCE_MS);
     },
     /** Update the URL now (Enter). */
-    submit: () => send(value),
+    submit: () => {
+      send(value);
+      onUsed?.(value);
+    },
+    /** The search was used (the field lost focus). */
+    used: () => onUsed?.(value),
     toggle: () => setOpen((o) => !o),
     /** Close the field; the search stays (its chip shows it). */
     close: () => {
       send(value);
+      onUsed?.(value);
       setOpen(false);
     },
   };

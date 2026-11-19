@@ -5,6 +5,8 @@ import { useEffect, useId, useRef } from "react";
 import { useLocation } from "react-router";
 import { ChipGroup, Field, IconButton, UserAvatar } from "~/components/ui";
 import { KIND_META } from "~/lib/entryDisplay";
+import { useGroup } from "~/lib/group";
+import { recordSearch } from "~/lib/recentSearches";
 import { clearAuthor, clearKind, clearQuery, setKind } from "~/lib/timelineFilters";
 import { useSearchField } from "./useSearchField";
 
@@ -24,7 +26,8 @@ const FILTERS = [
  * that person's name and picture), a chip names them and clears it, keeping
  * the kind; with a search on (`q`), a last "Matching “…”" chip clears only
  * the search. The magnifier opens the search field: over the chips on
- * phones, beside them from `sm`.
+ * phones, beside them from `sm`. A search used there (Enter, leaving the
+ * field) is saved to the recent searches the search page lists.
  */
 export function FilterChips({
   kind,
@@ -36,7 +39,8 @@ export function FilterChips({
   q: string;
 }) {
   const { search } = useLocation();
-  const field = useSearchField(q);
+  const { userId } = useGroup();
+  const field = useSearchField(q, (text) => recordSearch(userId, text));
   const fieldId = useId();
   const magnifier = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -73,6 +77,7 @@ export function FilterChips({
                 className="input input-sm w-full rounded-full"
                 value={field.value}
                 onChange={(e) => field.change(e.currentTarget.value)}
+                onBlur={field.used}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
