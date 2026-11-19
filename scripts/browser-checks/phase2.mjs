@@ -1089,6 +1089,154 @@ async function wideLayout(p) {
   );
 }
 
+/**
+ * The author tooltip (timeline-polish slice 6): a row's initials show the
+ * author's avatar and full name on hover and keyboard focus, as the link's
+ * description (its name stays "Show only <name>'s entries"), above the sticky
+ * day heading; moving away, Escape or Tab hides it; a touch tap filters and
+ * shows none. Real mouse moves, keys and touches over CDP, at 1280 in rows.
+ */
+async function authorTooltip(p) {
+  const TIP = `document.querySelector('[role="tooltip"]')`;
+  // The first row's author control: right under its day's sticky heading.
+  const LINK = `document.querySelector("section > ol > li a[data-author]")`;
+  const centre = (sel) =>
+    p.evaluate(
+      `(() => { const r = ${sel}.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`,
+    );
+  const move = (point) => p.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...point });
+  const shown = (ms = 3000) =>
+    p.waitFor(`!!${TIP}`, ms, { quiet: true }).then(
+      () => true,
+      () => false,
+    );
+  const hidden = (ms = 3000) =>
+    p.waitFor(`!${TIP}`, ms, { quiet: true }).then(
+      () => true,
+      () => false,
+    );
+  const path = await p.evaluate("location.pathname");
+  await p.send("Emulation.setDeviceMetricsOverride", {
+    width: 1280,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await p.goto(path);
+  await p.waitFor(`${rows} > 0 && !!${LINK}`, 30000);
+  if ((await p.evaluate(`document.querySelector("ol")?.dataset.view`)) !== "rows") await setView(p, "Rows");
+  await p.evaluate(`window.scrollTo(0, 0)`);
+  await sleep(400);
+
+  await step("author tooltip: hover on a row", { smoke: true }, async () => {
+    await move({ x: 5, y: 890 });
+    const before = await p.evaluate(`(() => { const a = ${LINK};
+      return { name: a.getAttribute("aria-label"), titles: [a, ...a.querySelectorAll("*")].filter((el) => el.hasAttribute("title")).length,
+        describedBy: a.getAttribute("aria-describedby") }; })()`);
+    const name = before.name.replace(/^Show only (.+)'s entries$/, "$1");
+    check(
+      `the initials have no title, and no description before a hover`,
+      before.titles === 0 && !before.describedBy,
+      JSON.stringify(before),
+    );
+    await move(await centre(LINK));
+    const open = await shown();
+    const tip = open
+      ? await p.evaluate(`(() => { const a = ${LINK}, t = ${TIP}; const r = t.getBoundingClientRect();
+          const h = a.closest("section").querySelector("h3").getBoundingClientRect();
+          const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return { text: t.textContent.trim(), avatar: !!t.querySelector('[aria-hidden="true"]'),
+            describes: (a.getAttribute("aria-describedby") ?? "").split(" ").includes(t.id),
+            name: a.getAttribute("aria-label"), inList: !!t.closest("ol"),
+            overHeading: r.bottom > h.top && r.top < h.bottom, onTop: t.contains(top) }; })()`)
+      : null;
+    check(
+      `hovering ${name}'s initials shows a tooltip with the avatar and the full name`,
+      open && tip.text.endsWith(name) && tip.avatar,
+      JSON.stringify(tip),
+    );
+    check(
+      `the tooltip is the link's description, and its name is unchanged`,
+      !!tip && tip.describes && tip.name === `Show only ${name}'s entries`,
+    );
+    check(
+      `the tooltip sits above the sticky day heading, outside the list`,
+      !!tip && tip.overHeading && tip.onTop && !tip.inList,
+      JSON.stringify(tip && { overHeading: tip.overHeading, onTop: tip.onTop, inList: tip.inList }),
+    );
+    await p.screenshot("phase2-author-tooltip");
+    await move({ x: 5, y: 890 });
+    check(`moving away hides it`, await hidden());
+  });
+
+  await step("author tooltip: keyboard focus, Escape and Tab", async () => {
+    const focusFromIcon = async () => {
+      await p.evaluate(
+        `${LINK}.closest("li").querySelector('a[aria-label^="Show only"]:not([data-author])').focus()`,
+      );
+      for (let i = 0; i < 3; i++) {
+        await key(p, "Tab", "Tab", 9);
+        await sleep(150);
+        if (await p.evaluate(`document.activeElement === ${LINK}`)) return true;
+      }
+      return false;
+    };
+    const reached = await focusFromIcon();
+    check(`Tab reaches the initials and shows the tooltip`, reached && (await shown()));
+    await escape(p);
+    check(
+      `Escape hides it, and focus and the URL stay`,
+      (await hidden()) && (await p.evaluate(`document.activeElement === ${LINK} && location.search === ""`)),
+    );
+    await focusFromIcon();
+    const again = await shown();
+    await key(p, "Tab", "Tab", 9);
+    check(`focus again shows it; Tab away hides it`, again && (await hidden()));
+  });
+
+  await step("author tooltip: a touch tap filters, with no tooltip", async () => {
+    const id = await p.evaluate(`${LINK}.dataset.author`);
+    const point = await centre(LINK);
+    // A finger's tap (pointerType "touch"), each call with a limit so a stuck CDP call fails the step.
+    const within = (ms, promise) =>
+      Promise.race([
+        promise,
+        sleep(ms).then(() => Promise.reject(new Error("touch: no answer from Chrome"))),
+      ]);
+    const tapped = await within(
+      5000,
+      p.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 }),
+    )
+      .then(() =>
+        within(5000, p.send("Input.synthesizeTapGesture", { ...point, gestureSourceType: "touch" })),
+      )
+      .then(
+        () => "",
+        (e) => e.message,
+      );
+    let tipSeen = false;
+    for (let i = 0; i < 10; i++) {
+      await sleep(100);
+      if (await p.evaluate(`!!${TIP}`)) tipSeen = true;
+    }
+    const search = await p.evaluate("location.search");
+    check(
+      `a touch tap filters by the author and shows no tooltip`,
+      !tapped && search === `?author=${id}` && !tipSeen,
+      `${tapped || search}, tooltip ${tipSeen}`,
+    );
+    await within(5000, p.send("Emulation.setTouchEmulationEnabled", { enabled: false })).catch(() => {});
+    await p.goto(path);
+    await p.waitFor(`${rows} > 0`, 30000);
+  });
+  await p.send("Emulation.setDeviceMetricsOverride", {
+    width: 420,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+}
+
 const bM = await launch(9341);
 // The viewer's browser only in full mode: smoke runs one role.
 const bV = SMOKE ? null : await launch(9342);
@@ -1250,6 +1398,7 @@ try {
     return { page, proxy: offline.proxy };
   });
   await wideLayout(p);
+  await authorTooltip(p);
 
   // PowerSync warns when a full page load closes the previous page's database,
   // and its shared sync worker logs "Sync aborted" to every page when it stops
