@@ -7,6 +7,9 @@ import { useEffect, useRef, useState } from "react";
 import { entrySummary, KIND_META } from "~/lib/entryDisplay";
 import { chipLabel, withSummary, withText } from "~/lib/entryProviders";
 
+/** Readable lines on wide screens: the heading, the "with …" line and the text stop at about 75 characters. */
+const TEXT_CAP = "max-w-[75ch]";
+
 /**
  * What an entry says, the same in rows and cards: the kind (for screen
  * readers), then its heading (title or symptom name, with severity), its vital
@@ -34,7 +37,7 @@ export function EntryBody({
   const { heading, severity, readings, body } = entrySummary(entry, units);
   const [lead, ...rest] = [
     heading && (
-      <p key="heading" className="font-semibold break-words">
+      <p key="heading" className={`font-semibold break-words ${TEXT_CAP}`}>
         {heading}
         {severity && <span className="text-base-content/70 font-normal"> · {severity}</span>}
       </p>
@@ -82,7 +85,7 @@ function Readings({ readings }: { readings: string[] }) {
 function WithLine({ providers }: { providers: readonly LinkedProviderName[] }) {
   const { names, more } = withSummary(providers);
   return (
-    <p className="text-base-content/70 text-sm break-words" data-with>
+    <p className={`text-base-content/70 text-sm break-words ${TEXT_CAP}`} data-with>
       <span className="sr-only">{withText(providers)}</span>
       <span aria-hidden="true">
         with{" "}
@@ -101,7 +104,7 @@ function WithLine({ providers }: { providers: readonly LinkedProviderName[] }) {
 }
 
 function FullText({ text }: { text: string }) {
-  return <p className="break-words whitespace-pre-wrap">{text}</p>;
+  return <p className={`break-words whitespace-pre-wrap ${TEXT_CAP}`}>{text}</p>;
 }
 
 /** Text clamped to two lines, with a "More" toggle only when it overflows. */
@@ -124,7 +127,7 @@ function ClampedText({ text }: { text: string }) {
     <>
       <p
         ref={ref}
-        className={`text-base-content/90 break-words whitespace-pre-wrap ${expanded ? "" : "line-clamp-2"}`}
+        className={`text-base-content/90 break-words whitespace-pre-wrap ${TEXT_CAP} ${expanded ? "" : "line-clamp-2"}`}
       >
         {text}
       </p>

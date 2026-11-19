@@ -20,6 +20,12 @@ export const openLabel = (entry: Labelled, sheet: boolean) =>
 export const actionsLabel = (entry: Labelled) =>
   `Actions for ${KIND_META[entry.kind].label.toLowerCase()} at ${formatTime(entry.occurredAt)}`;
 
-/** What an empty timeline says, with or without a kind filter. */
-export const emptyTimelineText = (kind: TimelineEntryKind | null) =>
-  kind ? `No ${KIND_META[kind].plural.toLowerCase()} on the timeline yet.` : "Nothing on the timeline yet.";
+/**
+ * What an empty timeline says, naming the filters that are on: "No symptoms
+ * by Alex Rivera yet." (`authorName` is the author filter's name.)
+ */
+export const emptyTimelineText = (kind: TimelineEntryKind | null, authorName?: string | null) => {
+  if (!kind && !authorName) return "Nothing on the timeline yet.";
+  const what = kind ? KIND_META[kind].plural.toLowerCase() : "entries";
+  return authorName ? `No ${what} by ${authorName} yet.` : `No ${what} on the timeline yet.`;
+};
