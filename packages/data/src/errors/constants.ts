@@ -117,6 +117,12 @@ export const MODEL_ERRORS = {
     message: "User not found",
     statusCode: 404,
   },
+  "careGroupInviteModel:getSealedToken": {
+    message: "Failed to read the invite link",
+  },
+  "careGroupJoinRequestModel:lock": {
+    message: "Failed to look up the join request",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {
@@ -287,6 +293,29 @@ export const SERVICE_ERRORS = {
   "ticket:weakPassword": {
     message: "Use at least 12 characters",
     statusCode: 400,
+  },
+  "careGroupInviteService:linkRole": {
+    message: "An invite link can make caretakers and viewers only",
+    statusCode: 403,
+  },
+  "careGroupInviteService:notLink": {
+    message: "That isn't an invite link",
+    statusCode: 400,
+  },
+  "careGroupInviteService:linkInactive": {
+    message: "That link has expired, been used up or been withdrawn, so it can't be copied",
+    statusCode: 409,
+  },
+  "careGroupInviteService:linkKeyMissing": {
+    message: "INVITE_LINK_KEY is not set, so invite links can't be made",
+  },
+  "joinRequestService:notFound": {
+    message: "That request is no longer waiting",
+    statusCode: 404,
+  },
+  "joinRequestService:notAllowed": {
+    message: "Only the care group's owners and admins can answer requests to join",
+    statusCode: 403,
   },
 } as const;
 

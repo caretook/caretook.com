@@ -171,6 +171,7 @@ export const PERMISSIONS: Permissions = {
         consentAttestedBy: SYSTEM_ONLY,
         consentAttestedAt: SYSTEM_ONLY,
         consentVersion: SYSTEM_ONLY,
+        tokenCiphertext: SYSTEM_ONLY,
       },
     },
     delete: groupEntry(MANAGERS),
@@ -257,6 +258,19 @@ export const PERMISSIONS: Permissions = {
   // (careGroupInviteService.accept); read by the group's owners and admins,
   // and by the member themselves.
   careGroupConsentSchema: {
+    ownerField: "userId",
+    groupField: "groupId",
+    read: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    list: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
+  },
+
+  // Requests to join from an invite link. Read by the group's owners and
+  // admins, and by the requester themselves; written only by the system
+  // (joinRequestService, careGroupInviteService.accept).
+  careGroupJoinRequestSchema: {
     ownerField: "userId",
     groupField: "groupId",
     read: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },

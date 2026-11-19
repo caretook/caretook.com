@@ -32,6 +32,10 @@ export { entryProviderService };
 import * as careGroupConsentService from "./careGroupConsentService";
 export { careGroupConsentService };
 
+import * as joinRequestService from "./joinRequestService";
+export { joinRequestService };
+export type { JoinMailer, JoinNotice, JoinRecipient } from "./joinRequestService";
+
 export type * from "./types";
 
 export const services = {
@@ -45,6 +49,7 @@ export const services = {
   provider: providerService,
   entryProvider: entryProviderService,
   careGroupConsent: careGroupConsentService,
+  joinRequest: joinRequestService,
 };
 
 export type ServiceTypeMap = typeof services;

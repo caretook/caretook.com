@@ -153,6 +153,7 @@ describe("the invitee", () => {
 
     expect(await anonymous.invite.signUp({ token, name: "New Person", email, password: PASSWORD })).toEqual({
       email,
+      verified: true,
     });
     expect(await codeOf(anonymous.invite.signUp({ token, name: "Again", email, password: PASSWORD }))).toBe(
       "CONFLICT:ticket:accountExists",
@@ -173,6 +174,7 @@ describe("the invitee", () => {
       /^BAD_REQUEST/,
     );
     expect(await joiner.invite.accept({ token, consent: true })).toEqual({
+      status: "joined",
       groupId: s.groupId,
       role: "caretaker",
     });

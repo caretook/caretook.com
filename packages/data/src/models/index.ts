@@ -51,3 +51,7 @@ export type * from "./timelineEntryProvider/types";
 import * as careGroupConsentModel from "./careGroupConsent";
 export { careGroupConsentModel };
 export type * from "./careGroupConsent/types";
+
+import * as careGroupJoinRequestModel from "./careGroupJoinRequest";
+export { careGroupJoinRequestModel };
+export type * from "./careGroupJoinRequest/types";
