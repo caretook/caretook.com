@@ -18,7 +18,7 @@ describe("adminGrantService.grant", () => {
     const { user } = await createUser("grant-me");
     const res = ok(await adminGrantService.grant({ email: user.email.toUpperCase(), role: "support" }));
     expect(res).toMatchObject({ userId: user.id, role: "support", changed: true });
-    expect(ok(await userModel.getById(user.id, system))?.role).toBe("support");
+    expect(ok(await userModel.getWholeById(user.id, system))?.role).toBe("support");
 
     const [entry, ...rest] = await entriesFor(user.id);
     expect(rest).toHaveLength(0);
@@ -30,7 +30,7 @@ describe("adminGrantService.grant", () => {
     expect(entry?.reason).toBeTruthy();
 
     ok(await adminGrantService.grant({ email: user.email, role: "admin" }));
-    expect(ok(await userModel.getById(user.id, system))?.role).toBe("admin");
+    expect(ok(await userModel.getWholeById(user.id, system))?.role).toBe("admin");
     expect(await entriesFor(user.id)).toHaveLength(2);
   });
 
@@ -48,6 +48,6 @@ describe("adminGrantService.grant", () => {
     const { user } = await createUser("grant-role");
     const bad = await adminGrantService.grant({ email: user.email, role: "member" });
     expect(isError(bad) && bad.code).toBe("adminGrant:invalidRole");
-    expect(ok(await userModel.getById(user.id, system))?.role).toBe("member");
+    expect(ok(await userModel.getWholeById(user.id, system))?.role).toBe("member");
   });
 });

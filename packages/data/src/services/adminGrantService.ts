@@ -29,7 +29,7 @@ export const grant = ({ email, role }: { email: string; role: string }) =>
   withTransaction(async (tx) => {
     if (!isGrantable(role)) return newError({ code: "adminGrant:invalidRole" });
     const system = { authUser: SYSTEM_USER, tx };
-    const user = await userModel.get({
+    const user = await userModel.getWhole({
       ...system,
       filter: { email: { type: "eq", value: userModel.normalizeEmail(email) } },
     });

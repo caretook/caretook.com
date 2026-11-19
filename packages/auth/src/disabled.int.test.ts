@@ -97,8 +97,9 @@ const answer = async (res: Response) => ({ status: res.status, body: (await res.
 
 const unknownEmail = () => `nobody-${randomUUID().slice(0, 8)}@example.com`;
 
-const sendCode = (email: string) =>
-  api().sendVerificationOTP({ body: { email, type: "sign-in" }, asResponse: true });
+/** "Email me a sign-in link": one email with the link and a code (B-96). */
+const sendSignInEmail = (email: string) =>
+  api().signInMagicLink({ body: { email }, headers: new Headers(), asResponse: true });
 
 const codeIn = (text: string) => text.match(/\b(\d{6})\b/)?.[1] ?? "";
 
@@ -123,14 +124,10 @@ describe("a disabled account", () => {
     const headers = cookieHeaders(signedIn);
     const bearer = new Headers({ authorization: `Bearer ${signedIn.headers.get("set-auth-token")}` });
     // A link and a code asked for before the disable.
-    await api().signInMagicLink({ body: { email: login.email }, headers: new Headers(), asResponse: true });
-    await sendCode(login.email);
-    const before = await mailTo(login.email);
-    const linkToken = linkIn(
-      before.find((m) => m.name === "magicLink")!.text,
-      "/api/auth/magic-link/verify",
-    ).searchParams.get("token")!;
-    const code = codeIn(before.find((m) => m.name === "signInCode")!.text);
+    await sendSignInEmail(login.email);
+    const before = (await mailTo(login.email)).find((m) => m.name === "signInEmail")!;
+    const linkToken = linkIn(before.text, "/api/auth/magic-link/verify").searchParams.get("token")!;
+    const code = codeIn(before.text);
 
     expect(await disable(admin, login.user.id, "Reported as compromised")).toEqual({ revoked: 1 });
 
@@ -165,8 +162,7 @@ describe("a disabled account", () => {
     const nobody = unknownEmail();
     const sentBefore = (await mailTo(login.email)).length;
     for (const ask of [
-      (email: string) => api().signInMagicLink({ body: { email }, headers: new Headers(), asResponse: true }),
-      sendCode,
+      sendSignInEmail,
       (email: string) => api().requestPasswordReset({ body: { email }, asResponse: true }),
     ]) {
       expect(await answer(await ask(login.email))).toEqual(await answer(await ask(nobody)));
@@ -231,8 +227,8 @@ describe("a disabled account", () => {
     });
     const { token } = await api().getToken({ headers: cookieHeaders(res) });
     expect(token).toBeTruthy();
-    await sendCode(login.email);
-    expect((await mailTo(login.email)).map((m) => m.name)).toEqual(["signInCode"]);
+    await sendSignInEmail(login.email);
+    expect((await mailTo(login.email)).map((m) => m.name)).toEqual(["signInEmail"]);
     expect(await auditActions(login.user.id)).toEqual(["user.disable", "user.enable"]);
   });
 });

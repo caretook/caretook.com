@@ -112,8 +112,18 @@ export const PERMISSIONS: Permissions = {
     // Accounts are created by the auth flow (running as SYSTEM_USER) or by staff.
     create: ADMIN_ONLY_PERMISSION_ENTRY,
     // Staff (support too) look accounts up; members read themselves and co-members.
-    read: { ...DEFAULT_PERMISSION_ENTRY, support: ["all"], group: ANY_GROUP_ROLE, groupFields: PUBLIC_PROFILE_FIELDS },
-    list: { ...DEFAULT_PERMISSION_ENTRY, support: ["all"], group: ANY_GROUP_ROLE, groupFields: PUBLIC_PROFILE_FIELDS },
+    read: {
+      ...DEFAULT_PERMISSION_ENTRY,
+      support: ["all"],
+      group: ANY_GROUP_ROLE,
+      groupFields: PUBLIC_PROFILE_FIELDS,
+    },
+    list: {
+      ...DEFAULT_PERMISSION_ENTRY,
+      support: ["all"],
+      group: ANY_GROUP_ROLE,
+      groupFields: PUBLIC_PROFILE_FIELDS,
+    },
     update: {
       ...DEFAULT_PERMISSION_ENTRY,
       // Members can edit their profile but not escalate their role, and
