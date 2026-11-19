@@ -80,6 +80,11 @@ apps/web/app/routes/admin/audit/*        admin
 apps/web/app/routes/admin/AuditEntryList.tsx admin
 apps/web/app/routes/admin/auditDisplay.ts admin
 apps/web/app/routes/admin/auditFilters.ts admin
+# Users (admin slice 2): search, an account's page and its help actions.
+apps/web/app/routes/admin/users/*        admin
+apps/web/app/routes/admin/user/*         admin
+apps/web/app/routes/admin/AccountBadges.tsx admin
+apps/web/app/routes/admin/accountDisplay.ts admin
 apps/web/app/routes/admin/*              admin groups
 apps/web/app/.server/admin.ts            admin groups
 packages/api/src/auditAdmin.ts           admin
@@ -89,6 +94,10 @@ packages/data/src/db/schema/adminAudit.ts admin
 packages/data/src/services/adminAuditService.ts admin
 packages/data/src/services/staffAccess.ts admin groups
 packages/data/src/models/adminAuditLog/* admin
+packages/api/src/usersAdmin.ts           admin
+packages/data/src/services/accountAdminService.ts admin
+packages/data/src/db/schema/accountAdmin.ts admin
+packages/auth/src/staffEmails.ts         admin
 packages/data/src/db/seeds/staff.ts      admin
 packages/data/src/services/accessCodeService.ts groups admin
 packages/data/src/services/staffGroupService.ts groups admin

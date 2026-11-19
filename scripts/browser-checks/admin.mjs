@@ -8,9 +8,16 @@
 //   3. support@ reaches access codes, new group and the waitlist.
 //   4. member@ (a group's owner, not staff) has no Admin item, and every
 //      /admin page, the audit page included, is a 404; the audit API refuses them.
+//   5. Users (slice 2): support@ finds a tagged account by part of its email,
+//      sees its group and the session a second browser signed in with, signs
+//      that session out (the second browser's next request goes to sign-in),
+//      sends a password reset (in /dev/mail.json and the page's recent mail),
+//      and the audit log shows the view and both actions; member@ gets the
+//      404 and the users API refuses them.
 //
-// Order-independent and self-cleaning: it makes ADM<run> access codes and
-// deletes them, and their audit entries, at the end.
+// Order-independent and self-cleaning: it makes ADM<run> access codes, an
+// adm<run>-… account and an ADM<run> group, and deletes them, their mail and
+// their audit entries, at the end.
 import { execFileSync } from "node:child_process";
 import { launch, openPage, sleep, step } from "./cdp.mjs";
 
@@ -49,7 +56,12 @@ const check = (ok, what, detail = "") => {
 const cleanUp = () =>
   psql(`
     DELETE FROM admin_audit_log WHERE changes::text LIKE '%${TAG}%';
-    DELETE FROM access_code WHERE label LIKE '${TAG}%';`);
+    DELETE FROM access_code WHERE label LIKE '${TAG}%';
+    DELETE FROM admin_audit_log WHERE target_user_id IN (SELECT id FROM "user" WHERE email LIKE '${RUN}-%');
+    DELETE FROM notification_outbox WHERE recipient LIKE '${RUN}-%';
+    DELETE FROM dev_mail WHERE recipient LIKE '${RUN}-%';
+    DELETE FROM care_group WHERE name LIKE '${TAG}%';
+    DELETE FROM "user" WHERE email LIKE '${RUN}-%';`);
 
 const q = (selector) => `document.querySelector(${JSON.stringify(selector)})`;
 const TRIGGER = `document.querySelector('header [data-region="user"] button[aria-label^="Account menu for"]')`;
@@ -75,7 +87,7 @@ const accountMenu = async (p, email) => {
   return p.evaluate(menuItems);
 };
 
-const STAFF_NAV = ["Access codes", "New group", "Waitlist", "Audit"];
+const STAFF_NAV = ["Users", "Access codes", "New group", "Waitlist", "Audit"];
 
 try {
   // 1. Staff reach /admin from the account menu -------------------------------------
@@ -92,7 +104,7 @@ try {
         items.join(", "),
       );
       await p.press(menuItem("Admin"));
-      await p.waitFor(`location.pathname === "/admin/access-codes" && ${q("[data-admin-nav]")}`, 20000);
+      await p.waitFor(`location.pathname === "/admin/users" && ${q("[data-admin-nav]")}`, 20000);
       const nav = await p.evaluate(navLabels);
       check(JSON.stringify(nav) === JSON.stringify(STAFF_NAV), `${email}: the admin nav`, nav.join(", "));
     }
@@ -184,6 +196,132 @@ try {
       `fetch("/rpc/admin/audit/list", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: "{}" }).then((r) => r.status)`,
     );
     check(api === 403, "and the audit API refuses them", String(api));
+  });
+  // 5. Users (slice 2) ----------------------------------------------------------------
+  await step("5. support@ finds an account, signs a session out and sends a reset", async () => {
+    // A tagged, confirmed account with the seeds' password, owning a tagged group.
+    const email = `${RUN}-target@example.com`;
+    const SYS = "00000000-0000-0000-0000-000000000000";
+    const userId = psql(`
+      INSERT INTO "user" (email, email_verified, name, created_by, updated_by)
+        VALUES ('${email}', true, '${TAG} Target', '${SYS}', '${SYS}') RETURNING id`);
+    psql(`
+      INSERT INTO account (user_id, provider_id, account_id, password)
+        SELECT '${userId}', 'credential', '${userId}', password FROM account
+        WHERE provider_id = 'credential' AND user_id = (SELECT id FROM "user" WHERE email = 'caretaker@example.com');
+      WITH g AS (INSERT INTO care_group (name, created_by, updated_by)
+        VALUES ('${TAG} group', '${SYS}', '${SYS}') RETURNING id),
+      r AS (INSERT INTO care_recipient (group_id, name, time_zone, created_by, updated_by)
+        SELECT id, 'Lou ${TAG}', 'America/Los_Angeles', '${SYS}', '${SYS}' FROM g)
+      INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by)
+        SELECT id, '${userId}', 'owner', '${SYS}', '${SYS}' FROM g;`);
+
+    const target = await open(9826, "users-target");
+    await target.signIn(email, PASSWORD, { home: true });
+    await target.waitFor(`location.pathname.startsWith("/app")`, 20000);
+
+    const p = await open(9827, "users-support");
+    await p.signIn("support@example.com", PASSWORD, { home: true });
+    await p.goto(`/admin/users?q=${encodeURIComponent(RUN.slice(3).toUpperCase())}`);
+    const row = `${q(`[data-users] li[data-user="${email}"]`)}`;
+    await p.waitFor(row, 20000);
+    const badges = await p.evaluate(
+      `[...${row}.querySelectorAll("[data-badge]")].map((b) => b.dataset.badge)`,
+    );
+    check(badges.join() === "verified", "part of the email finds it, with its badges", badges.join(", "));
+    await p.press(`${row}.querySelector("a")`);
+    await p.waitFor(
+      `location.pathname === "/admin/users/${userId}" && ${q('[data-user-section="sessions"]')}`,
+      20000,
+    );
+
+    const groups = await p.evaluate(
+      `[...document.querySelectorAll("[data-groups] li")].map((li) => ({ text: li.textContent, href: li.querySelector("a")?.getAttribute("href") }))`,
+    );
+    check(
+      groups.length === 1 &&
+        groups[0].text.includes(`Lou ${TAG}`) &&
+        groups[0].text.includes("Owner") &&
+        /^\/admin\/groups\/[0-9a-f-]{36}$/.test(groups[0].href),
+      "the page shows its group, linking to the group's staff page",
+      JSON.stringify(groups),
+    );
+    const sessions = await p.evaluate(
+      `[...document.querySelectorAll("[data-sessions] li")].map((li) => ({ id: li.dataset.session, text: li.textContent }))`,
+    );
+    check(
+      sessions.length === 1 && sessions[0].text.includes("Chrome on"),
+      "and the second browser's session, by device",
+      JSON.stringify(sessions),
+    );
+
+    // Sign that session out, with a reason.
+    const dialog = (intent) => `${q(`[data-help-action="${intent}"]`)}.querySelector("dialog")`;
+    const help = async (intent, within, reason) => {
+      await p.press(`${within}.querySelector('[data-help-action="${intent}"] button')`);
+      await p.waitFor(`${within}.querySelector('[data-help-action="${intent}"] dialog')?.open`, 5000);
+      const confirm = `[...${within}.querySelector('[data-help-action="${intent}"] dialog').querySelectorAll("button")].at(-1)`;
+      check(await p.evaluate(`${confirm}.disabled`), `${intent}: confirm waits for a reason`);
+      await p.type(`${within}.querySelector('[data-help-action="${intent}"] textarea')`, reason);
+      await p.waitFor(`!${confirm}.disabled`, 5000);
+      await p.press(confirm);
+    };
+    await help("revokeSession", q(`[data-session="${sessions[0].id}"]`), `${TAG} lost phone`);
+    await p.waitFor(`!${q(`[data-session="${sessions[0].id}"]`)}`, 15000);
+    check(true, "signing the session out removes it from the page");
+    await target.goto("/app");
+    await target.waitFor(`location.pathname === "/sign-in"`, 20000);
+    check(true, "the second browser's next request goes to sign-in");
+
+    // A password reset: queued, delivered to the dev mailbox, listed on the page.
+    await help("sendReset", "document", `${TAG} locked out`);
+    await p.waitFor(`${q('[data-help-action="sendReset"] [role="status"]')}`, 15000);
+    check(!(await p.evaluate(`${dialog("sendReset")}.open`)), "the reset's dialog closes with a status");
+    let mail = [];
+    for (let i = 0; i < 30 && !mail.some((m) => m.name === "resetPassword"); i++) {
+      mail = await p.evaluate(
+        `fetch("/dev/mail.json?to=${encodeURIComponent(email)}").then((r) => r.json()).then((j) => j.messages)`,
+      );
+      if (!mail.some((m) => m.name === "resetPassword")) await sleep(500);
+    }
+    check(mail.filter((m) => m.name === "resetPassword").length === 1, "the reset is in /dev/mail.json");
+    await p.goto(`/admin/users/${userId}`);
+    await p.waitFor(`${q('[data-mail] tr[data-mail-row="resetPassword"]')}`, 20000);
+    check(true, "and in the page's recent mail");
+
+    // The audit log: the view and both actions, by support@.
+    await p.goto(`/admin/audit?target=${userId}`);
+    await p.waitFor(`${q("[data-audit-count]")}`, 20000);
+    const entries = await p.evaluate(
+      `[...document.querySelectorAll("[data-audit-entry]")].map((li) => ({ action: li.dataset.action, actor: li.dataset.actor, text: li.textContent }))`,
+    );
+    const by = (action) => entries.filter((e) => e.action === action && e.actor === "support@example.com");
+    check(
+      by("user.view").length >= 1,
+      "the audit log shows the view",
+      JSON.stringify(entries.map((e) => e.action)),
+    );
+    check(
+      by("user.revokeSession").length === 1 && by("user.revokeSession")[0].text.includes(`${TAG} lost phone`),
+      "the sign-out, with its reason",
+    );
+    check(by("user.sendReset").length === 1, "and the reset");
+
+    // Not for members.
+    const member = await open(9828, "users-member");
+    await member.signIn("member@example.com", PASSWORD, { home: true });
+    const status = await member.evaluate(
+      `Promise.all(["/admin/users", "/admin/users/${userId}"].map((u) => fetch(u, { credentials: "include" }).then((r) => r.status)))`,
+    );
+    check(
+      status.every((s) => s === 404),
+      "member@ gets the 404 for users",
+      JSON.stringify(status),
+    );
+    const api = await member.evaluate(
+      `fetch("/rpc/admin/users/search", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: "{}" }).then((r) => r.status)`,
+    );
+    check(api === 403, "and the users API refuses them", String(api));
   });
 } catch (error) {
   failed++;
