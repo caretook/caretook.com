@@ -121,7 +121,7 @@ apps/web/app/routes/app/groups/settings/members/* app-shell invites ui
 apps/web/app/routes/app/groups/settings/* app-shell routing ui
 apps/web/app/lib/sync/members.ts         app-shell invites
 # The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
-apps/web/app/components/ui/date/*        ui roundtrip live-notes medications
+apps/web/app/components/ui/date/*        ui roundtrip live-notes medications care-periods
 apps/web/app/components/ui/*             ui app-shell
 apps/web/app/components/brand/*          app-shell marketing
 
@@ -177,6 +177,11 @@ apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 # Reschedule from the timeline, Upcoming and the entry page).
 apps/web/app/components/schedule/*       upcoming live-notes
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
+# Care periods (care-periods PRD): the device module, the periods page and
+# its sheets, and a period's page.
+apps/web/app/lib/sync/carePeriods.ts     care-periods
+apps/web/app/routes/app/groups/periods/* care-periods
+apps/web/app/routes/app/groups/period/*  care-periods
 # Search (search PRD): the device index, its tables and triggers, and the
 # shared query language and search documents.
 apps/web/app/lib/sync/search.ts          search
@@ -187,7 +192,7 @@ apps/web/app/routes/marketing/*          marketing
 apps/web/public/*                        marketing
 
 # Server code the device reaches. The upload switch carries every synced write.
-packages/api/src/sync.ts                 roundtrip live-notes providers
+packages/api/src/sync.ts                 roundtrip live-notes providers care-periods
 packages/api/src/invites.ts              invites
 packages/api/src/joinRequests.ts         invites
 packages/api/src/publicForms.ts          marketing
@@ -199,12 +204,13 @@ apps/web/app/routes/rpc.ts               sign-in
 # Shared schemas and seeds: the screens that read them.
 packages/data/src/db/schema/timelineEntry.ts phase2 roundtrip live-notes
 packages/data/src/db/schema/vitals.ts    phase2 roundtrip
-packages/data/src/db/schema/noteDocument.ts live-notes providers
+packages/data/src/db/schema/noteDocument.ts live-notes providers care-periods
 packages/data/src/db/schema/noteYjs.ts   live-notes
 packages/data/src/db/schema/noteEditors.ts live-notes
 packages/data/src/db/schema/provider.ts  providers
 packages/data/src/db/schema/entryProvider.ts providers
 packages/data/src/db/schema/medication.ts medications
+packages/data/src/db/schema/carePeriod*.ts care-periods
 packages/data/src/db/schema/timeZone.ts  roundtrip
 packages/data/src/db/schema/inviteRules.ts invites app-shell
 packages/data/src/db/schema/careGroup*.ts app-shell invites
@@ -218,9 +224,10 @@ packages/data/src/db/schema/contactMessage.ts marketing
 packages/data/src/db/schema/search.ts    search
 packages/data/src/db/schema/searchDocument.ts search
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
-packages/data/src/db/seeds/providers.ts  providers
+packages/data/src/db/seeds/providers.ts  providers care-periods
 packages/data/src/db/seeds/invites.ts    invites app-shell
 packages/data/src/db/seeds/medications.ts medications
+packages/data/src/db/seeds/carePeriods.ts care-periods
 packages/data/src/db/seeds/*             app-shell
 
 # The rest of the data layer (services, models, permissions, errors) has

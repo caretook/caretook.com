@@ -1,0 +1,160 @@
+import type { CarePeriodType } from "@caretook/data/schema";
+import type { ActionResult, FieldIssue } from "~/lib/api";
+import type { PeriodPrefillValues } from "~/lib/periodSheets";
+import type { LocalProvider } from "~/lib/sync/providers";
+
+import { useEffect, useRef, useState } from "react";
+import { useFetcher } from "react-router";
+import { CARE_PERIOD_LIMITS, CARE_PERIOD_TYPES } from "@caretook/data/schema";
+import { ChoiceGroup, Field } from "~/components/ui";
+import { DateTimeField } from "~/components/ui/date";
+import { PERIOD_TYPE_META } from "~/lib/periodDisplay";
+import { FIELD, isFieldIssue } from "./periodFormData";
+import { PlacePickerField } from "./PlacePickerField";
+
+const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
+
+const TYPE_OPTIONS = CARE_PERIOD_TYPES.map((type) => ({ value: type, label: PERIOD_TYPE_META[type].label }));
+
+/**
+ * Start a care period, or add one in the past. Posts to its sheet route's
+ * clientAction, which writes on the device (with a place added here, in one
+ * transaction); the shared Zod schema's messages show on the fields. The
+ * start defaults to now, in the recipient's zone, and can't be later.
+ */
+export function PeriodForm({
+  prefill,
+  providers,
+  timeZone,
+  zoneNote,
+  onDone,
+  onCancel,
+}: {
+  prefill: PeriodPrefillValues;
+  providers: readonly LocalProvider[];
+  /** The recipient's zone: the start is shown and saved in it. */
+  timeZone: string;
+  zoneNote: string | null;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const fetcher = useFetcher<ActionResult>();
+  const formRef = useRef<HTMLFormElement>(null);
+  const result = fetcher.state === "idle" ? fetcher.data : undefined;
+  const issues = result && !result.ok ? result.issues : [];
+  const busy = fetcher.state !== "idle";
+  const [type, setType] = useState<CarePeriodType | "">(prefill.type ?? "");
+  const [dateOnly, setDateOnly] = useState(prefill.dateOnly);
+  // The latest start the field takes: now, as the sheet opened.
+  const [max] = useState(() => new Date().toISOString());
+
+  // A save closes the sheet; a refusal moves focus to the first field it's about.
+  const handled = useRef<ActionResult | undefined>(undefined);
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data || handled.current === fetcher.data) return;
+    handled.current = fetcher.data;
+    if (fetcher.data.ok) {
+      onDone();
+      return;
+    }
+    const form = formRef.current;
+    const invalid = form?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    const target =
+      invalid?.getAttribute("role") === "radiogroup"
+        ? invalid.querySelector<HTMLElement>("input")
+        : (invalid ??
+          form?.querySelector<HTMLElement>(
+            '[data-place-picker]:has([data-picker-error]) input:not([type="hidden"])',
+          ));
+    target?.focus();
+  }, [fetcher.state, fetcher.data, onDone]);
+
+  const unshown = issues.filter((i) => !isFieldIssue(i.path));
+  const general =
+    result && !result.ok && (issues.length === 0 || unshown.length > 0)
+      ? (unshown[0]?.message ?? result.error)
+      : undefined;
+
+  return (
+    <fetcher.Form method="post" ref={formRef} className="space-y-1" noValidate data-period-form>
+      <ChoiceGroup<CarePeriodType | "">
+        name={FIELD.type}
+        label="Where is care now?"
+        options={TYPE_OPTIONS}
+        value={type}
+        onChange={setType}
+        error={issueFor(issues, FIELD.type)}
+      />
+
+      <Field label={type === "other" ? "Label" : "Label (optional)"} error={issueFor(issues, FIELD.label)}>
+        {(control) => (
+          <input
+            {...control}
+            name={FIELD.label}
+            className="input w-full"
+            maxLength={CARE_PERIOD_LIMITS.label}
+            placeholder={type === "other" ? "e.g. Daughter's house" : "e.g. Cardiac unit"}
+            autoComplete="off"
+          />
+        )}
+      </Field>
+
+      <PlacePickerField
+        providers={providers}
+        initialId={prefill.placeProviderId}
+        error={issueFor(issues, FIELD.placeProviderId)}
+      />
+
+      <Field label="Room or bed (optional)" error={issueFor(issues, FIELD.placeDetail)}>
+        {(control) => (
+          <input
+            {...control}
+            name={FIELD.placeDetail}
+            className="input w-full"
+            maxLength={CARE_PERIOD_LIMITS.placeDetail}
+            placeholder="e.g. Room 412, bed B"
+            autoComplete="off"
+          />
+        )}
+      </Field>
+
+      <div data-period-start>
+        <DateTimeField
+          name={FIELD.startedAt}
+          label={dateOnly ? "Started on" : "Started"}
+          granularity={dateOnly ? "day" : "minute"}
+          defaultValue={prefill.startedAt ?? undefined}
+          max={max}
+          timeZone={timeZone}
+          error={issueFor(issues, FIELD.startedAt)}
+        />
+        <label className="label text-base-content cursor-pointer gap-2 text-sm">
+          <input
+            type="checkbox"
+            name={FIELD.dateOnly}
+            className="toggle toggle-sm"
+            checked={dateOnly}
+            onChange={(e) => setDateOnly(e.target.checked)}
+          />
+          Date only (no time)
+        </label>
+        {zoneNote && <p className="text-base-content/70 text-sm">{zoneNote}</p>}
+      </div>
+
+      {general && (
+        <p role="alert" className="text-error text-sm" data-form-error>
+          {general}
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center justify-end gap-2 pt-3">
+        <button type="button" className="btn btn-ghost" onClick={onCancel}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-primary" disabled={busy}>
+          Save period
+        </button>
+      </div>
+    </fetcher.Form>
+  );
+}

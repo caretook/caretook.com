@@ -53,6 +53,9 @@ import * as contactMessageService from "./contactMessageService";
 export { contactMessageService };
 export type { ContactMailer, SendResult } from "./contactMessageService";
 
+import * as carePeriodService from "./carePeriodService";
+export { carePeriodService };
+
 export type * from "./types";
 
 export const services = {
@@ -72,6 +75,7 @@ export const services = {
   medication: medicationService,
   waitlist: waitlistService,
   contactMessage: contactMessageService,
+  carePeriod: carePeriodService,
 };
 
 export type ServiceTypeMap = typeof services;

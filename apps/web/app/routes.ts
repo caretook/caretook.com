@@ -51,6 +51,12 @@ const appRoutes = [
         // Appointments and reminders still to come, and the Past tab (past events).
         route("upcoming", "routes/app/groups/upcoming/route.tsx"),
         route("upcoming/past", "routes/app/groups/upcoming/past/route.tsx"),
+        // Care periods (where care happens, over time; not a section): the
+        // page with its sheets as children, and a period's page.
+        route("periods", "routes/app/groups/periods/route.tsx", [
+          route("new", "routes/app/groups/periods/new/route.tsx"),
+        ]),
+        route("periods/:periodId", "routes/app/groups/period/route.tsx"),
       ]),
       // Start another care group (a sheet over its own page; not a group route).
       route("groups/new", "routes/app/groups/new/route.tsx"),
