@@ -81,6 +81,7 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
 | `pnpm prd start <topic>`                    | create (or find) the PRD's worktree and stack, and print the command that opens its orchestrator                                      |
 | `pnpm prd queue <topic> [--manual]`         | wait for a free PRD slot (in queue order), then create the worktree and open a fully autonomous orchestrator in that terminal         |
 | `pnpm prd plan <topic> [--open] [B-n…]`     | a docs-only worktree for writing a PRD and plan; `--open` starts its planning session in that terminal                                |
+| `pnpm prd plan`                             | no topic: a backlog and inbox planning session in the main checkout, which helps decide what's next (`prompt.sh backlog`)             |
 | `pnpm prd slice <topic> <n>`                | a slice's worktree and stack                                                                                                          |
 | `pnpm prd serve [name] [--restart]`         | run that worktree's dev server in the background (it outlives the session) and print the link; `--built` serves a check build instead |
 | `pnpm prd check`                            | `pnpm check`, then record that this commit passed                                                                                     |
