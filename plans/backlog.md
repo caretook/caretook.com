@@ -52,7 +52,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
 | B-14 | plan | landed | providers | prd/providers | Provider links and suggestions while writing events and live notes |
-| B-15 | plan | in-progress | medications | prd/medications | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
+| B-15 | plan | ready | medications | prd/medications | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
 | B-18 | feature | landed | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
@@ -300,10 +300,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-15 · plan · Medication list (current, past, discontinued), printable sheet, and tracking in the timeline
 
-- status: in-progress
+- status: ready
 - prd: medications
 - owner: prd/medications
-- commit:
+- commit: fbc8dae
 
 - 2026-11-17 (dev keeper): Place "a dose was given" with the kind definitions first (a new kind, not a vital). Prescriber links depend on providers.
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/medications-prd.md. New kinds dose and medicationChange (auto-written with the medication), simple schedules in the recipient's zone, missed doses derived, print page with print CSS, date of birth synced. Data layer waits on providers slice 1; screens on routing.
