@@ -1,7 +1,7 @@
 import type { SettingsItem } from "~/lib/settingsNav";
 import type { AccountSettingsPage } from "~/lib/appUrls";
 
-import { LayoutList, Ruler, UserRound } from "lucide-react";
+import { LayoutList, Phone, Ruler, UserRound } from "lucide-react";
 import { appUrls } from "~/lib/appUrls";
 
 /**
@@ -31,5 +31,12 @@ export const ACCOUNT_SETTINGS: readonly (SettingsItem & { id: AccountSettingsPag
     description: "Your name and email, and signing out",
     icon: UserRound,
     path: appUrls.settings("account"),
+  },
+  {
+    id: "contact",
+    label: "Contact details",
+    description: "Your phones, email and address, for your care groups",
+    icon: Phone,
+    path: appUrls.settings("contact"),
   },
 ];

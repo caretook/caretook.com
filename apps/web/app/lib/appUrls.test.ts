@@ -14,6 +14,7 @@ describe("appUrls", () => {
     expect(appUrls.settings("units")).toBe("/app/settings/units");
     expect(appUrls.settings("timeline")).toBe("/app/settings/timeline");
     expect(appUrls.settings("account")).toBe("/app/settings/account");
+    expect(appUrls.settings("contact")).toBe("/app/settings/contact");
     // @ts-expect-error: only the listed subpages exist.
     expect(appUrls.settings("bogus")).toBe("/app/settings");
   });

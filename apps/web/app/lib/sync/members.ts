@@ -59,13 +59,23 @@ export type MemberDetailRow = {
   invited_by: string | null;
   /** The inviter's name, while they're still a co-member (their profile syncs only then). */
   invited_by_name: string | null;
+  /** How they're related to the recipient, and what they share (`shared_fields`, JSON text). */
+  relationship: string | null;
+  shared_fields: string | null;
+  /** What they share with the group (`member_contact_share`; `phones` is JSON text); null when nothing. */
+  share_phones: string | null;
+  share_email: string | null;
+  share_address: string | null;
 };
 
 export const memberDetailsQuery = (groupId: string) => ({
-  sql: `SELECT m.user_id, m.role, u.name, u.image, m.created_at, m.invited_by, i.name AS invited_by_name
+  sql: `SELECT m.user_id, m.role, u.name, u.image, m.created_at, m.invited_by, i.name AS invited_by_name,
+          m.relationship, m.shared_fields,
+          s.phones AS share_phones, s.email AS share_email, s.address AS share_address
         FROM care_group_member m
         LEFT JOIN "user" u ON u.id = m.user_id
         LEFT JOIN "user" i ON i.id = m.invited_by
+        LEFT JOIN member_contact_share s ON s.group_id = m.group_id AND s.user_id = m.user_id
         WHERE m.group_id = ?`,
   params: [groupId],
 });
