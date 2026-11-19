@@ -41,13 +41,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | landed | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
 | B-3 | change | landed | timeline-polish | prd/timeline-polish | Wider timeline entries on large screens, still mobile-first |
-| B-4 | change | ready | timeline-polish | prd/timeline-polish | Tooltip with the author's name and avatar on an entry's initials |
+| B-4 | change | landed | timeline-polish | prd/timeline-polish | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's author initials to filter by that author |
 | B-7 | change | landed | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
-| B-10 | feature | ready | timeline-polish | prd/timeline-polish | Infinite scroll through the whole timeline |
+| B-10 | feature | landed | timeline-polish | prd/timeline-polish | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
@@ -69,7 +69,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | landed | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
-| B-32 | plan | ready | marketing | prd/marketing | Landing page and basic marketing pages |
+| B-32 | plan | landed | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-34 | change | landed | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
 | B-35 | bug | landed | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
@@ -148,7 +148,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-4 · change · Tooltip with the author's name and avatar on an entry's initials
 
-- status: ready
+- status: landed
 - prd: timeline-polish
 - owner: prd/timeline-polish
 - commit: 7e44461
@@ -231,7 +231,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
-- status: ready
+- status: landed
 - prd: timeline-polish
 - owner: prd/timeline-polish
 - commit: ced7e14
@@ -492,7 +492,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-32 · plan · Landing page and basic marketing pages
 
-- status: ready
+- status: landed
 - prd: marketing
 - owner: prd/marketing
 - commit: df55253
