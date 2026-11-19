@@ -37,4 +37,13 @@ describe("emptyTimelineText", () => {
     expect(emptyTimelineText("symptom")).toBe("No symptoms on the timeline yet.");
     expect(emptyTimelineText("vital")).toBe("No vitals on the timeline yet.");
   });
+  it("names the author filter, alone and with a kind", () => {
+    expect(emptyTimelineText(null, "Alex Rivera")).toBe("No entries by Alex Rivera yet.");
+    expect(emptyTimelineText("symptom", "Alex Rivera")).toBe("No symptoms by Alex Rivera yet.");
+    expect(emptyTimelineText("note", "Former member")).toBe("No notes by Former member yet.");
+  });
+  it("no author name is no author filter", () => {
+    expect(emptyTimelineText("event", null)).toBe("No events on the timeline yet.");
+    expect(emptyTimelineText(null, null)).toBe("Nothing on the timeline yet.");
+  });
 });

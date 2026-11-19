@@ -16,7 +16,7 @@ import { LiveNowBanner } from "./LiveNowBanner";
 import { QuickAddBar } from "./QuickAddBar";
 import { onlySheetChanged } from "./sheetGuard";
 import { TimelineEntryList } from "./TimelineEntryList";
-import { KindFilter } from "./TimelineFilters";
+import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
 import { loadTimelineRows } from "./timelineRows";
 import { useTimelineData } from "./useTimelineData";
@@ -40,18 +40,18 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 /**
  * The first screenful, read locally so the page renders complete. `?kind=`
- * shows one kind. The group itself comes from the group route (which has
+ * shows one kind and `?author=` one person's entries. The group itself comes from the group route (which has
  * already turned away a group not on the device).
  */
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const { kind } = parseFilters(new URL(request.url).search);
+  const filters = parseFilters(new URL(request.url).search);
   const [rows, settings] = await Promise.all([
-    loadTimelineRows(db, params.groupId, kind),
+    loadTimelineRows(db, params.groupId, filters),
     loadSettings(request, db.userId),
   ]);
-  return { userId: db.userId, title: pageTitle(group.name), kind, ...rows, ...settings };
+  return { userId: db.userId, title: pageTitle(group.name), ...filters, ...rows, ...settings };
 }
 
 /**
@@ -86,10 +86,10 @@ export function shouldRevalidate({
 }
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { userId, units, kind } = loaderData;
+  const { userId, units, kind, author } = loaderData;
   const { groupId } = params;
   const { canWrite } = useGroup();
-  const data = useTimelineData({ groupId, userId, kind, initial: loaderData });
+  const data = useTimelineData({ groupId, userId, filters: { kind, author }, initial: loaderData });
   const [view, setView] = useTimelineView(userId, loaderData.timelineView);
 
   return (
@@ -98,7 +98,10 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <LatestVitals vitals={data.latestVitals} units={units} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
       {canWrite && <QuickAddBar groupId={groupId} />}
-      <KindFilter kind={kind} />
+      <FilterChips
+        kind={kind}
+        author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
+      />
       <TimelineEntryList
         data={data}
         view={view}
@@ -106,6 +109,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         groupId={groupId}
         canWrite={canWrite}
         kind={kind}
+        author={author}
       />
 
       {/* The sheets (`new/:kind`, `:entryId/edit`), over the timeline. */}

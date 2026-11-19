@@ -34,8 +34,11 @@ export function ChipGroup(props: Props) {
             preventScrollReset={props.preventScrollReset}
             className={chipClass(chip.current)}
             aria-current={chip.current ? "true" : undefined}
+            aria-label={chip.name}
           >
+            {chip.leading}
             {chip.label}
+            {chip.trailing}
           </Link>
         ))}
       </nav>
