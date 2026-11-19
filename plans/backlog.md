@@ -21,7 +21,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started. **Runs next** | `app-shell` (done), `timeline-polish` wave 1 (in `dev`; its slices 4–7 wait for this) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
 | `components`      | [PRD](components-prd.md), [plan](components-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `ca39416`) | `routing` (done) | none now; new UI uses `components/ui/` and the feature folders (AGENTS.md, _Components_) |
-| `invites`         | [PRD](invites-prd.md), [plan](invites-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 3 uses `routing` slice 5 (Members subpage) if in `dev` | a new `packages/notifications`; Better Auth config; `care_group_invite` + new tables; `PERMISSIONS`, `db/schema/index.ts`, the router, `routes.ts`; group settings Members; the group menu; `/app` home; `sign-in.tsx`; env examples and `scripts/loops/lib.sh` |
+| `invites`         | [PRD](invites-prd.md), [plan](invites-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `e6286f4`) | none | none now; follow-ups (Withdraw for a join request, the recipient's time zone) and launch work are in AGENTS.md |
 | `marketing`       | [PRD](marketing-prd.md), [plan](marketing-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 4: `invites` 1 (outbox); slice 5: `invites` 5 (`/admin`) | web-only marketing routes in `routes.ts`, `react-router.config.ts` (prerender), `root.tsx` (icons, meta), a new public folder; `PERMISSIONS`, `db/schema/index.ts`, the router, `NOTIFICATIONS`, the admin nav |
 
 ## Summary
@@ -32,10 +32,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | -- | ---- | ------ | --- | ----- | ----- |
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | landed | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
-| B-3 | change | in-progress | timeline-polish | prd/timeline-polish | Wider timeline entries on large screens, still mobile-first |
+| B-3 | change | ready | timeline-polish | prd/timeline-polish | Wider timeline entries on large screens, still mobile-first |
 | B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
-| B-6 | change | in-progress | timeline-polish | prd/timeline-polish | Tap an entry's author initials to filter by that author |
+| B-6 | change | ready | timeline-polish | prd/timeline-polish | Tap an entry's author initials to filter by that author |
 | B-7 | change | landed | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
@@ -44,7 +44,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
 | B-14 | plan | landed | providers | prd/providers | Provider links and suggestions while writing events and live notes |
-| B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
+| B-15 | plan | in-progress | medications | prd/medications | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
 | B-18 | feature | landed | live-notes-ux | prd/live-notes-ux | Event title suggestions (live notes slice 3) |
@@ -59,7 +59,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-27 | bug | landed | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | landed | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
-| B-30 | plan | in-progress | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
+| B-30 | plan | ready | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
@@ -72,6 +72,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
+| B-43 | change | inbox |  |  | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
+| B-44 | change | inbox |  |  | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
+| B-45 | change | inbox |  |  | birthdate, contact information, address, and insurance information should optionally be added to… |
+| B-46 | change | inbox |  |  | optional phone number, address, etc on group members that can be published to the group for… |
+| B-47 | feature | inbox |  |  | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
+| B-48 | feature | inbox |  |  | Allow import of providers from other care groups that you have access to. |
+| B-49 | feature | inbox |  |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
+| B-50 | feature | inbox |  |  | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
+| B-51 | feature | inbox |  |  | printable medication schedule sheet that can be printed to be checked off with a pen at patient's… |
+| B-52 | feature | inbox |  |  | Ability to download all data from the app to a file for backup or transfer to another device. |
+| B-53 | feature | inbox |  |  | Ability to delete ALL data from the app. |
+| B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
+| B-55 | feature | inbox |  |  | Todos list with assignment to group members, due dates, and completion status. |
+| B-56 | feature | inbox |  |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
+| B-57 | plan | inbox |  |  | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
+| B-58 | plan | inbox |  |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
+| B-59 | chore | inbox |  |  | Clean up/truncate this file and the backlog periodically. |
 
 ## Items
 
@@ -100,14 +117,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-3 · change · Wider timeline entries on large screens, still mobile-first
 
-- status: in-progress
+- status: ready
 - prd: timeline-polish
 - owner: prd/timeline-polish
-- commit:
+- commit: f787e1a
 
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Full width at lg+, entry text capped ~75ch; cards in a 2–3 column grid.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 5. Full width from lg, 75ch text cap, card grid. Independent; planned for wave 2.
 - 2026-11-18 (Robert Bo Davis): Paused 2026-11-18 by the user: routing (B-23) and then components (B-24) run before timeline-polish continues. Wave 1 (slices 1-3) is in dev as 644f780. Slice 5; ready. Replan against the new route folders and components when it resumes.
+- 2026-11-18 (slice/timeline-polish/5): Slice 5 built on slice/timeline-polish/5: from lg the timeline is full width, entry text capped at 75ch, cards in a 2/3-column grid per day; list has data-view. phase2 85/85, roundtrip, settings-layout, layout-offline and pnpm check pass.
 
 ### B-4 · change · Tooltip with the author's name and avatar on an entry's initials
 
@@ -135,15 +153,16 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-6 · change · Tap an entry's author initials to filter by that author
 
-- status: in-progress
+- status: ready
 - prd: timeline-polish
 - owner: prd/timeline-polish
-- commit:
+- commit: f787e1a
 
 - 2026-11-17 (dev keeper): A new `?author=` filter chip, beside `?kind=`.
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). ?author= filter; chip 'By <name> ✕' with avatar; combines with ?kind=.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 4. Author filter, author chip. Blocked by slice 1; blocks slices 6 and 7. Wave 2.
 - 2026-11-18 (Robert Bo Davis): Paused 2026-11-18 by the user: routing (B-23) and then components (B-24) run before timeline-polish continues. Wave 1 (slices 1-3) is in dev as 644f780. Slice 4; ready, builds on lib/timelineFilters.ts. Replan against the new route folders and components when it resumes.
+- 2026-11-18 (slice/timeline-polish/4): Slice 4 built on slice/timeline-polish/4 (8a7595e, fd2a8b0): author filter end to end; pnpm check and phase2, roundtrip, live-notes, app-shell, providers, ui pass. Ready for the orchestrator to merge.
 
 ### B-7 · change · More prominent day headers in the timeline
 
@@ -252,9 +271,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-15 · plan · Medication list (current, past, discontinued), printable sheet, and tracking in the timeline
 
-- status: triaged
+- status: in-progress
 - prd: medications
-- owner:
+- owner: prd/medications
 - commit:
 
 - 2026-11-17 (dev keeper): Place "a dose was given" with the kind definitions first (a new kind, not a vital). Prescriber links depend on providers.
@@ -420,10 +439,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-30 · plan · Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset
 
-- status: in-progress
+- status: ready
 - prd: invites
 - owner: prd/invites
-- commit:
+- commit: 0ab74df
 
 - 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/invites-prd.md, plans/invites-plan.md (5 slices; slice 1, the notifications package and outbox, can start now). New deps approved: resend, @react-email/components, @react-email/render, qrcode.
@@ -556,3 +575,142 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 12. The app header's plain 'Caretook' text link becomes the marketing LogoMark + wordmark (mark only on phones in a group, to keep one row at 420), with the marketing header's border, translucent background and height. LogoMark/Wordmark move to components/brand/ so both use one copy. Not the marketing nav, waitlist button or disclosure menu; not sticky.
 - 2026-11-18 (Robert Bo Davis): Quick-fixes slice 13 (slice 12 is B-41 on prd/quick-fixes).
+
+### B-43 · change · Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital"
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-44 · change · Display phone number, address, email, etc. in provider directory without a click. Use that as link…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Display phone number, address, email, etc. in provider directory without a click. Use that as link to call/email/map/etc.
+
+### B-45 · change · birthdate, contact information, address, and insurance information should optionally be added to…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: birthdate, contact information, address, and insurance information should optionally be added to the patient profile.
+
+### B-46 · change · optional phone number, address, etc on group members that can be published to the group for…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: optional phone number, address, etc on group members that can be published to the group for contact. Flags for "emergency contacts" and "primary contact" for display later.
+
+### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Deal with future event display (appointments) notes can be set to the future date as well. Symptoms and vitals cannot. Medication reminders may be a specialized type of future item on the timeline. Display of future events on timeline should be toggled somehow.
+
+### B-48 · feature · Allow import of providers from other care groups that you have access to.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-49 · feature · Once we have agentic integration, Add ai generated summary to each day on the timeline and the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Once we have agentic integration, Add ai generated summary to each day on the timeline and the option to view a condensed summary of days for quick scanning.
+
+### B-50 · feature · Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start date-end date", "at home on hospice - start date-end date", etc. These will be useful in the summary and for filtering.
+
+### B-51 · feature · printable medication schedule sheet that can be printed to be checked off with a pen at patient's…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: printable medication schedule sheet that can be printed to be checked off with a pen at patient's bedside. (once we have ai, we can allow photo of the sheet to be used to update timeline)
+
+### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-53 · feature · Ability to delete ALL data from the app.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-54 · feature · privacy policy and terms of service.
+
+- status: triaged
+- prd: marketing
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): Proposed for marketing (orchestrator): draft /privacy, /terms and /health-data-privacy landed with marketing slice 3 (DRAFT banners, [Review: …] notes). What's left is the user's legal review and removing the banners; no slice planned until the user reviews the text.
+
+### B-55 · feature · Todos list with assignment to group members, due dates, and completion status.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-56 · feature · ability to upload photos of patient drivers license, insurance card, DNR, etc.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-57 · plan · Discuss options for end to end encryption of data in transit and at rest where owner of the data is…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Discuss options for end to end encryption of data in transit and at rest where owner of the data is the only one who can decrypt it and share decryption keys with others.
+
+### B-58 · plan · Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions for provider appointments.
+
+### B-59 · chore · Clean up/truncate this file and the backlog periodically.
+
+- status: inbox
+- prd:
+- owner:
+- commit:

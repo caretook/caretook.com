@@ -171,6 +171,7 @@ export const PERMISSIONS: Permissions = {
         consentAttestedBy: SYSTEM_ONLY,
         consentAttestedAt: SYSTEM_ONLY,
         consentVersion: SYSTEM_ONLY,
+        tokenCiphertext: SYSTEM_ONLY,
       },
     },
     delete: groupEntry(MANAGERS),
@@ -262,6 +263,37 @@ export const PERMISSIONS: Permissions = {
     read: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
     list: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
     create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
+  },
+
+  // Requests to join from an invite link. Read by the group's owners and
+  // admins, and by the requester themselves; written only by the system
+  // (joinRequestService, careGroupInviteService.accept).
+  careGroupJoinRequestSchema: {
+    ownerField: "userId",
+    groupField: "groupId",
+    read: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    list: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
+  },
+
+  // Access codes (staff-made tickets for starting a group) and who used
+  // them: Caretook staff (global admin) only. Redeeming a code runs as the
+  // system, inside sign-up (accessCodeService.redeem).
+  accessCodeSchema: {
+    create: ADMIN_ONLY_PERMISSION_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    update: { ...ADMIN_ONLY_PERMISSION_ENTRY, fields: { code: SYSTEM_ONLY, useCount: SYSTEM_ONLY } },
+    delete: ADMIN_ONLY_PERMISSION_ENTRY,
+  },
+  accessCodeRedemptionSchema: {
+    create: SYSTEM_ONLY_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
     update: SYSTEM_ONLY_ENTRY,
     delete: SYSTEM_ONLY_ENTRY,
   },

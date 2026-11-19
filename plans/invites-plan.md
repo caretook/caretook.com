@@ -4,15 +4,16 @@
 
 ## Status
 
-| Slice | State                                                                             | Merge into `prd/invites` (slice commits) |
-| ----- | --------------------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | merged                                                                            | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
-| 2     | merged                                                                            | `68df3d6` (776ca9b, 3d86337, 5ce74dd)    |
-| 3     | merged                                                                            | `5ca5d2d` (a08ef99, 35283be, c7adf9c)    |
-| 4     | in progress (`.loops/invites-4`, slot 5)                                          |                                          |
-| 5     | in progress (`.loops/invites-5`, slot 6; regenerates its migration on top of 4's) |                                          |
+| Slice | State                                                   | Merge into `prd/invites` (slice commits)                             |
+| ----- | ------------------------------------------------------- | -------------------------------------------------------------------- |
+| 1     | merged                                                  | `e199ef1` (f1f6dc2, fe08cda, 36520d6)                                |
+| 2     | merged                                                  | `68df3d6` (776ca9b, 3d86337, 5ce74dd)                                |
+| 3     | merged                                                  | `5ca5d2d` (a08ef99, 35283be, c7adf9c)                                |
+| 4     | merged                                                  | `7ccb921` (a413fd9, cc04093)                                         |
+| 5     | merged                                                  | `b931d69` (649c1ab, 5eb7b6f, cee44a1; migration `0012_access_codes`) |
+| 6     | merged (the group-menu item, after `components` landed) | `97661ee` (8313c8a, b27b237)                                         |
 
-Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. **Wave 1 (slices 1 and 2) landed in `dev` as `3c1723a`** (2026-11-18): full suite 12/12 on a check build, including the check-build mail fix (`08a7de0`). Slice 3 merged (`5ca5d2d`) and is landing alone as wave 2; 4 and 5 run in parallel (the user asked for that), merging 4 first and having 5 regenerate the wave's migration.
+Backlog: B-30 is claimed by `prd/invites`; `done` once wave 3 (slices 4, 5 and 6) lands, the PRD's last. **Wave 1 (slices 1 and 2) landed in `dev` as `3c1723a`** (2026-11-18): full suite 12/12 on a check build, including the check-build mail fix (`08a7de0`). **Wave 2 (slice 3) landed in `dev` as `04b1e61`** (full suite 12/12, 6m25s); 4 and 5 run in parallel (the user asked for that), merging 4 first and having 5 regenerate the wave's migration.
 
 **The user's go-ahead (2026-11-18): land the rest of this PRD's waves without asking**, once each is green (wave 1, then 3, then 4 and 5). Every other rule still applies.
 
@@ -166,5 +167,6 @@ Link invites: `createLink` (role caretaker or viewer, expiry 1–90 days default
 Notes from slice 3 for 4 and 5:
 
 - `accept`/`decline` refuse link invites with `careGroupInviteService:wrongKind` (slice 4 fills them in); `signUpWithTicket` takes `{ kind: "invite" }` (slice 5 adds access codes).
-- Slice 5 leaves **New care group** out of the group menu (`routes/app/layout/`, protected while `components` runs); its hand-off names the one-item edit for the user to approve.
+- Slice 5 left **New care group** out of the group menu. **The user's decision (2026-11-18): add it after `components`' final landing is in `dev`**, as a small follow-up slice (6): in `routes/app/layout/GroupMenu.tsx`, after "Group settings", `{ label: "New care group", icon: Plus, href: appUrls.newGroup() }` with `NEW_GROUP_LINK_STATE` (from `routes/app/groups/new/newGroupLink.ts`) as link state. Until then a one-group user reaches `/app/groups/new` only by URL.
+- Slice 5 merged after 4 must regenerate `0011_access_codes` on top of 4's migration (its schema is all in `db/schema/accessCode.ts`).
 - `pnpm prd browser --smoke <check>`: `--smoke` goes before the check name.

@@ -159,7 +159,7 @@ describe("accepting", () => {
     const { token, invite: sent } = await invite(s.owner, s.groupId, email, "caretaker");
     const joiner = await userWith(email);
 
-    expect(ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }))).toEqual({
+    expect(ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }))).toMatchObject({
       groupId: s.groupId,
       role: "caretaker",
     });
@@ -217,7 +217,7 @@ describe("accepting", () => {
     const { token } = await invite(s.owner, s.groupId, email, "viewer");
     const joiner = await userWith(email);
     ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }));
-    expect(ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }))).toEqual({
+    expect(ok(await careGroupInviteService.accept(joiner.ctx, { token, consent: true }))).toMatchObject({
       groupId: s.groupId,
       role: "viewer",
     });

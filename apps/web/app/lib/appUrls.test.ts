@@ -142,3 +142,9 @@ describe("searchString", () => {
     expect(searchString("b=1&a=2&b=3")).toBe("?b=1&a=2&b=3");
   });
 });
+
+describe("appUrls.newGroup", () => {
+  it("is a static path the group route never claims", () => {
+    expect(appUrls.newGroup()).toBe("/app/groups/new");
+  });
+});

@@ -37,3 +37,10 @@ describe("accountUrls", () => {
     expect(accountUrls.invite("abc_DEF-123")).toBe("/invite/abc_DEF-123");
   });
 });
+
+describe("accountUrls.join", () => {
+  it("builds an access code's page", () => {
+    expect(accountUrls.join("CARE-DEMO-0001")).toBe("/join/CARE-DEMO-0001");
+    expect(accountUrls.join("a b/c")).toBe("/join/a%20b%2Fc");
+  });
+});

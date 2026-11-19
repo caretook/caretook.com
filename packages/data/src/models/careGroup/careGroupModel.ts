@@ -67,3 +67,19 @@ export const upsert = async (args: CareGroupCreateArgs) => {
   if (isError(updated)) return updated;
   return updated[0] ?? null;
 };
+
+/**
+ * A group with no members yet, for staff onboarding a family by hand: its
+ * owner joins later through an owner invite. Staff (global admin) and the
+ * system only; the row records the staff member as its creator, though they
+ * can't read it back (staff get no access to care data).
+ */
+export const createWithoutOwner = async (args: QueryCreateArgs<typeof schemaName>) => {
+  const { authUser } = args;
+  if (!authUser || !(isSystemUser(authUser) || authUser.roleNames.includes("admin")))
+    return rejectError(authUser);
+  const id = args.data.id ?? randomUUID();
+  const created = await base.create({ authUser, tx: args.tx, data: { ...args.data, id } });
+  if (isError(created)) return created;
+  return getById(id, { authUser: SYSTEM_USER, tx: args.tx });
+};
