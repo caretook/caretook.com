@@ -862,6 +862,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: /join/:code answers ticket:accountExists ('An account with this email already exists. Sign in instead.'), so anyone holding a code can check whether an address is registered. Link-invite sign-up (slice 4) gives the same answer either way; email invites lock the address. Option: answer the same as link sign-up and send the existing user a sign-in email instead.
+- 2026-11-19 (Robert Bo Davis): Decided (user, 2026-11-19): fix it as a quick-fixes slice, low priority, before launch. /join/:code answers the same 'Check your email' for every address. For an address that already has an account: create nothing, leave the code's use count alone, and queue a new email through notify (outbox, not awaited, like the auth emails): 'Someone tried to start a care group with your address; if it was you, sign in and choose New care group'. No health details. Both paths queue their email without waiting, so the response takes about the same time either way. Tests: an integration test for accessCode.signUp with an existing address, and groups.mjs steps (same screen, the mail in /dev/mail.json, no account or redemption created).
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
