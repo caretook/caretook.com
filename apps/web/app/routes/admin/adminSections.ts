@@ -28,7 +28,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     label: "Groups",
     path: () => adminUrls.groups(),
     capability: "groups.read",
-    built: false,
+    built: true,
   },
   {
     id: "access-codes",
