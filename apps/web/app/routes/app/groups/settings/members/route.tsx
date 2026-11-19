@@ -2,6 +2,7 @@ import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/api";
 import type { MemberDetailRow } from "~/lib/sync/members";
 import type { InviteActionResult } from "./inviteApi";
+import type { LinkActionResult } from "./linkApi";
 
 import { ORPCError } from "@orpc/client";
 import { useState } from "react";
@@ -21,13 +22,17 @@ import { SettingsPage } from "../parts";
 import { inviteAction, isInviteIntent, loadInvites } from "./inviteApi";
 import { emailInviteRoles, memberHistory } from "./invites";
 import { InviteButton } from "./InviteSheet";
+import { CreateLinkButton, InviteLinks } from "./InviteLinks";
+import { JoinRequests } from "./JoinRequests";
+import { isLinkIntent, linkAction, loadLinksAndRequests } from "./linkApi";
 import { PendingInvites } from "./PendingInvites";
 
 // `…/settings/members`. Shared by web + native. Members and roles come from
 // the device's local copy (live, so they work offline and follow other
 // members' changes). Changing a role, removing and leaving go through the
 // API: online only. So do invites (`InviteSheet`, `PendingInvites`), which
-// owners and admins send, resend and revoke here.
+// owners and admins send, resend and revoke here, and invite links and the
+// requests to join they bring (`InviteLinks`, `JoinRequests`).
 
 export const meta = () => [{ title: "Members · Group settings · Caretook" }];
 
@@ -44,19 +49,23 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const { db } = context.get(sessionContext);
   const members = await readRows<MemberDetailRow>(db, memberDetailsQuery(groupId));
   const { online } = await loadRecipientProfile(request, groupId);
-  const invites = await loadInvites(groupId, group.role, online);
-  return { userId: db.userId, groupId, members, online, invites };
+  const [invites, { links, requests }] = await Promise.all([
+    loadInvites(groupId, group.role, online),
+    loadLinksAndRequests(groupId, group.role, online),
+  ]);
+  return { userId: db.userId, groupId, members, online, invites, links, requests };
 }
 
 export async function clientAction({
   request,
   params,
   context,
-}: Route.ClientActionArgs): Promise<ActionResult | InviteActionResult> {
+}: Route.ClientActionArgs): Promise<ActionResult | InviteActionResult | LinkActionResult> {
   const { groupId } = params;
   const form = await request.formData();
   const intent = formString(form, "intent");
   if (isInviteIntent(intent)) return inviteAction(intent, form, groupId, getGroup(context).role);
+  if (isLinkIntent(intent)) return linkAction(intent, form, groupId, getGroup(context).role);
   try {
     if (intent === "changeRole") {
       const chosen = formString(form, "role");
@@ -101,6 +110,8 @@ export default function GroupMembers({ loaderData }: Route.ComponentProps) {
   return (
     <SettingsPage id="members" title="Members" online={online}>
       <InviteButton myRole={group.role} online={online} />
+      <CreateLinkButton myRole={group.role} online={online} />
+      {online && <JoinRequests requests={loaderData.requests} />}
       <div className="card bg-base-100 shadow-sm">
         <div className="card-body">
           <Members
@@ -114,6 +125,9 @@ export default function GroupMembers({ loaderData }: Route.ComponentProps) {
       </div>
       {online && emailInviteRoles(group.role).length > 0 && (
         <PendingInvites invites={loaderData.invites} myRole={group.role} />
+      )}
+      {online && emailInviteRoles(group.role).length > 0 && (
+        <InviteLinks links={loaderData.links} groupName={group.displayName} />
       )}
     </SettingsPage>
   );

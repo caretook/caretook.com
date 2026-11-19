@@ -24,6 +24,7 @@ import { ORPCError } from "@orpc/server";
 import { unwrap } from "./errors";
 import { authedProcedure } from "./procedures";
 import { invite } from "./invites";
+import { joinRequest } from "./joinRequests";
 import { sync } from "./sync";
 
 const id = z.uuid();
@@ -304,5 +305,5 @@ const timeline = {
   }),
 };
 
-export const router = { me, careGroup, timeline, sync, invite };
+export const router = { me, careGroup, timeline, sync, invite, joinRequest };
 export type Router = typeof router;

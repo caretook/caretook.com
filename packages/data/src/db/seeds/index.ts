@@ -2,6 +2,7 @@ import { newError } from "../../errors";
 import { dbMayFail } from "../client";
 import * as accounts from "./accounts";
 import * as careGroups from "./careGroups";
+import * as invites from "./invites";
 import * as providers from "./providers";
 import * as secondGroup from "./secondGroup";
 import * as timelineEntries from "./timelineEntries";
@@ -22,5 +23,6 @@ export const seed = async () => {
     await timelineEntries.seed();
     await secondGroup.seed();
     await providers.seed();
+    await invites.seed();
   }, "db:seed");
 };

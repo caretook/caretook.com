@@ -10,6 +10,7 @@ import {
   inviteEmailZ,
   inviteState,
   isError,
+  linkInviteOptionsZ,
   SYSTEM_USER,
   userService,
 } from "@caretook/data";
@@ -18,13 +19,16 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 import { iso } from "./dto";
 import { unwrap } from "./errors";
+import { joinMailer } from "./joinRequests";
 import { authedProcedure, publicProcedure } from "./procedures";
 
-// `invite.*`: care group invites by email (invites slice 3). Managers
-// (owners and admins) list, send, resend and revoke them; the person invited
-// previews, signs up, accepts or declines with the token from their email.
-// Every email is queued in the same transaction as its invite and delivered
-// after commit. A raw token is only ever in the email: no procedure returns one.
+// `invite.*`: care group invites by email (invites slice 3) and by link
+// (slice 4). Managers (owners and admins) list, send, resend and revoke
+// them; the person invited previews, signs up, accepts or declines with the
+// token from their email or link. Every email is queued in the same
+// transaction as its change and delivered after commit. An email invite's
+// raw token is only ever in the email: no procedure returns one. A link's
+// token is returned to managers (createLink, copyLink) while it's active.
 
 const id = z.uuid();
 /** Invite tokens are 32 random bytes, base64url. */
@@ -94,6 +98,8 @@ const toInvite = (invite: CareGroupInviteModel, names: Map<string, string | null
     createdAt: iso(invite.createdAt),
     respondedAt: invite.respondedAt ? iso(invite.respondedAt) : null,
     sentBy: sentBy === SYSTEM_USER.id ? null : { userId: sentBy, name: names.get(sentBy) ?? null },
+    maxUses: invite.maxUses,
+    useCount: invite.useCount,
   };
 };
 
@@ -166,6 +172,46 @@ export const invite = {
   }),
 
   /**
+   * A group's invite links that haven't been revoked (expired and used-up
+   * ones too, so they can be revoked), newest first. Owners and admins.
+   * No tokens: `copyLink` gives an active one.
+   */
+  listLinks: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
+    await requireManager(context, input.groupId);
+    const rows = unwrap(
+      await careGroupInviteService.list(context, {
+        filter: {
+          groupId: { type: "eq", value: input.groupId },
+          kind: { type: "eq", value: "link" },
+          status: { type: "eq", value: "pending" },
+        },
+        paginate: { page: 1, limit: 100 },
+      }),
+    ).data.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const names = await namesOf(rows.map((r) => r.createdBy));
+    return rows.map((r) => toInvite(r, names));
+  }),
+
+  /**
+   * Make an invite link (owners and admins): caretaker or viewer only, 1–90
+   * days (default 7), and an optional maximum number of uses. Returns the
+   * link's token, to share at once.
+   */
+  createLink: authedProcedure
+    .input(linkInviteOptionsZ.extend({ groupId: id }))
+    .handler(async ({ context, input }) => {
+      await requireManager(context, input.groupId);
+      const created = unwrap(await careGroupInviteService.createLink(context, input));
+      return { invite: await one(created.invite), token: created.token };
+    }),
+
+  /** An active link's token again (owners and admins), to copy or share. Never an email invite's. */
+  copyLink: authedProcedure.input(z.object({ id })).handler(async ({ context, input }) => {
+    const found = unwrap(await careGroupInviteService.copyLink(context, input.id));
+    return { id: found.invite.id, token: found.token };
+  }),
+
+  /**
    * What the invite link's holder sees before joining. A usable invite gives
    * the group's display name, the inviter's name, the role and the address
    * it was sent to; anything else gives only its state, never the group.
@@ -186,9 +232,12 @@ export const invite = {
   }),
 
   /**
-   * Create an account from an email invite (the address must be the
-   * invite's; the account starts verified). The client then signs in with
-   * the password and accepts.
+   * Create an account from an invite. An email invite's address must be the
+   * invite's, and the account starts verified: the client then signs in with
+   * the password and accepts. A link takes any address, and the account
+   * starts unverified (`verified: false`): the client sends the
+   * confirmation email, and the person asks to join once confirmed. Through
+   * a link, an address that already has an account gets the same answer.
    */
   signUp: publicProcedure
     .input(
@@ -208,18 +257,21 @@ export const invite = {
           password: input.password,
         }),
       );
-      return { email: user.email };
+      return { email: user.email, verified: user.emailVerified };
     }),
 
   /**
    * Join the group as the signed-in user, who agreed to CONSENT_TEXT. Their
-   * email must be the invite's. Accepting twice is fine.
+   * email must be the invite's. Accepting twice is fine. With a link it asks
+   * to join instead (`status: "requested"`), and the group's owners and
+   * admins are emailed; asking twice returns the same request.
    */
   accept: authedProcedure
     .input(z.object({ token, consent: z.literal(true) }))
     .handler(async ({ context, input }) => {
-      const joined = unwrap(await careGroupInviteService.accept(context, input));
-      return { groupId: joined.groupId, role: joined.role };
+      const result = unwrap(await careGroupInviteService.accept(context, input, { joinMail: joinMailer() }));
+      if (result.queued.length) deliverSoon(result.queued);
+      return { status: result.status, groupId: result.groupId, role: result.role };
     }),
 
   /** Say no. Anyone with the link may, signed in or not. */

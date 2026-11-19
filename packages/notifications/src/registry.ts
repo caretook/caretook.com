@@ -1,4 +1,5 @@
 import { groupInvite } from "./templates/groupInvite";
+import { joinApproved, joinDeclined, joinRequested } from "./templates/joinRequests";
 import { magicLink } from "./templates/magicLink";
 import { resetPassword } from "./templates/resetPassword";
 import { signInCode } from "./templates/signInCode";
@@ -15,6 +16,9 @@ export const NOTIFICATIONS = {
   magicLink,
   signInCode,
   groupInvite,
+  joinRequested,
+  joinApproved,
+  joinDeclined,
 } as const;
 
 export type Notifications = typeof NOTIFICATIONS;
