@@ -16,6 +16,13 @@
 //   included;
 // - both tabs offline from the device's copy; a non-member's URL is the 404.
 //
+// Slice 4, cancel and undo cancel (full mode, `cancelSteps`): a writer
+// cancels an upcoming event from Upcoming with a reason and a past one from
+// the timeline without; both are struck through and labelled there, in the
+// Past tab and on a viewer's device; the entry page's banner (reason, who,
+// Undo for writers only); Undo from the banner and the menu; an offline
+// cancel syncs on reconnect; a viewer's device refuses the write.
+//
 // Later slices (6: the timeline's Next strip and Upcoming block) add their
 // steps here. The rules themselves (timing, order, labels, filters, the
 // actions) are unit-tested; the steps here check the wiring, one case each.
@@ -410,6 +417,198 @@ async function strangerSteps(p) {
   );
 }
 
+// ---- Slice 4: cancel and undo cancel ------------------------------------------
+const UUID_RE = "[0-9a-f-]{36}";
+const menuItem = (text) =>
+  `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim() === ${JSON.stringify(text)})`;
+const dialogButton = (text) =>
+  `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+/** An entry's row or card on the timeline, by its open link. */
+const timelineRow = (id) =>
+  `[...document.querySelectorAll("main li")].find((li) => li.querySelector('a[href*="/entries/${id}"]'))`;
+const upcomingRow = (id) => `document.querySelector('main [data-upcoming-item="${id}"]')`;
+/** Whether a row is marked, labelled and struck through as cancelled. */
+const cancelledState = (row) => `(() => { const li = ${row}; if (!li) return null;
+  return { marked: li.hasAttribute("data-cancelled"), label: !!li.querySelector("[data-cancelled-label]")?.textContent.includes("Cancelled"),
+    struck: [...li.querySelectorAll("div")].some((d) => getComputedStyle(d).textDecorationLine.includes("line-through")),
+    menu: !!li.querySelector('button[aria-label^="Actions for"]') }; })()`;
+const isCancelled = (st) => !!st && st.marked && st.label && st.struck;
+const BANNER = `document.querySelector("main [data-cancelled-banner]")`;
+const cancelSql = (id) =>
+  psql(
+    `SELECT coalesce(cancelled_at::text, '-') || '|' || coalesce(cancel_reason, '-') || '|' || coalesce(cancelled_by::text, '-') FROM timeline_entry WHERE id = '${id}'`,
+  );
+const waitForSql = async (id, ok, ms = 20000) => {
+  const end = Date.now() + ms;
+  let last = cancelSql(id);
+  while (!ok(last) && Date.now() < end) {
+    await sleep(500);
+    last = cancelSql(id);
+  }
+  return last;
+};
+
+/**
+ * Opens the ⋯ menu inside `scope`, picks Cancel event and confirms with
+ * `reason` (none: left empty). Returns the menu's items, in order.
+ */
+const cancelFrom = async (p, scope, reason) => {
+  await p.press(`${scope}?.querySelector('button[aria-label^="Actions for"]')`);
+  await p.waitFor(menuItem("Cancel event"), 5000);
+  const items = await p.evaluate(
+    `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim())`,
+  );
+  await p.press(menuItem("Cancel event"));
+  await p.waitFor(`document.querySelector("dialog[open] [data-cancel-reason]")`, 5000);
+  if (reason) await p.type(`document.querySelector("dialog[open] [data-cancel-reason]")`, reason);
+  await p.press(dialogButton("Cancel event"));
+  await p.waitFor(`!document.querySelector("dialog[open]")`, 5000);
+  return items;
+};
+
+async function cancelSteps(A, B, proxy) {
+  const ahead = insertEvent(`${TAG} cancel ahead`, 2 * 86_400_000, 2 * 86_400_000 + 3_600_000).match(
+    UUID_RE,
+  )[0];
+  const past = insertEvent(`${TAG} cancel past`, -3_600_000, null).match(UUID_RE)[0];
+  const caretaker = psql(`SELECT id || '|' || name FROM "user" WHERE email = 'caretaker@example.com'`).split(
+    "|",
+  );
+  const reason = `${TAG} office called, doctor out sick`;
+
+  // An upcoming event, cancelled from Upcoming with a reason.
+  await A.goto(upcomingPath());
+  await A.waitFor(upcomingRow(ahead), 30000);
+  const offered = await cancelFrom(A, upcomingRow(ahead), reason);
+  check(
+    "a writer's event menu on Upcoming: Cancel event, then Delete",
+    offered.join(",") === "Cancel event,Delete",
+    offered.join(","),
+  );
+  await A.waitFor(`${cancelledState(upcomingRow(ahead))}?.marked`, 10000).catch(() => {});
+  const aheadRow = await A.evaluate(cancelledState(upcomingRow(ahead)));
+  const aheadSql = await waitForSql(ahead, (r) => !r.startsWith("-"));
+  const [at, savedReason, by] = aheadSql.split("|");
+  check(
+    "cancelling from Upcoming with a reason: struck through and labelled at once, and on the server with who",
+    isCancelled(aheadRow) && at !== "-" && savedReason === reason && by === caretaker[0],
+    JSON.stringify({ aheadRow, aheadSql }),
+  );
+
+  // A past event, cancelled from the timeline without a reason.
+  await A.goto(`/app/groups/${DEV_FAMILY}/timeline`);
+  await A.waitFor(timelineRow(past), 30000);
+  await cancelFrom(A, timelineRow(past), null);
+  await A.waitFor(`${cancelledState(timelineRow(past))}?.marked`, 10000).catch(() => {});
+  const pastRow = await A.evaluate(cancelledState(timelineRow(past)));
+  const pastSql = await waitForSql(past, (r) => !r.startsWith("-"));
+  check(
+    "cancelling a past event from the timeline, without a reason: struck through and labelled",
+    isCancelled(pastRow) && !pastSql.startsWith("-") && pastSql.split("|")[1] === "-",
+    JSON.stringify({ pastRow, pastSql }),
+  );
+  await A.goto(`${upcomingPath()}/past`);
+  await A.waitFor(upcomingRow(past), 30000).catch(() => {});
+  check(
+    "the Past tab shows the past one cancelled",
+    isCancelled(await A.evaluate(cancelledState(upcomingRow(past)))),
+  );
+
+  // The viewer's device: the labels, no menus.
+  await B.goto(upcomingPath());
+  await B.waitFor(`${cancelledState(upcomingRow(ahead))}?.marked`, 30000).catch(() => {});
+  const seenUp = await B.evaluate(cancelledState(upcomingRow(ahead)));
+  await B.goto(`/app/groups/${DEV_FAMILY}/timeline`);
+  await B.waitFor(`${cancelledState(timelineRow(past))}?.marked`, 30000).catch(() => {});
+  const seenTl = await B.evaluate(cancelledState(timelineRow(past)));
+  check(
+    "on a viewer's device both show cancelled, with no ⋯ menu",
+    isCancelled(seenUp) && isCancelled(seenTl) && !seenUp.menu && !seenTl.menu,
+    JSON.stringify({ seenUp, seenTl }),
+  );
+  const refused = await B.evaluate(`(async () => {
+    const { appointments } = await window.caretookModules();
+    return (await appointments.uncancelEvent(window.caretookSync, "${ahead}")).ok; })()`);
+  check("a viewer's device refuses the write", refused === false, String(refused));
+
+  // The entry page: the banner, for both; Undo for the writer only.
+  const entryPath = `/app/groups/${DEV_FAMILY}/entries/${ahead}`;
+  await A.goto(entryPath);
+  await B.goto(entryPath);
+  // The names come from the members' live query, a moment after the banner.
+  const named = `${BANNER}?.querySelector("[data-cancelled-by]")?.textContent.startsWith("Cancelled by")`;
+  await A.waitFor(named, 30000).catch(() => {});
+  await B.waitFor(named, 30000).catch(() => {});
+  const bannerOf = (p) =>
+    p.evaluate(`(() => { const b = ${BANNER}; return b && { reason: b.querySelector("[data-cancel-reason]")?.textContent,
+      by: b.querySelector("[data-cancelled-by]")?.textContent, undo: [...b.querySelectorAll("button")].some((x) => x.textContent.trim() === "Undo cancel") }; })()`);
+  const bannerA = await bannerOf(A);
+  const bannerB = await bannerOf(B);
+  check(
+    "the entry page's banner: the reason, who and when; Undo for the writer, not the viewer",
+    bannerA?.reason === reason &&
+      bannerA.by?.startsWith(`Cancelled by ${caretaker[1]} · Today`) &&
+      bannerA.undo &&
+      bannerB?.reason === reason &&
+      bannerB.by === bannerA.by &&
+      !bannerB.undo,
+    JSON.stringify({ bannerA, bannerB }),
+  );
+  await A.press(
+    `[...${BANNER}.querySelectorAll("button")].find((x) => x.textContent.trim() === "Undo cancel")`,
+  );
+  const goneA = await A.waitFor(`!${BANNER}`, 10000).then(
+    () => true,
+    () => false,
+  );
+  const goneB = await B.waitFor(`!${BANNER}`, 30000).then(
+    () => true,
+    () => false,
+  );
+  const undone = await waitForSql(ahead, (r) => r === "-|-|-");
+  check(
+    "Undo cancel restores it: the banner goes on both devices, and on the server",
+    goneA && goneB && undone === "-|-|-",
+    undone,
+  );
+
+  // Offline: cancelled at once on the device, on the server after reconnecting.
+  proxy.setOnline(false);
+  await sleep(1000);
+  await cancelFrom(A, `document.querySelector('main header [data-region="actions"]')`, null);
+  const offlineBanner = await A.waitFor(BANNER, 5000).then(
+    () => true,
+    () => false,
+  );
+  await sleep(1500);
+  const whileOffline = cancelSql(ahead);
+  proxy.setOnline(true);
+  const synced = await waitForSql(ahead, (r) => !r.startsWith("-"), 30000);
+  const reachedB = await B.waitFor(BANNER, 30000).then(
+    () => true,
+    () => false,
+  );
+  check(
+    "an offline cancel shows at once, and syncs on reconnect",
+    offlineBanner && whileOffline.startsWith("-") && !synced.startsWith("-") && reachedB,
+    JSON.stringify({ offlineBanner, whileOffline, synced, reachedB }),
+  );
+
+  // Undo from the menu (the timeline's past event).
+  await A.goto(`/app/groups/${DEV_FAMILY}/timeline`);
+  await A.waitFor(timelineRow(past), 30000);
+  await A.press(`${timelineRow(past)}.querySelector('button[aria-label^="Actions for"]')`);
+  await A.waitFor(menuItem("Undo cancel"), 5000);
+  await A.press(menuItem("Undo cancel"));
+  await A.waitFor(`${cancelledState(timelineRow(past))}?.marked === false`, 10000).catch(() => {});
+  const back = await A.evaluate(cancelledState(timelineRow(past)));
+  check(
+    "Undo cancel from the menu: the label and the line go",
+    back && !back.marked && !back.label && !back.struck,
+    JSON.stringify(back),
+  );
+}
+
 const proxy = SMOKE ? null : startProxy(9711);
 const bA = await launch(9701, proxy ? proxy.args : []);
 const bB = SMOKE ? null : await launch(9702);
@@ -449,6 +648,7 @@ try {
       `${rows.length} rows`,
     );
     await addSteps(B, false);
+    await step("cancel and undo cancel", () => cancelSteps(A, B, proxy));
   }
 
   // The offline step's cut connection: PowerSync's sync error "network error".

@@ -795,7 +795,7 @@ async function pass(p, width, scheme) {
     await p.evaluate(`location.pathname.endsWith("/timeline")`),
   );
 
-  // The entry page's ⋯: the same items as the note row's.
+  // The entry page's ⋯: the same items as the row's (an event adds Cancel event before Delete).
   await p.evaluate(`window.scrollTo(0, 0)`);
   await p.press(NOTE_LINK);
   await p.waitFor(PAGE_ACTIONS, 30000);
@@ -805,7 +805,7 @@ async function pass(p, width, scheme) {
   );
   await menu(p, `${tag} entry page ⋯ (${kind})`, PAGE_ACTIONS, {
     name: `Actions for this ${kind}`,
-    items: "Delete",
+    items: kind === "event" ? "Cancel event,Delete" : "Delete",
     shot: shot("entry-page"),
   });
   await themed(p, `${tag} entry page ⋯`, PAGE_ACTIONS, scheme);
