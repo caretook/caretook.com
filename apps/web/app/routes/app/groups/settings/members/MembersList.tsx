@@ -1,12 +1,13 @@
 import type { ActionResult } from "~/lib/api";
-import type { MemberRow } from "~/lib/sync/timeline";
+import type { MemberDetailRow } from "~/lib/sync/members";
 
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ConfirmDialog, UserAvatar } from "~/components/ui";
 import { useLiveQuery } from "~/lib/sync";
-import { membersQuery } from "~/lib/sync/timeline";
+import { memberDetailsQuery } from "~/lib/sync/members";
 import { memberAccess, memberName, roleLabel, sortMembers } from "../groupSettings";
+import { memberHistory } from "./invites";
 
 // The members list and its rows. Each change posts an intent (`changeRole`,
 // `removeMember`) to the route's action.
@@ -29,11 +30,11 @@ export function Members({
   userId: string;
   myRole: string | null;
   online: boolean;
-  initial: MemberRow[];
+  initial: MemberDetailRow[];
 }) {
   const [seed] = useState(initial);
-  const query = membersQuery(groupId);
-  const members = sortMembers(useLiveQuery<MemberRow>(query.sql, query.params, seed));
+  const query = memberDetailsQuery(groupId);
+  const members = sortMembers(useLiveQuery<MemberDetailRow>(query.sql, query.params, seed));
 
   // Removing and leaving share one confirm dialog and one request.
   const [confirming, setConfirming] = useState<RemoveTarget | null>(null);
@@ -95,7 +96,7 @@ function MemberItem({
   removeError,
   onRemove,
 }: {
-  member: MemberRow;
+  member: MemberDetailRow;
   isSelf: boolean;
   /** What you may do to this member; null offline (nothing). */
   access: ReturnType<typeof memberAccess> | null;
@@ -104,6 +105,7 @@ function MemberItem({
   onRemove: () => void;
 }) {
   const name = memberName(member.name);
+  const history = memberHistory(member);
   const fetcher = useFetcher<ActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
@@ -123,10 +125,17 @@ function MemberItem({
     <li data-member={member.user_id} className="space-y-1 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <UserAvatar name={member.name} image={member.image} size="lg" />
-        <p className="min-w-0 flex-1 truncate font-medium">
-          {name}
-          {isSelf && <span className="text-base-content/70 font-normal"> (you)</span>}
-        </p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">
+            {name}
+            {isSelf && <span className="text-base-content/70 font-normal"> (you)</span>}
+          </p>
+          {history && (
+            <p data-member-history="" className="text-base-content/70 truncate text-sm">
+              {history}
+            </p>
+          )}
+        </div>
         {access?.roles.length ? (
           <select
             aria-label={`Role for ${name}`}

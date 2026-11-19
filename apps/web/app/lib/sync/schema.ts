@@ -20,6 +20,8 @@ export const careGroupMembers = sqliteTable(
     groupId: text("group_id"),
     userId: text("user_id"),
     role: text("role"),
+    invitedBy: text("invited_by"),
+    createdAt: text("created_at"),
   },
   (t) => [index("care_group_member_group").on(t.groupId), index("care_group_member_user").on(t.userId)],
 );

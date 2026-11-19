@@ -1,6 +1,7 @@
 import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/api";
-import type { MemberRow } from "~/lib/sync/timeline";
+import type { MemberDetailRow } from "~/lib/sync/members";
+import type { InviteActionResult } from "./inviteApi";
 
 import { ORPCError } from "@orpc/client";
 import { redirect } from "react-router";
@@ -10,16 +11,21 @@ import { formString } from "~/lib/form";
 import { getGroup, useGroup } from "~/lib/group";
 import { rpc } from "~/lib/rpc";
 import { sessionContext } from "~/lib/session";
-import { waitForMembershipGone } from "~/lib/sync/members";
-import { membersQuery, readRows } from "~/lib/sync/timeline";
+import { memberDetailsQuery, waitForMembershipGone } from "~/lib/sync/members";
+import { readRows } from "~/lib/sync/timeline";
 import { failedSave, loadRecipientProfile } from "../api";
 import { MEMBER_ROLES, NEEDS_CONNECTION } from "../groupSettings";
+import { inviteAction, isInviteIntent, loadInvites } from "./inviteApi";
+import { emailInviteRoles } from "./invites";
+import { InviteButton } from "./InviteSheet";
 import { Members } from "./MembersList";
+import { PendingInvites } from "./PendingInvites";
 
 // `…/settings/members`. Shared by web + native. Members and roles come from
 // the device's local copy (live, so they work offline and follow other
 // members' changes). Changing a role, removing and leaving go through the
-// API: online only.
+// API: online only. So do invites (`InviteSheet`, `PendingInvites`), which
+// owners and admins send, resend and revoke here.
 
 export const meta = () => [{ title: "Members · Group settings · Caretook" }];
 
@@ -32,21 +38,23 @@ export { shouldRevalidate } from "../api";
  */
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const { groupId } = params;
-  getGroup(context);
+  const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const members = await readRows<MemberRow>(db, membersQuery(groupId));
+  const members = await readRows<MemberDetailRow>(db, memberDetailsQuery(groupId));
   const { online } = await loadRecipientProfile(request, groupId);
-  return { userId: db.userId, groupId, members, online };
+  const invites = await loadInvites(groupId, group.role, online);
+  return { userId: db.userId, groupId, members, online, invites };
 }
 
 export async function clientAction({
   request,
   params,
   context,
-}: Route.ClientActionArgs): Promise<ActionResult> {
+}: Route.ClientActionArgs): Promise<ActionResult | InviteActionResult> {
   const { groupId } = params;
   const form = await request.formData();
   const intent = formString(form, "intent");
+  if (isInviteIntent(intent)) return inviteAction(intent, form, groupId, getGroup(context).role);
   try {
     if (intent === "changeRole") {
       const chosen = formString(form, "role");
@@ -90,6 +98,7 @@ export default function GroupMembers({ loaderData }: Route.ComponentProps) {
   const group = useGroup();
   return (
     <SettingsPage id="members" title="Members" offlineNotice={online ? undefined : NEEDS_CONNECTION}>
+      <InviteButton myRole={group.role} online={online} />
       <SettingsCard>
         <Members
           groupId={groupId}
@@ -99,6 +108,9 @@ export default function GroupMembers({ loaderData }: Route.ComponentProps) {
           initial={loaderData.members}
         />
       </SettingsCard>
+      {online && emailInviteRoles(group.role).length > 0 && (
+        <PendingInvites invites={loaderData.invites} myRole={group.role} />
+      )}
     </SettingsPage>
   );
 }

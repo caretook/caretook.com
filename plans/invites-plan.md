@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | State                                                                                             | Merge into `prd/invites` (slice commits) |
-| ----- | ------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | merged                                                                                            | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
-| 2     | merged                                                                                            | `68df3d6` (776ca9b, 3d86337, 5ce74dd)    |
-| 3     | ready after wave 1 lands; blocked by 2 (and uses `routing` slice 5's Members subpage if in `dev`) |                                          |
-| 4     | blocked by 3                                                                                      |                                          |
-| 5     | blocked by 3                                                                                      |                                          |
+| Slice | State                                                                             | Merge into `prd/invites` (slice commits) |
+| ----- | --------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1     | merged                                                                            | `e199ef1` (f1f6dc2, fe08cda, 36520d6)    |
+| 2     | merged                                                                            | `68df3d6` (776ca9b, 3d86337, 5ce74dd)    |
+| 3     | merged                                                                            | `5ca5d2d` (a08ef99, 35283be, c7adf9c)    |
+| 4     | in progress (`.loops/invites-4`, slot 5)                                          |                                          |
+| 5     | in progress (`.loops/invites-5`, slot 6; regenerates its migration on top of 4's) |                                          |
 
-Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. Wave 1 = slices 1 and 2: both merged and synced with `dev`. **Blocker before landing:** `dev` (quick-fixes B-38) now runs browser checks on a production build (`serve.sh --built`), where `/dev/mail` was a 404 and the `log` sender refused, so `invites.mjs` failed. A fix-up on `slice/invites/2` allows both in a check build on a localhost `APP_URL` only.
+Backlog: B-30 is claimed by `prd/invites`; mark it `done` after the last slice merges. **Wave 1 (slices 1 and 2) landed in `dev` as `3c1723a`** (2026-11-18): full suite 12/12 on a check build, including the check-build mail fix (`08a7de0`). Slice 3 merged (`5ca5d2d`) and is landing alone as wave 2; 4 and 5 run in parallel (the user asked for that), merging 4 first and having 5 regenerate the wave's migration.
 
 **The user's go-ahead (2026-11-18): land the rest of this PRD's waves without asking**, once each is green (wave 1, then 3, then 4 and 5). Every other rule still applies.
 
@@ -45,9 +45,9 @@ Durable decisions every slice follows:
 - **Slice 1 starts now**, beside `routing`, `providers` and `components`: it touches only a new package, the outbox and dev-mail tables, two web-only routes and env wiring.
 - **2 after 1. 3 after 2.** Before 3, check whether `routing` slice 5 (group settings subpages) is in `dev`, and sync.
 - **4 and 5 after 3, in parallel.** Merge 4 first; 5 regenerates the wave's migration on top.
-- Merge in number order. After each merge, run `invites.mjs` plus the budget's checks for the areas touched: `sign-in.mjs` and `app-shell.mjs` (slices 2, 3, 4, 5: sign-in and group settings), `first-sync.mjs` (slices 4 and 5: home's new states). The full suite runs once per landing.
+- Merge in number order, **with no checks between merges** (dev's rule since quick-fixes wave 6). Before landing, the full suite runs once on a check build, then `pnpm prd check`. The loops check their own slices: `invites`, `sign-in` and `app-shell` (slices 3, 4, 5: sign-in and group settings), plus `first-sync` (slices 4 and 5: home's new states).
 - **Land in waves:** 1 and 2 together (better sign-in, verification and reset); then 3 (email invites, enough to bring family in); then 4 and 5.
-- Every slice ends with `pnpm check`, `pnpm build:native`, its checks and a hand-off (AGENTS.md, _Loop rules_).
+- Every slice ends with `pnpm check`, `pnpm build:native`, its checks and a hand-off (AGENTS.md, _Loop rules_). While building, loops use `pnpm prd browser <check> --smoke`; before hand-off, `--changed` once in full mode. `invites.mjs` marks its core path with `step(name, { smoke: true }, fn)` (from slice 3 on).
 
 ```
 1 ── 2 ── 3 ──┬── 4
@@ -162,3 +162,9 @@ Link invites: `createLink` (role caretaker or viewer, expiry 1–90 days default
 - **Secrets:** the loops need `CRON_SECRET` and `INVITE_LINK_KEY` (any random values locally). Real Resend sending isn't needed for any slice; ask the user before using a real key, and only send to `MAIL_ALLOWLIST`.
 - **AGENTS.md at landing:** turn _Planned: notifications_ into a built section (the package, the outbox, dev mail, env), update _Auth_ (sign-in methods, verification, tickets), the invite rows in the permissions table, the API procedure list, the Members page, and close the open questions this settles (invites, consent, email delivery). Add `invites.mjs` to the browser check list and the budget table.
 - **Before production** (not this plan, but say so in the last hand-off): the sending subdomain's SPF, DKIM and DMARC, bounce webhooks, rate-limit storage, and the cron schedule on the host.
+
+Notes from slice 3 for 4 and 5:
+
+- `accept`/`decline` refuse link invites with `careGroupInviteService:wrongKind` (slice 4 fills them in); `signUpWithTicket` takes `{ kind: "invite" }` (slice 5 adds access codes).
+- Slice 5 leaves **New care group** out of the group menu (`routes/app/layout/`, protected while `components` runs); its hand-off names the one-item edit for the user to approve.
+- `pnpm prd browser --smoke <check>`: `--smoke` goes before the check name.
