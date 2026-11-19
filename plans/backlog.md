@@ -1243,6 +1243,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner:
 - commit:
 
+- 2026-11-19 (prd/quick-fixes): Proposed for quick-fixes: one contained change to the timeline's QuickAddBar (a + menu in the header); not yet a slice in the plan.
+
 ### B-99 · change · Don't display recent vitals in the timeline header in mobile,
 
 - status: inbox
