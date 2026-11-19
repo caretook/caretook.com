@@ -1,6 +1,6 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { LocalProvider, ProviderRow } from "~/lib/sync/providers";
+import type { ProviderRow } from "~/lib/sync/providers";
 
 import type { ProvidersOutlet } from "./providerSheet";
 
@@ -9,13 +9,13 @@ import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
-import { directoryList, parseDirectoryFilters, PROVIDER_TYPE_META, setPast } from "~/lib/providerDirectory";
+import { directoryList, parseDirectoryFilters } from "~/lib/providerDirectory";
 import { sessionContext } from "~/lib/session";
 import { useLiveQuery } from "~/lib/sync";
 import { providersQuery, toProviders } from "~/lib/sync/providers";
 import { readRows } from "~/lib/sync/timeline";
 import { ProviderSearch, TypeFilter } from "./DirectoryFilters";
-import { ProviderListItem } from "./ProviderListItem";
+import { DirectoryResults } from "./DirectoryResults";
 import { PROVIDER_SHEET_STATE } from "./providerSheet";
 import { onlyProviderSheetChanged } from "./providerSheetGuard";
 
@@ -53,33 +53,6 @@ export function shouldRevalidate({
   return defaultShouldRevalidate;
 }
 
-const countLabel = (n: number) => `${n} ${n === 1 ? "provider" : "providers"}`;
-
-function ProviderList({
-  providers,
-  practiceNames,
-  label,
-}: {
-  providers: LocalProvider[];
-  practiceNames: Map<string, string>;
-  label: string;
-}) {
-  return (
-    <ul
-      aria-label={label}
-      className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border"
-    >
-      {providers.map((p) => (
-        <ProviderListItem
-          key={p.id}
-          provider={p}
-          practiceName={p.practiceId ? (practiceNames.get(p.practiceId) ?? null) : null}
-        />
-      ))}
-    </ul>
-  );
-}
-
 export default function Providers({ loaderData, params }: Route.ComponentProps) {
   const { groupId } = params;
   const group = useGroup();
@@ -97,8 +70,6 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
     () => directoryList(providers, { q: text, type: filters.type }),
     [providers, text, filters.type],
   );
-  const shown = list.current.length + (filters.past ? list.past.length : 0);
-  const filtered = !!text.trim() || !!filters.type;
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
@@ -129,65 +100,14 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
       <ProviderSearch value={text} urlQuery={filters.q} onChange={setText} />
       <TypeFilter type={filters.type} />
 
-      {/* Announces how many match after each search or filter. */}
-      <p role="status" className="sr-only">
-        {providers.length === 0 ? "" : countLabel(shown)}
-      </p>
-
-      <section aria-labelledby="providers-heading" className="space-y-4">
-        <h2 id="providers-heading" className="sr-only">
-          {filters.type ? PROVIDER_TYPE_META[filters.type].plural : "All providers"}
-        </h2>
-
-        {providers.length === 0 ? (
-          <p className="text-base-content/70">No providers yet.</p>
-        ) : (
-          list.current.length === 0 &&
-          !(filters.past && list.past.length > 0) && (
-            <p className="text-base-content/70" data-empty>
-              {text.trim()
-                ? `No ${filters.type ? PROVIDER_TYPE_META[filters.type].plural.toLowerCase() : "providers"} match “${text.trim()}”.`
-                : filtered
-                  ? `No current ${filters.type ? PROVIDER_TYPE_META[filters.type].plural.toLowerCase() : "providers"}.`
-                  : "No current providers."}
-            </p>
-          )
-        )}
-
-        {list.current.length > 0 && (
-          <ProviderList providers={list.current} practiceNames={practiceNames} label="Current providers" />
-        )}
-
-        {list.past.length > 0 &&
-          (filters.past ? (
-            <section aria-labelledby="past-heading" className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <h3 id="past-heading" className="text-base-content/70 text-sm font-semibold">
-                  Past providers
-                </h3>
-                <Link
-                  to={{ search: setPast(search, false) }}
-                  replace
-                  preventScrollReset
-                  className="btn btn-ghost btn-sm"
-                >
-                  Hide past
-                </Link>
-              </div>
-              <ProviderList providers={list.past} practiceNames={practiceNames} label="Past providers" />
-            </section>
-          ) : (
-            <Link
-              to={{ search: setPast(search, true) }}
-              replace
-              preventScrollReset
-              className="btn btn-ghost btn-sm"
-              data-show-past
-            >
-              Show past ({list.past.length})
-            </Link>
-          ))}
-      </section>
+      <DirectoryResults
+        total={providers.length}
+        list={list}
+        practiceNames={practiceNames}
+        text={text}
+        type={filters.type}
+        past={filters.past}
+      />
 
       <Outlet context={{ providers } satisfies ProvidersOutlet} />
     </main>
