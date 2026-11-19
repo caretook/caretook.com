@@ -1,0 +1,44 @@
+# The shared test Postgres: one server for every .loops worktree's integration
+# tests, each worktree with its own database (caretook_test_<worktree>). It's
+# started on first use (packages/data/test/globalSetup.ts, or
+# `pnpm prd test-db up`) and left running; `pnpm prd test-db down` stops it.
+#
+# - Data is in a tmpfs: tests clear and migrate their database on every run, so
+#   nothing here needs to survive a restart, and it never touches a disk.
+# - It uses Docker's default bridge network, so it adds no network (Docker runs
+#   out at about 21).
+# - The main checkout keeps its own test database on :5435
+#   (docker-compose.test.yml).
+#
+# Run it only through scripts/loops/test-db.sh, which never recreates a running
+# container (that would wipe every worktree's database).
+name: ${CARETOOK_SHARED_TEST_PROJECT:-caretook-shared-test}
+
+services:
+  postgres:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_USER: caretook
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    # Speed over durability: it's throwaway test data.
+    command:
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - synchronous_commit=off
+      - -c
+      - full_page_writes=off
+      - -c
+      - max_connections=300
+    network_mode: bridge
+    ports:
+      - "${CARETOOK_SHARED_TEST_PORT:-5436}:5432"
+    tmpfs:
+      - /var/lib/postgresql:size=4g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caretook -d postgres"]
+      interval: 1s
+      timeout: 5s
+      retries: 30
