@@ -10,6 +10,7 @@ import {
   entryProviderService,
   ERRORS,
   isError,
+  logError,
   medicationService,
   newError,
   noteDocumentService,
@@ -393,7 +394,7 @@ const compactTouched = async (ops: CrudOp[], results: CrudResult[]) => {
   for (const id of ids) {
     if (!id) continue;
     const res = await noteDocumentService.compactIfDue(id);
-    if (isError(res)) console.error("Live document compaction failed", { documentId: id, code: res.code });
+    if (isError(res)) logError("sync: live document compaction failed", res, { recordId: id });
   }
 };
 

@@ -92,14 +92,25 @@ const waitForSql = async (sql, test, ms = 20000) => {
   return last;
 };
 
-/** Run `body` in the page with the local database as `db` and the device module as `medications`. */
+/**
+ * Run `body` in the page with the local database as `db` and the device
+ * module as `medications`. Bounded: a call that doesn't answer in 20 s (a
+ * query held up by a lock, a page that went away) fails with a clear
+ * message instead of holding the run.
+ */
+const DEVICE_MS = 20000;
 const onDevice = (p, body) =>
-  p.evaluate(`(async () => {
+  Promise.race([
+    p.evaluate(`(async () => {
     const db = window.caretookSync;
     if (!db) throw new Error("window.caretookSync isn't there (dev and check builds only)");
     const { medications } = await window.caretookModules();
     ${body}
-  })()`);
+  })()`),
+    sleep(DEVICE_MS).then(() => {
+      throw new Error(`a device call didn't answer in ${DEVICE_MS / 1000} s: ${body.trim().slice(0, 120)}`);
+    }),
+  ]);
 const localRows = (p, sql, params = []) =>
   onDevice(p, `return db.powersync.getAll(${JSON.stringify(sql)}, ${JSON.stringify(params)});`);
 const waitForLocal = async (p, sql, params, test, ms = 20000) => {
@@ -111,6 +122,44 @@ const waitForLocal = async (p, sql, params, test, ms = 20000) => {
     await sleep(300);
   }
   return rows;
+};
+
+/**
+ * Wait at most `ms` for `expression` on `p`. On a timeout, print one line
+ * saying what didn't happen, with the page's state, and return false: the
+ * step's own check then fails with its detail, and the run goes on.
+ */
+const need = async (p, expression, ms, what) => {
+  const ok = await p.waitFor(expression, ms, { quiet: true }).then(
+    () => true,
+    () => false,
+  );
+  if (!ok) console.log(`WAIT  ${what}: not within ${ms / 1000} s\n${await p.diagnose()}`);
+  return ok;
+};
+
+/**
+ * Bring a page's tab to the front. A tab behind another gets no animation
+ * frames and reports itself hidden, so what a person would see happen there
+ * (a menu's exit, focus returning) may not; steps that tap run in front.
+ */
+const toFront = (p) => p.send("Page.bringToFront");
+
+/**
+ * Wait for a medication to be on a device before opening its page there: a
+ * page whose medication hasn't synced yet is the 404, and stays one.
+ */
+const syncedTo = async (p, id, what, ms = 30000) => {
+  const rows = await waitForLocal(
+    p,
+    "SELECT id FROM medication WHERE id = ?",
+    [id],
+    (r) => r.length === 1,
+    ms,
+  );
+  if (!rows.length)
+    console.log(`WAIT  ${what}: the medication didn't reach this device within ${ms / 1000} s`);
+  return rows.length === 1;
 };
 
 const CHANGES_SQL = (id) =>
@@ -693,6 +742,8 @@ async function notesSteps(A, B) {
   await waitForSql(`SELECT count(*) FROM medication WHERE id = '${id}'`, (v) => v === "1");
   await A.goto(medPath(id));
   await A.waitFor(onMedPage(id), 20000).catch(() => {});
+  // B opens it only once it has synced there (otherwise its page is the 404, for good).
+  await syncedTo(B, id, "the notes medication on the second browser");
   await B.goto(medPath(id));
   await B.waitFor(onMedPage(id), 30000).catch(() => {});
   check(
@@ -773,6 +824,7 @@ async function viewerSteps(C, notesId) {
     same(list.current, SEEDED_CURRENT) && sub.includes("You can view this list"),
     JSON.stringify({ current: list.current, sub }),
   );
+  await syncedTo(C, notesId, "the notes medication on the viewer's browser");
   await C.goto(medPath(notesId));
   await C.waitFor(`${onMedPage(notesId)} && ${notesHave("with breakfast")}`, 30000).catch(() => {});
   const page = await medPage(C);
@@ -1465,6 +1517,8 @@ const option = (text) =>
 const OPEN_DIALOG = `document.querySelector("dialog[open]")`;
 const dialogButton = (text) =>
   `[...(${OPEN_DIALOG}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+/** The open dialog's button, once it can be pressed (a click on a disabled button does nothing). */
+const enabledDialogButton = (text) => `${dialogButton(text)}?.disabled === false`;
 /** Every name in one of the list's lists, this run's included. */
 const allNames = (label) =>
   `[...document.querySelectorAll('main ul[aria-label="${label}"] [data-medication-name]')].map((n) => n.textContent.trim())`;
@@ -1514,14 +1568,17 @@ async function pickProvider(p, kind, text, optionText) {
 /** Open a medication page's ⋯ menu and choose `item`. */
 async function pageAction(p, title, item) {
   const button = `document.querySelector('main header [data-region="actions"] button[aria-label=${JSON.stringify(`Actions for ${title}`)}]')`;
+  await toFront(p);
   await p.waitFor(button, 15000);
-  await p.press(button);
+  // Real taps, as a finger would: the trigger, then the item where it is (scrolling would close the menu).
+  await p.tap(button);
   await p.waitFor(menuItem(item), 5000);
-  await p.press(menuItem(item));
+  await tapInPlace(p, menuItem(item));
 }
 
 /** Open the list, wait for it, and open the add sheet from its header (A). */
 async function openAddSheet(p) {
+  await toFront(p);
   await p.goto(LIST);
   await p.waitFor(`!!document.querySelector("main [data-add-medication]")`, 20000);
   await p.tap(`document.querySelector("main [data-add-medication]")`);
@@ -1535,6 +1592,7 @@ async function openAddSheet(p) {
  * page's history says "Started". Returns its name.
  */
 async function addSteps(p, B) {
+  await toFront(p);
   const name = `${TAG} Losartan`;
   const doctor = `${TAG} Dr. Ada Moss`;
   await openAddSheet(p).then(
@@ -1544,7 +1602,7 @@ async function addSteps(p, B) {
 
   // "lis" suggests the seeded Lisinopril; picking it fills the name only.
   await p.type(formField("name"), "lis");
-  await p.waitFor(suggestion("Lisinopril"), 8000).catch(() => {});
+  await need(p, suggestion("Lisinopril"), 8000, "the name suggestion Lisinopril");
   const offered = await p.evaluate(
     `[...(${FORM}?.querySelectorAll("[data-name-suggestions] button") ?? [])].map((b) => b.textContent.trim())`,
   );
@@ -1571,7 +1629,7 @@ async function addSteps(p, B) {
   await p.press(`${FORM}.querySelector("[data-add-time]")`);
   await p.type(`${TIMES}[1]`, "08:00");
   await p.press(FORM_SUBMIT);
-  await p.waitFor(`${errorOf("name")} !== null`, 8000).catch(() => {});
+  await need(p, `${errorOf("name")} !== null`, 8000, "the name's error");
   const invalid = await p.evaluate(`({ name: ${errorOf("name")}, times: ${TIMES_ERROR},
     focused: document.activeElement === ${formField("name")} })`);
   check(
@@ -1585,7 +1643,7 @@ async function addSteps(p, B) {
   await p.waitFor(formField("maxPerDay"), 5000);
   await p.type(formField("maxPerDay"), "30");
   await p.press(FORM_SUBMIT);
-  await p.waitFor(`${errorOf("maxPerDay")} !== null`, 8000).catch(() => {});
+  await need(p, `${errorOf("maxPerDay")} !== null`, 8000, "the maximum's error");
   check(
     "an as-needed maximum out of range shows its message",
     (await p.evaluate(errorOf("maxPerDay"))) === "At most 24 a day",
@@ -1601,19 +1659,22 @@ async function addSteps(p, B) {
   await p.type(formField("dose"), "1 tablet");
   await p.type(formField("reason"), "Blood pressure");
   await pickProvider(p, "prescriber", doctor, `Add "${doctor}" as a new prescriber`);
-  await p
-    .waitFor(`${pickerChip("prescriber")} === ${JSON.stringify(`${doctor} (new)`)}`, 5000)
-    .catch(() => {});
+  await need(
+    p,
+    `${pickerChip("prescriber")} === ${JSON.stringify(`${doctor} (new)`)}`,
+    5000,
+    "the new prescriber's chip",
+  );
   const chip = await p.evaluate(pickerChip("prescriber"));
   await p.screenshot("medication-add-sheet");
   await p.press(FORM_SUBMIT);
   const title = `${name} 25 mg`;
-  await p
-    .waitFor(
-      `!${SHEET} && location.pathname.endsWith("/medications") && ${allNames("Current medications")}.includes(${JSON.stringify(title)})`,
-      10000,
-    )
-    .catch(() => {});
+  await need(
+    p,
+    `!${SHEET} && location.pathname.endsWith("/medications") && ${allNames("Current medications")}.includes(${JSON.stringify(title)})`,
+    10000,
+    "the add sheet to close and the new medication to be listed",
+  );
   const listed = await p.evaluate(
     `({ path: location.pathname, current: ${allNames("Current medications")} })`,
   );
@@ -1647,12 +1708,12 @@ async function addSteps(p, B) {
   }
   const id = await medicationId(p, name);
   await p.goto(medPath(id));
-  await p
-    .waitFor(
-      `${onMedPage(id)} && document.querySelectorAll("main [data-medication-history] li").length > 0`,
-      20000,
-    )
-    .catch(() => {});
+  await need(
+    p,
+    `${onMedPage(id)} && document.querySelectorAll("main [data-medication-history] li").length > 0`,
+    20000,
+    "the new medication's page with its history",
+  );
   const history = await historyTexts(p);
   check('its page\'s history says "Started"', same(history, ["Started"]), JSON.stringify(history));
   return { name, title, id };
@@ -1664,6 +1725,7 @@ async function addSteps(p, B) {
  * change writes one with before and after.
  */
 async function editSteps(p, { title, name, id }) {
+  await toFront(p);
   const openEdit = async () => {
     await p.goto(medPath(id));
     await p.waitFor(`${onMedPage(id)} && !!document.querySelector("main [data-edit-medication]")`, 20000);
@@ -1687,7 +1749,12 @@ async function editSteps(p, { title, name, id }) {
   await p.type(formField("refillsLeft"), "3");
   await p.type(formField("quantity"), "30 tablets");
   await p.press(FORM_SUBMIT);
-  await p.waitFor(`!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000).catch(() => {});
+  await need(
+    p,
+    `!${SHEET} && location.pathname.endsWith("/medications/${id}")`,
+    10000,
+    "the edit sheet to close back to the page",
+  );
   const back = await p.evaluate(`location.pathname`);
   const refills = await waitForSql(
     `SELECT refills_left FROM medication WHERE id = '${id}'`,
@@ -1703,14 +1770,22 @@ async function editSteps(p, { title, name, id }) {
   await openEdit();
   await p.type(formField("dose"), "2 tablets");
   await p.press(FORM_SUBMIT);
-  await p.waitFor(`!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000).catch(() => {});
+  await need(
+    p,
+    `!${SHEET} && location.pathname.endsWith("/medications/${id}")`,
+    10000,
+    "the edit sheet to close back to the page",
+  );
   const changed = await waitForSql(
     `SELECT details->'before'->>'dose' || '>' || (details->'after'->>'dose') FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'change' = 'changed' AND details->>'medicationId' = '${id}'`,
     (v) => v !== "",
   );
-  await p
-    .waitFor(`document.querySelectorAll("main [data-medication-history] li").length >= 2`, 10000)
-    .catch(() => {});
+  await need(
+    p,
+    `document.querySelectorAll("main [data-medication-history] li").length >= 2`,
+    10000,
+    "the dose change on the page's history",
+  );
   const history = await historyTexts(p);
   check(
     'changing the dose writes one "Changed" entry with before and after, newest first on the page',
@@ -1728,14 +1803,18 @@ async function editSteps(p, { title, name, id }) {
  * completed needs no reason; Restart from the edit sheet; Delete.
  */
 async function statusSteps(p, { title, name, id }) {
+  await toFront(p);
   await p.goto(medPath(id));
-  await p.waitFor(onMedPage(id), 20000).catch(() => {});
+  await need(p, onMedPage(id), 20000, "the medication's page");
   await pageAction(p, title, "Discontinue…");
-  await p.waitFor(`!!${OPEN_DIALOG}?.querySelector("[data-discontinue-form]")`, 5000).catch(() => {});
+  await need(p, `!!${OPEN_DIALOG}?.querySelector("[data-discontinue-form]")`, 5000, "the Discontinue dialog");
   await p.press(dialogButton("Discontinue"));
-  await p
-    .waitFor(`!!${OPEN_DIALOG}?.querySelector('[role="radiogroup"][aria-invalid="true"]')`, 8000)
-    .catch(() => {});
+  await need(
+    p,
+    `!!${OPEN_DIALOG}?.querySelector('[role="radiogroup"][aria-invalid="true"]')`,
+    8000,
+    "the reason's error in the Discontinue dialog",
+  );
   const refused = await p.evaluate(
     `${OPEN_DIALOG}?.querySelector("[data-discontinue-form] .text-error")?.textContent.trim() ?? null`,
   );
@@ -1748,17 +1827,17 @@ async function statusSteps(p, { title, name, id }) {
   await p.screenshot("medication-discontinue");
   await p.type(`${OPEN_DIALOG}.querySelector('textarea[name="stopNote"]')`, `${TAG} dizzy`);
   await p.press(dialogButton("Discontinue"));
-  await p.waitFor(`!${OPEN_DIALOG}`, 8000).catch(() => {});
+  await need(p, `!${OPEN_DIALOG}`, 8000, "the Discontinue dialog to close");
   const stopped = await waitForSql(
     `SELECT status || ':' || coalesce(stop_reason, '-') || ':' || coalesce(stop_note, '-') FROM medication WHERE id = '${id}'`,
     (v) => v.startsWith("discontinued"),
   );
-  await p
-    .waitFor(
-      `document.querySelector('main header [data-region="title"] .badge')?.textContent === "Discontinued"`,
-      8000,
-    )
-    .catch(() => {});
+  await need(
+    p,
+    `document.querySelector('main header [data-region="title"] .badge')?.textContent === "Discontinued"`,
+    8000,
+    "the Discontinued badge",
+  );
   const history = await historyTexts(p);
   check(
     "Discontinue with a reason and a note: the page says so, and its entry is on the history",
@@ -1766,12 +1845,12 @@ async function statusSteps(p, { title, name, id }) {
     `${stopped} ${JSON.stringify(history.slice(0, 2))}`,
   );
   await p.goto(LIST);
-  await p
-    .waitFor(
-      `${allNames("Completed and discontinued medications")}.includes(${JSON.stringify(title)})`,
-      15000,
-    )
-    .catch(() => {});
+  await need(
+    p,
+    `${allNames("Completed and discontinued medications")}.includes(${JSON.stringify(title)})`,
+    15000,
+    "the medication under Completed and discontinued",
+  );
   const moved = await p.evaluate(
     `({ current: ${allNames("Current medications")}, stopped: ${allNames("Completed and discontinued medications")} })`,
   );
@@ -1782,15 +1861,18 @@ async function statusSteps(p, { title, name, id }) {
   );
 
   await p.goto(medPath(id));
-  await p.waitFor(onMedPage(id), 20000).catch(() => {});
+  await need(p, onMedPage(id), 20000, "the medication's page");
   await pageAction(p, title, "Restart");
   const restarted = await waitForSql(
     `SELECT status FROM medication WHERE id = '${id}'`,
     (v) => v === "current",
   );
-  await p
-    .waitFor(`!document.querySelector('main header [data-region="title"] .badge')`, 8000)
-    .catch(() => {});
+  await need(
+    p,
+    `!document.querySelector('main header [data-region="title"] .badge')`,
+    8000,
+    "the stopped badge to go after Restart",
+  );
   const resumed = await historyTexts(p);
   check(
     'Restart brings it back with a "Resumed" entry',
@@ -1799,18 +1881,18 @@ async function statusSteps(p, { title, name, id }) {
   );
 
   await pageAction(p, title, "Mark completed");
-  await p.waitFor(dialogButton("Mark completed"), 5000).catch(() => {});
+  await need(p, enabledDialogButton("Mark completed"), 5000, "the Mark completed dialog");
   await p.press(dialogButton("Mark completed"));
   const completed = await waitForSql(
     `SELECT status || ':' || coalesce(stop_reason, '-') || ':' || (stopped_on IS NOT NULL)::text FROM medication WHERE id = '${id}'`,
     (v) => v.startsWith("completed"),
   );
-  await p
-    .waitFor(
-      `document.querySelector('main header [data-region="title"] .badge')?.textContent === "Completed"`,
-      8000,
-    )
-    .catch(() => {});
+  await need(
+    p,
+    `document.querySelector('main header [data-region="title"] .badge')?.textContent === "Completed"`,
+    8000,
+    "the Completed badge",
+  );
   check(
     "Mark completed needs no reason; it's dated today",
     completed === "completed:-:true" && (await historyTexts(p))[0] === "Completed",
@@ -1819,10 +1901,20 @@ async function statusSteps(p, { title, name, id }) {
 
   // The edit sheet's own status actions: Restart there, then back to the page.
   await p.tap(`document.querySelector("main [data-edit-medication]")`);
-  await p.waitFor(`!!${SHEET}?.querySelector("[data-status-actions]")`, 15000).catch(() => {});
+  await need(
+    p,
+    `!!${SHEET}?.querySelector("[data-status-actions]")`,
+    15000,
+    "the edit sheet's status actions",
+  );
   const restartButton = `[...(${SHEET}?.querySelectorAll("[data-status-actions] button") ?? [])].find((b) => b.textContent.trim() === "Restart")`;
   await p.press(restartButton);
-  await p.waitFor(`!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000).catch(() => {});
+  await need(
+    p,
+    `!${SHEET} && location.pathname.endsWith("/medications/${id}")`,
+    10000,
+    "the edit sheet to close back to the page",
+  );
   const again = await waitForSql(`SELECT status FROM medication WHERE id = '${id}'`, (v) => v === "current");
   check(
     "Restart in the edit sheet works too, and closes back to the page",
@@ -1832,14 +1924,18 @@ async function statusSteps(p, { title, name, id }) {
 
   // Delete: a confirm, then the list; it's gone from it, soft.
   await pageAction(p, title, "Delete");
-  await p.waitFor(dialogButton("Delete"), 5000).catch(() => {});
+  await need(p, enabledDialogButton("Delete"), 5000, "the Delete dialog");
   await p.press(dialogButton("Delete"));
-  await p
-    .waitFor(
-      `location.pathname.endsWith("/medications") && ${allNames("Current medications")}.length >= 4`,
-      10000,
-    )
-    .catch(() => {});
+  const listed = await need(
+    p,
+    `location.pathname.endsWith("/medications") && ${allNames("Current medications")}.length >= 4`,
+    10000,
+    "the list after Delete",
+  );
+  if (!listed)
+    console.log(
+      `      dialogs ${JSON.stringify(await p.evaluate(`[...document.querySelectorAll("dialog")].map((d) => d.open + ": " + d.textContent.slice(0, 50))`))}, on the device ${JSON.stringify(await localRows(p, "SELECT status, deleted_at FROM medication WHERE id = ?", [id]))}`,
+    );
   const deleted = await waitForSql(
     `SELECT (deleted_at IS NOT NULL)::text FROM medication WHERE id = '${id}'`,
     (v) => v === "true",
@@ -1856,38 +1952,52 @@ async function statusSteps(p, { title, name, id }) {
 
 /** Offline (A, through its proxy): add, edit and discontinue; each syncs on reconnecting with one change entry (B sees it). */
 async function formOfflineSteps(p, proxy, B) {
+  await toFront(p);
   const name = `${TAG} Albuterol`;
   await p.goto(LIST);
-  await p.waitFor(`${allNames("Current medications")}.length >= 4`, 20000).catch(() => {});
+  await need(p, `${allNames("Current medications")}.length >= 4`, 20000, "the list");
   const errorsBefore = p.errors.length;
   proxy.setOnline(false);
-  await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+  await need(p, `!window.caretookSync.powersync.currentStatus.connected`, 15000, "the device to go offline");
   await p.tap(`document.querySelector("main [data-add-medication]")`);
-  await p.waitFor(`!!${FORM}`, 15000).catch(() => {});
+  await need(p, `!!${FORM}`, 15000, "the add sheet (offline)");
   await p.type(formField("name"), name);
   await p.press(`${FORM}.querySelector('input[name="scheduleType"][value="asNeeded"]')`);
   await p.waitFor(formField("maxPerDay"), 5000);
   await p.type(formField("maxPerDay"), "4");
   await p.type(formField("dose"), "1 puff");
   await p.press(FORM_SUBMIT);
-  await p
-    .waitFor(`!${SHEET} && ${allNames("Current medications")}.includes(${JSON.stringify(name)})`, 10000)
-    .catch(() => {});
+  await need(
+    p,
+    `!${SHEET} && ${allNames("Current medications")}.includes(${JSON.stringify(name)})`,
+    10000,
+    "the offline medication on the list",
+  );
   const added = await p.evaluate(`${allNames("Current medications")}.includes(${JSON.stringify(name)})`);
   const id = await medicationId(p, name);
   // A full load needs the network (no service worker yet): open its page from the list.
   await p.tap(`document.querySelector('main li[data-medication-id="${id}"] [data-medication-name]')`);
-  await p.waitFor(onMedPage(id), 10000).catch(() => {});
+  await need(p, onMedPage(id), 10000, "the offline medication's page");
   await p.tap(`document.querySelector("main [data-edit-medication]")`);
-  await p.waitFor(`!!${FORM}`, 10000).catch(() => {});
+  await need(p, `!!${FORM}`, 10000, "the edit sheet (offline)");
   await p.type(formField("dose"), "2 puffs");
   await p.press(FORM_SUBMIT);
-  await p.waitFor(`!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000).catch(() => {});
+  await need(
+    p,
+    `!${SHEET} && location.pathname.endsWith("/medications/${id}")`,
+    10000,
+    "the edit sheet to close back to the page (offline)",
+  );
   await pageAction(p, name, "Discontinue…");
-  await p.waitFor(`!!${OPEN_DIALOG}?.querySelector("[data-discontinue-form]")`, 5000).catch(() => {});
+  await need(
+    p,
+    `!!${OPEN_DIALOG}?.querySelector("[data-discontinue-form]")`,
+    5000,
+    "the Discontinue dialog (offline)",
+  );
   await p.press(`${OPEN_DIALOG}.querySelector('input[name="stopReason"][aria-label="Not working"]')`);
   await p.press(dialogButton("Discontinue"));
-  await p.waitFor(`!${OPEN_DIALOG}`, 8000).catch(() => {});
+  await need(p, `!${OPEN_DIALOG}`, 8000, "the Discontinue dialog to close (offline)");
   const local = await localRows(
     p,
     `SELECT m.status, m.dose, (SELECT count(*) FROM timeline_entry e WHERE e.kind = 'medicationChange' AND json_extract(e.details, '$.medicationId') = m.id) AS n FROM medication m WHERE m.id = ?`,
@@ -1895,7 +2005,7 @@ async function formOfflineSteps(p, proxy, B) {
   );
   const before = psql(`SELECT count(*) FROM medication WHERE name = '${name}'`);
   proxy.setOnline(true);
-  await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  await need(p, `window.caretookSync.powersync.currentStatus.connected`, 30000, "the device to reconnect");
   const synced = await waitForSql(
     `SELECT status || ':' || dose || ':' || stop_reason FROM medication WHERE name = '${name}'`,
     (v) => v === "discontinued:2 puffs:ineffective",
@@ -1931,27 +2041,31 @@ async function formOfflineSteps(p, proxy, B) {
 /** viewer@ (C): no add, edit or status controls; the sheet URLs show the list with no form. */
 async function viewerFormSteps(C) {
   await C.goto(LIST);
-  await C.waitFor(`${allNames("Current medications")}.length >= 4`, 20000).catch(() => {});
+  await need(C, `${allNames("Current medications")}.length >= 4`, 20000, "the viewer's list");
   const add = await C.evaluate(`!!document.querySelector("main [data-add-medication]")`);
   await C.goto(`${LIST}/new?q=lis`);
-  await C.waitFor(
+  await need(
+    C,
     `location.pathname.endsWith("/medications") && ${allNames("Current medications")}.length >= 1`,
     20000,
-  ).catch(() => {});
+    "the viewer's add URL to show the list",
+  );
   const fromNew = await C.evaluate(
     `({ path: location.pathname, search: location.search, form: !!document.querySelector("[data-medication-form]") })`,
   );
   const lisinopril = await medicationId(C, "Lisinopril");
   await C.goto(`${LIST}/${lisinopril}/edit`);
-  await C.waitFor(
+  await need(
+    C,
     `location.pathname.endsWith("/medications") && ${allNames("Current medications")}.length >= 4`,
     20000,
-  ).catch(() => {});
+    "the viewer's edit URL to show the list",
+  );
   const fromEdit = await C.evaluate(
     `({ path: location.pathname, form: !!document.querySelector("[data-medication-form]") })`,
   );
   await C.goto(medPath(lisinopril));
-  await C.waitFor(onMedPage(lisinopril), 20000).catch(() => {});
+  await need(C, onMedPage(lisinopril), 20000, "the viewer's medication page");
   const page = await C.evaluate(
     `({ actions: !!document.querySelector('main header [data-region="actions"]'), edit: !!document.querySelector("[data-edit-medication]") })`,
   );

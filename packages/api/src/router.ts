@@ -58,12 +58,14 @@ const toRecipientProfile = (recipient: {
   name: string;
   preferredName: string | null;
   dateOfBirth: string | null;
+  timeZone: string;
 }) => ({
   id: recipient.id,
   groupId: recipient.groupId,
   name: recipient.name,
   preferredName: recipient.preferredName,
   dateOfBirth: recipient.dateOfBirth,
+  timeZone: recipient.timeZone,
 });
 
 // ---------------------------------------------------------------------------
@@ -168,8 +170,8 @@ const careGroup = {
     }),
 
   /**
-   * The group's care recipient: name, preferred name and date of birth (which
-   * doesn't sync to devices). Members only; null when the group has none.
+   * The group's care recipient: name, preferred name, date of birth and time
+   * zone. Members only; null when the group has none.
    */
   recipient: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
     const group = unwrap(await careGroupService.getById(context, input.groupId));
@@ -179,8 +181,9 @@ const careGroup = {
   }),
 
   /**
-   * Edit the recipient's profile (owners, admins and caretakers). Fields left
-   * out keep their value; an empty preferred name clears it.
+   * Edit the recipient's profile and time zone (owners, admins and
+   * caretakers). Fields left out keep their value; an empty preferred name
+   * clears it. An unknown zone is a 400 naming `timeZone`.
    */
   updateRecipient: authedProcedure
     .input(careRecipientProfileZSchema.extend({ groupId: id }))
@@ -192,6 +195,7 @@ const careGroup = {
         ...(profile.name !== undefined && { name: profile.name }),
         ...(profile.preferredName !== undefined && { preferredName: profile.preferredName || null }),
         ...(profile.dateOfBirth !== undefined && { dateOfBirth: profile.dateOfBirth }),
+        ...(profile.timeZone !== undefined && { timeZone: profile.timeZone }),
       };
       if (!Object.keys(data).length) return toRecipientProfile(recipient);
       const [saved = recipient] = updated(

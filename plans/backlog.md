@@ -84,12 +84,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
 | B-43 | change | ready | medications | prd/medications | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
 | B-44 | change | ready | quick-fixes | prd/quick-fixes | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
-| B-45 | change | in-progress | profiles | prd/profiles | birthdate, contact information, address, and insurance information should optionally be added to… |
+| B-45 | change | ready | profiles | prd/profiles | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | in-progress | profiles | prd/profiles | optional phone number, address, etc on group members that can be published to the group for… |
 | B-47 | feature | ready | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
 | B-49 | feature | triaged | assistant |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
-| B-50 | feature | triaged | care-periods |  | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
+| B-50 | feature | in-progress | care-periods | prd/care-periods | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
 | B-51 | feature | triaged | medications-2 |  | printable medication schedule sheet that can be printed to be checked off with a pen at patient's… |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
@@ -672,15 +672,16 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-45 · change · birthdate, contact information, address, and insurance information should optionally be added to…
 
-- status: in-progress
+- status: ready
 - prd: profiles
 - owner: prd/profiles
-- commit:
+- commit: 0013589
 
 - 2026-11-18 (prd/marketing): From the inbox: birthdate, contact information, address, and insurance information should optionally be added to the patient profile.
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'profiles' (to write): the care recipient's optional contact, address and insurance details. Date of birth already exists (careGroup.recipient, not synced; medications slice 1 makes it synced). Insurance-card photos are B-56 (documents). Decide in the PRD which fields sync and who can read them (viewers?).
 - 2026-11-19 (plan/profiles): PRD written on plan/profiles: plans/profiles-prd.md (interview 2026-11-19).
 - 2026-11-19 (slice/profiles/2): slice 2 (profile page, Basics sheet, group menu link, timeline recipient card, Details trimmed) committed on slice/profiles/2 at 14cd609
+- 2026-11-19 (slice/profiles/3): slice 3 (writers' Contact and Insurance, profile/contact and profile/insurance sheets) built on slice/profiles/3: 041ab9e, 20d1e48
 
 ### B-46 · change · optional phone number, address, etc on group members that can be published to the group for…
 
@@ -733,9 +734,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-50 · feature · Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start…
 
-- status: triaged
+- status: in-progress
 - prd: care-periods
-- owner:
+- owner: prd/care-periods
 - commit:
 
 - 2026-11-18 (prd/marketing): From the inbox: Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start date-end date", "at home on hospice - start date-end date", etc. These will be useful in the summary and for filtering.

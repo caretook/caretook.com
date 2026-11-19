@@ -10,7 +10,7 @@ import { appUrls } from "~/lib/appUrls";
 import { rpc } from "~/lib/rpc";
 import { sessionContext } from "~/lib/session";
 import { waitForMembership } from "~/lib/sync/members";
-import { openedFromApp } from "./newGroupLink";
+import { openedNewGroupFromApp } from "~/lib/newGroupLink";
 
 // Shared by web + native. `/app/groups/new`: start another care group. The
 // sheet asks who you care for; the API creates the group, its recipient and
@@ -53,7 +53,7 @@ export default function NewGroupSheet() {
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
   const close = () => {
-    if (openedFromApp(location.state)) void navigate(-1);
+    if (openedNewGroupFromApp(location.state)) void navigate(-1);
     else void navigate(appUrls.home(), { replace: true });
   };
   return (

@@ -10,7 +10,7 @@ import { appUrls } from "~/lib/appUrls";
 import { rememberGroup } from "~/lib/lastGroup";
 import { useLiveQuery } from "~/lib/sync";
 import { myGroupsQuery, toMyGroup } from "~/lib/sync/timeline";
-import { NEW_GROUP_LINK_STATE } from "../groups/new/newGroupLink";
+import { NEW_GROUP_LINK_STATE } from "~/lib/newGroupLink";
 
 /** What a group is called in the header: its recipient (preferred name first), then the group's name. */
 const displayName = (group: MyGroup) => group.recipient?.displayName || group.name;
