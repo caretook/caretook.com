@@ -124,7 +124,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-80 | feature | ready | quick-fixes | prd/quick-fixes | Devices page in account settings: see sessions, sign out one or all others |
 | B-81 | change | ready | quick-fixes | prd/quick-fixes | Security headers and a CSP for every web response |
 | B-82 | change | ready | quick-fixes | prd/quick-fixes | Server logs carry error codes and ids only, never values or meta |
-| B-83 | change | in-progress | quick-fixes | prd/quick-fixes | Co-members read only id, name and image of each other's user row |
+| B-83 | change | ready | quick-fixes | prd/quick-fixes | Co-members read only id, name and image of each other's user row |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-86 | change | in-progress | medications-2 | prd/medications-2 | need an upcoming medication banner on the timeline page and a way to quickly add doses to the… |
@@ -1104,10 +1104,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-83 · change · Co-members read only id, name and image of each other's user row
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: dac3172
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-10 (later): closes the AGENTS.md open question; invites read email as system.
 - 2026-11-19 (slice/quick-fixes/33): slice 33: co-members' user reads are field-limited in SQL (groupFields: id, name, image); email readers use userModel.getWhole*/listWhole as system. Hand-off lists the AGENTS.md lines to update.
