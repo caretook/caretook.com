@@ -59,8 +59,8 @@ export default function NewPeriodSheet({ loaderData, params }: Route.ComponentPr
         providers={providers}
         timeZone={timeZone}
         zoneNote={zoneNote}
-        onDone={close}
-        onCancel={close}
+        onDone={() => close()}
+        onCancel={() => close()}
       />
     </Sheet>
   );

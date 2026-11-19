@@ -1,6 +1,7 @@
 import type { CarePeriodType } from "@caretook/data/schema";
 import type { ActionResult, FieldIssue } from "~/lib/api";
 import type { PeriodPrefillValues } from "~/lib/periodSheets";
+import type { LocalCarePeriod } from "~/lib/sync/carePeriods";
 import type { LocalProvider } from "~/lib/sync/providers";
 
 import { useEffect, useRef, useState } from "react";
@@ -17,12 +18,14 @@ const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.pa
 const TYPE_OPTIONS = CARE_PERIOD_TYPES.map((type) => ({ value: type, label: PERIOD_TYPE_META[type].label }));
 
 /**
- * Start a care period, or add one in the past. Posts to its sheet route's
+ * Start a care period, or add one in the past; with `period`, edit that one
+ * (its values fill the form, and a moved start moves its neighbours' ends). Posts to its sheet route's
  * clientAction, which writes on the device (with a place added here, in one
  * transaction); the shared Zod schema's messages show on the fields. The
  * start defaults to now, in the recipient's zone, and can't be later.
  */
 export function PeriodForm({
+  period,
   prefill,
   providers,
   timeZone,
@@ -30,6 +33,8 @@ export function PeriodForm({
   onDone,
   onCancel,
 }: {
+  /** The period being edited; the form starts from its values. */
+  period?: LocalCarePeriod;
   prefill: PeriodPrefillValues;
   providers: readonly LocalProvider[];
   /** The recipient's zone: the start is shown and saved in it. */
@@ -43,8 +48,16 @@ export function PeriodForm({
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
   const issues = result && !result.ok ? result.issues : [];
   const busy = fetcher.state !== "idle";
-  const [type, setType] = useState<CarePeriodType | "">(prefill.type ?? "");
-  const [dateOnly, setDateOnly] = useState(prefill.dateOnly);
+  const start = period
+    ? {
+        type: period.type,
+        startedAt: period.startedAt,
+        dateOnly: period.dateOnly,
+        placeProviderId: period.placeProviderId,
+      }
+    : prefill;
+  const [type, setType] = useState<CarePeriodType | "">(start.type ?? "");
+  const [dateOnly, setDateOnly] = useState(start.dateOnly);
   // The latest start the field takes: now, as the sheet opened.
   const [max] = useState(() => new Date().toISOString());
 
@@ -91,6 +104,7 @@ export function PeriodForm({
           <input
             {...control}
             name={FIELD.label}
+            defaultValue={period?.label ?? undefined}
             className="input w-full"
             maxLength={CARE_PERIOD_LIMITS.label}
             placeholder={type === "other" ? "e.g. Daughter's house" : "e.g. Cardiac unit"}
@@ -101,7 +115,7 @@ export function PeriodForm({
 
       <PlacePickerField
         providers={providers}
-        initialId={prefill.placeProviderId}
+        initialId={start.placeProviderId}
         error={issueFor(issues, FIELD.placeProviderId)}
       />
 
@@ -110,6 +124,7 @@ export function PeriodForm({
           <input
             {...control}
             name={FIELD.placeDetail}
+            defaultValue={period?.placeDetail ?? undefined}
             className="input w-full"
             maxLength={CARE_PERIOD_LIMITS.placeDetail}
             placeholder="e.g. Room 412, bed B"
@@ -123,7 +138,7 @@ export function PeriodForm({
           name={FIELD.startedAt}
           label={dateOnly ? "Started on" : "Started"}
           granularity={dateOnly ? "day" : "minute"}
-          defaultValue={prefill.startedAt ?? undefined}
+          defaultValue={start.startedAt ?? undefined}
           max={max}
           timeZone={timeZone}
           error={issueFor(issues, FIELD.startedAt)}
@@ -152,7 +167,7 @@ export function PeriodForm({
           Cancel
         </button>
         <button type="submit" className="btn btn-primary" disabled={busy}>
-          Save period
+          {period ? "Save changes" : "Save period"}
         </button>
       </div>
     </fetcher.Form>
