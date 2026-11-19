@@ -42,6 +42,13 @@ describe("emptyTimelineText", () => {
     expect(emptyTimelineText("symptom", "Alex Rivera")).toBe("No symptoms by Alex Rivera yet.");
     expect(emptyTimelineText("note", "Former member")).toBe("No notes by Former member yet.");
   });
+  it("names the search, with the other filters", () => {
+    expect(emptyTimelineText(null, null, "fall")).toBe("No entries match “fall”.");
+    expect(emptyTimelineText("symptom", "Alex Rivera", "pain")).toBe(
+      "No symptoms by Alex Rivera match “pain”.",
+    );
+    expect(emptyTimelineText("note", undefined, "")).toBe("No notes on the timeline yet.");
+  });
   it("no author name is no author filter", () => {
     expect(emptyTimelineText("event", null)).toBe("No events on the timeline yet.");
     expect(emptyTimelineText(null, null)).toBe("Nothing on the timeline yet.");

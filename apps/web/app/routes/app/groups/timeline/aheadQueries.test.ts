@@ -32,6 +32,24 @@ describe("aheadQueries", () => {
   });
 });
 
+describe("aheadQueries with a search", () => {
+  const match = { sql: "timeline_entry.id IN (SELECT 1)", params: ["fall*", GROUP] };
+
+  it("the Next strip and the block both keep the search", () => {
+    const filters = { kind: "event", author: AUTHOR, match } as const;
+    const { next, block, blockLinks } = aheadQueries(GROUP, filters, CUTOFF);
+    expect(next).toEqual(upcomingQuery(GROUP, { kind: null, author: null, match }, AT));
+    expect(block).toEqual(upcomingQuery(GROUP, filters, AT));
+    expect(blockLinks).toEqual(windowLinksQuery(upcomingWindow(GROUP, filters, AT)));
+    expect(next.sql).toContain("(timeline_entry.id IN (SELECT 1))");
+    expect(next.params.slice(0, 5)).toEqual([GROUP, "note", "event", "fall*", GROUP]);
+  });
+
+  it("no search is no condition", () => {
+    expect(aheadQueries(GROUP, { ...NONE, match: null }, CUTOFF)).toEqual(aheadQueries(GROUP, NONE, CUTOFF));
+  });
+});
+
 describe("seeAllSearch", () => {
   it("carries the author, and a kind Upcoming lists", () => {
     expect(seeAllSearch({ kind: "event", author: AUTHOR })).toEqual({ kind: "event", author: AUTHOR });

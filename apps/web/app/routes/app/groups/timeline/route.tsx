@@ -23,6 +23,8 @@ import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
 import { loadTimelineRows } from "./timelineRows";
+import { timelineSearch } from "./timelineSearch";
+import { settledSearchIndexStatus, useSearchIndexStatus } from "./useSearchIndexStatus";
 import { useTimelineData } from "./useTimelineData";
 import { useTimelineView } from "./useTimelineView";
 
@@ -45,16 +47,19 @@ export function meta({ loaderData }: Route.MetaArgs) {
 /**
  * The first screenful, read locally so the page renders complete: the
  * history up to now, and what's ahead of it (the Next strip, and the
- * Upcoming block with `?upcoming=1`). `?kind=` shows one kind and `?author=`
- * one person's entries. The group itself comes from the group route (which
+ * Upcoming block with `?upcoming=1`). `?kind=` shows one kind, `?author=`
+ * one person's entries and `?q=` the entries matching a search (through the
+ * device's search index; a reload waits a moment for it). The group itself comes from the group route (which
  * has already turned away a group not on the device).
  */
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const filters = parseFilters(new URL(request.url).search);
+  const status = await (filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const));
+  const { match } = timelineSearch(params.groupId, filters.q, status);
   const [rows, settings] = await Promise.all([
-    loadTimelineRows(db, params.groupId, filters),
+    loadTimelineRows(db, params.groupId, { kind: filters.kind, author: filters.author, match }),
     loadSettings(request, db.userId),
   ]);
   return { userId: db.userId, title: pageTitle(group.name), ...filters, ...rows, ...settings };
@@ -92,10 +97,12 @@ export function shouldRevalidate({
 }
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { userId, units, kind, author, upcoming } = loaderData;
+  const { userId, units, kind, author, q, upcoming } = loaderData;
   const { groupId } = params;
   const { canWrite } = useGroup();
-  const data = useTimelineData({ groupId, userId, filters: { kind, author }, initial: loaderData });
+  const search = timelineSearch(groupId, q, useSearchIndexStatus());
+  const filters = { kind, author, match: search.match };
+  const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
   const [view, setView] = useTimelineView(userId, loaderData.timelineView);
 
   return (
@@ -115,6 +122,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         <FilterChips
           kind={kind}
           author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
+          q={q}
         />
       </div>
       <TimelineEntryList
@@ -125,6 +133,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         canWrite={canWrite}
         kind={kind}
         author={author}
+        search={{ q, state: search.state }}
         upcoming={
           upcoming
             ? { items: data.upcoming, seeAll: appUrls.upcoming(groupId, seeAllSearch({ kind, author })) }

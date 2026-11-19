@@ -3,11 +3,14 @@ import {
   clearAuthor,
   clearFilters,
   clearKind,
+  clearQuery,
   clearUpcoming,
   hasFilters,
+  normalizeQuery,
   parseFilters,
   setAuthor,
   setKind,
+  setQuery,
   setUpcoming,
 } from "./timelineFilters";
 
@@ -16,27 +19,29 @@ const SAM = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0aaa";
 
 describe("parseFilters", () => {
   it("reads no filters from an empty search", () => {
-    expect(parseFilters("")).toEqual({ kind: null, author: null, upcoming: false });
-    expect(parseFilters("?")).toEqual({ kind: null, author: null, upcoming: false });
+    expect(parseFilters("")).toEqual({ kind: null, author: null, upcoming: false, q: "" });
+    expect(parseFilters("?")).toEqual({ kind: null, author: null, upcoming: false, q: "" });
   });
 
   it("reads a kind, an author, or both", () => {
-    expect(parseFilters("?kind=symptom")).toEqual({ kind: "symptom", author: null, upcoming: false });
-    expect(parseFilters(`?author=${ALEX}`)).toEqual({ kind: null, author: ALEX, upcoming: false });
+    expect(parseFilters("?kind=symptom")).toEqual({ kind: "symptom", author: null, upcoming: false, q: "" });
+    expect(parseFilters(`?author=${ALEX}`)).toEqual({ kind: null, author: ALEX, upcoming: false, q: "" });
     expect(parseFilters(`?kind=vital&author=${ALEX}`)).toEqual({
       kind: "vital",
       author: ALEX,
       upcoming: false,
+      q: "",
     });
     expect(parseFilters(`?author=${ALEX}&kind=note`)).toEqual({
       kind: "note",
       author: ALEX,
       upcoming: false,
+      q: "",
     });
   });
 
   it("reads a search without its question mark", () => {
-    expect(parseFilters("kind=event")).toEqual({ kind: "event", author: null, upcoming: false });
+    expect(parseFilters("kind=event")).toEqual({ kind: "event", author: null, upcoming: false, q: "" });
   });
 
   it("knows every kind", () => {
@@ -46,24 +51,35 @@ describe("parseFilters", () => {
   });
 
   it("ignores an unknown kind", () => {
-    expect(parseFilters("?kind=medication")).toEqual({ kind: null, author: null, upcoming: false });
-    expect(parseFilters("?kind=")).toEqual({ kind: null, author: null, upcoming: false });
-    expect(parseFilters("?kind=Symptom")).toEqual({ kind: null, author: null, upcoming: false });
+    expect(parseFilters("?kind=medication")).toEqual({ kind: null, author: null, upcoming: false, q: "" });
+    expect(parseFilters("?kind=")).toEqual({ kind: null, author: null, upcoming: false, q: "" });
+    expect(parseFilters("?kind=Symptom")).toEqual({ kind: null, author: null, upcoming: false, q: "" });
   });
 
   it("ignores an author that isn't a user id", () => {
-    expect(parseFilters("?author=alex")).toEqual({ kind: null, author: null, upcoming: false });
-    expect(parseFilters("?author=")).toEqual({ kind: null, author: null, upcoming: false });
+    expect(parseFilters("?author=alex")).toEqual({ kind: null, author: null, upcoming: false, q: "" });
+    expect(parseFilters("?author=")).toEqual({ kind: null, author: null, upcoming: false, q: "" });
     expect(parseFilters(`?author=${ALEX}'%20OR%201=1`)).toEqual({
       kind: null,
       author: null,
       upcoming: false,
+      q: "",
     });
   });
 
   it("keeps the valid filter when the other is unknown", () => {
-    expect(parseFilters(`?kind=nope&author=${ALEX}`)).toEqual({ kind: null, author: ALEX, upcoming: false });
-    expect(parseFilters("?kind=note&author=nope")).toEqual({ kind: "note", author: null, upcoming: false });
+    expect(parseFilters(`?kind=nope&author=${ALEX}`)).toEqual({
+      kind: null,
+      author: ALEX,
+      upcoming: false,
+      q: "",
+    });
+    expect(parseFilters("?kind=note&author=nope")).toEqual({
+      kind: "note",
+      author: null,
+      upcoming: false,
+      q: "",
+    });
   });
 
   it("reads an author id in lower case", () => {
@@ -71,7 +87,12 @@ describe("parseFilters", () => {
   });
 
   it("ignores other parameters", () => {
-    expect(parseFilters("?q=fall&kind=event")).toEqual({ kind: "event", author: null, upcoming: false });
+    expect(parseFilters("?view=cards&kind=event")).toEqual({
+      kind: "event",
+      author: null,
+      upcoming: false,
+      q: "",
+    });
   });
 });
 
@@ -177,11 +198,13 @@ describe("clearFilters", () => {
 
 describe("other parameters", () => {
   it("are kept through every change", () => {
-    expect(setKind("?q=fall", "event")).toBe("?kind=event&q=fall");
-    expect(setAuthor("?q=fall&kind=event", ALEX)).toBe(`?kind=event&author=${ALEX}&q=fall`);
-    expect(clearKind("?kind=event&q=fall")).toBe("?q=fall");
-    expect(clearAuthor(`?author=${ALEX}&q=fall`)).toBe("?q=fall");
-    expect(clearFilters(`?kind=event&author=${ALEX}&q=fall`)).toBe("?q=fall");
+    expect(setKind("?x=1", "event")).toBe("?kind=event&x=1");
+    expect(setAuthor("?x=1&kind=event", ALEX)).toBe(`?kind=event&author=${ALEX}&x=1`);
+    expect(clearKind("?kind=event&x=1")).toBe("?x=1");
+    expect(clearAuthor(`?author=${ALEX}&x=1`)).toBe("?x=1");
+    expect(clearFilters(`?kind=event&author=${ALEX}&x=1`)).toBe("?x=1");
+    expect(setQuery("?x=1", "fall")).toBe("?q=fall&x=1");
+    expect(clearQuery("?q=fall&x=1")).toBe("?x=1");
   });
 });
 
@@ -190,12 +213,12 @@ describe("a round trip", () => {
     let search = "";
     search = setKind(search, "symptom");
     search = setAuthor(search, ALEX);
-    expect(parseFilters(search)).toEqual({ kind: "symptom", author: ALEX, upcoming: false });
+    expect(parseFilters(search)).toEqual({ kind: "symptom", author: ALEX, upcoming: false, q: "" });
     search = clearKind(search);
-    expect(parseFilters(search)).toEqual({ kind: null, author: ALEX, upcoming: false });
+    expect(parseFilters(search)).toEqual({ kind: null, author: ALEX, upcoming: false, q: "" });
     search = setKind(search, "note");
     search = clearAuthor(search);
-    expect(parseFilters(search)).toEqual({ kind: "note", author: null, upcoming: false });
+    expect(parseFilters(search)).toEqual({ kind: "note", author: null, upcoming: false, q: "" });
   });
 });
 
@@ -208,6 +231,7 @@ describe("the Upcoming block (?upcoming=1)", () => {
       kind: "event",
       author: ALEX,
       upcoming: true,
+      q: "",
     });
   });
 
@@ -223,7 +247,7 @@ describe("the Upcoming block (?upcoming=1)", () => {
   });
 
   it("returns the same search when it changes nothing", () => {
-    expect(setUpcoming("?upcoming=1&q=x")).toBe("?upcoming=1&q=x");
+    expect(setUpcoming("?upcoming=1&x=y")).toBe("?upcoming=1&x=y");
     expect(clearUpcoming("?kind=note")).toBe("?kind=note");
   });
 
@@ -233,5 +257,71 @@ describe("the Upcoming block (?upcoming=1)", () => {
     expect(clearKind("?kind=note&upcoming=1")).toBe("?upcoming=1");
     expect(clearAuthor(`?author=${ALEX}&upcoming=1`)).toBe("?upcoming=1");
     expect(clearFilters(`?kind=note&author=${ALEX}&upcoming=1`)).toBe("?upcoming=1");
+  });
+});
+
+describe("the search (?q=)", () => {
+  it("reads the text, trimmed, with runs of spaces as one", () => {
+    expect(parseFilters("?q=fall").q).toBe("fall");
+    expect(parseFilters("?q=%20%20blood%20%20%20pressure%20").q).toBe("blood pressure");
+    expect(parseFilters("?q=").q).toBe("");
+    expect(parseFilters("?q=%20%20").q).toBe("");
+    expect(parseFilters("").q).toBe("");
+  });
+
+  it("keeps quotes and exclusions as typed", () => {
+    expect(parseFilters(`?q=${encodeURIComponent('"blood pressure" -pain')}`).q).toBe(
+      '"blood pressure" -pain',
+    );
+  });
+
+  it("caps the text at 200 characters", () => {
+    const long = "a".repeat(250);
+    expect(parseFilters(`?q=${long}`).q).toHaveLength(200);
+    expect(setQuery("", long)).toBe(`?q=${"a".repeat(200)}`);
+    expect(normalizeQuery(`${"b".repeat(199)} c`)).toBe("b".repeat(199));
+  });
+
+  it("is a filter", () => {
+    expect(hasFilters(parseFilters("?q=fall"))).toBe(true);
+    expect(hasFilters(parseFilters("?q=%20"))).toBe(false);
+  });
+
+  it("sets the search after the kind and author, before upcoming", () => {
+    expect(setQuery("", "fall")).toBe("?q=fall");
+    expect(setQuery(`?upcoming=1&author=${ALEX}&kind=note`, "fall")).toBe(
+      `?kind=note&author=${ALEX}&q=fall&upcoming=1`,
+    );
+    expect(setQuery("", "blood pressure")).toBe("?q=blood+pressure");
+  });
+
+  it("replaces another search, trimmed", () => {
+    expect(setQuery("?q=fall", "  walk ")).toBe("?q=walk");
+  });
+
+  it("returns the same search when the text is the same once trimmed", () => {
+    expect(setQuery("?q=fall", "fall ")).toBe("?q=fall");
+    expect(setQuery("", "   ")).toBe("");
+    expect(setQuery("?kind=note", "")).toBe("?kind=note");
+  });
+
+  it("clears the search with blank text, or clearQuery, keeping the other filters", () => {
+    expect(setQuery("?kind=note&q=fall", " ")).toBe("?kind=note");
+    expect(clearQuery(`?kind=note&author=${ALEX}&q=fall&upcoming=1`)).toBe(
+      `?kind=note&author=${ALEX}&upcoming=1`,
+    );
+    expect(clearQuery("?kind=note")).toBe("?kind=note");
+  });
+
+  it("stays through the kind and author changes", () => {
+    expect(setKind("?q=fall", "event")).toBe("?kind=event&q=fall");
+    expect(setAuthor("?q=fall&kind=event", ALEX)).toBe(`?kind=event&author=${ALEX}&q=fall`);
+    expect(clearKind("?kind=event&q=fall")).toBe("?q=fall");
+    expect(clearAuthor(`?author=${ALEX}&q=fall`)).toBe("?q=fall");
+  });
+
+  it("goes with clearFilters", () => {
+    expect(clearFilters(`?kind=event&author=${ALEX}&q=fall`)).toBe("");
+    expect(clearFilters("?q=fall&upcoming=1")).toBe("?upcoming=1");
   });
 });
