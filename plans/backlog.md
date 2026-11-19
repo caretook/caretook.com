@@ -43,7 +43,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
-| B-14 | plan | ready | providers | prd/providers | Provider links and suggestions while writing events and live notes |
+| B-14 | plan | landed | providers | prd/providers | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
@@ -237,7 +237,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
-- status: ready
+- status: landed
 - prd: providers
 - owner: prd/providers
 - commit: 1b1a039
