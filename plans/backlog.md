@@ -297,6 +297,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (backlog planner): From the inbox: PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead.
 - 2026-11-19 (backlog planner): Proposed for orchestration as a discussion first (no PRD yet): options include shared stacks (one Postgres with a database per worktree, one PowerSync), stackless slices for pure-module work, fewer browser checks per landing, and a lower browser lease count. Needs an interview before any change.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+- 2026-11-19 (slice/orchestration/5): slice 5 built on slice/orchestration/5 (2b59955): stackless slices by default, shared test Postgres (caretook-shared-test, :5436, db per worktree), pnpm prd stack up|down, gc, test-db; awaiting merge
 
 ### B-91 · feature · Need an Admin panel for caretook global administrators to manage users, care groups, and settings.
 
