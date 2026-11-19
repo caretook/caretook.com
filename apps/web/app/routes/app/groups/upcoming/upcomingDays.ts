@@ -25,7 +25,8 @@ const dayOf = (item: TimedEntry, viewerZone: string) => {
  * Upcoming, in sections: items in progress first ("Now"), then a section per
  * day, soonest first ("Today", "Tomorrow", "Friday, Nov 27"), all-day items
  * first in their day (`upcomingOrder`). Past items are left out, so as `now`
- * moves on, they leave without new rows.
+ * moves on, they leave without new rows. A cancelled item is never "Now": it
+ * stays in its day, struck through, until it's past.
  */
 export const upcomingSections = <T extends TimedEntry>(
   items: readonly T[],
@@ -37,8 +38,8 @@ export const upcomingSections = <T extends TimedEntry>(
   const ahead: T[] = [];
   for (const item of items) {
     const timing = entryTiming(item, now);
-    if (timing === "now") inProgress.push(item);
-    else if (timing === "upcoming") ahead.push(item);
+    if (timing === "now" && !item.cancelledAt) inProgress.push(item);
+    else if (timing !== "past") ahead.push(item);
   }
   const sections: UpcomingSection<T>[] = [];
   if (inProgress.length > 0) {

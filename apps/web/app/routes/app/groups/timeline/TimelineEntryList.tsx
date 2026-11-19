@@ -1,9 +1,10 @@
 import type { TimelineData } from "./useTimelineData";
 import type { TimelineEntryKind, TimelineView, UnitChoices } from "@caretook/data/schema";
+import type { TimelineEntry } from "~/lib/rpc";
 
 import { useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { OlderEntries } from "~/components/entry";
+import { CancelEventDialog, OlderEntries, useEventCancel } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { emptyTimelineText } from "./entryLabels";
 import { entryOpen } from "./entryOpen";
@@ -54,6 +55,16 @@ export function TimelineEntryList({
   const { search } = useLocation();
   const navigate = useNavigate();
   const removal = useEntryRemoval();
+  const cancelling = useEventCancel();
+  // Writers cancel an event (or undo it) from its ⋯ menu.
+  const cancelOf = (entry: TimelineEntry) =>
+    canWrite && entry.kind === "event"
+      ? {
+          cancelled: !!entry.cancelledAt,
+          onCancel: () => cancelling.ask(entry.id),
+          onUncancel: () => cancelling.undo(entry.id),
+        }
+      : undefined;
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
 
   // A new filter starts again from the newest entry: when the list's top is
@@ -75,6 +86,11 @@ export function TimelineEntryList({
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
+        {cancelling.error && (
+          <p role="alert" className="text-error text-sm">
+            {cancelling.error}
+          </p>
+        )}
         {data.days.length === 0 && (
           <p className="text-base-content/70" data-empty>
             {emptyTimelineText(kind, author && data.nameOf(author))}
@@ -106,6 +122,7 @@ export function TimelineEntryList({
                         : undefined
                     }
                     onDelete={canWrite ? () => removal.ask(entry) : undefined}
+                    cancel={cancelOf(entry)}
                     liveLabel={data.liveLabelOf(entry.id)}
                     providers={data.providersOf(entry.id)}
                   />
@@ -130,6 +147,7 @@ export function TimelineEntryList({
         onClose={removal.cancel}
         onConfirm={removal.confirm}
       />
+      <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
     </>
   );
 }

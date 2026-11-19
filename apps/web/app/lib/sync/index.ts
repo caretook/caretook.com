@@ -34,6 +34,7 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
           liveEntry: await import("./liveEntry"),
           timeline: await import("./timeline"),
           medications: await import("./medications"),
+          appointments: await import("./appointments"),
         });
       }
       return (ready = db);

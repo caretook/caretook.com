@@ -3,7 +3,7 @@ import type { TitleState } from "./entryPage";
 import type { LiveEntry } from "./useLiveEntry";
 
 import { useState } from "react";
-import { EntryActions } from "~/components/entry";
+import { CancelEventDialog, EntryActions } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
@@ -17,7 +17,8 @@ import { ShareButton } from "./ShareButton";
 /**
  * The entry page's header, filled from its live entry: the title, when it
  * happened (a chip for writers), who's writing, and, once there's an entry to
- * link to, Share for everyone and the ⋯ menu (Delete, confirmed) for writers;
+ * link to, Share for everyone and the ⋯ menu for writers (an event's Cancel or
+ * Undo cancel, then Delete, each confirmed but Undo);
  * who it was with (providers); and, for events, where it is.
  */
 export function EntryPageHeader({
@@ -42,6 +43,7 @@ export function EntryPageHeader({
   const { entry, canWrite, deleted, stored } = live;
   const noun = KIND_META[entry.kind].label.toLowerCase();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   // The title being typed counts for suggestions until it's saved (or someone else renames it).
   const [typed, setTyped] = useState<{ text: string; over: string | null } | null>(null);
   const currentTitle = typed && typed.over === entry.title ? typed.text : entry.title;
@@ -88,6 +90,15 @@ export function EntryPageHeader({
                 <EntryActions
                   kind={entry.kind}
                   label={`Actions for this ${noun}`}
+                  cancel={
+                    entry.kind === "event"
+                      ? {
+                          cancelled: !!entry.cancelledAt,
+                          onCancel: () => setConfirmCancel(true),
+                          onUncancel: live.uncancel,
+                        }
+                      : undefined
+                  }
                   onDelete={() => setConfirmDelete(true)}
                 />
               )}
@@ -127,6 +138,14 @@ export function EntryPageHeader({
           void live.remove();
         }}
         onClose={() => setConfirmDelete(false)}
+      />
+      <CancelEventDialog
+        open={confirmCancel}
+        onConfirm={(reason) => {
+          setConfirmCancel(false);
+          live.cancel(reason);
+        }}
+        onClose={() => setConfirmCancel(false)}
       />
     </>
   );

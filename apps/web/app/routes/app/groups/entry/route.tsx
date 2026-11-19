@@ -12,6 +12,7 @@ import { getGroup } from "~/lib/group";
 import { NEW_ENTRY } from "~/lib/liveEntry";
 import { sessionContext } from "~/lib/session";
 import { getSync } from "~/lib/sync";
+import { EntryCancelledBanner } from "./EntryCancelledBanner";
 import { EntryPageHeader } from "./EntryPageHeader";
 import { entryHeading, titleState } from "./entryPage";
 import { loadEntry } from "./loadEntry";
@@ -91,6 +92,15 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
         }}
         editors={!deleted && <EditorAvatars documentId={entry.id} groupId={groupId} viewerId={db.userId} />}
       />
+      {!deleted && (
+        <EntryCancelledBanner
+          groupId={groupId}
+          cancelledAt={entry.cancelledAt}
+          cancelledBy={entry.cancelledBy}
+          cancelReason={entry.cancelReason}
+          onUndo={canWrite ? live.uncancel : undefined}
+        />
+      )}
       {saveError && (
         <p role="alert" className="text-error text-sm">
           {saveError}

@@ -1,4 +1,5 @@
 import type { UnitChoices } from "@caretook/data/schema";
+import type { ReactNode } from "react";
 import type { TimelineEntry } from "~/lib/rpc";
 import type { LinkedContact } from "./upcomingContact";
 
@@ -19,8 +20,8 @@ const breakable = (text: string) => text.replace("–", "–​");
  * One upcoming (or past) item as a row: kind icon (a filter), its time
  * ("10:30 AM–11:15 AM", "All day", or "Now · until 11:15 AM"), the entry's
  * body with its "with …" line, its place, "Cancelled" (struck through), the
- * call and map actions, and the author's initials (a filter). The whole row
- * opens the entry's page.
+ * call and map actions, the author's initials (a filter) and, for writers,
+ * the ⋯ menu (`menu`). The whole row opens the entry's page.
  */
 export function UpcomingRow({
   entry,
@@ -31,6 +32,7 @@ export function UpcomingRow({
   authorImage,
   contacts,
   rescheduledTo,
+  menu,
 }: {
   entry: TimelineEntry;
   groupId: string;
@@ -41,10 +43,13 @@ export function UpcomingRow({
   contacts?: LinkedContact[];
   /** A cancelled event's new one, when it was rescheduled and that's on the device. */
   rescheduledTo?: TimelineEntry;
+  /** The entry's ⋯ menu (writers only). */
+  menu?: ReactNode;
 }) {
-  const inProgress = entryTiming(entry, now) === "now";
-  const when = inProgress ? nowLabel(entry) : timeRange(entry);
   const cancelled = cancelledLabel(entry);
+  // A cancelled item isn't happening, so it's never "Now".
+  const inProgress = !cancelled && entryTiming(entry, now) === "now";
+  const when = inProgress ? nowLabel(entry) : timeRange(entry);
   const place = placeOf(entry, contacts);
   const actions = upcomingActions(entry, contacts);
 
@@ -100,6 +105,7 @@ export function UpcomingRow({
         initials={initials(authorName)}
         image={authorImage}
       />
+      {menu}
     </li>
   );
 }

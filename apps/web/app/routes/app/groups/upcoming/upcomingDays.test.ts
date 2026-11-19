@@ -41,6 +41,26 @@ describe("upcomingSections", () => {
     ]);
   });
 
+  it("never puts a cancelled item under Now: it stays in its day until it ends", () => {
+    const items = [
+      at("later-today", "2026-11-18T22:00:00.000Z"),
+      at("cancelled-visit", "2026-11-18T17:30:00.000Z", {
+        endsAt: "2026-11-18T18:15:00.000Z",
+        cancelledAt: "2026-11-17T00:00:00.000Z",
+      }),
+      at("visit", "2026-11-18T17:45:00.000Z", { endsAt: "2026-11-18T18:30:00.000Z" }),
+    ];
+    expect(shape(upcomingSections(items, NOW, LA, "en-US"))).toEqual([
+      ["Now", ["visit"]],
+      ["Today", ["cancelled-visit", "later-today"]],
+    ]);
+    const after = new Date("2026-11-18T18:20:00.000Z");
+    expect(shape(upcomingSections(items, after, LA, "en-US"))).toEqual([
+      ["Now", ["visit"]],
+      ["Today", ["later-today"]],
+    ]);
+  });
+
   it("drops an item once its time passes, and one in progress once it ends", () => {
     const items = [
       at("soon", "2026-11-18T18:00:30.000Z"),
