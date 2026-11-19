@@ -10,7 +10,7 @@
 | 2     | in progress (wave 2)                      |                                               |
 | 3     | in progress (wave 2)                      |                                               |
 | 4     | in progress (wave 2)                      |                                               |
-| 5     | in progress (wave 2)                      |                                               |
+| 5     | merged `286b8a5` (0d6b10e, 2afb30a)       | Home and Hospice at home suggest no place (the discharging practice isn't where they are) |
 | 6     | in progress (search is in `dev` since the `475bf7c` sync) |                                               |
 
 **Landing mode: run everything through** (the user queued this PRD with `pnpm prd queue care-periods`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
