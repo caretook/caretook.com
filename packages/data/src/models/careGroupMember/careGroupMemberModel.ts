@@ -72,3 +72,27 @@ export const insertFirstOwner = async (args: { groupId: string; userId: string; 
       }),
     "careGroupMemberModel:insertFirstOwner",
   );
+
+/**
+ * Lock every membership in `groupId` and return them. For services that
+ * rewrite the emergency list (ranks, the primary contact), inside the
+ * transaction that changes it, after they've checked the actor's role.
+ */
+export const lockGroupMembers = async (groupId: string, tx: Tx) =>
+  dbMayFail(
+    () =>
+      tx
+        .select()
+        .from(careGroupMemberSchema)
+        .where(eq(careGroupMemberSchema.groupId, groupId))
+        .orderBy(careGroupMemberSchema.createdAt)
+        .for("update"),
+    "careGroupMemberModel:lockGroupMembers",
+  );
+
+/** Every membership of `userId`. Unscoped: for keeping their own shares in step. */
+export const listForUser = async (userId: string, tx: Tx) =>
+  dbMayFail(
+    () => tx.select().from(careGroupMemberSchema).where(eq(careGroupMemberSchema.userId, userId)),
+    "careGroupMemberModel:listForUser",
+  );

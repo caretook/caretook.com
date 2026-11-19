@@ -132,6 +132,7 @@ const SETTINGS_ITEMS = [
   { id: "units", label: "Units", path: "/app/settings/units" },
   { id: "timeline", label: "Timeline layout", path: "/app/settings/timeline" },
   { id: "account", label: "Account", path: "/app/settings/account" },
+  { id: "contact", label: "Contact details", path: "/app/settings/contact" },
 ];
 const settingsNav = `document.querySelector("nav[data-settings-nav]")`;
 const settingsLink = (id) => `${settingsNav}?.querySelector('[data-settings-item="${id}"]')`;
@@ -164,17 +165,18 @@ async function settingsSteps(p) {
   await p.waitFor(`${settingsLink("account")}`, 30000).catch(() => {});
   let s = await state();
   check(
-    "420: /app/settings is the list of three items, with no subpage and no back link",
+    "420: /app/settings is the list of four items, with no subpage and no back link",
     s.path === "/app/settings" &&
       s.navShown &&
       !s.back &&
       s.h1.join() === "Settings" &&
-      (await p.evaluate(`${settingsNav}.querySelectorAll("[data-settings-item]").length`)) === 3 &&
+      (await p.evaluate(`${settingsNav}.querySelectorAll("[data-settings-item]").length`)) ===
+        SETTINGS_ITEMS.length &&
       s.items.join() === SETTINGS_ITEMS.map((i) => i.label).join(),
     JSON.stringify(s),
   );
   await p.screenshot("routing-settings-list-420");
-  // One item stands for all three: they're one list, rendered from ACCOUNT_SETTINGS.
+  // One item stands for them all: they're one list, rendered from ACCOUNT_SETTINGS.
   for (const item of SETTINGS_ITEMS.slice(0, 1)) {
     await p.waitFor(settingsLink(item.id), 10000);
     await p.evaluate(`${settingsLink(item.id)}.click()`);

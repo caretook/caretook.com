@@ -5,6 +5,7 @@ import { ACTION_ICONS, actionLinkProps } from "~/components/providers";
 import { allActions, callAction } from "~/lib/contactActions";
 
 const CAPTIONS: Record<Exclude<ContactAction["kind"], "call">, string> = {
+  text: "Text",
   email: "Email",
   map: "Address",
   website: "Website",

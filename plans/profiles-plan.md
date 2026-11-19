@@ -4,16 +4,18 @@
 
 ## Status
 
-| Slice | State               | Merge into `prd/profiles` (slice commits) |
-| ----- | ------------------- | ----------------------------------------- |
-| 1     | not started (ready) |                                           |
-| 2     | blocked by 1        |                                           |
-| 3     | blocked by 2        |                                           |
-| 4     | blocked by 1        |                                           |
-| 5     | blocked by 3 and 4  |                                           |
-| 6     | blocked by 5        |                                           |
+| Slice | State            | Merge into `prd/profiles` (slice commits) |
+| ----- | ---------------- | ----------------------------------------- |
+| 1     | merged           | `925d469` (9a56249, b1f1464, bd9a562)     |
+| 2     | merged `fd4d0e0` |                                           |
+| 3     | merged `9fcda5a` |                                           |
+| 4     | merged `f07de69` |                                           |
+| 5     | merged `4a72ee4` |                                           |
+| 6     | merged `e78a73b` |                                           |
 
-Backlog: B-45 and B-46 are `triaged`. Claim both when slice 1 starts; mark B-45 `done` after slice 3 merges and B-46 after slice 5 (or both after slice 6). The PRD and this plan are on `plan/profiles` until they land in `dev`.
+**Done:** all six slices merged; `dev` synced in `70c1076` (search's `0016_search` kept, ours regenerated as `0017_profiles`; Details keeps quick-fixes' recipient time zone, B-65, beside the profile link). Backlog: B-45 and B-46 are done (ready); mark B-45 `done` after slice 3 merges and B-46 after slice 5 (or both after slice 6).
+
+Notes from slice 1: `care_group_writers` filters on `role != 'viewer'` (PowerSync 1.28.3 rejects `IN (...)`), so a future read-only role must be excluded there too. Migration `0016_profiles` ends with a hand-written `ALTER PUBLICATION`: keep it when regenerating. Membership removal leaves a gap in the emergency order until the next renumber. Slice 4 writes its browser steps to `profiles-contacts.mjs` (slice 2 owns `profiles.mjs`), to avoid a conflict. The timeline's recipient card can't be dismissed (an open question in the PRD; not built). Slice 5 regenerated `0016_profiles` to add `care_group_member.emergency_dropped_at` (the managers' "dropped off the list" note; `setOrder` clears it). **Landing:** the user chose to hold landing until all six slices are merged, then run the full suite once and land everything.
 
 ## Architectural decisions
 

@@ -16,6 +16,7 @@ const appRoutes = [
         route("units", "routes/app/settings/units/route.tsx"),
         route("timeline", "routes/app/settings/timeline/route.tsx"),
         route("account", "routes/app/settings/account/route.tsx"),
+        route("contact", "routes/app/settings/contact/route.tsx"),
       ]),
       route("groups/:groupId", "routes/app/groups/layout/route.tsx", { id: "group" }, [
         index("routes/app/groups/index/route.tsx"),
@@ -51,6 +52,15 @@ const appRoutes = [
         // Appointments and reminders still to come, and the Past tab (past events).
         route("upcoming", "routes/app/groups/upcoming/route.tsx"),
         route("upcoming/past", "routes/app/groups/upcoming/past/route.tsx"),
+        // The care recipient's profile (not a section), with its edit sheets over it.
+        route("profile", "routes/app/groups/profile/route.tsx", [
+          route("basics", "routes/app/groups/profile/basics/route.tsx"),
+          route("contact", "routes/app/groups/profile/contact/route.tsx"),
+          route("insurance", "routes/app/groups/profile/insurance/route.tsx"),
+          route("emergency", "routes/app/groups/profile/emergency/route.tsx"),
+        ]),
+        // The printable emergency sheet: a page of its own, not a sheet over the profile.
+        route("profile/print", "routes/app/groups/profile/print/route.tsx"),
         // Search the group's entries, providers and medications (not a section; the header's magnifier).
         route("search", "routes/app/groups/search/route.tsx"),
       ]),

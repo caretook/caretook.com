@@ -5,9 +5,9 @@ import type { LocalProvider } from "~/lib/sync/providers";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { PROVIDER_LIMITS, PROVIDER_TYPES } from "@caretook/data/schema";
+import { PhoneFields } from "~/components/contact";
 import { ChoiceGroup, Field } from "~/components/ui";
 import { PROVIDER_TYPE_META } from "~/lib/providerDirectory";
-import { PhoneFields } from "./PhoneFields";
 import { FIELD, hasPractice } from "./providerFormData";
 
 /** What the specialty field is called, and an example, per type. */
