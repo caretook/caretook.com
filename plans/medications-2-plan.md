@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | State                           | Merge into `prd/medications-2` (slice commits) |
-| ----- | ------------------------------- | ---------------------------------------------- |
-| 1     | merged                          | d92771a (05033d4, 9f776b7, 1b52df3)            |
-| 2     | in progress                     |                                                |
-| 3     | in progress                     |                                                |
-| 4     | blocked by 2                    |                                                |
-| 5     | blocked by 4 (B-78 is in `dev`) |                                                |
-| 6     | blocked by 4                    |                                                |
-| 7     | blocked by 2 and 3              |                                                |
+| Slice | State                           | Merge into `prd/medications-2` (slice commits)  |
+| ----- | ------------------------------- | ----------------------------------------------- |
+| 1     | merged                          | d92771a (05033d4, 9f776b7, 1b52df3)             |
+| 2     | in progress                     |                                                 |
+| 3     | merged                          | eff620e (6938aaf, c74c009, 1b1efa5); B-26 ready |
+| 4     | blocked by 2                    |                                                 |
+| 5     | blocked by 4 (B-78 is in `dev`) |                                                 |
+| 6     | blocked by 4                    |                                                 |
+| 7     | blocked by 2 and 3              |                                                 |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
