@@ -28,6 +28,11 @@
 // provider (one offline) make one link; a deleted provider's chip is greyed;
 // a viewer sees chips only.
 //
+// Slice 6 (suggestions): typing a title that names a clinician suggests them
+// first, and one tap links them; a title used before suggests who was linked
+// then; with nothing to match, recent links; the chips go once linked; and
+// all of it offline. The ranking itself is unit-tested.
+//
 // The device steps drive the device module itself (lib/sync/providers.ts,
 // imported through Vite) against `window.caretookSync`. Later slices add
 // their screens' steps here. Every provider and entry it makes
@@ -41,7 +46,7 @@
 // core path: the seeds on the device, the list and a search, one add through
 // the sheet, and the provider page.
 import { execSync } from "node:child_process";
-import { launch, openPage, sleep, SMOKE } from "./cdp.mjs";
+import { launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -1207,6 +1212,125 @@ async function viewerWithSteps(C, eventId) {
   );
 }
 
+// --- Suggestions (slice 6) ---------------------------------------------------
+// The ranking rules are unit-tested (providerSuggestions.test.ts); these steps
+// check the wiring: chips show while nothing is linked, a tap links, and
+// they go once something is.
+
+const SUGGESTIONS = `${WITH}?.querySelector("[data-provider-suggestions]")`;
+const ENTRY_TITLE = `document.querySelector("main header input")`;
+const suggested = (p) =>
+  p.evaluate(`[...(${SUGGESTIONS}?.querySelectorAll("button") ?? [])].map((b) => b.textContent.trim())`);
+const suggestionNamed = (name) =>
+  `[...(${SUGGESTIONS}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(name)})`;
+const firstSuggestionIs = (name) =>
+  `${SUGGESTIONS}?.querySelector("button")?.textContent.trim() === ${JSON.stringify(name)}`;
+
+/** A new draft of `kind` on A, with `title` typed (not yet saved). */
+async function draftWithTitle(p, kind, title) {
+  await p.goto(`/app/groups/${DEV_FAMILY}/entries/new?kind=${kind}`);
+  await p.waitFor(`location.pathname.endsWith("/entries/new") && ${NOTES} && ${ENTRY_TITLE}`, 30000);
+  if (title) {
+    await p.evaluate(`${ENTRY_TITLE}.focus()`);
+    await p.type(ENTRY_TITLE, title);
+  }
+}
+
+/** Tap the suggestion `name`; returns the entry's id once the URL is the entry's own. */
+async function tapSuggestion(p, name) {
+  await p.tap(suggestionNamed(name));
+  await p.waitFor(`!location.pathname.endsWith("/entries/new") && ${hasChip(name)}`, 20000).catch(() => {});
+  return p.evaluate(`location.pathname.split("/").pop()`);
+}
+
+/**
+ * A (caretaker, behind `proxy`): a title naming a clinician suggests them
+ * first, and one tap after typing links them; the chips go once linked;
+ * (full mode) a title used before suggests who was linked then, a note
+ * with nothing to match suggests recent links, and suggestions work
+ * offline. Returns the entries it made, for clean-up.
+ */
+async function suggestionSteps(A, proxy) {
+  const entries = [];
+  const patelId = psql(`SELECT id FROM provider WHERE group_id = '${DEV_FAMILY}' AND name = '${PATEL}'`);
+
+  // Typing "Dr. Patel follow-up" suggests Dr. Patel first; one tap (no Enter) links him.
+  await draftWithTitle(A, "event", `Dr. Patel follow-up ${tag}`);
+  await A.waitFor(firstSuggestionIs(PATEL), 15000).catch(() => {});
+  const typed = await suggested(A);
+  check(
+    "typing a title that names a clinician suggests them first",
+    typed[0] === PATEL,
+    JSON.stringify(typed),
+  );
+  const eventId = await tapSuggestion(A, PATEL);
+  entries.push(eventId);
+  const linked = await waitForSql(
+    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${eventId}' AND provider_id = '${patelId}'`,
+    (v) => v === "1",
+  );
+  const title = psql(`SELECT title FROM timeline_entry WHERE id = '${eventId}'`);
+  check(
+    "one tap after the title saves the event with its title and links the clinician",
+    linked === "1" && title === `Dr. Patel follow-up ${tag}`,
+    JSON.stringify({ linked, title }),
+  );
+  check("suggestions hide once a provider is linked", await A.evaluate(`!${SUGGESTIONS}`));
+
+  if (SMOKE) return entries;
+
+  // A title used before suggests who was linked to it (the seeded "Pharmacy pickup" → Cornerstone).
+  await draftWithTitle(A, "event", "Pharmacy pickup");
+  await A.waitFor(firstSuggestionIs(CORNERSTONE), 15000).catch(() => {});
+  const memory = await suggested(A);
+  check(
+    "a title used before suggests the provider linked to it",
+    memory[0] === CORNERSTONE,
+    JSON.stringify(memory),
+  );
+  // Leave the draft unsaved: clear the typed title before going on.
+  await A.type(ENTRY_TITLE, "");
+
+  // Nothing to match: a new note suggests recently linked providers, Dr. Patel (just now) among them.
+  // (Their order, frequency against recency, is unit-tested.)
+  await draftWithTitle(A, "note", "");
+  await A.waitFor(suggestionNamed(PATEL), 15000).catch(() => {});
+  const recent = await suggested(A);
+  check(
+    "with nothing to match, recently linked providers are suggested",
+    recent.includes(PATEL) && recent.length <= 5,
+    JSON.stringify(recent),
+  );
+
+  // Offline (a full load can't open the app offline, so the draft opens first): the chips still come,
+  // and a tap links on the device, then uploads.
+  await draftWithTitle(A, "event", "");
+  proxy.setOnline(false);
+  await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000);
+  await A.evaluate(`${ENTRY_TITLE}.focus()`);
+  await A.type(ENTRY_TITLE, `Cornerstone Pharmacy refill ${tag}`);
+  await A.waitFor(firstSuggestionIs(CORNERSTONE), 15000).catch(() => {});
+  const offline = await suggested(A);
+  const offlineId = await tapSuggestion(A, CORNERSTONE);
+  entries.push(offlineId);
+  const local = await localRows(A, `SELECT count(*) AS n FROM timeline_entry_provider WHERE entry_id = ?`, [
+    offlineId,
+  ]);
+  check(
+    "offline: suggestions show, and a tap links on the device",
+    offline[0] === CORNERSTONE && local[0]?.n === 1 && (await A.evaluate(`!${SUGGESTIONS}`)),
+    JSON.stringify({ offline, local }),
+  );
+  proxy.setOnline(true);
+  const uploaded = await waitForSql(
+    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${offlineId}'`,
+    (v) => v === "1",
+    30000,
+  );
+  check("…and the link uploads after reconnecting", uploaded === "1", `${uploaded} links`);
+  return entries;
+}
+
 async function signIn(p, email) {
   // On a fresh dev server the first load can fail while Vite optimises its deps: one retry.
   await p.signIn(email, PW).catch(async () => {
@@ -1327,6 +1451,11 @@ try {
 
   // --- The provider page and its live notes (slice 4) -----------------------
   const notesProvider = await providerPageSteps(A, B, proxyA);
+
+  // --- Suggestions while nothing is linked (slice 6) ------------------------
+  const suggestionEntries = await step("provider suggestions", { smoke: true }, () =>
+    suggestionSteps(A, proxyA),
+  );
 
   // Smoke stops here: offline, a second member, the viewer and a non-member are full mode's.
   let withRow = null;
@@ -1528,6 +1657,26 @@ try {
     (v) => v === "0",
   );
   check("clean up: this run's providers are deleted", sheetCleaned && sheetGone === "0");
+
+  const suggestionsCleaned = await onDevice(
+    A,
+    `const out = [];
+     for (const id of ${JSON.stringify(suggestionEntries)}) {
+       const links = await db.powersync.getAll("SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?", [id]);
+       for (const l of links) out.push((await providers.unlinkProvider(db, id, l.provider_id)).ok);
+       out.push((await timeline.removeEntry(db, id)).ok);
+     }
+     return out.every(Boolean);`,
+  );
+  const suggestionsGone = await waitForSql(
+    `SELECT (SELECT count(*) FROM timeline_entry_provider WHERE entry_id IN ('${suggestionEntries.join("','")}')) || '|' || (SELECT count(*) FROM timeline_entry WHERE id IN ('${suggestionEntries.join("','")}') AND deleted_at IS NULL)`,
+    (v) => v === "0|0",
+  );
+  check(
+    "clean up: the suggestion steps' links and entries are gone",
+    suggestionsCleaned && suggestionsGone === "0|0",
+    suggestionsGone,
+  );
 
   if (!SMOKE) {
     const withCleaned = await onDevice(

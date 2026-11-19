@@ -3,7 +3,7 @@ import type { ProviderRow } from "~/lib/sync/providers";
 
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChipList, ComboBox } from "~/components/ui";
+import { ChipGroup, ChipList, ComboBox } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import {
@@ -14,9 +14,12 @@ import {
   toProviders,
   unlinkProvider,
 } from "~/lib/sync/providers";
+import { useProviderSuggestions } from "~/lib/sync/providerSuggestions";
 import { canAddNamed, chipLabel, pickerOptions } from "./withProviders";
 
 const NO_ROWS: ProviderRow[] = [];
+/** The linked providers before the first read: no suggestions until it's known that there are none. */
+const NOT_READ_YET: ProviderRow[] = [];
 
 /**
  * The entry header's With region: who a note or event was with. Every
@@ -24,23 +27,29 @@ const NO_ROWS: ProviderRow[] = [];
  * "(removed)", and not a link). Writers remove a chip with its ×, and add
  * through a picker over the group's providers, which can also add a new
  * clinician by the typed name, linked in the same write. Linking on a draft
- * saves it first (`ensureStored`); the editor stays where it is. Viewers see
- * the chips only, and nothing when there are none.
+ * saves it first (`ensureStored`); the editor stays where it is. While
+ * nothing is linked, writers also get up to 5 suggested providers (named in
+ * the title or text, linked to entries with this title before, or linked
+ * recently), each linked in one tap the same way. Viewers see the chips
+ * only, and nothing when there are none.
  */
 export function EntryWithRow({
   entryId,
   groupId,
   canWrite,
+  title,
   ensureStored,
 }: {
   entryId: string;
   groupId: string;
   canWrite: boolean;
+  /** The title as it is now (typed or saved), for suggestions. */
+  title: string | null;
   /** Saves a draft; resolves true once the entry is stored. */
   ensureStored: () => Promise<boolean>;
 }) {
   const query = entryProvidersQuery(entryId);
-  const rows = useLiveQuery<ProviderRow>(query.sql, query.params, NO_ROWS);
+  const rows = useLiveQuery<ProviderRow>(query.sql, query.params, NOT_READ_YET);
   const linked = useMemo(() => toProviders(rows), [rows]);
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,11 +123,44 @@ export function EntryWithRow({
             </button>
           ))}
       </div>
+      {canWrite && !picking && rows !== NOT_READ_YET && linked.length === 0 && (
+        <ProviderSuggestions
+          groupId={groupId}
+          entryId={entryId}
+          title={title}
+          onPick={(id) => void link(id)}
+        />
+      )}
       {error && (
         <p role="alert" className="text-error text-sm">
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+/** One-tap suggestions while nothing is linked: a list of chips, each named "Link <name>". */
+function ProviderSuggestions({
+  groupId,
+  entryId,
+  title,
+  onPick,
+}: {
+  groupId: string;
+  entryId: string;
+  title: string | null;
+  onPick: (providerId: string) => void;
+}) {
+  const suggested = useProviderSuggestions({ groupId, entryId, title });
+  if (suggested.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5" data-provider-suggestions>
+      <span className="text-base-content/70 text-sm">Suggested</span>
+      <ChipGroup
+        label="Suggested providers"
+        actions={suggested.map((p) => ({ id: p.id, label: p.name, onPress: () => onPick(p.id) }))}
+      />
     </div>
   );
 }
