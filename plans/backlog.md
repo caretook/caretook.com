@@ -69,7 +69,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | landed | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
-| B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
+| B-32 | plan | ready | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-34 | change | landed | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
 | B-35 | bug | landed | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
@@ -84,7 +84,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-44 | change | triaged | quick-fixes |  | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
 | B-45 | change | triaged | profiles |  | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | triaged | profiles |  | optional phone number, address, etc on group members that can be published to the group for… |
-| B-47 | feature | triaged | appointments |  | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
+| B-47 | feature | in-progress | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
 | B-49 | feature | triaged | assistant |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-50 | feature | triaged | care-periods |  | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
@@ -487,10 +487,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-32 · plan · Landing page and basic marketing pages
 
-- status: in-progress
+- status: ready
 - prd: marketing
 - owner: prd/marketing
-- commit:
+- commit: df55253
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. The public site at caretook.com (web build only).
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/marketing-prd.md, plans/marketing-plan.md (5 slices; slice 1, the frame and home page, can start now). No new dependencies; waitlist and contact need invites slice 1, the admin list invites slice 5.
@@ -645,9 +645,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
 
-- status: triaged
+- status: in-progress
 - prd: appointments
-- owner:
+- owner: prd/appointments
 - commit:
 
 - 2026-11-18 (prd/marketing): From the inbox: Deal with future event display (appointments) notes can be set to the future date as well. Symptoms and vitals cannot. Medication reminders may be a specialized type of future item on the timeline. Display of future events on timeline should be toggled somehow.
