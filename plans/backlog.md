@@ -98,6 +98,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-59 | chore | triaged | orchestration |  | Clean up/truncate this file and the backlog periodically. |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
+| B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 
 ## Items
 
@@ -750,6 +751,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Proposed for orchestration: a 'pnpm backlog archive' that moves live (or landed) items out of backlog.md into an archive file and prunes their inbox bullets, run by hand or at landing.
 
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
+
+- status: triaged
+- prd: appointments
+- owner:
+- commit:
+
+- 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
+
+### B-61 · feature · Appointment reminders by email and push before the appointment
 
 - status: triaged
 - prd: appointments
