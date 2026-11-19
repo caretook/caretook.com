@@ -900,6 +900,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner:
 - commit:
 
+- 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: cap the suggested-provider chips on phones (entry With row, providerSuggestions); one slice.
+
 ### B-73 · bug · timeline entry add modal should take up the full screen on mobile, don't leave room for header.
 
 - status: triaged
