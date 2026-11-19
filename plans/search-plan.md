@@ -6,14 +6,14 @@
 
 | Slice | State                                    | Merge into `prd/search` (slice commits) |
 | ----- | ---------------------------------------- | --------------------------------------- |
-| 1     | not started (ready)                      |                                         |
-| 2     | blocked by 1, and `appointments` landing |                                         |
+| 1     | in progress (slot 4, `.loops/search-1`)  |                                         |
+| 2     | blocked by 1, and `appointments` slice 7 |                                         |
 | 3     | blocked by 1                             |                                         |
 | 4     | blocked by 2 and 3                       |                                         |
 | 5     | blocked by 3                             |                                         |
 | 6     | blocked by 1                             |                                         |
 
-Backlog: B-11 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. The PRD and this plan are on `plan/search`, not yet in `dev`.
+Backlog: B-11 is claimed by `prd/search`; mark it `done` after the last slice merges. The user said (2026-11-19) to land waves without asking, move on to the next work, and clean up at the end. Slice 2 waits until `appointments` has fully landed, including its slice 7 (the user's call), not just slices 1–6.
 
 ## Architectural decisions
 
