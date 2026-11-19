@@ -21,6 +21,8 @@ import {
   withoutPass,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
+import { useMemo } from "react";
+import { useLiveQuery } from "./index";
 import { recipientQuery, toMedications } from "./medications";
 import { medicationPasses, medications, timelineEntries } from "./schema";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows, WRITER_ROLES } from "./timeline";
@@ -100,6 +102,23 @@ export const groupMedicationsQuery = (groupId: string): LocalQuery => ({
 /** Each pass with the current medications in it (by name), for the Passes screen. */
 export const passesWithMedications = (passes: readonly LocalPass[], meds: readonly LocalMedication[]) =>
   passes.map((pass) => ({ pass, medications: medicationsInPass(meds, pass.id) }));
+
+const NO_PASS_ROWS: PassRow[] = [];
+
+/** A loader's read of the group's passes (deleted ones too), for `useSchedulePasses`. */
+export const loadSchedulePasses = (db: SyncDb, groupId: string) =>
+  readRows<PassRow>(db, passesQuery(groupId, { includeDeleted: true }));
+
+/**
+ * The group's passes as schedules need them, live: deleted ones too (a
+ * schedule naming one still reads its name and time), in the day's order.
+ * `initial` is a loader's `loadSchedulePasses`.
+ */
+export function useSchedulePasses(groupId: string, initial: PassRow[] = NO_PASS_ROWS) {
+  const query = passesQuery(groupId, { includeDeleted: true });
+  const rows = useLiveQuery<PassRow>(query.sql, query.params, initial);
+  return useMemo(() => toPasses(rows), [rows]);
+}
 
 // ---------------------------------------------------------------------------
 // Writes

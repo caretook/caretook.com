@@ -14,6 +14,7 @@ import {
   parseMedicationSchedule,
   sameSchedule,
   schedulePassIds,
+  slotAmount,
   toChangeTime,
 } from "./medication";
 import { timelineEntryContentZSchema, timelineEntryUpdateZSchema } from "./timelineEntry";
@@ -169,6 +170,17 @@ describe("the schedule's slots", () => {
     ).toEqual(["14:00", "20:00"]);
     expect(schedulePassIds(a)).toEqual([MORNING]);
     expect(ownTimes({ type: "asNeeded" })).toEqual([]);
+  });
+});
+
+describe("slotAmount", () => {
+  it("is the slot's own amount, else the medication's dose, else none", () => {
+    expect(slotAmount({ dose: "1 tablet" }, { amount: "2 tablets" })).toBe("2 tablets");
+    expect(slotAmount({ dose: "1 tablet" }, { amount: "  " })).toBe("1 tablet");
+    expect(slotAmount({ dose: " 1 tablet " }, {})).toBe("1 tablet");
+    expect(slotAmount({ dose: "1 tablet" }, null)).toBe("1 tablet");
+    expect(slotAmount({ dose: null }, { amount: null })).toBeNull();
+    expect(slotAmount({ dose: "" }, undefined)).toBeNull();
   });
 });
 

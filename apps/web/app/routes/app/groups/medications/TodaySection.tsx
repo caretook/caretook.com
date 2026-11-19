@@ -60,6 +60,7 @@ function MarkDialog({
           medicationId: marking.slot.medication.id,
           status: marking.status,
           scheduledFor: marking.slot.time,
+          passId: marking.slot.passId,
           note,
         });
         setNote("");

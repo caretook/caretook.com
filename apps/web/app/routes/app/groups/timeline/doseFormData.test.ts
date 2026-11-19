@@ -34,9 +34,20 @@ describe("doseFromForm", () => {
       status: "given",
       amount: "1 tablet",
       scheduledFor: "08:00",
+      passId: null,
       note: null,
       occurredAt: "2026-11-17T16:05:00.000Z",
     });
+  });
+
+  it("reads a slot's pass with the slot only", () => {
+    const PASS = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d1001";
+    expect(doseFromForm(form({ medicationId: `${M}@08:00`, status: "given", passId: PASS }))).toMatchObject({
+      medicationId: M,
+      scheduledFor: "08:00",
+      passId: PASS,
+    });
+    expect(doseFromForm(form({ medicationId: M, status: "given", passId: PASS })).passId).toBeNull();
   });
 
   it("leaves blanks null and an unreadable time empty, for the write to refuse", () => {

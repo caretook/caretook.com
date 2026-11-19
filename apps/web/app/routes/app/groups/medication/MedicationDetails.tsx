@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { SchedulePass } from "~/lib/medicationDisplay";
 import type { LocalMedication } from "~/lib/sync/medications";
 
 import { localTimeZone } from "~/lib/format";
@@ -21,9 +22,12 @@ const LIST = "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y o
  */
 export function MedicationDetails({
   medication,
+  passes,
   recipientTimeZone,
 }: {
   medication: LocalMedication;
+  /** The group's passes, deleted ones too: the schedule reads by pass name. */
+  passes: readonly SchedulePass[];
   recipientTimeZone: string | null;
 }) {
   const zoneNote = scheduleZoneNote(recipientTimeZone, localTimeZone());
@@ -46,7 +50,7 @@ export function MedicationDetails({
         </h2>
         <dl className={LIST} data-medication-details>
           <Row id="schedule" label="Schedule">
-            {scheduleText(medication.schedule)}
+            {scheduleText(medication.schedule, passes, medication.dose)}
             {zoneNote && <span className="text-base-content/70 block text-sm">{zoneNote}</span>}
           </Row>
           {medication.dose && (

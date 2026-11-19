@@ -1,4 +1,5 @@
 import type { TimelineEntryDetails, TimelineEntryKind } from "@caretook/data/schema";
+import type { SchedulePass } from "./medicationDisplay";
 
 import { isDoseDetails, isMedicationChangeDetails, isPassMovedDetails } from "@caretook/data/schema";
 import { changeText, doseText, passMovedText } from "./medicationDisplay";
@@ -20,8 +21,14 @@ export type EntryMedication = {
   deletedAt: string | null;
 };
 
-/** A timeline entry, with its medication when it's a dose or a change (`withMedication`). */
-export type WithMedication = { medication?: EntryMedication | null };
+/**
+ * A timeline entry, with its medication when it's a dose or a change, and the
+ * group's passes on a change (which a schedule edit names) (`withMedication`).
+ */
+export type WithMedication = {
+  medication?: EntryMedication | null;
+  schedulePasses?: readonly SchedulePass[];
+};
 
 /** "Lisinopril 10 mg", or just the name without a strength; "Medication" when it isn't on the device. */
 export const medicationLabel = (medication: Pick<EntryMedication, "name" | "strength"> | null | undefined) =>
@@ -39,16 +46,22 @@ export const medicationIdOf = (entry: {
 
 /**
  * The entry with its medication looked up (`lookup` by id; null when it isn't
- * on the device). Any other entry comes back as it is.
+ * on the device), and a change with the group's `passes` (deleted ones too),
+ * so a schedule edit reads by pass name. Any other entry comes back as it is.
  */
 export const withMedication = <
   Entry extends { kind: TimelineEntryKind; details: TimelineEntryDetails | null },
 >(
   entry: Entry,
   lookup: (medicationId: string) => EntryMedication | undefined,
+  passes?: readonly SchedulePass[],
 ): Entry & WithMedication => {
   const id = medicationIdOf(entry);
-  return id ? { ...entry, medication: lookup(id) ?? null } : entry;
+  if (!id) return entry;
+  const medication = lookup(id) ?? null;
+  return entry.kind === "medicationChange" && passes
+    ? { ...entry, medication, schedulePasses: passes }
+    : { ...entry, medication };
 };
 
 /** The medication `withMedication` attached, if any. */
@@ -61,15 +74,20 @@ export const entryMedication = (entry: object): EntryMedication | null | undefin
  * move names no medication: its `what` is the whole line ("Morning moved
  * 8:00 → 8:30"), shown on its own (`standalone`).
  */
-export const medicationEntryText = (entry: {
-  kind: TimelineEntryKind;
-  details: TimelineEntryDetails | null;
-}): { what: string; note: string | null; standalone?: true } | null => {
+export const medicationEntryText = (
+  entry: {
+    kind: TimelineEntryKind;
+    details: TimelineEntryDetails | null;
+  } & WithMedication,
+): { what: string; note: string | null; standalone?: true } | null => {
   if (entry.kind === "medicationChange" && isPassMovedDetails(entry.details))
     return { what: passMovedText(entry.details), note: null, standalone: true };
   if (entry.kind === "dose" && isDoseDetails(entry.details))
     return { what: doseText(entry.details), note: entry.details.note?.trim() || null };
   if (entry.kind === "medicationChange" && isMedicationChangeDetails(entry.details))
-    return { what: changeText(entry.details), note: entry.details.stopNote?.trim() || null };
+    return {
+      what: changeText(entry.details, entry.schedulePasses),
+      note: entry.details.stopNote?.trim() || null,
+    };
   return null;
 };

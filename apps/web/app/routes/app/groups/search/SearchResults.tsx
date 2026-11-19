@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { resultCountText } from "~/lib/searchResults";
+import { useSchedulePasses } from "~/lib/sync/medicationPasses";
 import { EntryResultItem, MedicationResultItem, ProviderResultItem } from "./ResultItems";
 
 /**
@@ -33,6 +34,8 @@ export function SearchResults({
   const now = new Date();
   // The results' own search (they can be the previous text's for a moment), for marking matches.
   const search = useMemo(() => parseSearch(data.q), [data.q]);
+  // Medications' schedules read by pass name.
+  const passes = useSchedulePasses(groupId);
   const status = unavailable
     ? "Search isn't available on this device right now."
     : preparing && !data.sections.length
@@ -91,6 +94,7 @@ export function SearchResults({
                   <MedicationResultItem
                     key={hit.id}
                     medication={medication}
+                    passes={passes}
                     notes={data.notes[hit.id]}
                     search={search}
                   />

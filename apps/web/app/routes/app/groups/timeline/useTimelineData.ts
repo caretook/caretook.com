@@ -16,6 +16,7 @@ import { liveDotLabel } from "~/lib/liveNow";
 import { withMedication } from "~/lib/medicationEntries";
 import { useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/sync/editors";
+import { useSchedulePasses } from "~/lib/sync/medicationPasses";
 import { useTimelineMedications } from "~/lib/sync/medicationTimeline";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import { timelineLinksQuery } from "~/lib/sync/providers";
@@ -133,6 +134,8 @@ export function useTimelineData({
   });
   // Doses and medication changes are named by their medication: one query over the same window.
   const medicationOf = useTimelineMedications(groupId, filters, requested, cutoff);
+  // A schedule change names the passes it touched.
+  const passes = useSchedulePasses(groupId);
 
   const members = memberRows.map(toMember);
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
@@ -147,7 +150,7 @@ export function useTimelineData({
     toTimelineEntries(rows).map((entry) =>
       isLiveEntryKind(entry.kind)
         ? { ...entry, body: previews.get(entry.id) || null }
-        : withMedication(entry, medicationOf),
+        : withMedication(entry, medicationOf, passes),
     );
   const shown = withPreview(entries.rows.slice(0, page.limit));
   const now = new Date(cutoff);

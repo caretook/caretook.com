@@ -31,7 +31,7 @@ export function SlotBadge({ slot, timeZone }: { slot: DoseSlot; timeZone: string
 /**
  * One medication at one of today's times: its name (a link to its page), its
  * dose and its state. While it's still open, writers get a one-tap Given
- * (logged now, for this slot, with the medication's dose) and a menu for
+ * (logged now, for this slot, with its amount) and a menu for
  * Skipped and Refused (`onMark`, which asks for a note).
  */
 export function TodaySlotRow({
@@ -61,7 +61,7 @@ export function TodaySlotRow({
         <Link to={appUrls.medication(groupId, medication.id)} className="link-hover font-medium break-words">
           {title}
         </Link>
-        {medication.dose && <p className="text-base-content/70 text-sm">{medication.dose}</p>}
+        {slot.amount && <p className="text-base-content/70 text-sm">{slot.amount}</p>}
       </div>
       <SlotBadge slot={slot} timeZone={timeZone} />
       {open && (
@@ -77,7 +77,8 @@ export function TodaySlotRow({
                 medicationId: medication.id,
                 status: "given",
                 scheduledFor: slot.time,
-                amount: medication.dose,
+                passId: slot.passId,
+                amount: slot.amount,
               })
             }
           >

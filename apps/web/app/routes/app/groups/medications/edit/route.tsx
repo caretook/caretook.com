@@ -24,7 +24,7 @@ import {
 } from "~/lib/sync/medications";
 import { readRows } from "~/lib/sync/timeline";
 import { MedicationForm } from "../MedicationForm";
-import { issuesForTimeRows, medicationFromForm } from "../medicationFormData";
+import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
 
 // Shared by web + native. `medications/:medicationId/edit`: the edit sheet,
@@ -72,9 +72,9 @@ export async function clientAction({
   const status = statusRequestFromForm(form);
   if (status?.intent === "remove") return removeMedication(db, params.medicationId);
   if (status) return changeMedicationStatus(db, params.medicationId, status.change);
-  const { input, newProviders, timeRows } = medicationFromForm(form);
+  const { input, newProviders, slotRows } = medicationFromForm(form);
   const result = await updateMedication(db, params.medicationId, input, newProviders);
-  if (!result.ok) return { ...result, issues: issuesForTimeRows(result.issues, timeRows) };
+  if (!result.ok) return { ...result, issues: issuesForSlotRows(result.issues, slotRows) };
   return { ok: true };
 }
 
@@ -89,7 +89,7 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 
 export default function EditMedicationSheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseMedicationSheet();
-  const { providers, names } = useMedicationFormSources(params.groupId, loaderData);
+  const { providers, names, passes } = useMedicationFormSources(params.groupId, loaderData);
 
   // Live, so the status shown follows a change made here or on another device.
   const query = medicationQuery(params.medicationId);
@@ -121,6 +121,7 @@ export default function EditMedicationSheet({ loaderData, params }: Route.Compon
         key={loaderData.medication.id}
         medication={loaderData.medication}
         providers={providers}
+        passes={passes}
         names={names}
         zoneNote={zoneNote}
         onDone={() => close()}

@@ -13,6 +13,7 @@ import {
   SEED_GROUPS,
   seedRows,
 } from "./medications";
+import { DEV_FAMILY_PASS_IDS, seedPassRows } from "./medicationPasses";
 import { seedRows as providerRows } from "./providers";
 
 // Seeds write straight to the tables, skipping the services' validation, so
@@ -150,6 +151,42 @@ describe("medication seeds", () => {
 
     const idsAtNoon = new Set(atNoon?.doses.map((d) => d.id));
     expect(atDawn?.doses.every((d) => idsAtNoon.has(d.id))).toBe(true);
+  });
+
+  it("put Grandma Pat's scheduled medications in her group's passes, with their doses naming them", () => {
+    const [devFamily] = seedRows(NOON);
+    const passes = new Map(
+      seedPassRows()
+        .filter((p) => p.groupId === devFamily?.rows[0]?.groupId)
+        .map((p) => [p.id, p.time]),
+    );
+    const metformin = devFamily?.rows.find((r) => r.name === "Metformin");
+    expect(metformin?.schedule).toEqual({
+      type: "scheduled",
+      slots: [{ passId: DEV_FAMILY_PASS_IDS.morning }, { passId: DEV_FAMILY_PASS_IDS.evening }].sort((a, b) =>
+        a.passId.localeCompare(b.passId),
+      ),
+    });
+    // A time of its own stays one (Latanoprost at bedtime).
+    expect(devFamily?.rows.find((r) => r.name === "Latanoprost")?.schedule).toEqual({
+      type: "scheduled",
+      slots: [{ time: "21:00" }],
+    });
+    for (const row of devFamily?.rows ?? []) {
+      if (row.schedule.type !== "scheduled") continue;
+      for (const slot of row.schedule.slots) if ("passId" in slot) expect(passes.has(slot.passId)).toBe(true);
+    }
+    // A dose in a pass names it, at the pass's time; one at a time of its own names none.
+    const doses = devFamily?.doses ?? [];
+    for (const dose of doses) {
+      if (dose.kind !== "dose" || !("scheduledFor" in dose.details)) continue;
+      const passId = "passId" in dose.details ? dose.details.passId : undefined;
+      if (passId) expect(passes.get(passId)).toBe(dose.details.scheduledFor);
+      else expect(dose.details.scheduledFor).toBe("21:00");
+    }
+    expect(doses.some((d) => "passId" in d.details && d.details.passId === DEV_FAMILY_PASS_IDS.evening)).toBe(
+      true,
+    );
   });
 
   it("give every row its own id", () => {
