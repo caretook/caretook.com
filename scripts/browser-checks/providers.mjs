@@ -210,23 +210,67 @@ async function directorySteps(p, proxy) {
   // A type chip survives a reload as the search does (both are the URL's);
   // other chips filter the same way (directoryList, providerDirectory.test.ts).
 
-  // Contact actions: accessible names and hrefs.
+  // Contact details on each row (B-44): every number, the address and the
+  // email as visible links, named for what they do, with nothing wider than
+  // the page at 420.
   await p.goto(typed.path);
   await waitForList(p, `names.length >= 5`, 30000);
   const actions = await p.evaluate(`Object.fromEntries(
     [...document.querySelectorAll("main li[data-provider-id]")].map((li) => [
       li.querySelector("[data-provider-name]").textContent.trim(),
-      [...li.querySelectorAll("[data-contact-actions] a")].map((a) => [a.getAttribute("aria-label"), a.getAttribute("href"), a.getAttribute("target")]),
+      [...li.querySelectorAll("[data-contact-details] a")].map((a) => [
+        a.querySelector(".sr-only").textContent + a.querySelector(".truncate").textContent,
+        a.getAttribute("href"),
+        a.getAttribute("target"),
+        getComputedStyle(a).zIndex,
+      ]),
     ]),
   )`);
   const alvarez = actions["Dr. Elena Alvarez"] ?? [];
   check(
-    'Dr. Alvarez: "Call Dr. Elena Alvarez, office" dials the office with its extension, and Email mails her',
+    'Dr. Alvarez\'s row: "Call Dr. Elena Alvarez, office" dials the office with its extension, then after hours, and her email mails her',
     same(alvarez, [
-      ["Call Dr. Elena Alvarez, office", "tel:5550102200,214", null],
-      ["Email Dr. Elena Alvarez", "mailto:e.alvarez@westsidefamily.example", null],
+      ["Call Dr. Elena Alvarez, office: (555) 010-2200 x214", "tel:5550102200,214", null, "10"],
+      ["Call Dr. Elena Alvarez, after hours: (555) 010-2299", "tel:5550102299", null, "10"],
+      [
+        "Email Dr. Elena Alvarez: e.alvarez@westsidefamily.example",
+        "mailto:e.alvarez@westsidefamily.example",
+        null,
+        "10",
+      ],
     ]),
     JSON.stringify(alvarez),
+  );
+  const westsideRow = actions["Westside Family Medicine"] ?? [];
+  check(
+    "the practice's row shows each number with tel: and its address as a maps link in a new tab",
+    same(
+      westsideRow.map(([name, href, target]) => [
+        name,
+        href.startsWith("https://www.google.com/maps/") ? "maps" : href,
+        target,
+      ]),
+      [
+        ["Call Westside Family Medicine, front desk: (555) 010-2200", "tel:5550102200", null],
+        ["Call Westside Family Medicine, fax: (555) 010-2201", "tel:5550102201", null],
+        ["Call Westside Family Medicine, nurse line: (555) 010-2210", "tel:5550102210", null],
+        [
+          "Open Westside Family Medicine's address in maps: 1200 Westside Ave, Suite 300, Springfield, CA 90000",
+          "maps",
+          "_blank",
+        ],
+      ],
+    ),
+    JSON.stringify(westsideRow),
+  );
+  const overflow = await p.evaluate(`({
+    page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    rows: [...document.querySelectorAll("main li[data-provider-id]")].filter((li) => li.scrollWidth > li.clientWidth).length,
+  })`);
+  check(
+    "420: the contact details wrap or truncate, with no horizontal overflow",
+    overflow.page <= 0 && overflow.rows === 0,
+    JSON.stringify(overflow),
   );
   // The maps link and an international number: mapsHref and telHref, contactActions.test.ts.
 
@@ -1234,11 +1278,39 @@ async function viewerWithSteps(C, eventId) {
 const SUGGESTIONS = `${WITH}?.querySelector("[data-provider-suggestions]")`;
 const ENTRY_TITLE = `document.querySelector("main header input")`;
 const suggested = (p) =>
-  p.evaluate(`[...(${SUGGESTIONS}?.querySelectorAll("button") ?? [])].map((b) => b.textContent.trim())`);
+  p.evaluate(`[...(${SUGGESTIONS}?.querySelectorAll("ul button") ?? [])].map((b) => b.textContent.trim())`);
 const suggestionNamed = (name) =>
   `[...(${SUGGESTIONS}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(name)})`;
 const firstSuggestionIs = (name) =>
   `${SUGGESTIONS}?.querySelector("button")?.textContent.trim() === ${JSON.stringify(name)}`;
+
+/** The suggestions' layout: chip count, distinct rows, and whether the list scrolls or wraps. */
+const suggestionLayout = (p) =>
+  p.evaluate(`(() => {
+    const ul = ${SUGGESTIONS}?.querySelector("ul");
+    if (!ul) return null;
+    const items = [...ul.children];
+    const style = getComputedStyle(ul);
+    const rows = new Set(items.map((li) => Math.round(li.getBoundingClientRect().top))).size;
+    const chip = items[0]?.getBoundingClientRect().height ?? 0;
+    return {
+      chips: items.length,
+      rows,
+      wrap: style.flexWrap,
+      overflowX: style.overflowX,
+      fitsOneRow: ${SUGGESTIONS}.getBoundingClientRect().height < chip * 1.6,
+      clipped: ul.scrollWidth > ul.clientWidth + 1,
+    };
+  })()`);
+
+/** Set A's viewport width (900 tall, mobile below 640). */
+const setWidth = (p, width) =>
+  p.send("Emulation.setDeviceMetricsOverride", {
+    width,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: width < 640,
+  });
 
 /** A new draft of `kind` on A, with `title` typed (not yet saved). */
 async function draftWithTitle(p, kind, title) {
@@ -1277,6 +1349,24 @@ async function suggestionSteps(A, proxy) {
     typed[0] === PATEL,
     JSON.stringify(typed),
   );
+  // B-72: on a phone the suggestions stay on one row that scrolls sideways; from sm up they wrap.
+  const phone = await suggestionLayout(A);
+  check(
+    "420: suggestions stay on one scrolling row",
+    phone?.rows === 1 && phone.wrap === "nowrap" && phone.overflowX === "auto" && phone.fitsOneRow,
+    JSON.stringify(phone),
+  );
+  await setWidth(A, 1280);
+  await A.waitFor(`getComputedStyle(${SUGGESTIONS}.querySelector("ul")).flexWrap === "wrap"`, 5000).catch(
+    () => {},
+  );
+  const wide = await suggestionLayout(A);
+  check(
+    "1280: every suggestion shows, wrapping as before",
+    wide?.chips === phone?.chips && wide.wrap === "wrap" && wide.overflowX === "visible" && !wide.clipped,
+    JSON.stringify(wide),
+  );
+  await setWidth(A, 420);
   const eventId = await tapSuggestion(A, PATEL);
   entries.push(eventId);
   const linked = await waitForSql(

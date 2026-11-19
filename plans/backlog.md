@@ -15,7 +15,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–14 in `dev`; new fixes append as slice 15 on. Triaged and waiting: B-44, B-64, B-65, B-69, B-70, B-71, B-72, B-73 | (none) | varies by slice; B-44 the providers route folder (`ProviderListItem`); B-73 `components/ui/Sheet` (after `medications` slice 3); B-71 `components/ui/date/` |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | none now |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done**, all 7 slices in `dev` | `live-notes-ux`, `app-shell`, `routing`, `components` (all done) | none now |
-| `search`          | to write | `timeline-polish` (done); best run after `appointments` finishes (same timeline files) | `lib/sync/schema.ts`, `lib/sync/timeline.ts` (`entryWindow`), `lib/timelineFilters.ts`, the timeline route folder |
+| `search`          | [PRD](search-prd.md), [plan](search-plan.md): 6 slices, on `plan/search` (not in `dev` yet). Waves 1 → (2, 3, 6) → (4, 5); slice 1 can start once the plan lands | `timeline-polish` (done); slice 2 waits for `appointments` to land | `lib/sync/timeline.ts` (the timeline windows), `lib/timelineFilters.ts`, the timeline route folder (slices 2, 4), the `/app` header and `routes.ts` (slice 3), one migration (slice 6) |
 | `providers`       | [PRD](providers-prd.md), [plan](providers-plan.md): **done**, all slices in `dev` (`7c075d1`); follow-ups B-25, B-48 | (none) | none now |
 | `medications`     | [PRD](medications-prd.md), [plan](medications-plan.md): slices 1, 2, 4 and 6 in `dev`; **slice 3 running** (B-15 claimed); 5 waits for 3. Follow-ups B-26, B-51 | `providers`, `routing`, `components` (all done) | `TIMELINE_ENTRY_KINDS`, `KIND_META`, timeline strips and quick add, `care_recipient`, `note_document`, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`, the Dose sheet |
 | `assistant`       | to write (B-12, B-49, B-58) | `search`'s server side; `providers`, `medications`, `care-periods` (soft) | `routes/app/layout/route.tsx`, `packages/api`, a new AI package |
@@ -81,7 +81,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
 | B-43 | change | ready | medications | prd/medications | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
-| B-44 | change | in-progress | quick-fixes | prd/quick-fixes | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
+| B-44 | change | ready | quick-fixes | prd/quick-fixes | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
 | B-45 | change | triaged | profiles |  | birthdate, contact information, address, and insurance information should optionally be added to… |
 | B-46 | change | triaged | profiles |  | optional phone number, address, etc on group members that can be published to the group for… |
 | B-47 | feature | in-progress | appointments | prd/appointments | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
@@ -108,9 +108,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
-| B-71 | bug | in-progress | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
-| B-72 | bug | in-progress | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
+| B-71 | bug | ready | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
+| B-72 | bug | ready | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
 | B-73 | bug | in-progress | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
+| B-74 | bug | triaged | medications |  | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
 
 ## Items
 
@@ -253,6 +254,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-17 (dev keeper): Asked for as Elasticsearch. Recommended instead: SQLite FTS5 on the device (works offline) plus Postgres full-text search on the server (API, AI). Elasticsearch is server only, another service to host, and another copy of health data. Check that PowerSync's web SQLite build has FTS5.
+- 2026-11-19 (plan/search): PRD written on plan/search: plans/search-prd.md (interview 2026-11-19). Covers entries, providers, medications and their notes; a timeline ?q= filter plus a group search page (header magnifier); FTS5 on the device (porter stemming, prefix, phrases, -exclusions, indexes unsynced text) and Postgres FTS on the server (searchService, search.query) for the assistant. Run after appointments lands.
 
 ### B-12 · plan · Assistant: lightweight chat, with voice, for quick actions and questions about the timeline
 
@@ -310,6 +312,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/medications): medications orchestrator: slice 4 (doses and changes on the timeline, Dose sheet, B-43) merged as 46c675b; its wording now reuses slice 2's medicationDisplay. Slice 6 still running.
 - 2026-11-19 (slice/medications/6): medications slice 6 (print sheet + provider page Medications) committed on slice/medications/6 as 74388c4; phase2's 8 wide-layout failures (15 px off at 1280) reproduce on the base d7977c1 too
 - 2026-11-19 (prd/medications): medications orchestrator: wave 2 (slices 2, 4, 6) landed in dev as bc944ae; slice 3 (add, edit, stop, restart, delete) started 2026-11-19, then slice 5.
+- 2026-11-19 (prd/medications): medications orchestrator: wave 3 (slice 3: add, edit, stop, restart, delete) landed in dev as c887336; slice 5 (Today, Due now) running.
 
 ### B-16 · question · How does the timeline's layout (rows or cards) persist?
 
@@ -627,13 +630,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-44 · change · Display phone number, address, email, etc. in provider directory without a click. Use that as link…
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 2cd7789
 
 - 2026-11-18 (prd/marketing): From the inbox: Display phone number, address, email, etc. in provider directory without a click. Use that as link to call/email/map/etc.
 - 2026-11-18 (Robert Bo Davis): Proposed for quick-fixes: the directory rows (ProviderListItem) show the primary phone, email and address as text that is itself the call/email/map link (lib/contactActions), instead of behind a tap. One slice; providers.mjs covers it.
+- 2026-11-19 (slice/quick-fixes/17): slice/quick-fixes/17: rows show phones, address, email as links (ContactDetails); check + providers.mjs pass
 
 ### B-45 · change · birthdate, contact information, address, and insurance information should optionally be added to…
 
@@ -886,21 +890,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-71 · bug · date picker entry box mobile-friendly. it expands outside of elements on small screens.
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 2cd7789
 
 - 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: a layout fix in ui/date's DateTimeField on narrow screens; one slice.
+- 2026-11-19 (slice/quick-fixes/15): slice/quick-fixes/15: date field fits at 360–420 (min-w-0 group, wrapping segments, 44 px Pick a date); ui.mjs date-fit steps; ready for review
 
 ### B-72 · bug · suggested provider list is too long on mobile.
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 2cd7789
 
 - 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: cap the suggested-provider chips on phones (entry With row, providerSuggestions); one slice.
+- 2026-11-19 (slice/quick-fixes/16): slice/quick-fixes/16 (8316e2c): below sm the suggestions are one sideways-scrolling row (end faded); from sm they wrap, all 5 shown. Ranking unchanged.
 
 ### B-73 · bug · timeline entry add modal should take up the full screen on mobile, don't leave room for header.
 
@@ -910,3 +916,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: the shared ui/Sheet goes full screen below sm. Merge after medications slice 3 (its new sheets use Sheet).
+
+### B-74 · bug · medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out)
+
+- status: triaged
+- prd: medications
+- owner:
+- commit:
+
+- 2026-11-19 (prd/quick-fixes): Seen by the quick-fixes orchestrator on prd/quick-fixes 579a66c (dev + quick-fixes wave 7, which touches no medication screen): run 1 failed 64/65 at statusSteps' Discontinue dialog wait (5 s); its retry failed 50/52 at 'a second browser sees the notes as they're written' after 12m33s, load ~20-27. Logs: .git/worktrees/quick-fixes/caretook-browser/medications-20261119-0545{28,02}.log

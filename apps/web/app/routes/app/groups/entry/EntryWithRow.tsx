@@ -140,6 +140,14 @@ export function EntryWithRow({
   );
 }
 
+/**
+ * Below `sm` the suggestions stay on one row that scrolls sideways (no
+ * scrollbar; the end fades while more chips are off screen), so they never
+ * push the editor down more than one row. From `sm` they wrap as before.
+ */
+const PHONE_ROW =
+  "max-sm:min-w-0 max-sm:flex-1 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:py-0.5 max-sm:pr-8 max-sm:[scrollbar-width:none] max-sm:[&>li]:shrink-0 max-sm:[mask-image:linear-gradient(to_left,transparent,black_2rem)]";
+
 /** One-tap suggestions while nothing is linked: a list of chips, each named "Link <name>". */
 function ProviderSuggestions({
   groupId,
@@ -155,10 +163,11 @@ function ProviderSuggestions({
   const suggested = useProviderSuggestions({ groupId, entryId, title });
   if (suggested.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-center gap-1.5" data-provider-suggestions>
-      <span className="text-base-content/70 text-sm">Suggested</span>
+    <div className="flex items-center gap-1.5 sm:flex-wrap" data-provider-suggestions>
+      <span className="text-base-content/70 shrink-0 text-sm">Suggested</span>
       <ChipGroup
         label="Suggested providers"
+        className={PHONE_ROW}
         actions={suggested.map((p) => ({ id: p.id, label: p.name, onPress: () => onPick(p.id) }))}
       />
     </div>

@@ -2,12 +2,13 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { MedicationRow } from "~/lib/sync/medications";
 
-import { Printer } from "lucide-react";
+import { Plus, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
 import { medicationList, parseMedicationFilters } from "~/lib/medicationList";
+import { MEDICATION_SHEET_STATE, onlyMedicationSheetChanged } from "~/lib/medicationSheets";
 import { sessionContext } from "~/lib/session";
 import { useLiveQuery } from "~/lib/sync";
 import { medicationsQuery, toMedications } from "~/lib/sync/medications";
@@ -31,17 +32,20 @@ export async function clientLoader({ params, context }: Route.ClientLoaderArgs) 
 
 /**
  * The live query already follows every change, and the filters are applied
- * on the device, so a new search or filter (same path) or a save doesn't
- * rerun the loader. Anything else (another group) does.
+ * on the device, so a new search or filter (same path), a save in a sheet,
+ * or opening and closing a sheet over the list doesn't rerun the loader.
+ * Anything else (another group) does.
  */
 export function shouldRevalidate({
   formMethod,
   currentUrl,
   nextUrl,
+  nextParams,
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
   if (formMethod) return false;
   if (currentUrl.pathname === nextUrl.pathname) return false;
+  if (nextParams.groupId && onlyMedicationSheetChanged(nextParams.groupId, currentUrl, nextUrl)) return false;
   return defaultShouldRevalidate;
 }
 
@@ -71,16 +75,31 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
             {!group.canWrite && " · You can view this list"}
           </p>
         </div>
-        <Link
-          to={appUrls.medicationsPrint(params.groupId)}
-          prefetch="render"
-          className="btn btn-ghost btn-sm shrink-0 gap-1.5"
-          data-print-link
-        >
-          <Printer className="size-4" aria-hidden="true" />
-          Print
-        </Link>
-        {/* Writers' "Add medication" goes here (the add sheet). */}
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          <Link
+            to={appUrls.medicationsPrint(params.groupId)}
+            prefetch="render"
+            className="btn btn-ghost btn-sm gap-1.5"
+            data-print-link
+          >
+            <Printer className="size-4" aria-hidden="true" />
+            Print
+          </Link>
+          {group.canWrite && (
+            <Link
+              to={appUrls.newMedication(params.groupId, search)}
+              state={MEDICATION_SHEET_STATE}
+              // Loaded ahead, so the sheet opens offline too.
+              prefetch="render"
+              preventScrollReset
+              className="btn btn-primary btn-sm"
+              data-add-medication
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Add medication
+            </Link>
+          )}
+        </div>
       </header>
 
       <MedicationSearch value={text} urlQuery={filters.q} onChange={setText} />

@@ -113,6 +113,8 @@ apps/web/app/routes/app/home/*           app-shell first-sync
 apps/web/app/routes/app/groups/settings/members/* app-shell invites ui
 apps/web/app/routes/app/groups/settings/* app-shell routing ui
 apps/web/app/lib/sync/members.ts         app-shell invites
+# The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
+apps/web/app/components/ui/date/*        ui roundtrip live-notes medications
 apps/web/app/components/ui/*             ui app-shell
 apps/web/app/components/brand/*          app-shell marketing
 
@@ -157,6 +159,8 @@ apps/web/app/lib/sync/providers.ts       providers
 apps/web/app/lib/sync/medications.ts     medications
 apps/web/app/routes/app/groups/medications/* medications
 apps/web/app/routes/app/groups/medication/* medications live-notes
+# The status actions (the medication page and the list's edit sheet).
+apps/web/app/components/medications/*    medications
 apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 # The time fields and the reschedule sheet (the entry page's time chip, and
 # Reschedule from the timeline, Upcoming and the entry page).
