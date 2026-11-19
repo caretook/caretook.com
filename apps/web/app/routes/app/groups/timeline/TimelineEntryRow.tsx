@@ -1,4 +1,4 @@
-import type { EntryOpen } from "./entryOpen";
+import type { EntryOpen } from "~/lib/entryOpen";
 import type { UnitChoices } from "@caretook/data/schema";
 import type { LinkedProviderName } from "~/lib/entryProviders";
 import type { EntryCancelActions } from "~/components/entry";

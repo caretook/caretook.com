@@ -15,8 +15,8 @@ export type TimelineOutlet = { units: UnitChoices };
 
 export const useTimelineOutlet = () => useOutletContext<TimelineOutlet>();
 
-/** History state on a link that opens a sheet from the timeline. */
-export const SHEET_LINK_STATE = { sheetOverTimeline: true } as const;
+/** History state on a link that opens a sheet from the timeline (or from search: closing goes back there). */
+export { SHEET_LINK_STATE } from "~/lib/entryOpen";
 
 const openedOverTimeline = (state: unknown) =>
   typeof state === "object" && state !== null && "sheetOverTimeline" in state;
