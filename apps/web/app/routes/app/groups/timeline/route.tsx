@@ -71,7 +71,7 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
 
 /**
  * Live queries already reflect every write, so a submission doesn't rerun
- * the loader (that would reset "Show older"), and neither does opening or
+ * the loader (that would reset the loaded pages), and neither does opening or
  * closing a sheet over the timeline. Other navigation (a new filter) does.
  */
 export function shouldRevalidate({

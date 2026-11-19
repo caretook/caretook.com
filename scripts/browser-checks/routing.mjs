@@ -17,7 +17,7 @@ import { startProxy } from "./proxy.mjs";
 //
 // - Quick add → Symptom goes to `…/timeline/new/symptom?<filters>`;
 // - Back, Escape, Cancel and a save each close it, keeping the scroll
-//   position, the loaded ("Show older") entries and the filters, and leave
+//   position, the loaded (scrolled-in) entries and the filters, and leave
 //   no sheet ahead of you in the history (Back after a save doesn't reopen it);
 // - a deep link (and a reload) to `new/vital?type=heartRate` opens the sheet
 //   with Heart rate; `?type=bogus` with no type; closing a deep-linked sheet
@@ -672,11 +672,20 @@ try {
   // A filtered timeline with an older page loaded, scrolled down.
   const filters = `?kind=vital&author=${caretakerId}`;
   await c.goto(`${T}${filters}`);
-  await c.waitFor(`${ROWS} > 0 && ${button("Show older entries")}`, 30000);
-  await c.press(button("Show older entries"));
+  // Scrolling near the end loads the next page (infinite scroll).
+  await c.waitFor(`${ROWS} > 0 && document.querySelector("[data-older-sentinel]")`, 30000);
+  await c.evaluate(`scrollTo(0, document.documentElement.scrollHeight)`);
   await c.waitFor(`${ROWS} > 30`, 10000);
   await c.evaluate(`scrollTo(0, 1500)`);
-  await sleep(500);
+  // Settled: no page loading, and the count steady (1500 down can be near enough the end for another).
+  for (let last = -1, i = 0; i < 20; i++) {
+    await sleep(500);
+    const now = await c.evaluate(
+      `document.querySelector("[data-older-entries] [role=status]")?.textContent === "Loading older…" ? -1 : ${ROWS}`,
+    );
+    if (now >= 0 && now === last) break;
+    last = now;
+  }
   const before = await where(c);
   check(
     "sheet setup: an older page is loaded and the timeline is scrolled",
