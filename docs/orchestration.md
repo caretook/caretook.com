@@ -2,6 +2,8 @@
 
 A guide for the **dev keeper** (you): how ideas become shipped work, and how several pieces of work run in parallel without stepping on each other. Agents follow the detailed rules in [AGENTS.md](../AGENTS.md) (_PRDs and parallel loops_); this page is the human view of the same system.
 
+**Where agents read the rules.** AGENTS.md is a short core (working rules, branches, the backlog, the loop rules, the stack and architecture rules, and an _Area index_) that every session loads. The rest lives in docs it points to: [loops.md](loops.md) is the agents' handbook for running PRDs and browser checks, and [`domain/`](domain/) has one doc per area (timeline, medications, sync, …). Each slice in a plan says which docs its agent reads (`Reads`), whether it needs a Docker stack (`Stack`) and what it tests (`Tests`), so a medications slice reads the medications doc and nothing else. When a wave lands, its orchestrator folds what it decided into the matching doc.
+
 ## The short version
 
 1. **Write an idea down** in [`plans/inbox.md`](../plans/inbox.md).

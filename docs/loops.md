@@ -1,0 +1,180 @@
+# Loop handbook
+
+How PRDs, orchestrators and loops run: the `pnpm prd` commands, worktree isolation, the browser check budget, landing a wave, the browser checks and their gotchas. Moved out of AGENTS.md, whose core rules (working rules, branches, the backlog, _Rules across PRDs_ and _Loop rules_) still apply. [docs/orchestration.md](orchestration.md) is the human guide to the same system.
+
+## Running loops
+
+**`pnpm prd <command>`** is the one front door (`scripts/loops/prd.sh`; run it from any worktree, and `pnpm prd help` lists it):
+
+| Command                                     | What it does                                                                                                                          |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm prd status`                           | every worktree: branch, commits ahead, dirty or clean, containers, its dev server link, and the load averages                         |
+| `pnpm prd status-watch [seconds]`           | `status`, redrawn every few seconds (default 5) until Ctrl-C                                                                          |
+| `pnpm prd start <topic>`                    | create (or find) the PRD's worktree and stack, and print the command that opens its orchestrator                                      |
+| `pnpm prd queue <topic> [--manual]`         | wait for a free PRD slot (in queue order), then create the worktree and open a fully autonomous orchestrator in that terminal         |
+| `pnpm prd plan <topic> [--open] [B-n…]`     | a docs-only worktree for writing a PRD and plan; `--open` starts its planning session in that terminal                                |
+| `pnpm prd plan`                             | no topic: a backlog and inbox planning session in the main checkout, which helps decide what's next (`prompt.sh backlog`)             |
+| `pnpm prd slice <topic> <n>`                | a slice's worktree and stack                                                                                                          |
+| `pnpm prd serve [name] [--restart]`         | run that worktree's dev server in the background (it outlives the session) and print the link; `--built` serves a check build instead |
+| `pnpm prd check`                            | `pnpm check`, then record that this commit passed                                                                                     |
+| `pnpm prd browser <check> [args…]`          | run one check under a machine-wide lease (four at once); `--changed` for what the diff needs; `--suite`; `--timeout <s>`              |
+| `pnpm prd sync`                             | merge `dev` into this PRD branch                                                                                                      |
+| `pnpm prd ready [topic]`                    | the ready-to-land report: the link, the backlog items it addresses, what changed, any blockers                                        |
+| `pnpm prd land <topic> [-m subject]`        | merge `prd/<topic>` into `dev` in the main checkout: **only when the user says to land it**                                           |
+| `pnpm prd rm <name>`                        | remove a worktree, its stack, its dev server and, if merged, its branch                                                               |
+| `pnpm prd prompt orchestrator\|plan\|slice` | the first prompt for a session (`orchestrator <topic> --auto` for the run-through mode)                                               |
+
+### Isolation
+
+**Isolation** (the scripts behind those commands, in `scripts/loops/`; `lib.sh` holds the shared parts):
+
+- `new.sh <kind> …` makes a worktree in `.loops/`:
+  - `new.sh prd <topic>`: `.loops/<topic>` on `prd/<topic>` from `dev`, with a stack. It prints the command that starts its orchestrator.
+  - `new.sh slice <topic> <n>`: `.loops/<topic>-<n>` on `slice/<topic>/<n>` from `prd/<topic>`, with a stack.
+  - `new.sh plan <topic>`: `.loops/plan-<topic>` on `plan/<topic>` from `dev`, **without** a stack.
+  - Options before the kind: `--slot N`, `--stack`/`--no-stack`, `--base B`. If the branch already exists it's checked out instead, which resumes a removed worktree.
+- **Slots.** A stacked worktree **leases the lowest free slot (1–19)**: lock directories in `.loops/.slots/<N>`, taken atomically, so two orchestrators never get the same one. A slot is also busy while a worktree's `.env` names it or one of its ports listens.
+  - Ports: slot N in 1–9 is web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80. Slots 10–19 use 7(N−10) in place of 6N (7073 … 7980). CDP and proxy ports shift by N×1000. Compose projects are `caretook-loopN` and `caretook-loopN-test`.
+  - The files it writes (all gitignored): the root `.env` (Compose's project name and ports), `packages/data/.env` and `.env.test.local` (database URLs and `PG_TEST_PORT`), `apps/web/.env` (auth and PowerSync URLs, `WEB_PORT`), and `.env.loop` (`SLOT`, `BASE_BRANCH`, `BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER`, `SEED_USER_PASSWORD`). Secrets are copied from the main checkout's `packages/data/.env` and `apps/web/.env`.
+  - Without a stack, `.env.test.local` points at a closed port, so `pnpm test:integration` fails instead of reaching the main checkout's test database. Run `typecheck`, `lint`, `format:check` and the unit projects there.
+- `ls.sh` lists every worktree: slot, branch, commits ahead of the branch it merges into, dirty or clean, its stack, the PRD count against the cap, and stale leases.
+- `rm.sh <name> [--force] [--keep-branch]` stops the worktree's containers, deletes its database files, removes the worktree and releases its slot. Then it **deletes the branch if it's merged** into its parent (`slice/…` into `prd/<topic>`; `prd/` and `plan/` into `dev`), and keeps it otherwise. It refuses uncommitted changes, and a PRD worktree whose slices still have worktrees, unless `--force`.
+- `prompt.sh orchestrator <topic>` and `prompt.sh slice <topic> <n>` print the first prompt for those sessions.
+- The main checkout keeps the default ports (5173, 5434, 5435, 8080).
+- Every port, the Compose project name and the PowerSync audience come from env, defaulting to the main checkout's values. If you add a service, a port or a hardcoded container name, make it configurable the same way.
+
+### Capacity and the browser check budget
+
+**Capacity.** One stack uses about 250 MB idle (the Docker VM has 32 GB), so the limits are CPU and attention: `pnpm check`, Vite and Chrome on 10 cores, and each orchestrator's context. Three PRDs with two or three slices each, plus their integration worktrees, is about 12 slots. Stagger `pnpm check` runs when several loops finish together. Six busy stacks at once (three loops plus two other PRDs) pushed the load average past 500: `pnpm check` took 25 minutes, tests hit their 5 s timeouts, and sign-ins in browser checks timed out. Rerun a failure like that once the load drops before debugging it.
+
+**Browser check budget.** Browser checks were 63% of all tool time across the first PRDs (850 runs, about 10 h), and about 30% of runs failed, mostly on timeouts and PowerSync 401s under load, which caused more reruns and more load. So:
+
+- **Run every check through `pnpm prd browser`** (`scripts/loops/browser.sh`), never `node <check>.mjs` directly. It holds one of four machine-wide leases (`.loops/.browser/<N>` in the main checkout; `CARETOOK_BROWSER_SLOTS` changes the limit), waits while all are taken (polling every 5 s, up to `CARETOOK_BROWSER_WAIT` s, default 20 min), takes over a lease whose holder is gone, and releases it on every exit. It sources the worktree's `.env.loop`, prints the load average at start and end, and logs to the worktree's git dir. `pnpm prd status` shows who holds the leases.
+- **The diff picks the checks: `pnpm prd browser --changed`.** It maps every changed file (committed since the base, staged, unstaged and untracked) through `scripts/loops/check-areas`, the table below as globs, and runs only those checks, in suite order, with a table. Docs, plans, tests, tooling and the data layer below the upload switch need none, and it says so and exits 0. A lib module with a sibling unit test needs none. Build config, dependencies, sync rules and migrations need the full suite. A file no rule covers runs `sign-in`, `phase2` and `roundtrip`, with a warning: **add a rule to `check-areas`** when you add a screen, a check or a shared module. `--base REF` sets what it diffs against (default: the worktree's `BASE_BRANCH`, else `origin/dev`), `--head REF` a commit instead of the working tree, and `--list` shows each file's checks without running anything.
+- **One automatic retry.** A failed check is rerun once when the failure looks like contention: load above 40 at its start or end (`CARETOOK_BROWSER_BUSY`), a timeout, a 401 or PSYNC_S2101 in its log. It first waits up to 5 minutes for the load to drop. A pass on the retry is **FLAKY**: it counts as passing, and it's recorded in `.loops/.browser-flakes.log` (the date, worktree, check, why, and the first run's log), so the flaky steps can be fixed. A failure that repeats, or one that doesn't look like contention, is a real failure: debug it. Don't rerun by hand on top of this.
+- **While building, a loop runs only the check for what it's changing** (`pnpm prd browser <check>`), never the whole suite.
+- **Before hand-off, a loop runs `pnpm prd browser --changed`** once (it diffs against the PRD branch).
+- **No checks between merges.** An orchestrator merges a wave's slices without running `pnpm check` or browser checks in between; the loops checked their own slices, and everything runs once, before landing.
+- **Smoke mode** (for a quick look while building): `--smoke` (with one check, `--changed` or `--suite`) exports `SMOKE=1`, and each check runs only its core path: one role, online, one browser, about 4–7 s a check. Without it, `SMOKE=0` and checks run in full. In a check, `step(name, { smoke: true }, fn)` (`cdp.mjs`) marks a smoke block; an unmarked block prints `SKIP <name> (smoke)` in smoke mode. Checks with no smoke blocks (`roundtrip`, `sign-in` and the rest) run in full either way. Hand-offs and landings use full mode.
+- **A browser step that asserts pure logic comes out once a named unit test covers the same rule** (filter URLs, day labels, sheet guards, menu items, open rules, directory search and order, title suggestions). Checks keep the wiring: the link is on the page, and tapping it navigates.
+- **At landing** (step 1 of _Landing a wave_): a wave that changes screens (any UI PRD) runs the **full suite once**, against a freshly restarted server. A wave that doesn't (quick fixes, tooling, the data layer, docs) runs `pnpm prd browser --changed --base dev` instead, which is often nothing.
+- **The backstop:** the dev keeper runs the full suite on `dev` (`pnpm prd browser --suite` from any synced worktree, on a quiet machine) **before opening the PR to `staging`**. It catches breaks between areas that `--changed` doesn't see.
+- **This overrides any plan** that says "rerun every browser check after each merge". **Run each check once:** never rerun one that passed, and never run `--suite` twice for one landing.
+- **Run long checks under `caffeinate -i`** (`caffeinate -i pnpm prd browser …`): the Mac sleeps at night and stalls them mid-run.
+- **Don't run two checks at once in one worktree.** The lease already limits how many run on the machine, so there's no need to stagger checks by hand.
+- **Checks run on a check build.** `pnpm prd browser` serves a production build of the web target with `VITE_CHECK_BUILD=1` (5–7 s to build), which keeps `window.caretookSync` and `window.caretookModules` (the device modules, which `providers.mjs` loads). In a `.loops` worktree with a stack it starts one when no server is running, swaps it in for a dev server, and rebuilds and restarts it when the app source, `public/`, `.env`, a `package.json` or the lockfile is newer than the build (the main checkout's server is left alone). `--dev` runs against the dev server instead; `pnpm prd serve --built` serves a build by hand. A build has no Vite websocket, no dependency re-optimization reloads and no stale deps. It runs with `NODE_ENV=production`, so Better Auth's rate limits are on; `cdp.mjs` gives every page its own `x-forwarded-for`, so they apply per page. PowerSync's `[PowerSync]: Sync aborted` is the shared sync worker's teardown log for a page that closed, broadcast to the next page: the checks ignore exactly that warning.
+
+| Area changed                                                                 | Checks                                                                                                    |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| the timeline screen, rows and cards, filters, vitals strip                   | `phase2.mjs`                                                                                              |
+| add and edit sheets, `EntryForm`, local timeline writes                      | `roundtrip.mjs`                                                                                           |
+| the entry page, live notes, `note_document`, editors, Live now               | `live-notes.mjs`                                                                                          |
+| the `/app` frame, menus, theme, group settings, members                      | `app-shell.mjs` (and `ui.mjs` for settings)                                                               |
+| routes, `routes.ts`, `appUrls`, sheet URLs, settings subpages                | `routing.mjs`                                                                                             |
+| settings saves, `lib/me.ts`                                                  | `settings-layout.mjs`, `layout-offline.mjs` (timeout)                                                     |
+| `components/ui/`, `components/settings/`                                     | `ui.mjs`, `app-shell.mjs`                                                                                 |
+| session, sign-in, sign-out, sync client, first sync                          | `sign-in.mjs`, `first-sync.mjs`, `signout-wipe.mjs` (timeout), `session-end.mjs`, `devices.mjs` (Devices) |
+| account emails, `/reset-password`, `/verify-email`, `packages/auth`          | `invites.mjs` (and `sign-in.mjs` for the account pages)                                                   |
+| new care group, `/join/:code`, `/admin`, access codes, the invite card       | `groups.mjs`                                                                                              |
+| the Upcoming section, `lib/upcoming*`, cancel and reschedule                 | `upcoming.mjs`                                                                                            |
+| care periods (`periods/`, `period/`, `lib/period*`), the line, markers, menu | `care-periods.mjs` (and `phase2`, `app-shell`, `search`)                                                  |
+| a feature's own screens                                                      | its own check (`providers.mjs`, `medications.mjs`, …)                                                     |
+| the marketing site (`routes/marketing/`, `public/`)                          | `marketing.mjs` (`--timeout 120`)                                                                         |
+| the search index and query language, the search page, the timeline's search  | `search.mjs` (and `sign-in`, `signout-wipe` for its tables)                                               |
+| schema, migrations, sync-config, the upload switch, seeds                    | the checks for every screen that reads those tables                                                       |
+| docs, plans, scripts outside `browser-checks/`, pure modules with unit tests | none                                                                                                      |
+
+The table's machine-readable form is `scripts/loops/check-areas`; keep the two in step.
+
+### Starting and steering a PRD
+
+**Starting a PRD (the user):** `pnpm prd start <topic>`, then run the command it prints in a new terminal (`cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic>)"`). From then on the user steers that PRD from its orchestrator's console. **The orchestrator first asks for a landing mode** (unless the plan's _Status_ records one): ask before each landing, run everything through (start every ready slice, land each green wave, clean up, ask only real questions), or land chosen waves or slices automatically; it records the answer in _Status_.
+
+**Queueing a PRD (the user):** `pnpm prd queue <topic>` in a terminal of its own, left running. It waits until fewer than `CARETOOK_MAX_PRDS` PRD worktrees exist (a slot frees when a finished PRD is removed with `pnpm prd rm`), taking slots in queue order (tickets in `.loops/.queue/`, one lock around count-and-create in `.loops/.prd-start.lock`), then creates the worktree and opens its orchestrator there in run-through mode (`prompt.sh orchestrator <topic> --auto`; `--manual` for the asking prompt). Queueing is the user's go-ahead for every landing of that PRD.
+
+**Waiting on another PRD:** an orchestrator whose next slice is blocked by another PRD's work asks that orchestrator (ListAgents, SendMessage) to message it when the work lands in `dev`, and sets a background check that exits when `git log dev` or `pnpm backlog list` shows it, then syncs and carries on. Both prompts say so.
+
+**Keep each orchestrator's context small.** A session may run wave after wave; start a fresh one (the same command) whenever it gets slow or confused. The plan's _Status_ section makes that safe at any wave boundary.
+
+- It works from its plan's _Status_ section, the backlog, the loops' hand-offs, `git diff --stat` and `pnpm check` output. It doesn't read whole diffs or debug inside a loop: it sends the problem back to that loop's agent with SendMessage.
+- Before it ends, it updates its plan's _Status_ section (what's merged, with SHAs; what's ready; open issues) and its backlog items. Those are the hand-off to the next orchestrator.
+
+### Running a wave
+
+**PRD orchestrator, per wave:**
+
+1. Read your plan and `pnpm backlog list --prd <topic>`. A slice is **ready** when every slice it's blocked by has been merged into `prd/<topic>`. Start only what the user asks for, and `claim` its items.
+2. For each ready slice: `pnpm prd slice <topic> <n>`.
+3. Spawn one background agent per slice (not with `isolation: worktree`; it already is one), with the prompt from `pnpm prd prompt slice <topic> <n>` plus anything the slice needs that the plan doesn't say.
+4. As each loop hands off, review its branch: `git diff prd/<topic>...slice/<topic>/<n>`, its hand-off, and that the acceptance criteria are covered.
+5. Merge **in plan order** into `prd/<topic>`, in your integration worktree, with `git merge --no-ff -m "feat(<topic>): <what it adds> (slice <n>, B-<n>)" slice/<topic>/<n>`. Resolve conflicts in the shared files yourself. Don't run checks between merges: they run once, before landing (step 1 of _Landing a wave_). A failure there goes back to the loop that caused it.
+6. Once merged: `pnpm backlog done B-<n>` for its items, then `pnpm prd rm <topic>-<n>` (it deletes the merged branch). Start the slices it unblocked.
+7. **Land the wave** when it's green. Don't wait for the whole PRD: small, frequent landings keep PRDs from drifting apart.
+
+### Landing a wave
+
+**Landing a wave in `dev`:**
+
+1. **Sync and check.** In the integration worktree: `pnpm prd sync` (merges `dev`; resolve conflicts there, regenerate your migration if `dev` gained one, `pnpm datastore:reset`), `pnpm prd serve --restart`, the wave's browser checks (a UI wave: `pnpm prd browser --suite`, the **full suite once**, one check at a time under one lease, with a pass/fail table; any other wave: `pnpm prd browser --changed --base dev`; see _Browser check budget_), then `pnpm prd check`. Backlog-only commits on `dev` don't count as drift, so `pnpm backlog` writes never force another sync.
+2. **Serve it and report.** `pnpm prd serve --restart`, then show the user the output of `pnpm prd ready`: the dev server link and seed accounts, the backlog items this landing addresses (grouped as bugs fixed, features, changes), what's still open in the PRD, the commits, and warnings for a migration, seed, sync-config or dependency change. Add the browser checks you ran and two or three things worth trying by hand. If it lists blockers, fix them first.
+3. **Wait for the user.** They may try it at the link, ask for changes (send those back to a loop, then repeat from step 1), or say to land it.
+4. **Land on their word only:** `pnpm prd land <topic> -m "feat(<topic>): <what the wave adds> (B-<n>, …)"`. It refuses unless the branch is synced and `pnpm prd check` passed on its tip, so the code landing in `dev` is exactly the code that was checked; no recheck on `dev` is needed. It prints what the main checkout needs afterwards (`pnpm datastore:reset`, a PowerSync restart after a sync-config change, `pnpm install`) and never pushes: `git push origin dev` is the user's.
+5. Other orchestrators run `pnpm prd sync` at their next wave boundary, not mid-wave.
+6. When a PRD is finished and landed, `pnpm prd rm <topic>` removes its worktree and deletes `prd/<topic>`.
+
+A go-ahead covers one landing, unless the user chose a landing mode that lands waves automatically (or queued the PRD), which covers those landings. An agent never lands on its own judgment, never with `--force` unless the user says so, and never for another PRD.
+
+**Planning agents are the exception:** a `plan/<topic>` branch touches no code, so its agent may land it whenever its PRD or plan is ready, without waiting for a go-ahead, and may pass `--force` (`pnpm prd land plan/<topic> --force -m "docs(<topic>): …"`). Before landing, check that `git diff --stat dev...plan/<topic>` lists only `plans/` and `docs/` files; if anything else changed, it's not a planning branch, so ask first.
+
+The _Rules across PRDs_ and _Loop rules_ are in [AGENTS.md](../AGENTS.md).
+
+### Loop gotchas
+
+**Gotchas:**
+
+- **Dev server only (`--dev`):** the first visit to a route on a fresh loop can make Vite re-optimize dependencies and reload the page mid-check. If a browser check times out on its first run, run it once more before debugging.
+- Merging two branches that each generated a migration conflicts in drizzle's `meta/_journal.json` and snapshots. Keep the one already in the target (`dev`'s, at a sync), then regenerate yours on top (`pnpm datastore:generate`) and recheck its SQL order.
+- After a merge or sync that changes seeds or migrations, run `pnpm datastore:reset` in that worktree; the merged seeds can differ from either side's.
+- **Docker runs out of networks at about 21** ("all predefined address pools have been fully subnetted"): every stack makes two. `new.sh` then fails at the test database; once another stack is removed, rerun `pnpm datastore:start && pnpm datastore:start:test` in the worktree. Never prune other projects' networks.
+- **A check tab behind another tab gets no animation frames**, so taps and dialogs stall: bring it forward (`Page.bringToFront`, `medications.mjs`'s `toFront()`) before tapping. After Escape or a close, wait for the closed state and focus together (`ui.mjs`'s `settlesOn`), never a fixed sleep.
+- **Running `new.sh` for several worktrees at once** can fail at migrate with "Connection terminated unexpectedly": a fresh Postgres restarts once after its first-boot init. The containers are fine; rerun `pnpm datastore:start && pnpm datastore:start:test` in each.
+- **The first check run after a PowerSync restart** (`docker compose restart powersync`, after editing `sync-config.yaml`) can fail on slow first sync (`live-notes.mjs` timing steps). Rerun once before debugging. `pnpm datastore:reset` doesn't need this: it restarts PowerSync with empty bucket storage and waits until it's ready.
+- **Merges can break another slice's browser check** without either slice being wrong (live notes slices 4 and 8 both filled the header's `actions`). The checks before landing catch it; a slice's own checks don't.
+- **Long-running dev servers** (`--dev` only) can serve stale optimized deps after merges ("Invalid hook call"). Run merged checks against a freshly started server.
+
+## PRDs
+
+The backlog's PRD table lists every PRD, with its dependencies and hot files. Each PRD's lasting decisions live in the area doc it built (the index in AGENTS.md).
+
+- 🟡 [`plans/quick-fixes-plan.md`](../plans/quick-fixes-plan.md) (topic `quick-fixes`, no PRD): small standalone fixes, one slice and one backlog item each, appended as they come. **Slices 1–37 are in `dev`**; new fixes are appended as slice 38 on. `prompt.sh` handles a topic without a PRD file.
+- 🟡 [`plans/orchestration-prd.md`](../plans/orchestration-prd.md) (topic `orchestration`): faster, lighter loops (this handbook's subject). Slice 1 split AGENTS.md into the core and these docs.
+- ✅ Done, all slices in `dev` (PRD and plan in `plans/<topic>-prd.md` and `-plan.md`): `live-notes-ux` (live-notes, timeline), `app-shell` (app-shell), `timeline-polish` (timeline, components), `marketing` (marketing), `providers` (providers), `components` (components), `invites` (notifications, auth, care-groups), `medications` (medications), `appointments` (appointments), `routing` (app-shell, timeline), `search` (search), `profiles` (profiles), `care-periods` (care-periods).
+- **Follow-ups filed from done PRDs:** B-25 (@-mentions of providers in live notes), B-26 (allergies, also on the emergency sheet), B-51 (a printable dose checklist), B-60 to B-63 (recurring appointments, reminders, iCal, Google Calendar), B-40 (real marketing screenshots, after a launch-ready product map), B-54 (the legal pages' review), and the profiles PRD's open question (the timeline's recipient card can't be dismissed). Before launch, the invites work in [notifications](domain/notifications.md).
+
+## Browser checks (`scripts/browser-checks/`)
+
+UI work is verified in headless Chrome over CDP with plain Node scripts (no Playwright yet).
+
+- **Run:** `pnpm prd browser <check> [args…]` from the worktree (`phase2`, `phase2.mjs` or a path). It uses Node 24 from `.nvmrc` (the checks need the global `WebSocket`), the worktree's `.env.loop` (`BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER`; the main checkout's defaults when there is none, and `BASE` then defaults to `http://localhost:5176`), runs from `scripts/browser-checks/`, and holds a machine-wide lease (at most four checks at once). `--changed` runs only what the diff needs (see _Browser check budget_). `--timeout <s>` kills a check, and its Chrome, after that long. `--suite` runs every check in the _Browser check budget_ table, pausing 2 s between them (`CARETOOK_BROWSER_SUITE` and `CARETOOK_BROWSER_PAUSE` override), and exits non-zero if any failed.
+- **Scripts:** `cdp.mjs` (the harness, with `tap()` for real CDP mouse taps; every DevTools command fails after 120 s (`CDP_TIMEOUT_MS`), so a stuck page fails instead of hanging; it collects uncaught errors, rejections, `console.error` and failed loads in `page.uncaught`, and a `waitFor` timeout prints `page.diagnose()`: the URL, those errors and the start of `main`; pass `{ quiet: true }` for an expected timeout); `proxy.mjs` (offline, because CDP network emulation doesn't cut PowerSync's stream; it tunnels CONNECT, so WebSockets work, and going offline leaves Vite's `vite-hmr`/`vite-ping` sockets open, so a proxied page still gets Vite's reload after a re-optimization instead of loading two copies of React and Yjs); `live-notes.mjs` (the one notes and events check, about 2 min: drafts, one-tap note and event, title chips, Live now banner and live dot, avatars, convergence, offline, time chip, Delete, Share, 404s, with tap counts Note 1, Event 1, named event 2, Join 1); `roundtrip.mjs` (sheet entries: symptom add, edit, delete, validation, offline, viewer, sign-out wipe); `phase2.mjs` (the timeline layout and row taps, the kind icon filter, the author filter (writer, viewer, cards and offline), the wide layout (the capped column and one column of cards at 1024, 1280 and 1536, and 420 unchanged), the author tooltip (hover, focus, touch), infinite scroll (to the beginning in both views, a filter reset, the kept place, offline), the day headings and the one-line vitals strip, writer and viewer in both views; Chrome in America/Los_Angeles, the seeds' zone; rerun it after any timeline change; its sticky-heading steps scroll relative to a day section, never to a fixed offset); `signout-wipe.mjs` (never exits on its own; `pnpm prd browser` stops it after its last line); `sign-in.mjs` (one sign-in request on a double click, by holding `/api/auth/token`); `layout-offline.mjs` (an offline layout change survives and reaches the server); `first-sync.mjs` (a slow first sync, held by its own proxy, shows the syncing state and never "no care groups"; `HOLD_MS`); `app-shell.mjs` (the frame: one-row header at 420, the user menu by keyboard, theme with no flash and with storage blocked, group switching and the last group, the tab bar at 420 and header links at 1280, Sign out, and group settings for owner, caretaker, viewer, a non-member and offline, then members: role change on a second device, the admin and last-owner refusals, remove and leave; it restores the seeded names and memberships, so no reset is needed afterwards); `settings-layout.mjs` (the timeline layout choice in Settings, as caretaker@ in two browsers; it restores the account's layout); `invites.mjs` (account emails and invites through `/dev/mail.json`: emailed link, emailed code, reset, verification, one email per double press, then email invites: invite, sign up with the email locked, consent, join, an existing user, the wrong account, decline, resend and revoke, and who may invite; then link invites and join requests; smoke runs the emailed link, the invite-to-join path and the link-request-approve path; it makes `inv<run>-…@example.com` accounts and deletes them, their mail, outbox and verification rows at the end). `phase2.mjs`'s sticky-header step scrolls into the middle of a day, because seeds are placed by `hoursAgo` and a fixed offset can land on the seam between two days. `medications.mjs` (the medications device module and synced data; screens from slice 2). `search.mjs` (the device index by every field, the timeline's search, the search page, highlights, recent searches, and timing with scaled-up rows, which it deletes). `groups.mjs` (creating a group, the invite card, `/join/:code` sign-up, refused codes, `/admin` for staff and the 404 for everyone else, the QR decoded with `BarcodeDetector`; CDP ports 9601–9604; tags its rows `grp<run>`/`GR<run>` and deletes them).
+  - **They're order-independent:** each run tags the entries it makes, asserts against its own entries (never global idle state or seed order), moves only its own documents' edit times back before "who's typing" steps, and soft-deletes what it made at the end. They exit non-zero on failure.
+  - Sign out in a check with `page.signOut()` (`cdp.mjs`), which goes through the account menu.
+  - `page.signIn` retries once (with a log line) when `/api/auth/token` answers 401.
+  - **member@ has two groups.** `page.signIn(email, pw)` goes on from the group list to Dev Family's timeline (`page.openDevFamily()`); pass `{ home: true }` to stay where `/app` lands. A check that needs a one-group user's "straight to the timeline" signs in as caretaker@ or viewer@. psql queries that pick seeded rows filter on Dev Family's id (`0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001`).
+  - `layout-offline.mjs` and `signout-wipe.mjs` print their result and then don't exit (open proxy sockets). `pnpm prd browser` stops them 2 s after their last line (`N/M passed`; signout-wipe's `errors:`), with 300 s as a backstop (TIMEOUT if the last line never comes), and takes the verdict from the `N/M passed` line (`ended` for signout-wipe, which has no assertions: read its output). Don't wrap them in `timeout` yourself.
+  - Headless Chrome's clipboard needs `Emulation.setFocusEmulationEnabled`. Pin the zone (`Emulation.setTimezoneOverride`, America/Los_Angeles) for layout checks.
+- **Patterns:**
+  - Use a 420×900 window.
+  - Sign in as the `@example.com` seeds (`SEED_USER_PASSWORD`).
+  - React Aria buttons and menu items need a `pointerdown` before `.click()`.
+  - Set inputs through the native value setter, then dispatch `input`.
+  - Collect console errors, and take screenshots.
+  - **Better Auth allows about 3 sign-ins per 10 s per page** on a check build (the dev server doesn't rate-limit). Past that it answers like a wrong password. The limit is per client IP, and `cdp.mjs` gives every page its own `x-forwarded-for`, so checks don't pause before a new page's sign-in; only sign-ins repeated on one page need spacing.
+- **Afterwards:** nothing; the checks clean up after themselves, so no reset is needed between runs.
+
+## Dev gotchas
+
+- **The dev server on another port:** Better Auth trusts only `BETTER_AUTH_URL` and `AUTH_TRUSTED_ORIGINS`, so use `BETTER_AUTH_URL=http://localhost:5176 AUTH_TRUSTED_ORIGINS=http://localhost:5176 pnpm --filter @caretook/web dev --port 5176 --strictPort`. PowerSync's JWKS then needs `PS_JWKS_URL` set to match.
+- **After `pnpm build:native`:** lint can report `no-unsafe-argument` in `routes/rpc.ts` and `routes/api/auth.ts`, because the native typegen overwrote the web route types. Run `pnpm typecheck`.
+- **`/app` error handling:** `/app` has its own `ErrorBoundary`. It keeps the frame, and avoids React's "script tag" warning from the root boundary.
+- **Route discovery is `initial`** (`react-router.config.ts`). With the default (lazy), navigating to a path not seen yet (a note just saved offline, `/entries/:id`) asks the server for `/__manifest` first, and fails offline.
