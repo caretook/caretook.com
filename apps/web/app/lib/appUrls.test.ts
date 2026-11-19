@@ -230,6 +230,8 @@ describe("appUrls.newMedication and editMedication", () => {
   it("builds the recipient's profile and its sheets, and drops an unknown sheet", () => {
     expect(appUrls.profile(G)).toBe(`/app/groups/${G}/profile`);
     expect(appUrls.profile(G, "basics")).toBe(`/app/groups/${G}/profile/basics`);
+    expect(appUrls.profile(G, "contact")).toBe(`/app/groups/${G}/profile/contact`);
+    expect(appUrls.profile(G, "insurance")).toBe(`/app/groups/${G}/profile/insurance`);
     // @ts-expect-error: only the listed sheets exist.
     expect(appUrls.profile(G, "bogus")).toBe(`/app/groups/${G}/profile`);
   });

@@ -2,20 +2,25 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { Outlet } from "react-router";
-import { canReadRecipient } from "@caretook/data/schema";
+import type { RecipientDetailsRow } from "~/lib/recipientDetails";
+
+import { canEditRecipient, canReadRecipient } from "@caretook/data/schema";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
 import { VIEWER_DETAILS_LINE } from "~/lib/recipientDisplay";
 import { sessionContext } from "~/lib/session";
 import { loadRecipientProfileRows, useRecipientProfile } from "~/lib/sync/profile";
+import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/sync/recipientDetails";
+import { ContactCard, InsuranceCard } from "./DetailsCards";
 import { BasicsCard, NoteCard } from "./ProfileCards";
 import { ProfileHeader } from "./ProfileHeader";
 
 // Shared by web + native. `…/profile`: the care recipient's profile, for
 // every member. Read from the device's copy (live, so it works offline and
 // follows other members' edits). Writers edit it in sheets over the page
-// (`profile/basics`), online only. Later slices append writers' regions
-// (contact, insurance, emergency contacts) after the note.
+// (`profile/basics`, `profile/contact`, `profile/insurance`), online only.
+// Writers also see the recipient's Contact and Insurance (slice 3); later
+// slices append emergency contacts after them.
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: loaderData?.title ? `${loaderData.title} · Profile · Caretook` : "Profile · Caretook" }];
@@ -25,8 +30,15 @@ export async function clientLoader({ params, context }: Route.ClientLoaderArgs) 
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const rows = await loadRecipientProfileRows(db, params.groupId);
-  return { rows, title: group.recipient?.displayName ?? group.displayName };
+  // Writers' details: only owners', admins' and caretakers' devices have them.
+  const detailsRows = canReadRecipient(group.role, "details")
+    ? await loadRecipientDetailsRows(db, params.groupId)
+    : NO_DETAILS;
+  return { rows, detailsRows, title: group.recipient?.displayName ?? group.displayName };
 }
+
+/** A viewer's details rows: none (a module constant, so the live query's `initial` keeps its identity). */
+const NO_DETAILS: RecipientDetailsRow[] = [];
 
 /**
  * The live query follows every change, so opening or closing a sheet over
@@ -49,6 +61,10 @@ export function shouldRevalidate({
 export default function Profile({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
   const profile = useRecipientProfile(params.groupId, loaderData.rows);
+  const details = useRecipientDetails(params.groupId, loaderData.detailsRows);
+  // Live: a member demoted to viewer loses the writers' cards as the role syncs.
+  const readsDetails = canReadRecipient(group.role, "details");
+  const editsDetails = canEditRecipient(group.role, "details");
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-profile="">
@@ -62,7 +78,18 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
           <ProfileHeader profile={profile} />
           <BasicsCard profile={profile} />
           <NoteCard profile={profile} canEdit={group.canWrite} />
-          {!canReadRecipient(group.role, "details") && (
+          {readsDetails && (
+            <>
+              <ContactCard
+                groupId={group.id}
+                name={profile.displayName}
+                details={details}
+                canEdit={editsDetails}
+              />
+              <InsuranceCard groupId={group.id} details={details} canEdit={editsDetails} />
+            </>
+          )}
+          {!readsDetails && (
             <p className="text-base-content/70 text-sm" data-viewer-more="">
               {VIEWER_DETAILS_LINE}
             </p>

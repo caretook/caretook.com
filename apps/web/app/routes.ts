@@ -55,6 +55,8 @@ const appRoutes = [
         // The care recipient's profile (not a section), with its edit sheets over it.
         route("profile", "routes/app/groups/profile/route.tsx", [
           route("basics", "routes/app/groups/profile/basics/route.tsx"),
+          route("contact", "routes/app/groups/profile/contact/route.tsx"),
+          route("insurance", "routes/app/groups/profile/insurance/route.tsx"),
         ]),
       ]),
       // Start another care group (a sheet over its own page; not a group route).

@@ -5,13 +5,13 @@ import type { MemberDetailRow } from "~/lib/sync/members";
 import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
+import { ContactLines } from "~/components/contact";
 import { ConfirmDialog, UserAvatar } from "~/components/ui";
 import { useLiveQuery } from "~/lib/sync";
 import { memberContactLines, memberShare, parseSharedFields, sharedSummary } from "~/lib/memberContact";
 import { memberDetailsQuery } from "~/lib/sync/members";
 import { memberAccess, memberName, roleLabel, sortMembers } from "../groupSettings";
 import { memberHistory } from "./invites";
-import { MemberContact } from "./MemberContact";
 import { SharingForm } from "./SharingForm";
 
 // The members list and its rows. Each change posts an intent (`changeRole`,
@@ -207,7 +207,7 @@ function MemberItem({
       )}
       {contactLines.length > 0 && (
         <div className="pl-12">
-          <MemberContact lines={contactLines} />
+          <ContactLines lines={contactLines} data-member-contact="" />
         </div>
       )}
       {isSelf &&

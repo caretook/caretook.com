@@ -2,15 +2,19 @@ import type { MemberContactLine } from "~/lib/memberContact";
 
 import { ACTION_ICONS, actionLinkProps } from "~/components/providers";
 
+/** `data-*` attributes for the list (what checks find it by). */
+type DataAttributes = { [name: `data-${string}`]: string };
+
 /**
- * What a member shares with the group, as links: each number (call, and a
- * text button beside it), the email and the address (maps). Each link is
- * named for what it does ("Call Sam, mobile: (555) 010-1234").
+ * Someone's contact details as links (a member's shared details, the
+ * recipient's contact): each number (call, and a text button beside it), the
+ * email and the address (maps). Each link is named for what it does ("Call
+ * Sam, mobile: (555) 010-1234").
  */
-export function MemberContact({ lines }: { lines: MemberContactLine[] }) {
+export function ContactLines({ lines, ...data }: { lines: MemberContactLine[] } & DataAttributes) {
   if (lines.length === 0) return null;
   return (
-    <ul className="text-base-content/80 flex min-w-0 flex-col gap-0.5 text-sm" data-member-contact="">
+    <ul className="text-base-content/80 flex min-w-0 flex-col gap-0.5 text-sm" {...data}>
       {lines.map(({ field, action, text, caption, sms }) => {
         const Icon = ACTION_ICONS[action.kind];
         return (
