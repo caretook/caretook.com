@@ -39,7 +39,12 @@ const appRoutes = [
         ]),
         route("providers/:providerId", "routes/app/groups/provider/route.tsx"),
         // The medication list (its sheets come as its children) and a medication's page.
-        route("medications", "routes/app/groups/medications/route.tsx"),
+        route("medications", "routes/app/groups/medications/route.tsx", [
+          // Sheets over the list, which stays mounted underneath (`new` is
+          // static, so it ranks above the page's `:medicationId`).
+          route("new", "routes/app/groups/medications/new/route.tsx"),
+          route(":medicationId/edit", "routes/app/groups/medications/edit/route.tsx"),
+        ]),
         route("medications/:medicationId", "routes/app/groups/medication/route.tsx"),
         // The printable sheet (a static segment, so it ranks above `:medicationId`).
         route("medications/print", "routes/app/groups/medications/print/route.tsx"),

@@ -180,4 +180,10 @@ export const appUrls = {
       kind: isLiveEntryKind(kind) ? kind : null,
       [WHEN_PARAM]: WHEN_PICK,
     })}`,
+  /** The add sheet over the medication list, carrying the list's search and status filter. */
+  newMedication: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/medications/new${searchString(search)}`,
+  /** The edit sheet for one medication, over the list, carrying the list's search and status filter. */
+  editMedication: (groupId: string, medicationId: string, search?: Search) =>
+    `${groupHome(groupId)}/medications/${segment(medicationId)}/edit${searchString(search)}`,
 } as const;
