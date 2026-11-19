@@ -53,7 +53,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 | B-23 | change | landed | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
-| B-24 | change | in-progress | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
+| B-24 | change | ready | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
 | B-27 | bug | landed | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
@@ -341,10 +341,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
-- status: in-progress
+- status: ready
 - prd: components
 - owner: prd/components
-- commit:
+- commit: 61fe082
 
 - 2026-11-18 (Robert Bo Davis): From the inbox: Prefer well abstracted components over single-file components and refactor existing components to be more abstracted.
 - 2026-11-18 (Robert Bo Davis): PRD written: plans/components-prd.md. Four waves: UI primitives, timeline, entry page, then forms/shell/settings. Browser checks + pure unit tests, no new deps. Runs after routing.
@@ -430,6 +430,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/marketing/3): invites slice 3: the consent screen must link to /privacy and /health-data-privacy (marketing slice 3)
 - 2026-11-18 (slice/invites/1): invites slice 1 on slice/invites/1 (f1f6dc2, fe08cda, 36520d6): @caretook/notifications, outbox + dev_mail (migration 0009), /api/cron/outbox, /dev/mail. Dropped @react-email/components (deprecated on npm); templates use @react-email/render only.
 - 2026-11-18 (slice/invites/3): slice 3 (email invites with consent) built on slice/invites/3: migration 0010_email_invites, invite.* oRPC, /invite/:token, Members Invite sheet and Pending list. Not synced: invites and consent are read through oRPC; care_group_member gains synced invited_by and created_at.
+- 2026-11-18 (slice/invites/5): invites slice 5 ready on slice/invites/5 (649c1ab, 5eb7b6f): careGroup.create + New care group sheet, Invite someone card, access codes + /join/:code, /admin (codes, print QR, staff group + ownerInvite). Migration 0011_access_codes to regenerate after slice 4.
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 

@@ -44,6 +44,8 @@ const appRoutes = [
   // Signed-out account pages, reached from emailed links and from sign-in.
   route("reset-password", "routes/account/reset-password/route.tsx"),
   route("verify-email", "routes/account/verify-email/route.tsx"),
+  // An emailed invite's link: sign up or sign in, agree, join (or decline).
+  route("invite/:token", "routes/account/invite/route.tsx"),
 ];
 
 // Web-only: marketing, auth callbacks, anything needing server loaders.
