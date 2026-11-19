@@ -120,6 +120,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
 | B-81 | change | triaged | quick-fixes |  | Security headers and a CSP for every web response |
 | B-82 | change | triaged | quick-fixes |  | Server logs carry error codes and ids only, never values or meta |
+| B-83 | change | triaged | quick-fixes |  | Co-members read only id, name and image of each other's user row |
 
 ## Items
 
@@ -1016,3 +1017,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-8 (launch): toORPCError logs the whole AppError on a 500, and rpc.ts and .server/admin.ts log the authUser error. Log code, procedure and ids; a unit test that a care field never reaches the log line.
+
+### B-83 · change · Co-members read only id, name and image of each other's user row
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-10 (later): closes the AGENTS.md open question; invites read email as system.
