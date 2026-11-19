@@ -1592,6 +1592,101 @@ const bM = await launch(9341);
 const bV = SMOKE ? null : await launch(9342);
 const pages = [];
 let offline = null;
+/**
+ * Pass logs (medications-2 slice 6): doses logged in one round, through the
+ * device module on seeded Morning medications a couple of minutes back, are
+ * one row in rows and in cards that expands to each medication; writers'
+ * opens the pass sheet, viewers' doesn't. Its doses are deleted at the end.
+ */
+async function passLogRows(p, v) {
+  const tag = `P2-${Date.now().toString(36)}`;
+  const made = await p.evaluate(`(async () => {
+    const db = window.caretookSync;
+    const { medications } = await window.caretookModules();
+    const one = async (sql, params) => (await db.powersync.getAll(sql, params))[0]?.id;
+    const g = ${JSON.stringify(DEV_FAMILY)};
+    const pass = await one("SELECT id FROM medication_pass WHERE group_id = ? AND name = 'Morning' AND deleted_at IS NULL", [g]);
+    const med = (name) => one("SELECT id FROM medication WHERE group_id = ? AND name = ? AND deleted_at IS NULL", [g, name]);
+    const [a, b] = [await med("Lisinopril"), await med("Metformin")];
+    if (!pass || !a || !b) return { ok: false, error: "no Morning pass or seeded medications" };
+    const log = crypto.randomUUID();
+    const at = new Date(Date.now() - 2 * 60_000).toISOString();
+    const dose = (medicationId, status) => ({ medicationId, status, passId: pass, passLogId: log, occurredAt: at, note: ${JSON.stringify(tag)} });
+    const r = await medications.logDoses(db, g, [dose(a, "given"), dose(b, "refused")]);
+    return { ...r, log };
+  })()`);
+  if (!made?.ok) return check("pass logs: a round to show", false, JSON.stringify(made));
+  const row = `document.querySelector('main [data-pass-log="${made.log}"]')`;
+  const text = `${row}?.querySelector("[data-pass-log-text]")?.textContent`;
+  const tagged = `[...document.querySelectorAll("main ol > li")].filter((li) => li.textContent.includes(${JSON.stringify(tag)})).length`;
+  const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
+  try {
+    await p.goto(timeline);
+    await step("pass logs: one row in rows and cards", { smoke: true }, async () => {
+      const shown = await p.waitFor(`${text} === "Morning: 1 given, 1 refused"`, 15000).then(
+        () => true,
+        () => false,
+      );
+      check(
+        "rows: a round logged together is one row, with a link to its pass sheet",
+        shown &&
+          (await p.evaluate(tagged)) === 1 &&
+          (await p.evaluate(`!!${row}?.querySelector('a[aria-label^="Edit Morning log"]')`)),
+        `${shown} ${await p.evaluate(tagged)}`,
+      );
+      await p.tap(`${row}.querySelector("[data-pass-log-toggle]")`);
+      const open = await p.waitFor(`!${row}.querySelector("[data-pass-log-doses]").hidden`, 5000).then(
+        () => true,
+        () => false,
+      );
+      const lines = await p.evaluate(`${row}.querySelectorAll("[data-pass-log-doses] li").length`);
+      check("rows: the toggle lists each medication", open && lines === 2, `${open} ${lines}`);
+      await setView(p, "Cards");
+      const card = await p.waitFor(`${text} === "Morning: 1 given, 1 refused"`, 5000).then(
+        () => true,
+        () => false,
+      );
+      check("cards: the round is one card", card && (await p.evaluate(tagged)) === 1);
+      await p.screenshot("phase2-pass-log-cards");
+      await setView(p, "Rows");
+    });
+    if (v)
+      await step("pass logs: the viewer's row", async () => {
+        await v.goto(timeline);
+        const seen = await v.waitFor(`${text} === "Morning: 1 given, 1 refused"`, 30000).then(
+          () => true,
+          () => false,
+        );
+        check(
+          "viewer: the pass row with its toggle, and no pass sheet",
+          seen &&
+            (await v.evaluate(
+              `!!${row}?.querySelector("[data-pass-log-toggle]") && !${row}?.querySelector("a[aria-label^='Edit']")`,
+            )),
+        );
+      });
+  } finally {
+    await p
+      .evaluate(
+        `(async () => {
+      const db = window.caretookSync;
+      const { medications } = await window.caretookModules();
+      const rows = await db.powersync.getAll("SELECT id FROM timeline_entry WHERE json_extract(details, '$.passLogId') = ?", [${JSON.stringify(made.log)}]);
+      return medications.removeDoses(db, rows.map((r) => r.id));
+    })()`,
+      )
+      .catch(() => undefined);
+    // Wait for the delete to upload: the run ends (and Chrome closes) soon after.
+    for (let i = 0; i < 40; i++) {
+      const left = psql(
+        `SELECT count(*) FROM timeline_entry WHERE deleted_at IS NULL AND details->>'passLogId' = '${made.log}'`,
+      );
+      if (left === "0") break;
+      await sleep(500);
+    }
+  }
+}
+
 try {
   const p = await signedIn(bM, "member", "member@example.com");
   pages.push(p);
@@ -1791,6 +1886,7 @@ try {
   await wideLayout(p);
   await authorTooltip(p);
   await infiniteScroll(p, offlineDevice);
+  await passLogRows(p, v);
 
   // PowerSync warns when a full page load closes the previous page's database,
   // and its shared sync worker logs "Sync aborted" to every page when it stops

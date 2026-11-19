@@ -26,6 +26,8 @@ const appRoutes = [
           route(":entryId/edit", "routes/app/groups/timeline/edit/route.tsx"),
           // The Dose sheet (a static segment, so it wins over `new/:kind`).
           route("new/dose", "routes/app/groups/timeline/new-dose/route.tsx"),
+          // The pass sheet: one pass log's doses.
+          route("pass/:passLogId/edit", "routes/app/groups/timeline/pass/route.tsx"),
         ]),
         route("entries/:entryId", "routes/app/groups/entry/route.tsx"),
         route("settings", "routes/app/groups/settings/layout/route.tsx", [

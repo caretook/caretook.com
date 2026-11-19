@@ -232,4 +232,7 @@ export const appUrls = {
   /** The weekly bedside sheet, starting on `start` ("YYYY-MM-DD"; none is this week). */
   medicationsPrintWeek: (groupId: string, start?: string | null) =>
     `${groupHome(groupId)}/medications/print/week${searchString({ start })}`,
+  /** The pass sheet over a group's timeline: one pass log's doses, carrying the timeline's filters. */
+  passSheet: (groupId: string, passLogId: string, { search }: { search?: Search } = {}) =>
+    `${groupHome(groupId)}/timeline/pass/${segment(passLogId)}/edit${searchString(withoutSheetParams(search))}`,
 } as const;

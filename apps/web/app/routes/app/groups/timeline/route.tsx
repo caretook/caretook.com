@@ -145,6 +145,8 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <Outlet context={{ units } satisfies TimelineOutlet} />
       {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
       {canWrite && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
+      {/* The pass sheet's too, so a pass log opens it offline. */}
+      {canWrite && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
     </main>
   );
 }

@@ -3754,6 +3754,223 @@ async function givenAllSteps(A, { B, C, proxy } = {}) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Pass logs on the timeline and the pass sheet (medications-2 slice 6).
+// ---------------------------------------------------------------------------
+
+const passLogRow = (log) => `document.querySelector('main [data-pass-log="${log}"]')`;
+const LOG_FORM = `${SHEET}?.querySelector("[data-pass-log-form]")`;
+const passDoseField = (doseId, name) => `${LOG_FORM}?.querySelector('[name="${name}:${doseId}"]')`;
+const passLogSql = (log) =>
+  `SELECT coalesce(string_agg(m.name || ':' || (e.details->>'status') || ':' || coalesce(e.details->>'amount', '-') || ':' || (e.deleted_at IS NULL), ',' ORDER BY m.name), '')
+     FROM timeline_entry e JOIN medication m ON m.id::text = e.details->>'medicationId'
+    WHERE e.kind = 'dose' AND e.details->>'passLogId' = '${log}'`;
+
+/**
+ * A round logged together (this run's own pass and medications, logged
+ * through the device module a few minutes back, so no clock matters): one
+ * row on the timeline that expands to each medication; the pass sheet
+ * changes a status and an amount, adds a forgotten medication, and deletes
+ * the whole log offline; the guard sends viewers and a deleted log to the
+ * timeline.
+ */
+async function passLogSteps(A, { C, proxy } = {}) {
+  const names = ["La", "Lb", "Lc", "Ld"].map((n) => `${TAG} ${n}`);
+  const passName = `${TAG} Log`;
+  const made = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     const pass = await medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(passName)}, time: "06:00" });
+     if (!pass.ok) return [pass];
+     const med = (name, slots) => medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name, strength: "5 mg", dose: "1 tablet", schedule: { type: "scheduled", slots },
+     });
+     const names = ${JSON.stringify(names)};
+     const meds = [await med(names[0], [{ passId: pass.id }]), await med(names[1], [{ passId: pass.id }]),
+       await med(names[2], [{ passId: pass.id }]), await med(names[3], [{ time: "13:00" }])];
+     if (!meds.every((m) => m.ok)) return [pass, ...meds];
+     const log = crypto.randomUUID();
+     const at = new Date(Date.now() - 3 * 60_000).toISOString();
+     const dose = (m, status) => ({ medicationId: m.id, status, amount: "1 tablet", scheduledFor: "06:00", passId: pass.id, passLogId: log, occurredAt: at });
+     const logged = await medications.logDoses(db, ${JSON.stringify(DEV_FAMILY)},
+       [dose(meds[0], "given"), dose(meds[1], "given"), dose(meds[2], "refused")]);
+     return [pass, ...meds, { ok: logged.ok, log, ids: logged.ids }];`,
+  );
+  if (!made.every((r) => r?.ok)) return check("a pass log to show", false, JSON.stringify(made));
+  const [{ id: passId }, ...rest] = made;
+  const meds = rest.slice(0, 4).map((m) => m.id);
+  const { log, ids } = rest[4];
+  const [, idB] = ids;
+  const timeline = `/app/groups/${DEV_FAMILY}/timeline?kind=dose`;
+  const rowText = () =>
+    A.evaluate(`${passLogRow(log)}?.querySelector("[data-pass-log-text]")?.textContent ?? ""`);
+
+  try {
+    await A.goto(timeline);
+    // Its pass's and medications' names arrive with their own live queries, a moment after the row.
+    const shown = await A.waitFor(
+      `${passLogRow(log)}?.querySelector("[data-pass-log-text]")?.textContent === ${JSON.stringify(`${passName}: 2 given, 1 refused`)}`,
+      15000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const alone = await A.evaluate(
+      `${ROWS}.filter((li) => ${JSON.stringify(names.slice(0, 3))}.some((n) => li.textContent.includes(n))).length`,
+    );
+    check(
+      "a round logged together is one row on the timeline (the dose filter shows it)",
+      shown && (await rowText()) === `${passName}: 2 given, 1 refused` && alone === 1,
+      `${shown} ${await rowText()} ${alone}`,
+    );
+    await A.tap(`${passLogRow(log)}.querySelector("[data-pass-log-toggle]")`);
+    const listed = await A.waitFor(
+      `!${passLogRow(log)}.querySelector("[data-pass-log-doses]").hidden && ${passLogRow(log)}.querySelectorAll("[data-pass-log-doses] li").length === 3`,
+      5000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const lines = await A.evaluate(
+      `[...${passLogRow(log)}.querySelectorAll("[data-pass-log-doses] li")].map((li) => li.textContent).join(" | ")`,
+    );
+    check(
+      "expanding the row lists each medication and what happened",
+      listed &&
+        lines.includes(`${names[2]} 5 mg: Refused`) &&
+        lines.includes(`${names[0]} 5 mg: Given 1 tablet`),
+      lines.slice(0, 200),
+    );
+    if (SMOKE) return;
+
+    // The pass sheet: a status and an amount, saved together.
+    const openSheet = async () => {
+      // The row's text, not its middle: the expanded list's medication links sit above the open target.
+      await A.tap(`${passLogRow(log)}.querySelector("[data-pass-log-text]")`);
+      return A.waitFor(
+        `location.pathname.endsWith("/timeline/pass/${log}/edit") && ${LOG_FORM}?.querySelectorAll("fieldset[data-pass-dose]").length >= 3`,
+        10000,
+      ).then(
+        () => true,
+        () => false,
+      );
+    };
+    const opened = await openSheet();
+    check("tapping the row opens the pass sheet with each dose", opened);
+    await A.tap(`${LOG_FORM}.querySelector('input[name="status:${idB}"][value="skipped"]')`);
+    await A.type(passDoseField(ids[0], "amount"), "3 tablets");
+    await A.press(`${LOG_FORM}.querySelector('button[type="submit"]')`);
+    const closed = await A.waitFor(`!${SHEET} && !location.pathname.includes("/pass/")`, 8000).then(
+      () => true,
+      () => false,
+    );
+    const saved = await waitForSql(passLogSql(log), (v) => v.includes(":skipped:"), 20000);
+    check(
+      "the pass sheet saves a status and an amount, and the row says so",
+      closed &&
+        (await rowText()) === `${passName}: 1 given, 1 skipped, 1 refused` &&
+        saved.includes(`${names[0]}:given:3 tablets:true`) &&
+        saved.includes(`${names[1]}:skipped:1 tablet:true`),
+      `${closed} ${await rowText()} ${saved}`,
+    );
+
+    // Add a forgotten medication: a dose in the same round, at once.
+    await openSheet();
+    await A.evaluate(`(() => { const el = ${SHEET}.querySelector('[data-pass-log-add] select');
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(el, ${JSON.stringify(meds[3])});
+      el.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+    await A.tap(`${SHEET}.querySelector('[data-pass-log-add] button[type="submit"]')`);
+    const four = await A.waitFor(
+      `${LOG_FORM}?.querySelectorAll("fieldset[data-pass-dose]").length === 4`,
+      8000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const added = await waitForSql(passLogSql(log), (v) => v.includes(`${names[3]}:given`), 20000);
+    check(
+      "Add a medication logs it in the same round, and the sheet shows it",
+      four && added.includes(`${names[3]}:given:1 tablet:true`),
+      `${four} ${added}`,
+    );
+    await A.press(`[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")`);
+    await A.waitFor(`!${SHEET}`, 5000).catch(() => undefined);
+
+    // The viewer: the row and its medications, no sheet.
+    if (C) {
+      await toFront(C);
+      await C.goto(timeline);
+      const seen = await C.waitFor(`!!${passLogRow(log)}`, 30000).then(
+        () => true,
+        () => false,
+      );
+      const link = await C.evaluate(`!!${passLogRow(log)}?.querySelector('a[aria-label^="Edit"]')`);
+      await C.goto(`/app/groups/${DEV_FAMILY}/timeline/pass/${log}/edit?kind=dose`);
+      const turned = await C.waitFor(
+        `location.pathname.endsWith("/timeline") && location.search === "?kind=dose" && !${SHEET}`,
+        10000,
+      ).then(
+        () => true,
+        () => false,
+      );
+      check(
+        "a viewer sees the pass row but no sheet; its URL is the timeline",
+        seen && !link && turned,
+        `${seen} ${link} ${turned}`,
+      );
+      await toFront(A);
+    }
+
+    // Delete this log, offline.
+    await openSheet();
+    if (proxy) {
+      proxy.setOnline(false);
+      await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+    }
+    const errorsBefore = A.errors.length;
+    await A.tap(`${SHEET}.querySelector("[data-pass-log-delete]")`);
+    await A.waitFor(enabledDialogButton("Delete"), 5000);
+    await A.tap(dialogButton("Delete"));
+    const gone = await A.waitFor(
+      `!${SHEET} && !${passLogRow(log)} && !location.pathname.includes("/pass/")`,
+      8000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    if (proxy) {
+      proxy.setOnline(true);
+      await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+      A.errors.splice(errorsBefore);
+    }
+    const deleted = await waitForSql(
+      passLogSql(log),
+      (v) => !v.includes(":true") && v.split(",").length === 4,
+      30000,
+    );
+    check(
+      `Delete this log${proxy ? " offline" : ""} removes every dose in it`,
+      gone && !deleted.includes(":true") && deleted.split(",").length === 4,
+      `${gone} ${deleted}`,
+    );
+    await A.goto(`/app/groups/${DEV_FAMILY}/timeline/pass/${log}/edit`);
+    const back = await A.waitFor(`location.pathname.endsWith("/timeline") && !${SHEET}`, 10000).then(
+      () => true,
+      () => false,
+    );
+    check("a deleted log's sheet URL is the timeline", back);
+  } finally {
+    await onDevice(
+      A,
+      `const { medicationPasses } = await window.caretookModules();
+       const logged = await db.powersync.getAll("SELECT id FROM timeline_entry WHERE json_extract(details, '$.passLogId') = ?", [${JSON.stringify(log)}]);
+       await medications.removeDoses(db, logged.map((r) => r.id));
+       for (const id of ${JSON.stringify(meds)}) await medications.removeMedication(db, id);
+       await medicationPasses.removePass(db, ${JSON.stringify(passId)});`,
+    ).catch(() => undefined);
+  }
+}
+
 // One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
 // 9435, not 9434: slot 2's offset puts 9434 on 11434, Ollama's default port.
 const proxy = startProxy(9435);
@@ -3916,6 +4133,17 @@ try {
   else await givenAllSteps(G, { B: pages[1], C: pages[2], proxy: proxyA });
   await G.send("Page.close").catch(() => undefined);
   G.close();
+  await A.send("Page.bringToFront");
+
+  // Pass logs on the timeline and the pass sheet (slice 6), in a tab of its own too.
+  const P = await openPage(bA, "caretaker-pass-logs");
+  pages.push(P);
+  await P.goto(LIST);
+  await P.waitFor("!!window.caretookSync && !!document.querySelector('main [data-medication-list]')", 20000);
+  if (SMOKE) await passLogSteps(P);
+  else await passLogSteps(P, { C: pages[2], proxy: proxyA });
+  await P.send("Page.close").catch(() => undefined);
+  P.close();
   await A.send("Page.bringToFront");
 
   if (made) {
