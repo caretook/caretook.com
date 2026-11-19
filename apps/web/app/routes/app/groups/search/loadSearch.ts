@@ -17,6 +17,7 @@ import { groupLinksByEntry } from "~/lib/entryProviders";
 import { isLiveEntryKind } from "~/lib/liveEntry";
 import { medicationIdOf, withMedication } from "~/lib/medicationEntries";
 import { searchSections, sectionLimits } from "~/lib/searchResults";
+import { loadSchedulePasses, toPasses } from "~/lib/sync/medicationPasses";
 import { toEntryMedication } from "~/lib/sync/medicationTimeline";
 import { toMedication } from "~/lib/sync/medications";
 import { previewText } from "~/lib/sync/notes";
@@ -80,7 +81,7 @@ const readEntries = async (db: SyncDb, groupId: string, ids: string) => {
   const window = { sql: `FROM timeline_entry WHERE ${inIds("id")}`, params: [ids] };
   const links = windowLinksQuery(window);
   const liveIds = JSON.stringify(entries.filter((e) => isLiveEntryKind(e.kind)).map((e) => e.id));
-  const [medications, linkRows, authors, notes] = await Promise.all([
+  const [medications, linkRows, authors, notes, passRows] = await Promise.all([
     db.powersync.getAll<EntryMedicationRow>(
       `SELECT id, name, strength, deleted_at FROM medication WHERE group_id = ? AND ${inIds("id")}`,
       [groupId, medicationIds],
@@ -91,7 +92,9 @@ const readEntries = async (db: SyncDb, groupId: string, ids: string) => {
       [authorIds],
     ),
     readNotes(db, groupId, liveIds),
+    loadSchedulePasses(db, groupId),
   ]);
+  const passes = toPasses(passRows);
   const medicationById = new Map(medications.map((m) => [m.id, toEntryMedication(m)]));
   const providersByEntry = groupLinksByEntry(linkRows, fromLocalTimestamp);
   const authorById = new Map(authors.map((a) => [a.id, a.name]));
@@ -101,6 +104,7 @@ const readEntries = async (db: SyncDb, groupId: string, ids: string) => {
       ...withMedication(
         isLiveEntryKind(entry.kind) ? { ...entry, body: notes.get(entry.id) || null } : entry,
         (id) => medicationById.get(id),
+        passes,
       ),
       providers: providersByEntry.get(entry.id) ?? [],
       authorName: authorById.get(entry.createdBy) || "Former member",

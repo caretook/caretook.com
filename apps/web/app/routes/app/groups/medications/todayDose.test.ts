@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { todayDoseFields, todayDoseFromForm } from "./todayDose";
 
 const M = "11111111-2222-4333-8444-555555555555";
+const PASS = "11111111-2222-4333-8444-666666666666";
 
 const formOf = (fields: Record<string, string>) => {
   const form = new FormData();
@@ -15,6 +16,7 @@ describe("todayDose", () => {
       medicationId: M,
       status: "given",
       scheduledFor: "08:00",
+      passId: PASS,
       amount: " 1 tablet ",
     });
     expect(fields).toEqual({
@@ -22,6 +24,7 @@ describe("todayDose", () => {
       medicationId: M,
       status: "given",
       scheduledFor: "08:00",
+      passId: PASS,
       amount: "1 tablet",
       note: "",
     });
@@ -29,6 +32,7 @@ describe("todayDose", () => {
       medicationId: M,
       status: "given",
       scheduledFor: "08:00",
+      passId: PASS,
       amount: "1 tablet",
       note: null,
     });
@@ -39,6 +43,7 @@ describe("todayDose", () => {
     expect(todayDoseFromForm(formOf(fields))).toMatchObject({
       status: "skipped",
       scheduledFor: null,
+      passId: null,
       note: "Asleep",
     });
   });

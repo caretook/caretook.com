@@ -56,6 +56,8 @@ export function DoseForm(props: Props) {
   const picked = parseDoseOption(choice);
   const medicationId = entry ? (stored?.medicationId ?? "") : picked.medicationId;
   const doseOf = (value: string) => options.find((o) => o.value === value)?.dose ?? "";
+  // A slot in a pass logs the pass too, so the dose still answers it after the pass moves.
+  const passId = options.find((o) => o.value === choice)?.passId ?? null;
   const [status, setStatus] = useState<DoseStatus>(stored?.status ?? "given");
   // The amount follows the chosen medication's dose until it's typed in.
   const [amount, setAmount] = useState({
@@ -80,6 +82,7 @@ export function DoseForm(props: Props) {
       medicationId,
       status,
       scheduledFor: picked.slot,
+      passId,
       occurredAt: occurredAt || null,
     });
     if (found.length && found.join("\n") !== warnings.join("\n")) {
@@ -104,6 +107,7 @@ export function DoseForm(props: Props) {
             onChange={choose}
             error={issueFor(issues, "details.medicationId")}
           />
+          {passId && <input type="hidden" name="passId" value={passId} />}
         </>
       )}
 

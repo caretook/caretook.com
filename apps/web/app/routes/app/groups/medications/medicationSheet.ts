@@ -1,5 +1,6 @@
 import type { LocalProvider, ProviderRow } from "~/lib/sync/providers";
 import type { SyncDb } from "~/lib/sync";
+import type { LocalPass, PassRow } from "~/lib/sync/medicationPasses";
 import type { MedicationNameRow } from "~/lib/sync/medications";
 
 import { useCallback, useMemo, useRef } from "react";
@@ -8,6 +9,7 @@ import { appUrls } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
 import { openedFromApp } from "~/lib/medicationSheets";
 import { useLiveQuery } from "~/lib/sync";
+import { loadSchedulePasses, useSchedulePasses } from "~/lib/sync/medicationPasses";
 import { medicationNamesQuery } from "~/lib/sync/medications";
 import { providersQuery, toProviders } from "~/lib/sync/providers";
 import { readRows } from "~/lib/sync/timeline";
@@ -45,26 +47,32 @@ export function useCloseMedicationSheet() {
 
 const formProvidersQuery = (groupId: string) => providersQuery(groupId, { includeDeleted: true });
 
-export type FormSourceRows = { providerRows: ProviderRow[]; nameRows: MedicationNameRow[] };
+export type FormSourceRows = {
+  providerRows: ProviderRow[];
+  nameRows: MedicationNameRow[];
+  passRows: PassRow[];
+};
 
 /** The form's sources as a sheet's loader reads them, so the first render has them. */
 export const loadFormSources = async (db: SyncDb, groupId: string): Promise<FormSourceRows> => {
-  const [providerRows, nameRows] = await Promise.all([
+  const [providerRows, nameRows, passRows] = await Promise.all([
     readRows<ProviderRow>(db, formProvidersQuery(groupId)),
     readRows<MedicationNameRow>(db, medicationNamesQuery(groupId)),
+    loadSchedulePasses(db, groupId),
   ]);
-  return { providerRows, nameRows };
+  return { providerRows, nameRows, passRows };
 };
 
 /**
  * What the form picks from, live: the group's providers (deleted ones too,
- * so a removed prescriber still has a name) and the names the group has
- * used (for suggestions).
+ * so a removed prescriber still has a name), the names the group has used
+ * (for suggestions) and its passes (deleted ones too, so a schedule naming
+ * one keeps its time).
  */
 export function useMedicationFormSources(
   groupId: string,
   initial: FormSourceRows,
-): { providers: LocalProvider[]; names: MedicationNameRow[] } {
+): { providers: LocalProvider[]; names: MedicationNameRow[]; passes: LocalPass[] } {
   const providerQuery = formProvidersQuery(groupId);
   const providerRows = useLiveQuery<ProviderRow>(
     providerQuery.sql,
@@ -74,5 +82,6 @@ export function useMedicationFormSources(
   const providers = useMemo(() => toProviders(providerRows), [providerRows]);
   const nameQuery = medicationNamesQuery(groupId);
   const names = useLiveQuery<MedicationNameRow>(nameQuery.sql, nameQuery.params, initial.nameRows);
-  return { providers, names };
+  const passes = useSchedulePasses(groupId, initial.passRows);
+  return { providers, names, passes };
 }

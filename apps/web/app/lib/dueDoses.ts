@@ -1,6 +1,6 @@
-import type { DoseDetails, MedicationSchedule, MedicationStatus } from "@caretook/data/schema";
+import type { DoseDetails, MedicationSchedule, MedicationStatus, PassLike } from "@caretook/data/schema";
 
-import { ownTimes } from "@caretook/data/schema";
+import { slotAmount, slotTimes } from "@caretook/data/schema";
 import { addDays, dayInZone, zonedInstant } from "./zonedDay";
 
 // What's due today: a plain function of `now`, so a timer re-evaluates it
@@ -28,7 +28,9 @@ export type DueDose = {
   id: string;
   /** ISO 8601. */
   occurredAt: string;
-  details: Pick<DoseDetails, "medicationId" | "status" | "scheduledFor">;
+  details: Pick<DoseDetails, "medicationId" | "status" | "scheduledFor"> & {
+    passId?: DoseDetails["passId"];
+  };
 };
 
 export type SlotState = "upcoming" | "due" | "overdue" | "given" | "skipped" | "refused" | "missed";
@@ -38,8 +40,12 @@ export type DoseSlot = {
   medication: DueMedication;
   /** The recipient's day, "YYYY-MM-DD". */
   day: string;
-  /** The schedule time, "HH:MM" in the recipient's zone. */
+  /** The schedule time, "HH:MM" in the recipient's zone: its pass's time, or its own. */
   time: string;
+  /** The pass the slot is in, or null for a time of its own. */
+  passId: string | null;
+  /** What's given: the slot's amount, else the medication's dose (`slotAmount`). */
+  amount: string | null;
   /** The moment it falls (ISO 8601). */
   at: string;
   state: SlotState;
@@ -74,6 +80,8 @@ export type DueDoses = {
 
 export type DueDosesInput = {
   medications: readonly DueMedication[];
+  /** The group's passes, deleted ones too: a pass slot falls at its pass's time. */
+  passes?: readonly Pick<PassLike, "id" | "time">[];
   /** Live doses (not deleted) from yesterday's start on, any order. */
   doses: readonly DueDose[];
   now: Date;
@@ -107,15 +115,22 @@ type Working = { slot: Omit<DoseSlot, "state" | "dose">; ms: number; dose: DueDo
 /**
  * Today's slots and yesterday's, each with its state; the as-needed counts.
  *
- * A dose answers a slot of its medication: the one its `scheduledFor` names
- * (the nearest such, yesterday's or today's; when both are answered, none),
- * else the nearest slot nothing has answered within `windowMinutes`. Unanswered, a slot is `upcoming`
- * before its time, `due` from it, `overdue` `overdueAfterMinutes` after it,
- * and `missed` once its day has ended. Only current, not deleted, scheduled
- * medications have slots.
+ * A slot in a pass falls at the pass's time (so moving a pass moves its
+ * slots); a slot of its own at its time. A medication with a pass and a time
+ * of its own at the same moment has one slot there (the pass's).
+ *
+ * A dose answers a slot of its medication: the one in its pass (`passId`)
+ * when the medication still has that pass, so a retimed pass keeps its
+ * answered doses; else the one its `scheduledFor` names (the nearest such,
+ * yesterday's or today's; when both are answered, none); else the nearest
+ * slot nothing has answered within `windowMinutes`. Unanswered, a slot is
+ * `upcoming` before its time, `due` from it, `overdue` `overdueAfterMinutes`
+ * after it, and `missed` once its day has ended. Only current, not deleted,
+ * scheduled medications have slots.
  */
 export function dueDoses({
   medications,
+  passes = [],
   doses,
   now,
   timeZone,
@@ -128,14 +143,26 @@ export function dueDoses({
 
   const working: Working[] = [];
   for (const medication of active) {
-    if (medication.schedule.type !== "scheduled") continue;
+    // One slot per time: a pass's (the first) ahead of a time of its own.
+    const all = slotTimes(medication.schedule, passes);
+    const timed = all.filter((slot) => {
+      const first =
+        all.find((s) => s.time === slot.time && s.passId) ?? all.find((s) => s.time === slot.time);
+      return first === slot;
+    });
     for (const d of [yesterdayDay, day]) {
       if (!scheduledOn(medication, d, timeZone)) continue;
-      // Time slots only for now: pass slots need the group's passes.
-      for (const time of ownTimes(medication.schedule)) {
+      for (const { time, passId, amount } of timed) {
         const at = zonedInstant(d, time, timeZone);
         working.push({
-          slot: { medication, day: d, time, at: at.toISOString() },
+          slot: {
+            medication,
+            day: d,
+            time,
+            passId,
+            amount: slotAmount(medication, { amount }),
+            at: at.toISOString(),
+          },
           ms: at.getTime(),
           dose: null,
         });
@@ -143,9 +170,10 @@ export function dueDoses({
     }
   }
 
-  // Doses with a slot named first, then the rest; each in time order.
+  // Doses that name a pass or a slot first, then the rest; each in time order.
+  const names = (d: DueDose) => !!d.details.passId || !!d.details.scheduledFor;
   const ordered = [...doses].sort((a, b) => {
-    const named = Number(!a.details.scheduledFor) - Number(!b.details.scheduledFor);
+    const named = Number(!names(a)) - Number(!names(b));
     return named || a.occurredAt.localeCompare(b.occurredAt) || a.id.localeCompare(b.id);
   });
   const nearest = (candidates: Working[], ms: number) =>
@@ -156,24 +184,29 @@ export function dueDoses({
   for (const dose of ordered) {
     const ms = new Date(dose.occurredAt).getTime();
     if (Number.isNaN(ms)) continue;
-    const open = working.filter((w) => !w.dose && w.slot.medication.id === dose.details.medicationId);
-    // A dose naming one of its medication's times answers only that time (none left: no slot).
-    // Naming a time the schedule no longer has, it's matched like an unnamed one.
-    const namesASlot =
-      !!dose.details.scheduledFor &&
-      working.some(
-        (w) =>
-          w.slot.medication.id === dose.details.medicationId && w.slot.time === dose.details.scheduledFor,
-      );
-    const match = namesASlot
-      ? nearest(
-          open.filter((w) => w.slot.time === dose.details.scheduledFor),
-          ms,
-        )
-      : nearest(
-          open.filter((w) => Math.abs(w.ms - ms) <= windowMinutes * MINUTE),
+    const { medicationId, passId, scheduledFor } = dose.details;
+    const own = working.filter((w) => w.slot.medication.id === medicationId);
+    const open = own.filter((w) => !w.dose);
+    // A dose in one of its medication's passes answers only that pass's slot;
+    // one naming one of its times answers only that time (none left: no
+    // slot). Naming a pass or time the schedule no longer has, it's matched
+    // like an unnamed one.
+    const match = (() => {
+      if (passId && own.some((w) => w.slot.passId === passId))
+        return nearest(
+          open.filter((w) => w.slot.passId === passId),
           ms,
         );
+      if (scheduledFor && own.some((w) => w.slot.time === scheduledFor))
+        return nearest(
+          open.filter((w) => w.slot.time === scheduledFor),
+          ms,
+        );
+      return nearest(
+        open.filter((w) => Math.abs(w.ms - ms) <= windowMinutes * MINUTE),
+        ms,
+      );
+    })();
     if (match) match.dose = dose;
   }
 
@@ -230,6 +263,8 @@ export type DoseWarning =
 export type PlannedDose = {
   medicationId: string;
   status: DoseDetails["status"];
+  /** The pass it's logged in, which names its slot ahead of `scheduledFor`. */
+  passId?: string | null;
   scheduledFor?: string | null;
   /** ISO 8601; now when left out. */
   occurredAt?: string | null;
@@ -251,7 +286,11 @@ export function doseWarnings(due: DueDoses, planned: PlannedDose, now: Date): Do
   const closest = (list: DoseSlot[]) =>
     list.reduce<DoseSlot | null>((best, s) => (!best || distance(s) < distance(best) ? s : best), null);
   let given: DoseSlot | null = null;
-  if (planned.scheduledFor) {
+  const inPass = planned.passId ? own.filter((s) => s.passId === planned.passId) : [];
+  if (inPass.length) {
+    const slot = closest(inPass);
+    if (slot?.state === "given") given = slot;
+  } else if (planned.scheduledFor) {
     const slot = closest(own.filter((s) => s.time === planned.scheduledFor));
     if (slot?.state === "given") given = slot;
   } else {

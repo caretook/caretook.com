@@ -138,6 +138,30 @@ describe("current medications", () => {
       started: "Jul 21, 2026",
     });
   });
+  it("read schedules by pass, with amounts that differ from the dose", () => {
+    const MORNING = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d1001";
+    const EVENING = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d1002";
+    const s = printSheet({
+      recipient,
+      medications: [
+        med({
+          name: "Metformin",
+          dose: "500 mg",
+          schedule: {
+            type: "scheduled",
+            slots: [{ passId: MORNING, amount: "1000 mg" }, { passId: EVENING }, { time: "14:00" }],
+          },
+        }),
+      ],
+      providers: [],
+      passes: [
+        { id: MORNING, name: "Morning", time: "08:00", sortOrder: 0 },
+        { id: EVENING, name: "Evening", time: "20:00", sortOrder: 1 },
+      ],
+      now: NOW,
+    });
+    expect(s.current[0]?.schedule).toBe("Morning (1000 mg), Evening and 14:00");
+  });
   it("keep a deleted prescriber's name, and have none for an unknown one", () => {
     const s = sheet(
       [med({ name: "A", prescriberId: "gone" }), med({ name: "B", prescriberId: "missing" })],

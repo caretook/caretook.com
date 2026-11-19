@@ -17,6 +17,7 @@ import { MEDICATION_SHEET_STATE } from "~/lib/medicationSheets";
 import { statusRequestFromForm } from "~/lib/medicationStatusForm";
 import { sessionContext } from "~/lib/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
+import { useSchedulePasses } from "~/lib/sync/medicationPasses";
 import {
   changeMedicationStatus,
   medicationQuery,
@@ -89,6 +90,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   const live = rows[0] ? toMedication(rows[0]) : null;
   const medication = live ?? loaderData.medication;
   const deleted = !live || !!live.deletedAt || live.groupId !== groupId;
+  const passes = useSchedulePasses(groupId, loaderData.passRows);
 
   const { ensureSaved, saveError } = useMedicationNotes(medicationId, loaderData.hasDocument);
   const title = medicationTitle(medication);
@@ -145,7 +147,11 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
         </div>
       ) : (
         <>
-          <MedicationDetails medication={medication} recipientTimeZone={loaderData.recipientTimeZone} />
+          <MedicationDetails
+            medication={medication}
+            passes={passes}
+            recipientTimeZone={loaderData.recipientTimeZone}
+          />
 
           <MedicationProviders
             groupId={groupId}
@@ -189,6 +195,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
             medicationId={medicationId}
             initialRows={loaderData.historyRows}
             initialMembers={loaderData.memberRows}
+            passes={passes}
           />
         </>
       )}

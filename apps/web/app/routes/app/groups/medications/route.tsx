@@ -76,7 +76,7 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
   const query = medicationsQuery(params.groupId);
   const rows = useLiveQuery<MedicationRow>(query.sql, query.params, loaderData.rows);
   const medications = useMemo(() => toMedications(rows), [rows]);
-  const { due } = useDueDoses(params.groupId, loaderData.due);
+  const { due, passes } = useDueDoses(params.groupId, loaderData.due);
 
   // The box filters as you type; the URL follows (see `MedicationSearch`).
   const [text, setText] = useState(filters.q);
@@ -136,7 +136,13 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
       <MedicationSearch value={text} urlQuery={filters.q} onChange={setText} />
       <StatusFilter status={filters.status} />
 
-      <MedicationList total={medications.length} list={list} text={text} status={filters.status} />
+      <MedicationList
+        total={medications.length}
+        list={list}
+        passes={passes}
+        text={text}
+        status={filters.status}
+      />
 
       {/* The add and edit sheets render here, over the list. */}
       <Outlet />

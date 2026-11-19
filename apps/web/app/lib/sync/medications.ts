@@ -3,6 +3,7 @@ import type {
   MedicationChangeDetails,
   MedicationContent,
   MedicationContentInput,
+  MedicationSchedule,
   MedicationStatus,
   MedicationUpdateInput,
 } from "@caretook/data/schema";
@@ -27,7 +28,9 @@ import {
   medicationContentZSchema,
   medicationUpdateZSchema,
   parseMedicationSchedule,
+  schedulePassIds,
   timelineEntryContentZSchema,
+  withoutPass,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { dayInZone } from "../zonedDay";
@@ -379,6 +382,32 @@ const checkProviders = async (
   return null;
 };
 
+const badPass = refuse("Choose passes in this care group", [
+  { path: "schedule", message: "Choose passes in this care group" },
+]);
+
+/**
+ * The schedule's passes must be the group's (see `medicationService`'s
+ * `checkPasses`). One deleted since this form opened becomes a time of its
+ * own, as the pass's deletion made every other medication's.
+ */
+const checkPasses = async (
+  db: SyncDb,
+  groupId: string,
+  schedule: MedicationSchedule,
+): Promise<MedicationSchedule | Refusal> => {
+  let checked = schedule;
+  for (const passId of schedulePassIds(schedule)) {
+    const [row] = await readRows<{ group_id: string | null; time: string | null; deleted_at: string | null }>(
+      db,
+      { sql: "SELECT group_id, time, deleted_at FROM medication_pass WHERE id = ?", params: [passId] },
+    );
+    if (!row?.time || row.group_id !== groupId) return badPass;
+    if (row.deleted_at) checked = withoutPass(checked, { id: passId, time: row.time });
+  }
+  return checked;
+};
+
 /**
  * A prescriber or pharmacy to add with the medication, by name (the form's
  * "Add "<typed>" as a new prescriber"): a clinician, and a pharmacy. They're
@@ -481,6 +510,9 @@ export const newMedicationRows = async (
   if (!parsed.success) return invalid(parsed.error);
   const badProviders = await checkProviders(db, groupId, parsed.data, added);
   if (badProviders) return badProviders;
+  const schedule = await checkPasses(db, groupId, parsed.data.schedule);
+  if ("ok" in schedule) return schedule;
+  const content = { ...parsed.data, schedule };
 
   const id = crypto.randomUUID();
   const now = nowTimestamp();
@@ -488,14 +520,14 @@ export const newMedicationRows = async (
     id,
     groupId,
     recipientId: recipient.id,
-    ...contentColumns(parsed.data),
+    ...contentColumns(content),
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
     createdBy: db.userId,
     updatedBy: db.userId,
   };
-  const entry = changeEntryRow(db, medication, null, parsed.data, now, recipient.time_zone ?? "UTC");
+  const entry = changeEntryRow(db, medication, null, content, now, recipient.time_zone ?? "UTC");
   return { medication, entry };
 };
 
@@ -561,15 +593,18 @@ export const updateMedication = async (
     added.added,
   );
   if (badProviders) return badProviders;
+  const schedule = await checkPasses(db, existing.groupId, merged.data.schedule);
+  if ("ok" in schedule) return schedule;
+  const after = { ...merged.data, schedule };
 
   const recipient = await recipientOf(db, existing.groupId);
   const now = nowTimestamp();
-  const entry = changeEntryRow(db, existing, before, merged.data, now, recipient?.time_zone ?? "UTC");
+  const entry = changeEntryRow(db, existing, before, after, now, recipient?.time_zone ?? "UTC");
   await db.drizzle.transaction(async (tx) => {
     for (const provider of added.rows) await tx.insert(providers).values(provider);
     await tx
       .update(medications)
-      .set({ ...contentColumns(merged.data), updatedAt: now, updatedBy: db.userId })
+      .set({ ...contentColumns(after), updatedAt: now, updatedBy: db.userId })
       .where(eq(medications.id, id));
     if (entry) await tx.insert(timelineEntries).values(entry);
   });

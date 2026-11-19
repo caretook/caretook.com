@@ -323,6 +323,15 @@ export const schedulePassIds = (schedule: MedicationSchedule) =>
     ? schedule.slots.flatMap((slot) => (isPassSlot(slot) ? [slot.passId] : []))
     : [];
 
+/**
+ * What's given in one slot: the slot's own amount ("1000 mg" in the
+ * Morning), else the medication's usual dose; null when neither is set.
+ */
+export const slotAmount = (
+  medication: { dose: string | null },
+  slot: { amount?: string | null } | null | undefined,
+): string | null => slot?.amount?.trim() || medication.dose?.trim() || null;
+
 /** Every content field, as stored. */
 const medicationFields = {
   name: z.string().trim().min(1, { error: "Enter a name" }).max(MEDICATION_LIMITS.name),
