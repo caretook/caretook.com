@@ -100,7 +100,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-57 | plan | ready | encryption | plan/encryption | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
 | B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
-| B-59 | chore | triaged | orchestration |  | Clean up/truncate this file and the backlog periodically. |
+| B-59 | chore | in-progress | orchestration | prd/orchestration | Clean up/truncate this file and the backlog periodically. |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
@@ -859,9 +859,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-59 · chore · Clean up/truncate this file and the backlog periodically.
 
-- status: triaged
+- status: in-progress
 - prd: orchestration
-- owner:
+- owner: prd/orchestration
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for orchestration: a 'pnpm backlog archive' that moves live (or landed) items out of backlog.md into an archive file and prunes their inbox bullets, run by hand or at landing.
