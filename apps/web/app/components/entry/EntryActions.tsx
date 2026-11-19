@@ -6,11 +6,16 @@ import { Ellipsis } from "lucide-react";
 import { Menu } from "~/components/ui";
 import { entryActionItems } from "./entryActionItems";
 
-/** An event's Cancel (or Undo cancel, once it's cancelled) in its ⋯ menu. */
+/**
+ * An event's Reschedule (when it can be: not one already rescheduled) and
+ * Cancel (or Undo cancel, once it's cancelled) in its ⋯ menu.
+ */
 export type EntryCancelActions = {
   cancelled: boolean;
   onCancel: () => void;
   onUncancel: () => void;
+  /** Opens the reschedule sheet; left out, there's no Reschedule. */
+  onReschedule?: () => void;
 };
 
 /**
@@ -31,7 +36,7 @@ export function EntryActions({
   label: string;
   /** Opens the edit sheet (symptoms and vitals only; ignored for notes and events). */
   onEdit?: () => void;
-  /** An event's Cancel or Undo cancel (ignored for other kinds). */
+  /** An event's Reschedule, and Cancel or Undo cancel (ignored for other kinds). */
   cancel?: EntryCancelActions;
   onDelete: () => void;
 }) {
@@ -39,6 +44,8 @@ export function EntryActions({
     switch (action) {
       case "edit":
         return { id: "edit", label: "Edit", onAction: onEdit };
+      case "reschedule":
+        return { id: "reschedule", label: "Reschedule", onAction: cancel?.onReschedule };
       case "cancel":
         return { id: "cancel", label: "Cancel event", onAction: cancel?.onCancel };
       case "uncancel":
@@ -51,6 +58,7 @@ export function EntryActions({
     canEdit: !!onEdit,
     canCancel: !!cancel,
     cancelled: cancel?.cancelled,
+    canReschedule: !!cancel?.onReschedule,
   }).map(item);
   return (
     <Menu

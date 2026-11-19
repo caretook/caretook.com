@@ -4,8 +4,9 @@ import type { UpcomingListData } from "./useUpcomingData";
 
 import { resolveUnits } from "@caretook/data/schema";
 import { useState } from "react";
-import { CancelEventDialog, EntryActions, useEventCancel } from "~/components/entry";
+import { CancelEventDialog, EntryActions, useEventCancel, useEventReschedule } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
+import { canReschedule } from "~/lib/eventReschedule";
 import { useGroup } from "~/lib/group";
 import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/sync/timeline";
@@ -21,8 +22,8 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * Upcoming's (or the Past tab's) items, a section per day under a sticky
  * heading ("Now", "Today", "Tomorrow", "Friday, Nov 27"), with `empty`
  * when there are none. `children` comes after the last section (the Past
- * tab's paging). Writers get each item's ⋯ menu (Cancel or Undo cancel for
- * events, then Delete), with one Cancel and one Delete confirm for the list.
+ * tab's paging). Writers get each item's ⋯ menu (Reschedule, then Cancel or
+ * Undo cancel for events, then Delete), with one Cancel and one Delete confirm for the list.
  */
 export function UpcomingList({
   data,
@@ -40,6 +41,7 @@ export function UpcomingList({
 }) {
   const { canWrite } = useGroup();
   const cancelling = useEventCancel();
+  const rescheduling = useEventReschedule(groupId, canWrite);
   const [deleting, setDeleting] = useState<string | null>(null);
   const menuOf = (entry: TimelineEntry) =>
     canWrite && (
@@ -52,6 +54,7 @@ export function UpcomingList({
                 cancelled: !!entry.cancelledAt,
                 onCancel: () => cancelling.ask(entry.id),
                 onUncancel: () => cancelling.undo(entry.id),
+                onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
               }
             : undefined
         }
@@ -93,7 +96,7 @@ export function UpcomingList({
                 authorName={data.nameOf(entry.createdBy)}
                 authorImage={data.imageOf(entry.createdBy)}
                 contacts={data.contactsOf(entry.id)}
-                rescheduledTo={entry.rescheduledTo ? data.byId.get(entry.rescheduledTo) : undefined}
+                rescheduledTo={data.rescheduledOf(entry)}
                 menu={menuOf(entry)}
               />
             ))}
@@ -102,6 +105,7 @@ export function UpcomingList({
       ))}
       {children}
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
+      {rescheduling.sheet}
       <ConfirmDialog
         open={!!deleting}
         title="Delete this entry?"

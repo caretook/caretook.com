@@ -17,7 +17,7 @@ import {
   isTooFarAhead,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { isEntryKind } from "../entryDisplay";
 import { TIMELINE_KINDS } from "../timelineFilters";
 import { timelineEntries } from "./schema";
@@ -500,7 +500,11 @@ export const updateEntry = async (
   return { ok: true };
 };
 
-/** Soft delete, so the deletion syncs to everyone's devices. */
+/**
+ * Soft delete, so the deletion syncs to everyone's devices. Deleting an
+ * event that others were rescheduled to leaves them cancelled, with no
+ * link (in the same local transaction).
+ */
 export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const entry = await existingEntry(db, id);
   if (!entry) return { ok: true };
@@ -508,9 +512,23 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
   if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden;
 
   const now = nowTimestamp();
-  await db.drizzle
-    .update(timelineEntries)
-    .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
-    .where(eq(timelineEntries.id, id));
+  await db.drizzle.transaction(async (tx) => {
+    await tx
+      .update(timelineEntries)
+      .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+      .where(eq(timelineEntries.id, id));
+    if (entry.kind === "event") {
+      await tx
+        .update(timelineEntries)
+        .set({ rescheduledTo: null, updatedAt: now, updatedBy: db.userId })
+        .where(
+          and(
+            eq(timelineEntries.groupId, entry.groupId),
+            eq(timelineEntries.rescheduledTo, id),
+            isNull(timelineEntries.deletedAt),
+          ),
+        );
+    }
+  });
   return { ok: true };
 };

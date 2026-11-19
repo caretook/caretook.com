@@ -98,6 +98,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
           cancelledAt={entry.cancelledAt}
           cancelledBy={entry.cancelledBy}
           cancelReason={entry.cancelReason}
+          rescheduledTo={entry.rescheduledTo}
           onUndo={canWrite ? live.uncancel : undefined}
         />
       )}
@@ -115,18 +116,26 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
           </Link>
         </div>
       ) : (
-        <LiveNotesEditor
-          key={entry.id}
-          ref={editor}
-          label={`${label} text`}
-          db={db}
-          documentId={entry.id}
-          groupId={groupId}
-          canWrite={canWrite}
-          initial={loaderData.initial}
-          autofocus={live.isNew && !loaderData.pickDay}
-          ensureSaved={live.ensureSaved}
-        />
+        <>
+          {entry.rescheduledTo && (
+            <h2 className="text-base-content/70 text-sm font-semibold" data-earlier-notes>
+              Earlier notes (read-only: they carry on in the new event)
+            </h2>
+          )}
+          <LiveNotesEditor
+            key={entry.id}
+            ref={editor}
+            label={`${label} text`}
+            db={db}
+            documentId={entry.id}
+            groupId={groupId}
+            // A rescheduled event's notes carried on in the new one: these stay as they were.
+            canWrite={canWrite && !entry.rescheduledTo}
+            initial={loaderData.initial}
+            autofocus={live.isNew && !loaderData.pickDay}
+            ensureSaved={live.ensureSaved}
+          />
+        </>
       )}
     </main>
   );

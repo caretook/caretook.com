@@ -45,3 +45,18 @@ export const pastQueries = (
     contacts: contactsQuery(window),
   };
 };
+
+/** A rescheduled event's new one: its id and start (local text). */
+export type RescheduledTargetRow = { id: string; occurred_at: string | null };
+
+/**
+ * The group's events that others were rescheduled to (not deleted), for
+ * "Rescheduled to …": the new event may be outside the list's window (a
+ * past event rescheduled to next week), so it's looked up on its own.
+ */
+export const rescheduledTargetsQuery = (groupId: string): LocalQuery => ({
+  sql: `SELECT id, occurred_at FROM timeline_entry
+        WHERE group_id = ? AND deleted_at IS NULL
+          AND id IN (SELECT rescheduled_to FROM timeline_entry WHERE group_id = ? AND rescheduled_to IS NOT NULL)`,
+  params: [groupId, groupId],
+});

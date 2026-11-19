@@ -23,6 +23,17 @@
 // Undo for writers only); Undo from the banner and the menu; an offline
 // cancel syncs on reconnect; a viewer's device refuses the write.
 //
+// Slice 5, reschedule (full mode, `rescheduleSteps`): Reschedule comes
+// before Cancel in an event's menu; keeping the old one (the default for an
+// upcoming event) from Upcoming makes a new event 3 days later with the same
+// title, length, provider and notes, opens it, and leaves the old one
+// cancelled, linking to it, with its notes read-only (the page's banner and
+// Upcoming's row); the new notes keep editing live on a second device; "just
+// move" from the entry page keeps the id; a past event's sheet starts with
+// "keep" off; an offline reschedule syncs on reconnect with the same notes on
+// both devices; deleting the new event leaves the old one cancelled with no
+// link; the write is one local transaction (an injected failure in it leaves
+// nothing changed, through the device module); a viewer's device refuses it.
 //
 // Slice 6, the timeline (its own steps, below `timelineSteps`):
 // - the Next strip names the soonest live item (never a cancelled one) with
@@ -495,8 +506,8 @@ async function cancelSteps(A, B, proxy) {
   await A.waitFor(upcomingRow(ahead), 30000);
   const offered = await cancelFrom(A, upcomingRow(ahead), reason);
   check(
-    "a writer's event menu on Upcoming: Cancel event, then Delete",
-    offered.join(",") === "Cancel event,Delete",
+    "a writer's event menu on Upcoming: Reschedule, Cancel event, then Delete",
+    offered.join(",") === "Reschedule,Cancel event,Delete",
     offered.join(","),
   );
   await A.waitFor(`${cancelledState(upcomingRow(ahead))}?.marked`, 10000).catch(() => {});
@@ -621,6 +632,332 @@ async function cancelSteps(A, B, proxy) {
     back && !back.marked && !back.label && !back.struck,
     JSON.stringify(back),
   );
+}
+
+// ---- Slice 5: reschedule ------------------------------------------------------
+const SHEET = `document.querySelector("[data-reschedule-sheet]")`;
+const KEEP_OLD = `${SHEET}?.querySelector("[data-keep-old]")`;
+const ENTRY_MENU = `document.querySelector('main header [data-region="actions"] button[aria-label^="Actions for"]')`;
+const PAGE_EDITOR = `document.querySelector(".ProseMirror")`;
+const pageEditorHas = (text) => `!!${PAGE_EDITOR}?.textContent.includes(${JSON.stringify(text)})`;
+const entryPath = (id) => `/app/groups/${DEV_FAMILY}/entries/${id}`;
+const entryIdInUrl = `location.pathname.split("/entries/")[1] ?? ""`;
+
+async function rkey(p, key, code, keyCode) {
+  await p.send("Input.dispatchKeyEvent", { type: "keyDown", key, code, windowsVirtualKeyCode: keyCode });
+  await p.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode: keyCode });
+}
+async function typeNotes(p, text) {
+  await p.waitFor(`${PAGE_EDITOR}?.getAttribute("contenteditable") === "true"`, 30000);
+  await p.evaluate(`(() => { const el = ${PAGE_EDITOR}; el.focus();
+    const sel = getSelection(); sel.selectAllChildren(el); sel.collapseToEnd(); return true; })()`);
+  await p.send("Input.insertText", { text });
+}
+/** The server's copy: start|end|cancelled|rescheduled_to|deleted (epoch seconds; "-" for none). */
+const rowSql = (id) =>
+  psql(`SELECT extract(epoch FROM occurred_at)::bigint || '|' || coalesce(extract(epoch FROM ends_at)::bigint::text, '-')
+    || '|' || (cancelled_at IS NOT NULL) || '|' || coalesce(rescheduled_to::text, '-') || '|' || (deleted_at IS NOT NULL)
+    FROM timeline_entry WHERE id = '${id}'`);
+const waitForRow = async (id, ok, ms = 30000) => {
+  const end = Date.now() + ms;
+  let last = rowSql(id);
+  while (!ok(last) && Date.now() < end) {
+    await sleep(500);
+    last = rowSql(id);
+  }
+  return last;
+};
+/** The server's text for a document: compacted text, else it has updates ("pending"). */
+const serverNotes = (id) =>
+  psql(`SELECT coalesce(text, '') || '|' || (SELECT count(*) FROM note_update WHERE document_id = '${id}')
+    FROM note_document WHERE id = '${id}'`);
+/** Waits until the entry is on this device. */
+const onDevice = async (p, id, ms = 30000) => {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    const here = await p
+      .evaluate(
+        `(async () => !!window.caretookSync && (await window.caretookSync.powersync.getAll("SELECT id FROM timeline_entry WHERE id = ?", ["${id}"])).length === 1)()`,
+      )
+      .catch(() => false);
+    if (here) return;
+    await sleep(300);
+  }
+  throw new Error(`${id} never reached the device`);
+};
+
+/** Opens Reschedule from the ⋯ menu in `scope`. Returns the menu's items. */
+const openReschedule = async (p, menuButton) => {
+  await p.press(menuButton);
+  await p.waitFor(menuItem("Reschedule"), 5000);
+  const items = await p.evaluate(
+    `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim())`,
+  );
+  await p.press(menuItem("Reschedule"));
+  await p.waitFor(KEEP_OLD, 10000);
+  return items;
+};
+/** Moves the sheet's start `days` later (its day segment), sets keep-old, and saves. */
+const rescheduleBy = async (p, days, keep) => {
+  await p.evaluate(`${SHEET}.querySelector('[data-type="day"]').focus()`);
+  for (let i = 0; i < days; i++) await rkey(p, "ArrowUp", "ArrowUp", 38);
+  if ((await p.evaluate(`${KEEP_OLD}.checked`)) !== keep) await p.press(KEEP_OLD);
+  await p.press(`${SHEET}.querySelector('button[type="submit"]')`);
+  await p.waitFor(`!${SHEET}`, 10000);
+};
+
+async function rescheduleSteps(A, B, proxy) {
+  const DAY = 86_400;
+  const provider = psql(
+    `SELECT id FROM provider WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL AND type = 'clinician' ORDER BY name LIMIT 1`,
+  );
+  const link = (p, id) =>
+    p.evaluate(`(async () => { const { providers } = await window.caretookModules();
+      return (await providers.linkProvider(window.caretookSync, "${id}", "${provider}")).ok; })()`);
+
+  // ---- Keep the old one, from Upcoming ----
+  const keepTitle = `${TAG} resched keep`;
+  const old = insertEvent(keepTitle, 2 * 86_400_000, 2 * 86_400_000 + 45 * 60_000).match(UUID_RE)[0];
+  const [oldStart, oldEnd] = rowSql(old).split("|").map(Number);
+  const notes = `${TAG} bring the cuff log`;
+  await onDevice(A, old);
+  await A.goto(entryPath(old));
+  await link(A, old);
+  await typeNotes(A, notes);
+  // The notes reach the server before the reschedule copies them (so B can compare later).
+  for (let i = 0; i < 40 && !serverNotes(old).match(/\|[1-9]|cuff/); i++) await sleep(500);
+
+  await A.goto(upcomingPath());
+  await A.waitFor(upcomingRow(old), 30000);
+  const offered = await openReschedule(
+    A,
+    `${upcomingRow(old)}.querySelector('button[aria-label^="Actions for"]')`,
+  );
+  const keepDefault = await A.evaluate(`${KEEP_OLD}.checked`);
+  check(
+    "an upcoming event's menu: Reschedule first; the sheet starts with Keep the old one as cancelled on",
+    offered.join(",") === "Reschedule,Cancel event,Delete" && keepDefault === true,
+    JSON.stringify({ offered, keepDefault }),
+  );
+  await rescheduleBy(A, 3, true);
+  await A.waitFor(`${entryIdInUrl} && ${entryIdInUrl} !== "${old}"`, 10000).catch(() => {});
+  const fresh = await A.evaluate(entryIdInUrl);
+  const openedNew = /^[0-9a-f-]{36}$/.test(fresh) && fresh !== old;
+  const notesOnNew = await A.waitFor(pageEditorHas(notes), 10000).then(
+    () => true,
+    () => false,
+  );
+  check(
+    "keeping the old one opens a new event at once, with the old notes",
+    openedNew && notesOnNew,
+    JSON.stringify({ fresh, notesOnNew }),
+  );
+  const oldRow = await waitForRow(old, (r) => r.split("|")[3] === fresh);
+  const newRow = await waitForRow(fresh, (r) => r !== "");
+  const [newStart, newEnd, newCancelled] = newRow.split("|");
+  const serverLinks = psql(
+    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${fresh}' AND provider_id = '${provider}'`,
+  );
+  const newTitle = psql(`SELECT title FROM timeline_entry WHERE id = '${fresh}'`);
+  check(
+    "on the server: the new event 3 days later, as long, same title and provider; the old one cancelled, linking to it",
+    Number(newStart) === oldStart + 3 * DAY &&
+      Number(newEnd) === oldEnd + 3 * DAY &&
+      newCancelled === "false" &&
+      newTitle === keepTitle &&
+      serverLinks === "1" &&
+      oldRow.split("|")[2] === "true" &&
+      oldRow.split("|")[3] === fresh,
+    JSON.stringify({ oldRow, newRow, newTitle, serverLinks }),
+  );
+
+  // The old one's page: Rescheduled to …, its notes read-only.
+  await A.goto(entryPath(old));
+  const toLink = `${BANNER}?.querySelector('[data-rescheduled-to="${fresh}"] a')`;
+  await A.waitFor(toLink, 20000).catch(() => {});
+  const oldPage =
+    await A.evaluate(`(() => ({ link: ${toLink}?.textContent, href: ${toLink}?.getAttribute("href"),
+    readOnly: ${PAGE_EDITOR}?.getAttribute("contenteditable") === "false", notes: ${pageEditorHas(notes)},
+    earlier: !!document.querySelector("[data-earlier-notes]") }))()`);
+  check(
+    "the old event's page: Rescheduled to <day>, linking to the new one; its notes read-only below",
+    /^Rescheduled to \w{3}, \w{3} \d{1,2}$/.test(oldPage.link ?? "") &&
+      oldPage.href?.endsWith(`/entries/${fresh}`) &&
+      oldPage.readOnly &&
+      oldPage.notes &&
+      oldPage.earlier,
+    JSON.stringify(oldPage),
+  );
+  await A.goto(upcomingPath());
+  const rowLink = `${upcomingRow(old)}?.querySelector('[data-rescheduled-to="${fresh}"]')`;
+  await A.waitFor(rowLink, 20000).catch(() => {});
+  const rowState = await A.evaluate(`(() => ({ ...${cancelledState(upcomingRow(old))},
+    link: ${rowLink}?.textContent }))()`);
+  check(
+    "Upcoming's row for the old one: cancelled, with the same Rescheduled to … link",
+    isCancelled(rowState) && rowState.link === oldPage.link,
+    JSON.stringify(rowState),
+  );
+  await A.press(`${upcomingRow(old)}.querySelector('button[aria-label^="Actions for"]')`);
+  await A.waitFor(menuItem("Undo cancel"), 5000);
+  const oldItems = await A.evaluate(
+    `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim())`,
+  );
+  await rkey(A, "Escape", "Escape", 27);
+  check(
+    "an event already rescheduled offers no Reschedule",
+    oldItems.join(",") === "Undo cancel,Delete",
+    oldItems.join(","),
+  );
+
+  // The new one's notes keep editing live on another device (the viewer watches).
+  const more = `${TAG} and the pill list`;
+  await A.goto(entryPath(fresh));
+  await B.goto(entryPath(fresh));
+  await typeNotes(A, ` ${more}`);
+  const live = await B.waitFor(`${pageEditorHas(notes)} && ${pageEditorHas(more)}`, 30000).then(
+    () => true,
+    () => false,
+  );
+  check("the new event's notes keep editing live: a second device sees both", live);
+
+  // A viewer's device refuses a reschedule.
+  const refused = await B.evaluate(`(async () => {
+    const { appointments } = await window.caretookModules();
+    return (await appointments.rescheduleEvent(window.caretookSync, "${fresh}",
+      { occurredAt: new Date(Date.now() + 9 * 86400000).toISOString(), endsAt: null, allDay: false, keepOldAsCancelled: true })).ok; })()`);
+  check("a viewer's device refuses a reschedule", refused === false, String(refused));
+
+  // ---- Delete the new one: the old stays cancelled, with no link ----
+  await A.press(ENTRY_MENU);
+  await A.waitFor(menuItem("Delete"), 5000);
+  await A.press(menuItem("Delete"));
+  await A.waitFor(dialogButton("Delete"), 5000);
+  await A.press(dialogButton("Delete"));
+  await A.waitFor(`location.pathname.endsWith("/timeline")`, 10000).catch(() => {});
+  const afterDelete = await waitForRow(old, (r) => r.split("|")[3] === "-");
+  const newGone = rowSql(fresh).split("|")[4];
+  await A.goto(entryPath(old));
+  await A.waitFor(BANNER, 20000).catch(() => {});
+  const bannerLink = await A.evaluate(`!!${BANNER}?.querySelector("[data-rescheduled-to]")`);
+  check(
+    "deleting the new event leaves the old one cancelled, with no link",
+    afterDelete.split("|")[2] === "true" &&
+      afterDelete.split("|")[3] === "-" &&
+      newGone === "true" &&
+      !bannerLink,
+    JSON.stringify({ afterDelete, newGone, bannerLink }),
+  );
+
+  // ---- Just move, from the entry page ----
+  const move = insertEvent(`${TAG} resched move`, 4 * 86_400_000, null).match(UUID_RE)[0];
+  const [moveStart] = rowSql(move).split("|").map(Number);
+  await onDevice(A, move);
+  await A.goto(entryPath(move));
+  await link(A, move);
+  await A.waitFor(ENTRY_MENU, 20000);
+  await openReschedule(A, ENTRY_MENU);
+  await rescheduleBy(A, 1, false);
+  const moved = await waitForRow(move, (r) => Number(r.split("|")[0]) === moveStart + DAY);
+  const sameUrl = await A.evaluate(`location.pathname.endsWith("/entries/${move}")`);
+  const copies = psql(`SELECT count(*) FROM timeline_entry WHERE title = '${TAG} resched move'`);
+  const kept = psql(`SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${move}'`);
+  check(
+    "just move: the event keeps its id and links, a day later, not cancelled; no new event",
+    Number(moved.split("|")[0]) === moveStart + DAY &&
+      moved.split("|")[2] === "false" &&
+      sameUrl &&
+      copies === "1" &&
+      kept === "1",
+    JSON.stringify({ moved, sameUrl, copies, kept }),
+  );
+
+  // ---- A past event's sheet starts with keep off (from the timeline) ----
+  const past = insertEvent(`${TAG} resched past`, -2 * 3_600_000, null).match(UUID_RE)[0];
+  await A.goto(timelinePath());
+  await A.waitFor(timelineRow(past), 30000);
+  await openReschedule(A, `${timelineRow(past)}.querySelector('button[aria-label^="Actions for"]')`);
+  const pastKeep = await A.evaluate(`${KEEP_OLD}.checked`);
+  await rkey(A, "Escape", "Escape", 27);
+  await A.waitFor(`!${SHEET}`, 5000).catch(() => {});
+  check(
+    "a past event's sheet (from the timeline) starts with keep off",
+    pastKeep === false,
+    String(pastKeep),
+  );
+
+  // ---- One local transaction: an injected failure leaves nothing changed ----
+  const atomic = insertEvent(`${TAG} resched atomic`, 5 * 86_400_000, null).match(UUID_RE)[0];
+  await onDevice(A, atomic);
+  await link(A, atomic);
+  const injected = await A.evaluate(`(async () => {
+    const { appointments } = await window.caretookModules();
+    const db = window.caretookSync;
+    const count = async () => (await db.powersync.getAll(
+      "SELECT (SELECT count(*) FROM timeline_entry) AS e, (SELECT count(*) FROM note_document) AS d, (SELECT count(*) FROM note_update) AS u, (SELECT count(*) FROM timeline_entry_provider) AS l, (SELECT count(*) FROM ps_crud) AS q"))[0];
+    const before = await count();
+    const wrap = (target, override) => new Proxy(target, { get: (t, k) => {
+      if (k in override) return override[k];
+      const v = t[k]; return typeof v === "function" ? v.bind(t) : v; } });
+    const drizzle = wrap(db.drizzle, { transaction: (fn) => db.drizzle.transaction((tx) =>
+      fn(wrap(tx, { update: () => { throw new Error("injected"); } }))) });
+    let threw = false;
+    try {
+      await appointments.rescheduleEvent({ ...db, drizzle }, "${atomic}",
+        { occurredAt: new Date(Date.now() + 8 * 86400000).toISOString(), endsAt: null, allDay: false, keepOldAsCancelled: true });
+    } catch { threw = true; }
+    const after = await count();
+    const [row] = await db.powersync.getAll("SELECT cancelled_at, rescheduled_to FROM timeline_entry WHERE id = ?", ["${atomic}"]);
+    return { threw, before, after, row };
+  })()`);
+  check(
+    "reschedule is one local transaction: a failure inside it leaves no new rows, no queued uploads, the old event as it was",
+    injected.threw &&
+      ["e", "d", "u", "l"].every((k) => injected.before[k] === injected.after[k]) &&
+      // Uploads may finish meanwhile; none are added.
+      injected.after.q <= injected.before.q &&
+      !injected.row.cancelled_at &&
+      !injected.row.rescheduled_to,
+    JSON.stringify(injected),
+  );
+
+  // ---- Offline: rescheduled at once, synced on reconnect, the same notes on both devices ----
+  const offTitle = `${TAG} resched offline`;
+  const off = insertEvent(offTitle, 3 * 86_400_000, null).match(UUID_RE)[0];
+  const offNotes = `${TAG} offline notes`;
+  await onDevice(A, off);
+  await A.goto(entryPath(off));
+  await typeNotes(A, offNotes);
+  for (let i = 0; i < 40 && !serverNotes(off).match(/\|[1-9]|offline notes/); i++) await sleep(500);
+  proxy.setOnline(false);
+  await sleep(1000);
+  await openReschedule(A, ENTRY_MENU);
+  await rescheduleBy(A, 2, true);
+  await A.waitFor(`${entryIdInUrl} && ${entryIdInUrl} !== "${off}"`, 10000).catch(() => {});
+  const offNew = await A.evaluate(entryIdInUrl);
+  const offShown = await A.waitFor(pageEditorHas(offNotes), 10000).then(
+    () => true,
+    () => false,
+  );
+  await sleep(1500);
+  const whileOff = psql(`SELECT count(*) FROM timeline_entry WHERE title = '${offTitle}'`);
+  proxy.setOnline(true);
+  const offOld = await waitForRow(off, (r) => r.split("|")[3] === offNew, 45000);
+  await B.goto(entryPath(offNew));
+  const onB = await B.waitFor(pageEditorHas(offNotes), 45000).then(
+    () => true,
+    () => false,
+  );
+  const textA = await A.evaluate(`${PAGE_EDITOR}?.textContent`);
+  const textB = await B.evaluate(`${PAGE_EDITOR}?.textContent`);
+  check(
+    "an offline reschedule shows at once, syncs on reconnect, and the new notes match on both devices",
+    offShown && whileOff === "1" && offOld.split("|")[2] === "true" && onB && textA === textB,
+    JSON.stringify({ offNew, offShown, whileOff, offOld, onB, textA, textB }),
+  );
+  // Leave both on Upcoming (entry pages have no tab bar), as later steps expect.
+  await A.goto(upcomingPath());
+  await B.goto(upcomingPath());
 }
 
 // ---------------------------------------------------------------------------
@@ -916,13 +1253,16 @@ try {
     );
     await addSteps(B, false);
     await step("cancel and undo cancel", () => cancelSteps(A, B, proxy));
-    // The cancel steps leave the viewer on an entry page, which has no tab bar.
+    await step("reschedule", () => rescheduleSteps(A, B, proxy));
+    // The cancel and reschedule steps leave the viewer on an entry page, which has no tab bar.
     await B.goto(`/app/groups/${DEV_FAMILY}/upcoming`);
     await timelineViewerSteps(B);
   }
 
-  // The offline step's cut connection: PowerSync's sync error "network error".
-  const noise = /401|Failed to load resource|\[PowerSync\]: Sync aborted|network error/;
+  // The offline steps' cut connection: PowerSync's sync error ("network error",
+  // or "Failed to fetch" when its token request is cut).
+  const noise =
+    /401|Failed to load resource|\[PowerSync\]: Sync aborted|network error|\[PowerSync\]: Sync error.*Failed to fetch/;
   const errors = pages.flatMap((p) => p.errors).filter((e) => !noise.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 5).join(" | ").slice(0, 800));
 } catch (e) {

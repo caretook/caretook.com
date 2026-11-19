@@ -4,8 +4,9 @@ import type { TimelineEntry } from "~/lib/rpc";
 
 import { useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { CancelEventDialog, OlderEntries, useEventCancel } from "~/components/entry";
+import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
+import { canReschedule } from "~/lib/eventReschedule";
 import { emptyTimelineText } from "./entryLabels";
 import { entryOpen } from "./entryOpen";
 import { SHEET_LINK_STATE } from "./sheet";
@@ -62,13 +63,15 @@ export function TimelineEntryList({
   const navigate = useNavigate();
   const removal = useEntryRemoval();
   const cancelling = useEventCancel();
-  // Writers cancel an event (or undo it) from its ⋯ menu.
+  const rescheduling = useEventReschedule(groupId, canWrite);
+  // Writers reschedule or cancel an event (or undo the cancel) from its ⋯ menu.
   const cancelOf = (entry: TimelineEntry) =>
     canWrite && entry.kind === "event"
       ? {
           cancelled: !!entry.cancelledAt,
           onCancel: () => cancelling.ask(entry.id),
           onUncancel: () => cancelling.undo(entry.id),
+          onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
         }
       : undefined;
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
@@ -167,6 +170,7 @@ export function TimelineEntryList({
         onConfirm={removal.confirm}
       />
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
+      {rescheduling.sheet}
     </>
   );
 }
