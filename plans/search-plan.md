@@ -7,7 +7,7 @@
 | Slice | State                                    | Merge into `prd/search` (slice commits)     |
 | ----- | ---------------------------------------- | ------------------------------------------- |
 | 1     | landed in `dev` (`5016b1d`)              | `8f0d824` (`8a89d76`, `07989af`, `34f68fd`) |
-| 2     | in progress (`.loops/search-2`)          |                                             |
+| 2     | ready; waiting for a Docker network       |                                             |
 | 3     | in progress (`.loops/search-3`)          |                                             |
 | 4     | blocked by 2 and 3                       |                                             |
 | 5     | blocked by 3                             |                                             |
