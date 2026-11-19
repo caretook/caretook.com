@@ -1225,3 +1225,5 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - prd: quick-fixes
 - owner:
 - commit:
+
+- 2026-11-19 (prd/quick-fixes): Proposed for quick-fixes (orchestrator): one slice. With ?kind=vital, a second chip row of vital types (VITAL_TYPES, only types present in the group) as ?vital=<type> through lib/timelineFilters; entries filtered by json_each on details.readings. Overlaps care-periods' search slice on timelineFilters (additive).
