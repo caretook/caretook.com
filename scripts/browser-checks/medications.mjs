@@ -553,7 +553,7 @@ async function listSteps(p) {
   })`);
   check(
     "each row shows form, dose, schedule and reason; a stopped one says how, when and why",
-    rows.metformin === "Tablet · 1 tablet · 8:00 and 20:00" &&
+    rows.metformin === "Tablet · 1 tablet · Morning and Evening" &&
       rows.acetaminophen === "Tablet · 2 tablets · As needed, up to 4 a day" &&
       rows.reason === "Reason: Blood pressure" &&
       /^Discontinued \w{3} \d{1,2}, \d{4} · Side effects$/.test(rows.oxybutynin ?? "") &&
@@ -642,7 +642,8 @@ async function pageSteps(p) {
     page.h1 === "Lisinopril 10 mg" &&
       page.badge === null &&
       page.details === "Tablet · 1 tablet" &&
-      page.rows.schedule === (zone === "America/Los_Angeles" ? "8:00" : "8:00Times are Los Angeles time") &&
+      page.rows.schedule ===
+        (zone === "America/Los_Angeles" ? "Morning" : "MorningTimes are Los Angeles time") &&
       page.rows.reason === "Blood pressure" &&
       page.rows.directions?.startsWith("Once every morning") &&
       !!page.rows.started,
@@ -1635,9 +1636,29 @@ async function addSteps(p, B) {
     JSON.stringify({ offered, filled }),
   );
 
+  // The schedule offers the group's passes, none ticked, and no time of its own yet.
+  const start = await p.evaluate(`({
+    passes: [...${FORM}.querySelectorAll("[data-pass-slot]")].map((li) => li.querySelector("label")?.textContent.trim()),
+    ticked: ${FORM}.querySelectorAll('[data-pass-slot] input[type="checkbox"]:checked').length,
+    times: ${TIMES}.length,
+    manage: ${FORM}.querySelector("[data-manage-passes]")?.getAttribute("href") ?? null,
+  })`);
+  check(
+    "the add sheet's schedule offers the group's passes (none ticked), a link to them, and no time of its own yet",
+    start.passes[0] === "Morning 8:00" &&
+      start.passes.includes("Evening 20:00") &&
+      start.ticked === 0 &&
+      start.times === 0 &&
+      start.manage === PASSES,
+    JSON.stringify(start),
+  );
+
   // Validation, through the fields: no name, the same time twice.
   await p.type(formField("name"), "");
   await p.press(`${FORM}.querySelector("[data-add-time]")`);
+  await p.press(`${FORM}.querySelector("[data-add-time]")`);
+  await p.waitFor(`${TIMES}.length === 2`, 5000);
+  await p.type(`${TIMES}[0]`, "08:00");
   await p.type(`${TIMES}[1]`, "08:00");
   await p.press(FORM_SUBMIT);
   await need(p, `${errorOf("name")} !== null`, 8000, "the name's error");
@@ -1806,6 +1827,164 @@ async function editSteps(p, { title, name, id }) {
     `${changed} ${changeCount(name)} ${JSON.stringify(history)}`,
   );
   void title;
+}
+
+// ---------------------------------------------------------------------------
+// medications-2 slice 2: passes in schedules.
+// ---------------------------------------------------------------------------
+
+const passSlot = (passId) => `${FORM}?.querySelector('[data-pass-slot="${passId}"]')`;
+const passBox = (passId) => `${passSlot(passId)}?.querySelector('input[type="checkbox"]')`;
+const passAmount = (passId) => `${FORM}?.querySelector('[name="passAmount:${passId}"]')`;
+const TIME_AMOUNTS = `[...(${FORM}?.querySelectorAll('input[name="timeAmount"]') ?? [])]`;
+/** JSON with object keys sorted, so a jsonb value (which reorders keys) compares with a literal. */
+const canon = (value) =>
+  JSON.stringify(value, (_, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))
+      : v,
+  );
+const seededPass = (name) =>
+  psql(
+    `SELECT id FROM medication_pass WHERE group_id = '${DEV_FAMILY}' AND name = '${name}' AND deleted_at IS NULL`,
+  );
+
+/**
+ * A schedule by passes (caretaker@, A): tick Morning (with its own amount,
+ * the dose as its placeholder) and Evening, plus a time of its own with an
+ * amount; the list, the page and the printed list read it by pass. Then an
+ * edit, offline: untick Evening and change Morning's amount, which the
+ * history and the timeline name ("Removed from Evening; Morning amount …").
+ */
+async function passScheduleSteps(p, proxy) {
+  await toFront(p);
+  const MORNING = seededPass("Morning");
+  const EVENING = seededPass("Evening");
+  const name = `${TAG} Metoprolol`;
+  await openAddSheet(p);
+  await p.type(formField("name"), name);
+  await p.type(formField("dose"), "25 mg");
+  await p.tap(passBox(MORNING));
+  await need(p, `!!${passAmount(MORNING)}`, 5000, "Morning's amount field");
+  const placeholder = await p.evaluate(`${passAmount(MORNING)}?.placeholder ?? null`);
+  await p.type(passAmount(MORNING), "50 mg");
+  await p.tap(passBox(EVENING));
+  await p.press(`${FORM}.querySelector("[data-add-time]")`);
+  await p.waitFor(`${TIMES}.length === 1`, 5000);
+  await p.type(`${TIMES}[0]`, "14:00");
+  await p.type(`${TIME_AMOUNTS}[0]`, "12.5 mg");
+  await p.press(FORM_SUBMIT);
+  await need(
+    p,
+    `!${SHEET} && ${allNames("Current medications")}.includes(${JSON.stringify(name)})`,
+    10000,
+    "the medication with passes on the list",
+  );
+  const id = await medicationId(p, name);
+  const stored = await waitForSql(
+    `SELECT schedule::text FROM medication WHERE id = '${id}'`,
+    (v) => v !== "",
+  );
+  const expected = {
+    type: "scheduled",
+    slots: [
+      { passId: MORNING, amount: "50 mg" },
+      { passId: EVENING },
+      { time: "14:00", amount: "12.5 mg" },
+    ].sort((a, b) => ((a.passId ?? "~") < (b.passId ?? "~") ? -1 : 1)),
+  };
+  const summary = await p.evaluate(
+    `document.querySelector('main li[data-medication-id="${id}"] [data-medication-summary]')?.textContent.trim() ?? null`,
+  );
+  check(
+    "a schedule by passes saves as pass slots (an amount for Morning, the dose as its placeholder) and a time with its amount; the list reads it by pass",
+    placeholder === "25 mg" &&
+      canon(JSON.parse(stored)) === canon(expected) &&
+      summary === "25 mg · Morning (50 mg), Evening and 14:00 (12.5 mg)",
+    `${placeholder} ${stored} ${summary}`,
+  );
+  if (SMOKE) return;
+
+  // The page, and the printed list.
+  await p.goto(medPath(id));
+  await need(p, onMedPage(id), 20000, "the medication's page");
+  const page = await medPage(p);
+  await p.goto(`${LIST}/print`);
+  const printed = `document.querySelector('main tr[data-print-medication="${id}"]')`;
+  await need(p, `!!${printed}`, 20000, "the medication on the printed list");
+  const row = await p.evaluate(`${printed}?.textContent ?? ""`);
+  check(
+    "the page and the printed list read the schedule by pass",
+    page.rows.schedule?.startsWith("Morning (50 mg), Evening and 14:00 (12.5 mg)") &&
+      row.includes("Morning (50 mg), Evening and 14:00 (12.5 mg)"),
+    `${page.rows.schedule} | ${row.slice(0, 160)}`,
+  );
+
+  // Edit offline: the form starts as saved; untick Evening, change Morning's amount.
+  await p.goto(medPath(id));
+  await need(
+    p,
+    `${onMedPage(id)} && !!document.querySelector("main [data-edit-medication]")`,
+    20000,
+    "the page",
+  );
+  const errorsBefore = p.errors.length;
+  proxy.setOnline(false);
+  await need(p, `!window.caretookSync.powersync.currentStatus.connected`, 15000, "the device to go offline");
+  await p.tap(`document.querySelector("main [data-edit-medication]")`);
+  await need(p, `!!${FORM} && !!${passAmount(MORNING)}`, 10000, "the edit sheet (offline)");
+  const prefilled = await p.evaluate(`({
+    morning: ${passBox(MORNING)}?.checked, amount: ${passAmount(MORNING)}?.value,
+    evening: ${passBox(EVENING)}?.checked, times: ${TIMES}.map((t) => t.value),
+    timeAmounts: ${TIME_AMOUNTS}.map((t) => t.value),
+  })`);
+  await p.tap(passBox(EVENING));
+  await p.type(passAmount(MORNING), "75 mg");
+  await p.press(FORM_SUBMIT);
+  await need(p, `!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000, "the page (offline)");
+  const line = "Removed from Evening; Morning amount 50 mg → 75 mg";
+  await need(
+    p,
+    `(${JSON.stringify(line)}) === document.querySelector("main [data-medication-history] li[data-entry-id] [data-entry-text]")?.textContent.trim()`,
+    10000,
+    "the change in the history",
+  );
+  const history = await historyTexts(p);
+  proxy.setOnline(true);
+  await need(p, `window.caretookSync.powersync.currentStatus.connected`, 30000, "the device to reconnect");
+  const synced = await waitForSql(
+    `SELECT schedule::text FROM medication WHERE id = '${id}'`,
+    (v) => v.includes("75 mg"),
+    30000,
+  );
+  check(
+    "the edit sheet starts as saved; offline, a schedule edit saves and the history names the pass and amount, then it uploads",
+    prefilled.morning === true &&
+      prefilled.amount === "50 mg" &&
+      prefilled.evening === true &&
+      same(prefilled.times, ["14:00"]) &&
+      same(prefilled.timeAmounts, ["12.5 mg"]) &&
+      history[0] === line &&
+      canon(JSON.parse(synced)) ===
+        canon({
+          type: "scheduled",
+          slots: [
+            { passId: MORNING, amount: "75 mg" },
+            { time: "14:00", amount: "12.5 mg" },
+          ],
+        }),
+    `${JSON.stringify(prefilled)} ${JSON.stringify(history.slice(0, 2))} ${synced}`,
+  );
+  p.errors.splice(errorsBefore); // Offline fetch failures aren't the app's errors.
+
+  // The timeline names the passes too.
+  await p.goto(`/app/groups/${DEV_FAMILY}/timeline?kind=medicationChange`);
+  const onTimeline = `[...document.querySelectorAll("main [data-medication-entry]")].some((el) => el.textContent === ${JSON.stringify(`${name}: ${line}`)})`;
+  const shown = await p.waitFor(onTimeline, 15000).then(
+    () => true,
+    () => false,
+  );
+  check("the timeline's change row names the pass and the amount", shown, line);
 }
 
 /**
@@ -2607,6 +2786,69 @@ async function passesSteps(p, { B, C, proxy } = {}) {
   );
 }
 
+/**
+ * A pass slot on Today (caretaker@, its own tab): a medication in this run's
+ * pass, a few minutes back in Los Angeles (whatever the clock), shows the
+ * pass's amount; Given logs the dose with the pass and that amount; moving
+ * the pass's time keeps the slot given.
+ */
+async function passDueSteps(A) {
+  if (laMinutes() < 10) await sleep((10 - laMinutes()) * 60_000 + 5000);
+  const now = laMinutes();
+  const [t1, t2] = [hhmm(now - 5), hhmm(now - 2)];
+  const name = `${TAG} Memantine`;
+  const made = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     const pass = await medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(`${TAG} Round`)}, time: ${JSON.stringify(t1)} });
+     if (!pass.ok) return [pass];
+     return [pass, await medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name: ${JSON.stringify(name)}, strength: "10 mg", dose: "1 tablet",
+       schedule: { type: "scheduled", slots: [{ passId: pass.id, amount: "2 tablets" }] },
+     })];`,
+  );
+  if (!made.every((r) => r?.ok)) return check("a pass and a medication in it", false, JSON.stringify(made));
+  const [{ id: passId }, { id }] = made;
+  const key = `${id}@${t1}`;
+  await A.goto(LIST);
+  const due = await A.waitFor(`${todayState(key)} === "due"`, 15000).then(
+    () => true,
+    () => false,
+  );
+  const shown = await A.evaluate(`${todaySlot(key)}?.textContent ?? ""`);
+  if (due) await A.tap(`${todaySlot(key)}.querySelector("[data-give]")`);
+  const given = await A.waitFor(`${todayState(key)} === "given"`, 8000).then(
+    () => true,
+    () => false,
+  );
+  const logged = await waitForSql(
+    `SELECT (details->>'passId') || '|' || (details->>'amount') || '|' || (details->>'scheduledFor') FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND details->>'medicationId' = '${id}'`,
+    (v) => v !== "",
+  );
+  check(
+    "a pass slot on Today shows the pass's amount; Given logs the pass with that amount",
+    due && shown.includes("2 tablets") && given && logged === `${passId}|2 tablets|${t1}`,
+    `${due} ${given} ${logged} ${shown.slice(0, 80)}`,
+  );
+  if (SMOKE) return;
+
+  // Move the pass: the slot moves with it and stays given.
+  const moved = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     return medicationPasses.updatePass(db, ${JSON.stringify(passId)}, { time: ${JSON.stringify(t2)} });`,
+  );
+  const kept = await A.waitFor(`${todayState(`${id}@${t2}`)} === "given" && !${todaySlot(key)}`, 10000).then(
+    () => true,
+    () => false,
+  );
+  check(
+    "after the pass moves, the dose logged for it still answers its slot",
+    moved.ok && kept,
+    `${moved.ok}`,
+  );
+}
+
 // One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
 // 9435, not 9434: slot 2's offset puts 9434 on 11434, Ollama's default port.
 const proxy = startProxy(9435);
@@ -2739,6 +2981,11 @@ try {
 
   if (SMOKE) await timelineSteps(A);
   else await timelineSteps(A, { B: pages[1], C: pages[2], proxyA });
+
+  // medications-2: passes in schedules. After the timeline's steps, so their
+  // change entries don't push the seeded ones off its first page.
+  await passScheduleSteps(A, proxy);
+  await passDueSteps(A);
 
   if (made) {
     const removed = await onDevice(A, `return medications.removeMedication(db, ${JSON.stringify(made)});`);
