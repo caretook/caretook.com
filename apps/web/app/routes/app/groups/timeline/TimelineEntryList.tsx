@@ -30,7 +30,10 @@ export function TimelineEntryList({
   kind,
   author,
 }: {
-  data: Pick<TimelineData, "days" | "hasOlder" | "showOlder" | "liveLabelOf" | "nameOf" | "providersOf">;
+  data: Pick<
+    TimelineData,
+    "days" | "hasOlder" | "showOlder" | "liveLabelOf" | "nameOf" | "providersOf" | "imageOf"
+  >;
   view: TimelineView;
   units: UnitChoices;
   groupId: string;
@@ -71,6 +74,7 @@ export function TimelineEntryList({
                     key={entry.id}
                     entry={entry}
                     authorName={data.nameOf(entry.createdBy)}
+                    authorImage={data.imageOf(entry.createdBy)}
                     units={units}
                     removing={removal.isRemoving(entry.id)}
                     open={open}
