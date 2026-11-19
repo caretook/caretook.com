@@ -64,12 +64,21 @@ async function signedIn(b, label, email) {
   await sleep(500);
   return p;
 }
+/** The settings change this device hasn't sent yet (`lib/me.ts`), if any. */
+const SETTINGS_PENDING = `Object.keys(localStorage).some((k) => k.startsWith("caretook:settings-pending:"))`;
+/**
+ * Switch the view, then wait for the server to have it (no pending change
+ * left), so a reload or the next step reads it back: a fixed 1.5 s sleep did
+ * this before, and was short on a busy machine (B-93).
+ */
 async function setView(p, view) {
   await p.press(`document.querySelector('[aria-label="${view}"]')`);
   await p.waitFor(
     `document.querySelector("ol")?.dataset.view === ${JSON.stringify(view.toLowerCase())}`,
-    5000,
+    10000,
   );
+  // Not a step's assertion: a slow save shows in the step that reads it back.
+  await p.waitFor(`!(${SETTINGS_PENDING})`, 15000, { quiet: true }).catch(() => undefined);
 }
 
 /**
@@ -224,7 +233,6 @@ async function kindIconFilters(users) {
         await p.screenshot(`phase2-kind-icon-${who}-cards`);
         await clear(p);
         await setView(p, "Rows");
-        await sleep(1500);
       });
     }
     dropReloadNoise();
@@ -357,7 +365,6 @@ async function dayHeadings(p) {
     await p.evaluate(`window.scrollTo(0, 0)`);
   }
   await setView(p, "Rows");
-  await sleep(1500);
 }
 
 /**
@@ -844,7 +851,6 @@ async function authorFilters(users, offlineDevice) {
       await p.screenshot("phase2-author-cards");
       await clear(p);
       await setView(p, "Rows");
-      await sleep(1500);
     });
   }
 
@@ -1426,11 +1432,9 @@ async function infiniteScroll(p, offlineDevice) {
 
   await step("infinite scroll: cards, to the beginning", async () => {
     await setView(p, "Cards");
-    await sleep(1500);
     await fresh(p);
     await reachesTheBeginning(p, "writer, cards");
     await setView(p, "Rows");
-    await sleep(1500);
   });
 
   await step("infinite scroll: a filter starts again from the newest, with one page", async () => {
@@ -1730,7 +1734,6 @@ try {
   await step("cards: the view survives a reload, and a vital's tap", async () => {
     // The view survives a reload.
     await setView(p, "Cards");
-    await sleep(1500);
     await p.goto(await p.evaluate("location.pathname"));
     await p.waitFor(`${rows} > 0`, 20000);
     const cardsAfter = await p.evaluate(`document.querySelector("ol")?.dataset.view === "cards"`);
@@ -1749,7 +1752,6 @@ try {
     await escape(p);
     await p.waitFor(`!document.querySelector("[role=dialog]")`, 5000);
     await setView(p, "Rows");
-    await sleep(1500);
   });
 
   // The viewer: a note opens, a symptom does nothing, no ⋯ menu.

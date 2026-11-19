@@ -12,6 +12,9 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Parallel loops shift every CDP and proxy port by CDP_PORT_OFFSET.
 export const PORT_OFFSET = Number(process.env.CDP_PORT_OFFSET ?? 0);
 
+/** How long one DevTools command may take (an `evaluate` includes its awaited promise). */
+export const CDP_TIMEOUT_MS = Number(process.env.CDP_TIMEOUT_MS ?? 120000);
+
 export async function launch(basePort, extraArgs = []) {
   const port = basePort + PORT_OFFSET;
   const dir = mkdtempSync(join(tmpdir(), "cdp-"));
@@ -56,12 +59,35 @@ export async function openPage(browser, label) {
       for (const l of listeners) l(msg);
     }
   });
-  const send = (method, params = {}) =>
+  // Every command answers within `timeout` or fails: a stuck page (a renderer
+  // blocked on a lock, an in-page promise that never settles) once hung
+  // providers.mjs for 16 minutes with no output (B-93). A step that fails says
+  // which command was stuck; the check's own catch then reports and exits.
+  const send = (method, params = {}, { timeout = CDP_TIMEOUT_MS } = {}) =>
     new Promise((resolve, reject) => {
       const n = ++id;
-      pending.set(n, { resolve, reject });
+      const timer = setTimeout(() => {
+        pending.delete(n);
+        reject(
+          new Error(
+            `${label}: ${method} got no answer in ${Math.round(timeout / 1000)} s (is the page stuck?)`,
+          ),
+        );
+      }, timeout);
+      const done = (fn) => (v) => {
+        clearTimeout(timer);
+        fn(v);
+      };
+      pending.set(n, { resolve: done(resolve), reject: done(reject) });
       ws.send(JSON.stringify({ id: n, method, params }));
     });
+  // A closed socket never answers: fail what's waiting at once.
+  ws.addEventListener("close", () => {
+    for (const [n, { reject }] of pending) {
+      pending.delete(n);
+      reject(new Error(`${label}: the page's DevTools socket closed`));
+    }
+  });
   // Everything the page reports, for checks' own error assertions (`errors`)
   // and for a failed wait's diagnosis (`uncaught`, `diagnose()`). Vite's dev
   // client forwards console errors and uncaught errors to the server, and when
@@ -121,8 +147,12 @@ export async function openPage(browser, label) {
     mobile: true,
   });
 
-  const evaluate = async (expression) => {
-    const r = await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
+  const evaluate = async (expression, { timeout } = {}) => {
+    const r = await send(
+      "Runtime.evaluate",
+      { expression, awaitPromise: true, returnByValue: true },
+      timeout ? { timeout } : undefined,
+    );
     if (r.exceptionDetails)
       throw new Error(`${label}: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`);
     return r.result.value;
@@ -162,7 +192,9 @@ export async function openPage(browser, label) {
     const end = Date.now() + ms;
     while (Date.now() < end) {
       try {
-        if (await evaluate(`!!(${expression})`)) return true;
+        // One poll never outlasts the wait (a stuck page fails the wait on time).
+        const timeout = Math.max(2000, end - Date.now());
+        if (await evaluate(`!!(${expression})`, { timeout })) return true;
       } catch {
         // Not there yet (or the page is navigating): keep polling.
       }
