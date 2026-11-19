@@ -1078,6 +1078,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-3 (launch): Better Auth's listSessions, revokeSession and revokeOtherSessions (built in, no new dependency); a new ACCOUNT_SETTINGS subpage. Pairs with the S-2 wipe.
 - 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
+- 2026-11-19 (slice/quick-fixes/29): slice 29 built: Settings → Devices (e392d3c, 21941f0); devices.mjs 21/21; needs session.freshAge 0 for list-sessions
 
 ### B-81 · change · Security headers and a CSP for every web response
 
