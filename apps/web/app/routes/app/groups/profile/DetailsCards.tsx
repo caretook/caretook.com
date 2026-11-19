@@ -109,7 +109,15 @@ export function InsuranceCard({
 }
 
 /** A card's Edit: a link to its sheet online; offline a disabled button that says why. */
-function EditSheetLink({ groupId, sheet, label }: { groupId: string; sheet: ProfileSheet; label: string }) {
+export function EditSheetLink({
+  groupId,
+  sheet,
+  label,
+}: {
+  groupId: string;
+  sheet: ProfileSheet;
+  label: string;
+}) {
   const online = useOnline();
   const noteId = `profile-${sheet}-offline`;
   if (!online)

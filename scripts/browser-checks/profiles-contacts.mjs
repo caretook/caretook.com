@@ -66,7 +66,7 @@ function restore() {
     `INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by) VALUES ('${DEV_FAMILY}', '${CT}', ${lit(m.role)}, '${CT}', '${CT}') ON CONFLICT (group_id, user_id) DO NOTHING`,
   );
   psql(
-    `UPDATE care_group_member SET role = ${lit(m.role)}, relationship = ${lit(m.relationship)}, shared_fields = ${json(m.shared)}, emergency_rank = ${m.rank ?? "NULL"}, is_primary_contact = ${m.primary ? "true" : "false"} WHERE group_id = '${DEV_FAMILY}' AND user_id = '${CT}'`,
+    `UPDATE care_group_member SET role = ${lit(m.role)}, relationship = ${lit(m.relationship)}, shared_fields = ${json(m.shared)}, emergency_rank = ${m.rank ?? "NULL"}, is_primary_contact = ${m.primary ? "true" : "false"}, emergency_dropped_at = NULL WHERE group_id = '${DEV_FAMILY}' AND user_id = '${CT}'`,
   );
   if (found.contact)
     psql(

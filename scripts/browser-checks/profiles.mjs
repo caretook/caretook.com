@@ -33,6 +33,22 @@
 // - the caretaker demoted to viewer loses the cards and the device row
 //   without a reload, and gets them back when the role is restored.
 //
+// Slice 5, emergency contacts (`…/profile/emergency`):
+//
+// - the owner's page lists the seeded order (members' shared phones and the
+//   outside contact, with call actions), the primary contact marked, and Edit;
+// - the owner builds the list in the sheet: the member without a phone isn't
+//   offered (and is named); a member removed and added back; moves by
+//   keyboard, announced, with focus kept on the moved row; an outside contact
+//   with no phone refused on its field with nothing sent, then saved; the
+//   primary contact changed; one save, the page and the server in the new order;
+// - a caretaker sees the list in order with no Edit, and the sheet's URL lands
+//   on the profile; a viewer has no list, lands on the profile too, and sees
+//   the badges on the Members page;
+// - offline, the owner's Edit is disabled;
+// - the caretaker unshares their phone on the Members page: they leave the
+//   list and lose primary, and the owner's profile shows the managers' note.
+//
 // Later slices add their steps in their own blocks below. The rules (age,
 // labels, the form's parsing) are unit-tested; the steps here check the
 // wiring, one case each. Grandma Pat's seeded profile is put back at the end
@@ -185,6 +201,43 @@ const countSaves = (p) =>
   p.evaluate(`(() => { if (window.__saves !== undefined) return; window.__saves = 0; const f = window.fetch;
     window.fetch = (...a) => { if (String(a[0]?.url ?? a[0]).includes("/rpc/careGroup/updateRecipient")) window.__saves++; return f(...a); }; })()`);
 
+// ─────────────── slice 5's helpers: the seeded emergency list ───────────────
+
+const EMAIL_ID = (email) => psql(`SELECT id FROM "user" WHERE email = ${lit(email)}`);
+const SEED_OUTSIDE = [
+  {
+    id: "0b6f3c1e-5d1a-4c2e-9a77-3f1d2bc00003",
+    name: "Rosa Example",
+    phone: "(555) 010-4410",
+    relationship: "Neighbour",
+    emergencyRank: 3,
+  },
+];
+/** The seeded list: member@ 1 and primary, caretaker@ 2 (sharing their phone), Rosa Example 3. */
+const restoreEmergency = () => {
+  psql(`UPDATE care_group_member SET is_primary_contact = false, emergency_rank = NULL, emergency_dropped_at = NULL
+    WHERE group_id = '${DEV_FAMILY}' AND (is_primary_contact OR emergency_rank IS NOT NULL OR emergency_dropped_at IS NOT NULL)`);
+  psql(`UPDATE care_group_member SET emergency_rank = 1, is_primary_contact = true, updated_at = now()
+    WHERE group_id = '${DEV_FAMILY}' AND user_id = (SELECT id FROM "user" WHERE email = 'member@example.com')`);
+  psql(`UPDATE care_group_member SET emergency_rank = 2, shared_fields = '["phones"]'::jsonb, updated_at = now()
+    WHERE group_id = '${DEV_FAMILY}' AND user_id = (SELECT id FROM "user" WHERE email = 'caretaker@example.com')`);
+  psql(`INSERT INTO member_contact_share (id, group_id, user_id, phones, created_by, updated_by)
+    SELECT m.id, m.group_id, m.user_id, '[{"label": "Mobile", "number": "(555) 010-1002"}]'::jsonb, m.user_id, m.user_id
+    FROM care_group_member m JOIN "user" u ON u.id = m.user_id
+    WHERE m.group_id = '${DEV_FAMILY}' AND u.email = 'caretaker@example.com'
+    ON CONFLICT (id) DO UPDATE SET phones = EXCLUDED.phones, email = NULL, address = NULL, updated_at = now()`);
+  psql(`UPDATE care_recipient_details SET outside_contacts = ${lit(JSON.stringify(SEED_OUTSIDE))}::jsonb, updated_at = now()
+    WHERE group_id = '${DEV_FAMILY}'`);
+};
+/** The server's list: "<email or outside name>:<rank>[*]" in order (* the primary contact). */
+const serverEmergency = () =>
+  psql(`SELECT string_agg(who || ':' || rank || CASE WHEN p THEN '*' ELSE '' END, ',' ORDER BY rank) FROM (
+    SELECT u.email AS who, m.emergency_rank AS rank, m.is_primary_contact AS p FROM care_group_member m
+      JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}' AND m.emergency_rank IS NOT NULL
+    UNION ALL
+    SELECT c->>'name', (c->>'emergencyRank')::int, false FROM care_recipient_details d, jsonb_array_elements(d.outside_contacts) c
+      WHERE d.group_id = '${DEV_FAMILY}' AND c->>'emergencyRank' IS NOT NULL) t`);
+
 const pages = [];
 let bA, bB, bC, proxy;
 
@@ -192,6 +245,7 @@ try {
   restoreSeed();
   restoreDetails();
   setCaretakerRole("caretaker");
+  restoreEmergency();
   proxy = startProxy(9665);
   bA = await launch(9661, proxy.args);
   const A = await openPage(bA, "owner");
@@ -241,8 +295,8 @@ try {
         page.basics.primaryLanguage === "English" &&
         page.basics.pronouns === "she/her" &&
         page.note === SEED.notes &&
-        // Slice 3 adds the writers' Contact and Insurance after the note.
-        page.sections === "basics,note,contact,insurance",
+        // Slice 3 adds the writers' Contact and Insurance after the note, slice 5 the emergency list.
+        page.sections === "basics,note,contact,insurance,emergency",
       JSON.stringify(page),
     );
     const editShown = await A.waitFor(EDIT_LINK, 15000)
@@ -566,8 +620,8 @@ try {
     await A.waitFor(`${section("insurance")}?.querySelector("li[data-plan]")`, 30000).catch(() => undefined);
     const state = await detailsState(A);
     check(
-      "owner: Contact and Insurance after the note",
-      state.sections === "basics,note,contact,insurance" && state.viewerLine === null,
+      "owner: Contact and Insurance after the note (then slice 5's emergency list)",
+      state.sections === "basics,note,contact,insurance,emergency" && state.viewerLine === null,
       state.sections,
     );
     check(
@@ -853,6 +907,317 @@ try {
 
   // ─────────── end of slice 3: writers' details (contact and insurance) ───────────
 
+  // ─────────────────── Slice 5: emergency contacts ───────────────────
+
+  const EMERGENCY = `${PROFILE}/emergency`;
+  const MEMBERS_PAGE = `/app/groups/${DEV_FAMILY}/settings/members`;
+  const E_SECTION = section("emergency");
+  const E_FORM = `document.querySelector('[role="dialog"] [data-emergency-form]')`;
+  const E_STATUS = `(${E_FORM}?.querySelector("[data-emergency-status]")?.textContent.trim() ?? "")`;
+  const byLabel = (label) => `${E_FORM}?.querySelector('button[aria-label=${JSON.stringify(label)}]')`;
+  const draftOrder = (p) =>
+    p.evaluate(
+      `[...${E_FORM}.querySelectorAll("li[data-draft-entry]")].map((li) => li.dataset.kind === "member" ? li.querySelector("p").textContent.trim() : li.querySelector("legend").textContent.trim())`,
+    );
+  /** The profile's list: names in order, the primary marked "*", and its call links. */
+  const emergencyState = (p) =>
+    p.evaluate(`(() => {
+      const section = ${E_SECTION};
+      if (!section) return null;
+      const rows = [...section.querySelectorAll("li[data-emergency-entry]")];
+      return {
+        names: rows.map((li) => li.querySelector("[data-emergency-name]").textContent.trim() + (li.hasAttribute("data-primary") ? "*" : "")),
+        calls: rows.map((li) => li.querySelector('a[data-action="call"]')?.getAttribute("href") ?? null),
+        edit: !!section.querySelector('a[data-edit-sheet="emergency"]'),
+        notes: [...section.querySelectorAll("[data-emergency-dropped]")].map((el) => el.textContent.trim()),
+      };
+    })()`);
+  const namesAre = (names) =>
+    `JSON.stringify([...(${E_SECTION}?.querySelectorAll("li[data-emergency-entry] [data-emergency-name]") ?? [])].map((el) => el.textContent.trim())) === ${JSON.stringify(JSON.stringify(names))}`;
+  /** Press Enter on the focused element, as a keyboard would. */
+  const enter = async (p) => {
+    for (const type of ["keyDown", "keyUp"])
+      await p.send("Input.dispatchKeyEvent", {
+        type,
+        key: "Enter",
+        code: "Enter",
+        windowsVirtualKeyCode: 13,
+        ...(type === "keyDown" ? { text: "\r" } : {}),
+      });
+  };
+  const focused = (p) =>
+    p.evaluate(
+      `document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.dataset.outsideField ?? ""`,
+    );
+  /** Count this page's emergency list calls from now on, until a reload. */
+  const countEmergencySaves = (p) =>
+    p.evaluate(`(() => { if (window.__emergencySaves !== undefined) return; window.__emergencySaves = 0; const f = window.fetch;
+      window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (["updateOutsideContacts", "setEmergencyContacts", "setPrimaryContact"].some((n) => u.includes("/rpc/careGroup/" + n))) window.__emergencySaves++; return f(...a); }; })()`);
+  const SEEDED = ["Dev Member*", "Dev Caretaker", "Rosa Example"];
+  const NEIGHBOUR = `${TAG} Neighbour`;
+
+  await step("emergency contacts: the owner's list", { smoke: true }, async () => {
+    await A.goto(PROFILE);
+    await A.waitFor(namesAre(SEEDED.map((n) => n.replace("*", ""))), 30000).catch(() => undefined);
+    // Edit is a link once the connection is known.
+    await A.waitFor(`${E_SECTION}?.querySelector('a[data-edit-sheet="emergency"]')`, 15000).catch(
+      () => undefined,
+    );
+    const state = await emergencyState(A);
+    check(
+      "owner: the seeded list in order, the primary contact marked, each with a call action",
+      JSON.stringify(state?.names) === JSON.stringify(SEEDED) &&
+        JSON.stringify(state?.calls) ===
+          JSON.stringify(["tel:5550101001", "tel:5550101002", "tel:5550104410"]),
+      JSON.stringify(state),
+    );
+    check("owner: the list has Edit, and no note", state?.edit === true && state.notes.length === 0);
+    await A.screenshot("profiles-emergency-owner");
+  });
+
+  if (!SMOKE) {
+    await step("emergency contacts: the owner builds the list", async () => {
+      await A.send("Emulation.setFocusEmulationEnabled", { enabled: true });
+      await A.goto(PROFILE);
+      await A.waitFor(`${E_SECTION}?.querySelector('a[data-edit-sheet="emergency"]')`, 30000);
+      await countEmergencySaves(A);
+      await A.tap(`${E_SECTION}.querySelector('a[data-edit-sheet="emergency"]')`);
+      await A.waitFor(`location.pathname === ${JSON.stringify(EMERGENCY)} && ${E_FORM}`, 20000);
+      await A.waitFor(`!${E_FORM}.querySelector('button[type="submit"]').disabled`, 30000);
+      const start = await A.evaluate(`({
+        addMember: !!${E_FORM}.querySelector("[data-add-member]"),
+        withoutPhone: ${E_FORM}.querySelector("[data-without-phone]")?.textContent.trim() ?? null,
+      })`);
+      check(
+        "sheet: everyone sharing a phone is listed, and the member without one is named, not offered",
+        JSON.stringify(await draftOrder(A)) ===
+          JSON.stringify(["Dev Member", "Dev Caretaker", "Rosa Example"]) &&
+          !start.addMember &&
+          start.withoutPhone ===
+            "Dev Viewer doesn't share a phone number with the group, so they can't be added.",
+        JSON.stringify(start),
+      );
+
+      // Remove a member, then add them back from the menu.
+      await A.press(byLabel("Remove Dev Caretaker from the list"));
+      await A.waitFor(`${E_FORM}.querySelector("[data-add-member-choice]")`, 5000);
+      const offered = await A.evaluate(
+        `[...${E_FORM}.querySelectorAll("[data-add-member-choice] option")].map((o) => o.textContent.trim())`,
+      );
+      const removedSaid = await A.evaluate(E_STATUS);
+      await A.press(`${E_FORM}.querySelector("[data-add-member]")`);
+      await sleep(200);
+      check(
+        "sheet: a removed member can be added back, and both are announced",
+        JSON.stringify(offered) === JSON.stringify(["Dev Caretaker"]) &&
+          removedSaid === "Dev Caretaker removed from the list." &&
+          (await A.evaluate(E_STATUS)) === "Dev Caretaker added, 3 of 3." &&
+          JSON.stringify(await draftOrder(A)) ===
+            JSON.stringify(["Dev Member", "Rosa Example", "Dev Caretaker"]),
+        JSON.stringify(offered),
+      );
+
+      // Move them to the top by keyboard: Enter on Move up, twice.
+      await A.evaluate(`${byLabel("Move Dev Caretaker up")}.focus()`);
+      await enter(A);
+      await sleep(200);
+      const once = { order: await draftOrder(A), said: await A.evaluate(E_STATUS), focus: await focused(A) };
+      await enter(A);
+      await sleep(200);
+      const twice = { order: await draftOrder(A), said: await A.evaluate(E_STATUS), focus: await focused(A) };
+      check(
+        "sheet: Move up by keyboard moves the row, says where, and keeps focus on it",
+        JSON.stringify(once.order) === JSON.stringify(["Dev Member", "Dev Caretaker", "Rosa Example"]) &&
+          once.said === "Dev Caretaker moved to 2 of 3." &&
+          once.focus === "Move Dev Caretaker up",
+        JSON.stringify(once),
+      );
+      check(
+        "sheet: at the top Move up is disabled, and focus moves to Move down",
+        JSON.stringify(twice.order) === JSON.stringify(["Dev Caretaker", "Dev Member", "Rosa Example"]) &&
+          twice.said === "Dev Caretaker moved to 1 of 3." &&
+          twice.focus === "Move Dev Caretaker down" &&
+          (await A.evaluate(`${byLabel("Move Dev Caretaker up")}.disabled`)),
+        JSON.stringify(twice),
+      );
+
+      // An outside contact: focus lands on its name; with no phone it's refused, with nothing sent.
+      await A.press(`${E_FORM}.querySelector("[data-add-outside]")`);
+      await sleep(200);
+      const newFocus = await focused(A);
+      const row = `${E_FORM}.querySelector('li[data-draft-entry]:last-child')`;
+      await A.type(`${row}.querySelector('[data-outside-field="name"]')`, NEIGHBOUR);
+      await A.type(`${row}.querySelector('[data-outside-field="relationship"]')`, "Across the street");
+      await A.press(`${E_FORM}.querySelector('button[type="submit"]')`);
+      const refused = await A.waitFor(
+        `${row}.querySelector('[data-outside-field="phone"]').getAttribute("aria-invalid") === "true"`,
+        10000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      check(
+        "sheet: a new outside contact takes focus, and without a phone it's refused on its field, nothing sent",
+        newFocus === "name" &&
+          refused &&
+          (await focused(A)) === "phone" &&
+          (await A.evaluate(`window.__emergencySaves`)) === 0,
+        `focus ${newFocus}`,
+      );
+      await A.type(`${row}.querySelector('[data-outside-field="phone"]')`, "(555) 010-4499");
+
+      // The primary contact: the caretaker.
+      await A.evaluate(
+        `${E_FORM}.querySelector('[role="radiogroup"] input[aria-label="Dev Caretaker"]').click()`,
+      );
+      await A.press(`${E_FORM}.querySelector('button[type="submit"]')`);
+      const closed = await A.waitFor(
+        `${sheetClosed} && ${namesAre(["Dev Caretaker", "Dev Member", "Rosa Example", NEIGHBOUR])}`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      const state = await emergencyState(A);
+      check(
+        "owner: the save closes the sheet and the page shows the new order and primary",
+        closed &&
+          JSON.stringify(state?.names) ===
+            JSON.stringify(["Dev Caretaker*", "Dev Member", "Rosa Example", NEIGHBOUR]) &&
+          state.calls[3] === "tel:5550104499",
+        JSON.stringify(state),
+      );
+      const server = serverEmergency();
+      check(
+        "server: one order across members and outside contacts, and the primary contact",
+        server === `caretaker@example.com:1*,member@example.com:2,Rosa Example:3,${NEIGHBOUR}:4` &&
+          (await A.evaluate(`window.__emergencySaves`)) === 3,
+        `${server}; calls ${await A.evaluate(`window.__emergencySaves`)}`,
+      );
+      await A.screenshot("profiles-emergency-saved");
+    });
+
+    await step("emergency contacts: a caretaker and a viewer", async () => {
+      const B = pages[1]; // the caretaker
+      const C = pages[2]; // the viewer
+      await B.goto(PROFILE);
+      const inOrder = await B.waitFor(
+        namesAre(["Dev Caretaker", "Dev Member", "Rosa Example", NEIGHBOUR]),
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      const state = await emergencyState(B);
+      check(
+        "caretaker: the list in order after sync, the primary marked, and no Edit",
+        inOrder && state?.names[0] === "Dev Caretaker*" && state.edit === false,
+        JSON.stringify(state),
+      );
+      await B.goto(EMERGENCY);
+      const bLanded = await B.waitFor(sheetClosed, 30000)
+        .then(() => true)
+        .catch(() => false);
+      check(
+        "caretaker: the sheet's URL lands on the profile",
+        bLanded,
+        await B.evaluate(`location.pathname`),
+      );
+
+      await C.goto(PROFILE);
+      await C.waitFor(`${onProfile} && document.querySelector("main [data-viewer-more]")`, 30000);
+      check("viewer: no emergency list on the profile", !(await C.evaluate(`!!${E_SECTION}`)));
+      await C.goto(EMERGENCY);
+      const cLanded = await C.waitFor(sheetClosed, 30000)
+        .then(() => true)
+        .catch(() => false);
+      check("viewer: the sheet's URL lands on the profile", cLanded, await C.evaluate(`location.pathname`));
+
+      await C.goto(MEMBERS_PAGE);
+      const badgesOf = (email) =>
+        `[...(document.querySelector('main li[data-member="${EMAIL_ID(email)}"]')?.querySelectorAll("[data-badge]") ?? [])].map((b) => b.textContent.trim()).join("+")`;
+      await C.waitFor(
+        `${badgesOf("caretaker@example.com")} === "Primary contact+Emergency contact"`,
+        30000,
+      ).catch(() => undefined);
+      const badges = await C.evaluate(`({
+        caretaker: ${badgesOf("caretaker@example.com")},
+        member: ${badgesOf("member@example.com")},
+        viewer: ${badgesOf("viewer@example.com")},
+      })`);
+      check(
+        "viewer: the Members page badges the primary and emergency contacts",
+        badges.caretaker === "Primary contact+Emergency contact" &&
+          badges.member === "Emergency contact" &&
+          badges.viewer === "",
+        JSON.stringify(badges),
+      );
+      await C.screenshot("profiles-emergency-badges");
+    });
+
+    await step("emergency contacts: offline", async () => {
+      await A.goto(PROFILE);
+      await A.waitFor(`${E_SECTION}?.querySelector('a[data-edit-sheet="emergency"]')`, 30000);
+      proxy.setOnline(false);
+      const disabled = await A.waitFor(
+        `${E_SECTION}?.querySelector('button[data-edit-sheet="emergency"]:disabled')`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      const reads = (await emergencyState(A))?.names.length === 4;
+      check("offline: the list reads, and its Edit is disabled", disabled && reads);
+      proxy.setOnline(true);
+      await A.waitFor(`${E_SECTION}?.querySelector('a[data-edit-sheet="emergency"]')`, 30000).catch(
+        () => undefined,
+      );
+    });
+
+    await step("emergency contacts: a member who stops sharing their phone", async () => {
+      const B = pages[1]; // the caretaker
+      await B.goto(MEMBERS_PAGE);
+      const SHARING = `document.querySelector('main [data-sharing-form]')`;
+      await B.waitFor(`${SHARING}?.querySelector('[data-share-field="phones"]')`, 40000);
+      await B.evaluate(
+        `(() => { const box = ${SHARING}.querySelector('[data-share-field="phones"]'); if (box.checked) box.click(); })()`,
+      );
+      await B.press(`${SHARING}.querySelector('button[type="submit"]')`);
+      await B.waitFor(
+        `${SHARING}.querySelector('[role="status"]')?.textContent.trim() === "Saved."`,
+        20000,
+      ).catch(() => undefined);
+      await A.goto(PROFILE);
+      const dropped = await A.waitFor(
+        `${namesAre(["Dev Member", "Rosa Example", NEIGHBOUR])} && ${E_SECTION}.querySelector("[data-emergency-dropped]")`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      const state = await emergencyState(A);
+      check(
+        "owner: the caretaker leaves the list and loses primary, and the managers' note says why",
+        dropped &&
+          !state.names.some((n) => n.endsWith("*")) &&
+          state.notes[0] ===
+            "Dev Caretaker stopped sharing a phone number with the group, so they're no longer on the list.",
+        JSON.stringify(state),
+      );
+      check(
+        "server: renumbered without them, and no primary contact",
+        serverEmergency() === `member@example.com:1,Rosa Example:2,${NEIGHBOUR}:3`,
+        serverEmergency(),
+      );
+      await A.screenshot("profiles-emergency-dropped");
+      restoreEmergency();
+      const back = await A.waitFor(
+        `${namesAre(SEEDED.map((n) => n.replace("*", "")))} && !${E_SECTION}.querySelector("[data-emergency-dropped]")`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      check("restored: the seeded list is back, with no note", back);
+    });
+  }
+
+  // ─────────────────── end of slice 5: emergency contacts ───────────────────
+
   // The offline step's cut connection: PowerSync's sync error ("network error",
   // or "Failed to fetch" when its token request is cut).
   const noise =
@@ -867,6 +1232,7 @@ try {
     restoreSeed();
     restoreDetails();
     setCaretakerRole("caretaker");
+    restoreEmergency();
   } catch (e) {
     console.log(`clean-up failed: ${e.message}`);
   }

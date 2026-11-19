@@ -45,6 +45,7 @@ ALTER TABLE "care_group_member" ADD COLUMN "relationship" text;--> statement-bre
 ALTER TABLE "care_group_member" ADD COLUMN "shared_fields" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
 ALTER TABLE "care_group_member" ADD COLUMN "emergency_rank" integer;--> statement-breakpoint
 ALTER TABLE "care_group_member" ADD COLUMN "is_primary_contact" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "care_group_member" ADD COLUMN "emergency_dropped_at" timestamp(3) with time zone;--> statement-breakpoint
 ALTER TABLE "care_recipient" ADD COLUMN "code_status" text;--> statement-breakpoint
 ALTER TABLE "care_recipient" ADD COLUMN "blood_type" text;--> statement-breakpoint
 ALTER TABLE "care_recipient" ADD COLUMN "primary_language" text;--> statement-breakpoint

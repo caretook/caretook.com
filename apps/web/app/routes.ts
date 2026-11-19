@@ -57,6 +57,7 @@ const appRoutes = [
           route("basics", "routes/app/groups/profile/basics/route.tsx"),
           route("contact", "routes/app/groups/profile/contact/route.tsx"),
           route("insurance", "routes/app/groups/profile/insurance/route.tsx"),
+          route("emergency", "routes/app/groups/profile/emergency/route.tsx"),
         ]),
       ]),
       // Start another care group (a sheet over its own page; not a group route).

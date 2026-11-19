@@ -311,7 +311,10 @@ describe("the emergency list", () => {
     expect(unshared.droppedFromEmergencyList).toBe(true);
     const caretaker = await s.membership(s.caretaker.user.id);
     expect([caretaker.emergencyRank, caretaker.isPrimaryContact]).toEqual([null, false]);
+    // Managers' note: when they fell off, until a manager saves the list again.
+    expect(caretaker.emergencyDroppedAt).not.toBeNull();
     expect((await s.membership(s.admin.user.id)).emergencyRank).toBe(1);
+    expect((await s.membership(s.admin.user.id)).emergencyDroppedAt).toBeNull();
     const details = ok(await careRecipientDetailsService.get(s.owner.ctx, s.groupId));
     expect(details.outsideContacts[0]?.emergencyRank).toBe(2);
 
@@ -319,6 +322,12 @@ describe("the emergency list", () => {
     const cleared = ok(await userContactService.update(s.admin.ctx, { phones: [] }));
     expect(cleared.droppedFromEmergencyLists).toEqual([s.groupId]);
     expect((await s.membership(s.admin.user.id)).emergencyRank).toBeNull();
+    expect((await s.membership(s.admin.user.id)).emergencyDroppedAt).not.toBeNull();
+
+    // Saving the list answers the notes.
+    ok(await emergencyContactService.setOrder(s.owner.ctx, s.groupId, [{ kind: "outside", id: rosa.id }]));
+    for (const who of [s.caretaker, s.admin])
+      expect((await s.membership(who.user.id)).emergencyDroppedAt).toBeNull();
   });
 });
 

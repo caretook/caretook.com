@@ -1,5 +1,5 @@
 {
-  "id": "94ca0f0c-4506-48a8-93e4-292fdbcdad13",
+  "id": "1d6d37ff-9a47-446a-ad24-e21c7c69022d",
   "prevId": "f4745ed0-9d81-424e-856b-744037b58c87",
   "version": "7",
   "dialect": "postgresql",
@@ -214,6 +214,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "emergency_dropped_at": {
+          "name": "emergency_dropped_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",

@@ -95,6 +95,11 @@ apps/web/app/routes/app/groups/settings/details/* app-shell profiles
 packages/data/src/db/schema/careRecipient.ts profiles app-shell
 packages/data/src/db/schema/profileVisibility.ts profiles
 packages/data/src/db/seeds/profiles.ts   profiles app-shell
+# Emergency contacts (profiles slice 5): the list on the profile, its sheet, and the Members page's badges.
+apps/web/app/lib/emergencyList.ts        profiles
+packages/data/src/db/schema/emergencyContacts.ts profiles
+packages/data/src/db/schema/careGroupMember.ts profiles profiles-contacts app-shell
+apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profiles profiles-contacts
 
 # Sign-in, session, the sync client and first sync.
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites
@@ -132,7 +137,7 @@ apps/web/app/routes/app/home/*           app-shell first-sync
 apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts app-shell
 apps/web/app/routes/app/groups/settings/members/* app-shell invites ui profiles-contacts
 apps/web/app/routes/app/groups/settings/* app-shell routing ui
-apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts
+apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts profiles
 # The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
 apps/web/app/components/ui/date/*        ui roundtrip live-notes medications
 apps/web/app/components/ui/*             ui app-shell

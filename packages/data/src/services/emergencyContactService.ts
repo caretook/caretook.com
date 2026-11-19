@@ -123,7 +123,8 @@ export const dropMember = async (tx: Tx, groupId: string, userId: string) => {
   const res = await careGroupMemberModel.update({
     ...system(tx),
     filter: { id: { type: "eq", value: member.id } },
-    data: { emergencyRank: null, isPrimaryContact: false },
+    // Managers see a note on the profile until they save the list again.
+    data: { emergencyRank: null, isPrimaryContact: false, emergencyDroppedAt: new Date().toISOString() },
   });
   if (isError(res)) return res;
 
@@ -160,7 +161,8 @@ const notOnList = (index: number, message: string) =>
 /**
  * Set the whole emergency list, first to call first (owners and admins).
  * Members must share a phone with the group; outside contacts must exist.
- * Anyone left out is taken off. Returns the stored list and the primary contact.
+ * Anyone left out is taken off, and any "fell off the list" note is cleared.
+ * Returns the stored list and the primary contact.
  */
 export const setOrder = (
   ctx: ServiceContext,
@@ -187,6 +189,17 @@ export const setOrder = (
 
     const applied = await applyOrder(tx, refs, members, details);
     if (applied) return applied;
+
+    // Saving the list answers the "fell off the list" notes.
+    for (const member of members) {
+      if (!member.emergencyDroppedAt) continue;
+      const res = await careGroupMemberModel.update({
+        ...system(tx),
+        filter: { id: { type: "eq", value: member.id } },
+        data: { emergencyDroppedAt: null },
+      });
+      if (isError(res)) return res;
+    }
     return {
       contacts: refs,
       primaryUserId: members.find((m) => m.isPrimaryContact)?.userId ?? null,
