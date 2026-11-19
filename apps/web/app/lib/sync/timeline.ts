@@ -148,6 +148,8 @@ export type EntryFilters = {
   author: string | null;
   /** Only the entries this condition holds for (the search); none means every entry. */
   match?: EntryCondition | null;
+  /** Only entries with a reading of this vital type (`?vital=`, under the vital kind); none means every entry. */
+  vital?: string | null;
 };
 
 /**
@@ -157,9 +159,13 @@ export type EntryFilters = {
  */
 export const SHOWN_KINDS_SQL = `kind IN (${TIMELINE_KINDS.map((k) => `'${k}'`).join(", ")})`;
 
+/** An entry with a reading of one vital type (`details.readings[].type`). */
+const VITAL_TYPE_SQL =
+  "EXISTS (SELECT 1 FROM json_each(details, '$.readings') r WHERE json_extract(r.value, '$.type') = ?)";
+
 const FUTURE_KINDS_SQL = `kind IN (${FUTURE_KINDS.map((k) => `'${k}'`).join(", ")})`;
 
-/** The conditions every window shares: one group, live entries, the kind and author filters, the search. */
+/** The conditions every window shares: one group, live entries, the kind, author and vital-type filters, the search. */
 const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonly string[] | null) => {
   const conditions = ["group_id = ?", "deleted_at IS NULL"];
   const params: unknown[] = [groupId];
@@ -176,6 +182,10 @@ const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonl
   if (filters.author) {
     conditions.push("created_by = ?");
     params.push(filters.author);
+  }
+  if (filters.vital) {
+    conditions.push(VITAL_TYPE_SQL);
+    params.push(filters.vital);
   }
   if (filters.match) {
     conditions.push(`(${filters.match.sql})`);

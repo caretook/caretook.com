@@ -531,6 +531,75 @@ const psql = (sql) =>
     .toString()
     .trim();
 
+/**
+ * The vital-type filter (B-97): the Vitals chip brings up a row of type
+ * chips; "Blood pressure" lists only entries with a blood pressure reading
+ * (as many as the server has, up to a page); "All" clears the kind and the
+ * type with it. The URLs themselves are timelineFilters.test.ts's. Starts
+ * and ends on the unfiltered timeline.
+ */
+async function vitalTypeFilters(p) {
+  const kinds = `[...document.querySelectorAll('nav[aria-label="Show entries"] a')]`;
+  const types = `[...document.querySelectorAll('nav[aria-label="Show vital types"] a')]`;
+  const chip = (list, label) => `${list}.find((a) => a.textContent.trim() === ${JSON.stringify(label)})`;
+  const state = () =>
+    p.evaluate(`JSON.stringify({
+      search: location.search,
+      types: ${types}.map((a) => a.textContent.trim()),
+      current: ${types}.filter((a) => a.getAttribute("aria-current") === "true").map((a) => a.textContent.trim()),
+      rows: ${rows},
+      bp: [...document.querySelectorAll("ol > li")].filter((li) => /BP \\d+\\/\\d+ mmHg/.test(li.textContent)).length,
+    })`);
+  const timeline = await p.evaluate("location.pathname");
+  await p.goto(timeline);
+  await p.waitFor(`${rows} > 0`, 20000);
+  check("vital types: no type chips without the Vitals filter", (await p.evaluate(`${types}.length`)) === 0);
+
+  await p.press(chip(kinds, "Vitals"));
+  await p.waitFor(`location.search === "?kind=vital" && ${types}.length > 1`, 8000).catch(() => undefined);
+  const vitals = JSON.parse(await state());
+  check(
+    "vital types: the Vitals chip brings up the type chips, All vitals current",
+    vitals.search === "?kind=vital" &&
+      vitals.types[0] === "All vitals" &&
+      vitals.types.includes("Blood pressure") &&
+      vitals.current.join() === "All vitals",
+    `${vitals.search}: ${vitals.types.join(", ")}`,
+  );
+
+  const expected = Math.min(
+    30,
+    Number(
+      psql(`SELECT count(*) FROM timeline_entry
+        WHERE group_id = '${DEV_FAMILY}' AND kind = 'vital' AND deleted_at IS NULL
+          AND details->'readings' @> '[{"type": "bloodPressure"}]';`),
+    ),
+  );
+  await p.press(chip(types, "Blood pressure"));
+  await p
+    .waitFor(
+      `location.search === "?kind=vital&vital=bloodPressure" && ${rows} === ${expected} && [...document.querySelectorAll("ol > li")].every((li) => /BP \\d+\\/\\d+ mmHg/.test(li.textContent))`,
+      8000,
+    )
+    .catch(() => undefined);
+  const bp = JSON.parse(await state());
+  check(
+    "vital types: Blood pressure lists only entries with a blood pressure reading",
+    bp.search === "?kind=vital&vital=bloodPressure" &&
+      bp.rows === expected &&
+      bp.bp === expected &&
+      bp.current.join() === "Blood pressure",
+    `${bp.search}, ${bp.rows} rows (${bp.bp} with BP, ${expected} expected), current "${bp.current.join()}"`,
+  );
+  await p.screenshot("phase2-vital-types");
+
+  await p.press(chip(kinds, "All"));
+  await p.waitFor(`location.search === "" && ${types}.length === 0`, 8000).then(
+    () => check("vital types: clearing the kind clears the type", true),
+    async () => check("vital types: clearing the kind clears the type", false, await state()),
+  );
+}
+
 /** The "with …" line of the first entry titled `title`: the names shown and the "+N". */
 const withLineOf = (p, title) =>
   p.evaluate(`(() => {
@@ -1779,6 +1848,7 @@ try {
   await step("providers on notes and events", { smoke: true }, () => withLines(p));
   await step("day headings", () => dayHeadings(p));
   await step("the latest vitals line", () => latestVitalsLine(p));
+  await step("the vital-type filter", { smoke: true }, () => vitalTypeFilters(p));
   /** A signed-in device behind a proxy that can be cut, opened once (CDP's offline doesn't cut PowerSync's stream). */
   const offlineDevice = async () => {
     if (!offline) {

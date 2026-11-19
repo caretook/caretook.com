@@ -23,7 +23,12 @@ export const aheadQueries = (
 ): { next: LocalQuery; block: LocalQuery; blockLinks: LocalQuery } => {
   const at = new Date(cutoff);
   const match = filters.match ?? null;
-  const scoped = { kind: filters.kind, author: filters.author, ...(match && { match }) };
+  const scoped = {
+    kind: filters.kind,
+    author: filters.author,
+    vital: filters.vital,
+    ...(match && { match }),
+  };
   return {
     next: upcomingQuery(groupId, { kind: null, author: null, ...(match && { match }) }, at),
     block: upcomingQuery(groupId, scoped, at),

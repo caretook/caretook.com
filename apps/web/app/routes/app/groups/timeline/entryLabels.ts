@@ -1,4 +1,6 @@
-import type { TimelineEntryKind } from "@caretook/data/schema";
+import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
+
+import { VITALS } from "@caretook/data/schema";
 
 import { KIND_META } from "../../../../lib/entryDisplay";
 import { formatTime } from "../../../../lib/format";
@@ -23,18 +25,30 @@ export const actionsLabel = (entry: Labelled) =>
 /**
  * What an empty timeline says, naming the filters that are on: "No symptoms
  * by Alex Rivera yet." (`authorName` is the author filter's name.) With a
- * search (`q`): "No symptoms by Alex Rivera match “fall”."
+ * search (`q`): "No symptoms by Alex Rivera match “fall”." With a vital
+ * type (`vital`, under the vital kind): "No blood pressure readings yet."
  */
 export const emptyTimelineText = (
   kind: TimelineEntryKind | null,
   authorName?: string | null,
   q?: string | null,
+  vital?: VitalType | null,
 ) => {
+  const what =
+    vital && kind === "vital"
+      ? vitalReadings(vital)
+      : kind
+        ? KIND_META[kind].plural.toLowerCase()
+        : "entries";
   if (q) {
-    const what = kind ? KIND_META[kind].plural.toLowerCase() : "entries";
     return `No ${what}${authorName ? ` by ${authorName}` : ""} match “${q}”.`;
   }
   if (!kind && !authorName) return "Nothing on the timeline yet.";
-  const what = kind ? KIND_META[kind].plural.toLowerCase() : "entries";
   return authorName ? `No ${what} by ${authorName} yet.` : `No ${what} on the timeline yet.`;
+};
+
+/** A vital type's readings, as a sentence names them: "blood pressure readings", "oxygen (SpO₂) readings". */
+const vitalReadings = (vital: VitalType) => {
+  const label = VITALS[vital].label;
+  return `${label.charAt(0).toLowerCase()}${label.slice(1)} readings`;
 };

@@ -47,7 +47,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 /**
  * The first screenful, read locally so the page renders complete: the
  * history up to now, and what's ahead of it (the Next strip, and the
- * Upcoming block with `?upcoming=1`). `?kind=` shows one kind, `?author=`
+ * Upcoming block with `?upcoming=1`). `?kind=` shows one kind (`?vital=` one vital type), `?author=`
  * one person's entries and `?q=` the entries matching a search (through the
  * device's search index; a reload waits a moment for it). The group itself comes from the group route (which
  * has already turned away a group not on the device).
@@ -59,7 +59,12 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const status = await (filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const));
   const { match } = timelineSearch(params.groupId, filters.q, status);
   const [rows, settings] = await Promise.all([
-    loadTimelineRows(db, params.groupId, { kind: filters.kind, author: filters.author, match }),
+    loadTimelineRows(db, params.groupId, {
+      kind: filters.kind,
+      author: filters.author,
+      vital: filters.vital,
+      match,
+    }),
     loadSettings(request, db.userId),
   ]);
   return { userId: db.userId, title: pageTitle(group.name), ...filters, ...rows, ...settings };
@@ -97,11 +102,11 @@ export function shouldRevalidate({
 }
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { userId, units, kind, author, q, upcoming } = loaderData;
+  const { userId, units, kind, author, q, upcoming, vital } = loaderData;
   const { groupId } = params;
   const { canWrite } = useGroup();
   const search = timelineSearch(groupId, q, useSearchIndexStatus());
-  const filters = { kind, author, match: search.match };
+  const filters = { kind, author, vital, match: search.match };
   const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
   const [view, setView] = useTimelineView(userId, loaderData.timelineView);
 
@@ -123,6 +128,8 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
           kind={kind}
           author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
           q={q}
+          vital={vital}
+          vitalTypes={data.latestVitals.map((v) => v.reading.type)}
         />
       </div>
       <TimelineEntryList
@@ -133,6 +140,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         canWrite={canWrite}
         kind={kind}
         author={author}
+        vital={vital}
         search={{ q, state: search.state }}
         upcoming={
           upcoming
