@@ -1361,14 +1361,30 @@ try {
       (await A.evaluate(`location.search`)) === "?kind=symptom",
       await A.evaluate(`location.search`),
     );
-    // A period without a search changes nothing.
+    // A period without a search changes nothing. Rows fill in from live
+    // queries (a dose says "Medication" for a moment), so compare settled rows:
+    // the same first 8 for half a second.
+    const settledRows = async (p) => {
+      const end = Date.now() + 15000;
+      let last = "";
+      let since = Date.now();
+      while (Date.now() < end) {
+        const now = JSON.stringify((await rows(p)).slice(0, 8));
+        if (now !== last) [last, since] = [now, Date.now()];
+        else if (JSON.parse(now).length > 3 && Date.now() - since >= 500) break;
+        await sleep(100);
+      }
+      return JSON.parse(last || "[]");
+    };
     await A.goto(timelineUrl(""));
-    const plain = (await waitRows(A, (l) => l.length > 3)).slice(0, 8);
+    const plain = await settledRows(A);
     await A.goto(timelineUrl(`?period=${setup.rehab}`));
-    const withPeriod = (await waitRows(A, (l) => l.length > 3)).slice(0, 8);
+    const withPeriod = await settledRows(A);
+    const same = JSON.stringify(plain) === JSON.stringify(withPeriod);
     check(
       "?period= without a search changes nothing on the timeline",
-      JSON.stringify(plain) === JSON.stringify(withPeriod) && !(await A.evaluate(`!!${CHIP} || !!${WITHIN}`)),
+      same && !(await A.evaluate(`!!${CHIP} || !!${WITHIN}`)),
+      same ? "" : JSON.stringify({ plain, withPeriod }),
     );
   });
 

@@ -942,6 +942,16 @@ async function suggestionSteps(A, proxy, C) {
     await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
   } finally {
     proxy.setOnline(true);
+    // The offline rename uploads after reconnecting: let it land before the
+    // soft delete below, or the server refuses it (timelineEntryService:notFound).
+    const end = Date.now() + 30000;
+    while (Date.now() < end) {
+      const queued = await A.evaluate(
+        `window.caretookSync.powersync.getUploadQueueStats().then((s) => s.count)`,
+      ).catch(() => 0);
+      if (queued === 0) break;
+      await sleep(200);
+    }
     psql(
       `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND id IN (${Object.values(ids)
         .map((id) => `'${id}'`)
