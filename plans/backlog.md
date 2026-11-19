@@ -120,7 +120,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-79 | bug | triaged | quick-fixes |  | Device keeps its synced data after the session ends; offline sign-in never expires |
 | B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
 | B-81 | change | in-progress | quick-fixes | prd/quick-fixes | Security headers and a CSP for every web response |
-| B-82 | change | triaged | quick-fixes |  | Server logs carry error codes and ids only, never values or meta |
+| B-82 | change | in-progress | quick-fixes | prd/quick-fixes | Server logs carry error codes and ids only, never values or meta |
 | B-83 | change | triaged | quick-fixes |  | Co-members read only id, name and image of each other's user row |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
@@ -1033,9 +1033,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-82 · change · Server logs carry error codes and ids only, never values or meta
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-8 (launch): toORPCError logs the whole AppError on a 500, and rpc.ts and .server/admin.ts log the authUser error. Log code, procedure and ids; a unit test that a care field never reaches the log line.
