@@ -110,7 +110,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
 | B-71 | bug | ready | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
 | B-72 | bug | ready | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
-| B-73 | bug | in-progress | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
+| B-73 | bug | ready | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
 | B-74 | bug | triaged | medications |  | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
 | B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
 
@@ -649,6 +649,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/marketing): From the inbox: birthdate, contact information, address, and insurance information should optionally be added to the patient profile.
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'profiles' (to write): the care recipient's optional contact, address and insurance details. Date of birth already exists (careGroup.recipient, not synced; medications slice 1 makes it synced). Insurance-card photos are B-56 (documents). Decide in the PRD which fields sync and who can read them (viewers?).
+- 2026-11-19 (plan/profiles): PRD written on plan/profiles: plans/profiles-prd.md (interview 2026-11-19).
 
 ### B-46 · change · optional phone number, address, etc on group members that can be published to the group for…
 
@@ -659,6 +660,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/marketing): From the inbox: optional phone number, address, etc on group members that can be published to the group for contact. Flags for "emergency contacts" and "primary contact" for display later.
 - 2026-11-18 (Robert Bo Davis): Proposed for 'profiles' with B-45: members' optional phone and address, shared with the group by choice, plus emergency-contact and primary-contact flags. Today co-members sync only id, name and image; published fields need their own stream columns and an opt-in.
+- 2026-11-19 (plan/profiles): PRD written on plan/profiles: plans/profiles-prd.md (interview 2026-11-19).
 
 ### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
 
@@ -913,10 +915,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-73 · bug · timeline entry add modal should take up the full screen on mobile, don't leave room for header.
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 59f380a
 
 - 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: the shared ui/Sheet goes full screen below sm. Merge after medications slice 3 (its new sheets use Sheet).
 

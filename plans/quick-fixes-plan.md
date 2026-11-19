@@ -4,30 +4,31 @@
 
 ## Status
 
-| Slice | Item | State                                                       | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ---- | ----------------------------------------------------------- | ----------------------------------------------------- |
-| 1     | B-1  | merged                                                      | 1e00754 (5ab3b67)                                     |
-| 2     | B-17 | merged                                                      | 4629e8c (32355db)                                     |
-| 3     | B-22 | merged                                                      | b0325d0 (46ef320)                                     |
-| 4     | B-28 | merged                                                      | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29 | merged                                                      | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34 | merged                                                      | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27 | merged                                                      | 75127be (004abfe)                                     |
-| 8     | B-35 | merged                                                      | 6dcc71d (7c0725f)                                     |
-| 9     | B-36 | merged                                                      | e6fc148 (cc12901)                                     |
-| 10    | B-39 | merged                                                      | 2052075 (1870973, 9e7d83b)                            |
-| 11    | B-38 | merged                                                      | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41 | merged                                                      | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42 | merged                                                      | 94ce803 (eccbd1a)                                     |
-| 14    | B-37 | merged                                                      | 9c08e01 (cf1f804)                                     |
-| 15    | B-71 | running                                                     |                                                       |
-| 16    | B-72 | running                                                     |                                                       |
-| 17    | B-44 | running                                                     |                                                       |
-| 18    | B-73 | waits for `medications` slice 3 in `dev`, then 15–17 merged |                                                       |
+| Slice | Item | State   | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ---- | ------- | ----------------------------------------------------- |
+| 1     | B-1  | merged  | 1e00754 (5ab3b67)                                     |
+| 2     | B-17 | merged  | 4629e8c (32355db)                                     |
+| 3     | B-22 | merged  | b0325d0 (46ef320)                                     |
+| 4     | B-28 | merged  | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29 | merged  | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34 | merged  | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27 | merged  | 75127be (004abfe)                                     |
+| 8     | B-35 | merged  | 6dcc71d (7c0725f)                                     |
+| 9     | B-36 | merged  | e6fc148 (cc12901)                                     |
+| 10    | B-39 | merged  | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38 | merged  | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41 | merged  | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42 | merged  | 94ce803 (eccbd1a)                                     |
+| 14    | B-37 | merged  | 9c08e01 (cf1f804)                                     |
+| 15    | B-71 | running |                                                       |
+| 16    | B-72 | running |                                                       |
+| 17    | B-44 | running |                                                       |
+| 18    | B-73 | merged  | 59f380a (f6a783e)                                     |
+| 19    | B-67 | running |                                                       |
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 landed as 8e0c2c0. Wave 6 (slices 10 and 14) is merged into `prd/quick-fixes`.
 
-Wave 7 (slices 15–17) is merged and lands in `dev` together. Slice 18 (B-73) waits for `medications` slice 3 in `dev`.
+Wave 7 (slices 15–17) landed in `dev` as 23e1be2. Slice 18 (B-73) lands on its own: `ui/Sheet` is full screen below `sm` (every sheet measured 0,0,420×900 and scrolling); the title row scrolls with the content, and on iOS the keyboard doesn't shrink `dvh`, so the sheet's own scroll keeps Save reachable. Slice 19 (B-67) is running. `medications.mjs` failed twice at landing in slice 3's own steps (B-74, filed for medications).
 
 - Slice 15: the bug was the time chip popover, not the sheets: daisyUI's `fieldset` is a grid, so the field's group didn't shrink and spilled ~15 px at every width. `DateTimeField`'s group is `min-w-0`, segments may wrap, separators lost their padding, and "Pick a date" has an invisible 44×48 tap box. `ui.mjs` checks fit at 360/390/420/1280; check-areas maps `components/ui/date/*` to `ui roundtrip live-notes medications`. Calendar day cells are still 32 px.
 - Slice 16: below `sm` the suggestions are one sideways-scrolling row (hidden scrollbar, end fade) rather than 3 + More, which still wrapped to two rows at 420. Presentation only.
@@ -531,3 +532,28 @@ Both checks passed against the dev server minutes later, from the same code. So 
 **Blocks:** none. **Blocked by:** `medications` slice 3 in `dev` (it adds sheets; `pnpm prd sync` first). Merge it after 15–17.
 
 **How to run 15–18:** 15–17 are independent and run in parallel (15: `components/ui/date/`; 16: `routes/app/groups/entry/EntryWithRow.tsx`; 17: `routes/app/groups/providers/` and `components/providers/`). 18 changes `ui/Sheet`, which 15's sheets sit in, so it starts once 15–17 are merged.
+
+---
+
+## Slice 19: Access-code sign-up doesn't reveal existing accounts (B-67)
+
+**Problem.** `/join/:code` answers `ticket:accountExists` ("An account with this email already exists. Sign in instead.") for a registered address, so anyone holding an access code can test whether an address has an account. Link-invite sign-up already answers the same either way; email invites lock the address.
+
+**Decision (the user, 2026-11-19).** `/join/:code` answers the same "Check your email" for every address.
+
+**Build.**
+
+- **Server** (`signUpWithTicket`'s access-code path in `packages/auth/src/tickets.ts`, and `accessCode.signUp` in `packages/api/src/groups.ts`): for an address that already has an account, create nothing (no user, no group, no redemption) and leave the code's use count alone. Queue a new email through `notify` (the outbox, not awaited, like the auth emails), then return the same success shape the new-account path returns. Retire `ticket:accountExists` if nothing else uses it.
+- **Email:** a new `NOTIFICATIONS` entry (for example `accessCodeExistingAccount`), with plain text: "Someone tried to start a care group on Caretook with your address. If it was you, sign in and choose New care group." Add a sign-in link from `APP_URL`. No health details and no code. Use an idempotency key so a double submit sends one email.
+- **Timing:** both paths queue their email without waiting, so the response takes about the same time either way. Don't add artificial delays.
+- **Screen** (`/join/:code`): the existing-address case lands on the same "Check your email" screen as a new sign-up (`/verify-email` or whatever the new-account path shows). Remove the "Sign in instead" wording for this case.
+- Keep the refused-code paths as they are (expired, revoked, used up, unknown).
+
+**Acceptance criteria.**
+
+- [ ] Integration test: `accessCode.signUp` with an existing address returns the same result as a new one; no user, group, membership or redemption is created; the code's `use_count` is unchanged; one outbox row for the new notification (and only one on a repeat with the same key).
+- [ ] The existing new-account test still passes.
+- [ ] `groups.mjs`: signing up at `/join/<code>` with a seeded address shows the same screen as a new address, the mail appears in `/dev/mail.json`, and no account or redemption is created.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none (independent of 18).
