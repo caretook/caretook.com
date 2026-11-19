@@ -749,6 +749,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for 'data-rights' with B-52. Needs scoping in the PRD: 'delete ALL data' could mean this device's copy, one group (owners), or the whole account. Ties to the open question about a last owner deleting their account.
+- 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-1 is filed as B-84 for data-rights: soft delete scrubs content; plan it with delete-all.
 
 ### B-54 · feature · privacy policy and terms of service.
 
