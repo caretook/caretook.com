@@ -27,6 +27,12 @@
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 landed as 8e0c2c0. Wave 6 (slices 10 and 14) is merged into `prd/quick-fixes`.
 
+Wave 7 (slices 15–17) is merged and lands in `dev` together. Slice 18 (B-73) waits for `medications` slice 3 in `dev`.
+
+- Slice 15: the bug was the time chip popover, not the sheets: daisyUI's `fieldset` is a grid, so the field's group didn't shrink and spilled ~15 px at every width. `DateTimeField`'s group is `min-w-0`, segments may wrap, separators lost their padding, and "Pick a date" has an invisible 44×48 tap box. `ui.mjs` checks fit at 360/390/420/1280; check-areas maps `components/ui/date/*` to `ui roundtrip live-notes medications`. Calendar day cells are still 32 px.
+- Slice 16: below `sm` the suggestions are one sideways-scrolling row (hidden scrollbar, end fade) rather than 3 + More, which still wrapped to two rows at 420. Presentation only.
+- Slice 17: `contactDetails()` in `lib/contactActions.ts` and `components/providers/ContactDetails` render phones, address and email as visible links on each directory row (above the open target). The seeded practice has no email, so `mailto:` is checked on Dr. Alvarez. `ContactActions`/`quickActions` stay for other screens.
+
 - Slice 10: `--smoke` / `SMOKE=1` and `cdp.mjs`'s `step()`; the five reworked checks went from 463 to 377 steps and 311 s to 219 s in full mode, about 4–7 s each in smoke. Suite pause 10 s → 2 s. Pure-logic steps removed only where a named unit test covers them. `roundtrip.mjs` is untouched apart from smoke markers until `components` slice 5 lands (noted on B-39). The full suite's drop (estimated −34%) is measured at landing. Each check passed one full run, not two, at the user's instruction.
 - Slice 14: `providerService:practiceHasProviders` (409) on the server and device; the delete confirm shows the count and disables Delete. A viewer deleting a practice with providers gets the 409 rather than a 403 (the dependents check runs first; it reveals nothing a viewer can't already read).
 
