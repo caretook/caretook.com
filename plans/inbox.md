@@ -56,6 +56,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Discuss options for end to end encryption of data in transit and at rest where owner of the data is the only one who can decrypt it and share decryption keys with others. (B-57)
 - Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions for provider appointments. (B-58)
 - Data security and encryption review. (B-77)
+- "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to and view the timeline without having to learn the full interface. This is a pre-launch feature once other features are in place.
 
 ## Questions
 
