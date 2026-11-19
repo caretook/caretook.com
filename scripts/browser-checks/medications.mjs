@@ -3930,7 +3930,9 @@ const passLogSql = (log) =>
  * timeline.
  */
 async function passLogSteps(A, { C, proxy } = {}) {
-  const names = ["La", "Lb", "Lc", "Ld"].map((n) => `${TAG} ${n}`);
+  // Names no other step's medication or pass starts with: the strip's steps log a pass "<TAG> Late"
+  // earlier in the run, and a row is matched by its text containing a name.
+  const names = ["Qa", "Qb", "Qc", "Qd"].map((n) => `${TAG} ${n}`);
   const passName = `${TAG} Log`;
   const made = await onDevice(
     A,
