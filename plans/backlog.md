@@ -112,7 +112,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-72 | bug | ready | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
 | B-73 | bug | in-progress | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
 | B-74 | bug | triaged | medications |  | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
-| B-75 | feature | inbox |  |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
+| B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
 
 ## Items
 
@@ -929,8 +929,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-75 · feature · medications need to keep a history of past dose changes, frequency changes, etc. on each medication…
 
-- status: inbox
-- prd:
+- status: dropped
+- prd: medications
 - owner:
 - commit:
 
