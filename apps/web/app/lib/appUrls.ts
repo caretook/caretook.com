@@ -66,7 +66,7 @@ export const WHEN_PICK = "pick";
 const HOME = "/app";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
-export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account"] as const;
+export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account", "contact"] as const;
 export type AccountSettingsPage = (typeof ACCOUNT_SETTINGS_PAGES)[number];
 const isAccountSettingsPage = (page: unknown): page is AccountSettingsPage =>
   (ACCOUNT_SETTINGS_PAGES as readonly unknown[]).includes(page);
