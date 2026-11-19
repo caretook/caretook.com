@@ -8,7 +8,7 @@ import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } f
 import { ConfirmDialog } from "~/components/ui";
 import { canReschedule } from "~/lib/eventReschedule";
 import { emptyTimelineText } from "./entryLabels";
-import { entryOpen } from "./entryOpen";
+import { entryOpen } from "~/lib/entryOpen";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";

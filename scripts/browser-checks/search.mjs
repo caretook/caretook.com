@@ -14,9 +14,17 @@
 // lib/sync/search.test.ts against SQLite FTS5); the steps here check the
 // same rules on a real device, against the seeds and synced data.
 //
+// Slice 3, the search page: the header's magnifier on every group screen
+// (420 and 1280), the field focused, sections in order (providers,
+// medications, entries) with a polite count, each result opening what it
+// is (and Back or closing a sheet coming back to the same results), "See
+// all N in timeline" carrying the search, "Show all", past providers and
+// stopped medications marked, no matches, offline, the other group, and a
+// viewer.
+//
 // Everything it makes carries this run's tag and is soft-deleted (or, for
 // the scaled-up rows, deleted) at the end. SMOKE=1: the index on the device,
-// one seeded and one written search.
+// one seeded and one written search, and one search on the page.
 import { execSync } from "node:child_process";
 import { launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
@@ -78,6 +86,50 @@ const waitForIds = async (p, text, test, ms = 15000, groupId = DEV_FAMILY) => {
 };
 
 const containsAll = (found, expected) => expected.every((id) => found.includes(id));
+
+// The search page (slice 3).
+const MAGNIFIER = `document.querySelector('header [data-region="search"] a[aria-label="Search this care group"]')`;
+
+/** On the search page, rendered (the URL changes before the page does). */
+const ON_SEARCH = `location.pathname.endsWith("/search") && !!document.querySelector("[data-search-page] [data-search-field]")`;
+
+/** Tap the header's magnifier and wait for the page and its focused field. */
+const openSearch = async (p) => {
+  await p.tap(MAGNIFIER);
+  await p.waitFor(
+    `location.pathname.endsWith("/search") && !!document.querySelector("[data-search-field]")`,
+    15000,
+  );
+};
+
+/** Type into the page's field and wait until the results are for it (and the index is ready). */
+const searchFor = async (p, text) => {
+  await p.waitFor(`!!document.querySelector("[data-search-page] [data-search-field]")`, 15000);
+  await p.type(`document.querySelector("[data-search-field]")`, text);
+  await p.waitFor(
+    `(() => { const s = document.querySelector("[data-search-status]");
+       return s?.dataset.for === ${JSON.stringify(text)} && !s.textContent.startsWith("Preparing"); })()`,
+    15000,
+  );
+  await sleep(150);
+};
+
+/** What the search page shows: the sections in order, each one's result ids, counts and totals, and the status. */
+const resultsOf = (p) =>
+  p.evaluate(`(() => {
+    const sections = [...document.querySelectorAll("[data-search-page] section[data-section]")];
+    const status = document.querySelector("[data-search-status]");
+    return {
+      field: document.querySelector("[data-search-field]")?.value,
+      status: status?.textContent ?? "",
+      statusRole: status?.getAttribute("role"),
+      sections: sections.map((s) => s.dataset.section),
+      ids: Object.fromEntries(sections.map((s) => [s.dataset.section,
+        [...s.querySelectorAll("[data-result-id]")].map((li) => li.dataset.resultId)])),
+      counts: Object.fromEntries(sections.map((s) => [s.dataset.section, s.querySelectorAll("[data-result-id]").length])),
+      totals: Object.fromEntries(sections.map((s) => [s.dataset.section, Number(s.querySelector("h2 span:last-child")?.textContent)])),
+    };
+  })()`);
 const missing = (found, expected) => expected.filter((id) => !found.includes(id)).length;
 
 const proxy = SMOKE ? null : startProxy(9721);
@@ -315,6 +367,246 @@ try {
           })
         : `${gone} ms`;
     check("an entry deleted elsewhere stops matching after sync", gone !== null, why);
+  });
+
+  // ---------------------------------------------------------------------
+  // Slice 3: the search page
+  // ---------------------------------------------------------------------
+
+  await step("The search page", { smoke: true }, async () => {
+    await A.goto(`/app/groups/${DEV_FAMILY}/timeline`);
+    await A.waitFor(MAGNIFIER, 30000);
+    await openSearch(A);
+    check(
+      "the header's magnifier opens the search page with the field focused",
+      await A.evaluate(
+        `location.pathname.endsWith("/search") && document.activeElement?.matches("[data-search-field]")`,
+      ),
+    );
+    await searchFor(A, "lisinopril");
+    const page = await resultsOf(A);
+    const lisinopril = psql(
+      `SELECT id FROM medication WHERE group_id = '${DEV_FAMILY}' AND name = 'Lisinopril' AND deleted_at IS NULL`,
+    );
+    check(
+      "medications come before entries",
+      page.sections.indexOf("medication") >= 0 &&
+        page.sections.indexOf("medication") < page.sections.indexOf("entry"),
+      page.sections.join(", "),
+    );
+    check(
+      "the medication is found",
+      page.ids.medication?.[0] === lisinopril,
+      JSON.stringify(page.ids.medication),
+    );
+    check(
+      "a polite count of the results",
+      /medication/.test(page.status) && page.statusRole === "status",
+      page.status,
+    );
+    await A.tap(`document.querySelector('[data-result="medication"][data-result-id="${lisinopril}"] a')`);
+    await A.waitFor(`location.pathname.endsWith("/medications/${lisinopril}")`, 10000);
+    check("a medication result opens its page", true);
+    if (SMOKE) return;
+    await A.evaluate("history.back()");
+    await A.waitFor(
+      `location.pathname.endsWith("/search") && document.querySelector("[data-search-status]")?.dataset.for === "lisinopril"`,
+      10000,
+    );
+    const back = await resultsOf(A);
+    check(
+      "Back returns to the same results",
+      back.field === "lisinopril" && JSON.stringify(back.ids) === JSON.stringify(page.ids),
+      `${back.field}: ${JSON.stringify(back.ids.medication)}`,
+    );
+    const timelineLink = await A.evaluate(
+      `document.querySelector("[data-see-timeline]")?.getAttribute("href")`,
+    );
+    check(
+      '"See all N in timeline" opens the timeline with the same search',
+      timelineLink === `/app/groups/${DEV_FAMILY}/timeline?q=lisinopril` &&
+        (await A.evaluate(`document.querySelector("[data-see-timeline]").textContent`)).includes(
+          String(back.totals.entry),
+        ),
+      timelineLink,
+    );
+  });
+
+  await step("The magnifier on every group screen", async () => {
+    const [entryId] = lines(
+      psql(
+        `SELECT id FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND kind = 'note' AND deleted_at IS NULL LIMIT 1`,
+      ),
+    );
+    const paths = ["timeline", "providers", "medications", "upcoming", "settings", `entries/${entryId}`];
+    for (const width of [420, 1280]) {
+      await A.send("Emulation.setDeviceMetricsOverride", {
+        width,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: width < 600,
+      });
+      const seen = [];
+      for (const path of width === 420 ? paths : paths.slice(0, 2)) {
+        await A.goto(`/app/groups/${DEV_FAMILY}/${path}`);
+        await A.waitFor(MAGNIFIER, 30000);
+        const box = await A.evaluate(`(() => { const a = ${MAGNIFIER}; const r = a.getBoundingClientRect();
+          return { w: r.width, header: document.querySelector("header").getBoundingClientRect().height }; })()`);
+        if (!(box.w > 0 && box.header <= 64)) seen.push(`${path}: ${JSON.stringify(box)}`);
+      }
+      check(
+        `the magnifier shows on group screens at ${width}, in a one-row header`,
+        !seen.length,
+        seen.join("; "),
+      );
+    }
+    await A.goto(`/app/settings`);
+    await A.waitFor(`document.querySelector('header [data-region="user"]')`, 30000);
+    check("no magnifier outside a group", !(await A.evaluate(`!!${MAGNIFIER}`)));
+    await A.send("Emulation.setDeviceMetricsOverride", {
+      width: 420,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: true,
+    });
+  });
+
+  await step("Search page results and links", async () => {
+    await A.goto(`/app/groups/${DEV_FAMILY}/search`);
+    await A.waitFor(`document.querySelector("[data-search-field]")`, 30000);
+
+    const past = psql(
+      `SELECT id || '|' || name FROM provider WHERE group_id = '${DEV_FAMILY}' AND status = 'past' AND deleted_at IS NULL LIMIT 1`,
+    ).split("|");
+    await searchFor(A, `"${past[1]}"`);
+    const pastMarked = await A.evaluate(
+      `document.querySelector('[data-result="provider"][data-result-id="${past[0]}"][data-past] [data-marker]')?.textContent`,
+    );
+    check("a past provider is found, marked Past", pastMarked === "Past", past[1]);
+    await A.tap(`document.querySelector('[data-result="provider"][data-result-id="${past[0]}"] a')`);
+    await A.waitFor(`location.pathname.endsWith("/providers/${past[0]}")`, 10000);
+    check("a provider result opens its page", true);
+    await A.evaluate("history.back()");
+    await A.waitFor(ON_SEARCH, 10000);
+
+    await searchFor(A, "oxybutynin");
+    const stopped = await A.evaluate(
+      `document.querySelector('[data-result="medication"][data-stopped] [data-marker]')?.textContent`,
+    );
+    check("a stopped medication is found, marked", stopped === "Discontinued", stopped);
+
+    // A symptom this run wrote: a writer opens its edit sheet, and closing it comes back.
+    const [hip] = made.slice(1, 2);
+    await searchFor(A, `${tag} hip`);
+    const hipRow = `document.querySelector('[data-result="entry"][data-result-id="${hip}"]')`;
+    check(
+      "a symptom opens its edit sheet for a writer",
+      (await A.evaluate(`${hipRow}?.dataset.opens`)) === "sheet",
+    );
+    await A.tap(`${hipRow}.querySelector("a")`);
+    await A.waitFor(
+      `location.pathname.endsWith("/timeline/${hip}/edit") && !!document.querySelector("dialog[open], [role=dialog]")`,
+      15000,
+    );
+    await A.send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "Escape",
+      code: "Escape",
+      windowsVirtualKeyCode: 27,
+    });
+    await A.send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "Escape",
+      code: "Escape",
+      windowsVirtualKeyCode: 27,
+    });
+    await A.waitFor(ON_SEARCH, 10000);
+    check(
+      "closing the sheet comes back to the search",
+      await A.evaluate(
+        `document.querySelector("[data-search-field]").value === ${JSON.stringify(`${tag} hip`)}`,
+      ),
+    );
+
+    const [noteId, noteTitle] = psql(
+      `SELECT id || '|' || title FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND kind = 'event' AND deleted_at IS NULL
+         AND title LIKE '% %' AND title <> 'Event' ORDER BY occurred_at DESC LIMIT 1`,
+    ).split("|");
+    await searchFor(A, `"${noteTitle}"`);
+    const eventRow = `document.querySelector('[data-result="entry"][data-result-id="${noteId}"]')`;
+    check("an event opens its page", (await A.evaluate(`${eventRow}?.dataset.opens`)) === "page", noteTitle);
+    await A.tap(`${eventRow}.querySelector("a")`);
+    await A.waitFor(`location.pathname.endsWith("/entries/${noteId}")`, 10000);
+    await A.evaluate("history.back()");
+    await A.waitFor(ON_SEARCH, 10000);
+
+    // Title matches first: a search for a symptom's name puts that symptom above entries that only mention it.
+    await searchFor(A, "the");
+    const broad = await resultsOf(A);
+    check(
+      "a broad search shows a few entries and how many more",
+      broad.counts.entry === 5 && broad.totals.entry > 5,
+      JSON.stringify(broad.totals),
+    );
+    await A.tap(`document.querySelector('[data-show-all="entry"]')`);
+    await A.waitFor(
+      `location.search.includes("all=entry") && document.querySelectorAll('[data-result="entry"]').length > 5`,
+      10000,
+    );
+    check('"Show all" shows the rest of the section', true);
+
+    await searchFor(A, `zzqx${tag}`);
+    const none = await resultsOf(A);
+    check(
+      "nothing matched says so",
+      !none.sections.length && none.status.startsWith("No matches for"),
+      none.status,
+    );
+
+    // Offline: the index is on the device.
+    proxy.setOnline(false);
+    await A.waitFor(`document.body.textContent.includes("Offline")`, 20000).catch(() => undefined);
+    await searchFor(A, "lisinopril");
+    const offline = await resultsOf(A);
+    check(
+      "searching works offline",
+      offline.ids.medication?.length > 0 && offline.totals.entry > 0,
+      JSON.stringify(offline.totals),
+    );
+    proxy.setOnline(true);
+  });
+
+  await step("Search page: other groups and viewers", async () => {
+    await A.goto(`/app/groups/${DEV_FAMILY_2}/search?q=lisinopril`);
+    await A.waitFor(
+      `document.querySelector("[data-search-status]")?.dataset.for === "lisinopril" && !document.querySelector("[data-search-status]").textContent.startsWith("Preparing")`,
+      30000,
+    );
+    const lou = await resultsOf(A);
+    check("Dev Family 2 doesn't see Dev Family's medication or doses", !lou.sections.length, lou.status);
+    await searchFor(A, "tamsulosin");
+    const own = await resultsOf(A);
+    check("…but finds its own", own.ids.medication?.length === 1, JSON.stringify(own.ids));
+
+    // Another browser (its own cookies and database): a viewer of Dev Family.
+    const viewerBrowser = await launch(9712);
+    const B = await openPage(viewerBrowser, "B");
+    try {
+      await B.signIn("viewer@example.com", PW);
+      await B.waitFor(MAGNIFIER, 30000);
+      await openSearch(B);
+      await searchFor(B, `${tag} hip`);
+      const [hip] = made.slice(1, 2);
+      const opens = await B.evaluate(
+        `document.querySelector('[data-result="entry"][data-result-id="${hip}"]')?.dataset.opens`,
+      );
+      check("a viewer finds the symptom, which opens nothing", opens === "none", String(opens));
+      await searchFor(B, "lisinopril");
+      check("a viewer finds medications", (await resultsOf(B)).ids.medication?.length > 0);
+    } finally {
+      B.close();
+      viewerBrowser.proc.kill();
+    }
   });
 
   await step("A format change rebuilds the index", async () => {

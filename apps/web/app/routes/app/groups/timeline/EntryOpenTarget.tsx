@@ -1,4 +1,4 @@
-import type { EntryOpen } from "./entryOpen";
+import type { EntryOpen } from "~/lib/entryOpen";
 import type { TimelineEntry } from "~/lib/rpc";
 
 import { Link } from "react-router";

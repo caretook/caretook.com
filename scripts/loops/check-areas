@@ -107,6 +107,8 @@ apps/web/app/lib/me.ts                   settings-layout layout-offline
 apps/web/app/components/settings/*       routing settings-layout app-shell ui
 
 # The /app frame, menus, theme, group settings and members.
+# The header's search magnifier (search slice 3) opens the search page.
+apps/web/app/routes/app/layout/route.tsx app-shell search
 apps/web/app/routes/app/layout/*         app-shell
 apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
 apps/web/app/routes/app/home/*           app-shell first-sync
@@ -174,6 +176,9 @@ apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 # shared query language and search documents.
 apps/web/app/lib/sync/search.ts          search
 apps/web/app/lib/sync/searchTables.ts    search sign-in signout-wipe
+# The search page (slice 3); its pure ranking and grouping (lib/searchResults.ts)
+# has unit tests. Entries open as on the timeline (lib/entryOpen.ts, also unit-tested).
+apps/web/app/routes/app/groups/search/*  search
 
 # Marketing (web only).
 apps/web/app/routes/marketing/*          marketing
