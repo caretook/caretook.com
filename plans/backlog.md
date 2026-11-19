@@ -148,6 +148,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-105 | change | inbox |  |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | triaged | admin |  | Turning email invites off also blocks staff owner invites from /admin |
+| B-107 | feature | inbox |  |  | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
 
 ## Items
 
@@ -1340,3 +1341,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (prd/admin): From the user while admin slice 5 merged: not the intended behaviour. careGroupInviteService.createEmail refuses with settings:signupClosed when signup.emailInvites is off, and groupAdminService.inviteOwner and staffGroupService.createWithOwnerInvite go through it, so staff can't invite an owner. Staff owner invites should bypass the switch. Not addressed in the admin PRD's current slices; fix later.
+
+### B-107 · feature · Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the inbox: Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests (blocker, major, minor, etc.) an only run the blocker/major tests? The test suite takes too long to run and is not very reliable.
