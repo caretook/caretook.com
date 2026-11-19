@@ -116,6 +116,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-76 | feature | triaged | medications |  | medication groups for doses. Often the same medication is taken at different times of the day every… |
 | B-77 | plan | in-progress | encryption | plan/encryption | Data security and encryption review. |
 | B-78 | change | triaged | quick-fixes |  | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
+| B-79 | bug | triaged | quick-fixes |  | Device keeps its synced data after the session ends; offline sign-in never expires |
 
 ## Items
 
@@ -976,3 +977,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: improve timeline page display for vitals and upcoming banner. They should be limited. We should replace the word "latest" with the vitals icon and match the style of the upcoming header. Width should be limited on very large screens. larger than the timeline column, but not too wide.
 - 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: a contained timeline display change to LatestVitals and the Upcoming block (appointments' header style): the vitals icon instead of 'Latest', a limited number of items, and a width cap on very large screens (wider than the entries' 1024 px column, but capped). Run it after appointments lands (it owns the Upcoming block), and coordinate with search slice 2 (timeline filter row).
+
+### B-79 · bug · Device keeps its synced data after the session ends; offline sign-in never expires
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-2 (launch): wipe the device copy (the sign-out path) when the server says the session has ended; allow the cached user offline only within 3 days of the last confirmed session (decided 2026-11-19), then require sign-in, and wipe once online and still signed out.
