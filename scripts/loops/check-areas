@@ -1,5 +1,5 @@
 # Which browser checks a changed file needs: `pnpm prd browser --changed` reads
-# this. AGENTS.md's Browser check budget table, as globs.
+# this. docs/loops.md's browser check budget table, as globs.
 #
 # One rule per line: a glob (bash pattern; * also matches /), then the checks it
 # needs, or `-` for none, or `@suite` for every check. The first matching rule

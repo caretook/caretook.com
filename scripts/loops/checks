@@ -1,0 +1,39 @@
+# The browser checks: `pnpm prd browser` (browser.sh) reads this for the suite's
+# order, each check's cap and which checks never exit on their own.
+# scripts/loops/check-areas maps changed files to these names; a unit test
+# (checks.test.mjs) keeps the two in step.
+#
+# One check per line, in suite order:
+#   check        the file's name without .mjs (scripts/browser-checks/<check>.mjs)
+#   usual        its usual seconds for a full run on a quiet machine (from the logs)
+#   cap          browser.sh kills it after this many seconds, as TIMEOUT (about 3×
+#                usual, at least 120; --timeout overrides it). Unlisted checks: 600.
+#   never-exits  yes: it never exits on its own, and is stopped 2 s after its
+#                last line ("N/M passed", or signout-wipe's "errors:")
+#   e2e          yes: in the suite (--suite, and --changed's @suite)
+#
+# check            usual  cap  never-exits  e2e
+phase2              166   500  no           yes
+roundtrip            30   120  no           yes
+live-notes          313   950  no           yes
+app-shell           208   630  no           yes
+routing              40   150  no           yes
+settings-layout      15   120  no           yes
+layout-offline       15   300  yes          yes
+sign-in              10   120  no           yes
+first-sync           40   150  no           yes
+signout-wipe         15   300  yes          yes
+session-end          60   180  no           yes
+providers            90   270  no           yes
+invites              90   270  no           yes
+ui                  216   650  no           yes
+groups               30   120  no           yes
+medications         163   490  no           yes
+upcoming            203   610  no           yes
+search               70   210  no           yes
+profiles             55   180  no           yes
+profiles-contacts    20   120  no           yes
+care-periods         75   230  no           yes
+devices              40   150  no           yes
+admin                75   230  no           yes
+marketing            10   120  no           yes
