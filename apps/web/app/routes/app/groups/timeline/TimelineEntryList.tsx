@@ -1,10 +1,12 @@
 import type { TimelineData } from "./useTimelineData";
 import type { TimelineEntryKind, TimelineView, UnitChoices } from "@caretook/data/schema";
 
+import { useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ConfirmDialog } from "~/components/ui";
 import { emptyTimelineText } from "./entryLabels";
 import { entryOpen } from "./entryOpen";
+import { OlderEntries } from "./OlderEntries";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
@@ -18,8 +20,8 @@ const LIST_CLASS: Record<TimelineView, string> = {
 
 /**
  * The entries, a section per day under a sticky heading, as rows or cards,
- * then "Show older entries" while there are more. Writers get each entry's
- * ⋯ menu, with one delete confirm for the whole list.
+ * then `OlderEntries`, which loads older pages as the end comes near. Writers
+ * get each entry's ⋯ menu, with one delete confirm for the whole list.
  */
 export function TimelineEntryList({
   data,
@@ -30,7 +32,10 @@ export function TimelineEntryList({
   kind,
   author,
 }: {
-  data: Pick<TimelineData, "days" | "hasOlder" | "showOlder" | "liveLabelOf" | "nameOf" | "providersOf">;
+  data: Pick<
+    TimelineData,
+    "days" | "hasOlder" | "loadingOlder" | "loadOlder" | "liveLabelOf" | "nameOf" | "providersOf"
+  >;
   view: TimelineView;
   units: UnitChoices;
   groupId: string;
@@ -44,9 +49,22 @@ export function TimelineEntryList({
   const removal = useEntryRemoval();
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
 
+  // A new filter starts again from the newest entry: when the list's top is
+  // above the screen (a kind icon or author tapped far down), bring it back,
+  // before the end of a shorter list could load another page.
+  const list = useRef<HTMLElement>(null);
+  const filterKey = `${kind}|${author}`;
+  const lastFilter = useRef(filterKey);
+  useLayoutEffect(() => {
+    if (lastFilter.current === filterKey) return;
+    lastFilter.current = filterKey;
+    const el = list.current;
+    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
+  }, [filterKey]);
+
   return (
     <>
-      <section aria-labelledby="timeline-heading" className="space-y-4">
+      <section ref={list} aria-labelledby="timeline-heading" className="space-y-4">
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
@@ -89,11 +107,12 @@ export function TimelineEntryList({
           </section>
         ))}
 
-        {data.hasOlder && (
-          <button type="button" className="btn btn-block" onClick={data.showOlder}>
-            Show older entries
-          </button>
-        )}
+        <OlderEntries
+          hasOlder={data.hasOlder}
+          loading={data.loadingOlder}
+          empty={data.days.length === 0}
+          onLoadOlder={data.loadOlder}
+        />
       </section>
 
       <ConfirmDialog
