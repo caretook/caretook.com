@@ -149,7 +149,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-105 | change | triaged | quick-fixes |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | triaged | admin |  | Turning email invites off also blocks staff owner invites from /admin |
 | B-107 | feature | triaged | orchestration |  | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
-| B-108 | change | triaged | orchestration |  | Browser testing without a timeout keeps causing hung processes. We need to always have a sane… |
+| B-108 | change | in-progress | orchestration | prd/orchestration | Browser testing without a timeout keeps causing hung processes. We need to always have a sane… |
 | B-109 | chore | in-progress | orchestration | prd/orchestration | Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand |
 | B-110 | bug | triaged | orchestration |  | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-111 | bug | triaged | orchestration |  | Backlog writes can commit a half-typed inbox bullet and tag it with another item's id |
@@ -1366,9 +1366,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-108 · change · Browser testing without a timeout keeps causing hung processes. We need to always have a sane…
 
-- status: triaged
+- status: in-progress
 - prd: orchestration
-- owner:
+- owner: prd/orchestration
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: Browser testing without a timeout keeps causing hung processes. We need to always have a sane timeout for browser tests.
