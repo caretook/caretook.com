@@ -59,7 +59,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-27 | bug | landed | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
 | B-28 | chore | landed | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
-| B-30 | plan | in-progress | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
+| B-30 | plan | ready | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
 | B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
@@ -421,10 +421,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-30 · plan · Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset
 
-- status: in-progress
+- status: ready
 - prd: invites
 - owner: prd/invites
-- commit:
+- commit: 0ab74df
 
 - 2026-11-18 (Robert Bo Davis): From the Resend plan in AGENTS.md (Planned: notifications). Today sign-up is disabled and nothing sends or accepts invites; it's what blocks real use.
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/invites-prd.md, plans/invites-plan.md (5 slices; slice 1, the notifications package and outbox, can start now). New deps approved: resend, @react-email/components, @react-email/render, qrcode.
