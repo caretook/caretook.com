@@ -750,6 +750,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (Robert Bo Davis): PRD written (2026-11-19) on plan/care-periods: plans/care-periods-prd.md. One contiguous track per group (starts only), fixed types + label, optional provider place + room detail, date with optional time, live notes per period, From→to markers on the timeline (shown under kind/author filters), current-period line + group menu icon, periods page, keyword suggestions from events, period filter in search only (last slice, after search). Next: prd-to-plan.
 - 2026-11-19 (slice/care-periods/1): Slice 1 (data layer, sync, seeds, device module, periods page, add sheet, minimal period page) committed on slice/care-periods/1 at abc3fa8
 - 2026-11-19 (slice/care-periods/2): slice 2 (period page, notes, edit sheet, delete) ready on slice/care-periods/2 at a2938cc
+- 2026-11-19 (slice/care-periods/6): slice 6 (search within a care period) handed off at 6cab48e: search page When choice, timeline Within a period menu and During chip, ?period= only with q
 
 ### B-51 · feature · printable medication schedule sheet that can be printed to be checked off with a pen at patient's…
 
