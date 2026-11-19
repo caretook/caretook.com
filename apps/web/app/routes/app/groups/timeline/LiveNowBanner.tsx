@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { announcementText, writingLabel } from "~/lib/liveNow";
+import { STRIP_CAP } from "./layout";
 import { LiveDot } from "./LiveDot";
 
 /**
@@ -40,7 +41,7 @@ export function LiveNowBanner({
         <section
           aria-label="Live now"
           data-live-banner={top.id}
-          className="rounded-box border-primary/30 bg-primary/10 flex items-center gap-2.5 border px-3 py-2"
+          className={`rounded-box border-primary/30 bg-primary/10 flex items-center gap-2.5 border px-3 py-2 ${STRIP_CAP}`}
         >
           <LiveDot />
           <p className="min-w-0 flex-1 text-sm">

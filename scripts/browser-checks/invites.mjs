@@ -30,6 +30,10 @@
 //  11. One request per person however often they ask; maximum uses, revoke
 //      and expiry close a link; Decline emails them and home says so; the API
 //      refuses owner and admin links, and never gives back an email invite's token.
+// Quick fixes slice 24 (B-64):
+//  12. A requester withdraws a waiting request from home (after a confirm):
+//      the row goes, it's withdrawn in Postgres and gone from Members;
+//      offline the button is disabled; a declined row has no button.
 //
 // Order-independent and self-cleaning: it makes its own fictional accounts
 // (inv<run>-…@example.com, with the seed password) and deletes them, their
@@ -1020,6 +1024,10 @@ try {
       "and their home says it wasn't approved",
     );
     check(
+      !(await p.evaluate(`!!${myRequest}.querySelector("[data-withdraw-request]")`)),
+      "a declined request has no Withdraw button",
+    );
+    check(
       psql(`SELECT count(*) FROM care_group_member WHERE user_id = '${askerId}'`) === "0",
       "they're not a member",
     );
@@ -1063,6 +1071,54 @@ try {
       "an email invite's token can't be read back",
       String(read.status),
     );
+  });
+
+  // 12. Withdraw a waiting request (B-64).
+  await step("12. a requester withdraws a waiting request", async () => {
+    const link = await apiLink({ role: "viewer" });
+    const withdrawer = createAccount("withdrawer");
+    const p = await open(9525, "inv-withdrawer");
+    await p.signIn(withdrawer, PASSWORD, { home: true });
+    await askToJoin(p, link.path);
+    const withdrawerId = psql(`SELECT id FROM "user" WHERE email = '${withdrawer}'`);
+    const requestId = psql(
+      `SELECT id FROM care_group_join_request WHERE user_id = '${withdrawerId}' AND status = 'pending'`,
+    );
+    const withdraw = `${myRequest}?.querySelector("[data-withdraw-request]")`;
+    await p.waitFor(`${withdraw} && !${withdraw}.disabled`, 15000);
+
+    await p.offline(true);
+    await p.waitFor(`${withdraw}.disabled`, 5000);
+    check(
+      (await p.evaluate(`${myRequest}.textContent`)).includes("Needs a connection"),
+      "offline, Withdraw is disabled and says it needs a connection",
+    );
+    await p.offline(false);
+    await p.waitFor(`!${withdraw}.disabled`, 5000);
+
+    await p.press(withdraw);
+    await p.waitFor(`document.querySelector("dialog[open]")`, 5000);
+    const title = await p.evaluate(`document.querySelector("dialog[open] h2").textContent`);
+    check(
+      title === "Withdraw your request to join Grandma Pat?",
+      "Withdraw asks first, naming the group",
+      title,
+    );
+    await p.press(
+      `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === "Withdraw")`,
+    );
+    const gone = await p.waitFor(`!${myRequest}`, 15000).then(
+      () => true,
+      () => false,
+    );
+    check(gone, "after confirming, the row goes");
+    check(
+      psql(`SELECT status FROM care_group_join_request WHERE id = '${requestId}'`) === "withdrawn",
+      "the request is withdrawn in Postgres",
+    );
+    await openMembers(owner);
+    await owner.waitFor(`document.querySelector("[data-link-controls]")`, 15000);
+    check(!(await owner.evaluate(`!!${requestRow(withdrawer)}`)), "owners no longer see it under Requests");
   });
 } catch (error) {
   failed++;

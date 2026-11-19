@@ -13,12 +13,14 @@ import {
   NEEDS_CONNECTION,
   parseGroupName,
   parseRecipientProfile,
+  timeZoneLabel,
 } from "../groupSettings";
 
 // `…/settings/details`. Shared by web + native. The group's and the
-// recipient's names come from the device's local copy (live, so they work
-// offline and follow other members' changes); the date of birth comes from
-// the API. Renaming and editing the recipient go through the API: online only.
+// recipient's names and time zone come from the device's local copy (live,
+// so they work offline and follow other members' changes); the date of birth
+// comes from the API. Renaming and editing the recipient go through the API:
+// online only.
 
 export const meta = () => [{ title: "Details · Group settings · Caretook" }];
 
@@ -45,6 +47,7 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
         name: formString(form, "name"),
         preferredName: formString(form, "preferredName"),
         dateOfBirth: formString(form, "dateOfBirth"),
+        timeZone: formString(form, "timeZone"),
       });
       if (!parsed.ok) return parsed;
       await rpc.careGroup.updateRecipient({ groupId, ...parsed.data });
@@ -84,6 +87,7 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
             name={group.recipient.name}
             preferredName={group.recipient.preferredName ?? ""}
             dateOfBirth={recipient?.dateOfBirth ?? ""}
+            timeZone={group.recipient.timeZone ?? recipient?.timeZone ?? null}
           />
         ) : (
           <Details>
@@ -93,6 +97,10 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
               label="Date of birth"
               value={recipient?.dateOfBirth ? formatDateOfBirth(recipient.dateOfBirth) : null}
               empty={online ? "Not set" : "Not available offline"}
+            />
+            <Detail
+              label="Time zone"
+              value={group.recipient.timeZone ? timeZoneLabel(group.recipient.timeZone) : null}
             />
           </Details>
         )}

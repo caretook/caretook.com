@@ -15,7 +15,7 @@ import { authClient } from "~/lib/auth-client";
 import { authMessages, newPasswordProblem } from "~/lib/authMessages";
 import { formString } from "~/lib/form";
 import { rpc } from "~/lib/rpc";
-import { NEW_GROUP_LINK_STATE } from "../../app/groups/new/newGroupLink";
+import { NEW_GROUP_LINK_STATE } from "~/lib/newGroupLink";
 import { AuthCard, ErrorMessage, useSubmitOnce } from "../AuthCard";
 import { CLOSED_CODE, stepForIssues } from "./joinPage";
 

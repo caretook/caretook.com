@@ -6,7 +6,7 @@ import type { AuthUser } from "@caretook/data";
 
 import { router } from "@caretook/api";
 import { getAuthUser } from "@caretook/auth";
-import { isError } from "@caretook/data";
+import { isError, logError } from "@caretook/data";
 import { getMailConfig, linkBuilder } from "@caretook/notifications";
 import { createRouterClient } from "@orpc/server";
 import QRCode from "qrcode";
@@ -24,7 +24,7 @@ export type AdminApi = ReturnType<typeof apiFor>;
 export const requireStaff = async (request: Request) => {
   const authUser = await getAuthUser(request.headers);
   if (isError(authUser)) {
-    console.error(authUser);
+    logError("admin: session lookup failed", authUser);
     throw new Response("Something went wrong", { status: 500 });
   }
   if (!authUser) throw redirect(signInUrl(request));

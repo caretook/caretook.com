@@ -9,18 +9,15 @@ import { ConfirmDialog } from "~/components/ui";
 import { canReschedule } from "~/lib/eventReschedule";
 import { emptyTimelineText } from "./entryLabels";
 import { entryOpen } from "./entryOpen";
+import { COLUMN_CAP } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
 import { UpcomingBlock } from "./UpcomingBlock";
 import { useEntryRemoval } from "./useEntryRemoval";
 
-/**
- * The entries' column stops at 64rem (1024 px) on wide screens, centered on
- * the page. The quick-add bar and the filter chips share it; the header, the
- * vitals line and the Live now banner keep the full width.
- */
-export const COLUMN_CAP = "mx-auto max-w-5xl";
+// The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
+export { COLUMN_CAP } from "./layout";
 
 const LIST_CLASS: Record<TimelineView, string> = {
   rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",

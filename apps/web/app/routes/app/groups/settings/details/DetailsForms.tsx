@@ -1,8 +1,10 @@
 import type { ActionResult } from "~/lib/api";
 
+import { useState } from "react";
 import { useFetcher } from "react-router";
 import { SaveRow } from "~/components/settings";
 import { Field } from "~/components/ui";
+import { timeZoneLabel, timeZoneOptions } from "../groupSettings";
 
 // The Details page's forms (online, with the role): the group's name, and the
 // care recipient's profile. Each posts its own intent to the route's action.
@@ -19,7 +21,12 @@ export function GroupNameForm({ name }: { name: string }) {
   );
 }
 
-export function RecipientForm(props: { name: string; preferredName: string; dateOfBirth: string }) {
+export function RecipientForm(props: {
+  name: string;
+  preferredName: string;
+  dateOfBirth: string;
+  timeZone: string | null;
+}) {
   const fetcher = useFetcher<ActionResult>();
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
   return (
@@ -41,8 +48,55 @@ export function RecipientForm(props: { name: string; preferredName: string; date
         value={props.dateOfBirth}
         result={result}
       />
+      {/* Keyed on the saved zone, like TextField: a synced change resets the choice. */}
+      <TimeZoneField key={props.timeZone ?? ""} value={props.timeZone} result={result} />
       <SaveRow busy={fetcher.state !== "idle"} result={result} />
     </fetcher.Form>
+  );
+}
+
+const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+/**
+ * The recipient's time zone: every zone the device knows, with a shortcut to
+ * this device's own. Submitted with the rest of the profile.
+ */
+function TimeZoneField({ value, result }: { value: string | null; result: ActionResult | undefined }) {
+  const device = deviceZone();
+  const [zone, setZone] = useState(value ?? "");
+  const error =
+    result && !result.ok ? result.issues.find((issue) => issue.path === "timeZone")?.message : undefined;
+  return (
+    <Field label="Time zone" help="Medication times follow this zone." error={error}>
+      {(control) => (
+        <div className="flex flex-col items-start gap-2">
+          <select
+            {...control}
+            name="timeZone"
+            value={zone}
+            onChange={(e) => setZone(e.target.value)}
+            className={`select w-full ${error ? "select-error" : ""}`}
+          >
+            {!zone && <option value="">Not set</option>}
+            {timeZoneOptions(value, device).map((option) => (
+              <option key={option} value={option}>
+                {timeZoneLabel(option)}
+              </option>
+            ))}
+          </select>
+          {device && zone !== device && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              data-use-device-zone
+              onClick={() => setZone(device)}
+            >
+              Use this device's ({timeZoneLabel(device)})
+            </button>
+          )}
+        </div>
+      )}
+    </Field>
   );
 }
 
