@@ -5,6 +5,7 @@ import type { EntryRow } from "~/lib/sync/timeline";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { data } from "react-router";
+import { WHEN_PICK } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
 import { localTimeZone } from "~/lib/format";
 import { isLiveEntryKind, NEW_ENTRY } from "~/lib/liveEntry";
@@ -35,9 +36,6 @@ export type EntryPageData = {
   entryRows: EntryRow[];
 };
 
-/** `?when=pick`: a draft whose day is picked first. */
-export const PICK_DAY = "pick";
-
 const notFound = () => data("Not found", { status: 404 });
 
 /**
@@ -60,7 +58,7 @@ export async function loadEntry(
     if (!isLiveEntryKind(kind) || !canWrite) throw notFound();
     return {
       isNew: true,
-      pickDay: when === PICK_DAY,
+      pickDay: when === WHEN_PICK,
       entry: {
         id: crypto.randomUUID(),
         kind,

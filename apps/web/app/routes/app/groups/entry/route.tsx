@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { BackLink } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls, WHEN_PARAM } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
 import { getGroup } from "~/lib/group";
 import { NEW_ENTRY } from "~/lib/liveEntry";
@@ -35,7 +35,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     groupId: params.groupId,
     entryId: params.entryId,
     kind: search.get("kind"),
-    when: search.get("when"),
+    when: search.get(WHEN_PARAM),
     canWrite,
   });
 }
