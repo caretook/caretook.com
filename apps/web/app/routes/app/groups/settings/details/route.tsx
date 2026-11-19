@@ -1,24 +1,21 @@
 import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/api";
 
+import { UserRound } from "lucide-react";
+import { Link } from "react-router";
 import { Detail, Details, SettingsCard, SettingsPage } from "~/components/settings";
+import { appUrls } from "~/lib/appUrls";
 import { formString } from "~/lib/form";
 import { getGroup, useGroup } from "~/lib/group";
 import { rpc } from "~/lib/rpc";
 import { failedSave, loadRecipientProfile } from "../api";
-import { GroupNameForm, RecipientForm } from "./DetailsForms";
-import {
-  formatDateOfBirth,
-  groupSettingsAccess,
-  NEEDS_CONNECTION,
-  parseGroupName,
-  parseRecipientProfile,
-} from "../groupSettings";
+import { GroupNameForm } from "./DetailsForms";
+import { groupSettingsAccess, NEEDS_CONNECTION, parseGroupName } from "../groupSettings";
 
-// `…/settings/details`. Shared by web + native. The group's and the
-// recipient's names come from the device's local copy (live, so they work
-// offline and follow other members' changes); the date of birth comes from
-// the API. Renaming and editing the recipient go through the API: online only.
+// `…/settings/details`. Shared by web + native. The group's name comes from
+// the device's local copy (live, so it works offline and follows other
+// members' changes); renaming goes through the API: online only. The care
+// recipient is edited on their profile (`appUrls.profile`), linked from here.
 
 export const meta = () => [{ title: "Details · Group settings · Caretook" }];
 
@@ -26,7 +23,9 @@ export { shouldRevalidate } from "../api";
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   getGroup(context);
-  return loadRecipientProfile(request, params.groupId);
+  // Only whether the API answers: the page is read-only without a connection.
+  const { online } = await loadRecipientProfile(request, params.groupId);
+  return { online };
 }
 
 export async function clientAction({ request, params }: Route.ClientActionArgs): Promise<ActionResult> {
@@ -40,16 +39,6 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       await rpc.careGroup.update({ groupId, ...parsed.data });
       return { ok: true };
     }
-    if (intent === "updateRecipient") {
-      const parsed = parseRecipientProfile({
-        name: formString(form, "name"),
-        preferredName: formString(form, "preferredName"),
-        dateOfBirth: formString(form, "dateOfBirth"),
-      });
-      if (!parsed.ok) return parsed;
-      await rpc.careGroup.updateRecipient({ groupId, ...parsed.data });
-      return { ok: true };
-    }
     return { ok: false, error: "Unknown action.", issues: [] };
   } catch (e) {
     return failedSave(e);
@@ -57,7 +46,7 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
 }
 
 export default function GroupDetails({ loaderData }: Route.ComponentProps) {
-  const { online, recipient } = loaderData;
+  const { online } = loaderData;
 
   // Live from the device: a rename or a changed role shows without a reload.
   const group = useGroup();
@@ -76,27 +65,16 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
         )}
       </SettingsCard>
 
-      <SettingsCard id="care-recipient" title="Care recipient">
-        {!group.recipient ? (
-          <p className="text-base-content/70 text-sm">This care group has no care recipient yet.</p>
-        ) : online && access.editRecipient ? (
-          <RecipientForm
-            name={group.recipient.name}
-            preferredName={group.recipient.preferredName ?? ""}
-            dateOfBirth={recipient?.dateOfBirth ?? ""}
-          />
-        ) : (
-          <Details>
-            <Detail label="Name" value={group.recipient.name} />
-            <Detail label="Preferred name" value={group.recipient.preferredName} />
-            <Detail
-              label="Date of birth"
-              value={recipient?.dateOfBirth ? formatDateOfBirth(recipient.dateOfBirth) : null}
-              empty={online ? "Not set" : "Not available offline"}
-            />
-          </Details>
-        )}
-      </SettingsCard>
+      {group.recipient && (
+        <p className="text-sm" data-profile-note="">
+          {group.recipient.displayName}'s name, birthday and details are on{" "}
+          <Link to={appUrls.profile(group.id)} className="link link-primary inline-flex items-center gap-1">
+            <UserRound className="size-4" aria-hidden="true" />
+            {group.recipient.displayName}'s profile
+          </Link>
+          .
+        </p>
+      )}
     </SettingsPage>
   );
 }

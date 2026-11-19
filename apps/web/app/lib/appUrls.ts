@@ -63,6 +63,12 @@ export const PROVIDER_TYPE_PARAM = "type";
 export const WHEN_PARAM = "when";
 export const WHEN_PICK = "pick";
 
+/** The recipient's profile's edit sheets, in the order the page shows them (`…/profile/<sheet>`). */
+export const PROFILE_SHEETS = ["basics"] as const;
+export type ProfileSheet = (typeof PROFILE_SHEETS)[number];
+const isProfileSheet = (sheet: unknown): sheet is ProfileSheet =>
+  (PROFILE_SHEETS as readonly unknown[]).includes(sheet);
+
 const HOME = "/app";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
@@ -186,4 +192,10 @@ export const appUrls = {
   /** The edit sheet for one medication, over the list, carrying the list's search and status filter. */
   editMedication: (groupId: string, medicationId: string, search?: Search) =>
     `${groupHome(groupId)}/medications/${segment(medicationId)}/edit${searchString(search)}`,
+  /**
+   * The care recipient's profile (not a group section), or one of its edit
+   * sheets over it. An unknown sheet is dropped (the profile).
+   */
+  profile: (groupId: string, sheet?: ProfileSheet) =>
+    `${groupHome(groupId)}/profile${isProfileSheet(sheet) ? `/${sheet}` : ""}`,
 } as const;
