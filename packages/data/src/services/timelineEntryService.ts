@@ -15,7 +15,10 @@ import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   canHaveNoteDocument,
+  FUTURE_DATE_MESSAGE,
   isDoseDetails,
+  isTooFarAhead,
+  SERVER_FUTURE_SKEW_MS,
   isSystemWrittenKind,
   timelineEntryContentZSchema,
   timelineEntryCreateZSchema,
@@ -83,6 +86,71 @@ const checkDoseMedication = async (
 
 /** Postgres timestamptz text → ISO 8601, so stored rows re-validate. */
 const toIso = (value: string) => new Date(value).toISOString();
+const toIsoOrNull = (value: string | null | undefined) => (value ? toIso(value) : null);
+
+/**
+ * Only notes and events may be dated in the future. The server allows an
+ * hour of clock skew (a device allows five minutes): a refused upload is
+ * dropped, so a device whose clock runs fast must not lose a real vital.
+ */
+const refuseFuture = (kind: string, occurredAt: string) =>
+  isTooFarAhead(kind, occurredAt, new Date(), SERVER_FUTURE_SKEW_MS)
+    ? newError({
+        code: "timelineEntryService:invalid",
+        meta: { issues: [{ path: "occurredAt", message: FUTURE_DATE_MESSAGE }] },
+      })
+    : null;
+
+/**
+ * A cancelled event's replacement: another event in the same group, as the
+ * actor sees it. A deleted one still counts, so a replayed upload lands.
+ */
+const checkRescheduledTo = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  { id, groupId, rescheduledTo }: { id?: string; groupId: string; rescheduledTo?: string | null },
+) => {
+  if (!rescheduledTo) return null;
+  const refused = newError({
+    code: "timelineEntryService:rescheduledToNotInGroup",
+    meta: { issues: [{ path: "rescheduledTo", message: "Choose another event in this care group" }] },
+  });
+  if (rescheduledTo === id) return refused;
+  const target = await timelineEntryModel.getById(rescheduledTo, { ...ctx, tx, includeDeleted: true });
+  if (isError(target)) return target;
+  return target?.groupId === groupId && target.kind === "event" ? null : refused;
+};
+
+/**
+ * Who cancelled an event is the server's to say, like the audit columns: the
+ * actor who set `cancelledAt`, kept while it stays cancelled, cleared on undo.
+ */
+const cancelledByFor = (
+  ctx: ServiceContext,
+  before: Pick<TimelineEntry, "cancelledAt" | "cancelledBy"> | null,
+  cancelledAt: string | null | undefined,
+) => {
+  if (!cancelledAt) return null;
+  if (before?.cancelledAt && before.cancelledBy) return before.cancelledBy;
+  return ctx.authUser?.id ?? null;
+};
+
+/** The appointment columns of validated content, with nulls for what's unset. */
+const schedulingColumns = (content: {
+  allDay?: boolean;
+  endsAt?: string | null;
+  place?: string | null;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
+  rescheduledTo?: string | null;
+}) => ({
+  allDay: content.allDay ?? false,
+  endsAt: content.endsAt ?? null,
+  place: content.place ?? null,
+  cancelledAt: content.cancelledAt ?? null,
+  cancelReason: content.cancelReason ?? null,
+  rescheduledTo: content.rescheduledTo ?? null,
+});
 
 /**
  * The recipient an entry is about: `recipientId` when given (it must be in
@@ -208,13 +276,25 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput) =>
     const resolved = await resolveRecipient(ctx, tx, data.groupId, recipientId);
     if (isError(resolved)) return resolved;
 
+    const future = refuseFuture(data.kind, data.occurredAt);
+    if (future) return future;
+
     const medication = await checkDoseMedication(ctx, tx, data.groupId, details);
     if (medication) return medication;
+
+    const moved = await checkRescheduledTo(ctx, tx, data);
+    if (moved) return moved;
 
     return timelineEntryModel.create({
       ...ctx,
       tx,
-      data: { ...data, recipientId: resolved, details: details ?? null },
+      data: {
+        ...data,
+        ...schedulingColumns(data),
+        cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
+        recipientId: resolved,
+        details: details ?? null,
+      },
     });
   }, ctx);
 
@@ -242,19 +322,42 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
       occurredAt: toIso(existing.occurredAt),
       timeZone: existing.timeZone,
       details: existing.details,
+      allDay: existing.allDay,
+      endsAt: toIsoOrNull(existing.endsAt),
+      place: existing.place,
+      cancelledAt: toIsoOrNull(existing.cancelledAt),
+      cancelReason: existing.cancelReason,
+      rescheduledTo: existing.rescheduledTo,
       ...patch,
     });
     if (!merged.success) return invalid(merged.error);
     const { kind: _kind, ...content } = merged.data;
 
+    // Checked only when the time moves, so an entry stored before the rule
+    // (or by a fast clock, within the skew) can still be edited.
+    if (new Date(content.occurredAt).getTime() !== new Date(existing.occurredAt).getTime()) {
+      const future = refuseFuture(existing.kind, content.occurredAt);
+      if (future) return future;
+    }
+
     const medication = await checkDoseMedication(ctx, tx, existing.groupId, content.details);
     if (medication) return medication;
+
+    if ((content.rescheduledTo ?? null) !== existing.rescheduledTo) {
+      const moved = await checkRescheduledTo(ctx, tx, { ...content, id, groupId: existing.groupId });
+      if (moved) return moved;
+    }
 
     const updated = await timelineEntryModel.update({
       ...ctx,
       tx,
       filter: { id: { type: "eq", value: id } },
-      data: { ...content, details: content.details ?? null },
+      data: {
+        ...content,
+        ...schedulingColumns(content),
+        cancelledBy: cancelledByFor(ctx, existing, content.cancelledAt),
+        details: content.details ?? null,
+      },
     });
     if (isError(updated)) return updated;
     return updated[0] ?? null;
@@ -280,6 +383,12 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
     const parsed = timelineEntryUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId, recipientId, kind, title, body, occurredAt, timeZone, details } = parsed.data;
+    // Appointment fields a device sent; ones it left out keep their value.
+    const scheduling = Object.fromEntries(
+      (["allDay", "endsAt", "place", "cancelledAt", "cancelReason", "rescheduledTo"] as const)
+        .filter((key) => key in parsed.data)
+        .map((key) => [key, (parsed.data as Record<string, unknown>)[key]]),
+    );
 
     // Existence is checked as the system, so a taken id is refused cleanly
     // rather than failing on the primary key.
@@ -310,7 +419,14 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
       { ...ctx, tx },
       id,
       // Checked against the entry's kind once merged with the stored row.
-      { title, body, occurredAt, timeZone, details: details ?? null } as TimelineEntryUpdateInput,
+      {
+        title,
+        body,
+        occurredAt,
+        timeZone,
+        details: details ?? null,
+        ...scheduling,
+      } as TimelineEntryUpdateInput,
     );
   }, ctx);
 

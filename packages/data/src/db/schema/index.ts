@@ -27,3 +27,4 @@ export * from "./accessCode";
 export * from "./newCareGroup";
 export * from "./timeZone";
 export * from "./medication";
+export * from "./entryTiming";
