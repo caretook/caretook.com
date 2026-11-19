@@ -4,19 +4,19 @@
 
 ## Status
 
-| Slice | Backlog | State                            | Merge into `prd/timeline-polish` (slice commits) |
-| ----- | ------- | -------------------------------- | ------------------------------------------------ |
-| 1     | B-5     | landed in `dev` (`644f780`)      | `5d6678a` (`9b23d14`, `4c14096`)                 |
-| 2     | B-7     | landed in `dev` (`644f780`)      | `cf96edc` (`47a2792`)                            |
-| 3     | B-2     | landed in `dev` (`644f780`)      | `908d4fa` (`4b1b280`, `cf12f43`)                 |
-| 4     | B-6     | merged; wave 2 landing           | `5e5496b` (`8a7595e`, `fd2a8b0`)                 |
-| 5     | B-3     | merged; wave 2 landing           | `f787e1a` (`2af9c9c`)                            |
-| 6     | B-4     | replanned, blocked by 4 (wave 3) |                                                  |
-| 7     | B-10    | replanned, blocked by 4 (wave 3) |                                                  |
+| Slice | Backlog | State                       | Merge into `prd/timeline-polish` (slice commits) |
+| ----- | ------- | --------------------------- | ------------------------------------------------ |
+| 1     | B-5     | landed in `dev` (`644f780`) | `5d6678a` (`9b23d14`, `4c14096`)                 |
+| 2     | B-7     | landed in `dev` (`644f780`) | `cf96edc` (`47a2792`)                            |
+| 3     | B-2     | landed in `dev` (`644f780`) | `908d4fa` (`4b1b280`, `cf12f43`)                 |
+| 4     | B-6     | merged; wave 2 landing      | `5e5496b` (`8a7595e`, `fd2a8b0`)                 |
+| 5     | B-3     | merged; wave 2 landing      | `f787e1a` (`2af9c9c`)                            |
+| 6     | B-4     | in flight (wave 3)          |                                                  |
+| 7     | B-10    | in flight (wave 3)          |                                                  |
 
 Wave 1 (slices 1–3) landed in `dev` as `644f780` (2026-11-18).
 
-**Restarted 2026-11-18** from `dev` at `85144b4`, after `routing` (B-23), `components` (B-24) and `providers` (B-14) had all landed. **Slices 4–7 below are rewritten against that code**; _What the replan changed_ lists the differences. **The user's go-ahead (2026-11-18): run waves 2 and 3 and land each without asking**, once it's green, then remove the worktree. Wave 2 (slices 4 and 5) is merged and B-6 and B-3 are `done`; wave 3 (slices 6 and 7) is next.
+**Restarted 2026-11-18** from `dev` at `85144b4`, after `routing` (B-23), `components` (B-24) and `providers` (B-14) had all landed. **Slices 4–7 below are rewritten against that code**; _What the replan changed_ lists the differences. **The user's go-ahead (2026-11-18): run waves 2 and 3 and land each without asking**, once it's green, then remove the worktree. **Wave 2 (slices 4 and 5) landed in `dev` as `8ea9427`** (2026-11-18): `pnpm prd check` and `pnpm prd browser --changed --base dev` (8/8: phase2, roundtrip, live-notes, app-shell, settings-layout, layout-offline, providers, ui), no retries. Wave 3 (slices 6 and 7) is in flight; B-4 and B-10 are claimed.
 
 Open issues:
 
