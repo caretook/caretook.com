@@ -60,7 +60,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-28 | chore | landed | quick-fixes | prd/quick-fixes | Limit browser checks machine-wide: a lock so at most two run at once |
 | B-29 | chore | landed | quick-fixes | prd/quick-fixes | Restart PowerSync inside datastore:reset, and fix the flakes it causes |
 | B-30 | plan | landed | invites | prd/invites | Sign-up and invites: invite people to a care group by email, accept with consent, verification and password reset |
-| B-31 | feature | inbox |  |  | Demo group for every new user: a seeded, fictional care group to explore the app |
+| B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-32 | plan | in-progress | marketing | prd/marketing | Landing page and basic marketing pages |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-34 | change | landed | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
@@ -455,8 +455,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: onboarding
 - owner:
 - commit:
 
