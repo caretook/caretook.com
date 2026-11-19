@@ -166,6 +166,10 @@ apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 # Reschedule from the timeline, Upcoming and the entry page).
 apps/web/app/components/schedule/*       upcoming live-notes
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
+# Search (search PRD): the device index, its tables and triggers, and the
+# shared query language and search documents.
+apps/web/app/lib/sync/search.ts          search
+apps/web/app/lib/sync/searchTables.ts    search sign-in signout-wipe
 
 # Marketing (web only).
 apps/web/app/routes/marketing/*          marketing
@@ -200,6 +204,8 @@ packages/data/src/db/schema/publicForms.ts marketing
 packages/data/src/db/schema/publicFormRules.ts marketing
 packages/data/src/db/schema/waitlistEntry.ts marketing
 packages/data/src/db/schema/contactMessage.ts marketing
+packages/data/src/db/schema/search.ts    search
+packages/data/src/db/schema/searchDocument.ts search
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 packages/data/src/db/seeds/providers.ts  providers
 packages/data/src/db/seeds/invites.ts    invites app-shell
