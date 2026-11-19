@@ -490,6 +490,25 @@ const recipientAllergyOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Prom
 };
 
 // ---------------------------------------------------------------------------
+// care_recipient: read-only, except "No known allergies". A PATCH touching only
+// `no_known_allergies_at` sets or clears it (care_recipient's update rule);
+// anything else is refused as before.
+// ---------------------------------------------------------------------------
+
+const careRecipientOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  const columns = Object.keys(data);
+  if (op.op !== "PATCH" || columns.length !== 1 || columns[0] !== "no_known_allergies_at")
+    return readOnly(op.table, op.op);
+  const res = await recipientAllergyService.setNoKnownAllergies(
+    ctx,
+    op.id,
+    toIsoTimestamp(data.no_known_allergies_at),
+  );
+  return isError(res) ? res : applied;
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -502,6 +521,7 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   medication: medicationOp,
   medication_pass: medicationPassOp,
   recipient_allergy: recipientAllergyOp,
+  care_recipient: careRecipientOp,
 };
 
 /**

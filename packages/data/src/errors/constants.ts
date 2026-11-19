@@ -460,6 +460,14 @@ export const SERVICE_ERRORS = {
     message: "An allergy's group and recipient can't change",
     statusCode: 400,
   },
+  "recipientAllergyService:hasAllergies": {
+    message: "Remove the allergies on file before recording No known allergies",
+    statusCode: 409,
+  },
+  "recipientAllergyService:invalidNoKnown": {
+    message: "No known allergies needs a time, or none to clear it",
+    statusCode: 400,
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {
