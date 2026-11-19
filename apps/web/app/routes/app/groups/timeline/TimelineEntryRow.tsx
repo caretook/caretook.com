@@ -3,7 +3,7 @@ import type { UnitChoices } from "@caretook/data/schema";
 import type { LinkedProviderName } from "~/lib/entryProviders";
 import type { TimelineEntry } from "~/lib/rpc";
 
-import { AuthorInitials, EntryActions, KindFilterLink } from "~/components/entry";
+import { AuthorFilterLink, EntryActions, KindFilterLink } from "~/components/entry";
 import { initials } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryBody } from "./EntryBody";
@@ -32,7 +32,7 @@ export type EntryViewProps = {
 
 /**
  * One entry as a dense row: kind icon, time, the entry's body (text clamped
- * to two lines, with "More"), author initials and the ⋯ menu.
+ * to two lines, with "More"), the author's initials (a filter) and the ⋯ menu.
  */
 export function TimelineEntryRow({
   entry,
@@ -65,7 +65,7 @@ export function TimelineEntryRow({
         footer={elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
-      <AuthorInitials name={authorName} initials={initials(authorName)} />
+      <AuthorFilterLink userId={entry.createdBy} name={authorName} initials={initials(authorName)} />
       {onDelete && (
         <EntryActions kind={entry.kind} label={actionsLabel(entry)} onEdit={onEdit} onDelete={onDelete} />
       )}

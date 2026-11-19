@@ -120,6 +120,19 @@ export const MODEL_ERRORS = {
     message: "User not found",
     statusCode: 404,
   },
+  "careGroupInviteModel:getSealedToken": {
+    message: "Failed to read the invite link",
+  },
+  "careGroupJoinRequestModel:lock": {
+    message: "Failed to look up the join request",
+    statusCode: 403,
+  },
+  "accessCodeModel:getByCode": {
+    message: "Failed to look up the access code",
+  },
+  "accessCodeModel:countUse": {
+    message: "Failed to count the access code's use",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {
@@ -290,6 +303,48 @@ export const SERVICE_ERRORS = {
   "ticket:weakPassword": {
     message: "Use at least 12 characters",
     statusCode: 400,
+  },
+  "careGroupInviteService:linkRole": {
+    message: "An invite link can make caretakers and viewers only",
+    statusCode: 403,
+  },
+  "careGroupInviteService:notLink": {
+    message: "That isn't an invite link",
+    statusCode: 400,
+  },
+  "careGroupInviteService:linkInactive": {
+    message: "That link has expired, been used up or been withdrawn, so it can't be copied",
+    statusCode: 409,
+  },
+  "careGroupInviteService:linkKeyMissing": {
+    message: "INVITE_LINK_KEY is not set, so invite links can't be made",
+  },
+  "joinRequestService:notFound": {
+    message: "That request is no longer waiting",
+    statusCode: 404,
+  },
+  "joinRequestService:notAllowed": {
+    message: "Only the care group's owners and admins can answer requests to join",
+    statusCode: 403,
+  },
+  "accessCodeService:notFound": {
+    message: "That access code isn't valid",
+    statusCode: 404,
+  },
+  "accessCodeService:unusable": {
+    message: "This access code can't be used any more",
+    statusCode: 409,
+  },
+  "accessCodeService:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "accessCodeService:noUniqueCode": {
+    message: "Couldn't make a new access code. Try again.",
+  },
+  "staffGroupService:staffOnly": {
+    message: "Only Caretook staff can do that",
+    statusCode: 403,
   },
   "careRecipientService:invalidTimeZone": {
     message: "The care recipient needs a valid time zone",

@@ -12,7 +12,8 @@ import { useEntryRemoval } from "./useEntryRemoval";
 
 const LIST_CLASS: Record<TimelineView, string> = {
   rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",
-  cards: "space-y-2",
+  // One column on phones; from `lg` a grid inside each day, each card keeping its own height.
+  cards: "grid grid-cols-1 items-start gap-2 lg:grid-cols-2 2xl:grid-cols-3",
 };
 
 /**
@@ -27,6 +28,7 @@ export function TimelineEntryList({
   groupId,
   canWrite,
   kind,
+  author,
 }: {
   data: Pick<TimelineData, "days" | "hasOlder" | "showOlder" | "liveLabelOf" | "nameOf" | "providersOf">;
   view: TimelineView;
@@ -34,6 +36,8 @@ export function TimelineEntryList({
   groupId: string;
   canWrite: boolean;
   kind: TimelineEntryKind | null;
+  /** The author filter's user id, when it's on (the empty list names them). */
+  author: string | null;
 }) {
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -46,7 +50,11 @@ export function TimelineEntryList({
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
-        {data.days.length === 0 && <p className="text-base-content/70">{emptyTimelineText(kind)}</p>}
+        {data.days.length === 0 && (
+          <p className="text-base-content/70" data-empty>
+            {emptyTimelineText(kind, author && data.nameOf(author))}
+          </p>
+        )}
         {data.days.map((day) => (
           <section key={day.key} aria-labelledby={`day-${day.key}`}>
             <h3
@@ -55,7 +63,7 @@ export function TimelineEntryList({
             >
               {day.label}
             </h3>
-            <ol className={LIST_CLASS[view]}>
+            <ol className={LIST_CLASS[view]} data-view={view}>
               {day.entries.map((entry) => {
                 const open = entryOpen({ groupId, entry, canWrite, search });
                 return (

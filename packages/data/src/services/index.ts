@@ -32,6 +32,15 @@ export { entryProviderService };
 import * as careGroupConsentService from "./careGroupConsentService";
 export { careGroupConsentService };
 
+import * as joinRequestService from "./joinRequestService";
+export { joinRequestService };
+export type { JoinMailer, JoinNotice, JoinRecipient } from "./joinRequestService";
+import * as accessCodeService from "./accessCodeService";
+export { accessCodeService };
+
+import * as staffGroupService from "./staffGroupService";
+export { staffGroupService };
+export type { StaffGroupInput } from "./staffGroupService";
 import * as medicationService from "./medicationService";
 export { medicationService };
 export type { MedicationWriteOptions } from "./medicationService";
@@ -49,6 +58,9 @@ export const services = {
   provider: providerService,
   entryProvider: entryProviderService,
   careGroupConsent: careGroupConsentService,
+  joinRequest: joinRequestService,
+  accessCode: accessCodeService,
+  staffGroup: staffGroupService,
   medication: medicationService,
 };
 

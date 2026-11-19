@@ -178,10 +178,13 @@ describe("medication queries", () => {
   });
 
   it("keeps doses and medication changes off the timeline until it can render them", () => {
-    const all = entriesQuery("g1", null, 50);
+    const all = entriesQuery("g1", { kind: null, author: null }, 50);
     expect(all.sql).toContain("kind IN ('note', 'symptom', 'event', 'vital')");
     expect(all.params).toEqual(["g1", 51]);
-    expect(entriesQuery("g1", "symptom", 50).params).toEqual(["g1", "symptom", 51]);
+    expect(entriesQuery("g1", { kind: "symptom", author: null }, 50).params).toEqual(["g1", "symptom", 51]);
+    const byAuthor = entriesQuery("g1", { kind: null, author: "u1" }, 50);
+    expect(byAuthor.sql).toContain("kind IN ('note', 'symptom', 'event', 'vital')");
+    expect(byAuthor.params).toEqual(["g1", "u1", 51]);
   });
 });
 

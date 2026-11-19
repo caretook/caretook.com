@@ -24,6 +24,8 @@ import { ORPCError } from "@orpc/server";
 import { unwrap } from "./errors";
 import { authedProcedure } from "./procedures";
 import { invite } from "./invites";
+import { joinRequest } from "./joinRequests";
+import { accessCode, admin, createCareGroup } from "./groups";
 import { sync } from "./sync";
 
 const id = z.uuid();
@@ -234,6 +236,9 @@ const careGroup = {
       removed(await careGroupMemberService.remove(context, membership.id));
       return { groupId: input.groupId, userId: input.userId };
     }),
+
+  /** Start a care group with its recipient; the creator is its owner (groups.ts). */
+  create: createCareGroup,
 };
 
 // ---------------------------------------------------------------------------
@@ -304,5 +309,5 @@ const timeline = {
   }),
 };
 
-export const router = { me, careGroup, timeline, sync, invite };
+export const router = { me, careGroup, timeline, sync, invite, joinRequest, accessCode, admin };
 export type Router = typeof router;

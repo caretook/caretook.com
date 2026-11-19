@@ -2,23 +2,23 @@ import type { GroupRoleName } from "../constants";
 import type { Tx } from "../db";
 import type { AppError } from "../errors";
 import type { CareGroupInviteModel } from "../models";
+import type { LinkInviteOptions } from "../db/schema";
+import type { JoinMailer } from "./joinRequestService";
 import type { ServiceContext, ServiceSelectArgs } from "./types";
 
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { DEFAULT_PAGE_SIZE, SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import { CONSENT_VERSION, emailMatches, INVITE_TTL_DAYS, inviteState } from "../db/schema";
+import { CONSENT_VERSION, emailMatches, INVITE_TTL_DAYS, inviteState, linkRoleAllowed } from "../db/schema";
 import { isError, newError } from "../errors";
-import {
-  careGroupConsentModel,
-  careGroupInviteModel,
-  careGroupMemberModel,
-  careGroupModel,
-  careRecipientModel,
-  userModel,
-} from "../models";
+import { careGroupConsentModel, careGroupInviteModel, careGroupMemberModel, userModel } from "../models";
 import { isSystemUser } from "../permissions";
+import { openLinkToken, sealLinkToken } from "../utils/linkToken";
 import * as careGroupMemberService from "./careGroupMemberService";
+import { groupDisplayName } from "./groupNames";
+import * as joinRequestService from "./joinRequestService";
+
+export { groupDisplayName };
 
 export const serviceName = "careGroupInvite";
 export const schemaName = careGroupInviteModel.schemaName;
@@ -70,19 +70,6 @@ export type InviteMailer = (email: InviteEmail, tx: Tx) => Promise<{ id: string 
 
 const newToken = () => randomBytes(32).toString("base64url");
 const expiryFromNow = () => new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-
-/** A group's name as its members see it (the group menu's rule). Unscoped: callers check access first. */
-export const groupDisplayName = async (groupId: string, tx?: Tx) => {
-  const recipient = await careRecipientModel.get({
-    ...system(tx),
-    filter: { groupId: { type: "eq", value: groupId } },
-  });
-  if (isError(recipient)) return recipient;
-  if (recipient) return recipient.displayName;
-  const group = await careGroupModel.getById(groupId, system(tx));
-  if (isError(group)) return group;
-  return group?.name ?? "a care group";
-};
 
 /** A user's display name, or null. Unscoped: only for names shown to someone entitled to them. */
 const nameOf = async (userId: string | null, tx?: Tx) => {
@@ -242,6 +229,64 @@ export const resend = (ctx: ServiceContext, id: string, opts: { mail?: InviteMai
     return { invite, token, queued };
   }, ctx);
 
+/**
+ * Make an invite link (owners and admins): a role of caretaker or viewer
+ * only, an expiry of 1–90 days and an optional maximum number of uses.
+ * Anyone with it may ask to join, and an owner or admin approves each
+ * request. Its token is returned now and kept sealed (INVITE_LINK_KEY), so
+ * `copyLink` can give it again while the link is active.
+ */
+export const createLink = (ctx: ServiceContext, data: { groupId: string } & LinkInviteOptions) =>
+  withTransaction(async (tx) => {
+    if (!linkRoleAllowed(data.role)) return newError({ code: "careGroupInviteService:linkRole" });
+    const mine = await actorRole(ctx, data.groupId, tx);
+    if (isError(mine)) return mine;
+    if (mine !== "owner" && mine !== "admin") return newError({ code: "careGroupInviteService:notAllowed" });
+
+    const id = randomUUID();
+    const token = newToken();
+    const sealed = sealLinkToken(token, id);
+    if (!sealed) return newError({ code: "careGroupInviteService:linkKeyMissing" });
+    const days = data.expiresInDays;
+    const invite = await careGroupInviteModel.create({
+      ...ctx,
+      tx,
+      data: {
+        id,
+        groupId: data.groupId,
+        kind: "link",
+        email: null,
+        role: data.role,
+        tokenHash: careGroupInviteModel.hashInviteToken(token),
+        tokenCiphertext: sealed,
+        expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
+        maxUses: data.maxUses ?? null,
+      },
+    });
+    if (isError(invite)) return invite;
+    if (!invite) return newError({ code: "careGroupInviteService:notFound" });
+    return { invite, token };
+  }, ctx);
+
+/**
+ * An active link's token again, for its group's owners and admins (to copy
+ * or share it). Expired, used-up and withdrawn links give nothing, and an
+ * email invite's token can never be read back: only its hash is kept.
+ */
+export const copyLink = async (ctx: ServiceContext, id: string) => {
+  // Read in the actor's scope: only the group's owners and admins see it.
+  const invite = await careGroupInviteModel.getById(id, ctx);
+  if (isError(invite)) return invite;
+  if (!invite) return newError({ code: "careGroupInviteService:notFound" });
+  if (invite.kind !== "link") return newError({ code: "careGroupInviteService:notLink" });
+  if (inviteState({ invite }) !== "usable") return newError({ code: "careGroupInviteService:linkInactive" });
+  const sealed = await careGroupInviteModel.getSealedToken(id);
+  if (isError(sealed)) return sealed;
+  const token = sealed ? openLinkToken(sealed, id) : null;
+  if (!token) return newError({ code: "careGroupInviteService:linkKeyMissing" });
+  return { invite, token };
+};
+
 /** Withdraw a pending invite. Its link stops working at once. */
 export const revoke = async (ctx: ServiceContext, id: string) => {
   const updated = await careGroupInviteModel.update({
@@ -279,14 +324,70 @@ export const preview = async (token: string) => {
   return { state, invite, groupName, inviterName };
 };
 
+/** What accepting an invite did: joined the group, or asked to (a link). */
+export type AcceptResult =
+  | { status: "joined"; groupId: string; role: GroupRoleName; queued: string[] }
+  | { status: "requested"; groupId: string; role: GroupRoleName; requestId: string; queued: string[] };
+
+const joined = (groupId: string, role: GroupRoleName): AcceptResult => ({
+  status: "joined",
+  groupId,
+  role,
+  queued: [],
+});
+
 /**
- * Accept an email invite as the signed-in user, who agreed to CONSENT_TEXT
- * (`consent`). Their email must be the invite's. In one transaction, as the
- * system: the membership with the invite's role, a consent row, the email
- * marked verified (accepting proves the address), and the invite accepted.
- * Accepting again returns the same result.
+ * Using a link: a member already is one; anyone else gets a pending join
+ * request (one per person: asking again returns it), which an owner or admin
+ * approves. Until then they see nothing of the group.
  */
-export const accept = (ctx: ServiceContext, { token, consent }: { token: string; consent: boolean }) =>
+const askWithLink = async (
+  invite: CareGroupInviteModel,
+  userId: string,
+  tx: Tx,
+  mail: JoinMailer | undefined,
+): Promise<AcceptResult | AppError> => {
+  const current = await careGroupMemberModel.getRole(invite.groupId, userId, { tx });
+  if (isError(current)) return current;
+  if (current) return joined(invite.groupId, current);
+  const state = inviteState({ invite });
+  if (state !== "usable") {
+    // A request already waiting is still waiting, even once the link has closed.
+    const asked = await joinRequestService.requestWithLink({ invite, userId }, tx, mail, {
+      existingOnly: true,
+    });
+    if (isError(asked)) return asked;
+    if (asked) return requested(asked.request);
+    return newError({ code: "careGroupInviteService:unusable", meta: { state } });
+  }
+  const asked = await joinRequestService.requestWithLink({ invite, userId }, tx, mail);
+  if (isError(asked)) return asked;
+  if (!asked) return newError({ code: "careGroupInviteService:notFound" });
+  return { ...requested(asked.request), queued: asked.queued };
+};
+
+const requested = (request: { id: string; groupId: string; role: GroupRoleName }): AcceptResult => ({
+  status: "requested",
+  groupId: request.groupId,
+  role: request.role,
+  requestId: request.id,
+  queued: [],
+});
+
+/**
+ * Accept an invite as the signed-in user, who agreed to CONSENT_TEXT
+ * (`consent`). For an email invite their email must be the invite's. In one
+ * transaction, as the system: the membership with the invite's role, a
+ * consent row, the email marked verified (accepting proves the address), and
+ * the invite accepted. Accepting again returns the same result. For a link,
+ * it asks to join instead (`askWithLink`), emailing owners and admins
+ * through `joinMail`.
+ */
+export const accept = (
+  ctx: ServiceContext,
+  { token, consent }: { token: string; consent: boolean },
+  opts: { joinMail?: JoinMailer } = {},
+) =>
   withTransaction(async (tx) => {
     const userId = ctx.authUser?.id;
     if (!userId || isSystemUser(ctx.authUser)) return newError({ code: "permissions:unauthenticated" });
@@ -295,7 +396,7 @@ export const accept = (ctx: ServiceContext, { token, consent }: { token: string;
     const invite = await careGroupInviteModel.getByToken(token, { tx, lock: true });
     if (isError(invite)) return invite;
     if (!invite) return newError({ code: "careGroupInviteService:notFound" });
-    if (invite.kind !== "email") return newError({ code: "careGroupInviteService:wrongKind" });
+    if (invite.kind === "link") return askWithLink(invite, userId, tx, opts.joinMail);
 
     const user = await userModel.getById(userId, system(tx));
     if (isError(user)) return user;
@@ -307,7 +408,7 @@ export const accept = (ctx: ServiceContext, { token, consent }: { token: string;
 
     // Already accepted by this user: the same answer again.
     if (invite.status === "accepted" && invite.acceptedBy === userId) {
-      return { groupId: invite.groupId, role: current ?? invite.role };
+      return joined(invite.groupId, current ?? invite.role);
     }
     const state = inviteState({ invite });
     if (state !== "usable") return newError({ code: "careGroupInviteService:unusable", meta: { state } });
@@ -350,7 +451,7 @@ export const accept = (ctx: ServiceContext, { token, consent }: { token: string;
     });
     if (isError(accepted)) return accepted;
 
-    return { groupId: invite.groupId, role: current ?? invite.role };
+    return joined(invite.groupId, current ?? invite.role);
   }, ctx);
 
 /**
@@ -376,14 +477,14 @@ export const decline = (token: string) =>
   });
 
 /**
- * For `signUpWithTicket`: the usable email invite behind `token`, or why it
- * can't create an account. Unscoped (the token is the entitlement).
+ * For `signUpWithTicket`: the usable invite behind `token` (an email invite,
+ * whose address the account must use, or a link), or why it can't create an
+ * account. Unscoped (the token is the entitlement).
  */
 export const ticketFor = async (token: string, tx?: Tx) => {
   const invite = await careGroupInviteModel.getByToken(token, { tx });
   if (isError(invite)) return invite;
-  if (!invite || invite.kind !== "email" || inviteState({ invite }) !== "usable" || !invite.email) {
-    return newError({ code: "ticket:invalid" });
-  }
-  return { ...invite, email: invite.email };
+  if (!invite || inviteState({ invite }) !== "usable") return newError({ code: "ticket:invalid" });
+  if (invite.kind === "email" && !invite.email) return newError({ code: "ticket:invalid" });
+  return invite;
 };

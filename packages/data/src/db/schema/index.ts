@@ -22,5 +22,8 @@ export * from "./auth";
 export * from "./notification";
 export * from "./inviteRules";
 export * from "./careGroupConsent";
+export * from "./careGroupJoinRequest";
+export * from "./accessCode";
+export * from "./newCareGroup";
 export * from "./timeZone";
 export * from "./medication";

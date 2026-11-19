@@ -2,7 +2,7 @@ import type { TimelineEntryKind } from "@caretook/data/schema";
 
 import { Link, useLocation } from "react-router";
 import { KIND_META } from "~/lib/entryDisplay";
-import { setKind } from "~/lib/timelineFilters";
+import { setAuthor, setKind } from "~/lib/timelineFilters";
 
 /** A round icon for an entry's kind. Decorative: the kind is also given as text. */
 export function KindIcon({
@@ -50,15 +50,48 @@ export function KindFilterLink({ kind, size = "md" }: { kind: TimelineEntryKind;
   );
 }
 
-/** The author's initials in a small circle, with the full name for screen readers and on hover. */
-export function AuthorInitials({ name, initials }: { name: string; initials: string }) {
+const AUTHOR_FOCUS =
+  "focus-visible:outline-primary relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2";
+
+/**
+ * An entry's author as a filter: a link that shows only that person's
+ * entries (`?author=`), named "Show only Alex Rivera's entries". Like the
+ * kind icon it sits above the row's open target (`relative z-10`), and goes
+ * where you already are when that author is already showing. With `initials`
+ * it's the small circle a row shows (the full name on hover); without, the
+ * name as text (a card's footer).
+ */
+export function AuthorFilterLink({
+  userId,
+  name,
+  initials,
+}: {
+  userId: string;
+  name: string;
+  initials?: string;
+}) {
+  const { search } = useLocation();
+  const link = {
+    to: { search: setAuthor(search, userId) },
+    replace: true,
+    preventScrollReset: true,
+    "aria-label": `Show only ${name}'s entries`,
+    "data-author": userId,
+  };
+  if (initials === undefined) {
+    return (
+      <Link {...link} className={`${AUTHOR_FOCUS} rounded-sm hover:underline`}>
+        {name}
+      </Link>
+    );
+  }
   return (
-    <span
+    <Link
+      {...link}
       title={name}
-      className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
+      className={`${AUTHOR_FOCUS} bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold hover:brightness-95`}
     >
       <span aria-hidden="true">{initials}</span>
-      <span className="sr-only">By {name}</span>
-    </span>
+    </Link>
   );
 }

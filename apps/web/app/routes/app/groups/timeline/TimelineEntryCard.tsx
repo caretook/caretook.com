@@ -1,6 +1,6 @@
 import type { EntryViewProps } from "./TimelineEntryRow";
 
-import { EntryActions, KindFilterLink } from "~/components/entry";
+import { AuthorFilterLink, EntryActions, KindFilterLink } from "~/components/entry";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { EntryBody } from "./EntryBody";
 import { actionsLabel } from "./entryLabels";
@@ -41,7 +41,7 @@ export function TimelineEntryCard({
         }
         footer={
           <p className="text-base-content/60 text-xs">
-            {authorName}
+            <AuthorFilterLink userId={entry.createdBy} name={authorName} />
             {elsewhere && ` · ${elsewhere}`}
           </p>
         }

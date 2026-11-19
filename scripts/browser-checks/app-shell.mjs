@@ -664,11 +664,11 @@ try {
       await M.waitFor(item("Group settings"), 5000);
       const menuEnd = await M.evaluate(
         `(() => { const all = [...${MENU}.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [role="separator"]')];
-          return all.slice(-2).map((el) => el.getAttribute("role") + ":" + el.textContent.trim()).join(" > "); })()`,
+          return all.slice(-3).map((el) => el.getAttribute("role") + ":" + el.textContent.trim()).join(" > "); })()`,
       );
       check(
-        "group menu: ends with a separator, then Group settings",
-        menuEnd === "separator: > menuitem:Group settings",
+        "group menu: ends with a separator, then Group settings and New care group",
+        menuEnd === "separator: > menuitem:Group settings > menuitem:New care group",
         menuEnd,
       );
       await M.press(item("Group settings"));
@@ -1015,8 +1015,9 @@ try {
         heading: ${MEMBERS}.querySelector("h1").textContent.trim(),
         avatars: [...${MEMBERS}.querySelectorAll("li[data-member] > div > span[aria-hidden]")].map((a) => a.textContent.trim()).join(","),
         options: ${options("Dev Viewer")},
-        labels: [...${MEMBERS}.querySelectorAll("li select, li button")].map((el) => el.getAttribute("aria-label")).join("|"),
-        text: ${MEMBERS}.textContent,
+        labels: [...${MEMBERS}.querySelectorAll("li[data-member] select, li[data-member] button")].map((el) => el.getAttribute("aria-label")).join("|"),
+        // The members themselves (invites and requests to join show addresses on purpose).
+        text: [...${MEMBERS}.querySelectorAll("li[data-member]")].map((li) => li.textContent).join(" "),
       })`);
       check(
         "owner: Members lists everyone by role, with a role menu each, Leave for themselves and Remove for the others",

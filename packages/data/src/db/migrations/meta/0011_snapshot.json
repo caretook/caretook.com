@@ -1,5 +1,5 @@
 {
-  "id": "64405118-7acd-4224-8a4f-ae52b732cbca",
+  "id": "d2647e2c-a197-4854-b172-b108533fecf8",
   "prevId": "b0e84a7d-ca24-40ac-a791-913f6da3d4a0",
   "version": "7",
   "dialect": "postgresql",
@@ -335,12 +335,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "time_zone": {
-          "name": "time_zone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp(3) with time zone",
@@ -447,6 +441,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "token_ciphertext": {
+          "name": "token_ciphertext",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "status": {
           "name": "status",
@@ -635,6 +635,10 @@
           "name": "care_group_invite_kind_check",
           "value": "\"care_group_invite\".\"kind\" IN ('email', 'link')"
         },
+        "care_group_invite_link_role_check": {
+          "name": "care_group_invite_link_role_check",
+          "value": "\"care_group_invite\".\"kind\" <> 'link' OR \"care_group_invite\".\"role\" IN ('caretaker', 'viewer')"
+        },
         "care_group_invite_email_check": {
           "name": "care_group_invite_email_check",
           "value": "\"care_group_invite\".\"kind\" <> 'email' OR (\"care_group_invite\".\"email\" IS NOT NULL AND \"care_group_invite\".\"consent_attested_at\" IS NOT NULL)"
@@ -808,7 +812,7 @@
       "checkConstraints": {
         "timeline_entry_kind_check": {
           "name": "timeline_entry_kind_check",
-          "value": "\"timeline_entry\".\"kind\" IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange')"
+          "value": "\"timeline_entry\".\"kind\" IN ('note', 'symptom', 'event', 'vital')"
         }
       },
       "isRLSEnabled": false
@@ -844,12 +848,6 @@
         },
         "provider_id": {
           "name": "provider_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "medication_id": {
-          "name": "medication_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -932,21 +930,6 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "note_document_medication_fk": {
-          "name": "note_document_medication_fk",
-          "tableFrom": "note_document",
-          "tableTo": "medication",
-          "columnsFrom": [
-            "group_id",
-            "medication_id"
-          ],
-          "columnsTo": [
-            "group_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -964,11 +947,11 @@
       "checkConstraints": {
         "note_document_subject_check": {
           "name": "note_document_subject_check",
-          "value": "\"note_document\".\"subject\" IN ('entry', 'provider', 'medication')"
+          "value": "\"note_document\".\"subject\" IN ('entry', 'provider')"
         },
         "note_document_owner_check": {
           "name": "note_document_owner_check",
-          "value": "(\"note_document\".\"subject\" = 'entry' AND \"note_document\".\"entry_id\" = \"note_document\".\"id\" AND \"note_document\".\"provider_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'provider' AND \"note_document\".\"provider_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'medication' AND \"note_document\".\"medication_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"provider_id\" IS NULL)"
+          "value": "(\"note_document\".\"subject\" = 'entry' AND \"note_document\".\"entry_id\" = \"note_document\".\"id\" AND \"note_document\".\"provider_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'provider' AND \"note_document\".\"provider_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL)"
         }
       },
       "isRLSEnabled": false
@@ -2217,8 +2200,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.medication": {
-      "name": "medication",
+    "public.care_group_join_request": {
+      "name": "care_group_join_request",
       "schema": "",
       "columns": {
         "id": {
@@ -2234,51 +2217,21 @@
           "primaryKey": false,
           "notNull": true
         },
-        "recipient_id": {
-          "name": "recipient_id",
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "strength": {
-          "name": "strength",
-          "type": "text",
+        "invite_id": {
+          "name": "invite_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "form": {
-          "name": "form",
+        "role": {
+          "name": "role",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dose": {
-          "name": "dose",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "directions": {
-          "name": "directions",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "schedule": {
-          "name": "schedule",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
@@ -2287,70 +2240,16 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'current'"
+          "default": "'pending'"
         },
-        "started_on": {
-          "name": "started_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "stopped_on": {
-          "name": "stopped_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "stop_reason": {
-          "name": "stop_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "stop_note": {
-          "name": "stop_note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "prescriber_id": {
-          "name": "prescriber_id",
+        "decided_by": {
+          "name": "decided_by",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "pharmacy_id": {
-          "name": "pharmacy_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_filled_on": {
-          "name": "last_filled_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "quantity": {
-          "name": "quantity",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "refills_left": {
-          "name": "refills_left",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rx_number": {
-          "name": "rx_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
+        "decided_at": {
+          "name": "decided_at",
           "type": "timestamp(3) with time zone",
           "primaryKey": false,
           "notNull": false
@@ -2383,8 +2282,8 @@
         }
       },
       "indexes": {
-        "medication_group_name_idx": {
-          "name": "medication_group_name_idx",
+        "care_group_join_request_pending_unique": {
+          "name": "care_group_join_request_pending_unique",
           "columns": [
             {
               "expression": "group_id",
@@ -2393,7 +2292,23 @@
               "nulls": "last"
             },
             {
-              "expression": "name",
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"care_group_join_request\".\"status\" = 'pending'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "care_group_join_request_user_idx": {
+          "name": "care_group_join_request_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2406,9 +2321,9 @@
         }
       },
       "foreignKeys": {
-        "medication_group_id_care_group_id_fk": {
-          "name": "medication_group_id_care_group_id_fk",
-          "tableFrom": "medication",
+        "care_group_join_request_group_id_care_group_id_fk": {
+          "name": "care_group_join_request_group_id_care_group_id_fk",
+          "tableFrom": "care_group_join_request",
           "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
@@ -2419,76 +2334,57 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "medication_recipient_fk": {
-          "name": "medication_recipient_fk",
-          "tableFrom": "medication",
-          "tableTo": "care_recipient",
+        "care_group_join_request_user_id_user_id_fk": {
+          "name": "care_group_join_request_user_id_user_id_fk",
+          "tableFrom": "care_group_join_request",
+          "tableTo": "user",
           "columnsFrom": [
-            "group_id",
-            "recipient_id"
+            "user_id"
           ],
           "columnsTo": [
-            "group_id",
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "medication_prescriber_fk": {
-          "name": "medication_prescriber_fk",
-          "tableFrom": "medication",
-          "tableTo": "provider",
+        "care_group_join_request_invite_id_care_group_invite_id_fk": {
+          "name": "care_group_join_request_invite_id_care_group_invite_id_fk",
+          "tableFrom": "care_group_join_request",
+          "tableTo": "care_group_invite",
           "columnsFrom": [
-            "group_id",
-            "prescriber_id"
+            "invite_id"
           ],
           "columnsTo": [
-            "group_id",
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "medication_pharmacy_fk": {
-          "name": "medication_pharmacy_fk",
-          "tableFrom": "medication",
-          "tableTo": "provider",
+        "care_group_join_request_decided_by_user_id_fk": {
+          "name": "care_group_join_request_decided_by_user_id_fk",
+          "tableFrom": "care_group_join_request",
+          "tableTo": "user",
           "columnsFrom": [
-            "group_id",
-            "pharmacy_id"
+            "decided_by"
           ],
           "columnsTo": [
-            "group_id",
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "medication_group_id_id_unique": {
-          "name": "medication_group_id_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "group_id",
-            "id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "medication_form_check": {
-          "name": "medication_form_check",
-          "value": "\"medication\".\"form\" IN ('tablet', 'capsule', 'liquid', 'injection', 'patch', 'inhaler', 'drops', 'cream', 'other')"
+        "care_group_join_request_role_check": {
+          "name": "care_group_join_request_role_check",
+          "value": "\"care_group_join_request\".\"role\" IN ('caretaker', 'viewer')"
         },
-        "medication_status_check": {
-          "name": "medication_status_check",
-          "value": "\"medication\".\"status\" IN ('current', 'completed', 'discontinued')"
-        },
-        "medication_stop_reason_check": {
-          "name": "medication_stop_reason_check",
-          "value": "\"medication\".\"stop_reason\" IN ('sideEffects', 'ineffective', 'prescriberStopped', 'other')"
+        "care_group_join_request_status_check": {
+          "name": "care_group_join_request_status_check",
+          "value": "\"care_group_join_request\".\"status\" IN ('pending', 'approved', 'declined', 'withdrawn')"
         }
       },
       "isRLSEnabled": false

@@ -8,7 +8,7 @@ import type {
 } from "@caretook/data/schema";
 import type { ActionResult } from "../api";
 import type { SyncDb } from "./index";
-import type { LocalQuery } from "./timeline";
+import type { EntryFilters, LocalQuery } from "./timeline";
 
 import {
   canLinkProviders,
@@ -26,12 +26,12 @@ import {
 import { eq } from "drizzle-orm";
 import { noteDocuments, providers, timelineEntryProviders } from "./schema";
 import {
+  entryWindow,
   forbidden,
   fromLocalTimestamp,
   groupFor,
   nowTimestamp,
   readRows,
-  SHOWN_KINDS_SQL,
   WRITER_ROLES,
 } from "./timeline";
 
@@ -500,17 +500,17 @@ export const createProviderDocument = async (db: SyncDb, providerId: string): Pr
 /**
  * The providers linked to the timeline's loaded entries, in link order, for
  * one live query beside the entries (never one per row). The subquery is
- * `entriesQuery`'s window (same group, kind and limit), so paging and the kind
- * filter change this query with it. Deleted providers are included (greyed).
+ * `entriesQuery`'s window (`entryWindow`: the same group, filters and limit),
+ * so paging and the filters change this query with it. Deleted providers are
+ * included (greyed).
  */
-export const timelineLinksQuery = (groupId: string, kind: string | null, limit: number): LocalQuery => ({
-  sql: `SELECT l.entry_id, l.provider_id, p.name, p.deleted_at
-        FROM timeline_entry_provider l JOIN provider p ON p.id = l.provider_id
-        WHERE l.entry_id IN (
-          SELECT id FROM timeline_entry
-          WHERE group_id = ? AND deleted_at IS NULL AND ${kind ? "kind = ?" : SHOWN_KINDS_SQL}
-          ORDER BY occurred_at DESC, id DESC LIMIT ?
-        )
-        ORDER BY l.entry_id, l.created_at, l.id`,
-  params: kind ? [groupId, kind, limit + 1] : [groupId, limit + 1],
-});
+export const timelineLinksQuery = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
+  const window = entryWindow(groupId, filters, limit);
+  return {
+    sql: `SELECT l.entry_id, l.provider_id, p.name, p.deleted_at
+          FROM timeline_entry_provider l JOIN provider p ON p.id = l.provider_id
+          WHERE l.entry_id IN (SELECT id ${window.sql})
+          ORDER BY l.entry_id, l.created_at, l.id`,
+    params: window.params,
+  };
+};
