@@ -85,7 +85,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-55 | feature | triaged | tasks |  | Todos list with assignment to group members, due dates, and completion status. |
-| B-56 | feature | inbox |  |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
+| B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-57 | plan | inbox |  |  | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
 | B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-59 | chore | inbox |  |  | Clean up/truncate this file and the backlog periodically. |
@@ -702,8 +702,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-56 · feature · ability to upload photos of patient drivers license, insurance card, DNR, etc.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: documents
 - owner:
 - commit:
 
