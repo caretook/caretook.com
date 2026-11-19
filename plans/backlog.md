@@ -120,7 +120,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-77 | plan | ready | encryption | plan/encryption | Data security and encryption review. |
 | B-78 | change | ready | quick-fixes | prd/quick-fixes | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
 | B-79 | bug | in-progress | quick-fixes | prd/quick-fixes | Device keeps its synced data after the session ends; offline sign-in never expires |
-| B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
+| B-80 | feature | in-progress | quick-fixes | prd/quick-fixes | Devices page in account settings: see sessions, sign out one or all others |
 | B-81 | change | ready | quick-fixes | prd/quick-fixes | Security headers and a CSP for every web response |
 | B-82 | change | ready | quick-fixes | prd/quick-fixes | Server logs carry error codes and ids only, never values or meta |
 | B-83 | change | triaged | quick-fixes |  | Co-members read only id, name and image of each other's user row |
@@ -1057,9 +1057,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-80 · feature · Devices page in account settings: see sessions, sign out one or all others
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-3 (launch): Better Auth's listSessions, revokeSession and revokeOtherSessions (built in, no new dependency); a new ACCOUNT_SETTINGS subpage. Pairs with the S-2 wipe.
