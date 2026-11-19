@@ -24,6 +24,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - birthdate, contact information, address, and insurance information should optionally be added to the patient profile. (B-45)
 - optional phone number, address, etc on group members that can be published to the group for contact. Flags for "emergency contacts" and "primary contact" for display later. (B-46)
 - improve timeline page display for vitals and upcoming banner. They should be limited. We should replace the word "latest" with the vitals icon and match the style of the upcoming header. Width should be limited on very large screens. larger than the timeline column, but not too wide. (B-78)
+- need an upcoming medication banner on the timeline page and a way to quickly add doses to the timeline from it (or some other simplification). This needs to wait on medication groups. (B-86)
+- PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the user wants to prompt for landing or just work through everything and which slices to land automatically. Add command to spin up new planning session. (B-88)
+- Seed data with multiple care groups and user mix for improved manual testing. (B-90)
 
 ## Feature requests
 
@@ -45,6 +48,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - ability to upload photos of patient drivers license, insurance card, DNR, etc. (B-56)
 - medications need to keep a history of past dose changes, frequency changes, etc. on each medication entry. (B-75)
 - medication groups for doses. Often the same medication is taken at different times of the day every day. We need to be able to group doses together so that they can be taken at the same time as part of the schedule and allow for setting status of each medication in the group on dose logging in the timeline. (B-76)
+- PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead. (B-89)
+- Need an Admin panel for caretook global administrators to manage users, care groups, and settings. (B-91)
 
 ## Big plans
 
@@ -55,6 +60,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Discuss options for end to end encryption of data in transit and at rest where owner of the data is the only one who can decrypt it and share decryption keys with others. (B-57)
 - Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions for provider appointments. (B-58)
 - Data security and encryption review. (B-77)
+- "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to and view the timeline without having to learn the full interface. This is a pre-launch feature once other features are in place. (B-87)
 
 ## Questions
 
