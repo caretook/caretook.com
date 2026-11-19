@@ -138,7 +138,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-95 | chore | ready | quick-fixes | prd/quick-fixes | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
 | B-96 | change | triaged | quick-fixes |  | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
 | B-97 | change | triaged | quick-fixes |  | Vitals filter on timeline should bring up a sub-filter for vital type. |
-| B-98 | change | inbox |  |  | Hide add to timeline buttons behind a + icon in the timeline header. |
+| B-98 | change | triaged | quick-fixes |  | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-99 | change | inbox |  |  | Don't display recent vitals in the timeline header in mobile, |
 | B-100 | change | inbox |  |  | Add "recent vita averages" to the profile page. |
 | B-101 | change | inbox |  |  | Hide add to timeline buttons behind a + icon in the timeline header. |
@@ -1238,8 +1238,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-98 · change · Hide add to timeline buttons behind a + icon in the timeline header.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
 
