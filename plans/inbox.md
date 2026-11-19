@@ -36,7 +36,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Don't display recent vitals in the timeline header in mobile, (B-102)
 - Add "recent vital averages" to the profile page. (B-103)
 - Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header. (B-105)
-- Browser testing without a timeout keeps causing hung processes. We need to always have a sane timeout for browser tests. (B-106)
+- Browser testing without a timeout keeps causing hung processes. We need to always have a sane timeout for browser tests. (B-108)
 
 ## Feature requests
 
