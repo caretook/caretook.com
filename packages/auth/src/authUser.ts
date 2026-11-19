@@ -15,7 +15,7 @@ export const getAuthUser = async (headers: Headers): Promise<AuthUser | null | A
   const session = await getAuth().api.getSession({ headers });
   if (!session) return null;
 
-  const user = await userModel.getById(session.user.id, { authUser: SYSTEM_USER });
+  const user = await userModel.getWholeById(session.user.id, { authUser: SYSTEM_USER });
   if (isError(user)) return user;
   if (!user) return null;
 

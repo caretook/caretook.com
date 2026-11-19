@@ -110,7 +110,7 @@ describe("accounts", () => {
       .api.updateUser({ headers, body: { name: "Renamed", role: "admin" } as never })
       .catch(() => undefined);
 
-    const user = ok(await userService.getById(system, login.user.id));
+    const user = ok(await userService.getWholeById(system, login.user.id));
     expect(user?.role).toBe("member");
   });
 

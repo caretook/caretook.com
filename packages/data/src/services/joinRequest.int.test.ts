@@ -152,7 +152,12 @@ describe("asking to join with a link", () => {
     expect(sent).toHaveLength(1);
     expect(sent[0]?.kind).toBe("joinRequested");
     expect(sent[0]?.to.map((t) => t.userId).sort()).toEqual([s.owner.user.id, s.admin.user.id].sort());
-    expect(sent[0]).toMatchObject({ groupName: "Pat Example", requester: { name: "link-joiner" } });
+    // Managers' addresses, read as the system (co-members can't read them).
+    expect(sent[0]?.to.map((t) => t.email).sort()).toEqual([s.owner.user.email, s.admin.user.email].sort());
+    expect(sent[0]).toMatchObject({
+      groupName: "Pat Example",
+      requester: { name: "link-joiner", email: joiner.user.email },
+    });
 
     // Asking again returns the same request: no second use, consent or email.
     const again = ok(await ask(joiner, made.token, mail));
@@ -247,8 +252,8 @@ describe("answering a request", () => {
     );
     // The link's maker is who invited them.
     expect(member?.invitedBy).toBe(s.owner.user.id);
-    expect(sent.map((n) => [n.kind, n.to.map((t) => t.userId)])).toEqual([
-      ["joinApproved", [s.joiner.user.id]],
+    expect(sent.map((n) => [n.kind, n.to.map((t) => [t.userId, t.email])])).toEqual([
+      ["joinApproved", [[s.joiner.user.id, s.joiner.user.email]]],
     ]);
 
     // Answered once only.
