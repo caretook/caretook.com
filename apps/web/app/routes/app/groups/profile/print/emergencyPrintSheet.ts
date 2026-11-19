@@ -8,6 +8,7 @@ import type {
   ProviderType,
 } from "@caretook/data/schema";
 import type { EmergencyMemberRow } from "../../../../../lib/emergencyList";
+import type { SchedulePass } from "../../../../../lib/medicationDisplay";
 import type { BasicLine } from "../../../../../lib/recipientDisplay";
 
 import { emergencyEntries } from "../../../../../lib/emergencyList";
@@ -230,6 +231,7 @@ export const emergencySheet = ({
   medications,
   providers,
   allergies,
+  passes = [],
   now,
   locale,
 }: {
@@ -239,6 +241,8 @@ export const emergencySheet = ({
   medications: readonly EmergencyMedicationInput[];
   providers: readonly EmergencyProviderInput[];
   allergies?: readonly EmergencyAllergyInput[] | null;
+  /** The group's passes, deleted ones too: schedules read by pass name, as the medication screens do. */
+  passes?: readonly SchedulePass[];
   now: Date;
   locale?: string;
 }): EmergencySheet => {
@@ -280,7 +284,7 @@ export const emergencySheet = ({
   const meds = [...current].sort(byName).map((m) => ({
     id: m.id,
     title: medicationTitle(m),
-    howTaken: [blank(m.dose), scheduleText(m.schedule)].filter(Boolean).join(" · "),
+    howTaken: [blank(m.dose), scheduleText(m.schedule, passes, m.dose)].filter(Boolean).join(" · "),
     directions: blank(m.directions),
   }));
   if (meds.length) sections.push({ id: "medications", title: "Current medications", medications: meds });

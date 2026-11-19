@@ -1322,7 +1322,8 @@ try {
       check(
         "current medications only, with dose and schedule; the primary providers and the pharmacy",
         JSON.stringify(sheet?.medications) === JSON.stringify(SHEET_MEDICATIONS) &&
-          /8:00 and 20:00/.test(sheet.metformin ?? "") &&
+          // Its schedule names the seeded passes, as the medication screens do.
+          /1 tablet · Morning and Evening/.test(sheet.metformin ?? "") &&
           JSON.stringify(sheet.team) ===
             JSON.stringify(["Dr. Elena Alvarez", "Westside Family Medicine", "Cornerstone Pharmacy"]),
         JSON.stringify(
