@@ -6,21 +6,21 @@
 
 **Landing mode: run it through** (the user, 2026-11-19): start every ready slice, land each green wave without asking, clean up, ask only real questions.
 
-| Slice | Wave | State               | Merge into `prd/orchestration` (slice commits) |
-| ----- | ---- | ------------------- | ---------------------------------------------- |
-| 1     | 1    | not started (ready) |                                                |
-| 2     | 1    | not started (ready) |                                                |
-| 3     | 1    | not started (ready) |                                                |
-| 4     | 2    | blocked by 2        |                                                |
-| 5     | 2    | blocked by 1        |                                                |
-| 6     | 2    | not started (ready) |                                                |
-| 7     | 3    | blocked by 4 and 6  |                                                |
-| 8     | 3    | blocked by 4 and 6  |                                                |
-| 9     | 4    | blocked by 7 and 8  |                                                |
+| Slice | Wave | State                | Merge into `prd/orchestration` (slice commits) |
+| ----- | ---- | -------------------- | ---------------------------------------------- |
+| 1     | 1    | running (2026-11-19) |                                                |
+| 2     | 1    | running (2026-11-19) |                                                |
+| 3     | 1    | running (2026-11-19) |                                                |
+| 4     | 2    | blocked by 2         |                                                |
+| 5     | 2    | blocked by 1         |                                                |
+| 6     | 2    | running (2026-11-19) |                                                |
+| 7     | 3    | blocked by 4 and 6   |                                                |
+| 8     | 3    | blocked by 4 and 6   |                                                |
+| 9     | 4    | blocked by 7 and 8   |                                                |
 
 Backlog: all seven items are `triaged`. Claim B-109 with slice 1, B-108 with slice 2, B-111 and B-59 with slice 3, B-89 with slice 5, B-107 with slice 6, B-110 with slice 7. Mark B-109 `done` after slice 1, B-108 after 2, B-111 and B-59 after 3, B-89 after 5, B-107 and B-110 after 9.
 
-Starting wave 2 early is fine: slice 6 is ready now and needs nothing from wave 1.
+Slices 1, 2, 3 and 6 started 2026-11-19 in stackless worktrees (`new.sh --no-stack`; slice 5 isn't built yet), so loops run `typecheck`, `lint`, `format:check` and `test:unit` instead of `pnpm check`. B-109, B-108, B-111, B-59 and B-107 are claimed by `prd/orchestration`.
 
 ## Architectural decisions
 
