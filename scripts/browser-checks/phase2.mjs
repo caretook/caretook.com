@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import { launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
+import { startProxy } from "./proxy.mjs";
 // The timeline checks, against the local (PowerSync) data: layout, filters,
 // the sheet, the view toggle, and row taps (slice 5) in both views for a
 // writer (member@) and a viewer (viewer@). It picks rows by kind, not by
@@ -551,10 +552,270 @@ async function withLines(p) {
   }
 }
 
+/**
+ * The author filter (timeline-polish slice 4). The writer, in rows, gets the
+ * whole flow: a row's initials, then a kind on top, each clear, the re-tap,
+ * the page reset, the "with …" line, the empty state and the keyboard. The
+ * writer's cards, the viewer's rows and an offline device get one case each
+ * (the control is the same `AuthorFilterLink` everywhere). The query's SQL
+ * and the empty state's words are unit tests (lib/sync/timeline.test.ts,
+ * entryLabels.test.ts). Each page starts and ends on the unfiltered timeline,
+ * in rows. `users` is [who, page][]; `offlineDevice` opens a signed-in page
+ * behind a proxy, as { page, proxy }.
+ */
+async function authorFilters(users, offlineDevice) {
+  const AUTHOR = "Dev Caretaker"; // caretaker@: most of the seeds, of every kind.
+  const NO_SYMPTOMS = "Dev Member"; // member@: notes, events and vitals only.
+  const chips = `[...document.querySelectorAll('nav[aria-label="Show entries"] a')]`;
+  const authorChip = `document.querySelector('nav[aria-label="Show entries"] a[aria-label^="By "]')`;
+  const rowKinds = `[...new Set([...document.querySelectorAll("ol > li")].map((li) => li.querySelector(".sr-only")?.textContent))].join(",")`;
+  /** The first entry's author control for `name`, by its accessible name. */
+  const authorLink = (name) =>
+    `[...document.querySelectorAll("ol > li a[data-author]")].find((a) => a.getAttribute("aria-label") === ${JSON.stringify(`Show only ${name}'s entries`)})`;
+  const symptomIcon = `${rowOf("Symptom")}.querySelector('a[aria-label^="Show only"]:not([data-author])')`;
+  const state = async (p) =>
+    JSON.parse(
+      await p.evaluate(`JSON.stringify({
+        search: location.search, rows: ${rows}, kinds: ${rowKinds}, history: history.length,
+        authors: [...new Set([...document.querySelectorAll("ol > li a[data-author]")].map((a) => a.dataset.author))].join(","),
+        current: ${chips}.filter((a) => a.getAttribute("aria-current") === "true").map((a) => a.getAttribute("aria-label") ?? a.textContent.trim()).join(","),
+        chipAvatar: ${authorChip}?.querySelector("[aria-hidden]")?.textContent.trim() ?? null,
+        chipText: ${authorChip}?.textContent.trim() ?? null,
+        empty: document.querySelector("[data-empty]")?.textContent.trim() ?? null,
+        vitals: document.querySelector('section[aria-labelledby="latest-vitals"] ul')?.textContent ?? null,
+      })`),
+    );
+  const settle = (p, search) =>
+    p
+      .waitFor(
+        `location.search === ${JSON.stringify(search)} && (${rows} > 0 || document.querySelector("[data-empty]"))`,
+        8000,
+        { quiet: true },
+      )
+      .then(() => sleep(300))
+      .catch(() => undefined);
+  /** Back to no filters: the author chip, then "All". */
+  const clear = async (p) => {
+    if (await p.evaluate(`!!${authorChip}`)) await p.press(authorChip);
+    await p.waitFor(`!${authorChip}`, 8000);
+    await p.press(`${chips}[0]`);
+    await p.waitFor(`location.search === "" && ${rowKinds}.split(",").length > 1`, 8000);
+  };
+  /** Tap `name`'s author control on the first entry that has one; returns their id and the state after. */
+  const filterBy = async (p, name) => {
+    const id = await p.evaluate(`${authorLink(name)}?.dataset.author ?? ""`);
+    const kind = new URLSearchParams(await p.evaluate("location.search")).get("kind");
+    await tap(p, authorLink(name));
+    await settle(p, kind ? `?kind=${kind}&author=${id}` : `?author=${id}`);
+    return { id, after: await state(p) };
+  };
+  /** One tap on an author's control shows only their entries, with their chip. */
+  const oneTap = async (p, at) => {
+    const names = await p.evaluate(
+      `[...document.querySelectorAll("ol > li")].map((li) => li.querySelector("a[data-author]")?.getAttribute("aria-label") ?? "none")`,
+    );
+    check(
+      `${at}: every entry's author is a "Show only <name>'s entries" link`,
+      names.length > 0 && names.every((n) => /^Show only .+'s entries$/.test(n)),
+      [...new Set(names)].join(", "),
+    );
+    const { id, after } = await filterBy(p, AUTHOR);
+    check(
+      `${at}: tapping ${AUTHOR}'s control shows only their entries, with their chip`,
+      id !== "" &&
+        after.search === `?author=${id}` &&
+        after.authors === id &&
+        after.rows > 0 &&
+        after.current === `All,By ${AUTHOR}: clear this filter` &&
+        after.chipAvatar === "DC" &&
+        after.chipText.includes(`By ${AUTHOR}`),
+      `${after.search}, ${after.rows} rows, current "${after.current}", avatar "${after.chipAvatar}"`,
+    );
+    return id;
+  };
+
+  for (const [who, p] of users) {
+    const at = `${who}, rows`;
+    await step(`${at}: author, then kind, and each clear`, { smoke: who === "writer" }, async () => {
+      const id = await oneTap(p, at);
+      if (who !== "writer") return clear(p);
+      await p.screenshot("phase2-author-chip");
+
+      // A kind on top: both in the URL, both chips on.
+      await tap(p, symptomIcon);
+      await settle(p, `?kind=symptom&author=${id}`);
+      const both = await state(p);
+      check(
+        `${at}: then a symptom's icon shows only that person's symptoms`,
+        both.search === `?kind=symptom&author=${id}` &&
+          both.kinds === "Symptom: " &&
+          both.authors === id &&
+          both.current === `Symptoms,By ${AUTHOR}: clear this filter`,
+        `${both.search}, ${both.rows} rows, current "${both.current}"`,
+      );
+
+      // The author chip clears the author and keeps the kind; "All" clears the kind and keeps the author.
+      await p.press(authorChip);
+      await settle(p, "?kind=symptom");
+      const kindOnly = await state(p);
+      check(
+        `${at}: the author chip clears the author and keeps the kind`,
+        kindOnly.search === "?kind=symptom" && kindOnly.current === "Symptoms" && kindOnly.chipText === null,
+        `${kindOnly.search}, current "${kindOnly.current}"`,
+      );
+      await filterBy(p, AUTHOR);
+      await p.press(`${chips}[0]`);
+      await settle(p, `?author=${id}`);
+      const authorOnly = await state(p);
+      check(
+        `${at}: All clears the kind and keeps the author`,
+        authorOnly.search === `?author=${id}` &&
+          authorOnly.current === `All,By ${AUTHOR}: clear this filter` &&
+          authorOnly.kinds.split(",").length > 1,
+        `${authorOnly.search}, current "${authorOnly.current}"`,
+      );
+      await clear(p);
+    });
+    if (who !== "writer") continue;
+
+    await step(`${at}: the re-tap, the page reset, vitals and the "with …" line`, async () => {
+      // "Show older", then a filter: one page again, from the newest.
+      const before = await state(p);
+      await p.press(button("Show older entries"));
+      await p.waitFor(`${rows} === 60`, 5000).catch(() => undefined);
+      const { id, after } = await filterBy(p, AUTHOR);
+      check(
+        `${at}: after "Show older", a filter starts again with one page`,
+        after.rows === 30 && (await p.evaluate(`!!${button("Show older entries")}`)),
+        `${after.rows} rows`,
+      );
+      check(
+        `${at}: latest vitals ignores the author filter`,
+        !!after.vitals && after.vitals === before.vitals,
+      );
+
+      // The same author again: nothing changes, and no history entry is added.
+      await tap(p, authorLink(AUTHOR));
+      await sleep(600);
+      const again = await state(p);
+      check(
+        `${at}: tapping the same author again changes nothing`,
+        again.search === `?author=${id}` && again.rows === after.rows && again.history === after.history,
+        `${again.search}, ${again.rows} rows`,
+      );
+
+      // The links query follows the filters: the caretaker's event still has its providers.
+      await p.press(`${chips}.find((a) => a.textContent.trim() === "Events")`);
+      await settle(p, `?kind=event&author=${id}`);
+      const line = await withLineOf(p, "Primary care visit: Dr. Alvarez");
+      check(
+        `${at}: with both filters on, an event's "with …" line still shows`,
+        line?.names.length === 2 && line.more === "+1",
+        JSON.stringify(line),
+      );
+      await clear(p);
+    });
+
+    await step(`${at}: a filter with no matches says so`, async () => {
+      // member@ wrote events but no symptoms: their control on an event, then the Symptoms chip.
+      await p.press(`${chips}.find((a) => a.textContent.trim() === "Events")`);
+      await settle(p, "?kind=event");
+      const { id } = await filterBy(p, NO_SYMPTOMS);
+      await p.press(`${chips}.find((a) => a.textContent.trim() === "Symptoms")`);
+      await settle(p, `?kind=symptom&author=${id}`);
+      const none = await state(p);
+      check(
+        `${at}: no matches names the filters, and the chips stay`,
+        none.rows === 0 &&
+          none.empty === `No symptoms by ${NO_SYMPTOMS} yet.` &&
+          none.current === `Symptoms,By ${NO_SYMPTOMS}: clear this filter`,
+        `"${none.empty}", current "${none.current}"`,
+      );
+      await p.screenshot("phase2-author-empty");
+      await clear(p);
+    });
+
+    await step(`${at}: the author control by keyboard`, async () => {
+      // Tab from the row's kind icon reaches its author control (past "More", if the text is long); Enter filters.
+      const row = `${authorLink(AUTHOR)}.closest("li")`;
+      const id = await p.evaluate(`${authorLink(AUTHOR)}.dataset.author`);
+      await p.evaluate(`${row}.querySelector('a[aria-label^="Show only"]:not([data-author])').focus()`);
+      let focused = "";
+      for (let i = 0; i < 3 && !focused.startsWith("Show only Dev"); i++) {
+        await key(p, "Tab", "Tab", 9);
+        await sleep(150);
+        focused = await p.evaluate(`document.activeElement?.getAttribute("aria-label") ?? ""`);
+      }
+      check(
+        `${at}: Tab reaches the author control, named "Show only ${AUTHOR}'s entries"`,
+        focused === `Show only ${AUTHOR}'s entries`,
+        focused,
+      );
+      await p.send("Input.dispatchKeyEvent", {
+        type: "keyDown",
+        key: "Enter",
+        code: "Enter",
+        windowsVirtualKeyCode: 13,
+        nativeVirtualKeyCode: 13,
+        text: "\r",
+      });
+      await p.send("Input.dispatchKeyEvent", {
+        type: "keyUp",
+        key: "Enter",
+        code: "Enter",
+        windowsVirtualKeyCode: 13,
+      });
+      await settle(p, `?author=${id}`);
+      const entered = await state(p);
+      check(
+        `${at}: Enter on it shows only their entries`,
+        entered.search === `?author=${id}` && entered.authors === id,
+        entered.search,
+      );
+      await clear(p);
+    });
+
+    await step("writer, cards: the author's name", async () => {
+      await setView(p, "Cards");
+      const text = await p.evaluate(`${authorLink(AUTHOR)}?.textContent.trim() ?? ""`);
+      check("writer, cards: the author's name is the control", text === AUTHOR, text);
+      await oneTap(p, "writer, cards");
+      await p.screenshot("phase2-author-cards");
+      await clear(p);
+      await setView(p, "Rows");
+      await sleep(1500);
+    });
+  }
+
+  await step("offline: both filters", async () => {
+    const { page: o, proxy } = await offlineDevice();
+    try {
+      proxy.setOnline(false);
+      await sleep(1000);
+      const { id } = await filterBy(o, AUTHOR);
+      await tap(o, symptomIcon);
+      await settle(o, `?kind=symptom&author=${id}`);
+      const both = await state(o);
+      check(
+        "offline: the author and the kind filter both work",
+        both.search === `?kind=symptom&author=${id}` &&
+          both.kinds === "Symptom: " &&
+          both.authors === id &&
+          both.rows > 0,
+        `${both.search}, ${both.rows} rows`,
+      );
+      await clear(o);
+    } finally {
+      proxy.setOnline(true);
+    }
+  });
+}
+
 const bM = await launch(9341);
 // The viewer's browser only in full mode: smoke runs one role.
 const bV = SMOKE ? null : await launch(9342);
 const pages = [];
+let offline = null;
 try {
   const p = await signedIn(bM, "member", "member@example.com");
   pages.push(p);
@@ -702,6 +963,14 @@ try {
   await step("providers on notes and events", { smoke: true }, () => withLines(p));
   await step("day headings", () => dayHeadings(p));
   await step("the latest vitals line", () => latestVitalsLine(p));
+  await authorFilters([["writer", p], ...(v ? [["viewer", v]] : [])], async () => {
+    // Its own browser, behind a proxy that can be cut (CDP's offline doesn't cut PowerSync's stream).
+    offline = { proxy: startProxy(9324) };
+    offline.browser = await launch(9343, offline.proxy.args);
+    // Not in `pages`: a cut connection logs errors of its own.
+    const page = await signedIn(offline.browser, "offline", "caretaker@example.com");
+    return { page, proxy: offline.proxy };
+  });
 
   // PowerSync warns when a full page load closes the previous page's database,
   // and its shared sync worker logs "Sync aborted" to every page when it stops
@@ -718,6 +987,8 @@ try {
 } finally {
   bM.proc.kill();
   bV?.proc.kill();
+  offline?.browser?.proc.kill();
+  offline?.proxy.close();
   console.log(`\n${results.filter(Boolean).length}/${results.length} passed`);
 }
 process.exit(results.every(Boolean) ? 0 : 1);
