@@ -1,11 +1,13 @@
 // Invites PRD: accounts by invitation and sign-in by email. Slice 2 covers the
 // account emails, read from the dev mailbox (/dev/mail.json: the dev server,
 // or a check build on a localhost APP_URL). Smoke mode runs steps 1 and 5:
-//   1. Sign in with an emailed link; an unknown email gets no mail and no
+//   1. "Email me a sign-in link" sends one email with a link and a code
+//      (B-96); the link signs in; an unknown email gets no mail and no
 //      account; a used link says so.
-//   2. Sign in with an emailed 6-digit code; a wrong or expired code is
-//      refused; an unknown email gets no mail. (The wording, the same for
-//      every address, is unit-tested in authMessages.test.ts.)
+//   2. The same email's 6-digit code, typed into the page, signs in; a wrong
+//      or expired code is refused; an unknown email gets no mail. (The
+//      wording, the same for every address, is unit-tested in
+//      authMessages.test.ts.)
 //   3. Reset a password by email: the old one stops working, the link works once.
 //   4. An unverified account is held at /verify-email, can resend, and the
 //      emailed link confirms it.
@@ -147,6 +149,9 @@ const mailAbout = async (address, name, about, ms = 15000) => {
 /** Long enough for a background send that was going to happen to have happened. */
 const QUIET_MS = 2500;
 
+/** The sign-in email's code: six digits on a line of their own (never part of the link). */
+const codeIn = (text) => text.match(/^\s*(\d{6})\s*$/m)?.[1];
+
 // --- Page helpers ---------------------------------------------------------------
 
 const q = (selector) => `document.querySelector(${JSON.stringify(selector)})`;
@@ -191,15 +196,16 @@ try {
     await p.press(
       `[...document.querySelectorAll('nav[aria-label="Ways to sign in"] a')].find((a) => a.textContent.trim() === "Email link")`,
     );
-    await p.waitFor(`location.search.includes("with=link") && ${submit("Email me a link")}`);
+    await p.waitFor(`location.search.includes("with=email") && ${submit("Email me a sign-in link")}`);
     await p.type(q('input[name="email"]'), linkUser);
-    await doublePress(p, submit("Email me a link"));
-    await p.waitFor(`${statusText}.startsWith("Check your email")`, 15000);
+    await doublePress(p, submit("Email me a sign-in link"));
+    await p.waitFor(`${statusText}.startsWith("Check your email") && ${q('input[name="code"]')}`, 15000);
     const sentLink = await p.evaluate(statusText);
-    check(sentLink.includes(linkUser), "the link form says to check the email", sentLink);
-    const mail = await waitForMail(linkUser, "magicLink");
+    check(sentLink.includes(linkUser), "the form says to check the email, and shows a code box", sentLink);
+    const mail = await waitForMail(linkUser, "signInEmail");
     const link = mail.links.find((l) => l.includes("/api/auth/magic-link/verify"));
     check(Boolean(link) && link.startsWith(`${BASE}/`), "the email has a sign-in link on APP_URL", link);
+    check(Boolean(codeIn(mail.text)), "and a 6-digit code", mail.subject);
     check(!/vital|symptom|medication|note/i.test(mail.text), "the email carries no health details");
     await sleep(QUIET_MS);
     check((await mailTo(linkUser)).length === 1, "a double press sends one email");
@@ -213,10 +219,10 @@ try {
     await p.screenshot("invites-magic-link-app");
 
     const u = await open(9502, "link-unknown");
-    await u.goto("/sign-in?with=link");
-    await u.waitFor(submit("Email me a link"));
+    await u.goto("/sign-in?with=email");
+    await u.waitFor(submit("Email me a sign-in link"));
     await u.type(q('input[name="email"]'), unknown);
-    await u.press(submit("Email me a link"));
+    await u.press(submit("Email me a sign-in link"));
     await u.waitFor(`${statusText}.startsWith("Check your email")`, 15000);
     await sleep(QUIET_MS);
     check((await mailTo(unknown)).length === 0, "an unknown email gets no mail");
@@ -236,17 +242,17 @@ try {
   // 2. Code --------------------------------------------------------------------
   await step("2. sign in with an emailed code", async () => {
     const p = await open(9503, "code");
-    await p.goto("/sign-in?with=code");
-    await p.waitFor(submit("Email me a code"));
+    await p.goto("/sign-in?with=email");
+    await p.waitFor(submit("Email me a sign-in link"));
     await p.type(q('input[name="email"]'), codeUser);
-    await doublePress(p, submit("Email me a code"));
+    await doublePress(p, submit("Email me a sign-in link"));
     await p.waitFor(`${statusText}.startsWith("Check your email") && ${q('input[name="code"]')}`, 15000);
-    const mail = await waitForMail(codeUser, "signInCode");
-    const code = mail.text.match(/\b(\d{6})\b/)?.[1];
+    const mail = await waitForMail(codeUser, "signInEmail");
+    const code = codeIn(mail.text);
     check(Boolean(code), "the email has a 6-digit code", mail.subject);
     check(!mail.subject.includes(code), "the code isn't in the subject");
     await sleep(QUIET_MS);
-    check((await mailTo(codeUser)).length === 1, "a double press sends one code");
+    check((await mailTo(codeUser)).length === 1, "a double press sends one email");
 
     const wrong = code === "000000" ? "111111" : "000000";
     await p.type(q('input[name="code"]'), wrong);
@@ -273,13 +279,13 @@ try {
 
     // An expired code is refused.
     const e = await open(9504, "code-expired");
-    await e.goto("/sign-in?with=code");
-    await e.waitFor(submit("Email me a code"));
+    await e.goto("/sign-in?with=email");
+    await e.waitFor(submit("Email me a sign-in link"));
     await e.type(q('input[name="email"]'), codeUser);
-    await e.press(submit("Email me a code"));
+    await e.press(submit("Email me a sign-in link"));
     await e.waitFor(q('input[name="code"]'), 15000);
-    const second = await waitForMail(codeUser, "signInCode", 2);
-    const secondCode = second.text.match(/\b(\d{6})\b/)?.[1];
+    const second = await waitForMail(codeUser, "signInEmail", 2);
+    const secondCode = codeIn(second.text);
     psql(
       `UPDATE verification SET expires_at = now() - interval '1 minute' WHERE identifier LIKE '%${codeUser}%'`,
     );
@@ -294,10 +300,10 @@ try {
 
     // An unknown email: the same message, no mail.
     await pause();
-    await e.goto("/sign-in?with=code");
-    await e.waitFor(submit("Email me a code"));
+    await e.goto("/sign-in?with=email");
+    await e.waitFor(submit("Email me a sign-in link"));
     await e.type(q('input[name="email"]'), unknown);
-    await e.press(submit("Email me a code"));
+    await e.press(submit("Email me a sign-in link"));
     await e.waitFor(`${statusText}.startsWith("Check your email")`, 15000);
     await sleep(QUIET_MS);
     check((await mailTo(unknown)).length === 0, "and no code is sent");

@@ -234,17 +234,27 @@ describe("email verification", () => {
   });
 });
 
-describe("magic links", () => {
-  it("signs an existing user in, once", async () => {
-    const login = await createLogin();
-    const res = await api().signInMagicLink({
-      body: { email: login.email, callbackURL: "/app" },
+describe("the sign-in email (link and code)", () => {
+  const sendSignInEmail = (email: string, callbackURL?: string) =>
+    api().signInMagicLink({
+      body: { email, ...(callbackURL ? { callbackURL } : {}) },
       headers: new Headers(),
       asResponse: true,
     });
+  const signInWithCode = (email: string, otp: string) =>
+    api().signInEmailOTP({ body: { email, otp }, asResponse: true });
+  /** The code sits on a line of its own in the plain text. */
+  const codeIn = (text: string) => text.match(/^\s*(\d{6})\s*$/m)?.[1] ?? "";
+
+  it("sends one email whose link signs an existing user in, once", async () => {
+    const login = await createLogin();
+    const res = await sendSignInEmail(login.email, "/app");
     expect(await res.json()).toEqual({ status: true });
 
-    const link = linkIn((await lastMail(login.email, "magicLink")).text, "/api/auth/magic-link/verify");
+    const mail = await lastMail(login.email, "signInEmail");
+    expect((await mailTo(login.email)).map((m) => m.name)).toEqual(["signInEmail"]);
+    expect(codeIn(mail.text)).toMatch(/^\d{6}$/);
+    const link = linkIn(mail.text, "/api/auth/magic-link/verify");
     expect(link.searchParams.get("callbackURL")).toBe("/app");
     const token = link.searchParams.get("token") ?? "";
     const verified = await api().magicLinkVerify({
@@ -262,26 +272,10 @@ describe("magic links", () => {
     expect(again.headers.get("location")).toContain("error=INVALID_TOKEN");
   });
 
-  it("says the same for an unknown email, sends nothing and creates no account", async () => {
-    const email = unknownEmail();
-    const res = await api().signInMagicLink({ body: { email }, headers: new Headers(), asResponse: true });
-    expect(await res.json()).toEqual({ status: true });
-    expect(await mailTo(email)).toEqual([]);
-    expect(await userCount(email)).toBe(0);
-  });
-});
-
-describe("sign-in codes", () => {
-  const sendCode = (email: string) =>
-    api().sendVerificationOTP({ body: { email, type: "sign-in" }, asResponse: true });
-  const signInWithCode = (email: string, otp: string) =>
-    api().signInEmailOTP({ body: { email, otp }, asResponse: true });
-  const codeIn = (text: string) => text.match(/\b(\d{6})\b/)?.[1] ?? "";
-
-  it("signs in with the emailed code, and refuses a wrong one", async () => {
+  it("signs in with the same email's code, and refuses a wrong one", async () => {
     const login = await createLogin();
-    expect(await (await sendCode(login.email)).json()).toEqual({ success: true });
-    const code = codeIn((await lastMail(login.email, "signInCode")).text);
+    await sendSignInEmail(login.email);
+    const code = codeIn((await lastMail(login.email, "signInEmail")).text);
     expect(code).toMatch(/^\d{6}$/);
 
     const wrong = code === "000000" ? "111111" : "000000";
@@ -291,10 +285,22 @@ describe("sign-in codes", () => {
     expect(await getAuthUser(cookieHeaders(res))).toMatchObject({ id: login.user.id });
   });
 
+  it("stores the code hashed", async () => {
+    const login = await createLogin();
+    await sendSignInEmail(login.email);
+    const code = codeIn((await lastMail(login.email, "signInEmail")).text);
+    const rows = await getDb()
+      .select()
+      .from(verificationSchema)
+      .where(eq(verificationSchema.identifier, `sign-in-otp-${login.email.toLowerCase()}`));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.value).not.toContain(code);
+  });
+
   it("refuses an expired code", async () => {
     const login = await createLogin();
-    await sendCode(login.email);
-    const code = codeIn((await lastMail(login.email, "signInCode")).text);
+    await sendSignInEmail(login.email);
+    const code = codeIn((await lastMail(login.email, "signInEmail")).text);
     await getDb()
       .update(verificationSchema)
       .set({ expiresAt: new Date(Date.now() - 1000) })
@@ -304,7 +310,8 @@ describe("sign-in codes", () => {
 
   it("says the same for an unknown email, sends nothing and creates no account", async () => {
     const email = unknownEmail();
-    expect(await (await sendCode(email)).json()).toEqual({ success: true });
+    const res = await sendSignInEmail(email);
+    expect(await res.json()).toEqual({ status: true });
     expect(await mailTo(email)).toEqual([]);
     expect((await signInWithCode(email, "123456")).status).toBe(400);
     expect(await userCount(email)).toBe(0);
@@ -312,23 +319,26 @@ describe("sign-in codes", () => {
 
   it("verifies an unverified account that signs in with a code", async () => {
     const login = await createLogin({ verified: false });
-    await sendCode(login.email);
-    const code = codeIn((await lastMail(login.email, "signInCode")).text);
+    await sendSignInEmail(login.email);
+    const code = codeIn((await lastMail(login.email, "signInEmail")).text);
     expect((await signInWithCode(login.email, code)).status).toBe(200);
     const [user] = await getDb().select().from(userSchema).where(eq(userSchema.id, login.user.id));
     expect(user?.emailVerified).toBe(true);
   });
 
-  it("keeps the plugin's other code endpoints off", async () => {
-    const res = await getAuth().handler(
-      new Request("http://localhost:5173/api/auth/email-otp/request-password-reset", {
-        method: "POST",
-        headers: { "content-type": "application/json", origin: "http://localhost:5173" },
-        body: JSON.stringify({ email: "x@example.com" }),
-      }),
-    );
-    expect(res.status).toBe(404);
-  });
+  it.each(["/email-otp/request-password-reset", "/email-otp/send-verification-otp"])(
+    "keeps the plugin's other code endpoints off (%s)",
+    async (path) => {
+      const res = await getAuth().handler(
+        new Request(`http://localhost:5173/api/auth${path}`, {
+          method: "POST",
+          headers: { "content-type": "application/json", origin: "http://localhost:5173" },
+          body: JSON.stringify({ email: "x@example.com", type: "sign-in" }),
+        }),
+      );
+      expect(res.status).toBe(404);
+    },
+  );
 });
 
 describe("password reset", () => {
