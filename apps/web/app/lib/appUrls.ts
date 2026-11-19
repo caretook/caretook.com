@@ -130,4 +130,6 @@ export const appUrls = {
     `${groupHome(groupId)}/providers/${segment(providerId)}/edit${searchString(search)}`,
   /** A provider's page: details, contact actions and their shared live notes. */
   provider: (groupId: string, providerId: string) => `${groupHome(groupId)}/providers/${segment(providerId)}`,
+  /** Start another care group: who you care for, then its timeline. */
+  newGroup: () => `${HOME}/groups/new`,
 } as const;

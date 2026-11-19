@@ -85,3 +85,14 @@ export const inviteTitle = (invite: UsablePreview) =>
 /** "Avery invited you as a caretaker." */
 export const invitedLine = (invite: UsablePreview) =>
   `${invite.inviterName?.trim() || "Someone"} invited you to join as ${roleWithArticle(invite.role)}.`;
+
+/** Whether this invite is a shared link: anyone may use it, and joining waits for approval. */
+export const isLink = (invite: UsablePreview) => invite.kind === "link";
+
+/** The consent form's button: an email invite joins, a link asks. */
+export const joinLabel = (invite: UsablePreview, busy: boolean) =>
+  isLink(invite) ? (busy ? "Asking…" : "Ask to join") : busy ? "Joining…" : "Join the care group";
+
+/** What a link's page says about approval, before asking. */
+export const LINK_APPROVAL_NOTE =
+  "An owner or admin of the group approves each request. Until then you won't see anything in it.";
