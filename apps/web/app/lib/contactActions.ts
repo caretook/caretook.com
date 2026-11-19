@@ -125,3 +125,37 @@ export const allActions = ({ name, phones, email, address, website }: Contactabl
     mapAction(name, address),
     websiteAction(name, website),
   ]);
+
+/** One line of a directory row's contact details: the link, its text and an optional caption. */
+export type ContactDetail = {
+  action: ContactAction;
+  /** What the row shows: the number, the address on one line, the email. */
+  text: string;
+  /** A number's label ("Office"), shown muted after it; null when there's none. */
+  caption: string | null;
+};
+
+/**
+ * A directory row's visible contact details: each number (with its label),
+ * then the address (lines joined with commas) and the email, each only when
+ * it makes a link. The website stays on the provider's page.
+ */
+export const contactDetails = ({ name, phones, email, address }: Contactable): ContactDetail[] => {
+  const details: ContactDetail[] = [];
+  for (const phone of phones) {
+    const action = callAction(name, phone);
+    if (action) details.push({ action, text: phone.number.trim(), caption: phone.label.trim() || null });
+  }
+  const map = mapAction(name, address);
+  if (map) {
+    const text = map.value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join(", ");
+    details.push({ action: map, text, caption: null });
+  }
+  const mail = emailAction(name, email);
+  if (mail) details.push({ action: mail, text: mail.value.trim(), caption: null });
+  return details;
+};
