@@ -135,8 +135,20 @@ export const toTimelineEntries = (rows: EntryRow[]) =>
 
 export type LocalQuery = { sql: string; params: unknown[] };
 
+/**
+ * A condition on an entry's id (`timeline_entry.id`) that the windows AND in:
+ * the timeline's search (`entryMatchCondition` in `./search`, or one that
+ * matches nothing while the index is preparing).
+ */
+export type EntryCondition = { sql: string; params: unknown[] };
+
 /** The timeline's filters, as the queries take them (`TimelineFilters` in `lib/timelineFilters.ts`). */
-export type EntryFilters = { kind: TimelineEntryKind | null; author: string | null };
+export type EntryFilters = {
+  kind: TimelineEntryKind | null;
+  author: string | null;
+  /** Only the entries this condition holds for (the search); none means every entry. */
+  match?: EntryCondition | null;
+};
 
 /**
  * The kinds the timeline shows, as SQL (`TIMELINE_KINDS`). The timeline's
@@ -147,7 +159,7 @@ export const SHOWN_KINDS_SQL = `kind IN (${TIMELINE_KINDS.map((k) => `'${k}'`).j
 
 const FUTURE_KINDS_SQL = `kind IN (${FUTURE_KINDS.map((k) => `'${k}'`).join(", ")})`;
 
-/** The conditions every window shares: one group, live entries, the kind and author filters. */
+/** The conditions every window shares: one group, live entries, the kind and author filters, the search. */
 const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonly string[] | null) => {
   const conditions = ["group_id = ?", "deleted_at IS NULL"];
   const params: unknown[] = [groupId];
@@ -164,6 +176,10 @@ const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonl
   if (filters.author) {
     conditions.push("created_by = ?");
     params.push(filters.author);
+  }
+  if (filters.match) {
+    conditions.push(`(${filters.match.sql})`);
+    params.push(...filters.match.params);
   }
   return { conditions, params };
 };
@@ -290,12 +306,13 @@ export type GroupRow = {
   recipient_id: string | null;
   recipient_name: string | null;
   recipient_preferred_name: string | null;
+  recipient_time_zone: string | null;
 };
 
 /** The groups `userId` belongs to, with their role and the recipient. */
 export const myGroupsQuery = (userId: string): LocalQuery => ({
   sql: `SELECT g.id, g.name, m.role, r.id AS recipient_id, r.name AS recipient_name,
-               r.preferred_name AS recipient_preferred_name
+               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone
         FROM care_group g
         JOIN care_group_member m ON m.group_id = g.id AND m.user_id = ?
         LEFT JOIN care_recipient r ON r.group_id = g.id
@@ -306,7 +323,7 @@ export const myGroupsQuery = (userId: string): LocalQuery => ({
 /** One group `userId` belongs to (no row when they aren't a member, or it isn't on the device). */
 export const myGroupQuery = (userId: string, groupId: string): LocalQuery => ({
   sql: `SELECT g.id, g.name, m.role, r.id AS recipient_id, r.name AS recipient_name,
-               r.preferred_name AS recipient_preferred_name
+               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone
         FROM care_group g
         JOIN care_group_member m ON m.group_id = g.id AND m.user_id = ?
         LEFT JOIN care_recipient r ON r.group_id = g.id

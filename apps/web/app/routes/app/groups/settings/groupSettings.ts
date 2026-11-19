@@ -2,7 +2,7 @@ import type { AuthUser } from "@caretook/data/permissions";
 import type { ActionResult } from "~/lib/api";
 
 import { hasPermission } from "@caretook/data/permissions";
-import { careGroupInsertZSchema } from "@caretook/data/schema";
+import { careGroupInsertZSchema, careRecipientProfileZSchema } from "@caretook/data/schema";
 
 // The pure parts of group settings (`./route.tsx`): who may
 // edit what, and turning a submitted form into a valid change or field errors.
@@ -46,6 +46,7 @@ const TOO_LONG = "Use 120 characters or fewer.";
 /** What each field's error says (the schemas' own messages aren't written for people). */
 const fieldMessage = (field: string, value: string) => {
   if (field === "name") return value.trim() ? TOO_LONG : "Enter a name.";
+  if (field === "timeZone") return "Choose a time zone from the list.";
   return TOO_LONG;
 };
 
@@ -67,6 +68,50 @@ export const parseGroupName = (values: { name: string }): Parsed<{ name: string 
   const parsed = careGroupInsertZSchema.pick({ name: true }).safeParse(values);
   if (parsed.success) return { ok: true, data: parsed.data };
   return failure(parsed.error.issues, values, "Check the care group's name.");
+};
+
+/**
+ * A submitted recipient time zone (group settings Details; the rest of the
+ * recipient is edited on their profile). An empty zone keeps the stored one;
+ * a zone the runtime doesn't know is a field error.
+ */
+export const parseRecipientTimeZone = (values: { timeZone: string }): Parsed<{ timeZone?: string }> => {
+  const timeZone = values.timeZone.trim();
+  if (!timeZone) return { ok: true, data: {} };
+  const parsed = careRecipientProfileZSchema.pick({ timeZone: true }).safeParse({ timeZone });
+  if (!parsed.success) return failure(parsed.error.issues, values, "Check the care recipient's time zone.");
+  return { ok: true, data: parsed.data.timeZone ? { timeZone: parsed.data.timeZone } : {} };
+};
+
+// ---------------------------------------------------------------------------
+// Time zone
+// ---------------------------------------------------------------------------
+
+/** An IANA zone as people read it: "America/Los_Angeles" → "America/Los Angeles". */
+export const timeZoneLabel = (zone: string) => zone.replaceAll("_", " ");
+
+/**
+ * The zones the time zone field offers: every zone the runtime supports,
+ * sorted, plus `current` and `device` when the runtime's list leaves them out
+ * ("UTC" often isn't in it). `supported` is for tests.
+ */
+export const timeZoneOptions = (
+  current: string | null,
+  device: string,
+  supported: readonly string[] = supportedTimeZones(),
+): string[] => {
+  const zones = new Set(supported);
+  if (current) zones.add(current);
+  if (device) zones.add(device);
+  return [...zones].sort((a, b) => a.localeCompare(b));
+};
+
+const supportedTimeZones = (): readonly string[] => {
+  try {
+    return Intl.supportedValuesOf("timeZone");
+  } catch {
+    return [];
+  }
 };
 
 // ---------------------------------------------------------------------------

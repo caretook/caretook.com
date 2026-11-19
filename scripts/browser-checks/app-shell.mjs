@@ -309,7 +309,7 @@ try {
   );
   check(
     "header: the frame's regions are in place",
-    layout.regions === "group,sections,status,user",
+    layout.regions === "group,sections,search,status,user",
     layout.regions,
   );
   const settingsLink = await A.evaluate(
@@ -604,13 +604,21 @@ try {
         .toString()
         .trim();
     // The care recipient is edited on their profile now (profiles.mjs); Details
-    // keeps the group's name and links there.
-    const SEED = { group: "Dev Family", preferred: "Grandma Pat" };
+    // keeps the group's name and the recipient's time zone, and links there.
+    const SEED = { group: "Dev Family", preferred: "Grandma Pat", zone: "America/Los_Angeles" };
     const PROFILE = `/app/groups/${DEV_FAMILY}/profile`;
     const serverGroup = () => psql(`SELECT name FROM care_group WHERE id = '${DEV_FAMILY}'`);
     const restoreSeeds = () => {
       psql(`UPDATE care_group SET name = '${SEED.group}' WHERE id = '${DEV_FAMILY}'`);
+      psql(`UPDATE care_recipient SET time_zone = '${SEED.zone}' WHERE group_id = '${DEV_FAMILY}'`);
     };
+    const serverZone = () => psql(`SELECT time_zone FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`);
+    const ZONE = `document.querySelector('main [data-section="care-recipient"]')?.querySelector('select[name="timeZone"]')`;
+    /** Choose a zone in the recipient's time zone select, as a person would. */
+    const chooseZone = (p, zone) =>
+      p.evaluate(`(() => { const el = ${ZONE};
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(el, ${JSON.stringify(zone)});
+        el.dispatchEvent(new Event("change", { bubbles: true })); return el.value; })()`);
     const tag = Date.now().toString(36);
     const NEW = { group: `Dev Family ${tag}` };
     const settingsOf = (groupId) => `/app/groups/${groupId}/settings`;
@@ -620,6 +628,7 @@ try {
     const listItem = (id) => `document.querySelector('main [data-settings-item="${id}"]')`;
     const section = (id) => `document.querySelector('main [data-section="${id}"]')`;
     const GROUP = section("group-details");
+    const RECIPIENT = section("care-recipient");
     const PROFILE_LINK = `document.querySelector('main [data-profile-note] a')`;
     const input = (sec, name) => `${sec}?.querySelector('input[name="${name}"]')`;
     // A field's error: the line its input is described by (`ui/Field`'s `<id>-error`).
@@ -699,10 +708,10 @@ try {
         notice: !!document.querySelector("[data-needs-connection]"),
       })`);
       check(
-        "owner: the page shows the group's name, and links to the recipient's profile (no recipient card)",
+        "owner: the page shows the group's name and the recipient's time zone, and links to the recipient's profile",
         first5.h1 === "Details" &&
           first5.group === SEED.group &&
-          first5.sections === "group-details" &&
+          first5.sections === "group-details,care-recipient" &&
           first5.profile === PROFILE &&
           !first5.notice,
         JSON.stringify(first5),
@@ -762,6 +771,63 @@ try {
       const reopened = await M.evaluate(`${input(GROUP, "name")}?.value`);
       check("owner: coming back, the form holds the saved name", reopened === NEW.group, String(reopened));
 
+      // 5c'. The recipient's time zone (quick-fixes slice 27, B-65): the owner
+      // picks another zone; it saves, syncs, and the medications page's Today
+      // note follows it. Then "Use this device's" picks the device's zone, and
+      // Los Angeles is put back through the page.
+      const device = await M.evaluate(`Intl.DateTimeFormat().resolvedOptions().timeZone`);
+      const other = device === "America/New_York" ? "America/Chicago" : "America/New_York";
+      const place = other.split("/")[1].replaceAll("_", " ");
+      const zoneField = await M.evaluate(`({ value: ${ZONE}?.value, options: ${ZONE}?.options.length ?? 0,
+        help: document.getElementById((${ZONE}?.getAttribute("aria-describedby") ?? "").split(" ")[0])?.textContent.trim() })`);
+      check(
+        "time zone: the owner's form has the zone (Los Angeles), every zone, and the note",
+        zoneField.value === SEED.zone &&
+          zoneField.options > 50 &&
+          zoneField.help === "Medication times follow this zone.",
+        JSON.stringify(zoneField),
+      );
+      await chooseZone(M, other);
+      const zoneSaved = await save(M, RECIPIENT);
+      check(
+        "time zone: the owner changes it online, and it saves",
+        zoneSaved === "ok: Saved." && serverZone() === other,
+        `${zoneSaved} / ${serverZone()}`,
+      );
+      await M.goto(`/app/groups/${DEV_FAMILY}/medications`);
+      const noteFollows = await M.waitFor(
+        `document.querySelector("main [data-today]")?.textContent.includes(${JSON.stringify(`Times are ${place} time`)})`,
+        30000,
+      )
+        .then(() => true)
+        .catch(() => false);
+      check(
+        "time zone: it syncs, and the medications page's zone note follows it",
+        noteFollows,
+        await M.evaluate(
+          `document.querySelector("main [data-today]")?.textContent.slice(0, 120) ?? "no Today"`,
+        ),
+      );
+      await M.goto(DETAILS);
+      await onSettings(M);
+      await M.waitFor(`${ZONE}?.value === ${JSON.stringify(other)}`, 20000).catch(() => undefined);
+      const deviceButton = `document.querySelector("main [data-use-device-zone]")`;
+      const shortcut = await M.evaluate(`${deviceButton}?.textContent.trim() ?? ""`);
+      if (device !== other && shortcut) await M.tap(deviceButton);
+      const afterShortcut = await M.evaluate(`${ZONE}?.value`);
+      check(
+        "time zone: \"Use this device's\" picks this device's zone",
+        shortcut === `Use this device's (${device.replaceAll("_", " ")})` && afterShortcut === device,
+        `${shortcut} → ${afterShortcut}`,
+      );
+      await chooseZone(M, SEED.zone);
+      const zoneBack = await save(M, RECIPIENT);
+      check(
+        "time zone: Los Angeles is put back through the page",
+        zoneBack === "ok: Saved." && serverZone() === SEED.zone,
+        `${zoneBack} / ${serverZone()}`,
+      );
+
       // 5d. caretaker@: the group's name is read-only; the profile link is there.
       const O = await openPage(bO, "settings-other");
       pages.push(O);
@@ -785,6 +851,24 @@ try {
       // 5e. A viewer's cards are read-only like the caretaker's group card above
       // (groupSettingsAccess, groupSettings.test.ts), and another group's settings
       // is the 404 (routing.mjs, "non-member: another group's …/settings/members").
+      // The time zone (slice 27): a viewer sees it as text, with no select.
+      await O.signOut();
+      await O.waitFor(`location.pathname === "/sign-in"`, 30000);
+      await signIn(O, "viewer@example.com", { home: true });
+      await O.waitFor(GROUP_TRIGGER, 40000);
+      await O.goto(DETAILS);
+      await onSettings(O);
+      const viewerZone = await O.waitFor(`${text(RECIPIENT)}.includes("America/Los Angeles")`, 20000)
+        .then(() => true)
+        .catch(() => false);
+      const viewer5 = await O.evaluate(
+        `({ selects: document.querySelectorAll("main select").length, recipient: ${text(RECIPIENT)} })`,
+      );
+      check(
+        "viewer: the time zone is read-only text",
+        viewerZone && viewer5.selects === 0 && viewer5.recipient.includes("Time zone"),
+        JSON.stringify(viewer5),
+      );
 
       // 5f. Offline (the proxy cuts member@'s browser): read-only from local data, with the notice.
       await M.evaluate(`${BAR}.querySelector("a").click()`);
@@ -799,13 +883,14 @@ try {
         .then(() => true)
         .catch(() => false);
       const offline5 = await M.evaluate(
-        `({ notice: document.querySelector("[data-needs-connection]")?.textContent.trim(), controls: document.querySelectorAll("main input, main select, main button, main form").length, group: ${text(GROUP)} })`,
+        `({ notice: document.querySelector("[data-needs-connection]")?.textContent.trim(), controls: document.querySelectorAll("main input, main select, main button, main form").length, group: ${text(GROUP)}, recipient: ${text(RECIPIENT)} })`,
       );
       check(
         "offline: the page loads from local data and says it needs a connection",
         offlineLoaded &&
           offline5.notice === "Needs a connection to edit." &&
-          offline5.group.includes(NEW.group),
+          offline5.group.includes(NEW.group) &&
+          offline5.recipient.includes("America/Los Angeles"),
         JSON.stringify(offline5),
       );
       check("offline: nothing to save with (no forms)", offline5.controls === 0, JSON.stringify(offline5));

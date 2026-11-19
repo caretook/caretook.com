@@ -4,8 +4,11 @@ import {
   memberAccess,
   memberName,
   parseGroupName,
+  parseRecipientTimeZone,
   roleLabel,
   sortMembers,
+  timeZoneLabel,
+  timeZoneOptions,
 } from "./groupSettings";
 
 const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -45,6 +48,43 @@ describe("parseGroupName", () => {
       ok: false,
       issues: [{ path: "name", message: "Use 120 characters or fewer." }],
     });
+  });
+});
+
+describe("parseRecipientTimeZone", () => {
+  it("keeps a known zone", () => {
+    expect(parseRecipientTimeZone({ timeZone: " America/New_York " })).toEqual({
+      ok: true,
+      data: { timeZone: "America/New_York" },
+    });
+  });
+  it("leaves an empty zone out, so the stored one stays", () => {
+    expect(parseRecipientTimeZone({ timeZone: "" })).toEqual({ ok: true, data: {} });
+  });
+  it("refuses an unknown zone with the field's error", () => {
+    expect(parseRecipientTimeZone({ timeZone: "Mars/Olympus_Mons" })).toMatchObject({
+      ok: false,
+      issues: [{ path: "timeZone", message: "Choose a time zone from the list." }],
+    });
+  });
+});
+
+describe("timeZoneOptions", () => {
+  it("sorts the supported zones and adds the current and device zones when missing", () => {
+    expect(timeZoneOptions("UTC", "Europe/Paris", ["America/New_York", "America/Los_Angeles"])).toEqual([
+      "America/Los_Angeles",
+      "America/New_York",
+      "Europe/Paris",
+      "UTC",
+    ]);
+  });
+  it("lists each zone once", () => {
+    expect(timeZoneOptions("America/New_York", "America/New_York", ["America/New_York"])).toEqual([
+      "America/New_York",
+    ]);
+  });
+  it("labels a zone without underscores", () => {
+    expect(timeZoneLabel("America/Los_Angeles")).toBe("America/Los Angeles");
   });
 });
 

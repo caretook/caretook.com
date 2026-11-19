@@ -361,10 +361,13 @@ async function dayHeadings(p) {
 }
 
 /**
- * Latest vitals (timeline-polish slice 3): one line of the same height at 420
- * and 1280 wide, newest readings first, "All vitals" never clipped; it expands
- * (keyboard) and collapses (tap), ignores the kind filter, and a reload starts
- * collapsed. Ends at 420 wide with no filter, as it started.
+ * Latest vitals (timeline-polish slice 3, quick-fixes slice 26): one 32 px
+ * line led by the vitals icon (no "Latest" text), at most 4 readings, newest
+ * first, "All vitals" never clipped; the same height and look as the Next
+ * strip, and from 1280 both are wider than the entries' column, narrower than
+ * the page and centred. It expands (keyboard) to every type and collapses
+ * (tap), ignores the kind filter, and a reload starts collapsed. Ends at 420
+ * wide with no filter, as it started.
  */
 async function latestVitalsLine(p) {
   const strip = `document.querySelector('section[aria-labelledby="latest-vitals"]')`;
@@ -396,10 +399,19 @@ async function latestVitalsLine(p) {
 
   const phone = await measure();
   check(
-    "vitals at 420: one line, All vitals never clipped",
-    phone.lines === 1 && phone.height <= 36 && phone.buttonClear && phone.started >= 2,
+    "vitals at 420: one 32 px line, All vitals never clipped, two readings fit",
+    phone.lines === 1 && Math.abs(phone.height - 32) < 1 && phone.buttonClear && phone.started >= 2,
     `${phone.height}px, ${phone.started} of ${phone.count} readings begin in the line`,
   );
+  const label = await p.evaluate(`(() => { const h = ${strip}.querySelector("h2");
+    return { text: h.textContent.trim(), icon: !!h.querySelector("svg[aria-hidden]"),
+      visibleText: [...h.childNodes].some((n) => n.nodeType === 3 ? n.textContent.trim() : n.tagName !== "svg" && n.getBoundingClientRect().width > 1) }; })()`);
+  check(
+    'vitals: the icon leads the line, named "Latest vitals", and no visible "Latest"',
+    label.text === "Latest vitals" && label.icon && !label.visibleText,
+    JSON.stringify(label),
+  );
+  check("vitals: at most 4 readings collapsed", phone.count >= 1 && phone.count <= 4, `${phone.count}`);
   check(
     "vitals: most recent readings first",
     phone.times.every((t, i) => i === 0 || phone.times[i - 1] >= t),
@@ -418,7 +430,32 @@ async function latestVitalsLine(p) {
     `${wide.height}px, ${wide.whole} whole readings`,
   );
   await p.screenshot("phase2-vitals-1280");
+  // From 1280 the vitals line and the Next strip are one family: the same height, border, radius and
+  // text, wider than the entries' 1024 px column, narrower than the page, centred.
+  const family = () =>
+    p.evaluate(`(() => { const page = document.documentElement.clientWidth;
+      const one = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
+        return { height: r.height, width: r.width, centre: Math.round(r.left + r.width / 2 - page / 2),
+          look: [cs.borderTopWidth, cs.borderTopColor, cs.borderRadius, cs.backgroundColor, cs.fontSize, cs.paddingLeft].join(" ") }; };
+      return { page, vitals: one(${strip}), next: one(document.querySelector("main [data-next-strip]")) }; })()`);
+  for (const w of [1280, 1920]) {
+    await width(w);
+    const f = await family();
+    const ok = (s) => !!s && s.width > 1024 && s.width < f.page - 32 && Math.abs(s.centre) <= 1;
+    check(
+      `${w}: the vitals and Next strips match, wider than the column, narrower than the page, centred`,
+      !!f.vitals &&
+        !!f.next &&
+        f.vitals.height === f.next.height &&
+        f.vitals.look === f.next.look &&
+        ok(f.vitals) &&
+        ok(f.next),
+      JSON.stringify(f),
+    );
+    await p.screenshot(`phase2-strips-${w}`);
+  }
   await width(420);
+  await p.screenshot("phase2-strips-420");
 
   // The kind filter doesn't change the strip.
   await p.press(
@@ -449,9 +486,9 @@ async function latestVitalsLine(p) {
     "vitals: Enter expands every type's latest reading",
     (await p.evaluate(expanded)) === "true" &&
       open.whole === open.count &&
-      open.count === phone.count &&
+      open.count >= phone.count &&
       open.lines > 1 &&
-      open.readings === phone.readings &&
+      open.readings.startsWith(phone.readings) &&
       open.buttonClear,
     `${open.whole} of ${open.count} readings on ${open.lines} lines`,
   );
@@ -1100,10 +1137,10 @@ async function wideLayout(p) {
             return { left: r.left, right: r.right, page: document.documentElement.clientWidth, height: r.height, join: r.right - j.right }; })()`)
           : null;
         check(
-          "1280: the Live now banner spans the width in one line, Join at its end",
+          "1280: the Live now banner is capped like the strips (1152 px, centred) in one line, Join at its end",
           !!at &&
-            Math.abs(at.left - 16) < 1 &&
-            Math.abs(at.right - (at.page - 16)) < 1 &&
+            Math.abs(at.right - at.left - 1152) < 1 &&
+            Math.abs(at.left + at.right - at.page) < 2 &&
             at.height < 60 &&
             at.join > 0 &&
             at.join < 20,

@@ -38,3 +38,6 @@ export * from "./userContact";
 export * from "./memberContactShare";
 export * from "./profileVisibility";
 export * from "./emergencyContacts";
+export * from "./search";
+export * from "./searchDocument";
+export * from "./searchHighlight";

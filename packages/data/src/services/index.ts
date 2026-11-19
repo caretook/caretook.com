@@ -64,6 +64,10 @@ export { userContactService };
 
 import * as memberSharingService from "./memberSharingService";
 export { memberSharingService };
+// Not in `services` below: it reads several tables and has no model of its own.
+import * as searchService from "./searchService";
+export { searchService };
+export type { SearchHit, SearchOptions, SearchResult } from "./searchService";
 
 export type * from "./types";
 

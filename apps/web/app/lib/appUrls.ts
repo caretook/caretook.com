@@ -1,7 +1,7 @@
-import type { ProviderType, TimelineEntryKind, VitalType } from "@caretook/data/schema";
+import type { ProviderType, SearchItemType, TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { LiveEntryKind } from "./liveEntry";
 
-import { PROVIDER_TYPES, VITAL_TYPES } from "@caretook/data/schema";
+import { PROVIDER_TYPES, SEARCH_ITEM_TYPES, VITAL_TYPES } from "@caretook/data/schema";
 import { isLiveEntryKind, NEW_ENTRY } from "./liveEntry";
 
 // Every path inside the app, built in one place. Links, redirects and
@@ -68,6 +68,11 @@ export const PROFILE_SHEETS = ["basics", "contact", "insurance", "emergency"] as
 export type ProfileSheet = (typeof PROFILE_SHEETS)[number];
 const isProfileSheet = (sheet: unknown): sheet is ProfileSheet =>
   (PROFILE_SHEETS as readonly unknown[]).includes(sheet);
+/** The search page's text (`?q=`), and the one section it shows in full (`?all=provider`). */
+export const SEARCH_QUERY_PARAM = "q";
+export const SEARCH_ALL_PARAM = "all";
+export const isSearchItemType = (value: unknown): value is SearchItemType =>
+  (SEARCH_ITEM_TYPES as readonly unknown[]).includes(value);
 
 const HOME = "/app";
 
@@ -200,4 +205,14 @@ export const appUrls = {
     `${groupHome(groupId)}/profile${isProfileSheet(sheet) ? `/${sheet}` : ""}`,
   /** The recipient's printable emergency sheet (a page, not a sheet over the profile). */
   profilePrint: (groupId: string) => `${groupHome(groupId)}/profile/print`,
+  /**
+   * A group's search page, with what's searched for (`?q=`, untrimmed: it's
+   * the field's text) and the section shown in full (`?all=`; an unknown
+   * type, or one without a search, is dropped).
+   */
+  search: (groupId: string, q?: string | null, { all }: { all?: SearchItemType | null } = {}) =>
+    `${groupHome(groupId)}/search${searchString({
+      [SEARCH_QUERY_PARAM]: q,
+      [SEARCH_ALL_PARAM]: q?.trim() && isSearchItemType(all) ? all : null,
+    })}`,
 } as const;

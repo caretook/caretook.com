@@ -14,6 +14,8 @@ export type GroupRecipient = Readonly<{
   preferredName: string | null;
   /** The preferred name, else the name. */
   displayName: string;
+  /** Where they live (IANA): medication times are in it. Null until it has synced. */
+  timeZone: string | null;
 }>;
 
 /** Everything a group screen may read about its group. Nothing else is loaded. */
@@ -39,6 +41,7 @@ export const toGroupContext = (row: GroupRow, userId: string): GroupContext => {
         name: row.recipient_name ?? "",
         preferredName: row.recipient_preferred_name || null,
         displayName: row.recipient_preferred_name || row.recipient_name || "",
+        timeZone: row.recipient_time_zone || null,
       }
     : null;
   const name = row.name ?? "";

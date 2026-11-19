@@ -28,6 +28,7 @@ import { joinRequest } from "./joinRequests";
 import { accessCode, admin, createCareGroup } from "./groups";
 import { publicForms } from "./publicForms";
 import { profileCareGroup, profileMe } from "./profiles";
+import { search } from "./search";
 import { sync } from "./sync";
 import { waitlistAdmin } from "./waitlistAdmin";
 
@@ -58,6 +59,7 @@ const toRecipientProfile = (recipient: {
   name: string;
   preferredName: string | null;
   dateOfBirth: string | null;
+  timeZone: string;
   codeStatus: string | null;
   bloodType: string | null;
   primaryLanguage: string | null;
@@ -69,6 +71,7 @@ const toRecipientProfile = (recipient: {
   name: recipient.name,
   preferredName: recipient.preferredName,
   dateOfBirth: recipient.dateOfBirth,
+  timeZone: recipient.timeZone,
   codeStatus: recipient.codeStatus,
   bloodType: recipient.bloodType,
   primaryLanguage: recipient.primaryLanguage,
@@ -181,9 +184,9 @@ const careGroup = {
     }),
 
   /**
-   * The group's care recipient: name, preferred name, date of birth, the
-   * medical basics and the note for helpers. Members only; null when the
-   * group has none.
+   * The group's care recipient: name, preferred name, date of birth, time
+   * zone, the medical basics and the note for helpers. Members only; null
+   * when the group has none.
    */
   recipient: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
     const group = unwrap(await careGroupService.getById(context, input.groupId));
@@ -193,9 +196,10 @@ const careGroup = {
   }),
 
   /**
-   * Edit the recipient's profile: name, preferred name, birthday, the medical
-   * basics and the note for helpers (owners, admins and caretakers). Fields
-   * left out keep their value; empty text clears it.
+   * Edit the recipient's profile: name, preferred name, birthday, time zone,
+   * the medical basics and the note for helpers (owners, admins and
+   * caretakers). Fields left out keep their value; empty text clears it. An
+   * unknown zone is a 400 naming `timeZone`.
    */
   updateRecipient: authedProcedure
     .input(careRecipientProfileZSchema.extend({ groupId: id }))
@@ -329,5 +333,6 @@ export const router = {
   accessCode,
   admin: { ...admin, waitlist: waitlistAdmin },
   public: publicForms,
+  search,
 };
 export type Router = typeof router;

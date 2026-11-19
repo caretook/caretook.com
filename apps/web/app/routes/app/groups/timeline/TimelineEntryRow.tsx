@@ -1,5 +1,5 @@
-import type { EntryOpen } from "./entryOpen";
-import type { UnitChoices } from "@caretook/data/schema";
+import type { EntryOpen } from "~/lib/entryOpen";
+import type { ParsedSearch, UnitChoices } from "@caretook/data/schema";
 import type { LinkedProviderName } from "~/lib/entryProviders";
 import type { EntryCancelActions } from "~/components/entry";
 import type { TimelineEntry } from "~/lib/rpc";
@@ -33,6 +33,8 @@ export type EntryViewProps = {
   liveLabel?: string;
   /** A note's or event's linked providers: the "with …" line. */
   providers?: LinkedProviderName[];
+  /** The timeline's search (`?q=`, parsed): its matches are marked. */
+  search?: ParsedSearch;
 };
 
 /**
@@ -51,6 +53,7 @@ export function TimelineEntryRow({
   cancel,
   liveLabel,
   providers,
+  search,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
@@ -72,6 +75,7 @@ export function TimelineEntryRow({
         units={units}
         clamp
         providers={providers}
+        search={search}
         className={`pt-0.5 ${cancelled ? CANCELLED_TEXT : ""}`}
         footer={
           <>

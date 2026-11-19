@@ -105,6 +105,19 @@ const focusedIn = (sel) => `!!${sel} && ${sel}.contains(document.activeElement)`
 const isTrigger = (sel) => `document.activeElement === ${sel}`;
 
 /**
+ * After an Escape: wait (up to `ms`) until `closed` holds and focus is on
+ * `target`. Closing and focus return are waited on together, never a fixed
+ * sleep: React Aria restores focus a frame after the overlay unmounts, and
+ * `ui/Sheet`'s backstop two frames after, which under load can be well past
+ * a few hundred ms. True once both hold.
+ */
+const settlesOn = (p, closed, target, ms = 10000) =>
+  p.waitFor(`(${closed}) && ${isTrigger(target)}`, ms, { quiet: true }).then(
+    () => true,
+    () => false,
+  );
+
+/**
  * One menu, by tap then by keyboard. `items` (exact, comma-joined) or
  * `count`, `checked` (the checked radios), `name` (the menu's accessible
  * name, a string or RegExp).
@@ -142,14 +155,10 @@ async function menu(p, label, trigger, { items, count, checked, name, shot, role
   }
   await p.screenshot(`${PREFIX}-${shot}`);
   await escape(p);
-  const closed = await p.waitFor(`!${MENU}`, 5000).then(
-    () => true,
-    () => false,
-  );
-  await sleep(200);
   check(
     `${label}: Escape closes it, and focus returns to the trigger`,
-    closed && (await p.evaluate(isTrigger(trigger))),
+    await settlesOn(p, `!${MENU}`, trigger),
+    await p.evaluate(ACTIVE),
   );
 
   // Keyboard: Enter opens with focus on an item, an arrow moves it, Escape returns focus.
@@ -178,9 +187,11 @@ async function menu(p, label, trigger, { items, count, checked, name, shot, role
     );
   }
   await escape(p);
-  await p.waitFor(`!${MENU}`, 5000).catch(() => {});
-  await sleep(200);
-  check(`${label}: keyboard Escape returns focus to the trigger`, await p.evaluate(isTrigger(trigger)));
+  check(
+    `${label}: keyboard Escape returns focus to the trigger`,
+    await settlesOn(p, `!${MENU}`, trigger),
+    await p.evaluate(ACTIVE),
+  );
 }
 
 /** The menu's background follows the theme (opened by tap, then closed). */
@@ -273,15 +284,11 @@ async function overlay(p, label, trigger, { name, shot, scheme, sheet, width, ke
       await p.screenshot(`${PREFIX}-${shot}`);
     }
     await escape(p);
-    const closed = await p.waitFor(`${DIALOGS}.length === ${before}`, 5000).then(
-      () => true,
-      () => false,
-    );
-    await sleep(300);
+    const settled = await settlesOn(p, `${DIALOGS}.length === ${before}`, trigger);
     check(
       `${label}: Escape closes only it, and focus returns to the opener (${how})`,
-      closed && (await p.evaluate(isTrigger(trigger))),
-      await p.evaluate(ACTIVE),
+      settled,
+      `${await count(p)} of ${before} overlays open; focus ${await p.evaluate(ACTIVE)}`,
     );
   }
 }
@@ -429,14 +436,9 @@ async function slice2(p, width, scheme) {
       await p.screenshot(`${PREFIX}-${shot("confirm")}`);
     }
     await escape(p);
-    const closed = await p.waitFor(`!document.querySelector("dialog[open]")`, 5000).then(
-      () => true,
-      () => false,
-    );
-    await sleep(200);
     check(
       `${tag} confirm (${how}): Escape closes it, focus back on the ⋯ button`,
-      closed && (await p.evaluate(isTrigger(trig))),
+      await settlesOn(p, `!document.querySelector("dialog[open]")`, trig),
       await p.evaluate(ACTIVE),
     );
   }
@@ -515,11 +517,13 @@ async function slice2(p, width, scheme) {
   );
   await p.screenshot(`${PREFIX}-${shot("provider-confirm")}`);
   await escape(p);
-  await p.waitFor(`!document.querySelector("dialog[open]")`, 5000).catch(() => {});
-  await sleep(300);
   check(
     `${tag} provider delete confirm: Escape closes only it, focus back on Delete provider`,
-    (await p.evaluate(`!!${SHEET}`)) && (await p.evaluate(isTrigger(button("Delete provider", SHEET)))),
+    await settlesOn(
+      p,
+      `!document.querySelector("dialog[open]") && !!${SHEET}`,
+      button("Delete provider", SHEET),
+    ),
     await p.evaluate(ACTIVE),
   );
   await escape(p);

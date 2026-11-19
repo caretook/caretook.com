@@ -1,6 +1,6 @@
 import type { Sender } from "./senders";
 
-import { isError } from "@caretook/data";
+import { isError, logError } from "@caretook/data";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { sweepOutbox } from "./outbox";
 
@@ -33,7 +33,7 @@ export const handleOutboxCron = async (
 
   const result = await sweepOutbox({ sender });
   if (isError(result)) {
-    console.error("[mail] outbox sweep failed", result);
+    logError("mail: outbox sweep failed", result);
     return json({ error: "Sweep failed" }, 500);
   }
   return json(result, 200);

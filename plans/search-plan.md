@@ -4,16 +4,16 @@
 
 ## Status
 
-| Slice | State                                    | Merge into `prd/search` (slice commits) |
-| ----- | ---------------------------------------- | --------------------------------------- |
-| 1     | not started (ready)                      |                                         |
-| 2     | blocked by 1, and `appointments` landing |                                         |
-| 3     | blocked by 1                             |                                         |
-| 4     | blocked by 2 and 3                       |                                         |
-| 5     | blocked by 3                             |                                         |
-| 6     | blocked by 1                             |                                         |
+| Slice | State                                         | Merge into `prd/search` (slice commits)     |
+| ----- | --------------------------------------------- | ------------------------------------------- |
+| 1     | landed in `dev` (`5016b1d`)                   | `8f0d824` (`8a89d76`, `07989af`, `34f68fd`) |
+| 2     | merged                                        | `4f1cbc5` (`2b99de8`, `c32de63`)            |
+| 3     | merged                                        | `8387f73` (`7b63e42`…`86ae5c5`)             |
+| 4     | merged                                        | `bffb16f` (`2e4e0ed`, `fadce76`, `f6ff58f`) |
+| 5     | merged; the timeline field wired at the merge | `86b1f6e` (`e4a8f71`, `13808d6`)            |
+| 6     | merged                                        | `a1961d9` (`dec4b03`, `d4a964d`)            |
 
-Backlog: B-11 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. The PRD and this plan are on `plan/search`, not yet in `dev`.
+Backlog: B-11 is `ready` at `bffb16f` (every slice merged). The user said (2026-11-19) to land waves without asking, move on to the next work, and clean up at the end; they chose one full suite before this final landing.
 
 ## Architectural decisions
 

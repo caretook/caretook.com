@@ -240,4 +240,17 @@ describe("appUrls.newMedication and editMedication", () => {
   it("builds the recipient's emergency sheet", () => {
     expect(appUrls.profilePrint(G)).toBe(`/app/groups/${G}/profile/print`);
   });
+
+  it("builds the search page, with its text and the section shown in full", () => {
+    expect(appUrls.search(G)).toBe(`/app/groups/${G}/search`);
+    expect(appUrls.search(G, "")).toBe(`/app/groups/${G}/search`);
+    expect(appUrls.search(G, "knee pain")).toBe(`/app/groups/${G}/search?q=knee+pain`);
+    expect(appUrls.search(G, "knee", { all: "entry" })).toBe(`/app/groups/${G}/search?q=knee&all=entry`);
+  });
+
+  it("drops a full section without a search, or of an unknown type", () => {
+    expect(appUrls.search(G, " ", { all: "entry" })).toBe(`/app/groups/${G}/search?q=+`);
+    // @ts-expect-error: only the search's item types exist.
+    expect(appUrls.search(G, "knee", { all: "bogus" })).toBe(`/app/groups/${G}/search?q=knee`);
+  });
 });

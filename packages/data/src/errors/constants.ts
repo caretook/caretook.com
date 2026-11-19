@@ -457,6 +457,17 @@ export const SERVICE_ERRORS = {
     message: "Care group not found",
     statusCode: 404,
   },
+  "searchService:notFound": {
+    message: "Care group not found",
+    statusCode: 404,
+  },
+  "searchService:badCursor": {
+    message: "Invalid page cursor",
+    statusCode: 400,
+  },
+  "searchService:query": {
+    message: "Failed to search",
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {

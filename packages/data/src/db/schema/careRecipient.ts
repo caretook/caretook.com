@@ -117,8 +117,9 @@ export const careRecipientUpdateZSchema = createUpdateSchema(careRecipientSchema
 
 /**
  * The profile fields every member sees and writers edit: the name, preferred
- * name and birthday, the medical basics and the note for helpers. Each is
- * optional: what's left out keeps its value, and an empty text clears it.
+ * name and birthday, the medical basics, the note for helpers and the time
+ * zone (edited in group settings). Each is optional: what's left out keeps
+ * its value, and an empty text clears it.
  * (`partial()` because a column override stays required in drizzle-zod's
  * update schema.)
  */
@@ -132,6 +133,7 @@ export const careRecipientProfileZSchema = careRecipientUpdateZSchema
     primaryLanguage: true,
     pronouns: true,
     notes: true,
+    timeZone: true,
   })
   .partial();
 export type CareRecipientProfileInput = z.infer<typeof careRecipientProfileZSchema>;

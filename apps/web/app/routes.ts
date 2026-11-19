@@ -61,6 +61,8 @@ const appRoutes = [
         ]),
         // The printable emergency sheet: a page of its own, not a sheet over the profile.
         route("profile/print", "routes/app/groups/profile/print/route.tsx"),
+        // Search the group's entries, providers and medications (not a section; the header's magnifier).
+        route("search", "routes/app/groups/search/route.tsx"),
       ]),
       // Start another care group (a sheet over its own page; not a group route).
       route("groups/new", "routes/app/groups/new/route.tsx"),
@@ -114,4 +116,10 @@ const webRoutes = [
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.
 const nativeRoutes = [index("routes/native-index.tsx")];
 
-export default [...(isNative ? nativeRoutes : webRoutes), ...appRoutes] satisfies RouteConfig;
+// The web-only routes sit in a pathless layout whose middleware adds the
+// security headers to resource routes (routes/web/route.ts; documents get them
+// in entry.server.tsx).
+export default [
+  ...(isNative ? nativeRoutes : [layout("routes/web/route.ts", { id: "web" }, webRoutes)]),
+  ...appRoutes,
+] satisfies RouteConfig;

@@ -1,5 +1,5 @@
 {
-  "id": "1d6d37ff-9a47-446a-ad24-e21c7c69022d",
+  "id": "ed28824c-57a1-40aa-9952-0509b417523f",
   "prevId": "f4745ed0-9d81-424e-856b-744037b58c87",
   "version": "7",
   "dialect": "postgresql",
@@ -87,10 +87,10 @@
       "uniqueConstraints": {
         "user_email_unique": {
           "name": "user_email_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -189,38 +189,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "relationship": {
-          "name": "relationship",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "shared_fields": {
-          "name": "shared_fields",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "emergency_rank": {
-          "name": "emergency_rank",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is_primary_contact": {
-          "name": "is_primary_contact",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "emergency_dropped_at": {
-          "name": "emergency_dropped_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp(3) with time zone",
@@ -260,77 +228,61 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
-        },
-        "care_group_member_primary_contact_unique": {
-          "name": "care_group_member_primary_contact_unique",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"care_group_member\".\"is_primary_contact\"",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "care_group_member_group_id_care_group_id_fk": {
           "name": "care_group_member_group_id_care_group_id_fk",
           "tableFrom": "care_group_member",
-          "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "care_group",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "care_group_member_user_id_user_id_fk": {
           "name": "care_group_member_user_id_user_id_fk",
           "tableFrom": "care_group_member",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "care_group_member_invited_by_user_id_fk": {
           "name": "care_group_member_invited_by_user_id_fk",
           "tableFrom": "care_group_member",
-          "tableTo": "user",
           "columnsFrom": [
             "invited_by"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "care_group_member_group_user_unique": {
           "name": "care_group_member_group_user_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "group_id",
             "user_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -389,30 +341,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "code_status": {
-          "name": "code_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "blood_type": {
-          "name": "blood_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "primary_language": {
-          "name": "primary_language",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pronouns": {
-          "name": "pronouns",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp(3) with time zone",
@@ -445,46 +373,37 @@
         "care_recipient_group_id_care_group_id_fk": {
           "name": "care_recipient_group_id_care_group_id_fk",
           "tableFrom": "care_recipient",
-          "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "care_group",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "care_recipient_group_id_unique": {
           "name": "care_recipient_group_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "group_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         },
         "care_recipient_group_id_id_unique": {
           "name": "care_recipient_group_id_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "group_id",
             "id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
-      "checkConstraints": {
-        "care_recipient_code_status_check": {
-          "name": "care_recipient_code_status_check",
-          "value": "\"care_recipient\".\"code_status\" IN ('fullCode', 'dnr', 'dnrPolst')"
-        },
-        "care_recipient_blood_type_check": {
-          "name": "care_recipient_blood_type_check",
-          "value": "\"care_recipient\".\"blood_type\" IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-')"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.care_group_invite": {
@@ -636,10 +555,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"care_group_invite\".\"status\" = 'pending'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"care_group_invite\".\"status\" = 'pending'",
+          "concurrently": false
         },
         "care_group_invite_email_idx": {
           "name": "care_group_invite_email_idx",
@@ -652,60 +571,60 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "care_group_invite_group_id_care_group_id_fk": {
           "name": "care_group_invite_group_id_care_group_id_fk",
           "tableFrom": "care_group_invite",
-          "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "care_group",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "care_group_invite_accepted_by_user_id_fk": {
           "name": "care_group_invite_accepted_by_user_id_fk",
           "tableFrom": "care_group_invite",
-          "tableTo": "user",
           "columnsFrom": [
             "accepted_by"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "care_group_invite_consent_attested_by_user_id_fk": {
           "name": "care_group_invite_consent_attested_by_user_id_fk",
           "tableFrom": "care_group_invite",
-          "tableTo": "user",
           "columnsFrom": [
             "consent_attested_by"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "care_group_invite_token_hash_unique": {
           "name": "care_group_invite_token_hash_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "token_hash"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -892,65 +811,65 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "timeline_entry_group_id_care_group_id_fk": {
           "name": "timeline_entry_group_id_care_group_id_fk",
           "tableFrom": "timeline_entry",
-          "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "care_group",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "timeline_entry_recipient_fk": {
           "name": "timeline_entry_recipient_fk",
           "tableFrom": "timeline_entry",
-          "tableTo": "care_recipient",
           "columnsFrom": [
             "group_id",
             "recipient_id"
           ],
+          "tableTo": "care_recipient",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "timeline_entry_rescheduled_to_fk": {
           "name": "timeline_entry_rescheduled_to_fk",
           "tableFrom": "timeline_entry",
-          "tableTo": "timeline_entry",
           "columnsFrom": [
             "group_id",
             "rescheduled_to"
           ],
+          "tableTo": "timeline_entry",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "timeline_entry_group_id_id_unique": {
           "name": "timeline_entry_group_id_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "group_id",
             "id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1055,58 +974,58 @@
         "note_document_entry_fk": {
           "name": "note_document_entry_fk",
           "tableFrom": "note_document",
-          "tableTo": "timeline_entry",
           "columnsFrom": [
             "group_id",
             "entry_id"
           ],
+          "tableTo": "timeline_entry",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "note_document_provider_fk": {
           "name": "note_document_provider_fk",
           "tableFrom": "note_document",
-          "tableTo": "provider",
           "columnsFrom": [
             "group_id",
             "provider_id"
           ],
+          "tableTo": "provider",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "note_document_medication_fk": {
           "name": "note_document_medication_fk",
           "tableFrom": "note_document",
-          "tableTo": "medication",
           "columnsFrom": [
             "group_id",
             "medication_id"
           ],
+          "tableTo": "medication",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "note_document_group_id_id_unique": {
           "name": "note_document_group_id_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "group_id",
             "id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1196,26 +1115,26 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "note_update_document_fk": {
           "name": "note_update_document_fk",
           "tableFrom": "note_update",
-          "tableTo": "note_document",
           "columnsFrom": [
             "group_id",
             "document_id"
           ],
+          "tableTo": "note_document",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1355,50 +1274,50 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "provider_group_id_care_group_id_fk": {
           "name": "provider_group_id_care_group_id_fk",
           "tableFrom": "provider",
-          "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "care_group",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "provider_practice_fk": {
           "name": "provider_practice_fk",
           "tableFrom": "provider",
-          "tableTo": "provider",
           "columnsFrom": [
             "group_id",
             "practice_id"
           ],
+          "tableTo": "provider",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "provider_group_id_id_unique": {
           "name": "provider_group_id_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "group_id",
             "id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1481,52 +1400,52 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "timeline_entry_provider_entry_fk": {
           "name": "timeline_entry_provider_entry_fk",
           "tableFrom": "timeline_entry_provider",
-          "tableTo": "timeline_entry",
           "columnsFrom": [
             "group_id",
             "entry_id"
           ],
+          "tableTo": "timeline_entry",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "timeline_entry_provider_provider_fk": {
           "name": "timeline_entry_provider_provider_fk",
           "tableFrom": "timeline_entry_provider",
-          "tableTo": "provider",
           "columnsFrom": [
             "group_id",
             "provider_id"
           ],
+          "tableTo": "provider",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "timeline_entry_provider_entry_provider_unique": {
           "name": "timeline_entry_provider_entry_provider_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "entry_id",
             "provider_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1631,9 +1550,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "account_provider_account_unique": {
           "name": "account_provider_account_unique",
@@ -1652,24 +1571,24 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "account_user_id_user_id_fk": {
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1803,34 +1722,34 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "session_token_unique": {
           "name": "session_token_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1893,9 +1812,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -1997,9 +1916,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "dev_mail_created_at_idx": {
           "name": "dev_mail_created_at_idx",
@@ -2012,9 +1931,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -2022,10 +1941,10 @@
       "uniqueConstraints": {
         "dev_mail_idempotency_key_unique": {
           "name": "dev_mail_idempotency_key_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "idempotency_key"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -2169,9 +2088,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "notification_outbox_sent_at_idx": {
           "name": "notification_outbox_sent_at_idx",
@@ -2184,9 +2103,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -2194,10 +2113,10 @@
       "uniqueConstraints": {
         "notification_outbox_idempotency_key_unique": {
           "name": "notification_outbox_idempotency_key_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "idempotency_key"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -2294,9 +2213,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "care_group_consent_user_idx": {
           "name": "care_group_consent_user_idx",
@@ -2309,50 +2228,50 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "care_group_consent_group_id_care_group_id_fk": {
           "name": "care_group_consent_group_id_care_group_id_fk",
           "tableFrom": "care_group_consent",
-          "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "care_group",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "care_group_consent_user_id_user_id_fk": {
           "name": "care_group_consent_user_id_user_id_fk",
           "tableFrom": "care_group_consent",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "care_group_consent_invite_id_care_group_invite_id_fk": {
           "name": "care_group_consent_invite_id_care_group_invite_id_fk",
           "tableFrom": "care_group_consent",
-          "tableTo": "care_group_invite",
           "columnsFrom": [
             "invite_id"
           ],
+          "tableTo": "care_group_invite",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -2465,10 +2384,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"care_group_join_request\".\"status\" = 'pending'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"care_group_join_request\".\"status\" = 'pending'",
+          "concurrently": false
         },
         "care_group_join_request_user_idx": {
           "name": "care_group_join_request_user_idx",
@@ -2481,63 +2400,63 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "care_group_join_request_group_id_care_group_id_fk": {
           "name": "care_group_join_request_group_id_care_group_id_fk",
           "tableFrom": "care_group_join_request",
-          "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "care_group",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "care_group_join_request_user_id_user_id_fk": {
           "name": "care_group_join_request_user_id_user_id_fk",
           "tableFrom": "care_group_join_request",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "care_group_join_request_invite_id_care_group_invite_id_fk": {
           "name": "care_group_join_request_invite_id_care_group_invite_id_fk",
           "tableFrom": "care_group_join_request",
-          "tableTo": "care_group_invite",
           "columnsFrom": [
             "invite_id"
           ],
+          "tableTo": "care_group_invite",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "care_group_join_request_decided_by_user_id_fk": {
           "name": "care_group_join_request_decided_by_user_id_fk",
           "tableFrom": "care_group_join_request",
-          "tableTo": "user",
           "columnsFrom": [
             "decided_by"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -2623,50 +2542,50 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "access_code_redemption_code_id_access_code_id_fk": {
           "name": "access_code_redemption_code_id_access_code_id_fk",
           "tableFrom": "access_code_redemption",
-          "tableTo": "access_code",
           "columnsFrom": [
             "code_id"
           ],
+          "tableTo": "access_code",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "access_code_redemption_user_id_user_id_fk": {
           "name": "access_code_redemption_user_id_user_id_fk",
           "tableFrom": "access_code_redemption",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "access_code_redemption_group_id_care_group_id_fk": {
           "name": "access_code_redemption_group_id_care_group_id_fk",
           "tableFrom": "access_code_redemption",
-          "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "care_group",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -2762,9 +2681,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -2966,80 +2885,80 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "medication_group_id_care_group_id_fk": {
           "name": "medication_group_id_care_group_id_fk",
           "tableFrom": "medication",
-          "tableTo": "care_group",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "care_group",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "medication_recipient_fk": {
           "name": "medication_recipient_fk",
           "tableFrom": "medication",
-          "tableTo": "care_recipient",
           "columnsFrom": [
             "group_id",
             "recipient_id"
           ],
+          "tableTo": "care_recipient",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "medication_prescriber_fk": {
           "name": "medication_prescriber_fk",
           "tableFrom": "medication",
-          "tableTo": "provider",
           "columnsFrom": [
             "group_id",
             "prescriber_id"
           ],
+          "tableTo": "provider",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "medication_pharmacy_fk": {
           "name": "medication_pharmacy_fk",
           "tableFrom": "medication",
-          "tableTo": "provider",
           "columnsFrom": [
             "group_id",
             "pharmacy_id"
           ],
+          "tableTo": "provider",
           "columnsTo": [
             "group_id",
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "medication_group_id_id_unique": {
           "name": "medication_group_id_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "group_id",
             "id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -3139,9 +3058,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -3242,336 +3161,14 @@
         }
       },
       "isRLSEnabled": false
-    },
-    "public.care_recipient_details": {
-      "name": "care_recipient_details",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "recipient_id": {
-          "name": "recipient_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phones": {
-          "name": "phones",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "address": {
-          "name": "address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "insurance": {
-          "name": "insurance",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "outside_contacts": {
-          "name": "outside_contacts",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "care_recipient_details_group_id_care_group_id_fk": {
-          "name": "care_recipient_details_group_id_care_group_id_fk",
-          "tableFrom": "care_recipient_details",
-          "tableTo": "care_group",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "care_recipient_details_recipient_fk": {
-          "name": "care_recipient_details_recipient_fk",
-          "tableFrom": "care_recipient_details",
-          "tableTo": "care_recipient",
-          "columnsFrom": [
-            "group_id",
-            "recipient_id"
-          ],
-          "columnsTo": [
-            "group_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "care_recipient_details_group_id_unique": {
-          "name": "care_recipient_details_group_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "group_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.user_contact": {
-      "name": "user_contact",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phones": {
-          "name": "phones",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "contact_email": {
-          "name": "contact_email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "address": {
-          "name": "address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "user_contact_user_id_user_id_fk": {
-          "name": "user_contact_user_id_user_id_fk",
-          "tableFrom": "user_contact",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "user_contact_user_id_unique": {
-          "name": "user_contact_user_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.member_contact_share": {
-      "name": "member_contact_share",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phones": {
-          "name": "phones",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "address": {
-          "name": "address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "member_contact_share_member_fk": {
-          "name": "member_contact_share_member_fk",
-          "tableFrom": "member_contact_share",
-          "tableTo": "care_group_member",
-          "columnsFrom": [
-            "group_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "group_id",
-            "user_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "member_contact_share_group_user_unique": {
-          "name": "member_contact_share_group_user_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "group_id",
-            "user_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
     }
   },
   "enums": {},
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

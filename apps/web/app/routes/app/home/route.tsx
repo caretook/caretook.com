@@ -9,7 +9,7 @@ import { rememberedGroup, resolveHomeGroup } from "~/lib/lastGroup";
 import { sessionContext } from "~/lib/session";
 import { useLiveQuery, waitForFirstSync } from "~/lib/sync";
 import { myGroupsQuery, readRows, toMyGroup } from "~/lib/sync/timeline";
-import { loadMyRequests, PendingRequests } from "./PendingRequests";
+import { loadMyRequests, PendingRequests, WITHDRAW_INTENT, withdrawRequest } from "./PendingRequests";
 import { NewGroupLink } from "./NewGroupLink";
 
 export function meta({}: Route.MetaArgs) {
@@ -27,6 +27,16 @@ export async function clientLoader({ context }: Route.ClientLoaderArgs) {
   const home = resolveHomeGroup({ groups: rows, remembered: rememberedGroup(db.userId) });
   if (home) throw redirect(appUrls.timeline(home));
   return { userId: db.userId, rows, synced, requests: await loadMyRequests() };
+}
+
+// The only write here: withdrawing a waiting request (online, through the
+// API). The loader then runs again, so the row goes.
+export async function clientAction({ request }: Route.ClientActionArgs) {
+  const form = await request.formData();
+  const requestId = form.get("requestId");
+  if (form.get("intent") !== WITHDRAW_INTENT || typeof requestId !== "string")
+    return { ok: false as const, error: "Something went wrong.", issues: [] };
+  return withdrawRequest(requestId);
 }
 
 export default function AppHome({ loaderData }: Route.ComponentProps) {

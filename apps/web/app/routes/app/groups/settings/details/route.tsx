@@ -9,13 +9,20 @@ import { formString } from "~/lib/form";
 import { getGroup, useGroup } from "~/lib/group";
 import { rpc } from "~/lib/rpc";
 import { failedSave, loadRecipientProfile } from "../api";
-import { GroupNameForm } from "./DetailsForms";
-import { groupSettingsAccess, NEEDS_CONNECTION, parseGroupName } from "../groupSettings";
+import { GroupNameForm, RecipientTimeZoneForm } from "./DetailsForms";
+import {
+  groupSettingsAccess,
+  NEEDS_CONNECTION,
+  parseGroupName,
+  parseRecipientTimeZone,
+  timeZoneLabel,
+} from "../groupSettings";
 
-// `…/settings/details`. Shared by web + native. The group's name comes from
-// the device's local copy (live, so it works offline and follows other
-// members' changes); renaming goes through the API: online only. The care
-// recipient is edited on their profile (`appUrls.profile`), linked from here.
+// `…/settings/details`. Shared by web + native. The group's name and the
+// recipient's time zone come from the device's local copy (live, so they work
+// offline and follow other members' changes); saving goes through the API:
+// online only. The rest of the recipient is edited on their profile
+// (`appUrls.profile`), linked from here.
 
 export const meta = () => [{ title: "Details · Group settings · Caretook" }];
 
@@ -37,6 +44,12 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       const parsed = parseGroupName({ name: formString(form, "name") });
       if (!parsed.ok) return parsed;
       await rpc.careGroup.update({ groupId, ...parsed.data });
+      return { ok: true };
+    }
+    if (intent === "updateRecipient") {
+      const parsed = parseRecipientTimeZone({ timeZone: formString(form, "timeZone") });
+      if (!parsed.ok) return parsed;
+      await rpc.careGroup.updateRecipient({ groupId, ...parsed.data });
       return { ok: true };
     }
     return { ok: false, error: "Unknown action.", issues: [] };
@@ -65,16 +78,35 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
         )}
       </SettingsCard>
 
-      {group.recipient && (
-        <p className="text-sm" data-profile-note="">
-          {group.recipient.displayName}'s name, birthday and details are on{" "}
-          <Link to={appUrls.profile(group.id)} className="link link-primary inline-flex items-center gap-1">
-            <UserRound className="size-4" aria-hidden="true" />
-            {group.recipient.displayName}'s profile
-          </Link>
-          .
-        </p>
-      )}
+      <SettingsCard id="care-recipient" title="Care recipient">
+        {!group.recipient ? (
+          <p className="text-base-content/70 text-sm">This care group has no care recipient yet.</p>
+        ) : (
+          <>
+            {online && access.editRecipient ? (
+              <RecipientTimeZoneForm timeZone={group.recipient.timeZone ?? null} />
+            ) : (
+              <Details>
+                <Detail
+                  label="Time zone"
+                  value={group.recipient.timeZone ? timeZoneLabel(group.recipient.timeZone) : null}
+                />
+              </Details>
+            )}
+            <p className="text-sm" data-profile-note="">
+              {group.recipient.displayName}'s name, birthday and details are on{" "}
+              <Link
+                to={appUrls.profile(group.id)}
+                className="link link-primary inline-flex items-center gap-1"
+              >
+                <UserRound className="size-4" aria-hidden="true" />
+                {group.recipient.displayName}'s profile
+              </Link>
+              .
+            </p>
+          </>
+        )}
+      </SettingsCard>
     </SettingsPage>
   );
 }

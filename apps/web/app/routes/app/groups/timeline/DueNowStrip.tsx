@@ -2,6 +2,7 @@ import { Pill } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { dueSlotLabel } from "~/lib/medicationDisplay";
+import { STRIP_CAP } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 import { useDueNow } from "./useDueNow";
 
@@ -22,7 +23,7 @@ export function DueNowStrip({ groupId, canWrite }: { groupId: string; canWrite: 
     <section
       aria-label="Due now"
       data-due-now
-      className="rounded-box border-warning/40 bg-warning/10 flex flex-wrap items-center gap-2 border px-3 py-2"
+      className={`rounded-box border-warning/40 bg-warning/10 flex flex-wrap items-center gap-2 border px-3 py-2 ${STRIP_CAP}`}
     >
       <p className="flex items-center gap-1.5 text-sm font-semibold">
         <Pill className="size-4" aria-hidden="true" />
