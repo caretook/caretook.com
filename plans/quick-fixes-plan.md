@@ -20,11 +20,19 @@
 | 12    | B-41 | merged  | e577fad (d75e3ba; 41b5bcb left out)                   |
 | 13    | B-42 | merged  | 94ce803 (eccbd1a)                                     |
 | 14    | B-37 | merged  | 9c08e01 (cf1f804)                                     |
-| 15    | B-71 | running |                                                       |
-| 16    | B-72 | running |                                                       |
-| 17    | B-44 | running |                                                       |
+| 15    | B-71 | landed  | 23e1be2 (wave 7)                                      |
+| 16    | B-72 | landed  | 23e1be2 (wave 7)                                      |
+| 17    | B-44 | landed  | 23e1be2 (wave 7)                                      |
 | 18    | B-73 | merged  | 59f380a (f6a783e)                                     |
 | 19    | B-67 | merged  | 0ddaaa7 (46e8be0)                                     |
+| 20    | B-74 | planned |                                                       |
+| 21    | B-70 | planned |                                                       |
+| 22    | B-81 | planned |                                                       |
+| 23    | B-82 | planned |                                                       |
+| 24    | B-64 | planned |                                                       |
+| 25    | B-69 | planned |                                                       |
+| 26    | B-78 | planned |                                                       |
+| 27    | B-65 | planned |                                                       |
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 landed as 8e0c2c0. Wave 6 (slices 10 and 14) is merged into `prd/quick-fixes`.
 
@@ -557,3 +565,165 @@ Both checks passed against the dev server minutes later, from the same code. So 
 - [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
 
 **Blocks:** none. **Blocked by:** none (independent of 18).
+
+---
+
+## Slice 20: medications.mjs stops flaking (B-74)
+
+**Problem.** `medications.mjs` fails intermittently in its own steps: the Discontinue dialog isn't open within 5 s, and "a second browser sees the notes as they're written" times out. A nearly finished fix is on `slice/medications/7` (b4e8190, one WIP commit: `components/ui/ConfirmDialog.tsx` +34 lines, `medications.mjs`). Its agent had `medications.mjs` passing three times in a row. That branch is 63 commits behind `dev`.
+
+**Build.**
+
+- Bring b4e8190's changes onto this slice (`git cherry-pick -n b4e8190`, resolve against current `dev`), then read them critically: keep the `ConfirmDialog` change only if it fixes a real app race (say which in the hand-off), and keep the check changes that wait on state, not time.
+- `ConfirmDialog` is a `ui/` primitive used everywhere: its contract (waits for an open menu to close before `showModal()`, Escape closes only the dialog, focus returns to the opener) must hold.
+
+**Acceptance criteria.**
+
+- [ ] `medications.mjs` passes in full mode (one run; a FLAKY retry counts, but say why it retried).
+- [ ] `ui.mjs` and `app-shell.mjs` pass (they cover `ConfirmDialog`).
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off. A real Conventional Commit, not the WIP message.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 21: ui.mjs focus flake after Escape on the provider sheet (B-70)
+
+**Problem.** `ui.mjs`'s "1280 dark provider add sheet: Escape closes only it, and focus returns to the opener (tap)" failed once under load (18→27) and passed on a rerun; the failure detail showed focus on the opener, so the step probably checked before the sheet had finished closing. See `.loops/.browser-flakes.log` in the main checkout.
+
+**Build.**
+
+- Find whether the step checks too early (wait for the sheet to be gone and focus to settle, with `waitFor`, not a sleep) or whether `ui/Sheet` returns focus late or twice (an app fix in `Sheet`, kept small). Say which in the hand-off.
+- Apply the same wait to the other sheets' Escape steps in `ui.mjs` if they share the pattern.
+
+**Acceptance criteria.**
+
+- [ ] The step waits on state; `ui.mjs` passes in full mode.
+- [ ] If `Sheet` changed: `roundtrip.mjs` and `providers.mjs` pass too.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 22: Security headers and a CSP (B-81)
+
+**Problem.** Nothing sets `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`/`frame-ancestors`, `Referrer-Policy`, `X-Content-Type-Options` or `Permissions-Policy` (no `headers` export, no `entry.server.tsx`, no host config). Security review S-5 (`plans/security-review.md`).
+
+**Build.**
+
+- One place sets the headers for **every web response** (documents, prerendered marketing pages as far as the host allows, resource routes, `/rpc`, `/api/auth`): e.g. an `entry.server.tsx` plus a shared helper in `app/.server/`, or root `headers`; pick one and say why. Prerendered pages are static files on Vercel: if headers can't come from the app there, put the same set in the host config (`vercel.json`) from the same helper or list, and say so.
+- **CSP:** `default-src 'self'`; `script-src 'self'` plus the hash of `THEME_SCRIPT` (computed from the constant at build or start, never hand-copied) and whatever React Router's inline hydration scripts need (prefer a per-request nonce for those if a hash can't work); `connect-src 'self'` plus the PowerSync URL (`POWERSYNC_URL`) and the API origin (`VITE_API_ORIGIN`) when set; `img-src 'self' data: blob:`; `style-src 'self' 'unsafe-inline'` only if Tailwind/daisyUI or React Aria need it (say so); `worker-src 'self' blob:` for PowerSync's workers; `frame-ancestors 'none'`; `base-uri 'self'`; `form-action 'self'`; `object-src 'none'`.
+- Dev: Vite's HMR (websocket, inline styles) and the dev mailbox's sandboxed iframe (`/dev/mail/:id`) need their own allowances in dev and check builds only.
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains` in production only; `Referrer-Policy: no-referrer` (keeps `/invite/:token` and `/join/:code` private); `X-Content-Type-Options: nosniff`; `Permissions-Policy` off for camera, microphone, geolocation, payment (keep what Web Share and clipboard need).
+- Native: the same CSP as a `<meta http-equiv>` in the SPA build (Capacitor), with Capacitor's origins where needed.
+- No new dependency. A unit test for the header builder (each directive present; the theme hash matches `THEME_SCRIPT`).
+
+**Acceptance criteria.**
+
+- [ ] A check build's document, `/rpc`, `/api/auth` and a marketing page carry the headers (a step in an existing check, or `sign-in.mjs`, reading response headers over CDP).
+- [ ] No CSP violation in the console across the full browser suite's core paths: run `sign-in`, `phase2`, `roundtrip`, `live-notes`, `marketing` and `invites` (the dev mailbox) on the check build; `cdp.mjs` already fails on `console.error`.
+- [ ] `pnpm build:native` contains the CSP meta tag.
+- [ ] `pnpm check` passes. Hand-off lists the final policy.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 23: Server logs carry codes and ids only (B-82)
+
+**Problem.** `toORPCError` logs the whole `AppError` on a 500 (`packages/api/src/errors.ts:29`), and its `meta` can hold the failing values; `routes/rpc.ts:26` and `.server/admin.ts:27` log the whole `authUser` lookup error. Hosting logs are a vendor copy. Security review S-8.
+
+**Build.**
+
+- One small logging helper (server only, e.g. in `packages/api` or `packages/data/errors`) that logs an error's **code, the procedure name, the request's ids** (actor id, group id when known) and, for a non-`AppError`, the error's class name and stack frames without its message if the message can carry values (say what you chose). Never `meta`, `issues`, bodies or values.
+- Use it at those three places and anywhere else that logs an `AppError` or request data on the server (grep `console.` in `packages/` and `apps/web/app/.server`, `routes/`; leave dev-only tools alone).
+- A unit test: an `AppError` whose `meta` holds a care field (e.g. a note title) never reaches the logged line.
+
+**Acceptance criteria.**
+
+- [ ] The three call sites log through the helper; no server log prints `meta` or values.
+- [ ] The unit test passes.
+- [ ] `pnpm check` passes. No browser checks needed (server logging only) unless `--changed` says otherwise.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 24: Withdraw a pending join request (B-64)
+
+**Problem.** A requester's `/app` home shows "Waiting for approval: <group>" (`routes/app/home/PendingRequests.tsx`), but there's no way to take it back. `joinRequest.withdraw` already exists in the API and service.
+
+**Build.**
+
+- A **Withdraw** button on each pending request (online only; offline it's disabled with "Needs a connection"), behind a `ConfirmDialog` ("Withdraw your request to join <group>?"); after it succeeds the row goes away. Declined rows ("Not approved") get no button.
+- Use the `ui/` primitives; no API change.
+
+**Acceptance criteria.**
+
+- [ ] As `joiner@example.com` (seeded pending request to Dev Family), Withdraw → confirm removes the row; the request is `withdrawn` in Postgres; owners no longer see it under Requests. Restore the seeded request at the end of the check (or make a fresh request through the seeded viewer link and withdraw that).
+- [ ] A step in `invites.mjs` (its link-request section) or `groups.mjs`; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 25: New care group link state moves to components/groups (B-69)
+
+**Problem.** `NEW_GROUP_LINK_STATE` and `openedFromApp` live in `routes/app/groups/new/newGroupLink.ts`, but `home/NewGroupLink.tsx`, `account/join/route.tsx`, `layout/GroupMenu.tsx` (and `lib/medicationSheets.ts`, `groups/medications/medicationSheet.ts`) import them, against the folder-per-route rule. The error code `careGroupInviteService:notAllowed` is unused.
+
+**Build.**
+
+- Move them to `components/groups/` (exported from its index) or to `lib/` if `lib/` modules need them (a `lib/` module must not import from `components/`; pick accordingly and say why). Update every importer; delete the old file. Move its test, if any.
+- Drop `careGroupInviteService:notAllowed` from `errors/constants.ts` after confirming nothing references it.
+- No behaviour change.
+
+**Acceptance criteria.**
+
+- [ ] No file outside `routes/app/groups/new/` imports from that folder.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off (likely `groups` and `app-shell`).
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 26: The vitals line and the Upcoming block are tidier (B-78)
+
+**Problem** (the user's words). "Improve timeline page display for vitals and upcoming banner. They should be limited. We should replace the word 'latest' with the vitals icon and match the style of the upcoming header. Width should be limited on very large screens: larger than the timeline column, but not too wide."
+
+**Build.**
+
+- `LatestVitals` (`routes/app/groups/timeline/LatestVitals.tsx`): replace the "Latest" label with the vital kind's icon (`KIND_META`'s, in its pink), keeping "Latest vitals" as its accessible name; match the **Next strip's** (`NextStrip.tsx`) height, padding, type and surface so the two lines read as one family. Limit what it shows collapsed (a small fixed number of readings, then the fade and "All vitals"); expanded stays as today.
+- `NextStrip` and `UpcomingBlock`: the same shared look; the block keeps its limit of 5.
+- **Width:** from `lg`, the header strips (vitals, Next, Live now, Due now) are capped wider than the entries' 1024 px column (`COLUMN_CAP`) but not full width (e.g. `max-w-7xl`, centred); pick the value and say why. Below `lg` nothing changes.
+- Put any shared class in one place (e.g. a `STRIP_CLASS` beside `COLUMN_CAP`). Search PRD is changing the timeline filter row: don't touch `TimelineFilters.tsx`.
+
+**Acceptance criteria.**
+
+- [ ] At 420: the vitals line shows the icon, not "Latest", and is 32 px tall; two readings still fit.
+- [ ] At 1280 and 1920: vitals and Next strips are the same height and style, wider than the entry column and narrower than the page, centred.
+- [ ] `phase2.mjs` (its vitals steps; update the "Latest" assertion) and `upcoming.mjs` pass.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 27: Change the care recipient's time zone (B-65)
+
+**Problem.** `care_recipient.time_zone` (required, IANA) is set from the creating device's zone and can't be changed; medication schedules are in it.
+
+**Build.**
+
+- In group settings **Details**, the care recipient card gets a **Time zone** field (owners, admins, caretakers; the same rights as `careGroup.updateRecipient`): a `ComboBox` or native `<select>` over `Intl.supportedValuesOf("timeZone")`, with the current zone and a "Use this device's (<zone>)" shortcut. Read-only `<dl>` offline and for viewers, as today.
+- `careGroup.updateRecipient` accepts `timeZone` (validated by `timeZoneZSchema`; an unknown zone is `careRecipientService:invalidTimeZone`). `careGroup.recipient` returns it.
+- A short note under the field: "Medication times follow this zone." No migration (the column exists).
+
+**Acceptance criteria.**
+
+- [ ] An owner changes the zone online; it saves, syncs, and the medications page's zone note follows it (restore Los Angeles at the end of the check).
+- [ ] A viewer sees it read-only; offline it's read-only with the notice.
+- [ ] An integration test for `updateRecipient` with a valid and an unknown zone.
+- [ ] A step in `app-shell.mjs` (group settings) or `ui.mjs`; `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none.
