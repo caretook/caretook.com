@@ -495,6 +495,7 @@ describe("the search's care period (?period=)", () => {
       upcoming: false,
       q: "",
       period: null,
+      vital: null,
     });
     expect(parseFilters("?q=knee&period=rehab").period).toBeNull();
   });
