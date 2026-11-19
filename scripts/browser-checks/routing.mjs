@@ -386,10 +386,12 @@ async function editSheetSteps(p) {
     psql(
       `UPDATE timeline_entry SET details = jsonb_set(details, '{name}', '"${fromServer}"'), updated_at = now() WHERE id = '${id}'`,
     );
-    await p.waitFor(
-      `window.caretookSync.powersync.getAll("SELECT 1 FROM timeline_entry WHERE json_extract(details, '$.name') = ?", [${JSON.stringify(fromServer)}]).then((r) => r.length === 1)`,
-      20000,
-    );
+    // Poll through evaluate: waitFor wraps its expression in !!(…), so a promise would pass at once.
+    const synced = () =>
+      p.evaluate(
+        `window.caretookSync.powersync.getAll("SELECT 1 FROM timeline_entry WHERE json_extract(details, '$.name') = ?", [${JSON.stringify(fromServer)}]).then((r) => r.length === 1)`,
+      );
+    for (const end = Date.now() + 20000; Date.now() < end && !(await synced());) await sleep(200);
     // Give the local database time to persist the synced row (a reload straight
     // after a download can reopen the copy from before it).
     await sleep(3000);
