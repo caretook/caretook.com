@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | State                      | Merge into `prd/medications-2` (slice commits)  |
-| ----- | -------------------------- | ----------------------------------------------- |
-| 1     | merged                     | d92771a (05033d4, 9f776b7, 1b52df3)             |
-| 2     | merged                     | 79b6edd (38649d2, fe4896e)                      |
-| 3     | merged                     | eff620e (6938aaf, c74c009, 1b1efa5); B-26 ready |
-| 4     | merged                     | 809f54a (2a0a9d9)                               |
-| 5     | in progress (B-86 claimed) |                                                 |
-| 6     | in progress                |                                                 |
-| 7     | merged                     | 734a0a1 (f228f3d); B-51 ready                   |
+| Slice | State  | Merge into `prd/medications-2` (slice commits)  |
+| ----- | ------ | ----------------------------------------------- |
+| 1     | merged | d92771a (05033d4, 9f776b7, 1b52df3)             |
+| 2     | merged | 79b6edd (38649d2, fe4896e)                      |
+| 3     | merged | eff620e (6938aaf, c74c009, 1b1efa5); B-26 ready |
+| 4     | merged | 809f54a (2a0a9d9)                               |
+| 5     | merged | 39b8de0 (690a510); B-86 ready                   |
+| 6     | merged | f24ff7d (41a1df4); B-76 ready                   |
+| 7     | merged | 734a0a1 (f228f3d); B-51 ready                   |
 
-`dev` synced at 3a897e0 (profiles landed with `0017_profiles`): this PRD's migration is now **`0018_medication_passes_allergies`** (regenerated, with the hand-written `ALTER PUBLICATION` kept); the profiles emergency sheet's test moved to the `slots` shape. Slice 7's `--changed` run left phase2's 3 tooltip-hover steps unconfirmed (load); the landing suite covers it.
+**Every slice is merged.** `dev` synced twice: at 3a897e0 (profiles, `0017_profiles`) and at 5a84161 (care periods, `0018_care_periods`). This PRD's migration is now **`0019_medication_passes_allergies`** (byte-identical SQL, hand-written `ALTER PUBLICATION` kept). Pass logs fold beside care period markers through `timeline/dayItems.ts` (`foldPassLogs`, tested). AGENTS.md has this PRD's decisions. Next: the full suite once (the user said not to ask), `pnpm prd check`, land, `pnpm prd rm medications-2`.
 
 **Landing mode: run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
