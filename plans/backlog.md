@@ -735,3 +735,5 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - prd: orchestration
 - owner:
 - commit:
+
+- 2026-11-18 (Robert Bo Davis): Proposed for orchestration: a 'pnpm backlog archive' that moves live (or landed) items out of backlog.md into an archive file and prunes their inbox bullets, run by hand or at landing.
