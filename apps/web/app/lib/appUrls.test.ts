@@ -238,6 +238,17 @@ describe("appUrls.newMedication and editMedication", () => {
     // @ts-expect-error: only the search's item types exist.
     expect(appUrls.search(G, "knee", { all: "bogus" })).toBe(`/app/groups/${G}/search?q=knee`);
   });
+
+  it("carries the search's care period, only with a search", () => {
+    const P = "3f2b8c1e-5d1a-4c2e-9a77-0b6f3c1e0042";
+    expect(appUrls.search(G, "knee", { period: P })).toBe(`/app/groups/${G}/search?q=knee&period=${P}`);
+    expect(appUrls.search(G, "knee", { all: "entry", period: P })).toBe(
+      `/app/groups/${G}/search?q=knee&all=entry&period=${P}`,
+    );
+    expect(appUrls.search(G, " ", { period: P })).toBe(`/app/groups/${G}/search?q=+`);
+    expect(appUrls.search(G, "", { period: P })).toBe(`/app/groups/${G}/search`);
+    expect(appUrls.search(G, "knee", { period: null })).toBe(`/app/groups/${G}/search?q=knee`);
+  });
 });
 
 describe("appUrls: care periods", () => {

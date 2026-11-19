@@ -22,7 +22,7 @@ const serverStatus = () => "preparing" as const;
  */
 export function useSearchPage(groupId: string, initial: SearchPageData) {
   const { search } = useLocation();
-  const { q, all } = parseSearchPage(search);
+  const { q, all, period } = parseSearchPage(search);
   const status = useSyncExternalStore(subscribeSearchIndexStatus, searchIndexStatus, serverStatus);
   const [changes, setChanges] = useState(0);
   useEffect(() => subscribeSearchIndexChanges(() => setChanges((n) => n + 1)), []);
@@ -39,7 +39,7 @@ export function useSearchPage(groupId: string, initial: SearchPageData) {
     } catch {
       return; // Signing out: nothing left to search.
     }
-    loadSearch(db, groupId, { q, all })
+    loadSearch(db, groupId, { q, all, period })
       .then((data) => {
         if (current) setState((s) => ({ ...s, data }));
       })
@@ -47,12 +47,14 @@ export function useSearchPage(groupId: string, initial: SearchPageData) {
     return () => {
       current = false;
     };
-  }, [groupId, q, all, changes, status]);
+  }, [groupId, q, all, period, changes, status]);
 
   const data = state.initial === initial ? state.data : initial;
   return {
     /** The text in the URL now (the results can still be the previous search's for a moment). */
     q,
+    /** The care period in the URL now (`?period=`; checked against the group's by the page). */
+    period,
     data,
     /** "Preparing search…" until the index exists in this build's format. */
     preparing: status === "preparing",

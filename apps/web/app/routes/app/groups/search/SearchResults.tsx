@@ -98,19 +98,32 @@ export function SearchResults({
               );
             })}
           </ul>
-          <SectionLinks section={section} groupId={groupId} q={data.q} />
+          <SectionLinks section={section} groupId={groupId} q={data.q} period={data.period} />
         </section>
       ))}
     </>
   );
 }
 
-/** "Show all N" (or "Show fewer") for the section, and, under entries, "See all N in timeline". */
-function SectionLinks({ section, groupId, q }: { section: ResultSection; groupId: string; q: string }) {
+/**
+ * "Show all N" (or "Show fewer") for the section, and, under entries, "See
+ * all N in timeline" (with the care period, as the timeline's period chip).
+ */
+function SectionLinks({
+  section,
+  groupId,
+  q,
+  period,
+}: {
+  section: ResultSection;
+  groupId: string;
+  q: string;
+  period: string | null;
+}) {
   const toggle = section.full
-    ? { label: "Show fewer", to: appUrls.search(groupId, q) }
+    ? { label: "Show fewer", to: appUrls.search(groupId, q, { period }) }
     : section.hidden > 0
-      ? { label: `Show all ${section.total}`, to: appUrls.search(groupId, q, { all: section.type }) }
+      ? { label: `Show all ${section.total}`, to: appUrls.search(groupId, q, { all: section.type, period }) }
       : null;
   const timeline = section.type === "entry";
   if (!toggle && !timeline) return null;
@@ -130,7 +143,7 @@ function SectionLinks({ section, groupId, q }: { section: ResultSection; groupId
       )}
       {timeline && (
         <Link
-          to={appUrls.timeline(groupId, { q: q.trim() })}
+          to={appUrls.timeline(groupId, { q: q.trim(), period })}
           className="link link-hover text-primary"
           data-see-timeline
         >

@@ -151,6 +151,8 @@ apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx phase2 search
 apps/web/app/routes/app/groups/timeline/useSearchField.ts phase2 search
 apps/web/app/routes/app/groups/timeline/timelineSearch.ts search
 apps/web/app/routes/app/groups/timeline/useSearchIndexStatus.ts search
+# The search's care period chip (care-periods slice 6).
+apps/web/app/routes/app/groups/timeline/usePeriodSearch.ts search
 apps/web/app/routes/app/groups/timeline/route.tsx phase2 roundtrip search
 apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
 apps/web/app/components/entry/*          phase2 roundtrip live-notes upcoming
@@ -194,6 +196,8 @@ apps/web/app/routes/app/groups/period/*  care-periods
 # shared query language and search documents.
 apps/web/app/lib/sync/search.ts          search
 apps/web/app/lib/sync/searchTables.ts    search sign-in signout-wipe
+# Searching within a care period (care-periods slice 6): the choices, live.
+apps/web/app/lib/sync/periodSearch.ts    search
 # The search page (slice 3); its pure ranking and grouping (lib/searchResults.ts)
 # has unit tests. Entries open as on the timeline (lib/entryOpen.ts, also unit-tested).
 apps/web/app/routes/app/groups/search/*  search

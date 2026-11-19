@@ -20,19 +20,32 @@ const hit = (id: string, over: Partial<RankedHit> = {}): RankedHit => ({
   ...over,
 });
 
+const PERIOD = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+
 const ids = (hits: readonly RankedHit[]) => hits.map((h) => h.id);
 
 describe("parseSearchPage", () => {
   it("reads the text as typed and the section shown in full", () => {
-    expect(parseSearchPage("?q=knee%20pain&all=entry")).toEqual({ q: "knee pain", all: "entry" });
-    expect(parseSearchPage("?q= knee ")).toEqual({ q: " knee ", all: null });
-    expect(parseSearchPage("")).toEqual({ q: "", all: null });
+    expect(parseSearchPage("?q=knee%20pain&all=entry")).toEqual({
+      q: "knee pain",
+      all: "entry",
+      period: null,
+    });
+    expect(parseSearchPage("?q= knee ")).toEqual({ q: " knee ", all: null, period: null });
+    expect(parseSearchPage("")).toEqual({ q: "", all: null, period: null });
   });
 
   it("drops an unknown section, and a section without a search", () => {
     expect(parseSearchPage("?q=knee&all=bogus").all).toBeNull();
     expect(parseSearchPage("?all=entry").all).toBeNull();
     expect(parseSearchPage("?q=%20&all=entry").all).toBeNull();
+  });
+
+  it("reads a care period only with a search, and only a row id", () => {
+    expect(parseSearchPage(`?q=knee&period=${PERIOD.toUpperCase()}`).period).toBe(PERIOD);
+    expect(parseSearchPage(`?period=${PERIOD}`).period).toBeNull();
+    expect(parseSearchPage(`?q=%20&period=${PERIOD}`).period).toBeNull();
+    expect(parseSearchPage("?q=knee&period=rehab").period).toBeNull();
   });
 
   it("caps the text at the parser's length", () => {
