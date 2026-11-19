@@ -132,6 +132,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-90 | change | triaged | quick-fixes |  | Seed data with multiple care groups and user mix for improved manual testing. |
 | B-91 | feature | triaged | admin |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-92 | change | triaged | quick-fixes |  | Units save offline: move the Units settings page onto saveSettings |
+| B-93 | bug | triaged | quick-fixes |  | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
 
 ## Items
 
@@ -1169,3 +1170,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user, in the backlog planning session). AGENTS.md (Sync, not built): units still save online only; routes/app/settings/units/route.tsx calls rpc.me.updatePreferences directly. Use saveSettings like the timeline layout (pending offline, sent later; loadSettings shows the pending change), and drop the offline notice. Checks: settings-layout, layout-offline.
+
+### B-93 · bug · Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user). .loops/.browser-flakes.log has timeouts with no contention: phase2 (load 10→7, 14→31), roundtrip (11→12), providers (8→8), medications (8→9); plus the providers.mjs 16-minute hang after the non-member 404 step (practiceDeleteSteps). Read each first-run log, find the step, and replace fixed sleeps or early checks with waits on state (as B-70 did with settlesOn). Cuts reruns (related to B-89).
