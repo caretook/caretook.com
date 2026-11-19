@@ -40,6 +40,18 @@ describe("appUrls", () => {
     expect(appUrls.provider("g", "a/b")).toBe("/app/groups/g/providers/a%2Fb");
   });
 
+  it("builds the medication list with its search, and a medication's page", () => {
+    expect(appUrls.medications(G)).toBe(`/app/groups/${G}/medications`);
+    expect(appUrls.medications("g", "?q=blood&status=current")).toBe(
+      "/app/groups/g/medications?q=blood&status=current",
+    );
+    expect(appUrls.medications("g", { q: "", status: "completed" })).toBe(
+      "/app/groups/g/medications?status=completed",
+    );
+    expect(appUrls.medication(G, "m1")).toBe(`/app/groups/${G}/medications/m1`);
+    expect(appUrls.medication("g", "a/b")).toBe("/app/groups/g/medications/a%2Fb");
+  });
+
   it("builds a group's settings subpages, and drops an unknown one", () => {
     expect(appUrls.groupSettings(G, "details")).toBe(`/app/groups/${G}/settings/details`);
     expect(appUrls.groupSettings(G, "members")).toBe(`/app/groups/${G}/settings/members`);
