@@ -17,8 +17,18 @@ import { closeSync, openSync } from "./sync";
 // middleware below it reads it from there (`context.get(sessionContext)`)
 // rather than checking again. Concurrent calls share one in-flight check.
 
-/** `image` is optional: users cached before it was added have none. */
-export type SessionUser = { id: string; name: string | null; email: string; image?: string | null };
+/**
+ * `image` and `role` are optional: users cached before they were added have
+ * none. `role` is the global role (admin, support, member), for the account
+ * menu's Admin item only; the server checks it again on every staff request.
+ */
+export type SessionUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  image?: string | null;
+  role?: string | null;
+};
 
 const SESSION_KEY = "caretook:session-user";
 
@@ -73,6 +83,12 @@ const forgetSessionUser = () => {
   }
 };
 
+/** The user's global role: an additional field the client's types don't know about. */
+const roleOf = (user: object) => {
+  const role = (user as { role?: unknown }).role;
+  return typeof role === "string" ? role : null;
+};
+
 /**
  * Wipe this device's copy: stop syncing, empty the local database (vacuumed,
  * so no freed page keeps a deleted row) and drop its search index, and forget the cached user, settings (pending changes too),
@@ -111,7 +127,7 @@ const resolveUser = async (): Promise<Resolved> => {
     // Better Auth doesn't sign in an unconfirmed address; this guards the rest.
     if (!user.emailVerified) return "unverified";
     confirmNow(user.id);
-    return { id: user.id, name: user.name, email: user.email, image: user.image ?? null };
+    return { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: roleOf(user) };
   }
   if (answer.kind === "signedOut") {
     if (cachedUser()) await wipeDevice();

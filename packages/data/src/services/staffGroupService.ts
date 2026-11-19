@@ -3,10 +3,12 @@ import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import { FALLBACK_TIME_ZONE } from "../db/schema";
+import { auditChanges, FALLBACK_TIME_ZONE } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupInviteModel, careGroupModel, careRecipientModel } from "../models";
+import * as adminAuditService from "./adminAuditService";
 import * as careGroupInviteService from "./careGroupInviteService";
+import { staffRefusal } from "./staffAccess";
 import { addDefaults as addDefaultPasses } from "./medicationPassService";
 
 export const serviceName = "staffGroup";
@@ -16,7 +18,9 @@ export const schemaName = careGroupModel.schemaName;
 // a group with its recipient and no members, plus an owner invite by email.
 // The staff member never becomes a member, so they see none of its care
 // data; the group records them as its creator and the invite as the one who
-// confirmed the recipient agreed to share.
+// confirmed the recipient agreed to share. Needs `staffGroups.create`
+// (admin and support), and records `staffGroup.create` in the same
+// transaction (the group's name and the owner's address, nothing else).
 
 export type StaffGroupInput = {
   groupName: string;
@@ -28,15 +32,14 @@ export type StaffGroupInput = {
   attested: boolean;
 };
 
-const isStaff = (ctx: ServiceContext) => !!ctx.authUser?.roleNames.includes("admin");
-
 export const createWithOwnerInvite = (
   ctx: ServiceContext,
   input: StaffGroupInput,
   opts: { mail?: InviteMailer } = {},
 ) =>
   withTransaction(async (tx) => {
-    if (!isStaff(ctx) || !ctx.authUser) return newError({ code: "staffGroupService:staffOnly" });
+    if (staffRefusal(ctx, "staffGroups.create") || !ctx.authUser)
+      return newError({ code: "staffGroupService:staffOnly" });
     if (!input.attested) return newError({ code: "careGroupInviteService:notAttested" });
     const staffId = ctx.authUser.id;
     const system = { authUser: SYSTEM_USER, tx };
@@ -75,6 +78,17 @@ export const createWithOwnerInvite = (
       data: { consentAttestedBy: staffId },
     });
     if (isError(attested)) return attested;
+
+    const recorded = await adminAuditService.record(tx, {
+      actorId: staffId,
+      action: "staffGroup.create",
+      targetGroupId: group.id,
+      changes: auditChanges(null, { name: group.name, ownerEmail: sent.invite.email }, [
+        "name",
+        "ownerEmail",
+      ]),
+    });
+    if (isError(recorded)) return recorded;
 
     return { groupId: group.id, groupName: group.name, inviteId: sent.invite.id, queued: sent.queued };
   }, ctx);

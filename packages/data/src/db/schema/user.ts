@@ -3,7 +3,7 @@ import type { ProtectedField } from "./columns";
 import type { UserPreferences } from "./userPreferences";
 
 import { sql } from "drizzle-orm";
-import { boolean, check, jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, check, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import { USER_ROLE_NAMES } from "../../constants/roles";
@@ -23,6 +23,12 @@ export const userSchema = pgTable(
     // Display settings (units…), validated by userPreferencesZSchema. Read
     // through its resolvers, which fill in defaults.
     preferences: jsonb("preferences").$type<UserPreferences>().notNull().default({}),
+    // A disabled account (admin PRD): no sessions, no sign-in, no tokens; its
+    // memberships and data stay. Set and cleared only by staff, through the
+    // services (as the system). `disabled_by` has no FK, as with audits.
+    disabledAt: timestamp("disabled_at", { precision: 3, mode: "string", withTimezone: true }),
+    disabledBy: uuid("disabled_by"),
+    disabledReason: text("disabled_reason"),
     ...timestamps,
     ...audits,
   },

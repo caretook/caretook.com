@@ -21,15 +21,17 @@ import { isError, newError } from "../errors";
 
 const NO_ACCESS = {
   admin: ["none"],
+  support: ["none"],
   member: ["none"],
   system: ["none"],
   unauthenticated: ["none"],
 } as const satisfies PermissionEntry<DbSchemaName>;
 
-/** Admins and the system can touch every row; members only their own. */
+/** Admins and the system can touch every row; members (and support) only their own. */
 export const DEFAULT_PERMISSION_ENTRY = {
   ...NO_ACCESS,
   admin: ["all"],
+  support: ["owned"],
   member: ["owned"],
   system: ["all"],
 } as const satisfies PermissionEntry<DbSchemaName>;
@@ -41,10 +43,27 @@ export const ADMIN_ONLY_PERMISSION_ENTRY = {
   system: ["all"],
 } as const satisfies PermissionEntry<DbSchemaName>;
 
+/**
+ * Caretook staff (admin and support) and the system: what both staff roles
+ * read, and the staff writes support may make too (access codes). What each
+ * role may do in /admin is decided by db/schema/staffRules.ts, checked
+ * before any service runs.
+ */
+export const STAFF_PERMISSION_ENTRY = {
+  ...NO_ACCESS,
+  admin: ["all"],
+  support: ["all"],
+  system: ["all"],
+} as const satisfies PermissionEntry<DbSchemaName>;
+
+/** Nobody, the system included: append-only and permanent rows. */
+const NOBODY_ENTRY = NO_ACCESS satisfies PermissionEntry<DbSchemaName>;
+
 /** Any signed-in user, plus the system. */
 const SIGNED_IN_PERMISSION_ENTRY = {
   ...NO_ACCESS,
   admin: ["all"],
+  support: ["all"],
   member: ["all"],
   system: ["all"],
 } as const satisfies PermissionEntry<DbSchemaName>;
@@ -56,6 +75,7 @@ const SIGNED_IN_PERMISSION_ENTRY = {
 const groupEntry = (roles: readonly GroupRoleName[]) =>
   ({ ...NO_ACCESS, system: ["all"], group: roles }) as const satisfies PermissionEntry<DbSchemaName>;
 
+/** Admins and the system: support may not change roles or emails. */
 const STAFF_ONLY: readonly PermissionRoleName[] = ["admin", "system"];
 /** Set by services running as SYSTEM_USER, or not at all. */
 const SYSTEM_ONLY: readonly PermissionRoleName[] = ["system"];
@@ -91,8 +111,19 @@ export const PERMISSIONS: Permissions = {
     groupUserField: "id",
     // Accounts are created by the auth flow (running as SYSTEM_USER) or by staff.
     create: ADMIN_ONLY_PERMISSION_ENTRY,
-    read: { ...DEFAULT_PERMISSION_ENTRY, group: ANY_GROUP_ROLE, groupFields: PUBLIC_PROFILE_FIELDS },
-    list: { ...DEFAULT_PERMISSION_ENTRY, group: ANY_GROUP_ROLE, groupFields: PUBLIC_PROFILE_FIELDS },
+    // Staff (support too) look accounts up; members read themselves and co-members.
+    read: {
+      ...DEFAULT_PERMISSION_ENTRY,
+      support: ["all"],
+      group: ANY_GROUP_ROLE,
+      groupFields: PUBLIC_PROFILE_FIELDS,
+    },
+    list: {
+      ...DEFAULT_PERMISSION_ENTRY,
+      support: ["all"],
+      group: ANY_GROUP_ROLE,
+      groupFields: PUBLIC_PROFILE_FIELDS,
+    },
     update: {
       ...DEFAULT_PERMISSION_ENTRY,
       // Members can edit their profile but not escalate their role, and
@@ -101,6 +132,10 @@ export const PERMISSIONS: Permissions = {
         role: STAFF_ONLY,
         email: STAFF_ONLY,
         emailVerified: STAFF_ONLY,
+        // Disabling goes through the staff services, as the system.
+        disabledAt: SYSTEM_ONLY,
+        disabledBy: SYSTEM_ONLY,
+        disabledReason: SYSTEM_ONLY,
       },
     },
     // Members can delete their own account (a consumer-health-data requirement).
@@ -155,7 +190,7 @@ export const PERMISSIONS: Permissions = {
       },
     },
     // Managers remove members; anyone can remove themselves (leave).
-    delete: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    delete: { ...groupEntry(MANAGERS), admin: ["owned"], support: ["owned"], member: ["owned"] },
   },
 
   careRecipientSchema: {
@@ -288,8 +323,8 @@ export const PERMISSIONS: Permissions = {
   careGroupConsentSchema: {
     ownerField: "userId",
     groupField: "groupId",
-    read: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
-    list: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    read: { ...groupEntry(MANAGERS), admin: ["owned"], support: ["owned"], member: ["owned"] },
+    list: { ...groupEntry(MANAGERS), admin: ["owned"], support: ["owned"], member: ["owned"] },
     create: SYSTEM_ONLY_ENTRY,
     update: SYSTEM_ONLY_ENTRY,
     delete: SYSTEM_ONLY_ENTRY,
@@ -301,27 +336,27 @@ export const PERMISSIONS: Permissions = {
   careGroupJoinRequestSchema: {
     ownerField: "userId",
     groupField: "groupId",
-    read: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
-    list: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
+    read: { ...groupEntry(MANAGERS), admin: ["owned"], support: ["owned"], member: ["owned"] },
+    list: { ...groupEntry(MANAGERS), admin: ["owned"], support: ["owned"], member: ["owned"] },
     create: SYSTEM_ONLY_ENTRY,
     update: SYSTEM_ONLY_ENTRY,
     delete: SYSTEM_ONLY_ENTRY,
   },
 
   // Access codes (staff-made tickets for starting a group) and who used
-  // them: Caretook staff (global admin) only. Redeeming a code runs as the
-  // system, inside sign-up (accessCodeService.redeem).
+  // them: Caretook staff (admin and support) only. Redeeming a code runs as
+  // the system, inside sign-up (accessCodeService.redeem).
   accessCodeSchema: {
-    create: ADMIN_ONLY_PERMISSION_ENTRY,
-    read: ADMIN_ONLY_PERMISSION_ENTRY,
-    list: ADMIN_ONLY_PERMISSION_ENTRY,
-    update: { ...ADMIN_ONLY_PERMISSION_ENTRY, fields: { code: SYSTEM_ONLY, useCount: SYSTEM_ONLY } },
+    create: STAFF_PERMISSION_ENTRY,
+    read: STAFF_PERMISSION_ENTRY,
+    list: STAFF_PERMISSION_ENTRY,
+    update: { ...STAFF_PERMISSION_ENTRY, fields: { code: SYSTEM_ONLY, useCount: SYSTEM_ONLY } },
     delete: ADMIN_ONLY_PERMISSION_ENTRY,
   },
   accessCodeRedemptionSchema: {
     create: SYSTEM_ONLY_ENTRY,
-    read: ADMIN_ONLY_PERMISSION_ENTRY,
-    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    read: STAFF_PERMISSION_ENTRY,
+    list: STAFF_PERMISSION_ENTRY,
     update: SYSTEM_ONLY_ENTRY,
     delete: SYSTEM_ONLY_ENTRY,
   },
@@ -347,8 +382,8 @@ export const PERMISSIONS: Permissions = {
   // contactMessageService.send); read, and removed on request, by staff.
   waitlistEntrySchema: {
     create: SYSTEM_ONLY_ENTRY,
-    read: ADMIN_ONLY_PERMISSION_ENTRY,
-    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    read: STAFF_PERMISSION_ENTRY,
+    list: STAFF_PERMISSION_ENTRY,
     update: SYSTEM_ONLY_ENTRY,
     delete: ADMIN_ONLY_PERMISSION_ENTRY,
   },
@@ -381,17 +416,18 @@ export const PERMISSIONS: Permissions = {
   // replicated. Groups see only what's shared, through member_contact_share.
   userContactSchema: {
     ownerField: "userId",
-    create: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
-    read: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
-    list: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+    create: { ...NO_ACCESS, admin: ["owned"], support: ["owned"], member: ["owned"], system: ["all"] },
+    read: { ...NO_ACCESS, admin: ["owned"], support: ["owned"], member: ["owned"], system: ["all"] },
+    list: { ...NO_ACCESS, admin: ["owned"], support: ["owned"], member: ["owned"], system: ["all"] },
     update: {
       ...NO_ACCESS,
       admin: ["owned"],
+      support: ["owned"],
       member: ["owned"],
       system: ["all"],
       fields: { userId: SYSTEM_ONLY },
     },
-    delete: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+    delete: { ...NO_ACCESS, admin: ["owned"], support: ["owned"], member: ["owned"], system: ["all"] },
   },
 
   // What each member shares with a group: read by the group, written only
@@ -448,6 +484,27 @@ export const PERMISSIONS: Permissions = {
       fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
     },
     delete: groupEntry(WRITERS),
+  },
+
+  // The staff audit log (admin PRD): append-only. Only the system writes it
+  // (adminAuditService.record, inside the action's transaction); staff read
+  // it; nobody, the system included, updates or deletes a row.
+  adminAuditLogSchema: {
+    create: SYSTEM_ONLY_ENTRY,
+    read: STAFF_PERMISSION_ENTRY,
+    list: STAFF_PERMISSION_ENTRY,
+    update: NOBODY_ENTRY,
+    delete: NOBODY_ENTRY,
+  },
+
+  // Settings changed without a deploy (admin PRD): staff read them; only
+  // the system writes them (setSetting, after the capability check).
+  appSettingSchema: {
+    create: SYSTEM_ONLY_ENTRY,
+    read: STAFF_PERMISSION_ENTRY,
+    list: STAFF_PERMISSION_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: NOBODY_ENTRY,
   },
 };
 

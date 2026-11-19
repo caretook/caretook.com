@@ -93,4 +93,12 @@ describe("inviteRefusal", () => {
     expect(inviteRefusal({ data: { code: "other" }, message: "x" })).toBeNull();
     expect(inviteRefusal(new Error("boom"))).toBeNull();
   });
+  it("says a switched-off path isn't available, and leaves link limits to their fields", () => {
+    expect(inviteRefusal({ data: { code: "settings:signupClosed" }, message: "Not available" })).toBe(
+      "Not available",
+    );
+    expect(
+      inviteRefusal({ data: { code: "careGroupInviteService:linkTooLong" }, message: "Too long" }),
+    ).toBeNull();
+  });
 });

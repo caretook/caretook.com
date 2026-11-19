@@ -4,6 +4,7 @@ import type { QueryCreateArgs } from "../base/queryHelpers";
 import { randomUUID } from "node:crypto";
 import { SYSTEM_USER } from "../../constants";
 import { withTransaction } from "../../db";
+import { staffCan } from "../../db/schema";
 import { isError } from "../../errors";
 import { isSystemUser, rejectError } from "../../permissions";
 import * as baseModel from "../base";
@@ -70,13 +71,13 @@ export const upsert = async (args: CareGroupCreateArgs) => {
 
 /**
  * A group with no members yet, for staff onboarding a family by hand: its
- * owner joins later through an owner invite. Staff (global admin) and the
- * system only; the row records the staff member as its creator, though they
+ * owner joins later through an owner invite. Staff who may set up groups
+ * (`staffGroups.create`) and the system only; the row records the staff member as its creator, though they
  * can't read it back (staff get no access to care data).
  */
 export const createWithoutOwner = async (args: QueryCreateArgs<typeof schemaName>) => {
   const { authUser } = args;
-  if (!authUser || !(isSystemUser(authUser) || authUser.roleNames.includes("admin")))
+  if (!authUser || !(isSystemUser(authUser) || staffCan(authUser.roleNames, "staffGroups.create")))
     return rejectError(authUser);
   const id = args.data.id ?? randomUUID();
   const created = await base.create({ authUser, tx: args.tx, data: { ...args.data, id } });

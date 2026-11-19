@@ -4,16 +4,16 @@
 
 ## Status
 
-| Slice | State               | Merge into `prd/admin` (slice commits) |
-| ----- | ------------------- | -------------------------------------- |
-| 1     | not started (ready) |                                        |
-| 2     | blocked by 1        |                                        |
-| 3     | blocked by 2        |                                        |
-| 4     | blocked by 1        |                                        |
-| 5     | blocked by 1        |                                        |
-| 6     | blocked by 5        |                                        |
+| Slice | State  | Merge into `prd/admin` (slice commits)      |
+| ----- | ------ | ------------------------------------------- |
+| 1     | merged | `caeb0ac` (`86a98c6`, `6ac70ca`, `2b4825f`) |
+| 2     | merged | `a5b0b4b` (`b9a0a5d`, `507a893`, `685f12d`) |
+| 3     | merged | `12c42bd` (`c3f8a38`, `ae2f8cd`, `39719c6`) |
+| 4     | merged | `e900e4f` (`615fe7c`, `368983f`, `53e2964`) |
+| 5     | merged | `bf8f5e6` (`6cf0725`, `bfcec7a`)            |
+| 6     | merged | `fad73c6` (`4af40e2`, `cd55ec5`, `41c5ce3`) |
 
-Backlog: B-91 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. Start after `profiles` lands: both change `PERMISSIONS`, `db/schema/index.ts` and the `user`-adjacent registries. Landing mode: not chosen yet (the orchestrator asks).
+Backlog: B-91 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. Start after `profiles` lands: both change `PERMISSIONS`, `db/schema/index.ts` and the `user`-adjacent registries. All six slices merged; synced with `dev` at `27c83fc` (`pnpm prd check` passed); the suite ran once (24m43s): 19/21 pass; `app-shell.mjs` failed twice at low load in step 6g (viewer@'s sign-in after sign-out stays on /sign-in), `providers.mjs` failed once on "1280: every suggestion shows" (chip count changed between widths). The user treated both as flaky checks the orchestration PRD replaces and said to land; B-113 rechecks them on the new suite. Fix slice 7 was dropped. **Landed in `dev`; the PRD is done.** B-91 marked done. Landing mode: **run everything through** (queued with `pnpm prd queue admin`): start every ready slice, land each green wave without asking, clean up; ask only real questions. `profiles` has landed, so the wait is over. Wave 1 (slice 1) merged 2026-11-19; wave 2 (2, 4, 5) started the same day. Because slice 1 adds a migration, landing waits until every slice is merged, then the browser suite runs once (the user's choice for `profiles`), before one landing. Slice 5 merged before slice 3 (out of plan order) so slice 6 could start; slice 3's merge will conflict in the shared registries and `admin.mjs` (steps 1–9 now; 3 and 6 add theirs after 9). Slice 6 also fixed slice 5's `appSettingModel.put` storing null (now JSON `null`). B-106 (email-invite switch blocks staff owner invites) is a follow-up bug, not in this PRD's slices. Open: `first-sync.mjs` failed twice under load on slice 2 (likely contention; rerun at landing); `pnpm prd check` hit load timeouts in untouched int tests on slices 2 and 4 (rerun at landing). AGENTS.md's check table needs an `admin.mjs` row at landing; existing access-code and staff-group actions record no reason (their forms don't ask).
 
 ## Architectural decisions
 
