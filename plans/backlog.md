@@ -104,7 +104,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
 | B-64 | feature | ready | quick-fixes | prd/quick-fixes | Withdraw a pending join request from the requester's home |
-| B-65 | change | in-progress | quick-fixes | prd/quick-fixes | A screen to change the care recipient's time zone |
+| B-65 | change | ready | quick-fixes | prd/quick-fixes | A screen to change the care recipient's time zone |
 | B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
 | B-67 | change | ready | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
@@ -880,10 +880,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-65 · change · A screen to change the care recipient's time zone
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 5d8af6e
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: careGroup.create sets no time zone because care_recipient has no time_zone column yet. Adds a migration (the column, then fill it from the creating device's IANA zone); small and standalone, so quick-fixes.
 - 2026-11-19 (Robert Bo Davis): Retitled (user, 2026-11-19): the column and creating-device zone landed with medications slice 1; what's left is editing it (group settings Details, careGroup.updateRecipient). Pairs with profiles' recipient work.
