@@ -27,6 +27,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - need an upcoming medication banner on the timeline page and a way to quickly add doses to the timeline from it (or some other simplification). This needs to wait on medication groups. (B-86)
 - PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the user wants to prompt for landing or just work through everything and which slices to land automatically. Add command to spin up new planning session. (B-88)
 - Seed data with multiple care groups and user mix for improved manual testing. (B-90)
+- Email link and code shouldn't really be two different login options, should they? Can't we email a link and a code at the same time?
 
 ## Feature requests
 
