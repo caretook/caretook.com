@@ -121,6 +121,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-81 | change | triaged | quick-fixes |  | Security headers and a CSP for every web response |
 | B-82 | change | triaged | quick-fixes |  | Server logs carry error codes and ids only, never values or meta |
 | B-83 | change | triaged | quick-fixes |  | Co-members read only id, name and image of each other's user row |
+| B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 
 ## Items
 
@@ -1026,3 +1027,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-10 (later): closes the AGENTS.md open question; invites read email as system.
+
+### B-84 · feature · Deleting an entry, provider or medication scrubs its content everywhere
+
+- status: triaged
+- prd: data-rights
+- owner:
+- commit:
+
+- 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-1 (launch): soft-deleted rows keep title, body, details and the document, and sync to every member's device. Scrub to a tombstone and purge later. The undo window and retention are open for the data-rights interview (user, 2026-11-19).
