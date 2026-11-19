@@ -290,12 +290,13 @@ export type GroupRow = {
   recipient_id: string | null;
   recipient_name: string | null;
   recipient_preferred_name: string | null;
+  recipient_time_zone: string | null;
 };
 
 /** The groups `userId` belongs to, with their role and the recipient. */
 export const myGroupsQuery = (userId: string): LocalQuery => ({
   sql: `SELECT g.id, g.name, m.role, r.id AS recipient_id, r.name AS recipient_name,
-               r.preferred_name AS recipient_preferred_name
+               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone
         FROM care_group g
         JOIN care_group_member m ON m.group_id = g.id AND m.user_id = ?
         LEFT JOIN care_recipient r ON r.group_id = g.id
@@ -306,7 +307,7 @@ export const myGroupsQuery = (userId: string): LocalQuery => ({
 /** One group `userId` belongs to (no row when they aren't a member, or it isn't on the device). */
 export const myGroupQuery = (userId: string, groupId: string): LocalQuery => ({
   sql: `SELECT g.id, g.name, m.role, r.id AS recipient_id, r.name AS recipient_name,
-               r.preferred_name AS recipient_preferred_name
+               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone
         FROM care_group g
         JOIN care_group_member m ON m.group_id = g.id AND m.user_id = ?
         LEFT JOIN care_recipient r ON r.group_id = g.id
