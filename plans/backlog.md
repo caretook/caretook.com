@@ -130,7 +130,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-88 | change | triaged | orchestration |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
 | B-89 | feature | triaged | orchestration |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-90 | change | triaged | quick-fixes |  | Seed data with multiple care groups and user mix for improved manual testing. |
-| B-91 | feature | triaged | admin |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
+| B-91 | feature | in-progress | admin | plan/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-92 | change | triaged | quick-fixes |  | Units save offline: move the Units settings page onto saveSettings |
 | B-93 | bug | triaged | quick-fixes |  | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
 | B-94 | change | triaged | quick-fixes |  | Account forms, sign-in and the marketing menu button onto the ui primitives |
@@ -1158,9 +1158,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-91 · feature · Need an Admin panel for caretook global administrators to manage users, care groups, and settings.
 
-- status: triaged
+- status: in-progress
 - prd: admin
-- owner:
+- owner: plan/admin
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): Proposed for a new PRD 'admin' (to write): extends the existing web-only /admin (access codes, new group, waitlist) with users (find, verify, disable, sign out everywhere, reset), care groups (list, members and roles, owner recovery) and settings. Staff still see no care data (AGENTS.md: support access only as an explicit, audited grant), so it needs an audit log. Soft dependency on account-security (B-85: 2FA required for staff) first.
