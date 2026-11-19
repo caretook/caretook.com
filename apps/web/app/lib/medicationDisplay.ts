@@ -8,6 +8,9 @@ import type {
   MedicationSummary,
   MedicationTrackedField,
 } from "@caretook/data/schema";
+import type { DoseSlot, DoseWarning } from "./dueDoses";
+
+import { timeInZone } from "./zonedDay";
 
 // How medications, their schedules, doses and changes read on screen: the
 // list, the medication page and its history (and later the timeline's rows,
@@ -177,3 +180,56 @@ export const scheduleZoneNote = (recipientZone: string | null, deviceZone: strin
   const place = recipientZone.split("/").at(-1)?.replaceAll("_", " ") ?? recipientZone;
   return `Times are ${place} time`;
 };
+
+// ---------------------------------------------------------------------------
+// Today and Due now
+// ---------------------------------------------------------------------------
+
+/** A moment as the recipient's clock reads it: "8:05", "20:00". */
+export const clockAt = (iso: string, timeZone: string) => clockTime(timeInZone(new Date(iso), timeZone));
+
+/** A slot's state as it reads: "Due", "Overdue", "Later", "Given 8:05", "Skipped", "Refused", "Missed". */
+export const slotStateText = (slot: Pick<DoseSlot, "state" | "dose">, timeZone: string) => {
+  switch (slot.state) {
+    case "upcoming":
+      return "Later";
+    case "due":
+      return "Due";
+    case "overdue":
+      return "Overdue";
+    case "missed":
+      return "Missed";
+    case "given":
+      return slot.dose ? `Given ${clockAt(slot.dose.occurredAt, timeZone)}` : "Given";
+    case "skipped":
+      return "Skipped";
+    case "refused":
+      return "Refused";
+  }
+};
+
+/** An as-needed medication's day so far: "2 of 4 today", "1 today", "None today". */
+export const asNeededCountText = ({ count, max }: { count: number; max: number | null }) => {
+  if (max !== null) return `${count} of ${max} today`;
+  return count ? `${count} today` : "None today";
+};
+
+/** Yesterday's missed slots on one line: "Missed yesterday: Metformin 500 mg at 20:00 and …", or null. */
+export const missedText = (
+  slots: readonly (Pick<DoseSlot, "time"> & { medication: { name: string; strength?: string | null } })[],
+) =>
+  slots.length
+    ? `Missed yesterday: ${listText(slots.map((s) => `${medicationTitle(s.medication)} at ${clockTime(s.time)}`))}`
+    : null;
+
+/** Why a dose about to be logged may be a mistake, in words. */
+export const doseWarningText = (warning: DoseWarning, timeZone: string) =>
+  warning.type === "alreadyGiven"
+    ? `The ${clockTime(warning.time)} dose was already given at ${clockAt(warning.givenAt, timeZone)}.`
+    : `${warning.count} of ${warning.max} already given today, the most a day.`;
+
+/** A due slot as a Due now item or Dose sheet choice: "Metformin 500 mg · 20:00 dose, overdue". */
+export const dueSlotLabel = (
+  slot: Pick<DoseSlot, "time" | "state"> & { medication: { name: string; strength?: string | null } },
+) =>
+  `${medicationTitle(slot.medication)} · ${clockTime(slot.time)} dose${slot.state === "overdue" ? ", overdue" : ""}`;
