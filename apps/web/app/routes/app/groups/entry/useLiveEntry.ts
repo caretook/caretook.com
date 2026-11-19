@@ -1,6 +1,7 @@
 import type * as Y from "yjs";
 import type { TimelineEntryKind } from "@caretook/data/schema";
 import type { ActionResult } from "~/lib/api";
+import type { Schedule } from "~/lib/entrySchedule";
 import type { MaterializeInput } from "~/lib/sync/liveEntry";
 import type { EntryRow } from "~/lib/sync/timeline";
 import type { EntryPageData } from "./loadEntry";
@@ -18,7 +19,16 @@ import { entrySql } from "./loadEntry";
 
 export type LiveEntry = {
   /** The entry as it is now: the stored row (live), else the draft. */
-  entry: { id: string; kind: TimelineEntryKind; title: string | null; occurredAt: string };
+  entry: {
+    id: string;
+    kind: TimelineEntryKind;
+    title: string | null;
+    occurredAt: string;
+    timeZone: string;
+    endsAt: string | null;
+    allDay: boolean;
+    place: string | null;
+  };
   /** Whether the entry is stored (false while it's a draft). */
   stored: boolean;
   /** Opened as `/entries/new` (stays true after the draft is saved). */
@@ -31,8 +41,10 @@ export type LiveEntry = {
   ensureSaved: (doc: Y.Doc) => Promise<boolean>;
   /** Saves a draft with this title, or renames the entry. */
   commitTitle: (title: string) => void;
-  /** A draft keeps it as the time it's saved with; a stored entry is updated. */
-  changeTime: (occurredAt: string) => void;
+  /** When it is (start, end, all day): a draft keeps it to be saved with; a stored entry is updated. */
+  changeSchedule: (schedule: Schedule) => void;
+  /** An event's place (null clears it): a draft with a place is saved; a stored entry is updated. */
+  commitPlace: (place: string | null) => void;
   /** Soft-deletes the entry, then goes back to the timeline. */
   remove: () => Promise<void>;
   /** Saves a draft now (to link a provider to it); resolves true once it's stored. The editor stays mounted. */
@@ -66,9 +78,12 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   // Saving: once, on the first real change (text or a title).
   const saved = useRef(!isNew && data.hasDocument);
   const titleRef = useRef(draft.title ?? "");
-  // A time picked on a draft is the time it's saved with.
-  const [draftOccurredAt, setDraftOccurredAt] = useState(draft.occurredAt);
-  const occurredAtRef = useRef(draft.occurredAt);
+  // A time (or place) picked on a draft is what it's saved with.
+  const initialSchedule: Schedule = { occurredAt: draft.occurredAt, endsAt: null, allDay: false };
+  const [draftSchedule, setDraftSchedule] = useState(initialSchedule);
+  const scheduleRef = useRef(initialSchedule);
+  const [draftPlace, setDraftPlace] = useState<string | null>(null);
+  const placeRef = useRef<string | null>(null);
   const saving = useRef<Promise<boolean> | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -81,8 +96,11 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
         groupId,
         kind: draft.kind,
         title: isLiveEntryKind(draft.kind) ? savedTitle(draft.kind, titleRef.current) : draft.title,
-        occurredAt: occurredAtRef.current,
+        occurredAt: scheduleRef.current.occurredAt,
         timeZone: draft.timeZone,
+        allDay: scheduleRef.current.allDay,
+        endsAt: draft.kind === "event" ? scheduleRef.current.endsAt : null,
+        place: draft.kind === "event" ? placeRef.current : null,
       };
       const res = await materializeLiveEntry(getSync(), input);
       saving.current = null;
@@ -128,11 +146,28 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     void updateEntry(getSync(), draft.id, { title: savedTitle(kind, next) }).then(reportWrite);
   };
 
-  const changeTime = (next: string) => {
-    occurredAtRef.current = next;
-    setDraftOccurredAt(next);
-    if (!saved.current) return;
-    void updateEntry(getSync(), draft.id, { occurredAt: next }).then(reportWrite);
+  const changeSchedule = (next: Schedule) => {
+    scheduleRef.current = next;
+    setDraftSchedule(next);
+    // Picking a time alone never saves a draft.
+    if (isNew && !saved.current) return;
+    const { occurredAt, allDay, endsAt } = next;
+    void updateEntry(getSync(), draft.id, {
+      occurredAt,
+      allDay,
+      ...(kind === "event" && { endsAt }),
+    }).then(reportWrite);
+  };
+
+  const commitPlace = (next: string | null) => {
+    placeRef.current = next;
+    setDraftPlace(next);
+    // A typed place is a real change: a draft is saved with it.
+    if (isNew && !saved.current) {
+      if (next) void save();
+      return;
+    }
+    void updateEntry(getSync(), draft.id, { place: next }).then(reportWrite);
   };
 
   const remove = async () => {
@@ -146,7 +181,11 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       id: draft.id,
       kind,
       title: live ? live.title : draft.title,
-      occurredAt: live?.occurredAt ?? draftOccurredAt,
+      timeZone: live?.timeZone ?? draft.timeZone,
+      occurredAt: live?.occurredAt ?? draftSchedule.occurredAt,
+      endsAt: live ? (live.endsAt ?? null) : draftSchedule.endsAt,
+      allDay: live ? !!live.allDay : draftSchedule.allDay,
+      place: live ? (live.place ?? null) : draftPlace,
     },
     stored: !!live,
     isNew,
@@ -154,7 +193,8 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     deleted,
     ensureSaved,
     commitTitle,
-    changeTime,
+    changeSchedule,
+    commitPlace,
     remove,
     ensureStored: save,
     saveError,

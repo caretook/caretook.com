@@ -30,8 +30,14 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const { canWrite } = getGroup(context);
   const { db } = context.get(sessionContext);
-  const kind = new URL(request.url).searchParams.get("kind");
-  return loadEntry(db, { groupId: params.groupId, entryId: params.entryId, kind, canWrite });
+  const search = new URL(request.url).searchParams;
+  return loadEntry(db, {
+    groupId: params.groupId,
+    entryId: params.entryId,
+    kind: search.get("kind"),
+    when: search.get("when"),
+    canWrite,
+  });
 }
 
 /**
@@ -78,6 +84,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
         groupId={groupId}
         heading={heading}
         title={title}
+        pickDay={loaderData.pickDay}
         onPickTitle={(next) => {
           live.commitTitle(next);
           editor.current?.focus();
@@ -107,7 +114,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
           groupId={groupId}
           canWrite={canWrite}
           initial={loaderData.initial}
-          autofocus={live.isNew}
+          autofocus={live.isNew && !loaderData.pickDay}
           ensureSaved={live.ensureSaved}
         />
       )}
