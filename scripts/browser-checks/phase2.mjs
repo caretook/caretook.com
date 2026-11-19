@@ -847,74 +847,78 @@ async function wideLayout(p) {
         const time = li.querySelector("time")?.getBoundingClientRect();
         const last = (li.querySelector('button[aria-label^="Actions"]') ?? li.lastElementChild).getBoundingClientRect();
         return { start: time ? time.left - r.left : null, end: r.right - last.right }; });
-      return { main: box(document.querySelector("main")), inner: document.documentElement.clientWidth, days, texts, ends };
+      const column = document.querySelector('[aria-labelledby="timeline-heading"]');
+      return { main: box(document.querySelector("main")), inner: document.documentElement.clientWidth, cap: parseFloat(getComputedStyle(column).maxWidth), days, texts, ends };
     })()`);
+  // The page spans the window; the entries' column starts at the gutter and stops at its cap (1024 px).
   const spans = (m) =>
     Math.abs(m.main.left) < 1 &&
     Math.abs(m.main.width - m.inner) < 1 &&
-    m.days.every((d) => Math.abs(d.list.left - 16) < 1 && Math.abs(d.list.right - (m.inner - 16)) < 1);
-  // Cards in each day sit `columns` to a row: equal widths, row-mates at one top, a lone card one column wide.
-  const grid = (m, columns) => {
-    const column = (m.inner - 32 - 8 * (columns - 1)) / columns;
-    return m.days.every((d) =>
-      d.cards.every((c, i) => {
-        const col = i % columns;
-        const first = d.cards[i - col];
-        return (
-          Math.abs(c.width - column) < 1 &&
-          Math.abs(c.left - (16 + col * (column + 8))) < 1 &&
-          c.top === first.top
-        );
-      }),
+    Math.abs(m.cap - 1024) < 1 &&
+    m.days.every(
+      (d) => Math.abs(d.list.left - 16) < 1 && Math.abs(d.list.width - Math.min(m.inner - 32, m.cap)) < 1,
     );
-  };
+  // Cards sit one to a row at every width: each as wide as its day's list, one under another.
+  const oneColumn = (m) =>
+    m.days.every((d) =>
+      d.cards.every(
+        (c, i) =>
+          Math.abs(c.width - d.list.width) < 1 &&
+          Math.abs(c.left - d.list.left) < 1 &&
+          (i === 0 || c.top >= d.cards[i - 1].top + d.cards[i - 1].height),
+      ),
+    );
   const capped = (m) => m.texts.every((t) => t.width <= t.cap + 0.5 && t.em > 28 && t.em < 50);
   const dayShape = (m) =>
     `${m.days.length} days of ${m.days.map((d) => d.cards.length).join(",")} entries, first list ${Math.round(m.days[0].list.left)}–${Math.round(m.days[0].list.right)}`;
 
   await p.evaluate(`window.scrollTo(0, 0)`);
-  await step("1280: the full width, the text cap and the card grid", { smoke: true }, async () => {
-    await width(1280);
-    const rows = await measure();
-    check("1280, rows: the timeline spans the window less its gutters", spans(rows), dayShape(rows));
-    const widest = Math.max(...rows.texts.map((t) => t.width));
-    const cap = Math.max(...rows.texts.map((t) => t.cap));
-    check(
-      "1280, rows: entry text stops at about 75ch, and the longest text reaches it",
-      capped(rows) && widest >= cap - 1 && widest < rows.days[0].list.width - 200,
-      `widest ${Math.round(widest)}px of a ${Math.round(cap)}px cap, in a ${Math.round(rows.days[0].list.width)}px list`,
-    );
-    check(
-      "1280, rows: the time stays at the row's start, and the ⋯ at its end",
-      rows.ends.every((e) => e.start !== null && e.start < 70 && e.end >= 0 && e.end <= 16),
-      JSON.stringify(rows.ends.slice(0, 2)),
-    );
-    await noScroll(1280);
-    await p.screenshot("phase2-wide-1280-rows");
+  await step(
+    "1280: the full width, the capped column, the text cap and one column of cards",
+    { smoke: true },
+    async () => {
+      await width(1280);
+      const rows = await measure();
+      check(
+        "1280, rows: the page spans the window, the entries stop at 1024 px",
+        spans(rows),
+        dayShape(rows),
+      );
+      const widest = Math.max(...rows.texts.map((t) => t.width));
+      const cap = Math.max(...rows.texts.map((t) => t.cap));
+      check(
+        "1280, rows: entry text stops at about 75ch, and the longest text reaches it",
+        capped(rows) && widest >= cap - 1 && widest < rows.days[0].list.width - 200,
+        `widest ${Math.round(widest)}px of a ${Math.round(cap)}px cap, in a ${Math.round(rows.days[0].list.width)}px list`,
+      );
+      check(
+        "1280, rows: the time stays at the row's start, and the ⋯ at its end",
+        rows.ends.every((e) => e.start !== null && e.start < 70 && e.end >= 0 && e.end <= 16),
+        JSON.stringify(rows.ends.slice(0, 2)),
+      );
+      await noScroll(1280);
+      await p.screenshot("phase2-wide-1280-rows");
 
-    await setView(p, "Cards");
-    await sleep(500);
-    const cards = await measure();
-    check("1280, cards: the timeline spans the window less its gutters", spans(cards), dayShape(cards));
-    check(
-      "1280, cards: two to a row under their day heading, a lone card one column wide",
-      grid(cards, 2) && cards.days.some((d) => d.cards.length > 1),
-      dayShape(cards),
-    );
-    const mates = cards.days.flatMap((d) =>
-      d.cards.filter((_, i) => i % 2 === 0 && d.cards[i + 1]).map((c, i) => [c, d.cards[i * 2 + 1]]),
-    );
-    check(
-      "1280, cards: a short card beside a tall one keeps its own height",
-      mates.some(([a, b]) => Math.abs(a.height - b.height) > 8),
-      `${mates.length} pairs`,
-    );
-    check("1280, cards: text is capped too", capped(cards));
-    await noScroll(1280);
-    await p.screenshot("phase2-wide-1280-cards");
-    await setView(p, "Rows");
-    await width(420);
-  });
+      await setView(p, "Cards");
+      await sleep(500);
+      const cards = await measure();
+      check(
+        "1280, cards: the page spans the window, the entries stop at 1024 px",
+        spans(cards),
+        dayShape(cards),
+      );
+      check(
+        "1280, cards: one to a row under their day heading",
+        oneColumn(cards) && cards.days.some((d) => d.cards.length > 1),
+        dayShape(cards),
+      );
+      check("1280, cards: text is capped too", capped(cards));
+      await noScroll(1280);
+      await p.screenshot("phase2-wide-1280-cards");
+      await setView(p, "Rows");
+      await width(420);
+    },
+  );
 
   await step(
     "wide: 1536, 1024, sticky headings, More and Less, the sheet, the confirm and Live now",
@@ -947,19 +951,19 @@ async function wideLayout(p) {
         await p.evaluate(`window.scrollTo(0, 0)`);
       }
 
-      // Three to a row from 2xl; two at 1024 (lg).
+      // Still one column, and the entries' column stops at its cap, at 1536 and 1024.
       await width(1536);
       const xl = await measure();
       check(
-        "1536, cards: three to a row, text capped",
-        spans(xl) && grid(xl, 3) && capped(xl) && xl.days.some((d) => d.cards.length > 2),
+        "1536, cards: one to a row in a 1024 px column, text capped",
+        spans(xl) && oneColumn(xl) && capped(xl) && xl.days.every((d) => d.list.width < xl.inner - 400),
         dayShape(xl),
       );
       await noScroll(1536);
       await p.screenshot("phase2-wide-1536-cards");
       await width(1024);
       const lg = await measure();
-      check("1024, cards: two to a row", spans(lg) && grid(lg, 2), dayShape(lg));
+      check("1024, cards: one to a row", spans(lg) && oneColumn(lg), dayShape(lg));
       await noScroll(1024);
 
       // 420: one column, where it was before (cards 16…404 with 8 px between; rows inside the list's border).

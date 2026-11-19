@@ -12,10 +12,16 @@ import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
 import { useEntryRemoval } from "./useEntryRemoval";
 
+/**
+ * The entries' column stops at 64rem (1024 px) on wide screens, left-aligned
+ * with the controls above it; the rest of the page keeps the full width.
+ */
+const COLUMN_CAP = "max-w-5xl";
+
 const LIST_CLASS: Record<TimelineView, string> = {
   rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",
-  // One column on phones; from `lg` a grid inside each day, each card keeping its own height.
-  cards: "grid grid-cols-1 items-start gap-2 lg:grid-cols-2 2xl:grid-cols-3",
+  // One column at every width: side-by-side cards are hard to read in time order.
+  cards: "space-y-2",
 };
 
 /**
@@ -64,7 +70,7 @@ export function TimelineEntryList({
 
   return (
     <>
-      <section ref={list} aria-labelledby="timeline-heading" className="space-y-4">
+      <section ref={list} aria-labelledby="timeline-heading" className={`space-y-4 ${COLUMN_CAP}`}>
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
