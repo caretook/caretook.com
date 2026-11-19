@@ -1,8 +1,9 @@
 import type { SettingsItem } from "~/lib/settingsNav";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { BackLink } from "~/components/ui";
 import { isSettingsList, SETTINGS_WIDE_QUERY, settingsCurrent } from "~/lib/settingsNav";
 
 /**
@@ -72,10 +73,7 @@ export function SettingsFrame({
       </nav>
       {!atList && (
         <div className="min-w-0 flex-1 space-y-4">
-          <Link to={listPath} className="btn btn-ghost btn-sm -ml-2 gap-1 md:hidden">
-            <ChevronLeft aria-hidden="true" className="size-4" />
-            {title}
-          </Link>
+          <BackLink to={listPath} label={title} className="md:hidden" />
           <Outlet />
         </div>
       )}
