@@ -103,7 +103,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
 | B-64 | feature | triaged | quick-fixes |  | Withdraw a pending join request from the requester's home |
 | B-65 | change | triaged | quick-fixes |  | New care groups get the recipient's time zone |
-| B-66 | question | inbox |  |  | Access codes are stored as plain text: keep that, or hash them? |
+| B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
 | B-67 | question | inbox |  |  | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
@@ -846,7 +846,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-66 · question · Access codes are stored as plain text: keep that, or hash them?
 
-- status: inbox
+- status: dropped
 - prd:
 - owner:
 - commit:
