@@ -1,9 +1,16 @@
-import type { AppError, AuthUser, ProviderUpsertInput, TimelineEntryUpsertInput } from "@caretook/data";
+import type {
+  AppError,
+  AuthUser,
+  MedicationUpsertInput,
+  ProviderUpsertInput,
+  TimelineEntryUpsertInput,
+} from "@caretook/data";
 
 import {
   entryProviderService,
   ERRORS,
   isError,
+  medicationService,
   newError,
   noteDocumentService,
   providerService,
@@ -162,7 +169,7 @@ const noteDocumentOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<
     id: op.id,
     groupId: text(op.data?.group_id) ?? "",
     // An entry's, unless the device says otherwise (older devices never do).
-    subject: (text(op.data?.subject) ?? undefined) as "entry" | "provider" | undefined,
+    subject: (text(op.data?.subject) ?? undefined) as "entry" | "provider" | "medication" | undefined,
   });
   return isError(res) ? res : applied;
 };
@@ -268,6 +275,88 @@ const entryProviderOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise
 };
 
 // ---------------------------------------------------------------------------
+// medication: like provider. Soft deletes, and the group and recipient never
+// change. The service writes the timeline's change entry with each save,
+// with an id derived from the medication and the device's `updated_at`, so
+// the copy of that entry the device uploads next lands on the same row.
+// ---------------------------------------------------------------------------
+
+/** An integer column. Other values pass through for the service to reject. */
+const int = (value: unknown) =>
+  typeof value === "string" && /^-?\d+$/.test(value) ? Number(value) : (value ?? null);
+
+const MEDICATION_COLUMNS = {
+  name: (v: unknown) => ["name", text(v)],
+  strength: (v: unknown) => ["strength", text(v)],
+  form: (v: unknown) => ["form", text(v)],
+  dose: (v: unknown) => ["dose", text(v)],
+  directions: (v: unknown) => ["directions", text(v)],
+  reason: (v: unknown) => ["reason", text(v)],
+  schedule: (v: unknown) => ["schedule", json(v)],
+  status: (v: unknown) => ["status", text(v)],
+  started_on: (v: unknown) => ["startedOn", text(v)],
+  stopped_on: (v: unknown) => ["stoppedOn", text(v)],
+  stop_reason: (v: unknown) => ["stopReason", text(v)],
+  stop_note: (v: unknown) => ["stopNote", text(v)],
+  prescriber_id: (v: unknown) => ["prescriberId", text(v)],
+  pharmacy_id: (v: unknown) => ["pharmacyId", text(v)],
+  last_filled_on: (v: unknown) => ["lastFilledOn", text(v)],
+  quantity: (v: unknown) => ["quantity", text(v)],
+  refills_left: (v: unknown) => ["refillsLeft", int(v)],
+  rx_number: (v: unknown) => ["rxNumber", text(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const medicationContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = MEDICATION_COLUMNS[column as keyof typeof MEDICATION_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a medication that's already deleted is a replay: fine. */
+const removeMedication = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await medicationService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "medicationService:notFound") return res;
+  const medication = await medicationService.getById(ctx, id, { includeDeleted: true });
+  if (isError(medication)) return medication;
+  return medication?.deletedAt ? applied : res;
+};
+
+const medicationOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  // When the device saved it: the change entry's time, and half of its id.
+  const opts = { changedAt: text(data.updated_at) };
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...medicationContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await medicationService.upsert(ctx, input as unknown as MedicationUpsertInput, opts);
+    if (isError(res)) return res;
+    // Created and deleted before it was uploaded.
+    if (data.deleted_at) return removeMedication(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeMedication(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data || "recipient_id" in data) return newError({ code: "medicationService:immutable" });
+  if (data.deleted_at) return removeMedication(ctx, op.id);
+  const content = medicationContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await medicationService.update(ctx, op.id, content, opts);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "medicationService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -277,6 +366,7 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   note_update: noteUpdateOp,
   provider: providerOp,
   timeline_entry_provider: entryProviderOp,
+  medication: medicationOp,
 };
 
 /**

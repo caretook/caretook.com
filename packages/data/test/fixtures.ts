@@ -30,7 +30,10 @@ export const createGroup = async (
   members: { user: { id: string }; role: "admin" | "caretaker" | "viewer" | "owner" }[] = [],
 ) => {
   const { group, recipient } = ok(
-    await careGroupService.create(owner.ctx, { name: "Test Family", recipient: { name: "Pat Example" } }),
+    await careGroupService.create(owner.ctx, {
+      name: "Test Family",
+      recipient: { name: "Pat Example", timeZone: "America/Los_Angeles" },
+    }),
   );
   if (!group || !recipient) throw new Error("Fixture failed: group not readable");
   for (const m of members) {

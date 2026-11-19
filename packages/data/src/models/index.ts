@@ -51,3 +51,7 @@ export type * from "./timelineEntryProvider/types";
 import * as careGroupConsentModel from "./careGroupConsent";
 export { careGroupConsentModel };
 export type * from "./careGroupConsent/types";
+
+import * as medicationModel from "./medication";
+export { medicationModel };
+export type * from "./medication/types";

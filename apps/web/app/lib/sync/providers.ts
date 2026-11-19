@@ -25,7 +25,15 @@ import {
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { noteDocuments, providers, timelineEntryProviders } from "./schema";
-import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows, WRITER_ROLES } from "./timeline";
+import {
+  forbidden,
+  fromLocalTimestamp,
+  groupFor,
+  nowTimestamp,
+  readRows,
+  SHOWN_KINDS_SQL,
+  WRITER_ROLES,
+} from "./timeline";
 
 // The provider directory and entry links on this device: local queries for
 // `useLiveQuery` and loaders, and local writes that validate with the shared
@@ -500,7 +508,7 @@ export const timelineLinksQuery = (groupId: string, kind: string | null, limit: 
         FROM timeline_entry_provider l JOIN provider p ON p.id = l.provider_id
         WHERE l.entry_id IN (
           SELECT id FROM timeline_entry
-          WHERE group_id = ? AND deleted_at IS NULL ${kind ? "AND kind = ?" : ""}
+          WHERE group_id = ? AND deleted_at IS NULL AND ${kind ? "kind = ?" : SHOWN_KINDS_SQL}
           ORDER BY occurred_at DESC, id DESC LIMIT ?
         )
         ORDER BY l.entry_id, l.created_at, l.id`,

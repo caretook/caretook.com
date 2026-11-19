@@ -33,6 +33,9 @@ export const careRecipients = sqliteTable(
     groupId: text("group_id"),
     name: text("name"),
     preferredName: text("preferred_name"),
+    // The recipient's IANA zone (schedule times are in it) and "YYYY-MM-DD" date of birth.
+    timeZone: text("time_zone"),
+    dateOfBirth: text("date_of_birth"),
   },
   (t) => [index("care_recipient_group").on(t.groupId)],
 );
@@ -59,9 +62,9 @@ export const timelineEntries = sqliteTable(
 );
 
 /**
- * A live document on a note or event, or on a provider. `id` is the owner's
- * id; `subject` says which (`entry` with `entry_id`, or `provider` with
- * `provider_id`, each equal to `id`). Snapshot, text and `editors` (JSON
+ * A live document on a note or event, a provider or a medication. `id` is the
+ * owner's id; `subject` says which (`entry` with `entry_id`, `provider` with
+ * `provider_id`, or `medication` with `medication_id`, each equal to `id`). Snapshot, text and `editors` (JSON
  * `{ [userId]: lastEditAt }`) are the server's.
  */
 export const noteDocuments = sqliteTable(
@@ -79,6 +82,7 @@ export const noteDocuments = sqliteTable(
     subject: text("subject"),
     entryId: text("entry_id"),
     providerId: text("provider_id"),
+    medicationId: text("medication_id"),
   },
   (t) => [index("note_document_group").on(t.groupId)],
 );
@@ -148,6 +152,43 @@ export const timelineEntryProviders = sqliteTable(
   ],
 );
 
+/**
+ * The group's medication list. `schedule` is JSON text; the dates are
+ * "YYYY-MM-DD". Deletes are soft. Doses and changes are timeline entries.
+ */
+export const medications = sqliteTable(
+  "medication",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    recipientId: text("recipient_id"),
+    name: text("name"),
+    strength: text("strength"),
+    form: text("form"),
+    dose: text("dose"),
+    directions: text("directions"),
+    reason: text("reason"),
+    schedule: text("schedule"),
+    status: text("status"),
+    startedOn: text("started_on"),
+    stoppedOn: text("stopped_on"),
+    stopReason: text("stop_reason"),
+    stopNote: text("stop_note"),
+    prescriberId: text("prescriber_id"),
+    pharmacyId: text("pharmacy_id"),
+    lastFilledOn: text("last_filled_on"),
+    quantity: text("quantity"),
+    refillsLeft: integer("refills_left"),
+    rxNumber: text("rx_number"),
+    deletedAt: text("deleted_at"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("medication_group").on(t.groupId)],
+);
+
 export const drizzleSchema = {
   careGroups,
   careGroupMembers,
@@ -158,4 +199,5 @@ export const drizzleSchema = {
   users,
   providers,
   timelineEntryProviders,
+  medications,
 };

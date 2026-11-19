@@ -7,10 +7,10 @@ import {
   isKnownReading,
   isSymptomDetails,
   isVitalDetails,
-  TIMELINE_ENTRY_KINDS,
   TIMELINE_LIMITS,
 } from "@caretook/data/schema";
-import { Bandage, CalendarCheck, HeartPulse, NotebookPen } from "lucide-react";
+import { Bandage, CalendarCheck, ClipboardPen, HeartPulse, NotebookPen, Pill } from "lucide-react";
+import { isTimelineKind } from "./timelineFilters";
 
 // How each kind of entry looks: label, icon and color. Colors avoid green,
 // which reads as "all good", and the icon carries the kind as well as the color.
@@ -32,10 +32,18 @@ export const KIND_META: Record<
     Icon: HeartPulse,
     iconClass: "bg-secondary text-secondary-content",
   },
+  // Not on the timeline yet (see `TIMELINE_KINDS`): medications slice 4 renders them.
+  dose: { label: "Dose", plural: "Doses", Icon: Pill, iconClass: "bg-primary text-primary-content" },
+  medicationChange: {
+    label: "Medication change",
+    plural: "Medication changes",
+    Icon: ClipboardPen,
+    iconClass: "bg-neutral text-neutral-content",
+  },
 };
 
-export const isEntryKind = (value: string | null): value is TimelineEntryKind =>
-  (TIMELINE_ENTRY_KINDS as readonly string[]).includes(value ?? "");
+/** A kind the timeline shows. Rows of any other kind (a newer app's, or one not rendered yet) are skipped. */
+export const isEntryKind = (value: string | null): value is TimelineEntryKind => isTimelineKind(value);
 
 /** What an entry says, ready to render: the same for rows and cards. */
 export const entrySummary = (entry: TimelineEntry, units: UnitChoices) => {

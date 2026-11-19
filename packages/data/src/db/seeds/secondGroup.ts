@@ -78,6 +78,7 @@ export const seed = async () => {
       name: "Lou Example",
       preferredName: "Grandpa Lou",
       dateOfBirth: "1938-07-02",
+      timeZone: TIME_ZONE,
       ...seedAudits,
     })
     .onConflictDoNothing({ target: careRecipientSchema.id });

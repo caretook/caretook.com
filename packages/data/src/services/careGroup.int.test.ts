@@ -95,7 +95,13 @@ describe("care recipient", () => {
     const { u } = await setup();
     const other = await createGroup(u.outsider);
     expect(
-      codeOf(await careRecipientService.create(u.caretaker.ctx, { groupId: other.group.id, name: "X" })),
+      codeOf(
+        await careRecipientService.create(u.caretaker.ctx, {
+          groupId: other.group.id,
+          name: "X",
+          timeZone: "UTC",
+        }),
+      ),
     ).toBe("permissions:unauthorized");
   });
 });
@@ -103,7 +109,12 @@ describe("care recipient", () => {
 describe("creating a group", () => {
   it("makes the creator its only owner, with the recipient, atomically", async () => {
     const { u } = await setup();
-    const res = ok(await careGroupService.create(u.viewer.ctx, { name: "Mine", recipient: { name: "Sam" } }));
+    const res = ok(
+      await careGroupService.create(u.viewer.ctx, {
+        name: "Mine",
+        recipient: { name: "Sam", timeZone: "America/Chicago" },
+      }),
+    );
     expect(res.recipient).toMatchObject({ name: "Sam", displayName: "Sam" });
     const members = ok(
       await careGroupMemberService.list(u.viewer.ctx, {
@@ -119,7 +130,7 @@ describe("creating a group", () => {
     const res = await careGroupService.create(u.viewer.ctx, {
       id,
       name: "Broken",
-      recipient: { name: null as never },
+      recipient: { name: null as never, timeZone: "UTC" },
     });
     expect(isError(res)).toBe(true);
     expect(await careGroupService.getById(system, id)).toBeNull();
