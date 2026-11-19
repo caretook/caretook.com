@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
 // The timeline checks, against the local (PowerSync) data: layout, filters,
 // the sheet, the view toggle, and row taps (slice 5) in both views for a
@@ -466,6 +467,90 @@ async function latestVitalsLine(p) {
   );
 }
 
+const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
+const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
+const psql = (sql) =>
+  execSync(`docker exec -i ${PG_CONTAINER} psql -U caretook -d caretook -tAq -v ON_ERROR_STOP=1`, {
+    input: sql,
+  })
+    .toString()
+    .trim();
+
+/** The "with …" line of the first entry titled `title`: the names shown and the "+N". */
+const withLineOf = (p, title) =>
+  p.evaluate(`(() => {
+    const li = [...document.querySelectorAll("ol > li")].find((li) =>
+      li.querySelector("p.font-semibold")?.textContent.trim() === ${JSON.stringify(title)});
+    const line = li?.querySelector("[data-with]");
+    return li ? {
+      names: [...(line?.querySelectorAll("[data-with-name]") ?? [])].map((n) => n.textContent),
+      more: line?.querySelector("[data-with-more]")?.textContent.trim() ?? null,
+      label: line?.querySelector(".sr-only")?.textContent ?? null,
+    } : null;
+  })()`);
+
+/**
+ * Providers on notes and events (providers slice 7): the seeded event with
+ * two linked providers and the one with three, in rows and cards (the wording
+ * itself is entryProviders.test.ts); then, in full mode, a link made
+ * elsewhere (written on the server, as another device's upload would be)
+ * shows on the row without a reload, and goes when it's removed.
+ */
+async function withLines(p) {
+  for (const view of ["Rows", "Cards"]) {
+    await setView(p, view);
+    const two = await withLineOf(p, "Pharmacy pickup");
+    const three = await withLineOf(p, "Primary care visit: Dr. Alvarez");
+    check(
+      `${view.toLowerCase()}: an event with two providers shows both names`,
+      two?.names.length === 2 && two.more === null,
+      JSON.stringify(two),
+    );
+    check(
+      `${view.toLowerCase()}: an event with three shows two names and "+1"`,
+      three?.names.length === 2 && three.more === "+1",
+      JSON.stringify(three),
+    );
+  }
+  await setView(p, "Rows");
+  if (SMOKE) return;
+
+  const [entryId, providerId] = psql(
+    `SELECT (SELECT id FROM timeline_entry WHERE group_id = '${DEV_FAMILY}' AND title = 'Pharmacy pickup' AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT 1)
+       || '|' || (SELECT id FROM provider WHERE group_id = '${DEV_FAMILY}' AND name = 'Dr. Alan Whitford')`,
+  ).split("|");
+  const linkId = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8e9007";
+  const unlink = () => psql(`DELETE FROM timeline_entry_provider WHERE id = '${linkId}'`);
+  unlink();
+  await p.evaluate("window.__noReload = true");
+  try {
+    psql(
+      `INSERT INTO timeline_entry_provider (id, group_id, entry_id, provider_id, created_by, updated_by)
+       SELECT '${linkId}', '${DEV_FAMILY}', '${entryId}', '${providerId}', created_by, created_by
+       FROM timeline_entry WHERE id = '${entryId}'`,
+    );
+    const shows = `([...document.querySelectorAll("ol > li")].find((li) => li.querySelector("p.font-semibold")?.textContent.trim() === "Pharmacy pickup")?.querySelector("[data-with-more]")?.textContent.trim() === "+1")`;
+    await p.waitFor(shows, 20000).then(
+      () => check("a link made elsewhere shows on the row without a reload (+1)", true),
+      async () =>
+        check(
+          "a link made elsewhere shows on the row without a reload (+1)",
+          false,
+          JSON.stringify(await withLineOf(p, "Pharmacy pickup")),
+        ),
+    );
+    unlink();
+    await p.waitFor(`!${shows}`, 20000).then(
+      () => check("…and goes when it's unlinked", true),
+      async () =>
+        check("…and goes when it's unlinked", false, JSON.stringify(await withLineOf(p, "Pharmacy pickup"))),
+    );
+    check("…with no reload", await p.evaluate("window.__noReload === true"));
+  } finally {
+    unlink();
+  }
+}
+
 const bM = await launch(9341);
 // The viewer's browser only in full mode: smoke runs one role.
 const bV = SMOKE ? null : await launch(9342);
@@ -614,6 +699,7 @@ try {
   });
 
   await kindIconFilters([["writer", p], ...(v ? [["viewer", v]] : [])]);
+  await step("providers on notes and events", { smoke: true }, () => withLines(p));
   await step("day headings", () => dayHeadings(p));
   await step("the latest vitals line", () => latestVitalsLine(p));
 

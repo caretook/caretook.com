@@ -1,4 +1,5 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
+import type { EntryProviderLinkRow, LinkedProviderName } from "~/lib/entryProviders";
 import type { LiveDocument } from "~/lib/liveNow";
 import type { LatestVital, TimelineEntry } from "~/lib/rpc";
 import type { NoteDocRow } from "~/lib/sync/notes";
@@ -8,14 +9,17 @@ import type { TimelineDay } from "./timelineDays";
 
 import { useMemo, useState } from "react";
 import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
+import { groupLinksByEntry } from "~/lib/entryProviders";
 import { localTimeZone } from "~/lib/format";
 import { isLiveEntryKind } from "~/lib/liveEntry";
 import { liveDotLabel } from "~/lib/liveNow";
 import { useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/sync/editors";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
+import { timelineLinksQuery } from "~/lib/sync/providers";
 import {
   entriesQuery,
+  fromLocalTimestamp,
   membersQuery,
   readingsQuery,
   toLatestVitals,
@@ -43,6 +47,8 @@ export type TimelineData = {
   liveLabelOf: (entryId: string) => string | undefined;
   /** A member's name, or "Former member". */
   nameOf: (userId: string) => string;
+  /** A note's or event's linked providers, in link order (the "with …" line). */
+  providersOf: (entryId: string) => LinkedProviderName[] | undefined;
 };
 
 /** A live document's title: its entry's, else its kind ("Note"). */
@@ -78,6 +84,10 @@ export function useTimelineData({
   const documentsSql = groupDocumentsQuery(groupId);
   const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial.documentRows);
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
+  // One query for every loaded entry's links (the same window as the entries), never one per row.
+  const linksSql = timelineLinksQuery(groupId, kind, limit);
+  const linkRows = useLiveQuery<EntryProviderLinkRow>(linksSql.sql, linksSql.params, initial.linkRows);
+  const providersByEntry = useMemo(() => groupLinksByEntry(linkRows, fromLocalTimestamp), [linkRows]);
 
   const members = memberRows.map(toMember);
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
@@ -100,5 +110,6 @@ export function useTimelineData({
     liveDocuments,
     liveLabelOf: (id) => liveLabels.get(id),
     nameOf,
+    providersOf: (id) => providersByEntry.get(id),
   };
 }

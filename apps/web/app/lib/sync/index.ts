@@ -96,6 +96,29 @@ const subscribeToStatus = (onChange: () => void) =>
 const firstSyncDoneSnapshot = () => !!ready && isFirstSyncDone(ready);
 
 /**
+ * Watch a query (`key` is `JSON.stringify([sql, params])`) and pass each
+ * result to `onRows`; returns the cleanup. With no database open it watches
+ * nothing: a component can still mount while sign-out is closing the
+ * database (a watch result arriving mid-sign-out renders a new child), and
+ * there's nothing left to show it then.
+ */
+export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (() => void) => {
+  if (!ready) return () => undefined;
+  const controller = new AbortController();
+  const [watchSql, watchParams] = JSON.parse(key) as [string, unknown[]];
+  ready.powersync.watch(
+    watchSql,
+    watchParams,
+    {
+      onResult: (result) => onRows((result.rows?._array ?? []) as T[]),
+      onError: (error) => console.error("Local query failed", error),
+    },
+    { signal: controller.signal, throttleMs: 30 },
+  );
+  return () => controller.abort();
+};
+
+/**
  * Rows of a local query, kept up to date as the database changes (local
  * writes, or other members' changes arriving through sync). `initial` is
  * what the loader read, shown until the watch reports.
@@ -108,20 +131,7 @@ export const useLiveQuery = <T>(sql: string, params: unknown[], initial: T[]): T
   const [state, setState] = useState({ initial, rows: initial });
   if (state.initial !== initial) setState({ initial, rows: initial });
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const [watchSql, watchParams] = JSON.parse(key) as [string, unknown[]];
-    getSync().powersync.watch(
-      watchSql,
-      watchParams,
-      {
-        onResult: (result) => setState((s) => ({ ...s, rows: (result.rows?._array ?? []) as T[] })),
-        onError: (error) => console.error("Local query failed", error),
-      },
-      { signal: controller.signal, throttleMs: 30 },
-    );
-    return () => controller.abort();
-  }, [key]);
+  useEffect(() => watchLiveQuery<T>(key, (rows) => setState((s) => ({ ...s, rows }))), [key]);
 
   return state.initial === initial ? state.rows : initial;
 };

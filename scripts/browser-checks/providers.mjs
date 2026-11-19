@@ -21,6 +21,18 @@
 // offline merge after reconnecting; a viewer reads them; a deleted, another
 // group's or a non-member's provider URL is the 404 with no names.
 //
+// Slice 5 (the With row): linking on a note's draft saves it and keeps the
+// editor; two providers linked to an event show on a second device, and an
+// unlink goes everywhere; the picker adds a new provider by name; the
+// provider page lists linked entries newest first; two devices linking one
+// provider (one offline) make one link; a deleted provider's chip is greyed;
+// a viewer sees chips only.
+//
+// Slice 6 (suggestions): typing a title that names a clinician suggests them
+// first, and one tap links them; a title used before suggests who was linked
+// then; with nothing to match, recent links; the chips go once linked; and
+// all of it offline. The ranking itself is unit-tested.
+//
 // The device steps drive the device module itself (lib/sync/providers.ts,
 // imported through Vite) against `window.caretookSync`. Later slices add
 // their screens' steps here. Every provider and entry it makes
@@ -34,7 +46,7 @@
 // core path: the seeds on the device, the list and a search, one add through
 // the sheet, and the provider page.
 import { execSync } from "node:child_process";
-import { launch, openPage, sleep, SMOKE } from "./cdp.mjs";
+import { launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -945,6 +957,380 @@ async function viewerProviderSteps(C, id, deletedId) {
   );
 }
 
+// --- The With row (slice 5) ---------------------------------------------------
+
+const PATEL = "Dr. Samuel Patel";
+const CORNERSTONE = "Cornerstone Pharmacy";
+const entryPath = (id) => `/app/groups/${DEV_FAMILY}/entries/${id}`;
+const WITH = `document.querySelector('main header [data-region="with"]')`;
+const ADD_LINK = `${WITH}?.querySelector("[data-add-provider-link]")`;
+const PICKER = `${WITH}?.querySelector("input")`;
+const optionNamed = (text) =>
+  `[...document.querySelectorAll('[role="option"]')].find((o) => o.firstElementChild?.textContent === ${JSON.stringify(text)})`;
+/** The With row's chips: name, whether it's a link (and where), greyed, and removable. */
+const withChips = (p) =>
+  p.evaluate(`[...(${WITH}?.querySelectorAll("li[data-chip]") ?? [])].map((li) => ({
+    id: li.dataset.chip,
+    text: li.textContent.trim(),
+    href: li.querySelector("a")?.getAttribute("href") ?? null,
+    muted: li.className.includes("text-base-content/50"),
+    remove: !!li.querySelector("button"),
+  }))`);
+const chipTexts = (p) => withChips(p).then((chips) => chips.map((c) => c.text));
+const hasChip = (text) =>
+  `[...(${WITH}?.querySelectorAll("li[data-chip]") ?? [])].some((li) => li.textContent.includes(${JSON.stringify(text)}))`;
+
+/** Open the picker, type `text`, and tap the option that includes `option`. */
+async function pick(p, text, option) {
+  await p.waitFor(ADD_LINK, 20000);
+  await p.tap(ADD_LINK);
+  await p.waitFor(`${PICKER} && document.activeElement === ${PICKER}`, 10000);
+  await p.type(PICKER, text);
+  await p.waitFor(optionNamed(option), 10000);
+  await p.tap(optionNamed(option));
+}
+
+const linkCount = (entryId) =>
+  psql(`SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${entryId}'`);
+
+/**
+ * A (caretaker, behind `proxy`) and B (member): linking on a draft, two
+ * providers on an event seen and unlinked on a second device, a new provider
+ * from the picker, the provider page's linked entries, two devices linking
+ * one provider (A offline) ending with one link, and a deleted provider's
+ * greyed chip. Returns what to clean up.
+ */
+async function withRowSteps(A, B, proxy) {
+  const out = { entries: [], providers: [] };
+  const ids = Object.fromEntries(
+    psql(
+      `SELECT name || '=' || id FROM provider WHERE group_id = '${DEV_FAMILY}' AND name IN ('${PATEL}', '${CORNERSTONE}', 'Westside Family Medicine')`,
+    )
+      .split("\n")
+      .map((line) => line.split("=")),
+  );
+
+  // A new note's draft: linking saves it, and the editor stays (the same element).
+  await A.goto(`/app/groups/${DEV_FAMILY}/entries/new?kind=note`);
+  await A.waitFor(`location.pathname.endsWith("/entries/new") && ${NOTES}`, 30000);
+  await A.evaluate(`${NOTES}.dataset.marker = "kept"; true`);
+  check(
+    "a writer's draft has the With row with Add, and no chips",
+    (await A.evaluate(`!!${ADD_LINK}`)) && (await withChips(A)).length === 0,
+  );
+  await pick(A, "patel", PATEL);
+  await A.waitFor(`!location.pathname.endsWith("/entries/new") && ${hasChip(PATEL)}`, 20000).catch(() => {});
+  const noteId = await A.evaluate(`location.pathname.split("/").pop()`);
+  out.entries.push(noteId);
+  const kept = await A.evaluate(`${NOTES}?.dataset.marker === "kept"`);
+  const stored = await localRows(A, `SELECT kind FROM timeline_entry WHERE id = ?`, [noteId]);
+  check(
+    "linking on a new note's draft saves the note and keeps the editor",
+    kept && stored[0]?.kind === "note" && (await chipTexts(A)).includes(PATEL),
+    JSON.stringify({ kept, stored, path: await A.evaluate("location.pathname") }),
+  );
+  check("…focus goes back to Add after picking", await A.evaluate(`document.activeElement === ${ADD_LINK}`));
+
+  // An event: two providers linked from the picker, seen on a second device.
+  const eventId = await A.evaluate(`crypto.randomUUID()`);
+  out.entries.push(eventId);
+  const made = await onDevice(
+    A,
+    `return liveEntry.materializeLiveEntry(db, {
+       id: ${JSON.stringify(eventId)}, groupId: ${JSON.stringify(DEV_FAMILY)}, kind: "event",
+       title: ${JSON.stringify(`${tag} With visit`)}, occurredAt: new Date().toISOString(), timeZone: "America/Los_Angeles",
+     });`,
+  );
+  check("an event to link to", made.ok, JSON.stringify(made));
+  await waitForSql(`SELECT count(*) FROM timeline_entry WHERE id = '${eventId}'`, (v) => v === "1");
+  await A.goto(entryPath(eventId));
+  await A.waitFor(`${NOTES} && ${ADD_LINK}`, 30000);
+  await pick(A, "cardio", PATEL);
+  await A.waitFor(hasChip(PATEL), 10000).catch(() => {});
+  await pick(A, "cornerstone", CORNERSTONE);
+  await A.waitFor(hasChip(CORNERSTONE), 10000).catch(() => {});
+  const linked = await waitForSql(
+    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${eventId}'`,
+    (v) => v === "2",
+  );
+  check("a writer links two providers to an event; both upload", linked === "2", `${linked} links`);
+  const aChips = await withChips(A);
+  check(
+    "each chip opens the provider's page, with an × to remove it",
+    aChips.length === 2 && aChips.every((c) => c.href === providerPath(c.id) && c.remove && !c.muted),
+    JSON.stringify(aChips),
+  );
+
+  await B.goto(entryPath(eventId));
+  await B.waitFor(`${hasChip(PATEL)} && ${hasChip(CORNERSTONE)}`, 30000).then(
+    () => check("both chips show on a second device", true),
+    () => check("both chips show on a second device", false),
+  );
+
+  // Removing one removes it everywhere.
+  await A.tap(`${WITH}.querySelector('button[aria-label="Remove ${CORNERSTONE}"]')`);
+  await B.waitFor(`${hasChip(PATEL)} && !${hasChip(CORNERSTONE)}`, 20000).then(
+    () => check("removing a chip removes it on the other device", true),
+    () => check("removing a chip removes it on the other device", false),
+  );
+  const left = await waitForSql(
+    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${eventId}'`,
+    (v) => v === "1",
+  );
+  check("…and on the server", left === "1", `${left} links`);
+
+  // The picker leaves out linked providers; Escape closes it, back on Add.
+  await A.tap(ADD_LINK);
+  await A.waitFor(`document.activeElement === ${PICKER}`, 10000);
+  await A.type(PICKER, "patel");
+  await sleep(500);
+  const offered = await A.evaluate(
+    `[...document.querySelectorAll('[role="option"]')].map((o) => o.textContent)`,
+  );
+  check(
+    "the picker doesn't offer a provider that's linked already",
+    !offered.some((t) => t.includes(PATEL)),
+    JSON.stringify(offered),
+  );
+  await escape(A);
+  await sleep(200);
+  if (await A.evaluate(`!!${PICKER}`)) await escape(A);
+  await A.waitFor(`!${PICKER} && document.activeElement === ${ADD_LINK}`, 5000).then(
+    () => check("Escape closes the picker, focus back on Add", true),
+    () => check("Escape closes the picker, focus back on Add", false),
+  );
+
+  // A new name: added as a clinician and linked, without leaving the entry.
+  const newName = `${tag} Dr. Picker`;
+  await pick(A, newName, `Add "${newName}" as a provider`);
+  await A.waitFor(hasChip(newName), 10000).catch(() => {});
+  const created = await waitForSql(
+    `SELECT p.id || '|' || p.type FROM provider p JOIN timeline_entry_provider l ON l.provider_id = p.id WHERE l.entry_id = '${eventId}' AND p.name = '${newName}'`,
+    (v) => v.endsWith("|clinician"),
+  );
+  const pickerId = created.split("|")[0];
+  if (pickerId) out.providers.push(pickerId);
+  check(
+    "typing a new name adds the provider (a clinician) and links it, staying on the entry",
+    created.endsWith("|clinician") && (await A.evaluate(`location.pathname`)) === entryPath(eventId),
+    created,
+  );
+
+  // The provider page lists the event and the note, newest first; a tap opens the entry.
+  await A.goto(providerPath(ids[PATEL]));
+  await A.waitFor(
+    `document.querySelector('main [data-linked-entries] a[data-entry-id="${eventId}"]')`,
+    20000,
+  ).catch(() => {});
+  const listed =
+    await A.evaluate(`[...document.querySelectorAll("main [data-linked-entries] a[data-entry-id]")].map((a) => ({
+    id: a.dataset.entryId, at: a.querySelector("time")?.getAttribute("datetime"), href: a.getAttribute("href") }))`);
+  const times = listed.map((l) => l.at);
+  check(
+    "the provider page lists the linked event and note, newest first",
+    listed.some((l) => l.id === eventId) &&
+      listed.some((l) => l.id === noteId) &&
+      same(times, [...times].sort().reverse()),
+    JSON.stringify(listed.slice(0, 4)),
+  );
+  await A.tap(`document.querySelector('main [data-linked-entries] a[data-entry-id="${eventId}"]')`);
+  await A.waitFor(`location.pathname === ${JSON.stringify(entryPath(eventId))} && ${NOTES}`, 20000).then(
+    () => check("tapping it opens the entry", true),
+    () => check("tapping it opens the entry", false),
+  );
+
+  // Two devices link one provider, A offline: one link.
+  await B.goto(entryPath(eventId));
+  await B.waitFor(`${NOTES} && ${ADD_LINK}`, 20000);
+  proxy.setOnline(false);
+  await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000);
+  await pick(A, "westside", "Westside Family Medicine");
+  await A.waitFor(hasChip("Westside Family Medicine"), 10000).catch(() => {});
+  await pick(B, "westside", "Westside Family Medicine");
+  await B.waitFor(hasChip("Westside Family Medicine"), 10000).catch(() => {});
+  await waitForSql(
+    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${eventId}' AND provider_id = '${ids["Westside Family Medicine"]}'`,
+    (v) => v === "1",
+  );
+  proxy.setOnline(true);
+  await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  await A.waitFor(
+    `window.caretookSync.powersync.getAll("SELECT count(*) AS n FROM ps_crud").then((r) => r[0].n === 0)`,
+    30000,
+  ).catch(() => {});
+  await sleep(1000);
+  const westside = psql(
+    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${eventId}' AND provider_id = '${ids["Westside Family Medicine"]}'`,
+  );
+  const aWest = (await chipTexts(A)).filter((t) => t.includes("Westside")).length;
+  const bWest = (await chipTexts(B)).filter((t) => t.includes("Westside")).length;
+  check(
+    "two devices linking the same provider (one offline) end up with one link",
+    westside === "1" && aWest === 1 && bWest === 1 && linkCount(eventId) === "3",
+    JSON.stringify({ westside, aWest, bWest, links: linkCount(eventId) }),
+  );
+
+  // A deleted provider's chip is greyed "(removed)", not a link; the entry is unchanged.
+  const before = await A.evaluate(
+    `({ h1: document.querySelector("main h1")?.textContent, chips: ${WITH}.querySelectorAll("li").length })`,
+  );
+  const removed = await onDevice(
+    A,
+    `return (await providers.removeProvider(db, ${JSON.stringify(pickerId)})).ok;`,
+  );
+  await B.waitFor(hasChip(`${newName} (removed)`), 20000).catch(() => {});
+  const bChips = await withChips(B);
+  const gone = bChips.find((c) => c.id === pickerId);
+  const after = await A.evaluate(
+    `({ h1: document.querySelector("main h1")?.textContent, chips: ${WITH}.querySelectorAll("li").length })`,
+  );
+  check(
+    'a deleted provider\'s chip is greyed "(removed)" and not a link',
+    removed && gone?.text === `${newName} (removed)` && gone.href === null && gone.muted,
+    JSON.stringify(gone),
+  );
+  check(
+    "…and the entry is otherwise unchanged",
+    same(before, after) && (await B.evaluate(`!!${NOTES}`)),
+    JSON.stringify({ before, after }),
+  );
+  return { ...out, eventId, noteId };
+}
+
+/** C (viewer): chips only on the event, no Add or remove. */
+async function viewerWithSteps(C, eventId) {
+  await C.goto(entryPath(eventId));
+  await C.waitFor(`${NOTES} && ${hasChip(PATEL)}`, 30000).catch(() => {});
+  const chips = await withChips(C);
+  check(
+    "a viewer sees the chips (links), with no Add or remove",
+    chips.length >= 2 &&
+      chips.every((c) => !c.remove) &&
+      !(await C.evaluate(`!!${ADD_LINK}`)) &&
+      chips.some((c) => c.href),
+    JSON.stringify(chips),
+  );
+}
+
+// --- Suggestions (slice 6) ---------------------------------------------------
+// The ranking rules are unit-tested (providerSuggestions.test.ts); these steps
+// check the wiring: chips show while nothing is linked, a tap links, and
+// they go once something is.
+
+const SUGGESTIONS = `${WITH}?.querySelector("[data-provider-suggestions]")`;
+const ENTRY_TITLE = `document.querySelector("main header input")`;
+const suggested = (p) =>
+  p.evaluate(`[...(${SUGGESTIONS}?.querySelectorAll("button") ?? [])].map((b) => b.textContent.trim())`);
+const suggestionNamed = (name) =>
+  `[...(${SUGGESTIONS}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(name)})`;
+const firstSuggestionIs = (name) =>
+  `${SUGGESTIONS}?.querySelector("button")?.textContent.trim() === ${JSON.stringify(name)}`;
+
+/** A new draft of `kind` on A, with `title` typed (not yet saved). */
+async function draftWithTitle(p, kind, title) {
+  await p.goto(`/app/groups/${DEV_FAMILY}/entries/new?kind=${kind}`);
+  await p.waitFor(`location.pathname.endsWith("/entries/new") && ${NOTES} && ${ENTRY_TITLE}`, 30000);
+  if (title) {
+    await p.evaluate(`${ENTRY_TITLE}.focus()`);
+    await p.type(ENTRY_TITLE, title);
+  }
+}
+
+/** Tap the suggestion `name`; returns the entry's id once the URL is the entry's own. */
+async function tapSuggestion(p, name) {
+  await p.tap(suggestionNamed(name));
+  await p.waitFor(`!location.pathname.endsWith("/entries/new") && ${hasChip(name)}`, 20000).catch(() => {});
+  return p.evaluate(`location.pathname.split("/").pop()`);
+}
+
+/**
+ * A (caretaker, behind `proxy`): a title naming a clinician suggests them
+ * first, and one tap after typing links them; the chips go once linked;
+ * (full mode) a title used before suggests who was linked then, a note
+ * with nothing to match suggests recent links, and suggestions work
+ * offline. Returns the entries it made, for clean-up.
+ */
+async function suggestionSteps(A, proxy) {
+  const entries = [];
+  const patelId = psql(`SELECT id FROM provider WHERE group_id = '${DEV_FAMILY}' AND name = '${PATEL}'`);
+
+  // Typing "Dr. Patel follow-up" suggests Dr. Patel first; one tap (no Enter) links him.
+  await draftWithTitle(A, "event", `Dr. Patel follow-up ${tag}`);
+  await A.waitFor(firstSuggestionIs(PATEL), 15000).catch(() => {});
+  const typed = await suggested(A);
+  check(
+    "typing a title that names a clinician suggests them first",
+    typed[0] === PATEL,
+    JSON.stringify(typed),
+  );
+  const eventId = await tapSuggestion(A, PATEL);
+  entries.push(eventId);
+  const linked = await waitForSql(
+    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${eventId}' AND provider_id = '${patelId}'`,
+    (v) => v === "1",
+  );
+  const title = psql(`SELECT title FROM timeline_entry WHERE id = '${eventId}'`);
+  check(
+    "one tap after the title saves the event with its title and links the clinician",
+    linked === "1" && title === `Dr. Patel follow-up ${tag}`,
+    JSON.stringify({ linked, title }),
+  );
+  check("suggestions hide once a provider is linked", await A.evaluate(`!${SUGGESTIONS}`));
+
+  if (SMOKE) return entries;
+
+  // A title used before suggests who was linked to it (the seeded "Pharmacy pickup" → Cornerstone).
+  await draftWithTitle(A, "event", "Pharmacy pickup");
+  await A.waitFor(firstSuggestionIs(CORNERSTONE), 15000).catch(() => {});
+  const memory = await suggested(A);
+  check(
+    "a title used before suggests the provider linked to it",
+    memory[0] === CORNERSTONE,
+    JSON.stringify(memory),
+  );
+  // Leave the draft unsaved: clear the typed title before going on.
+  await A.type(ENTRY_TITLE, "");
+
+  // Nothing to match: a new note suggests recently linked providers, Dr. Patel (just now) among them.
+  // (Their order, frequency against recency, is unit-tested.)
+  await draftWithTitle(A, "note", "");
+  await A.waitFor(suggestionNamed(PATEL), 15000).catch(() => {});
+  const recent = await suggested(A);
+  check(
+    "with nothing to match, recently linked providers are suggested",
+    recent.includes(PATEL) && recent.length <= 5,
+    JSON.stringify(recent),
+  );
+
+  // Offline (a full load can't open the app offline, so the draft opens first): the chips still come,
+  // and a tap links on the device, then uploads.
+  await draftWithTitle(A, "event", "");
+  proxy.setOnline(false);
+  await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000);
+  await A.evaluate(`${ENTRY_TITLE}.focus()`);
+  await A.type(ENTRY_TITLE, `Cornerstone Pharmacy refill ${tag}`);
+  await A.waitFor(firstSuggestionIs(CORNERSTONE), 15000).catch(() => {});
+  const offline = await suggested(A);
+  const offlineId = await tapSuggestion(A, CORNERSTONE);
+  entries.push(offlineId);
+  const local = await localRows(A, `SELECT count(*) AS n FROM timeline_entry_provider WHERE entry_id = ?`, [
+    offlineId,
+  ]);
+  check(
+    "offline: suggestions show, and a tap links on the device",
+    offline[0] === CORNERSTONE && local[0]?.n === 1 && (await A.evaluate(`!${SUGGESTIONS}`)),
+    JSON.stringify({ offline, local }),
+  );
+  proxy.setOnline(true);
+  const uploaded = await waitForSql(
+    `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${offlineId}'`,
+    (v) => v === "1",
+    30000,
+  );
+  check("…and the link uploads after reconnecting", uploaded === "1", `${uploaded} links`);
+  return entries;
+}
+
 async function signIn(p, email) {
   // On a fresh dev server the first load can fail while Vite optimises its deps: one retry.
   await p.signIn(email, PW).catch(async () => {
@@ -1066,8 +1452,17 @@ try {
   // --- The provider page and its live notes (slice 4) -----------------------
   const notesProvider = await providerPageSteps(A, B, proxyA);
 
+  // --- Suggestions while nothing is linked (slice 6) ------------------------
+  const suggestionEntries = await step("provider suggestions", { smoke: true }, () =>
+    suggestionSteps(A, proxyA),
+  );
+
   // Smoke stops here: offline, a second member, the viewer and a non-member are full mode's.
+  let withRow = null;
   if (!SMOKE) {
+    // --- The With row: linking from notes and events (slice 5) ----------------
+    withRow = await withRowSteps(A, B, proxyA);
+
     // --- Offline: create an event, create-and-link a provider, link a seeded one
     proxyA.setOnline(false);
     await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000);
@@ -1209,6 +1604,7 @@ try {
     );
 
     await viewerProviderSteps(C, notesProvider, providerId);
+    await viewerWithSteps(C, withRow.eventId);
 
     // --- A non-member's providers URL is the 404, with no names --------------
     const D = await openPage(bD, "admin");
@@ -1262,7 +1658,44 @@ try {
   );
   check("clean up: this run's providers are deleted", sheetCleaned && sheetGone === "0");
 
+  const suggestionsCleaned = await onDevice(
+    A,
+    `const out = [];
+     for (const id of ${JSON.stringify(suggestionEntries)}) {
+       const links = await db.powersync.getAll("SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?", [id]);
+       for (const l of links) out.push((await providers.unlinkProvider(db, id, l.provider_id)).ok);
+       out.push((await timeline.removeEntry(db, id)).ok);
+     }
+     return out.every(Boolean);`,
+  );
+  const suggestionsGone = await waitForSql(
+    `SELECT (SELECT count(*) FROM timeline_entry_provider WHERE entry_id IN ('${suggestionEntries.join("','")}')) || '|' || (SELECT count(*) FROM timeline_entry WHERE id IN ('${suggestionEntries.join("','")}') AND deleted_at IS NULL)`,
+    (v) => v === "0|0",
+  );
+  check(
+    "clean up: the suggestion steps' links and entries are gone",
+    suggestionsCleaned && suggestionsGone === "0|0",
+    suggestionsGone,
+  );
+
   if (!SMOKE) {
+    const withCleaned = await onDevice(
+      A,
+      `const out = [];
+       for (const id of ${JSON.stringify(withRow.entries)}) {
+         const links = await db.powersync.getAll("SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?", [id]);
+         for (const l of links) out.push((await providers.unlinkProvider(db, id, l.provider_id)).ok);
+         out.push((await timeline.removeEntry(db, id)).ok);
+       }
+       for (const id of ${JSON.stringify(withRow.providers)}) out.push((await providers.removeProvider(db, id)).ok);
+       return out.every(Boolean);`,
+    );
+    const withGone = await waitForSql(
+      `SELECT (SELECT count(*) FROM timeline_entry_provider WHERE entry_id IN ('${withRow.entries.join("','")}')) || '|' || (SELECT count(*) FROM timeline_entry WHERE id IN ('${withRow.entries.join("','")}') AND deleted_at IS NULL)`,
+      (v) => v === "0|0",
+    );
+    check("clean up: the With row's links and entries are gone", withCleaned && withGone === "0|0", withGone);
+
     const cleanedProvider = await onDevice(
       A,
       `return (await providers.removeProvider(db, ${JSON.stringify(notesProvider)})).ok;`,
