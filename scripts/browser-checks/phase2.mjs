@@ -263,7 +263,6 @@ async function dayHeadings(p) {
     return { today: key(0), yesterday: key(1),
       all: [...document.querySelectorAll("section h3")].map((h) => ({ key: h.id.replace("day-", ""), text: h.textContent.trim() })) };
   })()`);
-  const labelOf = (dayKey) => headings.all.find((h) => h.key === dayKey)?.text;
   // The labels themselves ("Yesterday", "Monday, Nov 16", the year) are dayLabel's, in format.test.ts.
   // The history ends at now, so just after midnight today can have nothing in it yet.
   const newest = headings.all[0];
