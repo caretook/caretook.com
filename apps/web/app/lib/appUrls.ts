@@ -46,6 +46,8 @@ export const isVitalType = (value: unknown): value is VitalType =>
 /** The Dose sheet's medication and the slot it answers: `?medication=<id>&slot=08:00`. */
 export const DOSE_MEDICATION_PARAM = "medication";
 export const DOSE_SLOT_PARAM = "slot";
+/** The Dose sheet's pass, shown first (with Given all): `?pass=<passId>`. */
+export const DOSE_PASS_PARAM = "pass";
 
 /** `search` without the add sheets' own parameters: the timeline's filters, as a sheet carries them. */
 export const withoutSheetParams = (search?: Search) => {
@@ -53,6 +55,7 @@ export const withoutSheetParams = (search?: Search) => {
   params.delete(VITAL_TYPE_PARAM);
   params.delete(DOSE_MEDICATION_PARAM);
   params.delete(DOSE_SLOT_PARAM);
+  params.delete(DOSE_PASS_PARAM);
   return params;
 };
 
@@ -157,11 +160,17 @@ export const appUrls = {
    */
   newDose: (
     groupId: string,
-    { medicationId, slot, search }: { medicationId?: string; slot?: string; search?: Search } = {},
+    {
+      medicationId,
+      slot,
+      passId,
+      search,
+    }: { medicationId?: string; slot?: string; passId?: string; search?: Search } = {},
   ) => {
     const params = withoutSheetParams(search);
     if (medicationId) params.set(DOSE_MEDICATION_PARAM, medicationId);
     if (slot) params.set(DOSE_SLOT_PARAM, slot);
+    if (passId) params.set(DOSE_PASS_PARAM, passId);
     return `${groupHome(groupId)}/timeline/new/dose${searchString(params)}`;
   },
   /** A medication's page: details, schedule, providers, refills, its live notes and its history. */

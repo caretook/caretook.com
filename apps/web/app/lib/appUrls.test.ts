@@ -178,8 +178,14 @@ describe("appUrls.newDose", () => {
     );
   });
 
+  it("can start on a pass", () => {
+    expect(appUrls.newDose(G, { passId: M, search: "?kind=dose&pass=x" })).toBe(
+      `/app/groups/${G}/timeline/new/dose?kind=dose&pass=${M}`,
+    );
+  });
+
   it("is dropped from the timeline a sheet closes to", () => {
-    expect(appUrls.timeline(G, withoutSheetParams(`?kind=dose&medication=${M}&slot=08:00`))).toBe(
+    expect(appUrls.timeline(G, withoutSheetParams(`?kind=dose&medication=${M}&pass=${M}&slot=08:00`))).toBe(
       `/app/groups/${G}/timeline?kind=dose`,
     );
   });

@@ -88,15 +88,20 @@ describe("newDoseGuard", () => {
   const dose = { groupId: G, canWrite: true, choiceIds: [M] };
 
   it("opens the Dose sheet for a writer, on a listed medication and a slot", () => {
-    expect(newDoseGuard({ ...dose, search: "" })).toEqual({ sheet: { medicationId: null, slot: null } });
+    expect(newDoseGuard({ ...dose, search: "" })).toEqual({
+      sheet: { medicationId: null, slot: null, passId: null },
+    });
     expect(newDoseGuard({ ...dose, search: `?medication=${M}&slot=08:00` })).toEqual({
-      sheet: { medicationId: M, slot: "08:00" },
+      sheet: { medicationId: M, slot: "08:00", passId: null },
+    });
+    expect(newDoseGuard({ ...dose, search: `?pass=${M}` })).toEqual({
+      sheet: { medicationId: null, slot: null, passId: M },
     });
   });
 
-  it("drops a medication that isn't a choice, and a slot that isn't a time", () => {
-    expect(newDoseGuard({ ...dose, search: "?medication=other&slot=8am" })).toEqual({
-      sheet: { medicationId: null, slot: null },
+  it("drops a medication that isn't a choice, a slot that isn't a time and a pass that isn't an id", () => {
+    expect(newDoseGuard({ ...dose, search: "?medication=other&slot=8am&pass=morning" })).toEqual({
+      sheet: { medicationId: null, slot: null, passId: null },
     });
   });
 

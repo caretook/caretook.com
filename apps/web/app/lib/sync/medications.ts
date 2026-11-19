@@ -756,6 +756,76 @@ export const logDose = async (
   return { ok: true, id };
 };
 
+/**
+ * Log several doses at once (a pass's Given all), in one local transaction:
+ * all of them or none. Each is checked as `logDose` checks one. Returns the
+ * new entries' ids, in order, so they can be undone exactly.
+ */
+export const logDoses = async (
+  db: SyncDb,
+  groupId: string,
+  doses: readonly DoseInput[],
+): Promise<{ ok: true; ids: string[] } | Refusal> => {
+  const group = await groupFor(db, groupId);
+  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden as Refusal;
+  const now = nowTimestamp();
+  const rows: (typeof timelineEntries.$inferInsert)[] = [];
+  for (const { medicationId, occurredAt, timeZone, ...rest } of doses) {
+    const medication = await liveMedication(db, medicationId);
+    if (!medication || medication.groupId !== groupId) return medicationMissing;
+    const parsed = doseContent(
+      { medicationId, ...rest },
+      { occurredAt: occurredAt ?? new Date().toISOString(), timeZone: timeZone ?? deviceTimeZone() },
+    );
+    if (!parsed.success) return invalid(parsed.error, "The dose is invalid");
+    rows.push({
+      id: crypto.randomUUID(),
+      groupId,
+      recipientId: medication.recipientId,
+      kind: "dose",
+      occurredAt: toLocalTimestamp(parsed.data.occurredAt),
+      timeZone: parsed.data.timeZone,
+      title: null,
+      body: null,
+      details: JSON.stringify(parsed.data.details),
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: db.userId,
+      updatedBy: db.userId,
+    });
+  }
+  if (rows.length)
+    await db.drizzle.transaction(async (tx) => {
+      for (const row of rows) await tx.insert(timelineEntries).values(row);
+    });
+  return { ok: true, ids: rows.map((r) => r.id) };
+};
+
+/**
+ * Soft delete exactly these doses (Given all's Undo), in one local
+ * transaction. Ones already gone, or not doses, are left alone.
+ */
+export const removeDoses = async (db: SyncDb, ids: readonly string[]): Promise<ActionResult> => {
+  const live: DoseEntry[] = [];
+  for (const id of ids) {
+    const entry = await liveMedicationEntry(db, id);
+    if (entry && isDoseEntry(entry)) live.push(entry);
+  }
+  for (const groupId of new Set(live.map((e) => e.groupId)))
+    if (!(await canWrite(db, groupId))) return forbidden;
+  if (!live.length) return { ok: true };
+  const now = nowTimestamp();
+  await db.drizzle.transaction(async (tx) => {
+    for (const entry of live)
+      await tx
+        .update(timelineEntries)
+        .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+        .where(eq(timelineEntries.id, entry.id));
+  });
+  return { ok: true };
+};
+
 export type DosePatch = Partial<Omit<DoseDetails, "medicationId">> & { occurredAt?: string };
 
 /** Edit a logged dose: its status, amount, slot, note or time. Its medication is fixed. */

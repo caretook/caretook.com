@@ -1,109 +1,59 @@
-import type { DoseStatus } from "@caretook/data/schema";
 import type { DoseSlot, DueDoses } from "~/lib/dueDoses";
+import type { DuePass } from "~/lib/duePasses";
+import type { Marking } from "~/components/medications";
+import type { PassLike } from "@caretook/data/schema";
 
-import { useEffect, useRef, useState } from "react";
-import { MEDICATION_LIMITS } from "@caretook/data/schema";
-import { ConfirmDialog, Field } from "~/components/ui";
-import { clockTime, medicationTitle, missedText, scheduleZoneNote } from "~/lib/medicationDisplay";
+import { useMemo, useState } from "react";
+import { DoseSlotRow, MarkDoseDialog, PassCard, PassUndoStatus } from "~/components/medications";
+import { duePasses, isNamedPass } from "~/lib/duePasses";
+import { clockTime, missedText, scheduleZoneNote } from "~/lib/medicationDisplay";
+import { useMemberNames } from "~/lib/sync/memberNames";
 import { AsNeededRow } from "./AsNeededRow";
-import { TodaySlotRow } from "./TodaySlotRow";
-import { useLogDose } from "./useLogDose";
-
-type Marking = { slot: DoseSlot; status: Exclude<DoseStatus, "given"> };
 
 const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-/** Today's slots grouped by time, in order. */
-const byTime = (slots: DoseSlot[]) => {
-  const groups = new Map<string, DoseSlot[]>();
-  for (const slot of slots) groups.set(slot.time, [...(groups.get(slot.time) ?? []), slot]);
-  return [...groups.entries()];
+/** Today in order: each named pass on its own, and times of their own grouped by time, as before. */
+type Block = { type: "pass"; pass: DuePass } | { type: "time"; time: string; slots: DoseSlot[] };
+const blocksOf = (passes: readonly DuePass[]): Block[] => {
+  const blocks: Block[] = [];
+  for (const pass of passes) {
+    if (isNamedPass(pass)) {
+      blocks.push({ type: "pass", pass });
+      continue;
+    }
+    const last = blocks.at(-1);
+    if (last?.type === "time" && last.time === pass.time) last.slots.push(...pass.slots);
+    else blocks.push({ type: "time", time: pass.time, slots: [...pass.slots] });
+  }
+  return blocks;
 };
 
-/** Skipped or Refused, with an optional note: asks, then logs it now for the slot. */
-function MarkDialog({
-  marking,
-  groupId,
-  onClose,
-}: {
-  marking: Marking | null;
-  groupId: string;
-  onClose: () => void;
-}) {
-  const { log, busy, error } = useLogDose(groupId);
-  const [note, setNote] = useState("");
-  // Closes once its write is through (a refusal stays, with its message).
-  const saving = useRef(false);
-  useEffect(() => {
-    if (busy) saving.current = true;
-    else if (saving.current) {
-      saving.current = false;
-      if (!error) onClose();
-    }
-  }, [busy, error, onClose]);
-
-  const label = marking?.status === "refused" ? "Refused" : "Skipped";
-  return (
-    <ConfirmDialog
-      open={marking !== null}
-      title={
-        marking
-          ? `${label}: ${medicationTitle(marking.slot.medication)}, ${clockTime(marking.slot.time)}`
-          : ""
-      }
-      message={error}
-      confirmLabel={`Mark ${label.toLowerCase()}`}
-      confirmDisabled={busy}
-      onConfirm={() => {
-        if (!marking) return;
-        log({
-          medicationId: marking.slot.medication.id,
-          status: marking.status,
-          scheduledFor: marking.slot.time,
-          passId: marking.slot.passId,
-          note,
-        });
-        setNote("");
-      }}
-      onClose={() => {
-        setNote("");
-        onClose();
-      }}
-    >
-      <Field label="Note (optional)">
-        {(control) => (
-          <textarea
-            {...control}
-            className="textarea w-full"
-            rows={2}
-            maxLength={MEDICATION_LIMITS.doseNote}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            data-mark-note
-          />
-        )}
-      </Field>
-    </ConfirmDialog>
-  );
-}
-
 /**
- * Today, at the top of the medication list: each of today's times with its
- * medications and their state (in the recipient's zone), the as-needed
- * medications with today's count, and yesterday's missed doses on one line.
- * Writers log from here; viewers see it all without controls. Hidden when
- * there's nothing scheduled or as needed.
+ * Today, at the top of the medication list, by pass (in the recipient's
+ * zone): each pass with its state, who logged what, Given all for writers
+ * (then Undo) and an expand with each medication; times of their own as
+ * before, each medication with its state; the as-needed medications with
+ * today's count; and yesterday's missed doses on one line. Viewers see it
+ * all without logging controls. Hidden when there's nothing scheduled or as
+ * needed.
  */
 export function TodaySection({
   due,
+  passes,
   groupId,
+  userId,
   canWrite,
 }: {
   due: DueDoses;
+  /** The group's passes (deleted ones too), for their names. */
+  passes: readonly Pick<PassLike, "id" | "name" | "sortOrder">[];
   groupId: string;
+  userId: string;
   canWrite: boolean;
 }) {
   const [marking, setMarking] = useState<Marking | null>(null);
+  const nameOf = useMemberNames(groupId, userId);
+  const blocks = useMemo(() => blocksOf(duePasses(due, passes)), [due, passes]);
   const missed = missedText(due.missed);
   if (!due.slots.length && !due.asNeeded.length && !missed) return null;
   const zoneNote = scheduleZoneNote(due.timeZone, deviceZone());
@@ -117,25 +67,45 @@ export function TodaySection({
         {zoneNote && <p className="text-base-content/70 text-sm">{zoneNote}</p>}
       </div>
 
-      {byTime(due.slots).map(([time, slots]) => (
-        <section key={time} aria-labelledby={`today-${time}`} className="space-y-1" data-slot-time={time}>
-          <h3 id={`today-${time}`} className="text-base-content/70 text-sm font-semibold">
-            {clockTime(time)}
-          </h3>
-          <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y border">
-            {slots.map((slot) => (
-              <TodaySlotRow
-                key={slot.medication.id}
-                slot={slot}
-                groupId={groupId}
-                timeZone={due.timeZone}
-                canWrite={canWrite}
-                onMark={(s, status) => setMarking({ slot: s, status })}
-              />
-            ))}
-          </ul>
-        </section>
-      ))}
+      {canWrite && <PassUndoStatus groupId={groupId} />}
+
+      {blocks.map((block) =>
+        block.type === "pass" ? (
+          <PassCard
+            key={block.pass.key}
+            pass={block.pass}
+            groupId={groupId}
+            timeZone={due.timeZone}
+            canWrite={canWrite}
+            nameOf={nameOf}
+            onMark={(slot, status, passLogId) => setMarking({ slot, status, passLogId })}
+          />
+        ) : (
+          <section
+            key={`time-${block.time}`}
+            aria-labelledby={`today-${block.time}`}
+            className="space-y-1"
+            data-slot-time={block.time}
+          >
+            <h3 id={`today-${block.time}`} className="text-base-content/70 text-sm font-semibold">
+              {clockTime(block.time)}
+            </h3>
+            <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y border">
+              {block.slots.map((slot) => (
+                <DoseSlotRow
+                  key={slot.medication.id}
+                  slot={slot}
+                  groupId={groupId}
+                  timeZone={due.timeZone}
+                  canWrite={canWrite}
+                  loggedBy={slot.dose?.createdBy ? nameOf(slot.dose.createdBy) : null}
+                  onMark={(s, status) => setMarking({ slot: s, status })}
+                />
+              ))}
+            </ul>
+          </section>
+        ),
+      )}
 
       {due.asNeeded.length > 0 && (
         <section aria-labelledby="today-as-needed" className="space-y-1">
@@ -162,7 +132,7 @@ export function TodaySection({
         </p>
       )}
 
-      {canWrite && <MarkDialog marking={marking} groupId={groupId} onClose={() => setMarking(null)} />}
+      {canWrite && <MarkDoseDialog marking={marking} groupId={groupId} onClose={() => setMarking(null)} />}
     </section>
   );
 }

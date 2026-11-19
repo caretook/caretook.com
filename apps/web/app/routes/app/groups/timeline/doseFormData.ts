@@ -74,11 +74,14 @@ export const parseDoseOption = (value: string) => {
  * with the slot the sheet was opened for at the top when it isn't one of
  * them; then every current medication without a slot, as `choices` orders
  * them (most recently given first). `initial` is the choice to start on.
+ * Slots in `shownPasses` (the passes the sheet shows above, with Given all
+ * and each medication) aren't repeated here, unless asked for.
  */
 export function doseSheetOptions(
   choices: readonly DoseChoice[],
   due: Pick<DueDoses, "slots">,
   requested: { medicationId: string | null; slot: string | null },
+  shownPasses: ReadonlySet<string> = new Set(),
 ): { options: DoseOption[]; initial: string | null } {
   const byId = new Map(choices.map((c) => [c.id, c]));
   const slotOptions: DoseOption[] = [];
@@ -111,7 +114,8 @@ export function doseSheetOptions(
       ...(today && { passId: today.passId, amount: today.amount }),
     });
   }
-  for (const slot of due.slots.filter(isDueNow)) add({ ...slot, medicationId: slot.medication.id });
+  for (const slot of due.slots.filter(isDueNow))
+    if (!slot.passId || !shownPasses.has(slot.passId)) add({ ...slot, medicationId: slot.medication.id });
 
   const options = [
     ...slotOptions,

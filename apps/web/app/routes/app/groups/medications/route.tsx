@@ -137,7 +137,13 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
 
       <AllergiesRegion groupId={params.groupId} state={allergies} canWrite={group.canWrite} />
 
-      <TodaySection due={due} groupId={params.groupId} canWrite={group.canWrite} />
+      <TodaySection
+        due={due}
+        passes={passes}
+        groupId={params.groupId}
+        userId={group.userId}
+        canWrite={group.canWrite}
+      />
 
       <MedicationSearch value={text} urlQuery={filters.q} onChange={setText} />
       <StatusFilter status={filters.status} />

@@ -30,7 +30,11 @@ export type DueDose = {
   occurredAt: string;
   details: Pick<DoseDetails, "medicationId" | "status" | "scheduledFor"> & {
     passId?: DoseDetails["passId"];
+    /** The round it was logged in (`duePasses`, Given all). */
+    passLogId?: DoseDetails["passLogId"];
   };
+  /** Who logged it (the user id), when known. */
+  createdBy?: string | null;
 };
 
 export type SlotState = "upcoming" | "due" | "overdue" | "given" | "skipped" | "refused" | "missed";
