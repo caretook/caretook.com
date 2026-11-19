@@ -192,7 +192,14 @@ const note = ({ text, ...v }: EntryValues & { text?: string } = {}) => {
   const doc =
     text === undefined
       ? []
-      : [document({ ownerId: entry.id, text, editedBy: entry.createdBy ?? TEST_USER.id })];
+      : [
+          document({
+            ownerId: entry.id,
+            groupId: entry.groupId,
+            text,
+            editedBy: entry.createdBy ?? TEST_USER.id,
+          }),
+        ];
   return row("timelineEntries", entry, doc);
 };
 
@@ -202,7 +209,14 @@ const event = ({ text, ...v }: EntryValues & { text?: string } = {}) => {
   const doc =
     text === undefined
       ? []
-      : [document({ ownerId: entry.id, text, editedBy: entry.createdBy ?? TEST_USER.id })];
+      : [
+          document({
+            ownerId: entry.id,
+            groupId: entry.groupId,
+            text,
+            editedBy: entry.createdBy ?? TEST_USER.id,
+          }),
+        ];
   return row("timelineEntries", entry, doc);
 };
 

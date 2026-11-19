@@ -78,6 +78,8 @@ export default defineConfig({
         extends: "./apps/web/vite.config.ts",
         test: {
           name: "web:components",
+          // The browser server listens on this port (Vitest 5 reads `test.api`).
+          api: { port: browserPort },
           root: "./apps/web",
           include: ["app/**/*.browser.test.tsx", "test/**/*.browser.test.tsx"],
           setupFiles: ["./test/setup.ts"],
@@ -92,7 +94,6 @@ export default defineConfig({
             instances: [{ browser: "chromium" }],
             viewport: { width: 420, height: 900 },
             screenshotFailures: false,
-            api: { port: browserPort },
             // Page-level commands for tests (apps/web/test/commands.ts).
             commands: deviceCommands,
           },
