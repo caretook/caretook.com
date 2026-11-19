@@ -115,6 +115,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
 | B-76 | feature | triaged | medications |  | medication groups for doses. Often the same medication is taken at different times of the day every… |
 | B-77 | plan | inbox |  |  | Data security and encryption review. |
+| B-78 | change | inbox |  |  | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
 
 ## Items
 
@@ -962,3 +963,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - prd:
 - owner:
 - commit:
+
+### B-78 · change · improve timeline page display for vitals and upcoming banner. They should be limited. We should…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the inbox: improve timeline page display for vitals and upcoming banner. They should be limited. We should replace the word "latest" with the vitals icon and match the style of the upcoming header. Width should be limited on very large screens. larger than the timeline column, but not too wide.
