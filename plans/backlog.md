@@ -964,6 +964,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner:
 - commit:
 
+- 2026-11-19 (Robert Bo Davis): Proposed for encryption, with B-57: a review of data security (in transit, at rest, on devices, backups, staff access, AI vendors) to run before any encryption PRD. A design discussion first, as B-57's row says.
+
 ### B-78 · change · improve timeline page display for vitals and upcoming banner. They should be limited. We should…
 
 - status: inbox
