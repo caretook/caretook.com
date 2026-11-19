@@ -120,7 +120,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-78 | change | in-progress | quick-fixes | prd/quick-fixes | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
 | B-79 | bug | triaged | quick-fixes |  | Device keeps its synced data after the session ends; offline sign-in never expires |
 | B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
-| B-81 | change | in-progress | quick-fixes | prd/quick-fixes | Security headers and a CSP for every web response |
+| B-81 | change | ready | quick-fixes | prd/quick-fixes | Security headers and a CSP for every web response |
 | B-82 | change | ready | quick-fixes | prd/quick-fixes | Server logs carry error codes and ids only, never values or meta |
 | B-83 | change | triaged | quick-fixes |  | Co-members read only id, name and image of each other's user row |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
@@ -1034,10 +1034,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-81 · change · Security headers and a CSP for every web response
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 376f8b7
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-5 (launch): CSP (default-src 'self', connect-src for PowerSync and the API, frame-ancestors 'none', a hash for THEME_SCRIPT), HSTS, Referrer-Policy no-referrer (keeps /invite/:token and /join/:code private), X-Content-Type-Options, Permissions-Policy; the same CSP as a meta tag for Capacitor; a dev exception for the mailbox iframe.
 - 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
