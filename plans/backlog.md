@@ -1070,6 +1070,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-2 (launch): wipe the device copy (the sign-out path) when the server says the session has ended; allow the cached user offline only within 3 days of the last confirmed session (decided 2026-11-19), then require sign-in, and wipe once online and still signed out.
 - 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
 - 2026-11-19 (slice/quick-fixes/28): slice 28 built on slice/quick-fixes/28 (036c039): wipe on a definite signed-out answer through the sign-out path, 429 = unknown, 3-day offline cap; session-end.mjs added
+- 2026-11-19 (slice/quick-fixes/38): slice 38: sign-out no longer deletes the IndexedDB file: a blocked deleteDatabase stayed queued and the next sign-in's open waited behind it (app-shell 6g). It now VACUUMs after disconnectAndClear (no care data left in the bytes, checked by cdp.mjs localCopyHolds); before, the blocked delete left the data readable.
 
 ### B-80 · feature · Devices page in account settings: see sessions, sign out one or all others
 
