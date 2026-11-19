@@ -93,7 +93,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const [view, setView] = useTimelineView(userId, loaderData.timelineView);
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
+    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
       <TimelineHeader view={view} onViewChange={setView} />
       <LatestVitals vitals={data.latestVitals} units={units} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />

@@ -67,7 +67,7 @@ async function signedIn(b, label, email) {
 async function setView(p, view) {
   await p.press(`document.querySelector('[aria-label="${view}"]')`);
   await p.waitFor(
-    `document.querySelector("ol")?.className.includes("space-y-2") === ${view === "Cards"}`,
+    `document.querySelector("ol")?.dataset.view === ${JSON.stringify(view.toLowerCase())}`,
     5000,
   );
 }
@@ -811,6 +811,284 @@ async function authorFilters(users, offlineDevice) {
   });
 }
 
+/**
+ * Full width on large screens (timeline-polish slice 5): from `lg` the timeline
+ * spans the window less its 16 px gutters, entry text stops at about 75ch, and
+ * cards form a grid inside each day (two columns, three from `2xl`); at 420
+ * nothing moved. Starts and ends at 420 wide, in rows, at the top.
+ */
+async function wideLayout(p) {
+  const width = async (w) => {
+    await p.send("Emulation.setDeviceMetricsOverride", {
+      width: w,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: w < 600,
+    });
+    await sleep(400);
+  };
+  const noScroll = async (w) =>
+    check(
+      `${w}: no horizontal page scroll`,
+      await p.evaluate(`document.documentElement.scrollWidth <= window.innerWidth`),
+    );
+  // The page's frame, each entry's box, and how wide the capped text is against its 75ch cap.
+  const measure = () =>
+    p.evaluate(`(() => {
+      const box = (el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: Math.round(r.top), width: r.width, height: r.height }; };
+      const days = [...document.querySelectorAll("section > ol")].map((ol) => ({
+        list: box(ol), heading: box(ol.parentElement.querySelector("h3")), cards: [...ol.children].map(box) }));
+      const lis = [...document.querySelectorAll("ol > li")];
+      const texts = lis.flatMap((li) => [...li.querySelectorAll("p.break-words")]).map((el) => {
+        const s = getComputedStyle(el);
+        return { width: el.getBoundingClientRect().width, cap: parseFloat(s.maxWidth), em: parseFloat(s.maxWidth) / parseFloat(s.fontSize) };
+      });
+      const ends = lis.map((li) => { const r = li.getBoundingClientRect();
+        const time = li.querySelector("time")?.getBoundingClientRect();
+        const last = (li.querySelector('button[aria-label^="Actions"]') ?? li.lastElementChild).getBoundingClientRect();
+        return { start: time ? time.left - r.left : null, end: r.right - last.right }; });
+      return { main: box(document.querySelector("main")), inner: window.innerWidth, days, texts, ends };
+    })()`);
+  const spans = (m) =>
+    Math.abs(m.main.left) < 1 &&
+    Math.abs(m.main.width - m.inner) < 1 &&
+    m.days.every((d) => Math.abs(d.list.left - 16) < 1 && Math.abs(d.list.right - (m.inner - 16)) < 1);
+  // Cards in each day sit `columns` to a row: equal widths, row-mates at one top, a lone card one column wide.
+  const grid = (m, columns) => {
+    const column = (m.inner - 32 - 8 * (columns - 1)) / columns;
+    return m.days.every((d) =>
+      d.cards.every((c, i) => {
+        const col = i % columns;
+        const first = d.cards[i - col];
+        return (
+          Math.abs(c.width - column) < 1 &&
+          Math.abs(c.left - (16 + col * (column + 8))) < 1 &&
+          c.top === first.top
+        );
+      }),
+    );
+  };
+  const capped = (m) => m.texts.every((t) => t.width <= t.cap + 0.5 && t.em > 28 && t.em < 50);
+  const dayShape = (m) =>
+    `${m.days.length} days of ${m.days.map((d) => d.cards.length).join(",")} entries, first list ${Math.round(m.days[0].list.left)}–${Math.round(m.days[0].list.right)}`;
+
+  await p.evaluate(`window.scrollTo(0, 0)`);
+  await step("1280: the full width, the text cap and the card grid", { smoke: true }, async () => {
+    await width(1280);
+    const rows = await measure();
+    check("1280, rows: the timeline spans the window less its gutters", spans(rows), dayShape(rows));
+    const widest = Math.max(...rows.texts.map((t) => t.width));
+    const cap = Math.max(...rows.texts.map((t) => t.cap));
+    check(
+      "1280, rows: entry text stops at about 75ch, and the longest text reaches it",
+      capped(rows) && widest >= cap - 1 && widest < rows.days[0].list.width - 200,
+      `widest ${Math.round(widest)}px of a ${Math.round(cap)}px cap, in a ${Math.round(rows.days[0].list.width)}px list`,
+    );
+    check(
+      "1280, rows: the time stays at the row's start, and the ⋯ at its end",
+      rows.ends.every((e) => e.start !== null && e.start < 70 && e.end >= 0 && e.end <= 16),
+      JSON.stringify(rows.ends.slice(0, 2)),
+    );
+    await noScroll(1280);
+    await p.screenshot("phase2-wide-1280-rows");
+
+    await setView(p, "Cards");
+    await sleep(500);
+    const cards = await measure();
+    check("1280, cards: the timeline spans the window less its gutters", spans(cards), dayShape(cards));
+    check(
+      "1280, cards: two to a row under their day heading, a lone card one column wide",
+      grid(cards, 2) && cards.days.some((d) => d.cards.length > 1),
+      dayShape(cards),
+    );
+    const mates = cards.days.flatMap((d) =>
+      d.cards.filter((_, i) => i % 2 === 0 && d.cards[i + 1]).map((c, i) => [c, d.cards[i * 2 + 1]]),
+    );
+    check(
+      "1280, cards: a short card beside a tall one keeps its own height",
+      mates.some(([a, b]) => Math.abs(a.height - b.height) > 8),
+      `${mates.length} pairs`,
+    );
+    check("1280, cards: text is capped too", capped(cards));
+    await noScroll(1280);
+    await p.screenshot("phase2-wide-1280-cards");
+    await setView(p, "Rows");
+    await width(420);
+  });
+
+  await step(
+    "wide: 1536, 1024, sticky headings, More and Less, the sheet, the confirm and Live now",
+    async () => {
+      // The sticky day heading spans the list and sticks, in both views at 1280.
+      await width(1280);
+      for (const view of ["Rows", "Cards"]) {
+        if (view === "Cards") await setView(p, "Cards");
+        await sleep(500);
+        const m = await measure();
+        // Into a day: its heading is held at the top of the window.
+        const stuck = await p.evaluate(`(async () => {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const day = [...document.querySelectorAll("section > ol")].map((ol) => ol.parentElement)
+          .find((s) => s.getBoundingClientRect().height > 120 && s.getBoundingClientRect().top + window.scrollY + 30 <= max);
+        if (!day) return null;
+        window.scrollTo(0, day.getBoundingClientRect().top + window.scrollY + 30);
+        await new Promise((r) => setTimeout(r, 200));
+        const h = day.querySelector("h3").getBoundingClientRect();
+        return { top: h.top, moved: h.top - day.getBoundingClientRect().top, position: getComputedStyle(day.querySelector("h3")).position };
+      })()`);
+        check(
+          `1280, ${view.toLowerCase()}: the day heading spans the list and sticks`,
+          m.days.every((d) => d.heading.left <= d.list.left && d.heading.right >= d.list.right) &&
+            !!stuck &&
+            Math.abs(stuck.top) < 1 &&
+            stuck.moved > 20,
+          JSON.stringify(stuck),
+        );
+        await p.evaluate(`window.scrollTo(0, 0)`);
+      }
+
+      // Three to a row from 2xl; two at 1024 (lg).
+      await width(1536);
+      const xl = await measure();
+      check(
+        "1536, cards: three to a row, text capped",
+        spans(xl) && grid(xl, 3) && capped(xl) && xl.days.some((d) => d.cards.length > 2),
+        dayShape(xl),
+      );
+      await noScroll(1536);
+      await p.screenshot("phase2-wide-1536-cards");
+      await width(1024);
+      const lg = await measure();
+      check("1024, cards: two to a row", spans(lg) && grid(lg, 2), dayShape(lg));
+      await noScroll(1024);
+
+      // 420: one column, where it was before (cards 16…404 with 8 px between; rows inside the list's border).
+      await width(420);
+      const phoneCards = await measure();
+      check(
+        "420, cards: one column, the same boxes as before",
+        phoneCards.days.every((d) =>
+          d.cards.every(
+            (c, i) =>
+              Math.abs(c.left - 16) < 0.5 &&
+              Math.abs(c.width - 388) < 0.5 &&
+              (i === 0 || Math.abs(c.top - (d.cards[i - 1].top + d.cards[i - 1].height + 8)) <= 1),
+          ),
+        ),
+        JSON.stringify(phoneCards.days[0].cards.slice(0, 2)),
+      );
+      await noScroll(420);
+      await setView(p, "Rows");
+      await sleep(500);
+      const phoneRows = await measure();
+      check(
+        "420, rows: the same boxes as before",
+        phoneRows.days.every((d) =>
+          d.cards.every(
+            (c, i) =>
+              Math.abs(c.left - 17) < 0.5 &&
+              Math.abs(c.width - 386) < 0.5 &&
+              (i === 0 || Math.abs(c.top - (d.cards[i - 1].top + d.cards[i - 1].height)) <= 1),
+          ),
+        ),
+        JSON.stringify(phoneRows.days[0].cards.slice(0, 2)),
+      );
+      await noScroll(420);
+
+      // Rows at 1280: More and Less still work on long text.
+      await width(1280);
+      const more = await p.evaluate(`!!${button("More")}`);
+      check("1280, rows: long text is clamped, with More", more);
+      if (more) {
+        await tap(p, button("More"));
+        await sleep(300);
+        const less = await p.evaluate(`!!${button("Less")}`);
+        if (less) await tap(p, button("Less"));
+        await sleep(300);
+        check(
+          "1280, rows: More expands and Less collapses",
+          less && !(await p.evaluate(`!!${button("Less")}`)),
+        );
+      }
+      await p.evaluate(`window.scrollTo(0, 0)`);
+
+      // The entry sheet and the delete confirm at 1280: centred, over the wide page.
+      const centred = (sel) =>
+        p.evaluate(`(() => { const el = ${sel}; if (!el) return null; const r = el.getBoundingClientRect();
+        return { off: Math.round(r.left + r.width / 2 - window.innerWidth / 2), width: Math.round(r.width), inside: r.left >= 0 && r.right <= window.innerWidth && r.top >= 0 && r.bottom <= window.innerHeight }; })()`);
+      await tap(p, `${rowOf("Symptom")}.querySelector("p")`);
+      await p.waitFor(`document.querySelector("[role=dialog]")?.textContent.includes("Edit symptom")`, 5000);
+      await sleep(400);
+      const sheet = await centred(`document.querySelector("[role=dialog]")`);
+      check(
+        "1280: the entry sheet is a centred modal, not stretched",
+        !!sheet && Math.abs(sheet.off) <= 2 && sheet.inside && sheet.width < 800,
+        JSON.stringify(sheet),
+      );
+      await p.screenshot("phase2-wide-1280-sheet");
+      await escape(p);
+      await p.waitFor(`!document.querySelector("[role=dialog]")`, 5000);
+
+      await tap(p, `${rowOf("Note")}.querySelector('button[aria-label^="Actions"]')`);
+      await p.waitFor(`document.querySelectorAll("[role=menuitem]").length > 0`, 5000);
+      await tap(
+        p,
+        `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim() === "Delete")`,
+      );
+      await p.waitFor(`!!document.querySelector("dialog[open]")`, 5000);
+      await sleep(400);
+      const confirm = await centred(
+        `document.querySelector("dialog[open]").firstElementChild ?? document.querySelector("dialog[open]")`,
+      );
+      check(
+        "1280: the delete confirm is centred, not stretched",
+        !!confirm && Math.abs(confirm.off) <= 2 && confirm.inside && confirm.width < 800,
+        JSON.stringify(confirm),
+      );
+      await p.screenshot("phase2-wide-1280-confirm");
+      await escape(p);
+      await p.waitFor(`!document.querySelector("dialog[open]")`, 5000);
+
+      // Live now at 1280: another member "writes" in a seeded note (its editors, set on the server and put back).
+      const [docId, editors, caretaker] = psql(
+        `SELECT d.id || '|' || d.editors::text || '|' || (SELECT id FROM "user" WHERE email = 'caretaker@example.com')
+       FROM note_document d JOIN timeline_entry e ON e.id = d.id
+       WHERE e.group_id = '${DEV_FAMILY}' AND e.kind = 'note' AND e.deleted_at IS NULL ORDER BY e.occurred_at DESC LIMIT 1`,
+      ).split("|");
+      const banner = `document.querySelector("[data-live-banner]")`;
+      try {
+        psql(
+          `UPDATE note_document SET editors = editors || jsonb_build_object('${caretaker}', to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) WHERE id = '${docId}'`,
+        );
+        const shown = await p.waitFor(`!!${banner}`, 30000).then(
+          () => true,
+          () => false,
+        );
+        const at = shown
+          ? await p.evaluate(`(() => { const r = ${banner}.getBoundingClientRect(); const j = ${banner}.querySelector("a").getBoundingClientRect();
+            return { left: r.left, right: r.right, height: r.height, join: r.right - j.right }; })()`)
+          : null;
+        check(
+          "1280: the Live now banner spans the width in one line, Join at its end",
+          !!at &&
+            Math.abs(at.left - 16) < 1 &&
+            Math.abs(at.right - 1264) < 1 &&
+            at.height < 60 &&
+            at.join > 0 &&
+            at.join < 20,
+          JSON.stringify(at),
+        );
+        await p.screenshot("phase2-wide-1280-live-now");
+      } finally {
+        psql(`UPDATE note_document SET editors = '${editors}'::jsonb WHERE id = '${docId}'`);
+      }
+      await p.waitFor(`!${banner}`, 30000).catch(() => undefined);
+      await width(420);
+      await p.evaluate(`window.scrollTo(0, 0)`);
+    },
+  );
+}
+
 const bM = await launch(9341);
 // The viewer's browser only in full mode: smoke runs one role.
 const bV = SMOKE ? null : await launch(9342);
@@ -919,7 +1197,7 @@ try {
     await sleep(1500);
     await p.goto(await p.evaluate("location.pathname"));
     await p.waitFor(`${rows} > 0`, 20000);
-    const cardsAfter = await p.evaluate(`document.querySelector("ol")?.className.includes("space-y-2")`);
+    const cardsAfter = await p.evaluate(`document.querySelector("ol")?.dataset.view === "cards"`);
     check("cards view survives a reload", cardsAfter, `url ${await p.evaluate("location.href")}`);
     await p.screenshot("phase2-cards");
 
@@ -971,6 +1249,7 @@ try {
     const page = await signedIn(offline.browser, "offline", "caretaker@example.com");
     return { page, proxy: offline.proxy };
   });
+  await wideLayout(p);
 
   // PowerSync warns when a full page load closes the previous page's database,
   // and its shared sync worker logs "Sync aborted" to every page when it stops

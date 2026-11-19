@@ -12,7 +12,8 @@ import { useEntryRemoval } from "./useEntryRemoval";
 
 const LIST_CLASS: Record<TimelineView, string> = {
   rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",
-  cards: "space-y-2",
+  // One column on phones; from `lg` a grid inside each day, each card keeping its own height.
+  cards: "grid grid-cols-1 items-start gap-2 lg:grid-cols-2 2xl:grid-cols-3",
 };
 
 /**
@@ -62,7 +63,7 @@ export function TimelineEntryList({
             >
               {day.label}
             </h3>
-            <ol className={LIST_CLASS[view]}>
+            <ol className={LIST_CLASS[view]} data-view={view}>
               {day.entries.map((entry) => {
                 const open = entryOpen({ groupId, entry, canWrite, search });
                 return (
