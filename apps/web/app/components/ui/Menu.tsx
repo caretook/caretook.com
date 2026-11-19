@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { NavigateOptions } from "react-router";
 import type { MenuEntry, MenuItem, NormalizedSection } from "./menuModel";
 
 import { Check } from "lucide-react";
@@ -15,8 +16,15 @@ import {
   Separator,
 } from "react-aria-components";
 import { useHref, useNavigate } from "react-router";
-import { chosenKey, normalizeMenu, sectionName } from "./menuModel";
+import { chosenKey, linkOptions, normalizeMenu, sectionName } from "./menuModel";
 import { SURFACE } from "./styles";
+
+// Link items' router options (their history state) are React Router's.
+declare module "react-aria-components" {
+  interface RouterConfig {
+    routerOptions: NavigateOptions;
+  }
+}
 
 const WIDTH = { sm: "w-44", md: "w-56", lg: "w-64" } as const;
 const ITEM =
@@ -31,7 +39,8 @@ const ITEM =
  * `menuitemradio`) and `SEPARATOR`s; see `menuModel.ts`.
  *
  * The menu is named by the button (its `label`, else its text) unless
- * `menuLabel` is given. Link items navigate through React Router.
+ * `menuLabel` is given. Link items navigate through React Router, with their
+ * `state` as history state.
  */
 export function Menu({
   label,
@@ -63,7 +72,7 @@ export function Menu({
   const entries = useMemo(() => normalizeMenu(items), [items]);
 
   return (
-    <RouterProvider navigate={(to) => void navigate(to)} useHref={useHref}>
+    <RouterProvider navigate={(to, options) => void navigate(to, options)} useHref={useHref}>
       <MenuTrigger>
         <Button aria-label={label} className={className} isDisabled={isDisabled}>
           {children}
@@ -133,6 +142,7 @@ function Item({ item, selectable }: { item: MenuItem; selectable?: boolean }) {
       id={item.id}
       textValue={item.label}
       href={item.href}
+      routerOptions={linkOptions(item)}
       isDisabled={item.isDisabled}
       onAction={selectable ? undefined : item.onAction}
       className={`${ITEM} ${item.tone === "danger" ? "text-error" : ""}`}

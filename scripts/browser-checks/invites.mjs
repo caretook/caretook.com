@@ -18,7 +18,18 @@
 //      someone else, the link says it's for another address and offers Sign out.
 //   7. Decline (signed out): declined for the inviter too.
 //   8. Resend rotates the link; revoke and expiry close it, naming nothing.
-//   9. Caretakers and viewers see no invite controls; the API refuses them.
+//   9. Caretakers and viewers see no invite controls (email or link); the
+//      API refuses them.
+// Slice 4 adds invite links and join requests (smoke mode runs step 10):
+//  10. The owner makes a viewer link and copies it (and a second device
+//      copies the same link); a new person signs up through it, confirms
+//      their email, consents and asks to join: home says "Waiting for
+//      approval" and the device holds no group data. The owner gets the
+//      joinRequested mail, approves from Members, and the requester's home
+//      shows the group without a reload; they're a viewer and get joinApproved.
+//  11. One request per person however often they ask; maximum uses, revoke
+//      and expiry close a link; Decline emails them and home says so; the API
+//      refuses owner and admin links, and never gives back an email invite's token.
 //
 // Order-independent and self-cleaning: it makes its own fictional accounts
 // (inv<run>-…@example.com, with the seed password) and deletes them, their
@@ -82,9 +93,16 @@ const createAccount = (who, { verified = true } = {}) => {
 const accountCount = (address) =>
   Number(psql(`SELECT count(*) FROM "user" WHERE lower(email) = lower('${address}')`));
 
+/** Link invites this run made (they carry no address to clean up by). */
+const linkIds = [];
+
 const cleanUp = () => {
   const like = `'${RUN}-%@example.com'`;
+  const links = linkIds.length ? linkIds.map((id) => `'${id}'`).join(", ") : "NULL";
   psql(`
+    DELETE FROM care_group_invite WHERE id IN (${links});
+    DELETE FROM dev_mail WHERE name = 'joinRequested' AND text LIKE '%${RUN}-%';
+    DELETE FROM notification_outbox WHERE name = 'joinRequested' AND text LIKE '%${RUN}-%';
     DELETE FROM care_group_invite WHERE email LIKE ${like};
     DELETE FROM "user" WHERE email LIKE ${like};
     DELETE FROM verification WHERE identifier LIKE '%${RUN}-%' OR value LIKE '%${RUN}-%';
@@ -109,6 +127,17 @@ const waitForMail = async (address, name, count = 1, ms = 15000) => {
     await sleep(300);
   }
   throw new Error(`No ${name} mail (#${count}) for ${address} within ${ms} ms`);
+};
+
+/** Wait for a `name` message to `address` whose text mentions `about` (a shared inbox, like member@'s). */
+const mailAbout = async (address, name, about, ms = 15000) => {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    const found = (await mailTo(address)).find((m) => m.name === name && m.text.includes(about));
+    if (found) return found;
+    await sleep(300);
+  }
+  return undefined;
 };
 
 /** Long enough for a background send that was going to happen to have happened. */
@@ -709,18 +738,331 @@ try {
       await p.signIn(`${who}@example.com`, PASSWORD);
       await openMembers(p);
       const controls = await p.evaluate(
-        `({ invite: !!document.querySelector("[data-invite-controls]"), pending: !!document.querySelector("[data-pending-invites]") })`,
+        `({ invite: !!document.querySelector("[data-invite-controls]"), pending: !!document.querySelector("[data-pending-invites]"), link: !!document.querySelector("[data-link-controls]"), links: !!document.querySelector("[data-invite-links]"), requests: !!document.querySelector("[data-join-requests]") })`,
       );
       check(
-        !controls.invite && !controls.pending,
-        `a ${who} sees no Invite button or Pending list`,
+        Object.values(controls).every((shown) => !shown),
+        `a ${who} sees no Invite or Create a link button, and no Pending, links or requests`,
         JSON.stringify(controls),
       );
+      const linkStatus = await p.evaluate(
+        `fetch("/rpc/invite/createLink", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: JSON.stringify({ json: { groupId: ${JSON.stringify(DEV_FAMILY)}, role: "viewer" } }) }).then((r) => r.status)`,
+      );
+      check(linkStatus === 403, `a ${who}'s link API call is refused`, String(linkStatus));
       const status = await p.evaluate(
         `fetch("/rpc/invite/createEmail", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: JSON.stringify({ json: { groupId: ${JSON.stringify(DEV_FAMILY)}, email: ${JSON.stringify(email(`api-${who}`))}, role: "viewer", attested: true } }) }).then((r) => r.status)`,
       );
       check(status === 403, `a ${who}'s invite API call is refused`, String(status));
     }
+  });
+
+  // --- Slice 4: invite links and join requests -------------------------------------
+  const LINK_SHEET = `document.querySelector("[data-link-sheet]")`;
+  const linkRows = `[...document.querySelectorAll("[data-invite-links] li[data-invite-link]")]`;
+  const linkRow = (id) => `document.querySelector('[data-invite-links] li[data-invite-link="${id}"]')`;
+  const rowButton = (row, label) =>
+    `[...(${row}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`;
+  const requestRow = (address) =>
+    `[...document.querySelectorAll("[data-join-requests] li[data-join-request]")].find((li) => li.textContent.includes(${JSON.stringify(address)}))`;
+  const myRequest = `document.querySelector('[data-my-request="${DEV_FAMILY}"]')`;
+  const devFamilyCard = `document.querySelector('main a[href="/app/groups/${DEV_FAMILY}/timeline"]')`;
+  /** Rows of the device's own copy (PowerSync), for "nothing of the group is here". */
+  const localCount = (p, table) =>
+    p.evaluate(
+      `window.caretookSync.powersync.getAll("SELECT count(*) AS n FROM ${table}").then((rows) => rows[0].n)`,
+    );
+  /** Record what the page copies or shares, instead of the real clipboard and share sheet. */
+  const stubSharing = (p) =>
+    p.evaluate(`(() => {
+      window.__copied = []; window.__shared = [];
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: (t) => (window.__copied.push(t), Promise.resolve()) } });
+      navigator.canShare = () => true;
+      navigator.share = (d) => (window.__shared.push(d), Promise.resolve());
+      return true; })()`);
+  const rpcCall = (p, path, json) =>
+    p.evaluate(
+      `fetch("/rpc/${path}", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: JSON.stringify({ json: ${JSON.stringify(json)} }) }).then(async (r) => ({ status: r.status, body: await r.json() }))`,
+    );
+  /** A link made through the API as the owner, for the steps that don't test the form. */
+  const apiLink = async (input) => {
+    const res = await rpcCall(owner, "invite/createLink", { groupId: DEV_FAMILY, ...input });
+    if (res.status !== 200) throw new Error(`createLink answered ${res.status}`);
+    linkIds.push(res.body.json.invite.id);
+    return { id: res.body.json.invite.id, path: `/invite/${res.body.json.token}` };
+  };
+  /** Sign in as `address` and ask to join with the link at `path`; lands on home. */
+  const askToJoin = async (p, path) => {
+    await p.goto(path);
+    await p.waitFor(`document.querySelector('[data-invite-form="accept"]')`, 30000);
+    await p.press(`document.querySelector('[data-invite-form="accept"] input[name="consent"]')`);
+    await p.press(button("Ask to join"));
+    await p.waitFor(`location.pathname === "/app" && ${myRequest}`, 30000);
+  };
+
+  // 10. Make a link, copy it, sign up through it, ask, get approved.
+  const joiner = email("joiner");
+  await step("10. a link: sign up through it, ask to join, approved", { smoke: true }, async () => {
+    await openMembers(owner);
+    await owner.waitFor(`document.querySelector("[data-link-controls] button:not([disabled])")`, 15000);
+    const before = await owner.evaluate(`${linkRows}.map((li) => li.dataset.inviteLink)`);
+    await owner.press(`document.querySelector("[data-link-controls] button")`);
+    await owner.waitFor(`${LINK_SHEET}?.querySelector('select[name="role"]')`, 10000);
+    const roles = await owner.evaluate(
+      `[...${LINK_SHEET}.querySelectorAll('select[name="role"] option')].map((o) => o.value)`,
+    );
+    check(roles.join() === "caretaker,viewer", "a link offers caretaker and viewer only", roles.join());
+    await owner.type(`${LINK_SHEET}.querySelector('input[name="maxUses"]')`, "5");
+    await owner.press(
+      `[...${LINK_SHEET}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Create link")`,
+    );
+    await owner.waitFor(
+      `!${LINK_SHEET} && ${linkRows}.some((li) => !${JSON.stringify(before)}.includes(li.dataset.inviteLink))`,
+      15000,
+    );
+    const linkId = await owner.evaluate(
+      `${linkRows}.map((li) => li.dataset.inviteLink).find((id) => !${JSON.stringify(before)}.includes(id))`,
+    );
+    linkIds.push(linkId);
+    const line = await owner.evaluate(`${linkRow(linkId)}.textContent`);
+    check(
+      line.includes("Viewer link") && line.includes("Used 0 of 5 times") && line.includes("Expires"),
+      "the new link is listed with its role, uses and expiry",
+      line,
+    );
+    check(
+      psql(
+        `SELECT kind || ':' || role || ':' || (token_ciphertext IS NOT NULL) FROM care_group_invite WHERE id = '${linkId}'`,
+      ) === "link:viewer:true",
+      "it's stored as a viewer link, its token sealed",
+    );
+
+    await stubSharing(owner);
+    await owner.waitFor(
+      `${rowButton(linkRow(linkId), "Copy")} && !${rowButton(linkRow(linkId), "Copy")}.disabled`,
+      15000,
+    );
+    await owner.press(rowButton(linkRow(linkId), "Copy"));
+    await owner.waitFor(`window.__copied.length === 1`, 5000);
+    const url = await owner.evaluate(`window.__copied[0]`);
+    check(url.startsWith(`${BASE}/invite/`), "Copy puts the invite link on the clipboard", url);
+    await owner.press(rowButton(linkRow(linkId), "Share"));
+    await owner.waitFor(`window.__shared.length === 1`, 5000);
+    check(
+      (await owner.evaluate(`window.__shared[0].url`)) === url,
+      "Share hands the same link to the share sheet",
+    );
+
+    // A second device copies the same link.
+    const second = await open(9521, "inv-owner-2");
+    await second.signIn("member@example.com", PASSWORD);
+    await openMembers(second);
+    await stubSharing(second);
+    await second.waitFor(
+      `${rowButton(linkRow(linkId), "Copy")} && !${rowButton(linkRow(linkId), "Copy")}.disabled`,
+      15000,
+    );
+    await second.press(rowButton(linkRow(linkId), "Copy"));
+    await second.waitFor(`window.__copied.length === 1`, 5000);
+    check((await second.evaluate(`window.__copied[0]`)) === url, "a second device copies the same link");
+
+    // A new person opens it, signed out.
+    const p = await open(9522, "inv-joiner");
+    const path = pathOf(url);
+    await p.goto(path);
+    await p.waitFor(
+      `${heading}.startsWith("Join") && document.querySelector('[data-invite-form="signUp"]')`,
+      20000,
+    );
+    const form = await p.evaluate(
+      `(() => { const e = document.querySelector('[data-invite-form="signUp"] input[name="email"]'); return { value: e?.value, readOnly: e?.readOnly, decline: !!document.querySelector('[data-invite-form="decline"]') }; })()`,
+    );
+    check(
+      form.value === "" && !form.readOnly && !form.decline,
+      "a link's sign-up takes any address, with no Decline",
+      JSON.stringify(form),
+    );
+    await p.type(`document.querySelector('[data-invite-form="signUp"] input[name="email"]')`, joiner);
+    await p.type(
+      `document.querySelector('[data-invite-form="signUp"] input[name="name"]')`,
+      `Inv Joiner ${RUN}`,
+    );
+    await p.type(`document.querySelector('[data-invite-form="signUp"] input[name="password"]')`, PASSWORD);
+    await p.type(`document.querySelector('[data-invite-form="signUp"] input[name="confirm"]')`, PASSWORD);
+    await doublePress(p, button("Create account"));
+    await p.waitFor(`location.pathname === "/verify-email"`, 30000);
+    check(accountCount(joiner) === 1, "a double press creates one account");
+    check(
+      psql(`SELECT email_verified FROM "user" WHERE email = '${joiner}'`) === "f",
+      "a link's account starts unconfirmed, and waits at /verify-email",
+    );
+    const verify = await waitForMail(joiner, "verifyEmail");
+    const verifyLink = verify.links.find((l) => l.includes("/verify-email?token="));
+    await p.goto(new URL(verifyLink).pathname + new URL(verifyLink).search);
+    await p.waitFor(`${heading} === "Email confirmed"`, 20000);
+    await p.press(
+      `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Continue to Caretook")`,
+    );
+    await p.waitFor(
+      `location.pathname === ${JSON.stringify(path)} && document.querySelector('[data-invite-form="accept"]')`,
+      30000,
+    );
+    check(true, "the confirmation link signs them in and brings them back to the link");
+    const consentText = await p.evaluate(`document.querySelector('[data-invite-form="accept"]').textContent`);
+    check(
+      /health information/.test(consentText) && /approves each request/.test(consentText),
+      "the consent screen says what's shared and that a request waits for approval",
+    );
+    await p.press(`document.querySelector('[data-invite-form="accept"] input[name="consent"]')`);
+    await p.press(button("Ask to join"));
+    await p.waitFor(`location.pathname === "/app" && ${myRequest}`, 30000);
+    const waiting = await p.evaluate(`${myRequest}.textContent`);
+    check(
+      waiting.includes("Waiting for approval: Grandma Pat"),
+      "home says it's waiting for approval",
+      waiting,
+    );
+    await p.screenshot("invites-waiting-for-approval");
+    const held = {
+      groups: await localCount(p, "care_group"),
+      entries: await localCount(p, "timeline_entry"),
+    };
+    check(held.groups === 0 && held.entries === 0, "the device holds no group data", JSON.stringify(held));
+    const joinerId = psql(`SELECT id FROM "user" WHERE email = '${joiner}'`);
+    check(
+      psql(
+        `SELECT count(*) FROM care_group_consent WHERE user_id = '${joinerId}' AND group_id = '${DEV_FAMILY}'`,
+      ) === "1",
+      "consent is recorded",
+    );
+
+    // The owner is emailed, and answers from Members.
+    const asked = await mailAbout("member@example.com", "joinRequested", joiner);
+    check(
+      Boolean(asked) &&
+        asked.subject.includes(`Inv Joiner ${RUN}`) &&
+        asked.links.some((l) => l.endsWith(MEMBERS_PATH)),
+      "the owner gets a joinRequested email linking to Members",
+      asked?.subject,
+    );
+    check(
+      !/vital|symptom|medication|blood|pain|note/i.test(`${asked?.subject} ${asked?.text}`),
+      "with no health details",
+    );
+    await openMembers(owner);
+    await owner.waitFor(requestRow(joiner), 15000);
+    const reqLine = await owner.evaluate(`${requestRow(joiner)}.textContent`);
+    check(
+      reqLine.includes(`Inv Joiner ${RUN}`) && reqLine.includes("Viewer"),
+      "Requests shows their name, email and role",
+      reqLine,
+    );
+    check(
+      (await owner.evaluate(`${linkRow(linkId)}.textContent`)).includes("Used 1 of 5 times"),
+      "the link counts the use",
+    );
+    await owner.press(rowButton(requestRow(joiner), "Approve"));
+    await owner.waitFor(`!${requestRow(joiner)}`, 15000);
+
+    const opened = await p.waitFor(`${devFamilyCard} && !${myRequest}`, 30000).then(
+      () => true,
+      () => false,
+    );
+    check(opened, "approval turns the requester's home into the group, without a reload");
+    check(
+      psql(
+        `SELECT role FROM care_group_member WHERE group_id = '${DEV_FAMILY}' AND user_id = '${joinerId}'`,
+      ) === "viewer",
+      "they're a member as a viewer",
+    );
+    const approved = await waitForMail(joiner, "joinApproved");
+    check(approved.subject.includes("Grandma Pat"), "and get a joinApproved email", approved.subject);
+    await p.screenshot("invites-approved-home");
+  });
+
+  // 11. One request per person; limits, revoke and expiry; decline; the API's refusals.
+  await step("11. one request each; uses, revoke and expiry; decline; API refusals", async () => {
+    const twice = await apiLink({ role: "caretaker", maxUses: 3 });
+    const asker = createAccount("asker");
+    const p = await open(9523, "inv-asker");
+    await p.signIn(asker, PASSWORD, { home: true });
+    await askToJoin(p, twice.path);
+    await askToJoin(p, twice.path);
+    const askerId = psql(`SELECT id FROM "user" WHERE email = '${asker}'`);
+    check(
+      psql(`SELECT count(*) FROM care_group_join_request WHERE user_id = '${askerId}'`) === "1" &&
+        psql(`SELECT use_count FROM care_group_invite WHERE id = '${twice.id}'`) === "1",
+      "asking twice makes one request and counts one use",
+    );
+
+    // A link whose uses are all taken (counting is covered by the integration tests).
+    const once = await apiLink({ role: "viewer", maxUses: 1 });
+    psql(`UPDATE care_group_invite SET use_count = 1 WHERE id = '${once.id}'`);
+    const late = await open(9524, "inv-late");
+    await late.goto(once.path);
+    await late.waitFor(`${heading}.length > 0`, 20000);
+    check((await late.evaluate(heading)) === "This invitation has been used up", "a used-up link says so");
+
+    // Decline, from Members.
+    await openMembers(owner);
+    await owner.waitFor(requestRow(asker), 15000);
+    await owner.press(rowButton(requestRow(asker), "Decline"));
+    await owner.waitFor(`document.querySelector("dialog[open]")`, 5000);
+    await owner.press(
+      `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === "Decline")`,
+    );
+    await owner.waitFor(`!${requestRow(asker)}`, 15000);
+    const declined = await waitForMail(asker, "joinDeclined");
+    check(declined.subject.includes("Grandma Pat"), "Decline emails them", declined.subject);
+    await p.goto("/app");
+    await p.waitFor(`${myRequest}?.dataset.requestStatus === "declined"`, 20000);
+    check(
+      (await p.evaluate(`${myRequest}.textContent`)).startsWith("Not approved: Grandma Pat"),
+      "and their home says it wasn't approved",
+    );
+    check(
+      psql(`SELECT count(*) FROM care_group_member WHERE user_id = '${askerId}'`) === "0",
+      "they're not a member",
+    );
+
+    // Revoke from Members; expiry.
+    const revoked = await apiLink({ role: "viewer" });
+    await openMembers(owner);
+    await owner.waitFor(linkRow(revoked.id), 15000);
+    await owner.press(rowButton(linkRow(revoked.id), "Revoke"));
+    await owner.waitFor(`document.querySelector("dialog[open]")`, 5000);
+    await owner.press(
+      `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === "Revoke")`,
+    );
+    await owner.waitFor(`!${linkRow(revoked.id)}`, 15000);
+    await late.goto(revoked.path);
+    await late.waitFor(`${heading}.length > 0`, 20000);
+    const gone = await late.evaluate(`({ h: ${heading}, body: document.querySelector("main").textContent })`);
+    check(
+      gone.h === "This invitation was withdrawn" && !gone.body.includes("Grandma"),
+      "a revoked link stops at once",
+      gone.h,
+    );
+
+    const old = await apiLink({ role: "viewer", expiresInDays: 1 });
+    psql(`UPDATE care_group_invite SET expires_at = now() - interval '1 minute' WHERE id = '${old.id}'`);
+    await late.goto(old.path);
+    await late.waitFor(`${heading}.length > 0`, 20000);
+    check((await late.evaluate(heading)) === "This invitation has expired", "an expired link says so");
+
+    // The API never makes an owner or admin link, and never reads back an email invite's token.
+    for (const role of ["owner", "admin"]) {
+      const res = await rpcCall(owner, "invite/createLink", { groupId: DEV_FAMILY, role });
+      check(res.status === 400, `the API refuses an ${role} link`, String(res.status));
+    }
+    const emailInvite = psql(
+      `SELECT id FROM care_group_invite WHERE kind = 'email' AND group_id = '${DEV_FAMILY}' LIMIT 1`,
+    );
+    const read = await rpcCall(owner, "invite/copyLink", { id: emailInvite });
+    check(
+      read.status === 400 && !("token" in (read.body.json ?? {})),
+      "an email invite's token can't be read back",
+      String(read.status),
+    );
   });
 } catch (error) {
   failed++;

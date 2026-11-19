@@ -64,6 +64,20 @@ apps/web/app/routes/api/cron/*           -
 apps/web/app/routes/dev/*                -
 apps/web/app/.server/notifications.ts    -
 
+# Starting care groups (invites slice 5): /join/:code, the New care group
+# sheet, the timeline's Invite someone card and the web-only /admin pages.
+apps/web/app/routes/account/join/*       groups
+apps/web/app/routes/admin/*              groups
+apps/web/app/.server/admin.ts            groups
+apps/web/app/routes/app/groups/new/*     groups app-shell
+apps/web/app/components/groups/*         groups app-shell
+apps/web/app/routes/app/home/NewGroupLink.tsx groups app-shell first-sync
+apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx groups phase2
+packages/api/src/groups.ts               groups
+packages/data/src/db/schema/accessCode.ts groups
+packages/data/src/db/schema/newCareGroup.ts groups
+packages/data/src/db/seeds/accessCodes.ts groups
+
 # Sign-in, session, the sync client and first sync.
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites
 apps/web/app/routes/account/*            invites sign-in
@@ -91,7 +105,8 @@ apps/web/app/components/settings/*       routing settings-layout app-shell ui
 
 # The /app frame, menus, theme, group settings and members.
 apps/web/app/routes/app/layout/*         app-shell
-apps/web/app/routes/app/home/*           app-shell
+apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
+apps/web/app/routes/app/home/*           app-shell first-sync
 apps/web/app/routes/app/groups/settings/members/* app-shell invites ui
 apps/web/app/routes/app/groups/settings/* app-shell routing ui
 apps/web/app/lib/sync/members.ts         app-shell invites
@@ -128,6 +143,7 @@ apps/web/public/*                        marketing
 # Server code the device reaches. The upload switch carries every synced write.
 packages/api/src/sync.ts                 roundtrip live-notes providers
 packages/api/src/invites.ts              invites
+packages/api/src/joinRequests.ts         invites
 packages/api/src/*                       -
 apps/web/app/.server/*                   sign-in
 apps/web/app/routes/rpc.ts               sign-in
@@ -147,6 +163,7 @@ packages/data/src/db/schema/userPreferences.ts settings-layout
 packages/data/src/db/schema/notification.ts -
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 packages/data/src/db/seeds/providers.ts  providers
+packages/data/src/db/seeds/invites.ts    invites app-shell
 packages/data/src/db/seeds/*             app-shell
 
 # The rest of the data layer (services, models, permissions, errors) has

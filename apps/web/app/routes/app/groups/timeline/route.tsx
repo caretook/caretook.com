@@ -11,6 +11,7 @@ import { loadSettings } from "~/lib/me";
 import { sessionContext } from "~/lib/session";
 import { removeEntry } from "~/lib/sync/timeline";
 import { parseFilters } from "~/lib/timelineFilters";
+import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { QuickAddBar } from "./QuickAddBar";
@@ -95,6 +96,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
       <TimelineHeader view={view} onViewChange={setView} />
+      <InviteSomeoneCard />
       <LatestVitals vitals={data.latestVitals} units={units} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
       {canWrite && <QuickAddBar groupId={groupId} />}

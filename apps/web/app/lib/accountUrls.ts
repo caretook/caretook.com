@@ -28,6 +28,8 @@ export const accountUrls = {
   resetPassword: () => "/reset-password",
   /** An invite link's page (the token is base64url, so it needs no escaping). */
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
+  /** A staff access code's page (`/join/CARE-…`): an account and a new care group. */
+  join: (code: string) => `/join/${encodeURIComponent(code)}`,
   verifyEmail: (email?: string | null, next?: string | null) =>
     `/verify-email${searchString({ email: email?.trim() || undefined, next: nextParam(next) })}`,
 };

@@ -2,7 +2,7 @@ import type { CareGroupInvite, Tx } from "../../db";
 import type { QueryCreateArgs } from "../base/queryHelpers";
 
 import { createHash } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { dbMayFail, txOrDb } from "../../db";
 import { careGroupInviteSchema } from "../../db/schema";
 import { isError } from "../../errors";
@@ -14,8 +14,8 @@ export const schemaName = "careGroupInviteSchema";
 /** Invites are looked up by the SHA-256 of their token; the token is never stored. */
 export const hashInviteToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
-// The token hash never leaves the model layer.
-export const dbToModel = ({ tokenHash: _tokenHash, ...row }: CareGroupInvite) => ({
+// The token hash (and a link's sealed token) never leaves the model layer.
+export const dbToModel = ({ tokenHash: _tokenHash, tokenCiphertext: _sealed, ...row }: CareGroupInvite) => ({
   ...row,
   isExpired: new Date(row.expiresAt).getTime() <= Date.now(),
 });
@@ -59,4 +59,23 @@ export const getByToken = async (token: string, opts: { tx?: Tx; lock?: boolean 
   if (isError(res)) return res;
   const [row] = res;
   return row ? dbToModel(row) : null;
+};
+
+/**
+ * A link invite's sealed token (see utils/linkToken.ts), or null. Only for
+ * careGroupInviteService.copyLink, after it has read the invite in the
+ * actor's scope.
+ */
+export const getSealedToken = async (id: string, opts: { tx?: Tx } = {}) => {
+  const res = await dbMayFail(
+    () =>
+      txOrDb(opts.tx)
+        .select({ sealed: careGroupInviteSchema.tokenCiphertext })
+        .from(careGroupInviteSchema)
+        .where(and(eq(careGroupInviteSchema.id, id), eq(careGroupInviteSchema.kind, "link")))
+        .limit(1),
+    "careGroupInviteModel:getSealedToken",
+  );
+  if (isError(res)) return res;
+  return res[0]?.sealed ?? null;
 };
