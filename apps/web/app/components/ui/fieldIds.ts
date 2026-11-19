@@ -7,10 +7,16 @@ export type FieldControl = {
 
 /**
  * The control's props for a field with id `id`: invalid while there's an
- * error, and described by its help and error lines (those that are shown).
+ * error, and described by the lines that are shown: its help, then its
+ * error, or its warning while there's no error.
  */
-export function fieldControl(id: string, { help, error }: { help?: boolean; error?: boolean }): FieldControl {
-  const describedBy = [help && `${id}-help`, error && `${id}-error`].filter(Boolean).join(" ");
+export function fieldControl(
+  id: string,
+  { help, error, warning }: { help?: boolean; error?: boolean; warning?: boolean },
+): FieldControl {
+  const describedBy = [help && `${id}-help`, error ? `${id}-error` : warning && `${id}-warn`]
+    .filter(Boolean)
+    .join(" ");
   return {
     id,
     ...(error && { "aria-invalid": true as const }),

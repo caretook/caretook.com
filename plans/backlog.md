@@ -43,7 +43,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
-| B-14 | plan | in-progress | providers | prd/providers | Provider links and suggestions while writing events and live notes |
+| B-14 | plan | ready | providers | prd/providers | Provider links and suggestions while writing events and live notes |
 | B-15 | plan | triaged | medications |  | Medication list (current, past, discontinued), printable sheet, and tracking in the timeline |
 | B-16 | question | live |  |  | How does the timeline's layout (rows or cards) persist? |
 | B-17 | bug | landed | quick-fixes | prd/quick-fixes | A timeline layout change made offline is lost |
@@ -66,9 +66,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-34 | change | landed | quick-fixes | prd/quick-fixes | Date picker for the When field: a calendar to pick the date, not only typed segments |
 | B-35 | bug | landed | quick-fixes | prd/quick-fixes | A practice's type can change to clinician or other while clinicians still point at it |
 | B-36 | chore | landed | quick-fixes | prd/quick-fixes | Independent integration tests: no shared group across describe blocks |
-| B-37 | bug | ready | quick-fixes | prd/quick-fixes | Deleting a practice leaves its clinicians linked to it |
+| B-37 | bug | landed | quick-fixes | prd/quick-fixes | Deleting a practice leaves its clinicians linked to it |
 | B-38 | bug | landed | quick-fixes | prd/quick-fixes | Production build differs from dev: a deleted provider's 404 renders blank, a viewer's providers/new doesn't redirect |
-| B-39 | chore | ready | quick-fixes | prd/quick-fixes | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
+| B-39 | chore | landed | quick-fixes | prd/quick-fixes | Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
@@ -237,16 +237,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-14 · plan · Provider links and suggestions while writing events and live notes
 
-- status: in-progress
+- status: ready
 - prd: providers
 - owner: prd/providers
-- commit:
+- commit: 1b1a039
 
 - 2026-11-17 (dev keeper): Tiptap mentions in the document, a field on the event, or both.
 - 2026-11-18 (Robert Bo Davis): PRD written (providers): timeline_entry_provider link table (pair-derived ids), With row on events and notes, picker with inline add, suggestions from title/text matches, title memory and recent links. No @-mentions.
 - 2026-11-18 (Robert Bo Davis): Planned: providers slices 5–7 (With row, suggestions, 'with …' on rows), after components slices 2–4 land.
 - 2026-11-18 (prd/providers): Providers orchestrator, end of session: slices 1–4 are in dev (slice 1 cc47b01, slices 2–4 5a2c8af); the plan's Status table in dev still says wave 2 is awaiting its go-ahead, but it landed. Slices 5–7 wait for components slices 2–4 in dev; then pnpm prd start providers, sync, and start slice 5. The prd/providers worktree was removed to free a PRD slot.
 - 2026-11-18 (slice/providers/5): slice 5 (With row, picker, linked entries) committed on slice/providers/5 (12722a3, 83b6249); providers.mjs 104/104, live-notes 93/93
+- 2026-11-18 (slice/providers/7): slice 7: timeline rows and cards show 'with <names>' (2 names, then +N, removed greyed) from one live query beside the entries; seeds: Pharmacy pickup has 2 providers, Primary care visit: Dr. Alvarez has 3
+- 2026-11-18 (slice/providers/6): slice 6 (suggestions) committed on slice/providers/6: suggestProviders in lib/providerSuggestions.ts, chips in the With row
 
 ### B-15 · plan · Medication list (current, past, discontinued), printable sheet, and tracking in the timeline
 
@@ -355,6 +357,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/components): Wave 2 (slice 2) landed in dev as 666ebf9: ui/ primitives Sheet, Popover, ConfirmDialog, Field, ChipGroup, UserAvatar(size), AvatarStack, IconButton; DateTimeField moved to ui/date/ (own index); components/forms/ removed; only ui/ imports react-aria-components. Other PRDs: sync dev at your next wave boundary and build new UI on these. Slices 3 and 4 start now.
 - 2026-11-18 (slice/components/4): components slice 4 (03cde5a): entry page split into loadEntry, useLiveEntry, EntryPageHeader, EntryTitleRegion; LiveNotesEditor focus handle; live-notes 93/93, providers 85/85, ui 577/577
 - 2026-11-18 (prd/components): Wave 3 (slices 3 and 4) landed in dev as 511cbed: the timeline route only composes (useTimelineData with paging, useTimelineView, useEntryRemoval, TimelineEntryList, shared EntryBody); the entry route only composes (useLiveEntry, loadEntry, EntryPageHeader, EntryTitleRegion); LiveNotesEditor has a focus handle. Slices 5 (entry form) and 6 (settings, header, written rules) remain. Other PRDs: sync dev at your next wave boundary; avoid routes/app/groups/timeline/ EntryForm and the settings routes until components lands 5 and 6.
+- 2026-11-18 (prd/components): Wave 4 (slice 5) landed in dev as 2c924db: the entry form is a shell plus per-kind field components (EntryKindPicker, SymptomFields, VitalReadingsFields, VitalReadingRow, VitalField); ui/Field has a warning line; adding a vital type stays spec-only. Slice 6 (settings, header, provider screens on the primitives; the written rules) is running.
+- 2026-11-18 (slice/components/6): slice 6 handed off (23812bf, 60830bc, 011bdd2): settings, providers and entry page on the primitives; ChoiceGroup and BackLink added to ui/; ui.mjs covers settings and joins the suite.
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
@@ -425,6 +429,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): PRD and plan written: plans/invites-prd.md, plans/invites-plan.md (5 slices; slice 1, the notifications package and outbox, can start now). New deps approved: resend, @react-email/components, @react-email/render, qrcode.
 - 2026-11-18 (slice/marketing/3): invites slice 3: the consent screen must link to /privacy and /health-data-privacy (marketing slice 3)
 - 2026-11-18 (slice/invites/1): invites slice 1 on slice/invites/1 (f1f6dc2, fe08cda, 36520d6): @caretook/notifications, outbox + dev_mail (migration 0009), /api/cron/outbox, /dev/mail. Dropped @react-email/components (deprecated on npm); templates use @react-email/render only.
+- 2026-11-18 (slice/invites/3): slice 3 (email invites with consent) built on slice/invites/3: migration 0010_email_invites, invite.* oRPC, /invite/:token, Members Invite sheet and Pending list. Not synced: invites and consent are read through oRPC; care_group_member gains synced invited_by and created_at.
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 
@@ -486,7 +491,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-37 · bug · Deleting a practice leaves its clinicians linked to it
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 9c08e01
@@ -509,7 +514,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-39 · chore · Lean browser checks: move pure-logic steps to unit tests, add a fast smoke mode
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 9c08e01

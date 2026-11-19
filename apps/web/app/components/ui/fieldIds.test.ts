@@ -23,4 +23,17 @@ describe("fieldControl", () => {
       "aria-describedby": "f-error",
     });
   });
+
+  it("is described by its warning, unless there's an error", () => {
+    expect(fieldControl("f", { warning: true })).toEqual({ id: "f", "aria-describedby": "f-warn" });
+    expect(fieldControl("f", { help: true, warning: true })).toEqual({
+      id: "f",
+      "aria-describedby": "f-help f-warn",
+    });
+    expect(fieldControl("f", { error: true, warning: true })).toEqual({
+      id: "f",
+      "aria-invalid": true,
+      "aria-describedby": "f-error",
+    });
+  });
 });
