@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | State               | Merge into `prd/profiles` (slice commits) |
-| ----- | ------------------- | ----------------------------------------- |
-| 1     | merged              | `925d469` (9a56249, b1f1464, bd9a562)     |
-| 2     | merged `fd4d0e0`    |                                           |
-| 3     | in progress         |                                           |
-| 4     | merged `f07de69`    |                                           |
-| 5     | blocked by 3 and 4  |                                           |
-| 6     | blocked by 5        |                                           |
+| Slice | State              | Merge into `prd/profiles` (slice commits) |
+| ----- | ------------------ | ----------------------------------------- |
+| 1     | merged             | `925d469` (9a56249, b1f1464, bd9a562)     |
+| 2     | merged `fd4d0e0`   |                                           |
+| 3     | in progress        |                                           |
+| 4     | merged `f07de69`   |                                           |
+| 5     | blocked by 3 and 4 |                                           |
+| 6     | blocked by 5       |                                           |
 
 Backlog: B-45 and B-46 are claimed by `prd/profiles`; mark B-45 `done` after slice 3 merges and B-46 after slice 5 (or both after slice 6).
 
