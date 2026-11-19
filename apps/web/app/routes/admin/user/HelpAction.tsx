@@ -1,5 +1,6 @@
 import type { AdminActionResult } from "../adminForms";
-import type { HelpIntent } from "./helpActions";
+import type { AccountActionIntent } from "./accountActions";
+import type { ActionCopy, HelpIntent } from "./helpActions";
 
 import { STAFF_REASON_MAX } from "@caretook/data/schema";
 import { useState } from "react";
@@ -8,23 +9,31 @@ import { ConfirmDialog, Field } from "~/components/ui";
 import { issueFor } from "../adminForms";
 import { HELP_COPY } from "./helpActions";
 
-// One help action on an account's page: a button that opens a confirm with a
+// One action on an account's page: a button that opens a confirm with a
 // required reason, posting to the page's action. The result is announced
-// beside the button; a refusal stays in the dialog.
+// beside the button; a refusal stays in the dialog. Help actions bring their
+// own words; the admin actions (slice 3) pass theirs, and any extra fields.
+
+type Target = { intent: HelpIntent; copy?: undefined } | { intent: AccountActionIntent; copy: ActionCopy };
 
 export function HelpAction({
   intent,
+  copy: ownCopy,
   sessionId,
+  values,
+  disabled = false,
   label,
   className = "btn btn-sm",
-}: {
-  intent: HelpIntent;
+}: Target & {
   sessionId?: string;
+  /** Extra fields to post (the role being given). */
+  values?: Record<string, string>;
+  disabled?: boolean;
   /** The button's accessible name, when its text needs more ("Sign out Chrome on Mac"). */
   label?: string;
   className?: string;
 }) {
-  const copy = HELP_COPY[intent];
+  const copy = ownCopy ?? HELP_COPY[intent];
   const fetcher = useFetcher<AdminActionResult>();
   // What the fetcher held when the dialog opened: a newer success closes it,
   // and only a newer refusal shows inside it.
@@ -36,7 +45,10 @@ export function HelpAction({
   const open = opened !== null && !(fresh?.ok && !busy);
 
   const confirm = () =>
-    void fetcher.submit({ intent, reason, ...(sessionId ? { sessionId } : {}) }, { method: "post" });
+    void fetcher.submit(
+      { ...values, intent, reason, ...(sessionId ? { sessionId } : {}) },
+      { method: "post" },
+    );
 
   return (
     <span className="inline-flex flex-col items-start gap-1" data-help-action={intent}>
@@ -44,6 +56,7 @@ export function HelpAction({
         type="button"
         className={className}
         aria-label={label}
+        disabled={disabled}
         onClick={() => {
           setOpened({ before: result });
           setReason("");

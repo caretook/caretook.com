@@ -4,6 +4,7 @@ import {
   accountHelpZSchema,
   accountSearchZSchema,
   revokeSessionZSchema,
+  setRoleZSchema,
 } from "@caretook/data";
 import { deliverSoon } from "@caretook/notifications";
 import { z } from "zod";
@@ -17,6 +18,8 @@ import { staffProcedure } from "./procedures";
 // are named fields only: an account, how it signs in, its sessions, its
 // groups by name and role, and the mail sent to it by template and status.
 // Never care data, an email's data or body, or a session's token.
+// Disabling, re-enabling and staff roles (slice 3) need `users.disable` and
+// `users.setRole` (admins only) and a reason.
 
 const optionalIso = (value: string | null) => (value ? iso(value) : null);
 
@@ -134,4 +137,19 @@ export const usersAdmin = {
     .handler(async ({ context, input }) =>
       unwrap(await accountAdminService.revokeAllSessions(context, input)),
     ),
+
+  /** Disable an account: every session signed out, no sign-in or tokens until re-enabled. */
+  disable: staffProcedure("users.disable")
+    .input(accountHelpZSchema)
+    .handler(async ({ context, input }) => unwrap(await accountAdminService.disable(context, input))),
+
+  /** Re-enable a disabled account. */
+  enable: staffProcedure("users.disable")
+    .input(accountHelpZSchema)
+    .handler(async ({ context, input }) => unwrap(await accountAdminService.enable(context, input))),
+
+  /** Make an account support or admin, or a member again. */
+  setRole: staffProcedure("users.setRole")
+    .input(setRoleZSchema)
+    .handler(async ({ context, input }) => unwrap(await accountAdminService.setRole(context, input))),
 };

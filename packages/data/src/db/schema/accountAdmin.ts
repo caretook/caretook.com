@@ -30,6 +30,14 @@ export const revokeSessionZSchema = accountHelpZSchema.extend({ sessionId: z.uui
 export type RevokeSessionInput = z.input<typeof revokeSessionZSchema>;
 
 /**
+ * A staff role change (admin PRD, slice 3): who, the new role, and why. The
+ * role is any string here; `roleChangeRefusal` refuses one that isn't
+ * assignable, with its own message.
+ */
+export const setRoleZSchema = accountHelpZSchema.extend({ role: z.string().trim().min(1, "Choose a role") });
+export type SetRoleInput = z.input<typeof setRoleZSchema>;
+
+/**
  * A short code for why an email wasn't sent, never the sender's whole
  * message (it can quote the address or the provider's details): a skip
  * outside production is `notAllowlisted`; a provider error's name

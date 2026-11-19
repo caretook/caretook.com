@@ -562,6 +562,36 @@ export const SERVICE_ERRORS = {
   "accountAdmin:query": {
     message: "Failed to read the account",
   },
+  // The four below are staffRules' STAFF_REFUSAL_MESSAGES (a test keeps
+  // them equal). 409, not 403: the page shows the message as it is.
+  "accountAdmin:self": {
+    message: "You can't do that to your own account.",
+    statusCode: 409,
+  },
+  "accountAdmin:lastAdmin": {
+    message: "There must always be at least one admin.",
+    statusCode: 409,
+  },
+  "accountAdmin:unknownRole": {
+    message: "That isn't a staff role.",
+    statusCode: 400,
+  },
+  "accountAdmin:unchanged": {
+    message: "They already have that role.",
+    statusCode: 409,
+  },
+  "accountAdmin:alreadyDisabled": {
+    message: "That account is already disabled",
+    statusCode: 409,
+  },
+  "accountAdmin:notDisabled": {
+    message: "That account isn't disabled",
+    statusCode: 409,
+  },
+  "accountAdmin:disabled": {
+    message: "That account is disabled. Re-enable it first.",
+    statusCode: 409,
+  },
   "groupAdminService:notFound": {
     message: "Care group not found",
     statusCode: 404,
