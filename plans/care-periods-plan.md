@@ -6,14 +6,16 @@
 
 | Slice | State                                     | Merge into `prd/care-periods` (slice commits) |
 | ----- | ----------------------------------------- | --------------------------------------------- |
-| 1     | merged `9fb07f3` (f4f439c, abc3fa8)       | wave 1 landing                                |
+| 1     | merged `9fb07f3` (f4f439c, abc3fa8)       | not landed: one landing at the end            |
 | 2     | in progress (wave 2)                      |                                               |
 | 3     | in progress (wave 2)                      |                                               |
 | 4     | in progress (wave 2)                      |                                               |
 | 5     | in progress (wave 2)                      |                                               |
-| 6     | blocked by 1, and `search` slices 2 and 3 |                                               |
+| 6     | in progress (search is in `dev` since the `475bf7c` sync) |                                               |
 
 **Landing mode: run everything through** (the user queued this PRD with `pnpm prd queue care-periods`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**One landing at the end** (the user's preference for PRDs with a migration): merge every slice, then ask the user before the one full suite (never start `--suite` unasked), `pnpm prd check`, land. The `475bf7c` sync brought `search` from `dev`, including its `0016_search` migration; ours was regenerated as `0017_care_periods` (the hand-written `ALTER PUBLICATION` kept). Slices 2–5 branched before that sync, so their merges may conflict in `appUrls`, `routes.ts`, `check-areas` and the timeline (search mode): resolve them additively. Slice 6's test database couldn't start (Docker ran out of networks); its agent retries `pnpm datastore:start:test` once a stack is removed.
 
 Backlog: B-50 claimed by `prd/care-periods` when slice 1 started; mark it `done` after the last slice merges. The PRD and this plan are in `dev`. B-78 (strip restyle) is already in `dev`, so slice 3 matches the current `STRIP_CLASS` style. Slice 6 waits for `search` slices 2 and 3 in `dev` (only slice 1 is there as of 2026-11-19).
 
