@@ -189,3 +189,20 @@ export const linkLimits = (values: {
   maxUses: values.maxUses,
 });
 export type LinkLimits = ReturnType<typeof linkLimits>;
+
+/**
+ * The announcement while it's showing: none once `endsAt` has passed (an end
+ * time is exclusive), and none when there's no text. Used by
+ * `public.announcement` and by the device's banner rule.
+ */
+export const activeAnnouncement = <A extends Pick<Announcement, "text" | "endsAt">>(
+  announcement: A | null | undefined,
+  now: number,
+): A | null => {
+  if (!announcement?.text.trim()) return null;
+  if (announcement.endsAt) {
+    const ends = Date.parse(announcement.endsAt);
+    if (Number.isNaN(ends) || ends <= now) return null;
+  }
+  return announcement;
+};

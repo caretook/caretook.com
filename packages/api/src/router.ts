@@ -28,6 +28,7 @@ import { joinRequest } from "./joinRequests";
 import { accessCode, admin, createCareGroup } from "./groups";
 import { groupsAdmin } from "./groupsAdmin";
 import { publicForms } from "./publicForms";
+import { announcement } from "./announcement";
 import { profileCareGroup, profileMe } from "./profiles";
 import { search } from "./search";
 import { sync } from "./sync";
@@ -343,7 +344,7 @@ export const router = {
     groups: groupsAdmin,
     settings: settingsAdmin,
   },
-  public: publicForms,
+  public: { ...publicForms, announcement },
   search,
 };
 export type Router = typeof router;
