@@ -7,12 +7,16 @@ import { useLocation, useNavigate } from "react-router";
 import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { canReschedule } from "~/lib/eventReschedule";
+import { localTimeZone } from "~/lib/format";
+import { useGroup } from "~/lib/group";
 import { emptyTimelineText } from "./entryLabels";
 import { entryOpen } from "./entryOpen";
+import { PeriodMarkerItem } from "./PeriodMarkerItem";
 import { COLUMN_CAP } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
+import { withMarkers } from "./timelineDays";
 import { UpcomingBlock } from "./UpcomingBlock";
 import { useEntryRemoval } from "./useEntryRemoval";
 
@@ -27,7 +31,9 @@ const LIST_CLASS: Record<TimelineView, string> = {
 
 /**
  * The entries, a section per day under a sticky heading, as rows or cards,
- * then `OlderEntries`, which loads older pages as the end comes near. With
+ * with the care periods' boundary markers at their moments (filters on or
+ * off; a day with only a marker gets its own section), then `OlderEntries`,
+ * which loads older pages as the end comes near. With
  * `upcoming` (`?upcoming=1`), the Upcoming block comes first, above Today, in
  * the same rows or cards. Writers get each entry's ⋯ menu, with one delete
  * confirm for the whole list.
@@ -44,7 +50,16 @@ export function TimelineEntryList({
 }: {
   data: Pick<
     TimelineData,
-    "days" | "hasOlder" | "loadingOlder" | "loadOlder" | "liveLabelOf" | "nameOf" | "providersOf" | "imageOf"
+    | "days"
+    | "hasOlder"
+    | "loadingOlder"
+    | "loadOlder"
+    | "liveLabelOf"
+    | "nameOf"
+    | "providersOf"
+    | "imageOf"
+    | "markers"
+    | "periods"
   >;
   view: TimelineView;
   units: UnitChoices;
@@ -72,6 +87,9 @@ export function TimelineEntryList({
         }
       : undefined;
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
+  // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
+  const recipientZone = useGroup().recipient?.timeZone ?? "UTC";
+  const sections = withMarkers(data.days, data.markers, localTimeZone(), new Date());
 
   // A new filter starts again from the newest entry: when the list's top is
   // above the screen (a kind icon or author tapped far down), bring it back,
@@ -137,7 +155,7 @@ export function TimelineEntryList({
             {emptyTimelineText(kind, author && data.nameOf(author))}
           </p>
         )}
-        {data.days.map((day) => (
+        {sections.map((day) => (
           <section key={day.key} aria-labelledby={`day-${day.key}`}>
             <h3
               id={`day-${day.key}`}
@@ -146,7 +164,20 @@ export function TimelineEntryList({
               {day.label}
             </h3>
             <ol className={LIST_CLASS[view]} data-view={view}>
-              {day.entries.map(item)}
+              {day.entries.map((it) =>
+                it.type === "entry" ? (
+                  item(it.entry)
+                ) : (
+                  <PeriodMarkerItem
+                    key={it.key}
+                    marker={it.marker}
+                    groupId={groupId}
+                    timeZone={recipientZone}
+                    placeName={data.periods.placeName}
+                    view={view}
+                  />
+                ),
+              )}
             </ol>
           </section>
         ))}
