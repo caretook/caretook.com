@@ -137,7 +137,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-93 | bug | ready | quick-fixes | prd/quick-fixes | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
 | B-94 | change | ready | quick-fixes | prd/quick-fixes | Account forms, sign-in and the marketing menu button onto the ui primitives |
 | B-95 | chore | ready | quick-fixes | prd/quick-fixes | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
-| B-96 | change | triaged | quick-fixes |  | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
+| B-96 | change | in-progress | quick-fixes | prd/quick-fixes | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
 | B-97 | change | in-progress | quick-fixes | prd/quick-fixes | Vitals filter on timeline should bring up a sub-filter for vital type. |
 | B-98 | change | triaged | quick-fixes |  | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-99 | change | triaged | quick-fixes |  | Don't display recent vitals in the timeline header in mobile, |
@@ -1232,9 +1232,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-96 · change · Email link and code shouldn't really be two different login options, should they? Can't we email a…
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (prd/medications-2): From the inbox: Email link and code shouldn't really be two different login options, should they? Can't we email a link and a code at the same time?
