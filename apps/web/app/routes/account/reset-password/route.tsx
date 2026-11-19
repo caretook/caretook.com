@@ -1,6 +1,7 @@
 import type { Route } from "./+types/route";
 
 import { Form, Link, useNavigation } from "react-router";
+import { Field } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/accountUrls";
 import { authClient } from "~/lib/auth-client";
 import {
@@ -73,37 +74,34 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
         <Form method="post" onSubmit={submitOnce} className="space-y-1">
           <input type="hidden" name="intent" value="set" />
           <input type="hidden" name="token" value={token} />
-          <fieldset className="fieldset">
-            <label className="fieldset-legend" htmlFor="password">
-              New password
-            </label>
-            <input
-              id="password"
-              className="input w-full"
-              type="password"
-              name="password"
-              autoComplete="new-password"
-              minLength={MIN_PASSWORD_LENGTH}
-              aria-describedby="password-hint"
-              required
-            />
-            <p id="password-hint" className="label">
-              At least {MIN_PASSWORD_LENGTH} characters. A few words you'll remember work well.
-            </p>
-          </fieldset>
-          <fieldset className="fieldset">
-            <label className="fieldset-legend" htmlFor="confirm">
-              Type it again
-            </label>
-            <input
-              id="confirm"
-              className="input w-full"
-              type="password"
-              name="confirm"
-              autoComplete="new-password"
-              required
-            />
-          </fieldset>
+          <Field
+            label="New password"
+            help={`At least ${MIN_PASSWORD_LENGTH} characters. A few words you'll remember work well.`}
+          >
+            {(control) => (
+              <input
+                {...control}
+                className="input w-full"
+                type="password"
+                name="password"
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+                required
+              />
+            )}
+          </Field>
+          <Field label="Type it again">
+            {(control) => (
+              <input
+                {...control}
+                className="input w-full"
+                type="password"
+                name="confirm"
+                autoComplete="new-password"
+                required
+              />
+            )}
+          </Field>
           {result && "error" in result && result.error && <ErrorMessage>{result.error}</ErrorMessage>}
           <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
             {busy ? "Saving…" : "Save new password"}

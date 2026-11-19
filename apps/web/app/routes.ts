@@ -17,6 +17,7 @@ const appRoutes = [
         route("timeline", "routes/app/settings/timeline/route.tsx"),
         route("account", "routes/app/settings/account/route.tsx"),
         route("contact", "routes/app/settings/contact/route.tsx"),
+        route("devices", "routes/app/settings/devices/route.tsx"),
       ]),
       route("groups/:groupId", "routes/app/groups/layout/route.tsx", { id: "group" }, [
         index("routes/app/groups/index/route.tsx"),

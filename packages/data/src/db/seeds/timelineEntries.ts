@@ -660,7 +660,7 @@ const zonedToUtc = (y: number, m: number, d: number, minutes: number, timeZone: 
 };
 
 /** When an entry happened: `hoursAgo` before now, or `at` (a local time `daysAgo` days back). */
-export const occurredAtOf = (entry: SeedEntry, now: number) => {
+export const occurredAtOf = (entry: Omit<SeedEntry, "author"> & { author?: string }, now: number) => {
   if (!entry.at) return new Date(now - (entry.hoursAgo ?? 0) * HOUR);
   const today = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
@@ -697,7 +697,7 @@ const DOCUMENT_KINDS: readonly TimelineEntryKind[] = ["note", "event"];
  * the text of its live document (the entry's `body` is then null; an event
  * without one gets an empty document).
  */
-export const seedContentOf = (entry: SeedEntry) => {
+export const seedContentOf = (entry: Omit<SeedEntry, "author"> & { author?: string }) => {
   const hasDocument = DOCUMENT_KINDS.includes(entry.kind);
   return {
     title: entry.title ?? null,

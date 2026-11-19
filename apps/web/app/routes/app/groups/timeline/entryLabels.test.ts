@@ -49,6 +49,16 @@ describe("emptyTimelineText", () => {
     );
     expect(emptyTimelineText("note", undefined, "")).toBe("No notes on the timeline yet.");
   });
+  it("names the vital type", () => {
+    expect(emptyTimelineText("vital", null, null, "bloodPressure")).toBe(
+      "No blood pressure readings on the timeline yet.",
+    );
+    expect(emptyTimelineText("vital", "Alex Rivera", null, "spo2")).toBe(
+      "No oxygen (SpO₂) readings by Alex Rivera yet.",
+    );
+    expect(emptyTimelineText("vital", null, "low", "weight")).toBe("No weight readings match “low”.");
+    expect(emptyTimelineText("symptom", null, null, "weight")).toBe("No symptoms on the timeline yet.");
+  });
   it("no author name is no author filter", () => {
     expect(emptyTimelineText("event", null)).toBe("No events on the timeline yet.");
     expect(emptyTimelineText(null, null)).toBe("Nothing on the timeline yet.");

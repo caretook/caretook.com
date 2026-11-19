@@ -64,12 +64,21 @@ async function signedIn(b, label, email) {
   await sleep(500);
   return p;
 }
+/** The settings change this device hasn't sent yet (`lib/me.ts`), if any. */
+const SETTINGS_PENDING = `Object.keys(localStorage).some((k) => k.startsWith("caretook:settings-pending:"))`;
+/**
+ * Switch the view, then wait for the server to have it (no pending change
+ * left), so a reload or the next step reads it back: a fixed 1.5 s sleep did
+ * this before, and was short on a busy machine (B-93).
+ */
 async function setView(p, view) {
   await p.press(`document.querySelector('[aria-label="${view}"]')`);
   await p.waitFor(
     `document.querySelector("ol")?.dataset.view === ${JSON.stringify(view.toLowerCase())}`,
-    5000,
+    10000,
   );
+  // Not a step's assertion: a slow save shows in the step that reads it back.
+  await p.waitFor(`!(${SETTINGS_PENDING})`, 15000, { quiet: true }).catch(() => undefined);
 }
 
 /**
@@ -224,7 +233,6 @@ async function kindIconFilters(users) {
         await p.screenshot(`phase2-kind-icon-${who}-cards`);
         await clear(p);
         await setView(p, "Rows");
-        await sleep(1500);
       });
     }
     dropReloadNoise();
@@ -357,7 +365,6 @@ async function dayHeadings(p) {
     await p.evaluate(`window.scrollTo(0, 0)`);
   }
   await setView(p, "Rows");
-  await sleep(1500);
 }
 
 /**
@@ -523,6 +530,75 @@ const psql = (sql) =>
   })
     .toString()
     .trim();
+
+/**
+ * The vital-type filter (B-97): the Vitals chip brings up a row of type
+ * chips; "Blood pressure" lists only entries with a blood pressure reading
+ * (as many as the server has, up to a page); "All" clears the kind and the
+ * type with it. The URLs themselves are timelineFilters.test.ts's. Starts
+ * and ends on the unfiltered timeline.
+ */
+async function vitalTypeFilters(p) {
+  const kinds = `[...document.querySelectorAll('nav[aria-label="Show entries"] a')]`;
+  const types = `[...document.querySelectorAll('nav[aria-label="Show vital types"] a')]`;
+  const chip = (list, label) => `${list}.find((a) => a.textContent.trim() === ${JSON.stringify(label)})`;
+  const state = () =>
+    p.evaluate(`JSON.stringify({
+      search: location.search,
+      types: ${types}.map((a) => a.textContent.trim()),
+      current: ${types}.filter((a) => a.getAttribute("aria-current") === "true").map((a) => a.textContent.trim()),
+      rows: ${rows},
+      bp: [...document.querySelectorAll("ol > li")].filter((li) => /BP \\d+\\/\\d+ mmHg/.test(li.textContent)).length,
+    })`);
+  const timeline = await p.evaluate("location.pathname");
+  await p.goto(timeline);
+  await p.waitFor(`${rows} > 0`, 20000);
+  check("vital types: no type chips without the Vitals filter", (await p.evaluate(`${types}.length`)) === 0);
+
+  await p.press(chip(kinds, "Vitals"));
+  await p.waitFor(`location.search === "?kind=vital" && ${types}.length > 1`, 8000).catch(() => undefined);
+  const vitals = JSON.parse(await state());
+  check(
+    "vital types: the Vitals chip brings up the type chips, All vitals current",
+    vitals.search === "?kind=vital" &&
+      vitals.types[0] === "All vitals" &&
+      vitals.types.includes("Blood pressure") &&
+      vitals.current.join() === "All vitals",
+    `${vitals.search}: ${vitals.types.join(", ")}`,
+  );
+
+  const expected = Math.min(
+    30,
+    Number(
+      psql(`SELECT count(*) FROM timeline_entry
+        WHERE group_id = '${DEV_FAMILY}' AND kind = 'vital' AND deleted_at IS NULL
+          AND details->'readings' @> '[{"type": "bloodPressure"}]';`),
+    ),
+  );
+  await p.press(chip(types, "Blood pressure"));
+  await p
+    .waitFor(
+      `location.search === "?kind=vital&vital=bloodPressure" && ${rows} === ${expected} && [...document.querySelectorAll("ol > li")].every((li) => /BP \\d+\\/\\d+ mmHg/.test(li.textContent))`,
+      8000,
+    )
+    .catch(() => undefined);
+  const bp = JSON.parse(await state());
+  check(
+    "vital types: Blood pressure lists only entries with a blood pressure reading",
+    bp.search === "?kind=vital&vital=bloodPressure" &&
+      bp.rows === expected &&
+      bp.bp === expected &&
+      bp.current.join() === "Blood pressure",
+    `${bp.search}, ${bp.rows} rows (${bp.bp} with BP, ${expected} expected), current "${bp.current.join()}"`,
+  );
+  await p.screenshot("phase2-vital-types");
+
+  await p.press(chip(kinds, "All"));
+  await p.waitFor(`location.search === "" && ${types}.length === 0`, 8000).then(
+    () => check("vital types: clearing the kind clears the type", true),
+    async () => check("vital types: clearing the kind clears the type", false, await state()),
+  );
+}
 
 /** The "with …" line of the first entry titled `title`: the names shown and the "+N". */
 const withLineOf = (p, title) =>
@@ -846,7 +922,6 @@ async function authorFilters(users, offlineDevice) {
       await p.screenshot("phase2-author-cards");
       await clear(p);
       await setView(p, "Rows");
-      await sleep(1500);
     });
   }
 
@@ -1428,11 +1503,9 @@ async function infiniteScroll(p, offlineDevice) {
 
   await step("infinite scroll: cards, to the beginning", async () => {
     await setView(p, "Cards");
-    await sleep(1500);
     await fresh(p);
     await reachesTheBeginning(p, "writer, cards");
     await setView(p, "Rows");
-    await sleep(1500);
   });
 
   await step("infinite scroll: a filter starts again from the newest, with one page", async () => {
@@ -1734,7 +1807,6 @@ try {
   await step("cards: the view survives a reload, and a vital's tap", async () => {
     // The view survives a reload.
     await setView(p, "Cards");
-    await sleep(1500);
     await p.goto(await p.evaluate("location.pathname"));
     await p.waitFor(`${rows} > 0`, 20000);
     const cardsAfter = await p.evaluate(`document.querySelector("ol")?.dataset.view === "cards"`);
@@ -1753,7 +1825,6 @@ try {
     await escape(p);
     await p.waitFor(`!document.querySelector("[role=dialog]")`, 5000);
     await setView(p, "Rows");
-    await sleep(1500);
   });
 
   // The viewer: a note opens, a symptom does nothing, no ⋯ menu.
@@ -1781,6 +1852,7 @@ try {
   await step("providers on notes and events", { smoke: true }, () => withLines(p));
   await step("day headings", () => dayHeadings(p));
   await step("the latest vitals line", () => latestVitalsLine(p));
+  await step("the vital-type filter", { smoke: true }, () => vitalTypeFilters(p));
   /** A signed-in device behind a proxy that can be cut, opened once (CDP's offline doesn't cut PowerSync's stream). */
   const offlineDevice = async () => {
     if (!offline) {

@@ -123,9 +123,9 @@ describe("deliverDue", () => {
   });
 
   it("blanks a sensitive message's body once it's sent, and keeps the others'", async () => {
-    const secret = await notify("signInCode", {
+    const secret = await notify("signInEmail", {
       to: `ob-${run}@example.com`,
-      data: { code: "246810" },
+      data: { token: "obTok", code: "246810" },
       idempotencyKey: key(),
       deliver: false,
     });
@@ -135,7 +135,7 @@ describe("deliverDue", () => {
 
     const sender = createMemorySender();
     await deliverDue({ ids: [secret.id, plain], sender });
-    expect(sender.sent.find((m) => m.name === "signInCode")?.text).toContain("246810");
+    expect(sender.sent.find((m) => m.name === "signInEmail")?.text).toContain("246810");
 
     const sent = await rowOf(secret.id);
     expect(sent).toMatchObject({ status: "sent", html: REDACTED_BODY, text: REDACTED_BODY });

@@ -103,8 +103,16 @@ export function Detail({
   );
 }
 
-/** A settings form's Save button, then "Saved." or what went wrong. */
-export function SaveRow({ busy, result }: { busy: boolean; result: ActionResult | undefined }) {
+/** A settings form's Save button, then "Saved." (or `savedText`) or what went wrong. */
+export function SaveRow({
+  busy,
+  result,
+  savedText = "Saved.",
+}: {
+  busy: boolean;
+  result: ActionResult | undefined;
+  savedText?: string;
+}) {
   return (
     <div className="flex items-center gap-3 pt-1">
       <button type="submit" className="btn btn-primary" disabled={busy}>
@@ -112,7 +120,7 @@ export function SaveRow({ busy, result }: { busy: boolean; result: ActionResult 
       </button>
       {result?.ok && (
         <p role="status" className="text-success text-sm">
-          Saved.
+          {savedText}
         </p>
       )}
       {result && !result.ok && (

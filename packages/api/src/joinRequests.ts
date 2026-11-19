@@ -93,7 +93,7 @@ const requireManager = async (context: { authUser: AuthUser }, groupId: string) 
 const requestersOf = async (userIds: string[]) => {
   if (!userIds.length) return new Map<string, { name: string | null; email: string }>();
   const users = unwrap(
-    await userService.list(
+    await userService.listWhole(
       { authUser: SYSTEM_USER },
       { filter: { id: { type: "inArray", value: userIds } }, paginate: { page: 1, limit: 100 } },
     ),

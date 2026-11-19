@@ -135,7 +135,7 @@ describe("signing up through a link", () => {
       password: "a long enough passphrase",
     });
     expect(res).toEqual({ email, verified: false });
-    const user = await userModel.get({
+    const user = await userModel.getWhole({
       authUser: SYSTEM_USER,
       filter: { email: { type: "eq", value: email } },
     });

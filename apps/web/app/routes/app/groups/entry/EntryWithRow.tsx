@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChipGroup, ChipList, ComboBox } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
+import { chipLabel } from "~/lib/entryProviders";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import {
   createAndLinkProvider,
@@ -15,7 +16,7 @@ import {
   unlinkProvider,
 } from "~/lib/sync/providers";
 import { useProviderSuggestions } from "~/lib/sync/providerSuggestions";
-import { canAddNamed, chipLabel, pickerOptions } from "./withProviders";
+import { canAddNamed, pickerOptions } from "./withProviders";
 
 const NO_ROWS: ProviderRow[] = [];
 /** The linked providers before the first read: no suggestions until it's known that there are none. */

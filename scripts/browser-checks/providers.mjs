@@ -77,13 +77,29 @@ const waitForSql = async (sql, test, ms = 20000) => {
 };
 
 /** Run `body` in the page with the local database as `db` and the device modules as `providers` and `liveEntry`. */
+/**
+ * Run `body` in the page with the local database as `db`. Bounded, as in
+ * medications.mjs: a call that doesn't answer in 30 s (a write waiting on a
+ * lock, a page that went away) fails with a clear message instead of holding
+ * the run (B-93: a 16-minute hang in `practiceDeleteSteps`).
+ */
+const DEVICE_MS = 30000;
 const onDevice = (p, body) =>
-  p.evaluate(`(async () => {
+  p
+    .evaluate(
+      `(async () => {
     const db = window.caretookSync;
     if (!db) throw new Error("window.caretookSync isn't there (dev and check builds only)");
     const { providers, liveEntry, timeline } = await window.caretookModules();
     ${body}
-  })()`);
+  })()`,
+      { timeout: DEVICE_MS },
+    )
+    .catch((e) => {
+      throw /no answer/.test(e.message)
+        ? new Error(`a device call didn't answer in ${DEVICE_MS / 1000} s: ${body.trim().slice(0, 120)}`)
+        : e;
+    });
 
 const localRows = (p, sql, params = []) =>
   onDevice(p, `return db.powersync.getAll(${JSON.stringify(sql)}, ${JSON.stringify(params)});`);
@@ -1384,14 +1400,31 @@ async function suggestionSteps(A, proxy) {
 
   if (SMOKE) return entries;
 
-  // A title used before suggests who was linked to it (the seeded "Pharmacy pickup" → Cornerstone).
+  // A title used before suggests who was linked to it: the seeded "Pharmacy pickup" links both
+  // Cornerstone and Dr. Patel, so those two come first, in either order. Their seeded links can share
+  // a created_at to the millisecond, and then the tie goes to the id (Patel): asserting Cornerstone
+  // first failed whenever the seed ran fast (B-93). Dr. Patel was also linked just now, under another
+  // title, which mustn't lift anyone else above them.
+  const remembered = psql(
+    `SELECT string_agg(DISTINCT p.name, '|' ORDER BY p.name) FROM timeline_entry_provider l
+       JOIN timeline_entry e ON e.id = l.entry_id JOIN provider p ON p.id = l.provider_id
+     WHERE l.group_id = '${DEV_FAMILY}' AND e.title = 'Pharmacy pickup'
+       AND e.deleted_at IS NULL AND p.deleted_at IS NULL AND p.status = 'current'`,
+  )
+    .split("|")
+    .sort();
+  const firstAre = `(() => {
+    const names = [...(${SUGGESTIONS}?.querySelectorAll("ul button") ?? [])].map((b) => b.textContent.trim());
+    return names.slice(0, ${remembered.length}).sort().join("|") === ${JSON.stringify(remembered.join("|"))};
+  })()`;
   await draftWithTitle(A, "event", "Pharmacy pickup");
-  await A.waitFor(firstSuggestionIs(CORNERSTONE), 15000).catch(() => {});
+  await A.waitFor(firstAre, 15000).catch(() => {});
   const memory = await suggested(A);
   check(
-    "a title used before suggests the provider linked to it",
-    memory[0] === CORNERSTONE,
-    JSON.stringify(memory),
+    "a title used before suggests the providers linked to it, first",
+    remembered.includes(CORNERSTONE) &&
+      memory.slice(0, remembered.length).sort().join("|") === remembered.join("|"),
+    JSON.stringify({ remembered, memory }),
   );
   // Leave the draft unsaved: clear the typed title before going on.
   await A.type(ENTRY_TITLE, "");

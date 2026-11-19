@@ -129,6 +129,10 @@ export const MODEL_ERRORS = {
     message: "User not found",
     statusCode: 404,
   },
+  "userModel:notWhole": {
+    message: "Only the user's public profile is readable",
+    statusCode: 403,
+  },
   "careGroupInviteModel:getSealedToken": {
     message: "Failed to read the invite link",
   },

@@ -18,7 +18,7 @@ describe("getPermissionScope", () => {
     expect(isError(scope) && scope.code).toBe("permissions:unauthenticated");
   });
 
-  it("scopes a member's user reads to themselves OR co-members", () => {
+  it("scopes a member's user reads to themselves OR co-members' public profiles", () => {
     expect(getPermissionScope("userSchema", "read", member)).toEqual({
       type: "rules",
       rules: [
@@ -28,6 +28,7 @@ describe("getPermissionScope", () => {
           field: "id",
           userId: "u-member",
           groupRoles: ["owner", "admin", "caretaker", "viewer"],
+          fields: ["id", "name", "image"],
         },
       ],
     });

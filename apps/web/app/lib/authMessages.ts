@@ -6,10 +6,8 @@ export type AuthError = { status?: number; code?: string; message?: string } | n
 
 export const authMessages = {
   wrongPassword: "That email and password don't match an account.",
-  linkSent: (email: string) =>
-    `Check your email. If ${email} has a Caretook account, we've sent it a sign-in link. It works once, for 5 minutes.`,
-  codeSent: (email: string) =>
-    `Check your email. If ${email} has a Caretook account, we've sent it a 6-digit code. It works for 5 minutes.`,
+  signInSent: (email: string) =>
+    `Check your email. If ${email} has a Caretook account, we've sent it a sign-in link and a 6-digit code. Tap the link, or type the code here. Both work for 5 minutes.`,
   wrongCode: "That code didn't work. Check it, or send a new one.",
   linkExpired: "That sign-in link has expired or was already used. Send yourself a new one.",
   resetSent: (email: string) =>
@@ -23,6 +21,7 @@ export const authMessages = {
     `If ${email} still needs confirming, we've sent it a new link. It works for an hour.`,
   verifyExpired: "This link has expired or was already used. Send yourself a new one.",
   tooManyTries: "Too many tries. Wait a minute, then try again.",
+  offlineTooLong: "You've been offline for 3 days. Sign in to keep going.",
   offline: "Couldn't reach Caretook. Check your connection and try again.",
   failed: "Something went wrong. Try again.",
 } as const;
