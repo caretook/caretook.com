@@ -69,7 +69,8 @@ export function AccountSection({ page, canHelp }: { page: AccountPage; canHelp: 
             </>
           )}
         </dl>
-        {canHelp && (
+        {/* A disabled account gets no email (slice 3): re-enable it first. */}
+        {canHelp && !account.disabledAt && (
           <div className="flex flex-wrap gap-2" data-help-actions="">
             {!account.emailVerified && <HelpAction intent="resendVerification" />}
             <HelpAction intent="sendReset" />

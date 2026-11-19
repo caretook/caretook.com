@@ -46,11 +46,11 @@ export const helpDoneMessage = (intent: HelpIntent, revoked?: number) => {
   }
 };
 
-/** Each action's button, dialog title, explanation and confirm button. */
-export const HELP_COPY: Record<
-  HelpIntent,
-  { button: string; title: string; message: string; confirm: string }
-> = {
+/** An action's button, dialog title, explanation and confirm button. */
+export type ActionCopy = { button: string; title: string; message: string; confirm: string };
+
+/** Each help action's words. */
+export const HELP_COPY: Record<HelpIntent, ActionCopy> = {
   resendVerification: {
     button: "Resend confirmation email",
     title: "Resend the confirmation email?",

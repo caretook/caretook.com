@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { createAuthMiddleware } from "better-auth/api";
 import { bearer, emailOTP, jwt, magicLink } from "better-auth/plugins";
 import {
   accountSchema,
@@ -12,6 +13,7 @@ import {
   verificationSchema,
 } from "@caretook/data";
 import { getAuthConfig } from "./config";
+import { isDisabledEmail, isDisabledUser, noSession, wrongCode, wrongPassword } from "./disabled";
 import { sendMagicLink, sendResetPassword, sendVerificationEmail, sendVerificationOTP } from "./emails";
 
 // Capacitor's WebView origins. The native app talks to the web server's /api/auth.
@@ -28,6 +30,28 @@ const UNUSED_OTP_PATHS = [
   "/email-otp/request-email-change",
   "/email-otp/change-email",
 ];
+
+/** The body's `email`, when the request has one. */
+const bodyEmail = (body: unknown) =>
+  body && typeof body === "object" && "email" in body && typeof body.email === "string" ? body.email : null;
+
+/**
+ * Password and code sign-in for a disabled account (admin PRD, slice 3)
+ * answer before Better Auth looks further, exactly as a wrong password or
+ * code would: an unconfirmed account would otherwise get "not verified"
+ * (and a new link), which says the password was right. The password is
+ * hashed anyway, as Better Auth does for an unknown address, so the answer
+ * takes as long. The session hook below is the backstop for every path.
+ */
+const refuseDisabledSignIn = createAuthMiddleware(async (ctx) => {
+  if (ctx.path !== "/sign-in/email" && ctx.path !== "/sign-in/email-otp") return;
+  const email = bodyEmail(ctx.body);
+  if (!email || !(await isDisabledEmail(email))) return;
+  if (ctx.path === "/sign-in/email-otp") throw wrongCode();
+  const password = (ctx.body as { password?: unknown }).password;
+  if (typeof password === "string") await ctx.context.password.hash(password);
+  throw wrongPassword();
+});
 
 const createAuth = () => {
   const { secret, baseURL, trustedOrigins, powersyncURL } = getAuthConfig();
@@ -53,6 +77,18 @@ const createAuth = () => {
       database: { generateId: "uuid" },
     },
     disabledPaths: UNUSED_OTP_PATHS,
+    hooks: { before: refuseDisabledSignIn },
+    // A disabled account never gets a session, by any path (password, link,
+    // code, verification's auto sign-in): the answer is a wrong password's.
+    databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            if (await isDisabledUser(session.userId)) throw wrongPassword();
+          },
+        },
+      },
+    },
     // Accounts come only from invitations (invites slices 3–5), never from
     // public sign-up. An unverified account can't sign in with a password:
     // it gets a fresh verification email and EMAIL_NOT_VERIFIED instead.
@@ -101,7 +137,12 @@ const createAuth = () => {
           // PowerSync only accepts tokens addressed to it (its instance URL on Cloud).
           ...(powersyncURL ? { audience: powersyncURL } : {}),
           expirationTime: "15m",
-          definePayload: ({ user }) => ({ sub: user.id, role: (user as { role?: string }).role }),
+          // No token for a disabled account (its sessions are gone too; this
+          // covers a request already under way): the answer is "no session".
+          definePayload: async ({ user }) => {
+            if (await isDisabledUser(user.id)) throw noSession();
+            return { sub: user.id, role: (user as { role?: string }).role };
+          },
         },
       }),
     ],

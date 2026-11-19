@@ -8,7 +8,13 @@ import { adminFailure } from "../adminForms";
 import { adminUrls } from "../adminUrls";
 import { AuditEntryList } from "../AuditEntryList";
 import { auditSearch } from "../auditFilters";
+import { AccountAdminActions } from "./AccountAdminActions";
 import { AccountSection, GroupsSection, MailSection, SessionsSection } from "./AccountSections";
+import {
+  ACCOUNT_ACTION_CAPABILITY,
+  accountActionDoneMessage,
+  parseAccountActionForm,
+} from "./accountActions";
 import { helpDoneMessage, parseHelpForm } from "./helpActions";
 
 // /admin/users/:userId (admin PRD, slice 2): one account for staff: how it
@@ -16,7 +22,9 @@ import { helpDoneMessage, parseHelpForm } from "./helpActions";
 // page), recent mail by template and status, and its recent audit entries.
 // Opening it records `user.view`. Staff with `users.help` (admin and
 // support) can resend the confirmation email, send a password reset and
-// sign sessions out, each with a reason. Never a group's care data.
+// sign sessions out, each with a reason. Admins (slice 3) can also disable
+// and re-enable it and change its staff role, never their own. Never a
+// group's care data.
 
 export const meta = ({ loaderData }: Route.MetaArgs) => [
   { title: `${loaderData?.page.account.email ?? "Account"} · Caretook admin` },
@@ -29,7 +37,7 @@ const RECENT_ENTRIES = 10;
 const notFound = () => new Response("Not found", { status: 404 });
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { api, capabilities } = await requireStaff(request, "users.read");
+  const { api, authUser, capabilities } = await requireStaff(request, "users.read");
   try {
     const page = await api.admin.users.get({ userId: params.userId });
     const history = capabilities.includes("audit.read")
@@ -38,6 +46,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     return {
       page,
       canHelp: capabilities.includes("users.help"),
+      canDisable: capabilities.includes("users.disable"),
+      canSetRole: capabilities.includes("users.setRole"),
+      isSelf: authUser.id === page.account.id,
       history: history ? { count: history.count, entries: history.entries.slice(0, RECENT_ENTRIES) } : null,
     };
   } catch (e) {
@@ -48,8 +59,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs): Promise<AdminActionResult> {
+  const form = await request.formData();
+  const admin = parseAccountActionForm(form);
+  if (admin) return accountAction(request, params.userId, admin);
   const { api } = await requireStaff(request, "users.help");
-  const help = parseHelpForm(await request.formData());
+  const help = parseHelpForm(form);
   if (!help) return { ok: false, error: "Something went wrong. Reload and try again.", issues: [] };
   const target = { userId: params.userId, reason: help.reason };
   try {
@@ -65,14 +79,44 @@ export async function action({ request, params }: Route.ActionArgs): Promise<Adm
   }
 }
 
+/** Disable, re-enable or a staff role (admins only). */
+async function accountAction(
+  request: Request,
+  userId: string,
+  req: NonNullable<ReturnType<typeof parseAccountActionForm>>,
+): Promise<AdminActionResult> {
+  const { api } = await requireStaff(request, ACCOUNT_ACTION_CAPABILITY[req.intent]);
+  const target = { userId, reason: req.reason };
+  try {
+    if (req.intent === "disable") {
+      const { revoked } = await api.admin.users.disable(target);
+      return { ok: true, message: accountActionDoneMessage("disable", { revoked }) };
+    }
+    if (req.intent === "enable") {
+      await api.admin.users.enable(target);
+      return { ok: true, message: accountActionDoneMessage("enable") };
+    }
+    const { role } = await api.admin.users.setRole({ ...target, role: req.role ?? "" });
+    return { ok: true, message: accountActionDoneMessage("setRole", { role }) };
+  } catch (e) {
+    return adminFailure(e);
+  }
+}
+
 export default function UserPage({ loaderData }: Route.ComponentProps) {
-  const { page, canHelp, history } = loaderData;
+  const { page, canHelp, canDisable, canSetRole, isSelf, history } = loaderData;
   return (
     <>
       <Link to={adminUrls.users()} className="link text-sm">
         All users
       </Link>
       <AccountSection page={page} canHelp={canHelp} />
+      <AccountAdminActions
+        account={page.account}
+        canDisable={canDisable}
+        canSetRole={canSetRole}
+        isSelf={isSelf}
+      />
       <SessionsSection page={page} canHelp={canHelp} />
       <GroupsSection page={page} />
       <MailSection page={page} />

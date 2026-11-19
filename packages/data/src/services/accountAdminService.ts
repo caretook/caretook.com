@@ -1,26 +1,39 @@
 import type { AppError } from "../errors";
 import type { Tx } from "../db";
-import type { AccountHelpInput, AccountSearchInput, RevokeSessionInput } from "../db/schema";
+import type {
+  AccountHelpInput,
+  AccountSearchInput,
+  RevokeSessionInput,
+  SetRoleInput,
+  StaffRefusal,
+} from "../db/schema";
 import type { ServiceContext } from "./types";
 import type { z } from "zod";
 
-import { and, count, desc, eq, gt, ilike, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, ilike, isNull, like, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { SYSTEM_USER } from "../constants";
 import { dbMayFail, txOrDb, withTransaction } from "../db";
 import {
   accountHelpZSchema,
   accountSchema,
+  auditChanges,
   ACCOUNT_PAGE_SIZE,
   accountSearchZSchema,
   careGroupMemberSchema,
   careGroupSchema,
   careRecipientSchema,
+  disableRefusal,
   mailErrorCode,
   notificationOutboxSchema,
   RECENT_MAIL_LIMIT,
   revokeSessionZSchema,
+  roleChangeRefusal,
   sessionSchema,
+  setRoleZSchema,
+  STAFF_REFUSAL_MESSAGES,
   userSchema,
+  verificationSchema,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import * as adminAuditService from "./adminAuditService";
@@ -39,6 +52,10 @@ export const serviceName = "accountAdmin";
 // entry in its own transaction; opening an account records `user.view`.
 // Better Auth's tables are the system's (PERMISSIONS): this service reads
 // and writes them directly, after the capability check.
+//
+// Admins (slice 3) also disable and re-enable accounts and change staff
+// roles, through the staff rules' guards: never yourself, never the last
+// admin. packages/auth refuses a disabled account everywhere it signs in.
 
 /** Who an account email goes to, for the injected mailer. */
 export type AccountMailUser = { id: string; email: string; name: string | null };
@@ -246,6 +263,7 @@ export const resendVerification = (
   withTransaction(async (tx) => {
     const target = await helpTarget(ctx, accountHelpZSchema, input, tx);
     if (isError(target)) return target;
+    if (target.account.disabledAt) return newError({ code: "accountAdmin:disabled" });
     if (target.account.emailVerified) return newError({ code: "accountAdmin:alreadyVerified" });
     const queued = await opts.mail.verification(mailUser(target.account), tx);
     if (isError(queued)) return queued;
@@ -259,11 +277,15 @@ export const resendVerification = (
     return { queued: queued.id };
   }, ctx);
 
-/** Staff (`users.help`): a password reset email. Returns the queued email's id. */
+/**
+ * Staff (`users.help`): a password reset email. Returns the queued email's
+ * id. A disabled account gets neither email (`accountAdmin:disabled`).
+ */
 export const sendReset = (ctx: ServiceContext, input: AccountHelpInput, opts: { mail: AccountMailer }) =>
   withTransaction(async (tx) => {
     const target = await helpTarget(ctx, accountHelpZSchema, input, tx);
     if (isError(target)) return target;
+    if (target.account.disabledAt) return newError({ code: "accountAdmin:disabled" });
     const queued = await opts.mail.reset(mailUser(target.account), tx);
     if (isError(queued)) return queued;
     const recorded = await adminAuditService.record(tx, {
@@ -331,4 +353,238 @@ export const revokeAllSessions = (ctx: ServiceContext, input: AccountHelpInput) 
     });
     if (isError(recorded)) return recorded;
     return { revoked: removed.length };
+  }, ctx);
+
+// ---------------------------------------------------------------------------
+// Disable, re-enable and staff roles (slice 3): admins only.
+// ---------------------------------------------------------------------------
+
+const REFUSAL_CODES = {
+  self: "accountAdmin:self",
+  lastAdmin: "accountAdmin:lastAdmin",
+  unknownRole: "accountAdmin:unknownRole",
+  unchanged: "accountAdmin:unchanged",
+} as const satisfies Record<StaffRefusal, string>;
+
+/** A guard's refusal as an error (an unknown role is an issue on its field). */
+const refused = (refusal: StaffRefusal) =>
+  refusal === "unknownRole"
+    ? newError({
+        code: REFUSAL_CODES[refusal],
+        meta: { issues: [{ path: "role", message: STAFF_REFUSAL_MESSAGES.unknownRole }] },
+      })
+    : newError({ code: REFUSAL_CODES[refusal] });
+
+/** The checks an admin action makes first: the capability, the input, the account (locked). */
+const adminTarget = async <T extends { userId: string; reason: string }>(
+  ctx: ServiceContext,
+  capability: "users.disable" | "users.setRole",
+  schema: z.ZodType<T>,
+  input: unknown,
+  tx: Tx,
+) => {
+  const refusal = staffRefusal(ctx, capability);
+  if (refusal) return refusal;
+  const parsed = schema.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error);
+  const rows = await dbMayFail(
+    () =>
+      tx
+        .select(accountColumns)
+        .from(userSchema)
+        .where(eq(userSchema.id, parsed.data.userId))
+        .for("update")
+        .limit(1),
+    "accountAdmin:query",
+  );
+  if (isError(rows)) return rows;
+  const account = rows[0];
+  if (!account) return newError({ code: "accountAdmin:notFound" });
+  return { input: parsed.data, account };
+};
+
+/**
+ * How many enabled admins there are, the rows locked so two admins can't
+ * each demote or disable the other at once and leave none.
+ */
+const enabledAdminCount = async (tx: Tx) => {
+  const rows = await dbMayFail(
+    () =>
+      tx
+        .select({ id: userSchema.id })
+        .from(userSchema)
+        .where(and(eq(userSchema.role, "admin"), isNull(userSchema.disabledAt)))
+        .for("update"),
+    "accountAdmin:query",
+  );
+  return isError(rows) ? rows : rows.length;
+};
+
+/**
+ * A disabled account's pending sign-in links, codes and reset links, so
+ * none of them works after it's re-enabled either (Better Auth's
+ * `verification` rows: `sign-in-otp-<email>`, `magic-link:<token>` with the
+ * address in its value, `reset-password:<token>` with the user id).
+ */
+const voidPendingLinks = (tx: Tx, account: { id: string; email: string }) => {
+  const email = account.email.toLowerCase();
+  return dbMayFail(
+    () =>
+      tx
+        .delete(verificationSchema)
+        .where(
+          or(
+            eq(verificationSchema.identifier, `sign-in-otp-${email}`),
+            and(
+              like(verificationSchema.identifier, "reset-password:%"),
+              eq(verificationSchema.value, account.id),
+            ),
+            and(
+              like(verificationSchema.identifier, "magic-link:%"),
+              sql`strpos(lower(${verificationSchema.value}), ${`"email":${JSON.stringify(email)}`}) > 0`,
+            ),
+          ),
+        ),
+    "accountAdmin:query",
+  );
+};
+
+/**
+ * Admins (`users.disable`): disable an account. Every session goes, its
+ * pending sign-in and reset links stop working, and it can't sign in or get
+ * a sync token until it's re-enabled (packages/auth); memberships and data
+ * stay. One transaction with its audit entry. Never yourself, never the last
+ * admin. Returns how many sessions were signed out.
+ */
+export const disable = (ctx: ServiceContext, input: AccountHelpInput) =>
+  withTransaction(async (tx) => {
+    const target = await adminTarget(ctx, "users.disable", accountHelpZSchema, input, tx);
+    if (isError(target)) return target;
+    const { account } = target;
+    if (account.disabledAt) return newError({ code: "accountAdmin:alreadyDisabled" });
+    const adminCount = await enabledAdminCount(tx);
+    if (isError(adminCount)) return adminCount;
+    const refusal = disableRefusal({
+      actorId: auditActorId(ctx),
+      targetId: account.id,
+      targetRole: account.role,
+      adminCount,
+    });
+    if (refusal) return refused(refusal);
+
+    const actorId = auditActorId(ctx);
+    const updated = await dbMayFail(
+      () =>
+        tx
+          .update(userSchema)
+          .set({
+            disabledAt: sql`now()`,
+            disabledBy: actorId,
+            disabledReason: target.input.reason,
+            updatedBy: ctx.authUser?.id ?? SYSTEM_USER.id,
+          })
+          .where(eq(userSchema.id, account.id)),
+      "accountAdmin:query",
+    );
+    if (isError(updated)) return updated;
+    const removed = await dbMayFail(
+      () =>
+        tx
+          .delete(sessionSchema)
+          .where(eq(sessionSchema.userId, account.id))
+          .returning({ id: sessionSchema.id }),
+      "accountAdmin:query",
+    );
+    if (isError(removed)) return removed;
+    const voided = await voidPendingLinks(tx, account);
+    if (isError(voided)) return voided;
+
+    const recorded = await adminAuditService.record(tx, {
+      actorId,
+      action: "user.disable",
+      targetUserId: account.id,
+      reason: target.input.reason,
+      changes: { disabled: [false, true], sessions: [removed.length, 0] },
+    });
+    if (isError(recorded)) return recorded;
+    return { revoked: removed.length };
+  }, ctx);
+
+/**
+ * Admins (`users.disable`): re-enable a disabled account, with a reason. It
+ * signs in again as before; nothing else changed while it was disabled.
+ */
+export const enable = (ctx: ServiceContext, input: AccountHelpInput) =>
+  withTransaction(async (tx) => {
+    const target = await adminTarget(ctx, "users.disable", accountHelpZSchema, input, tx);
+    if (isError(target)) return target;
+    const { account } = target;
+    if (!account.disabledAt) return newError({ code: "accountAdmin:notDisabled" });
+    const updated = await dbMayFail(
+      () =>
+        tx
+          .update(userSchema)
+          .set({
+            disabledAt: null,
+            disabledBy: null,
+            disabledReason: null,
+            updatedBy: ctx.authUser?.id ?? SYSTEM_USER.id,
+          })
+          .where(eq(userSchema.id, account.id)),
+      "accountAdmin:query",
+    );
+    if (isError(updated)) return updated;
+    const recorded = await adminAuditService.record(tx, {
+      actorId: auditActorId(ctx),
+      action: "user.enable",
+      targetUserId: account.id,
+      reason: target.input.reason,
+      changes: { disabled: [true, false] },
+    });
+    if (isError(recorded)) return recorded;
+    return { enabled: true };
+  }, ctx);
+
+/**
+ * Admins (`users.setRole`): make an account support or admin, or a member
+ * again, with a reason. Never your own role, never the last admin.
+ */
+export const setRole = (ctx: ServiceContext, input: SetRoleInput) =>
+  withTransaction(async (tx) => {
+    const target = await adminTarget(ctx, "users.setRole", setRoleZSchema, input, tx);
+    if (isError(target)) return target;
+    const { account } = target;
+    const enabled = await enabledAdminCount(tx);
+    if (isError(enabled)) return enabled;
+    // A disabled admin isn't one of the enabled admins, so demoting them
+    // leaves every enabled admin in place.
+    const adminCount = enabled + (account.role === "admin" && account.disabledAt ? 1 : 0);
+    const refusal = roleChangeRefusal({
+      actorId: auditActorId(ctx),
+      targetId: account.id,
+      from: account.role,
+      to: target.input.role,
+      adminCount,
+    });
+    if (refusal) return refused(refusal);
+    const role = target.input.role as (typeof account)["role"];
+
+    const updated = await dbMayFail(
+      () =>
+        tx
+          .update(userSchema)
+          .set({ role, updatedBy: ctx.authUser?.id ?? SYSTEM_USER.id })
+          .where(eq(userSchema.id, account.id)),
+      "accountAdmin:query",
+    );
+    if (isError(updated)) return updated;
+    const recorded = await adminAuditService.record(tx, {
+      actorId: auditActorId(ctx),
+      action: "user.setRole",
+      targetUserId: account.id,
+      reason: target.input.reason,
+      changes: auditChanges(account, { role }, ["role"]),
+    });
+    if (isError(recorded)) return recorded;
+    return { role };
   }, ctx);
