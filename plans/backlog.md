@@ -142,7 +142,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-99 | change | triaged | quick-fixes |  | Don't display recent vitals in the timeline header in mobile, |
 | B-100 | change | triaged | quick-fixes |  | Add "recent vita averages" to the profile page. |
 | B-101 | change | dropped |  |  | Hide add to timeline buttons behind a + icon in the timeline header. |
-| B-102 | change | inbox |  |  | Don't display recent vitals in the timeline header in mobile, |
+| B-102 | change | dropped |  |  | Don't display recent vitals in the timeline header in mobile, |
 | B-103 | change | inbox |  |  | Add "recent vita averages" to the profile page. |
 
 ## Items
@@ -1274,7 +1274,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-102 · change · Don't display recent vitals in the timeline header in mobile,
 
-- status: inbox
+- status: dropped
 - prd:
 - owner:
 - commit:
