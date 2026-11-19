@@ -64,7 +64,7 @@ export const WHEN_PARAM = "when";
 export const WHEN_PICK = "pick";
 
 /** The recipient's profile's edit sheets, in the order the page shows them (`…/profile/<sheet>`). */
-export const PROFILE_SHEETS = ["basics", "contact", "insurance"] as const;
+export const PROFILE_SHEETS = ["basics", "contact", "insurance", "emergency"] as const;
 export type ProfileSheet = (typeof PROFILE_SHEETS)[number];
 const isProfileSheet = (sheet: unknown): sheet is ProfileSheet =>
   (PROFILE_SHEETS as readonly unknown[]).includes(sheet);

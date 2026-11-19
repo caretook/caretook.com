@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ContactLines } from "~/components/contact";
 import { ConfirmDialog, UserAvatar } from "~/components/ui";
+import { emergencyBadges } from "~/lib/emergencyList";
 import { useLiveQuery } from "~/lib/sync";
 import { memberContactLines, memberShare, parseSharedFields, sharedSummary } from "~/lib/memberContact";
 import { memberDetailsQuery } from "~/lib/sync/members";
@@ -130,6 +131,7 @@ function MemberItem({
   const sharedFields = parseSharedFields(member.shared_fields);
   const share = memberShare(member);
   const contactLines = memberContactLines(name, share);
+  const badges = emergencyBadges(member);
   const fetcher = useFetcher<ActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
@@ -154,6 +156,19 @@ function MemberItem({
             {name}
             {isSelf && <span className="text-base-content/70 font-normal"> (you)</span>}
           </p>
+          {badges.length > 0 && (
+            <p className="flex flex-wrap gap-1 py-0.5" data-member-badges="">
+              {badges.map((badge) => (
+                <span
+                  key={badge}
+                  className={`badge badge-sm ${badge === "Primary contact" ? "badge-primary" : "badge-outline"}`}
+                  data-badge={badge === "Primary contact" ? "primary" : "emergency"}
+                >
+                  {badge}
+                </span>
+              ))}
+            </p>
+          )}
           {relationship && (
             <p data-member-relationship="" className="truncate text-sm">
               {relationship}

@@ -10,12 +10,15 @@ export function IconButton({
   icon: Icon,
   onPress,
   pressed,
+  disabled,
   className = "",
 }: {
   label: string;
   icon: LucideIcon;
   onPress: () => void;
   pressed?: boolean;
+  /** Not available now (a Move up on the first row). */
+  disabled?: boolean;
   /** Classes for the button (the outer element), such as `join-item`. */
   className?: string;
 }) {
@@ -26,6 +29,7 @@ export function IconButton({
       type="button"
       aria-label={label}
       aria-pressed={pressed}
+      disabled={disabled}
       title={label}
       onClick={onPress}
       className={`btn btn-sm btn-square ${tone} ${className}`}

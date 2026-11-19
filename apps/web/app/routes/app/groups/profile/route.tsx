@@ -3,15 +3,20 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { Outlet } from "react-router";
 import type { RecipientDetailsRow } from "~/lib/recipientDetails";
+import type { MemberDetailRow } from "~/lib/sync/members";
 
-import { canEditRecipient, canReadRecipient } from "@caretook/data/schema";
+import { canEditRecipient, canManageEmergencyContacts, canReadRecipient } from "@caretook/data/schema";
+import { useMemo } from "react";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
 import { VIEWER_DETAILS_LINE } from "~/lib/recipientDisplay";
 import { sessionContext } from "~/lib/session";
+import { useLiveQuery } from "~/lib/sync";
+import { loadMemberDetailRows, memberDetailsQuery } from "~/lib/sync/members";
 import { loadRecipientProfileRows, useRecipientProfile } from "~/lib/sync/profile";
 import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/sync/recipientDetails";
 import { ContactCard, InsuranceCard } from "./DetailsCards";
+import { EmergencyCard } from "./EmergencyCard";
 import { BasicsCard, NoteCard } from "./ProfileCards";
 import { ProfileHeader } from "./ProfileHeader";
 
@@ -19,8 +24,8 @@ import { ProfileHeader } from "./ProfileHeader";
 // every member. Read from the device's copy (live, so it works offline and
 // follows other members' edits). Writers edit it in sheets over the page
 // (`profile/basics`, `profile/contact`, `profile/insurance`), online only.
-// Writers also see the recipient's Contact and Insurance (slice 3); later
-// slices append emergency contacts after them.
+// Writers also see the recipient's Contact and Insurance (slice 3) and the
+// emergency list (slice 5; owners and admins edit it in `profile/emergency`).
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: loaderData?.title ? `${loaderData.title} · Profile · Caretook` : "Profile · Caretook" }];
@@ -34,11 +39,16 @@ export async function clientLoader({ params, context }: Route.ClientLoaderArgs) 
   const detailsRows = canReadRecipient(group.role, "details")
     ? await loadRecipientDetailsRows(db, params.groupId)
     : NO_DETAILS;
-  return { rows, detailsRows, title: group.recipient?.displayName ?? group.displayName };
+  // Members' emergency places and shared phones, for the emergency list.
+  const memberRows = canReadRecipient(group.role, "details")
+    ? await loadMemberDetailRows(db, params.groupId)
+    : NO_MEMBERS;
+  return { rows, detailsRows, memberRows, title: group.recipient?.displayName ?? group.displayName };
 }
 
 /** A viewer's details rows: none (a module constant, so the live query's `initial` keeps its identity). */
 const NO_DETAILS: RecipientDetailsRow[] = [];
+const NO_MEMBERS: MemberDetailRow[] = [];
 
 /**
  * The live query follows every change, so opening or closing a sheet over
@@ -65,6 +75,8 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   // Live: a member demoted to viewer loses the writers' cards as the role syncs.
   const readsDetails = canReadRecipient(group.role, "details");
   const editsDetails = canEditRecipient(group.role, "details");
+  const membersQuery = useMemo(() => memberDetailsQuery(params.groupId), [params.groupId]);
+  const members = useLiveQuery<MemberDetailRow>(membersQuery.sql, membersQuery.params, loaderData.memberRows);
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-profile="">
@@ -87,6 +99,12 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
                 canEdit={editsDetails}
               />
               <InsuranceCard groupId={group.id} details={details} canEdit={editsDetails} />
+              <EmergencyCard
+                groupId={group.id}
+                members={members}
+                outside={details.outsideContacts}
+                canManage={canManageEmergencyContacts(group.role)}
+              />
             </>
           )}
           {!readsDetails && (
