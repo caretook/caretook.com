@@ -752,6 +752,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/care-periods/1): Slice 1 (data layer, sync, seeds, device module, periods page, add sheet, minimal period page) committed on slice/care-periods/1 at abc3fa8
 - 2026-11-19 (slice/care-periods/2): slice 2 (period page, notes, edit sheet, delete) ready on slice/care-periods/2 at a2938cc
 - 2026-11-19 (slice/care-periods/6): slice 6 (search within a care period) handed off at 6cab48e: search page When choice, timeline Within a period menu and During chip, ?period= only with q
+- 2026-11-19 (slice/care-periods/3): slice 3 (timeline line + boundary markers) built on slice/care-periods/3 (2696c88, 5af07a0); awaiting orchestrator review
 
 ### B-51 · feature · printable medication schedule sheet that can be printed to be checked off with a pen at patient's…
 
