@@ -113,6 +113,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-73 | bug | ready | quick-fixes | prd/quick-fixes | timeline entry add modal should take up the full screen on mobile, don't leave room for header. |
 | B-74 | bug | triaged | medications |  | medications.mjs fails intermittently in slice 3's new steps (Discontinue dialog not open in 5 s; two-browser medication notes timing out) |
 | B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
+| B-76 | feature | inbox |  |  | medication groups for doses. Often the same medication is taken at different times of the day every… |
+| B-77 | plan | inbox |  |  | Data security and encryption review. |
 
 ## Items
 
@@ -942,3 +944,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: medications need to keep a history of past dose changes, frequency changes, etc. on each medication entry.
 - 2026-11-19 (Robert Bo Davis): Dropped (user, 2026-11-19): already exists. Medication change entries record dose, schedule and other tracked-field changes, and each medication's page lists its doses and changes.
+
+### B-76 · feature · medication groups for doses. Often the same medication is taken at different times of the day every…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (prd/search): From the inbox: medication groups for doses. Often the same medication is taken at different times of the day every day. We need to be able to group doses together so that they can be taken at the same time as part of the schedule and allow for setting status of each medication in the group on dose logging in the timeline.
+
+### B-77 · plan · Data security and encryption review.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
