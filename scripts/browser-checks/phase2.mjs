@@ -830,7 +830,7 @@ async function wideLayout(p) {
   const noScroll = async (w) =>
     check(
       `${w}: no horizontal page scroll`,
-      await p.evaluate(`document.documentElement.scrollWidth <= window.innerWidth`),
+      await p.evaluate(`document.documentElement.scrollWidth <= document.documentElement.clientWidth`),
     );
   // The page's frame, each entry's box, and how wide the capped text is against its 75ch cap.
   const measure = () =>
@@ -847,7 +847,7 @@ async function wideLayout(p) {
         const time = li.querySelector("time")?.getBoundingClientRect();
         const last = (li.querySelector('button[aria-label^="Actions"]') ?? li.lastElementChild).getBoundingClientRect();
         return { start: time ? time.left - r.left : null, end: r.right - last.right }; });
-      return { main: box(document.querySelector("main")), inner: window.innerWidth, days, texts, ends };
+      return { main: box(document.querySelector("main")), inner: document.documentElement.clientWidth, days, texts, ends };
     })()`);
   const spans = (m) =>
     Math.abs(m.main.left) < 1 &&
@@ -1015,7 +1015,7 @@ async function wideLayout(p) {
       // The entry sheet and the delete confirm at 1280: centred, over the wide page.
       const centred = (sel) =>
         p.evaluate(`(() => { const el = ${sel}; if (!el) return null; const r = el.getBoundingClientRect();
-        return { off: Math.round(r.left + r.width / 2 - window.innerWidth / 2), width: Math.round(r.width), inside: r.left >= 0 && r.right <= window.innerWidth && r.top >= 0 && r.bottom <= window.innerHeight }; })()`);
+        return { off: Math.round(r.left + r.width / 2 - document.documentElement.clientWidth / 2), width: Math.round(r.width), inside: r.left >= 0 && r.right <= document.documentElement.clientWidth && r.top >= 0 && r.bottom <= window.innerHeight }; })()`);
       await tap(p, `${rowOf("Symptom")}.querySelector("p")`);
       await p.waitFor(`document.querySelector("[role=dialog]")?.textContent.includes("Edit symptom")`, 5000);
       await sleep(400);
@@ -1066,13 +1066,13 @@ async function wideLayout(p) {
         );
         const at = shown
           ? await p.evaluate(`(() => { const r = ${banner}.getBoundingClientRect(); const j = ${banner}.querySelector("a").getBoundingClientRect();
-            return { left: r.left, right: r.right, height: r.height, join: r.right - j.right }; })()`)
+            return { left: r.left, right: r.right, page: document.documentElement.clientWidth, height: r.height, join: r.right - j.right }; })()`)
           : null;
         check(
           "1280: the Live now banner spans the width in one line, Join at its end",
           !!at &&
             Math.abs(at.left - 16) < 1 &&
-            Math.abs(at.right - 1264) < 1 &&
+            Math.abs(at.right - (at.page - 16)) < 1 &&
             at.height < 60 &&
             at.join > 0 &&
             at.join < 20,
@@ -1112,7 +1112,7 @@ try {
   );
   check(
     "no horizontal scroll",
-    await p.evaluate(`document.documentElement.scrollWidth <= window.innerWidth`),
+    await p.evaluate(`document.documentElement.scrollWidth <= document.documentElement.clientWidth`),
   );
   check("first page is 30 entries", (await p.evaluate(rows)) === 30, `${await p.evaluate(rows)}`);
   // The day headings' stickiness, over rows and cards, is `dayHeadings` below.
