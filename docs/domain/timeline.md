@@ -54,3 +54,4 @@ The timeline area's rules and decisions, moved out of AGENTS.md (whose core rule
   - **Ids follow position**, so adding or changing an entry needs `pnpm datastore:reset`.
   - `timelineEntries.test.ts` validates every seed entry against the content schema, because seeds bypass the service.
   - A note's or event's seed `body` is its document's text: the insert stores a null body plus a compacted `note_document` (`seedContentOf`, `noteDocFromText`), with `editors` set to its author at `occurredAt`.
+- **Tests:** the timeline screen's behaviour is component tests beside the route (`timeline/timeline{Filters,Layout,Scroll,Strips}.browser.test.tsx`, on the shared world in `timelineWorld.tsx`). `phase2.mjs` keeps only what needs the server: the first page by sync, a provider linked elsewhere arriving without a reload, and offline then reconnect. Checks that count rows still use `ol > li:not([data-marker])`.
