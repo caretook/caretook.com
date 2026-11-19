@@ -33,7 +33,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-1 | bug | landed | quick-fixes | prd/quick-fixes | Sign-in can be submitted again while it's loading, and the first load is slow |
 | B-2 | change | landed | timeline-polish | prd/timeline-polish | Latest vitals is too busy |
 | B-3 | change | landed | timeline-polish | prd/timeline-polish | Wider timeline entries on large screens, still mobile-first |
-| B-4 | change | triaged | timeline-polish |  | Tooltip with the author's name and avatar on an entry's initials |
+| B-4 | change | in-progress | timeline-polish | prd/timeline-polish | Tooltip with the author's name and avatar on an entry's initials |
 | B-5 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's kind icon to filter by that kind |
 | B-6 | change | landed | timeline-polish | prd/timeline-polish | Tap an entry's author initials to filter by that author |
 | B-7 | change | landed | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
@@ -129,9 +129,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-4 · change · Tooltip with the author's name and avatar on an entry's initials
 
-- status: triaged
+- status: in-progress
 - prd: timeline-polish
-- owner:
+- owner: prd/timeline-polish
 - commit:
 
 - 2026-11-17 (dev keeper): Touch has no hover. If tapping the initials filters by author (B-6), phones need another trigger (long-press, or the name shown in the filter chip).
