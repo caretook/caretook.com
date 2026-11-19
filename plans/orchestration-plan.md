@@ -6,21 +6,23 @@
 
 **Landing mode: run it through** (the user, 2026-11-19): start every ready slice, land each green wave without asking, clean up, ask only real questions.
 
-| Slice | Wave | State                | Merge into `prd/orchestration` (slice commits) |
-| ----- | ---- | -------------------- | ---------------------------------------------- |
-| 1     | 1    | merged               | db65cca (a6ac71a, 3cf23d0)                     |
-| 2     | 1    | running (2026-11-19) |                                                |
-| 3     | 1    | merged               | 399fb18 (8af746c); doc fold 7a144a0            |
-| 4     | 2    | blocked by 2         |                                                |
-| 5     | 2    | running (2026-11-19) |                                                |
-| 6     | 2    | running (2026-11-19) |                                                |
-| 7     | 3    | blocked by 4 and 6   |                                                |
-| 8     | 3    | blocked by 4 and 6   |                                                |
-| 9     | 4    | blocked by 7 and 8   |                                                |
+| Slice | Wave | State                                      | Merge into `prd/orchestration` (slice commits)                |
+| ----- | ---- | ------------------------------------------ | ------------------------------------------------------------- |
+| 1     | 1    | landed (27f5eb2)                           | db65cca (a6ac71a, 3cf23d0)                                    |
+| 2     | 1    | landed (27f5eb2)                           | 4982bd0 (66e02bd); doc fold 5c0989c                           |
+| 3     | 1    | landed (27f5eb2)                           | 399fb18 (8af746c); doc fold 7a144a0                           |
+| 4     | 2    | merged                                     | 35e384f (679e4c6)                                             |
+| 5     | 2    | running (2026-11-19)                       |                                                               |
+| 6     | 2    | merged                                     | 56ee562 (f808af4, 9d8c353); lease wiring and doc fold d9bf270 |
+| 7     | 3    | running (2026-11-19, with a stack, slot 2) |                                                               |
+| 8     | 3    | running (2026-11-19, with a stack, slot 5) |                                                               |
+| 9     | 4    | blocked by 7 and 8                         |                                                               |
 
-Backlog: all seven items are `triaged`. Claim B-109 with slice 1, B-108 with slice 2, B-111 and B-59 with slice 3, B-89 with slice 5, B-107 with slice 6, B-110 with slice 7. Mark B-109 `done` after slice 1, B-108 after 2, B-111 and B-59 after 3, B-89 after 5, B-107 and B-110 after 9.
+Wave 1 landed in `dev` as 27f5eb2 (not pushed; the user pushes). The sync before it brought medications-2's landing; its AGENTS.md additions were moved into `docs/domain/` (f7581b4). After landing, `pnpm backlog doctor --fix` and `archive` ran on the real backlog (cad38ca, 831792c: 80 items to `plans/backlog-archive.md`). `doctor` still reports B-104's inbox tag (a "PRD tooling needs a way to recover after system restarts" bullet tagged with the Connectors item): the user's to fix. The admin orchestrator was told about the split; medications-2's wasn't reachable (done).
 
-Slices 1, 2, 3 and 6 started 2026-11-19 in stackless worktrees (`new.sh --no-stack`; slice 5 isn't built yet), so loops run `typecheck`, `lint`, `format:check` and `test:unit` instead of `pnpm check`. B-109, B-108, B-111, B-59, B-107 and B-89 are claimed by `prd/orchestration`; B-109, B-111 and B-59 are done (ready). Slice 1 touched `new.sh` (prints the plan's Stack only). Slice 2's doc text goes into `docs/loops.md`, and it should repoint the "AGENTS.md's Browser check budget" comments in `browser.sh`, `check-areas` and `routing.mjs:598` to `docs/loops.md`. After landing: run `pnpm backlog doctor --fix`, then `archive`, on the real backlog; B-104's inbox tag (line 63) is a mis-tag for the user.
+Backlog: B-109, B-108, B-111, B-59 landed. B-89 (slice 5), B-107 (slices 6, 9) and B-110 (slices 7, 8) are claimed by `prd/orchestration`. Mark B-89 `done` after slice 5; B-107 and B-110 after slice 9.
+
+Slices 7 and 8 got stacks (they run shrunken e2e checks); the others are stackless (`new.sh --no-stack`) and run `typecheck`, `lint`, `format:check` and the unit projects. Merged slices 4 and 6 before 5 (no dependency between them). Slice 4's follow-up for slice 9: move the browser kind to `.loops/.lease/browser` and drop the `lease.sh(browser.sh)` re-exec. Slice 2 made `marketing` part of `--suite` (its manifest `e2e` is yes).
 
 ## Architectural decisions
 

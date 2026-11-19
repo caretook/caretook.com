@@ -292,7 +292,7 @@ const link = (entryId: string, providerId: string, v: Partial<Values<"timelineEn
 };
 
 const medication = ({
-  schedule = { type: "scheduled", times: ["08:00"] },
+  schedule = { type: "scheduled", slots: [{ time: "08:00" }] },
   ...v
 }: Partial<Omit<Values<"medications">, "schedule">> & { schedule?: MedicationSchedule } = {}) => {
   const created = hoursAgo(24 * 30);
