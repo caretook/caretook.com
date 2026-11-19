@@ -116,7 +116,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-75 | feature | dropped | medications |  | medications need to keep a history of past dose changes, frequency changes, etc. on each medication… |
 | B-76 | feature | triaged | medications |  | medication groups for doses. Often the same medication is taken at different times of the day every… |
 | B-77 | plan | ready | encryption | plan/encryption | Data security and encryption review. |
-| B-78 | change | triaged | quick-fixes |  | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
+| B-78 | change | in-progress | quick-fixes | prd/quick-fixes | improve timeline page display for vitals and upcoming banner. They should be limited. We should… |
 | B-79 | bug | triaged | quick-fixes |  | Device keeps its synced data after the session ends; offline sign-in never expires |
 | B-80 | feature | triaged | quick-fixes |  | Devices page in account settings: see sessions, sign out one or all others |
 | B-81 | change | in-progress | quick-fixes | prd/quick-fixes | Security headers and a CSP for every web response |
@@ -993,9 +993,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-78 · change · improve timeline page display for vitals and upcoming banner. They should be limited. We should…
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: improve timeline page display for vitals and upcoming banner. They should be limited. We should replace the word "latest" with the vitals icon and match the style of the upcoming header. Width should be limited on very large screens. larger than the timeline column, but not too wide.
