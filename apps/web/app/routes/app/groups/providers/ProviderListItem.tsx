@@ -1,15 +1,15 @@
 import type { LocalProvider } from "~/lib/sync/providers";
 
 import { Link } from "react-router";
-import { ContactActions, ProviderTypeIcon } from "~/components/providers";
+import { ContactDetails, ProviderTypeIcon } from "~/components/providers";
 import { appUrls } from "~/lib/appUrls";
-import { quickActions } from "~/lib/contactActions";
+import { contactDetails } from "~/lib/contactActions";
 import { PROVIDER_TYPE_META } from "~/lib/providerDirectory";
 
 /**
- * A provider in the directory: what they are, the badges, and the quick
- * contact actions. The name is a link stretched over the row, so a tap
- * anywhere opens their page; the contact actions sit above it.
+ * A provider in the directory: what they are, the badges, and their numbers,
+ * address and email as links (B-44). The name is a link stretched over the
+ * row, so a tap anywhere else opens their page; the contact links sit above it.
  */
 export function ProviderListItem({
   provider,
@@ -22,7 +22,7 @@ export function ProviderListItem({
   const details = [PROVIDER_TYPE_META[provider.type].label, provider.specialty, practiceName].filter(Boolean);
   return (
     <li
-      className="hover:bg-base-200/50 relative isolate flex items-center gap-3 px-3 py-2.5"
+      className="hover:bg-base-200/50 relative isolate flex items-start gap-3 px-3 py-2.5"
       data-provider-id={provider.id}
     >
       <ProviderTypeIcon type={provider.type} past={past} />
@@ -41,8 +41,8 @@ export function ProviderListItem({
           {past && <span className="badge badge-ghost badge-sm shrink-0">Past</span>}
         </p>
         <p className="text-base-content/70 truncate text-sm">{details.join(" · ")}</p>
+        <ContactDetails details={contactDetails(provider)} muted={past} />
       </div>
-      <ContactActions actions={quickActions(provider)} />
     </li>
   );
 }

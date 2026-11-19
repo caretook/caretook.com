@@ -81,19 +81,18 @@ export const preview = async (input: string) => {
 };
 
 /**
- * Use a code to start `userId`'s care group, inside the caller's
- * transaction (sign-up's, so the account, the group and the redemption
- * commit together). As the system: the code locked `FOR UPDATE` and checked,
- * the group with its recipient and `userId` as owner, one more use, and the
- * redemption recorded. Returns the new group's id.
+ * The code's row and the parsed group, or why `redeem` refuses them: an
+ * unknown code, one that can't be used (expired, revoked, used up), or a bad
+ * group. With `tx` and `lock`, the code is locked `FOR UPDATE`.
  */
-export const redeem = async (
-  tx: Tx,
-  { code: input, userId, group }: { code: string; userId: string; group: NewCareGroupInput },
+const checkTicket = async (
+  input: string,
+  group: NewCareGroupInput,
+  opts: { tx?: Tx; lock?: boolean } = {},
 ) => {
   const code = normalizeAccessCode(input);
   if (!code) return newError({ code: "accessCodeService:notFound" });
-  const row = await accessCodeModel.getByCode(code, { tx, lock: true });
+  const row = await accessCodeModel.getByCode(code, opts);
   if (isError(row)) return row;
   if (!row) return newError({ code: "accessCodeService:notFound" });
   const state = codeState({ code: row });
@@ -106,7 +105,34 @@ export const redeem = async (
       meta: { issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) },
     });
   }
-  const { name, recipient } = resolveNewCareGroup(parsed.data);
+  return { row, group: parsed.data };
+};
+
+/**
+ * What `redeem` would refuse, without using the code (null when it would
+ * go through). Sign-up refuses an address that already has an account the
+ * same way as a new one (B-67), then creates nothing.
+ */
+export const refusal = async (input: string, group: NewCareGroupInput) => {
+  const checked = await checkTicket(input, group);
+  return isError(checked) ? checked : null;
+};
+
+/**
+ * Use a code to start `userId`'s care group, inside the caller's
+ * transaction (sign-up's, so the account, the group and the redemption
+ * commit together). As the system: the code locked `FOR UPDATE` and checked,
+ * the group with its recipient and `userId` as owner, one more use, and the
+ * redemption recorded. Returns the new group's id.
+ */
+export const redeem = async (
+  tx: Tx,
+  { code: input, userId, group }: { code: string; userId: string; group: NewCareGroupInput },
+) => {
+  const checked = await checkTicket(input, group, { tx, lock: true });
+  if (isError(checked)) return checked;
+  const { row, group: parsed } = checked;
+  const { name, recipient } = resolveNewCareGroup(parsed);
 
   const created = await careGroupModel.create({ ...system(tx), ownerId: userId, data: { name } });
   if (isError(created)) return created;

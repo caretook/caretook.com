@@ -55,6 +55,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - privacy policy and terms of service. (B-54)
 - Todos list with assignment to group members, due dates, and completion status. (B-55)
 - ability to upload photos of patient drivers license, insurance card, DNR, etc. (B-56)
+- medications need to keep a history of past dose changes, frequency changes, etc. on each medication entry. (B-75)
 
 ## Big plans
 
@@ -68,6 +69,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Status (2026-11-18): planned (medications, 6 slices; data after providers slice 1): the list with simple schedules, dose and medication-change entries in the timeline, Today/Due now/Dose sheet, a printable sheet. Allergies filed separately.
 - Discuss options for end to end encryption of data in transit and at rest where owner of the data is the only one who can decrypt it and share decryption keys with others. (B-57)
 - Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions for provider appointments. (B-58)
+- Data security and encryption review.
 
 ## Questions
 

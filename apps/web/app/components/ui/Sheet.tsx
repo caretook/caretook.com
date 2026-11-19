@@ -6,7 +6,9 @@ import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { IconButton } from "./IconButton";
 
 /**
- * A bottom sheet on phones, a centered dialog on wider screens, named by its
+ * The full screen on phones (below `sm`: the whole viewport, no gap above for
+ * the header, the safe-area insets kept, its own scroll), a centered dialog on
+ * wider screens, named by its
  * `title` (React Aria: focus moves in and is trapped, Escape, a tap outside
  * and Close close it, and focus returns to the opener). Its overlay is
  * `z-50`, above the tab bar (`z-40`).
@@ -46,13 +48,12 @@ export function Sheet({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       isDismissable
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4 data-[entering]:motion-safe:animate-[fade-in_150ms_ease-out]"
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/40 sm:items-center sm:p-4 data-[entering]:motion-safe:animate-[fade-in_150ms_ease-out]"
     >
-      <Modal className="bg-base-100 rounded-t-box sm:rounded-box max-h-[92dvh] w-full overflow-y-auto px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:max-w-lg sm:p-6 data-[entering]:motion-safe:animate-[sheet-in_200ms_ease-out]">
+      <Modal className="bg-base-100 sm:rounded-box h-dvh w-full overflow-y-auto overscroll-contain pt-[max(0.75rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] shadow-xl sm:h-auto sm:max-h-[92dvh] sm:max-w-lg sm:p-6 data-[entering]:motion-safe:animate-[sheet-in_200ms_ease-out]">
         <Dialog className="outline-none">
           {({ close }) => (
             <>
-              <div className="bg-base-300 mx-auto mb-2 h-1 w-10 rounded-full sm:hidden" aria-hidden="true" />
               <div className="mb-1 flex items-center justify-between gap-2">
                 <Heading slot="title" className="text-lg font-semibold">
                   {title}

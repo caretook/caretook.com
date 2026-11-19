@@ -7,6 +7,7 @@ import {
   careGroupMemberModel,
   careGroupModel,
   careRecipientModel,
+  getDb,
   isError,
   SYSTEM_USER,
   userModel,
@@ -118,10 +119,13 @@ describe("access codes", () => {
     });
 
     const email = newAddress("coder");
-    const { groupId } = await signUp(code.code, email);
-    if (!groupId) throw new Error("no group");
+    expect(await signUp(code.code, email)).toEqual({ email });
     const user = await userByEmail(email);
     expect(user).toMatchObject({ name: "New Person", emailVerified: false });
+    const [membership] = await getDb().query.careGroupMemberSchema.findMany({
+      where: (t, { eq }) => eq(t.userId, user!.id),
+    });
+    const groupId = membership!.groupId;
     expect(await careGroupMemberModel.getRole(groupId, user!.id)).toBe("owner");
     const group = await careGroupModel.getById(groupId, system);
     expect(group).toMatchObject({ name: "Nana Rose's care" });
@@ -166,21 +170,76 @@ describe("access codes", () => {
     expect(await anonymous.accessCode.preview({ code: "hello" })).toEqual({ state: "notFound" });
   });
 
-  it("rolls the whole sign-up back when the address has an account", async () => {
+  it("answers an address with an account like a new one, creates nothing and emails its owner", async () => {
     const { api } = await staff();
     const code = await api.admin.accessCode.create({ label: "Taken", expiresInDays: 1 });
+    const fresh = newAddress("fresh");
     const existing = await createUser("taken");
-    const recipientName = `Rollback ${randomUUID().slice(0, 6)}`;
-    expect(await codeOf(signUp(code.code, existing.user.email, recipientName))).toBe(
-      "CONFLICT:ticket:accountExists",
-    );
+    const recipientName = `Existing ${randomUUID().slice(0, 6)}`;
+
+    expect(await signUp(code.code, fresh)).toEqual({ email: fresh });
+    // Typed differently, it's the same address, and the same answer.
+    const typed = existing.user.email.toUpperCase();
+    expect(await signUp(code.code, typed, recipientName)).toEqual({ email: existing.user.email });
+
+    // Nothing was created: no group or recipient, no membership, no
+    // redemption, no new user, and the code counts only the new sign-up.
     const recipients = await careRecipientModel.list({
       ...system,
       filter: { name: { type: "eq", value: recipientName } },
     });
     if (isError(recipients)) throw new Error("list");
     expect(recipients.data).toEqual([]);
-    expect((await api.admin.accessCode.get({ id: code.id })).useCount).toBe(0);
+    const redemptions = await accessCodeRedemptionModel.list({
+      ...system,
+      filter: { userId: { type: "eq", value: existing.user.id } },
+    });
+    if (isError(redemptions)) throw new Error("list");
+    expect(redemptions.data).toEqual([]);
+    const memberships = await getDb().query.careGroupMemberSchema.findMany({
+      where: (t, { eq }) => eq(t.userId, existing.user.id),
+    });
+    expect(memberships).toEqual([]);
+    expect((await userByEmail(existing.user.email))?.id).toBe(existing.user.id);
+    expect((await api.admin.accessCode.get({ id: code.id })).useCount).toBe(1);
+
+    // Its owner gets one email (a repeat sends no second), with no code or
+    // anything the person typed in it.
+    expect(await signUp(code.code, existing.user.email, recipientName)).toEqual({
+      email: existing.user.email,
+    });
+    const mail = (await mailTo(existing.user.email)).filter((m) => m.name === "accessCodeExistingAccount");
+    expect(mail).toHaveLength(1);
+    expect(mail[0]!.text).toContain("sign in and choose New care group");
+    expect(mail[0]!.text).not.toContain(code.code);
+    expect(mail[0]!.text).not.toContain(recipientName);
+    const queued = await getDb().query.notificationOutboxSchema.findMany({
+      where: (t, { and, eq }) =>
+        and(eq(t.recipient, existing.user.email), eq(t.name, "accessCodeExistingAccount")),
+    });
+    expect(queued).toHaveLength(1);
+    // A new address gets no such email.
+    expect((await mailTo(fresh)).filter((m) => m.name === "accessCodeExistingAccount")).toEqual([]);
+    expect((await api.admin.accessCode.get({ id: code.id })).useCount).toBe(1);
+  });
+
+  it("refuses a code that can't be used the same way for an address with an account", async () => {
+    const { api } = await staff();
+    const revoked = await api.admin.accessCode.create({ label: "Revoked", expiresInDays: 1 });
+    await api.admin.accessCode.revoke({ id: revoked.id });
+    const existing = await createUser("taken-revoked");
+    expect(await codeOf(signUp(revoked.code, existing.user.email))).toBe(
+      "CONFLICT:accessCodeService:unusable",
+    );
+    expect(await codeOf(signUp(revoked.code, newAddress("revoked-new")))).toBe(
+      "CONFLICT:accessCodeService:unusable",
+    );
+    expect(await codeOf(signUp("CARE-ZZZZ-ZZZZ", existing.user.email))).toBe(
+      await codeOf(signUp("CARE-ZZZZ-ZZZZ", newAddress("unknown-new"))),
+    );
+    expect((await mailTo(existing.user.email)).filter((m) => m.name === "accessCodeExistingAccount")).toEqual(
+      [],
+    );
   });
 
   it("refuses a weak password before creating anything", async () => {

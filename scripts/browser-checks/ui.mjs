@@ -16,8 +16,8 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // chip, the When field's calendar in a sheet and in the time chip), confirm
 // dialog (the timeline's Delete, and the provider sheet's Delete, where Escape
 // closes only the dialog), opened by tap and by keyboard: named, focus inside
-// on open and back on the opener after Escape, themed; sheets are bottom sheets
-// at 420 that cover the tab bar. The chip groups (kind and provider type
+// on open and back on the opener after Escape, themed; sheets fill the screen
+// at 420 (B-73) and cover the tab bar. The chip groups (kind and provider type
 // filters as links with aria-current, the event title suggestions as buttons),
 // the field primitive's label and error (a symptom with no name), and the icon
 // buttons' names (Close, Rows, Cards).
@@ -26,6 +26,9 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // (details, members): the frame's nav or back link, each choice a named
 // radiogroup (arrow keys move it), every field labelled, help and errors
 // described.
+//
+// quick-fixes slice 15 (B-71): the date field fits at 360, 390 and 420 (sheets
+// and the time chip), with its calendar inside the viewport.
 //
 // timeline-polish slice 6: the tooltip, on a row's author initials: opened by
 // a real mouse hover and by keyboard focus, closed by moving away and Escape,
@@ -248,13 +251,14 @@ async function overlay(p, label, trigger, { name, shot, scheme, sheet, width, ke
       );
       if (sheet) {
         const g =
-          await p.evaluate(`(() => { let el = ${TOP}; while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement;
+          await p.evaluate(`(async () => { let el = ${TOP}; while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement;
+          await Promise.all(el.getAnimations().map((a) => a.finished.catch(() => {})));
           const r = el.getBoundingClientRect(); const o = el.parentElement.getBoundingClientRect(); const vw = Math.round(o.width); const hit = document.elementFromPoint(r.left + r.width / 2, Math.min(r.bottom, innerHeight) - 4);
-          return { bottom: Math.round(r.bottom), left: Math.round(r.left - o.left), width: Math.round(r.width), vw, vh: innerHeight, onTop: el.contains(hit) }; })()`);
+          return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left - o.left), width: Math.round(r.width), height: Math.round(r.height), vw, cw: document.documentElement.clientWidth, vh: innerHeight, scrolls: getComputedStyle(el).overflowY === "auto", onTop: el.contains(hit) }; })()`);
         if (width < 640)
           check(
-            `${label}: a bottom sheet, full width, above the tab bar`,
-            Math.abs(g.bottom - g.vh) <= 1 && g.width === g.vw && g.onTop,
+            `${label}: the full screen (0, 0, clientWidth, innerHeight), scrolling inside, above the tab bar`,
+            g.top === 0 && g.left === 0 && g.width === g.cw && g.height === g.vh && g.scrolls && g.onTop,
             JSON.stringify(g),
           );
         else
@@ -846,6 +850,75 @@ async function pass(p, width, scheme) {
   await settings(p, width, scheme);
 }
 
+// ---- The date field on narrow phones (quick-fixes slice 15, B-71) -----------
+// The symptom sheet's When, the Dose sheet's time and the entry page's time
+// chip, at 360, 390 and 420 (and 1280 as before): no horizontal overflow on the
+// page, the field's box inside its container and its popover or sheet, nothing
+// clipped inside it, a 44 px tap target on "Pick a date", and the open calendar
+// inside the viewport. Boxes are measured against documentElement.clientWidth.
+const LAST_PICK = `[...document.querySelectorAll('[role="dialog"] [aria-label="Pick a date"]')].at(-1)`;
+const FIELD_FIT = `(() => { const vw = document.documentElement.clientWidth; const b = ${LAST_PICK};
+  const g = b.closest('[role="group"]'); const box = (el) => el.getBoundingClientRect();
+  const [gr, fr, dr, br] = [box(g), box(g.parentElement), box(b.closest('[role="dialog"]')), box(b)];
+  const cx = br.left + br.width / 2, cy = br.top + br.height / 2;
+  const hit = [[-21, 0], [0, -21], [0, 21]].every(([dx, dy]) => b.contains(document.elementFromPoint(cx + dx, cy + dy)));
+  return { vw, page: document.documentElement.scrollWidth <= vw, inField: gr.left >= fr.left - 0.5 && gr.right <= fr.right + 0.5,
+    inDialog: gr.left >= dr.left - 0.5 && gr.right <= dr.right + 0.5, inView: gr.left >= 0 && gr.right <= vw,
+    unclipped: g.scrollWidth <= g.clientWidth, hit, group: [Math.round(gr.left), Math.round(gr.right)], dialog: [Math.round(dr.left), Math.round(dr.right)] }; })()`;
+const CALENDAR_FIT = `(() => { const vw = document.documentElement.clientWidth; const grid = document.querySelector('[role="grid"]');
+  const pop = grid?.closest('[role="dialog"]')?.parentElement; if (!pop) return null; const r = pop.getBoundingClientRect();
+  return { vw, ok: r.left >= 0 && r.right <= vw && document.documentElement.scrollWidth <= vw, box: [Math.round(r.left), Math.round(r.right)] }; })()`;
+
+async function dateFieldFits(p, tag) {
+  const f = await p.evaluate(FIELD_FIT);
+  check(
+    `${tag}: no page overflow, the field inside its container and the dialog, nothing clipped`,
+    f.page && f.inField && f.inDialog && f.inView && f.unclipped,
+    JSON.stringify(f),
+  );
+  check(`${tag}: Pick a date takes a 44 px tap`, f.hit);
+  await p.tap(LAST_PICK);
+  const opened = await p.waitFor(`document.querySelector('[role="grid"]')`, 5000).then(
+    () => true,
+    () => false,
+  );
+  await sleep(400);
+  const c = opened ? await p.evaluate(CALENDAR_FIT) : null;
+  check(`${tag}: the open calendar is inside the viewport`, !!c?.ok, JSON.stringify(c));
+  await escape(p);
+  await p.waitFor(`!document.querySelector('[role="grid"]')`, 5000).catch(() => {});
+  await sleep(200);
+}
+
+async function dateFit(p) {
+  for (const width of [360, 390, 420, 1280]) {
+    await p.send("Emulation.setDeviceMetricsOverride", {
+      width,
+      height: 800,
+      deviceScaleFactor: 1,
+      mobile: width < 640,
+    });
+    for (const kind of ["symptom", "dose"]) {
+      await p.goto(`${TIMELINE}/new/${kind}`);
+      await p.waitFor(LAST_PICK, 30000);
+      await sleep(400);
+      await dateFieldFits(p, `${width} date field (${kind} sheet)`);
+    }
+    await p.goto(`${TIMELINE}?kind=note`);
+    await p.waitFor(NOTE_LINK, 30000);
+    await p.press(NOTE_LINK);
+    await p.waitFor(TIME_CHIP, 30000);
+    await sleep(300);
+    await p.tap(TIME_CHIP);
+    await p.waitFor(LAST_PICK, 5000);
+    await sleep(400);
+    await dateFieldFits(p, `${width} date field (time chip)`);
+    await p.screenshot(`${PREFIX}-date-fit-chip-${width}`);
+    await escape(p);
+    await p.waitFor(`!${LAST_PICK}`, 5000).catch(() => {});
+  }
+}
+
 const browser = await launch(9491);
 let p;
 try {
@@ -867,6 +940,13 @@ try {
       });
       await pass(p, width, scheme);
     }
+  await p.send("Network.setExtraHTTPHeaders", {
+    headers: { "x-forwarded-for": `10.9.${Date.now() % 250}.7` },
+  });
+  await p.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-color-scheme", value: "light" }],
+  });
+  await dateFit(p);
   const thrown = p.errors.filter((e) => e.includes("exception]"));
   check("no uncaught exceptions", thrown.length === 0, thrown.join(" | "));
   if (p.errors.length) console.log(p.errors.join("\n"));
