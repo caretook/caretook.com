@@ -157,6 +157,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-17 (plan/timeline-polish): PRD: plans/timeline-polish-prd.md (plan/timeline-polish). Hover/focus tooltip (name + avatar), desktop only; touch uses B-6's author chip.
 - 2026-11-18 (Robert Bo Davis): Plan: plans/timeline-polish-plan.md, slice 6. Author tooltip. Blocked by slice 4. Wave 3.
 - 2026-11-18 (Robert Bo Davis): Paused 2026-11-18 by the user: routing (B-23) and then components (B-24) run before timeline-polish continues. Wave 1 (slices 1-3) is in dev as 644f780. Slice 6; blocked by slice 4 (B-6).
+- 2026-11-18 (slice/timeline-polish/6): slice 6 built on slice/timeline-polish/6 (646ee61, 2461c2c): ui/tooltip primitive, author initials tooltip; hand-off sent to the orchestrator
 
 ### B-5 · change · Tap an entry's kind icon to filter by that kind
 
