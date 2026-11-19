@@ -39,7 +39,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-7 | change | landed | timeline-polish | prd/timeline-polish | More prominent day headers in the timeline |
 | B-8 | feature | landed | app-shell | prd/app-shell | Avatar in the header with a menu for the user's settings and actions |
 | B-9 | feature | landed | app-shell | prd/app-shell | Care group menu: switch groups, open the group's settings |
-| B-10 | feature | triaged | timeline-polish |  | Infinite scroll through the whole timeline |
+| B-10 | feature | in-progress | timeline-polish | prd/timeline-polish | Infinite scroll through the whole timeline |
 | B-11 | feature | triaged | search |  | Search the timeline |
 | B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-13 | plan | landed | providers | prd/providers | Provider directory with search, linked from events |
@@ -211,9 +211,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-10 · feature · Infinite scroll through the whole timeline
 
-- status: triaged
+- status: in-progress
 - prd: timeline-polish
-- owner:
+- owner: prd/timeline-polish
 - commit:
 
 - 2026-11-17 (dev keeper): Replaces "Show older".
