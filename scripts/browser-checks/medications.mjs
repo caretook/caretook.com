@@ -9,8 +9,14 @@
 // - a writer's local add, dose change, discontinue and restart each upload
 //   with exactly one change entry, the one the device wrote (same id);
 // - a refill edit writes none; a dose is logged, edited and deleted;
-// - a viewer's device writes are refused locally;
-// - the timeline still shows no dose or medication-change rows.
+// - a viewer's device writes are refused locally.
+//
+// Doses and changes on the timeline (slice 4, `timelineSteps`): seeded doses
+// and changes read right in rows and cards, the kind chips and icons filter
+// them, the quick-add bar's order, logging a dose from the Dose sheet (on a
+// second device too), editing and deleting it, an earlier time landing on
+// yesterday, a change entry that deletes but never opens, offline logging,
+// and a viewer with no Dose button and rows that open nothing.
 //
 // Slice 2 adds the screens:
 //
@@ -189,14 +195,6 @@ async function seedSteps(p) {
     "caretaker@ (not in Dev Family 2) has none of its medications",
     other[0]?.n === 0,
     JSON.stringify(other),
-  );
-
-  const shown = await p.evaluate(`document.querySelectorAll("main ol > li").length`);
-  const text = await p.evaluate(`document.querySelector("main")?.innerText ?? ""`);
-  check(
-    "the timeline still renders, with no dose or medication-change rows",
-    shown > 0 && !/Lisinopril|Metformin|medicationChange/.test(text),
-    `${shown} rows`,
   );
 }
 
@@ -822,7 +820,408 @@ async function notFoundSteps(member, caretaker) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Doses and changes on the timeline (slice 4).
+// ---------------------------------------------------------------------------
+
+const ROWS = `[...document.querySelectorAll("main ol > li")]`;
+const rowWith = (text) => `${ROWS}.find((li) => li.textContent.includes(${JSON.stringify(text)}))`;
+const rowKinds = `[...new Set(${ROWS}.map((li) => li.querySelector(".sr-only")?.textContent))].join(",")`;
+const SHEET = `document.querySelector("[role=dialog]")`;
+const SUBMIT = `${SHEET}?.querySelector('button[type="submit"]')`;
+const radio = (name, label) =>
+  `${SHEET}?.querySelector('input[name="${name}"][aria-label=${JSON.stringify(label)}]')`;
+const AMOUNT = `${SHEET}?.querySelector('input[name="amount"]')`;
+const NOTE = `${SHEET}?.querySelector('textarea[name="note"]')`;
+const QUICK_ADD = `document.querySelector('[aria-label="Add to the timeline"]')`;
+const tile = (text) =>
+  `[...(${QUICK_ADD}?.querySelectorAll("a, button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+const CHIPS = `[...document.querySelectorAll('nav[aria-label="Show entries"] a')]`;
+const PICK = `${SHEET}?.querySelector('[aria-label="Pick a date"]')`;
+const GRID = `document.querySelector("[role=grid]")`;
+const dayHeaderOf = (text) =>
+  `(${rowWith(text)}?.closest("section")?.querySelector("h3")?.textContent.trim() ?? null)`;
+const menuItems = `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim())`;
+const menuItem = (text) =>
+  `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim() === ${JSON.stringify(text)})`;
+const pressKey = async (p, key, code, keyCode, text) => {
+  await p.send("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key,
+    code,
+    windowsVirtualKeyCode: keyCode,
+    ...(text ? { text } : {}),
+  });
+  await p.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode: keyCode });
+};
+
+/** Open the Dose sheet from the quick-add bar and log a dose of `label`. */
+async function logDoseInSheet(p, label, { status = "given", note = "", yesterday = false } = {}) {
+  await p.tap(tile("Dose"));
+  await p.waitFor(radio("medicationId", label), 8000);
+  await p.tap(radio("medicationId", label));
+  if (status !== "given") await p.tap(`${SHEET}.querySelector('input[name="status"][value="${status}"]')`);
+  if (note) await p.type(NOTE, note);
+  if (yesterday) {
+    // The calendar (keyboard, so a month boundary works too): open, one day back, pick.
+    await p.evaluate(`${PICK}.focus()`);
+    await pressKey(p, "Enter", "Enter", 13, "\r");
+    await p.waitFor(`${GRID} && document.activeElement?.closest("[role=grid]")`, 5000);
+    await pressKey(p, "ArrowLeft", "ArrowLeft", 37);
+    await pressKey(p, "Enter", "Enter", 13, "\r");
+    await p.waitFor(`!${GRID}`, 3000);
+  }
+  await p.press(SUBMIT);
+  await p.waitFor(`!${SHEET}`, 8000);
+}
+
+async function timelineSteps(A, { B, C, proxyA } = {}) {
+  const timeline = await A.evaluate("location.pathname");
+  const medName = `${TAG} Ibuprofen`;
+  const label = `${medName} 200 mg`;
+
+  // Seeded doses and changes read right, and the kind filters take them.
+  await A.goto(`${timeline}?kind=dose`);
+  await A.waitFor(
+    `${ROWS}.length > 0 && ${rowKinds} === "Dose: " && document.querySelector("[data-medication]")`,
+    20000,
+  );
+  const doses = await A.evaluate(
+    `${ROWS}.map((li) => li.querySelector("[data-medication-entry]")?.textContent.trim() ?? "")`,
+  );
+  const link = await A.evaluate(
+    `document.querySelector("main ol > li [data-medication]")?.getAttribute("href") ?? ""`,
+  );
+  check(
+    "?kind=dose lists only doses, each named by its medication and strength: Given, Skipped, Refused",
+    doses.length > 0 &&
+      doses.some((t) => /^Lisinopril 10 mg: Given 1 tablet$/.test(t)) &&
+      doses.some((t) => / mg: Skipped$/.test(t)) &&
+      doses.every((t) => /^[^:]+: (Given|Skipped|Refused)/.test(t)),
+    doses.slice(0, 4).join(" | "),
+  );
+  check(
+    "a dose's medication links to its page",
+    new RegExp(`/app/groups/${DEV_FAMILY}/medications/[0-9a-f-]{36}$`).test(link),
+    link,
+  );
+  check(
+    'the kind chips include "Doses" (current) and "Medication changes"',
+    (await A.evaluate(`${CHIPS}.map((a) => a.textContent.trim()).join(",")`)).includes(
+      "Doses,Medication changes",
+    ) &&
+      (await A.evaluate(
+        `${CHIPS}.find((a) => a.getAttribute("aria-current") === "true")?.textContent.trim()`,
+      )) === "Doses",
+  );
+  await A.press(`${CHIPS}.find((a) => a.textContent.trim() === "Medication changes")`);
+  await A.waitFor(
+    `location.search === "?kind=medicationChange" && ${rowKinds} === "Medication change: " && !${ROWS}.some((li) => li.querySelector("[data-medication-entry]")?.textContent.startsWith("Medication:"))`,
+    8000,
+  ).catch(() => undefined);
+  const changes = await A.evaluate(
+    `${ROWS}.map((li) => li.querySelector("[data-medication-entry]")?.textContent.trim() ?? "")`,
+  );
+  check(
+    "?kind=medicationChange lists only changes: started, a strength change with before and after, stops with their reason",
+    (await A.evaluate(rowKinds)) === "Medication change: " &&
+      changes.includes("Lisinopril 10 mg: Changed strength 5 mg → 10 mg") &&
+      changes.some((t) => /^Lisinopril .*: Started$/.test(t)) &&
+      changes.some((t) => /^Oxybutynin.*: Discontinued: side effects$/.test(t)) &&
+      changes.some((t) => /^Amoxicillin.*: Completed$/.test(t)),
+    changes.slice(0, 8).join(" | "),
+  );
+
+  // Cards say the same.
+  await A.press(
+    `[...document.querySelectorAll('[aria-label="Layout"] button, [aria-label="Layout"] input')].find((b) => /Cards/.test(b.textContent + (b.getAttribute("aria-label") ?? "")))`,
+  ).catch(() => undefined);
+  await A.waitFor(`document.querySelector('ol[data-view="cards"]')`, 5000).catch(() => undefined);
+  const cardText = await A.evaluate(
+    `${rowWith("Changed strength 5 mg → 10 mg")}?.querySelector("[data-medication-entry]")?.textContent.trim() ?? ""`,
+  );
+  check(
+    "cards show the same change text",
+    (await A.evaluate(`!!document.querySelector('ol[data-view="cards"]')`)) &&
+      cardText === "Lisinopril 10 mg: Changed strength 5 mg → 10 mg",
+    cardText,
+  );
+  await A.press(
+    `[...document.querySelectorAll('[aria-label="Layout"] button, [aria-label="Layout"] input')].find((b) => /Rows/.test(b.textContent + (b.getAttribute("aria-label") ?? "")))`,
+  ).catch(() => undefined);
+  await A.waitFor(`document.querySelector('ol[data-view="rows"]')`, 5000).catch(() => undefined);
+
+  // A change opens nothing and its ⋯ menu has Delete only.
+  const changeRow = rowWith("Changed strength 5 mg → 10 mg");
+  const opens = await A.evaluate(
+    `!!${changeRow}.querySelector('a[aria-label^="Edit "], a[aria-label^="Open "]')`,
+  );
+  await A.press(`${changeRow}.querySelector('button[aria-label^="Actions for"]')`);
+  await A.waitFor(`${menuItems}.length > 0`, 5000);
+  const items = await A.evaluate(`${menuItems}.join(",")`);
+  await pressKey(A, "Escape", "Escape", 27);
+  await A.waitFor(`!document.querySelector("[role=menu]")`, 3000, { quiet: true }).catch(() => undefined);
+  check(
+    "a medication change doesn't open, and its ⋯ menu has Delete only",
+    !opens && items === "Delete",
+    `opens ${opens}, menu ${items}`,
+  );
+
+  // The kind icon filters too.
+  await A.goto(timeline);
+  await A.waitFor(`${ROWS}.length > 0`, 20000);
+  const doseIcon = `${ROWS}.find((li) => li.querySelector(".sr-only")?.textContent === "Dose: ")?.querySelector('a[aria-label="Show only doses"]')`;
+  await A.waitFor(doseIcon, 8000).catch(() => undefined);
+  if (await A.evaluate(`!!${doseIcon}`)) {
+    await A.tap(doseIcon);
+    await A.waitFor(`location.search === "?kind=dose" && ${rowKinds} === "Dose: "`, 8000).catch(
+      () => undefined,
+    );
+  }
+  check(
+    'a dose\'s kind icon is "Show only doses", and filters',
+    (await A.evaluate("location.search")) === "?kind=dose",
+    await A.evaluate("location.search"),
+  );
+
+  // The quick-add bar: Note, Event, Dose, Symptom, Vitals (B-43).
+  const tiles = await A.evaluate(
+    `[...(${QUICK_ADD}?.querySelectorAll("a, button") ?? [])].map((b) => b.textContent.trim()).join(",")`,
+  );
+  check(
+    "quick add reads Note, Event, Dose, Symptom, Vitals",
+    tiles === "Note,Event,Dose,Symptom,Vitals",
+    tiles,
+  );
+
+  // A medication of this run's own, never given, so it's last among the choices.
+  const created = await onDevice(
+    A,
+    `return medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name: ${JSON.stringify(medName)}, strength: "200 mg", form: "tablet", dose: "2 tablets",
+       schedule: { type: "asNeeded", maxPerDay: 3 },
+     });`,
+  );
+  if (!created.ok) return check("a medication for the timeline steps", false, JSON.stringify(created));
+
+  // Log one from the Dose sheet.
+  await A.tap(tile("Dose"));
+  await A.waitFor(radio("medicationId", label), 8000);
+  const options = await A.evaluate(
+    `[...${SHEET}.querySelectorAll('input[name="medicationId"]')].map((r) => r.getAttribute("aria-label"))`,
+  );
+  const lastGiven = psql(
+    `SELECT m.name || COALESCE(' ' || m.strength, '') FROM timeline_entry e JOIN medication m ON m.id::text = e.details->>'medicationId'
+     WHERE e.group_id = '${DEV_FAMILY}' AND e.kind = 'dose' AND e.deleted_at IS NULL AND e.details->>'status' = 'given' AND m.status = 'current' AND m.deleted_at IS NULL
+     ORDER BY e.occurred_at DESC LIMIT 1`,
+  );
+  check(
+    "the Dose sheet offers current medications only, the most recently given first",
+    options[0] === lastGiven &&
+      options.includes(label) &&
+      !options.some((o) => /Oxybutynin|Amoxicillin/.test(o)),
+    options.join(" | "),
+  );
+  const firstAmount = await A.evaluate(`${AMOUNT}.value`);
+  await A.tap(radio("medicationId", label));
+  await A.waitFor(`${AMOUNT}.value === "2 tablets"`, 3000).catch(() => undefined);
+  check(
+    "the amount starts as the chosen medication's dose, and follows the choice",
+    firstAmount !== "" && (await A.evaluate(`${AMOUNT}.value`)) === "2 tablets",
+    `${firstAmount} → ${await A.evaluate(`${AMOUNT}.value`)}`,
+  );
+  await A.type(NOTE, `${TAG} with lunch`);
+  await A.press(SUBMIT);
+  await A.waitFor(`!${SHEET}`, 8000).catch(() => undefined);
+  const shown = await A.waitFor(rowWith(`${label}: Given 2 tablets`), 8000).then(
+    () => true,
+    () => false,
+  );
+  const noteShown = await A.evaluate(
+    `${rowWith(label)}?.querySelector("[data-medication-note]")?.textContent ?? ""`,
+  );
+  const up = await waitForSql(
+    `SELECT details->>'status' || ':' || (details->>'amount') || ':' || (details->>'note') FROM timeline_entry WHERE kind = 'dose' AND details->>'medicationId' = '${created.id}' AND deleted_at IS NULL`,
+    (v) => v !== "",
+  );
+  check(
+    "a writer logs a dose from quick add: it shows at once, with its note, and uploads",
+    shown && noteShown === `${TAG} with lunch` && up === `given:2 tablets:${TAG} with lunch`,
+    `${shown} "${noteShown}" ${up}`,
+  );
+  if (B) {
+    const seen = await B.waitFor(rowWith(`${label}: Given 2 tablets`), 20000).then(
+      () => true,
+      () => false,
+    );
+    check("a second device shows the dose", seen);
+  }
+
+  // Edit it: the row opens its edit sheet, with the medication fixed.
+  const doseRow = rowWith(label);
+  await A.tap(`${doseRow}.querySelector('a[aria-label^="Edit "]')`);
+  await A.waitFor(`${SHEET}?.querySelector("[data-dose-medication]")`, 8000).catch(() => undefined);
+  const fixed = await A.evaluate(
+    `${SHEET}?.querySelector("[data-dose-medication]")?.textContent.trim() ?? ""`,
+  );
+  const picker = await A.evaluate(`!!${SHEET}?.querySelector('input[name="medicationId"]')`);
+  await A.tap(`${SHEET}.querySelector('input[name="status"][value="skipped"]')`);
+  await A.press(SUBMIT);
+  await A.waitFor(`!${SHEET}`, 8000).catch(() => undefined);
+  const edited = await A.waitFor(rowWith(`${label}: Skipped`), 8000).then(
+    () => true,
+    () => false,
+  );
+  const editUp = await waitForSql(
+    `SELECT details->>'status' FROM timeline_entry WHERE kind = 'dose' AND details->>'medicationId' = '${created.id}' AND deleted_at IS NULL`,
+    (v) => v === "skipped",
+  );
+  check(
+    "tapping the dose opens its edit sheet (the medication fixed); the edit shows and uploads",
+    fixed === label && !picker && edited && editUp === "skipped",
+    `"${fixed}" picker ${picker} ${editUp}`,
+  );
+  if (B) {
+    const seen = await B.waitFor(rowWith(`${label}: Skipped`), 20000).then(
+      () => true,
+      () => false,
+    );
+    check("a second device shows the edit", seen);
+  }
+
+  // Delete it from the ⋯ menu: Edit, then Delete.
+  await A.press(`${rowWith(label)}.querySelector('button[aria-label^="Actions for"]')`);
+  await A.waitFor(`${menuItems}.length > 0`, 5000);
+  const doseItems = await A.evaluate(`${menuItems}.join(",")`);
+  await A.press(menuItem("Delete"));
+  await A.waitFor(`document.querySelector("dialog[open]")`, 5000);
+  await A.press(
+    `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === "Delete")`,
+  );
+  const gone = await A.waitFor(`!${rowWith(label)}`, 8000).then(
+    () => true,
+    () => false,
+  );
+  const goneUp = await waitForSql(
+    `SELECT count(*) FROM timeline_entry WHERE kind = 'dose' AND details->>'medicationId' = '${created.id}' AND deleted_at IS NULL`,
+    (v) => v === "0",
+  );
+  check(
+    "a dose's ⋯ menu has Edit and Delete; Delete removes it everywhere",
+    doseItems === "Edit,Delete" && gone && goneUp === "0",
+    `${doseItems} ${gone} ${goneUp}`,
+  );
+
+  // An earlier time lands on its day.
+  await logDoseInSheet(A, label, { yesterday: true });
+  await A.waitFor(rowWith(label), 8000).catch(() => undefined);
+  await A.goto(`${timeline}?kind=dose`);
+  await A.waitFor(rowWith(label), 20000).catch(() => undefined);
+  const day = await A.evaluate(dayHeaderOf(label));
+  check("a dose logged for yesterday is under Yesterday", day === "Yesterday", String(day));
+
+  // The medication's "Started" change: deleted from its ⋯ menu, never edited.
+  await A.goto(`${timeline}?kind=medicationChange`);
+  const started = rowWith(`${label}: Started`);
+  await A.waitFor(started, 20000).catch(() => undefined);
+  const startedId = psql(
+    `SELECT id FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'medicationId' = '${created.id}' LIMIT 1`,
+  );
+  await A.goto(`${timeline}/${startedId}/edit?kind=medicationChange`);
+  await A.waitFor(`location.pathname === ${JSON.stringify(timeline)} && !${SHEET}`, 10000).catch(
+    () => undefined,
+  );
+  check(
+    "a medication change's edit URL lands on the timeline (filters kept)",
+    (await A.evaluate(`location.pathname + location.search`)) === `${timeline}?kind=medicationChange`,
+    await A.evaluate(`location.pathname + location.search`),
+  );
+  await A.waitFor(started, 20000).catch(() => undefined);
+  await A.press(`${started}.querySelector('button[aria-label^="Actions for"]')`);
+  await A.waitFor(menuItem("Delete"), 5000);
+  await A.press(menuItem("Delete"));
+  await A.waitFor(`document.querySelector("dialog[open]")`, 5000);
+  await A.press(
+    `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === "Delete")`,
+  );
+  const changeGone = await A.waitFor(`!${started}`, 8000).then(
+    () => true,
+    () => false,
+  );
+  const changeUp = await waitForSql(
+    `SELECT (deleted_at IS NOT NULL)::text FROM timeline_entry WHERE id = '${startedId}'`,
+    (v) => v === "true",
+  );
+  const medKept = psql(`SELECT (deleted_at IS NULL)::text FROM medication WHERE id = '${created.id}'`);
+  check(
+    "a medication change can be deleted (the medication stays)",
+    changeGone && changeUp === "true" && medKept === "true",
+    `${changeGone} ${changeUp} ${medKept}`,
+  );
+
+  // Offline: log a dose, and it uploads on reconnecting.
+  if (proxyA) {
+    await A.goto(`${timeline}?kind=dose`);
+    await A.waitFor(`${ROWS}.length > 0`, 20000);
+    proxyA.setOnline(false);
+    await A.waitFor(`document.body.innerText.includes("Offline")`, 20000).catch(() => undefined);
+    await logDoseInSheet(A, label, { status: "refused", note: `${TAG} offline` });
+    const local = await A.waitFor(rowWith(`${TAG} offline`), 8000).then(
+      () => true,
+      () => false,
+    );
+    await sleep(2000);
+    const before = psql(`SELECT count(*) FROM timeline_entry WHERE details->>'note' = '${TAG} offline'`);
+    proxyA.setOnline(true);
+    const after = await waitForSql(
+      `SELECT details->>'status' FROM timeline_entry WHERE details->>'note' = '${TAG} offline'`,
+      (v) => v !== "",
+      60000,
+    );
+    check(
+      "offline, a dose is logged on the device and uploads after reconnecting",
+      local && before === "0" && after === "refused",
+      `${local} ${before} ${after}`,
+    );
+    if (B) {
+      const seen = await B.waitFor(rowWith(`${TAG} offline`), 30000).then(
+        () => true,
+        () => false,
+      );
+      check("a second device gets the offline dose after reconnecting", seen);
+    }
+  }
+
+  // A viewer: no Dose button, rows that open nothing, no ⋯; the sheet URL is the timeline.
+  if (C) {
+    const viewerTimeline = await C.evaluate("location.pathname");
+    await C.goto(`${viewerTimeline}?kind=dose`);
+    await C.waitFor(`${ROWS}.length > 0 && document.querySelector("[data-medication]")`, 20000).catch(
+      () => undefined,
+    );
+    const state = await C.evaluate(
+      `JSON.stringify({ bar: !!${QUICK_ADD}, opens: !!document.querySelector('main ol a[aria-label^="Edit "], main ol a[aria-label^="Open "]'), menus: !!document.querySelector('main ol button[aria-label^="Actions"]'), rows: ${ROWS}.length })`,
+    );
+    const v = JSON.parse(state);
+    await C.goto(`${viewerTimeline}/new/dose?kind=dose`);
+    await C.waitFor(`location.pathname === ${JSON.stringify(viewerTimeline)}`, 10000).catch(() => undefined);
+    const landed = await C.evaluate(`location.pathname + location.search`);
+    check(
+      "a viewer sees doses but no Dose button, no row opens a sheet, no ⋯; /new/dose is the timeline",
+      v.rows > 0 &&
+        !v.bar &&
+        !v.opens &&
+        !v.menus &&
+        landed === `${viewerTimeline}?kind=dose` &&
+        !(await C.evaluate(`!!${SHEET}`)),
+      `${state} ${landed}`,
+    );
+  }
+}
+
+// One proxy for caretaker@'s browser: the list's offline steps and the timeline's.
 const proxy = startProxy(9434);
+const proxyA = proxy;
 const bA = await launch(9431, proxy.args);
 const bB = SMOKE ? null : await launch(9432);
 const bC = SMOKE ? null : await launch(9433);
@@ -921,6 +1320,9 @@ try {
     await notFoundSteps(B, A);
   }
 
+  if (SMOKE) await timelineSteps(A);
+  else await timelineSteps(A, { B: pages[1], C: pages[2], proxyA });
+
   if (made) {
     const removed = await onDevice(A, `return medications.removeMedication(db, ${JSON.stringify(made)});`);
     const gone = await waitForSql(
@@ -940,7 +1342,9 @@ try {
     );
   }
 
-  const noise = /401|Failed to load resource|\[PowerSync\]: Sync aborted/;
+  // The proxied browser's offline step: PowerSync's dropped stream and failed fetches.
+  const noise =
+    /401|Failed to load resource|ERR_INTERNET_DISCONNECTED|Failed to fetch|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|\[PowerSync\]: Sync aborted/;
   const errors = pages.flatMap((p) => p.errors).filter((e) => !noise.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 5).join(" | ").slice(0, 800));
 } catch (e) {

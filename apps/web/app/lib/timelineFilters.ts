@@ -22,15 +22,17 @@ export const KIND_PARAM = "kind";
 export const AUTHOR_PARAM = "author";
 
 /**
- * The kinds the timeline lists and filters by. Doses and medication changes
- * are stored and synced already, but the timeline skips them until it can
- * render them: `medications` slice 4 appends them here.
+ * The kinds the timeline lists and filters by. A kind left out of here is
+ * stored and synced but skipped by the timeline (`SHOWN_KINDS_SQL`), until it
+ * can render it. New kinds are appended.
  */
 export const TIMELINE_KINDS = [
   "note",
   "symptom",
   "event",
   "vital",
+  "dose",
+  "medicationChange",
 ] as const satisfies readonly TimelineEntryKind[];
 
 export const isTimelineKind = (value: string | null): value is (typeof TIMELINE_KINDS)[number] =>

@@ -177,14 +177,11 @@ describe("medication queries", () => {
     expect(medicationNamesQuery("g1").sql).toContain("GROUP BY name COLLATE NOCASE");
   });
 
-  it("keeps doses and medication changes off the timeline until it can render them", () => {
+  it("lists doses and medication changes on the timeline, with a kind or without", () => {
     const all = entriesQuery("g1", { kind: null, author: null }, 50);
-    expect(all.sql).toContain("kind IN ('note', 'symptom', 'event', 'vital')");
+    expect(all.sql).toContain("kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange')");
     expect(all.params).toEqual(["g1", 51]);
-    expect(entriesQuery("g1", { kind: "symptom", author: null }, 50).params).toEqual(["g1", "symptom", 51]);
-    const byAuthor = entriesQuery("g1", { kind: null, author: "u1" }, 50);
-    expect(byAuthor.sql).toContain("kind IN ('note', 'symptom', 'event', 'vital')");
-    expect(byAuthor.params).toEqual(["g1", "u1", 51]);
+    expect(entriesQuery("g1", { kind: "dose", author: null }, 50).params).toEqual(["g1", "dose", 51]);
   });
 });
 
