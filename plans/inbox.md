@@ -58,6 +58,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - medication groups for doses. Often the same medication is taken at different times of the day every day. We need to be able to group doses together so that they can be taken at the same time as part of the schedule and allow for setting status of each medication in the group on dose logging in the timeline. (B-76)
 - PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead. (B-89)
 - Need an Admin panel for caretook global administrators to manage users, care groups, and settings. (B-91)
+- PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When disk space gets low, we have to be able to restart the system and recover the state of the system. (B-104)
 
 ## Big plans
 
