@@ -160,6 +160,9 @@ apps/web/app/lib/entryDisplay.ts         phase2
 apps/web/app/lib/form.ts                 roundtrip
 
 # The entry page and live notes.
+# The entry page's care period suggestion (care-periods slice 5).
+apps/web/app/routes/app/groups/entry/PeriodSuggestionChip.tsx care-periods live-notes
+apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx live-notes providers care-periods
 apps/web/app/routes/app/groups/entry/*   live-notes providers
 apps/web/app/components/notes/*          live-notes providers
 apps/web/app/lib/sync/notes.ts           live-notes providers
@@ -190,6 +193,7 @@ apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 apps/web/app/lib/sync/carePeriods.ts     care-periods
 apps/web/app/routes/app/groups/periods/* care-periods
 apps/web/app/routes/app/groups/period/*  care-periods
+apps/web/app/lib/sync/periodSuggestions.ts care-periods live-notes
 # Search (search PRD): the device index, its tables and triggers, and the
 # shared query language and search documents.
 apps/web/app/lib/sync/search.ts          search

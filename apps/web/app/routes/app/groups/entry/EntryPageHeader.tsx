@@ -13,6 +13,7 @@ import { EntryPlaceRow } from "./EntryPlaceRow";
 import { EntryTimeChip } from "./EntryTimeChip";
 import { EntryTitleRegion } from "./EntryTitleRegion";
 import { EntryWithRow } from "./EntryWithRow";
+import { PeriodSuggestionChip } from "./PeriodSuggestionChip";
 import { ShareButton } from "./ShareButton";
 
 /**
@@ -20,7 +21,8 @@ import { ShareButton } from "./ShareButton";
  * happened (a chip for writers), who's writing, and, once there's an entry to
  * link to, Share for everyone and the ⋯ menu for writers (an event's
  * Reschedule, its Cancel or Undo cancel, then Delete, each confirmed but Undo);
- * who it was with (providers); and, for events, where it is.
+ * who it was with (providers); for writers on an event that says the
+ * recipient moved, a care period to start; and, for events, where it is.
  */
 export function EntryPageHeader({
   live,
@@ -117,6 +119,21 @@ export function EntryPageHeader({
               canWrite={canWrite}
               title={currentTitle}
               ensureStored={live.ensureStored}
+            />
+          )
+        }
+        suggestion={
+          canWrite &&
+          !deleted &&
+          stored &&
+          entry.kind === "event" &&
+          !entry.cancelledAt && (
+            <PeriodSuggestionChip
+              groupId={groupId}
+              entryId={entry.id}
+              title={currentTitle}
+              occurredAt={entry.occurredAt}
+              allDay={entry.allDay}
             />
           )
         }

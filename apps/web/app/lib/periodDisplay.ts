@@ -196,3 +196,13 @@ export const markerSentence = (marker: MarkerWords, timeZone: string) => {
     ? `Moved from ${periodName(marker.from)} to ${periodName(marker.to)}${where}${when}`
     : `Started: ${periodName(marker.to)}${where}${when}`;
 };
+
+// ---------------------------------------------------------------------------
+// Suggestions from events
+// ---------------------------------------------------------------------------
+
+/** The entry page's offer: "Start a hospital period?", "Start an emergency room period?". */
+export const suggestionText = (type: string) => {
+  const name = periodTypeMeta(type).short.toLowerCase();
+  return `Start ${/^[aeiou]/.test(name) ? "an" : "a"} ${name} period?`;
+};
