@@ -908,3 +908,5 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - prd: quick-fixes
 - owner:
 - commit:
+
+- 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: the shared ui/Sheet goes full screen below sm. Merge after medications slice 3 (its new sheets use Sheet).
