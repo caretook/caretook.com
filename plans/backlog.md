@@ -107,7 +107,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
 | B-67 | change | ready | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
-| B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
+| B-69 | chore | in-progress | quick-fixes | prd/quick-fixes | Move the New care group link state into components/groups |
 | B-70 | bug | in-progress | quick-fixes | prd/quick-fixes | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
 | B-71 | bug | ready | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
 | B-72 | bug | ready | quick-fixes | prd/quick-fixes | suggested provider list is too long on mobile. |
@@ -903,9 +903,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-69 · chore · Move the New care group link state into components/groups
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 6: NEW_GROUP_LINK_STATE and openedFromApp stay in routes/app/groups/new/newGroupLink.ts, but three other route folders import them (home/NewGroupLink, account/join, layout/GroupMenu), against the folder-per-route rule. Also drop the unused error code careGroupInviteService:notAllowed. A small refactor, so quick-fixes.
