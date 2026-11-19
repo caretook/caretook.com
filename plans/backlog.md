@@ -635,6 +635,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/marketing): From the inbox: Display phone number, address, email, etc. in provider directory without a click. Use that as link to call/email/map/etc.
 - 2026-11-18 (Robert Bo Davis): Proposed for quick-fixes: the directory rows (ProviderListItem) show the primary phone, email and address as text that is itself the call/email/map link (lib/contactActions), instead of behind a tap. One slice; providers.mjs covers it.
+- 2026-11-19 (slice/quick-fixes/17): slice/quick-fixes/17: rows show phones, address, email as links (ContactDetails); check + providers.mjs pass
 
 ### B-45 · change · birthdate, contact information, address, and insurance information should optionally be added to…
 
