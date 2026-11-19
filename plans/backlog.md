@@ -148,7 +148,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-105 | change | triaged | quick-fixes |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | triaged | admin |  | Turning email invites off also blocks staff owner invites from /admin |
-| B-107 | feature | inbox |  |  | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
+| B-107 | feature | triaged | orchestration |  | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
 | B-108 | change | inbox |  |  | Browser testing without a timeout keeps causing hung processes. We need to always have a sane… |
 
 ## Items
@@ -1346,8 +1346,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-107 · feature · Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: orchestration
 - owner:
 - commit:
 
