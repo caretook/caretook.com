@@ -82,7 +82,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-50 | feature | triaged | care-periods |  | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
 | B-51 | feature | triaged | medications |  | printable medication schedule sheet that can be printed to be checked off with a pen at patient's… |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
-| B-53 | feature | inbox |  |  | Ability to delete ALL data from the app. |
+| B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-55 | feature | inbox |  |  | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | inbox |  |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
@@ -675,8 +675,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-53 · feature · Ability to delete ALL data from the app.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: data-rights
 - owner:
 - commit:
 
