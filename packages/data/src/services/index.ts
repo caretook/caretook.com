@@ -32,6 +32,13 @@ export { entryProviderService };
 import * as careGroupConsentService from "./careGroupConsentService";
 export { careGroupConsentService };
 
+import * as accessCodeService from "./accessCodeService";
+export { accessCodeService };
+
+import * as staffGroupService from "./staffGroupService";
+export { staffGroupService };
+export type { StaffGroupInput } from "./staffGroupService";
+
 export type * from "./types";
 
 export const services = {
@@ -45,6 +52,8 @@ export const services = {
   provider: providerService,
   entryProvider: entryProviderService,
   careGroupConsent: careGroupConsentService,
+  accessCode: accessCodeService,
+  staffGroup: staffGroupService,
 };
 
 export type ServiceTypeMap = typeof services;

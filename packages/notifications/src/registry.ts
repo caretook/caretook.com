@@ -1,5 +1,6 @@
 import { groupInvite } from "./templates/groupInvite";
 import { magicLink } from "./templates/magicLink";
+import { ownerInvite } from "./templates/ownerInvite";
 import { resetPassword } from "./templates/resetPassword";
 import { signInCode } from "./templates/signInCode";
 import { testMessage } from "./templates/testMessage";
@@ -15,6 +16,7 @@ export const NOTIFICATIONS = {
   magicLink,
   signInCode,
   groupInvite,
+  ownerInvite,
 } as const;
 
 export type Notifications = typeof NOTIFICATIONS;
