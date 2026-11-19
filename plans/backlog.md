@@ -1140,6 +1140,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (Robert Bo Davis): From the inbox: need an upcoming medication banner on the timeline page and a way to quickly add doses to the timeline from it (or some other simplification). This needs to wait on medication groups.
 - 2026-11-19 (backlog planner): Proposed for a medications follow-up PRD together with B-76 (dose groups), which the inbox line says it waits on. Overlaps the Due now strip already on the timeline (shown only while a slot is due or overdue) and B-78 (limit the timeline's strips): the PRD should decide whether this extends Due now to upcoming slots and adds one-tap Given there, rather than a new banner.
 - 2026-11-19 (plan/medications-2): In the medications-2 PRD (plans/medications-2-prd.md on plan/medications-2), interviewed 2026-11-19.
+- 2026-11-19 (slice/medications-2/5): slice 5 (690a510): the medication strip replaces Due now on the timeline; next/due/overdue, Given all + Undo, pass name opens the Dose sheet, hidden without scheduled meds. Times use the app's 24 h clockTime ("20:00"), not the PRD's "8:00 PM".
 
 ### B-87 · plan · "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to…
 
