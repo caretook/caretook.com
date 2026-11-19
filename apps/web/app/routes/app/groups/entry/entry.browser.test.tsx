@@ -102,7 +102,7 @@ const tile = (text: string) =>
     ),
   ].find((b) => b.textContent?.trim() === text)!;
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const waitUntil = async (test: () => boolean, ms = 4000, what = "condition") => {
+const waitUntil = async (test: () => boolean, ms = 8000, what = "condition") => {
   const end = Date.now() + ms;
   while (Date.now() < end) {
     if (test()) return;
@@ -549,7 +549,8 @@ describe("appointments", () => {
     await expect
       .poll(async () => Date.parse((await stored(device, appt.id))!.ends_at ?? ""))
       .toBe(ahead().getTime() + 2 * 3_600_000);
-    expect(HEADER_TIME()!.textContent).toMatch(/–/);
+    // The header re-renders from the live query after the write lands.
+    await waitUntil(() => /–/.test(HEADER_TIME()?.textContent ?? ""), 10_000, "the range in the header");
   });
 
   test("place: empty with no provider; a linked provider's address greyed, 'from …', with a map; a viewer sees it with no field; a typed place replaces it", async () => {
@@ -574,7 +575,11 @@ describe("appointments", () => {
     await userEvent.keyboard("Lab, 2nd floor{Enter}");
     await expect.poll(async () => (await stored(device, appt.id))?.place).toBe("Lab, 2nd floor");
     expect(PLACE_REGION()!.textContent).not.toContain("from ");
-    expect(MAP()!.href).toContain(encodeURIComponent("Lab, 2nd floor"));
+    await waitUntil(
+      () => !!MAP()?.href.includes(encodeURIComponent("Lab, 2nd floor")),
+      10_000,
+      "the typed place on the map link",
+    );
     await device.screen.unmount();
 
     await open(entryPath(appt.id), {
