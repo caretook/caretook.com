@@ -129,7 +129,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-87 | plan | triaged | simple-mode |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 | B-88 | change | triaged | orchestration |  | PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the… |
 | B-89 | feature | triaged | orchestration |  | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
-| B-90 | change | inbox |  |  | Seed data with multiple care groups and user mix for improved manual testing. |
+| B-90 | change | triaged | quick-fixes |  | Seed data with multiple care groups and user mix for improved manual testing. |
 | B-91 | feature | inbox |  |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 
 ## Items
@@ -1143,8 +1143,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-90 · change · Seed data with multiple care groups and user mix for improved manual testing.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
 
