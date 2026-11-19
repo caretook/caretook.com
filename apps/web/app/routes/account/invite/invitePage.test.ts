@@ -1,7 +1,7 @@
 import type { UsablePreview } from "./invitePage";
 
 import { describe, expect, it } from "vitest";
-import { invitedLine, inviteTitle, inviteView, roleWithArticle } from "./invitePage";
+import { invitedLine, inviteTitle, inviteView, isLink, joinLabel, roleWithArticle } from "./invitePage";
 
 const usable: UsablePreview = {
   state: "usable",
@@ -50,5 +50,21 @@ describe("wording", () => {
       "Someone invited you to join as an admin.",
     );
     expect(roleWithArticle("mystery")).toBe("mystery");
+  });
+});
+
+describe("a link's page", () => {
+  const link: UsablePreview = { ...usable, kind: "link", email: null, role: "viewer" };
+
+  it("lets any signed-in account ask to join", () => {
+    expect(inviteView(link, { email: "anyone@example.com" })).toEqual({ view: "consent", invite: link });
+    expect(inviteView(link, null)).toEqual({ view: "signUp", invite: link });
+  });
+
+  it("asks rather than joins", () => {
+    expect(isLink(link)).toBe(true);
+    expect(joinLabel(link, false)).toBe("Ask to join");
+    expect(joinLabel(link, true)).toBe("Asking…");
+    expect(joinLabel(usable, false)).toBe("Join the care group");
   });
 });

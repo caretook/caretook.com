@@ -24,6 +24,7 @@ import { ORPCError } from "@orpc/server";
 import { unwrap } from "./errors";
 import { authedProcedure } from "./procedures";
 import { invite } from "./invites";
+import { joinRequest } from "./joinRequests";
 import { accessCode, admin, createCareGroup } from "./groups";
 import { sync } from "./sync";
 
@@ -308,5 +309,5 @@ const timeline = {
   }),
 };
 
-export const router = { me, careGroup, timeline, sync, invite, accessCode, admin };
+export const router = { me, careGroup, timeline, sync, invite, joinRequest, accessCode, admin };
 export type Router = typeof router;

@@ -35,6 +35,10 @@ export const careGroupInviteSchema = pgTable(
     email: text("email"),
     role: text("role", { enum: GROUP_ROLE_NAMES }).notNull(),
     tokenHash: text("token_hash").notNull().unique(),
+    // Links only: the raw token, encrypted with INVITE_LINK_KEY (AES-GCM), so
+    // owners and admins can copy an active link again. Email invites keep
+    // only the hash. Never leaves the model layer.
+    tokenCiphertext: text("token_ciphertext"),
     status: text("status", { enum: INVITE_STATUSES }).notNull().default("pending"),
     expiresAt: timestamp("expires_at", { precision: 3, mode: "string", withTimezone: true }).notNull(),
     acceptedBy: uuid("accepted_by").references(() => userSchema.id, { onDelete: "set null" }),
@@ -58,6 +62,11 @@ export const careGroupInviteSchema = pgTable(
     enumCheck("care_group_invite_status_check", t.status, INVITE_STATUSES),
     enumCheck("care_group_invite_kind_check", t.kind, INVITE_KINDS),
     // An email invite names its address and records the inviter's attestation.
+    // A link never makes an owner or admin.
+    check(
+      "care_group_invite_link_role_check",
+      sql`${t.kind} <> 'link' OR ${t.role} IN ('caretaker', 'viewer')`,
+    ),
     check(
       "care_group_invite_email_check",
       sql`${t.kind} <> 'email' OR (${t.email} IS NOT NULL AND ${t.consentAttestedAt} IS NOT NULL)`,
@@ -73,6 +82,7 @@ export type CareGroupInvite = CareGroupInviteSelect;
 
 export const careGroupInviteSelectZSchema = createSelectSchema(careGroupInviteSchema).omit({
   tokenHash: true,
+  tokenCiphertext: true,
 });
 export const careGroupInviteInsertZSchema = createInsertSchema(careGroupInviteSchema, { email: z.email() });
 export const careGroupInviteUpdateZSchema = createUpdateSchema(careGroupInviteSchema, { email: z.email() });

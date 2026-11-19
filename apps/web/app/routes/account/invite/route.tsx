@@ -15,15 +15,26 @@ import { rpc } from "~/lib/rpc";
 import { requireSession } from "~/lib/session";
 import { waitForMembership } from "~/lib/sync/members";
 import { AuthCard, ErrorMessage, StatusMessage, useSubmitOnce } from "../AuthCard";
-import { invitedLine, inviteTitle, inviteView, roleMeaning } from "./invitePage";
+import {
+  invitedLine,
+  inviteTitle,
+  inviteView,
+  isLink,
+  joinLabel,
+  LINK_APPROVAL_NOTE,
+  roleMeaning,
+} from "./invitePage";
 
-// `/invite/:token`: the page an email invite links to. Shared by web + native,
-// client-only: it reads the public `invite.preview`, and every step is an API
-// call (online only). Signed out, it creates an account with the invite's
-// address (or offers sign-in); signed in with that address, it shows what the
-// group shares and asks for agreement before joining; signed in as someone
-// else, it says so and offers to sign out. An invite that can't be used says
-// why without naming the group.
+// `/invite/:token`: the page an email invite or an invite link opens. Shared
+// by web + native, client-only: it reads the public `invite.preview`, and
+// every step is an API call (online only). Signed out, it creates an account
+// (with the invite's address, for an email invite; a link's account confirms
+// its address by email first) or offers sign-in; signed in with that
+// address, it shows what the group shares and asks for agreement before
+// joining (an email invite) or asking to join (a link, which an owner or
+// admin approves); signed in as someone else than an email invite's
+// address, it says so and offers to sign out. An invite that can't be used
+// says why without naming the group.
 
 // Never leaves the person's own device: the token is in the URL.
 export const meta = () => [{ title: "Invitation · Caretook" }, { name: "robots", content: "noindex" }];
@@ -83,12 +94,21 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
     const password = formString(form, "password");
     const problem = newPasswordProblem(password, formString(form, "confirm"));
     if (problem) return { intent, error: problem };
+    let created: { verified: boolean };
     try {
-      await rpc.invite.signUp({ token, name: formString(form, "name").trim(), email, password });
+      created = await rpc.invite.signUp({ token, name: formString(form, "name").trim(), email, password });
     } catch (e) {
       return { intent, error: apiFailure(e) };
     }
-    // The account is verified already, so this signs straight in.
+    if (!created.verified) {
+      // A link's account confirms its address first: the emailed link signs
+      // them in and brings them back here to ask to join. (An address that
+      // already had an account gets the same page, and no new account.)
+      const here = accountUrls.invite(token);
+      await authClient.sendVerificationEmail({ email, callbackURL: here }).catch(() => undefined);
+      throw redirect(accountUrls.verifyEmail(email, here));
+    }
+    // An email invite's account is verified already, so this signs straight in.
     const { error } = await authClient.signIn.email({ email, password });
     if (error) return { intent, error: requestFailure(error) ?? authMessages.failed };
     throw redirect(accountUrls.invite(token));
@@ -96,7 +116,7 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
 
   if (intent === "accept") {
     if (formString(form, "consent") !== "on") return { intent, error: "Tick the box to agree first." };
-    let joined: { groupId: string };
+    let joined: { groupId: string; status: "joined" | "requested" };
     try {
       joined = await rpc.invite.accept({ token, consent: true });
     } catch (e) {
@@ -104,6 +124,8 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
         throw redirect(accountUrls.signIn("password", accountUrls.invite(token)));
       return { intent, error: apiFailure(e) };
     }
+    // Asked to join (a link): home says it's waiting, and shows the group once approved.
+    if (joined.status === "requested") throw redirect(appUrls.home());
     // Open the group once its membership has reached this device; until
     // then (a slow sync), the group list.
     const { user, db } = await requireSession(request);
@@ -180,7 +202,8 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
       ) : (
         <ConsentForm invite={view.invite} error={pick(actionData, "accept")} />
       )}
-      <DeclineForm error={pick(actionData, "decline")} />
+      {/* A link can't be declined: whoever has it just doesn't ask. */}
+      {!isLink(view.invite) && <DeclineForm error={pick(actionData, "decline")} />}
     </AuthCard>
   );
 }
@@ -197,19 +220,35 @@ function SignUpForm({ token, invite, error }: { token: string; invite: UsablePre
     <>
       <Form method="post" onSubmit={submitOnce} className="space-y-1" data-invite-form="signUp">
         <input type="hidden" name="intent" value="signUp" />
-        <Field label="Email" help="The invitation is for this address.">
-          {(control) => (
-            <input
-              {...control}
-              className={INPUT}
-              type="email"
-              name="email"
-              value={invite.email ?? ""}
-              readOnly
-              aria-readonly="true"
-            />
-          )}
-        </Field>
+        {isLink(invite) ? (
+          <Field label="Email" help="We'll email you a link to confirm it.">
+            {(control) => (
+              <input
+                {...control}
+                className={INPUT}
+                type="email"
+                name="email"
+                autoComplete="email"
+                maxLength={254}
+                required
+              />
+            )}
+          </Field>
+        ) : (
+          <Field label="Email" help="The invitation is for this address.">
+            {(control) => (
+              <input
+                {...control}
+                className={INPUT}
+                type="email"
+                name="email"
+                value={invite.email ?? ""}
+                readOnly
+                aria-readonly="true"
+              />
+            )}
+          </Field>
+        )}
         <Field label="Your name">
           {(control) => (
             <input {...control} className={INPUT} name="name" autoComplete="name" maxLength={100} required />
@@ -270,16 +309,20 @@ function ConsentForm({ invite, error }: { invite: UsablePreview; error?: string 
           ))}
         </ul>
       </div>
-      <p className="text-base-content/70 text-sm">
-        The person who invited you confirmed: “{ATTESTATION_TEXT}”
-      </p>
+      {isLink(invite) ? (
+        <p className="text-base-content/70 text-sm">{LINK_APPROVAL_NOTE}</p>
+      ) : (
+        <p className="text-base-content/70 text-sm">
+          The person who invited you confirmed: “{ATTESTATION_TEXT}”
+        </p>
+      )}
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" name="consent" className="checkbox mt-0.5" required />
         <span>{CONSENT_TEXT}</span>
       </label>
       {error && <ErrorMessage>{error}</ErrorMessage>}
       <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
-        {busy ? "Joining…" : "Join the care group"}
+        {joinLabel(invite, busy)}
       </button>
     </Form>
   );

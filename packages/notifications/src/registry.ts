@@ -1,4 +1,5 @@
 import { groupInvite } from "./templates/groupInvite";
+import { joinApproved, joinDeclined, joinRequested } from "./templates/joinRequests";
 import { magicLink } from "./templates/magicLink";
 import { ownerInvite } from "./templates/ownerInvite";
 import { resetPassword } from "./templates/resetPassword";
@@ -16,6 +17,9 @@ export const NOTIFICATIONS = {
   magicLink,
   signInCode,
   groupInvite,
+  joinRequested,
+  joinApproved,
+  joinDeclined,
   ownerInvite,
 } as const;
 

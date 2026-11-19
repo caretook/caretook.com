@@ -96,3 +96,18 @@ export const normalizeInviteEmail = (email: string) => email.trim().toLowerCase(
 /** Whether `user` is the person an email invite was sent to (case and spaces ignored). */
 export const emailMatches = (invite: { email: string | null }, user: { email: string }): boolean =>
   invite.email != null && normalizeInviteEmail(invite.email) === normalizeInviteEmail(user.email);
+
+/** How long a new invite link works unless the inviter picks otherwise, and the range they may pick. */
+export const LINK_TTL_DEFAULT_DAYS = 7;
+export const LINK_TTL_MIN_DAYS = 1;
+export const LINK_TTL_MAX_DAYS = 90;
+/** The most uses an inviter may set on one link (no limit is allowed too). */
+export const LINK_MAX_USES_LIMIT = 100;
+
+/** A new link's options: a link role, 1–90 days (default 7), and an optional maximum number of uses. */
+export const linkInviteOptionsZ = z.object({
+  role: z.enum(LINK_ROLES),
+  expiresInDays: z.int().min(LINK_TTL_MIN_DAYS).max(LINK_TTL_MAX_DAYS).default(LINK_TTL_DEFAULT_DAYS),
+  maxUses: z.int().min(1).max(LINK_MAX_USES_LIMIT).nullish(),
+});
+export type LinkInviteOptions = z.output<typeof linkInviteOptionsZ>;

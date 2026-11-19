@@ -24,6 +24,20 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
     role: "caretaker",
     token: "inviteTok_123-x",
   },
+  joinRequested: {
+    groupId: "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001",
+    groupName: "Grandma Example",
+    requesterName: "Robin",
+    requesterEmail: "robin@example.com",
+    role: "viewer",
+  },
+  joinApproved: {
+    name: "Robin",
+    groupId: "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001",
+    groupName: "Grandma Example",
+    role: "viewer",
+  },
+  joinDeclined: { name: "Robin", groupName: "Grandma Example" },
   ownerInvite: { groupName: "Grandpa Example", token: "ownerTok_456-y" },
 };
 
@@ -244,5 +258,31 @@ describe("groupInvite", () => {
     const out = await renderNotification("groupInvite", data, ctx);
     if ("code" in out) throw new Error(String(out.code));
     expect(out.subject.startsWith("Someone invited you")).toBe(true);
+  });
+});
+
+describe("join request emails", () => {
+  it("link to the group's Members page, the group and the app", async () => {
+    const linksOf = async <N extends "joinRequested" | "joinApproved" | "joinDeclined">(name: N) => {
+      const out = await renderNotification(name, SAMPLES[name], ctx);
+      if ("code" in out) throw new Error(String(out.code));
+      return { links: extractLinks(out.html), out };
+    };
+    const groupId = SAMPLES.joinRequested.groupId;
+    const asked = await linksOf("joinRequested");
+    expect(asked.links).toEqual([`${APP_URL}/app/groups/${groupId}/settings/members`]);
+    expect(asked.out.subject).toBe("Robin asked to join Grandma Example's care group");
+    expect(asked.out.text).toContain("robin@example.com");
+    expect((await linksOf("joinApproved")).links).toEqual([`${APP_URL}/app/groups/${groupId}`]);
+    expect((await linksOf("joinDeclined")).links).toEqual([`${APP_URL}/app`]);
+  });
+
+  it("refuses a role a link can't grant", async () => {
+    const out = await renderNotification(
+      "joinRequested",
+      { ...SAMPLES.joinRequested, role: "admin" as never },
+      ctx,
+    );
+    expect("code" in out && out.code).toBe("notify:invalidData");
   });
 });

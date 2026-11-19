@@ -52,6 +52,9 @@ import * as careGroupConsentModel from "./careGroupConsent";
 export { careGroupConsentModel };
 export type * from "./careGroupConsent/types";
 
+import * as careGroupJoinRequestModel from "./careGroupJoinRequest";
+export { careGroupJoinRequestModel };
+export type * from "./careGroupJoinRequest/types";
 import * as accessCodeModel from "./accessCode";
 export { accessCodeModel };
 export type * from "./accessCode/types";

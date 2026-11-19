@@ -1,5 +1,5 @@
 {
-  "id": "03c1447a-dbbc-468b-a4b5-2c9570ed894b",
+  "id": "d2647e2c-a197-4854-b172-b108533fecf8",
   "prevId": "b0e84a7d-ca24-40ac-a791-913f6da3d4a0",
   "version": "7",
   "dialect": "postgresql",
@@ -442,6 +442,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "token_ciphertext": {
+          "name": "token_ciphertext",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "status": {
           "name": "status",
           "type": "text",
@@ -628,6 +634,10 @@
         "care_group_invite_kind_check": {
           "name": "care_group_invite_kind_check",
           "value": "\"care_group_invite\".\"kind\" IN ('email', 'link')"
+        },
+        "care_group_invite_link_role_check": {
+          "name": "care_group_invite_link_role_check",
+          "value": "\"care_group_invite\".\"kind\" <> 'link' OR \"care_group_invite\".\"role\" IN ('caretaker', 'viewer')"
         },
         "care_group_invite_email_check": {
           "name": "care_group_invite_email_check",
@@ -2190,8 +2200,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.access_code_redemption": {
-      "name": "access_code_redemption",
+    "public.care_group_join_request": {
+      "name": "care_group_join_request",
       "schema": "",
       "columns": {
         "id": {
@@ -2201,8 +2211,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "code_id": {
-          "name": "code_id",
+        "group_id": {
+          "name": "group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -2213,9 +2223,34 @@
           "primaryKey": false,
           "notNull": true
         },
-        "group_id": {
-          "name": "group_id",
+        "invite_id": {
+          "name": "invite_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "decided_by": {
+          "name": "decided_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decided_at": {
+          "name": "decided_at",
+          "type": "timestamp(3) with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -2247,11 +2282,33 @@
         }
       },
       "indexes": {
-        "access_code_redemption_code_idx": {
-          "name": "access_code_redemption_code_idx",
+        "care_group_join_request_pending_unique": {
+          "name": "care_group_join_request_pending_unique",
           "columns": [
             {
-              "expression": "code_id",
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"care_group_join_request\".\"status\" = 'pending'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "care_group_join_request_user_idx": {
+          "name": "care_group_join_request_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2264,12 +2321,12 @@
         }
       },
       "foreignKeys": {
-        "access_code_redemption_code_id_access_code_id_fk": {
-          "name": "access_code_redemption_code_id_access_code_id_fk",
-          "tableFrom": "access_code_redemption",
-          "tableTo": "access_code",
+        "care_group_join_request_group_id_care_group_id_fk": {
+          "name": "care_group_join_request_group_id_care_group_id_fk",
+          "tableFrom": "care_group_join_request",
+          "tableTo": "care_group",
           "columnsFrom": [
-            "code_id"
+            "group_id"
           ],
           "columnsTo": [
             "id"
@@ -2277,9 +2334,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "access_code_redemption_user_id_user_id_fk": {
-          "name": "access_code_redemption_user_id_user_id_fk",
-          "tableFrom": "access_code_redemption",
+        "care_group_join_request_user_id_user_id_fk": {
+          "name": "care_group_join_request_user_id_user_id_fk",
+          "tableFrom": "care_group_join_request",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
@@ -2290,12 +2347,25 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "access_code_redemption_group_id_care_group_id_fk": {
-          "name": "access_code_redemption_group_id_care_group_id_fk",
-          "tableFrom": "access_code_redemption",
-          "tableTo": "care_group",
+        "care_group_join_request_invite_id_care_group_invite_id_fk": {
+          "name": "care_group_join_request_invite_id_care_group_invite_id_fk",
+          "tableFrom": "care_group_join_request",
+          "tableTo": "care_group_invite",
           "columnsFrom": [
-            "group_id"
+            "invite_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "care_group_join_request_decided_by_user_id_fk": {
+          "name": "care_group_join_request_decided_by_user_id_fk",
+          "tableFrom": "care_group_join_request",
+          "tableTo": "user",
+          "columnsFrom": [
+            "decided_by"
           ],
           "columnsTo": [
             "id"
@@ -2307,113 +2377,14 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.access_code": {
-      "name": "access_code",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "code": {
-          "name": "code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "max_uses": {
-          "name": "max_uses",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "use_count": {
-          "name": "use_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "access_code_code_unique": {
-          "name": "access_code_code_unique",
-          "columns": [
-            {
-              "expression": "code",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
       "checkConstraints": {
-        "access_code_code_format": {
-          "name": "access_code_code_format",
-          "value": "\"access_code\".\"code\" ~ '^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$'"
+        "care_group_join_request_role_check": {
+          "name": "care_group_join_request_role_check",
+          "value": "\"care_group_join_request\".\"role\" IN ('caretaker', 'viewer')"
         },
-        "access_code_max_uses_check": {
-          "name": "access_code_max_uses_check",
-          "value": "\"access_code\".\"max_uses\" IS NULL OR \"access_code\".\"max_uses\" > 0"
+        "care_group_join_request_status_check": {
+          "name": "care_group_join_request_status_check",
+          "value": "\"care_group_join_request\".\"status\" IN ('pending', 'approved', 'declined', 'withdrawn')"
         }
       },
       "isRLSEnabled": false

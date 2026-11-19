@@ -627,7 +627,18 @@ try {
   // returns focus anywhere.
   await p.send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await p.signIn("member@example.com", PW);
-  for (const width of [420, 1280]) for (const scheme of ["light", "dark"]) await pass(p, width, scheme);
+  for (const width of [420, 1280])
+    for (const scheme of ["light", "dark"]) {
+      // A fresh client IP per pass. A check build rate-limits per IP, and
+      // Better Auth's memory limiter only resets after 10 s with no request,
+      // so one IP for all four passes can reach 100 session checks and get a
+      // 429 (which signs the page out) whenever the run has no 10 s pause.
+      const ip = () => Math.floor(Math.random() * 254) + 1;
+      await p.send("Network.setExtraHTTPHeaders", {
+        headers: { "x-forwarded-for": `10.${ip()}.${ip()}.${ip()}` },
+      });
+      await pass(p, width, scheme);
+    }
   const thrown = p.errors.filter((e) => e.includes("exception]"));
   check("no uncaught exceptions", thrown.length === 0, thrown.join(" | "));
   if (p.errors.length) console.log(p.errors.join("\n"));
