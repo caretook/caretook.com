@@ -68,7 +68,8 @@ Everything planned (bugs, changes, features, big plans, questions) lives in two 
   - `done B-<n>` (by the orchestrator, after merging the slice into `prd/<topic>`) records the commit and sets ready.
   - From then on the status is **worked out from git**: landed once `dev` contains the commit, staging and live once `origin/staging` and `origin/main` do. `list` shows it; `refresh` fetches and writes it.
 - **The PRD table** at the top (topics, dependencies, hot files) says which PRDs can run at the same time. Change it when you add, reorder or finish a PRD.
-- Orchestrators run `pnpm backlog ingest` and reread the backlog **at every wave boundary**. A new item for a running PRD becomes a slice in a later wave; a running slice never changes scope.
+- **Writes commit only what they changed** (`backlog.md`; the inbox only for `ingest` and `archive`'s removals), never your uncommitted inbox lines or staged work, and recompute git-derived statuses. `pnpm backlog doctor [--fix]` finds mis-tags, duplicate ids, stale statuses and summary drift (`--fix`: statuses and summary only). `pnpm backlog archive` moves finished items to `plans/backlog-archive.md`; `show` and `list --all` read it, and ids are never reused.
+- Orchestrators run `pnpm backlog ingest` and `doctor`, and reread the backlog **at every wave boundary**. A new item for a running PRD becomes a slice in a later wave; a running slice never changes scope.
 
 ### Running loops
 
