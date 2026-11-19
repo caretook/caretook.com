@@ -23,9 +23,10 @@ import { CLOSED_CODE, stepForIssues } from "./joinPage";
 // web + native, client-only. Signed out, it's a two-step form: your account
 // (name, email, password), then who you care for. One API call creates the
 // account and the care group, with you as its owner, then a confirmation
-// email goes out: once the address is confirmed, the new group's timeline
-// opens. Signed in, it points at New care group instead. A code that can't
-// be used says why, plainly.
+// email goes out: once the address is confirmed, /app opens the new group's
+// timeline. An address that already has an account sees the same "check your
+// email" and gets an email saying to sign in instead. Signed in, it points at
+// New care group instead. A code that can't be used says why, plainly.
 
 export const meta = () => [
   { title: "Start a care group · Caretook" },
@@ -67,15 +68,14 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       issues: group.error.issues.map((i) => ({ path: `group.${i.path.join(".")}`, message: i.message })),
     };
   }
-  let groupId: string | null;
   try {
-    ({ groupId } = await rpc.accessCode.signUp({
+    await rpc.accessCode.signUp({
       code: params.code,
       name: formString(form, "name").trim(),
       email,
       password,
       group: group.data,
-    }));
+    });
   } catch (e) {
     if (isNetworkError(e)) return { error: authMessages.offline, issues: [] };
     if (e instanceof ORPCError && e.code === "TOO_MANY_REQUESTS")
@@ -87,8 +87,11 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       issues: result.issues,
     };
   }
-  // Confirm the address, then open the new group.
-  const next = groupId ? appUrls.timeline(groupId) : appUrls.home();
+  // Confirm the address, then open Caretook, which goes straight to the new
+  // group (the only one). An address that already has an account lands here
+  // too, and gets an email saying to sign in (B-67): the answer doesn't say
+  // which it was.
+  const next = appUrls.home();
   await authClient.sendVerificationEmail({ email, callbackURL: next }).catch(() => undefined);
   throw redirect(accountUrls.verifyEmail(email, next));
 }

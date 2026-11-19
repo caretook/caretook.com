@@ -11,6 +11,7 @@ import { loadSettings } from "~/lib/me";
 import { sessionContext } from "~/lib/session";
 import { removeEntry } from "~/lib/sync/timeline";
 import { parseFilters } from "~/lib/timelineFilters";
+import { DueNowStrip } from "./DueNowStrip";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
@@ -104,6 +105,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <LatestVitals vitals={data.latestVitals} units={units} />
       <NextStrip next={data.next} now={data.now} groupId={groupId} showing={upcoming} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
+      <DueNowStrip groupId={groupId} canWrite={canWrite} />
       {canWrite && (
         <div className={COLUMN_CAP}>
           <QuickAddBar groupId={groupId} />

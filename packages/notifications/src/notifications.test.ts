@@ -47,6 +47,7 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
     topic: "question",
     message: "Can my brother use it on his phone?\nThanks!",
   },
+  accessCodeExistingAccount: {},
 };
 
 // Notifications whose email carries no link (a code to type in).
@@ -101,6 +102,8 @@ describe("the registry", () => {
     const code = await render("signInCode");
     expect(code.text).toContain("135790");
     expect(code.subject).not.toContain("135790");
+    const existing = await render("accessCodeExistingAccount");
+    expect(extractLinks(existing.html)).toEqual([`${APP_URL}/sign-in?redirectTo=%2Fapp%2Fgroups%2Fnew`]);
   });
 
   it("refuses a sign-in code that isn't six digits, and a token with odd characters", async () => {

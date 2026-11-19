@@ -213,3 +213,16 @@ describe("appUrls.upcoming", () => {
     expect(appUrls.newUpcomingEntry(G, "note")).toBe(`/app/groups/${G}/entries/new?kind=note&when=pick`);
   });
 });
+
+describe("appUrls.newMedication and editMedication", () => {
+  it("are sheets over the list, carrying its search and status filter", () => {
+    expect(appUrls.newMedication("g")).toBe("/app/groups/g/medications/new");
+    expect(appUrls.newMedication("g", "?q=lis&status=current")).toBe(
+      "/app/groups/g/medications/new?q=lis&status=current",
+    );
+    expect(appUrls.editMedication("g", "m 1")).toBe("/app/groups/g/medications/m%201/edit");
+    expect(appUrls.editMedication("g", "m1", { q: "", status: "discontinued" })).toBe(
+      "/app/groups/g/medications/m1/edit?status=discontinued",
+    );
+  });
+});

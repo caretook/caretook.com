@@ -105,18 +105,22 @@ export function DateTimeField({
       className="fieldset"
     >
       <Label className={FIELD_LABEL}>{label}</Label>
-      <Group className="input w-full pe-1">
-        <DateInput className="flex min-w-0 flex-1">
+      {/* min-w-0: the fieldset is a grid, whose items otherwise grow to the
+          segments' width and spill out of a narrow popover (B-71). The
+          segments wrap (the time drops to a second line) before they'd clip. */}
+      <Group className="input h-auto min-h-10 w-full min-w-0 gap-1 py-0.5 pe-1">
+        <DateInput className="flex min-w-0 flex-1 flex-wrap items-center">
           {(segment) => (
             <DateSegment
               segment={segment}
-              className="rounded px-0.5 tabular-nums outline-none data-[focused]:bg-primary data-[focused]:text-primary-content data-[placeholder]:opacity-60"
+              className={`rounded tabular-nums outline-none data-[focused]:bg-primary data-[focused]:text-primary-content data-[placeholder]:opacity-60 ${segment.type === "literal" ? "" : "px-0.5"}`}
             />
           )}
         </DateInput>
+        {/* 32 px to look at, at least 44 px to tap (the after: box, kept inside the field on the right). */}
         <Button
           aria-label="Pick a date"
-          className="btn btn-ghost btn-sm btn-square outline-offset-2 data-[focus-visible]:outline-2"
+          className="btn btn-ghost btn-sm btn-square relative shrink-0 outline-offset-2 after:absolute after:-inset-y-2 after:-right-1 after:-left-2 after:z-10 data-[focus-visible]:outline-2"
         >
           <CalendarIcon className="size-4" aria-hidden="true" />
         </Button>

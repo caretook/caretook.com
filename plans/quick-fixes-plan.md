@@ -4,24 +4,35 @@
 
 ## Status
 
-| Slice | Item | State  | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ---- | ------ | ----------------------------------------------------- |
-| 1     | B-1  | merged | 1e00754 (5ab3b67)                                     |
-| 2     | B-17 | merged | 4629e8c (32355db)                                     |
-| 3     | B-22 | merged | b0325d0 (46ef320)                                     |
-| 4     | B-28 | merged | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29 | merged | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34 | merged | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27 | merged | 75127be (004abfe)                                     |
-| 8     | B-35 | merged | 6dcc71d (7c0725f)                                     |
-| 9     | B-36 | merged | e6fc148 (cc12901)                                     |
-| 10    | B-39 | merged | 2052075 (1870973, 9e7d83b)                            |
-| 11    | B-38 | merged | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41 | merged | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42 | merged | 94ce803 (eccbd1a)                                     |
-| 14    | B-37 | merged | 9c08e01 (cf1f804)                                     |
+| Slice | Item | State   | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ---- | ------- | ----------------------------------------------------- |
+| 1     | B-1  | merged  | 1e00754 (5ab3b67)                                     |
+| 2     | B-17 | merged  | 4629e8c (32355db)                                     |
+| 3     | B-22 | merged  | b0325d0 (46ef320)                                     |
+| 4     | B-28 | merged  | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29 | merged  | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34 | merged  | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27 | merged  | 75127be (004abfe)                                     |
+| 8     | B-35 | merged  | 6dcc71d (7c0725f)                                     |
+| 9     | B-36 | merged  | e6fc148 (cc12901)                                     |
+| 10    | B-39 | merged  | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38 | merged  | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41 | merged  | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42 | merged  | 94ce803 (eccbd1a)                                     |
+| 14    | B-37 | merged  | 9c08e01 (cf1f804)                                     |
+| 15    | B-71 | running |                                                       |
+| 16    | B-72 | running |                                                       |
+| 17    | B-44 | running |                                                       |
+| 18    | B-73 | merged  | 59f380a (f6a783e)                                     |
+| 19    | B-67 | merged  | 0ddaaa7 (46e8be0)                                     |
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 landed as 8e0c2c0. Wave 6 (slices 10 and 14) is merged into `prd/quick-fixes`.
+
+Wave 7 (slices 15–17) landed in `dev` as 23e1be2. Slice 18 (B-73) lands on its own: `ui/Sheet` is full screen below `sm` (every sheet measured 0,0,420×900 and scrolling); the title row scrolls with the content, and on iOS the keyboard doesn't shrink `dvh`, so the sheet's own scroll keeps Save reachable. Slice 19 (B-67): `/join/:code` answers alike for existing and new addresses; an existing one gets the `accessCodeExistingAccount` email (outbox key: address, code, UTC day), nothing is created, and refused codes are refused alike. `accessCode.signUp` returns only `{ email }`; the confirmation `callbackURL` is `/app`. `medications.mjs` failed twice at landing in slice 3's own steps (B-74, filed for medications).
+
+- Slice 15: the bug was the time chip popover, not the sheets: daisyUI's `fieldset` is a grid, so the field's group didn't shrink and spilled ~15 px at every width. `DateTimeField`'s group is `min-w-0`, segments may wrap, separators lost their padding, and "Pick a date" has an invisible 44×48 tap box. `ui.mjs` checks fit at 360/390/420/1280; check-areas maps `components/ui/date/*` to `ui roundtrip live-notes medications`. Calendar day cells are still 32 px.
+- Slice 16: below `sm` the suggestions are one sideways-scrolling row (hidden scrollbar, end fade) rather than 3 + More, which still wrapped to two rows at 420. Presentation only.
+- Slice 17: `contactDetails()` in `lib/contactActions.ts` and `components/providers/ContactDetails` render phones, address and email as visible links on each directory row (above the open target). The seeded practice has no email, so `mailto:` is checked on Dr. Alvarez. `ContactActions`/`quickActions` stay for other screens.
 
 - Slice 10: `--smoke` / `SMOKE=1` and `cdp.mjs`'s `step()`; the five reworked checks went from 463 to 377 steps and 311 s to 219 s in full mode, about 4–7 s each in smoke. Suite pause 10 s → 2 s. Pure-logic steps removed only where a named unit test covers them. `roundtrip.mjs` is untouched apart from smoke markers until `components` slice 5 lands (noted on B-39). The full suite's drop (estimated −34%) is measured at landing. Each check passed one full run, not two, at the user's instruction.
 - Slice 14: `providerService:practiceHasProviders` (409) on the server and device; the delete confirm shows the count and disables Delete. A viewer deleting a practice with providers gets the 409 rather than a 403 (the dependents check runs first; it reveals nothing a viewer can't already read).
@@ -433,3 +444,116 @@ Both checks passed against the dev server minutes later, from the same code. So 
 **Check.** Integration tests, and `pnpm prd browser providers` if the slice adds a step or touches the sheet. Before hand-off, `pnpm prd browser --changed`.
 
 **Blocks:** none. **Blocked by:** none (the providers PRD is paused, and its slices 5–7 don't touch delete).
+
+---
+
+## Slice 15: The date picker fits on small screens (B-71)
+
+**Problem.** `DateTimeField` (`components/ui/date/DateTimeField.tsx`, a RAC `DatePicker` with typed segments and a "Pick a date" calendar popover) spills out of its container on narrow phones: the segment group plus the calendar button is wider than the sheet's content, and the calendar popover can run past the viewport edge.
+
+**Build.**
+
+- Make the field fit at 360, 390 and 420 px wide with **no horizontal overflow** (`document.documentElement.scrollWidth <= clientWidth`, and the field's box inside its container): let the segment group shrink or wrap (`min-w-0`, `flex-wrap`, a smaller gap), keep the calendar button in the row, and keep 44 px tap targets.
+- The calendar popover stays inside the viewport at those widths (RAC `Popover` placement and a `max-w-[calc(100vw-2rem)]`, or the shared `Popover` surface's sizing).
+- Check both places it's used: the entry sheets (`EntryForm`'s When, and the Dose sheet's time) and the entry page's time chip popover (`EntryTimeChip`).
+- Change only `components/ui/date/` (and, if the popover's width comes from there, `components/ui/styles.ts` or `Popover`); no change to the field's props or submitted value.
+
+**Acceptance criteria.**
+
+- [ ] At 360, 390 and 420 px: the symptom sheet's When field, the Dose sheet's time and the time chip popover have no horizontal overflow, and the open calendar is fully inside the viewport (a browser check step, in `ui.mjs` or `roundtrip.mjs`, measuring boxes against `document.documentElement.clientWidth`).
+- [ ] 1280 px looks as before.
+- [ ] Typing segments and picking from the calendar still work (existing steps pass).
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 16: Fewer suggested providers on phones (B-72)
+
+**Problem.** On a note or event, writers see up to 5 "Suggested providers" chips while nothing is linked (`EntryWithRow` in `routes/app/groups/entry/`). On a phone they wrap into several rows and push the editor down.
+
+**Build.**
+
+- Below `sm`, show **3 chips plus a "More" control** that reveals the rest (a button with `aria-expanded`, reset when the entry changes), or one row that scrolls horizontally if that reads better; pick one and say why in the hand-off. From `sm` up, keep 5 in place.
+- The ranking (`lib/providerSuggestions.ts`, `suggestProviders`) and the limit of 5 stay as they are; this is presentation only. If a pure rule is needed (how many to show for a width), put it in a tested module beside the route.
+- Linking through a chip works as before (one tap).
+
+**Acceptance criteria.**
+
+- [ ] At 420 px a note with 5 suggestions shows 3 chips and More (or one scrolling row), and the editor starts no lower than with one row of chips; More shows the other 2.
+- [ ] At 1280 px all 5 show, as before.
+- [ ] Tapping a chip still links it (`providers.mjs`'s suggestion steps pass; add a step for the phone width).
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 17: Contact details on the provider directory's rows (B-44)
+
+**Problem.** The provider list (`routes/app/groups/providers/`, `ProviderListItem.tsx`) shows each provider's name and type; phone, address and email need a tap into the page or the row's actions.
+
+**Build.**
+
+- Each row shows its **phones** (label and number), **address** and **email** under the name, each a link built by `lib/contactActions.ts` (`tel:`, the maps URL, `mailto:`), rendered through `ContactActions` (`components/providers/`) or a compact variant of it added there. Links have names like the page's ("Call Dr. …, office"), sit above the row's open target (`relative z-10`), and long values truncate or wrap without horizontal overflow at 360–420 px.
+- **Tapping the row** (anywhere but a link) still opens the provider page.
+- A provider with none of these shows just the name, as now. Past providers show theirs muted.
+- Viewers see the same links.
+
+**Acceptance criteria.**
+
+- [ ] The seeded practice's row shows its phone, address and email as `tel:`, maps and `mailto:` links; tapping the name opens the provider page (`providers.mjs` steps).
+- [ ] No horizontal overflow at 420 px; 1280 px reads well.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 18: Sheets take the full screen on phones (B-73)
+
+**Problem.** `ui/Sheet` is a bottom sheet on phones that leaves the `/app` header showing above it, so the form gets less room and the page behind is still visible.
+
+**Build.**
+
+- Below `sm`, `Sheet` covers the **full screen** (full height and width, no gap above, the safe-area insets respected, its own scroll), with its title and close control at the top. From `sm`, it stays the modal it is now.
+- Focus on open, focus return to the opener on close, Escape, and the z-index layers (sheets and modals `z-50`, tab bar `z-40`) don't change.
+- Change `components/ui/Sheet.tsx` (and `ui/styles.ts` if needed) only; callers don't change.
+- Check every sheet: the entry add and edit sheets, the Dose sheet, the provider sheets, New care group, the invite sheet, and the medication sheets from `medications` slice 3.
+
+**Acceptance criteria.**
+
+- [ ] At 420 px every sheet above fills the viewport (its box equals `0, 0, clientWidth, innerHeight`); its content scrolls inside it; the save button is reachable with the keyboard up (no fixed footer covering inputs).
+- [ ] At 1280 px each is the centered modal, as before.
+- [ ] Focus returns to the opener on close (`ui.mjs`).
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off (it maps `components/ui/` to `ui.mjs` and `app-shell.mjs`; run `roundtrip`, `providers` and `medications` too, since their sheets change).
+
+**Blocks:** none. **Blocked by:** `medications` slice 3 in `dev` (it adds sheets; `pnpm prd sync` first). Merge it after 15–17.
+
+**How to run 15–18:** 15–17 are independent and run in parallel (15: `components/ui/date/`; 16: `routes/app/groups/entry/EntryWithRow.tsx`; 17: `routes/app/groups/providers/` and `components/providers/`). 18 changes `ui/Sheet`, which 15's sheets sit in, so it starts once 15–17 are merged.
+
+---
+
+## Slice 19: Access-code sign-up doesn't reveal existing accounts (B-67)
+
+**Problem.** `/join/:code` answers `ticket:accountExists` ("An account with this email already exists. Sign in instead.") for a registered address, so anyone holding an access code can test whether an address has an account. Link-invite sign-up already answers the same either way; email invites lock the address.
+
+**Decision (the user, 2026-11-19).** `/join/:code` answers the same "Check your email" for every address.
+
+**Build.**
+
+- **Server** (`signUpWithTicket`'s access-code path in `packages/auth/src/tickets.ts`, and `accessCode.signUp` in `packages/api/src/groups.ts`): for an address that already has an account, create nothing (no user, no group, no redemption) and leave the code's use count alone. Queue a new email through `notify` (the outbox, not awaited, like the auth emails), then return the same success shape the new-account path returns. Retire `ticket:accountExists` if nothing else uses it.
+- **Email:** a new `NOTIFICATIONS` entry (for example `accessCodeExistingAccount`), with plain text: "Someone tried to start a care group on Caretook with your address. If it was you, sign in and choose New care group." Add a sign-in link from `APP_URL`. No health details and no code. Use an idempotency key so a double submit sends one email.
+- **Timing:** both paths queue their email without waiting, so the response takes about the same time either way. Don't add artificial delays.
+- **Screen** (`/join/:code`): the existing-address case lands on the same "Check your email" screen as a new sign-up (`/verify-email` or whatever the new-account path shows). Remove the "Sign in instead" wording for this case.
+- Keep the refused-code paths as they are (expired, revoked, used up, unknown).
+
+**Acceptance criteria.**
+
+- [ ] Integration test: `accessCode.signUp` with an existing address returns the same result as a new one; no user, group, membership or redemption is created; the code's `use_count` is unchanged; one outbox row for the new notification (and only one on a repeat with the same key).
+- [ ] The existing new-account test still passes.
+- [ ] `groups.mjs`: signing up at `/join/<code>` with a seeded address shows the same screen as a new address, the mail appears in `/dev/mail.json`, and no account or redemption is created.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` before hand-off.
+
+**Blocks:** none. **Blocked by:** none (independent of 18).

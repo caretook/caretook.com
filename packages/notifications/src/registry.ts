@@ -1,3 +1,4 @@
+import { accessCodeExistingAccount } from "./templates/accessCodeExistingAccount";
 import { contactMessage } from "./templates/contactMessage";
 import { groupInvite } from "./templates/groupInvite";
 import { joinApproved, joinDeclined, joinRequested } from "./templates/joinRequests";
@@ -23,6 +24,7 @@ export const NOTIFICATIONS = {
   joinDeclined,
   ownerInvite,
   contactMessage,
+  accessCodeExistingAccount,
 } as const;
 
 export type Notifications = typeof NOTIFICATIONS;
