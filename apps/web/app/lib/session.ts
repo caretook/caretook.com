@@ -13,8 +13,18 @@ import { openSync } from "./sync";
 // middleware below it reads it from there (`context.get(sessionContext)`)
 // rather than checking again. Concurrent calls share one in-flight check.
 
-/** `image` is optional: users cached before it was added have none. */
-export type SessionUser = { id: string; name: string | null; email: string; image?: string | null };
+/**
+ * `image` and `role` are optional: users cached before they were added have
+ * none. `role` is the global role (admin, support, member), for the account
+ * menu's Admin item only; the server checks it again on every staff request.
+ */
+export type SessionUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  image?: string | null;
+  role?: string | null;
+};
 
 const SESSION_KEY = "caretook:session-user";
 
@@ -45,6 +55,12 @@ export const forgetSessionUser = () => {
   }
 };
 
+/** The user's global role: an additional field the client's types don't know about. */
+const roleOf = (user: object) => {
+  const role = (user as { role?: unknown }).role;
+  return typeof role === "string" ? role : null;
+};
+
 /**
  * Offline (no response at all), the last signed-in user carries on with
  * their local data. The server still checks the session before accepting
@@ -61,6 +77,7 @@ const resolveUser = async (): Promise<SessionUser | null | "unverified"> => {
         name: data.user.name,
         email: data.user.email,
         image: data.user.image ?? null,
+        role: roleOf(data.user),
       };
     // An error without a status means the request never reached the server.
     return error && !error.status ? cachedUser() : null;

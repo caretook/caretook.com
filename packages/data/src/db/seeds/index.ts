@@ -10,6 +10,7 @@ import * as medications from "./medications";
 import * as profiles from "./profiles";
 import * as providers from "./providers";
 import * as secondGroup from "./secondGroup";
+import * as staff from "./staff";
 import * as timelineEntries from "./timelineEntries";
 import * as users from "./users";
 
@@ -34,5 +35,6 @@ export const seed = async () => {
     await appointments.seed();
     await profiles.seed();
     await carePeriods.seed();
+    await staff.seed();
   }, "db:seed");
 };

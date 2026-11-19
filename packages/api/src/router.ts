@@ -31,6 +31,7 @@ import { profileCareGroup, profileMe } from "./profiles";
 import { search } from "./search";
 import { sync } from "./sync";
 import { waitlistAdmin } from "./waitlistAdmin";
+import { auditAdmin } from "./auditAdmin";
 
 const id = z.uuid();
 const ids = (values: string[]) => ({ type: "inArray" as const, value: values });
@@ -331,7 +332,11 @@ export const router = {
   invite,
   joinRequest,
   accessCode,
-  admin: { ...admin, waitlist: waitlistAdmin },
+  admin: {
+    ...admin,
+    waitlist: waitlistAdmin,
+    audit: auditAdmin,
+  },
   public: publicForms,
   search,
 };

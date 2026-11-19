@@ -89,3 +89,7 @@ export type * from "./memberContactShare/types";
 import * as carePeriodModel from "./carePeriod";
 export { carePeriodModel };
 export type * from "./carePeriod/types";
+
+import * as adminAuditLogModel from "./adminAuditLog";
+export { adminAuditLogModel };
+export type * from "./adminAuditLog/types";

@@ -151,6 +151,15 @@ export const MODEL_ERRORS = {
   "carePeriodModel:remove": {
     message: "Failed to delete the care period",
   },
+  "adminAuditLogModel:insert": {
+    message: "Failed to record the audit entry",
+  },
+  "adminAuditLogModel:search": {
+    message: "Failed to search the audit log",
+  },
+  "adminAuditLogModel:actors": {
+    message: "Failed to list the audit log's staff",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {
@@ -502,6 +511,22 @@ export const SERVICE_ERRORS = {
   "noteDocumentService:carePeriodNotFound": {
     message: "That care period is gone. It may have been deleted.",
     statusCode: 404,
+  },
+  "adminAuditService:invalid": {
+    message: "The audit entry is invalid",
+    statusCode: 400,
+  },
+  "staff:notAllowed": {
+    message: "Your staff role doesn't allow that",
+    statusCode: 403,
+  },
+  "adminGrant:unknownAddress": {
+    message: "No account has that email address",
+    statusCode: 404,
+  },
+  "adminGrant:invalidRole": {
+    message: "The role must be admin or support",
+    statusCode: 400,
   },
 } as const;
 

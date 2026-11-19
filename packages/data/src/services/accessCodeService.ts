@@ -4,7 +4,9 @@ import type { ServiceContext } from "./types";
 
 import { randomBytes } from "node:crypto";
 import { SYSTEM_USER } from "../constants";
+import { withTransaction } from "../db";
 import {
+  auditChanges,
   codeState,
   formatAccessCode,
   newCareGroupZSchema,
@@ -13,6 +15,8 @@ import {
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import { accessCodeModel, accessCodeRedemptionModel, careGroupModel, careRecipientModel } from "../models";
+import * as adminAuditService from "./adminAuditService";
+import { auditActorId, staffRefusal } from "./staffAccess";
 
 export const serviceName = "accessCode";
 export const schemaName = accessCodeModel.schemaName;
@@ -21,6 +25,8 @@ export const schemaName = accessCodeModel.schemaName;
 // them; anyone holding one may ask whether it works and use it to create an
 // account and their own care group (`redeem`, inside signUpWithTicket's
 // transaction). Codes are stored as printed (see db/schema/accessCode.ts).
+// Staff writes (create, revoke) need `accessCodes.write` and record an
+// audit entry in their own transaction.
 
 const system = (tx?: Tx) => ({ authUser: SYSTEM_USER, tx });
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -35,36 +41,64 @@ export const list = async (ctx: ServiceContext) => {
 
 export const getById = (ctx: ServiceContext, id: string) => accessCodeModel.getById(id, ctx);
 
-/** Staff: a new code with a label, an expiry and an optional maximum number of uses. */
-export const create = async (ctx: ServiceContext, input: AccessCodeCreateInput) => {
-  const expiresAt = new Date(Date.now() + input.expiresInDays * DAY_MS).toISOString();
-  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-    const code = formatAccessCode(randomBytes(8));
-    const taken = await accessCodeModel.getByCode(code);
-    if (isError(taken)) return taken;
-    if (taken) continue;
-    return accessCodeModel.create({
-      ...ctx,
-      data: { code, label: input.label.trim(), expiresAt, maxUses: input.maxUses ?? null },
-    });
-  }
-  return newError({ code: "accessCodeService:noUniqueCode" });
-};
+/** What an access code's audit entries record. */
+const AUDIT_FIELDS = ["code", "label", "expiresAt", "maxUses", "revokedAt"] as const;
 
-/** Staff: stop a code working at once. Revoking twice keeps the first time. */
-export const revoke = async (ctx: ServiceContext, id: string) => {
-  const current = await accessCodeModel.getById(id, ctx);
-  if (isError(current)) return current;
-  if (!current) return newError({ code: "accessCodeService:notFound" });
-  if (current.revokedAt) return current;
-  const updated = await accessCodeModel.update({
-    ...ctx,
-    filter: { id: { type: "eq", value: id } },
-    data: { revokedAt: new Date().toISOString() },
-  });
-  if (isError(updated)) return updated;
-  return updated[0] ?? newError({ code: "accessCodeService:notFound" });
-};
+/** Staff (`accessCodes.write`): a new code with a label, an expiry and an optional maximum number of uses. */
+export const create = (ctx: ServiceContext, input: AccessCodeCreateInput) =>
+  withTransaction(async (tx) => {
+    const refused = staffRefusal(ctx, "accessCodes.write");
+    if (refused) return refused;
+    const expiresAt = new Date(Date.now() + input.expiresInDays * DAY_MS).toISOString();
+    for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+      const code = formatAccessCode(randomBytes(8));
+      const taken = await accessCodeModel.getByCode(code, { tx });
+      if (isError(taken)) return taken;
+      if (taken) continue;
+      const created = await accessCodeModel.create({
+        ...ctx,
+        tx,
+        data: { code, label: input.label.trim(), expiresAt, maxUses: input.maxUses ?? null },
+      });
+      if (isError(created)) return created;
+      if (!created) return newError({ code: "baseModel:create:nothingCreated" });
+      const recorded = await adminAuditService.record(tx, {
+        actorId: auditActorId(ctx),
+        action: "accessCode.create",
+        changes: auditChanges(null, created, AUDIT_FIELDS),
+      });
+      if (isError(recorded)) return recorded;
+      return created;
+    }
+    return newError({ code: "accessCodeService:noUniqueCode" });
+  }, ctx);
+
+/** Staff (`accessCodes.write`): stop a code working at once. Revoking twice keeps the first time (and records once). */
+export const revoke = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const refused = staffRefusal(ctx, "accessCodes.write");
+    if (refused) return refused;
+    const current = await accessCodeModel.getById(id, { ...ctx, tx });
+    if (isError(current)) return current;
+    if (!current) return newError({ code: "accessCodeService:notFound" });
+    if (current.revokedAt) return current;
+    const updated = await accessCodeModel.update({
+      ...ctx,
+      tx,
+      filter: { id: { type: "eq", value: id } },
+      data: { revokedAt: new Date().toISOString() },
+    });
+    if (isError(updated)) return updated;
+    const row = updated[0];
+    if (!row) return newError({ code: "accessCodeService:notFound" });
+    const recorded = await adminAuditService.record(tx, {
+      actorId: auditActorId(ctx),
+      action: "accessCode.revoke",
+      changes: { ...auditChanges(current, row, AUDIT_FIELDS), code: [current.code, row.code] },
+    });
+    if (isError(recorded)) return recorded;
+    return row;
+  }, ctx);
 
 /**
  * What anyone holding `input` may know: whether it works (and nothing

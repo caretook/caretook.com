@@ -2,22 +2,24 @@ import type { Route } from "./+types/route";
 
 import { NavLink, Outlet } from "react-router";
 import { requireStaff } from "~/.server/admin";
-import { adminUrls } from "../adminUrls";
+import { adminSections } from "../adminSections";
 
-// /admin: Caretook staff only (the global `admin` role; web only, server
-// loaders). Anyone else, a group's owner included, gets a 404. Staff see
-// access codes, the groups they set up and the waitlist, never a group's care data.
+// /admin: Caretook staff only (admin and support; web only, server loaders).
+// Anyone else, a group's owner included, gets a 404. Each staff member sees
+// the sections their role allows (adminSections), and never a group's care
+// data.
 
 export const meta = () => [{ title: "Admin · Caretook" }, { name: "robots", content: "noindex" }];
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireStaff(request);
-  return null;
+  const { capabilities } = await requireStaff(request);
+  return { capabilities };
 }
 
-const tab = ({ isActive }: { isActive: boolean }) => `tab ${isActive ? "tab-active" : ""}`;
+const tab = ({ isActive }: { isActive: boolean }) => `tab shrink-0 ${isActive ? "tab-active" : ""}`;
 
-export default function AdminLayout() {
+export default function AdminLayout({ loaderData }: Route.ComponentProps) {
+  const sections = adminSections(loaderData.capabilities);
   return (
     <div className="bg-base-200 min-h-dvh">
       <header className="border-base-300 bg-base-100 border-b px-4 sm:px-6">
@@ -29,17 +31,16 @@ export default function AdminLayout() {
         </div>
       </header>
       <main className="mx-auto max-w-4xl space-y-4 px-4 py-6 sm:px-6">
-        <nav aria-label="Admin sections" className="tabs tabs-box w-fit">
-          <NavLink to={adminUrls.accessCodes()} className={tab}>
-            Access codes
-          </NavLink>
-          <NavLink to={adminUrls.newGroup()} className={tab}>
-            New group
-          </NavLink>
-          <NavLink to={adminUrls.waitlist()} className={tab}>
-            Waitlist
-          </NavLink>
-        </nav>
+        {/* Scrolls sideways on phones rather than wrapping. */}
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <nav aria-label="Admin sections" className="tabs tabs-box w-max flex-nowrap" data-admin-nav="">
+            {sections.map((section) => (
+              <NavLink key={section.id} to={section.path()} className={tab} data-section={section.id}>
+                {section.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
         <Outlet />
       </main>
     </div>
