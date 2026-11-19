@@ -8,12 +8,13 @@ import { SaveRow, SettingsCard, SettingsPage } from "~/components/settings";
 import { ChoiceGroup } from "~/components/ui";
 import { toActionResult } from "~/lib/api";
 import { formString } from "~/lib/form";
-import { loadSettings } from "~/lib/me";
-import { rpc } from "~/lib/rpc";
+import { loadSettings, saveSettings } from "~/lib/me";
 import { sessionContext } from "~/lib/session";
 
 // `/app/settings/units`. Shared by web + native: client-only data
-// (clientLoader/clientAction over oRPC). Units save online only.
+// (clientLoader/clientAction). Units save through `saveSettings`, like the
+// timeline layout: cached at once, and kept pending on this device while
+// offline (the next online `loadSettings` sends them).
 
 export const meta = () => [{ title: "Units · Settings · Caretook" }];
 
@@ -30,25 +31,28 @@ const MEASURES: { measure: Measure; label: string }[] = [
   { measure: "volume", label: "Fluid volume" },
 ];
 
-export async function clientAction({ request }: Route.ClientActionArgs): Promise<ActionResult> {
+/** "Saved.", or, offline, saved on this device and pending. */
+type UnitsResult = ActionResult | { ok: true; pending: true };
+
+export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<UnitsResult> {
+  const { user } = context.get(sessionContext);
   const form = await request.formData();
   const units = Object.fromEntries(MEASURES.map(({ measure }) => [measure, formString(form, measure)]));
   const parsed = unitChoicesZSchema.safeParse(units);
   if (!parsed.success) return { ok: false, error: "Choose a unit for each measurement.", issues: [] };
   try {
-    await rpc.me.updatePreferences({ units: parsed.data });
-    return { ok: true };
+    const outcome = await saveSettings(user.id, { units: parsed.data });
+    return outcome === "pending" ? { ok: true, pending: true } : { ok: true };
   } catch (e) {
-    // No connection (fetch's TypeError): units still need one to save.
-    if (e instanceof TypeError)
-      return { ok: false, error: "You're offline. Connect to save your units.", issues: [] };
     return toActionResult(e);
   }
 }
 
+const PENDING_TEXT = "Saved on this device. It'll sync when you're back online.";
+
 export default function UnitsSettings({ loaderData }: Route.ComponentProps) {
   const { units } = loaderData;
-  const fetcher = useFetcher<ActionResult>();
+  const fetcher = useFetcher<UnitsResult>();
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
 
   return (
@@ -67,7 +71,11 @@ export default function UnitsSettings({ loaderData }: Route.ComponentProps) {
               defaultValue={units[measure]}
             />
           ))}
-          <SaveRow busy={fetcher.state !== "idle"} result={result} />
+          <SaveRow
+            busy={fetcher.state !== "idle"}
+            result={result}
+            savedText={result && "pending" in result ? PENDING_TEXT : undefined}
+          />
         </fetcher.Form>
       </SettingsCard>
     </SettingsPage>
