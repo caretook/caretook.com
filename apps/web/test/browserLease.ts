@@ -1,18 +1,21 @@
 // Vitest's globalSetup for `web:components`: runs in Node once per run,
 // before Chromium starts, and its teardown after Chromium closes.
 //
-// The hook for machine-wide leases: component tests' Chromium counts
-// against the same `browser` lease as `pnpm prd browser` (four at once), so
-// four worktrees can't each start browsers together. `takeBrowserLease` is
-// the one place to wire it: the leases' Node entry (orchestration slice 4,
-// `scripts/loops/`) takes a `browser` lease here and returns its release.
-// Until then it takes nothing.
+// Component tests' Chromium counts against the same machine-wide `browser`
+// lease as `pnpm prd browser` (four at once), so four worktrees can't each
+// start browsers together. The lease comes from `scripts/loops/lease.mjs`
+// (held by a `lease.sh hold` child that also releases if this process dies);
+// `CARETOOK_LEASES=off` takes none.
 
 type Release = () => Promise<void> | void;
+type Lease = { n: number; path: string | null; release: Release };
+type LeaseModule = { takeLease: (kind: string, opts: { label: string }) => Promise<Lease> };
 
-const takeBrowserLease = (): Promise<Release> => {
-  // Wire the lease library here: `return take("browser", { label: "web:components" })`.
-  return Promise.resolve(() => undefined);
+const takeBrowserLease = async (): Promise<Release> => {
+  const leaseUrl = new URL("../../../scripts/loops/lease.mjs", import.meta.url).href;
+  const { takeLease } = (await import(/* @vite-ignore */ leaseUrl)) as LeaseModule;
+  const lease = await takeLease("browser", { label: "web:components" });
+  return () => lease.release();
 };
 
 let release: Release | undefined;
