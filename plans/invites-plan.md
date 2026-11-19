@@ -166,5 +166,6 @@ Link invites: `createLink` (role caretaker or viewer, expiry 1–90 days default
 Notes from slice 3 for 4 and 5:
 
 - `accept`/`decline` refuse link invites with `careGroupInviteService:wrongKind` (slice 4 fills them in); `signUpWithTicket` takes `{ kind: "invite" }` (slice 5 adds access codes).
-- Slice 5 leaves **New care group** out of the group menu (`routes/app/layout/`, protected while `components` runs); its hand-off names the one-item edit for the user to approve.
+- Slice 5 left **New care group** out of the group menu. **The user's decision (2026-11-18): add it after `components`' final landing is in `dev`**, as a small follow-up slice (6): in `routes/app/layout/GroupMenu.tsx`, after "Group settings", `{ label: "New care group", icon: Plus, href: appUrls.newGroup() }` with `NEW_GROUP_LINK_STATE` (from `routes/app/groups/new/newGroupLink.ts`) as link state. Until then a one-group user reaches `/app/groups/new` only by URL.
+- Slice 5 merged after 4 must regenerate `0011_access_codes` on top of 4's migration (its schema is all in `db/schema/accessCode.ts`).
 - `pnpm prd browser --smoke <check>`: `--smoke` goes before the check name.
