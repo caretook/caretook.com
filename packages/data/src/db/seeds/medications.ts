@@ -16,7 +16,9 @@ import {
   medicationSchema,
   noteDocFromText,
   noteDocumentSchema,
+  normalizeSchedule,
   noteText,
+  ownTimes,
   timelineEntrySchema,
   userSchema,
 } from "../schema";
@@ -71,7 +73,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 tablet",
       directions: "Once every morning, with or without food.",
       reason: "Blood pressure",
-      schedule: { type: "scheduled", times: ["08:00"] },
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }] },
     },
     prescriber: "alvarez",
     pharmacy: "cornerstone",
@@ -94,7 +96,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 tablet",
       directions: "Twice a day with meals.",
       reason: "Type 2 diabetes",
-      schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
     },
     prescriber: "alvarez",
     pharmacy: "cornerstone",
@@ -135,7 +137,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 drop in each eye",
       directions: "At bedtime. Wait 5 minutes before any other eye drops.",
       reason: "Eye pressure",
-      schedule: { type: "scheduled", times: ["21:00"] },
+      schedule: { type: "scheduled", slots: [{ time: "21:00" }] },
     },
     pharmacy: "cornerstone",
     saves: [
@@ -159,7 +161,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 capsule",
       directions: "Three times a day for 10 days. Finish the whole course.",
       reason: "Chest infection",
-      schedule: { type: "scheduled", times: ["08:00", "14:00", "20:00"] },
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "14:00" }, { time: "20:00" }] },
     },
     prescriber: "alvarez",
     pharmacy: "cornerstone",
@@ -183,7 +185,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 tablet",
       directions: "Twice a day.",
       reason: "Bladder urgency",
-      schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
     },
     prescriber: "alvarez",
     saves: [
@@ -214,7 +216,7 @@ export const SECOND_GROUP_MEDICATIONS: SeedMedication[] = [
       dose: "1 capsule",
       directions: "Once a day, half an hour after dinner.",
       reason: "Prostate",
-      schedule: { type: "scheduled", times: ["19:00"] },
+      schedule: { type: "scheduled", slots: [{ time: "19:00" }] },
     },
   },
 ];
@@ -252,9 +254,9 @@ const scheduledDoses = (): SeedDose[] => {
   for (let daysAgo = DOSE_DAYS; daysAgo >= 0; daysAgo--) {
     for (const key of ["lisinopril", "metformin", "latanoprost"]) {
       const medication = DEV_FAMILY_MEDICATIONS.find((m) => m.key === key);
-      const schedule = medication?.content.schedule;
+      const schedule = normalizeSchedule(medication?.content.schedule);
       if (schedule?.type !== "scheduled") continue;
-      for (const slot of schedule.times as LocalTime[]) {
+      for (const slot of ownTimes(schedule) as LocalTime[]) {
         if (daysAgo === 0 && slot >= EVENING) continue;
         const exception = EXCEPTIONS[`${key} ${daysAgo} ${slot}`];
         // A few minutes after the slot, never the same twice in a row.

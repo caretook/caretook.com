@@ -73,3 +73,11 @@ export type * from "./waitlistEntry/types";
 import * as contactMessageModel from "./contactMessage";
 export { contactMessageModel };
 export type * from "./contactMessage/types";
+
+import * as medicationPassModel from "./medicationPass";
+export { medicationPassModel };
+export type * from "./medicationPass/types";
+
+import * as recipientAllergyModel from "./recipientAllergy";
+export { recipientAllergyModel };
+export type * from "./recipientAllergy/types";

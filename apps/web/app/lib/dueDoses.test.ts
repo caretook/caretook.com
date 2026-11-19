@@ -11,7 +11,7 @@ const med = (over: Partial<DueMedication> & { id: string }): DueMedication => ({
   name: over.id,
   strength: null,
   dose: "1 tablet",
-  schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+  schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
   status: "current",
   deletedAt: null,
   createdAt: "2026-01-01T00:00:00.000Z",
@@ -50,7 +50,10 @@ describe("dueDoses", () => {
   });
 
   it("holds on the spring-forward day", () => {
-    const m = med({ id: "a", schedule: { type: "scheduled", times: ["02:30", "08:00"] } });
+    const m = med({
+      id: "a",
+      schedule: { type: "scheduled", slots: [{ time: "02:30" }, { time: "08:00" }] },
+    });
     const result = run([m], [], new Date("2026-03-08T15:30:00Z")); // 8:30 PDT
     expect(result.day).toBe("2026-03-08");
     expect(result.slots.map((s) => [s.time, s.at, s.state])).toEqual([
@@ -65,7 +68,10 @@ describe("dueDoses", () => {
   });
 
   it("holds on the fall-back day", () => {
-    const m = med({ id: "a", schedule: { type: "scheduled", times: ["01:30", "08:00"] } });
+    const m = med({
+      id: "a",
+      schedule: { type: "scheduled", slots: [{ time: "01:30" }, { time: "08:00" }] },
+    });
     const result = run([m], [], new Date("2026-11-01T15:59:00Z")); // 7:59 PST
     expect(result.slots.map((s) => [s.time, s.at, s.state])).toEqual([
       ["01:30", "2026-11-01T08:30:00.000Z", "overdue"],
@@ -74,7 +80,7 @@ describe("dueDoses", () => {
   });
 
   it("moves upcoming → due → overdue at the boundaries", () => {
-    const m = [med({ id: "a", schedule: { type: "scheduled", times: ["08:00"] } })];
+    const m = [med({ id: "a", schedule: { type: "scheduled", slots: [{ time: "08:00" }] } })];
     expect(states(run(m, [], plus(AM, -1)))).toEqual(["08:00 upcoming"]);
     expect(states(run(m, [], new Date(AM)))).toEqual(["08:00 due"]);
     expect(states(run(m, [], plus(AM, 59)))).toEqual(["08:00 due"]);
@@ -124,7 +130,9 @@ describe("dueDoses", () => {
   });
 
   it("never moves a second dose named for an answered slot onto another one", () => {
-    const m = [med({ id: "a", schedule: { type: "scheduled", times: ["08:00", "09:00"] } })];
+    const m = [
+      med({ id: "a", schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "09:00" }] } }),
+    ];
     const result = run(
       m,
       [
@@ -146,7 +154,7 @@ describe("dueDoses", () => {
   });
 
   it("matches a late-night slot answered after midnight to yesterday", () => {
-    const m = [med({ id: "a", schedule: { type: "scheduled", times: ["23:30"] } })];
+    const m = [med({ id: "a", schedule: { type: "scheduled", slots: [{ time: "23:30" }] } })];
     const now = new Date("2026-11-19T08:30:00Z"); // 0:30 on the 19th
     const result = run(m, [dose("a", "2026-11-19T08:15:00Z", "refused", "23:30")], now);
     expect(result.yesterday.map((s) => s.state)).toEqual(["refused"]);

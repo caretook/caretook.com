@@ -119,7 +119,7 @@ describe("current medications", () => {
           dose: "1 tablet",
           directions: " With water ",
           reason: "Blood pressure",
-          schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+          schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
           startedOn: "2026-07-21",
           prescriberId: "p1",
         }),

@@ -125,7 +125,8 @@ describe("sync.upload: medication", () => {
     expect(ok(await medicationService.getById(viewer.ctx, id))).toMatchObject({
       name: "Lisinopril",
       recipientId: recipient.id,
-      schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+      // Uploaded in the old shape (an older build's), stored as slots.
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
       startedOn: "2026-11-01",
       refillsLeft: 1,
       lastFilledOn: "2026-11-17",

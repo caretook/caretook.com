@@ -30,11 +30,13 @@ describe("schedule wording", () => {
     expect(listText([])).toBe("");
     expect(listText(["a"])).toBe("a");
     expect(listText(["a", "b", "c"])).toBe("a, b and c");
-    expect(scheduleText({ type: "scheduled", times: ["08:00"] })).toBe("8:00");
-    expect(scheduleText({ type: "scheduled", times: ["08:00", "20:00"] })).toBe("8:00 and 20:00");
-    expect(scheduleText({ type: "scheduled", times: ["08:00", "14:00", "21:00"] })).toBe(
-      "8:00, 14:00 and 21:00",
+    expect(scheduleText({ type: "scheduled", slots: [{ time: "08:00" }] })).toBe("8:00");
+    expect(scheduleText({ type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] })).toBe(
+      "8:00 and 20:00",
     );
+    expect(
+      scheduleText({ type: "scheduled", slots: [{ time: "08:00" }, { time: "14:00" }, { time: "21:00" }] }),
+    ).toBe("8:00, 14:00 and 21:00");
   });
   it("says as needed, with the maximum when there is one", () => {
     expect(scheduleText({ type: "asNeeded", maxPerDay: 4 })).toBe("As needed, up to 4 a day");
@@ -58,7 +60,7 @@ describe("medication wording", () => {
       medicationSummaryLine({
         form: "tablet",
         dose: "1 tablet",
-        schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+        schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
       }),
     ).toBe("Tablet · 1 tablet · 8:00 and 20:00");
     expect(
@@ -119,13 +121,13 @@ describe("change wording", () => {
         fields: ["dose", "schedule", "form", "directions"],
         before: {
           dose: "1 tablet",
-          schedule: { type: "scheduled", times: ["08:00"] },
+          schedule: { type: "scheduled", slots: [{ time: "08:00" }] },
           form: "tablet",
           directions: null,
         },
         after: {
           dose: "2 tablets",
-          schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+          schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
           form: "capsule",
           directions: "With food",
         },

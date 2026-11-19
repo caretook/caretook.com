@@ -93,7 +93,7 @@ export const medicationFromForm = (form: FormData): MedicationFormData => {
       ? maxPerDay === null
         ? { type: "asNeeded" }
         : { type: "asNeeded", maxPerDay }
-      : { type: "scheduled", times };
+      : { type: "scheduled", slots: times.map((time) => ({ time })) };
 
   const newPrescriber = text(form, FIELD.newPrescriber).trim();
   const newPharmacy = text(form, FIELD.newPharmacy).trim();
@@ -126,12 +126,15 @@ export const medicationFromForm = (form: FormData): MedicationFormData => {
 };
 
 /**
- * Issues on sent times (`schedule.times.1`) moved to the form's rows, so
- * they show on the right field. Others are left as they are.
+ * Issues on sent times moved to the form's rows, so they show on the right
+ * field: the schedule's `schedule.slots.1.time` (or `schedule.slots.1`) is
+ * row `schedule.times.<row>`, and `schedule.slots` is `schedule.times`.
+ * Others are left as they are.
  */
 export const issuesForTimeRows = (issues: FieldIssue[], timeRows: number[]): FieldIssue[] =>
   issues.map((issue) => {
-    const match = /^schedule\.times\.(\d+)$/.exec(issue.path);
+    if (issue.path === "schedule.slots") return { ...issue, path: "schedule.times" };
+    const match = /^schedule\.(?:times|slots)\.(\d+)(?:\.time)?$/.exec(issue.path);
     if (!match) return issue;
     const row = timeRows[Number(match[1])];
     return row === undefined ? issue : { ...issue, path: `schedule.times.${row}` };

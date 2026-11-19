@@ -28,7 +28,8 @@ streams:
       - SELECT id, group_id, user_id, role, invited_by, created_at FROM care_group_member WHERE group_id IN my_groups
       # `time_zone`: a medication's schedule times are in the recipient's zone.
       # `date_of_birth`: the printable medication sheet works offline.
-      - SELECT id, group_id, name, preferred_name, time_zone, date_of_birth FROM care_recipient WHERE group_id IN my_groups
+      # `no_known_allergies_at`: "No known allergies" was recorded (medications-2).
+      - SELECT id, group_id, name, preferred_name, time_zone, date_of_birth, no_known_allergies_at FROM care_recipient WHERE group_id IN my_groups
       # `ends_at`, `all_day`, `place`, the cancel fields and `rescheduled_to`:
       # appointments and reminders (future events and notes).
       - >-
@@ -66,6 +67,17 @@ streams:
         last_filled_on, quantity, refills_left, rx_number,
         deleted_at, created_at, updated_at, created_by, updated_by
         FROM medication WHERE group_id IN my_groups
+      # The medication passes (Morning, Evening…), soft-deleted ones included
+      # (a medication naming a deleted pass keeps its last time).
+      - >-
+        SELECT id, group_id, recipient_id, name, time, sort_order,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM medication_pass WHERE group_id IN my_groups
+      # The recipient's allergies, soft-deleted ones included.
+      - >-
+        SELECT id, group_id, recipient_id, substance, reaction, severity,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM recipient_allergy WHERE group_id IN my_groups
 
   # Co-members' public profiles (name and picture) for author names.
   member_profiles:

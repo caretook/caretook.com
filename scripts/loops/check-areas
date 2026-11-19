@@ -176,6 +176,9 @@ apps/web/app/lib/sync/providers.ts       providers
 # The medication list: the device module, the list and a medication's page
 # (its live notes run live-notes too).
 apps/web/app/lib/sync/medications.ts     medications
+# Passes (medications-2): the device module; the Passes screen is under
+# routes/app/groups/medications/passes/ (the rule below).
+apps/web/app/lib/sync/medicationPasses.ts medications
 apps/web/app/routes/app/groups/medications/* medications
 apps/web/app/routes/app/groups/medication/* medications live-notes
 # The status actions (the medication page and the list's edit sheet).
@@ -219,6 +222,8 @@ packages/data/src/db/schema/noteEditors.ts live-notes
 packages/data/src/db/schema/provider.ts  providers
 packages/data/src/db/schema/entryProvider.ts providers
 packages/data/src/db/schema/medication.ts medications
+packages/data/src/db/schema/medicationPass.ts medications
+packages/data/src/db/schema/recipientAllergy.ts medications
 packages/data/src/db/schema/timeZone.ts  roundtrip
 packages/data/src/db/schema/inviteRules.ts invites app-shell
 packages/data/src/db/schema/careGroup*.ts app-shell invites
@@ -235,6 +240,7 @@ packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 packages/data/src/db/seeds/providers.ts  providers
 packages/data/src/db/seeds/invites.ts    invites app-shell
 packages/data/src/db/seeds/medications.ts medications
+packages/data/src/db/seeds/medicationPasses.ts medications
 packages/data/src/db/seeds/*             app-shell
 
 # The rest of the data layer (services, models, permissions, errors) has

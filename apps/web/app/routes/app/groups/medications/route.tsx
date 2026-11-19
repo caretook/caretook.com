@@ -3,7 +3,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/api";
 import type { MedicationRow } from "~/lib/sync/medications";
 
-import { Plus, Printer } from "lucide-react";
+import { Clock, Plus, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { appUrls } from "~/lib/appUrls";
@@ -96,6 +96,15 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          <Link
+            to={appUrls.medicationPasses(params.groupId)}
+            prefetch="render"
+            className="btn btn-ghost btn-sm gap-1.5"
+            data-passes-link
+          >
+            <Clock className="size-4" aria-hidden="true" />
+            Passes
+          </Link>
           <Link
             to={appUrls.medicationsPrint(params.groupId)}
             prefetch="render"

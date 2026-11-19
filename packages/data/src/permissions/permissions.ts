@@ -331,6 +331,33 @@ export const PERMISSIONS: Permissions = {
     update: SYSTEM_ONLY_ENTRY,
     delete: ADMIN_ONLY_PERMISSION_ENTRY,
   },
+  // The group's medication passes (Morning, Evening…): like medication. Any
+  // writer adds, renames, retimes, reorders and soft-deletes them. Write
+  // through medicationPassService, which keeps names unique, writes a
+  // retime's change entry and rewrites schedules when a pass is deleted.
+  medicationPassSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+    },
+    delete: groupEntry(WRITERS),
+  },
+  // The recipient's allergies: like medication (soft deletes, writers write).
+  recipientAllergySchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+    },
+    delete: groupEntry(WRITERS),
+  },
 };
 
 // ---------------------------------------------------------------------------

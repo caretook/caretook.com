@@ -7,9 +7,11 @@ import type {
   MedicationStopReason,
   MedicationSummary,
   MedicationTrackedField,
+  PassMovedDetails,
 } from "@caretook/data/schema";
 import type { DoseSlot, DoseWarning } from "./dueDoses";
 
+import { ownTimes } from "@caretook/data/schema";
 import { timeInZone } from "./zonedDay";
 
 // How medications, their schedules, doses and changes read on screen: the
@@ -59,7 +61,7 @@ export const listText = (items: readonly string[]) =>
 
 /** "8:00 and 20:00", "As needed, up to 4 a day", "As needed". */
 export const scheduleText = (schedule: MedicationSchedule) => {
-  if (schedule.type === "scheduled") return listText(schedule.times.map(clockTime));
+  if (schedule.type === "scheduled") return listText(ownTimes(schedule).map(clockTime));
   return schedule.maxPerDay ? `As needed, up to ${schedule.maxPerDay} a day` : "As needed";
 };
 
@@ -170,6 +172,10 @@ export const changeText = (details: MedicationChangeDetails) => {
     }
   }
 };
+
+/** What a pass-moved entry says: "Morning moved 8:00 → 8:30". */
+export const passMovedText = ({ passName, beforeTime, afterTime }: PassMovedDetails) =>
+  `${passName} moved ${clockTime(beforeTime)} → ${clockTime(afterTime)}`;
 
 /**
  * Schedule times are the recipient's: say so when the viewer's device is in

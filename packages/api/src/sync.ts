@@ -1,8 +1,10 @@
 import type {
   AppError,
   AuthUser,
+  MedicationPassUpsertInput,
   MedicationUpsertInput,
   ProviderUpsertInput,
+  RecipientAllergyUpsertInput,
   TimelineEntryUpsertInput,
 } from "@caretook/data";
 
@@ -11,10 +13,12 @@ import {
   ERRORS,
   isError,
   logError,
+  medicationPassService,
   medicationService,
   newError,
   noteDocumentService,
   providerService,
+  recipientAllergyService,
   timelineEntryService,
 } from "@caretook/data";
 import { z } from "zod";
@@ -368,6 +372,124 @@ const medicationOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Ou
 };
 
 // ---------------------------------------------------------------------------
+// medication_pass: like medication. A retime writes its `passMoved` entry
+// (id from the pass and the device's `updated_at`, like a medication's
+// change), and a delete rewrites every schedule naming the pass, so the
+// device's own copies of both, uploaded next, change nothing.
+// ---------------------------------------------------------------------------
+
+const PASS_COLUMNS = {
+  name: (v: unknown) => ["name", text(v)],
+  time: (v: unknown) => ["time", text(v)],
+  sort_order: (v: unknown) => ["sortOrder", int(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const passContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = PASS_COLUMNS[column as keyof typeof PASS_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a pass that's already deleted is a replay: fine. */
+const removePass = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await medicationPassService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "medicationPassService:notFound") return res;
+  const pass = await medicationPassService.getById(ctx, id, { includeDeleted: true });
+  if (isError(pass)) return pass;
+  return pass?.deletedAt ? applied : res;
+};
+
+const medicationPassOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  const opts = { changedAt: text(data.updated_at) };
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...passContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await medicationPassService.upsert(ctx, input as unknown as MedicationPassUpsertInput, opts);
+    if (isError(res)) return res;
+    if (data.deleted_at) return removePass(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removePass(ctx, op.id);
+
+  if ("group_id" in data || "recipient_id" in data)
+    return newError({ code: "medicationPassService:immutable" });
+  if (data.deleted_at) return removePass(ctx, op.id);
+  const content = passContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await medicationPassService.update(ctx, op.id, content, opts);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "medicationPassService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
+// recipient_allergy: like provider. Soft deletes; the group and recipient never change.
+// ---------------------------------------------------------------------------
+
+const ALLERGY_COLUMNS = {
+  substance: (v: unknown) => ["substance", text(v)],
+  reaction: (v: unknown) => ["reaction", text(v)],
+  severity: (v: unknown) => ["severity", text(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const allergyContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = ALLERGY_COLUMNS[column as keyof typeof ALLERGY_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting an allergy that's already deleted is a replay: fine. */
+const removeAllergy = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await recipientAllergyService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "recipientAllergyService:notFound") return res;
+  const allergy = await recipientAllergyService.getById(ctx, id, { includeDeleted: true });
+  if (isError(allergy)) return allergy;
+  return allergy?.deletedAt ? applied : res;
+};
+
+const recipientAllergyOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...allergyContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await recipientAllergyService.upsert(ctx, input as unknown as RecipientAllergyUpsertInput);
+    if (isError(res)) return res;
+    if (data.deleted_at) return removeAllergy(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeAllergy(ctx, op.id);
+
+  if ("group_id" in data || "recipient_id" in data)
+    return newError({ code: "recipientAllergyService:immutable" });
+  if (data.deleted_at) return removeAllergy(ctx, op.id);
+  const content = allergyContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await recipientAllergyService.update(ctx, op.id, content);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "recipientAllergyService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -378,6 +500,8 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   provider: providerOp,
   timeline_entry_provider: entryProviderOp,
   medication: medicationOp,
+  medication_pass: medicationPassOp,
+  recipient_allergy: recipientAllergyOp,
 };
 
 /**
