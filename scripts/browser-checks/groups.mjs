@@ -3,6 +3,9 @@
 //      form (account, then who you care for); the confirmation email opens
 //      the new group's empty timeline as its owner, with the Invite someone
 //      card; the redemption is recorded.
+//   1b. The same form with a seeded address (B-67): the same "check your
+//      email" screen, an email to that address saying to sign in, and no
+//      account, group or redemption.
 //   2. That user starts a second group from /app/groups/new (the sheet) and
 //      lands on its empty timeline; the group menu lists both.
 //   3. Expired, revoked, used-up and unknown codes say so plainly, with no form.
@@ -30,6 +33,8 @@ const RUN = `grp${Date.now().toString(36)}`;
 const TAG = `GR${RUN.slice(3)}`;
 const email = (who) => `${RUN}-${who}@example.com`;
 const NEW_PASSWORD = `a ${RUN} passphrase`;
+// A seeded, verified account (so Better Auth sends it no confirmation email).
+const EXISTING = "caretaker@example.com";
 
 const psql = (sql) =>
   execFileSync("docker", [
@@ -70,7 +75,9 @@ const cleanUp = () => {
     DELETE FROM verification WHERE identifier LIKE '%${RUN}-%' OR value LIKE '%${RUN}-%';
     DELETE FROM dev_mail WHERE recipient LIKE ${like};
     DELETE FROM notification_outbox WHERE recipient LIKE ${like};
-    DELETE FROM waitlist_entry WHERE email LIKE ${like};`);
+    DELETE FROM waitlist_entry WHERE email LIKE ${like};
+    DELETE FROM dev_mail WHERE recipient = '${EXISTING}' AND name = 'accessCodeExistingAccount';
+    DELETE FROM notification_outbox WHERE recipient = '${EXISTING}' AND name = 'accessCodeExistingAccount';`);
 };
 
 // --- Mail ---------------------------------------------------------------------
@@ -98,7 +105,6 @@ const button = (label) =>
   `[...document.querySelectorAll('main button, [role="dialog"] button')].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`;
 const h1 = `(document.querySelector("main h1")?.textContent.trim() ?? "")`;
 const onTimeline = `/^\\/app\\/groups\\/[0-9a-f-]+\\/timeline$/.test(location.pathname)`;
-const groupIdOf = (path) => /\/app\/groups\/([0-9a-f-]+)\//.exec(path)?.[1];
 
 const fill = async (p, name, value) => p.type(q(`[name="${name}"]`), value);
 
@@ -130,9 +136,12 @@ try {
     check(placeholder === `${TAG} Nana's care`, "the group name defaults to the preferred name", placeholder);
     await p.press(button("Create care group"));
     await p.waitFor(`location.pathname === "/verify-email"`, 20000);
-    const next = await p.evaluate(`new URLSearchParams(location.search).get("next") ?? ""`);
-    firstGroup = groupIdOf(next);
-    check(Boolean(firstGroup), "sign-up asks to confirm the email, then the new group", next);
+    // /app is the default, so the URL may leave it out.
+    const next = await p.evaluate(`new URLSearchParams(location.search).get("next") ?? "/app"`);
+    check(next === "/app", "sign-up asks to confirm the email, then opens Caretook", next);
+    firstGroup = psql(`
+      SELECT m.group_id FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE u.email = '${owner}'`);
+    globalThis.joinScreen = await p.evaluate(`${h1}`);
 
     const row = psql(`
       SELECT m.role || '|' || u.email_verified || '|' || g.name || '|' || (SELECT count(*) FROM access_code_redemption r WHERE r.user_id = u.id AND r.group_id = g.id)
@@ -148,7 +157,7 @@ try {
     const link = mail.links.find((l) => l.includes("/verify-email?token="));
     check(
       Boolean(link) && link.includes(encodeURIComponent(next)),
-      "the confirmation link goes on to the group",
+      "the confirmation link goes on to Caretook",
       link,
     );
     await p.goto(new URL(link).pathname + new URL(link).search);
@@ -162,6 +171,56 @@ try {
     const cardLink = await p.evaluate(`${q("[data-invite-card] a")}.getAttribute("href")`);
     check(cardLink === `/app/groups/${firstGroup}/settings/members`, "the card opens Members", cardLink);
     globalThis.joinPage = p;
+  });
+
+  // 1b. An address that already has an account (B-67) ------------------------------
+  await step("1b. an existing address gets the same answer, and an email", async () => {
+    psql(`
+      DELETE FROM dev_mail WHERE recipient = '${EXISTING}' AND name = 'accessCodeExistingAccount';
+      DELETE FROM notification_outbox WHERE recipient = '${EXISTING}' AND name = 'accessCodeExistingAccount';`);
+    const counts = () =>
+      psql(`
+        SELECT (SELECT count(*) FROM "user" WHERE lower(email) = '${EXISTING}') || '|' ||
+          (SELECT count(*) FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE u.email = '${EXISTING}') || '|' ||
+          (SELECT count(*) FROM access_code_redemption r JOIN "user" u ON u.id = r.user_id WHERE u.email = '${EXISTING}') || '|' ||
+          (SELECT use_count FROM access_code WHERE code = 'CARE-DEMO-0001') || '|' ||
+          (SELECT count(*) FROM care_recipient WHERE name = '${TAG} Existing Example')`);
+    const before = counts();
+    const p = await open(9607, "join-existing");
+    await p.goto("/join/care-demo-0001");
+    await p.waitFor(`${h1} === "Start a care group" && ${q('[data-join-form="account"]')}`, 20000);
+    await fill(p, "name", "Someone Else");
+    await fill(p, "email", EXISTING.toUpperCase());
+    await fill(p, "password", NEW_PASSWORD);
+    await fill(p, "confirm", NEW_PASSWORD);
+    await p.press(button("Continue"));
+    await p.waitFor(`${h1} === "Who do you care for?"`);
+    await fill(p, "recipientName", `${TAG} Existing Example`);
+    await p.press(button("Create care group"));
+    await p.waitFor(`location.pathname === "/verify-email"`, 20000);
+    const seen = await p.evaluate(
+      `({ h: ${h1}, next: new URLSearchParams(location.search).get("next") ?? "/app", error: !!document.querySelector('[role="alert"]') })`,
+    );
+    check(
+      seen.h === globalThis.joinScreen && seen.next === "/app" && !seen.error,
+      "it lands on the same screen as a new address",
+      JSON.stringify({ ...seen, newAddress: globalThis.joinScreen }),
+    );
+    const mail = await waitForMail(EXISTING, "accessCodeExistingAccount");
+    check(
+      mail.text.includes("sign in and choose New care group") &&
+        mail.links.some((l) => l.includes("/sign-in?redirectTo=%2Fapp%2Fgroups%2Fnew")) &&
+        !mail.text.includes("CARE-DEMO") &&
+        !mail.text.includes(TAG),
+      "the address's owner gets an email saying to sign in",
+      mail.subject,
+    );
+    const after = counts();
+    check(
+      after === before,
+      "no account, membership, redemption or recipient is created",
+      `${before} → ${after}`,
+    );
   });
 
   // 2. A second group from the New care group sheet -------------------------------

@@ -24,11 +24,11 @@
 | 16    | B-72 | running |                                                       |
 | 17    | B-44 | running |                                                       |
 | 18    | B-73 | merged  | 59f380a (f6a783e)                                     |
-| 19    | B-67 | running |                                                       |
+| 19    | B-67 | merged  | 0ddaaa7 (46e8be0)                                     |
 
 Waves 1 (slices 1–3) and 2 (slices 4 and 5, browser check tooling; `937d406`) are in `dev`. Wave 3 (slices 7–9) landed in `dev` as 01d4d6d. Wave 4 (slice 6) landed as 37502ef. Wave 5 landed as 8e0c2c0. Wave 6 (slices 10 and 14) is merged into `prd/quick-fixes`.
 
-Wave 7 (slices 15–17) landed in `dev` as 23e1be2. Slice 18 (B-73) lands on its own: `ui/Sheet` is full screen below `sm` (every sheet measured 0,0,420×900 and scrolling); the title row scrolls with the content, and on iOS the keyboard doesn't shrink `dvh`, so the sheet's own scroll keeps Save reachable. Slice 19 (B-67) is running. `medications.mjs` failed twice at landing in slice 3's own steps (B-74, filed for medications).
+Wave 7 (slices 15–17) landed in `dev` as 23e1be2. Slice 18 (B-73) lands on its own: `ui/Sheet` is full screen below `sm` (every sheet measured 0,0,420×900 and scrolling); the title row scrolls with the content, and on iOS the keyboard doesn't shrink `dvh`, so the sheet's own scroll keeps Save reachable. Slice 19 (B-67): `/join/:code` answers alike for existing and new addresses; an existing one gets the `accessCodeExistingAccount` email (outbox key: address, code, UTC day), nothing is created, and refused codes are refused alike. `accessCode.signUp` returns only `{ email }`; the confirmation `callbackURL` is `/app`. `medications.mjs` failed twice at landing in slice 3's own steps (B-74, filed for medications).
 
 - Slice 15: the bug was the time chip popover, not the sheets: daisyUI's `fieldset` is a grid, so the field's group didn't shrink and spilled ~15 px at every width. `DateTimeField`'s group is `min-w-0`, segments may wrap, separators lost their padding, and "Pick a date" has an invisible 44×48 tap box. `ui.mjs` checks fit at 360/390/420/1280; check-areas maps `components/ui/date/*` to `ui roundtrip live-notes medications`. Calendar day cells are still 32 px.
 - Slice 16: below `sm` the suggestions are one sideways-scrolling row (hidden scrollbar, end fade) rather than 3 + More, which still wrapped to two rows at 420. Presentation only.
