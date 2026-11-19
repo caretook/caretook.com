@@ -77,7 +77,7 @@ export const isSearchItemType = (value: unknown): value is SearchItemType =>
 const HOME = "/app";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
-export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account", "contact"] as const;
+export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account", "contact", "devices"] as const;
 export type AccountSettingsPage = (typeof ACCOUNT_SETTINGS_PAGES)[number];
 const isAccountSettingsPage = (page: unknown): page is AccountSettingsPage =>
   (ACCOUNT_SETTINGS_PAGES as readonly unknown[]).includes(page);

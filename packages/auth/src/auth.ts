@@ -53,6 +53,11 @@ const createAuth = () => {
       database: { generateId: "uuid" },
     },
     disabledPaths: UNUSED_OTP_PATHS,
+    // Account settings' Devices page lists the account's sessions. Better
+    // Auth's list-sessions refuses a session older than `freshAge` (a day by
+    // default), which would hide the list from anyone signed in for longer.
+    // Nothing else we use checks freshness (deleteUser and unlink-account are off).
+    session: { freshAge: 0 },
     // Accounts come only from invitations (invites slices 3–5), never from
     // public sign-up. An unverified account can't sign in with a password:
     // it gets a fresh verification email and EMAIL_NOT_VERIFIED instead.
