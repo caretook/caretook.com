@@ -139,7 +139,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-96 | change | triaged | quick-fixes |  | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
 | B-97 | change | triaged | quick-fixes |  | Vitals filter on timeline should bring up a sub-filter for vital type. |
 | B-98 | change | triaged | quick-fixes |  | Hide add to timeline buttons behind a + icon in the timeline header. |
-| B-99 | change | inbox |  |  | Don't display recent vitals in the timeline header in mobile, |
+| B-99 | change | triaged | quick-fixes |  | Don't display recent vitals in the timeline header in mobile, |
 | B-100 | change | inbox |  |  | Add "recent vita averages" to the profile page. |
 | B-101 | change | inbox |  |  | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-102 | change | inbox |  |  | Don't display recent vitals in the timeline header in mobile, |
@@ -1247,8 +1247,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-99 · change · Don't display recent vitals in the timeline header in mobile,
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
 
