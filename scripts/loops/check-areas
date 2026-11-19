@@ -116,6 +116,14 @@ apps/web/app/components/ui/*             ui app-shell
 apps/web/app/components/brand/*          app-shell marketing
 
 # The timeline, its rows, filters, vitals and sheets.
+# The timeline's Next strip and Upcoming block, and the data they share with the history.
+apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
+apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
+apps/web/app/routes/app/groups/timeline/aheadQueries.ts phase2 upcoming
+apps/web/app/routes/app/groups/timeline/useHistoryCutoff.ts phase2 upcoming
+apps/web/app/routes/app/groups/timeline/useTimelineData.ts phase2 roundtrip upcoming
+apps/web/app/routes/app/groups/timeline/timelineRows.ts phase2 roundtrip upcoming
+apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx phase2 roundtrip upcoming
 apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
 apps/web/app/components/entry/*          phase2 roundtrip live-notes upcoming
 apps/web/app/components/forms/*          roundtrip live-notes
@@ -189,5 +197,6 @@ packages/data/scripts/*                  -
 apps/web/app/routes/app/groups/upcoming/* upcoming
 apps/web/app/lib/upcoming.ts             upcoming
 apps/web/app/lib/upcomingLabels.ts       upcoming
+apps/web/app/lib/upcomingDays.ts         upcoming
 apps/web/app/lib/sync/useLiveRows.ts     phase2 upcoming
 apps/web/app/lib/groupSections.ts        app-shell routing upcoming

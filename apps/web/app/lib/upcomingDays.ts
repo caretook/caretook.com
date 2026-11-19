@@ -1,10 +1,10 @@
-import type { TimedEntry } from "../../../../lib/upcoming";
+import type { TimedEntry } from "./upcoming";
 
 import { localDate } from "@caretook/data/schema";
-import { dayLabel } from "../../../../lib/format";
-import { entryTiming, upcomingOrder } from "../../../../lib/upcoming";
+import { dayLabel } from "./format";
+import { entryTiming, upcomingOrder } from "./upcoming";
 
-// Upcoming's and the Past tab's sections. Pure, so web:unit tests it.
+// Upcoming's and the Past tab's sections, and the timeline's Upcoming block. Pure, so web:unit tests it.
 
 /** One section: its key (`day-<key>` ids), heading and items, in list order. */
 export type UpcomingSection<T> = { key: string; label: string; items: T[] };
@@ -83,4 +83,25 @@ export const pastSections = <T extends TimedEntry>(
     }
   }
   return sections;
+};
+
+/** How many items the timeline's Upcoming block shows before "See all in Upcoming". */
+export const UPCOMING_BLOCK_LIMIT = 5;
+
+/**
+ * The first `limit` items of `sections`, in order, keeping their sections
+ * (a section past the limit is left out), and how many items there were in all.
+ */
+export const firstItems = <T>(sections: readonly UpcomingSection<T>[], limit: number) => {
+  const out: UpcomingSection<T>[] = [];
+  let left = limit;
+  let total = 0;
+  for (const section of sections) {
+    total += section.items.length;
+    if (left <= 0) continue;
+    const items = section.items.slice(0, left);
+    left -= items.length;
+    out.push({ ...section, items });
+  }
+  return { sections: out, total };
 };

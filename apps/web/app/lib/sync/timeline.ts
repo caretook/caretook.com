@@ -170,9 +170,10 @@ const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonl
 
 /**
  * The timeline's window: one group's live entries under the filters, newest
- * first, as the tail of a `SELECT … FROM timeline_entry`. `entriesQuery` and
- * `timelineLinksQuery` are both built on it, so the "with …" lines always
- * cover exactly the listed entries. It asks for one row more than `limit`, so
+ * first, as the tail of a `SELECT … FROM timeline_entry`. `historyWindow`
+ * adds the history's end to it (the timeline reads `historyQuery` and
+ * `timelineLinksQuery`, so the "with …" lines always cover exactly the
+ * listed entries). It asks for one row more than `limit`, so
  * the screen knows whether there are older entries.
  */
 export const entryWindow = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
@@ -262,6 +263,23 @@ export const pastEventsWindow = (
 /** One group's entries under the filters, newest first (`entryWindow`). */
 export const entriesQuery = (groupId: string, filters: EntryFilters, limit: number): LocalQuery => {
   const window = entryWindow(groupId, filters, limit);
+  return { sql: `SELECT * ${window.sql}`, params: window.params };
+};
+
+/** The timeline's history: one group's entries under the filters, newest first, ending at `cutoff` (`historyWindow`). */
+export const historyQuery = (
+  groupId: string,
+  filters: EntryFilters,
+  limit: number,
+  cutoff: string,
+): LocalQuery => {
+  const window = historyWindow(groupId, filters, limit, cutoff);
+  return { sql: `SELECT * ${window.sql}`, params: window.params };
+};
+
+/** Upcoming notes and events under the filters, soonest first (`upcomingWindow`): the Next strip and the Upcoming block. */
+export const upcomingQuery = (groupId: string, filters: EntryFilters, now: Date): LocalQuery => {
+  const window = upcomingWindow(groupId, filters, now);
   return { sql: `SELECT * ${window.sql}`, params: window.params };
 };
 

@@ -89,5 +89,5 @@ export const onlySheetChanged = (groupId: string, current: URL, next: URL) => {
   if (current.pathname === next.pathname) return false;
   if (!within(current.pathname, base) || !within(next.pathname, base)) return false;
   const [a, b] = [parseFilters(current.search), parseFilters(next.search)];
-  return a.kind === b.kind && a.author === b.author;
+  return a.kind === b.kind && a.author === b.author && a.upcoming === b.upcoming;
 };

@@ -34,7 +34,7 @@ export function TimelineEntryCard({
           <>
             {liveLabel && <LiveDot label={liveLabel} />}
             <time dateTime={entry.occurredAt} className="text-base-content/70 text-sm tabular-nums">
-              {formatTime(entry.occurredAt)}
+              {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
             </time>
           </>
         }

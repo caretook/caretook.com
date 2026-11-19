@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pastSections, upcomingSections } from "./upcomingDays";
+import { firstItems, pastSections, UPCOMING_BLOCK_LIMIT, upcomingSections } from "./upcomingDays";
 
 const LA = "America/Los_Angeles";
 // Wednesday, Nov 18, 2026, 10:00 AM in Los Angeles.
@@ -83,5 +83,24 @@ describe("pastSections", () => {
       ["Yesterday", ["yesterday"]],
       ["Wednesday, Nov 11", ["last-week"]],
     ]);
+  });
+});
+
+describe("firstItems (the timeline's Upcoming block)", () => {
+  const section = (key: string, items: string[]) => ({ key, label: key, items });
+
+  it("keeps the first items in order, cutting the section the limit falls in", () => {
+    const { sections, total } = firstItems(
+      [section("now", ["a"]), section("2026-11-18", ["b", "c", "d"]), section("2026-11-19", ["e", "f"])],
+      3,
+    );
+    expect(sections).toEqual([section("now", ["a"]), section("2026-11-18", ["b", "c"])]);
+    expect(total).toBe(6);
+  });
+
+  it("keeps everything under the limit", () => {
+    const all = [section("2026-11-18", ["a", "b"])];
+    expect(firstItems(all, UPCOMING_BLOCK_LIMIT)).toEqual({ sections: all, total: 2 });
+    expect(firstItems([], UPCOMING_BLOCK_LIMIT)).toEqual({ sections: [], total: 0 });
   });
 });

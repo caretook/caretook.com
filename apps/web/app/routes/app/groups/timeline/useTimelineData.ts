@@ -5,6 +5,7 @@ import type { NoteDocRow } from "~/lib/sync/notes";
 import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
 import type { TimelineRows } from "./timelineRows";
 import type { TimelineDay } from "./timelineDays";
+import type { UpcomingSection } from "~/lib/upcomingDays";
 
 import { useMemo, useState } from "react";
 import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
@@ -17,8 +18,8 @@ import { useLiveDocuments } from "~/lib/sync/editors";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import { timelineLinksQuery } from "~/lib/sync/providers";
 import {
-  entriesQuery,
   fromLocalTimestamp,
+  historyQuery,
   membersQuery,
   readingsQuery,
   toLatestVitals,
@@ -28,6 +29,10 @@ import {
 import { groupByDay } from "./timelineDays";
 import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/paging";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
+import { nextUp } from "~/lib/upcoming";
+import { firstItems, UPCOMING_BLOCK_LIMIT, upcomingSections } from "~/lib/upcomingDays";
+import { aheadQueries } from "./aheadQueries";
+import { useHistoryCutoff } from "./useHistoryCutoff";
 
 // The timeline's data, live: the loader reads the first screenful
 // (`loadTimelineRows`), and live queries here take over from there, so other
@@ -54,6 +59,12 @@ export type TimelineData = {
   imageOf: (userId: string) => string | null;
   /** A note's or event's linked providers, in link order (the "with …" line). */
   providersOf: (entryId: string) => LinkedProviderName[] | undefined;
+  /** Where the history ends (`historyCutoff`); what's ahead is worked out at this moment. */
+  now: Date;
+  /** The Next strip: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the filters. */
+  next: { next: TimelineEntry | null; more: number };
+  /** The Upcoming block (`?upcoming=1`): its first items under the filters, by day, and how many there are in all. */
+  upcoming: { sections: UpcomingSection<TimelineEntry>[]; total: number };
 };
 
 /** A live document's title: its entry's, else its kind ("Note"). */
@@ -83,7 +94,10 @@ export function useTimelineData({
   const [paging, setPaging] = useState({ kind, author, limit: PAGE_SIZE });
   const requested = paging.kind === kind && paging.author === author ? paging.limit : PAGE_SIZE;
 
-  const entriesSql = entriesQuery(groupId, filters, requested);
+  // The history ends at a cutoff that moves on once a minute, so items cross
+  // from the Upcoming block and the Next strip into it without new rows.
+  const cutoff = useHistoryCutoff(initial.cutoff);
+  const entriesSql = historyQuery(groupId, filters, requested, cutoff);
   const entries = useLiveRows<EntryRow>(entriesSql.sql, entriesSql.params, initial.entryRows);
   const membersSql = membersQuery(groupId);
   const memberRows = useLiveQuery<MemberRow>(membersSql.sql, membersSql.params, initial.memberRows);
@@ -94,10 +108,21 @@ export function useTimelineData({
   const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial.documentRows);
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
   // One query for every loaded entry's links (the same window as the entries), never one per row.
-  const linksSql = timelineLinksQuery(groupId, filters, requested);
+  const linksSql = timelineLinksQuery(groupId, filters, requested, cutoff);
   const links = useLiveRows<EntryProviderLinkRow>(linksSql.sql, linksSql.params, initial.linkRows);
   const linkRows = links.rows;
+  // What's ahead of the history: the Next strip's rows and the Upcoming block's, with its links.
+  const ahead = aheadQueries(groupId, filters, cutoff);
+  const nextRows = useLiveQuery<EntryRow>(ahead.next.sql, ahead.next.params, initial.nextRows);
+  const blockRows = useLiveQuery<EntryRow>(ahead.block.sql, ahead.block.params, initial.blockRows);
+  const blockLinkRows = useLiveQuery<EntryProviderLinkRow>(
+    ahead.blockLinks.sql,
+    ahead.blockLinks.params,
+    initial.blockLinkRows,
+  );
   const providersByEntry = useMemo(() => groupLinksByEntry(linkRows, fromLocalTimestamp), [linkRows]);
+  // An item in progress is in both lists: either query has its links.
+  const blockProviders = useMemo(() => groupLinksByEntry(blockLinkRows, fromLocalTimestamp), [blockLinkRows]);
   // The new page shows once both windows are in, so no "with …" line flickers.
   const page = pageWindow({
     rowCount: entries.rows.length,
@@ -114,12 +139,16 @@ export function useTimelineData({
   );
 
   // A note's or event's text is its live document: its preview is the body.
-  const shown = toTimelineEntries(entries.rows.slice(0, page.limit)).map((entry) =>
-    isLiveEntryKind(entry.kind) ? { ...entry, body: previews.get(entry.id) || null } : entry,
-  );
+  const withPreview = (rows: EntryRow[]) =>
+    toTimelineEntries(rows).map((entry) =>
+      isLiveEntryKind(entry.kind) ? { ...entry, body: previews.get(entry.id) || null } : entry,
+    );
+  const shown = withPreview(entries.rows.slice(0, page.limit));
+  const now = new Date(cutoff);
+  const zone = localTimeZone();
 
   return {
-    days: groupByDay(shown, localTimeZone(), new Date()),
+    days: groupByDay(shown, zone, new Date()),
     hasOlder: page.hasOlder,
     loadingOlder: page.loading,
     loadOlder: () => {
@@ -131,6 +160,9 @@ export function useTimelineData({
     liveLabelOf: (id) => liveLabels.get(id),
     nameOf,
     imageOf: (id) => members.find((m) => m.userId === id)?.image ?? null,
-    providersOf: (id) => providersByEntry.get(id),
+    providersOf: (id) => providersByEntry.get(id) ?? blockProviders.get(id),
+    now,
+    next: nextUp(toTimelineEntries(nextRows), now),
+    upcoming: firstItems(upcomingSections(withPreview(blockRows), now, zone), UPCOMING_BLOCK_LIMIT),
   };
 }
