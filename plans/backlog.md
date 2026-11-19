@@ -63,7 +63,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-87 | plan | triaged | assistant |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
-| B-89 | feature | in-progress | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
+| B-89 | feature | ready | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-91 | feature | ready | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-98 | change | triaged | quick-fixes |  | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-99 | change | triaged | quick-fixes |  | Don't display recent vitals in the timeline header in mobile, |
@@ -289,10 +289,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-89 · feature · PRD tooling streamlining. We are using way too many resources for full docker stacks and browser…
 
-- status: in-progress
+- status: ready
 - prd: orchestration
 - owner: prd/orchestration
-- commit:
+- commit: b0076a1
 
 - 2026-11-19 (backlog planner): From the inbox: PRD tooling streamlining. We are using way too many resources for full docker stacks and browser tests. We should discuss options for reducing the overhead.
 - 2026-11-19 (backlog planner): Proposed for orchestration as a discussion first (no PRD yet): options include shared stacks (one Postgres with a database per worktree, one PowerSync), stackless slices for pure-module work, fewer browser checks per landing, and a lower browser lease count. Needs an interview before any change.
