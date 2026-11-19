@@ -144,6 +144,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-101 | change | dropped |  |  | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-102 | change | dropped |  |  | Don't display recent vitals in the timeline header in mobile, |
 | B-103 | change | dropped |  |  | Add "recent vita averages" to the profile page. |
+| B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 
 ## Items
 
@@ -1291,3 +1292,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): Duplicate of B-100 (the inbox had these three bullets twice); dropped.
+
+### B-104 · plan · Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server
+
+- status: triaged
+- prd: connectors
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the 2026-11-19 planning discussion. A remote MCP server over the assistant PRD's actions layer (Claude connectors and ChatGPT's Apps SDK both speak MCP). Reads and writes; each write is confirmed in the chat, labelled as from an assistant on the timeline, and deletable as usual. Needs OAuth (check Better Auth's OAuth-provider plugins), tokens limited to one group with read and write scopes, revocable on the Devices page (B-80), a per-group consent record, an owners' on/off group setting, and a privacy-page change (data goes to the user's chosen AI vendor). Online only. Siri and Alexa are out for now: dictation only.
