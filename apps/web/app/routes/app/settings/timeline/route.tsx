@@ -1,7 +1,10 @@
 import type { TimelineView } from "@caretook/data/schema";
 import type { Route } from "./+types/route";
+import type { ChoiceOption } from "~/components/ui";
 
 import { useRef, useState } from "react";
+import { SettingsCard, SettingsPage } from "~/components/settings";
+import { ChoiceGroup } from "~/components/ui";
 import { loadSettings, saveSettings } from "~/lib/me";
 import { sessionContext } from "~/lib/session";
 
@@ -17,10 +20,12 @@ export async function clientLoader({ request, context }: Route.ClientLoaderArgs)
   return { userId: user.id, timelineView };
 }
 
-const TIMELINE_VIEW_OPTIONS: { view: TimelineView; label: string }[] = [
-  { view: "rows", label: "Rows" },
-  { view: "cards", label: "Cards" },
+const TIMELINE_VIEW_OPTIONS: ChoiceOption<TimelineView>[] = [
+  { value: "rows", label: "Rows" },
+  { value: "cards", label: "Cards" },
 ];
+
+const LAYOUT_HEADING = "layout-heading";
 
 type LayoutStatus = "saving" | "saved" | "pending" | "failed";
 
@@ -48,43 +53,31 @@ export default function TimelineLayoutSettings({ loaderData }: Route.ComponentPr
   };
 
   return (
-    <section aria-labelledby="layout-heading" className="space-y-4">
-      <h1 id="layout-heading" className="text-2xl font-semibold">
-        Timeline layout
-      </h1>
-      <div className="card bg-base-100 shadow-sm">
-        <div className="card-body">
-          <p className="text-base-content/70 text-sm">
-            How entries show on your timelines. You can also switch it on the timeline itself.
-          </p>
-          <div role="radiogroup" aria-labelledby="layout-heading" className="join">
-            {TIMELINE_VIEW_OPTIONS.map(({ view: option, label }) => (
-              <input
-                key={option}
-                type="radio"
-                name="timelineView"
-                value={option}
-                aria-label={label}
-                checked={view === option}
-                onChange={() => choose(option)}
-                className="join-item btn btn-sm"
-              />
-            ))}
-          </div>
-          <div className="min-h-5">
-            {(status === "saved" || status === "pending") && (
-              <p role="status" className="text-success text-sm">
-                {status === "saved" ? "Saved." : "Saved on this device. It'll sync when you're back online."}
-              </p>
-            )}
-            {status === "failed" && (
-              <p role="alert" className="text-error text-sm">
-                Couldn&apos;t save that. Try again.
-              </p>
-            )}
-          </div>
+    <SettingsPage title="Timeline layout" headingId={LAYOUT_HEADING}>
+      <SettingsCard>
+        <p className="text-base-content/70 text-sm">
+          How entries show on your timelines. You can also switch it on the timeline itself.
+        </p>
+        <ChoiceGroup
+          name="timelineView"
+          labelledBy={LAYOUT_HEADING}
+          options={TIMELINE_VIEW_OPTIONS}
+          value={view}
+          onChange={choose}
+        />
+        <div className="min-h-5">
+          {(status === "saved" || status === "pending") && (
+            <p role="status" className="text-success text-sm">
+              {status === "saved" ? "Saved." : "Saved on this device. It'll sync when you're back online."}
+            </p>
+          )}
+          {status === "failed" && (
+            <p role="alert" className="text-error text-sm">
+              Couldn&apos;t save that. Try again.
+            </p>
+          )}
         </div>
-      </div>
-    </section>
+      </SettingsCard>
+    </SettingsPage>
   );
 }

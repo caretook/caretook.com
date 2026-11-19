@@ -14,13 +14,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): done | (none) | `entry.tsx`, `EntryHeader`, `TimelineEntryRow`/`Card`, `timeline.tsx` |
 | `quick-fixes`     | (no PRD: one slice per fix)                                  | (none)                                               | `sign-in.tsx`, `timeline.tsx`                                               |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | `layout.tsx`, `routes.ts`, `home.tsx` |
-| `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices; 1–3 in `dev` (wave 1). **Paused:** slices 4–7 resume after `routing` and `components` land | `live-notes-ux` (done), `app-shell` (done); slices 4–7 wait for `routing` and `components` | `timeline.tsx`, `TimelineEntryRow`/`Card`, `TimelineFilters`, `LatestVitals` |
+| `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): 7 slices; 1–3 in `dev` (wave 1). **Paused:** slices 4–7 are ready to replan now that `routing` and `components` are done (paging lives in `useTimelineData`) | `live-notes-ux` (done), `app-shell` (done), `routing` (done), `components` (done) | the timeline route folder (`useTimelineData`, `TimelineEntryList`, `EntryBody`, rows and cards), `TimelineFilters`, `LatestVitals` |
 | `search`          | to write | `timeline-polish`'s infinite scroll (slice 7, after `routing` and `components`) | `lib/sync/schema.ts`, `lib/sync/timeline.ts`, `timeline.tsx` |
 | `providers`       | [PRD](providers-prd.md), [plan](providers-plan.md): 7 slices, not started; slice 1 (data) can run now | slice 1: none; 2: `routing` 1; 3: `routing` 2; 5–7 (linking): `components` 2–4 | new tables `provider`, `timeline_entry_provider`; a `note_document` change (reseed); sync config, upload switch, permissions, device schema, seeds; `GROUP_SECTIONS`, `routes.ts`, the entry header, timeline row/card body |
 | `medications`     | planned (6 slices) | `providers` slice 1 (data); `routing` (screens); `components` (primitives, soft) | `TIMELINE_ENTRY_KINDS`, `KIND_META`, timeline strips and quick add, `care_recipient`, `note_document`, sync and upload registries, `GROUP_SECTIONS`, `routes.ts` |
 | `assistant`       | to write                                                     | `search`'s server side; `providers`, `medications` (soft) | `layout.tsx`, `packages/api`, a new AI package                          |
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): 5 slices, not started. **Runs next** | `app-shell` (done), `timeline-polish` wave 1 (in `dev`; its slices 4–7 wait for this) | `routes.ts`, `layout.tsx`, `timeline.tsx`, `entry.tsx`, both settings routes, `GroupMenu`, `lib/liveEntry.ts`, `lib/groupSections.ts` |
-| `components`      | [PRD](components-prd.md), [plan](components-plan.md): 6 slices, not started. Runs after `routing`, before `timeline-polish` slices 4–7 | `routing` | nearly all of `components/` and the route folders; runs alone among UI PRDs |
+| `components`      | [PRD](components-prd.md), [plan](components-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `ca39416`) | `routing` (done) | none now; new UI uses `components/ui/` and the feature folders (AGENTS.md, _Components_) |
 | `invites`         | [PRD](invites-prd.md), [plan](invites-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 3 uses `routing` slice 5 (Members subpage) if in `dev` | a new `packages/notifications`; Better Auth config; `care_group_invite` + new tables; `PERMISSIONS`, `db/schema/index.ts`, the router, `routes.ts`; group settings Members; the group menu; `/app` home; `sign-in.tsx`; env examples and `scripts/loops/lib.sh` |
 | `marketing`       | [PRD](marketing-prd.md), [plan](marketing-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 4: `invites` 1 (outbox); slice 5: `invites` 5 (`/admin`) | web-only marketing routes in `routes.ts`, `react-router.config.ts` (prerender), `root.tsx` (icons, meta), a new public folder; `PERMISSIONS`, `db/schema/index.ts`, the router, `NOTIFICATIONS`, the admin nav |
 
@@ -53,7 +53,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-21 | chore | landed | orchestration | prd/orchestration | Multi-orchestrator tooling: dev/staging/main, prd/ and slice/ branches, the live backlog, hooks |
 | B-22 | bug | landed | quick-fixes | prd/quick-fixes | The first screen after sign-in waits up to 10 s for the first sync |
 | B-23 | change | landed | routing | prd/routing | Nested routes: a group layout route, sheet URLs, settings subpages, a folder per route |
-| B-24 | change | ready | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
+| B-24 | change | landed | components | prd/components | Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-26 | feature | triaged | medications |  | Allergies on the care recipient, shown on the medications page and printed sheet |
 | B-27 | bug | landed | quick-fixes | prd/quick-fixes | routing.mjs fails: group settings blank after the entry step; account Sign out flaky |
@@ -341,7 +341,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-24 · change · Well-abstracted components: UI primitives, thin routes, feature folders, no duplicates
 
-- status: ready
+- status: landed
 - prd: components
 - owner: prd/components
 - commit: 61fe082
@@ -431,6 +431,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (slice/invites/1): invites slice 1 on slice/invites/1 (f1f6dc2, fe08cda, 36520d6): @caretook/notifications, outbox + dev_mail (migration 0009), /api/cron/outbox, /dev/mail. Dropped @react-email/components (deprecated on npm); templates use @react-email/render only.
 - 2026-11-18 (slice/invites/3): slice 3 (email invites with consent) built on slice/invites/3: migration 0010_email_invites, invite.* oRPC, /invite/:token, Members Invite sheet and Pending list. Not synced: invites and consent are read through oRPC; care_group_member gains synced invited_by and created_at.
 - 2026-11-18 (slice/invites/5): invites slice 5 ready on slice/invites/5 (649c1ab, 5eb7b6f): careGroup.create + New care group sheet, Invite someone card, access codes + /join/:code, /admin (codes, print QR, staff group + ownerInvite). Migration 0011_access_codes to regenerate after slice 4.
+- 2026-11-18 (slice/invites/4): slice 4 (invite links, join requests) committed on slice/invites/4: a413fd9, cc04093; migration 0011_link_invites
+- 2026-11-18 (prd/providers): invites.mjs hung (no output for 8+ min, load ~6) in step 6-7 (existing account joins from the link) during prd/providers' landing suite on 2026-11-18; a rerun passed 67/67. Its waits there have no timeout, so a hang never fails. Needs a timeout on those waits.
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 

@@ -2,10 +2,10 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LiveNotesEditorHandle } from "~/components/notes";
 
-import { ArrowLeft } from "lucide-react";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
+import { BackLink } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
 import { getGroup } from "~/lib/group";
@@ -70,10 +70,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <Link to={timelineUrl} className="btn btn-ghost btn-sm -ml-3 gap-1">
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Timeline
-      </Link>
+      <BackLink to={timelineUrl} label="Timeline" />
 
       <h1 className="sr-only">{heading}</h1>
       <EntryPageHeader
