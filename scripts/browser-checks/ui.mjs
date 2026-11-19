@@ -682,11 +682,12 @@ async function pass(p, width, scheme) {
     name: "Care groups",
     checked: await p.evaluate(`${GROUP}.textContent.trim()`),
     roles: {
-      name: "group radios, then Group settings",
+      name: "group radios, then Group settings and New care group",
       test: (r) =>
-        r.length >= 3 &&
-        r.slice(0, -1).every((t) => t.startsWith("menuitemradio:")) &&
-        r.at(-1) === "menuitem:Group settings",
+        r.length >= 4 &&
+        r.slice(0, -2).every((t) => t.startsWith("menuitemradio:")) &&
+        r.at(-2) === "menuitem:Group settings" &&
+        r.at(-1) === "menuitem:New care group",
     },
     shot: shot("group"),
   });

@@ -2,7 +2,7 @@ import type { MyGroup } from "~/lib/rpc";
 import type { clientLoader as layoutLoader } from "./route";
 import type { GroupRow } from "~/lib/sync/timeline";
 
-import { ChevronDown, Settings } from "lucide-react";
+import { ChevronDown, Plus, Settings } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useNavigate, useRouteLoaderData } from "react-router";
 import { Menu, SEPARATOR } from "~/components/ui";
@@ -10,6 +10,7 @@ import { appUrls } from "~/lib/appUrls";
 import { rememberGroup } from "~/lib/lastGroup";
 import { useLiveQuery } from "~/lib/sync";
 import { myGroupsQuery, toMyGroup } from "~/lib/sync/timeline";
+import { NEW_GROUP_LINK_STATE } from "../groups/new/newGroupLink";
 
 /** What a group is called in the header: its recipient (preferred name first), then the group's name. */
 const displayName = (group: MyGroup) => group.recipient?.displayName || group.name;
@@ -21,7 +22,8 @@ const NO_ROWS: GroupRow[] = [];
  * The header's `group` region on `/app/groups/:groupId/*`: the current
  * group's display name as a menu listing every group on this device (live,
  * so it works offline), the current one checked. Choosing one opens its
- * timeline; "Group settings" opens the current group's settings. Loading a
+ * timeline; "Group settings" opens the current group's settings, and "New
+ * care group" the New care group sheet (closing it comes back). Loading a
  * group route also remembers it for `/app`.
  */
 export function GroupMenu({ groupId }: { groupId: string }) {
@@ -67,6 +69,13 @@ export function GroupMenu({ groupId }: { groupId: string }) {
           label: "Group settings",
           icon: Settings,
           href: appUrls.groupSettings(groupId),
+        },
+        {
+          id: "new-group",
+          label: "New care group",
+          icon: Plus,
+          href: appUrls.newGroup(),
+          state: NEW_GROUP_LINK_STATE,
         },
       ]}
     >
