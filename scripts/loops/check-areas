@@ -172,11 +172,15 @@ apps/web/app/lib/periodMarkers.ts        care-periods
 apps/web/app/routes/app/groups/timeline/new-dose/* medications
 apps/web/app/routes/app/groups/timeline/DoseForm.tsx medications
 apps/web/app/routes/app/groups/timeline/doseFormData.ts medications
+# Pass logs on the timeline and the pass sheet (medications-2 slice 6).
+apps/web/app/routes/app/groups/timeline/pass/* medications phase2
+apps/web/app/routes/app/groups/timeline/PassLogItem.tsx medications phase2
+apps/web/app/lib/sync/passLogs.ts        medications
 apps/web/app/components/entry/MedicationEntryText.tsx medications phase2
 apps/web/app/lib/sync/medicationTimeline.ts medications phase2
 # Today and the Due now strip (medications slice 5).
-apps/web/app/routes/app/groups/timeline/DueNowStrip.tsx medications phase2
-apps/web/app/routes/app/groups/timeline/useDueNow.ts medications phase2
+apps/web/app/routes/app/groups/timeline/MedicationStrip.tsx medications phase2
+apps/web/app/routes/app/groups/timeline/useMedicationStrip.ts medications phase2
 apps/web/app/lib/sync/dueDoses.ts        medications phase2 upcoming
 # The timeline's Next strip and Upcoming block, and the data they share with the history.
 apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
@@ -225,10 +229,20 @@ apps/web/app/lib/sync/providers.ts       providers
 # The medication list: the device module, the list and a medication's page
 # (its live notes run live-notes too).
 apps/web/app/lib/sync/medications.ts     medications
+# Passes (medications-2): the device module; the Passes screen is under
+# routes/app/groups/medications/passes/ (the rule below).
+apps/web/app/lib/sync/medicationPasses.ts medications
+# Allergies (medications-2): the device module; the sheet is under
+# routes/app/groups/medications/allergies/, the region in components/medications/.
+apps/web/app/lib/sync/allergies.ts       medications
 apps/web/app/routes/app/groups/medications/* medications
 apps/web/app/routes/app/groups/medication/* medications live-notes
 # The status actions (the medication page and the list's edit sheet).
 apps/web/app/components/medications/*    medications
+# Given all (medications-2): passes due today, the Undo offer, members' names for "who logged it".
+apps/web/app/lib/duePasses.ts            medications upcoming
+apps/web/app/lib/passUndo.ts             medications
+apps/web/app/lib/sync/memberNames.ts     medications
 apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 # The time fields and the reschedule sheet (the entry page's time chip, and
 # Reschedule from the timeline, Upcoming and the entry page).
@@ -278,6 +292,8 @@ packages/data/src/db/schema/provider.ts  providers
 packages/data/src/db/schema/entryProvider.ts providers
 packages/data/src/db/schema/medication.ts medications
 packages/data/src/db/schema/carePeriod*.ts care-periods
+packages/data/src/db/schema/medicationPass.ts medications
+packages/data/src/db/schema/recipientAllergy.ts medications
 packages/data/src/db/schema/timeZone.ts  roundtrip
 packages/data/src/db/schema/inviteRules.ts invites app-shell
 packages/data/src/db/schema/careGroup*.ts app-shell invites
@@ -295,6 +311,7 @@ packages/data/src/db/seeds/providers.ts  providers care-periods
 packages/data/src/db/seeds/invites.ts    invites app-shell
 packages/data/src/db/seeds/medications.ts medications
 packages/data/src/db/seeds/carePeriods.ts care-periods
+packages/data/src/db/seeds/medicationPasses.ts medications
 packages/data/src/db/seeds/*             app-shell
 
 # The rest of the data layer (services, models, permissions, errors) has

@@ -40,11 +40,13 @@ describe("doseText", () => {
 
 describe("scheduleText", () => {
   it("lists times without leading zeros", () => {
-    expect(scheduleText({ type: "scheduled", times: ["08:00"] })).toBe("8:00");
-    expect(scheduleText({ type: "scheduled", times: ["08:00", "20:00"] })).toBe("8:00 and 20:00");
-    expect(scheduleText({ type: "scheduled", times: ["08:00", "14:00", "20:00"] })).toBe(
-      "8:00, 14:00 and 20:00",
+    expect(scheduleText({ type: "scheduled", slots: [{ time: "08:00" }] })).toBe("8:00");
+    expect(scheduleText({ type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] })).toBe(
+      "8:00 and 20:00",
     );
+    expect(
+      scheduleText({ type: "scheduled", slots: [{ time: "08:00" }, { time: "14:00" }, { time: "20:00" }] }),
+    ).toBe("8:00, 14:00 and 20:00");
   });
 
   it("says as needed, with the maximum", () => {
@@ -75,7 +77,7 @@ describe("changeText", () => {
         ...base,
         change: "changed",
         fields: ["strength", "schedule"],
-        before: { strength: "5 mg", schedule: { type: "scheduled", times: ["08:00"] } },
+        before: { strength: "5 mg", schedule: { type: "scheduled", slots: [{ time: "08:00" }] } },
         after: { strength: null, schedule: { type: "asNeeded", maxPerDay: 2 } },
       }),
     ).toBe("Changed strength 5 mg → none, schedule 8:00 → As needed, up to 2 a day");
@@ -127,6 +129,23 @@ describe("medicationEntryText", () => {
         },
       }),
     ).toEqual({ what: "Discontinued: other reason", note: "Too drowsy" });
+  });
+
+  it("gives a pass's move as a whole line, with no medication", () => {
+    const details = {
+      change: "passMoved" as const,
+      passId: M,
+      passName: "Morning",
+      beforeTime: "08:00",
+      afterTime: "08:30",
+      medicationIds: [M],
+    };
+    expect(medicationEntryText({ kind: "medicationChange", details })).toEqual({
+      what: "Morning moved 8:00 → 8:30",
+      note: null,
+      standalone: true,
+    });
+    expect(medicationIdOf({ kind: "medicationChange", details })).toBeNull();
   });
 
   it("is null for other kinds", () => {

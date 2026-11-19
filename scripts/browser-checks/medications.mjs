@@ -45,14 +45,33 @@
 // - a prescriber's and the pharmacy's pages list the current medications
 //   they prescribe or fill, each opening its page.
 //
-// Slice 5 adds Today and the Due now strip (`todaySteps`): a slot due now
-// in the strip and in Today, the strip opening the Dose sheet on its slot,
-// Given in one tap (seen on a second device), Skipped with a note (on the
-// timeline too), the double-dose and over-maximum warnings that still save,
-// the device in New York with the recipient in Los Angeles, a viewer
-// without controls, and no strip once nothing is due. `dueDoses` itself is
-// unit-tested (dueDoses.test.ts).
+// Slice 5 adds Today (`todaySteps`): a slot due now in Today, Given in one
+// tap (seen on a second device), Skipped with a note (on the timeline too),
+// the double-dose and over-maximum warnings that still save, the device in
+// New York with the recipient in Los Angeles, and a viewer without controls.
+// `dueDoses` itself is unit-tested (dueDoses.test.ts).
 //
+// Medications 2, slice 1 adds the Passes screen (`passesSteps`): the
+// seeded Morning and Evening from the list's link, adding a pass (a taken
+// name refused), the medications in a pass, a retime with its timeline
+// entry (live on a second device), Move up, an offline rename, a viewer
+// without controls, and a delete that leaves its medication the time. The
+// pass rules are unit-tested (medicationPass.test.ts).
+//
+// Medications 2, slice 5 adds the timeline's medication strip
+// (`stripSteps`, which replaced the Due now strip's steps): next, due and
+// overdue with this run's own passes, Given all and Undo from the strip, the
+// pass's name opening the Dose sheet, one line at 420, a viewer's text, and
+// no strip for a group without scheduled medications. `medicationStrip` and
+// its wording are unit-tested (medicationStrip.test.ts).
+//
+// Medications 2, slice 3 adds allergies (`allergySteps`): the region on the
+// list and a medication's page in its three states, the allergies sheet (No
+// known allergies, add, edit, remove; a second device; offline), the print
+// block in print media, the name field's warning on adding and renaming
+// (still saving), and a viewer without controls. `allergyMatches` is
+// unit-tested (allergies.test.ts).
+
 // Schedule wording and the list's order and matching are unit-tested
 // (medicationDisplay.test.ts, medicationList.test.ts): the steps here check
 // one case each, on the page. Later slices add their screens' steps here.
@@ -161,6 +180,10 @@ const syncedTo = async (p, id, what, ms = 30000) => {
     console.log(`WAIT  ${what}: the medication didn't reach this device within ${ms / 1000} s`);
   return rows.length === 1;
 };
+
+/** A stored schedule's own times ("08:00,20:00"), in stored order: SQL over `schedule`'s slots. */
+const SLOT_TIMES = (column) =>
+  `(SELECT string_agg(s->>'time', ',') FROM jsonb_array_elements(${column}->'slots') s)`;
 
 const CHANGES_SQL = (id) =>
   `SELECT count(*) FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'medicationId' = '${id}'`;
@@ -294,10 +317,10 @@ async function writeSteps(p) {
   );
 
   const uploaded = await waitForSql(
-    `SELECT schedule->>'times' FROM medication WHERE id = '${id}'`,
+    `SELECT ${SLOT_TIMES("schedule")} FROM medication WHERE id = '${id}'`,
     (v) => v !== "",
   );
-  check("it uploads, with its schedule sorted", uploaded === '["08:00", "20:00"]', uploaded);
+  check("it uploads, with its schedule sorted (as slots)", uploaded === "08:00,20:00", uploaded);
   const started = await waitForSql(
     `SELECT string_agg(id::text, ',') FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'medicationId' = '${id}'`,
     (v) => v !== "",
@@ -542,7 +565,7 @@ async function listSteps(p) {
   })`);
   check(
     "each row shows form, dose, schedule and reason; a stopped one says how, when and why",
-    rows.metformin === "Tablet · 1 tablet · 8:00 and 20:00" &&
+    rows.metformin === "Tablet · 1 tablet · Morning and Evening" &&
       rows.acetaminophen === "Tablet · 2 tablets · As needed, up to 4 a day" &&
       rows.reason === "Reason: Blood pressure" &&
       /^Discontinued \w{3} \d{1,2}, \d{4} · Side effects$/.test(rows.oxybutynin ?? "") &&
@@ -631,7 +654,8 @@ async function pageSteps(p) {
     page.h1 === "Lisinopril 10 mg" &&
       page.badge === null &&
       page.details === "Tablet · 1 tablet" &&
-      page.rows.schedule === (zone === "America/Los_Angeles" ? "8:00" : "8:00Times are Los Angeles time") &&
+      page.rows.schedule ===
+        (zone === "America/Los_Angeles" ? "Morning" : "MorningTimes are Los Angeles time") &&
       page.rows.reason === "Blood pressure" &&
       page.rows.directions?.startsWith("Once every morning") &&
       !!page.rows.started,
@@ -1301,6 +1325,16 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
 // Slice 6: the printable sheet and the provider page's medications
 // ---------------------------------------------------------------------------
 
+/** The list's Print menu button, and choosing one of its sheets. */
+const PRINT_MENU = `[...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Print")`;
+const printMenuItem = (label) =>
+  `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim().startsWith(${JSON.stringify(label)}))`;
+async function choosePrint(p, label) {
+  await p.tap(PRINT_MENU);
+  await p.waitFor(`!!${printMenuItem(label)}`, 5000).catch(() => {});
+  await p.tap(printMenuItem(label));
+}
+
 const onPrint = `location.pathname.endsWith("/medications/print") && document.querySelectorAll("main [data-print-medication]").length >= 4`;
 /** The sheet as the DOM has it, leaving out every run's tagged medications. */
 const printState = (p) =>
@@ -1336,13 +1370,13 @@ const printLayout = (p) =>
 /** The sheet from the list's Print link: what's on it, the Print button, and print media at 420 and 1280 (A). */
 async function printSteps(p) {
   await p.goto(LIST);
-  await p.waitFor(`!!document.querySelector("main a[data-print-link]")`, 20000).catch(() => {});
-  await p.tap(`document.querySelector("main a[data-print-link]")`);
+  await p.waitFor(`!!${PRINT_MENU}`, 20000).catch(() => {});
+  await choosePrint(p, "Medication list");
   await p.waitFor(onPrint, 20000).catch(() => {});
   const sheet = await printState(p);
   const dob = psql(`SELECT date_of_birth FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`);
   check(
-    "the list's Print link opens the sheet: the recipient, the date of birth, the group and the day printed",
+    "the list's Print menu opens the sheet: the recipient, the date of birth, the group and the day printed",
     sheet.name?.includes("Grandma Pat") &&
       dob === "1941-03-14" &&
       sheet.dob === "Mar 14, 1941" &&
@@ -1428,17 +1462,284 @@ async function printSteps(p) {
 /** Offline (A behind `proxy`): the sheet opens from the device's copy. */
 async function printOfflineSteps(p, proxy) {
   await p.goto(LIST);
-  await p.waitFor(`!!document.querySelector("main a[data-print-link]")`, 20000).catch(() => {});
+  await p.waitFor(`!!${PRINT_MENU}`, 20000).catch(() => {});
   const errorsBefore = p.errors.length;
   proxy.setOnline(false);
   await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
-  await p.tap(`document.querySelector("main a[data-print-link]")`);
+  await choosePrint(p, "Medication list");
   await p.waitFor(onPrint, 15000).catch(() => {});
   const sheet = await printState(p);
   check(
     "offline: the sheet opens from the device's copy, with the date of birth and phones",
     same(sheet.current, SEEDED_CURRENT) && sheet.dob === "Mar 14, 1941" && sheet.contacts.length === 2,
     JSON.stringify({ current: sheet.current, dob: sheet.dob, contacts: sheet.contacts.length }),
+  );
+  proxy.setOnline(true);
+  await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  p.errors.splice(errorsBefore);
+}
+
+// ---------------------------------------------------------------------------
+// medications-2 slice 7: the weekly bedside sheet
+// ---------------------------------------------------------------------------
+
+const onWeek = `location.pathname.endsWith("/medications/print/week") && !!document.querySelector("main [data-week-sheet]")`;
+/** The weekly sheet as the DOM has it, leaving out every run's tagged medications. */
+const weekState = (p) =>
+  p.evaluate(`(() => {
+    const untagged = (t) => !t.startsWith("${TAG}") && !t.startsWith("MV-");
+    const groups = [...document.querySelectorAll("main tbody[data-week-group]")].map((g) => [
+      g.querySelector("[data-week-group-name]")?.textContent.trim(),
+      [...g.querySelectorAll("tr[data-week-row], tr[data-week-as-needed] th")].map((r) => {
+        const th = r.matches("th") ? r : r.querySelector("th");
+        return [th?.querySelector("[data-week-title]")?.textContent.trim(), [...th.querySelectorAll(".block")].map((m) => m.textContent.trim())];
+      }).filter(([t]) => t && untagged(t)),
+    ]).filter(([, rows]) => rows.length > 0);
+    const allergies = document.querySelector("main [data-print-allergies]");
+    const table = document.querySelector("main [data-week-table]");
+    return {
+      search: location.search,
+      days: [...document.querySelectorAll("main th[data-week-day]")].map((d) => d.dataset.weekDay),
+      weekdays: [...document.querySelectorAll("main th[data-week-day]")].map((d) => d.firstChild?.textContent.trim()),
+      groups,
+      asNeededLines: document.querySelectorAll("main tr[data-week-as-needed]").length,
+      boxes: document.querySelectorAll("main tr[data-week-row] td[data-week-cell]").length,
+      rows: document.querySelectorAll("main tr[data-week-row]").length,
+      allergiesFirst: !!allergies && !!table && !!(allergies.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING),
+      name: document.querySelector('main [data-print-field="name"]')?.textContent.trim(),
+    };
+  })()`);
+/** This week's Monday in Los Angeles (the seeds' zone), and a day moved by `n` days. */
+const laMonday = () => {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
+  const dow = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7;
+  return shiftDay(today, -dow);
+};
+const shiftDay = (day, n) => {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+const weekOf = (start) => Array.from({ length: 7 }, (_, i) => shiftDay(start, i));
+/** Pages in a PDF from Page.printToPDF (the page objects, not the page tree), and the first page's size. */
+const pdfPages = (base64) => {
+  const text = Buffer.from(base64, "base64").toString("latin1");
+  const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(text);
+  return {
+    pages: (text.match(/\/Type\s*\/Page\b(?!s)/g) ?? []).length,
+    width: Number(box?.[1]),
+    height: Number(box?.[2]),
+  };
+};
+
+/**
+ * The weekly sheet from the list's Print menu (A): both sheets offered; the
+ * seeded medications under their passes with amounts, as-needed rows, the
+ * allergies first; the week picker (next, previous, this week, a start day
+ * across the fall clock change); print media at 420 and 1280, black on white,
+ * one landscape page.
+ */
+async function weeklySteps(p) {
+  await p.goto(LIST);
+  await p.waitFor(`!!${PRINT_MENU}`, 20000).catch(() => {});
+  await p.tap(PRINT_MENU);
+  await p.waitFor(`!!${printMenuItem("Weekly chart")}`, 5000).catch(() => {});
+  const items = await p.evaluate(
+    `[...document.querySelectorAll("[role=menuitem]")].map((m) => m.querySelector(".truncate")?.textContent.trim())`,
+  );
+  check(
+    "the list's Print menu offers the medication list and the weekly chart",
+    same(items, ["Medication list", "Weekly chart"]),
+    JSON.stringify(items),
+  );
+  await p.tap(printMenuItem("Weekly chart"));
+  const opened = await need(
+    p,
+    `${onWeek} && document.querySelectorAll("main tr[data-week-row]").length >= 4`,
+    20000,
+    "the weekly sheet",
+  );
+  const monday = laMonday();
+  const sheet = await weekState(p);
+  check(
+    "the weekly sheet opens on this week, Monday to Sunday in the recipient's zone",
+    opened &&
+      same(sheet.days, weekOf(monday)) &&
+      sheet.weekdays[0] === "Mon" &&
+      sheet.weekdays[6] === "Sun" &&
+      sheet.search === "",
+    JSON.stringify({ days: sheet.days, weekdays: sheet.weekdays, monday }),
+  );
+  check(
+    "it lists the current scheduled medications under their passes with amounts, then times of their own, then as-needed rows",
+    same(sheet.groups, [
+      [
+        "Morning · 8:00",
+        [
+          ["Lisinopril 10 mg", ["1 tablet"]],
+          ["Metformin 500 mg", ["1 tablet"]],
+        ],
+      ],
+      ["Evening · 20:00", [["Metformin 500 mg", ["1 tablet"]]]],
+      ["21:00", [["Latanoprost 0.005%", ["1 drop in each eye"]]]],
+      ["As needed · write the time", [["Acetaminophen 500 mg", ["2 tablets", "Up to 4 a day"]]]],
+    ]),
+    JSON.stringify(sheet.groups),
+  );
+  check(
+    "…with a box under each day for every row, and blank as-needed lines",
+    sheet.boxes === sheet.rows * 7 && sheet.asNeededLines >= 2,
+    JSON.stringify({ boxes: sheet.boxes, rows: sheet.rows, asNeeded: sheet.asNeededLines }),
+  );
+  check(
+    "the allergies are at the top, above the chart",
+    sheet.allergiesFirst && sheet.name?.includes("Grandma Pat"),
+    JSON.stringify({ first: sheet.allergiesFirst, name: sheet.name }),
+  );
+
+  // The week picker.
+  await p.tap(`document.querySelector("main [data-week-next]")`);
+  const next = await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === ${JSON.stringify(shiftDay(monday, 7))}`,
+    5000,
+    "next week",
+  );
+  await p.tap(`document.querySelector("main [data-week-previous]")`);
+  await p.tap(`document.querySelector("main [data-week-previous]")`);
+  const previous = await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === ${JSON.stringify(shiftDay(monday, -7))}`,
+    5000,
+    "last week",
+  );
+  await p.tap(`document.querySelector("main [data-week-this]")`);
+  const back = await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === ${JSON.stringify(monday)} && document.querySelector("main [data-week-this]")?.getAttribute("aria-current") === "true"`,
+    5000,
+    "this week",
+  );
+  check(
+    "Next week, Previous week and This week move the chart by a week",
+    next && previous && back,
+    `${next} ${previous} ${back}`,
+  );
+  // A start day of your own, in the week the clocks go back (Sunday, Nov 1, 2026 in Los Angeles).
+  await p.evaluate(`(() => {
+    const input = document.querySelector("main input[data-week-start]");
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "2026-10-26");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+  })()`);
+  await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === "2026-10-26"`,
+    5000,
+    "the chosen week",
+  );
+  const dst = await weekState(p);
+  check(
+    "a chosen start day shows that week, seven calendar days across the clock change",
+    dst.search === "?start=2026-10-26" &&
+      same(dst.days, weekOf("2026-10-26")) &&
+      dst.days[6] === "2026-11-01" &&
+      dst.weekdays[6] === "Sun",
+    JSON.stringify({ search: dst.search, days: dst.days, weekdays: dst.weekdays }),
+  );
+  await p.tap(`document.querySelector("main [data-week-this]")`);
+  await need(
+    p,
+    `document.querySelector("main th[data-week-day]")?.dataset.weekDay === ${JSON.stringify(monday)}`,
+    5000,
+    "this week again",
+  );
+
+  // Print media: no frame or controls, black on white in both themes, within the page; one landscape page.
+  const layout = () =>
+    p.evaluate(`(() => {
+      const shown = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+      const table = document.querySelector("main [data-week-table]");
+      const box = document.querySelector("main td[data-week-cell] span span");
+      return {
+        header: shown(document.querySelector("header.navbar")),
+        tabBar: shown(document.querySelector('nav.dock[aria-label="Group sections"]')),
+        controls: [...document.querySelectorAll("button, a.btn, input, [role=button]")].filter(shown).map((el) => el.textContent.trim() || el.tagName),
+        fits: !!table && table.getBoundingClientRect().right <= document.documentElement.clientWidth + 0.5 && table.scrollWidth <= table.clientWidth + 1,
+        pageFits: document.documentElement.scrollWidth <= innerWidth,
+        background: getComputedStyle(document.body).backgroundColor,
+        color: getComputedStyle(document.querySelector("main [data-week-sheet] h1")).color,
+        cell: getComputedStyle(document.querySelector("main [data-week-sheet] th[data-week-day]")).color,
+        box: box ? getComputedStyle(box).borderTopColor : null,
+      };
+    })()`);
+  const layouts = {};
+  for (const [width, mobile] of [
+    [420, true],
+    [1280, false],
+  ]) {
+    await metrics(p, width, mobile);
+    await p.send("Emulation.setEmulatedMedia", { media: "print" });
+    await sleep(300);
+    layouts[width] = await layout();
+    await p.screenshot(`medications-week-${width}`);
+  }
+  await p.evaluate(`document.documentElement.dataset.theme = "dark"; true`);
+  await sleep(200);
+  const dark = await layout();
+  // One landscape page, as the browser would print it (the page's own `@page` size).
+  const pdf = await Promise.race([
+    p
+      .send("Page.printToPDF", { preferCSSPageSize: true, printBackground: true })
+      .then((r) => pdfPages(r.data)),
+    sleep(30000).then(() => ({ pages: -1, width: 0, height: 0 })),
+  ]);
+  await p.evaluate(`delete document.documentElement.dataset.theme; true`);
+  await p.send("Emulation.setEmulatedMedia", { media: "" });
+  await metrics(p, 420, true);
+  const clean = (l) => !l.header && !l.tabBar && l.controls.length === 0 && l.fits && l.pageFits;
+  check(
+    "printed, the chart has no header, tab bar or controls, and fits the width at 420 and 1280",
+    clean(layouts[420]) && clean(layouts[1280]),
+    JSON.stringify(layouts),
+  );
+  const black = (l) =>
+    l.background === "rgb(255, 255, 255)" &&
+    l.color === "rgb(0, 0, 0)" &&
+    l.cell === "rgb(0, 0, 0)" &&
+    l.box === "rgb(0, 0, 0)";
+  check(
+    "printed, it's black on white, in the dark theme too",
+    black(layouts[1280]) && black(dark),
+    JSON.stringify({ light: layouts[1280], dark }),
+  );
+  check(
+    "Grandma Pat's chart prints on one landscape page",
+    pdf.pages === 1 && pdf.width > pdf.height,
+    JSON.stringify(pdf),
+  );
+}
+
+/** Offline (A behind `proxy`): the weekly sheet opens from the Print menu, from the device's copy. */
+async function weeklyOfflineSteps(p, proxy) {
+  await p.goto(LIST);
+  await p.waitFor(`!!${PRINT_MENU}`, 20000).catch(() => {});
+  await sleep(1000); // the Print menu's pages' modules, fetched ahead
+  const errorsBefore = p.errors.length;
+  proxy.setOnline(false);
+  await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+  await choosePrint(p, "Weekly chart");
+  const opened = await need(
+    p,
+    `${onWeek} && document.querySelectorAll("main tr[data-week-row]").length >= 4`,
+    15000,
+    "the weekly sheet offline",
+  );
+  const sheet = await weekState(p);
+  check(
+    "offline: the weekly sheet opens from the Print menu, from the device's copy",
+    opened && sheet.groups.length === 4 && sheet.allergiesFirst,
+    JSON.stringify(sheet.groups.map(([name]) => name)),
   );
   proxy.setOnline(true);
   await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
@@ -1631,9 +1932,29 @@ async function addSteps(p, B) {
     JSON.stringify({ offered, filled }),
   );
 
+  // The schedule offers the group's passes, none ticked, and no time of its own yet.
+  const start = await p.evaluate(`({
+    passes: [...${FORM}.querySelectorAll("[data-pass-slot]")].map((li) => li.querySelector("label")?.textContent.trim()),
+    ticked: ${FORM}.querySelectorAll('[data-pass-slot] input[type="checkbox"]:checked').length,
+    times: ${TIMES}.length,
+    manage: ${FORM}.querySelector("[data-manage-passes]")?.getAttribute("href") ?? null,
+  })`);
+  check(
+    "the add sheet's schedule offers the group's passes (none ticked), a link to them, and no time of its own yet",
+    start.passes[0] === "Morning 8:00" &&
+      start.passes.includes("Evening 20:00") &&
+      start.ticked === 0 &&
+      start.times === 0 &&
+      start.manage === PASSES,
+    JSON.stringify(start),
+  );
+
   // Validation, through the fields: no name, the same time twice.
   await p.type(formField("name"), "");
   await p.press(`${FORM}.querySelector("[data-add-time]")`);
+  await p.press(`${FORM}.querySelector("[data-add-time]")`);
+  await p.waitFor(`${TIMES}.length === 2`, 5000);
+  await p.type(`${TIMES}[0]`, "08:00");
   await p.type(`${TIMES}[1]`, "08:00");
   await p.press(FORM_SUBMIT);
   await need(p, `${errorOf("name")} !== null`, 8000, "the name's error");
@@ -1691,12 +2012,12 @@ async function addSteps(p, B) {
     JSON.stringify({ chip, listed }),
   );
   const server = await waitForSql(
-    `SELECT p.name || '|' || p.type || '|' || (m.schedule->>'times') FROM medication m JOIN provider p ON p.id = m.prescriber_id WHERE m.name = '${name}'`,
+    `SELECT p.name || '|' || p.type || '|' || ${SLOT_TIMES("m.schedule")} FROM medication m JOIN provider p ON p.id = m.prescriber_id WHERE m.name = '${name}'`,
     (v) => v !== "",
   );
   check(
     "the medication and its new prescriber (a clinician) upload together, linked",
-    server === `${doctor}|clinician|["08:00", "20:00"]` && chip === `${doctor} (new)`,
+    server === `${doctor}|clinician|08:00,20:00` && chip === `${doctor} (new)`,
     `${server} / ${chip}`,
   );
   if (B) {
@@ -1802,6 +2123,164 @@ async function editSteps(p, { title, name, id }) {
     `${changed} ${changeCount(name)} ${JSON.stringify(history)}`,
   );
   void title;
+}
+
+// ---------------------------------------------------------------------------
+// medications-2 slice 2: passes in schedules.
+// ---------------------------------------------------------------------------
+
+const passSlot = (passId) => `${FORM}?.querySelector('[data-pass-slot="${passId}"]')`;
+const passBox = (passId) => `${passSlot(passId)}?.querySelector('input[type="checkbox"]')`;
+const passAmount = (passId) => `${FORM}?.querySelector('[name="passAmount:${passId}"]')`;
+const TIME_AMOUNTS = `[...(${FORM}?.querySelectorAll('input[name="timeAmount"]') ?? [])]`;
+/** JSON with object keys sorted, so a jsonb value (which reorders keys) compares with a literal. */
+const canon = (value) =>
+  JSON.stringify(value, (_, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))
+      : v,
+  );
+const seededPass = (name) =>
+  psql(
+    `SELECT id FROM medication_pass WHERE group_id = '${DEV_FAMILY}' AND name = '${name}' AND deleted_at IS NULL`,
+  );
+
+/**
+ * A schedule by passes (caretaker@, A): tick Morning (with its own amount,
+ * the dose as its placeholder) and Evening, plus a time of its own with an
+ * amount; the list, the page and the printed list read it by pass. Then an
+ * edit, offline: untick Evening and change Morning's amount, which the
+ * history and the timeline name ("Removed from Evening; Morning amount …").
+ */
+async function passScheduleSteps(p, proxy) {
+  await toFront(p);
+  const MORNING = seededPass("Morning");
+  const EVENING = seededPass("Evening");
+  const name = `${TAG} Metoprolol`;
+  await openAddSheet(p);
+  await p.type(formField("name"), name);
+  await p.type(formField("dose"), "25 mg");
+  await p.tap(passBox(MORNING));
+  await need(p, `!!${passAmount(MORNING)}`, 5000, "Morning's amount field");
+  const placeholder = await p.evaluate(`${passAmount(MORNING)}?.placeholder ?? null`);
+  await p.type(passAmount(MORNING), "50 mg");
+  await p.tap(passBox(EVENING));
+  await p.press(`${FORM}.querySelector("[data-add-time]")`);
+  await p.waitFor(`${TIMES}.length === 1`, 5000);
+  await p.type(`${TIMES}[0]`, "14:00");
+  await p.type(`${TIME_AMOUNTS}[0]`, "12.5 mg");
+  await p.press(FORM_SUBMIT);
+  await need(
+    p,
+    `!${SHEET} && ${allNames("Current medications")}.includes(${JSON.stringify(name)})`,
+    10000,
+    "the medication with passes on the list",
+  );
+  const id = await medicationId(p, name);
+  const stored = await waitForSql(
+    `SELECT schedule::text FROM medication WHERE id = '${id}'`,
+    (v) => v !== "",
+  );
+  const expected = {
+    type: "scheduled",
+    slots: [
+      { passId: MORNING, amount: "50 mg" },
+      { passId: EVENING },
+      { time: "14:00", amount: "12.5 mg" },
+    ].sort((a, b) => ((a.passId ?? "~") < (b.passId ?? "~") ? -1 : 1)),
+  };
+  const summary = await p.evaluate(
+    `document.querySelector('main li[data-medication-id="${id}"] [data-medication-summary]')?.textContent.trim() ?? null`,
+  );
+  check(
+    "a schedule by passes saves as pass slots (an amount for Morning, the dose as its placeholder) and a time with its amount; the list reads it by pass",
+    placeholder === "25 mg" &&
+      canon(JSON.parse(stored)) === canon(expected) &&
+      summary === "25 mg · Morning (50 mg), Evening and 14:00 (12.5 mg)",
+    `${placeholder} ${stored} ${summary}`,
+  );
+  if (SMOKE) return;
+
+  // The page, and the printed list.
+  await p.goto(medPath(id));
+  await need(p, onMedPage(id), 20000, "the medication's page");
+  const page = await medPage(p);
+  await p.goto(`${LIST}/print`);
+  const printed = `document.querySelector('main tr[data-print-medication="${id}"]')`;
+  await need(p, `!!${printed}`, 20000, "the medication on the printed list");
+  const row = await p.evaluate(`${printed}?.textContent ?? ""`);
+  check(
+    "the page and the printed list read the schedule by pass",
+    page.rows.schedule?.startsWith("Morning (50 mg), Evening and 14:00 (12.5 mg)") &&
+      row.includes("Morning (50 mg), Evening and 14:00 (12.5 mg)"),
+    `${page.rows.schedule} | ${row.slice(0, 160)}`,
+  );
+
+  // Edit offline: the form starts as saved; untick Evening, change Morning's amount.
+  await p.goto(medPath(id));
+  await need(
+    p,
+    `${onMedPage(id)} && !!document.querySelector("main [data-edit-medication]")`,
+    20000,
+    "the page",
+  );
+  const errorsBefore = p.errors.length;
+  proxy.setOnline(false);
+  await need(p, `!window.caretookSync.powersync.currentStatus.connected`, 15000, "the device to go offline");
+  await p.tap(`document.querySelector("main [data-edit-medication]")`);
+  await need(p, `!!${FORM} && !!${passAmount(MORNING)}`, 10000, "the edit sheet (offline)");
+  const prefilled = await p.evaluate(`({
+    morning: ${passBox(MORNING)}?.checked, amount: ${passAmount(MORNING)}?.value,
+    evening: ${passBox(EVENING)}?.checked, times: ${TIMES}.map((t) => t.value),
+    timeAmounts: ${TIME_AMOUNTS}.map((t) => t.value),
+  })`);
+  await p.tap(passBox(EVENING));
+  await p.type(passAmount(MORNING), "75 mg");
+  await p.press(FORM_SUBMIT);
+  await need(p, `!${SHEET} && location.pathname.endsWith("/medications/${id}")`, 10000, "the page (offline)");
+  const line = "Removed from Evening; Morning amount 50 mg → 75 mg";
+  await need(
+    p,
+    `(${JSON.stringify(line)}) === document.querySelector("main [data-medication-history] li[data-entry-id] [data-entry-text]")?.textContent.trim()`,
+    10000,
+    "the change in the history",
+  );
+  const history = await historyTexts(p);
+  proxy.setOnline(true);
+  await need(p, `window.caretookSync.powersync.currentStatus.connected`, 30000, "the device to reconnect");
+  const synced = await waitForSql(
+    `SELECT schedule::text FROM medication WHERE id = '${id}'`,
+    (v) => v.includes("75 mg"),
+    30000,
+  );
+  check(
+    "the edit sheet starts as saved; offline, a schedule edit saves and the history names the pass and amount, then it uploads",
+    prefilled.morning === true &&
+      prefilled.amount === "50 mg" &&
+      prefilled.evening === true &&
+      same(prefilled.times, ["14:00"]) &&
+      same(prefilled.timeAmounts, ["12.5 mg"]) &&
+      history[0] === line &&
+      canon(JSON.parse(synced)) ===
+        canon({
+          type: "scheduled",
+          slots: [
+            { passId: MORNING, amount: "75 mg" },
+            { time: "14:00", amount: "12.5 mg" },
+          ],
+        }),
+    `${JSON.stringify(prefilled)} ${JSON.stringify(history.slice(0, 2))} ${synced}`,
+  );
+  p.errors.splice(errorsBefore); // Offline fetch failures aren't the app's errors.
+
+  // The timeline names the passes too.
+  await p.goto(`/app/groups/${DEV_FAMILY}/timeline?kind=medicationChange`);
+  const onTimeline = `[...document.querySelectorAll("main [data-medication-entry]")].some((el) => el.textContent === ${JSON.stringify(`${name}: ${line}`)})`;
+  const shown = await p.waitFor(onTimeline, 15000).then(
+    () => true,
+    () => false,
+  );
+  check("the timeline's change row names the pass and the amount", shown, line);
 }
 
 /**
@@ -2114,21 +2593,17 @@ const TODAY = `document.querySelector("main [data-today]")`;
 const todaySlot = (key) => `${TODAY}?.querySelector('[data-slot="${key}"]')`;
 const todayState = (key) =>
   `(${todaySlot(key)}?.querySelector("[data-slot-state]")?.dataset.slotState ?? null)`;
-const STRIP = `document.querySelector("main [data-due-now]")`;
-const stripSlot = (key) => `${STRIP}?.querySelector('[data-due-slot="${key}"]')`;
 const doseCountSql = (id, time, status = "given") =>
   `SELECT count(*) FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND details->>'medicationId' = '${id}' AND details->>'status' = '${status}'${time ? ` AND details->>'scheduledFor' = '${time}'` : ""}`;
 const doseCount = (id, time, status) => psql(doseCountSql(id, time, status));
 
 /**
- * Today on the medication list and the Due now strip on the timeline, with
- * this run's own medications: one with two slots due now (a few minutes ago
- * in Los Angeles, whatever the clock), and an as-needed one with a maximum
- * of 1. Given in one tap (on a second device too), Skipped with a note (on
- * the timeline too), the strip opening the Dose sheet for its slot, the
- * double-dose and over-maximum warnings that still save, the recipient's
- * zone with the device in New York, a viewer without controls, and the
- * strip gone once nothing is due.
+ * Today on the medication list, with this run's own medications: one with
+ * two slots due now (a few minutes ago in Los Angeles, whatever the clock),
+ * and an as-needed one with a maximum of 1. Given in one tap (on a second
+ * device too), Skipped with a note (on the timeline too), the double-dose
+ * and over-maximum warnings that still save, the recipient's zone with the
+ * device in New York, and a viewer without controls.
  */
 async function todaySteps(A, { B, C } = {}) {
   // Two distinct times, both due, today in Los Angeles (wait out the first minutes after midnight).
@@ -2156,34 +2631,6 @@ async function todaySteps(A, { B, C } = {}) {
   const k1 = `${id}@${t1}`;
   const k2 = `${id}@${t2}`;
   const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
-
-  // The strip on the timeline; an item opens the Dose sheet on its slot.
-  await A.goto(timeline);
-  const inStrip = await A.waitFor(`!!${stripSlot(k1)} && !!${stripSlot(k2)}`, 15000).then(
-    () => true,
-    () => false,
-  );
-  check("the Due now strip shows a slot that's due", inStrip);
-  if (inStrip) {
-    await A.tap(`${stripSlot(k1)}.querySelector("a")`);
-    const opened = await A.waitFor(
-      `${SHEET}?.querySelector('input[name="medicationId"][value="${k1}"]')?.checked`,
-      8000,
-    ).then(
-      () => true,
-      () => false,
-    );
-    const amount = await A.evaluate(`${AMOUNT}?.value ?? ""`);
-    check(
-      "a strip item opens the Dose sheet on that slot, with its dose",
-      opened && amount === "1 tablet",
-      amount,
-    );
-    await A.evaluate(
-      `[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")?.click()`,
-    );
-    await A.waitFor(`!${SHEET}`, 10000).catch(() => undefined);
-  }
 
   // The device in New York: the recipient's 8:00 is still Los Angeles time.
   await A.send("Emulation.setTimezoneOverride", { timezoneId: "America/New_York" });
@@ -2319,52 +2766,1373 @@ async function todaySteps(A, { B, C } = {}) {
         () => true,
         () => false,
       );
-      const controls = await C.evaluate(`${TODAY}?.querySelectorAll("button").length ?? -1`);
-      await C.goto(timeline);
-      const strip = await C.waitFor(`!!${stripSlot(k3)}`, 15000).then(
-        () => true,
-        () => false,
+      // A pass's expand isn't a logging control.
+      const controls = await C.evaluate(
+        `${TODAY}?.querySelectorAll("button:not([data-pass-expand])").length ?? -1`,
       );
-      const links = await C.evaluate(`${STRIP}?.querySelectorAll("a").length ?? -1`);
       check(
-        "a viewer sees Today and the strip, with no controls",
-        listed && controls === 0 && strip && links === 0,
-        `${listed} buttons ${controls} ${strip} links ${links}`,
+        "a viewer sees Today, with no controls",
+        listed && controls === 0,
+        `${listed} buttons ${controls}`,
       );
     }
   }
 
-  // Nothing due: this run's medications go, and every slot still due gets a tagged dose; the strip goes.
+  // This run's medications go.
   await onDevice(
     A,
     `await medications.removeMedication(db, ${JSON.stringify(id)});
      await medications.removeMedication(db, ${JSON.stringify(prnId)});`,
   );
-  await A.goto(timeline);
-  // Read the due slots once the timeline is up and the strip has had its chance to show: it comes from
-  // its own live queries, after the rows. A fixed 1 s read nothing on a slow load, so no slot was
-  // logged and the strip stayed (B-93). It may never show: then nothing is due.
-  await A.waitFor(`document.querySelectorAll("main ol > li").length > 0`, 20000);
-  await A.waitFor(STRIP, 5000, { quiet: true }).catch(() => {});
-  const due = await A.evaluate(
-    `[...document.querySelectorAll("main [data-due-slot]")].map((li) => li.dataset.dueSlot)`,
+}
+
+// ---------------------------------------------------------------------------
+// Passes (medications-2 slice 1): the Passes screen and the device module.
+// ---------------------------------------------------------------------------
+
+const PASSES = `/app/groups/${DEV_FAMILY}/medications/passes`;
+const PASS_ROWS = `[...document.querySelectorAll("main [data-passes] > li")]`;
+/** The screen's passes as "Name HH:MM", in order. */
+const passList = (p) =>
+  p.evaluate(
+    `${PASS_ROWS}.map((li) => li.querySelector("[data-pass-name]").textContent + " " + li.querySelector("[data-pass-time]").dateTime)`,
   );
-  for (const key of due) {
-    const [medicationId, slot] = key.split("@");
-    await onDevice(
-      A,
-      `return medications.logDose(db, ${JSON.stringify(DEV_FAMILY)}, { medicationId: ${JSON.stringify(medicationId)}, status: "given", scheduledFor: ${JSON.stringify(slot)}, note: ${JSON.stringify(`${TAG} clear`)} });`,
+const passRow = (name) =>
+  `${PASS_ROWS}.find((li) => li.querySelector("[data-pass-name]")?.textContent === ${JSON.stringify(name)})`;
+const PASS_FORM = `document.querySelector("[role=dialog] [data-pass-form]")`;
+const passField = (name) => `${PASS_FORM}?.querySelector('[name="${name}"]')`;
+/** Its ⋯ menu's item, with real taps (the trigger, then the item where it is). */
+async function passAction(p, name, item) {
+  const button = `${passRow(name)}?.querySelector('button[aria-label=${JSON.stringify(`Actions for ${name}`)}]')`;
+  await toFront(p);
+  await p.waitFor(`!!${button}`, 15000);
+  await p.tap(button);
+  await p.waitFor(menuItem(item), 5000);
+  await tapInPlace(p, menuItem(item));
+}
+/** Fill the open pass sheet and save it. */
+async function savePassForm(p, { name, time }) {
+  await p.waitFor(`!!${PASS_FORM}`, 8000);
+  if (name !== undefined) await p.type(passField("name"), name);
+  if (time !== undefined) await p.type(passField("time"), time);
+  await p.press(`${PASS_FORM}.querySelector('button[type="submit"]')`);
+}
+const passSql = (name) =>
+  `SELECT time || ':' || sort_order || ':' || (deleted_at IS NOT NULL)::text FROM medication_pass WHERE group_id = '${DEV_FAMILY}' AND name = '${name}' ORDER BY created_at DESC LIMIT 1`;
+
+/**
+ * The Passes screen (caretaker@, A): the seeded Morning and Evening, the
+ * list header's link, adding a pass (a taken name refused), the medications
+ * in it, a retime with its timeline entry (seen live on a second device),
+ * reordering, an offline rename, and a delete that leaves the medication its
+ * time. A viewer (C) reads the screen with no controls.
+ */
+async function passesSteps(p, { B, C, proxy } = {}) {
+  const NOON = `${TAG} Noon`;
+  await toFront(p);
+  await p.goto(LIST);
+  await need(p, `!!document.querySelector("main [data-passes-link]")`, 20000, "the list's Passes link");
+  await p.tap(`document.querySelector("main [data-passes-link]")`);
+  await need(
+    p,
+    `location.pathname.endsWith("/medications/passes") && ${PASS_ROWS}.length >= 2`,
+    15000,
+    "the Passes screen",
+  );
+  const seeded = await passList(p);
+  check(
+    "the list's Passes link opens the group's passes: Morning 08:00 then Evening 20:00",
+    seeded[0] === "Morning 08:00" && seeded[1] === "Evening 20:00",
+    JSON.stringify(seeded),
+  );
+
+  // Add a pass; a taken name (any case) is refused on its field.
+  await p.tap(`document.querySelector("main [data-add-pass]")`);
+  await savePassForm(p, { name: "morning", time: "07:00" });
+  await need(
+    p,
+    `${passField("name")}?.getAttribute("aria-invalid") === "true"`,
+    8000,
+    "the taken name's error",
+  );
+  const taken = await p.evaluate(
+    `document.getElementById(${passField("name")}.getAttribute("aria-describedby")?.split(" ").pop())?.textContent ?? null`,
+  );
+  check("a pass's name must be free (case ignored)", taken === "Another pass already has that name", taken);
+  await savePassForm(p, { name: NOON, time: "12:00" });
+  await need(p, `!${PASS_FORM} && !!${passRow(NOON)}`, 10000, "the new pass in the list");
+  const added = await waitForSql(passSql(NOON), (v) => v.startsWith("12:00"));
+  const listed = await passList(p);
+  check(
+    "a writer adds a pass: last in the list, and uploaded",
+    listed.at(-1) === `${NOON} 12:00` && /^12:00:\d+:false$/.test(added),
+    `${JSON.stringify(listed)} ${added}`,
+  );
+  if (SMOKE) return;
+
+  // A medication in the pass (the form's pass choices come later): the screen lists it.
+  const passId = psql(`SELECT id FROM medication_pass WHERE name = '${NOON}' AND deleted_at IS NULL`);
+  const made = await onDevice(
+    p,
+    `return medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(`${TAG} Pass med`)}, strength: "5 mg", schedule: { type: "scheduled", slots: [{ passId: ${JSON.stringify(passId)}, amount: "2 tablets" }] } });`,
+  );
+  await need(
+    p,
+    `${passRow(NOON)}?.querySelector("[data-pass-medication]")?.textContent === ${JSON.stringify(`${TAG} Pass med 5 mg`)}`,
+    10000,
+    "the medication under its pass",
+  );
+  const inPass = await p.evaluate(
+    `${passRow(NOON)}?.querySelector("[data-pass-medication]")?.textContent ?? null`,
+  );
+  check(
+    "a pass lists the medications in it",
+    made.ok && inPass === `${TAG} Pass med 5 mg`,
+    `${JSON.stringify(made)} ${inPass}`,
+  );
+
+  // A second device follows along, live.
+  if (B) {
+    await B.goto(PASSES);
+    await need(B, `!!${passRow(NOON)}`, 30000, "the new pass on the second device");
+  }
+
+  // Retime: every medication moves with it, and the timeline says so.
+  await passAction(p, NOON, "Edit");
+  await savePassForm(p, { time: "12:30" });
+  await need(
+    p,
+    `!${PASS_FORM} && ${passRow(NOON)}?.querySelector("[data-pass-time]")?.dateTime === "12:30"`,
+    10000,
+    "the retimed pass",
+  );
+  const moved = await waitForSql(
+    `SELECT details->>'beforeTime' || '>' || (details->>'afterTime') || ':' || (details->'medicationIds'->>0 = '${made.id}')::text FROM timeline_entry WHERE kind = 'medicationChange' AND details->>'passId' = '${passId}' AND deleted_at IS NULL`,
+    (v) => v.length > 0,
+  );
+  check(
+    "a retime uploads with one passMoved entry naming the pass's medication",
+    moved === "12:00>12:30:true",
+    moved,
+  );
+  if (B) {
+    const live = await B.waitFor(
+      `${passRow(NOON)}?.querySelector("[data-pass-time]")?.dateTime === "12:30"`,
+      20000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    check("a second device sees the retime without a reload", live);
+  }
+  await p.goto(`/app/groups/${DEV_FAMILY}/timeline?kind=medicationChange`);
+  const line = `${NOON} moved 12:00 → 12:30`;
+  await need(
+    p,
+    `[...document.querySelectorAll("main [data-pass-moved]")].some((el) => el.textContent === ${JSON.stringify(line)})`,
+    15000,
+    "the passMoved row",
+  );
+  const shown = await p.evaluate(
+    `[...document.querySelectorAll("main [data-pass-moved]")].map((el) => el.textContent).includes(${JSON.stringify(line)})`,
+  );
+  check("the timeline shows the move as one line, with no medication", shown, line);
+
+  // Reorder: up, above Evening.
+  await p.goto(PASSES);
+  await need(p, `!!${passRow(NOON)}`, 15000, "the Passes screen again");
+  await passAction(p, NOON, "Move up");
+  await need(
+    p,
+    `${PASS_ROWS}[1]?.querySelector("[data-pass-name]")?.textContent === ${JSON.stringify(NOON)}`,
+    10000,
+    "the pass moved up",
+  );
+  const order = await passList(p);
+  const sorted = await waitForSql(
+    `SELECT string_agg(name, ',' ORDER BY sort_order, time) FROM medication_pass WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL AND (name IN ('Morning', 'Evening') OR name = '${NOON}')`,
+    (v) => v === `Morning,${NOON},Evening`,
+  );
+  check(
+    "Move up puts the pass before Evening, and uploads",
+    order[1] === `${NOON} 12:30` && sorted === `Morning,${NOON},Evening`,
+    `${JSON.stringify(order)} ${sorted}`,
+  );
+
+  // Offline: a rename saves on the device and uploads on reconnecting.
+  const RENAMED = `${TAG} Lunch`;
+  if (proxy) {
+    const errorsBefore = p.errors.length;
+    proxy.setOnline(false);
+    await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+    await passAction(p, NOON, "Edit");
+    await savePassForm(p, { name: RENAMED });
+    const offline = await p.waitFor(`!${PASS_FORM} && !!${passRow(RENAMED)}`, 10000).then(
+      () => true,
+      () => false,
+    );
+    proxy.setOnline(true);
+    await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+    const uploaded = await waitForSql(
+      `SELECT count(*) FROM medication_pass WHERE id = '${passId}' AND name = '${RENAMED}'`,
+      (v) => v === "1",
+      30000,
+    );
+    check(
+      "offline, a rename saves on the device and uploads after",
+      offline && uploaded === "1",
+      `${offline} ${uploaded}`,
+    );
+    p.errors.splice(errorsBefore);
+  }
+  const name = proxy ? RENAMED : NOON;
+
+  // A viewer reads the screen, with no controls.
+  if (C) {
+    await C.goto(PASSES);
+    await need(C, `!!${passRow(name)}`, 30000, "the pass on the viewer's device");
+    const viewer = await C.evaluate(
+      `({ add: !!document.querySelector("main [data-add-pass]"), menus: document.querySelectorAll("main [data-passes] button").length, sub: document.querySelector("main header p")?.textContent ?? "" })`,
+    );
+    check(
+      "a viewer sees the passes and their medications, with no controls",
+      !viewer.add && viewer.menus === 0 && viewer.sub.includes("You can view the passes"),
+      JSON.stringify(viewer),
     );
   }
-  const gone = await A.waitFor(`!${STRIP}`, 10000).then(
+
+  // Delete: the confirm says the medications keep the time; they do.
+  await passAction(p, name, "Delete");
+  await need(p, `!!${OPEN_DIALOG}`, 5000, "the delete confirm");
+  const message = await p.evaluate(`${OPEN_DIALOG}?.textContent ?? ""`);
+  await p.press(dialogButton("Delete"));
+  await need(p, `!${passRow(name)}`, 10000, "the pass to leave the list");
+  const gone = await waitForSql(
+    `SELECT (deleted_at IS NOT NULL)::text FROM medication_pass WHERE id = '${passId}'`,
+    (v) => v === "true",
+  );
+  const schedule = await waitForSql(`SELECT schedule::text FROM medication WHERE id = '${made.id}'`, (v) =>
+    v.includes('"time"'),
+  );
+  const changes = psql(CHANGES_SQL(made.id));
+  check(
+    "Delete (after a confirm saying so) leaves the medication the pass's time and amount, with no change entry",
+    message.includes("keep 12:30") &&
+      gone === "true" &&
+      JSON.stringify(JSON.parse(schedule)) ===
+        JSON.stringify({ type: "scheduled", slots: [{ time: "12:30", amount: "2 tablets" }] }) &&
+      changes === "1",
+    `${gone} ${schedule} ${changes} ${message.slice(0, 80)}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Allergies (medications-2 slice 3): the region, the sheet, the print block
+// and the name field's warning.
+// ---------------------------------------------------------------------------
+
+const ALLERGIES_URL = `${LIST}/allergies`;
+const REGION = `document.querySelector("main [data-allergies]")`;
+const regionInfo = (p) =>
+  p.evaluate(`({ state: ${REGION}?.dataset.allergies ?? null,
+    text: ${REGION}?.querySelector("[data-allergies-text]")?.textContent.trim() ?? null,
+    link: ${REGION}?.querySelector("[data-edit-allergies]")?.textContent.trim() ?? null })`);
+const ALLERGY_SHEET = `document.querySelector("[role=dialog] [data-allergies-sheet]")`;
+const ALLERGY_ADD = `${ALLERGY_SHEET}?.querySelector('[data-allergy-form="add"]')`;
+const ALLERGY_EDIT = `${ALLERGY_SHEET}?.querySelector('[data-allergy-form="edit"]')`;
+const allergyRows = (p) =>
+  p.evaluate(
+    `[...(${ALLERGY_SHEET}?.querySelectorAll("[data-allergy-row]") ?? [])].map((li) => li.textContent.trim())`,
+  );
+const allergySql = (substance) =>
+  `SELECT coalesce(reaction, '-') || ':' || severity || ':' || (deleted_at IS NOT NULL)::text FROM recipient_allergy WHERE substance = '${substance}' ORDER BY created_at DESC LIMIT 1`;
+const NO_KNOWN_SQL = `SELECT coalesce(no_known_allergies_at::text, '') FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`;
+/** What the end of the run puts back: the recipient's "No known allergies" as it was. */
+let restoreNoKnown = null;
+
+/** Fill one of the sheet's allergy forms and save it. */
+async function saveAllergy(p, form, { substance, reaction, severity }) {
+  await p.waitFor(`!!${form}`, 8000);
+  if (substance !== undefined) await p.type(`${form}.querySelector('[name="substance"]')`, substance);
+  if (reaction !== undefined) await p.type(`${form}.querySelector('[name="reaction"]')`, reaction);
+  if (severity)
+    await p.evaluate(`${form}.querySelector('input[name="severity"][value="${severity}"]').click()`);
+  await p.press(`${form}.querySelector('button[type="submit"]')`);
+}
+
+/** The name field's warning line in the open medication form, or null. */
+const nameWarning = `(() => { const i = ${formField("name")}; return i ? (document.getElementById(i.id + "-warn")?.textContent.trim() ?? null) : null; })()`;
+
+/**
+ * Allergies (caretaker@, A): the region on the list in its three states,
+ * "No known allergies" recorded and then cleared by adding one, adding,
+ * editing and removing allergies (a second device, B, sees them live), the
+ * region on a medication's page with the sheet closing back there, the print
+ * block (print media, offline), an offline add, and the name field's
+ * warning on adding and renaming, which still saves. A viewer (C) reads the
+ * region with no controls, and the sheet's URL sends them to the list.
+ */
+async function allergySteps(p, { B, C, proxy } = {}) {
+  const PEN = `${TAG} Penicillin`;
+  const SULFA = `${TAG} Sulfa`;
+  const LATEX = `${TAG} Latex`;
+  const orig = psql(NO_KNOWN_SQL);
+  restoreNoKnown = `UPDATE care_recipient SET no_known_allergies_at = ${orig ? `'${orig}'` : "NULL"} WHERE group_id = '${DEV_FAMILY}'`;
+  psql(`UPDATE care_recipient SET no_known_allergies_at = NULL WHERE group_id = '${DEV_FAMILY}'`);
+  // Allergies someone added by hand: the region then starts with them.
+  const others = Number(
+    psql(`SELECT count(*) FROM recipient_allergy WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL`),
+  );
+
+  await toFront(p);
+  await p.goto(LIST);
+  await need(p, `!!window.caretookSync && !!${REGION}`, 20000, "the list and the device database");
+  await waitForLocal(
+    p,
+    "SELECT no_known_allergies_at AS n FROM care_recipient WHERE group_id = ?",
+    [DEV_FAMILY],
+    (rows) => !!rows[0] && !rows[0].n,
+  );
+  await need(p, `!!${REGION}?.querySelector("[data-edit-allergies]")`, 20000, "the allergies region");
+  const first = await regionInfo(p);
+  const top = await p.evaluate(`document.querySelector("main > header")?.nextElementSibling === ${REGION}`);
+  if (others === 0)
+    check(
+      'the list starts with the allergies region: "Allergies not recorded", and "Add allergies" for a writer',
+      top &&
+        first.state === "notRecorded" &&
+        first.text === "Allergies not recorded" &&
+        first.link === "Add allergies",
+      JSON.stringify({ top, ...first }),
+    );
+  else console.log(`NOTE  Dev Family has ${others} allergies of its own: the not-recorded steps are skipped`);
+
+  await p.tap(`${REGION}.querySelector("[data-edit-allergies]")`);
+  await need(
+    p,
+    `location.pathname === ${JSON.stringify(ALLERGIES_URL)} && !!${ALLERGY_ADD}`,
+    15000,
+    "the allergies sheet",
+  );
+
+  if (others === 0) {
+    await p.tap(`${ALLERGY_SHEET}.querySelector("[data-record-no-known]")`);
+    await need(p, `${REGION}?.dataset.allergies === "none"`, 8000, "No known allergies in the region");
+    const recorded = await waitForSql(NO_KNOWN_SQL, (v) => v !== "");
+    const region = await regionInfo(p);
+    check(
+      '"No known allergies" records at once and uploads',
+      region.text === "No known allergies" && recorded !== "",
+      JSON.stringify({ region, recorded }),
+    );
+  }
+
+  // Add one: "No known allergies" goes, on the device and the server.
+  await saveAllergy(p, ALLERGY_ADD, { substance: PEN, reaction: "hives", severity: "severe" });
+  await need(p, `${ALLERGY_SHEET}?.querySelector("[data-allergy-row]")`, 8000, "the added allergy");
+  const added = await waitForSql(allergySql(PEN), (v) => v === "hives:severe:false");
+  const cleared = await waitForSql(NO_KNOWN_SQL, (v) => v === "");
+  check(
+    "adding an allergy shows it in the sheet, uploads it, and clears No known allergies",
+    (await allergyRows(p)).some((t) => t.startsWith(`${PEN} (hives, severe)`)) &&
+      added === "hives:severe:false" &&
+      cleared === "",
+    JSON.stringify({ rows: await allergyRows(p), added, cleared }),
+  );
+
+  if (B && !SMOKE) {
+    await B.goto(LIST);
+    const live = await need(
+      B,
+      `${REGION}?.textContent.includes(${JSON.stringify(`${PEN} (hives, severe)`)})`,
+      30000,
+      "the allergy on the second device",
+    );
+    check("a second device shows the new allergy in its region", live, JSON.stringify(await regionInfo(B)));
+  }
+
+  if (!SMOKE) {
+    // Add, edit and remove a second one.
+    await saveAllergy(p, ALLERGY_ADD, { substance: SULFA });
+    await need(
+      p,
+      `${ALLERGY_SHEET}?.querySelector('button[aria-label=${JSON.stringify(`Edit ${SULFA}`)}]')`,
+      8000,
+      "Sulfa's row",
+    );
+    await p.tap(`${ALLERGY_SHEET}.querySelector('button[aria-label=${JSON.stringify(`Edit ${SULFA}`)}]')`);
+    await saveAllergy(p, ALLERGY_EDIT, { reaction: "rash" });
+    await need(p, `!${ALLERGY_EDIT}`, 8000, "the edit form to close");
+    const edited = await waitForSql(allergySql(SULFA), (v) => v === "rash:unknown:false");
+    const rows = await allergyRows(p);
+    check(
+      "an allergy edits in place: its reaction shows and uploads, a severe one listed first",
+      edited === "rash:unknown:false" &&
+        rows[0]?.startsWith(PEN) &&
+        rows.some((t) => t.startsWith(`${SULFA} (rash)`)),
+      JSON.stringify({ edited, rows }),
+    );
+    await p.tap(`${ALLERGY_SHEET}.querySelector('button[aria-label=${JSON.stringify(`Remove ${SULFA}`)}]')`);
+    await need(p, enabledDialogButton("Remove"), 5000, "the remove confirm");
+    await p.press(dialogButton("Remove"));
+    const removed = await waitForSql(allergySql(SULFA), (v) => v.endsWith(":true"));
+    await need(p, `!${ALLERGY_SHEET}?.textContent.includes(${JSON.stringify(SULFA)})`, 8000, "Sulfa to go");
+    check(
+      "removing an allergy (after a confirm) takes it off the sheet and deletes it softly on the server",
+      removed.endsWith(":true") && !(await allergyRows(p)).some((t) => t.includes(SULFA)),
+      removed,
+    );
+  }
+
+  // Done closes back to the list.
+  await p.press(`${ALLERGY_SHEET}.querySelector("[data-allergies-done]")`);
+  await need(p, `!${ALLERGY_SHEET} && location.pathname === ${JSON.stringify(LIST)}`, 8000, "the list");
+  const listed = await regionInfo(p);
+  check(
+    "Done closes the sheet back to the list, whose region lists the allergy with Edit",
+    listed.state === "recorded" &&
+      listed.text?.startsWith("Allergies:") &&
+      listed.text.includes(`${PEN} (hives, severe)`) &&
+      listed.link?.startsWith("Edit"),
+    JSON.stringify(listed),
+  );
+
+  // A medication's page shows it too, and its Edit comes back to the page.
+  const lisinopril = await medicationId(p, "Lisinopril");
+  await p.goto(medPath(lisinopril));
+  await need(p, `${onMedPage(lisinopril)} && !!${REGION}`, 20000, "Lisinopril's allergies region");
+  const onPage = await regionInfo(p);
+  await p.tap(`${REGION}.querySelector("[data-edit-allergies]")`);
+  await need(p, `!!${ALLERGY_ADD}`, 15000, "the sheet from the page");
+  await p.press(`${ALLERGY_SHEET}.querySelector("[data-allergies-done]")`);
+  const back = await need(p, `!${ALLERGY_SHEET} && ${onMedPage(lisinopril)}`, 8000, "back on the page");
+  check(
+    "a medication's page shows the allergies, and the sheet opened there closes back to it",
+    onPage.text?.includes(`${PEN} (hives, severe)`) && back,
+    JSON.stringify(onPage),
+  );
+
+  // The printed list has them at the top, in print media too.
+  await p.goto(`${LIST}/print`);
+  await need(p, `!!document.querySelector("main [data-print-allergies]")`, 20000, "the print block");
+  const printBlock = async () =>
+    p.evaluate(`(() => { const b = document.querySelector("main [data-print-allergies]");
+      const current = document.querySelector('main [data-print-section="print-current"]');
+      return { state: b?.dataset.printAllergies, items: [...(b?.querySelectorAll("[data-print-allergy]") ?? [])].map((li) => li.textContent.trim()),
+        first: !!b && !!current && !!(b.compareDocumentPosition(current) & Node.DOCUMENT_POSITION_FOLLOWING),
+        shown: !!b && b.getClientRects().length > 0 && b.getBoundingClientRect().right <= document.documentElement.clientWidth + 0.5 }; })()`);
+  const printed = {};
+  for (const [width, mobile] of [
+    [420, true],
+    [1280, false],
+  ]) {
+    await metrics(p, width, mobile);
+    await p.send("Emulation.setEmulatedMedia", { media: "print" });
+    await sleep(300);
+    printed[width] = await printBlock();
+  }
+  await p.send("Emulation.setEmulatedMedia", { media: "" });
+  await metrics(p, 420, true);
+  const good = (b) =>
+    b.state === "recorded" && b.items.includes(`${PEN} (hives, severe)`) && b.first && b.shown;
+  check(
+    "the printed list shows the allergies above the medications, in print media at 420 and 1280",
+    good(printed[420]) && good(printed[1280]),
+    JSON.stringify(printed),
+  );
+
+  // The warning: adding a matching name shows it; renaming to one shows it and still saves.
+  await openAddSheet(p);
+  await p.type(formField("name"), `${PEN.toLowerCase()} VK`);
+  await need(p, `${nameWarning} !== null`, 8000, "the add sheet's warning");
+  const onAdd = await p.evaluate(nameWarning);
+  await p.type(formField("name"), "Amoxicillin");
+  await sleep(200);
+  const partial = await p.evaluate(nameWarning);
+  check(
+    "adding a medication whose name matches an allergy warns on the name field; a partial-word match doesn't",
+    onAdd === `Matches an allergy on file: ${PEN} (severe)` && partial === null,
+    JSON.stringify({ onAdd, partial }),
+  );
+  const made = await onDevice(
+    p,
+    `return medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name: ${JSON.stringify(`${TAG} Allergy check`)}, schedule: { type: "asNeeded" } });`,
+  );
+  if (made.ok) {
+    await p.goto(`${LIST}/${made.id}/edit`);
+    await need(p, `!!${formField("name")}`, 15000, "the edit sheet");
+    const renamed = `${PEN} VK`;
+    await p.type(formField("name"), renamed);
+    await need(p, `${nameWarning} !== null`, 8000, "the edit sheet's warning");
+    const onEdit = await p.evaluate(nameWarning);
+    const invalid = await p.evaluate(`${formField("name")}.getAttribute("aria-invalid")`);
+    await p.press(FORM_SUBMIT);
+    await need(p, `!${FORM}`, 10000, "the edit sheet to close");
+    const saved = await waitForSql(
+      `SELECT name FROM medication WHERE id = '${made.id}'`,
+      (v) => v === renamed,
+    );
+    check(
+      "renaming a medication to a matching name shows the warning (not an error) and still saves",
+      onEdit === `Matches an allergy on file: ${PEN} (severe)` && invalid !== "true" && saved === renamed,
+      JSON.stringify({ onEdit, invalid, saved }),
+    );
+  } else check("a tagged medication for the rename", false, JSON.stringify(made));
+
+  if (proxy && !SMOKE) {
+    // Offline: add one from the sheet; the list and the print block show it; it uploads once back online.
+    await p.goto(LIST);
+    await need(p, `!!${REGION}?.querySelector("[data-edit-allergies]")`, 20000, "the region");
+    const errorsBefore = p.errors.length;
+    proxy.setOnline(false);
+    await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+    await p.tap(`${REGION}.querySelector("[data-edit-allergies]")`);
+    await need(p, `!!${ALLERGY_ADD}`, 15000, "the sheet offline");
+    await saveAllergy(p, ALLERGY_ADD, { substance: LATEX, severity: "mild" });
+    await need(p, `${ALLERGY_SHEET}?.textContent.includes(${JSON.stringify(LATEX)})`, 8000, "Latex offline");
+    await p.press(`${ALLERGY_SHEET}.querySelector("[data-allergies-done]")`);
+    await need(
+      p,
+      `${REGION}?.textContent.includes(${JSON.stringify(`${LATEX} (mild)`)})`,
+      8000,
+      "Latex in the region",
+    );
+    const offlineRegion = await regionInfo(p);
+    await choosePrint(p, "Medication list");
+    await need(
+      p,
+      `!!document.querySelector("main [data-print-allergies]")`,
+      15000,
+      "the print sheet offline",
+    );
+    const offlinePrint = await printBlock();
+    proxy.setOnline(true);
+    await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+    const uploaded = await waitForSql(allergySql(LATEX), (v) => v === "-:mild:false", 30000);
+    p.errors.splice(errorsBefore);
+    check(
+      "offline, an allergy is added from the sheet, shows on the list and the print sheet, and uploads once online",
+      offlineRegion.text?.includes(`${LATEX} (mild)`) &&
+        offlinePrint.items.includes(`${LATEX} (mild)`) &&
+        uploaded === "-:mild:false",
+      JSON.stringify({ offlineRegion, items: offlinePrint.items, uploaded }),
+    );
+  }
+
+  if (C && !SMOKE) {
+    await toFront(C);
+    await C.goto(LIST);
+    await need(C, `${REGION}?.textContent.includes(${JSON.stringify(PEN)})`, 30000, "the viewer's region");
+    const viewer = await regionInfo(C);
+    const controls = await C.evaluate(`${REGION}?.querySelectorAll("a, button").length ?? -1`);
+    await C.goto(ALLERGIES_URL);
+    const sent = await need(
+      C,
+      `location.pathname === ${JSON.stringify(LIST)} && !!${REGION} && !document.querySelector("[role=dialog]")`,
+      15000,
+      "the viewer on the list",
+    );
+    check(
+      "a viewer reads the allergies with no controls, and the sheet's URL sends them to the list",
+      viewer.state === "recorded" && controls === 0 && sent,
+      JSON.stringify({ viewer, controls }),
+    );
+    await toFront(p);
+  }
+}
+
+/**
+ * A pass slot on Today (caretaker@, its own tab): a medication in this run's
+ * pass, a few minutes back in Los Angeles (whatever the clock), shows the
+ * pass's amount; Given logs the dose with the pass and that amount; moving
+ * the pass's time keeps the slot given.
+ */
+async function passDueSteps(A) {
+  if (laMinutes() < 10) await sleep((10 - laMinutes()) * 60_000 + 5000);
+  const now = laMinutes();
+  const [t1, t2] = [hhmm(now - 5), hhmm(now - 2)];
+  const name = `${TAG} Memantine`;
+  const made = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     const pass = await medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(`${TAG} Round`)}, time: ${JSON.stringify(t1)} });
+     if (!pass.ok) return [pass];
+     return [pass, await medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name: ${JSON.stringify(name)}, strength: "10 mg", dose: "1 tablet",
+       schedule: { type: "scheduled", slots: [{ passId: pass.id, amount: "2 tablets" }] },
+     })];`,
+  );
+  if (!made.every((r) => r?.ok)) return check("a pass and a medication in it", false, JSON.stringify(made));
+  const [{ id: passId }, { id }] = made;
+  const key = `${id}@${t1}`;
+  await A.goto(LIST);
+  const due = await A.waitFor(`${todayState(key)} === "due"`, 15000).then(
     () => true,
     () => false,
   );
-  check("the strip is absent when nothing is due", gone, `logged for ${due.length} seeded slot(s)`);
-  // Put the seeded slots back as they were.
-  psql(
-    `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'dose' AND details->>'note' = '${TAG} clear'`,
+  const shown = await A.evaluate(`${todaySlot(key)}?.textContent ?? ""`);
+  if (due) {
+    // The slot is inside its pass's card: expand it first.
+    await A.tap(`${TODAY}.querySelector('[data-pass="pass:${passId}"] [data-pass-expand]')`);
+    await A.waitFor(`!${todaySlot(key)}.closest("ul").hidden`, 5000).catch(() => undefined);
+    await A.tap(`${todaySlot(key)}.querySelector("[data-give]")`);
+  }
+  const given = await A.waitFor(`${todayState(key)} === "given"`, 8000).then(
+    () => true,
+    () => false,
   );
+  const logged = await waitForSql(
+    `SELECT (details->>'passId') || '|' || (details->>'amount') || '|' || (details->>'scheduledFor') FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND details->>'medicationId' = '${id}'`,
+    (v) => v !== "",
+  );
+  check(
+    "a pass slot on Today shows the pass's amount; Given logs the pass with that amount",
+    due && shown.includes("2 tablets") && given && logged === `${passId}|2 tablets|${t1}`,
+    `${due} ${given} ${logged} ${shown.slice(0, 80)}`,
+  );
+  if (SMOKE) return;
+
+  // Move the pass: the slot moves with it and stays given.
+  const moved = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     return medicationPasses.updatePass(db, ${JSON.stringify(passId)}, { time: ${JSON.stringify(t2)} });`,
+  );
+  const kept = await A.waitFor(`${todayState(`${id}@${t2}`)} === "given" && !${todaySlot(key)}`, 10000).then(
+    () => true,
+    () => false,
+  );
+  check(
+    "after the pass moves, the dose logged for it still answers its slot",
+    moved.ok && kept,
+    `${moved.ok}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Given all (medications-2 slice 4): passes on Today, Undo, the Dose sheet,
+// Upcoming, offline and a second device.
+// ---------------------------------------------------------------------------
+
+const passCard = (passId, root = TODAY) => `${root}?.querySelector('[data-pass="pass:${passId}"]')`;
+const passCardState = (passId, root = TODAY) => `(${passCard(passId, root)}?.dataset.passState ?? null)`;
+const passCardSlot = (passId, key, root = TODAY) =>
+  `${passCard(passId, root)}?.querySelector('[data-slot="${key}"]')`;
+const passSlotState = (passId, key, root = TODAY) =>
+  `(${passCardSlot(passId, key, root)}?.querySelector("[data-slot-state]")?.dataset.slotState ?? null)`;
+const UNDO_LABEL = `(document.querySelector("[data-pass-undo-label]")?.textContent.trim() ?? null)`;
+const passDosesSql = (ids) =>
+  `SELECT coalesce(string_agg(m.name || ':' || (e.details->>'status') || ':' || coalesce(e.details->>'passLogId', '-'), ',' ORDER BY m.name), '')
+     FROM timeline_entry e JOIN medication m ON m.id::text = e.details->>'medicationId'
+    WHERE e.kind = 'dose' AND e.deleted_at IS NULL AND m.id::text IN (${ids.map((id) => `'${id}'`).join(", ")})`;
+/** "X:given:<log>,Y:refused:<log>" → { X: ["given", log], … } */
+const passDoses = (text) =>
+  Object.fromEntries(
+    (text || "")
+      .split(",")
+      .filter(Boolean)
+      .map((d) => {
+        const [name, status, log] = d.split(":");
+        return [name.slice(TAG.length + 1), [status, log]];
+      }),
+  );
+
+async function expandPass(p, passId, root = TODAY) {
+  const open = await p.evaluate(
+    `${passCard(passId, root)}?.querySelector("[data-pass-expand]")?.getAttribute("aria-expanded")`,
+  );
+  if (open !== "true") await p.tap(`${passCard(passId, root)}.querySelector("[data-pass-expand]")`);
+  await p.waitFor(
+    `${passCard(passId, root)}?.querySelector("[data-pass-expand]")?.getAttribute("aria-expanded") === "true"`,
+    5000,
+  );
+}
+
+/**
+ * Given all, with this run's own passes a few minutes back in Los Angeles
+ * (whatever the clock) and three medications in the first: Given all then
+ * Undo (exactly its doses, back to open), one refused with a note and one
+ * given on a second device (who logged it), then Given all offline for the
+ * rest (one round), seen done on the second device; the Dose sheet and
+ * Upcoming offering the second pass; viewers without controls.
+ */
+async function givenAllSteps(A, { B, C, proxy } = {}) {
+  if (laMinutes() < 12) await sleep((12 - laMinutes()) * 60_000 + 5000);
+  const now = laMinutes();
+  const [t1, t2] = [hhmm(now - 7), hhmm(now - 4)];
+  const names = ["Xa", "Yb", "Zc", "Wd"].map((n) => `${TAG} ${n}`);
+  const made = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     const one = await medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(`${TAG} Rounds`)}, time: ${JSON.stringify(t1)} });
+     const two = await medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(`${TAG} Round 2`)}, time: ${JSON.stringify(t2)} });
+     if (!one.ok || !two.ok) return [one, two];
+     const med = (name, passId, amount) => medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name, strength: "5 mg", dose: "1 tablet",
+       schedule: { type: "scheduled", slots: [{ passId, ...(amount && { amount }) }] },
+     });
+     const names = ${JSON.stringify(names)};
+     return [one, two,
+       await med(names[0], one.id, "2 tablets"), await med(names[1], one.id), await med(names[2], one.id),
+       await med(names[3], two.id)];`,
+  );
+  if (!made.every((r) => r?.ok))
+    return check("passes and medications for Given all", false, JSON.stringify(made));
+  const [{ id: p1 }, { id: p2 }, ...meds] = made;
+  const [x, y, z, w] = meds.map((m) => m.id);
+  const key = (id, t = t1) => `${id}@${t}`;
+  const passIds = [x, y, z];
+
+  await A.goto(LIST);
+  const due = await A.waitFor(`${passCardState(p1)} === "due"`, 15000).then(
+    () => true,
+    () => false,
+  );
+  const card = await A.evaluate(`${passCard(p1)}?.textContent ?? ""`);
+  check(
+    "Today groups by pass: the pass's name, its state and Given all for writers",
+    due &&
+      card.includes(`${TAG} Rounds`) &&
+      card.includes("Due") &&
+      (await A.evaluate(`!!${passCard(p1)}.querySelector("[data-given-all]")`)),
+    card.slice(0, 160),
+  );
+
+  // Given all, then Undo: exactly its doses go, and the pass is open again.
+  await A.tap(`${passCard(p1)}.querySelector("[data-given-all]")`);
+  const done = await A.waitFor(`${passCardState(p1)} === "done"`, 8000).then(
+    () => true,
+    () => false,
+  );
+  const undoLabel = await A.waitFor(`${UNDO_LABEL} === ${JSON.stringify(`${TAG} Rounds logged`)}`, 5000).then(
+    () => true,
+    () => false,
+  );
+  const local = await localRows(
+    A,
+    `SELECT json_extract(details, '$.medicationId') AS m, json_extract(details, '$.passLogId') AS log, json_extract(details, '$.amount') AS amount
+       FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND json_extract(details, '$.passId') = ?`,
+    [p1],
+  );
+  const oneLog = new Set(local.map((r) => r.log)).size === 1 && !!local[0]?.log;
+  const amountX = local.find((r) => r.m === x)?.amount;
+  check(
+    "Given all logs every open medication in the pass at once, in one round, with each slot's amount; the pass is done and Undo is offered",
+    done && undoLabel && local.length === 3 && oneLog && amountX === "2 tablets",
+    `${done} ${undoLabel} ${local.length} ${oneLog} ${amountX}`,
+  );
+  await A.tap(`document.querySelector("[data-pass-undo-button]")`);
+  const reopened = await A.waitFor(
+    `${passCardState(p1)} === "due" && !${passCard(p1)}.hasAttribute("data-pass-partly") && !document.querySelector("[data-pass-undo-label]")`,
+    8000,
+  ).then(
+    () => true,
+    () => false,
+  );
+  const live = await localRows(
+    A,
+    `SELECT count(*) AS n FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND json_extract(details, '$.passId') = ?`,
+    [p1],
+  );
+  const removed = await waitForSql(
+    `SELECT count(*) FILTER (WHERE deleted_at IS NULL) || '/' || count(*) FROM timeline_entry WHERE kind = 'dose' AND details->>'passId' = '${p1}'`,
+    (v) => v === "0/3",
+    20000,
+  );
+  check(
+    "Undo removes exactly those doses, and the pass is open again",
+    reopened && live[0]?.n === 0 && removed === "0/3",
+    `${reopened} ${live[0]?.n} ${removed}`,
+  );
+  if (SMOKE) return cleanUp();
+
+  // One medication refused (with a note), one given on a second device: who logged it shows.
+  await expandPass(A, p1);
+  await A.tap(`${passCardSlot(p1, key(y))}.querySelector('[aria-label^="More for"]')`);
+  await A.waitFor(menuItem("Refused…"), 5000);
+  await A.tap(menuItem("Refused…"));
+  await A.waitFor(`${OPEN_DIALOG}?.querySelector("[data-mark-note]")`, 5000);
+  await A.type(`${OPEN_DIALOG}.querySelector("[data-mark-note]")`, `${TAG} spat out`);
+  await A.tap(dialogButton("Mark refused"));
+  const refused = await A.waitFor(`${passSlotState(p1, key(y))} === "refused" && !${OPEN_DIALOG}`, 8000).then(
+    () => true,
+    () => false,
+  );
+  check("a medication in a pass can be marked refused, with a note", refused);
+
+  if (B) {
+    await toFront(B);
+    await B.goto(LIST);
+    // Wait for the refusal (and its round) to reach B before B joins it.
+    await B.waitFor(`${passSlotState(p1, key(y))} === "refused"`, 30000).catch(() => undefined);
+    await expandPass(B, p1);
+    await B.tap(`${passCardSlot(p1, key(x))}.querySelector("[data-give]")`);
+    await B.waitFor(`${passSlotState(p1, key(x))} === "given"`, 8000).catch(() => undefined);
+    await toFront(A);
+    const byB = await A.waitFor(
+      `${passCardSlot(p1, key(x))}?.querySelector("[data-logged-by]")?.textContent.includes("Dev Member")`,
+      30000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const summary = await A.evaluate(
+      `${passCard(p1)}?.querySelector("[data-pass-summary]")?.textContent ?? ""`,
+    );
+    check(
+      "a medication given on a second device shows on Today, with who logged it",
+      byB && summary.includes("Dev Member") && summary.includes("logged 2 of 3"),
+      summary,
+    );
+  }
+
+  // Offline: Given all logs only what's still open, in the round already started.
+  if (proxy) {
+    proxy.setOnline(false);
+    await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+  }
+  const errorsBefore = A.errors.length;
+  await A.tap(`${passCard(p1)}.querySelector("[data-given-all]")`);
+  const offlineDone = await A.waitFor(`${passCardState(p1)} === "done"`, 8000).then(
+    () => true,
+    () => false,
+  );
+  if (proxy) {
+    proxy.setOnline(true);
+    await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+    A.errors.splice(errorsBefore);
+  }
+  const uploaded = passDoses(
+    await waitForSql(passDosesSql(passIds), (v) => (v.match(/,/g) ?? []).length === (B ? 2 : 1), 30000),
+  );
+  const logs = new Set(Object.values(uploaded).map(([, log]) => log));
+  check(
+    `Given all${proxy ? " offline" : ""} skips what's already logged, and the pass stays one round`,
+    offlineDone &&
+      uploaded.Zc?.[0] === "given" &&
+      uploaded.Yb?.[0] === "refused" &&
+      (!B || uploaded.Xa?.[0] === "given") &&
+      logs.size === 1 &&
+      !logs.has("-"),
+    JSON.stringify(uploaded),
+  );
+  if (B) {
+    const seen = await B.waitFor(`${passCardState(p1)} === "done"`, 30000).then(
+      () => true,
+      () => false,
+    );
+    check("a second device shows the pass done", seen);
+  }
+
+  // Upcoming: the second pass as one row; it opens the Dose sheet on that pass.
+  const upcoming = `/app/groups/${DEV_FAMILY}/upcoming`;
+  const upRow = `document.querySelector('main [data-upcoming-dose="pass:${p2}"]')`;
+  await A.goto(upcoming);
+  const upText = await A.waitFor(`!!${upRow}`, 15000).then(
+    () => A.evaluate(`${upRow}.textContent`),
+    () => "",
+  );
+  const firstGone = await A.evaluate(`!document.querySelector('main [data-upcoming-dose="pass:${p1}"]')`);
+  check(
+    "Upcoming shows an open pass as one row, and a done one not at all",
+    upText.includes(`${TAG} Round 2 · 1 medication`) && firstGone,
+    upText.slice(0, 120),
+  );
+  await A.tap(`${upRow}.querySelector("a")`);
+  const sheetPass = await A.waitFor(`!!${passCard(p2, SHEET)}`, 10000).then(
+    () => true,
+    () => false,
+  );
+  const repeated = await A.evaluate(
+    `!!${SHEET}?.querySelector('input[name="medicationId"][value="${key(w, t2)}"]')`,
+  );
+  check(
+    "the Dose sheet offers the due pass first, with Given all, and doesn't repeat its slots below",
+    sheetPass &&
+      !repeated &&
+      (await A.evaluate(`!!${passCard(p2, SHEET)}.querySelector("[data-given-all]")`)),
+    `${sheetPass} ${repeated}`,
+  );
+
+  // The viewer: states without controls, on Today, in Upcoming.
+  if (C) {
+    await toFront(C);
+    await C.goto(LIST);
+    const seen = await C.waitFor(`${passCardState(p2)} === "due"`, 30000).then(
+      () => true,
+      () => false,
+    );
+    const controls = await C.evaluate(
+      `${passCard(p2)}?.querySelectorAll("[data-given-all], [data-give], [aria-label^='More for']").length ?? -1`,
+    );
+    await C.goto(upcoming);
+    const row = await C.waitFor(`!!${upRow}`, 15000).then(
+      () => true,
+      () => false,
+    );
+    const links = await C.evaluate(`${upRow}?.querySelectorAll("a").length ?? -1`);
+    check(
+      "a viewer sees a pass's state on Today and in Upcoming, with no logging controls",
+      seen && controls === 0 && row && links === 0,
+      `${seen} ${controls} ${row} ${links}`,
+    );
+    await toFront(A);
+  }
+
+  await A.tap(`${passCard(p2, SHEET)}.querySelector("[data-given-all]")`);
+  const sheetDone = await A.waitFor(
+    `${passCardState(p2, SHEET)} === "done" && ${UNDO_LABEL} === ${JSON.stringify(`${TAG} Round 2 logged`)}`,
+    8000,
+  ).then(
+    () => true,
+    () => false,
+  );
+  const w2 = await waitForSql(doseCountSql(w, t2), (v) => v === "1", 15000);
+  check(
+    "Given all in the Dose sheet logs the pass and offers Undo there",
+    sheetDone && w2 === "1",
+    `${sheetDone} ${w2}`,
+  );
+
+  return cleanUp();
+
+  async function cleanUp() {
+    await onDevice(
+      A,
+      `const { medicationPasses } = await window.caretookModules();
+       for (const id of ${JSON.stringify(meds.map((m) => m.id))}) await medications.removeMedication(db, id);
+       for (const id of ${JSON.stringify([p1, p2])}) await medicationPasses.removePass(db, id);`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The medication strip (medications-2 slice 5)
+// ---------------------------------------------------------------------------
+
+const MED_STRIP = `document.querySelector("main [data-med-strip]")`;
+const stripState = `(${MED_STRIP}?.dataset.stripState ?? null)`;
+const stripPass = `(${MED_STRIP}?.dataset.stripPass ?? null)`;
+/** "08:05" as the app shows it: "8:05". */
+const clockTime = (t) => t.replace(/^0(\d:)/, "$1");
+
+/**
+ * The timeline's medication strip, with this run's own passes placed around
+ * now in Los Angeles. First every slot still open today in Dev Family gets a
+ * tagged dose (taken back at the end), so only this run's passes are open:
+ * an overdue one (65 minutes back) takes the line over a due one (3 minutes
+ * back); Given all from the strip logs it and offers Undo, and Undo brings it
+ * back; then the due pass, whose name opens the Dose sheet on it; Given all
+ * moves the strip to the next pass (30 minutes ahead), quiet. One line at
+ * 420, a viewer's text without controls, and no strip for a group without
+ * scheduled medications (Dev Family 2's, soft-deleted for a moment).
+ */
+async function stripSteps(A, { B, C } = {}) {
+  // An overdue pass needs 65 minutes of today behind it, and the next one 30 ahead.
+  if (laMinutes() < 67) await sleep((67 - laMinutes()) * 60_000 + 5000);
+  const now = laMinutes();
+  const ahead = now + 30 < 24 * 60;
+  const [tLate, tNow, tLater] = [hhmm(now - 65), hhmm(now - 3), hhmm(Math.min(now + 30, 24 * 60 - 1))];
+  const clearNote = `${TAG} strip-clear`;
+  const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
+
+  // Every open slot today: answered (a tagged dose each).
+  const cleared = await onDevice(
+    A,
+    `const { dueDoses } = await window.caretookModules();
+     const rows = await dueDoses.loadDueDoses(db, ${JSON.stringify(DEV_FAMILY)});
+     const open = dueDoses.toDueDoses(rows, new Date()).slots.filter((s) => !s.dose);
+     for (const s of open)
+       await medications.logDose(db, ${JSON.stringify(DEV_FAMILY)}, { medicationId: s.medication.id, status: "given", scheduledFor: s.time, passId: s.passId, note: ${JSON.stringify(clearNote)} });
+     return open.length;`,
+  );
+  const made = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     const pass = (name, time) => medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name, time });
+     const late = await pass(${JSON.stringify(`${TAG} Late`)}, ${JSON.stringify(tLate)});
+     const soon = await pass(${JSON.stringify(`${TAG} Now`)}, ${JSON.stringify(tNow)});
+     const later = ${ahead} ? await pass(${JSON.stringify(`${TAG} Later`)}, ${JSON.stringify(tLater)}) : { ok: true, id: null };
+     if (!late.ok || !soon.ok || !later.ok) return [late, soon, later];
+     const med = (name, passId) => medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name, strength: "5 mg", dose: "1 tablet", schedule: { type: "scheduled", slots: [{ passId }] },
+     });
+     const meds = [await med(${JSON.stringify(`${TAG} Sa`)}, late.id), await med(${JSON.stringify(`${TAG} Sb`)}, soon.id), await med(${JSON.stringify(`${TAG} Sc`)}, soon.id)];
+     if (later.id) meds.push(await med(${JSON.stringify(`${TAG} Sd`)}, later.id));
+     return [late, soon, later, ...meds];`,
+  );
+  if (!made.every((r) => r?.ok))
+    return check("passes and medications for the strip", false, JSON.stringify(made));
+  const [{ id: pLate }, { id: pNow }, { id: pLater }, ...meds] = made;
+
+  try {
+    await A.goto(timeline);
+    const overdue = await A.waitFor(
+      `${stripState} === "overdue" && ${stripPass} === "pass:${pLate}"`,
+      20000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const text = await A.evaluate(`${MED_STRIP}?.textContent ?? ""`);
+    const height = await A.evaluate(`${MED_STRIP}?.getBoundingClientRect().height ?? 0`);
+    check(
+      "the strip shows an overdue pass in the place of a due one, on one line at 420, with Given all",
+      overdue &&
+        text.includes(`Overdue: ${TAG} Late · ${clockTime(tLate)} · 1 med · +1 more`) &&
+        height > 0 &&
+        height <= 40 &&
+        (await A.evaluate(`!!${MED_STRIP}.querySelector("[data-strip-given-all]")`)),
+      `${overdue} cleared ${cleared} height ${height} "${text}"`,
+    );
+
+    // Given all from the strip, then Undo: the overdue pass comes back.
+    await A.tap(`${MED_STRIP}.querySelector("[data-strip-given-all]")`);
+    const moved = await A.waitFor(`${stripState} === "due" && ${stripPass} === "pass:${pNow}"`, 8000).then(
+      () => true,
+      () => false,
+    );
+    const undo = await A.waitFor(`${UNDO_LABEL} === ${JSON.stringify(`${TAG} Late logged`)}`, 5000).then(
+      () => true,
+      () => false,
+    );
+    const lateDoses = await waitForSql(doseCountSql(meds[0].id, tLate), (v) => v === "1", 15000);
+    check(
+      "Given all from the strip logs the pass, offers Undo, and the strip moves to the due pass",
+      moved && undo && lateDoses === "1",
+      `${moved} ${undo} ${lateDoses}`,
+    );
+    await A.tap(`document.querySelector("[data-pass-undo-button]")`);
+    const back = await A.waitFor(
+      `${stripState} === "overdue" && ${stripPass} === "pass:${pLate}"`,
+      8000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    check("Undo from the strip takes the doses back, and the overdue pass returns", back);
+    await A.tap(`${MED_STRIP}.querySelector("[data-strip-given-all]")`);
+    await A.waitFor(`${stripState} === "due"`, 8000).catch(() => undefined);
+    const dueText = await A.evaluate(`${MED_STRIP}?.textContent ?? ""`);
+    check(
+      "a due pass reads its name, its time and how many medications",
+      dueText.includes(`Due: ${TAG} Now · ${clockTime(tNow)} · 2 meds`) && !dueText.includes("more"),
+      dueText,
+    );
+    if (SMOKE) return;
+
+    // The pass's name opens the Dose sheet on that pass.
+    await A.tap(`${MED_STRIP}.querySelector("[data-strip-open]")`);
+    const sheet = await A.waitFor(`!!${passCard(pNow, SHEET)}`, 10000).then(
+      () => true,
+      () => false,
+    );
+    check("the pass's name opens the Dose sheet on that pass", sheet);
+    await A.goto(timeline);
+    await A.waitFor(`${stripState} === "due" && !${SHEET}`, 15000).catch(() => undefined);
+
+    // A viewer: the text, no link or button.
+    if (C) {
+      await toFront(C);
+      await C.goto(timeline);
+      const seen = await C.waitFor(`${stripState} === "due" && ${stripPass} === "pass:${pNow}"`, 30000).then(
+        () => true,
+        () => false,
+      );
+      const controls = await C.evaluate(`${MED_STRIP}?.querySelectorAll("a, button").length ?? -1`);
+      const viewerHeight = await C.evaluate(`${MED_STRIP}?.getBoundingClientRect().height ?? 0`);
+      check(
+        "a viewer sees the strip as text, with no link or Given all, on one line",
+        seen && controls === 0 && viewerHeight <= 40,
+        `${seen} ${controls} ${viewerHeight}`,
+      );
+      await toFront(A);
+    }
+
+    // Given all for the due pass: the strip moves on to the next, quiet.
+    await A.tap(`${MED_STRIP}.querySelector("[data-strip-given-all]")`);
+    if (ahead) {
+      const next = await A.waitFor(
+        `${stripState} === "next" && ${stripPass} === "pass:${pLater}"`,
+        8000,
+      ).then(
+        () => true,
+        () => false,
+      );
+      const nextText = await A.evaluate(`${MED_STRIP}?.textContent ?? ""`);
+      check(
+        "once the due pass is logged, the strip shows the next pass, with no Given all",
+        next &&
+          nextText.includes(`Next: ${TAG} Later · ${clockTime(tLater)} · 1 med`) &&
+          (await A.evaluate(`!${MED_STRIP}.querySelector("[data-strip-given-all]")`)),
+        nextText,
+      );
+    } else check("(skipped: the next pass would be tomorrow) the strip's next pass", true);
+
+    // A group without scheduled medications: no strip (Dev Family 2's, soft-deleted for a moment).
+    if (B) {
+      const ids = psql(
+        `SELECT string_agg(id::text, ',') FROM medication WHERE group_id = '${DEV_FAMILY_2}' AND deleted_at IS NULL AND schedule->>'type' = 'scheduled'`,
+      )
+        .split(",")
+        .filter(Boolean);
+      await toFront(B);
+      await B.goto(`/app/groups/${DEV_FAMILY_2}/timeline`);
+      const before = await B.waitFor(`!!${MED_STRIP}`, 20000).then(
+        () => true,
+        () => false,
+      );
+      const list = ids.map((id) => `'${id}'`).join(", ");
+      if (ids.length) psql(`UPDATE medication SET deleted_at = now() WHERE id IN (${list})`);
+      try {
+        const gone = await B.waitFor(
+          `!${MED_STRIP} && !!document.querySelector("main [data-view]")`,
+          30000,
+        ).then(
+          () => true,
+          () => false,
+        );
+        check(
+          "a group without scheduled medications shows no strip",
+          ids.length > 0 && before && gone,
+          `${ids.length} ${before} ${gone}`,
+        );
+      } finally {
+        if (ids.length) psql(`UPDATE medication SET deleted_at = NULL WHERE id IN (${list})`);
+      }
+      await toFront(A);
+    }
+  } finally {
+    await onDevice(
+      A,
+      `const { medicationPasses } = await window.caretookModules();
+       for (const id of ${JSON.stringify(meds.map((m) => m.id))}) await medications.removeMedication(db, id);
+       for (const id of ${JSON.stringify([pLate, pNow, pLater].filter(Boolean))}) await medicationPasses.removePass(db, id);`,
+    ).catch(() => undefined);
+    psql(
+      `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'dose' AND details->>'note' = '${clearNote}'`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pass logs on the timeline and the pass sheet (medications-2 slice 6).
+// ---------------------------------------------------------------------------
+
+const passLogRow = (log) => `document.querySelector('main [data-pass-log="${log}"]')`;
+const LOG_FORM = `${SHEET}?.querySelector("[data-pass-log-form]")`;
+const passDoseField = (doseId, name) => `${LOG_FORM}?.querySelector('[name="${name}:${doseId}"]')`;
+const passLogSql = (log) =>
+  `SELECT coalesce(string_agg(m.name || ':' || (e.details->>'status') || ':' || coalesce(e.details->>'amount', '-') || ':' || (e.deleted_at IS NULL), ',' ORDER BY m.name), '')
+     FROM timeline_entry e JOIN medication m ON m.id::text = e.details->>'medicationId'
+    WHERE e.kind = 'dose' AND e.details->>'passLogId' = '${log}'`;
+
+/**
+ * A round logged together (this run's own pass and medications, logged
+ * through the device module a few minutes back, so no clock matters): one
+ * row on the timeline that expands to each medication; the pass sheet
+ * changes a status and an amount, adds a forgotten medication, and deletes
+ * the whole log offline; the guard sends viewers and a deleted log to the
+ * timeline.
+ */
+async function passLogSteps(A, { C, proxy } = {}) {
+  // Names no other step's medication or pass starts with: the strip's steps log a pass "<TAG> Late"
+  // earlier in the run, and a row is matched by its text containing a name.
+  const names = ["Qa", "Qb", "Qc", "Qd"].map((n) => `${TAG} ${n}`);
+  const passName = `${TAG} Log`;
+  const made = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     const pass = await medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name: ${JSON.stringify(passName)}, time: "06:00" });
+     if (!pass.ok) return [pass];
+     const med = (name, slots) => medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name, strength: "5 mg", dose: "1 tablet", schedule: { type: "scheduled", slots },
+     });
+     const names = ${JSON.stringify(names)};
+     const meds = [await med(names[0], [{ passId: pass.id }]), await med(names[1], [{ passId: pass.id }]),
+       await med(names[2], [{ passId: pass.id }]), await med(names[3], [{ time: "13:00" }])];
+     if (!meds.every((m) => m.ok)) return [pass, ...meds];
+     const log = crypto.randomUUID();
+     const at = new Date(Date.now() - 3 * 60_000).toISOString();
+     const dose = (m, status) => ({ medicationId: m.id, status, amount: "1 tablet", scheduledFor: "06:00", passId: pass.id, passLogId: log, occurredAt: at });
+     const logged = await medications.logDoses(db, ${JSON.stringify(DEV_FAMILY)},
+       [dose(meds[0], "given"), dose(meds[1], "given"), dose(meds[2], "refused")]);
+     return [pass, ...meds, { ok: logged.ok, log, ids: logged.ids }];`,
+  );
+  if (!made.every((r) => r?.ok)) return check("a pass log to show", false, JSON.stringify(made));
+  const [{ id: passId }, ...rest] = made;
+  const meds = rest.slice(0, 4).map((m) => m.id);
+  const { log, ids } = rest[4];
+  const [, idB] = ids;
+  const timeline = `/app/groups/${DEV_FAMILY}/timeline?kind=dose`;
+  const rowText = () =>
+    A.evaluate(`${passLogRow(log)}?.querySelector("[data-pass-log-text]")?.textContent ?? ""`);
+
+  try {
+    await A.goto(timeline);
+    // Its pass's and medications' names arrive with their own live queries, a moment after the row.
+    const shown = await A.waitFor(
+      `${passLogRow(log)}?.querySelector("[data-pass-log-text]")?.textContent === ${JSON.stringify(`${passName}: 2 given, 1 refused`)}`,
+      15000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const alone = await A.evaluate(
+      `${ROWS}.filter((li) => ${JSON.stringify(names.slice(0, 3))}.some((n) => li.textContent.includes(n))).length`,
+    );
+    check(
+      "a round logged together is one row on the timeline (the dose filter shows it)",
+      shown && (await rowText()) === `${passName}: 2 given, 1 refused` && alone === 1,
+      `${shown} ${await rowText()} ${alone}`,
+    );
+    await A.tap(`${passLogRow(log)}.querySelector("[data-pass-log-toggle]")`);
+    const listed = await A.waitFor(
+      `!${passLogRow(log)}.querySelector("[data-pass-log-doses]").hidden && ${passLogRow(log)}.querySelectorAll("[data-pass-log-doses] li").length === 3`,
+      5000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const lines = await A.evaluate(
+      `[...${passLogRow(log)}.querySelectorAll("[data-pass-log-doses] li")].map((li) => li.textContent).join(" | ")`,
+    );
+    check(
+      "expanding the row lists each medication and what happened",
+      listed &&
+        lines.includes(`${names[2]} 5 mg: Refused`) &&
+        lines.includes(`${names[0]} 5 mg: Given 1 tablet`),
+      lines.slice(0, 200),
+    );
+    if (SMOKE) return;
+
+    // The pass sheet: a status and an amount, saved together.
+    const openSheet = async () => {
+      // The row's text, not its middle: the expanded list's medication links sit above the open target.
+      await A.tap(`${passLogRow(log)}.querySelector("[data-pass-log-text]")`);
+      return A.waitFor(
+        `location.pathname.endsWith("/timeline/pass/${log}/edit") && ${LOG_FORM}?.querySelectorAll("fieldset[data-pass-dose]").length >= 3`,
+        10000,
+      ).then(
+        () => true,
+        () => false,
+      );
+    };
+    const opened = await openSheet();
+    check("tapping the row opens the pass sheet with each dose", opened);
+    await A.tap(`${LOG_FORM}.querySelector('input[name="status:${idB}"][value="skipped"]')`);
+    await A.type(passDoseField(ids[0], "amount"), "3 tablets");
+    await A.press(`${LOG_FORM}.querySelector('button[type="submit"]')`);
+    const closed = await A.waitFor(`!${SHEET} && !location.pathname.includes("/pass/")`, 8000).then(
+      () => true,
+      () => false,
+    );
+    const saved = await waitForSql(passLogSql(log), (v) => v.includes(":skipped:"), 20000);
+    check(
+      "the pass sheet saves a status and an amount, and the row says so",
+      closed &&
+        (await rowText()) === `${passName}: 1 given, 1 skipped, 1 refused` &&
+        saved.includes(`${names[0]}:given:3 tablets:true`) &&
+        saved.includes(`${names[1]}:skipped:1 tablet:true`),
+      `${closed} ${await rowText()} ${saved}`,
+    );
+
+    // Add a forgotten medication: a dose in the same round, at once.
+    await openSheet();
+    await A.evaluate(`(() => { const el = ${SHEET}.querySelector('[data-pass-log-add] select');
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(el, ${JSON.stringify(meds[3])});
+      el.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+    await A.tap(`${SHEET}.querySelector('[data-pass-log-add] button[type="submit"]')`);
+    const four = await A.waitFor(
+      `${LOG_FORM}?.querySelectorAll("fieldset[data-pass-dose]").length === 4`,
+      8000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const added = await waitForSql(passLogSql(log), (v) => v.includes(`${names[3]}:given`), 20000);
+    check(
+      "Add a medication logs it in the same round, and the sheet shows it",
+      four && added.includes(`${names[3]}:given:1 tablet:true`),
+      `${four} ${added}`,
+    );
+    await A.press(`[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")`);
+    await A.waitFor(`!${SHEET}`, 5000).catch(() => undefined);
+
+    // The viewer: the row and its medications, no sheet.
+    if (C) {
+      await toFront(C);
+      await C.goto(timeline);
+      const seen = await C.waitFor(`!!${passLogRow(log)}`, 30000).then(
+        () => true,
+        () => false,
+      );
+      const link = await C.evaluate(`!!${passLogRow(log)}?.querySelector('a[aria-label^="Edit"]')`);
+      await C.goto(`/app/groups/${DEV_FAMILY}/timeline/pass/${log}/edit?kind=dose`);
+      const turned = await C.waitFor(
+        `location.pathname.endsWith("/timeline") && location.search === "?kind=dose" && !${SHEET}`,
+        10000,
+      ).then(
+        () => true,
+        () => false,
+      );
+      check(
+        "a viewer sees the pass row but no sheet; its URL is the timeline",
+        seen && !link && turned,
+        `${seen} ${link} ${turned}`,
+      );
+      await toFront(A);
+    }
+
+    // Delete this log, offline.
+    await openSheet();
+    if (proxy) {
+      proxy.setOnline(false);
+      await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+    }
+    const errorsBefore = A.errors.length;
+    await A.tap(`${SHEET}.querySelector("[data-pass-log-delete]")`);
+    await A.waitFor(enabledDialogButton("Delete"), 5000);
+    await A.tap(dialogButton("Delete"));
+    const gone = await A.waitFor(
+      `!${SHEET} && !${passLogRow(log)} && !location.pathname.includes("/pass/")`,
+      8000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    if (proxy) {
+      proxy.setOnline(true);
+      await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+      A.errors.splice(errorsBefore);
+    }
+    const deleted = await waitForSql(
+      passLogSql(log),
+      (v) => !v.includes(":true") && v.split(",").length === 4,
+      30000,
+    );
+    check(
+      `Delete this log${proxy ? " offline" : ""} removes every dose in it`,
+      gone && !deleted.includes(":true") && deleted.split(",").length === 4,
+      `${gone} ${deleted}`,
+    );
+    await A.goto(`/app/groups/${DEV_FAMILY}/timeline/pass/${log}/edit`);
+    const back = await A.waitFor(`location.pathname.endsWith("/timeline") && !${SHEET}`, 10000).then(
+      () => true,
+      () => false,
+    );
+    check("a deleted log's sheet URL is the timeline", back);
+  } finally {
+    await onDevice(
+      A,
+      `const { medicationPasses } = await window.caretookModules();
+       const logged = await db.powersync.getAll("SELECT id FROM timeline_entry WHERE json_extract(details, '$.passLogId') = ?", [${JSON.stringify(log)}]);
+       await medications.removeDoses(db, logged.map((r) => r.id));
+       for (const id of ${JSON.stringify(meds)}) await medications.removeMedication(db, id);
+       await medicationPasses.removePass(db, ${JSON.stringify(passId)});`,
+    ).catch(() => undefined);
+  }
 }
 
 // One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
@@ -2385,6 +4153,7 @@ try {
   await listSteps(A);
   await pageSteps(A);
   await printSteps(A);
+  await weeklySteps(A);
   await providerMedicationSteps(A);
   // Slice 3 on A; the second device (B) only in a full run.
   if (SMOKE) await addSteps(A);
@@ -2422,6 +4191,7 @@ try {
     await formOfflineSteps(A, proxy, B);
     await offlineSteps(A, proxy);
     await printOfflineSteps(A, proxy);
+    await weeklyOfflineSteps(A, proxy);
     if (made) {
       const synced = await waitForLocal(
         B,
@@ -2481,6 +4251,20 @@ try {
     await notFoundSteps(B, A);
   }
 
+  if (SMOKE) await passesSteps(A);
+  else await passesSteps(A, { B: pages[1], C: pages[2], proxy: proxyA });
+
+  // Allergies in a tab of their own too (Better Auth's per-page session limit, as Today's below).
+  const L = await openPage(bA, "caretaker-allergies");
+  pages.push(L);
+  await L.goto(LIST);
+  await L.waitFor("!!window.caretookSync && !!document.querySelector('main [data-medication-list]')", 20000);
+  if (SMOKE) await allergySteps(L);
+  else await allergySteps(L, { B: pages[1], C: pages[2], proxy: proxyA });
+  await L.send("Page.close").catch(() => undefined);
+  L.close();
+  await A.send("Page.bringToFront");
+
   // Today's steps load many pages: a tab of its own (signed in through the
   // browser's cookie) keeps A under Better Auth's per-page session limit.
   const T = await openPage(bA, "caretaker-today");
@@ -2496,6 +4280,45 @@ try {
 
   if (SMOKE) await timelineSteps(A);
   else await timelineSteps(A, { B: pages[1], C: pages[2], proxyA });
+
+  // medications-2: passes in schedules. After the timeline's steps, so their
+  // change entries don't push the seeded ones off its first page.
+  await passScheduleSteps(A, proxy);
+  await passDueSteps(A);
+
+  // Given all (medications-2 slice 4), in a tab of its own like Today's
+  // (Better Auth's per-page session limit); after the timeline's steps, so
+  // its medications' change entries don't push the seeded ones off its first page.
+  const G = await openPage(bA, "caretaker-given-all");
+  pages.push(G);
+  await G.goto(LIST);
+  await G.waitFor("!!window.caretookSync && !!document.querySelector('main [data-medication-list]')", 20000);
+  if (SMOKE) await givenAllSteps(G);
+  else await givenAllSteps(G, { B: pages[1], C: pages[2], proxy: proxyA });
+  await G.send("Page.close").catch(() => undefined);
+  G.close();
+  await A.send("Page.bringToFront");
+
+  // The timeline's medication strip (medications-2 slice 5), in a tab of its
+  // own too, after the timeline's steps for the same reason.
+  const S = await openPage(bA, "caretaker-strip");
+  pages.push(S);
+  await S.goto(LIST);
+  await S.waitFor("!!window.caretookSync && !!document.querySelector('main [data-medication-list]')", 20000);
+  if (SMOKE) await stripSteps(S);
+  else await stripSteps(S, { B: pages[1], C: pages[2] });
+  await S.send("Page.close").catch(() => undefined);
+  S.close();
+  // Pass logs on the timeline and the pass sheet (slice 6), in a tab of its own too.
+  const P = await openPage(bA, "caretaker-pass-logs");
+  pages.push(P);
+  await P.goto(LIST);
+  await P.waitFor("!!window.caretookSync && !!document.querySelector('main [data-medication-list]')", 20000);
+  if (SMOKE) await passLogSteps(P);
+  else await passLogSteps(P, { C: pages[2], proxy: proxyA });
+  await P.send("Page.close").catch(() => undefined);
+  P.close();
+  await A.send("Page.bringToFront");
 
   if (made) {
     const removed = await onDevice(A, `return medications.removeMedication(db, ${JSON.stringify(made)});`);
@@ -2531,8 +4354,13 @@ try {
          AND details->>'medicationId' IN (SELECT id::text FROM medication WHERE name LIKE '${TAG}%');
        UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'dose' AND details->>'note' LIKE '${TAG}%';
        UPDATE medication SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%';
-       UPDATE provider SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%'`,
+       UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'medicationChange'
+         AND details->>'passId' IN (SELECT id::text FROM medication_pass WHERE name LIKE '${TAG}%');
+       UPDATE medication_pass SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%';
+       UPDATE provider SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%';
+       UPDATE recipient_allergy SET deleted_at = now() WHERE deleted_at IS NULL AND substance LIKE '${TAG}%'`,
     );
+    if (restoreNoKnown) psql(restoreNoKnown);
   } catch (e) {
     console.log(`clean-up failed: ${e.message}`);
   }

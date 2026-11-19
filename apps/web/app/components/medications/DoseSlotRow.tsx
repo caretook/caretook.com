@@ -7,7 +7,7 @@ import { Menu } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { isOpen } from "~/lib/dueDoses";
 import { medicationTitle, slotStateText } from "~/lib/medicationDisplay";
-import { useLogDose } from "./useLogDose";
+import { usePassLog } from "./usePassLog";
 
 const BADGE: Record<SlotState, string> = {
   upcoming: "badge-ghost",
@@ -28,26 +28,35 @@ export function SlotBadge({ slot, timeZone }: { slot: DoseSlot; timeZone: string
   );
 }
 
+export type MarkStatus = Exclude<DoseStatus, "given">;
+
 /**
- * One medication at one of today's times: its name (a link to its page), its
- * dose and its state. While it's still open, writers get a one-tap Given
- * (logged now, for this slot, with the medication's dose) and a menu for
+ * One medication at one of today's times (alone, or inside a pass): its name
+ * (a link to its page), its amount, its state and who logged it. While it's
+ * still open, writers get a one-tap Given (logged now, for this slot, with
+ * its amount, in `passLogId`'s round when it's in a pass) and a menu for
  * Skipped and Refused (`onMark`, which asks for a note).
  */
-export function TodaySlotRow({
+export function DoseSlotRow({
   slot,
   groupId,
   timeZone,
   canWrite,
+  passLogId = null,
+  loggedBy = null,
   onMark,
 }: {
   slot: DoseSlot;
   groupId: string;
   timeZone: string;
   canWrite: boolean;
-  onMark: (slot: DoseSlot, status: Exclude<DoseStatus, "given">) => void;
+  /** The round a dose here joins (a pass's), or null. */
+  passLogId?: string | null;
+  /** Who logged it ("Ann"), once it's answered. */
+  loggedBy?: string | null;
+  onMark: (slot: DoseSlot, status: MarkStatus) => void;
 }) {
-  const { log, busy, error } = useLogDose(groupId);
+  const { logSlot, busy, error } = usePassLog(groupId);
   const { medication } = slot;
   const title = medicationTitle(medication);
   const open = canWrite && isOpen(slot);
@@ -61,9 +70,14 @@ export function TodaySlotRow({
         <Link to={appUrls.medication(groupId, medication.id)} className="link-hover font-medium break-words">
           {title}
         </Link>
-        {medication.dose && <p className="text-base-content/70 text-sm">{medication.dose}</p>}
+        {slot.amount && <p className="text-base-content/70 text-sm">{slot.amount}</p>}
       </div>
       <SlotBadge slot={slot} timeZone={timeZone} />
+      {loggedBy && slot.dose && (
+        <span className="text-base-content/70 text-sm" data-logged-by>
+          by {loggedBy}
+        </span>
+      )}
       {open && (
         <div className="flex items-center gap-1">
           <button
@@ -72,14 +86,7 @@ export function TodaySlotRow({
             disabled={busy}
             aria-label={`Given: ${title}, ${slot.time}`}
             data-give
-            onClick={() =>
-              log({
-                medicationId: medication.id,
-                status: "given",
-                scheduledFor: slot.time,
-                amount: medication.dose,
-              })
-            }
+            onClick={() => void logSlot(slot, "given", { passLogId })}
           >
             <Check className="size-4" aria-hidden="true" />
             Given

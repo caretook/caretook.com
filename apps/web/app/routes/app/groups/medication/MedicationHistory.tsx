@@ -1,3 +1,4 @@
+import type { SchedulePass } from "~/lib/medicationDisplay";
 import type { MedicationEntry } from "~/lib/sync/medications";
 import type { EntryRow, MemberRow } from "~/lib/sync/timeline";
 
@@ -10,14 +11,17 @@ import { medicationEntriesQuery, toMedicationEntries } from "~/lib/sync/medicati
 import { membersQuery, toMember } from "~/lib/sync/timeline";
 
 /** What an entry says, and the line under it (the slot and note, or the stop note). */
-const entryLines = (entry: MedicationEntry): { text: string; extra: string | null } => {
+const entryLines = (
+  entry: MedicationEntry,
+  passes: readonly SchedulePass[],
+): { text: string; extra: string | null } => {
   if (entry.kind === "dose") {
     const extra = [doseSlotText(entry.details), entry.details.note?.trim() || null]
       .filter(Boolean)
       .join(" · ");
     return { text: doseText(entry.details), extra: extra || null };
   }
-  return { text: changeText(entry.details), extra: entry.details.stopNote?.trim() || null };
+  return { text: changeText(entry.details, passes), extra: entry.details.stopNote?.trim() || null };
 };
 
 /**
@@ -29,11 +33,14 @@ export function MedicationHistory({
   medicationId,
   initialRows,
   initialMembers,
+  passes,
 }: {
   groupId: string;
   medicationId: string;
   initialRows: EntryRow[];
   initialMembers: MemberRow[];
+  /** The group's passes, deleted ones too: schedule changes name them. */
+  passes: readonly SchedulePass[];
 }) {
   const query = medicationEntriesQuery(medicationId);
   const rows = useLiveQuery<EntryRow>(query.sql, query.params, initialRows);
@@ -53,7 +60,7 @@ export function MedicationHistory({
       ) : (
         <ol className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
           {entries.map((entry) => {
-            const { text, extra } = entryLines(entry);
+            const { text, extra } = entryLines(entry, passes);
             return (
               <li
                 key={entry.id}

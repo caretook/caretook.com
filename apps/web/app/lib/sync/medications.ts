@@ -3,6 +3,7 @@ import type {
   MedicationChangeDetails,
   MedicationContent,
   MedicationContentInput,
+  MedicationSchedule,
   MedicationStatus,
   MedicationUpdateInput,
 } from "@caretook/data/schema";
@@ -27,7 +28,9 @@ import {
   medicationContentZSchema,
   medicationUpdateZSchema,
   parseMedicationSchedule,
+  schedulePassIds,
   timelineEntryContentZSchema,
+  withoutPass,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { dayInZone } from "../zonedDay";
@@ -379,6 +382,32 @@ const checkProviders = async (
   return null;
 };
 
+const badPass = refuse("Choose passes in this care group", [
+  { path: "schedule", message: "Choose passes in this care group" },
+]);
+
+/**
+ * The schedule's passes must be the group's (see `medicationService`'s
+ * `checkPasses`). One deleted since this form opened becomes a time of its
+ * own, as the pass's deletion made every other medication's.
+ */
+const checkPasses = async (
+  db: SyncDb,
+  groupId: string,
+  schedule: MedicationSchedule,
+): Promise<MedicationSchedule | Refusal> => {
+  let checked = schedule;
+  for (const passId of schedulePassIds(schedule)) {
+    const [row] = await readRows<{ group_id: string | null; time: string | null; deleted_at: string | null }>(
+      db,
+      { sql: "SELECT group_id, time, deleted_at FROM medication_pass WHERE id = ?", params: [passId] },
+    );
+    if (!row?.time || row.group_id !== groupId) return badPass;
+    if (row.deleted_at) checked = withoutPass(checked, { id: passId, time: row.time });
+  }
+  return checked;
+};
+
 /**
  * A prescriber or pharmacy to add with the medication, by name (the form's
  * "Add "<typed>" as a new prescriber"): a clinician, and a pharmacy. They're
@@ -481,6 +510,9 @@ export const newMedicationRows = async (
   if (!parsed.success) return invalid(parsed.error);
   const badProviders = await checkProviders(db, groupId, parsed.data, added);
   if (badProviders) return badProviders;
+  const schedule = await checkPasses(db, groupId, parsed.data.schedule);
+  if ("ok" in schedule) return schedule;
+  const content = { ...parsed.data, schedule };
 
   const id = crypto.randomUUID();
   const now = nowTimestamp();
@@ -488,14 +520,14 @@ export const newMedicationRows = async (
     id,
     groupId,
     recipientId: recipient.id,
-    ...contentColumns(parsed.data),
+    ...contentColumns(content),
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
     createdBy: db.userId,
     updatedBy: db.userId,
   };
-  const entry = changeEntryRow(db, medication, null, parsed.data, now, recipient.time_zone ?? "UTC");
+  const entry = changeEntryRow(db, medication, null, content, now, recipient.time_zone ?? "UTC");
   return { medication, entry };
 };
 
@@ -561,15 +593,18 @@ export const updateMedication = async (
     added.added,
   );
   if (badProviders) return badProviders;
+  const schedule = await checkPasses(db, existing.groupId, merged.data.schedule);
+  if ("ok" in schedule) return schedule;
+  const after = { ...merged.data, schedule };
 
   const recipient = await recipientOf(db, existing.groupId);
   const now = nowTimestamp();
-  const entry = changeEntryRow(db, existing, before, merged.data, now, recipient?.time_zone ?? "UTC");
+  const entry = changeEntryRow(db, existing, before, after, now, recipient?.time_zone ?? "UTC");
   await db.drizzle.transaction(async (tx) => {
     for (const provider of added.rows) await tx.insert(providers).values(provider);
     await tx
       .update(medications)
-      .set({ ...contentColumns(merged.data), updatedAt: now, updatedBy: db.userId })
+      .set({ ...contentColumns(after), updatedAt: now, updatedBy: db.userId })
       .where(eq(medications.id, id));
     if (entry) await tx.insert(timelineEntries).values(entry);
   });
@@ -719,6 +754,76 @@ export const logDose = async (
     updatedBy: db.userId,
   });
   return { ok: true, id };
+};
+
+/**
+ * Log several doses at once (a pass's Given all), in one local transaction:
+ * all of them or none. Each is checked as `logDose` checks one. Returns the
+ * new entries' ids, in order, so they can be undone exactly.
+ */
+export const logDoses = async (
+  db: SyncDb,
+  groupId: string,
+  doses: readonly DoseInput[],
+): Promise<{ ok: true; ids: string[] } | Refusal> => {
+  const group = await groupFor(db, groupId);
+  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden as Refusal;
+  const now = nowTimestamp();
+  const rows: (typeof timelineEntries.$inferInsert)[] = [];
+  for (const { medicationId, occurredAt, timeZone, ...rest } of doses) {
+    const medication = await liveMedication(db, medicationId);
+    if (!medication || medication.groupId !== groupId) return medicationMissing;
+    const parsed = doseContent(
+      { medicationId, ...rest },
+      { occurredAt: occurredAt ?? new Date().toISOString(), timeZone: timeZone ?? deviceTimeZone() },
+    );
+    if (!parsed.success) return invalid(parsed.error, "The dose is invalid");
+    rows.push({
+      id: crypto.randomUUID(),
+      groupId,
+      recipientId: medication.recipientId,
+      kind: "dose",
+      occurredAt: toLocalTimestamp(parsed.data.occurredAt),
+      timeZone: parsed.data.timeZone,
+      title: null,
+      body: null,
+      details: JSON.stringify(parsed.data.details),
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: db.userId,
+      updatedBy: db.userId,
+    });
+  }
+  if (rows.length)
+    await db.drizzle.transaction(async (tx) => {
+      for (const row of rows) await tx.insert(timelineEntries).values(row);
+    });
+  return { ok: true, ids: rows.map((r) => r.id) };
+};
+
+/**
+ * Soft delete exactly these doses (Given all's Undo), in one local
+ * transaction. Ones already gone, or not doses, are left alone.
+ */
+export const removeDoses = async (db: SyncDb, ids: readonly string[]): Promise<ActionResult> => {
+  const live: DoseEntry[] = [];
+  for (const id of ids) {
+    const entry = await liveMedicationEntry(db, id);
+    if (entry && isDoseEntry(entry)) live.push(entry);
+  }
+  for (const groupId of new Set(live.map((e) => e.groupId)))
+    if (!(await canWrite(db, groupId))) return forbidden;
+  if (!live.length) return { ok: true };
+  const now = nowTimestamp();
+  await db.drizzle.transaction(async (tx) => {
+    for (const entry of live)
+      await tx
+        .update(timelineEntries)
+        .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+        .where(eq(timelineEntries.id, entry.id));
+  });
+  return { ok: true };
 };
 
 export type DosePatch = Partial<Omit<DoseDetails, "medicationId">> & { occurredAt?: string };

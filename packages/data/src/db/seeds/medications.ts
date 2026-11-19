@@ -16,11 +16,14 @@ import {
   medicationSchema,
   noteDocFromText,
   noteDocumentSchema,
+  normalizeSchedule,
   noteText,
+  slotTimes,
   timelineEntrySchema,
   userSchema,
 } from "../schema";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
+import { DEV_FAMILY_PASS_IDS, seedPassRows } from "./medicationPasses";
 import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
 import { SECOND_GROUP_ID, SECOND_RECIPIENT_ID } from "./secondGroup";
 import { occurredAtOf } from "./timelineEntries";
@@ -29,6 +32,11 @@ import { occurredAtOf } from "./timelineEntries";
 // current, one completed course, one discontinued for side effects), about
 // a week of her doses, and the change entries each save would have written;
 // and one medication for Grandpa Lou. Everything here is made up.
+//
+// Grandma Pat's scheduled medications are in Dev Family's seeded passes
+// (Morning 08:00, Evening 20:00, `medicationPasses.ts`), with Latanoprost at
+// bedtime and Amoxicillin's midday dose as times of their own; her doses in a
+// pass name it (`passId`) as well as the time (`scheduledFor`).
 //
 // Their own ids, following list order (append only):
 //   …3f1d2b9a… Dev Family's medications     …3f1d2b9b… Dev Family 2's
@@ -59,6 +67,8 @@ export type SeedMedication = {
   notes?: string;
 };
 
+const { morning: MORNING_PASS, evening: EVENING_PASS } = DEV_FAMILY_PASS_IDS;
+
 /** Grandma Pat's medications (Dev Family). */
 export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
   {
@@ -71,7 +81,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 tablet",
       directions: "Once every morning, with or without food.",
       reason: "Blood pressure",
-      schedule: { type: "scheduled", times: ["08:00"] },
+      schedule: { type: "scheduled", slots: [{ passId: MORNING_PASS }] },
     },
     prescriber: "alvarez",
     pharmacy: "cornerstone",
@@ -94,7 +104,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 tablet",
       directions: "Twice a day with meals.",
       reason: "Type 2 diabetes",
-      schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+      schedule: { type: "scheduled", slots: [{ passId: MORNING_PASS }, { passId: EVENING_PASS }] },
     },
     prescriber: "alvarez",
     pharmacy: "cornerstone",
@@ -135,7 +145,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 drop in each eye",
       directions: "At bedtime. Wait 5 minutes before any other eye drops.",
       reason: "Eye pressure",
-      schedule: { type: "scheduled", times: ["21:00"] },
+      schedule: { type: "scheduled", slots: [{ time: "21:00" }] },
     },
     pharmacy: "cornerstone",
     saves: [
@@ -159,7 +169,10 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 capsule",
       directions: "Three times a day for 10 days. Finish the whole course.",
       reason: "Chest infection",
-      schedule: { type: "scheduled", times: ["08:00", "14:00", "20:00"] },
+      schedule: {
+        type: "scheduled",
+        slots: [{ passId: MORNING_PASS }, { time: "14:00" }, { passId: EVENING_PASS }],
+      },
     },
     prescriber: "alvarez",
     pharmacy: "cornerstone",
@@ -183,7 +196,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
       dose: "1 tablet",
       directions: "Twice a day.",
       reason: "Bladder urgency",
-      schedule: { type: "scheduled", times: ["08:00", "20:00"] },
+      schedule: { type: "scheduled", slots: [{ passId: MORNING_PASS }, { passId: EVENING_PASS }] },
     },
     prescriber: "alvarez",
     saves: [
@@ -214,7 +227,7 @@ export const SECOND_GROUP_MEDICATIONS: SeedMedication[] = [
       dose: "1 capsule",
       directions: "Once a day, half an hour after dinner.",
       reason: "Prostate",
-      schedule: { type: "scheduled", times: ["19:00"] },
+      schedule: { type: "scheduled", slots: [{ time: "19:00" }] },
     },
   },
 ];
@@ -228,6 +241,8 @@ export type SeedDose = When & {
   author: Author;
   status: DoseStatus;
   scheduledFor?: LocalTime;
+  /** The pass the slot is in, when it's in one. */
+  passId?: string;
   note?: string;
 };
 
@@ -245,17 +260,21 @@ const EXCEPTIONS: Record<string, { status: DoseStatus; note: string }> = {
 };
 
 /** Slots still ahead on a normal day: today's are left for someone to log. */
-const EVENING = "18:00";
+const EVENING_HOURS = "18:00";
+
+/** Dev Family's seeded passes: where its pass slots fall. */
+const DEV_FAMILY_PASSES = seedPassRows().filter((p) => p.groupId === DEV_GROUP_ID);
 
 const scheduledDoses = (): SeedDose[] => {
   const doses: SeedDose[] = [];
   for (let daysAgo = DOSE_DAYS; daysAgo >= 0; daysAgo--) {
     for (const key of ["lisinopril", "metformin", "latanoprost"]) {
       const medication = DEV_FAMILY_MEDICATIONS.find((m) => m.key === key);
-      const schedule = medication?.content.schedule;
+      const schedule = normalizeSchedule(medication?.content.schedule);
       if (schedule?.type !== "scheduled") continue;
-      for (const slot of schedule.times as LocalTime[]) {
-        if (daysAgo === 0 && slot >= EVENING) continue;
+      for (const { time, passId } of slotTimes(schedule, DEV_FAMILY_PASSES)) {
+        const slot = time as LocalTime;
+        if (daysAgo === 0 && slot >= EVENING_HOURS) continue;
         const exception = EXCEPTIONS[`${key} ${daysAgo} ${slot}`];
         // A few minutes after the slot, never the same twice in a row.
         const late = (doses.length * 7) % 25;
@@ -267,6 +286,7 @@ const scheduledDoses = (): SeedDose[] => {
           author: doses.length % 3 === 0 ? "member@example.com" : "caretaker@example.com",
           status: exception?.status ?? "given",
           scheduledFor: slot,
+          ...(passId && { passId }),
           note: exception?.note,
         });
       }
@@ -459,6 +479,7 @@ export const seedRows = (now = Date.now()) =>
           status: dose.status,
           ...(dose.status === "given" && medication.content.dose ? { amount: medication.content.dose } : {}),
           ...(dose.scheduledFor ? { scheduledFor: dose.scheduledFor } : {}),
+          ...(dose.passId ? { passId: dose.passId } : {}),
           ...(dose.note ? { note: dose.note } : {}),
         },
         author: dose.author,

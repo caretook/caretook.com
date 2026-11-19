@@ -29,6 +29,9 @@ export const newMedicationGuard = ({
 }): MedicationSheetDecision<true> =>
   canWrite ? { sheet: true } : { redirect: appUrls.medications(groupId, search) };
 
+/** `medications/allergies`: the allergies sheet, for writers; a viewer gets the list. */
+export const allergiesSheetGuard = newMedicationGuard;
+
 /**
  * `medications/:medicationId/edit`: a live medication in this group, for a
  * writer. A viewer, and a medication that's missing, deleted or in another
@@ -50,10 +53,11 @@ export const editMedicationGuard = <M extends { groupId: string; deletedAt: stri
   return { sheet: medication };
 };
 
-/** The list, or one of its sheets: `medications`, `medications/new`, `medications/<id>/edit`. */
+/** The list, or one of its sheets: `medications`, `medications/new`, `medications/allergies`, `medications/<id>/edit`. */
 const isListOrSheet = (groupId: string, pathname: string) => {
   const base = appUrls.medications(groupId);
-  if (pathname === base || pathname === `${base}/new`) return true;
+  if (pathname === base || pathname === `${base}/new` || pathname === appUrls.medicationAllergies(groupId))
+    return true;
   if (!pathname.startsWith(`${base}/`)) return false;
   const rest = pathname.slice(base.length + 1).split("/");
   return rest.length === 2 && rest[0] !== "" && rest[1] === "edit";

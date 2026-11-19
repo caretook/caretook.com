@@ -8,3 +8,4 @@ export { OlderEntries } from "./OlderEntries";
 export { useEventCancel } from "./useEventCancel";
 export type { RescheduleTarget } from "./useEventReschedule";
 export { useEventReschedule } from "./useEventReschedule";
+export { MedicationHeading } from "./MedicationEntryText";

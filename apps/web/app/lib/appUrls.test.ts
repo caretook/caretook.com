@@ -53,6 +53,7 @@ describe("appUrls", () => {
     expect(appUrls.medication(G, "m1")).toBe(`/app/groups/${G}/medications/m1`);
     expect(appUrls.medication("g", "a/b")).toBe("/app/groups/g/medications/a%2Fb");
     expect(appUrls.medicationsPrint(G)).toBe(`/app/groups/${G}/medications/print`);
+    expect(appUrls.medicationPasses(G)).toBe(`/app/groups/${G}/medications/passes`);
   });
 
   it("builds a group's settings subpages, and drops an unknown one", () => {
@@ -179,8 +180,14 @@ describe("appUrls.newDose", () => {
     );
   });
 
+  it("can start on a pass", () => {
+    expect(appUrls.newDose(G, { passId: M, search: "?kind=dose&pass=x" })).toBe(
+      `/app/groups/${G}/timeline/new/dose?kind=dose&pass=${M}`,
+    );
+  });
+
   it("is dropped from the timeline a sheet closes to", () => {
-    expect(appUrls.timeline(G, withoutSheetParams(`?kind=dose&medication=${M}&slot=08:00`))).toBe(
+    expect(appUrls.timeline(G, withoutSheetParams(`?kind=dose&medication=${M}&pass=${M}&slot=08:00`))).toBe(
       `/app/groups/${G}/timeline?kind=dose`,
     );
   });
@@ -285,5 +292,30 @@ describe("appUrls: care periods", () => {
 
   it("builds a period's edit sheet", () => {
     expect(appUrls.editPeriod("g", "p 1")).toBe("/app/groups/g/periods/p%201/edit");
+  });
+});
+
+describe("appUrls.medicationAllergies", () => {
+  it("is the allergies sheet over the list, with the list's search kept", () => {
+    expect(appUrls.medicationAllergies(G)).toBe(`/app/groups/${G}/medications/allergies`);
+    expect(appUrls.medicationAllergies(G, "?q=met")).toBe(`/app/groups/${G}/medications/allergies?q=met`);
+  });
+});
+
+describe("appUrls.medicationsPrintWeek", () => {
+  it("is the weekly sheet, with its start when one is given", () => {
+    expect(appUrls.medicationsPrintWeek(G)).toBe(`/app/groups/${G}/medications/print/week`);
+    expect(appUrls.medicationsPrintWeek(G, "2026-11-23")).toBe(
+      `/app/groups/${G}/medications/print/week?start=2026-11-23`,
+    );
+  });
+});
+
+describe("appUrls.passSheet", () => {
+  it("is the pass sheet over the timeline, carrying its filters but not another sheet's", () => {
+    expect(appUrls.passSheet(G, "log1")).toBe(`/app/groups/${G}/timeline/pass/log1/edit`);
+    expect(appUrls.passSheet("g", "log1", { search: "?kind=dose&type=spo2" })).toBe(
+      "/app/groups/g/timeline/pass/log1/edit?kind=dose",
+    );
   });
 });

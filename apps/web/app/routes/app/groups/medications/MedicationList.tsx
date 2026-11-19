@@ -1,5 +1,6 @@
 import type { MedicationStatus } from "@caretook/data/schema";
 import type { MedicationList as Listed } from "~/lib/medicationList";
+import type { SchedulePass } from "~/lib/medicationDisplay";
 import type { LocalMedication } from "~/lib/sync/medications";
 
 import { STATUS_LABELS } from "~/lib/medicationDisplay";
@@ -7,14 +8,22 @@ import { MedicationListItem } from "./MedicationListItem";
 
 const countLabel = (n: number) => `${n} ${n === 1 ? "medication" : "medications"}`;
 
-function Rows({ medications, label }: { medications: LocalMedication[]; label: string }) {
+function Rows({
+  medications,
+  passes,
+  label,
+}: {
+  medications: LocalMedication[];
+  passes: readonly SchedulePass[];
+  label: string;
+}) {
   return (
     <ul
       aria-label={label}
       className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border"
     >
       {medications.map((m) => (
-        <MedicationListItem key={m.id} medication={m} />
+        <MedicationListItem key={m.id} medication={m} passes={passes} />
       ))}
     </ul>
   );
@@ -29,12 +38,15 @@ function Rows({ medications, label }: { medications: LocalMedication[]; label: s
 export function MedicationList({
   total,
   list,
+  passes,
   text,
   status,
 }: {
   /** Every medication in the group (not deleted), before filtering. */
   total: number;
   list: Listed<LocalMedication>;
+  /** The group's passes, deleted ones too: schedules read by pass name. */
+  passes: readonly SchedulePass[];
   /** What's typed in the search box. */
   text: string;
   status: MedicationStatus | null;
@@ -62,7 +74,9 @@ export function MedicationList({
           )
         )}
 
-        {list.current.length > 0 && <Rows medications={list.current} label="Current medications" />}
+        {list.current.length > 0 && (
+          <Rows medications={list.current} label="Current medications" passes={passes} />
+        )}
 
         {list.stopped.length > 0 && (
           <section aria-labelledby={status ? undefined : "stopped-heading"} className="space-y-2">
@@ -73,6 +87,7 @@ export function MedicationList({
             )}
             <Rows
               medications={list.stopped}
+              passes={passes}
               label={
                 status ? `${STATUS_LABELS[status]} medications` : "Completed and discontinued medications"
               }

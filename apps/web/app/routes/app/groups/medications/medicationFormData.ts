@@ -1,4 +1,4 @@
-import type { MedicationForm, MedicationSchedule } from "@caretook/data/schema";
+import type { MedicationForm, MedicationSchedule, ScheduleSlot } from "@caretook/data/schema";
 import type { FieldIssue } from "../../../../lib/api";
 import type { NewMedicationProviders } from "../../../../lib/sync/medications";
 
@@ -18,7 +18,11 @@ export const FIELD = {
   directions: "directions",
   reason: "reason",
   scheduleType: "scheduleType",
+  /** A ticked pass's check box (its value is the pass's id). */
+  passId: "passId",
   time: "time",
+  /** A time row's amount, beside its `time` (one each per row, so they line up). */
+  timeAmount: "timeAmount",
   maxPerDay: "maxPerDay",
   startedOn: "startedOn",
   prescriberId: "prescriberId",
@@ -30,6 +34,9 @@ export const FIELD = {
   refillsLeft: "refillsLeft",
   rxNumber: "rxNumber",
 } as const;
+
+/** A pass's amount field: "passAmount:<passId>". */
+export const passAmountField = (passId: string) => `passAmount:${passId}`;
 
 /** What the form edits: every content field but the status ones. */
 export type MedicationFormInput = {
@@ -53,9 +60,12 @@ export type MedicationFormData = {
   input: MedicationFormInput;
   /** A prescriber or pharmacy to add by name, written with the medication. */
   newProviders: NewMedicationProviders;
-  /** For each time sent, its row in the form (blank rows are left out). */
-  timeRows: number[];
+  /** Where each slot sent came from: a pass's check box, or a time row (blank rows are left out). */
+  slotRows: SlotRow[];
 };
+
+/** A schedule slot's place in the form. */
+export type SlotRow = { pass: string } | { time: number };
 
 const text = (form: FormData, name: string) => {
   const value = form.get(name);
@@ -72,20 +82,30 @@ const isForm = (value: string): value is MedicationForm =>
   (MEDICATION_FORMS as readonly string[]).includes(value);
 
 /**
- * The medication in a submitted form. Blank time rows are dropped; a
- * scheduled medication's times, or an as-needed one's maximum, are read by
- * the chosen schedule type. A new prescriber's or pharmacy's name replaces
- * a chosen one. Validation is the write's (the shared Zod schema), so this
- * never refuses anything.
+ * The medication in a submitted form. A scheduled medication's slots are the
+ * ticked passes (each with its amount, if typed), then the time rows with a
+ * time (each with its amount); blank time rows are dropped. An as-needed
+ * one's maximum is read instead, by the chosen schedule type. A new
+ * prescriber's or pharmacy's name replaces a chosen one. Validation is the
+ * write's (the shared Zod schema), so this never refuses anything.
  */
 export const medicationFromForm = (form: FormData): MedicationFormData => {
-  const times: string[] = [];
-  const timeRows: number[] = [];
+  const slots: ScheduleSlot[] = [];
+  const slotRows: SlotRow[] = [];
+  const withAmount = <S extends ScheduleSlot>(slot: S, amount: string): S =>
+    amount ? { ...slot, amount } : slot;
+  const passIds = form.getAll(FIELD.passId).flatMap((v) => (typeof v === "string" && v ? [v] : []));
+  for (const passId of new Set(passIds)) {
+    slots.push(withAmount({ passId }, text(form, passAmountField(passId)).trim()));
+    slotRows.push({ pass: passId });
+  }
+  const amounts = form.getAll(FIELD.timeAmount);
   form.getAll(FIELD.time).forEach((value, row) => {
     const time = typeof value === "string" ? value.trim() : "";
     if (!time) return;
-    times.push(time);
-    timeRows.push(row);
+    const amount = amounts[row];
+    slots.push(withAmount({ time }, typeof amount === "string" ? amount.trim() : ""));
+    slotRows.push({ time: row });
   });
   const maxPerDay = number(form, FIELD.maxPerDay);
   const schedule: MedicationSchedule =
@@ -93,7 +113,7 @@ export const medicationFromForm = (form: FormData): MedicationFormData => {
       ? maxPerDay === null
         ? { type: "asNeeded" }
         : { type: "asNeeded", maxPerDay }
-      : { type: "scheduled", times };
+      : { type: "scheduled", slots };
 
   const newPrescriber = text(form, FIELD.newPrescriber).trim();
   const newPharmacy = text(form, FIELD.newPharmacy).trim();
@@ -121,20 +141,28 @@ export const medicationFromForm = (form: FormData): MedicationFormData => {
       rxNumber: text(form, FIELD.rxNumber),
     },
     newProviders,
-    timeRows,
+    slotRows,
   };
 };
 
 /**
- * Issues on sent times (`schedule.times.1`) moved to the form's rows, so
- * they show on the right field. Others are left as they are.
+ * Issues on sent slots moved to the form's fields, so they show in the right
+ * place: a time row's `schedule.slots.1.time` (or `schedule.slots.1`) is
+ * `schedule.times.<row>` and its amount `schedule.times.<row>.amount`; a
+ * pass's amount is `schedule.passes.<passId>.amount`, anything else about a
+ * pass `schedule.passes`; and the whole list's (`schedule.slots`: none, too
+ * many, one twice) is `schedule.times`. Others are left as they are.
  */
-export const issuesForTimeRows = (issues: FieldIssue[], timeRows: number[]): FieldIssue[] =>
+export const issuesForSlotRows = (issues: FieldIssue[], slotRows: SlotRow[]): FieldIssue[] =>
   issues.map((issue) => {
-    const match = /^schedule\.times\.(\d+)$/.exec(issue.path);
-    if (!match) return issue;
-    const row = timeRows[Number(match[1])];
-    return row === undefined ? issue : { ...issue, path: `schedule.times.${row}` };
+    if (issue.path === "schedule.slots") return { ...issue, path: "schedule.times" };
+    const match = /^schedule\.slots\.(\d+)(?:\.(time|amount|passId))?$/.exec(issue.path);
+    const row = match ? slotRows[Number(match[1])] : undefined;
+    if (!match || !row) return issue;
+    const amount = match[2] === "amount";
+    if ("pass" in row)
+      return { ...issue, path: amount ? `schedule.passes.${row.pass}.amount` : "schedule.passes" };
+    return { ...issue, path: `schedule.times.${row.time}${amount ? ".amount" : ""}` };
   });
 
 /** The fields the form shows issues on; an issue on anything else is shown above the buttons. */
@@ -147,6 +175,7 @@ const SHOWN = new Set([
   "reason",
   "schedule",
   "schedule.times",
+  "schedule.passes",
   "schedule.maxPerDay",
   "startedOn",
   "prescriberId",
@@ -157,5 +186,6 @@ const SHOWN = new Set([
   "rxNumber",
 ]);
 
-/** Whether the form shows this issue on a field (a time row's own issue included). */
-export const isFieldIssue = (path: string) => SHOWN.has(path) || /^schedule\.times\.\d+$/.test(path);
+/** Whether the form shows this issue on a field (a time row's or a pass's own issue included). */
+export const isFieldIssue = (path: string) =>
+  SHOWN.has(path) || /^schedule\.(times\.\d+|passes\.[^.]+)(\.amount)?$/.test(path);

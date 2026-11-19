@@ -6,6 +6,7 @@ import { Link } from "react-router";
 import { appUrls } from "~/lib/appUrls";
 import { medicationSummaryLine, medicationTitle } from "~/lib/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
+import { useSchedulePasses } from "~/lib/sync/medicationPasses";
 import { providerMedicationsQuery, toMedications } from "~/lib/sync/medications";
 
 const NO_ROWS: MedicationRow[] = [];
@@ -20,6 +21,7 @@ export function ProviderMedications({ groupId, providerId }: { groupId: string; 
   const query = providerMedicationsQuery(groupId, providerId);
   const rows = useLiveQuery<MedicationRow>(query.sql, query.params, NO_ROWS);
   const medications = useMemo(() => toMedications(rows), [rows]);
+  const passes = useSchedulePasses(groupId);
   if (medications.length === 0) return null;
 
   return (
@@ -53,7 +55,7 @@ export function ProviderMedications({ groupId, providerId }: { groupId: string; 
                   <span className="text-base-content/70 block text-sm">
                     <span data-medication-role>{roles.join(" and ")}</span>
                     {" · "}
-                    {medicationSummaryLine(m)}
+                    {medicationSummaryLine(m, passes)}
                   </span>
                 </span>
               </Link>

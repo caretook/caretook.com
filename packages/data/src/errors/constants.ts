@@ -125,6 +125,15 @@ export const MODEL_ERRORS = {
   "medicationModel:remove": {
     message: "Failed to delete the medication",
   },
+  "medicationPassModel:remove": {
+    message: "Failed to delete the pass",
+  },
+  "medicationPassModel:lock": {
+    message: "Failed to lock the pass",
+  },
+  "recipientAllergyModel:remove": {
+    message: "Failed to delete the allergy",
+  },
   "userModel:notFound": {
     message: "User not found",
     statusCode: 404,
@@ -506,6 +515,50 @@ export const SERVICE_ERRORS = {
   "noteDocumentService:carePeriodNotFound": {
     message: "That care period is gone. It may have been deleted.",
     statusCode: 404,
+  },
+  "medicationService:badPass": {
+    message: "A medication's passes must be passes in this care group",
+    statusCode: 400,
+  },
+  "medicationPassService:invalid": {
+    message: "The pass is invalid",
+    statusCode: 400,
+  },
+  "medicationPassService:notFound": {
+    message: "Pass not found",
+    statusCode: 404,
+  },
+  "medicationPassService:immutable": {
+    message: "A pass's group and recipient can't change",
+    statusCode: 400,
+  },
+  "medicationPassService:nameTaken": {
+    message: "Another pass already has that name",
+    statusCode: 409,
+  },
+  "medicationPassService:tooMany": {
+    message: "This care group already has as many passes as it can",
+    statusCode: 409,
+  },
+  "recipientAllergyService:invalid": {
+    message: "The allergy is invalid",
+    statusCode: 400,
+  },
+  "recipientAllergyService:notFound": {
+    message: "Allergy not found",
+    statusCode: 404,
+  },
+  "recipientAllergyService:immutable": {
+    message: "An allergy's group and recipient can't change",
+    statusCode: 400,
+  },
+  "recipientAllergyService:hasAllergies": {
+    message: "Remove the allergies on file before recording No known allergies",
+    statusCode: 409,
+  },
+  "recipientAllergyService:invalidNoKnown": {
+    message: "No known allergies needs a time, or none to clear it",
+    statusCode: 400,
   },
 } as const;
 

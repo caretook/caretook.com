@@ -19,6 +19,7 @@ import { liveDotLabel } from "~/lib/liveNow";
 import { withMedication } from "~/lib/medicationEntries";
 import { useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/sync/editors";
+import { useSchedulePasses } from "~/lib/sync/medicationPasses";
 import { useTimelineMedications } from "~/lib/sync/medicationTimeline";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import { timelineLinksQuery } from "~/lib/sync/providers";
@@ -34,6 +35,7 @@ import {
 import { groupByDay } from "./timelineDays";
 import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/paging";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
+import { rowPassLogId, wholeLogsPage } from "~/lib/passLogs";
 import { nextUp } from "~/lib/upcoming";
 import { firstItems, UPCOMING_BLOCK_LIMIT, upcomingSections } from "~/lib/upcomingDays";
 import { periodMarkers } from "~/lib/periodMarkers";
@@ -66,6 +68,8 @@ export type TimelineData = {
   imageOf: (userId: string) => string | null;
   /** A note's or event's linked providers, in link order (the "with …" line). */
   providersOf: (entryId: string) => LinkedProviderName[] | undefined;
+  /** A pass's name (deleted ones too), for a pass log's row; null when it isn't on the device. */
+  passNameOf: (passId: string | null) => string | null;
   /** Where the history ends (`historyCutoff`); what's ahead is worked out at this moment. */
   now: Date;
   /** The Next strip: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the kind and author filters, not the search. */
@@ -147,6 +151,8 @@ export function useTimelineData({
   });
   // Doses and medication changes are named by their medication: one query over the same window.
   const medicationOf = useTimelineMedications(groupId, filters, requested, cutoff);
+  // A schedule change names the passes it touched.
+  const passes = useSchedulePasses(groupId);
 
   const members = memberRows.map(toMember);
   const nameOf = (id: string) => members.find((m) => m.userId === id)?.name ?? "Former member";
@@ -161,9 +167,10 @@ export function useTimelineData({
     toTimelineEntries(rows).map((entry) =>
       isLiveEntryKind(entry.kind)
         ? { ...entry, body: previews.get(entry.id) || null }
-        : withMedication(entry, medicationOf),
+        : withMedication(entry, medicationOf, passes),
     );
-  const shown = withPreview(entries.rows.slice(0, page.limit));
+  // A pass log is never split across pages: one running past the page waits for the next.
+  const shown = withPreview(wholeLogsPage(entries.rows, page.limit, rowPassLogId));
   // The track, and its markers over the same window as the shown entries.
   const periods = useTimelinePeriods(groupId, initial);
   const markers = periodMarkers(periods.spans, {
@@ -188,6 +195,7 @@ export function useTimelineData({
     nameOf,
     imageOf: (id) => members.find((m) => m.userId === id)?.image ?? null,
     providersOf: (id) => providersByEntry.get(id) ?? blockProviders.get(id),
+    passNameOf: (id) => (id ? (passes.find((p) => p.id === id)?.name ?? null) : null),
     now,
     next: nextUp(toTimelineEntries(nextRows), now),
     upcoming: firstItems(upcomingSections(withPreview(blockRows), now, zone), UPCOMING_BLOCK_LIMIT),

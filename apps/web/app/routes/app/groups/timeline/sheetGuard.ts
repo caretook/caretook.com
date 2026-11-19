@@ -5,6 +5,7 @@ import {
   appUrls,
   DOSE_MEDICATION_PARAM,
   DOSE_SLOT_PARAM,
+  DOSE_PASS_PARAM,
   isSheetKind,
   isVitalType,
   VITAL_TYPE_PARAM,
@@ -78,8 +79,13 @@ export const editSheetGuard = <Entry extends EditSheetEntry>({
   return { sheet: { entry } };
 };
 
-/** The Dose sheet: the medication to start on and the slot the dose answers, when the URL names them. */
-export type NewDoseSheet = { medicationId: string | null; slot: string | null };
+const PASS_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The Dose sheet: the medication to start on and the slot the dose answers,
+ * and the pass to show first, when the URL names them.
+ */
+export type NewDoseSheet = { medicationId: string | null; slot: string | null; passId: string | null };
 
 /**
  * `timeline/new/dose`: a writer logging a dose. A viewer is the timeline
@@ -102,10 +108,13 @@ export const newDoseGuard = ({
   const params = new URLSearchParams(search);
   const medicationId = params.get(DOSE_MEDICATION_PARAM);
   const slot = params.get(DOSE_SLOT_PARAM);
+  const passId = params.get(DOSE_PASS_PARAM);
   return {
     sheet: {
       medicationId: medicationId && choiceIds.includes(medicationId) ? medicationId : null,
       slot: slot && scheduleTimeZSchema.safeParse(slot).success ? slot : null,
+      // Only id-shaped: the sheet shows it when it's one of today's passes.
+      passId: passId && PASS_ID.test(passId) ? passId.toLowerCase() : null,
     },
   };
 };
