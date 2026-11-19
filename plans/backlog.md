@@ -867,6 +867,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Proposed for orchestration: a 'pnpm backlog archive' that moves live (or landed) items out of backlog.md into an archive file and prunes their inbox bullets, run by hand or at landing.
 - 2026-11-19 (Robert Bo Davis): 2026-11-19: removed the inbox's 18 stale 'Status (…)' lines; the tracker holds status.
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD; also regenerate the summary's derived statuses on every write (it shows B-11, B-15 as ready).
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
 
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
 
