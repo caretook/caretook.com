@@ -1148,6 +1148,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner:
 - commit:
 
+- 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: one slice adding a new seed file with its own ids (seeds are append-only): more groups and a mix of users and roles (a user in three groups, an admin-only group member, a viewer in two groups, an empty group). Existing seeded users' memberships stay as they are, because browser checks rely on them (member@ has two groups; caretaker@ and viewer@ one each). Also feeds onboarding's demo group (B-31).
+
 ### B-91 · feature · Need an Admin panel for caretook global administrators to manage users, care groups, and settings.
 
 - status: inbox
