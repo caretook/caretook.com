@@ -2,7 +2,6 @@ import type { Route } from "./+types/route";
 import type { AdminActionResult } from "../adminForms";
 
 import { ATTESTATION_TEXT } from "@caretook/data/schema";
-import { useEffect, useState } from "react";
 import { Form, useNavigation } from "react-router";
 import { requireStaff } from "~/.server/admin";
 import { Field } from "~/components/ui";
@@ -46,10 +45,6 @@ export async function action({ request }: Route.ActionArgs): Promise<AdminAction
 
 export default function NewGroup({ actionData }: Route.ComponentProps) {
   const busy = useNavigation().state !== "idle";
-  // The action runs on the server, so the recipient's zone comes from this
-  // browser, set after hydration so the server render matches.
-  const [timeZone, setTimeZone] = useState("");
-  useEffect(() => setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone), []);
   return (
     <section className="card bg-base-100 shadow-sm" aria-labelledby="new-group">
       <Form
@@ -57,6 +52,10 @@ export default function NewGroup({ actionData }: Route.ComponentProps) {
         className="card-body gap-1"
         data-admin-form="newGroup"
         key={actionData?.ok ? "done" : "form"}
+        onSubmit={(event) => {
+          const zone = event.currentTarget.elements.namedItem("timeZone");
+          if (zone instanceof HTMLInputElement) zone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }}
       >
         <h1 id="new-group" className="card-title">
           New care group
@@ -64,7 +63,8 @@ export default function NewGroup({ actionData }: Route.ComponentProps) {
         <p className="text-base-content/70 text-sm">
           For a family set up by hand. Its owner gets an email invitation; you won't be a member.
         </p>
-        <input type="hidden" name="timeZone" value={timeZone} />
+        {/* The action runs on the server, so the recipient's zone is this browser's, filled in on submit. */}
+        <input type="hidden" name="timeZone" defaultValue="" />
         <Field label="Group name" error={issueFor(actionData, "groupName")}>
           {(control) => (
             <input {...control} name="groupName" className="input w-full" maxLength={120} required />
