@@ -32,3 +32,5 @@ export * from "./publicForms";
 export * from "./waitlistEntry";
 export * from "./contactMessage";
 export * from "./entryTiming";
+export * from "./search";
+export * from "./searchDocument";
