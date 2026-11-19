@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activeAnnouncement,
   APP_SETTING_KEYS,
   APP_SETTINGS,
   isAppSettingKey,
@@ -98,5 +99,23 @@ describe("APP_SETTINGS", () => {
       maxDays: 10,
       maxUses: 3,
     });
+  });
+});
+
+describe("activeAnnouncement", () => {
+  const now = Date.parse("2026-11-19T12:00:00Z");
+  it("shows an announcement with no end, or one that ends later", () => {
+    const open = { text: "Maintenance tonight", tone: "info" as const, endsAt: null };
+    expect(activeAnnouncement(open, now)).toBe(open);
+    const later = { ...open, endsAt: "2026-11-19T12:00:01.000Z" };
+    expect(activeAnnouncement(later, now)).toBe(later);
+  });
+  it("hides one that has ended (the end is exclusive), has no text, or has a bad end", () => {
+    expect(activeAnnouncement({ text: "x", endsAt: "2026-11-19T12:00:00.000Z" }, now)).toBeNull();
+    expect(activeAnnouncement({ text: "x", endsAt: "2026-11-18T12:00:00.000Z" }, now)).toBeNull();
+    expect(activeAnnouncement({ text: "  ", endsAt: null }, now)).toBeNull();
+    expect(activeAnnouncement({ text: "x", endsAt: "soon" }, now)).toBeNull();
+    expect(activeAnnouncement(null, now)).toBeNull();
+    expect(activeAnnouncement(undefined, now)).toBeNull();
   });
 });

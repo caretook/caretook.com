@@ -1,6 +1,6 @@
 import type { AppSetting, Tx } from "../../db";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { dbMayFail, txOrDb } from "../../db";
 import { appSettingSchema } from "../../db/schema";
 import { isError, newError } from "../../errors";
@@ -30,8 +30,13 @@ export const getForUpdate = async (tx: Tx, key: string) => {
   return isError(rows) ? rows : (rows[0] ?? null);
 };
 
-/** Store `value` under `key` (insert or replace). */
-export const put = async (tx: Tx, key: string, value: unknown, updatedBy: string | null) => {
+/**
+ * Store `value` under `key` (insert or replace). A null value (no
+ * announcement, the environment's allowlist) is stored as JSON `null`:
+ * drizzle would send SQL NULL, which the column refuses.
+ */
+export const put = async (tx: Tx, key: string, stored: unknown, updatedBy: string | null) => {
+  const value = stored === null ? sql`'null'::jsonb` : stored;
   const res = await dbMayFail(
     () =>
       tx

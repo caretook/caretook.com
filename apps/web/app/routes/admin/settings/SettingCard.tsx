@@ -1,8 +1,10 @@
-import type { Announcement, AppSettingKey } from "@caretook/data/schema";
+import type { Announcement, AnnouncementTone, AppSettingKey } from "@caretook/data/schema";
 import type { SettingActionResult } from "./route";
 
 import { ANNOUNCEMENT_MAX, ANNOUNCEMENT_TONES, APP_SETTINGS } from "@caretook/data/schema";
+import { useState } from "react";
 import { Form, useNavigation } from "react-router";
+import { AnnouncementBanner } from "~/components/shell";
 import { ChoiceGroup, Field } from "~/components/ui";
 import { issueFor } from "../adminForms";
 import { localInputFromUtc, SETTING_FORMS, settingValueText } from "./settingForms";
@@ -160,6 +162,8 @@ function AnnouncementFields({
   value: Announcement | null;
   issue: (path: string) => string | undefined;
 }) {
+  const [text, setText] = useState(value?.text ?? "");
+  const [tone, setTone] = useState<AnnouncementTone>(value?.tone ?? "info");
   return (
     <>
       <Field label="Text" help="Empty clears the announcement." error={issue("text")}>
@@ -169,7 +173,8 @@ function AnnouncementFields({
             name="text"
             rows={2}
             maxLength={ANNOUNCEMENT_MAX}
-            defaultValue={value?.text ?? ""}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
             className="textarea w-full"
           />
         )}
@@ -178,9 +183,20 @@ function AnnouncementFields({
         name="tone"
         label="Tone"
         options={TONE_OPTIONS}
-        defaultValue={value?.tone ?? "info"}
+        value={tone}
+        onChange={setTone}
         error={issue("tone")}
       />
+      <div className="fieldset" data-announcement-preview="">
+        <span className="fieldset-legend">Preview</span>
+        {text.trim() ? (
+          <div className="border-base-300 overflow-hidden rounded-box border">
+            <AnnouncementBanner text={text.trim()} tone={tone} />
+          </div>
+        ) : (
+          <p className="text-base-content/70 text-sm">No banner: saving clears it.</p>
+        )}
+      </div>
       <Field label="Ends (UTC)" help="Optional. It stops showing then." error={issue("endsAt")}>
         {(control) => (
           <input

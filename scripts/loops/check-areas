@@ -95,6 +95,11 @@ packages/api/src/settingsAdmin.ts        admin
 packages/data/src/db/schema/appSettings.ts admin groups invites
 packages/data/src/services/appSettingService.ts admin groups invites
 packages/data/src/models/appSetting/*    admin
+# The announcement banner (admin slice 6): public.announcement and /app's banner.
+packages/api/src/announcement.ts         admin
+apps/web/app/routes/app/layout/Announcement.tsx admin app-shell
+apps/web/app/routes/app/layout/useAnnouncement.ts admin app-shell
+apps/web/app/components/shell/AnnouncementBanner.tsx admin app-shell first-sync
 packages/data/src/services/careGroupInviteService.ts invites groups
 apps/web/app/routes/admin/*              admin groups
 apps/web/app/.server/admin.ts            admin groups
