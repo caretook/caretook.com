@@ -111,14 +111,16 @@ packages/data/src/db/schema/careGroupMember.ts profiles profiles-contacts app-sh
 apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profiles profiles-contacts
 
 # Sign-in, session, the sync client and first sync.
-apps/web/app/routes/sign-in.tsx          sign-in first-sync invites
+apps/web/app/routes/sign-in.tsx          sign-in first-sync invites session-end
 apps/web/app/routes/account/*            invites sign-in
-apps/web/app/routes/sign-out.tsx         signout-wipe sign-in invites
+apps/web/app/routes/sign-out.tsx         signout-wipe sign-in invites session-end
 apps/web/app/routes/api/*                sign-in first-sync
-apps/web/app/lib/session.ts              sign-in first-sync signout-wipe
+apps/web/app/lib/session.ts              sign-in first-sync signout-wipe session-end
+apps/web/app/lib/sessionRules.ts         sign-in session-end
+apps/web/app/lib/redirect.ts             sign-in session-end
 apps/web/app/lib/firstSync.ts            first-sync
 apps/web/app/lib/auth-client.ts          sign-in signout-wipe
-apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe
+apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe session-end
 apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell providers
 apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
 apps/web/app/lib/sync/schema.ts          roundtrip live-notes providers phase2

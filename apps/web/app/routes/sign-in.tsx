@@ -24,13 +24,16 @@ export function meta({}: Route.MetaArgs) {
 export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   const params = new URL(request.url).searchParams;
   const redirectTo = safeRedirect(params.get("redirectTo"));
-  const { data } = await authClient.getSession();
+  // Offline (the request throws), there's no session to skip ahead with.
+  const { data } = await authClient.getSession().catch(() => ({ data: null }));
   if (data) throw redirect(redirectTo);
   return {
     redirectTo,
     method: parseSignInMethod(params.get("with")),
     // Better Auth sends an expired or used magic link back here.
     linkExpired: params.has("expired") || params.has("error"),
+    // The /app check sends a device offline for 3 days here (lib/session).
+    offlineTooLong: params.get("reason") === "offline",
   };
 }
 
@@ -87,7 +90,7 @@ const METHODS: { method: SignInMethod; label: string }[] = [
 ];
 
 export default function SignIn({ loaderData, actionData }: Route.ComponentProps) {
-  const { redirectTo, method, linkExpired } = loaderData;
+  const { redirectTo, method, linkExpired, offlineTooLong } = loaderData;
   // Busy from submit until the navigation it starts is idle: a successful sign-in
   // redirects, and the state is "loading" while /app's loaders run (up to the first
   // sync), so checking only "submitting" would re-enable the button for a second
@@ -100,6 +103,7 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
 
   return (
     <AuthCard title="Sign in to Caretook">
+      {offlineTooLong && <StatusMessage>{authMessages.offlineTooLong}</StatusMessage>}
       <nav aria-label="Ways to sign in" className="tabs tabs-box tabs-sm grid grid-cols-3">
         {METHODS.map((m) => (
           <Link
