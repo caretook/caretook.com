@@ -45,13 +45,11 @@
 // - a prescriber's and the pharmacy's pages list the current medications
 //   they prescribe or fill, each opening its page.
 //
-// Slice 5 adds Today and the Due now strip (`todaySteps`): a slot due now
-// in the strip and in Today, the strip opening the Dose sheet on its slot,
-// Given in one tap (seen on a second device), Skipped with a note (on the
-// timeline too), the double-dose and over-maximum warnings that still save,
-// the device in New York with the recipient in Los Angeles, a viewer
-// without controls, and no strip once nothing is due. `dueDoses` itself is
-// unit-tested (dueDoses.test.ts).
+// Slice 5 adds Today (`todaySteps`): a slot due now in Today, Given in one
+// tap (seen on a second device), Skipped with a note (on the timeline too),
+// the double-dose and over-maximum warnings that still save, the device in
+// New York with the recipient in Los Angeles, and a viewer without controls.
+// `dueDoses` itself is unit-tested (dueDoses.test.ts).
 //
 // Medications 2, slice 1 adds the Passes screen (`passesSteps`): the
 // seeded Morning and Evening from the list's link, adding a pass (a taken
@@ -59,6 +57,13 @@
 // entry (live on a second device), Move up, an offline rename, a viewer
 // without controls, and a delete that leaves its medication the time. The
 // pass rules are unit-tested (medicationPass.test.ts).
+//
+// Medications 2, slice 5 adds the timeline's medication strip
+// (`stripSteps`, which replaced the Due now strip's steps): next, due and
+// overdue with this run's own passes, Given all and Undo from the strip, the
+// pass's name opening the Dose sheet, one line at 420, a viewer's text, and
+// no strip for a group without scheduled medications. `medicationStrip` and
+// its wording are unit-tested (medicationStrip.test.ts).
 //
 // Medications 2, slice 3 adds allergies (`allergySteps`): the region on the
 // list and a medication's page in its three states, the allergies sheet (No
@@ -2581,21 +2586,17 @@ const TODAY = `document.querySelector("main [data-today]")`;
 const todaySlot = (key) => `${TODAY}?.querySelector('[data-slot="${key}"]')`;
 const todayState = (key) =>
   `(${todaySlot(key)}?.querySelector("[data-slot-state]")?.dataset.slotState ?? null)`;
-const STRIP = `document.querySelector("main [data-due-now]")`;
-const stripSlot = (key) => `${STRIP}?.querySelector('[data-due-slot="${key}"]')`;
 const doseCountSql = (id, time, status = "given") =>
   `SELECT count(*) FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND details->>'medicationId' = '${id}' AND details->>'status' = '${status}'${time ? ` AND details->>'scheduledFor' = '${time}'` : ""}`;
 const doseCount = (id, time, status) => psql(doseCountSql(id, time, status));
 
 /**
- * Today on the medication list and the Due now strip on the timeline, with
- * this run's own medications: one with two slots due now (a few minutes ago
- * in Los Angeles, whatever the clock), and an as-needed one with a maximum
- * of 1. Given in one tap (on a second device too), Skipped with a note (on
- * the timeline too), the strip opening the Dose sheet for its slot, the
- * double-dose and over-maximum warnings that still save, the recipient's
- * zone with the device in New York, a viewer without controls, and the
- * strip gone once nothing is due.
+ * Today on the medication list, with this run's own medications: one with
+ * two slots due now (a few minutes ago in Los Angeles, whatever the clock),
+ * and an as-needed one with a maximum of 1. Given in one tap (on a second
+ * device too), Skipped with a note (on the timeline too), the double-dose
+ * and over-maximum warnings that still save, the recipient's zone with the
+ * device in New York, and a viewer without controls.
  */
 async function todaySteps(A, { B, C } = {}) {
   // Two distinct times, both due, today in Los Angeles (wait out the first minutes after midnight).
@@ -2623,34 +2624,6 @@ async function todaySteps(A, { B, C } = {}) {
   const k1 = `${id}@${t1}`;
   const k2 = `${id}@${t2}`;
   const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
-
-  // The strip on the timeline; an item opens the Dose sheet on its slot.
-  await A.goto(timeline);
-  const inStrip = await A.waitFor(`!!${stripSlot(k1)} && !!${stripSlot(k2)}`, 15000).then(
-    () => true,
-    () => false,
-  );
-  check("the Due now strip shows a slot that's due", inStrip);
-  if (inStrip) {
-    await A.tap(`${stripSlot(k1)}.querySelector("a")`);
-    const opened = await A.waitFor(
-      `${SHEET}?.querySelector('input[name="medicationId"][value="${k1}"]')?.checked`,
-      8000,
-    ).then(
-      () => true,
-      () => false,
-    );
-    const amount = await A.evaluate(`${AMOUNT}?.value ?? ""`);
-    check(
-      "a strip item opens the Dose sheet on that slot, with its dose",
-      opened && amount === "1 tablet",
-      amount,
-    );
-    await A.evaluate(
-      `[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")?.click()`,
-    );
-    await A.waitFor(`!${SHEET}`, 5000).catch(() => undefined);
-  }
 
   // The device in New York: the recipient's 8:00 is still Los Angeles time.
   await A.send("Emulation.setTimezoneOverride", { timezoneId: "America/New_York" });
@@ -2790,46 +2763,19 @@ async function todaySteps(A, { B, C } = {}) {
       const controls = await C.evaluate(
         `${TODAY}?.querySelectorAll("button:not([data-pass-expand])").length ?? -1`,
       );
-      await C.goto(timeline);
-      const strip = await C.waitFor(`!!${stripSlot(k3)}`, 15000).then(
-        () => true,
-        () => false,
-      );
-      const links = await C.evaluate(`${STRIP}?.querySelectorAll("a").length ?? -1`);
       check(
-        "a viewer sees Today and the strip, with no controls",
-        listed && controls === 0 && strip && links === 0,
-        `${listed} buttons ${controls} ${strip} links ${links}`,
+        "a viewer sees Today, with no controls",
+        listed && controls === 0,
+        `${listed} buttons ${controls}`,
       );
     }
   }
 
-  // Nothing due: this run's medications go, and every slot still due gets a tagged dose; the strip goes.
+  // This run's medications go.
   await onDevice(
     A,
     `await medications.removeMedication(db, ${JSON.stringify(id)});
      await medications.removeMedication(db, ${JSON.stringify(prnId)});`,
-  );
-  await A.goto(timeline);
-  await sleep(1000);
-  const due = await A.evaluate(
-    `[...document.querySelectorAll("main [data-due-slot]")].map((li) => li.dataset.dueSlot)`,
-  );
-  for (const key of due) {
-    const [medicationId, slot] = key.split("@");
-    await onDevice(
-      A,
-      `return medications.logDose(db, ${JSON.stringify(DEV_FAMILY)}, { medicationId: ${JSON.stringify(medicationId)}, status: "given", scheduledFor: ${JSON.stringify(slot)}, note: ${JSON.stringify(`${TAG} clear`)} });`,
-    );
-  }
-  const gone = await A.waitFor(`!${STRIP}`, 10000).then(
-    () => true,
-    () => false,
-  );
-  check("the strip is absent when nothing is due", gone, `logged for ${due.length} seeded slot(s)`);
-  // Put the seeded slots back as they were.
-  psql(
-    `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'dose' AND details->>'note' = '${TAG} clear'`,
   );
 }
 
@@ -3754,6 +3700,215 @@ async function givenAllSteps(A, { B, C, proxy } = {}) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// The medication strip (medications-2 slice 5)
+// ---------------------------------------------------------------------------
+
+const MED_STRIP = `document.querySelector("main [data-med-strip]")`;
+const stripState = `(${MED_STRIP}?.dataset.stripState ?? null)`;
+const stripPass = `(${MED_STRIP}?.dataset.stripPass ?? null)`;
+/** "08:05" as the app shows it: "8:05". */
+const clockTime = (t) => t.replace(/^0(\d:)/, "$1");
+
+/**
+ * The timeline's medication strip, with this run's own passes placed around
+ * now in Los Angeles. First every slot still open today in Dev Family gets a
+ * tagged dose (taken back at the end), so only this run's passes are open:
+ * an overdue one (65 minutes back) takes the line over a due one (3 minutes
+ * back); Given all from the strip logs it and offers Undo, and Undo brings it
+ * back; then the due pass, whose name opens the Dose sheet on it; Given all
+ * moves the strip to the next pass (30 minutes ahead), quiet. One line at
+ * 420, a viewer's text without controls, and no strip for a group without
+ * scheduled medications (Dev Family 2's, soft-deleted for a moment).
+ */
+async function stripSteps(A, { B, C } = {}) {
+  // An overdue pass needs 65 minutes of today behind it, and the next one 30 ahead.
+  if (laMinutes() < 67) await sleep((67 - laMinutes()) * 60_000 + 5000);
+  const now = laMinutes();
+  const ahead = now + 30 < 24 * 60;
+  const [tLate, tNow, tLater] = [hhmm(now - 65), hhmm(now - 3), hhmm(Math.min(now + 30, 24 * 60 - 1))];
+  const clearNote = `${TAG} strip-clear`;
+  const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
+
+  // Every open slot today: answered (a tagged dose each).
+  const cleared = await onDevice(
+    A,
+    `const { dueDoses } = await window.caretookModules();
+     const rows = await dueDoses.loadDueDoses(db, ${JSON.stringify(DEV_FAMILY)});
+     const open = dueDoses.toDueDoses(rows, new Date()).slots.filter((s) => !s.dose);
+     for (const s of open)
+       await medications.logDose(db, ${JSON.stringify(DEV_FAMILY)}, { medicationId: s.medication.id, status: "given", scheduledFor: s.time, passId: s.passId, note: ${JSON.stringify(clearNote)} });
+     return open.length;`,
+  );
+  const made = await onDevice(
+    A,
+    `const { medicationPasses } = await window.caretookModules();
+     const pass = (name, time) => medicationPasses.createPass(db, ${JSON.stringify(DEV_FAMILY)}, { name, time });
+     const late = await pass(${JSON.stringify(`${TAG} Late`)}, ${JSON.stringify(tLate)});
+     const soon = await pass(${JSON.stringify(`${TAG} Now`)}, ${JSON.stringify(tNow)});
+     const later = ${ahead} ? await pass(${JSON.stringify(`${TAG} Later`)}, ${JSON.stringify(tLater)}) : { ok: true, id: null };
+     if (!late.ok || !soon.ok || !later.ok) return [late, soon, later];
+     const med = (name, passId) => medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+       name, strength: "5 mg", dose: "1 tablet", schedule: { type: "scheduled", slots: [{ passId }] },
+     });
+     const meds = [await med(${JSON.stringify(`${TAG} Sa`)}, late.id), await med(${JSON.stringify(`${TAG} Sb`)}, soon.id), await med(${JSON.stringify(`${TAG} Sc`)}, soon.id)];
+     if (later.id) meds.push(await med(${JSON.stringify(`${TAG} Sd`)}, later.id));
+     return [late, soon, later, ...meds];`,
+  );
+  if (!made.every((r) => r?.ok))
+    return check("passes and medications for the strip", false, JSON.stringify(made));
+  const [{ id: pLate }, { id: pNow }, { id: pLater }, ...meds] = made;
+
+  try {
+    await A.goto(timeline);
+    const overdue = await A.waitFor(
+      `${stripState} === "overdue" && ${stripPass} === "pass:${pLate}"`,
+      20000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const text = await A.evaluate(`${MED_STRIP}?.textContent ?? ""`);
+    const height = await A.evaluate(`${MED_STRIP}?.getBoundingClientRect().height ?? 0`);
+    check(
+      "the strip shows an overdue pass in the place of a due one, on one line at 420, with Given all",
+      overdue &&
+        text.includes(`Overdue: ${TAG} Late · ${clockTime(tLate)} · 1 med · +1 more`) &&
+        height > 0 &&
+        height <= 40 &&
+        (await A.evaluate(`!!${MED_STRIP}.querySelector("[data-strip-given-all]")`)),
+      `${overdue} cleared ${cleared} height ${height} "${text}"`,
+    );
+
+    // Given all from the strip, then Undo: the overdue pass comes back.
+    await A.tap(`${MED_STRIP}.querySelector("[data-strip-given-all]")`);
+    const moved = await A.waitFor(`${stripState} === "due" && ${stripPass} === "pass:${pNow}"`, 8000).then(
+      () => true,
+      () => false,
+    );
+    const undo = await A.waitFor(`${UNDO_LABEL} === ${JSON.stringify(`${TAG} Late logged`)}`, 5000).then(
+      () => true,
+      () => false,
+    );
+    const lateDoses = await waitForSql(doseCountSql(meds[0].id, tLate), (v) => v === "1", 15000);
+    check(
+      "Given all from the strip logs the pass, offers Undo, and the strip moves to the due pass",
+      moved && undo && lateDoses === "1",
+      `${moved} ${undo} ${lateDoses}`,
+    );
+    await A.tap(`document.querySelector("[data-pass-undo-button]")`);
+    const back = await A.waitFor(
+      `${stripState} === "overdue" && ${stripPass} === "pass:${pLate}"`,
+      8000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    check("Undo from the strip takes the doses back, and the overdue pass returns", back);
+    await A.tap(`${MED_STRIP}.querySelector("[data-strip-given-all]")`);
+    await A.waitFor(`${stripState} === "due"`, 8000).catch(() => undefined);
+    const dueText = await A.evaluate(`${MED_STRIP}?.textContent ?? ""`);
+    check(
+      "a due pass reads its name, its time and how many medications",
+      dueText.includes(`Due: ${TAG} Now · ${clockTime(tNow)} · 2 meds`) && !dueText.includes("more"),
+      dueText,
+    );
+    if (SMOKE) return;
+
+    // The pass's name opens the Dose sheet on that pass.
+    await A.tap(`${MED_STRIP}.querySelector("[data-strip-open]")`);
+    const sheet = await A.waitFor(`!!${passCard(pNow, SHEET)}`, 10000).then(
+      () => true,
+      () => false,
+    );
+    check("the pass's name opens the Dose sheet on that pass", sheet);
+    await A.goto(timeline);
+    await A.waitFor(`${stripState} === "due" && !${SHEET}`, 15000).catch(() => undefined);
+
+    // A viewer: the text, no link or button.
+    if (C) {
+      await toFront(C);
+      await C.goto(timeline);
+      const seen = await C.waitFor(`${stripState} === "due" && ${stripPass} === "pass:${pNow}"`, 30000).then(
+        () => true,
+        () => false,
+      );
+      const controls = await C.evaluate(`${MED_STRIP}?.querySelectorAll("a, button").length ?? -1`);
+      const viewerHeight = await C.evaluate(`${MED_STRIP}?.getBoundingClientRect().height ?? 0`);
+      check(
+        "a viewer sees the strip as text, with no link or Given all, on one line",
+        seen && controls === 0 && viewerHeight <= 40,
+        `${seen} ${controls} ${viewerHeight}`,
+      );
+      await toFront(A);
+    }
+
+    // Given all for the due pass: the strip moves on to the next, quiet.
+    await A.tap(`${MED_STRIP}.querySelector("[data-strip-given-all]")`);
+    if (ahead) {
+      const next = await A.waitFor(
+        `${stripState} === "next" && ${stripPass} === "pass:${pLater}"`,
+        8000,
+      ).then(
+        () => true,
+        () => false,
+      );
+      const nextText = await A.evaluate(`${MED_STRIP}?.textContent ?? ""`);
+      check(
+        "once the due pass is logged, the strip shows the next pass, with no Given all",
+        next &&
+          nextText.includes(`Next: ${TAG} Later · ${clockTime(tLater)} · 1 med`) &&
+          (await A.evaluate(`!${MED_STRIP}.querySelector("[data-strip-given-all]")`)),
+        nextText,
+      );
+    } else check("(skipped: the next pass would be tomorrow) the strip's next pass", true);
+
+    // A group without scheduled medications: no strip (Dev Family 2's, soft-deleted for a moment).
+    if (B) {
+      const ids = psql(
+        `SELECT string_agg(id::text, ',') FROM medication WHERE group_id = '${DEV_FAMILY_2}' AND deleted_at IS NULL AND schedule->>'type' = 'scheduled'`,
+      )
+        .split(",")
+        .filter(Boolean);
+      await toFront(B);
+      await B.goto(`/app/groups/${DEV_FAMILY_2}/timeline`);
+      const before = await B.waitFor(`!!${MED_STRIP}`, 20000).then(
+        () => true,
+        () => false,
+      );
+      const list = ids.map((id) => `'${id}'`).join(", ");
+      if (ids.length) psql(`UPDATE medication SET deleted_at = now() WHERE id IN (${list})`);
+      try {
+        const gone = await B.waitFor(
+          `!${MED_STRIP} && !!document.querySelector("main [data-view]")`,
+          30000,
+        ).then(
+          () => true,
+          () => false,
+        );
+        check(
+          "a group without scheduled medications shows no strip",
+          ids.length > 0 && before && gone,
+          `${ids.length} ${before} ${gone}`,
+        );
+      } finally {
+        if (ids.length) psql(`UPDATE medication SET deleted_at = NULL WHERE id IN (${list})`);
+      }
+      await toFront(A);
+    }
+  } finally {
+    await onDevice(
+      A,
+      `const { medicationPasses } = await window.caretookModules();
+       for (const id of ${JSON.stringify(meds.map((m) => m.id))}) await medications.removeMedication(db, id);
+       for (const id of ${JSON.stringify([pLate, pNow, pLater].filter(Boolean))}) await medicationPasses.removePass(db, id);`,
+    ).catch(() => undefined);
+    psql(
+      `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'dose' AND details->>'note' = '${clearNote}'`,
+    );
+  }
+}
+
 // One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
 // 9435, not 9434: slot 2's offset puts 9434 on 11434, Ollama's default port.
 const proxy = startProxy(9435);
@@ -3916,6 +4071,18 @@ try {
   else await givenAllSteps(G, { B: pages[1], C: pages[2], proxy: proxyA });
   await G.send("Page.close").catch(() => undefined);
   G.close();
+  await A.send("Page.bringToFront");
+
+  // The timeline's medication strip (medications-2 slice 5), in a tab of its
+  // own too, after the timeline's steps for the same reason.
+  const S = await openPage(bA, "caretaker-strip");
+  pages.push(S);
+  await S.goto(LIST);
+  await S.waitFor("!!window.caretookSync && !!document.querySelector('main [data-medication-list]')", 20000);
+  if (SMOKE) await stripSteps(S);
+  else await stripSteps(S, { B: pages[1], C: pages[2] });
+  await S.send("Page.close").catch(() => undefined);
+  S.close();
   await A.send("Page.bringToFront");
 
   if (made) {
