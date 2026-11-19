@@ -23,7 +23,7 @@ Open issues:
 - Decided (the user, 2026-11-18): phones keep the "Latest" label on the vitals line screen-reader only below `sm`, so two readings fit.
 - `phase2.mjs` steps that reload the page can log `[PowerSync]: Sync error` (the old page's connection closing). `kindIconFilters` filters it for its own steps only; the shared noise pattern doesn't cover it. A slice that adds a reload step (4, 7) adds it to the shared pattern.
 - **`invites` (unlanded) adds `<InviteSomeoneCard />` under `TimelineHeader` in the timeline's `route.tsx`**, two lines from the `<main>` class slice 5 changes. Expect an adjacent-line conflict at whichever sync comes second; keep both.
-- Slice 5's `75ch` cap is 800 px in this font, about 95 characters of prose a line. It's the plan's literal value; `TEXT_CAP` in `EntryBody.tsx` is the one place to change it (about `60ch` for 75 real characters). The user has been told.
+- Decided (the user, 2026-11-18): keep slice 5's `75ch` text cap (`TEXT_CAP` in `EntryBody.tsx`; 800 px in this font, about 95 characters of prose a line).
 - `pnpm prd browser phase2 --smoke` ran every block for slice 4's loop (79 checks). Not looked into.
 - For slice 6: wrap `AuthorFilterLink`'s initials variant and drop its `title`; `phase2.mjs` selects the control by `data-author`. For slice 7: paging state is `{ kind, author, limit }` in `useTimelineData`; the sentinel goes after the last day's section, never inside an `ol` (`wideLayout` counts `section > ol` children as entries).
 - Closed: the `live-notes.mjs` timing failures under load are now handled by `pnpm prd browser`'s one automatic retry (recorded as FLAKY).
