@@ -360,6 +360,21 @@ export const subscribeSearchIndexStatus = (onChange: () => void) => {
   return () => void statusListeners.delete(onChange);
 };
 
+const changeListeners = new Set<() => void>();
+const notifyChanged = () => {
+  for (const listener of changeListeners) listener();
+};
+
+/**
+ * Call `onChange` whenever the index's contents change (a batch that
+ * re-indexed something, a rebuild), so a screen showing results can search
+ * again. Returns the unsubscribe.
+ */
+export const subscribeSearchIndexChanges = (onChange: () => void) => {
+  changeListeners.add(onChange);
+  return () => void changeListeners.delete(onChange);
+};
+
 type Indexer = {
   db: SyncDb;
   controller: AbortController;
@@ -379,7 +394,10 @@ const runBatch = (current: Indexer) => {
       if (current.controller.signal.aborted) return;
       const started = performance.now();
       const items = await indexSearchChanges(current.db.powersync);
-      if (items) current.lastBatch = { at: Date.now(), items, ms: performance.now() - started };
+      if (items) {
+        current.lastBatch = { at: Date.now(), items, ms: performance.now() - started };
+        if (indexer === current) notifyChanged();
+      }
     })
     .catch((e: unknown) => console.error("Search index: couldn't index changes", e));
   return current.idle;
@@ -406,7 +424,10 @@ export const startSearchIndex = (db: SyncDb) => {
   current.idle = prepareSearchIndex(db.powersync)
     .then((result) => {
       if (result.rebuilt) current.lastRebuild = result;
-      if (indexer === current) setStatus("ready");
+      if (indexer === current) {
+        setStatus("ready");
+        notifyChanged();
+      }
     })
     .catch((e: unknown) => {
       console.error("Search index: couldn't prepare it", e);
@@ -459,6 +480,7 @@ export const rebuildSearchIndex = async () => {
   const result = await prepareSearchIndex(current.db.powersync, { force: true });
   current.lastRebuild = result;
   setStatus("ready");
+  notifyChanged();
   return result;
 };
 

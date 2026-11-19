@@ -63,7 +63,7 @@ export type TimelineData = {
   providersOf: (entryId: string) => LinkedProviderName[] | undefined;
   /** Where the history ends (`historyCutoff`); what's ahead is worked out at this moment. */
   now: Date;
-  /** The Next strip: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the filters. */
+  /** The Next strip: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the kind and author filters, not the search. */
   next: { next: TimelineEntry | null; more: number };
   /** The Upcoming block (`?upcoming=1`): its first items under the filters, by day, and how many there are in all. */
   upcoming: { sections: UpcomingSection<TimelineEntry>[]; total: number };
@@ -76,8 +76,8 @@ const liveTitle = (row: { kind: string; title: string | null }) =>
 /**
  * Everything the timeline shows, live. Paging is here: scrolling near the end
  * calls `loadOlder`, which grows the local query's limit by a page (it asks
- * for one extra row to know there's more), and a change to either filter
- * starts over from one page. While a larger window loads, the previous one
+ * for one extra row to know there's more), and a change to any filter (the
+ * search included) starts over from one page. While a larger window loads, the previous one
  * stays on screen, entries and "with …" lines alike (`pageWindow`).
  */
 export function useTimelineData({
@@ -91,10 +91,10 @@ export function useTimelineData({
   filters: EntryFilters;
   initial: TimelineRows;
 }): TimelineData {
-  // The paging belongs to one pair of filters: under any other, it's one page again.
-  const { kind, author } = filters;
-  const [paging, setPaging] = useState({ kind, author, limit: PAGE_SIZE });
-  const requested = paging.kind === kind && paging.author === author ? paging.limit : PAGE_SIZE;
+  // The paging belongs to one set of filters (kind, author and search): under any other, it's one page again.
+  const filterKey = JSON.stringify([filters.kind, filters.author, filters.match ?? null]);
+  const [paging, setPaging] = useState({ filterKey, limit: PAGE_SIZE });
+  const requested = paging.filterKey === filterKey ? paging.limit : PAGE_SIZE;
 
   // The history ends at a cutoff that moves on once a minute, so items cross
   // from the Upcoming block and the Next strip into it without new rows.
@@ -159,7 +159,7 @@ export function useTimelineData({
     loadingOlder: page.loading,
     loadOlder: () => {
       if (page.loading || !page.hasOlder) return;
-      setPaging({ kind, author, limit: nextLimit(page.limit) });
+      setPaging({ filterKey, limit: nextLimit(page.limit) });
     },
     latestVitals: toLatestVitals(readingRows),
     liveDocuments,

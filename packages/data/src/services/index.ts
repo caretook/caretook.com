@@ -53,6 +53,10 @@ import * as contactMessageService from "./contactMessageService";
 export { contactMessageService };
 export type { ContactMailer, SendResult } from "./contactMessageService";
 
+// Not in `services` below: it reads several tables and has no model of its own.
+import * as searchService from "./searchService";
+export { searchService };
+export type { SearchHit, SearchOptions, SearchResult } from "./searchService";
 import * as carePeriodService from "./carePeriodService";
 export { carePeriodService };
 

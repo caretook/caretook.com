@@ -1,7 +1,7 @@
-import type { ProviderType, TimelineEntryKind, VitalType } from "@caretook/data/schema";
+import type { ProviderType, SearchItemType, TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { LiveEntryKind } from "./liveEntry";
 
-import { PROVIDER_TYPES, VITAL_TYPES } from "@caretook/data/schema";
+import { PROVIDER_TYPES, SEARCH_ITEM_TYPES, VITAL_TYPES } from "@caretook/data/schema";
 import { isLiveEntryKind, NEW_ENTRY } from "./liveEntry";
 
 // Every path inside the app, built in one place. Links, redirects and
@@ -63,6 +63,11 @@ export const PROVIDER_TYPE_PARAM = "type";
 export const WHEN_PARAM = "when";
 export const WHEN_PICK = "pick";
 
+/** The search page's text (`?q=`), and the one section it shows in full (`?all=provider`). */
+export const SEARCH_QUERY_PARAM = "q";
+export const SEARCH_ALL_PARAM = "all";
+export const isSearchItemType = (value: unknown): value is SearchItemType =>
+  (SEARCH_ITEM_TYPES as readonly unknown[]).includes(value);
 /** The care period add sheet's prefills: `periods/new?type=hospital&startedAt=<ISO>&dateOnly=1&place=<providerId>`. */
 export const PERIOD_PREFILL_PARAMS = {
   type: "type",
@@ -195,6 +200,16 @@ export const appUrls = {
   /** The edit sheet for one medication, over the list, carrying the list's search and status filter. */
   editMedication: (groupId: string, medicationId: string, search?: Search) =>
     `${groupHome(groupId)}/medications/${segment(medicationId)}/edit${searchString(search)}`,
+  /**
+   * A group's search page, with what's searched for (`?q=`, untrimmed: it's
+   * the field's text) and the section shown in full (`?all=`; an unknown
+   * type, or one without a search, is dropped).
+   */
+  search: (groupId: string, q?: string | null, { all }: { all?: SearchItemType | null } = {}) =>
+    `${groupHome(groupId)}/search${searchString({
+      [SEARCH_QUERY_PARAM]: q,
+      [SEARCH_ALL_PARAM]: q?.trim() && isSearchItemType(all) ? all : null,
+    })}`,
   /** A group's care periods: where care has happened, newest first. */
   periods: (groupId: string) => `${groupHome(groupId)}/periods`,
   /**

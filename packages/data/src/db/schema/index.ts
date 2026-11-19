@@ -34,5 +34,6 @@ export * from "./contactMessage";
 export * from "./entryTiming";
 export * from "./search";
 export * from "./searchDocument";
+export * from "./searchHighlight";
 export * from "./carePeriod";
 export * from "./carePeriodTrack";

@@ -51,6 +51,8 @@ const appRoutes = [
         // Appointments and reminders still to come, and the Past tab (past events).
         route("upcoming", "routes/app/groups/upcoming/route.tsx"),
         route("upcoming/past", "routes/app/groups/upcoming/past/route.tsx"),
+        // Search the group's entries, providers and medications (not a section; the header's magnifier).
+        route("search", "routes/app/groups/search/route.tsx"),
         // Care periods (where care happens, over time; not a section): the
         // page with its sheets as children, and a period's page.
         route("periods", "routes/app/groups/periods/route.tsx", [
