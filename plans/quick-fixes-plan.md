@@ -37,7 +37,7 @@
 | 29    | B-80 | wave 9             |                                                       |
 | 30    | B-92 | wave 9             |                                                       |
 | 31    | B-93 | wave 9             |                                                       |
-| 32    | B-95 | wave 9             |                                                       |
+| 32    | B-95 | merged             | 420d5e9 (280d527)                                     |
 | 33    | B-83 | wave 10            |                                                       |
 | 34    | B-90 | wave 10            |                                                       |
 | 35    | B-94 | wave 10 (after 28) |                                                       |
@@ -45,6 +45,8 @@
 | 37    | B-96 | wave 10 (after 35) |                                                       |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+Wave 9 restarted 2026-11-19 11:10 after the previous orchestrator's session and every Docker stack stopped: slice 32 was committed and is merged; loops for 28–31 were respawned to finish the uncommitted work left in their worktrees (stacks restarted).
 
 Waves 1–8 (slices 1–27) are all in `dev` (wave 8 as 9ffb9d8). Wave 9 (slices 28–32) and wave 10 (33–37) were written 2026-11-19 from the items triaged to quick-fixes; split in two to stay under Docker's network limit (about five stacks at once beside care-periods and medications-2). Slice 32 runs without a stack.
 
