@@ -660,6 +660,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/marketing): From the inbox: optional phone number, address, etc on group members that can be published to the group for contact. Flags for "emergency contacts" and "primary contact" for display later.
 - 2026-11-18 (Robert Bo Davis): Proposed for 'profiles' with B-45: members' optional phone and address, shared with the group by choice, plus emergency-contact and primary-contact flags. Today co-members sync only id, name and image; published fields need their own stream columns and an opt-in.
+- 2026-11-19 (plan/profiles): PRD written on plan/profiles: plans/profiles-prd.md (interview 2026-11-19).
 
 ### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
 
