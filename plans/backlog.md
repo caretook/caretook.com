@@ -974,3 +974,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: improve timeline page display for vitals and upcoming banner. They should be limited. We should replace the word "latest" with the vitals icon and match the style of the upcoming header. Width should be limited on very large screens. larger than the timeline column, but not too wide.
+- 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: a contained timeline display change to LatestVitals and the Upcoming block (appointments' header style): the vitals icon instead of 'Latest', a limited number of items, and a width cap on very large screens (wider than the entries' 1024 px column, but capped). Run it after appointments lands (it owns the Upcoming block), and coordinate with search slice 2 (timeline filter row).
