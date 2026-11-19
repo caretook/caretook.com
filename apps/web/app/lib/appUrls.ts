@@ -207,4 +207,7 @@ export const appUrls = {
   /** The allergies sheet over the medication list (writers), carrying the list's search and status filter. */
   medicationAllergies: (groupId: string, search?: Search) =>
     `${groupHome(groupId)}/medications/allergies${searchString(search)}`,
+  /** The weekly bedside sheet, starting on `start` ("YYYY-MM-DD"; none is this week). */
+  medicationsPrintWeek: (groupId: string, start?: string | null) =>
+    `${groupHome(groupId)}/medications/print/week${searchString({ start })}`,
 } as const;

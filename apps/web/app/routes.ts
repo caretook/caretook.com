@@ -52,6 +52,8 @@ const appRoutes = [
         route("medications/print", "routes/app/groups/medications/print/route.tsx"),
         // The group's medication passes (Morning, Evening…; a static segment, like print).
         route("medications/passes", "routes/app/groups/medications/passes/route.tsx"),
+        // The weekly bedside sheet (`?start=YYYY-MM-DD`; a static segment, like print).
+        route("medications/print/week", "routes/app/groups/medications/print/week/route.tsx"),
         // Appointments and reminders still to come, and the Past tab (past events).
         route("upcoming", "routes/app/groups/upcoming/route.tsx"),
         route("upcoming/past", "routes/app/groups/upcoming/past/route.tsx"),

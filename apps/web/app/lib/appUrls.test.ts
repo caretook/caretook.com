@@ -247,3 +247,12 @@ describe("appUrls.medicationAllergies", () => {
     expect(appUrls.medicationAllergies(G, "?q=met")).toBe(`/app/groups/${G}/medications/allergies?q=met`);
   });
 });
+
+describe("appUrls.medicationsPrintWeek", () => {
+  it("is the weekly sheet, with its start when one is given", () => {
+    expect(appUrls.medicationsPrintWeek(G)).toBe(`/app/groups/${G}/medications/print/week`);
+    expect(appUrls.medicationsPrintWeek(G, "2026-11-23")).toBe(
+      `/app/groups/${G}/medications/print/week?start=2026-11-23`,
+    );
+  });
+});
