@@ -1384,6 +1384,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. AGENTS.md is ~195 KB (~50k tokens) and loads into every session, loops included.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
+- 2026-11-19 (slice/orchestration/1): slice 1 committed on slice/orchestration/1 (a6ac71a, 3cf23d0): AGENTS.md core 29.8 KB, area docs in docs/domain/, handbook docs/loops.md, slice-fields parser
 
 ### B-110 · bug · Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes)
 
