@@ -120,11 +120,32 @@ export const PERMISSIONS: Permissions = {
     groupField: "groupId",
     read: groupEntry(ANY_GROUP_ROLE),
     list: groupEntry(ANY_GROUP_ROLE),
-    create: { ...groupEntry(MANAGERS), fields: { invitedBy: SYSTEM_ONLY } },
+    // Sharing (relationship, shared fields) is the member's own and the
+    // emergency list (rank, primary contact) the managers', but both need
+    // rules the map can't express: memberSharingService and
+    // emergencyContactService check them and write as the system.
+    create: {
+      ...groupEntry(MANAGERS),
+      fields: {
+        invitedBy: SYSTEM_ONLY,
+        relationship: SYSTEM_ONLY,
+        sharedFields: SYSTEM_ONLY,
+        emergencyRank: SYSTEM_ONLY,
+        isPrimaryContact: SYSTEM_ONLY,
+      },
+    },
     update: {
       ...groupEntry(MANAGERS),
       // A membership can change role, never group or user.
-      fields: { groupId: SYSTEM_ONLY, userId: SYSTEM_ONLY, invitedBy: SYSTEM_ONLY },
+      fields: {
+        groupId: SYSTEM_ONLY,
+        userId: SYSTEM_ONLY,
+        invitedBy: SYSTEM_ONLY,
+        relationship: SYSTEM_ONLY,
+        sharedFields: SYSTEM_ONLY,
+        emergencyRank: SYSTEM_ONLY,
+        isPrimaryContact: SYSTEM_ONLY,
+      },
     },
     // Managers remove members; anyone can remove themselves (leave).
     delete: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
@@ -330,6 +351,52 @@ export const PERMISSIONS: Permissions = {
     list: ADMIN_ONLY_PERMISSION_ENTRY,
     update: SYSTEM_ONLY_ENTRY,
     delete: ADMIN_ONLY_PERMISSION_ENTRY,
+  },
+
+  // The recipient's sensitive details (profiles): phones, email, address,
+  // insurance and outside contacts. Owners, admins and caretakers only;
+  // viewers get none (and the writers stream keeps it off their devices).
+  // Outside contacts are the managers': careRecipientDetailsService checks
+  // the role and writes them as the system.
+  careRecipientDetailsSchema: {
+    groupField: "groupId",
+    read: groupEntry(WRITERS),
+    list: groupEntry(WRITERS),
+    create: { ...groupEntry(WRITERS), fields: { outsideContacts: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, outsideContacts: SYSTEM_ONLY },
+    },
+    delete: SYSTEM_ONLY_ENTRY,
+  },
+
+  // A member's own contact details: theirs alone (staff included), never
+  // replicated. Groups see only what's shared, through member_contact_share.
+  userContactSchema: {
+    ownerField: "userId",
+    create: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+    read: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+    list: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+    update: {
+      ...NO_ACCESS,
+      admin: ["owned"],
+      member: ["owned"],
+      system: ["all"],
+      fields: { userId: SYSTEM_ONLY },
+    },
+    delete: { ...NO_ACCESS, admin: ["owned"], member: ["owned"], system: ["all"] },
+  },
+
+  // What each member shares with a group: read by the group, written only
+  // by the services that keep it in step (userContactService,
+  // memberSharingService), as the system.
+  memberContactShareSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
   },
 };
 

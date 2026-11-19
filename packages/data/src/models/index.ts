@@ -73,3 +73,15 @@ export type * from "./waitlistEntry/types";
 import * as contactMessageModel from "./contactMessage";
 export { contactMessageModel };
 export type * from "./contactMessage/types";
+
+import * as careRecipientDetailsModel from "./careRecipientDetails";
+export { careRecipientDetailsModel };
+export type * from "./careRecipientDetails/types";
+
+import * as userContactModel from "./userContact";
+export { userContactModel };
+export type * from "./userContact/types";
+
+import * as memberContactShareModel from "./memberContactShare";
+export { memberContactShareModel };
+export type * from "./memberContactShare/types";
