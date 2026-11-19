@@ -63,7 +63,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     label: "Settings",
     path: () => adminUrls.settings(),
     capability: "settings.read",
-    built: false,
+    built: true,
   },
 ];
 

@@ -1,6 +1,7 @@
 import type { ContactMailer } from "@caretook/data";
 
 import {
+  appSettingService,
   contactMessageService,
   contactSendZSchema,
   waitlistJoinZSchema,
@@ -18,7 +19,10 @@ import { createRateLimiter } from "./rateLimit";
 // minimum time on the page; see publicForms.ts in @caretook/data). Past the
 // per-IP rate limit a caller gets a 429. No IP address is stored.
 
-/** Calls allowed per IP address per form in any minute: the 11th is refused. */
+/**
+ * Calls allowed per IP address per form in any minute by default (the 11th
+ * is refused). The `publicForms.perMinute` app setting changes it.
+ */
 export const PUBLIC_FORM_LIMIT = 10;
 const WINDOW_MS = 60_000;
 
@@ -32,8 +36,9 @@ export const resetPublicFormLimits = () => {
   for (const limiter of Object.values(limiters)) limiter.reset();
 };
 
-const limited = (form: keyof typeof limiters, clientIp: string | null | undefined) => {
-  if (!limiters[form].hit(clientIp?.trim() || "unknown")) {
+const limited = async (form: keyof typeof limiters, clientIp: string | null | undefined) => {
+  const perMinute = await appSettingService.getSetting("publicForms.perMinute");
+  if (!limiters[form].hit(clientIp?.trim() || "unknown", Date.now(), perMinute)) {
     throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many tries. Wait a minute and try again." });
   }
 };
@@ -59,7 +64,7 @@ export const publicForms = {
   waitlist: {
     /** Join the waitlist, or update your entry (same address, any case). */
     join: publicProcedure.input(waitlistJoinZSchema).handler(async ({ context, input }) => {
-      limited("waitlist", context.clientIp);
+      await limited("waitlist", context.clientIp);
       unwrap(await waitlistService.join(input));
       return THANKS;
     }),
@@ -67,7 +72,7 @@ export const publicForms = {
   contact: {
     /** Write to the team: stored, and emailed to SUPPORT_EMAIL. */
     send: publicProcedure.input(contactSendZSchema).handler(async ({ context, input }) => {
-      limited("contact", context.clientIp);
+      await limited("contact", context.clientIp);
       const sent = unwrap(await contactMessageService.send(input, { mail: contactMailer() }));
       if (sent.stored) deliverSoon(sent.queued);
       return THANKS;

@@ -39,6 +39,26 @@ export const linkRoles = (myRole: string | null) => invitableRoles(myRole, "link
 
 export { LINK_MAX_USES_LIMIT, LINK_TTL_DEFAULT_DAYS, LINK_TTL_MAX_DAYS, LINK_TTL_MIN_DAYS };
 
+/** What `invite.options` says the invite controls may offer (admin settings). */
+export type InviteOptions = {
+  emailInvites: boolean;
+  linkInvites: boolean;
+  link: { defaultDays: number; maxDays: number; maxUses: number };
+};
+
+/** The options before the server has said (offline, or not a manager): the built-in limits. */
+export const DEFAULT_INVITE_OPTIONS: InviteOptions = {
+  emailInvites: true,
+  linkInvites: true,
+  link: { defaultDays: LINK_TTL_DEFAULT_DAYS, maxDays: LINK_TTL_MAX_DAYS, maxUses: LINK_MAX_USES_LIMIT },
+};
+
+/** What a switched-off invite control says. */
+export const INVITES_UNAVAILABLE = {
+  email: "Email invites aren't available right now.",
+  link: "Invite links aren't available right now.",
+} as const;
+
 const shortDate = (iso: string, locale?: string) =>
   new Date(iso).toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
 
@@ -83,28 +103,31 @@ export type LinkForm = {
 const wholeNumber = (value: string) => (/^\d+$/.test(value.trim()) ? Number(value.trim()) : NaN);
 
 /**
- * A submitted link: a role the member may offer (caretaker or viewer), 1–90
- * days (empty: 7), and a maximum number of uses (empty: no limit).
+ * A submitted link: a role the member may offer (caretaker or viewer), a
+ * number of days within `limits` (empty: the default), and a maximum number
+ * of uses (empty: no limit). `limits` are the admin settings' when the page
+ * has them; the server checks them again either way.
  */
 export const parseLinkForm = (
   values: { role: string; expiresInDays: string; maxUses: string },
   myRole: string | null,
+  limits: InviteOptions["link"] = DEFAULT_INVITE_OPTIONS.link,
 ): { ok: true; data: LinkForm } | Failure => {
   const issues: Failure["issues"] = [];
   const role = linkRoles(myRole).find((allowed) => allowed === values.role);
   if (!role || (role !== "caretaker" && role !== "viewer"))
     issues.push({ path: "role", message: "Choose caretaker or viewer." });
-  const days = values.expiresInDays.trim() ? wholeNumber(values.expiresInDays) : LINK_TTL_DEFAULT_DAYS;
-  if (!(days >= LINK_TTL_MIN_DAYS && days <= LINK_TTL_MAX_DAYS))
+  const days = values.expiresInDays.trim() ? wholeNumber(values.expiresInDays) : limits.defaultDays;
+  if (!(days >= LINK_TTL_MIN_DAYS && days <= limits.maxDays))
     issues.push({
       path: "expiresInDays",
-      message: `Choose ${LINK_TTL_MIN_DAYS} to ${LINK_TTL_MAX_DAYS} days.`,
+      message: `Choose ${LINK_TTL_MIN_DAYS} to ${limits.maxDays} days.`,
     });
   const maxUses = values.maxUses.trim() ? wholeNumber(values.maxUses) : null;
-  if (maxUses !== null && !(maxUses >= 1 && maxUses <= LINK_MAX_USES_LIMIT))
+  if (maxUses !== null && !(maxUses >= 1 && maxUses <= limits.maxUses))
     issues.push({
       path: "maxUses",
-      message: `Leave it empty for no limit, or choose 1 to ${LINK_MAX_USES_LIMIT}.`,
+      message: `Leave it empty for no limit, or choose 1 to ${limits.maxUses}.`,
     });
   if (issues.length || (role !== "caretaker" && role !== "viewer"))
     return { ok: false, error: "Check the link's settings.", issues };

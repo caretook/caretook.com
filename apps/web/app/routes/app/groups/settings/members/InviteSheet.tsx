@@ -7,11 +7,12 @@ import { useFetcher } from "react-router";
 import { Field, Sheet } from "~/components/ui";
 import { roleLabel } from "../groupSettings";
 import { emailInviteRoles } from "./invites";
+import { INVITES_UNAVAILABLE } from "./linkRules";
 
 // The Members page's Invite button (owners and admins) and its sheet: an
 // email, a role, and the inviter's confirmation that the care recipient
-// agreed to share. Sending is online only; offline the button is disabled
-// and says why.
+// agreed to share. Sending is online only; offline, or while email invites
+// are switched off (admin settings), the button is disabled and says why.
 
 const ROLE_HELP: Record<string, string> = {
   owner: "Manages the group, its members and owners.",
@@ -20,7 +21,16 @@ const ROLE_HELP: Record<string, string> = {
   viewer: "Reads only.",
 };
 
-export function InviteButton({ myRole, online }: { myRole: string | null; online: boolean }) {
+export function InviteButton({
+  myRole,
+  online,
+  enabled = true,
+}: {
+  myRole: string | null;
+  online: boolean;
+  /** False while email invites are switched off (admin settings). */
+  enabled?: boolean;
+}) {
   const roles = emailInviteRoles(myRole);
   const [open, setOpen] = useState(false);
   const fetcher = useFetcher<InviteActionResult>();
@@ -44,16 +54,16 @@ export function InviteButton({ myRole, online }: { myRole: string | null; online
       <button
         type="button"
         className="btn btn-primary btn-sm"
-        disabled={!online}
-        aria-describedby={online ? undefined : "invite-offline"}
+        disabled={!online || !enabled}
+        aria-describedby={online && enabled ? undefined : "invite-offline"}
         onClick={() => setOpen(true)}
       >
         <UserPlus aria-hidden="true" className="size-4" />
         Invite by email
       </button>
-      {!online && (
+      {(!online || !enabled) && (
         <p id="invite-offline" className="text-base-content/70 text-sm">
-          Needs a connection to invite.
+          {online ? INVITES_UNAVAILABLE.email : "Needs a connection to invite."}
         </p>
       )}
       {sentTo && !open && (

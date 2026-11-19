@@ -8,6 +8,10 @@ describe("/join/:code", () => {
       expect(CLOSED_CODE[state].message).toMatch(/new one/);
     }
   });
+  it("says a switched-off sign-up isn't available right now", () => {
+    expect(CLOSED_CODE.unavailable.title).toBe("Not available right now");
+    expect(CLOSED_CODE.unavailable.message).toMatch(/isn't available right now/);
+  });
   it("opens the step a refusal is about", () => {
     expect(stepForIssues(["group.recipientName"])).toBe("recipient");
     expect(stepForIssues(["email"])).toBe("account");

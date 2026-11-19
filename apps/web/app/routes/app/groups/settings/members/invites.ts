@@ -85,7 +85,12 @@ export const parseInviteForm = (
  */
 export const inviteRefusal = (e: unknown): string | null => {
   const code = (e as { data?: { code?: unknown } } | null)?.data?.code;
+  // Switched off in the admin settings: a plain "not available right now".
+  if (code === "settings:signupClosed") return (e as { message?: string }).message || null;
   if (typeof code !== "string" || !code.startsWith("careGroupInviteService:")) return null;
   if (code === "careGroupInviteService:notFound") return "That invitation is no longer waiting.";
+  // Over the settings' link limits: the issue goes on its field.
+  if (code === "careGroupInviteService:linkTooLong" || code === "careGroupInviteService:tooManyUses")
+    return null;
   return (e as { message?: string }).message || null;
 };

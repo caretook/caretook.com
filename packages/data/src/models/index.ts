@@ -93,3 +93,7 @@ export type * from "./carePeriod/types";
 import * as adminAuditLogModel from "./adminAuditLog";
 export { adminAuditLogModel };
 export type * from "./adminAuditLog/types";
+
+import * as appSettingModel from "./appSetting";
+export { appSettingModel };
+export type * from "./appSetting/types";

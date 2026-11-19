@@ -4,8 +4,12 @@
 // as Better Auth's rate limits, open until launch.
 
 export type RateLimiter = {
-  /** Count a hit for `key`. False when `key` is over its limit (the hit isn't counted). */
-  hit: (key: string, now?: number) => boolean;
+  /**
+   * Count a hit for `key`. False when `key` is over its limit (the hit isn't
+   * counted). `limit` overrides the limiter's own for this hit (a setting
+   * read at call time).
+   */
+  hit: (key: string, now?: number, limit?: number) => boolean;
   reset: () => void;
 };
 
@@ -22,10 +26,10 @@ export const createRateLimiter = ({ limit, windowMs }: { limit: number; windowMs
   };
 
   return {
-    hit: (key, now = Date.now()) => {
+    hit: (key, now = Date.now(), max = limit) => {
       if (hits.size > PRUNE_AT) prune(now);
       const recent = (hits.get(key) ?? []).filter((t) => t > now - windowMs);
-      if (recent.length >= limit) {
+      if (recent.length >= max) {
         hits.set(key, recent);
         return false;
       }
