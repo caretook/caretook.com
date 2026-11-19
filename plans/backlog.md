@@ -1381,6 +1381,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. AGENTS.md is ~195 KB (~50k tokens) and loads into every session, loops included.
+- 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
 
 ### B-110 · bug · Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes)
 
