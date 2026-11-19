@@ -7,14 +7,16 @@
 | Slice | State                                                      | Merge into `prd/appointments` (slice commits) |
 | ----- | ---------------------------------------------------------- | --------------------------------------------- |
 | 1     | landed in `dev` (`1abaa58`); migration `0015_appointments` | `8881e85` (`5f58d49`…`e7bafce`)               |
-| 2     | in progress                                                |                                               |
-| 3     | in progress                                                |                                               |
-| 4     | blocked by 2                                               |                                               |
-| 5     | blocked by 4                                               |                                               |
-| 6     | unblocked (timeline-polish wave 3 in `dev`); start after 3 |                                               |
-| 7     | blocked by 3 and `medications` slice 5                     |                                               |
+| 2     | landed in `dev` (`3298d57`)                                | `f634977` (`69ee899`, `d14c8ca`)              |
+| 3     | landed in `dev` (`3298d57`)                                | `3c16021` (`3f6c48c`, `6bbf62c`)              |
+| 4     | landed in `dev` (`3298d57`)                                | `b1c1f7c` (`1395252`, `a00c38b`)              |
+| 5     | in progress                                                |                                               |
+| 6     | landed in `dev` (`3298d57`)                                | `ea9de0c` (`11b210c`, `15f4ec3`)              |
+| 7     | blocked by `medications` slice 5                           |                                               |
 
 Backlog: B-47 is claimed by `prd/appointments`; mark it `done` after the last slice merges. The user said to land every wave without asking, and to clean up at the end. Slice 1 decided that doses are not future kinds (refused over 1 h ahead on the server, 5 min on the device).
+
+Fold into AGENTS.md at the final landing: the Upcoming section and its route folder, `lib/upcoming*`, `lib/entrySchedule`, `lib/entryPlace`, `lib/eventCancel`, `lib/sync/appointments`, the timeline's history window and Next strip/Upcoming block, the moves to `components/entry/` (`EntryBody`, `OlderEntries`, `MedicationEntryText`) and `lib/paging`, `lib/sync/useLiveRows`, the four group sections, and `scripts:unit`'s 20 s timeout. Run checks under `caffeinate -i` at night (the Mac sleeps and stalls them).
 
 ## Architectural decisions
 
