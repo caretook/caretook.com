@@ -19,6 +19,7 @@ export function Popover({
   className,
   placement = "bottom start",
   onOpenChange,
+  defaultOpen,
   children,
 }: {
   /** The button's accessible name. */
@@ -31,10 +32,12 @@ export function Popover({
   className?: string;
   placement?: Placement;
   onOpenChange?: (open: boolean) => void;
+  /** Open as it mounts (the time chip on a draft that asks for a day first). */
+  defaultOpen?: boolean;
   children: Content;
 }) {
   return (
-    <DialogTrigger onOpenChange={onOpenChange}>
+    <DialogTrigger onOpenChange={onOpenChange} defaultOpen={defaultOpen}>
       <Button aria-label={label} className={className}>
         {trigger}
       </Button>
