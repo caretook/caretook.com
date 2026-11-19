@@ -87,3 +87,35 @@ export const contactSendZSchema = z.object({
 });
 export type ContactSendInput = z.input<typeof contactSendZSchema>;
 export type ContactSend = z.output<typeof contactSendZSchema>;
+
+// ---------------------------------------------------------------------------
+// Staff: the waitlist's filters (marketing slice 5, /admin/waitlist)
+// ---------------------------------------------------------------------------
+
+/** "Not given": entries whose visitor didn't say who they care for. */
+export const CARING_FOR_NONE = "none";
+
+const isoDay = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a date like 2026-11-18")
+  .refine((day) => !Number.isNaN(Date.parse(`${day}T00:00:00Z`)), "That isn't a date");
+
+/**
+ * Which waitlist entries staff want: joined on or after `from` and on or
+ * before `to` (whole days, UTC), who they care for (or `none`), and a source
+ * matching any of the page and UTM values, case ignored.
+ */
+export const waitlistFilterZSchema = z.object({
+  from: isoDay.optional(),
+  to: isoDay.optional(),
+  caringFor: z.enum([...CARING_FOR, CARING_FOR_NONE]).optional(),
+  source: z
+    .string()
+    .trim()
+    .max(SOURCE_FIELD_MAX)
+    .optional()
+    .transform((value) => value || undefined),
+});
+export type WaitlistFilterInput = z.input<typeof waitlistFilterZSchema>;
+export type WaitlistFilter = z.output<typeof waitlistFilterZSchema>;
