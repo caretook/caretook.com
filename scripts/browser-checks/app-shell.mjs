@@ -309,7 +309,7 @@ try {
   );
   check(
     "header: the frame's regions are in place",
-    layout.regions === "group,sections,status,user",
+    layout.regions === "group,sections,search,status,user",
     layout.regions,
   );
   const settingsLink = await A.evaluate(
