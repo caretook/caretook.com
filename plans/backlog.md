@@ -135,7 +135,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-91 | feature | triaged | admin |  | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-92 | change | ready | quick-fixes | prd/quick-fixes | Units save offline: move the Units settings page onto saveSettings |
 | B-93 | bug | ready | quick-fixes | prd/quick-fixes | Flaky browser-check timeouts at low load: phase2, roundtrip, providers, medications |
-| B-94 | change | in-progress | quick-fixes | prd/quick-fixes | Account forms, sign-in and the marketing menu button onto the ui primitives |
+| B-94 | change | ready | quick-fixes | prd/quick-fixes | Account forms, sign-in and the marketing menu button onto the ui primitives |
 | B-95 | chore | ready | quick-fixes | prd/quick-fixes | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
 | B-96 | change | triaged | quick-fixes |  | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
 | B-97 | change | in-progress | quick-fixes | prd/quick-fixes | Vitals filter on timeline should bring up a sub-filter for vital type. |
@@ -1213,10 +1213,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-94 · change · Account forms, sign-in and the marketing menu button onto the ui primitives
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 1fc9168
 
 - 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user). AGENTS.md (Components, not yet on the primitives): routes/account/ (AuthCard forms), sign-in.tsx and the marketing header's menu button (IconButton), waiting for invites to settle (done). Field for every labelled control, IconButton for icon-only buttons; keep useSubmitOnce. No visible change. Checks: sign-in, invites, groups (join), marketing.
 - 2026-11-19 (slice/quick-fixes/35): Slice 35 done (81fdddf): account forms and sign-in on Field, marketing menu on IconButton (size md). New light index components/ui/plain (Field, IconButton) because ui/index loads React Aria's ~240 KB chunk; /invite drops 236 KB.
