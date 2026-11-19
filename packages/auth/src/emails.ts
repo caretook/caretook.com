@@ -16,7 +16,7 @@ import { eq, sql } from "drizzle-orm";
 // `url` (its origin comes from config too, but the templates own the paths).
 
 /** The outbox keys on a hash, so a raw token is never part of a key. */
-const keyFor = (name: string, secret: string) =>
+export const keyFor = (name: string, secret: string) =>
   `${name}:${createHash("sha256").update(secret).digest("base64url")}`;
 
 const logFailure = (name: string) => (queued: Queued | AppError) => {

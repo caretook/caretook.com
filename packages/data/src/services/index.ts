@@ -77,6 +77,10 @@ export type { AuditEntryInput } from "./adminAuditService";
 export { auditActorId, staffRefusal } from "./staffAccess";
 import * as adminGrantService from "./adminGrantService";
 export { adminGrantService };
+// Not in `services` below: it reads several tables and has no model of its own.
+import * as accountAdminService from "./accountAdminService";
+export { accountAdminService };
+export type { AccountMailer, AccountMailUser } from "./accountAdminService";
 
 export type * from "./types";
 

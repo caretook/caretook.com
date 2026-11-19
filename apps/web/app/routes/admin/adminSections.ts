@@ -21,7 +21,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     label: "Users",
     path: () => adminUrls.users(),
     capability: "users.read",
-    built: false,
+    built: true,
   },
   {
     id: "groups",

@@ -528,6 +528,25 @@ export const SERVICE_ERRORS = {
     message: "The role must be admin or support",
     statusCode: 400,
   },
+  "accountAdmin:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "accountAdmin:notFound": {
+    message: "No account has that id",
+    statusCode: 404,
+  },
+  "accountAdmin:sessionNotFound": {
+    message: "That session has already ended",
+    statusCode: 404,
+  },
+  "accountAdmin:alreadyVerified": {
+    message: "That address is already confirmed",
+    statusCode: 409,
+  },
+  "accountAdmin:query": {
+    message: "Failed to read the account",
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {
