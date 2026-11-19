@@ -724,6 +724,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/marketing): From the inbox: Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start date-end date", "at home on hospice - start date-end date", etc. These will be useful in the summary and for filtering.
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'care-periods' (to write): named date ranges (at home, in hospital, at home on hospice) shown as bands or headers on the timeline and usable as a filter (lib/timelineFilters) and by the assistant's summaries (B-49). After timeline-polish.
+- 2026-11-19 (Robert Bo Davis): PRD written (2026-11-19) on plan/care-periods: plans/care-periods-prd.md. One contiguous track per group (starts only), fixed types + label, optional provider place + room detail, date with optional time, live notes per period, From→to markers on the timeline (shown under kind/author filters), current-period line + group menu icon, periods page, keyword suggestions from events, period filter in search only (last slice, after search). Next: prd-to-plan.
 
 ### B-51 · feature · printable medication schedule sheet that can be printed to be checked off with a pen at patient's…
 
