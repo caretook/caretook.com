@@ -4,20 +4,20 @@
 
 ## Status
 
-| Slice | State                                                          | Merge into `prd/care-periods` (slice commits)                                                      |
-| ----- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| 1     | merged `9fb07f3` (f4f439c, abc3fa8)                            | not landed: one landing at the end                                                                 |
-| 2     | merged `2699559` (a2938cc)                                     |                                                                                                    |
-| 3     | in progress (wave 2)                                           |                                                                                                    |
-| 4     | merged `ff7ceb1` (b425b2a), fix `af28304`                      |                                                                                                    |
-| 5     | merged `286b8a5` (0d6b10e, 2afb30a)                            | Home and Hospice at home suggest no place (the discharging practice isn't where they are)          |
-| 6     | ready on `slice/care-periods/6` (6cab48e); merge after 3 and 4 | with a period picked, search shows timeline entries only (providers and medications have no dates) |     |
+| Slice | State                                     | Merge into `prd/care-periods` (slice commits)                                                      |
+| ----- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 1     | merged `9fb07f3` (f4f439c, abc3fa8)       | not landed: one landing at the end                                                                 |
+| 2     | merged `2699559` (a2938cc)                |                                                                                                    |
+| 3     | merged `3c03446` (2696c88, 5af07a0)       | markers hide when a filter or search matches nothing                                               |
+| 4     | merged `ff7ceb1` (b425b2a), fix `af28304` |                                                                                                    |
+| 5     | merged `286b8a5` (0d6b10e, 2afb30a)       | Home and Hospice at home suggest no place (the discharging practice isn't where they are)          |
+| 6     | merged `e9e1f61` (6cab48e)                | with a period picked, search shows timeline entries only (providers and medications have no dates) |
 
 **Landing mode: run everything through** (the user queued this PRD with `pnpm prd queue care-periods`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
 **One landing at the end** (the user's preference for PRDs with a migration): merge every slice, then ask the user before the one full suite (never start `--suite` unasked), `pnpm prd check`, land. The `475bf7c` sync brought `search` from `dev`, including its `0016_search` migration; ours was regenerated as `0017_care_periods` (the hand-written `ALTER PUBLICATION` kept). Slices 2–5 branched before that sync, so their merges may conflict in `appUrls`, `routes.ts`, `check-areas` and the timeline (search mode): resolve them additively. Slice 6's test database couldn't start (Docker ran out of networks); its agent retries `pnpm datastore:start:test` once a stack is removed.
 
-Backlog: B-50 claimed by `prd/care-periods` when slice 1 started; mark it `done` after the last slice merges. The PRD and this plan are in `dev`. B-78 (strip restyle) is already in `dev`, so slice 3 matches the current `STRIP_CLASS` style. Slice 6 waits for `search` slices 2 and 3 in `dev` (only slice 1 is there as of 2026-11-19).
+Backlog: B-50 is `ready` at `e9e1f61` (every slice merged). Next: the one full suite (ask the user first), `pnpm prd check`, land, fold into AGENTS.md, `pnpm prd rm care-periods`. The PRD and this plan are in `dev`. B-78 (strip restyle) is already in `dev`, so slice 3 matches the current `STRIP_CLASS` style. Slice 6 waits for `search` slices 2 and 3 in `dev` (only slice 1 is there as of 2026-11-19).
 
 Fold into AGENTS.md at the final landing: a _Care periods_ section (the table, the track rules, the period-track module, the device module, the routes, the timeline line and markers, the group menu icon, suggestions, the search filter), `care_period` in the permissions table, the `carePeriod` document subject, and the stream and upload switch entries.
 
