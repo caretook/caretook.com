@@ -153,6 +153,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-109 | chore | ready | orchestration | prd/orchestration | Slim AGENTS.md: a short core, domain sections in docs/<area>.md read on demand |
 | B-110 | bug | triaged | orchestration |  | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-111 | bug | ready | orchestration | prd/orchestration | Backlog writes can commit a half-typed inbox bullet and tag it with another item's id |
+| B-112 | change | inbox |  |  | Show the recipient's allergies on the profile's printable emergency sheet |
 
 ## Items
 
@@ -1407,3 +1408,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. Commit 82f41cb (an add from prd/admin) committed an untagged inbox bullet as '(B-106)'; re-filed as B-108. Writes should commit only their own change, and ingest/add should refuse duplicate ids.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
 - 2026-11-19 (prd/orchestration): Slice 3 at 8af746c: writes commit only what they changed (temp index), ids never reused, doctor and archive. Waiting to merge after slice 1.
+
+### B-112 · change · Show the recipient's allergies on the profile's printable emergency sheet
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (prd/medications-2): The emergency sheet (profiles) passes allergies: null, waiting for B-26. medications-2 built allergies (lib/sync/allergies.ts: allergiesQuery, loadAllergies; PrintAllergies), so the sheet can show them now. profiles.mjs's sheet step would need to expect them.
