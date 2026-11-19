@@ -47,6 +47,13 @@ apps/web/vite.config.ts                  @suite
 apps/web/react-router.config.ts          @suite
 apps/web/build-target.ts                 @suite
 apps/web/app/root.tsx                    @suite
+# Security headers and the CSP (quick-fixes slice 22): every page's scripts,
+# styles and connections; sign-in reads the headers themselves.
+apps/web/app/entry.server.tsx            sign-in phase2 roundtrip live-notes marketing invites
+apps/web/app/.server/securityHeaders.ts  sign-in phase2 roundtrip live-notes marketing invites
+apps/web/app/lib/csp.ts                  sign-in phase2 roundtrip live-notes marketing invites
+apps/web/app/routes/web/*                sign-in marketing invites
+apps/web/vercel.json                     sign-in marketing
 apps/web/app/app.css                     phase2 app-shell ui
 powersync/*                              @suite
 docker-compose*.yml                      @suite

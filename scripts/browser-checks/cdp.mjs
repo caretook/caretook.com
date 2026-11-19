@@ -93,6 +93,16 @@ export async function openPage(browser, label) {
       const e = msg.params.entry;
       uncaught.push(`${e.source}: ${e.text}${e.url ? ` (${e.url.replace(BASE, "")})` : ""}`);
     }
+    // A Content-Security-Policy violation (quick-fixes slice 22) fails every
+    // check: it's in `errors` for their assertions, and the exit code is set
+    // at exit (below) for checks that don't assert on `errors`.
+    if (msg.method === "Log.entryAdded" && /Content Security Policy/i.test(msg.params.entry.text)) {
+      const e = msg.params.entry;
+      const text = `${e.text}${e.url ? ` (${e.url.replace(BASE, "")})` : ""}`;
+      errors.push(`[${label} CSP] ${text}`);
+      console.log(`FAIL CSP violation (${label}): ${text}`);
+      cspViolations.push(text);
+    }
   });
   await send("Page.enable");
   await send("Runtime.enable");
@@ -297,6 +307,15 @@ export async function openPage(browser, label) {
  * in about 20 s. Hand-offs and landings run the full check.
  */
 export const SMOKE = process.env.SMOKE === "1";
+
+/** Every page's CSP violations; any at all fails the run, whatever the check's own verdict. */
+const cspViolations = [];
+process.on("exit", () => {
+  if (cspViolations.length) {
+    console.log(`FAIL ${cspViolations.length} Content-Security-Policy violation(s)`);
+    process.exitCode = 1;
+  }
+});
 
 /**
  * A block of a check's steps: `await step(name, fn)`, or `step(name, { smoke:

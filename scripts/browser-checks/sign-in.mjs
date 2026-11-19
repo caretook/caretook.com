@@ -160,6 +160,47 @@ try {
     // Browsers log failed fetches (the 401) as console errors; ignore those.
     const errs = q.errors.filter((e) => !/401|Failed to load resource/.test(e));
     check(errs.length === 0, "no console errors (wrong password)", errs.join(" | "));
+
+    // 3. Security headers (quick-fixes slice 22): a document, /rpc, /api/auth
+    // and a prerendered marketing page (served as a file, with the host's set).
+    const headersOf = (path, method = "GET") =>
+      q.evaluate(`fetch(${JSON.stringify(path)}, { method: "${method}", redirect: "manual" })
+        .then((r) => Object.fromEntries(r.headers))`);
+    const common = (h) =>
+      h["x-frame-options"] === "DENY" &&
+      h["referrer-policy"] === "no-referrer" &&
+      h["x-content-type-options"] === "nosniff" &&
+      /camera=\(\)/.test(h["permissions-policy"] ?? "") &&
+      /frame-ancestors 'none'/.test(h["content-security-policy"] ?? "");
+    const doc = await headersOf("/sign-in");
+    const csp = doc["content-security-policy"] ?? "";
+    check(
+      common(doc) &&
+        /script-src 'self' 'sha256-[^']+' 'nonce-[^']+'/.test(csp) &&
+        /default-src 'self'/.test(csp),
+      "a document carries the headers, with a nonce in its policy",
+      csp,
+    );
+    const nonces = new Set(
+      [await headersOf("/sign-in"), doc].map(
+        (h) => h["content-security-policy"].match(/'nonce-([^']+)'/)?.[1],
+      ),
+    );
+    check(nonces.size === 2, "each document gets its own nonce");
+    for (const [path, method] of [
+      ["/rpc/me/get", "POST"],
+      ["/api/auth/ok", "GET"],
+      ["/features/", "GET"],
+    ]) {
+      const h = await headersOf(path, method);
+      check(common(h), `${method} ${path} carries the headers`, JSON.stringify(h).slice(0, 400));
+    }
+    check(
+      await q.evaluate(
+        `!!document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content.includes("'nonce-")`,
+      ),
+      "the page carries its policy as a <meta> too",
+    );
   } finally {
     b2.proc.kill();
   }
