@@ -106,6 +106,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-66 | question | inbox |  |  | Access codes are stored as plain text: keep that, or hash them? |
 | B-67 | question | inbox |  |  | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
+| B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
 
 ## Items
 
@@ -838,3 +839,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From the invites PRD (AGENTS.md, Notifications → Before launch): turn off Resend's open and click tracking on the sending domain (not per message); SPF, DKIM and DMARC on the sending subdomain; verified bounce webhooks (Svix); a host cron for /api/cron/outbox with CRON_SECRET; and Better Auth's rate-limit storage (in-memory per serverless instance today). Part of launch work, related to B-33.
+
+### B-69 · chore · Move the New care group link state into components/groups
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-18 (prd/invites orchestrator): From invites slice 6: NEW_GROUP_LINK_STATE and openedFromApp stay in routes/app/groups/new/newGroupLink.ts, but three other route folders import them (home/NewGroupLink, account/join, layout/GroupMenu), against the folder-per-route rule. Also drop the unused error code careGroupInviteService:notAllowed. A small refactor, so quick-fixes.
