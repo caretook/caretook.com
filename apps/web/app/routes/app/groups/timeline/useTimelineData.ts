@@ -26,8 +26,8 @@ import {
   toTimelineEntries,
 } from "~/lib/sync/timeline";
 import { groupByDay } from "./timelineDays";
-import { nextLimit, PAGE_SIZE, pageWindow } from "./timelinePaging";
-import { useLiveRows } from "./useLiveRows";
+import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/paging";
+import { useLiveRows } from "~/lib/sync/useLiveRows";
 
 // The timeline's data, live: the loader reads the first screenful
 // (`loadTimelineRows`), and live queries here take over from there, so other

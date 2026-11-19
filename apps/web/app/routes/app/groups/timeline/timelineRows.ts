@@ -6,7 +6,7 @@ import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/sync/t
 import { groupDocumentsQuery } from "~/lib/sync/notes";
 import { timelineLinksQuery } from "~/lib/sync/providers";
 import { entriesQuery, membersQuery, readingsQuery, readRows } from "~/lib/sync/timeline";
-import { PAGE_SIZE } from "./timelinePaging";
+import { PAGE_SIZE } from "~/lib/paging";
 
 // The timeline's first screenful, read from the device's local copy
 // (PowerSync) by the route's loader; `useTimelineData` takes over from there

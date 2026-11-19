@@ -3,10 +3,9 @@ import type { UnitChoices } from "@caretook/data/schema";
 import type { LinkedProviderName } from "~/lib/entryProviders";
 import type { TimelineEntry } from "~/lib/rpc";
 
-import { AuthorFilterLink, EntryActions, KindFilterLink } from "~/components/entry";
+import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
 import { initials } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
-import { EntryBody } from "./EntryBody";
 import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";

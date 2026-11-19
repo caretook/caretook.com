@@ -3,10 +3,10 @@ import type { TimelineEntryKind, TimelineView, UnitChoices } from "@caretook/dat
 
 import { useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { OlderEntries } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { emptyTimelineText } from "./entryLabels";
 import { entryOpen } from "./entryOpen";
-import { OlderEntries } from "./OlderEntries";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
