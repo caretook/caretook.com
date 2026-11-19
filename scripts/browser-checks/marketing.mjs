@@ -4,8 +4,14 @@
 // no /app or sync chunk, the calls to action, and Sign in reaching /sign-in.
 // Each marketing page loads with one h1. Features, FAQ and About at 420 and
 // 1280: one h1, screenshots with alt text and responsive, lazy sources, and
-// the FAQ's JSON-LD matching its visible questions. No sign-in and nothing written, so
-// there's nothing to clean up.
+// the FAQ's JSON-LD matching its visible questions. No sign-in. The waitlist
+// and contact forms (slice 4): joining stores one entry (checked with psql)
+// and a repeat in another case updates it with the same thanks; field errors
+// are linked to their fields; the honeypot and a too-fast submit store
+// nothing but thank all the same; the 11th call a minute from one address is
+// refused; contact stores the message and its mail reaches the dev mailbox
+// for SUPPORT_EMAIL, flagged for a privacy topic. Its rows are tagged
+// `+mkt<run>@example.com` and deleted at the end.
 //
 // Screenshots (full page) go to the worktree's git dir, never the repo:
 // <git dir>/marketing-shots/home-<width>-<theme>.png
@@ -14,6 +20,13 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { BASE, launch, openPage, sleep } from "./cdp.mjs";
+
+// The waitlist and contact forms (marketing slice 4). Rows are tagged with
+// RUN in the address (`<who>+<RUN>@example.com`) and removed by cleanUpForms.
+const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
+const RUN = `mkt${Date.now().toString(36)}`;
+const tagged = (who) => `${who}+${RUN}@example.com`;
+const MIN_FORM_MS = 3000;
 
 const PAGES = ["/", "/features", "/faq", "/about", "/contact", "/privacy", "/terms", "/health-data-privacy"];
 // Modules that only the app needs: none may load on a marketing page (dev
@@ -223,11 +236,11 @@ try {
   await p.waitFor(`location.hash === "#waitlist"`, 3000);
   await sleep(500);
   const band = await p.evaluate(
-    `(() => { const r = document.getElementById("waitlist").getBoundingClientRect(); return { top: r.top, note: document.querySelector("#waitlist [data-note]")?.textContent }; })()`,
+    `(() => { const r = document.getElementById("waitlist").getBoundingClientRect(); return { top: r.top, form: !!document.querySelector('#waitlist form input[name="email"]') }; })()`,
   );
   check(
-    band.top >= 0 && band.top < 200 && /soon/i.test(band.note ?? ""),
-    "the waitlist band scrolls into view and says it's coming soon",
+    band.top >= 0 && band.top < 200 && band.form,
+    "the waitlist band scrolls into view with its form",
     JSON.stringify(band),
   );
 
@@ -324,11 +337,15 @@ try {
   // 11. The legal pages (slice 3; its own function at the end of this file).
   await legalPages(p, viewport, check);
 
+  // 12. The waitlist and contact forms (slice 4; its own function at the end of this file).
+  await forms(p, viewport, check);
+
   check(p.errors.length === 0, "no console errors", p.errors.join(" | "));
   console.log(`screenshots: ${SHOTS}`);
 } catch (e) {
   check(false, "unexpected error", e.message);
 } finally {
+  cleanUpForms();
   b.proc.kill();
 }
 console.log(`${passed}/${passed + failed} passed`);
@@ -377,4 +394,228 @@ async function legalPages(p, viewport, check) {
     await p.evaluate(`scrollTo(0, 0)`);
     await lands(`document.querySelectorAll("[data-anchor]")[2]`, "a heading's anchor");
   }
+}
+
+function psql(sql) {
+  return execFileSync("docker", [
+    "exec",
+    "-i",
+    PG_CONTAINER,
+    "psql",
+    "-U",
+    "caretook",
+    "-d",
+    "caretook",
+    "-tAq",
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-c",
+    sql,
+  ])
+    .toString()
+    .trim();
+}
+
+function cleanUpForms() {
+  try {
+    psql(`DELETE FROM waitlist_entry WHERE email LIKE '%+${RUN}@example.com';
+      DELETE FROM contact_message WHERE email LIKE '%+${RUN}@example.com';
+      DELETE FROM dev_mail WHERE text LIKE '%+${RUN}@example.com%';
+      DELETE FROM notification_outbox WHERE text LIKE '%+${RUN}@example.com%';`);
+  } catch (e) {
+    console.log(`cleanup failed: ${e.message}`);
+  }
+}
+
+async function forms(p, viewport, check) {
+  const fill = (fields) =>
+    p.evaluate(`(() => {
+      for (const [name, value] of Object.entries(${JSON.stringify(fields)})) {
+        const el = document.querySelector('main form [name="' + name + '"]');
+        const proto = el instanceof HTMLSelectElement ? HTMLSelectElement : el instanceof HTMLTextAreaElement ? HTMLTextAreaElement : HTMLInputElement;
+        Object.getOwnPropertyDescriptor(proto.prototype, "value").set.call(el, value);
+        el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? "change" : "input", { bubbles: true }));
+      }
+    })()`);
+  const submit = () => p.evaluate(`document.querySelector('main form button[type="submit"]').click()`);
+  const thanked = (scope) =>
+    p.waitFor(`document.querySelector('${scope} [data-form-thanks]')?.textContent.trim().length > 0`, 10000);
+  const thanks = (scope) =>
+    p.evaluate(`(() => { const s = document.querySelector('${scope} [data-form-thanks]');
+      return { text: s?.textContent.trim() ?? "", role: s?.getAttribute("role"), live: s?.getAttribute("aria-live"), form: !!document.querySelector('${scope} form') }; })()`);
+  const openHome = async () => {
+    await p.goto("/");
+    await p.waitFor(
+      `window.__reactRouterRouteModules?.["routes/marketing/home/route"] && document.querySelector('#waitlist form')`,
+      15000,
+    );
+  };
+  const entries = (email) =>
+    psql(`SELECT coalesce(first_name,'') || '|' || coalesce(caring_for,'') || '|' || coalesce(heard_from,'') || '|' || coalesce(source->>'page','') || '|' || coalesce(source->>'utmSource','')
+      FROM waitlist_entry WHERE email = '${email}'`)
+      .split("\n")
+      .filter(Boolean);
+
+  await viewport(420);
+
+  // Join: one entry, with the page and UTM source, and a polite thanks.
+  const joiner = tagged("join");
+  await p.goto("/?utm_source=check&utm_campaign=slice4");
+  await p.waitFor(
+    `window.__reactRouterRouteModules?.["routes/marketing/home/route"] && document.querySelector('#waitlist form')`,
+    15000,
+  );
+  await sleep(MIN_FORM_MS + 300);
+  await fill({ email: joiner.toUpperCase(), firstName: "Robin", caringFor: "parent", heardFrom: "A friend" });
+  await submit();
+  await thanked("#waitlist");
+  const first = await thanks("#waitlist");
+  check(
+    /on the list/i.test(first.text) && first.role === "status" && first.live === "polite" && !first.form,
+    "joining the waitlist thanks the visitor (polite status) in place of the form",
+    JSON.stringify(first),
+  );
+  check(
+    JSON.stringify(entries(joiner)) === JSON.stringify(["Robin|parent|A friend|/|check"]),
+    "joining stores one entry, email lowercased, with the page and UTM source",
+    entries(joiner).join(" / "),
+  );
+
+  // Again, in another case: the same thanks, the entry updated, still one row.
+  await openHome();
+  await sleep(MIN_FORM_MS + 300);
+  await fill({ email: `  ${joiner.replace("join", "JOIN")} `, heardFrom: "Search" });
+  await submit();
+  await thanked("#waitlist");
+  const again = await thanks("#waitlist");
+  check(again.text === first.text, "joining again (another case) shows the same thanks", again.text);
+  check(
+    JSON.stringify(entries(joiner)) === JSON.stringify(["Robin|parent|Search|/|"]),
+    "joining again updates the one entry (left-out fields kept)",
+    entries(joiner).join(" / "),
+  );
+
+  // Field errors: an email that isn't one is linked to its field, which gets focus.
+  await openHome();
+  await sleep(MIN_FORM_MS + 300);
+  await fill({ email: "not-an-email" });
+  await submit();
+  await p.waitFor(`document.querySelector('#waitlist [data-field-error]')`, 10000);
+  const invalid = await p.evaluate(`(() => {
+    const input = document.querySelector('#waitlist input[name="email"]');
+    const ids = (input.getAttribute("aria-describedby") ?? "").split(" ");
+    const error = document.querySelector('#waitlist [data-field-error]');
+    return {
+      invalid: input.getAttribute("aria-invalid"),
+      linked: ids.includes(error.id),
+      focused: document.activeElement === input,
+      label: input.labels?.[0]?.textContent.trim(),
+      alert: document.querySelector('#waitlist [data-form-error]')?.getAttribute("role"),
+    };
+  })()`);
+  check(
+    invalid.invalid === "true" &&
+      invalid.linked &&
+      invalid.focused &&
+      invalid.alert === "alert" &&
+      !!invalid.label,
+    "a field error is linked to its labelled field, which gets focus",
+    JSON.stringify(invalid),
+  );
+
+  // The honeypot, then a submit faster than the minimum: thanks, nothing stored.
+  const trapped = tagged("trap");
+  await openHome();
+  await sleep(MIN_FORM_MS + 300);
+  await fill({ email: trapped, website: "https://spam.example" });
+  await submit();
+  await thanked("#waitlist");
+  check(
+    /on the list/i.test((await thanks("#waitlist")).text) && entries(trapped).length === 0,
+    "a filled honeypot is thanked and stores nothing",
+  );
+  const hasty = tagged("fast");
+  await openHome();
+  await fill({ email: hasty });
+  await submit();
+  await thanked("#waitlist");
+  check(
+    /on the list/i.test((await thanks("#waitlist")).text) && entries(hasty).length === 0,
+    "a submit faster than the minimum is thanked and stores nothing",
+  );
+
+  // The rate limit: from one address, the 11th call in a minute is refused.
+  const ip = `10.250.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
+  const statuses = [];
+  for (let i = 0; i < 11; i++) {
+    const res = await fetch(`${BASE}/rpc/public/waitlist/join`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-csrf-token": "orpc", "x-forwarded-for": ip },
+      body: JSON.stringify({ json: { email: tagged(`limit${i}`), elapsedMs: 5000 } }),
+    });
+    statuses.push(res.status);
+  }
+  check(
+    statuses.slice(0, 10).every((s) => s === 200) &&
+      statuses[10] === 429 &&
+      entries(tagged("limit10")).length === 0,
+    "the rate limit refuses the 11th call in a minute from one address",
+    statuses.join(","),
+  );
+
+  // Contact: stored, and its mail is in the dev mailbox for SUPPORT_EMAIL, flagged as privacy.
+  const writer = tagged("contact");
+  await viewport(1280);
+  await p.goto("/contact");
+  await p.waitFor(
+    `window.__reactRouterRouteModules?.["routes/marketing/contact/route"] && document.querySelector('main form')`,
+    15000,
+  );
+  await sleep(MIN_FORM_MS + 300);
+  await fill({
+    name: "Robin Example",
+    email: writer,
+    topic: "privacy",
+    message: `Please delete my data (${RUN}).`,
+  });
+  await submit();
+  await thanked("main");
+  const sent = await thanks("main");
+  check(
+    /on its way/i.test(sent.text) && sent.role === "status" && sent.live === "polite" && !sent.form,
+    "the contact form thanks the visitor (polite status)",
+    sent.text,
+  );
+  check(
+    psql(`SELECT topic || '|' || message FROM contact_message WHERE email = '${writer}'`) ===
+      `privacy|Please delete my data (${RUN}).`,
+    "contact stores the message",
+  );
+  let mail = "";
+  for (let i = 0; i < 20 && !mail; i++) {
+    mail = psql(
+      `SELECT recipient || '|' || subject FROM dev_mail WHERE name = 'contactMessage' AND text LIKE '%${writer}%'`,
+    );
+    if (!mail) await sleep(250);
+  }
+  const [recipient = "", subject = ""] = mail.split("|");
+  const res = await fetch(`${BASE}/dev/mail.json?to=${encodeURIComponent(recipient)}`);
+  const listed = res.ok ? JSON.stringify(await res.json()).includes(subject) : false;
+  check(
+    /@/.test(recipient) && subject.startsWith("[Privacy] ") && listed,
+    "its mail is at /dev/mail, to SUPPORT_EMAIL, flagged as privacy",
+    `${recipient} · ${subject}`,
+  );
+
+  // The contact form's fields by keyboard: each has a label, and Tab reaches them in order.
+  await p.goto("/contact");
+  await p.waitFor(`document.querySelector('main form')`, 15000);
+  const labels = await p.evaluate(
+    `[...document.querySelectorAll('main form :is(input, select, textarea):not([tabindex="-1"])')].map((el) => el.labels?.[0]?.textContent.trim() ?? "")`,
+  );
+  check(
+    labels.length === 4 && labels.every((l) => l.length > 0),
+    "every contact field has a label (the honeypot is out of the tab order)",
+    JSON.stringify(labels),
+  );
 }
