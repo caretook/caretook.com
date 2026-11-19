@@ -1,3 +1,4 @@
+import { contactMessage } from "./templates/contactMessage";
 import { groupInvite } from "./templates/groupInvite";
 import { joinApproved, joinDeclined, joinRequested } from "./templates/joinRequests";
 import { magicLink } from "./templates/magicLink";
@@ -21,6 +22,7 @@ export const NOTIFICATIONS = {
   joinApproved,
   joinDeclined,
   ownerInvite,
+  contactMessage,
 } as const;
 
 export type Notifications = typeof NOTIFICATIONS;

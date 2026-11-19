@@ -144,6 +144,8 @@ apps/web/public/*                        marketing
 packages/api/src/sync.ts                 roundtrip live-notes providers
 packages/api/src/invites.ts              invites
 packages/api/src/joinRequests.ts         invites
+packages/api/src/publicForms.ts          marketing
+packages/api/src/rateLimit.ts            marketing
 packages/api/src/*                       -
 apps/web/app/.server/*                   sign-in
 apps/web/app/routes/rpc.ts               sign-in
@@ -161,6 +163,10 @@ packages/data/src/db/schema/careGroup*.ts app-shell invites
 packages/data/src/db/schema/careRecipient.ts app-shell
 packages/data/src/db/schema/userPreferences.ts settings-layout
 packages/data/src/db/schema/notification.ts -
+packages/data/src/db/schema/publicForms.ts marketing
+packages/data/src/db/schema/publicFormRules.ts marketing
+packages/data/src/db/schema/waitlistEntry.ts marketing
+packages/data/src/db/schema/contactMessage.ts marketing
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 packages/data/src/db/seeds/providers.ts  providers
 packages/data/src/db/seeds/invites.ts    invites app-shell
