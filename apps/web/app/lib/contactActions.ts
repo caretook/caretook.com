@@ -6,7 +6,7 @@ import type { ProviderPhone } from "@caretook/data/schema";
 // list, the provider page and later screens share it, and web:unit tests it.
 
 export type ContactAction = {
-  kind: "call" | "email" | "map" | "website";
+  kind: "call" | "text" | "email" | "map" | "website";
   href: string;
   /** The control's accessible name. */
   label: string;
@@ -29,6 +29,18 @@ export const telHref = (number: string): string | null => {
   if (!digits) return null;
   const plus = main.trim().startsWith("+") ? "+" : "";
   return `tel:${plus}${digits}${ext ? `,${ext[1]}` : ""}`;
+};
+
+/**
+ * An `sms:` link for a number: its digits and a leading `+`, without an
+ * extension (a text can't dial one). Null when there are no digits.
+ */
+export const smsHref = (number: string): string | null => {
+  const ext = EXTENSION.exec(number);
+  const main = ext ? number.slice(0, ext.index) : number;
+  const digits = main.replace(/\D/g, "");
+  if (!digits) return null;
+  return `sms:${main.trim().startsWith("+") ? "+" : ""}${digits}`;
 };
 
 /** A `mailto:` link, or null for an empty address. */
@@ -76,6 +88,18 @@ export const callLabel = (name: string, phone: ProviderPhone) => {
 export const callAction = (name: string, phone: ProviderPhone): ContactAction | null => {
   const href = telHref(phone.number);
   return href ? { kind: "call", href, label: callLabel(name, phone), value: phone.number } : null;
+};
+
+/** "Text Sam, mobile", or "Text Sam" for an unlabelled number. */
+export const textLabel = (name: string, phone: ProviderPhone) => {
+  const label = phone.label.trim().toLowerCase();
+  return label ? `Text ${name}, ${label}` : `Text ${name}`;
+};
+
+/** A text message to one of someone's numbers, or null when it has no digits. */
+export const textAction = (name: string, phone: ProviderPhone): ContactAction | null => {
+  const href = smsHref(phone.number);
+  return href ? { kind: "text", href, label: textLabel(name, phone), value: phone.number } : null;
 };
 
 export type Contactable = {

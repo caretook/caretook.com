@@ -6,9 +6,35 @@ import {
   mailtoHref,
   mapsHref,
   quickActions,
+  smsHref,
   telHref,
+  textAction,
   websiteHref,
 } from "./contactActions";
+
+describe("smsHref", () => {
+  it("texts the main number, without an extension", () => {
+    expect(smsHref("(555) 010-2200")).toBe("sms:5550102200");
+    expect(smsHref("+1 555 010 5500")).toBe("sms:+15550105500");
+    expect(smsHref("(555) 010-2200 x214")).toBe("sms:5550102200");
+  });
+  it("is null without digits", () => {
+    expect(smsHref("text me")).toBeNull();
+  });
+});
+
+describe("textAction", () => {
+  it("is named for who and which number", () => {
+    expect(textAction("Sam", { label: "Mobile", number: "555 0102" })).toEqual({
+      kind: "text",
+      href: "sms:5550102",
+      label: "Text Sam, mobile",
+      value: "555 0102",
+    });
+    expect(textAction("Sam", { label: "", number: "555" })?.label).toBe("Text Sam");
+    expect(textAction("Sam", { label: "", number: "none" })).toBeNull();
+  });
+});
 
 describe("telHref", () => {
   it("keeps the digits and a leading +", () => {
