@@ -46,6 +46,14 @@
 //   history within a minute, without a reload; a viewer sees the strip and
 //   the block, with no ⋯ menus.
 //
+// Slice 7, due doses (full mode, `doseSteps`): this run's own medication,
+// with one slot a few minutes back in Los Angeles (due) and one later today
+// (so it never depends on the clock), shows both under Today in time order
+// around an event between them, "Due" on the first; tapping it opens the
+// Dose sheet on that medication and slot, and logging it comes back to
+// Upcoming with the slot gone, without a reload, on a viewer's device too;
+// the viewer sees the doses with no link; a kind filter hides them.
+//
 // Later slices add their steps here. The rules themselves (timing, order, labels, filters, the
 // actions) are unit-tested; the steps here check the wiring, one case each.
 // The entries this run makes carry its tag and are soft-deleted at the end,
@@ -1210,6 +1218,149 @@ async function timelineViewerSteps(p) {
   );
 }
 
+// ---- Slice 7: due doses in Upcoming --------------------------------------------
+const LA = "America/Los_Angeles";
+const laMinutes = () => {
+  const [h, m] = new Intl.DateTimeFormat("en-GB", {
+    timeZone: LA,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  })
+    .format(new Date())
+    .split(":")
+    .map(Number);
+  return h * 60 + m;
+};
+const hhmm = (minutes) =>
+  `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+const doseRow = (key) => `document.querySelector('main [data-upcoming-dose="${key}"]')`;
+/** Today's section as the DOM has it: each row's key (a dose's `<medication>@HH:MM`, an entry's title). */
+const todayOrder = `(() => {
+  const day = [...document.querySelectorAll("main [data-upcoming-list] [data-day]")].find((d) => d.querySelector("h3")?.textContent.trim() === "Today");
+  return day ? [...day.querySelectorAll("li")].map((li) => li.dataset.upcomingDose ?? li.textContent) : null;
+})()`;
+
+async function doseSteps(A, B) {
+  // A slot 3 minutes back (due) and one 20 minutes ahead, both today in Los Angeles.
+  if (laMinutes() < 5) await sleep((5 - laMinutes()) * 60_000 + 5000);
+  if (laMinutes() > 24 * 60 - 25) await sleep((24 * 60 - laMinutes()) * 60_000 + 6 * 60_000);
+  const now = laMinutes();
+  const [t1, t2] = [hhmm(now - 3), hhmm(now + 20)];
+  const name = `${TAG} Donepezil`;
+  const id =
+    psql(`INSERT INTO medication (group_id, recipient_id, name, strength, dose, schedule, created_by, updated_by)
+    SELECT '${DEV_FAMILY}', '${DEV_RECIPIENT}', '${name}', '5 mg', '1 tablet',
+      '{"type":"scheduled","times":["${t1}","${t2}"]}'::jsonb, u.id, u.id FROM "user" u WHERE u.email = 'caretaker@example.com' RETURNING id`);
+  const between = `${TAG} between doses`;
+  insertEvent(between, 10 * 60_000, null);
+  const [k1, k2] = [`${id}@${t1}`, `${id}@${t2}`];
+
+  await A.goto(upcomingPath());
+  await A.evaluate(`window.__dosesNoReload = true`);
+  const listed = await A.waitFor(`!!${doseRow(k1)} && !!${doseRow(k2)}`, 30000).then(
+    () => true,
+    () => false,
+  );
+  const order = await A.evaluate(todayOrder);
+  const at = (key) => order?.findIndex((x) => x === key) ?? -1;
+  const ev = order?.findIndex((x) => typeof x === "string" && x.includes(between)) ?? -1;
+  check(
+    "today's open doses show under Today, in time order around an event between them",
+    listed && at(k1) >= 0 && at(k1) < ev && ev < at(k2),
+    JSON.stringify({ k1: at(k1), event: ev, k2: at(k2) }),
+  );
+  const states = await A.evaluate(`[${doseRow(k1)}, ${doseRow(k2)}].map((li) => li && ({
+    state: li.dataset.slotState, badge: li.querySelector("[data-dose-state]")?.textContent ?? null,
+    text: li.textContent, link: li.querySelector("a")?.getAttribute("aria-label") ?? null }))`);
+  check(
+    "a due dose says Due and a later one no state, with the medication's name",
+    states[0]?.state === "due" &&
+      states[0].badge === "Due" &&
+      states[1]?.state === "upcoming" &&
+      states[1].badge === null &&
+      states.every((s) => s?.text.includes(`${name} 5 mg dose`)) &&
+      /^Log .* dose, due$/.test(states[0].link ?? ""),
+    JSON.stringify(states),
+  );
+
+  // The viewer's device: the same doses, with no link.
+  await B.goto(upcomingPath());
+  const seen = await B.waitFor(`!!${doseRow(k1)} && !!${doseRow(k2)}`, 30000).then(
+    () => true,
+    () => false,
+  );
+  const links = await B.evaluate(
+    `[${doseRow(k1)}, ${doseRow(k2)}].map((li) => li?.querySelectorAll("a").length ?? -1)`,
+  );
+  check("a viewer sees the doses, with no link", seen && links.every((n) => n === 0), JSON.stringify(links));
+
+  // A kind filter (events or notes) has no doses.
+  await A.goto(`${upcomingPath()}?kind=event`);
+  await A.waitFor(`document.querySelector("main [data-upcoming-list]")`, 20000);
+  await sleep(500);
+  check(
+    "a kind filter hides the doses",
+    !(await A.evaluate(`!!document.querySelector("main [data-upcoming-dose]")`)),
+  );
+  await A.goto(upcomingPath());
+  await A.evaluate(`window.__dosesNoReload = true`);
+  await A.waitFor(`!!${doseRow(k1)}`, 20000).catch(() => {});
+
+  // Writer: tap the due one, log it in the Dose sheet, and come back to Upcoming without it.
+  const SHEET = `document.querySelector("[role=dialog]")`;
+  await A.tap(`${doseRow(k1)}.querySelector("a")`);
+  const opened = await A.waitFor(
+    `location.pathname.endsWith("/timeline/new/dose") && ${SHEET}?.querySelector('input[name="medicationId"][value="${k1}"]')?.checked`,
+    15000,
+  ).then(
+    () => true,
+    () => false,
+  );
+  const url = await A.evaluate(`location.search`);
+  check(
+    "a due dose opens the Dose sheet on its medication and slot",
+    opened && url.includes(`slot=${encodeURIComponent(t1)}`) && url.includes(id),
+    url,
+  );
+  if (!opened) return;
+  await A.tap(`[...${SHEET}.querySelectorAll("button[type=submit]")].at(-1)`);
+  const back = await A.waitFor(
+    `location.pathname.endsWith("/upcoming") && !!${doseRow(k2)} && !${doseRow(k1)} && !${SHEET}`,
+    15000,
+  ).then(
+    () => true,
+    () => false,
+  );
+  const noReload = await A.evaluate(`!!window.__dosesNoReload`);
+  check(
+    "logging it comes back to Upcoming with the dose gone, without a reload, the later one kept",
+    back && noReload,
+    `${back} ${noReload}`,
+  );
+  const gone = await B.waitFor(`!${doseRow(k1)} && !!${doseRow(k2)}`, 30000).then(
+    () => true,
+    () => false,
+  );
+  const onServer = await waitForCount(id, t1);
+  check(
+    "the logged dose leaves the viewer's Upcoming too, and it's one dose on the server",
+    gone && onServer === "1",
+    `${gone} server ${onServer}`,
+  );
+}
+
+/** The doses for a slot on the server, once the upload has landed (up to 20 s). */
+const waitForCount = async (id, time) => {
+  const sql = `SELECT count(*) FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND details->>'medicationId' = '${id}' AND details->>'scheduledFor' = '${time}'`;
+  for (let i = 0; i < 40; i++) {
+    const n = psql(sql);
+    if (n !== "0") return n;
+    await sleep(500);
+  }
+  return psql(sql);
+};
+
 const proxy = SMOKE ? null : startProxy(9711);
 const bA = await launch(9701, proxy ? proxy.args : []);
 const bB = SMOKE ? null : await launch(9702);
@@ -1252,6 +1403,7 @@ try {
       `${rows.length} rows`,
     );
     await addSteps(B, false);
+    await step("due doses", () => doseSteps(A, B));
     await step("cancel and undo cancel", () => cancelSteps(A, B, proxy));
     await step("reschedule", () => rescheduleSteps(A, B, proxy));
     // The cancel and reschedule steps leave the viewer on an entry page, which has no tab bar.
@@ -1270,6 +1422,9 @@ try {
 } finally {
   try {
     psql(`UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND title LIKE '${TAG}%'`);
+    psql(`UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'dose'
+      AND details->>'medicationId' IN (SELECT id::text FROM medication WHERE name LIKE '${TAG}%')`);
+    psql(`UPDATE medication SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%'`);
   } catch (e) {
     console.log(`clean-up failed: ${e.message}`);
   }
