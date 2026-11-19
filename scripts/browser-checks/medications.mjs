@@ -888,7 +888,13 @@ async function logDoseInSheet(p, label, { status = "given", note = "", yesterday
 }
 
 async function timelineSteps(A, { B, C, proxyA } = {}) {
-  const timeline = await A.evaluate("location.pathname");
+  // Earlier steps leave A on other pages (a medication, the 404), so go by the group.
+  const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
+  // The second device watches the same timeline's doses (earlier steps left it on Dev Family 2).
+  if (B) {
+    await B.goto(`${timeline}?kind=dose`);
+    await B.waitFor(`${ROWS}.length > 0`, 20000).catch(() => undefined);
+  }
   const medName = `${TAG} Ibuprofen`;
   const label = `${medName} 200 mg`;
 
@@ -1206,7 +1212,7 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
 
   // A viewer: no Dose button, rows that open nothing, no ⋯; the sheet URL is the timeline.
   if (C) {
-    const viewerTimeline = await C.evaluate("location.pathname");
+    const viewerTimeline = `/app/groups/${DEV_FAMILY}/timeline`;
     await C.goto(`${viewerTimeline}?kind=dose`);
     await C.waitFor(`${ROWS}.length > 0 && document.querySelector("[data-medication]")`, 20000).catch(
       () => undefined,

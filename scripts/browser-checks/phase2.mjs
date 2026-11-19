@@ -1267,8 +1267,8 @@ async function infiniteScroll(p, offlineDevice) {
   const END = "That's the beginning of the timeline";
   const LOADING = "Loading older…";
   const status = `document.querySelector("[data-older-entries] [role=status]")`;
-  // The kinds the timeline lists (`TIMELINE_KINDS`): doses and medication changes aren't on it yet.
-  const SHOWN_KINDS = "'note', 'symptom', 'event', 'vital'";
+  // The kinds the timeline lists (`TIMELINE_KINDS` in lib/timelineFilters.ts).
+  const SHOWN_KINDS = "'note', 'symptom', 'event', 'vital', 'dose', 'medicationChange'";
   const liveCount = () =>
     Number(
       psql(
