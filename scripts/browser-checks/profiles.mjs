@@ -570,8 +570,8 @@ try {
       link: document.querySelector('main [data-profile-note] a')?.getAttribute("href"),
     })`);
     check(
-      "Details: only the group's card, and a link to the profile",
-      details.sections === "group-details" && details.link === PROFILE,
+      "Details: the group's card and the recipient's time zone only, and a link to the profile",
+      details.sections === "group-details,care-recipient" && details.link === PROFILE,
       JSON.stringify(details),
     );
     await A.tap(`document.querySelector('main [data-profile-note] a')`);
