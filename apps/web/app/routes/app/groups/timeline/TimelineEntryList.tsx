@@ -28,7 +28,7 @@ export function TimelineEntryList({
   canWrite,
   kind,
 }: {
-  data: Pick<TimelineData, "days" | "hasOlder" | "showOlder" | "liveLabelOf" | "nameOf">;
+  data: Pick<TimelineData, "days" | "hasOlder" | "showOlder" | "liveLabelOf" | "nameOf" | "providersOf">;
   view: TimelineView;
   units: UnitChoices;
   groupId: string;
@@ -73,6 +73,7 @@ export function TimelineEntryList({
                     }
                     onDelete={canWrite ? () => removal.ask(entry) : undefined}
                     liveLabel={data.liveLabelOf(entry.id)}
+                    providers={data.providersOf(entry.id)}
                   />
                 );
               })}

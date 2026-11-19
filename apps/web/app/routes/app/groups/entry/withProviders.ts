@@ -64,6 +64,5 @@ export const canAddNamed = (providers: readonly PickerProvider[], text: string) 
   return !providers.some((p) => !p.deletedAt && p.name.trim().toLocaleLowerCase() === name);
 };
 
-/** A linked provider's chip text: the name, with "(removed)" once they're deleted. */
-export const chipLabel = (provider: { name: string; deletedAt: string | null }) =>
-  provider.deletedAt ? `${provider.name} (removed)` : provider.name;
+/** A linked provider's chip text (shared with the timeline's "with …" line). */
+export { chipLabel } from "../../../../lib/entryProviders";

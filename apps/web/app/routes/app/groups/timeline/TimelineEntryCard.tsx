@@ -17,6 +17,7 @@ export function TimelineEntryCard({
   onEdit,
   onDelete,
   liveLabel,
+  providers,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   return (
@@ -28,6 +29,7 @@ export function TimelineEntryCard({
       <EntryBody
         entry={entry}
         units={units}
+        providers={providers}
         className="space-y-0.5"
         aside={
           <>
