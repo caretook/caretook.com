@@ -264,6 +264,31 @@ describe("emergencySheet", () => {
     ]);
   });
 
+  it("names the passes a schedule uses, as the medication screens do", () => {
+    const passes = [
+      { id: "pe", name: "Evening", time: "20:00", sortOrder: 2 },
+      { id: "pm", name: "Morning", time: "08:00", sortOrder: 1 },
+    ];
+    const metformin = med({
+      name: "Metformin",
+      strength: "500 mg",
+      dose: "1 tablet",
+      schedule: { type: "scheduled", slots: [{ passId: "pe" }, { passId: "pm", amount: "2 tablets" }] },
+    });
+    const sheet = emergencySheet({
+      recipient,
+      details,
+      members,
+      medications: [metformin],
+      providers,
+      passes,
+      now: NOW,
+    });
+    expect(section(sheet, "medications")?.medications.map((m) => m.howTaken)).toEqual([
+      "1 tablet · Morning (2 tablets) and Evening",
+    ]);
+  });
+
   it("lists allergies when given, and leaves the section out when there are none", () => {
     expect(section(full(), "allergies")?.allergies).toEqual([{ name: "Penicillin", reaction: "Hives" }]);
     const without = (allergies?: { name: string }[] | null) =>
