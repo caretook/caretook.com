@@ -23,6 +23,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `components`      | [PRD](components-prd.md), [plan](components-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `ca39416`) | `routing` (done) | none now; new UI uses `components/ui/` and the feature folders (AGENTS.md, _Components_) |
 | `invites`         | [PRD](invites-prd.md), [plan](invites-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `e6286f4`) | none | none now; follow-ups (Withdraw for a join request, the recipient's time zone) and launch work are in AGENTS.md |
 | `marketing`       | [PRD](marketing-prd.md), [plan](marketing-plan.md): 5 slices, not started; slice 1 can run now | none to start; slice 4: `invites` 1 (outbox); slice 5: `invites` 5 (`/admin`) | web-only marketing routes in `routes.ts`, `react-router.config.ts` (prerender), `root.tsx` (icons, meta), a new public folder; `PERMISSIONS`, `db/schema/index.ts`, the router, `NOTIFICATIONS`, the admin nav |
+| `profiles`        | to write (B-45, B-46)                                        | `invites` (done); `medications` slice 1 (synced date of birth, time zone) | `care_recipient`, the `member_profiles` stream and publication columns, group settings Details and Members, the device schema |
+| `appointments`    | to write (B-47)                                              | `providers` (done); `medications` slice 5 (reminders, soft) | the timeline route folder, `entryWindow` in `lib/sync/timeline.ts`, `KIND_META`, `EntryTimeChip` |
+| `care-periods`    | to write (B-50)                                              | `timeline-polish` (filters, infinite scroll)          | a new table, sync and upload registries, `lib/timelineFilters.ts`, the timeline route folder |
+| `data-rights`     | to write (B-52, B-53)                                        | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
+| `tasks`           | to write (B-55)                                              | (none); `notifications` for reminders (soft)          | a new table, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`     |
+| `documents`       | to write (B-56)                                              | hosting (B-33, file storage); `profiles` (soft); `encryption` decision | file storage, `routes.ts`, `GROUP_SECTIONS`, `PERMISSIONS`              |
+| `encryption`      | to write (B-57; a design discussion first)                   | (none); affects `assistant` and `documents`          | everything server side that reads content (`sync.ts`, `noteDocumentService`) |
+| `onboarding`      | to write (B-31)                                              | `invites` (done)                                     | seeds, `careGroupService`, `/app` home                                     |
 
 ## Summary
 
