@@ -103,7 +103,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
 | B-64 | feature | triaged | quick-fixes |  | Withdraw a pending join request from the requester's home |
-| B-65 | change | triaged | quick-fixes |  | New care groups get the recipient's time zone |
+| B-65 | change | triaged | quick-fixes |  | A screen to change the care recipient's time zone |
 | B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
 | B-67 | change | ready | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
@@ -858,7 +858,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/invites orchestrator): From invites slice 4: joinRequest.withdraw exists in the API and service, but home/PendingRequests.tsx has no Withdraw button. A standalone UI change, so quick-fixes.
 
-### B-65 · change · New care groups get the recipient's time zone
+### B-65 · change · A screen to change the care recipient's time zone
 
 - status: triaged
 - prd: quick-fixes
