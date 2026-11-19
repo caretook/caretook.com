@@ -175,6 +175,11 @@ describe("careGroup: group settings", () => {
     name: "Pat Example",
     preferredName: null,
     dateOfBirth: null,
+    codeStatus: null,
+    bloodType: null,
+    primaryLanguage: null,
+    pronouns: null,
+    notes: null,
     ...over,
   });
 

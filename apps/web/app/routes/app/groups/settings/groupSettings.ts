@@ -79,7 +79,7 @@ export const parseRecipientProfile = (values: {
   name: string;
   preferredName: string;
   dateOfBirth: string;
-}): Parsed<Required<CareRecipientProfileInput>> => {
+}): Parsed<Required<Pick<CareRecipientProfileInput, "name" | "preferredName" | "dateOfBirth">>> => {
   const parsed = careRecipientProfileZSchema.safeParse({
     name: values.name,
     preferredName: values.preferredName.trim() || null,

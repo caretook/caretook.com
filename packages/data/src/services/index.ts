@@ -53,6 +53,18 @@ import * as contactMessageService from "./contactMessageService";
 export { contactMessageService };
 export type { ContactMailer, SendResult } from "./contactMessageService";
 
+import * as careRecipientDetailsService from "./careRecipientDetailsService";
+export { careRecipientDetailsService };
+
+import * as emergencyContactService from "./emergencyContactService";
+export { emergencyContactService };
+
+import * as userContactService from "./userContactService";
+export { userContactService };
+
+import * as memberSharingService from "./memberSharingService";
+export { memberSharingService };
+
 export type * from "./types";
 
 export const services = {
@@ -72,6 +84,10 @@ export const services = {
   medication: medicationService,
   waitlist: waitlistService,
   contactMessage: contactMessageService,
+  careRecipientDetails: careRecipientDetailsService,
+  emergencyContact: emergencyContactService,
+  userContact: userContactService,
+  memberSharing: memberSharingService,
 };
 
 export type ServiceTypeMap = typeof services;
