@@ -10,10 +10,10 @@
 | 2     | landed in `dev` (`666ebf9`) | `c25170c` (`0032dd6`, `a2c2bd1`)            |
 | 3     | landed in `dev` (`511cbed`) | `f916469` (`a711ad6`, `963c22b`)            |
 | 4     | landed in `dev` (`511cbed`) | `3215617` (`03cde5a`)                       |
-| 5     | merged; wave 4 landing      | `abd2635` (`1c755d2`, `7336e9d`, `249444d`) |
-| 6     | ready (5 merged)            |                                             |
+| 5     | landed in `dev` (`2c924db`) | `abd2635` (`1c755d2`, `7336e9d`, `249444d`) |
+| 6     | merged; final landing       | `61fe082` (`23812bf`, `60830bc`, `011bdd2`) |
 
-Backlog: B-24 is claimed by `prd/components`; mark it `done` after slice 6 merges.
+**Done.** All six slices are merged; B-24 is `done` at `61fe082`. Lasting rules are in AGENTS.md (_Components_).
 
 Notes for later slices:
 

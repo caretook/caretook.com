@@ -616,8 +616,9 @@ try {
     const GROUP = section("group-details");
     const RECIPIENT = section("care-recipient");
     const input = (sec, name) => `${sec}?.querySelector('input[name="${name}"]')`;
+    // A field's error: the line its input is described by (`ui/Field`'s `<id>-error`).
     const fieldError = (sec, name) =>
-      `(${sec}?.querySelector('[data-field-error="${name}"]')?.textContent.trim() ?? "")`;
+      `((document.getElementById((${input(sec, name)}?.getAttribute("aria-describedby") ?? "").split(" ").find((id) => id.endsWith("-error")) ?? "")?.textContent.trim()) ?? "")`;
     const controls = (sec) => `(${sec}?.querySelectorAll("input:not([type=hidden]), button").length ?? -1)`;
     const text = (sec) => `(${sec}?.textContent ?? "")`;
     const onSettings = (p, ms = 40000) =>
