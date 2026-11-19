@@ -7,13 +7,13 @@
 | Slice | State                | Merge into `prd/admin` (slice commits)      |
 | ----- | -------------------- | ------------------------------------------- |
 | 1     | merged               | `caeb0ac` (`86a98c6`, `6ac70ca`, `2b4825f`) |
-| 2     | in progress (wave 2) |                                             |
-| 3     | blocked by 2         |                                             |
-| 4     | in progress (wave 2) |                                             |
+| 2     | merged               | `a5b0b4b` (`b9a0a5d`, `507a893`, `685f12d`) |
+| 3     | in progress (wave 3) |                                             |
+| 4     | merged               | `e900e4f` (`615fe7c`, `368983f`, `53e2964`) |
 | 5     | in progress (wave 2) |                                             |
 | 6     | blocked by 5         |                                             |
 
-Backlog: B-91 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. Start after `profiles` lands: both change `PERMISSIONS`, `db/schema/index.ts` and the `user`-adjacent registries. Landing mode: **run everything through** (queued with `pnpm prd queue admin`): start every ready slice, land each green wave without asking, clean up; ask only real questions. `profiles` has landed, so the wait is over. Wave 1 (slice 1) merged 2026-11-19; wave 2 (2, 4, 5) started the same day. Because slice 1 adds a migration, landing waits until every slice is merged, then the browser suite runs once (the user's choice for `profiles`), before one landing. Open: AGENTS.md's check table needs an `admin.mjs` row at landing; existing access-code and staff-group actions record no reason (their forms don't ask).
+Backlog: B-91 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. Start after `profiles` lands: both change `PERMISSIONS`, `db/schema/index.ts` and the `user`-adjacent registries. Landing mode: **run everything through** (queued with `pnpm prd queue admin`): start every ready slice, land each green wave without asking, clean up; ask only real questions. `profiles` has landed, so the wait is over. Wave 1 (slice 1) merged 2026-11-19; wave 2 (2, 4, 5) started the same day. Because slice 1 adds a migration, landing waits until every slice is merged, then the browser suite runs once (the user's choice for `profiles`), before one landing. Open: `first-sync.mjs` failed twice under load on slice 2 (likely contention; rerun at landing); `pnpm prd check` hit load timeouts in untouched int tests on slices 2 and 4 (rerun at landing). AGENTS.md's check table needs an `admin.mjs` row at landing; existing access-code and staff-group actions record no reason (their forms don't ask).
 
 ## Architectural decisions
 
