@@ -21,6 +21,11 @@ import { launch, openPage, sleep } from "./cdp.mjs";
 // filters as links with aria-current, the event title suggestions as buttons),
 // the field primitive's label and error (a symptom with no name), and the icon
 // buttons' names (Close, Rows, Cards).
+//
+// Slice 6: settings, account (units, timeline layout, account) and group
+// (details, members): the frame's nav or back link, each choice a named
+// radiogroup (arrow keys move it), every field labelled, help and errors
+// described.
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 const PREFIX = process.env.UI_SHOT_PREFIX ?? "ui";
 const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -513,6 +518,145 @@ async function slice2(p, width, scheme) {
   await p.waitFor(`!${SHEET}`, 5000).catch(() => {});
 }
 
+// ---- Settings (slice 6) ---------------------------------------------------------
+const GROUP_SETTINGS = `/app/groups/${DEV_FAMILY}/settings`;
+/** The accessible name of a radiogroup, from what labels it. */
+const groupName = (g) =>
+  `(document.getElementById(${g}.getAttribute("aria-labelledby") ?? "")?.textContent.trim() ?? "")`;
+const RADIOGROUPS = `[...document.querySelectorAll('main [role="radiogroup"]')]`;
+/** What a labelled control is called and described by: `label[for]`, then its description lines. */
+const fieldOf = (sel) => `(() => { const i = ${sel}; if (!i) return null;
+  const label = document.querySelector('label[for="' + i.id + '"]')?.textContent.trim();
+  const described = (i.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean).map((id) => document.getElementById(id)?.textContent.trim()).join(" | ");
+  return { label, invalid: i.getAttribute("aria-invalid"), described }; })()`;
+
+/** Settings frame: at 1280 the side nav marks the page current; at 420 the page has a back link. */
+async function settingsFrame(p, tag, width, listPath, page) {
+  const frame = await p.evaluate(`({
+    current: document.querySelector('nav[data-settings-nav] a[aria-current="page"]')?.getAttribute("href") ?? "",
+    navShown: !!document.querySelector('nav[data-settings-nav]')?.offsetParent,
+    back: [...document.querySelectorAll("main a")].some((a) => a.getAttribute("href") === ${JSON.stringify(listPath)} && a.offsetParent),
+  })`);
+  check(
+    `${tag} settings frame (${page}): ${width < 768 ? "a back link, no side nav" : "the side nav, this page current"}`,
+    frame.current.endsWith(`/${page}`) &&
+      (width < 768 ? frame.back && !frame.navShown : frame.navShown && !frame.back),
+    JSON.stringify(frame),
+  );
+}
+
+async function settings(p, width, scheme) {
+  const tag = `${width} ${scheme}`;
+  const shot = (name) => `${name}-${width}-${scheme}`;
+
+  // Units: one named choice per measure, each a radiogroup of joined radios with one chosen.
+  await p.goto("/app/settings/units");
+  await p.waitFor(`document.querySelector('main input[name="temperature"]')`, 30000);
+  await sleep(300);
+  const units = await p.evaluate(
+    `${RADIOGROUPS}.map((g) => ${groupName("g")} + "=" + g.querySelectorAll("input:checked").length).join(",")`,
+  );
+  check(
+    `${tag} units: four named choices, one option chosen in each`,
+    units === "Temperature=1,Weight=1,Blood sugar=1,Fluid volume=1",
+    units,
+  );
+  await settingsFrame(p, tag, width, "/app/settings", "units");
+  // The arrow keys move the choice (native radios); nothing saves until Save.
+  const temp = `[...document.querySelectorAll('main input[name="temperature"]')]`;
+  const before = await p.evaluate(`${temp}.findIndex((i) => i.checked)`);
+  await p.evaluate(`${temp}[${before}].focus()`);
+  await key(p, "ArrowRight", "ArrowRight", 39);
+  await sleep(100);
+  const after = await p.evaluate(`${temp}.findIndex((i) => i.checked)`);
+  check(
+    `${tag} units: an arrow key moves the choice`,
+    after !== before && after >= 0,
+    `${before} → ${after}`,
+  );
+  await p.screenshot(`${PREFIX}-${shot("settings-units")}`);
+
+  // Timeline layout: one choice named by the page's heading.
+  await p.goto("/app/settings/timeline");
+  await p.waitFor(`document.querySelector('main input[name="timelineView"]')`, 30000);
+  await sleep(300);
+  const layout = await p.evaluate(
+    `${RADIOGROUPS}.map((g) => ${groupName("g")} + ":" + [...g.querySelectorAll("input")].map((i) => i.getAttribute("aria-label")).join("/")).join(",")`,
+  );
+  check(
+    `${tag} timeline layout: one choice, named by the heading`,
+    layout === "Timeline layout:Rows/Cards",
+    layout,
+  );
+  await settingsFrame(p, tag, width, "/app/settings", "timeline");
+  await p.screenshot(`${PREFIX}-${shot("settings-layout")}`);
+
+  // Account: read-only details and Sign out.
+  await p.goto("/app/settings/account");
+  await p.waitFor(`document.querySelector('main [data-field="email"]')`, 30000);
+  const account = await p.evaluate(`({
+    email: document.querySelector('main [data-field="email"]')?.textContent.trim(),
+    signOut: !!document.querySelector('main form[action="/sign-out"] button[type="submit"]'),
+  })`);
+  check(
+    `${tag} account: the email and Sign out`,
+    account.email === "member@example.com" && account.signOut,
+    JSON.stringify(account),
+  );
+  await p.screenshot(`${PREFIX}-${shot("settings-account")}`);
+
+  // Group details (member@ owns Dev Family): every input labelled, help described, an error on the field.
+  await p.goto(`${GROUP_SETTINGS}/details`);
+  const RECIPIENT = `document.querySelector('main [data-section="care-recipient"]')`;
+  const NAME = `document.querySelector('main [data-section="group-details"] input[name="name"]')`;
+  await p.waitFor(`${NAME} && ${RECIPIENT}?.querySelector("input")`, 30000);
+  await sleep(300);
+  await settingsFrame(p, tag, width, GROUP_SETTINGS, "details");
+  const labels = await p.evaluate(
+    `[...document.querySelectorAll('main input:not([type=hidden])')].map((i) => document.querySelector('label[for="' + i.id + '"]')?.textContent.trim() ?? "?").join(",")`,
+  );
+  check(
+    `${tag} group details: every input has its label`,
+    labels === "Name,Name,Preferred name,Date of birth",
+    labels,
+  );
+  const preferred = await p.evaluate(fieldOf(`${RECIPIENT}.querySelector('input[name="preferredName"]')`));
+  check(
+    `${tag} group details: the preferred name is described by its help`,
+    preferred?.described.startsWith("What everyone calls them") && preferred.invalid === null,
+    JSON.stringify(preferred),
+  );
+  // A blank name is refused on the device (nothing is sent); leaving the page drops it.
+  await p.evaluate(`(() => { const i = ${NAME};
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, "");
+    i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+  await p.press(`document.querySelector('main [data-section="group-details"] button[type="submit"]')`);
+  await p.waitFor(`${NAME}?.getAttribute("aria-invalid") === "true"`, 10000).catch(() => {});
+  const named = await p.evaluate(fieldOf(NAME));
+  check(
+    `${tag} group details: a blank name is invalid, described by its error`,
+    named?.label === "Name" && named.invalid === "true" && named.described === "Enter a name.",
+    JSON.stringify(named),
+  );
+  await p.screenshot(`${PREFIX}-${shot("settings-details-error")}`);
+
+  // Members: a card of members, each role control named for its member.
+  await p.goto(`${GROUP_SETTINGS}/members`);
+  await p.waitFor(`document.querySelector('main [data-section="members"] li[data-member]')`, 30000);
+  await sleep(300);
+  const members = await p.evaluate(`({
+    rows: document.querySelectorAll('main [data-section="members"] li[data-member]').length,
+    selects: [...document.querySelectorAll('main [data-section="members"] select')].every((s) => /^Role for /.test(s.getAttribute("aria-label") ?? "")),
+  })`);
+  check(
+    `${tag} members: listed, role controls named`,
+    members.rows >= 3 && members.selects,
+    JSON.stringify(members),
+  );
+  await settingsFrame(p, tag, width, GROUP_SETTINGS, "members");
+  await p.screenshot(`${PREFIX}-${shot("settings-members")}`);
+}
+
 async function pass(p, width, scheme) {
   const tag = `${width} ${scheme}`;
   const shot = (name) => `${name}-${width}-${scheme}`;
@@ -616,6 +760,7 @@ async function pass(p, width, scheme) {
   await p.waitFor(`!${SHEET}`, 5000).catch(() => {});
 
   await slice2(p, width, scheme);
+  await settings(p, width, scheme);
 }
 
 const browser = await launch(9491);
