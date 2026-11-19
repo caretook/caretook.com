@@ -901,6 +901,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): Triaged to quick-fixes: cap the suggested-provider chips on phones (entry With row, providerSuggestions); one slice.
+- 2026-11-19 (slice/quick-fixes/16): slice/quick-fixes/16 (8316e2c): below sm the suggestions are one sideways-scrolling row (end faded); from sm they wrap, all 5 shown. Ranking unchanged.
 
 ### B-73 · bug · timeline entry add modal should take up the full screen on mobile, don't leave room for header.
 
