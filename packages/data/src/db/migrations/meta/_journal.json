@@ -131,8 +131,15 @@
     {
       "idx": 18,
       "version": "7",
-      "when": 1795106566640,
-      "tag": "0018_medication_passes_allergies",
+      "when": 1795104590583,
+      "tag": "0018_care_periods",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795113960879,
+      "tag": "0019_medication_passes_allergies",
       "breakpoints": true
     }
   ]

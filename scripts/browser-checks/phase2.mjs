@@ -32,10 +32,10 @@ const check = (name, ok, detail = "") => {
 };
 const button = (text) =>
   `[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
-const rows = `document.querySelectorAll("ol > li").length`;
+const rows = `document.querySelectorAll("ol > li:not([data-marker])").length`;
 /** The first row of a kind, by its sr-only "Note: " prefix. */
 const rowOf = (label) =>
-  `[...document.querySelectorAll("ol > li")].find((li) => li.querySelector(".sr-only")?.textContent === ${JSON.stringify(`${label}: `)})`;
+  `[...document.querySelectorAll("ol > li:not([data-marker])")].find((li) => li.querySelector(".sr-only")?.textContent === ${JSON.stringify(`${label}: `)})`;
 const ENTRY_URL = /\/entries\/[0-9a-f-]{36}$/;
 
 /** A real tap (mouse press and release) at the centre of an element (`tap()` in cdp.mjs). */
@@ -81,7 +81,7 @@ async function setView(p, view) {
 async function kindIconFilters(users) {
   const chips = `[...document.querySelectorAll('nav[aria-label="Show entries"] a')]`;
   const currentChip = `${chips}.filter((a) => a.getAttribute("aria-current") === "true").map((a) => a.textContent.trim()).join(",")`;
-  const rowKinds = `[...new Set([...document.querySelectorAll("ol > li")].map((li) => li.querySelector(".sr-only")?.textContent))].join(",")`;
+  const rowKinds = `[...new Set([...document.querySelectorAll("ol > li:not([data-marker])")].map((li) => li.querySelector(".sr-only")?.textContent))].join(",")`;
   const icon = (label) => `${rowOf(label)}.querySelector('a[aria-label^="Show only"]')`;
   const state = (p) =>
     p.evaluate(
@@ -95,7 +95,7 @@ async function kindIconFilters(users) {
   const iconFilters = async (p, at) => {
     const timeline = await p.evaluate("location.pathname");
     const names = await p.evaluate(
-      `[...document.querySelectorAll("ol > li")].map((li) => li.querySelector('a[aria-label^="Show only"]')?.getAttribute("aria-label") ?? "none")`,
+      `[...document.querySelectorAll("ol > li:not([data-marker])")].map((li) => li.querySelector('a[aria-label^="Show only"]')?.getAttribute("aria-label") ?? "none")`,
     );
     const known = [
       "Show only notes",
@@ -585,7 +585,7 @@ const psql = (sql) =>
 /** The "with …" line of the first entry titled `title`: the names shown and the "+N". */
 const withLineOf = (p, title) =>
   p.evaluate(`(() => {
-    const li = [...document.querySelectorAll("ol > li")].find((li) =>
+    const li = [...document.querySelectorAll("ol > li:not([data-marker])")].find((li) =>
       li.querySelector("p.font-semibold")?.textContent.trim() === ${JSON.stringify(title)});
     const line = li?.querySelector("[data-with]");
     return li ? {
@@ -607,7 +607,9 @@ async function withLines(p) {
   // can push the seeded events past the first page.
   const timeline = await p.evaluate("location.pathname");
   await p.goto(`${timeline}?kind=event`);
-  await p.waitFor(`document.querySelector("ol > li [data-with]")`, 20000).catch(() => undefined);
+  await p
+    .waitFor(`document.querySelector("ol > li:not([data-marker]) [data-with]")`, 20000)
+    .catch(() => undefined);
   try {
     await withLinesOnEvents(p);
   } finally {
@@ -649,7 +651,7 @@ async function withLinesOnEvents(p) {
        SELECT '${linkId}', '${DEV_FAMILY}', '${entryId}', '${providerId}', created_by, created_by
        FROM timeline_entry WHERE id = '${entryId}'`,
     );
-    const shows = `([...document.querySelectorAll("ol > li")].find((li) => li.querySelector("p.font-semibold")?.textContent.trim() === "Pharmacy pickup")?.querySelector("[data-with-more]")?.textContent.trim() === "+1")`;
+    const shows = `([...document.querySelectorAll("ol > li:not([data-marker])")].find((li) => li.querySelector("p.font-semibold")?.textContent.trim() === "Pharmacy pickup")?.querySelector("[data-with-more]")?.textContent.trim() === "+1")`;
     await p.waitFor(shows, 20000).then(
       () => check("a link made elsewhere shows on the row without a reload (+1)", true),
       async () =>
@@ -687,16 +689,16 @@ async function authorFilters(users, offlineDevice) {
   const NO_SYMPTOMS = "Dev Member"; // member@: notes, events and vitals only.
   const chips = `[...document.querySelectorAll('nav[aria-label="Show entries"] a')]`;
   const authorChip = `document.querySelector('nav[aria-label="Show entries"] a[aria-label^="By "]')`;
-  const rowKinds = `[...new Set([...document.querySelectorAll("ol > li")].map((li) => li.querySelector(".sr-only")?.textContent))].join(",")`;
+  const rowKinds = `[...new Set([...document.querySelectorAll("ol > li:not([data-marker])")].map((li) => li.querySelector(".sr-only")?.textContent))].join(",")`;
   /** The first entry's author control for `name`, by its accessible name. */
   const authorLink = (name) =>
-    `[...document.querySelectorAll("ol > li a[data-author]")].find((a) => a.getAttribute("aria-label") === ${JSON.stringify(`Show only ${name}'s entries`)})`;
+    `[...document.querySelectorAll("ol > li:not([data-marker]) a[data-author]")].find((a) => a.getAttribute("aria-label") === ${JSON.stringify(`Show only ${name}'s entries`)})`;
   const symptomIcon = `${rowOf("Symptom")}.querySelector('a[aria-label^="Show only"]:not([data-author])')`;
   const state = async (p) =>
     JSON.parse(
       await p.evaluate(`JSON.stringify({
         search: location.search, rows: ${rows}, kinds: ${rowKinds}, history: history.length,
-        authors: [...new Set([...document.querySelectorAll("ol > li a[data-author]")].map((a) => a.dataset.author))].join(","),
+        authors: [...new Set([...document.querySelectorAll("ol > li:not([data-marker]) a[data-author]")].map((a) => a.dataset.author))].join(","),
         current: ${chips}.filter((a) => a.getAttribute("aria-current") === "true").map((a) => a.getAttribute("aria-label") ?? a.textContent.trim()).join(","),
         chipAvatar: ${authorChip}?.querySelector("[aria-hidden]")?.textContent.trim() ?? null,
         chipText: ${authorChip}?.textContent.trim() ?? null,
@@ -731,7 +733,7 @@ async function authorFilters(users, offlineDevice) {
   /** One tap on an author's control shows only their entries, with their chip. */
   const oneTap = async (p, at) => {
     const names = await p.evaluate(
-      `[...document.querySelectorAll("ol > li")].map((li) => li.querySelector("a[data-author]")?.getAttribute("aria-label") ?? "none")`,
+      `[...document.querySelectorAll("ol > li:not([data-marker])")].map((li) => li.querySelector("a[data-author]")?.getAttribute("aria-label") ?? "none")`,
     );
     check(
       `${at}: every entry's author is a "Show only <name>'s entries" link`,
@@ -957,7 +959,7 @@ async function wideLayout(p) {
       const box = (el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: Math.round(r.top), width: r.width, height: r.height }; };
       const days = [...document.querySelectorAll("section > ol")].map((ol) => ({
         list: box(ol), heading: box(ol.parentElement.querySelector("h3")), cards: [...ol.children].map(box) }));
-      const lis = [...document.querySelectorAll("ol > li")];
+      const lis = [...document.querySelectorAll("ol > li:not([data-marker])")];
       const texts = lis.flatMap((li) => [...li.querySelectorAll("p.break-words")]).map((el) => {
         const s = getComputedStyle(el);
         return { width: el.getBoundingClientRect().width, cap: parseFloat(s.maxWidth), em: parseFloat(s.maxWidth) / parseFloat(s.fontSize) };
@@ -1225,7 +1227,7 @@ async function wideLayout(p) {
 async function authorTooltip(p) {
   const TIP = `document.querySelector('[role="tooltip"]')`;
   // The first row's author control: right under its day's sticky heading.
-  const LINK = `document.querySelector("section > ol > li a[data-author]")`;
+  const LINK = `document.querySelector("section > ol > li:not([data-marker]) a[data-author]")`;
   const centre = (sel) =>
     p.evaluate(
       `(() => { const r = ${sel}.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`,
@@ -1418,7 +1420,7 @@ async function infiniteScroll(p, offlineDevice) {
         last = t;
         log.push(t);
         if (t === ${JSON.stringify(LOADING)}) {
-          const rowsAt = [...document.querySelectorAll("ol > li")], el = rowsAt.at(-1);
+          const rowsAt = [...document.querySelectorAll("ol > li:not([data-marker])")], el = rowsAt.at(-1);
           sampling = { el, rowsAt, top: el.getBoundingClientRect().top, max: 0 };
           sampling.withs = sampling.minWith = withs(sampling);
           requestAnimationFrame(sample);
@@ -1500,7 +1502,7 @@ async function infiniteScroll(p, offlineDevice) {
     }
     await p.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight - 2 * innerHeight)`);
     await sleep(500);
-    const vitalIcon = `[...document.querySelectorAll("ol > li")].find((li) => {
+    const vitalIcon = `[...document.querySelectorAll("ol > li:not([data-marker])")].find((li) => {
       const r = li.getBoundingClientRect();
       return r.top > 100 && r.bottom < innerHeight - 100 && li.querySelector(".sr-only")?.textContent === "Vitals: ";
     })?.querySelector('a[aria-label^="Show only"]:not([data-author])')`;
@@ -1514,7 +1516,7 @@ async function infiniteScroll(p, offlineDevice) {
     const after = await p.evaluate(`({
       search: location.search, rows: ${rows},
       top: Math.round(document.querySelector('section[aria-labelledby="timeline-heading"]').getBoundingClientRect().top),
-      first: document.querySelector("ol > li a[href*='/timeline/']")?.getAttribute("href") ?? "",
+      first: document.querySelector("ol > li:not([data-marker]) a[href*='/timeline/']")?.getAttribute("href") ?? "",
       sentinel: !!document.querySelector("[data-older-sentinel]") })`);
     check(
       "a vital's icon tapped three pages down shows the newest vital first, with one page",
@@ -1572,11 +1574,11 @@ async function infiniteScroll(p, offlineDevice) {
       }
       // Three pages down, where nothing more loads.
       await p.evaluate(
-        `window.scrollTo(0, document.querySelectorAll("ol > li")[89].getBoundingClientRect().top + scrollY - 300)`,
+        `window.scrollTo(0, document.querySelectorAll("ol > li:not([data-marker])")[89].getBoundingClientRect().top + scrollY - 300)`,
       );
       await sleep(800);
       // The row scrolled to (300 px down): the centre of the screen can be a day heading or a gap.
-      await p.evaluate(`window.__anchor = document.querySelectorAll("ol > li")[89], true`);
+      await p.evaluate(`window.__anchor = document.querySelectorAll("ol > li:not([data-marker])")[89], true`);
       const place = () =>
         p.evaluate(`({ rows: ${rows}, top: Math.round(window.__anchor?.getBoundingClientRect().top ?? NaN), y: Math.round(scrollY),
         connected: !!window.__anchor?.isConnected })`);
@@ -1750,10 +1752,12 @@ try {
   pages.push(p);
 
   // Layout.
-  const firstTop = await p.evaluate(`document.querySelector("ol > li").getBoundingClientRect().top`);
+  const firstTop = await p.evaluate(
+    `document.querySelector("ol > li:not([data-marker])").getBoundingClientRect().top`,
+  );
   check("first entry above the fold", firstTop < 900, `top ${Math.round(firstTop)}px`);
   const heights = await p.evaluate(
-    `[...document.querySelectorAll("ol > li")].map((li) => li.getBoundingClientRect().height).sort((a, b) => a - b)`,
+    `[...document.querySelectorAll("ol > li:not([data-marker])")].map((li) => li.getBoundingClientRect().height).sort((a, b) => a - b)`,
   );
   const median = heights[Math.floor(heights.length / 2)];
   check(

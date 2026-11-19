@@ -41,5 +41,7 @@ export * from "./emergencyContacts";
 export * from "./search";
 export * from "./searchDocument";
 export * from "./searchHighlight";
+export * from "./carePeriod";
+export * from "./carePeriodTrack";
 export * from "./medicationPass";
 export * from "./recipientAllergy";

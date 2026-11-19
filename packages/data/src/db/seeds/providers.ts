@@ -131,6 +131,19 @@ export const DEV_FAMILY_PROVIDERS: SeedProvider[] = [
     phones: [{ label: "Office", number: "(555) 010-6600" }],
     status: "past",
   },
+  // Appended for care periods (seeds/carePeriods.ts): where Grandma Pat's hospital stay was.
+  {
+    key: "mercy",
+    type: "practice",
+    name: "Mercy General Hospital",
+    specialty: "Hospital",
+    phones: [
+      { label: "Main", number: "(555) 010-8800" },
+      { label: "Cardiac unit (4 West)", number: "(555) 010-8840" },
+    ],
+    address: "2500 Mercy Way\nSpringfield, CA 90000",
+    website: "mercygeneral.example",
+  },
 ];
 
 /** Grandpa Lou's one provider (Dev Family 2), so the groups' directories stay separate. */

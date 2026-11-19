@@ -6,6 +6,9 @@ import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/sync/t
 import type { TimelineRows } from "./timelineRows";
 import type { TimelineDay } from "./timelineDays";
 import type { UpcomingSection } from "~/lib/upcomingDays";
+import type { PeriodMarker } from "~/lib/periodMarkers";
+import type { LocalCarePeriod } from "~/lib/sync/carePeriods";
+import type { TimelinePeriods } from "./timelinePeriods";
 
 import { useMemo, useState } from "react";
 import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
@@ -35,7 +38,9 @@ import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { rowPassLogId, wholeLogsPage } from "~/lib/passLogs";
 import { nextUp } from "~/lib/upcoming";
 import { firstItems, UPCOMING_BLOCK_LIMIT, upcomingSections } from "~/lib/upcomingDays";
+import { periodMarkers } from "~/lib/periodMarkers";
 import { aheadQueries } from "./aheadQueries";
+import { useTimelinePeriods } from "./timelinePeriods";
 import { useHistoryCutoff } from "./useHistoryCutoff";
 
 // The timeline's data, live: the loader reads the first screenful
@@ -71,6 +76,10 @@ export type TimelineData = {
   next: { next: TimelineEntry | null; more: number };
   /** The Upcoming block (`?upcoming=1`): its first items under the filters, by day, and how many there are in all. */
   upcoming: { sections: UpcomingSection<TimelineEntry>[]; total: number };
+  /** The care periods' track and their places' names (the current-period line). Ignores the filters. */
+  periods: TimelinePeriods;
+  /** The boundary markers in the loaded window, newest first (all older ones once the beginning is loaded). Ignore the filters. */
+  markers: PeriodMarker<LocalCarePeriod>[];
 };
 
 /** A live document's title: its entry's, else its kind ("Note"). */
@@ -157,6 +166,13 @@ export function useTimelineData({
     );
   // A pass log is never split across pages: one running past the page waits for the next.
   const shown = withPreview(wholeLogsPage(entries.rows, page.limit, rowPassLogId));
+  // The track, and its markers over the same window as the shown entries.
+  const periods = useTimelinePeriods(groupId, initial);
+  const markers = periodMarkers(periods.spans, {
+    oldestLoaded: shown.at(-1)?.occurredAt ?? null,
+    hasOlder: page.hasOlder,
+    filtered: !!(filters.kind || filters.author || filters.match),
+  });
   const now = new Date(cutoff);
   const zone = localTimeZone();
 
@@ -178,5 +194,7 @@ export function useTimelineData({
     now,
     next: nextUp(toTimelineEntries(nextRows), now),
     upcoming: firstItems(upcomingSections(withPreview(blockRows), now, zone), UPCOMING_BLOCK_LIMIT),
+    periods,
+    markers,
   };
 }

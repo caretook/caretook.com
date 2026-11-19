@@ -85,6 +85,10 @@ export type * from "./userContact/types";
 import * as memberContactShareModel from "./memberContactShare";
 export { memberContactShareModel };
 export type * from "./memberContactShare/types";
+
+import * as carePeriodModel from "./carePeriod";
+export { carePeriodModel };
+export type * from "./carePeriod/types";
 import * as medicationPassModel from "./medicationPass";
 export { medicationPassModel };
 export type * from "./medicationPass/types";

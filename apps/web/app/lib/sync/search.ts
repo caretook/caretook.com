@@ -11,6 +11,7 @@ import {
 } from "@caretook/data/schema";
 import { previewText } from "./notes";
 import { createSearchTables, dropSearchTables, SEARCH_SOURCE_TABLES } from "./searchTables";
+import { toLocalTimestamp } from "./timeline";
 
 export { parseSearch };
 
@@ -507,6 +508,21 @@ export const entryMatchCondition = (column: string, groupId: string, parsed: Par
   };
 };
 
+/** A time range for a search (a care period's dates, `periodRange`): ISO 8601, `to` exclusive, null for no end. */
+export type SearchRange = { from: string; to: string | null };
+
+/**
+ * A condition on `column` (an entry's `occurred_at`, in PowerSync's text
+ * form) for entries within `range`: from its start (inclusive) to its end
+ * (exclusive), or with no end.
+ */
+export const entryRangeCondition = (column: string, range: SearchRange) => ({
+  sql: range.to ? `${column} >= ? AND ${column} < ?` : `${column} >= ?`,
+  params: range.to
+    ? [toLocalTimestamp(range.from), toLocalTimestamp(range.to)]
+    : [toLocalTimestamp(range.from)],
+});
+
 /** The ids of the group's entries that match. */
 export const searchEntryIds = async (db: SyncDb, groupId: string, parsed: ParsedSearch) => {
   const condition = entryMatchCondition("i.item_id", groupId, parsed);
@@ -536,38 +552,47 @@ export type SearchLimits = Partial<Record<SearchItemType, number>>;
 
 const DEFAULT_LIMIT = 5;
 
-/** The search page's query: every matching item of the group, best first (title matches, rank, newest). */
-export const searchGroupQuery = (groupId: string, parsed: ParsedSearch) => {
+/**
+ * The search page's query: every matching item of the group, best first
+ * (title matches, rank, newest). With a `range` (a care period's dates),
+ * only entries within it: providers and medications have no dates, so none.
+ */
+export const searchGroupQuery = (groupId: string, parsed: ParsedSearch, range?: SearchRange | null) => {
   const match = toFtsMatch(parsed);
   const titleMatch = toFtsMatch(parsed, { columns: ["title"] });
   if (!match || !titleMatch) return null;
+  const within = range ? entryRangeCondition("e.occurred_at", range) : null;
   return {
     sql: `SELECT i.item_id AS id, i.item_type AS type, bm25(search_fts, ${WEIGHTS}) AS rank,
                  i.rowid IN (SELECT rowid FROM search_fts WHERE search_fts MATCH ?) AS title_match,
                  e.occurred_at
           FROM search_fts JOIN search_item i ON i.rowid = search_fts.rowid
           LEFT JOIN timeline_entry e ON i.item_type = 'entry' AND e.id = i.item_id
-          WHERE search_fts MATCH ? AND i.group_id = ?
+          WHERE search_fts MATCH ? AND i.group_id = ?${within ? ` AND i.item_type = 'entry' AND ${within.sql}` : ""}
           ORDER BY title_match DESC, rank, e.occurred_at DESC`,
-    params: [titleMatch, match, groupId],
+    params: [titleMatch, match, groupId, ...(within?.params ?? [])],
   };
 };
 
 type HitRow = { id: string; type: string; rank: number; title_match: number; occurred_at: string | null };
 
-/** The group's matches by type, the first few of each (`limits`, default 5) with each type's total. */
+/**
+ * The group's matches by type, the first few of each (`limits`, default 5)
+ * with each type's total; with a `range`, only the entries within it.
+ */
 export const searchGroup = async (
   db: SyncDb,
   groupId: string,
   parsed: ParsedSearch,
   limits: SearchLimits = {},
+  range: SearchRange | null = null,
 ): Promise<SearchResults> => {
   const results: SearchResults = {
     entry: { hits: [], total: 0 },
     provider: { hits: [], total: 0 },
     medication: { hits: [], total: 0 },
   };
-  const query = searchGroupQuery(groupId, parsed);
+  const query = searchGroupQuery(groupId, parsed, range);
   if (!query) return results;
   const rows = await db.powersync.getAll<HitRow>(query.sql, query.params);
   for (const row of rows) {

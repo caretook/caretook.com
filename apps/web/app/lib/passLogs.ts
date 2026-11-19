@@ -61,7 +61,7 @@ export type TimelineItem<Entry> =
       occurredAt: string;
     };
 
-type Groupable = {
+export type Groupable = {
   id: string;
   kind: TimelineEntryKind;
   details: TimelineEntryDetails | null;

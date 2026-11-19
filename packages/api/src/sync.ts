@@ -2,6 +2,7 @@ import type {
   AppError,
   AuthUser,
   MedicationPassUpsertInput,
+  CarePeriodUpsertInput,
   MedicationUpsertInput,
   ProviderUpsertInput,
   RecipientAllergyUpsertInput,
@@ -14,6 +15,7 @@ import {
   isError,
   logError,
   medicationPassService,
+  carePeriodService,
   medicationService,
   newError,
   noteDocumentService,
@@ -192,7 +194,8 @@ const noteDocumentOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<
     id: op.id,
     groupId: text(op.data?.group_id) ?? "",
     // An entry's, unless the device says otherwise (older devices never do).
-    subject: (text(op.data?.subject) ?? undefined) as "entry" | "provider" | "medication" | undefined,
+    subject: (text(op.data?.subject) ?? undefined) as
+      "entry" | "provider" | "medication" | "carePeriod" | undefined,
   });
   return isError(res) ? res : applied;
 };
@@ -509,6 +512,68 @@ const careRecipientOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise
 };
 
 // ---------------------------------------------------------------------------
+// care_period: like medication. Soft deletes, and the group and recipient
+// never change. `date_only` arrives as 1/0.
+// ---------------------------------------------------------------------------
+
+const CARE_PERIOD_COLUMNS = {
+  type: (v: unknown) => ["type", text(v)],
+  label: (v: unknown) => ["label", text(v)],
+  place_provider_id: (v: unknown) => ["placeProviderId", text(v)],
+  place_detail: (v: unknown) => ["placeDetail", text(v)],
+  started_at: (v: unknown) => ["startedAt", toIsoTimestamp(v)],
+  date_only: (v: unknown) => ["dateOnly", bool(v) ?? false],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const carePeriodContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = CARE_PERIOD_COLUMNS[column as keyof typeof CARE_PERIOD_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a period that's already deleted is a replay: fine. */
+const removeCarePeriod = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await carePeriodService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "carePeriodService:notFound") return res;
+  const period = await carePeriodService.getById(ctx, id, { includeDeleted: true });
+  if (isError(period)) return period;
+  return period?.deletedAt ? applied : res;
+};
+
+const carePeriodOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...carePeriodContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await carePeriodService.upsert(ctx, input as unknown as CarePeriodUpsertInput);
+    if (isError(res)) return res;
+    // Created and deleted before it was uploaded.
+    if (data.deleted_at) return removeCarePeriod(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeCarePeriod(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data || "recipient_id" in data) return newError({ code: "carePeriodService:immutable" });
+  if (data.deleted_at) return removeCarePeriod(ctx, op.id);
+  const content = carePeriodContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await carePeriodService.update(ctx, op.id, content);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "carePeriodService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -522,6 +587,7 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   medication_pass: medicationPassOp,
   recipient_allergy: recipientAllergyOp,
   care_recipient: careRecipientOp,
+  care_period: carePeriodOp,
 };
 
 /**

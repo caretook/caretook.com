@@ -141,6 +141,8 @@ apps/web/app/components/settings/*       routing settings-layout app-shell ui
 # The /app frame, menus, theme, group settings and members.
 # The header's search magnifier (search slice 3) opens the search page.
 apps/web/app/routes/app/layout/route.tsx app-shell search
+# The group menu also shows the current care period (care-periods slice 4).
+apps/web/app/routes/app/layout/GroupMenu.tsx app-shell care-periods
 apps/web/app/routes/app/layout/*         app-shell
 apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
 apps/web/app/routes/app/home/*           app-shell first-sync
@@ -150,10 +152,17 @@ apps/web/app/routes/app/groups/settings/members/* app-shell invites ui profiles-
 apps/web/app/routes/app/groups/settings/* app-shell routing ui
 apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts profiles
 # The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
-apps/web/app/components/ui/date/*        ui roundtrip live-notes medications
+apps/web/app/components/ui/date/*        ui roundtrip live-notes medications care-periods
 apps/web/app/components/ui/*             ui app-shell
 apps/web/app/components/brand/*          app-shell marketing
 
+# The timeline's care periods (care-periods slice 3): the current-period line
+# and the boundary markers among the entries.
+apps/web/app/routes/app/groups/timeline/CurrentPeriodLine.tsx care-periods
+apps/web/app/routes/app/groups/timeline/PeriodMarkerItem.tsx phase2 care-periods
+apps/web/app/routes/app/groups/timeline/timelinePeriods.ts care-periods phase2
+apps/web/app/routes/app/groups/timeline/timelineDays.ts phase2 care-periods
+apps/web/app/lib/periodMarkers.ts        care-periods
 # The timeline, its rows, filters, vitals and sheets.
 # Doses and medication changes on the timeline (medications slice 4).
 apps/web/app/routes/app/groups/timeline/new-dose/* medications
@@ -174,14 +183,16 @@ apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
 apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
 apps/web/app/routes/app/groups/timeline/aheadQueries.ts phase2 upcoming search
 apps/web/app/routes/app/groups/timeline/useHistoryCutoff.ts phase2 upcoming
-apps/web/app/routes/app/groups/timeline/useTimelineData.ts phase2 roundtrip upcoming
-apps/web/app/routes/app/groups/timeline/timelineRows.ts phase2 roundtrip upcoming
-apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx phase2 roundtrip upcoming search
+apps/web/app/routes/app/groups/timeline/useTimelineData.ts phase2 roundtrip upcoming care-periods
+apps/web/app/routes/app/groups/timeline/timelineRows.ts phase2 roundtrip upcoming care-periods
+apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx phase2 roundtrip upcoming search care-periods
 # The timeline's search: the field, the chip and ?q= in the windows (search slice 2).
 apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx phase2 search
 apps/web/app/routes/app/groups/timeline/useSearchField.ts phase2 search
 apps/web/app/routes/app/groups/timeline/timelineSearch.ts search
 apps/web/app/routes/app/groups/timeline/useSearchIndexStatus.ts search
+# The search's care period chip (care-periods slice 6).
+apps/web/app/routes/app/groups/timeline/usePeriodSearch.ts search
 apps/web/app/routes/app/groups/timeline/route.tsx phase2 roundtrip search
 apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
 apps/web/app/components/entry/*          phase2 roundtrip live-notes upcoming
@@ -191,6 +202,9 @@ apps/web/app/lib/entryDisplay.ts         phase2
 apps/web/app/lib/form.ts                 roundtrip
 
 # The entry page and live notes.
+# The entry page's care period suggestion (care-periods slice 5).
+apps/web/app/routes/app/groups/entry/PeriodSuggestionChip.tsx care-periods live-notes
+apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx live-notes providers care-periods
 apps/web/app/routes/app/groups/entry/*   live-notes providers
 apps/web/app/components/notes/*          live-notes providers
 apps/web/app/lib/sync/notes.ts           live-notes providers
@@ -230,10 +244,19 @@ apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 # Reschedule from the timeline, Upcoming and the entry page).
 apps/web/app/components/schedule/*       upcoming live-notes
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
+# Care periods (care-periods PRD): the device module, the periods page and
+# its sheets, and a period's page.
+apps/web/app/lib/sync/carePeriods.ts     care-periods
+apps/web/app/routes/app/groups/periods/* care-periods
+apps/web/app/routes/app/groups/period/*  care-periods
+apps/web/app/lib/sync/periodSuggestions.ts care-periods live-notes
+apps/web/app/lib/sync/currentPeriod.ts   care-periods app-shell
 # Search (search PRD): the device index, its tables and triggers, and the
 # shared query language and search documents.
 apps/web/app/lib/sync/search.ts          search
 apps/web/app/lib/sync/searchTables.ts    search sign-in signout-wipe
+# Searching within a care period (care-periods slice 6): the choices, live.
+apps/web/app/lib/sync/periodSearch.ts    search
 # The search page (slice 3); its pure ranking and grouping (lib/searchResults.ts)
 # has unit tests. Entries open as on the timeline (lib/entryOpen.ts, also unit-tested).
 apps/web/app/routes/app/groups/search/*  search
@@ -246,7 +269,7 @@ apps/web/app/routes/marketing/*          marketing
 apps/web/public/*                        marketing
 
 # Server code the device reaches. The upload switch carries every synced write.
-packages/api/src/sync.ts                 roundtrip live-notes providers
+packages/api/src/sync.ts                 roundtrip live-notes providers care-periods
 packages/api/src/invites.ts              invites
 packages/api/src/joinRequests.ts         invites
 packages/api/src/publicForms.ts          marketing
@@ -258,12 +281,13 @@ apps/web/app/routes/rpc.ts               sign-in
 # Shared schemas and seeds: the screens that read them.
 packages/data/src/db/schema/timelineEntry.ts phase2 roundtrip live-notes
 packages/data/src/db/schema/vitals.ts    phase2 roundtrip
-packages/data/src/db/schema/noteDocument.ts live-notes providers
+packages/data/src/db/schema/noteDocument.ts live-notes providers care-periods
 packages/data/src/db/schema/noteYjs.ts   live-notes
 packages/data/src/db/schema/noteEditors.ts live-notes
 packages/data/src/db/schema/provider.ts  providers
 packages/data/src/db/schema/entryProvider.ts providers
 packages/data/src/db/schema/medication.ts medications
+packages/data/src/db/schema/carePeriod*.ts care-periods
 packages/data/src/db/schema/medicationPass.ts medications
 packages/data/src/db/schema/recipientAllergy.ts medications
 packages/data/src/db/schema/timeZone.ts  roundtrip
@@ -279,9 +303,10 @@ packages/data/src/db/schema/contactMessage.ts marketing
 packages/data/src/db/schema/search.ts    search
 packages/data/src/db/schema/searchDocument.ts search
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
-packages/data/src/db/seeds/providers.ts  providers
+packages/data/src/db/seeds/providers.ts  providers care-periods
 packages/data/src/db/seeds/invites.ts    invites app-shell
 packages/data/src/db/seeds/medications.ts medications
+packages/data/src/db/seeds/carePeriods.ts care-periods
 packages/data/src/db/seeds/medicationPasses.ts medications
 packages/data/src/db/seeds/*             app-shell
 

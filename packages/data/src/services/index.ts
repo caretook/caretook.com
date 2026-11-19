@@ -75,6 +75,8 @@ export { recipientAllergyService };
 import * as searchService from "./searchService";
 export { searchService };
 export type { SearchHit, SearchOptions, SearchResult } from "./searchService";
+import * as carePeriodService from "./carePeriodService";
+export { carePeriodService };
 
 export type * from "./types";
 
@@ -99,6 +101,7 @@ export const services = {
   emergencyContact: emergencyContactService,
   userContact: userContactService,
   memberSharing: memberSharingService,
+  carePeriod: carePeriodService,
   medicationPass: medicationPassService,
   recipientAllergy: recipientAllergyService,
 };

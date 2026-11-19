@@ -74,8 +74,18 @@ const isProfileSheet = (sheet: unknown): sheet is ProfileSheet =>
 /** The search page's text (`?q=`), and the one section it shows in full (`?all=provider`). */
 export const SEARCH_QUERY_PARAM = "q";
 export const SEARCH_ALL_PARAM = "all";
+/** The search page's care period (`?period=<id>`): only matches within its dates. Only with a search. */
+export const SEARCH_PERIOD_PARAM = "period";
 export const isSearchItemType = (value: unknown): value is SearchItemType =>
   (SEARCH_ITEM_TYPES as readonly unknown[]).includes(value);
+/** The care period add sheet's prefills: `periods/new?type=hospital&startedAt=<ISO>&dateOnly=1&place=<providerId>`. */
+export const PERIOD_PREFILL_PARAMS = {
+  type: "type",
+  startedAt: "startedAt",
+  dateOnly: "dateOnly",
+  place: "place",
+} as const;
+export type PeriodPrefill = { type?: string; startedAt?: string; dateOnly?: boolean; place?: string };
 
 const HOME = "/app";
 
@@ -217,13 +227,37 @@ export const appUrls = {
   /**
    * A group's search page, with what's searched for (`?q=`, untrimmed: it's
    * the field's text) and the section shown in full (`?all=`; an unknown
-   * type, or one without a search, is dropped).
+   * type, or one without a search, is dropped), and the care period the
+   * search is narrowed to (`?period=`; dropped without a search).
    */
-  search: (groupId: string, q?: string | null, { all }: { all?: SearchItemType | null } = {}) =>
+  search: (
+    groupId: string,
+    q?: string | null,
+    { all, period }: { all?: SearchItemType | null; period?: string | null } = {},
+  ) =>
     `${groupHome(groupId)}/search${searchString({
       [SEARCH_QUERY_PARAM]: q,
       [SEARCH_ALL_PARAM]: q?.trim() && isSearchItemType(all) ? all : null,
+      [SEARCH_PERIOD_PARAM]: q?.trim() ? period : null,
     })}`,
+  /** A group's care periods: where care has happened, newest first. */
+  periods: (groupId: string) => `${groupHome(groupId)}/periods`,
+  /**
+   * The add sheet over the periods page. It can start prefilled (a type, a
+   * start, date-only, a place); `lib/periodSheets` checks what it reads.
+   */
+  newPeriod: (groupId: string, prefill: PeriodPrefill = {}) =>
+    `${groupHome(groupId)}/periods/new${searchString({
+      [PERIOD_PREFILL_PARAMS.type]: prefill.type,
+      [PERIOD_PREFILL_PARAMS.startedAt]: prefill.startedAt,
+      [PERIOD_PREFILL_PARAMS.dateOnly]: prefill.dateOnly ? "1" : null,
+      [PERIOD_PREFILL_PARAMS.place]: prefill.place,
+    })}`,
+  /** A care period's page: its place, dates and notes. */
+  period: (groupId: string, periodId: string) => `${groupHome(groupId)}/periods/${segment(periodId)}`,
+  /** The edit sheet for one care period, over the periods page. */
+  editPeriod: (groupId: string, periodId: string) =>
+    `${groupHome(groupId)}/periods/${segment(periodId)}/edit`,
   /** The group's medication passes (Morning, Evening…), with the medications in each. */
   medicationPasses: (groupId: string) => `${groupHome(groupId)}/medications/passes`,
   /** The allergies sheet over the medication list (writers), carrying the list's search and status filter. */

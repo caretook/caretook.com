@@ -22,6 +22,8 @@ import { toEntryMedication } from "~/lib/sync/medicationTimeline";
 import { toMedication } from "~/lib/sync/medications";
 import { previewText } from "~/lib/sync/notes";
 import { toProvider, windowLinksQuery } from "~/lib/sync/providers";
+import { rangeUntilNow } from "~/lib/periodSearch";
+import { loadSearchPeriods, searchPeriodRange } from "~/lib/sync/periodSearch";
 import { parseSearch, searchGroup, searchIndexStatus } from "~/lib/sync/search";
 import { fromLocalTimestamp, toTimelineEntry } from "~/lib/sync/timeline";
 
@@ -136,7 +138,19 @@ const readMedications = async (db: SyncDb, groupId: string, ids: string) => {
 };
 
 /**
- * The search page for `query` in one group. While the index is being
+ * The range a search is narrowed to: the period's dates (the current one's
+ * up to now), or null for any time. A period that isn't on the track (deleted
+ * since, another group's) narrows nothing.
+ */
+const periodSearchRange = async (db: SyncDb, groupId: string, periodId: string | null) => {
+  if (!periodId) return null;
+  const range = searchPeriodRange(await loadSearchPeriods(db, groupId), periodId);
+  return range && rangeUntilNow(range, new Date());
+};
+
+/**
+ * The search page for `query` in one group (within its care period's dates,
+ * when it names one: entries only). While the index is being
  * prepared (a first open, a new format) it may find nothing yet; the page
  * says so and searches again when it's ready.
  */
@@ -160,7 +174,8 @@ export const loadSearch = async (
   if (none.empty || status === "unavailable") return none;
   let sections: ResultSection[];
   try {
-    sections = searchSections(await searchGroup(db, groupId, parsed, sectionLimits(query.all)), query);
+    const range = await periodSearchRange(db, groupId, query.period);
+    sections = searchSections(await searchGroup(db, groupId, parsed, sectionLimits(query.all), range), query);
   } catch (e) {
     // The index's tables are being created (or rebuilt): nothing to show yet.
     if (status === "preparing") return none;

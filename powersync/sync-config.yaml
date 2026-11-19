@@ -51,10 +51,11 @@ streams:
       # so any document opens and edits offline. Viewers get them too (read-only).
       # `editors` (who edited, and when) carries "who's typing" past compaction.
       # `subject` says whose document it is: an entry's (`entry_id`), a provider's
-      # (`provider_id`) or a medication's (`medication_id`).
+      # (`provider_id`), a medication's (`medication_id`) or a care period's
+      # (`care_period_id`).
       - >-
         SELECT id, group_id, snapshot, text, editors, created_at, updated_at, created_by, updated_by,
-        subject, entry_id, provider_id, medication_id
+        subject, entry_id, provider_id, medication_id, care_period_id
         FROM note_document WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, document_id, data, created_at, created_by
@@ -82,6 +83,12 @@ streams:
       - >-
         SELECT id, group_id, user_id, phones, email, address, updated_at
         FROM member_contact_share WHERE group_id IN my_groups
+      # Care periods (where care happens, over time), soft-deleted ones
+      # included, so deletes reach devices and the track closes the gap.
+      - >-
+        SELECT id, group_id, recipient_id, type, label, place_provider_id, place_detail,
+        started_at, date_only, deleted_at, created_at, updated_at, created_by, updated_by
+        FROM care_period WHERE group_id IN my_groups
       # The medication passes (Morning, Evening…), soft-deleted ones included
       # (a medication naming a deleted pass keeps its last time).
       - >-

@@ -87,9 +87,10 @@ export const timelineEntries = sqliteTable(
 );
 
 /**
- * A live document on a note or event, a provider or a medication. `id` is the
- * owner's id; `subject` says which (`entry` with `entry_id`, `provider` with
- * `provider_id`, or `medication` with `medication_id`, each equal to `id`). Snapshot, text and `editors` (JSON
+ * A live document on a note or event, a provider, a medication or a care
+ * period. `id` is the owner's id; `subject` says which (`entry` with
+ * `entry_id`, `provider` with `provider_id`, `medication` with
+ * `medication_id`, or `carePeriod` with `care_period_id`, each equal to `id`). Snapshot, text and `editors` (JSON
  * `{ [userId]: lastEditAt }`) are the server's.
  */
 export const noteDocuments = sqliteTable(
@@ -108,6 +109,7 @@ export const noteDocuments = sqliteTable(
     entryId: text("entry_id"),
     providerId: text("provider_id"),
     medicationId: text("medication_id"),
+    carePeriodId: text("care_period_id"),
   },
   (t) => [index("note_document_group").on(t.groupId)],
 );
@@ -294,6 +296,31 @@ export const recipientAllergies = sqliteTable(
   (t) => [index("recipient_allergy_group").on(t.groupId)],
 );
 
+/**
+ * The group's care periods (where care happens, over time): one track,
+ * stored by start only. `date_only` is 1 or 0. Deletes are soft.
+ */
+export const carePeriods = sqliteTable(
+  "care_period",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    recipientId: text("recipient_id"),
+    type: text("type"),
+    label: text("label"),
+    placeProviderId: text("place_provider_id"),
+    placeDetail: text("place_detail"),
+    startedAt: text("started_at"),
+    dateOnly: integer("date_only"),
+    deletedAt: text("deleted_at"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("care_period_group").on(t.groupId)],
+);
+
 export const drizzleSchema = {
   careGroups,
   careGroupMembers,
@@ -309,4 +336,5 @@ export const drizzleSchema = {
   careRecipientDetails,
   medicationPasses,
   recipientAllergies,
+  carePeriods,
 };
