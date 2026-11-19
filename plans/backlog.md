@@ -138,7 +138,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-94 | change | ready | quick-fixes | prd/quick-fixes | Account forms, sign-in and the marketing menu button onto the ui primitives |
 | B-95 | chore | ready | quick-fixes | prd/quick-fixes | Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders |
 | B-96 | change | in-progress | quick-fixes | prd/quick-fixes | Email link and code shouldn't really be two different login options, should they? Can't we email a… |
-| B-97 | change | in-progress | quick-fixes | prd/quick-fixes | Vitals filter on timeline should bring up a sub-filter for vital type. |
+| B-97 | change | ready | quick-fixes | prd/quick-fixes | Vitals filter on timeline should bring up a sub-filter for vital type. |
 | B-98 | change | triaged | quick-fixes |  | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-99 | change | triaged | quick-fixes |  | Don't display recent vitals in the timeline header in mobile, |
 | B-100 | change | triaged | quick-fixes |  | Add "recent vita averages" to the profile page. |
@@ -1244,10 +1244,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-97 · change · Vitals filter on timeline should bring up a sub-filter for vital type.
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 0065420
 
 - 2026-11-19 (prd/quick-fixes): Proposed for quick-fixes (orchestrator): one slice. With ?kind=vital, a second chip row of vital types (VITAL_TYPES, only types present in the group) as ?vital=<type> through lib/timelineFilters; entries filtered by json_each on details.readings. Overlaps care-periods' search slice on timelineFilters (additive).
 
