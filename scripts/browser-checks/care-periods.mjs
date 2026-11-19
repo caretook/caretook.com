@@ -24,6 +24,13 @@
 // Every period this run makes carries its tag (in its label) and is
 // soft-deleted at the end, with any place it added, so it passes run after
 // run without a reset. SMOKE=1: the seeded list, and adding a period.
+//
+// Slice 5 (suggestions from events): an event titled "Admitted to Mercy
+// General" offers "Start a hospital period?"; the chip opens the add sheet
+// with the type, the event's time and its linked practice, and saving
+// returns to the entry with the chip gone; no chip when the period at that
+// time already has the type, on a note, or for a viewer; offline, a renamed
+// event's chip follows and its sheet opens.
 import { execSync } from "node:child_process";
 import { launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
@@ -474,6 +481,170 @@ async function pageSteps(p, member) {
   );
 }
 
+// Slice 5: suggestions from events, on the entry page.
+const CHIP = `document.querySelector("main [data-period-suggestion]")`;
+const chipState = (p) =>
+  p.evaluate(
+    `(() => { const c = ${CHIP}; return c ? { type: c.dataset.periodSuggestion, text: c.textContent.trim() } : null; })()`,
+  );
+const entryUrl = (id) => `/app/groups/${DEV_FAMILY}/entries/${id}`;
+const ENTRY_EDITOR = `document.querySelector("main .ProseMirror")`;
+const CANCEL = `[...(${FORM}?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === "Cancel")`;
+
+/** Open an entry page and give its suggestion (if any) time to appear: the answer is the chip or null. */
+async function openEntry(p, id) {
+  await p.goto(entryUrl(id));
+  await need(p, ENTRY_EDITOR, 30000, "the entry page");
+  // The chip comes from live queries: wait a moment for it either way.
+  await p.waitFor(CHIP, 3000, { quiet: true }).catch(() => {});
+  return chipState(p);
+}
+
+/**
+ * The suggestion chip on events: what it offers, the prefilled sheet,
+ * saving (the chip goes, the sheet returns to the entry), suppression, other
+ * kinds, a viewer, and offline. The events sit 4 days back, in the seeded
+ * Home period (Home started 5 days back; this run's other periods start 3
+ * days back or later).
+ */
+async function suggestionSteps(A, proxy, C) {
+  const at = (hoursAgo) => {
+    const d = new Date(Date.now() - hoursAgo * 3_600_000);
+    d.setUTCSeconds(0, 0);
+    return d.toISOString();
+  };
+  const ids = {
+    admitted: crypto.randomUUID(),
+    home: crypto.randomUUID(),
+    rehab: crypto.randomUUID(),
+    note: crypto.randomUUID(),
+  };
+  const T = at(95);
+  try {
+    await toFront(A);
+    const made = await A.evaluate(`(async () => {
+      const db = window.caretookSync;
+      const { liveEntry, providers } = await window.caretookModules();
+      const mk = (id, kind, title, occurredAt) => liveEntry.materializeLiveEntry(db, {
+        id, groupId: ${JSON.stringify(DEV_FAMILY)}, kind, title, occurredAt, timeZone: ${JSON.stringify(LA)} });
+      const out = [
+        await mk(${JSON.stringify(ids.admitted)}, "event", ${JSON.stringify(`${TAG} Admitted to Mercy General`)}, ${JSON.stringify(T)}),
+        await mk(${JSON.stringify(ids.home)}, "event", ${JSON.stringify(`${TAG} Discharged home`)}, ${JSON.stringify(at(96))}),
+        await mk(${JSON.stringify(ids.rehab)}, "event", ${JSON.stringify(`${TAG} Moved to rehab`)}, ${JSON.stringify(at(96))}),
+        await mk(${JSON.stringify(ids.note)}, "note", ${JSON.stringify(`${TAG} Admitted overnight`)}, ${JSON.stringify(at(96))}),
+      ];
+      const [mercy] = await db.powersync.getAll("SELECT id FROM provider WHERE group_id = ? AND name = 'Mercy General Hospital'", [${JSON.stringify(DEV_FAMILY)}]);
+      const [doctor] = await db.powersync.getAll("SELECT id FROM provider WHERE group_id = ? AND type = 'clinician' AND deleted_at IS NULL ORDER BY name LIMIT 1", [${JSON.stringify(DEV_FAMILY)}]);
+      // A clinician first: the place is the first linked practice.
+      out.push(await providers.linkProvider(db, ${JSON.stringify(ids.admitted)}, doctor.id));
+      out.push(await providers.linkProvider(db, ${JSON.stringify(ids.admitted)}, mercy.id));
+      return { ok: out.every((r) => r.ok), mercy: mercy.id, out };
+    })()`);
+    check("events and a note to suggest from", made.ok, JSON.stringify(made.out));
+
+    // An event that says the recipient was admitted offers Hospital.
+    const offered = await openEntry(A, ids.admitted);
+    check(
+      'an event titled "Admitted to Mercy General" offers one chip: "Start a hospital period?"',
+      offered?.type === "hospital" &&
+        offered.text === "Start a hospital period?" &&
+        (await A.evaluate(`document.querySelectorAll("main [data-period-suggestion]").length`)) === 1,
+      JSON.stringify(offered),
+    );
+
+    // The chip opens the add sheet, prefilled.
+    await A.tap(CHIP);
+    await need(A, `${FORM} && location.pathname.endsWith("/periods/new")`, 10000, "the prefilled sheet");
+    const prefilled = await A.evaluate(`({
+      hospital: ${typeRadio("Hospital")}?.checked,
+      start: ${formField("startedAt")}?.value ?? null,
+      dateOnly: ${formField("dateOnly")}?.checked,
+      place: ${PICKER_CHIP},
+    })`);
+    const startAt = prefilled.start ? Date.parse(prefilled.start.replace(/\[.*\]$/, "")) : NaN;
+    check(
+      "the chip opens the add sheet with the type, the event's time and its linked practice",
+      prefilled.hospital &&
+        startAt === Date.parse(T) &&
+        !prefilled.dateOnly &&
+        prefilled.place === "Mercy General Hospital",
+      JSON.stringify({ ...prefilled, T }),
+    );
+    await A.type(formField("label"), `${TAG} suggested`);
+    await A.press(SUBMIT);
+    const back = await need(
+      A,
+      `!${SHEET} && location.pathname === ${JSON.stringify(entryUrl(ids.admitted))} && ${ENTRY_EDITOR}`,
+      10000,
+      "the sheet to close back to the entry",
+    );
+    const gone = await need(A, `!${CHIP}`, 10000, "the chip to go");
+    const saved = await waitForSql(
+      `SELECT cp.type || '|' || to_char(cp.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI') || '|' || cp.place_provider_id FROM care_period cp WHERE cp.label = '${TAG} suggested' AND cp.deleted_at IS NULL`,
+      (v) => v !== "",
+    );
+    check(
+      "saving adds the period and returns to the entry, and the chip goes away",
+      back && gone && saved === `hospital|${T.slice(0, 16)}|${made.mercy}`,
+      saved,
+    );
+
+    // Suppressed: the period at that time is already Home. Notes offer nothing.
+    const home = await openEntry(A, ids.home);
+    const note = await openEntry(A, ids.note);
+    const rehab = await openEntry(A, ids.rehab);
+    check(
+      'no chip when the period at the event\'s time is already that type ("Discharged home" in Home), or on a note; "Moved to rehab" offers Rehab',
+      home === null && note === null && rehab?.type === "rehab",
+      JSON.stringify({ home, note, rehab }),
+    );
+
+    // A viewer gets no chip.
+    const viewer = await openEntry(C, ids.rehab);
+    check("a viewer gets no chip", viewer === null, JSON.stringify(viewer));
+
+    // Offline: a renamed event changes the chip, and the sheet still opens.
+    await toFront(A);
+    await openEntry(A, ids.rehab);
+    proxy.setOnline(false);
+    await A.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+    const TITLE = `document.querySelector("main header input")`;
+    await A.evaluate(`${TITLE}.focus()`);
+    await A.type(TITLE, `${TAG} Hospice intake`);
+    await A.evaluate(`${TITLE}.blur()`);
+    await need(A, `${CHIP}?.dataset.periodSuggestion === "hospiceHome"`, 10000, "the hospice chip offline");
+    const hospice = await chipState(A);
+    await A.tap(CHIP);
+    const sheet = await need(
+      A,
+      `${FORM} && ${typeRadio("Hospice at home")}?.checked`,
+      10000,
+      "the sheet offline",
+    );
+    await A.press(CANCEL);
+    const returned = await need(
+      A,
+      `!${SHEET} && location.pathname === ${JSON.stringify(entryUrl(ids.rehab))} && ${CHIP}`,
+      10000,
+      "back on the entry offline",
+    );
+    check(
+      'offline: "Hospice intake" offers Hospice at home, its sheet opens prefilled, and Cancel returns to the entry',
+      hospice?.text === "Start a hospice at home period?" && sheet && returned,
+      JSON.stringify(hospice),
+    );
+    proxy.setOnline(true);
+    await A.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  } finally {
+    proxy.setOnline(true);
+    psql(
+      `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND id IN (${Object.values(ids)
+        .map((id) => `'${id}'`)
+        .join(", ")})`,
+    );
+  }
+}
+
 const proxy = SMOKE ? null : startProxy(9745);
 const bA = await launch(9741, proxy ? proxy.args : []);
 const bB = SMOKE ? null : await launch(9742);
@@ -499,6 +670,7 @@ try {
     await C.signIn("viewer@example.com", PW);
     await step("a viewer", () => viewerSteps(C));
     await step("a period's page and the 404s", () => pageSteps(A, B));
+    await step("suggestions from events", () => suggestionSteps(A, proxy, C));
   }
 
   const noise =
