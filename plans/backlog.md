@@ -671,6 +671,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner:
 - commit:
 
+- 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'data-rights' (to write): export everything you can see (per group and per account) to a file. Compliance (AGENTS.md) already requires user data deletion; export belongs with it.
+
 ### B-53 · feature · Ability to delete ALL data from the app.
 
 - status: inbox
