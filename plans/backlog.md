@@ -583,6 +583,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (prd/marketing): The marketing site shows SVG placeholders (apps/web/public/screenshots/<name>.svg) to keep the repo small while the app's screens change. Before launch: run scripts/browser-checks/marketing-screenshots.mjs on a freshly reset stack (CARETOOK_BROWSER_SLOTS=4 pnpm prd browser marketing-screenshots --timeout 300), commit the WebP images, and point site/screenshots.ts and the Screenshot component back at them (light and dark sources, srcset).
+- 2026-11-18 (prd/appointments): Folded into B-71, the pre-launch screenshot task (one of the last before launch). Close this item when B-71 lands.
 
 ### B-41 · bug · /app stays blank after a full reload (app-shell.mjs last-group steps)
 
