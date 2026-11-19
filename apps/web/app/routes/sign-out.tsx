@@ -5,6 +5,7 @@ import { appUrls } from "~/lib/appUrls";
 import { authClient } from "~/lib/auth-client";
 import { forgetGroups } from "~/lib/lastGroup";
 import { forgetSettings } from "~/lib/me";
+import { forgetRecentSearches } from "~/lib/recentSearches";
 import { forgetSessionUser } from "~/lib/session";
 import { formString } from "~/lib/form";
 import { safeRedirect } from "~/lib/redirect";
@@ -23,6 +24,7 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
   forgetSessionUser();
   forgetSettings();
   forgetGroups();
+  forgetRecentSearches();
   throw redirect(next);
 }
 
