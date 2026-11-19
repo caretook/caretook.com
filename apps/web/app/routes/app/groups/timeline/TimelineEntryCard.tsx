@@ -1,8 +1,7 @@
 import type { EntryViewProps } from "./TimelineEntryRow";
 
-import { AuthorFilterLink, EntryActions, KindFilterLink } from "~/components/entry";
+import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
 import { formatTime, formatTimeInZone } from "~/lib/format";
-import { EntryBody } from "./EntryBody";
 import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";

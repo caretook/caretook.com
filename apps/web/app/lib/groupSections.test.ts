@@ -8,6 +8,7 @@ const G = "11111111-1111-4111-8111-111111111111";
 const base = appUrls.groupHome(G);
 const timeline = GROUP_SECTIONS.find((s) => s.id === "timeline")!;
 const providers = GROUP_SECTIONS.find((s) => s.id === "providers")!;
+const upcoming = GROUP_SECTIONS.find((s) => s.id === "upcoming")!;
 
 // A throwaway second section, as a later PRD would append it.
 const medications: GroupSection = {
@@ -20,10 +21,16 @@ const medications: GroupSection = {
 const withMeds = [...GROUP_SECTIONS, medications];
 
 describe("GROUP_SECTIONS", () => {
-  it("starts with Timeline, then Providers", () => {
-    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual(["timeline", "providers"]);
+  it("starts with Timeline, then Providers, then Upcoming", () => {
+    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual(["timeline", "providers", "upcoming"]);
     expect(timeline.path(G)).toBe(appUrls.timeline(G));
     expect(providers.path(G)).toBe(appUrls.providers(G));
+    expect(upcoming.path(G)).toBe(appUrls.upcoming(G));
+  });
+  it("puts the Past tab inside Upcoming", () => {
+    expect(sectionCurrent(upcoming, appUrls.upcoming(G), G)).toBe("page");
+    expect(sectionCurrent(upcoming, appUrls.pastEvents(G), G)).toBe("true");
+    expect(sectionCurrent(timeline, appUrls.pastEvents(G), G)).toBeUndefined();
   });
   it("has unique ids", () => {
     expect(new Set(GROUP_SECTIONS.map((s) => s.id)).size).toBe(GROUP_SECTIONS.length);

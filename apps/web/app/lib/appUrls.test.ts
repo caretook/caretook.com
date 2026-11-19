@@ -148,3 +148,27 @@ describe("appUrls.newGroup", () => {
     expect(appUrls.newGroup()).toBe("/app/groups/new");
   });
 });
+
+describe("appUrls.upcoming", () => {
+  const G = "11111111-1111-4111-8111-111111111111";
+  const A = "22222222-2222-4222-8222-222222222222";
+
+  it("is the group's Upcoming section, carrying the timeline's filters", () => {
+    expect(appUrls.upcoming(G)).toBe(`/app/groups/${G}/upcoming`);
+    expect(appUrls.upcoming(G, { kind: "event", author: A })).toBe(
+      `/app/groups/${G}/upcoming?kind=event&author=${A}`,
+    );
+    expect(appUrls.upcoming(G, { kind: null, author: null })).toBe(`/app/groups/${G}/upcoming`);
+    expect(appUrls.upcoming(G, "?author=" + A)).toBe(`/app/groups/${G}/upcoming?author=${A}`);
+  });
+
+  it("has a Past tab", () => {
+    expect(appUrls.pastEvents(G)).toBe(`/app/groups/${G}/upcoming/past`);
+    expect(appUrls.pastEvents(G, { author: A })).toBe(`/app/groups/${G}/upcoming/past?author=${A}`);
+  });
+
+  it("adds appointments and reminders through the time picker first", () => {
+    expect(appUrls.newUpcomingEntry(G, "event")).toBe(`/app/groups/${G}/entries/new?kind=event&when=pick`);
+    expect(appUrls.newUpcomingEntry(G, "note")).toBe(`/app/groups/${G}/entries/new?kind=note&when=pick`);
+  });
+});

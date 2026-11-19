@@ -117,9 +117,9 @@ apps/web/app/components/brand/*          app-shell marketing
 
 # The timeline, its rows, filters, vitals and sheets.
 apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
-apps/web/app/components/entry/*          phase2 roundtrip live-notes
+apps/web/app/components/entry/*          phase2 roundtrip live-notes upcoming
 apps/web/app/components/forms/*          roundtrip live-notes
-apps/web/app/lib/sync/timeline.ts        phase2 roundtrip
+apps/web/app/lib/sync/timeline.ts        phase2 roundtrip upcoming
 apps/web/app/lib/entryDisplay.ts         phase2
 apps/web/app/lib/form.ts                 roundtrip
 
@@ -183,3 +183,11 @@ packages/data/src/db/seeds/*             app-shell
 # integration tests; the browser reaches it only through the upload switch above.
 packages/data/src/*                      -
 packages/data/scripts/*                  -
+
+# Upcoming (appointments): the section, its Past tab, the time rules and the
+# list pieces it shares with the timeline.
+apps/web/app/routes/app/groups/upcoming/* upcoming
+apps/web/app/lib/upcoming.ts             upcoming
+apps/web/app/lib/upcomingLabels.ts       upcoming
+apps/web/app/lib/sync/useLiveRows.ts     phase2 upcoming
+apps/web/app/lib/groupSections.ts        app-shell routing upcoming
