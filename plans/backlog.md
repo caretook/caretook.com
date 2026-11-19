@@ -930,6 +930,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/invites orchestrator): Flaked in the invites wave 3 suite (2026-11-18 19:46, load 18→27, not auto-retried): '1280 dark provider add sheet: Escape closes only it, and focus returns to the opener (tap)'. The failure detail showed focus on the opener, so likely the sheet's close wasn't finished when the step checked. Passed 625/625 on a rerun; ui.mjs also flaked earlier in providers-5 (timeout). In .loops/.browser-flakes.log. A browser-check fix, so quick-fixes.
 - 2026-11-19 (Robert Bo Davis): Proposed wave (planning agent, user approved 2026-11-19): B-74 (reuse slice/medications/7 b4e8190) and B-70 first, then B-79 (+B-80 if it fits), B-81, B-82, B-64, B-69. Hold B-78 until appointments lands; B-83 later.
+- 2026-11-19 (slice/quick-fixes/21): slice 21 (62a459a): the test checked too early. ui/Sheet restores focus 1-2 frames after unmount, later than ui.mjs's fixed 300 ms sleep under load. The Escape steps now wait on the closed state and focus together (settlesOn). Sheet is unchanged. ui.mjs passed 681/681 twice, at load 60 and 125.
 
 ### B-71 · bug · date picker entry box mobile-friendly. it expands outside of elements on small screens.
 
