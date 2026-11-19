@@ -3,6 +3,7 @@ import type { NoteDocRow } from "~/lib/sync/notes";
 import type { EntryFilters, EntryRow, MemberRow } from "~/lib/sync/timeline";
 import type { ContactRow, LinkedContact } from "./upcomingContact";
 import type { UpcomingSection } from "~/lib/upcomingDays";
+import type { WithDoses } from "~/lib/upcomingDoses";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
 import type { RescheduledTargetRow } from "./upcomingQueries";
 
@@ -11,12 +12,14 @@ import { localTimeZone } from "~/lib/format";
 import { isLiveEntryKind } from "~/lib/liveEntry";
 import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/paging";
 import { useLiveQuery } from "~/lib/sync";
+import { useDueDoses } from "~/lib/sync/dueDoses";
 import { useNow } from "~/lib/sync/editors";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
 import { fromLocalTimestamp, membersQuery, toMember, toTimelineEntries } from "~/lib/sync/timeline";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { contactsByEntry } from "./upcomingContact";
 import { pastSections, upcomingSections } from "~/lib/upcomingDays";
+import { showsDoses, upcomingDoses, withDueDoses } from "~/lib/upcomingDoses";
 import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
 
 // Upcoming's and the Past tab's data, live: the loaders read the first
@@ -27,8 +30,11 @@ import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomin
 /** How often the clock ticks: an item leaves Upcoming within this long of its end. */
 export const UPCOMING_TICK_MS = 30_000;
 
+/** An entry, or (in Upcoming only) one of today's open dose slots. */
+export type UpcomingListItem = WithDoses<TimelineEntry>;
+
 export type UpcomingListData = {
-  sections: UpcomingSection<TimelineEntry>[];
+  sections: UpcomingSection<UpcomingListItem>[];
   /** A rescheduled event's new one (for "Rescheduled to …"), while it's on the device and not deleted. */
   rescheduledOf: (entry: TimelineEntry) => RescheduledTarget | undefined;
   /** The clock the sections were cut with. */
@@ -104,10 +110,15 @@ export function useUpcomingData({
     initial.contactRows,
   );
   const support = useListSupport(groupId, initial, contactRows);
+  // Today's open dose slots, live: a logged dose answers its slot, and it drops out.
+  const dueDoses = useDueDoses(groupId, initial.dueRows);
   const at = new Date(now);
+  const zone = localTimeZone();
   const shown = support.withPreview(toTimelineEntries(entryRows));
+  const sections = upcomingSections(shown, at, zone);
+  const doses = showsDoses(filters) ? upcomingDoses(dueDoses.due) : [];
   return {
-    sections: upcomingSections(shown, at, localTimeZone()),
+    sections: withDueDoses(sections, doses, at, zone),
     rescheduledOf: support.rescheduledOf,
     now: at,
     nameOf: support.nameOf,

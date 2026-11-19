@@ -128,7 +128,7 @@ apps/web/app/lib/sync/medicationTimeline.ts medications phase2
 # Today and the Due now strip (medications slice 5).
 apps/web/app/routes/app/groups/timeline/DueNowStrip.tsx medications phase2
 apps/web/app/routes/app/groups/timeline/useDueNow.ts medications phase2
-apps/web/app/lib/sync/dueDoses.ts        medications phase2
+apps/web/app/lib/sync/dueDoses.ts        medications phase2 upcoming
 # The timeline's Next strip and Upcoming block, and the data they share with the history.
 apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
 apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
@@ -221,5 +221,8 @@ apps/web/app/routes/app/groups/upcoming/* upcoming
 apps/web/app/lib/upcoming.ts             upcoming
 apps/web/app/lib/upcomingLabels.ts       upcoming
 apps/web/app/lib/upcomingDays.ts         upcoming
+# Today's due doses in Upcoming, and the sheet-link state they open the Dose sheet with.
+apps/web/app/lib/upcomingDoses.ts        upcoming
+apps/web/app/lib/timelineSheet.ts        roundtrip medications upcoming
 apps/web/app/lib/sync/useLiveRows.ts     phase2 upcoming
 apps/web/app/lib/groupSections.ts        app-shell routing upcoming
