@@ -846,6 +846,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (prd/marketing): From the inbox: Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions for provider appointments.
 - 2026-11-18 (Robert Bo Davis): Proposed for assistant: review the timeline, explain concerns, and a printable cheat sheet of questions for a provider visit (the Product section's 'questions for visits'). Pairs with appointments (B-47) for the visit context.
+- 2026-11-19 (Robert Bo Davis): User 2026-11-19: first as a deterministic 'since the last visit with <provider>' sheet (new symptoms, medication changes, vital trends, missed doses), printable, in the assistant PRD. AI-written questions come later, possibly through connectors.
 
 ### B-59 · chore · Clean up/truncate this file and the backlog periodically.
 
