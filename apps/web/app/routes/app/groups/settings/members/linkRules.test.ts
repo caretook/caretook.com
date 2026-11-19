@@ -83,6 +83,19 @@ describe("the link form", () => {
     expect(paths({ maxUses: "0" })).toEqual(["maxUses"]);
     expect(paths({ maxUses: "101" })).toEqual(["maxUses"]);
   });
+
+  it("follows the admin settings' limits when it has them", () => {
+    const limits = { defaultDays: 3, maxDays: 14, maxUses: 5 };
+    expect(parseLinkForm({ ...values, expiresInDays: "" }, "owner", limits)).toMatchObject({
+      ok: true,
+      data: { expiresInDays: 3 },
+    });
+    const res = parseLinkForm({ ...values, expiresInDays: "15", maxUses: "6" }, "owner", limits);
+    expect(res.ok ? [] : res.issues).toEqual([
+      { path: "expiresInDays", message: "Choose 1 to 14 days." },
+      { path: "maxUses", message: "Leave it empty for no limit, or choose 1 to 5." },
+    ]);
+  });
 });
 
 describe("sharing a link", () => {

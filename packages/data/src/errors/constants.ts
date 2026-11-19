@@ -175,6 +175,15 @@ export const MODEL_ERRORS = {
   "groupDirectoryModel:activity": {
     message: "Failed to count the care group's activity",
   },
+  "appSettingModel:all": {
+    message: "Failed to read the settings",
+  },
+  "appSettingModel:get": {
+    message: "Failed to read the setting",
+  },
+  "appSettingModel:put": {
+    message: "Failed to save the setting",
+  },
 } as const;
 
 export const SERVICE_ERRORS = {
@@ -577,6 +586,30 @@ export const SERVICE_ERRORS = {
   "groupAdminService:unchanged": {
     message: "They already have that role.",
     statusCode: 409,
+  },
+  "settings:signupClosed": {
+    message: "This isn't available right now. Try again later.",
+    statusCode: 403,
+  },
+  "settings:unknownKey": {
+    message: "There's no such setting",
+    statusCode: 404,
+  },
+  "settings:invalid": {
+    message: "Check the setting's value",
+    statusCode: 400,
+  },
+  "settings:noReason": {
+    message: "Say why you're changing it",
+    statusCode: 400,
+  },
+  "careGroupInviteService:linkTooLong": {
+    message: "That's longer than invite links may work",
+    statusCode: 400,
+  },
+  "careGroupInviteService:tooManyUses": {
+    message: "That's more uses than invite links may have",
+    statusCode: 400,
   },
 } as const;
 

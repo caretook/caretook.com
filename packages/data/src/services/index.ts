@@ -84,6 +84,8 @@ export type { AccountMailer, AccountMailUser } from "./accountAdminService";
 
 import * as groupAdminService from "./groupAdminService";
 export { groupAdminService };
+import * as appSettingService from "./appSettingService";
+export { appSettingService };
 
 export type * from "./types";
 
@@ -112,6 +114,7 @@ export const services = {
   adminAudit: adminAuditService,
   adminGrant: adminGrantService,
   groupAdmin: groupAdminService,
+  appSetting: appSettingService,
 };
 
 export type ServiceTypeMap = typeof services;

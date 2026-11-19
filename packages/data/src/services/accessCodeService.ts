@@ -16,6 +16,7 @@ import {
 import { isError, newError } from "../errors";
 import { accessCodeModel, accessCodeRedemptionModel, careGroupModel, careRecipientModel } from "../models";
 import * as adminAuditService from "./adminAuditService";
+import { signupRefusal } from "./appSettingService";
 import { auditActorId, staffRefusal } from "./staffAccess";
 
 export const serviceName = "accessCode";
@@ -103,9 +104,12 @@ export const revoke = (ctx: ServiceContext, id: string) =>
 /**
  * What anyone holding `input` may know: whether it works (and nothing
  * else: not its label, uses or who made it). `notFound` for a code that
- * matches nothing or isn't code-shaped.
+ * matches nothing or isn't code-shaped; `unavailable` for every code while
+ * access-code sign-up is switched off.
  */
 export const preview = async (input: string) => {
+  // Access-code sign-up switched off (admin settings): every code says so alike.
+  if (await signupRefusal("accessCodes")) return { state: "unavailable" as const };
   const code = normalizeAccessCode(input);
   if (!code) return { state: "notFound" as const };
   const row = await accessCodeModel.getByCode(code);
@@ -124,6 +128,8 @@ const checkTicket = async (
   group: NewCareGroupInput,
   opts: { tx?: Tx; lock?: boolean } = {},
 ) => {
+  const closed = await signupRefusal("accessCodes");
+  if (closed) return closed;
   const code = normalizeAccessCode(input);
   if (!code) return newError({ code: "accessCodeService:notFound" });
   const row = await accessCodeModel.getByCode(code, opts);

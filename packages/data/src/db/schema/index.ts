@@ -48,3 +48,4 @@ export * from "./adminAudit";
 export * from "./appSetting";
 export * from "./accountAdmin";
 export * from "./groupAdminRules";
+export * from "./appSettings";

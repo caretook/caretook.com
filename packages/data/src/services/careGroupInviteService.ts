@@ -14,6 +14,7 @@ import { isError, newError } from "../errors";
 import { careGroupConsentModel, careGroupInviteModel, careGroupMemberModel, userModel } from "../models";
 import { isSystemUser } from "../permissions";
 import { openLinkToken, sealLinkToken } from "../utils/linkToken";
+import { getLinkLimits, signupRefusal } from "./appSettingService";
 import * as careGroupMemberService from "./careGroupMemberService";
 import { groupDisplayName } from "./groupNames";
 import * as joinRequestService from "./joinRequestService";
@@ -138,6 +139,8 @@ export const createEmail = (
   opts: { mail?: InviteMailer } = {},
 ) =>
   withTransaction(async (tx) => {
+    const closed = await signupRefusal("emailInvites");
+    if (closed) return closed;
     if (!data.attested) return newError({ code: "careGroupInviteService:notAttested" });
     const refused = await ensureMayInviteRole(ctx, data.groupId, data.role, tx);
     if (refused) return refused;
@@ -204,6 +207,8 @@ export const createEmail = (
  */
 export const resend = (ctx: ServiceContext, id: string, opts: { mail?: InviteMailer } = {}) =>
   withTransaction(async (tx) => {
+    const closed = await signupRefusal("emailInvites");
+    if (closed) return closed;
     // Read in the actor's scope: only the group's owners and admins see it.
     const current = await careGroupInviteModel.getById(id, { ...ctx, tx });
     if (isError(current)) return current;
@@ -231,13 +236,17 @@ export const resend = (ctx: ServiceContext, id: string, opts: { mail?: InviteMai
 
 /**
  * Make an invite link (owners and admins): a role of caretaker or viewer
- * only, an expiry of 1–90 days and an optional maximum number of uses.
+ * only, an expiry (the `invites.linkDefaultDays` setting when none is given,
+ * at most `invites.linkMaxDays`) and an optional maximum number of uses (at
+ * most `invites.linkMaxUses`). Refused while invite links are switched off.
  * Anyone with it may ask to join, and an owner or admin approves each
  * request. Its token is returned now and kept sealed (INVITE_LINK_KEY), so
  * `copyLink` can give it again while the link is active.
  */
 export const createLink = (ctx: ServiceContext, data: { groupId: string } & LinkInviteOptions) =>
   withTransaction(async (tx) => {
+    const closed = await signupRefusal("linkInvites");
+    if (closed) return closed;
     if (!linkRoleAllowed(data.role)) return newError({ code: "careGroupInviteService:linkRole" });
     const mine = await actorRole(ctx, data.groupId, tx);
     if (isError(mine)) return mine;
@@ -247,7 +256,22 @@ export const createLink = (ctx: ServiceContext, data: { groupId: string } & Link
     const token = newToken();
     const sealed = sealLinkToken(token, id);
     if (!sealed) return newError({ code: "careGroupInviteService:linkKeyMissing" });
-    const days = data.expiresInDays;
+    const limits = await getLinkLimits();
+    const days = data.expiresInDays ?? limits.defaultDays;
+    if (days > limits.maxDays) {
+      const message = `At most ${limits.maxDays} days`;
+      return newError({
+        code: "careGroupInviteService:linkTooLong",
+        meta: { issues: [{ path: "expiresInDays", message }] },
+      });
+    }
+    if (data.maxUses != null && data.maxUses > limits.maxUses) {
+      const message = `At most ${limits.maxUses}, or no limit`;
+      return newError({
+        code: "careGroupInviteService:tooManyUses",
+        meta: { issues: [{ path: "maxUses", message }] },
+      });
+    }
     const invite = await careGroupInviteModel.create({
       ...ctx,
       tx,
@@ -306,10 +330,15 @@ export const revoke = async (ctx: ServiceContext, id: string) => {
 // The invitee: holding the token is what entitles them to these.
 // ---------------------------------------------------------------------------
 
+/** `settings:signupClosed` while the invite's kind (email or link) is switched off, else null. */
+const kindRefusal = (invite: { kind: string }) =>
+  signupRefusal(invite.kind === "link" ? "linkInvites" : "emailInvites");
+
 /**
  * What a token's holder may know before joining: the invite's state, and
  * while it's usable, the group's display name, the inviter's name, the role
  * and (email invites) the address. Null for a token that matches nothing.
+ * `unavailable` while its kind is switched off (admin settings).
  */
 export const preview = async (token: string) => {
   const invite = await careGroupInviteModel.getByToken(token);
@@ -317,6 +346,9 @@ export const preview = async (token: string) => {
   if (!invite) return null;
   const state = inviteState({ invite });
   if (state !== "usable") return { state, invite: null, groupName: null, inviterName: null };
+  // Its kind switched off (admin settings): say so, and nothing about the group.
+  if (await kindRefusal(invite))
+    return { state: "unavailable" as const, invite: null, groupName: null, inviterName: null };
   const groupName = await groupDisplayName(invite.groupId);
   if (isError(groupName)) return groupName;
   const inviterName = await nameOf(invite.consentAttestedBy ?? invite.createdBy);
@@ -351,14 +383,15 @@ const askWithLink = async (
   if (isError(current)) return current;
   if (current) return joined(invite.groupId, current);
   const state = inviteState({ invite });
-  if (state !== "usable") {
+  const closed = await kindRefusal(invite);
+  if (state !== "usable" || closed) {
     // A request already waiting is still waiting, even once the link has closed.
     const asked = await joinRequestService.requestWithLink({ invite, userId }, tx, mail, {
       existingOnly: true,
     });
     if (isError(asked)) return asked;
     if (asked) return requested(asked.request);
-    return newError({ code: "careGroupInviteService:unusable", meta: { state } });
+    return closed ?? newError({ code: "careGroupInviteService:unusable", meta: { state } });
   }
   const asked = await joinRequestService.requestWithLink({ invite, userId }, tx, mail);
   if (isError(asked)) return asked;
@@ -412,6 +445,8 @@ export const accept = (
     }
     const state = inviteState({ invite });
     if (state !== "usable") return newError({ code: "careGroupInviteService:unusable", meta: { state } });
+    const closed = await kindRefusal(invite);
+    if (closed) return closed;
 
     if (!current) {
       const member = await careGroupMemberService.create(system(tx), {
@@ -485,6 +520,8 @@ export const ticketFor = async (token: string, tx?: Tx) => {
   const invite = await careGroupInviteModel.getByToken(token, { tx });
   if (isError(invite)) return invite;
   if (!invite || inviteState({ invite }) !== "usable") return newError({ code: "ticket:invalid" });
+  const closed = await kindRefusal(invite);
+  if (closed) return closed;
   if (invite.kind === "email" && !invite.email) return newError({ code: "ticket:invalid" });
   return invite;
 };

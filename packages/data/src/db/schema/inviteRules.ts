@@ -104,10 +104,14 @@ export const LINK_TTL_MAX_DAYS = 90;
 /** The most uses an inviter may set on one link (no limit is allowed too). */
 export const LINK_MAX_USES_LIMIT = 100;
 
-/** A new link's options: a link role, 1–90 days (default 7), and an optional maximum number of uses. */
+/**
+ * A new link's options: a link role, 1–90 days, and an optional maximum
+ * number of uses. These are the hard limits; the service applies the app
+ * settings' default days and tighter limits (`invites.link*`).
+ */
 export const linkInviteOptionsZ = z.object({
   role: z.enum(LINK_ROLES),
-  expiresInDays: z.int().min(LINK_TTL_MIN_DAYS).max(LINK_TTL_MAX_DAYS).default(LINK_TTL_DEFAULT_DAYS),
+  expiresInDays: z.int().min(LINK_TTL_MIN_DAYS).max(LINK_TTL_MAX_DAYS).optional(),
   maxUses: z.int().min(1).max(LINK_MAX_USES_LIMIT).nullish(),
 });
 export type LinkInviteOptions = z.output<typeof linkInviteOptionsZ>;

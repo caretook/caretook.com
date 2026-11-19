@@ -97,3 +97,6 @@ export type * from "./adminAuditLog/types";
 import * as groupDirectoryModel from "./groupDirectory";
 export { groupDirectoryModel };
 export type * from "./groupDirectory/types";
+import * as appSettingModel from "./appSetting";
+export { appSettingModel };
+export type * from "./appSetting/types";

@@ -34,6 +34,7 @@ import { sync } from "./sync";
 import { waitlistAdmin } from "./waitlistAdmin";
 import { auditAdmin } from "./auditAdmin";
 import { usersAdmin } from "./usersAdmin";
+import { settingsAdmin } from "./settingsAdmin";
 
 const id = z.uuid();
 const ids = (values: string[]) => ({ type: "inArray" as const, value: values });
@@ -340,6 +341,7 @@ export const router = {
     audit: auditAdmin,
     users: usersAdmin,
     groups: groupsAdmin,
+    settings: settingsAdmin,
   },
   public: publicForms,
   search,

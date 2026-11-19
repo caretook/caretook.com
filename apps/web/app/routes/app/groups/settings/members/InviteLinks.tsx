@@ -1,6 +1,6 @@
 import type { InviteActionResult } from "./inviteApi";
 import type { LinkActionResult } from "./linkApi";
-import type { LinkRow, ShareOutcome } from "./linkRules";
+import type { InviteOptions, LinkRow, ShareOutcome } from "./linkRules";
 
 import { Copy, Link2, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -11,10 +11,9 @@ import { rpc } from "~/lib/rpc";
 import { roleLabel } from "../groupSettings";
 import {
   copyLinkText,
+  DEFAULT_INVITE_OPTIONS,
   inviteLinkUrl,
-  LINK_MAX_USES_LIMIT,
-  LINK_TTL_DEFAULT_DAYS,
-  LINK_TTL_MAX_DAYS,
+  INVITES_UNAVAILABLE,
   LINK_TTL_MIN_DAYS,
   linkActive,
   linkRoles,
@@ -33,7 +32,17 @@ const ROLE_HELP: Record<string, string> = {
   viewer: "Reads only.",
 };
 
-export function CreateLinkButton({ myRole, online }: { myRole: string | null; online: boolean }) {
+export function CreateLinkButton({
+  myRole,
+  online,
+  options = DEFAULT_INVITE_OPTIONS,
+}: {
+  myRole: string | null;
+  online: boolean;
+  /** Whether links are switched on, and the limits a new one follows (admin settings). */
+  options?: InviteOptions;
+}) {
+  const limits = options.link;
   const roles = linkRoles(myRole);
   const [open, setOpen] = useState(false);
   const fetcher = useFetcher<LinkActionResult>();
@@ -54,10 +63,21 @@ export function CreateLinkButton({ myRole, online }: { myRole: string | null; on
 
   return (
     <div data-link-controls="" className="space-y-2">
-      <button type="button" className="btn btn-sm" disabled={!online} onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className="btn btn-sm"
+        disabled={!online || !options.linkInvites}
+        aria-describedby={online && !options.linkInvites ? "links-unavailable" : undefined}
+        onClick={() => setOpen(true)}
+      >
         <Link2 aria-hidden="true" className="size-4" />
         Create a link
       </button>
+      {online && !options.linkInvites && (
+        <p id="links-unavailable" className="text-base-content/70 text-sm">
+          {INVITES_UNAVAILABLE.link}
+        </p>
+      )}
       {created && !open && (
         <p role="status" className="alert alert-success alert-soft text-sm">
           Link created. Copy or share it from Invite links below.
@@ -83,7 +103,7 @@ export function CreateLinkButton({ myRole, online }: { myRole: string | null; on
           </Field>
           <Field
             label="Works for (days)"
-            help={`${LINK_TTL_MIN_DAYS} to ${LINK_TTL_MAX_DAYS} days.`}
+            help={`${LINK_TTL_MIN_DAYS} to ${limits.maxDays} days.`}
             error={issue("expiresInDays")}
           >
             {(control) => (
@@ -94,8 +114,8 @@ export function CreateLinkButton({ myRole, online }: { myRole: string | null; on
                 inputMode="numeric"
                 name="expiresInDays"
                 min={LINK_TTL_MIN_DAYS}
-                max={LINK_TTL_MAX_DAYS}
-                defaultValue={LINK_TTL_DEFAULT_DAYS}
+                max={limits.maxDays}
+                defaultValue={limits.defaultDays}
                 required
               />
             )}
@@ -109,7 +129,7 @@ export function CreateLinkButton({ myRole, online }: { myRole: string | null; on
                 inputMode="numeric"
                 name="maxUses"
                 min={1}
-                max={LINK_MAX_USES_LIMIT}
+                max={limits.maxUses}
                 placeholder="No limit"
               />
             )}
