@@ -72,6 +72,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-41 | bug | landed | quick-fixes | prd/quick-fixes | /app stays blank after a full reload (app-shell.mjs last-group steps) |
 | B-42 | change | landed | quick-fixes | prd/quick-fixes | App header uses the brand: the logo mark and wordmark, and the marketing header's look |
+| B-43 | change | inbox |  |  | Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital" |
+| B-44 | change | inbox |  |  | Display phone number, address, email, etc. in provider directory without a click. Use that as link… |
+| B-45 | change | inbox |  |  | birthdate, contact information, address, and insurance information should optionally be added to… |
+| B-46 | change | inbox |  |  | optional phone number, address, etc on group members that can be published to the group for… |
+| B-47 | feature | inbox |  |  | Deal with future event display (appointments) notes can be set to the future date as well. Symptoms… |
+| B-48 | feature | inbox |  |  | Allow import of providers from other care groups that you have access to. |
+| B-49 | feature | inbox |  |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
+| B-50 | feature | inbox |  |  | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
+| B-51 | feature | inbox |  |  | printable medication schedule sheet that can be printed to be checked off with a pen at patient's… |
+| B-52 | feature | inbox |  |  | Ability to download all data from the app to a file for backup or transfer to another device. |
+| B-53 | feature | inbox |  |  | Ability to delete ALL data from the app. |
+| B-54 | feature | inbox |  |  | privacy policy and terms of service. |
+| B-55 | feature | inbox |  |  | Todos list with assignment to group members, due dates, and completion status. |
+| B-56 | feature | inbox |  |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
+| B-57 | plan | inbox |  |  | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
+| B-58 | plan | inbox |  |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
+| B-59 | chore | inbox |  |  | Clean up/truncate this file and the backlog periodically. |
 
 ## Items
 
@@ -558,3 +575,140 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Requested 2026-11-18. Quick-fixes slice 12. The app header's plain 'Caretook' text link becomes the marketing LogoMark + wordmark (mark only on phones in a group, to keep one row at 420), with the marketing header's border, translucent background and height. LogoMark/Wordmark move to components/brand/ so both use one copy. Not the marketing nav, waitlist button or disclosure menu; not sticky.
 - 2026-11-18 (Robert Bo Davis): Quick-fixes slice 13 (slice 12 is B-41 on prd/quick-fixes).
+
+### B-43 · change · Reorder/group "new" buttons in timeline to "note", "event", "dose", "symptom", "vital"
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-44 · change · Display phone number, address, email, etc. in provider directory without a click. Use that as link…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Display phone number, address, email, etc. in provider directory without a click. Use that as link to call/email/map/etc.
+
+### B-45 · change · birthdate, contact information, address, and insurance information should optionally be added to…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: birthdate, contact information, address, and insurance information should optionally be added to the patient profile.
+
+### B-46 · change · optional phone number, address, etc on group members that can be published to the group for…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: optional phone number, address, etc on group members that can be published to the group for contact. Flags for "emergency contacts" and "primary contact" for display later.
+
+### B-47 · feature · Deal with future event display (appointments) notes can be set to the future date as well. Symptoms…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Deal with future event display (appointments) notes can be set to the future date as well. Symptoms and vitals cannot. Medication reminders may be a specialized type of future item on the timeline. Display of future events on timeline should be toggled somehow.
+
+### B-48 · feature · Allow import of providers from other care groups that you have access to.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-49 · feature · Once we have agentic integration, Add ai generated summary to each day on the timeline and the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Once we have agentic integration, Add ai generated summary to each day on the timeline and the option to view a condensed summary of days for quick scanning.
+
+### B-50 · feature · Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start date-end date", "at home on hospice - start date-end date", etc. These will be useful in the summary and for filtering.
+
+### B-51 · feature · printable medication schedule sheet that can be printed to be checked off with a pen at patient's…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: printable medication schedule sheet that can be printed to be checked off with a pen at patient's bedside. (once we have ai, we can allow photo of the sheet to be used to update timeline)
+
+### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-53 · feature · Ability to delete ALL data from the app.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-54 · feature · privacy policy and terms of service.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-55 · feature · Todos list with assignment to group members, due dates, and completion status.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-56 · feature · ability to upload photos of patient drivers license, insurance card, DNR, etc.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-57 · plan · Discuss options for end to end encryption of data in transit and at rest where owner of the data is…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Discuss options for end to end encryption of data in transit and at rest where owner of the data is the only one who can decrypt it and share decryption keys with others.
+
+### B-58 · plan · Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-18 (prd/marketing): From the inbox: Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions for provider appointments.
+
+### B-59 · chore · Clean up/truncate this file and the backlog periodically.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
