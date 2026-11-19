@@ -1,4 +1,4 @@
-// Invites slice 5: starting care groups. Smoke mode runs steps 1, 2 and 4:
+// Invites slices 5 and 6: starting care groups. Smoke mode runs steps 1, 2, 4 and 7:
 //   1. An access code's link (/join/CARE-DEMO-0001), signed out: a two-step
 //      form (account, then who you care for); the confirmation email opens
 //      the new group's empty timeline as its owner, with the Invite someone
@@ -11,6 +11,8 @@
 //      and creates a group whose owner invite email arrives.
 //   5. /admin is a 404 for a group's owner, and the admin API refuses them.
 //   6. A group with other members shows no Invite someone card.
+//   7. caretaker@ (one group): the group menu's "New care group" opens the
+//      sheet, and closing it goes back to the timeline.
 //
 // Order-independent and self-cleaning: it makes grp<run>-…@example.com
 // accounts and GR<run> groups and codes, and deletes them, their mail,
@@ -352,6 +354,28 @@ try {
       !(await p.evaluate(`!!${q("[data-invite-card]")}`)),
       "Dev Family (other members) shows no Invite someone card",
     );
+  });
+
+  // 7. "New care group" in the group menu -------------------------------------------
+  await step("7. the group menu opens the New care group sheet", { smoke: true }, async () => {
+    const p = await open(9605, "group-menu-new");
+    await p.signIn("caretaker@example.com", PASSWORD, { home: true });
+    await p.waitFor(onTimeline, 45000);
+    const timeline = await p.evaluate("location.pathname");
+    const groupMenu = `document.querySelector('header button[aria-label$="switch care group"]')`;
+    const newGroup = `[...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent.trim() === "New care group")`;
+    await p.waitFor(groupMenu, 20000);
+    await p.press(groupMenu);
+    await p.waitFor(newGroup, 10000);
+    await p.press(newGroup);
+    await p.waitFor(`location.pathname === "/app/groups/new" && ${q("[data-new-group-form]")}`, 20000);
+    check(true, "New care group opens the sheet");
+    await p.press(`document.querySelector('[role="dialog"] button[aria-label="Close"]')`);
+    await p.waitFor(
+      `location.pathname === ${JSON.stringify(timeline)} && !${q("[data-new-group-form]")}`,
+      10000,
+    );
+    check(true, "closing it goes back to the timeline", timeline);
   });
 } catch (error) {
   failed++;

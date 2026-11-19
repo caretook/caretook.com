@@ -3,6 +3,7 @@ import type { ActionResult } from "~/lib/api";
 
 import { newCareGroupZSchema } from "@caretook/data/schema";
 import { redirect, useFetcher, useLocation, useNavigate } from "react-router";
+import { NewGroupFields, newGroupFromForm } from "~/components/groups";
 import { Sheet } from "~/components/ui";
 import { toActionResult } from "~/lib/api";
 import { appUrls } from "~/lib/appUrls";
@@ -10,7 +11,6 @@ import { rpc } from "~/lib/rpc";
 import { sessionContext } from "~/lib/session";
 import { waitForMembership } from "~/lib/sync/members";
 import { openedFromApp } from "./newGroupLink";
-import { NewGroupFields, newGroupFromForm } from "./NewGroupFields";
 
 // Shared by web + native. `/app/groups/new`: start another care group. The
 // sheet asks who you care for; the API creates the group, its recipient and

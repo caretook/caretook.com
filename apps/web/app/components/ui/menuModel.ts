@@ -19,6 +19,8 @@ export type MenuItem = {
   onAction?: () => void;
   /** A link: an app path, navigated client-side (new tab with a modifier key). */
   href?: string;
+  /** History state for a link's navigation (e.g. so a sheet it opens can go back). Ignored without `href`. */
+  state?: unknown;
 };
 
 /** A group of items, optionally with a heading, a header block, or single selection. */
@@ -100,4 +102,12 @@ export function chosenKey(keys: "all" | Iterable<string | number>, selected: str
   if (keys === "all") return null;
   const [next] = [...keys];
   return next === undefined || String(next) === selected ? null : String(next);
+}
+
+/**
+ * The router options a link item navigates with: its history state, if it
+ * has one and is a link; otherwise none.
+ */
+export function linkOptions(item: Pick<MenuItem, "href" | "state">): { state: unknown } | undefined {
+  return item.href && item.state !== undefined ? { state: item.state } : undefined;
 }

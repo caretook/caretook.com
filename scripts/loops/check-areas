@@ -70,6 +70,7 @@ apps/web/app/routes/account/join/*       groups
 apps/web/app/routes/admin/*              groups
 apps/web/app/.server/admin.ts            groups
 apps/web/app/routes/app/groups/new/*     groups app-shell
+apps/web/app/components/groups/*         groups app-shell
 apps/web/app/routes/app/home/NewGroupLink.tsx groups app-shell first-sync
 apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx groups phase2
 packages/api/src/groups.ts               groups

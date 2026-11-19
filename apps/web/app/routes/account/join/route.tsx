@@ -6,6 +6,7 @@ import { newCareGroupZSchema } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { useRef, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
+import { NewGroupFields, newGroupFromForm } from "~/components/groups";
 import { Field } from "~/components/ui";
 import { toActionResult } from "~/lib/api";
 import { accountUrls } from "~/lib/accountUrls";
@@ -15,7 +16,6 @@ import { authMessages, newPasswordProblem } from "~/lib/authMessages";
 import { formString } from "~/lib/form";
 import { rpc } from "~/lib/rpc";
 import { NEW_GROUP_LINK_STATE } from "../../app/groups/new/newGroupLink";
-import { NewGroupFields, newGroupFromForm } from "../../app/groups/new/NewGroupFields";
 import { AuthCard, ErrorMessage, useSubmitOnce } from "../AuthCard";
 import { CLOSED_CODE, stepForIssues } from "./joinPage";
 

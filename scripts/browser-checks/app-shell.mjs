@@ -664,11 +664,11 @@ try {
       await M.waitFor(item("Group settings"), 5000);
       const menuEnd = await M.evaluate(
         `(() => { const all = [...${MENU}.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [role="separator"]')];
-          return all.slice(-2).map((el) => el.getAttribute("role") + ":" + el.textContent.trim()).join(" > "); })()`,
+          return all.slice(-3).map((el) => el.getAttribute("role") + ":" + el.textContent.trim()).join(" > "); })()`,
       );
       check(
-        "group menu: ends with a separator, then Group settings",
-        menuEnd === "separator: > menuitem:Group settings",
+        "group menu: ends with a separator, then Group settings and New care group",
+        menuEnd === "separator: > menuitem:Group settings > menuitem:New care group",
         menuEnd,
       );
       await M.press(item("Group settings"));

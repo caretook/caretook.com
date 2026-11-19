@@ -7,8 +7,7 @@ import { formString } from "~/lib/form";
 
 // "Who do you care for?": the care recipient's name and preferred name, and
 // the group's name (empty: "<preferred or first name>'s care", shown as its
-// placeholder). Shared by the New care group sheet and /join/:code, so it
-// moves to components/ once the components PRD's slice 6 has landed.
+// placeholder). Shared by the New care group sheet and /join/:code.
 
 const INPUT = "input w-full";
 
