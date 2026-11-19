@@ -1219,6 +1219,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (backlog planner): Asked for 2026-11-19 (the user). AGENTS.md (Components, not yet on the primitives): routes/account/ (AuthCard forms), sign-in.tsx and the marketing header's menu button (IconButton), waiting for invites to settle (done). Field for every labelled control, IconButton for icon-only buttons; keep useSubmitOnce. No visible change. Checks: sign-in, invites, groups (join), marketing.
+- 2026-11-19 (slice/quick-fixes/35): Slice 35 done (81fdddf): account forms and sign-in on Field, marketing menu on IconButton (size md). New light index components/ui/plain (Field, IconButton) because ui/index loads React Aria's ~240 KB chunk; /invite drops 236 KB.
 
 ### B-95 · chore · Move PROVIDER_SHEET_STATE into lib/ and point chipLabel imports at lib/entryProviders
 
