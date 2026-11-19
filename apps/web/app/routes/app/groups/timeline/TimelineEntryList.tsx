@@ -12,6 +12,9 @@ import { canReschedule } from "~/lib/eventReschedule";
 import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/entryOpen";
+import { appUrls } from "~/lib/appUrls";
+import { groupPassLogs } from "~/lib/passLogs";
+import { PassLogItem } from "./PassLogItem";
 import { COLUMN_CAP } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
@@ -50,7 +53,15 @@ export function TimelineEntryList({
 }: {
   data: Pick<
     TimelineData,
-    "days" | "hasOlder" | "loadingOlder" | "loadOlder" | "liveLabelOf" | "nameOf" | "providersOf" | "imageOf"
+    | "days"
+    | "hasOlder"
+    | "loadingOlder"
+    | "loadOlder"
+    | "liveLabelOf"
+    | "nameOf"
+    | "providersOf"
+    | "imageOf"
+    | "passNameOf"
   >;
   view: TimelineView;
   units: UnitChoices;
@@ -170,7 +181,24 @@ export function TimelineEntryList({
               {day.label}
             </h3>
             <ol className={LIST_CLASS[view]} data-view={view}>
-              {day.entries.map((entry) => item(entry, true))}
+              {/* Doses logged in one round fold into one pass log (`groupPassLogs`). */}
+              {groupPassLogs(day.entries).map((it) =>
+                it.type === "entry" ? (
+                  item(it.entry, true)
+                ) : (
+                  <PassLogItem
+                    key={it.id}
+                    view={view}
+                    passLogId={it.id}
+                    passName={data.passNameOf(it.passId)}
+                    doses={it.entries}
+                    occurredAt={it.occurredAt}
+                    authorName={data.nameOf(it.entries[0]!.createdBy)}
+                    authorImage={data.imageOf(it.entries[0]!.createdBy)}
+                    sheetTo={canWrite ? appUrls.passSheet(groupId, it.id, { search }) : undefined}
+                  />
+                ),
+              )}
             </ol>
           </section>
         ))}

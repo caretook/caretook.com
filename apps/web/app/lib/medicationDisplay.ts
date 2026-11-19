@@ -411,3 +411,22 @@ export const passLoggedLabel = (pass: Pick<PassWording, "name" | "slots">) => `$
 /** Given all's accessible name: "Given all: Morning, 8:00". */
 export const givenAllLabel = (pass: Pick<PassWording, "name" | "slots" | "time">) =>
   `Given all: ${passTitle(pass)}, ${clockTime(pass.time)}`;
+
+// ---------------------------------------------------------------------------
+// Pass logs on the timeline (`groupPassLogs`)
+// ---------------------------------------------------------------------------
+
+/**
+ * A pass log's line on the timeline: "Morning: 3 given, 1 refused". The
+ * counts read given, skipped, refused, leaving out none; a log whose pass
+ * isn't on the device is "Medications".
+ */
+export const passLogText = (
+  name: string | null | undefined,
+  counts: Record<DoseDetails["status"], number>,
+) => {
+  const parts = (["given", "skipped", "refused"] as const)
+    .filter((status) => counts[status] > 0)
+    .map((status) => `${counts[status]} ${status}`);
+  return `${name?.trim() || "Medications"}: ${parts.join(", ") || "nothing logged"}`;
+};

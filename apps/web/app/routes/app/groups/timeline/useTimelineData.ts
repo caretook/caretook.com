@@ -32,6 +32,7 @@ import {
 import { groupByDay } from "./timelineDays";
 import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/paging";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
+import { rowPassLogId, wholeLogsPage } from "~/lib/passLogs";
 import { nextUp } from "~/lib/upcoming";
 import { firstItems, UPCOMING_BLOCK_LIMIT, upcomingSections } from "~/lib/upcomingDays";
 import { aheadQueries } from "./aheadQueries";
@@ -62,6 +63,8 @@ export type TimelineData = {
   imageOf: (userId: string) => string | null;
   /** A note's or event's linked providers, in link order (the "with …" line). */
   providersOf: (entryId: string) => LinkedProviderName[] | undefined;
+  /** A pass's name (deleted ones too), for a pass log's row; null when it isn't on the device. */
+  passNameOf: (passId: string | null) => string | null;
   /** Where the history ends (`historyCutoff`); what's ahead is worked out at this moment. */
   now: Date;
   /** The Next strip: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the kind and author filters, not the search. */
@@ -152,7 +155,8 @@ export function useTimelineData({
         ? { ...entry, body: previews.get(entry.id) || null }
         : withMedication(entry, medicationOf, passes),
     );
-  const shown = withPreview(entries.rows.slice(0, page.limit));
+  // A pass log is never split across pages: one running past the page waits for the next.
+  const shown = withPreview(wholeLogsPage(entries.rows, page.limit, rowPassLogId));
   const now = new Date(cutoff);
   const zone = localTimeZone();
 
@@ -170,6 +174,7 @@ export function useTimelineData({
     nameOf,
     imageOf: (id) => members.find((m) => m.userId === id)?.image ?? null,
     providersOf: (id) => providersByEntry.get(id) ?? blockProviders.get(id),
+    passNameOf: (id) => (id ? (passes.find((p) => p.id === id)?.name ?? null) : null),
     now,
     next: nextUp(toTimelineEntries(nextRows), now),
     upcoming: firstItems(upcomingSections(withPreview(blockRows), now, zone), UPCOMING_BLOCK_LIMIT),

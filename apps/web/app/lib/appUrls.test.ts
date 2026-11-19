@@ -277,3 +277,12 @@ describe("appUrls.medicationsPrintWeek", () => {
     );
   });
 });
+
+describe("appUrls.passSheet", () => {
+  it("is the pass sheet over the timeline, carrying its filters but not another sheet's", () => {
+    expect(appUrls.passSheet(G, "log1")).toBe(`/app/groups/${G}/timeline/pass/log1/edit`);
+    expect(appUrls.passSheet("g", "log1", { search: "?kind=dose&type=spo2" })).toBe(
+      "/app/groups/g/timeline/pass/log1/edit?kind=dose",
+    );
+  });
+});
