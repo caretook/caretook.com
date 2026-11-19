@@ -240,3 +240,10 @@ describe("appUrls.newMedication and editMedication", () => {
     expect(appUrls.search(G, "knee", { all: "bogus" })).toBe(`/app/groups/${G}/search?q=knee`);
   });
 });
+
+describe("appUrls.medicationAllergies", () => {
+  it("is the allergies sheet over the list, with the list's search kept", () => {
+    expect(appUrls.medicationAllergies(G)).toBe(`/app/groups/${G}/medications/allergies`);
+    expect(appUrls.medicationAllergies(G, "?q=met")).toBe(`/app/groups/${G}/medications/allergies?q=met`);
+  });
+});

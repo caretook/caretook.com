@@ -179,6 +179,9 @@ apps/web/app/lib/sync/medications.ts     medications
 # Passes (medications-2): the device module; the Passes screen is under
 # routes/app/groups/medications/passes/ (the rule below).
 apps/web/app/lib/sync/medicationPasses.ts medications
+# Allergies (medications-2): the device module; the sheet is under
+# routes/app/groups/medications/allergies/, the region in components/medications/.
+apps/web/app/lib/sync/allergies.ts       medications
 apps/web/app/routes/app/groups/medications/* medications
 apps/web/app/routes/app/groups/medication/* medications live-notes
 # The status actions (the medication page and the list's edit sheet).

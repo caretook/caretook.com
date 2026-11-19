@@ -204,4 +204,7 @@ export const appUrls = {
     })}`,
   /** The group's medication passes (Morning, Evening…), with the medications in each. */
   medicationPasses: (groupId: string) => `${groupHome(groupId)}/medications/passes`,
+  /** The allergies sheet over the medication list (writers), carrying the list's search and status filter. */
+  medicationAllergies: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/medications/allergies${searchString(search)}`,
 } as const;
