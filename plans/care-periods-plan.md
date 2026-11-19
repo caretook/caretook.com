@@ -6,14 +6,16 @@
 
 | Slice | State                                     | Merge into `prd/care-periods` (slice commits) |
 | ----- | ----------------------------------------- | --------------------------------------------- |
-| 1     | not started (ready)                       |                                               |
+| 1     | in progress (wave 1)                      |                                               |
 | 2     | blocked by 1                              |                                               |
 | 3     | blocked by 1                              |                                               |
 | 4     | blocked by 1                              |                                               |
 | 5     | blocked by 1                              |                                               |
 | 6     | blocked by 1, and `search` slices 2 and 3 |                                               |
 
-Backlog: B-50 is `triaged`. Claim it when slice 1 starts; mark it `done` after the last slice merges. The PRD and this plan are on `plan/care-periods`, not yet in `dev`.
+**Landing mode: run everything through** (the user queued this PRD with `pnpm prd queue care-periods`): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+Backlog: B-50 claimed by `prd/care-periods` when slice 1 started; mark it `done` after the last slice merges. The PRD and this plan are in `dev`. B-78 (strip restyle) is already in `dev`, so slice 3 matches the current `STRIP_CLASS` style. Slice 6 waits for `search` slices 2 and 3 in `dev` (only slice 1 is there as of 2026-11-19).
 
 Fold into AGENTS.md at the final landing: a _Care periods_ section (the table, the track rules, the period-track module, the device module, the routes, the timeline line and markers, the group menu icon, suggestions, the search filter), `care_period` in the permissions table, the `carePeriod` document subject, and the stream and upload switch entries.
 
