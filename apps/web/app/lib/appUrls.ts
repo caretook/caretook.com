@@ -63,6 +63,15 @@ export const PROVIDER_TYPE_PARAM = "type";
 export const WHEN_PARAM = "when";
 export const WHEN_PICK = "pick";
 
+/** The care period add sheet's prefills: `periods/new?type=hospital&startedAt=<ISO>&dateOnly=1&place=<providerId>`. */
+export const PERIOD_PREFILL_PARAMS = {
+  type: "type",
+  startedAt: "startedAt",
+  dateOnly: "dateOnly",
+  place: "place",
+} as const;
+export type PeriodPrefill = { type?: string; startedAt?: string; dateOnly?: boolean; place?: string };
+
 const HOME = "/app";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
@@ -186,4 +195,19 @@ export const appUrls = {
   /** The edit sheet for one medication, over the list, carrying the list's search and status filter. */
   editMedication: (groupId: string, medicationId: string, search?: Search) =>
     `${groupHome(groupId)}/medications/${segment(medicationId)}/edit${searchString(search)}`,
+  /** A group's care periods: where care has happened, newest first. */
+  periods: (groupId: string) => `${groupHome(groupId)}/periods`,
+  /**
+   * The add sheet over the periods page. It can start prefilled (a type, a
+   * start, date-only, a place); `lib/periodSheets` checks what it reads.
+   */
+  newPeriod: (groupId: string, prefill: PeriodPrefill = {}) =>
+    `${groupHome(groupId)}/periods/new${searchString({
+      [PERIOD_PREFILL_PARAMS.type]: prefill.type,
+      [PERIOD_PREFILL_PARAMS.startedAt]: prefill.startedAt,
+      [PERIOD_PREFILL_PARAMS.dateOnly]: prefill.dateOnly ? "1" : null,
+      [PERIOD_PREFILL_PARAMS.place]: prefill.place,
+    })}`,
+  /** A care period's page: its place, dates and notes. */
+  period: (groupId: string, periodId: string) => `${groupHome(groupId)}/periods/${segment(periodId)}`,
 } as const;
