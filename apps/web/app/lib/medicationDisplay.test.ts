@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  asNeededCountText,
   changeText,
+  doseWarningText,
+  dueSlotLabel,
+  missedText,
+  slotStateText,
   clockTime,
   doseSlotText,
   doseText,
@@ -150,5 +155,54 @@ describe("change wording", () => {
         after: { dose: "2 tablets" },
       }),
     ).toBe("Discontinued: not working; changed dose 1 tablet → 2 tablets");
+  });
+});
+
+describe("Today wording", () => {
+  const medication = { name: "Metformin", strength: "500 mg" };
+  const LA = "America/Los_Angeles";
+
+  it("says a slot's state, with the time a dose was given in the recipient's zone", () => {
+    expect(slotStateText({ state: "due", dose: null }, LA)).toBe("Due");
+    expect(slotStateText({ state: "overdue", dose: null }, LA)).toBe("Overdue");
+    expect(slotStateText({ state: "upcoming", dose: null }, LA)).toBe("Later");
+    expect(slotStateText({ state: "missed", dose: null }, LA)).toBe("Missed");
+    const dose = {
+      id: "d",
+      occurredAt: "2026-11-19T16:05:00Z",
+      details: { medicationId: "m", status: "given" as const },
+    };
+    expect(slotStateText({ state: "given", dose }, LA)).toBe("Given 8:05");
+    expect(slotStateText({ state: "given", dose }, "America/New_York")).toBe("Given 11:05");
+    expect(slotStateText({ state: "refused", dose }, LA)).toBe("Refused");
+  });
+
+  it("counts as-needed doses", () => {
+    expect(asNeededCountText({ count: 2, max: 4 })).toBe("2 of 4 today");
+    expect(asNeededCountText({ count: 1, max: null })).toBe("1 today");
+    expect(asNeededCountText({ count: 0, max: null })).toBe("None today");
+  });
+
+  it("puts yesterday's missed doses on one line", () => {
+    expect(missedText([])).toBeNull();
+    expect(
+      missedText([
+        { medication, time: "08:00" },
+        { medication: { name: "Lisinopril", strength: "10 mg" }, time: "20:00" },
+      ]),
+    ).toBe("Missed yesterday: Metformin 500 mg at 8:00 and Lisinopril 10 mg at 20:00");
+  });
+
+  it("words the warnings and due slots", () => {
+    expect(
+      doseWarningText({ type: "alreadyGiven", time: "08:00", givenAt: "2026-11-19T16:05:00Z" }, LA),
+    ).toBe("The 8:00 dose was already given at 8:05.");
+    expect(doseWarningText({ type: "overMax", count: 4, max: 4 }, LA)).toBe(
+      "4 of 4 already given today, the most a day.",
+    );
+    expect(dueSlotLabel({ medication, time: "20:00", state: "due" })).toBe("Metformin 500 mg · 20:00 dose");
+    expect(dueSlotLabel({ medication, time: "08:00", state: "overdue" })).toBe(
+      "Metformin 500 mg · 8:00 dose, overdue",
+    );
   });
 });

@@ -45,6 +45,14 @@
 // - a prescriber's and the pharmacy's pages list the current medications
 //   they prescribe or fill, each opening its page.
 //
+// Slice 5 adds Today and the Due now strip (`todaySteps`): a slot due now
+// in the strip and in Today, the strip opening the Dose sheet on its slot,
+// Given in one tap (seen on a second device), Skipped with a note (on the
+// timeline too), the double-dose and over-maximum warnings that still save,
+// the device in New York with the recipient in Los Angeles, a viewer
+// without controls, and no strip once nothing is due. `dueDoses` itself is
+// unit-tested (dueDoses.test.ts).
+//
 // Schedule wording and the list's order and matching are unit-tested
 // (medicationDisplay.test.ts, medicationList.test.ts): the steps here check
 // one case each, on the page. Later slices add their screens' steps here.
@@ -1025,8 +1033,9 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
   // Log one from the Dose sheet.
   await A.tap(tile("Dose"));
   await A.waitFor(radio("medicationId", label), 8000);
+  // Due slots come first ("… · 20:00 dose"); the medications follow, most recently given first.
   const options = await A.evaluate(
-    `[...${SHEET}.querySelectorAll('input[name="medicationId"]')].map((r) => r.getAttribute("aria-label"))`,
+    `[...${SHEET}.querySelectorAll('input[name="medicationId"]')].map((r) => r.getAttribute("aria-label")).filter((l) => !l.includes(" · "))`,
   );
   const lastGiven = psql(
     `SELECT m.name || COALESCE(' ' || m.strength, '') FROM timeline_entry e JOIN medication m ON m.id::text = e.details->>'medicationId'
@@ -1960,6 +1969,279 @@ async function viewerFormSteps(C) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Today and Due now (slice 5)
+// ---------------------------------------------------------------------------
+
+const LA = "America/Los_Angeles";
+/** The time it is now in Los Angeles, in minutes since midnight. */
+const laMinutes = () => {
+  const [h, m] = new Intl.DateTimeFormat("en-GB", {
+    timeZone: LA,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  })
+    .format(new Date())
+    .split(":")
+    .map(Number);
+  return h * 60 + m;
+};
+const hhmm = (minutes) =>
+  `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+const TODAY = `document.querySelector("main [data-today]")`;
+const todaySlot = (key) => `${TODAY}?.querySelector('[data-slot="${key}"]')`;
+const todayState = (key) =>
+  `(${todaySlot(key)}?.querySelector("[data-slot-state]")?.dataset.slotState ?? null)`;
+const STRIP = `document.querySelector("main [data-due-now]")`;
+const stripSlot = (key) => `${STRIP}?.querySelector('[data-due-slot="${key}"]')`;
+const doseCountSql = (id, time, status = "given") =>
+  `SELECT count(*) FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND details->>'medicationId' = '${id}' AND details->>'status' = '${status}'${time ? ` AND details->>'scheduledFor' = '${time}'` : ""}`;
+const doseCount = (id, time, status) => psql(doseCountSql(id, time, status));
+
+/**
+ * Today on the medication list and the Due now strip on the timeline, with
+ * this run's own medications: one with two slots due now (a few minutes ago
+ * in Los Angeles, whatever the clock), and an as-needed one with a maximum
+ * of 1. Given in one tap (on a second device too), Skipped with a note (on
+ * the timeline too), the strip opening the Dose sheet for its slot, the
+ * double-dose and over-maximum warnings that still save, the recipient's
+ * zone with the device in New York, a viewer without controls, and the
+ * strip gone once nothing is due.
+ */
+async function todaySteps(A, { B, C } = {}) {
+  // Two distinct times, both due, today in Los Angeles (wait out the first minutes after midnight).
+  if (laMinutes() < 8) await sleep((8 - laMinutes()) * 60_000 + 5000);
+  const now = laMinutes();
+  const [t1, t2] = [hhmm(now - 6), hhmm(now - 3)];
+  const name = `${TAG} Donepezil`;
+  const title = `${name} 5 mg`;
+  const prnName = `${TAG} Ondansetron`;
+  const made = await onDevice(
+    A,
+    `return [
+       await medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+         name: ${JSON.stringify(name)}, strength: "5 mg", form: "tablet", dose: "1 tablet",
+         schedule: { type: "scheduled", times: ${JSON.stringify([t1, t2])} },
+       }),
+       await medications.createMedication(db, ${JSON.stringify(DEV_FAMILY)}, {
+         name: ${JSON.stringify(prnName)}, strength: "4 mg", dose: "1 tablet",
+         schedule: { type: "asNeeded", maxPerDay: 1 },
+       }),
+     ];`,
+  );
+  if (!made.every((r) => r.ok)) return check("medications for the Today steps", false, JSON.stringify(made));
+  const [{ id }, { id: prnId }] = made;
+  const k1 = `${id}@${t1}`;
+  const k2 = `${id}@${t2}`;
+  const timeline = `/app/groups/${DEV_FAMILY}/timeline`;
+
+  // The strip on the timeline; an item opens the Dose sheet on its slot.
+  await A.goto(timeline);
+  const inStrip = await A.waitFor(`!!${stripSlot(k1)} && !!${stripSlot(k2)}`, 15000).then(
+    () => true,
+    () => false,
+  );
+  check("the Due now strip shows a slot that's due", inStrip);
+  if (inStrip) {
+    await A.tap(`${stripSlot(k1)}.querySelector("a")`);
+    const opened = await A.waitFor(
+      `${SHEET}?.querySelector('input[name="medicationId"][value="${k1}"]')?.checked`,
+      8000,
+    ).then(
+      () => true,
+      () => false,
+    );
+    const amount = await A.evaluate(`${AMOUNT}?.value ?? ""`);
+    check(
+      "a strip item opens the Dose sheet on that slot, with its dose",
+      opened && amount === "1 tablet",
+      amount,
+    );
+    await A.evaluate(
+      `[...${SHEET}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")?.click()`,
+    );
+    await A.waitFor(`!${SHEET}`, 5000).catch(() => undefined);
+  }
+
+  // The device in New York: the recipient's 8:00 is still Los Angeles time.
+  await A.send("Emulation.setTimezoneOverride", { timezoneId: "America/New_York" });
+  await A.goto(LIST);
+  const ny = await A.waitFor(`${todayState(k1)} === "due"`, 15000).then(
+    () => true,
+    () => false,
+  );
+  const note = await A.evaluate(`${TODAY}?.textContent.includes("Times are Los Angeles time") ?? false`);
+  const deviceHour = await A.evaluate(`new Date().getHours()`);
+  check(
+    "with the device in New York, Today shows the Los Angeles slot as due, and says the times are Los Angeles time",
+    ny && note && deviceHour === (Math.floor(now / 60) + 3) % 24,
+    `${ny} ${note} device hour ${deviceHour}, LA ${t1}`,
+  );
+  await A.send("Emulation.setTimezoneOverride", { timezoneId: LA });
+  await A.goto(LIST);
+  await A.waitFor(`${todayState(k1)} === "due"`, 15000).catch(() => undefined);
+
+  if (B) {
+    await B.goto(LIST);
+    await B.waitFor(`${todayState(k1)} === "due"`, 20000).catch(() => undefined);
+  }
+
+  // Given in one tap.
+  await A.tap(`${todaySlot(k1)}.querySelector("[data-give]")`);
+  const given = await A.waitFor(`${todayState(k1)} === "given"`, 8000).then(
+    () => true,
+    () => false,
+  );
+  const up = await waitForSql(
+    `SELECT details->>'amount' FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND details->>'medicationId' = '${id}' AND details->>'scheduledFor' = '${t1}'`,
+    (v) => v !== "",
+  );
+  check(
+    "one tap on Given logs the slot with the medication's dose, and uploads",
+    given && up === "1 tablet",
+    up,
+  );
+  if (B) {
+    const seen = await B.waitFor(`${todayState(k1)} === "given"`, 20000).then(
+      () => true,
+      () => false,
+    );
+    check("a second device's Today shows it given", seen);
+  }
+
+  // Skipped, with a note.
+  await A.tap(`${todaySlot(k2)}.querySelector('[aria-label^="More for"]')`);
+  await A.waitFor(menuItem("Skipped…"), 5000);
+  await A.tap(menuItem("Skipped…"));
+  await A.waitFor(`${OPEN_DIALOG}?.querySelector("[data-mark-note]")`, 5000);
+  await A.type(`${OPEN_DIALOG}.querySelector("[data-mark-note]")`, `${TAG} asleep`);
+  await A.tap(dialogButton("Mark skipped"));
+  const skipped = await A.waitFor(`${todayState(k2)} === "skipped" && !${OPEN_DIALOG}`, 8000).then(
+    () => true,
+    () => false,
+  );
+  await A.goto(`${timeline}?kind=dose`);
+  // Wait for its medication's name, not the moment's "Medication".
+  const row = await A.waitFor(
+    `${rowWith(`${TAG} asleep`)}?.textContent.includes(${JSON.stringify(`${title}: Skipped`)})`,
+    15000,
+  ).then(
+    () => A.evaluate(`${rowWith(`${TAG} asleep`)}.textContent`),
+    () => "",
+  );
+  check(
+    "Skipped with a note shows as skipped in Today and on the timeline",
+    skipped &&
+      row.includes(`${title}: Skipped`) &&
+      (await waitForSql(doseCountSql(id, t2, "skipped"), (v) => v === "1")) === "1",
+    row.slice(0, 120),
+  );
+
+  // A second dose for a slot already given: the sheet warns, then saves.
+  await A.goto(`/app/groups/${DEV_FAMILY}/timeline/new/dose?medication=${id}&slot=${t1}`);
+  await A.waitFor(SUBMIT, 8000);
+  await A.press(SUBMIT);
+  const warned = await A.waitFor(`${SHEET}?.querySelector("[data-dose-warning]")`, 5000).then(
+    () => A.evaluate(`${SHEET}.querySelector("[data-dose-warning]").textContent`),
+    () => "",
+  );
+  const unsaved = doseCount(id, t1);
+  const anyway = await A.evaluate(`${SUBMIT}.textContent.trim()`);
+  await A.press(SUBMIT);
+  await A.waitFor(`!${SHEET}`, 8000).catch(() => undefined);
+  const twice = await waitForSql(doseCountSql(id, t1), (v) => v === "2", 10000);
+  check(
+    "logging a slot already given warns before saving, and saves on Log anyway",
+    warned.includes("already given") && unsaved === "1" && anyway === "Log anyway" && twice === "2",
+    `"${warned}" ${unsaved} "${anyway}" ${twice}`,
+  );
+
+  // As needed, up to 1 a day: the second Log asks first, then saves.
+  await A.goto(LIST);
+  const prnRow = `${TODAY}?.querySelector('[data-as-needed="${prnId}"]')`;
+  await A.waitFor(`${prnRow}?.textContent.includes("0 of 1 today")`, 15000).catch(() => undefined);
+  await A.tap(`${prnRow}.querySelector("[data-log-as-needed]")`);
+  await A.waitFor(`${prnRow}?.textContent.includes("1 of 1 today")`, 8000).catch(() => undefined);
+  await A.tap(`${prnRow}.querySelector("[data-log-as-needed]")`);
+  const prnWarned = await A.waitFor(OPEN_DIALOG, 5000).then(
+    () => A.evaluate(`${OPEN_DIALOG}.textContent`),
+    () => "",
+  );
+  const before = await waitForSql(doseCountSql(prnId), (v) => v === "1");
+  await A.tap(dialogButton("Log anyway"));
+  const after = await A.waitFor(`${prnRow}?.textContent.includes("2 of 1 today")`, 8000).then(
+    () => true,
+    () => false,
+  );
+  check(
+    "an as-needed dose past its maximum warns first, and saves on confirm",
+    prnWarned.includes("1 of 1 already given today") && before === "1" && after,
+    `"${prnWarned.slice(0, 120)}" ${before} ${after}`,
+  );
+
+  // The viewer: Today and the strip, without controls.
+  if (C) {
+    // A slot still due for the viewer to see: the medication's third time, now.
+    const t3 = hhmm(laMinutes());
+    const k3 = `${id}@${t3}`;
+    const added =
+      t3 !== t1 && t3 !== t2
+        ? await onDevice(
+            A,
+            `return medications.updateMedication(db, ${JSON.stringify(id)}, { schedule: { type: "scheduled", times: ${JSON.stringify([t1, t2, t3])} } });`,
+          )
+        : { ok: false };
+    if (added.ok) {
+      await C.goto(LIST);
+      const listed = await C.waitFor(`${todayState(k3)} === "due"`, 30000).then(
+        () => true,
+        () => false,
+      );
+      const controls = await C.evaluate(`${TODAY}?.querySelectorAll("button").length ?? -1`);
+      await C.goto(timeline);
+      const strip = await C.waitFor(`!!${stripSlot(k3)}`, 15000).then(
+        () => true,
+        () => false,
+      );
+      const links = await C.evaluate(`${STRIP}?.querySelectorAll("a").length ?? -1`);
+      check(
+        "a viewer sees Today and the strip, with no controls",
+        listed && controls === 0 && strip && links === 0,
+        `${listed} buttons ${controls} ${strip} links ${links}`,
+      );
+    }
+  }
+
+  // Nothing due: this run's medications go, and every slot still due gets a tagged dose; the strip goes.
+  await onDevice(
+    A,
+    `await medications.removeMedication(db, ${JSON.stringify(id)});
+     await medications.removeMedication(db, ${JSON.stringify(prnId)});`,
+  );
+  await A.goto(timeline);
+  await sleep(1000);
+  const due = await A.evaluate(
+    `[...document.querySelectorAll("main [data-due-slot]")].map((li) => li.dataset.dueSlot)`,
+  );
+  for (const key of due) {
+    const [medicationId, slot] = key.split("@");
+    await onDevice(
+      A,
+      `return medications.logDose(db, ${JSON.stringify(DEV_FAMILY)}, { medicationId: ${JSON.stringify(medicationId)}, status: "given", scheduledFor: ${JSON.stringify(slot)}, note: ${JSON.stringify(`${TAG} clear`)} });`,
+    );
+  }
+  const gone = await A.waitFor(`!${STRIP}`, 10000).then(
+    () => true,
+    () => false,
+  );
+  check("the strip is absent when nothing is due", gone, `logged for ${due.length} seeded slot(s)`);
+  // Put the seeded slots back as they were.
+  psql(
+    `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'dose' AND details->>'note' = '${TAG} clear'`,
+  );
+}
+
 // One proxy for caretaker@'s browser, shared by the list's, the print sheet's and the timeline's offline steps.
 // 9435, not 9434: slot 2's offset puts 9434 on 11434, Ollama's default port.
 const proxy = startProxy(9435);
@@ -2074,6 +2356,19 @@ try {
     await notFoundSteps(B, A);
   }
 
+  // Today's steps load many pages: a tab of its own (signed in through the
+  // browser's cookie) keeps A under Better Auth's per-page session limit.
+  const T = await openPage(bA, "caretaker-today");
+  pages.push(T);
+  await T.goto(LIST);
+  await T.waitFor("!!window.caretookSync && !!document.querySelector('main [data-medication-list]')", 20000);
+  if (SMOKE) await todaySteps(T);
+  else await todaySteps(T, { B: pages[1], C: pages[2] });
+  // Close the tab itself and bring A back to the front: a background tab gets no animation frames.
+  await T.send("Page.close").catch(() => undefined);
+  T.close();
+  await A.send("Page.bringToFront");
+
   if (SMOKE) await timelineSteps(A);
   else await timelineSteps(A, { B: pages[1], C: pages[2], proxyA });
 
@@ -2109,6 +2404,7 @@ try {
     psql(
       `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind IN ('dose', 'medicationChange')
          AND details->>'medicationId' IN (SELECT id::text FROM medication WHERE name LIKE '${TAG}%');
+       UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND kind = 'dose' AND details->>'note' LIKE '${TAG}%';
        UPDATE medication SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%';
        UPDATE provider SET deleted_at = now() WHERE deleted_at IS NULL AND name LIKE '${TAG}%'`,
     );

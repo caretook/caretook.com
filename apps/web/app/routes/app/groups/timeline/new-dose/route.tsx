@@ -1,28 +1,39 @@
 import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/api";
+import type { PlannedDose } from "~/lib/dueDoses";
 import type { DoseChoiceRow } from "~/lib/sync/medicationTimeline";
 
+import { useCallback, useMemo } from "react";
 import { redirect } from "react-router";
 import { Sheet } from "~/components/ui";
+import { doseWarnings } from "~/lib/dueDoses";
 import { getGroup } from "~/lib/group";
+import { doseWarningText } from "~/lib/medicationDisplay";
 import { sessionContext } from "~/lib/session";
+import { loadDueDoses, useDueDoses } from "~/lib/sync/dueDoses";
 import { logDose } from "~/lib/sync/medications";
 import { doseChoicesQuery, toDoseChoices } from "~/lib/sync/medicationTimeline";
 import { readRows } from "~/lib/sync/timeline";
-import { doseFromForm } from "../doseFormData";
+import { doseFromForm, doseSheetOptions } from "../doseFormData";
 import { DoseForm } from "../DoseForm";
 import { useCloseSheet } from "../sheet";
 import { newDoseGuard } from "../sheetGuard";
 
 // Shared by web + native. `timeline/new/dose` (`?medication=<id>&slot=08:00`
 // starts on that medication, for that slot): the Dose sheet, over the
-// timeline. It offers the group's current medications, the most recently
-// given first. A viewer lands on the timeline.
+// timeline. It offers the slots due now first, then the group's current
+// medications (the most recently given first), and asks before logging a
+// second dose for a slot or one past an as-needed maximum. A viewer lands on
+// the timeline.
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const choices = toDoseChoices(await readRows<DoseChoiceRow>(db, doseChoicesQuery(params.groupId)));
+  const [choiceRows, due] = await Promise.all([
+    readRows<DoseChoiceRow>(db, doseChoicesQuery(params.groupId)),
+    loadDueDoses(db, params.groupId),
+  ]);
+  const choices = toDoseChoices(choiceRows);
   const decision = newDoseGuard({
     groupId: group.id,
     search: new URL(request.url).search,
@@ -30,7 +41,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     choiceIds: choices.map((c) => c.id),
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
-  return { choices, ...decision.sheet };
+  return { choices, due, ...decision.sheet };
 }
 
 /** A local write; live queries show it at once, and PowerSync uploads it. */
@@ -41,9 +52,18 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
   return result.ok ? { ok: true } : result;
 }
 
-export default function NewDoseSheet({ loaderData }: Route.ComponentProps) {
+export default function NewDoseSheet({ loaderData, params }: Route.ComponentProps) {
   const { choices, medicationId, slot } = loaderData;
   const close = useCloseSheet();
+  const { due, timeZone } = useDueDoses(params.groupId, loaderData.due);
+  const { options, initial } = useMemo(
+    () => doseSheetOptions(choices, due, { medicationId, slot }),
+    [choices, due, medicationId, slot],
+  );
+  const warningsFor = useCallback(
+    (planned: PlannedDose) => doseWarnings(due, planned, new Date()).map((w) => doseWarningText(w, timeZone)),
+    [due, timeZone],
+  );
   return (
     <Sheet isOpen onOpenChange={(open) => !open && close()} title="Log a dose">
       {choices.length === 0 ? (
@@ -57,9 +77,9 @@ export default function NewDoseSheet({ loaderData }: Route.ComponentProps) {
         <DoseForm
           // A new URL is a new form (the medication, the slot, "When" set to now).
           key={`${medicationId}-${slot}`}
-          choices={choices}
-          initialMedicationId={medicationId}
-          slot={slot}
+          options={options}
+          initialOption={initial}
+          warningsFor={warningsFor}
           onDone={close}
           onCancel={close}
         />
