@@ -8,7 +8,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 - Login link allows clicking multiple times while already loading login flow... login flow very slow. (B-1)
   Status (2026-11-17): planned. Double submit is quick-fixes slice 1. The slowness was split out as B-22 (quick-fixes slice 3: measure first, then fix).
-- Only today and yesterday are shown in timeline on mobile. no dates are shows on timeline or sticky headers.
 - date picker entry box mobile-friendly. it expands outside of elements on small screens.
 - suggested provider list is too long on mobile.
 - timeline entry add modal should take up the full screen on mobile, don't leave room for header.
