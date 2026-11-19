@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | State                                    | Merge into `prd/search` (slice commits)     |
-| ----- | ---------------------------------------- | ------------------------------------------- |
-| 1     | landed in `dev` (`5016b1d`)              | `8f0d824` (`8a89d76`, `07989af`, `34f68fd`) |
-| 2     | ready; waiting for a Docker network       |                                             |
-| 3     | in progress (`.loops/search-3`)          |                                             |
-| 4     | blocked by 2 and 3                       |                                             |
-| 5     | blocked by 3                             |                                             |
-| 6     | in progress (`.loops/search-6`)          |                                             |
+| Slice | State                           | Merge into `prd/search` (slice commits)     |
+| ----- | ------------------------------- | ------------------------------------------- |
+| 1     | landed in `dev` (`5016b1d`)     | `8f0d824` (`8a89d76`, `07989af`, `34f68fd`) |
+| 2     | in progress (`.loops/search-2`) |                                             |
+| 3     | in progress (`.loops/search-3`) |                                             |
+| 4     | blocked by 2 and 3              |                                             |
+| 5     | blocked by 3                    |                                             |
+| 6     | merged                          | `a1961d9` (`dec4b03`, `d4a964d`)            |
 
 Backlog: B-11 is claimed by `prd/search`; mark it `done` after the last slice merges. The user said (2026-11-19) to land waves without asking, move on to the next work, and clean up at the end. Slice 2 waits until `appointments` has fully landed, including its slice 7 (the user's call), not just slices 1–6.
 
