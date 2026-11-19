@@ -104,7 +104,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-64 | feature | triaged | quick-fixes |  | Withdraw a pending join request from the requester's home |
 | B-65 | change | triaged | quick-fixes |  | New care groups get the recipient's time zone |
 | B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
-| B-67 | question | inbox |  |  | Access-code sign-up says when an address already has an account |
+| B-67 | change | triaged | quick-fixes |  | Access-code sign-up says when an address already has an account |
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | triaged | quick-fixes |  | Move the New care group link state into components/groups |
 | B-70 | bug | triaged | quick-fixes |  | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
@@ -854,10 +854,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: access_code.code is stored plain so staff can reprint a code from /admin (print page with QR). Only global admins and system can read it; a code is a sign-up ticket, not health data. Hashing would mean codes can only be printed once, at creation.
 - 2026-11-19 (Robert Bo Davis): Decided (user, 2026-11-19): keep access codes in plain text. A code only lets a new account start its own care group; it gives no access to any existing group's data, so staff can keep reprinting it.
 
-### B-67 · question · Access-code sign-up says when an address already has an account
+### B-67 · change · Access-code sign-up says when an address already has an account
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
 
