@@ -1,5 +1,6 @@
 import { newError } from "../../errors";
 import { dbMayFail } from "../client";
+import * as accessCodes from "./accessCodes";
 import * as accounts from "./accounts";
 import * as careGroups from "./careGroups";
 import * as invites from "./invites";
@@ -24,5 +25,6 @@ export const seed = async () => {
     await secondGroup.seed();
     await providers.seed();
     await invites.seed();
+    await accessCodes.seed();
   }, "db:seed");
 };

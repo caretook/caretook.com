@@ -35,6 +35,12 @@ export { careGroupConsentService };
 import * as joinRequestService from "./joinRequestService";
 export { joinRequestService };
 export type { JoinMailer, JoinNotice, JoinRecipient } from "./joinRequestService";
+import * as accessCodeService from "./accessCodeService";
+export { accessCodeService };
+
+import * as staffGroupService from "./staffGroupService";
+export { staffGroupService };
+export type { StaffGroupInput } from "./staffGroupService";
 
 export type * from "./types";
 
@@ -50,6 +56,8 @@ export const services = {
   entryProvider: entryProviderService,
   careGroupConsent: careGroupConsentService,
   joinRequest: joinRequestService,
+  accessCode: accessCodeService,
+  staffGroup: staffGroupService,
 };
 
 export type ServiceTypeMap = typeof services;

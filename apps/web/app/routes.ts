@@ -37,6 +37,8 @@ const appRoutes = [
         ]),
         route("providers/:providerId", "routes/app/groups/provider/route.tsx"),
       ]),
+      // Start another care group (a sheet over its own page; not a group route).
+      route("groups/new", "routes/app/groups/new/route.tsx"),
     ]),
   ]),
   route("sign-in", "routes/sign-in.tsx"),
@@ -46,6 +48,8 @@ const appRoutes = [
   route("verify-email", "routes/account/verify-email/route.tsx"),
   // An emailed invite's link: sign up or sign in, agree, join (or decline).
   route("invite/:token", "routes/account/invite/route.tsx"),
+  // A staff access code's link (or QR): an account and a new care group.
+  route("join/:code", "routes/account/join/route.tsx"),
 ];
 
 // Web-only: marketing, auth callbacks, anything needing server loaders.
@@ -71,6 +75,13 @@ const webRoutes = [
   route("dev/mail", "routes/dev/mail/list/route.tsx"),
   route("dev/mail.json", "routes/dev/mail/json/route.ts"),
   route("dev/mail/:id", "routes/dev/mail/message/route.tsx"),
+  // Caretook staff only (global admin): access codes and staff-made groups.
+  layout("routes/admin/layout/route.tsx", { id: "admin" }, [
+    route("admin", "routes/admin/index/route.tsx"),
+    route("admin/access-codes", "routes/admin/access-codes/route.tsx"),
+    route("admin/new-group", "routes/admin/new-group/route.tsx"),
+  ]),
+  route("admin/access-codes/:id/print", "routes/admin/access-codes-print/route.tsx"),
 ];
 
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.

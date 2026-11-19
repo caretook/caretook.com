@@ -38,6 +38,7 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
     role: "viewer",
   },
   joinDeclined: { name: "Robin", groupName: "Grandma Example" },
+  ownerInvite: { groupName: "Grandpa Example", token: "ownerTok_456-y" },
 };
 
 // Notifications whose email carries no link (a code to type in).

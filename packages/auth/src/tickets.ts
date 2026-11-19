@@ -1,21 +1,26 @@
-import type { AppError } from "@caretook/data";
+import type { AppError, NewCareGroupInput } from "@caretook/data";
 
 import {
+  accessCodeService,
+  accountSchema,
   careGroupInviteService,
   emailMatches,
   isError,
   newError,
   normalizeInviteEmail,
   SYSTEM_USER,
+  userModel,
+  withTransaction,
 } from "@caretook/data";
 import { getAuth } from "./auth";
 
 // Caretook is invitation-only: public sign-up stays off (`disableSignUp`),
 // and an account is created only here, with a ticket: an email invite's
-// token, or an invite link's (slice 4). Access codes (slice 5) add their own
-// ticket kind.
+// token or an invite link's (slices 3 and 4), or a staff access code (slice 5),
+// which also starts the person's own care group.
 
-export type Ticket = { kind: "invite"; token: string };
+export type Ticket =
+  { kind: "invite"; token: string } | { kind: "accessCode"; code: string; group: NewCareGroupInput };
 
 export type SignUpWithTicketInput = {
   ticket: Ticket;
@@ -42,8 +47,9 @@ export const signUpWithTicket = async ({
   email,
   password,
 }: SignUpWithTicketInput): Promise<
-  { id: string | null; email: string; emailVerified: boolean } | AppError
+  { id: string | null; email: string; emailVerified: boolean; groupId?: string } | AppError
 > => {
+  if (ticket.kind === "accessCode") return signUpWithAccessCode({ ticket, name, email, password });
   const invite = await careGroupInviteService.ticketFor(ticket.token);
   if (isError(invite)) return invite;
   const byEmail = invite.kind === "email";
@@ -91,4 +97,60 @@ export const signUpWithTicket = async ({
         : { id: null, email: address, emailVerified: false };
     throw e;
   }
+};
+
+/**
+ * An access code's sign-up: in one transaction, the account (not yet
+ * verified: the code doesn't prove the address, so the person confirms it
+ * by email before using the app), its password, and the code's redemption,
+ * which creates their care group with them as its owner. Any refusal (a
+ * used-up code, an address already taken) leaves nothing behind.
+ */
+const signUpWithAccessCode = async ({
+  ticket,
+  name,
+  email,
+  password,
+}: SignUpWithTicketInput & { ticket: Extract<Ticket, { kind: "accessCode" }> }) => {
+  const ctx = await getAuth().$context;
+  const { minPasswordLength, maxPasswordLength } = ctx.password.config;
+  if (password.length < minPasswordLength || password.length > maxPasswordLength) {
+    return newError({ code: "ticket:weakPassword" });
+  }
+  const address = normalizeInviteEmail(email);
+  const hash = await ctx.password.hash(password);
+
+  const result = await withTransaction(async (tx) => {
+    const system = { authUser: SYSTEM_USER, tx };
+    const existing = await userModel.get({ ...system, filter: { email: { type: "eq", value: address } } });
+    if (isError(existing)) return existing;
+    if (existing) return newError({ code: "ticket:accountExists" });
+
+    const user = await userModel.create({
+      ...system,
+      data: { email: address, name: name.trim(), emailVerified: false },
+    });
+    if (isError(user)) return user;
+    if (!user) return newError({ code: "baseModel:create:nothingCreated" });
+    await tx
+      .insert(accountSchema)
+      .values({ userId: user.id, providerId: "credential", accountId: user.id, password: hash });
+
+    const redeemed = await accessCodeService.redeem(tx, {
+      code: ticket.code,
+      userId: user.id,
+      group: ticket.group,
+    });
+    if (isError(redeemed)) return redeemed;
+    return { id: user.id, email: user.email, emailVerified: false, groupId: redeemed.groupId };
+  });
+  // Two sign-ups with one address at once: the unique email decides.
+  if (isError(result) && result.code === "db:transaction") {
+    const taken = await userModel.get({
+      authUser: SYSTEM_USER,
+      filter: { email: { type: "eq", value: address } },
+    });
+    if (!isError(taken) && taken) return newError({ code: "ticket:accountExists" });
+  }
+  return result;
 };

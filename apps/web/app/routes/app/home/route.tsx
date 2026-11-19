@@ -10,6 +10,7 @@ import { sessionContext } from "~/lib/session";
 import { useLiveQuery, waitForFirstSync } from "~/lib/sync";
 import { myGroupsQuery, readRows, toMyGroup } from "~/lib/sync/timeline";
 import { loadMyRequests, PendingRequests } from "./PendingRequests";
+import { NewGroupLink } from "./NewGroupLink";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Caretook" }];
@@ -54,6 +55,7 @@ export default function AppHome({ loaderData }: Route.ComponentProps) {
           ))}
         </ul>
       )}
+      <NewGroupLink />
     </main>
   );
 }

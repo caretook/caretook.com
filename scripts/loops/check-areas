@@ -64,6 +64,19 @@ apps/web/app/routes/api/cron/*           -
 apps/web/app/routes/dev/*                -
 apps/web/app/.server/notifications.ts    -
 
+# Starting care groups (invites slice 5): /join/:code, the New care group
+# sheet, the timeline's Invite someone card and the web-only /admin pages.
+apps/web/app/routes/account/join/*       groups
+apps/web/app/routes/admin/*              groups
+apps/web/app/.server/admin.ts            groups
+apps/web/app/routes/app/groups/new/*     groups app-shell
+apps/web/app/routes/app/home/NewGroupLink.tsx groups app-shell first-sync
+apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx groups phase2
+packages/api/src/groups.ts               groups
+packages/data/src/db/schema/accessCode.ts groups
+packages/data/src/db/schema/newCareGroup.ts groups
+packages/data/src/db/seeds/accessCodes.ts groups
+
 # Sign-in, session, the sync client and first sync.
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites
 apps/web/app/routes/account/*            invites sign-in

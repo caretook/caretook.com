@@ -279,6 +279,24 @@ export const PERMISSIONS: Permissions = {
     update: SYSTEM_ONLY_ENTRY,
     delete: SYSTEM_ONLY_ENTRY,
   },
+
+  // Access codes (staff-made tickets for starting a group) and who used
+  // them: Caretook staff (global admin) only. Redeeming a code runs as the
+  // system, inside sign-up (accessCodeService.redeem).
+  accessCodeSchema: {
+    create: ADMIN_ONLY_PERMISSION_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    update: { ...ADMIN_ONLY_PERMISSION_ENTRY, fields: { code: SYSTEM_ONLY, useCount: SYSTEM_ONLY } },
+    delete: ADMIN_ONLY_PERMISSION_ENTRY,
+  },
+  accessCodeRedemptionSchema: {
+    create: SYSTEM_ONLY_ENTRY,
+    read: ADMIN_ONLY_PERMISSION_ENTRY,
+    list: ADMIN_ONLY_PERMISSION_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
+  },
 };
 
 // ---------------------------------------------------------------------------

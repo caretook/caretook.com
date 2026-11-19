@@ -122,6 +122,13 @@ export const MODEL_ERRORS = {
   },
   "careGroupJoinRequestModel:lock": {
     message: "Failed to look up the join request",
+    statusCode: 403,
+  },
+  "accessCodeModel:getByCode": {
+    message: "Failed to look up the access code",
+  },
+  "accessCodeModel:countUse": {
+    message: "Failed to count the access code's use",
   },
 } as const;
 
@@ -315,6 +322,25 @@ export const SERVICE_ERRORS = {
   },
   "joinRequestService:notAllowed": {
     message: "Only the care group's owners and admins can answer requests to join",
+    statusCode: 403,
+  },
+  "accessCodeService:notFound": {
+    message: "That access code isn't valid",
+    statusCode: 404,
+  },
+  "accessCodeService:unusable": {
+    message: "This access code can't be used any more",
+    statusCode: 409,
+  },
+  "accessCodeService:invalid": {
+    message: "Check the form and try again",
+    statusCode: 400,
+  },
+  "accessCodeService:noUniqueCode": {
+    message: "Couldn't make a new access code. Try again.",
+  },
+  "staffGroupService:staffOnly": {
+    message: "Only Caretook staff can do that",
     statusCode: 403,
   },
 } as const;
