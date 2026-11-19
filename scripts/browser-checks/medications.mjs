@@ -33,6 +33,18 @@
 // - a deleted medication's, another group's and a non-member's URL is the
 //   404 with no names.
 //
+// Slice 6 adds the printable sheet and the provider page's medications:
+//
+// - the list's Print link opens the sheet: the recipient's name, date of
+//   birth, group and day printed; the seeded current medications by name
+//   with their prescriber; the completed antibiotic and the discontinued one
+//   with its reason; the prescriber's and pharmacy's first phones;
+// - Print calls window.print(); in print media (420 and 1280, screenshots)
+//   there's no header, tab bar or button, the tables fit the page, and it's
+//   black on white in the dark theme too; it opens offline;
+// - a prescriber's and the pharmacy's pages list the current medications
+//   they prescribe or fill, each opening its page.
+//
 // Schedule wording and the list's order and matching are unit-tested
 // (medicationDisplay.test.ts, medicationList.test.ts): the steps here check
 // one case each, on the page. Later slices add their screens' steps here.
@@ -1219,7 +1231,203 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
   }
 }
 
-// One proxy for caretaker@'s browser: the list's offline steps and the timeline's.
+// Slice 6: the printable sheet and the provider page's medications
+// ---------------------------------------------------------------------------
+
+const onPrint = `location.pathname.endsWith("/medications/print") && document.querySelectorAll("main [data-print-medication]").length >= 4`;
+/** The sheet as the DOM has it, leaving out every run's tagged medications. */
+const printState = (p) =>
+  p.evaluate(`(() => {
+    const titles = (sel) => [...document.querySelectorAll(sel)].map((r) => r.querySelector("[data-print-title]")?.firstChild?.textContent.trim() ?? "").filter((t) => !t.startsWith("MV-"));
+    const field = (f) => document.querySelector('main [data-print-field="' + f + '"]')?.textContent.trim() ?? null;
+    return {
+      name: field("name"), dob: field("dateOfBirth"), group: field("group"), printed: field("printed"),
+      current: titles("main tr[data-print-medication]"),
+      prescribers: Object.fromEntries([...document.querySelectorAll("main tr[data-print-medication]")].map((r) => [r.querySelector("[data-print-title]")?.firstChild?.textContent.trim(), r.querySelector("[data-print-prescriber]")?.textContent.trim()])),
+      stopped: [...document.querySelectorAll("main tr[data-print-stopped]")].map((r) => [r.querySelector("[data-print-title]")?.textContent.trim(), r.querySelector("[data-print-when]")?.textContent.trim(), r.querySelector("[data-print-why]")?.textContent.trim()]),
+      contacts: [...document.querySelectorAll("main tr[data-print-contact]")].map((r) => [r.querySelector("[data-print-title]")?.textContent.trim(), r.querySelector("[data-print-phone]")?.firstChild?.textContent.trim()]),
+    };
+  })()`);
+/** What printing would show: the frame and every control hidden, black on white, nothing wider than the page. */
+const printLayout = (p) =>
+  p.evaluate(`(() => {
+    const shown = (el) => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+    const tables = [...document.querySelectorAll("main [data-print-sheet] table")];
+    return {
+      header: shown(document.querySelector("header.navbar")),
+      tabBar: shown(document.querySelector('nav.dock[aria-label="Group sections"]')),
+      controls: [...document.querySelectorAll("button, a.btn, input, [role=button]")].filter(shown).map((el) => el.textContent.trim() || el.tagName),
+      tables: tables.length,
+      fits: tables.every((t) => t.getBoundingClientRect().right <= document.documentElement.clientWidth + 0.5 && t.scrollWidth <= t.clientWidth + 1),
+      pageFits: document.documentElement.scrollWidth <= innerWidth,
+      background: getComputedStyle(document.body).backgroundColor,
+      color: getComputedStyle(document.querySelector("main [data-print-sheet] h1")).color,
+      cell: getComputedStyle(document.querySelector("main [data-print-sheet] td")).color,
+    };
+  })()`);
+
+/** The sheet from the list's Print link: what's on it, the Print button, and print media at 420 and 1280 (A). */
+async function printSteps(p) {
+  await p.goto(LIST);
+  await p.waitFor(`!!document.querySelector("main a[data-print-link]")`, 20000).catch(() => {});
+  await p.tap(`document.querySelector("main a[data-print-link]")`);
+  await p.waitFor(onPrint, 20000).catch(() => {});
+  const sheet = await printState(p);
+  const dob = psql(`SELECT date_of_birth FROM care_recipient WHERE group_id = '${DEV_FAMILY}'`);
+  check(
+    "the list's Print link opens the sheet: the recipient, the date of birth, the group and the day printed",
+    sheet.name?.includes("Grandma Pat") &&
+      dob === "1941-03-14" &&
+      sheet.dob === "Mar 14, 1941" &&
+      sheet.group === "Dev Family" &&
+      /^\w{3} \d{1,2}, \d{4}$/.test(sheet.printed ?? ""),
+    JSON.stringify({ name: sheet.name, dob: sheet.dob, group: sheet.group, printed: sheet.printed }),
+  );
+  check(
+    "the sheet lists the seeded current medications by name, with their prescriber",
+    same(sheet.current, SEEDED_CURRENT) &&
+      sheet.prescribers["Lisinopril 10 mg"] === "Dr. Elena Alvarez" &&
+      sheet.prescribers["Latanoprost 0.005%"] === "",
+    JSON.stringify({ current: sheet.current, prescribers: sheet.prescribers }),
+  );
+  check(
+    "…the completed antibiotic and the discontinued one with its reason, most recently stopped first",
+    sheet.stopped.length === 2 &&
+      sheet.stopped[0][0] === "Amoxicillin 500 mg" &&
+      /^Completed \w{3} \d{1,2}, \d{4}$/.test(sheet.stopped[0][1]) &&
+      sheet.stopped[1][0].startsWith("Oxybutynin") &&
+      /^Discontinued \w{3} \d{1,2}, \d{4}$/.test(sheet.stopped[1][1]) &&
+      sheet.stopped[1][2]?.startsWith("Side effects"),
+    JSON.stringify(sheet.stopped),
+  );
+  check(
+    "…and the prescriber's and pharmacy's first phones, once each",
+    same(sheet.contacts, [
+      ["Dr. Elena Alvarez", "(555) 010-2200 x214"],
+      ["Cornerstone Pharmacy", "(555) 010-4400"],
+    ]),
+    JSON.stringify(sheet.contacts),
+  );
+
+  // The Print button prints (stubbed: headless Chrome has no print dialog).
+  await p.evaluate(`window.__printed = 0; window.print = () => { window.__printed++; }; true`);
+  await p.tap(`[...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Print")`);
+  check("the Print button calls window.print()", (await p.evaluate(`window.__printed`)) === 1);
+
+  // Print media: no frame, no buttons, black on white (even in the dark theme), the tables within the page.
+  const layouts = {};
+  for (const [width, mobile] of [
+    [420, true],
+    [1280, false],
+  ]) {
+    await metrics(p, width, mobile);
+    await p.send("Emulation.setEmulatedMedia", { media: "print" });
+    await sleep(300);
+    layouts[width] = await printLayout(p);
+    await p.screenshot(`medications-print-${width}`);
+  }
+  await p.evaluate(`document.documentElement.dataset.theme = "dark"; true`);
+  await sleep(200);
+  const dark = await printLayout(p);
+  await p.evaluate(`delete document.documentElement.dataset.theme; true`);
+  await p.send("Emulation.setEmulatedMedia", { media: "" });
+  await metrics(p, 420, true);
+  const clean = (l) => !l.header && !l.tabBar && l.controls.length === 0 && l.tables === 3;
+  check(
+    "printed, the sheet has no header, tab bar or buttons, at 420 and 1280",
+    clean(layouts[420]) && clean(layouts[1280]),
+    JSON.stringify(layouts),
+  );
+  check(
+    "printed, the tables fit the page width at 420 and 1280",
+    layouts[420].fits && layouts[420].pageFits && layouts[1280].fits && layouts[1280].pageFits,
+    JSON.stringify({
+      420: [layouts[420].fits, layouts[420].pageFits],
+      1280: [layouts[1280].fits, layouts[1280].pageFits],
+    }),
+  );
+  const black = (l) =>
+    l.background === "rgb(255, 255, 255)" && l.color === "rgb(0, 0, 0)" && l.cell === "rgb(0, 0, 0)";
+  check(
+    "printed, it's black on white, in the dark theme too",
+    black(layouts[1280]) && black(dark),
+    JSON.stringify({
+      light: [layouts[1280].background, layouts[1280].color],
+      dark: [dark.background, dark.color],
+    }),
+  );
+}
+
+/** Offline (A behind `proxy`): the sheet opens from the device's copy. */
+async function printOfflineSteps(p, proxy) {
+  await p.goto(LIST);
+  await p.waitFor(`!!document.querySelector("main a[data-print-link]")`, 20000).catch(() => {});
+  const errorsBefore = p.errors.length;
+  proxy.setOnline(false);
+  await p.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 15000).catch(() => {});
+  await p.tap(`document.querySelector("main a[data-print-link]")`);
+  await p.waitFor(onPrint, 15000).catch(() => {});
+  const sheet = await printState(p);
+  check(
+    "offline: the sheet opens from the device's copy, with the date of birth and phones",
+    same(sheet.current, SEEDED_CURRENT) && sheet.dob === "Mar 14, 1941" && sheet.contacts.length === 2,
+    JSON.stringify({ current: sheet.current, dob: sheet.dob, contacts: sheet.contacts.length }),
+  );
+  proxy.setOnline(true);
+  await p.waitFor(`window.caretookSync.powersync.currentStatus.connected`, 30000).catch(() => {});
+  p.errors.splice(errorsBefore);
+}
+
+/** The provider page's Medications: the prescriber's and the pharmacy's current medications (A). */
+async function providerMedicationSteps(p) {
+  const providerPath = (name) =>
+    `/app/groups/${DEV_FAMILY}/providers/${psql(`SELECT id FROM provider WHERE group_id = '${DEV_FAMILY}' AND name = '${name}'`)}`;
+  const region = (p) =>
+    p.evaluate(
+      `[...document.querySelectorAll("main [data-provider-medications] a[data-medication-id]")].map((a) => [a.querySelector("[data-medication-name]")?.textContent.trim(), a.querySelector("[data-medication-role]")?.textContent.trim()]).filter(([n]) => !n.startsWith("MV-"))`,
+    );
+  const ready = `!!document.querySelector("main [data-provider-medications] a[data-medication-id]")`;
+
+  await p.goto(providerPath("Dr. Elena Alvarez"));
+  await p.waitFor(ready, 20000).catch(() => {});
+  const prescribed = await region(p);
+  check(
+    "a prescriber's page lists the current medications they prescribe (not stopped ones)",
+    same(prescribed, [
+      ["Lisinopril 10 mg", "Prescribes"],
+      ["Metformin 500 mg", "Prescribes"],
+    ]),
+    JSON.stringify(prescribed),
+  );
+
+  await p.goto(providerPath("Cornerstone Pharmacy"));
+  await p.waitFor(ready, 20000).catch(() => {});
+  const filled = await region(p);
+  check(
+    "the pharmacy's page lists the current medications it fills",
+    same(filled, [
+      ["Latanoprost 0.005%", "Fills"],
+      ["Lisinopril 10 mg", "Fills"],
+      ["Metformin 500 mg", "Fills"],
+    ]),
+    JSON.stringify(filled),
+  );
+  const lat = await medicationId(p, "Latanoprost");
+  await p.tap(`document.querySelector('main [data-provider-medications] a[data-medication-id="${lat}"]')`);
+  await p.waitFor(onMedPage(lat), 15000).then(
+    () => check("…and each opens its medication page", true),
+    () => check("…and each opens its medication page", false),
+  );
+
+  await p.goto(providerPath("Dr. Samuel Patel"));
+  await p.waitFor(`!!document.querySelector("main [data-linked-entries]")`, 20000).catch(() => {});
+  check(
+    "a provider with no medications shows no Medications region",
+    !(await p.evaluate(`!!document.querySelector("main [data-provider-medications]")`)),
+  );
+}
+
+// One proxy for caretaker@'s browser: the list's offline steps the print sheet's and the timeline's.
 const proxy = startProxy(9434);
 const proxyA = proxy;
 const bA = await launch(9431, proxy.args);
@@ -1235,6 +1443,8 @@ try {
   const made = await writeSteps(A);
   await listSteps(A);
   await pageSteps(A);
+  await printSteps(A);
+  await providerMedicationSteps(A);
 
   if (!SMOKE) {
     // member@ is in both groups: each group's medications stay its own.
@@ -1262,6 +1472,7 @@ try {
     );
     const notesId = await notesSteps(A, B);
     await offlineSteps(A, proxy);
+    await printOfflineSteps(A, proxy);
     if (made) {
       const synced = await waitForLocal(
         B,

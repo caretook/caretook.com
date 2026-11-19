@@ -41,8 +41,8 @@ export function TabBar({ groupId, pathname }: { groupId: string; pathname: strin
   if (isTabBarHidden(pathname, groupId)) return null;
   return (
     <>
-      <div aria-hidden="true" data-tab-bar-spacer className="h-(--tab-bar-height) sm:hidden" />
-      <nav aria-label="Group sections" className="dock z-40 h-(--tab-bar-height) sm:hidden">
+      <div aria-hidden="true" data-tab-bar-spacer className="h-(--tab-bar-height) sm:hidden print:hidden" />
+      <nav aria-label="Group sections" className="dock z-40 h-(--tab-bar-height) sm:hidden print:hidden">
         {GROUP_SECTIONS.map((section) => {
           const current = sectionCurrent(section, pathname, groupId);
           const Icon = section.icon;
