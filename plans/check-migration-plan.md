@@ -11,9 +11,9 @@
 | 3     | landed (wave 2)                      | c7ebf04 (dc3b2ec, a1f84cb, 988c4de)              |
 | 4     | landed (wave 2)                      | 7e632ee (58cfc90)                                |
 | 5     | landed (wave 2)                      | 7bfa916 (3542457, e554d48)                       |
-| 6     | blocked by 1, 2                      |                                                  |
-| 7     | blocked by 1, 2                      |                                                  |
-| 8     | blocked by 1, 2                      |                                                  |
+| 6     | in progress (wave 3)                 |                                                  |
+| 7     | in progress (wave 3)                 |                                                  |
+| 8     | in progress (wave 3)                 |                                                  |
 | 9     | blocked by 1, 2                      |                                                  |
 | 10    | blocked by 1, 2                      |                                                  |
 | 11    | blocked by 9 and `assistant` slice 7 |                                                  |
@@ -36,7 +36,7 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19) for slice 2's sync matrix (9c0b2bf); slice 5 lowered it to 350.
 
-**Now:** waves 1 and 2 (slices 1–5) landed together on 2026-11-19, after assistant's c17c121 fixed dev's two failing tests: suite 12/12 in 5m19s, `pnpm prd check` 3238/3238. Lean total and ceiling 350. `layout-offline` ran 33 s against its listed 15 (27 s before this wave's folds); its usual seconds are understated, so a later slice that touches it should measure it. Orchestrator fixes on this branch: f6a4db8 (settle test), the timelineFilters race (B-131), `retry: 2` on timelineScroll's B-133 flake (remove when B-133 is fixed). Next: wave 3 (6, 7, 8).
+**Now:** wave 3 (6, 7, 8) started 2026-11-20. Waves 1 and 2 (slices 1–5) landed in dev as 2040ed3 on 2026-11-19, after assistant's c17c121 fixed dev's two failing tests: suite 12/12 in 5m19s, `pnpm prd check` 3238/3238. Lean total and ceiling 350. `layout-offline` ran 33 s against its listed 15 (27 s before this wave's folds); its usual seconds are understated, so a later slice that touches it should measure it. Orchestrator fixes on this branch: f6a4db8 (settle test), the timelineFilters race (B-131), `retry: 2` on timelineScroll's B-133 flake (remove when B-133 is fixed).
 
 Backlog: claim each slice's items when it starts: 1 B-131; 2 B-128; 3 B-114; 4 B-115; 5 B-120; 6 B-124; 7 B-125 (and B-113's admin part); 9 and 11 B-118 (done after 11); 10 B-121; 12 B-126; 13 B-119; 14 B-116 (and B-113's providers part; B-113 done after 14); 15 B-117; 16 B-122; 17 B-127; 19 to 23 B-129 (done after 23).
 
