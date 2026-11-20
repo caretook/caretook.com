@@ -360,9 +360,7 @@ try {
     // The note's page opens online (its route module loads on first use);
     // the network goes before anything is typed.
     const word = `${tag}offline`;
-    const note = `[...document.querySelectorAll('[aria-label="Add to the timeline"] a')].find((a) => a.textContent.trim() === "Note")`;
-    await A.waitFor(note, 10000);
-    await A.press(note);
+    await A.addToTimeline("Note");
     await A.waitFor(`document.querySelector(".ProseMirror")`, 15000);
     proxy.setOnline(false);
     await A.waitFor(`document.body.textContent.includes("Offline")`, 20000).catch(() => undefined);

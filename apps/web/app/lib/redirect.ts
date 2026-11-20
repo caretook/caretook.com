@@ -5,7 +5,7 @@ export const safeRedirect = (to: string | null | undefined, fallback = appUrls.h
   to?.startsWith("/") && !to.startsWith("//") && !to.startsWith("/\\") ? to : fallback;
 
 /** Why sign-in was asked for, when the sign-in page should say so. */
-export type SignInReason = "offline";
+export type SignInReason = "offline" | "rate-limited";
 
 export const signInUrl = (request: Request, { reason }: { reason?: SignInReason } = {}) => {
   const { pathname, search } = new URL(request.url);
