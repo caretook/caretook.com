@@ -61,7 +61,7 @@ apps/web/app/.server/securityHeaders.ts  sign-in phase2 roundtrip live-notes mar
 apps/web/app/lib/csp.ts                  sign-in phase2 roundtrip live-notes marketing invites
 apps/web/app/routes/web/*                sign-in marketing invites
 apps/web/vercel.json                     sign-in marketing
-apps/web/app/app.css                     ui medications
+apps/web/app/app.css                     ui
 # The production PowerSync settings, for the runbook (hosting slice 2): nothing loads it.
 powersync/service.production.example.yaml -
 powersync/*                              @suite
@@ -80,16 +80,18 @@ apps/web/app/routes/api/cron/*           -
 apps/web/app/routes/dev/*                -
 apps/web/app/.server/notifications.ts    -
 
-# Starting care groups (invites slice 5): /join/:code, the New care group
-# sheet, the timeline's Invite someone card and /admin's access codes, new
-# group and waitlist pages.
-apps/web/app/routes/account/join/*       groups
+# Starting care groups (invites slice 5; check-migration slice 15): /join/:code,
+# the New care group sheet, the Invite someone card and /admin's access codes,
+# new group and waitlist pages are component tests beside them, and the
+# services and procedures integration tests. invites.mjs step 13 keeps /join's
+# sign-up through the emailed confirmation to the new group (and a revoked
+# code); first-sync.mjs step 2c keeps careGroup.create syncing the new group in.
+apps/web/app/routes/account/join/*       invites
 # /admin (admin PRD; check-migration slice 7): every screen is component tests
 # beside it (routes/admin/*.browser.test.tsx, from loader data), and the
 # services and procedures are integration tests. app-shell.mjs keeps what only
 # the server proves: /admin a 404 for non-staff (the door, the staff rules), a
 # real action's audit row on /admin/audit, and the banner reaching /app.
-# Access codes, new group and the waitlist are still groups.mjs's.
 apps/web/app/routes/admin/adminWorld.tsx -
 apps/web/app/routes/admin/audit/*        -
 apps/web/app/routes/admin/AuditEntryList.tsx -
@@ -106,27 +108,27 @@ apps/web/app/routes/admin/groupDisplay.ts -
 # switches' consumers (access codes, invites).
 apps/web/app/routes/admin/settings/*     -
 packages/api/src/settingsAdmin.ts        app-shell
-packages/data/src/db/schema/appSettings.ts app-shell groups invites
-packages/data/src/services/appSettingService.ts app-shell groups invites
+packages/data/src/db/schema/appSettings.ts app-shell invites
+packages/data/src/services/appSettingService.ts app-shell invites
 packages/data/src/models/appSetting/*    app-shell
 # The announcement banner: public.announcement and /app's banner.
 packages/api/src/announcement.ts         app-shell
 apps/web/app/routes/app/layout/Announcement.tsx app-shell
 apps/web/app/routes/app/layout/useAnnouncement.ts app-shell
 apps/web/app/components/shell/AnnouncementBanner.tsx app-shell first-sync
-packages/data/src/services/careGroupInviteService.ts invites groups
+packages/data/src/services/careGroupInviteService.ts invites
 # Email suppressions (hosting slice 4): the screen is component tests
 # (suppressions/suppressions.browser.test.tsx); the webhook, the service and
 # the outbox's skip are integration tests. Above the /admin catch-all.
 apps/web/app/routes/admin/suppressions/* -
-apps/web/app/routes/admin/*              groups
-apps/web/app/.server/admin.ts            app-shell groups
+apps/web/app/routes/admin/*              -
+apps/web/app/.server/admin.ts            app-shell invites
 packages/api/src/auditAdmin.ts           app-shell
-packages/api/src/procedures.ts           app-shell groups
-packages/data/src/db/schema/staffRules.ts app-shell groups
+packages/api/src/procedures.ts           app-shell
+packages/data/src/db/schema/staffRules.ts app-shell
 packages/data/src/db/schema/adminAudit.ts app-shell
 packages/data/src/services/adminAuditService.ts app-shell
-packages/data/src/services/staffAccess.ts app-shell groups
+packages/data/src/services/staffAccess.ts app-shell
 packages/data/src/models/adminAuditLog/* app-shell
 packages/api/src/usersAdmin.ts           -
 packages/data/src/services/accountAdminService.ts -
@@ -137,18 +139,18 @@ packages/data/src/models/groupDirectory/* -
 packages/data/src/db/schema/groupAdminRules.ts -
 packages/api/src/groupsAdmin.ts          -
 packages/data/src/db/seeds/staff.ts      app-shell
-packages/data/src/services/accessCodeService.ts groups
-packages/data/src/services/staffGroupService.ts groups
-apps/web/app/routes/app/groups/new/*     groups
-apps/web/app/components/groups/*         groups
-apps/web/app/routes/app/home/NewGroupLink.tsx groups first-sync
-apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx groups
-packages/api/src/groups.ts               groups
-# The admin waitlist (marketing slice 5): its steps are in groups.mjs.
-packages/api/src/waitlistAdmin.ts        groups
-packages/data/src/db/schema/accessCode.ts groups
-packages/data/src/db/schema/newCareGroup.ts groups
-packages/data/src/db/seeds/accessCodes.ts groups
+packages/data/src/services/accessCodeService.ts invites
+packages/data/src/services/staffGroupService.ts -
+apps/web/app/routes/app/groups/new/*     first-sync
+apps/web/app/components/groups/*         first-sync invites
+apps/web/app/routes/app/home/NewGroupLink.tsx first-sync
+apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx -
+packages/api/src/groups.ts               first-sync invites
+# The admin waitlist (marketing slice 5): component tests and waitlistAdmin.int.test.ts.
+packages/api/src/waitlistAdmin.ts        -
+packages/data/src/db/schema/accessCode.ts invites
+packages/data/src/db/schema/newCareGroup.ts first-sync invites
+packages/data/src/db/seeds/accessCodes.ts invites
 
 # The recipient's profile, its sheets, the emergency sheet and the ways in
 # (the group menu, the timeline's recipient card, group settings Details'
@@ -182,9 +184,9 @@ apps/web/app/lib/redirect.ts             sign-in session-end
 apps/web/app/lib/firstSync.ts            first-sync
 apps/web/app/lib/auth-client.ts          sign-in signout-wipe
 apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe session-end
-apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell providers
+apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell
 apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
-apps/web/app/lib/sync/schema.ts          roundtrip live-notes providers phase2
+apps/web/app/lib/sync/schema.ts          roundtrip live-notes phase2
 # Trusted origins and the client IP (hosting slice 8): Better Auth's sign-in
 # and limits, and the public forms' limit on /rpc.
 packages/auth/src/host.ts                sign-in marketing
@@ -226,8 +228,8 @@ apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contact
 apps/web/app/routes/app/groups/settings/members/* app-shell invites profiles-contacts
 apps/web/app/routes/app/groups/settings/* app-shell
 apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts
-# The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
-apps/web/app/components/ui/date/*        ui roundtrip medications
+# The date field: its own steps in ui, and the sheets and time chip that type and pick with it.
+apps/web/app/components/ui/date/*        ui roundtrip
 apps/web/app/components/ui/*             ui
 apps/web/app/components/brand/*          marketing
 
@@ -235,20 +237,21 @@ apps/web/app/components/brand/*          marketing
 # boundary markers) are component tests (timelineCarePeriods, timelineHeader):
 # timeline/* below; lib/periodMarkers.ts has its unit tests.
 # The timeline, its rows, filters, vitals and sheets.
-# Doses and medication changes on the timeline (medications slice 4).
-apps/web/app/routes/app/groups/timeline/new-dose/* medications
-apps/web/app/routes/app/groups/timeline/DoseForm.tsx medications
-apps/web/app/routes/app/groups/timeline/doseFormData.ts medications
-# Pass logs on the timeline and the pass sheet (medications-2 slice 6).
-apps/web/app/routes/app/groups/timeline/pass/* medications
-apps/web/app/routes/app/groups/timeline/PassLogItem.tsx medications
-apps/web/app/lib/sync/passLogs.ts        medications
-apps/web/app/components/entry/MedicationEntryText.tsx medications
-apps/web/app/lib/sync/medicationTimeline.ts medications phase2
-# Today and the Due now strip (medications slice 5).
-apps/web/app/routes/app/groups/timeline/MedicationStrip.tsx medications
-apps/web/app/routes/app/groups/timeline/useMedicationStrip.ts medications
-apps/web/app/lib/sync/dueDoses.ts        medications phase2
+# Doses and medication changes on the timeline, the Dose sheet, pass logs and
+# the pass sheet, and the medication strip (check-migration slice 11):
+# component tests (timelineDoses, timelineMedicationStrip, pass/passSheet).
+# The pass sheet's writes reaching another device are roundtrip's sync matrix.
+apps/web/app/routes/app/groups/timeline/new-dose/* -
+apps/web/app/routes/app/groups/timeline/DoseForm.tsx -
+apps/web/app/routes/app/groups/timeline/doseFormData.ts -
+apps/web/app/routes/app/groups/timeline/pass/* -
+apps/web/app/routes/app/groups/timeline/PassLogItem.tsx -
+apps/web/app/lib/sync/passLogs.ts        roundtrip
+apps/web/app/components/entry/MedicationEntryText.tsx -
+apps/web/app/lib/sync/medicationTimeline.ts phase2
+apps/web/app/routes/app/groups/timeline/MedicationStrip.tsx -
+apps/web/app/routes/app/groups/timeline/useMedicationStrip.ts -
+apps/web/app/lib/sync/dueDoses.ts        phase2
 # The timeline's Next strip and Upcoming block, and the data they share with
 # the history: component tests (timeline/timelineUpcoming.browser.test.tsx),
 # under timeline/* below.
@@ -281,39 +284,39 @@ apps/web/app/lib/form.ts                 roundtrip
 # The entry page and live notes.
 # The entry page's care period suggestion is component tests
 # (entry/entryPeriodSuggestion.browser.test.tsx): entry/* below.
-apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx providers
-# The With row and the place: providers.mjs. What the page writes (and so uploads): live-notes.
-apps/web/app/routes/app/groups/entry/EntryWithRow.tsx providers
-apps/web/app/routes/app/groups/entry/withProviders.ts providers
-apps/web/app/routes/app/groups/entry/EntryPlaceRow.tsx providers
+# The header, the With row, suggestions and the place: component tests
+# (entry/entryWithRow and entry/entry browser tests), under entry/* below.
+# What the page writes (and so uploads): live-notes.
 apps/web/app/routes/app/groups/entry/useLiveEntry.ts live-notes
 # The rest of the entry page is component tests (entry/entry.browser.test.tsx).
 apps/web/app/routes/app/groups/entry/*   -
-apps/web/app/components/notes/*          live-notes providers
-apps/web/app/lib/sync/notes.ts           live-notes providers
+apps/web/app/components/notes/*          live-notes
+apps/web/app/lib/sync/notes.ts           live-notes
 apps/web/app/lib/sync/liveEntry.ts       live-notes
 apps/web/app/lib/sync/editors.ts         live-notes
 apps/web/app/lib/sync/titleSuggestions.ts live-notes
 
-# Providers.
-apps/web/app/routes/app/groups/provider/ProviderMedications.tsx providers
+# Providers: the directory, its sheets and a provider's page are component
+# tests (providers/providers, providers/providerSheets and provider/provider
+# browser tests; providerWorld.tsx is their world). A provider and a link
+# reaching another device is roundtrip's sync matrix (6b).
+apps/web/app/routes/app/groups/provider/ProviderMedications.tsx -
 # Visit prep's button on a provider's page (assistant slice 4): component tests.
 apps/web/app/routes/app/groups/provider/ProviderVisitPrep.tsx -
-apps/web/app/routes/app/groups/provider/*  providers
-apps/web/app/routes/app/groups/providers/* providers
-apps/web/app/components/providers/*      providers
+apps/web/app/routes/app/groups/provider/*  -
+apps/web/app/routes/app/groups/providers/* -
+apps/web/app/components/providers/*      -
 # Phone fields shared by the provider sheet and your contact details (profiles slice 4).
 # Contact links shared by the Members page and the recipient's profile (profiles slice 3;
 # the profile's are component tests).
 apps/web/app/components/contact/ContactLines.tsx profiles-contacts
-apps/web/app/components/contact/*        providers profiles-contacts
-apps/web/app/lib/sync/providers.ts       providers
-# The medication list: the device module, the list and a medication's page
-# (its live notes run live-notes too).
-apps/web/app/lib/sync/medications.ts     medications
-# Passes (medications-2): the device module; the Passes screen is under
-# routes/app/groups/medications/passes/ (the rule below).
-apps/web/app/lib/sync/medicationPasses.ts medications
+apps/web/app/components/contact/*        profiles-contacts
+apps/web/app/lib/sync/providers.ts       roundtrip
+# The medications' device modules (lib/sync/medications.browser.test.tsx and
+# the screens' component tests); their writes reaching another device are
+# roundtrip's sync matrix.
+apps/web/app/lib/sync/medications.ts     roundtrip
+apps/web/app/lib/sync/medicationPasses.ts roundtrip
 # Allergies (medications-2): the device module; the sheet is under
 # routes/app/groups/medications/allergies/, the region in components/medications/.
 # Its writes reaching another device are roundtrip's sync matrix.
@@ -322,7 +325,8 @@ apps/web/app/lib/sync/allergies.ts       roundtrip
 # allergies and the printable sheets (check-migration slice 9): component
 # tests beside them, on medicationWorld.tsx's world. The page's notes
 # document is live-notes'. Today on the list, the schedule's pass slots and
-# the Passes screen stay with medications.mjs (the rules below).
+# the Passes screen (slice 11) are component tests too (today,
+# medicationPassSchedule, passes/passes).
 apps/web/app/routes/app/groups/medications/medicationWorld.tsx -
 apps/web/app/routes/app/groups/medication/useMedicationNotes.ts live-notes
 apps/web/app/routes/app/groups/medication/* -
@@ -343,13 +347,13 @@ apps/web/app/routes/app/groups/medications/PrintMenu.tsx -
 apps/web/app/components/medications/AllergiesRegion.tsx -
 apps/web/app/components/medications/PrintAllergies.tsx -
 apps/web/app/components/medications/MedicationStatusActions.tsx -
-apps/web/app/routes/app/groups/medications/* medications
+apps/web/app/routes/app/groups/medications/* -
 # Today's pass cards, dose rows and Undo (the list and the strip).
-apps/web/app/components/medications/*    medications
+apps/web/app/components/medications/*    -
 # Given all (medications-2): passes due today, the Undo offer, members' names for "who logged it".
-apps/web/app/lib/duePasses.ts            medications
-apps/web/app/lib/passUndo.ts             medications
-apps/web/app/lib/sync/memberNames.ts     medications
+apps/web/app/lib/duePasses.ts            -
+apps/web/app/lib/passUndo.ts             -
+apps/web/app/lib/sync/memberNames.ts     -
 # Cancel, undo and reschedule (the device module): component tests
 # (upcoming/upcomingEvents.browser.test.tsx); roundtrip uploads a reschedule's
 # one transaction to another member.
@@ -363,7 +367,7 @@ apps/web/app/components/schedule/*       -
 # (components/visitPrep/visitPrep.browser.test.tsx).
 apps/web/app/components/visitPrep/*      -
 apps/web/app/lib/sync/visitPrep.ts       -
-apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
+apps/web/app/lib/sync/providerSuggestions.ts -
 # Care periods: the periods page and its sheets, a period's page, the group
 # menu's period and the suggestion are component tests (periods/, period/,
 # layout/groupMenuPeriod, entry/entryPeriodSuggestion). What the device module
@@ -395,7 +399,7 @@ apps/web/app/routes/marketing/*          marketing
 apps/web/public/*                        marketing
 
 # Server code the device reaches. The upload switch carries every synced write.
-packages/api/src/sync.ts                 roundtrip live-notes providers
+packages/api/src/sync.ts                 roundtrip live-notes
 packages/api/src/invites.ts              invites
 packages/api/src/joinRequests.ts         invites
 packages/api/src/publicForms.ts          marketing
@@ -409,15 +413,15 @@ apps/web/app/routes/rpc.ts               sign-in
 # Shared schemas and seeds: the screens that read them.
 packages/data/src/db/schema/timelineEntry.ts phase2 roundtrip live-notes
 packages/data/src/db/schema/vitals.ts    phase2 roundtrip
-packages/data/src/db/schema/noteDocument.ts live-notes providers
+packages/data/src/db/schema/noteDocument.ts live-notes
 packages/data/src/db/schema/noteYjs.ts   live-notes
 packages/data/src/db/schema/noteEditors.ts live-notes
-packages/data/src/db/schema/provider.ts  providers
-packages/data/src/db/schema/entryProvider.ts providers
-packages/data/src/db/schema/medication.ts medications
+packages/data/src/db/schema/provider.ts  roundtrip
+packages/data/src/db/schema/entryProvider.ts roundtrip
+packages/data/src/db/schema/medication.ts roundtrip
 packages/data/src/db/schema/carePeriod*.ts roundtrip
-packages/data/src/db/schema/medicationPass.ts medications
-packages/data/src/db/schema/recipientAllergy.ts medications
+packages/data/src/db/schema/medicationPass.ts roundtrip
+packages/data/src/db/schema/recipientAllergy.ts roundtrip
 packages/data/src/db/schema/timeZone.ts  roundtrip
 packages/data/src/db/schema/inviteRules.ts invites app-shell
 packages/data/src/db/schema/careGroup*.ts app-shell invites
@@ -436,12 +440,12 @@ packages/data/src/services/rateLimitService.ts sign-in marketing
 packages/data/src/db/schema/search.ts    -
 packages/data/src/db/schema/searchDocument.ts -
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
-packages/data/src/db/seeds/providers.ts  providers
+packages/data/src/db/seeds/providers.ts  roundtrip
 packages/data/src/db/seeds/invites.ts    invites app-shell
-packages/data/src/db/seeds/medications.ts medications
+packages/data/src/db/seeds/medications.ts phase2
 # Validated by seeds/carePeriods.test.ts; no screen check reads them.
 packages/data/src/db/seeds/carePeriods.ts -
-packages/data/src/db/seeds/medicationPasses.ts medications
+packages/data/src/db/seeds/medicationPasses.ts -
 # Tasks' seeds (tasks slice 3 appends linked ones): no browser check reads
 # them; seeds/tasks.test.ts checks them. Appointments' seeds feed Upcoming (component tests).
 packages/data/src/db/seeds/tasks.ts      -
@@ -468,7 +472,7 @@ apps/web/app/lib/upcomingDays.ts         -
 apps/web/app/routes/app/groups/upcoming/UpcomingTaskRow.tsx -
 # Today's due doses in Upcoming, and the sheet-link state they open the Dose sheet with.
 apps/web/app/lib/upcomingDoses.ts        -
-apps/web/app/lib/timelineSheet.ts        roundtrip medications
+apps/web/app/lib/timelineSheet.ts        roundtrip
 apps/web/app/lib/sync/useLiveRows.ts     phase2
 # Quick entry (assistant slice 1): the box and its cards are component tests
 # (timeline/timelineQuickEntry.browser.test.tsx), and so is the runner, whose
@@ -502,7 +506,7 @@ apps/web/app/lib/sync/simpleMode.ts      -
 # component tests (timelineQuickEntryPasses, timelineSimpleNow); missed doses
 # in visit prep are lib/dueDoses.ts and lib/visitPrep.ts's unit tests. The
 # shared Undo and Given all (components/medications/*, lib/passUndo.ts,
-# lib/sync/medications.ts) keep their medications rules above.
+# lib/sync/medications.ts) keep their rules above.
 # Tasks (tasks PRD slice 1): the list and its sheets, the shared tick and
 # Undo pieces, and the device module are component tests
 # (routes/app/groups/tasks/tasks.browser.test.tsx); the pure wording, list
