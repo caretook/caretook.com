@@ -761,6 +761,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every call, public procedures included. / A short cookie cache, or skipping the lookup for public procedures (packages/auth/src/authUser.ts, routes/rpc.ts).
+- 2026-11-20 (backlog agent): Triage: app-speed. Touches packages/auth/src/authUser.ts and routes/rpc.ts, which hosting slice 3 also changes (rate limits): run it after hosting wave 1 is in dev.
 
 ### B-141 · change · Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts).
 
