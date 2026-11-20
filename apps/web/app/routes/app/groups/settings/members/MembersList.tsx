@@ -221,9 +221,28 @@ function MemberItem({
         ) : (
           !!member.simple_mode && (
             <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
-              Simple mode
+              {member.simple_mode_locked ? "Simple mode, locked" : "Simple mode"}
             </span>
           )
+        )}
+        {access?.lock && (
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              aria-label={`Lock ${name} in simple mode`}
+              checked={simple.locked}
+              disabled={simple.busy || removing}
+              onChange={(event) => simple.lock(event.target.checked)}
+              data-simple-lock-switch=""
+            />
+            <span aria-hidden="true">Locked</span>
+          </label>
+        )}
+        {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
+          <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
+            Locked
+          </span>
         )}
         {(access?.remove || access?.leave) && (
           <button
@@ -265,24 +284,34 @@ function MemberItem({
 }
 
 /**
- * A member's simple-mode switch (the managers' default for them): the choice
- * shows while it saves and until it syncs back; a refused change, or anyone
- * else's change, shows what's saved.
+ * A member's simple-mode switches: the managers' default for them, and the
+ * lock. Locking turns the default on, and turning the default off unlocks
+ * (the server's rule, shown at once). The choice shows while it saves and
+ * until it syncs back; a refused change, or anyone else's change, shows
+ * what's saved.
  */
 function useSimpleModeSwitch(member: MemberDetailRow) {
   const fetcher = useFetcher<ActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
-  const saved = !!member.simple_mode;
-  const [sent, setSent] = useState<{ on: boolean; from: boolean } | null>(null);
-  if (sent && sent.from !== saved) setSent(null);
-  const on = sent && (busy || result?.ok) ? sent.on : saved;
-  const set = (next: boolean) => {
-    setSent({ on: next, from: saved });
+  const saved = { on: !!member.simple_mode, locked: !!member.simple_mode_locked };
+  const [sent, setSent] = useState<{ on: boolean; locked: boolean; from: string } | null>(null);
+  const savedKey = `${saved.on}:${saved.locked}`;
+  if (sent && sent.from !== savedKey) setSent(null);
+  const shown = sent && (busy || result?.ok) ? sent : saved;
+  const send = (next: { on: boolean; locked: boolean }, field: "simpleMode" | "locked", value: boolean) => {
+    setSent({ ...next, from: savedKey });
     void fetcher.submit(
-      { intent: "setMemberMode", userId: member.user_id, simpleMode: next ? "on" : "off" },
+      { intent: "setMemberMode", userId: member.user_id, [field]: value ? "on" : "off" },
       { method: "post" },
     );
   };
-  return { on, busy, set, error: result && !result.ok ? result.error : undefined };
+  return {
+    on: shown.on,
+    locked: shown.locked,
+    busy,
+    set: (on: boolean) => send({ on, locked: on && shown.locked }, "simpleMode", on),
+    lock: (locked: boolean) => send({ on: locked || shown.on, locked }, "locked", locked),
+    error: result && !result.ok ? result.error : undefined,
+  };
 }

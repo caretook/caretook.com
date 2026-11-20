@@ -12,7 +12,7 @@ import { Announcement } from "./Announcement";
 import { GroupMenu } from "./GroupMenu";
 import { SectionNav, TabBar } from "./SectionNav";
 import { SyncIndicator } from "./SyncIndicator";
-import { useSimpleFrame } from "./useSimpleFrame";
+import { useSeveralGroups, useSimpleFrame } from "./useSimpleFrame";
 import { UserMenu } from "./UserMenu";
 
 // Shared by web + native. Do not export a server `loader` or `action` from /app routes.
@@ -57,6 +57,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   // Simple mode's timeline: only the mark, the sync status and a reduced user menu.
   const simple = useSimpleFrame(user.id, groupId, pathname);
   const groupFrame = groupId && !simple ? groupId : undefined;
+  const severalGroups = useSeveralGroups(user.id);
   return (
     <>
       <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur sm:px-6 print:hidden">
@@ -78,7 +79,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
           <SyncIndicator />
         </div>
         <div data-region="user" className="flex items-center">
-          <UserMenu user={user} simple={simple} />
+          <UserMenu user={user} simple={simple} severalGroups={severalGroups} />
         </div>
       </header>
       <div data-region="announcement" className="print:hidden">
