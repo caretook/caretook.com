@@ -19,7 +19,8 @@ const VitalsIcon = KIND_META.vital.Icon;
  * screen readers), up to `COLLAPSED_VITALS` readings (clipped under a fade
  * when the line is too narrow, with no measuring), and "All vitals", which is
  * never clipped. Expanded, every type's reading wraps below the line. The
- * expanded state isn't remembered.
+ * expanded state isn't remembered. Hidden below `sm` (CSS only): phones keep
+ * the header short.
  */
 export function LatestVitals({ vitals, units }: { vitals: LatestVital[]; units: UnitChoices }) {
   const [expanded, setExpanded] = useState(false);
@@ -28,7 +29,7 @@ export function LatestVitals({ vitals, units }: { vitals: LatestVital[]; units: 
   const shown = expanded ? sorted : sorted.slice(0, COLLAPSED_VITALS);
 
   return (
-    <section aria-labelledby="latest-vitals" className={`${STRIP_CLASS} flex-wrap gap-y-0`}>
+    <section aria-labelledby="latest-vitals" className={`${STRIP_CLASS} flex-wrap gap-y-0 max-sm:hidden`}>
       <h2 id="latest-vitals" className="flex shrink-0 items-center">
         <VitalsIcon className={`${STRIP_ICON} text-secondary`} aria-hidden="true" />
         <span className="sr-only">Latest vitals</span>

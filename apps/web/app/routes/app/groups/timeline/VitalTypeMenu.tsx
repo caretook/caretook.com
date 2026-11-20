@@ -5,9 +5,9 @@ import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { Menu } from "~/components/ui";
 
 /**
- * A button that opens the list of vital types. Used by the quick-add bar,
- * the entry kind picker and "Add a reading". Types in `exclude` (already on
- * the entry) aren't offered.
+ * A button that opens the list of vital types. Used by the entry kind
+ * picker and "Add a reading". Types in `exclude` (already on the entry)
+ * aren't offered.
  */
 export function VitalTypeMenu({
   children,

@@ -385,3 +385,23 @@ export const medicationPass = (v: Partial<Values<"medicationPasses">> = {}) => {
     ...v,
   });
 };
+
+// --- Added by quick-fixes slice 41 (the emergency sheet's allergies) ---------
+
+/** One of the recipient's allergies. "No known allergies" is the recipient's `noKnownAllergiesAt`. */
+export const allergy = (v: Partial<Values<"recipientAllergies">> = {}) => {
+  const created = hoursAgo(24 * 30);
+  return row("recipientAllergies", {
+    id: newId(),
+    groupId,
+    recipientId,
+    substance: "Penicillin",
+    reaction: null,
+    severity: "unknown",
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};

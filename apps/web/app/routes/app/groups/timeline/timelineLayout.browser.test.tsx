@@ -143,7 +143,8 @@ describe("day headings", () => {
       weight: s.fontWeight,
       transform: s.textTransform,
       full: s.color === getComputedStyle(document.body).color,
-      position: s.position,
+      // The sticky row is the heading's (with the day's care period beside it).
+      position: getComputedStyle(document.querySelector("section [data-day-header]")!).position,
     };
   };
 
@@ -190,7 +191,7 @@ describe("day headings", () => {
       await ready();
       if (to === "Cards") await setView("Cards");
       const probe = () => {
-        const hs = [...document.querySelectorAll("section h3")].map((h) => ({
+        const hs = [...document.querySelectorAll("section [data-day-header]")].map((h) => ({
           h,
           r: h.getBoundingClientRect(),
           s: h.parentElement!.getBoundingClientRect(),
@@ -206,7 +207,7 @@ describe("day headings", () => {
           .flatMap((x) => ys.map((y) => document.elementFromPoint(x, y)))
           .filter((el) => el && !h.contains(el))
           .map((el) => `${el!.tagName}.${el!.className}`);
-        return { held: h.textContent, arriving, through, top: r.top };
+        return { held: h.querySelector("h3")!.textContent, arriving, through, top: r.top };
       };
       const end = document.documentElement.scrollHeight - window.innerHeight;
       const seen = new Set<string>();
@@ -236,7 +237,7 @@ describe("the wide layout", () => {
     };
     const days = [...document.querySelectorAll("section > ol")].map((ol) => ({
       list: box(ol),
-      heading: box(ol.parentElement!.querySelector("h3")!),
+      heading: box(ol.parentElement!.querySelector("[data-day-header]")!),
       cards: [...ol.children].map(box),
     }));
     const lis = rows();
@@ -374,7 +375,7 @@ describe("the wide layout", () => {
       )!;
     window.scrollTo(0, day.getBoundingClientRect().top + window.scrollY + 30);
     await frames();
-    const h = day.querySelector("h3")!.getBoundingClientRect();
+    const h = day.querySelector("[data-day-header]")!.getBoundingClientRect();
     expect(Math.abs(h.top)).toBeLessThan(1);
     expect(h.top - day.getBoundingClientRect().top).toBeGreaterThan(20);
   });

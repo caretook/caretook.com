@@ -8,6 +8,7 @@ import type {
 } from "./emergencyPrintSheet";
 
 import { describe, expect, it } from "vitest";
+import { allergyState } from "../../../../../lib/allergies";
 import { EMERGENCY_SECTION_ORDER, emergencySheet } from "./emergencyPrintSheet";
 
 const ZONE = "America/Los_Angeles";
@@ -152,7 +153,13 @@ const full = () =>
     members,
     medications,
     providers,
-    allergies: [{ name: "Penicillin", reaction: "Hives" }],
+    allergies: allergyState(
+      [
+        { id: "a1", substance: "Sulfa", reaction: "rash", severity: "mild" },
+        { id: "a2", substance: "Penicillin", reaction: "hives", severity: "severe" },
+      ],
+      null,
+    ),
     now: NOW,
     locale: "en-US",
   });
@@ -289,16 +296,26 @@ describe("emergencySheet", () => {
     ]);
   });
 
-  it("lists allergies when given, and leaves the section out when there are none", () => {
-    expect(section(full(), "allergies")?.allergies).toEqual([{ name: "Penicillin", reaction: "Hives" }]);
-    const without = (allergies?: { name: string }[] | null) =>
-      emergencySheet({ recipient, details, members, medications, providers, allergies, now: NOW })
-        .sections.map((s) => s.id)
-        .includes("allergies");
-    expect(without()).toBe(false);
-    expect(without(null)).toBe(false);
-    expect(without([])).toBe(false);
-    expect(without([{ name: "  " }])).toBe(false);
+  it("lists the allergies on file most severe first, says when there are none, and leaves them out without a recipient", () => {
+    expect(section(full(), "allergies")).toMatchObject({
+      allergies: [
+        { id: "a2", text: "Penicillin (hives, severe)", severe: true },
+        { id: "a1", text: "Sulfa (rash, mild)", severe: false },
+      ],
+      empty: null,
+    });
+    const sheet = (allergies?: ReturnType<typeof allergyState> | null) =>
+      emergencySheet({ recipient, details, members, medications, providers, allergies, now: NOW });
+    expect(section(sheet(allergyState([], "2026-11-01 10:00:00")), "allergies")).toMatchObject({
+      allergies: [],
+      empty: "No known allergies",
+    });
+    expect(section(sheet(allergyState([], null)), "allergies")).toMatchObject({
+      allergies: [],
+      empty: "Allergies not recorded",
+    });
+    expect(section(sheet(), "allergies")).toBeUndefined();
+    expect(section(sheet(null), "allergies")).toBeUndefined();
   });
 
   it("lists the primary providers and the pharmacy current medications are filled at, with a phone each", () => {
