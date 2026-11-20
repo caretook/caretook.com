@@ -16,6 +16,9 @@
 
 **Now (2026-11-20):** waiting on the start condition. `tasks` and `hosting` wave 1 are in `dev`, but `check-migration` has unlanded `scripts/loops/check-areas` edits (`prd/check-migration`, and slices 11, 14 and 15). Messaged its orchestrator (`check-migration-7b`) to ping when they land and to hold further check-areas slices until our slice 1 lands (we tell it then; its later slices add rules to `check-areas.d/<area>`). A background loop in this session waits until no `prd/`/`slice/` branch has check-areas edits ahead of `dev`. Then: `pnpm prd sync`, claim B-149, start slice 1 (model: opus, it's the resolver design).
 
+- **check-migration agreed** (2026-11-20): it lands 11, 14 and 15 as one wave (about an hour) and messages us, then **pauses all its remaining slices** (12, 16–23 all edit check-areas) until we message it that slice 1 is in `dev`. So land slice 1 promptly and message `check-migration-7b` at once.
+- **Pass to slice 1's agent:** keep check names as plain tokens in `check-areas.d/` files, so check-migration's later deletions (`groups`, `profiles-contacts`, …) stay one-line edits; keep the resolver independent of the CDP harness, since check-migration slice 23 deletes the harness that `browser.sh --changed` drives today.
+
 **Landing (plan's note):** the landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here. The lean browser set runs **once, before the PRD's last landing** (the user's choice, 2026-11-20). Earlier waves land on `pnpm prd check` alone.
 
 **Start condition:** `tasks` and `hosting` wave 1 in `dev`, and no running PRD with unmerged `scripts/loops/check-areas` edits (check `pnpm prd status`; `check-migration` adds rules there). While this PRD runs, no other PRD starts work that touches `apps/web/app/lib/` or the seven registries.
