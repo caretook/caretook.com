@@ -1,4 +1,4 @@
-import { launch, openPage, sleep, step } from "./cdp.mjs";
+import { ADD_BUTTON, launch, openPage, sleep, step } from "./cdp.mjs";
 // The /app frame end to end (app-shell PRD): only what needs the server, sync
 // or a real page load. The frame's screen behaviour (the header at 420, the
 // user and group menus, the theme choice, the last group, the tab bar and the
@@ -272,7 +272,7 @@ try {
     await O.evaluate(`${BAR}.querySelector("a").click()`);
     await O.waitFor(`location.pathname === ${JSON.stringify(TIMELINE)} && ${rows} > 0`, 20000);
     const noWriter = await O.evaluate(`({
-      addBar: !!document.querySelector('[aria-label="Add to the timeline"]'),
+      addBar: !!${ADD_BUTTON},
       menus: document.querySelectorAll('main ol button[aria-label^="Actions"], main ol [aria-label^="Edit "]').length,
       stay: window.__stay,
     })`);

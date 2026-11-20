@@ -78,13 +78,13 @@ describe("the test device", () => {
 
   test("a viewer and a writer see different controls", async () => {
     const owner = await renderWithDevice({ route: TIMELINE, url: timelineUrl, role: "owner" });
-    await expect.element(owner.screen.getByRole("group", { name: "Add to the timeline" })).toBeVisible();
+    await expect.element(owner.screen.getByRole("button", { name: "Add to timeline" })).toBeVisible();
     await owner.screen.unmount();
 
     const viewer = await renderWithDevice({ route: TIMELINE, url: timelineUrl, role: "viewer" });
     await expect.element(viewer.screen.getByRole("heading", { level: 1 })).toBeVisible();
     await expect
-      .element(viewer.screen.getByRole("group", { name: "Add to the timeline" }))
+      .element(viewer.screen.getByRole("button", { name: "Add to timeline" }))
       .not.toBeInTheDocument();
   });
 

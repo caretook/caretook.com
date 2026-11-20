@@ -95,12 +95,7 @@ const dialogButton = (text: string) =>
   [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
     (b) => b.textContent?.trim() === text,
   );
-const tile = (text: string) =>
-  [
-    ...document.querySelectorAll<HTMLElement>(
-      '[aria-label="Add to the timeline"] a, [aria-label="Add to the timeline"] button',
-    ),
-  ].find((b) => b.textContent?.trim() === text)!;
+const addButton = () => document.querySelector<HTMLElement>('button[aria-label="Add to timeline"]');
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const waitUntil = async (test: () => boolean, ms = 8000, what = "condition") => {
   const end = Date.now() + ms;
@@ -109,6 +104,12 @@ const waitUntil = async (test: () => boolean, ms = 8000, what = "condition") => 
     await pause(25);
   }
   throw new Error(`timed out waiting for ${what}`);
+};
+/** Pick `text` from the timeline header's + menu. */
+const addFrom = async (text: string) => {
+  await userEvent.click(addButton()!);
+  await waitUntil(() => !!menuItem(text), 4000, `${text} in the + menu`);
+  await userEvent.click(menuItem(text)!);
 };
 const idOf = (path: string) => path.split("/").at(-1)!;
 const DAY_MS = 86_400_000;
@@ -146,9 +147,9 @@ const shiftDay = async (steps: number) => {
 describe("a draft", () => {
   test("has the time chip and no Share or ⋯ yet; leaving without typing writes nothing", async () => {
     const device = await open(TIMELINE);
-    await waitUntil(() => !!tile("Note"));
+    await waitUntil(() => !!addButton());
     const before = await counts(device);
-    await userEvent.click(tile("Note"));
+    await addFrom("Note");
     await waitUntil(
       () => device.location().endsWith("/entries/new?kind=note") && editorFocused(),
       4000,
@@ -166,8 +167,8 @@ describe("a draft", () => {
 describe("a note in one tap", () => {
   test("Note opens the draft with the cursor in it, now as its time; the first keystroke saves it and replaces the URL; a title saves", async () => {
     const device = await open(TIMELINE);
-    await waitUntil(() => !!tile("Note"));
-    await userEvent.click(tile("Note"));
+    await waitUntil(() => !!addButton());
+    await addFrom("Note");
     await waitUntil(() => editorFocused(), 4000, "the editor's focus");
     expect(Math.abs(new Date(HEADER_TIME()!.dateTime).getTime() - Date.now())).toBeLessThan(60_000);
 
@@ -197,9 +198,9 @@ describe("a note in one tap", () => {
 describe("an event in one tap, and title chips", () => {
   test('Event: the title field on top, chips that save nothing; typing saves it as "Event" with "Add a title"; chips stay, writers get the toolbar', async () => {
     const device = await open(TIMELINE);
-    await waitUntil(() => !!tile("Event"));
+    await waitUntil(() => !!addButton());
     const before = await counts(device);
-    await userEvent.click(tile("Event"));
+    await addFrom("Event");
     await waitUntil(() => device.location().endsWith("?kind=event") && editorFocused(), 4000, "the draft");
     expect(TITLE()!.placeholder).toBe("Title");
     await waitUntil(() => CHIPS().length > 0, 4000, "the chips");
@@ -232,8 +233,8 @@ describe("an event in one tap, and title chips", () => {
 
   test("a named event in 2 taps: Event, then a chip; saved with that title, the cursor in the document", async () => {
     const device = await open(TIMELINE);
-    await waitUntil(() => !!tile("Event"));
-    await userEvent.click(tile("Event"));
+    await waitUntil(() => !!addButton());
+    await addFrom("Event");
     await waitUntil(
       () => CHIPS().some((b) => b.textContent?.trim() === "Physical therapy"),
       4000,
@@ -471,8 +472,8 @@ describe("404s and the sheet", () => {
 
   test("the add sheet offers only Symptom and Vitals (notes and events have their own page)", async () => {
     await open(TIMELINE);
-    await waitUntil(() => !!tile("Symptom"));
-    await userEvent.click(tile("Symptom"));
+    await waitUntil(() => !!addButton());
+    await addFrom("Symptom");
     await waitUntil(() => !!$("[role=dialog] form"), 4000, "the sheet");
     const kinds = [...document.querySelectorAll("[role=dialog] fieldset .join > *")].map(
       (el) => el.getAttribute("aria-label") ?? el.textContent?.trim(),

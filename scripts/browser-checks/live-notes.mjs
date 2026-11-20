@@ -1,8 +1,9 @@
 // Live notes end to end: what needs real devices, the server and PowerSync.
 // Notes and events are their live document (the live notes UX PRD). member@
-// starts a note and an event in one tap each, and they upload as the member
-// (a null body, the document, "Event" for an unnamed event); a rename reaches
-// the viewer; Live now from another device (the banner and dot on two other
+// starts a note and an event in two taps each (the header's +, then the
+// kind), and they upload as the member (a null body, the document, "Event"
+// for an unnamed event); a rename reaches the viewer; Live now from another
+// device (the banner and dot on two other
 // devices, Join in one tap); who's typing across three devices (avatars,
 // live typing, concurrent edits converging, compaction, a heading); offline
 // then reconnect (an edit, a new note, an appointment's place and all day);
@@ -26,10 +27,10 @@
 // Four browsers in Dev Family: member@ (owner, through a switchable proxy for
 // the offline steps), caretaker@, viewer@, and a fresh one that starts signed
 // out (then signs in as caretaker@). SMOKE=1 runs member@'s core path only: a
-// note in 1 tap, saved on the first keystroke, and an event in 1 tap, saved as
-// "Event" (one browser, online).
+// note in 2 taps (+, Note), saved on the first keystroke, and an event in 2
+// taps, saved as "Event" (one browser, online).
 import { execSync } from "node:child_process";
-import { BASE, launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
+import { ADD_BUTTON, BASE, launch, openPage, sleep, step, SMOKE } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -67,8 +68,6 @@ const inList = (ids) => ids.map((id) => `'${id}'`).join(",");
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const ON_ENTRY = `/\\/entries\\/${UUID}$/.test(location.pathname)`;
 const ON_DRAFT = `location.pathname.endsWith("/entries/new")`;
-const tile = (text) =>
-  `[...document.querySelectorAll('[aria-label="Add to the timeline"] a, [aria-label="Add to the timeline"] button')].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
 const TIMELINE_LINK = `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Timeline")`;
 const button = (text) =>
   `[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
@@ -171,8 +170,11 @@ async function toTimeline(p) {
 /** From the timeline, tap Event (or Note): the draft opens with the cursor in its document. */
 async function start(p, kind) {
   await toTimeline(p);
-  await p.waitFor(tile(kind), 10000);
-  await tap(p, tile(kind));
+  // Two taps: the header's +, then the kind.
+  await p.waitFor(ADD_BUTTON, 10000);
+  await tap(p, ADD_BUTTON);
+  await p.waitFor(menuItem(kind), 5000);
+  await tap(p, menuItem(kind));
   await p.waitFor(`${ON_DRAFT} && ${EDITOR_FOCUSED}`, 15000);
 }
 /** Open the time chip, move the day by `steps` (negative = earlier), then Done. */
@@ -307,10 +309,10 @@ try {
   check(`setup: ${members.length === 3 ? "three members see" : "member@ sees"} the timeline`, true);
 
   // -------------------------------------------------------------------------
-  section("Note: one tap, saved on the first keystroke, uploaded as the member");
+  section("Note: two taps, saved on the first keystroke, uploaded as the member");
   taps = 0;
   await start(A, "Note");
-  check("note: typing after 1 tap (Note), with the cursor in the document", taps === 1, `${taps} tap`);
+  check("note: typing after 2 taps (+, Note), with the cursor in the document", taps === 2, `${taps} tap`);
   await A.send("Input.insertText", { text: `${tag} first words` });
   await A.waitFor(ON_ENTRY, 5000);
   const N1 = idFromPath(await A.evaluate("location.pathname"));
@@ -352,10 +354,10 @@ try {
   });
 
   // -------------------------------------------------------------------------
-  section('Event: one tap; an unnamed event is saved as "Event"');
+  section('Event: two taps; an unnamed event is saved as "Event"');
   taps = 0;
   await start(A, "Event");
-  check("event: typing after 1 tap (Event)", taps === 1, `${taps} tap`);
+  check("event: typing after 2 taps (+, Event)", taps === 2, `${taps} tap`);
   await A.send("Input.insertText", { text: `${tag} event start` });
   await A.waitFor(ON_ENTRY, 10000);
   const E1 = idFromPath(await A.evaluate("location.pathname"));

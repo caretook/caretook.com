@@ -80,7 +80,7 @@
 // runs caretaker@'s path only: the device's seeds, the tab, the list and a
 // medication's page.
 import { execSync } from "node:child_process";
-import { launch, openPage, sleep, SMOKE } from "./cdp.mjs";
+import { ADD_BUTTON, launch, openPage, sleep, SMOKE } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -929,9 +929,6 @@ const radio = (name, label) =>
   `${SHEET}?.querySelector('input[name="${name}"][aria-label=${JSON.stringify(label)}]')`;
 const AMOUNT = `${SHEET}?.querySelector('input[name="amount"]')`;
 const NOTE = `${SHEET}?.querySelector('textarea[name="note"]')`;
-const QUICK_ADD = `document.querySelector('[aria-label="Add to the timeline"]')`;
-const tile = (text) =>
-  `[...(${QUICK_ADD}?.querySelectorAll("a, button") ?? [])].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
 const CHIPS = `[...document.querySelectorAll('nav[aria-label="Show entries"] a')]`;
 const PICK = `${SHEET}?.querySelector('[aria-label="Pick a date"]')`;
 const GRID = `document.querySelector("[role=grid]")`;
@@ -951,9 +948,9 @@ const pressKey = async (p, key, code, keyCode, text) => {
   await p.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode: keyCode });
 };
 
-/** Open the Dose sheet from the quick-add bar and log a dose of `label`. */
+/** Open the Dose sheet from the + menu and log a dose of `label`. */
 async function logDoseInSheet(p, label, { status = "given", note = "", yesterday = false } = {}) {
-  await p.tap(tile("Dose"));
+  await p.addToTimeline("Dose", { how: "tap" });
   await p.waitFor(radio("medicationId", label), 8000);
   await p.tap(radio("medicationId", label));
   if (status !== "given") await p.tap(`${SHEET}.querySelector('input[name="status"][value="${status}"]')`);
@@ -1086,13 +1083,15 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
     await A.evaluate("location.search"),
   );
 
-  // The quick-add bar: Note, Event, Dose, Symptom, Vitals (B-43).
-  const tiles = await A.evaluate(
-    `[...(${QUICK_ADD}?.querySelectorAll("a, button") ?? [])].map((b) => b.textContent.trim()).join(",")`,
-  );
+  // The + menu: Note, Event, Dose, Symptom, then the vital types (B-43).
+  await A.press(ADD_BUTTON);
+  await A.waitFor(`document.querySelector('[role="menu"]')`, 5000).catch(() => undefined);
+  const tiles = await A.evaluate(`${menuItems}.join(",")`);
+  await pressKey(A, "Escape", "Escape", 27);
+  await A.waitFor(`!document.querySelector('[role="menu"]')`, 5000).catch(() => undefined);
   check(
-    "quick add reads Note, Event, Dose, Symptom, Vitals",
-    tiles === "Note,Event,Dose,Symptom,Vitals",
+    "the + menu reads Note, Event, Dose, Symptom, then the vital types",
+    tiles.startsWith("Note,Event,Dose,Symptom,Blood pressure,"),
     tiles,
   );
 
@@ -1107,7 +1106,7 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
   if (!created.ok) return check("a medication for the timeline steps", false, JSON.stringify(created));
 
   // Log one from the Dose sheet.
-  await A.tap(tile("Dose"));
+  await A.addToTimeline("Dose", { how: "tap" });
   await A.waitFor(radio("medicationId", label), 8000);
   // Due slots come first ("… · 20:00 dose"); the medications follow, most recently given first.
   const options = await A.evaluate(
@@ -1303,7 +1302,7 @@ async function timelineSteps(A, { B, C, proxyA } = {}) {
       () => undefined,
     );
     const state = await C.evaluate(
-      `JSON.stringify({ bar: !!${QUICK_ADD}, opens: !!document.querySelector('main ol a[aria-label^="Edit "], main ol a[aria-label^="Open "]'), menus: !!document.querySelector('main ol button[aria-label^="Actions"]'), rows: ${ROWS}.length })`,
+      `JSON.stringify({ bar: !!${ADD_BUTTON}, opens: !!document.querySelector('main ol a[aria-label^="Edit "], main ol a[aria-label^="Open "]'), menus: !!document.querySelector('main ol button[aria-label^="Actions"]'), rows: ${ROWS}.length })`,
     );
     const v = JSON.parse(state);
     await C.goto(`${viewerTimeline}/new/dose?kind=dose`);

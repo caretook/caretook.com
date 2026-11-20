@@ -104,8 +104,9 @@ describe("the latest vitals line", () => {
     };
   };
 
-  test("at 420: one 32 px line led by the icon, at most 4 readings newest first, All vitals never clipped", async () => {
-    await openTimeline({ fixtures: vitals() });
+  // Hidden below `sm` (phones), so its narrowest is 640.
+  test("at 640: one 32 px line led by the icon, at most 4 readings newest first, All vitals never clipped", async () => {
+    await openTimeline({ fixtures: vitals(), width: 640 });
     await waitUntil(() => !!strip());
     const m = measure();
     expect(m.lines).toBe(1);
@@ -130,7 +131,7 @@ describe("the latest vitals line", () => {
   });
 
   test("at 1280: one line of the same height with more readings; from 1280 the vitals and Next strips match, centred, wider than the column", async () => {
-    await openTimeline({ fixtures: vitals() });
+    await openTimeline({ fixtures: vitals(), width: 640 });
     await waitUntil(() => !!strip());
     const phone = measure();
     await width(1280);
@@ -175,7 +176,7 @@ describe("the latest vitals line", () => {
   });
 
   test("the kind filter leaves it alone; Enter expands every type; a tap collapses it; the next visit starts collapsed", async () => {
-    const device = await openTimeline({ fixtures: vitals() });
+    const device = await openTimeline({ fixtures: vitals(), width: 640 });
     await waitUntil(() => !!strip());
     const phone = measure();
     await userEvent.click(chip("Notes"));
@@ -200,7 +201,7 @@ describe("the latest vitals line", () => {
     await userEvent.click(toggle());
     await waitUntil(() => toggle().getAttribute("aria-expanded") === "true");
     await device.screen.unmount();
-    await openTimeline({ fixtures: vitals() });
+    await openTimeline({ fixtures: vitals(), width: 640 });
     await waitUntil(() => !!strip());
     expect(toggle().getAttribute("aria-expanded")).toBe("false");
     expect(measure().lines).toBe(1);
