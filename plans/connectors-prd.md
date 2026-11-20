@@ -118,7 +118,7 @@ A **remote MCP server** that a member adds to their own Claude (a custom connect
 
 ## Testing Decisions
 
-Good tests here check behaviour at a module's edge (a JSON-RPC message in, a response out; an action batch in, rows or a refusal out), never the internals. They follow `docs/loops.md`, _Browser check budget_.
+Good tests here check behaviour at a module's edge (a JSON-RPC message in, a response out; an action batch in, rows or a refusal out), never the internals. They follow `docs/agents/loop.md` (_Tests_ and _Browser checks_).
 
 - **Unit:**
   - the MCP module: a table of JSON-RPC requests and their responses (initialize and version negotiation, ping, list filtered by scope, call success, `isError` results, unknown method, bad params, a notification gets no reply);

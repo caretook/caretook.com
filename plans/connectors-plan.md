@@ -49,8 +49,8 @@
   - `timeline-ux` (running): hot on the row components, `DayHeader`, the entry header, `packages/auth` and `packages/api/src/procedures.ts`. **Slice 3's `via` tag waits until timeline-ux's row and header slices (the author under the menu) are in `dev`**, then syncs `dev` and places the tag in the regions they left. Slice 2 touches `packages/auth/src/auth.ts` (the plugin) and doesn't need `procedures.ts`. If timeline-ux's cheaper-auth slice (B-140) is about to land, sync it first.
   - `agent-tooling`: it trims `docs/domain/` docs; this plan's loops don't edit docs, so the only overlap is at landing (fold into the trimmed docs).
   - `check-migration`: owns `roundtrip`'s structure and the Playwright port (B-129). Slice 6 follows whatever form `roundtrip` is in on `dev` when it starts. Additive `check-areas.d/` edits only.
-  - Migrations: if another PRD's migration lands first, regenerate on top (AGENTS.md, _Rules across PRDs_).
-- Every slice ends with a hand-off (AGENTS.md, _Loop rules_), plus a _Docs_ section listing what the orchestrator should fold into the area docs. At the final landing the orchestrator writes a new `docs/domain/connectors.md`, adds its _Area index_ row, adds `/mcp` to the hosting smoke list and the manual Claude and ChatGPT check to [`ops/runbook.md`](../ops/runbook.md), and updates the assistant, auth, api, care-groups, sync, app-shell and marketing docs.
+  - Migrations: if another PRD's migration lands first, regenerate on top (`docs/agents/orchestrator.md`, _Rules across PRDs_).
+- Every slice ends with a hand-off (`docs/agents/loop.md`, _Hand-off_), plus a _Docs_ section listing what the orchestrator should fold into the area docs. At the final landing the orchestrator writes a new `docs/domain/connectors.md`, adds its _Area index_ row, adds `/mcp` to the hosting smoke list and the manual Claude and ChatGPT check to [`ops/runbook.md`](../ops/runbook.md), and updates the assistant, auth, api, care-groups, sync, app-shell and marketing docs.
 
 ---
 
@@ -203,7 +203,7 @@ Stack: no · Reads: docs/domain/app-shell.md, docs/domain/care-groups.md, docs/d
 
 ## Slice 6: A connector write across devices (the roundtrip step)
 
-Stack: yes · Reads: docs/loops.md, docs/domain/sync.md · Tests: e2e:roundtrip
+Stack: yes · Reads: docs/agents/loop.md, docs/domain/sync.md · Tests: e2e:roundtrip
 
 **User stories:** 26, 31.
 
