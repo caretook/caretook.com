@@ -3,7 +3,8 @@
 // check (live-notes.mjs); this one covers the sheet path: add, edit, delete,
 // validation, When's date picker (keyboard, typed, tapped, edit), an entry
 // written offline (through a switchable proxy, because CDP network emulation
-// doesn't cut PowerSync's stream), a read-only viewer, the sync matrix (every
+// doesn't cut PowerSync's stream), a read-only viewer, a reschedule's one
+// transaction uploading and reaching the other member, the sync matrix (every
 // synced table's row on both devices: sync-matrix.mjs), an upload refused by
 // permissions (a member demoted while offline), and sign-out wiping the
 // device. Every row it writes has this run's tag, so it passes run after run
@@ -389,6 +390,77 @@ try {
     ),
   );
 
+  // 6a. A reschedule is one local transaction (from upcoming.mjs): a new
+  // event with the old one's provider link, document and notes, then the old
+  // one cancelled and pointing at it. It uploads as one, and the other
+  // member's device gets every row. Its screens are component tests
+  // (upcoming/upcomingEvents.browser.test.tsx).
+  const reschedTitle = `${tag} resched`;
+  const reschedProvider = psql(
+    `SELECT id FROM provider WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL ORDER BY name LIMIT 1`,
+  );
+  const resched = await A.evaluate(`(async () => {
+    const { liveEntry, providers, appointments } = await window.caretookModules();
+    const db = window.caretookSync;
+    const id = crypto.randomUUID();
+    const day = 86400000;
+    const made = await liveEntry.materializeLiveEntry(db, { id, groupId: ${JSON.stringify(DEV_FAMILY)},
+      kind: "event", title: ${JSON.stringify(reschedTitle)}, occurredAt: new Date(Date.now() + 2 * day).toISOString(),
+      timeZone: "America/Los_Angeles" });
+    const linked = await providers.linkProvider(db, id, ${JSON.stringify(reschedProvider)});
+    // An empty Yjs update stands in for typed notes: the reschedule carries them over.
+    const now = new Date().toISOString().replace(/Z$/, "000Z");
+    await db.powersync.execute("INSERT INTO note_update (id, group_id, document_id, data, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?)",
+      [crypto.randomUUID(), ${JSON.stringify(DEV_FAMILY)}, id, "AAA=", now, db.userId]);
+    const moved = await appointments.rescheduleEvent(db, id, { occurredAt: new Date(Date.now() + 5 * day).toISOString(),
+      endsAt: null, allDay: false, keepOldAsCancelled: true });
+    return { id, fresh: moved.ok ? moved.id : null, ok: [made.ok, linked.ok, moved.ok] };
+  })()`);
+  const reschedOn = async (p) => {
+    const [row] = await localRows(
+      p,
+      `SELECT (SELECT cancelled_at IS NOT NULL AND rescheduled_to = ? FROM timeline_entry WHERE id = ?) AS old,
+        (SELECT count(*) FROM timeline_entry WHERE id = ? AND title = ? AND cancelled_at IS NULL) AS fresh,
+        (SELECT count(*) FROM timeline_entry_provider WHERE entry_id = ? AND provider_id = ?) AS link,
+        (SELECT count(*) FROM note_document WHERE id = ?) AS doc,
+        (SELECT count(*) FROM note_update WHERE document_id = ?)
+          + (SELECT count(*) FROM note_document WHERE id = ? AND snapshot IS NOT NULL) AS notes`,
+      [
+        resched.fresh,
+        resched.id,
+        resched.fresh,
+        reschedTitle,
+        resched.fresh,
+        reschedProvider,
+        resched.fresh,
+        resched.fresh,
+        resched.fresh,
+      ],
+    );
+    return row;
+  };
+  // The notes are an update, or (once the server compacts) the snapshot.
+  const reschedAll = (r) =>
+    !!r && r.old === 1 && r.fresh === 1 && r.link === 1 && r.doc === 1 && r.notes >= 1;
+  const t0r = Date.now();
+  const reschedB = await until(async () => {
+    const r = await reschedOn(B);
+    return reschedAll(r) ? r : null;
+  });
+  const reschedServer = psql(
+    `SELECT (SELECT rescheduled_to::text FROM timeline_entry WHERE id = '${resched.id}' AND cancelled_at IS NOT NULL)
+      || '|' || (SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${resched.fresh}')
+      || '|' || ((SELECT count(*) FROM note_update WHERE document_id = '${resched.fresh}')
+        + (SELECT count(*) FROM note_document WHERE id = '${resched.fresh}' AND snapshot IS NOT NULL) > 0)`,
+  );
+  check(
+    "reschedule: one transaction (a new event, its link, document and notes, the old one cancelled) uploads and reaches the other member",
+    resched.ok.every(Boolean) && !!reschedB && reschedServer === `${resched.fresh}|1|true`,
+    reschedB
+      ? `${Date.now() - t0r} ms; server ${reschedServer}`
+      : `${JSON.stringify(resched)}; B ${JSON.stringify(await reschedOn(B))}; server ${reschedServer}`,
+  );
+
   // 6b. The sync matrix: every synced table's row reaches the other device.
   // care_recipient first (its one uploadable column), before the matrix's
   // allergy clears "No known allergies" on the server.
@@ -539,6 +611,9 @@ try {
       `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
     );
     psql(cleanupSql(matrix, recordedAt));
+    psql(
+      `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} resched%' AND deleted_at IS NULL`,
+    );
     psql(
       `UPDATE care_group_member SET role = 'caretaker' WHERE group_id = '${DEV_FAMILY}' AND user_id = '${caretakerId}' AND role <> 'caretaker'`,
     );
