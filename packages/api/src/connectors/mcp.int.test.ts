@@ -180,8 +180,10 @@ describe("/mcp", () => {
           result: { tools: { name: string }[] };
         }
       ).result.tools.map((t) => t.name);
-    expect(await names(writer.tokens.access_token)).toEqual(["group_overview", "list_timeline", "add_thing"]);
-    expect(await names(reader.tokens.access_token)).toEqual(["group_overview", "list_timeline"]);
+    const readTools = CONNECTOR_TOOLS.filter((t) => t.scope === "read").map((t) => t.name);
+    expect(readTools.slice(0, 2)).toEqual(["group_overview", "list_timeline"]);
+    expect(await names(writer.tokens.access_token)).toEqual([...readTools, "add_thing"]);
+    expect(await names(reader.tokens.access_token)).toEqual(readTools);
 
     const refused = await post(handler, reader.tokens.access_token, tool("add_thing"));
     expect(refused.status).toBe(403);
