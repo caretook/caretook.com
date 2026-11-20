@@ -13,6 +13,7 @@ import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
+import { ASIDE_CLASS } from "./layout";
 
 /** What a row or card shows and does: the same for both. */
 export type EntryViewProps = {
@@ -43,7 +44,8 @@ export type EntryViewProps = {
 
 /**
  * One entry as a dense row: kind icon, time, the entry's body (text clamped
- * to two lines, with "More"), the author's initials (a filter) and the ⋯ menu.
+ * to two lines, with "More"), then a right-hand column with the ⋯ menu and,
+ * under it, the author's initials (a filter).
  */
 export function TimelineEntryRow({
   entry,
@@ -91,34 +93,37 @@ export function TimelineEntryRow({
         }
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
-      {simple ? (
-        <span
-          className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
-          data-author={entry.createdBy}
-        >
-          <span aria-hidden="true">{initials(authorName)}</span>
-          <span className="sr-only">By {authorName}</span>
-        </span>
-      ) : (
-        <AuthorFilterLink
-          userId={entry.createdBy}
-          name={authorName}
-          initials={initials(authorName)}
-          image={authorImage}
-        />
-      )}
-      {!simple && (onDelete || canHaveNoteDocument(entry.kind)) && (
-        <EntryActions
-          kind={entry.kind}
-          label={actionsLabel(entry)}
-          onEdit={onEdit}
-          cancel={cancel}
-          printHref={
-            canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
-          }
-          onDelete={onDelete}
-        />
-      )}
+      {/* The right column: the ⋯ menu, the author under it, so the text gets the width. */}
+      <div className={`${ASIDE_CLASS} ${simple ? "" : "w-8"}`} data-entry-aside>
+        {!simple && (onDelete || canHaveNoteDocument(entry.kind)) && (
+          <EntryActions
+            kind={entry.kind}
+            label={actionsLabel(entry)}
+            onEdit={onEdit}
+            cancel={cancel}
+            printHref={
+              canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
+            }
+            onDelete={onDelete}
+          />
+        )}
+        {simple ? (
+          <span
+            className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
+            data-author={entry.createdBy}
+          >
+            <span aria-hidden="true">{initials(authorName)}</span>
+            <span className="sr-only">By {authorName}</span>
+          </span>
+        ) : (
+          <AuthorFilterLink
+            userId={entry.createdBy}
+            name={authorName}
+            initials={initials(authorName)}
+            image={authorImage}
+          />
+        )}
+      </div>
     </li>
   );
 }

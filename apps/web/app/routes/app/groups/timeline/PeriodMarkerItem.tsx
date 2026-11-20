@@ -13,30 +13,24 @@ const ITEM_CLASS: Record<TimelineView, string> = {
 
 /**
  * A care period's boundary marker, among the day's entries: "Home →
- * Hospital · Mercy General, room 412 · 14:20" ("Started: Home" for the
- * first) with the new type's icon, one link to the period, read as one
- * sentence. Times are the recipient's. Not an entry: no author, no ⋯ menu.
+ * Hospital · 14:20" ("Started: Home" for the first) with the new type's
+ * icon, one link to the period, read as one sentence. No place or room: the
+ * line stays short, and the period's page shows them. Times are the
+ * recipient's. Not an entry: no author, no ⋯ menu.
  */
 export function PeriodMarkerItem({
   marker,
   groupId,
   timeZone,
-  placeName,
   view,
 }: {
   marker: PeriodMarker<LocalCarePeriod>;
   groupId: string;
   /** The recipient's zone. */
   timeZone: string;
-  placeName: (providerId: string | null) => string | null;
   view: TimelineView;
 }) {
-  const words = {
-    from: marker.from,
-    to: marker.to,
-    placeName: placeName(marker.to.placeProviderId),
-    placeDetail: marker.to.placeDetail,
-  };
+  const words = { from: marker.from, to: marker.to };
   const Icon = periodTypeMeta(marker.to.type).icon;
   return (
     <li className={ITEM_CLASS[view]} data-marker={marker.id} data-at={marker.at}>

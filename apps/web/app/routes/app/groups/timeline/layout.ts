@@ -6,6 +6,9 @@
 /** The entries' column, the quick-add bar and the filter chips: 1024 px, centred on the page. */
 export const COLUMN_CAP = "mx-auto max-w-5xl";
 
+/** A row's right-hand column: the ⋯ menu with the author under it (rows and pass logs, so the chips line up). */
+export const ASIDE_CLASS = "flex shrink-0 flex-col items-center gap-1";
+
 /**
  * The header strips (vitals, Next, Live now, Due now): 1152 px from `lg`,
  * centred. That's 64 px wider than the entries' column on each side, so the

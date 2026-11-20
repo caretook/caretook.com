@@ -26,6 +26,7 @@ import { foldPassLogs } from "./dayItems";
 import { PassLogItem } from "./PassLogItem";
 import { PeriodMarkerItem } from "./PeriodMarkerItem";
 import { COLUMN_CAP } from "./layout";
+import { OFFSCREEN_ROWS, ROW_SIZE, settledDays } from "./offscreenRows";
 import { summariesByDay } from "./daySummary";
 import { DaySummaryLine } from "./DaySummaryLine";
 import { SHEET_LINK_STATE } from "./sheet";
@@ -57,7 +58,7 @@ const LIST_CLASS: Record<TimelineView, string> = {
  * period that covers the day: `DayHeader`), as rows or cards,
  * with the care periods' boundary markers at their moments (filters on or
  * off; a day with only a marker gets its own section), each day's summary
- * line under its heading while no filter or search is on, then `OlderEntries`,
+ * line in its sticky header while no filter or search is on, then `OlderEntries`,
  * which loads older pages as the end comes near. With
  * `upcoming` (`?upcoming=1`), the Upcoming block comes first, above Today, in
  * the same rows or cards. Writers get each entry's ⋯ menu, with one delete
@@ -145,6 +146,8 @@ export function TimelineEntryList({
     adding && days[0]?.key !== todayKey
       ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
       : days;
+  // Days before the newest page skip drawing their rows while off screen (`offscreenRows`).
+  const settled = settledDays(sections);
   // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then; none when they're off).
   const summaries =
     summaryMode !== "off" &&
@@ -246,10 +249,13 @@ export function TimelineEntryList({
               groupId={groupId}
               periods={data.periods}
               simple={simple}
+              summary={summaries && <DaySummaryLine summary={summaries.get(day.key)} mode={summaryMode} />}
             />
-            {summaries && <DaySummaryLine summary={summaries.get(day.key)} mode={summaryMode} />}
             {day.entries.length > 0 && (
-              <ol className={LIST_CLASS[view]} data-view={view}>
+              <ol
+                className={`${LIST_CLASS[view]} ${ROW_SIZE[view]} ${settled.has(day.key) ? OFFSCREEN_ROWS : ""}`}
+                data-view={view}
+              >
                 {/* Doses logged in one round fold into one pass log; care period markers keep their moments. */}
                 {foldPassLogs(day.entries).map((it) =>
                   it.type === "entry" ? (
@@ -260,7 +266,6 @@ export function TimelineEntryList({
                       marker={it.marker}
                       groupId={groupId}
                       timeZone={recipientZone}
-                      placeName={data.periods.placeName}
                       view={view}
                     />
                   ) : (
