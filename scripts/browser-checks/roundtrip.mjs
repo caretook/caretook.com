@@ -12,7 +12,7 @@
 // device. Every row it writes has this run's tag, so it passes run after run
 // without a reset.
 import { execSync } from "node:child_process";
-import { ADD_BUTTON, launch, localCopyHolds, openPage, sleep } from "./cdp.mjs";
+import { ADD_BUTTON, BASE, launch, localCopyHolds, openPage, sleep } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 import { RECIPIENT_PATCH, SYNC_MATRIX, cleanupSql, localTimestamp, matrixContext } from "./sync-matrix.mjs";
 
@@ -183,6 +183,54 @@ try {
       `SELECT (deleted_at IS NOT NULL)::text FROM timeline_entry WHERE details->>'name' LIKE '${tag}%'`,
       (r) => r === "true",
     )) === "true",
+  );
+
+  // 3b. A connector's write through /mcp reaches this device with its "via" tag.
+  // The grant and token come from mintToken.ts (the OAuth dance in
+  // process, test-only); the write is the assistant's own HTTP call.
+  const viaName = `Claude ${tag}`;
+  const viaTitle = `${tag} via note`;
+  const token = execSync(
+    `pnpm --filter @caretook/data exec tsx ../api/src/connectors/mintToken.ts member@example.com ${DEV_FAMILY} "${viaName}"`,
+    {
+      env: { ...process.env, NODE_ENV: "development", SEED_USER_PASSWORD: PW },
+      stdio: ["ignore", "pipe", "inherit"],
+    },
+  )
+    .toString()
+    .trim();
+  const mcp = await fetch(`${BASE}/mcp`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+      authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "add_note", arguments: { title: viaTitle, text: "Written by an assistant." } },
+    }),
+  });
+  const mcpBody = await mcp.json();
+  check(
+    "connector: add_note through /mcp is accepted",
+    mcp.status === 200 && !mcpBody.result?.isError,
+    `${mcp.status} ${JSON.stringify(mcpBody).slice(0, 200)}`,
+  );
+  const viaMs = await timeUntil(A, `${rowWith(viaTitle)}?.querySelector("[data-via]")`);
+  check(
+    "connector: device A shows the note with its via tag",
+    (await A.evaluate(`${rowWith(viaTitle)}.querySelector("[data-via]").dataset.via`)) === viaName,
+    `${viaMs} ms`,
+  );
+  check(
+    "connector: stored as the member, via the client",
+    (await waitForSql(
+      `SELECT u.email FROM timeline_entry e JOIN "user" u ON u.id = e.created_by WHERE e.title = '${viaTitle}'`,
+      (r) => r !== "",
+    )) === "member@example.com",
   );
 
   // 5. Offline on A.
@@ -519,6 +567,10 @@ try {
     psql(
       `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
     );
+    psql(
+      `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} via%' AND deleted_at IS NULL`,
+    );
+    psql(`DELETE FROM oauth_client WHERE name = 'Claude ${tag}'`);
     psql(cleanupSql(matrix, recordedAt));
     psql(
       `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} resched%' AND deleted_at IS NULL`,

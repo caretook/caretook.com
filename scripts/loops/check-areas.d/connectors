@@ -12,3 +12,5 @@ apps/web/app/.server/connectors.ts       -
 packages/auth/src/connectors.ts          sign-in
 packages/auth/src/connectorToken.ts      -
 packages/data/src/db/seeds/connectors.ts app-shell
+# roundtrip's connector step mints its token with this (slice 6).
+packages/api/src/connectors/mintToken.ts roundtrip
