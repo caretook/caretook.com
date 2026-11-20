@@ -75,7 +75,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-110 | bug | in-progress | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-112 | change | triaged | quick-fixes |  | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | admin |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
-| B-114 | chore | inbox |  |  | Move routing.mjs to component tests |
+| B-114 | chore | triaged | check-migration |  | Move routing.mjs to component tests |
 | B-115 | chore | inbox |  |  | Move settings-layout.mjs to component tests |
 | B-116 | chore | inbox |  |  | Move providers.mjs to component tests |
 | B-117 | chore | inbox |  |  | Move groups.mjs to component tests |
@@ -436,8 +436,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-114 · chore · Move routing.mjs to component tests
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: check-migration
 - owner:
 - commit:
 
