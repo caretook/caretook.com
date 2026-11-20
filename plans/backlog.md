@@ -97,6 +97,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | ready | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | in-progress | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
+| B-133 | bug | inbox |  |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
 
 ## Items
 
@@ -649,3 +650,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (Robert Bo Davis): From the inbox: PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When disk space gets low, we have to be able to restart the system and recover the state of the system.
 - 2026-11-19 (Robert Bo Davis): Triage: new topic loop-recovery (orchestration is done): resume PRDs and loops after a restart, crash or token exhaustion, with state recovery when disk runs low. Touches scripts/loops/ and scripts/backlog/; can run beside app PRDs but not beside check-migration's scripts/browser-checks edits without care.
 - 2026-11-19 (Robert Bo Davis): Planned: plans/loop-recovery-prd.md and -plan.md (5 stackless slices). pnpm prd down/recover (Docker, stacks of active work, PRD servers, stale locks, --at/--wait for usage limits), a recovery agent that messages live orchestrators and reopens dead ones in iTerm2 (claude --continue, else a fresh --resume orchestrator), Status at every step, a 10 GB disk guard and pnpm prd reclaim.
+
+### B-133 · bug · Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test)
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (prd/check-migration): Found by check-migration slice 1: useHistoryCutoff changes the history query key at the minute turn, useLiveRows goes not-fresh, pageWindow sets limit = requested − 30, so the last page unmounts and later rows remount. Fails ~1 in 6 isolated runs under CPU load. Product quirk, not a test race; not in check-migration's scope.
