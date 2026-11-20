@@ -10,8 +10,8 @@
 | 2     | 1    | landed (wave 1, cff4d2f) (sonnet) | a23e77c (52a8503)                                     |
 | 3     | 1    | landed (wave 1, cff4d2f) (sonnet) | 5ba5669 (bc6bd87)                                     |
 | 4     | 2    | landed (wave 2; opus)             | 84809ac (931f2dd, d1a324c)                            |
-| 5     | 3    | merged (sonnet)                   | df24172 (47950e2, ed9359a, b9c24f2, 727e640, 1225d8c) |
-| 6     | 3    | merged (sonnet)                   | 564f46b (16f706b, 57b5b80)                            |
+| 5     | 3    | landed (wave 3) (sonnet)          | df24172 (47950e2, ed9359a, b9c24f2, 727e640, 1225d8c) |
+| 6     | 3    | landed (wave 3) (sonnet)          | 564f46b (16f706b, 57b5b80)                            |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
 
@@ -23,7 +23,9 @@
 
 **Wave 2:** landed in `dev` as 81529fa (2026-11-20; docs and tooling only, no check needed), with the backlog timeout fix. Layout: AGENTS.md core (7678 B); docs/agents/ loop, orchestrator, backlog, planner, hotfix, recovery; docs/loops.md stub; `landExempt` removed. check-migration and timeline-ux told to sync.
 
-**Now: wave 3 running** (2026-11-20; B-148 claimed). Both orchestrators said trim now: check-migration only renames check names in these docs; timeline-ux folds into sync, timeline, app-shell and medications at later landings and will fold onto the trimmed docs. Its wave 1 (sync.md, timeline.md) lands soon: sync it in before landing and send its additions to the slice agents to trim. Target about 9 KB per doc for headroom. Message both orchestrators when the trims land.
+**Wave 3:** slices 5 and 6 merged (df24172, 564f46b); every budgeted doc within budget (each trimmed doc about 9.2–9.7 KB). Docs only, so no check needed. Landing it is the PRD's last landing; then `pnpm prd rm agent-tooling`, and message check-migration and timeline-ux.
+
+**PRD done** once wave 3 is in `dev`.
 
 **Backlog hang (code-layout's report):** `pnpm backlog commit` hung once on hash-object at 1d650af; not reproducible on a fresh clone. Guard added: backlog git calls time out after 2 minutes (2c3ee0f, lands with wave 2).
 
