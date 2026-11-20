@@ -38,7 +38,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `check-migration` | [PRD](check-migration-prd.md), [plan](check-migration-plan.md): 23 slices, 10 waves of ≤ 3: steady component tests and a lean-budget ratchet (356 s → ≤ 300), a sync matrix and refused uploads, then each area check moved to component tests (flows folded into lean checks only for a new mechanism), then the lean set ported to Playwright Test and the CDP harness deleted (B-113–B-129, B-131) | `orchestration` (done); slices 11–17 wait for named `assistant` slices in `dev` | `scripts/loops/checks` and `check-areas` (additive), `scripts/browser-checks/`, `browser.sh`, `apps/web/test/` (the test device), test files beside screens, root `package.json` (`@playwright/test`, slice 19) |
 | `loop-recovery` | [PRD](loop-recovery-prd.md), [plan](loop-recovery-plan.md): 5 slices, all stackless, waves (1, 2, 3) → 4 → 5: the inventory and `recover --dry-run`, the disk guard and `reclaim`, resume prompts and _Status_ at every step, `down` and `recover`, then the recovery agent with iTerm2 tabs (B-132) | `orchestration` (done): **done**, all 5 slices in `dev` (`503e900`) | none now |
 | `hosting` | [PRD](hosting-prd.md), [plan](hosting-plan.md): 7 slices, all stackless, waves (1, 2, 3) → (4, 5) → 6 → 7: Vercel build and env check, database roles and personal access, shared rate limits, bounces and suppression, deploy Actions and smoke, the `ops/` docs, then going live with the user (B-33, B-68). Vercel Pro `cle1`, Neon `aws-us-east-2`, PowerSync Cloud US; staging and production | (none): **ready to start**; `documents` needs it for file storage (not in this PRD) | `vercel.json`, the React Router config, `packages/auth` (rate-limit storage), `packages/api/src/rateLimit.ts` and its callers, `notify` and the `resend` sender, one migration, `routes.ts` (webhook route), `ADMIN_SECTIONS`, `AUDIT_ACTIONS`, `scripts/loops/check-areas` (additive), new `.github/`, `ops/`, `scripts/deploy/` |
-| `app-speed` | to write (B-136–B-140, B-144, B-155, B-156): navigation that doesn't wait on a session request, prefetched and instantly highlighted section tabs, `content-visibility` on timeline rows, cheaper auth on `/rpc`, a service worker with a precached shell, a bundle-size budget | `hosting` wave 1 in `dev` for B-140 (same files as its slice 3); the rest none | `lib/session.ts`, `routes/app/layout/SectionNav.tsx`, timeline rows, `packages/auth/src/authUser.ts`, `routes/rpc.ts`, the CSP (a worker), the Vite config, the build check |
+| `app-speed` | [PRD](app-speed-prd.md), [plan](app-speed-plan.md): 6 slices, waves (1, 2, 3, 4) → (5, 6): navigation that waits on neither the session (15 min fresh window, 3 s timeout) nor settings (cache-first), prefetched and instantly highlighted section tabs, `content-visibility` on timeline rows, a bundle budget in `pnpm prd check`, a hand-written service worker with a cached `/app` shell and a reload notice, cheaper `/rpc` auth (lazy AuthUser, one query, 3 min cookie cache) (B-136–B-140, B-144, B-155, B-156) | `hosting` slice 3 in `dev` for slice 6 (B-140); the rest none: **ready to start** | `lib/session.ts`, `lib/sessionRules.ts`, `lib/me.ts`, `routes/app/layout/SectionNav.tsx`, the `/app` layout (an update-notice region), timeline rows, `packages/auth` (`authUser.ts`, the cookie cache), `packages/api/src/procedures.ts`, `routes/rpc.ts`, `scripts/loops/prd.sh` (`check` runs the budget), `scripts/loops/check-areas` (additive), new `scripts/build/` |
 | `agent-tooling` | to write (B-147, B-148, B-152–B-154): AGENTS.md and `docs/loops.md` split by reader, domain docs trimmed to contracts, a `permissions` block, scripts that pick Node 24 themselves, batched backlog commits. All stackless | (none); best when few PRDs are landing (every landing edits AGENTS.md and `docs/`) | AGENTS.md, `docs/loops.md`, `docs/domain/*`, `.claude/settings.json`, `scripts/backlog/`, `scripts/loops/` |
 | `code-layout` | to write (B-149, B-150): shared registries split by area behind thin indexes, `apps/web/app/lib/` grouped by domain | `tasks` and `hosting` wave 1 in `dev` first; nothing else touching `lib/` or the registries while it runs | `scripts/loops/check-areas`, `routes.ts`, `appUrls.ts`, `errors/constants.ts`, `db/schema/index.ts`, `permissions.ts`, `router.ts`, all of `apps/web/app/lib/` and its importers |
 
@@ -726,6 +726,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Stop blocking every /app navigation on a session request: use the session confirmed in the last few minutes and recheck in the background. / `requireSession` (apps/web/app/lib/session.ts) awaits `get-session` on each navigation, with no timeout, so every tap waits a round trip and can hang on a weak connection. / Add a timeout of about 3 s that counts as "no answer". The server still checks every upload and sync token.
 - 2026-11-20 (backlog agent): Triage: new PRD app-speed (navigation and load speed). This one needs a design decision (how long a confirmed session is trusted, what a timeout means offline), so it is PRD work, not a quick fix. Hot file: lib/session.ts.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 1 (plans/app-speed-plan.md). 15 min fresh window, background recheck at most once a minute, 3 s timeout; the app's check bypasses the cookie cache.
 
 ### B-137 · change · Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk…
 
@@ -736,6 +737,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk (and works offline). / The links in routes/app/layout/SectionNav.tsx (SectionNav and TabBar) have no `prefetch`; sheets already use `prefetch="render"`.
 - 2026-11-20 (backlog agent): Triage: app-speed. Small (prefetch on SectionNav and TabBar links), grouped with B-136 and B-138 because all three change the same navigation path.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 2 (plans/app-speed-plan.md). prefetch=render on SectionNav and TabBar.
 
 ### B-138 · change · Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only…
 
@@ -746,6 +748,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only after the loaders finish.
 - 2026-11-20 (backlog agent): Triage: app-speed. Small (useNavigation in SectionNav), same file as B-137.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 2 (plans/app-speed-plan.md). Highlight from useNavigation's pending location.
 
 ### B-139 · change · Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no…
 
@@ -756,6 +759,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no virtualization.
 - 2026-11-20 (backlog agent): Triage: app-speed. Small CSS change on timeline rows; needs a check that scroll restore and the paging sentinel still work.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 3 (plans/app-speed-plan.md). content-visibility: auto + contain-intrinsic-size; timelineScroll tests guard restore and paging.
 
 ### B-140 · change · Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every…
 
@@ -766,6 +770,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every call, public procedures included. / A short cookie cache, or skipping the lookup for public procedures (packages/auth/src/authUser.ts, routes/rpc.ts).
 - 2026-11-20 (backlog agent): Triage: app-speed. Touches packages/auth/src/authUser.ts and routes/rpc.ts, which hosting slice 3 also changes (rate limits): run it after hosting wave 1 is in dev.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 6 (plans/app-speed-plan.md). Lazy AuthUser, one query, Better Auth cookie cache 3 min (staff and /token bypass it; tradeoff documented in auth.md and security-review.md). Needs hosting slice 3 in dev.
 
 ### B-141 · change · Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts).
 
@@ -808,6 +813,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload works offline (docs/domain/sync.md already notes the gap).
 - 2026-11-20 (backlog agent): Triage: app-speed, its largest slice (a precached shell for the web target only; update flow, CSP worker-src, how it meets PowerSync's own workers). Needs the PRD interview. Likely a new dependency question (hand-written worker or a Vite plugin).
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 5 (plans/app-speed-plan.md). Hand-written worker, web only; cached shell for /app/* documents; 'new version ready: Reload' notice. Blocked by slices 1 and 4.
 
 ### B-145 · question · Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for…
 
@@ -920,6 +926,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first chunk.
 - 2026-11-20 (backlog agent): Triage: app-speed. A budget in the build check that keeps the editor and PowerSync out of the first chunk; it guards the gains of the other slices.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 4 (plans/app-speed-plan.md). pnpm build:budget (manifest reader + pure checker + budget.json), run by pnpm prd check.
 
 ### B-156 · chore · Check whether `loadSettings` in the timeline loader waits on the network before using its cache.
 
@@ -929,3 +936,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (backlog agent): Triage: app-speed. An investigation first (does loadSettings wait on the network before using its cache?); a fix only if it does.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 1 (plans/app-speed-plan.md). Investigated: it does wait (me.get, after pending updatePreferences). Becomes cache-first with a background refresh that updates the open screen.
