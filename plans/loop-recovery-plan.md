@@ -6,15 +6,15 @@
 
 | Slice | Wave | State           | Merge into `prd/loop-recovery` (slice commits) |
 | ----- | ---- | --------------- | ---------------------------------------------- |
-| 1     | 1    | in progress     |                                                |
+| 1     | 1    | merged          | 6e18d83 (d1383c0)                                  |
 | 2     | 1    | in progress     |                                                |
 | 3     | 1    | handed off (ec3a08e, a27285a) |                                                |
-| 4     | 2    | blocked by 1    |                                                |
+| 4     | 2    | in progress     |                                                |
 | 5     | 3    | blocked by 3, 4 |                                                |
 
 **Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue loop-recovery`): start every ready slice, land each green wave without asking, clean up. Ask only real questions.
 
-**Backlog:** B-132 (claimed by `prd/loop-recovery`). Wave 1 (slices 1, 2, 3) started 2026-11-19.
+**Backlog:** B-132 (claimed by `prd/loop-recovery`; `done` once slice 5 merges). Wave 1 (slices 1, 2, 3) started 2026-11-19. Slice 1 merged; slice 4 started early (only blocked by 1) and lands in its own wave. Slice 1 docs text (command row, inventory under _Isolation_) to fold into docs/loops.md at the wave 1 landing.
 
 ## Architectural decisions
 
