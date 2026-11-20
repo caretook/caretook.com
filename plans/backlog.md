@@ -124,7 +124,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
 | B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
-| B-157 | change | inbox |  |  | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
+| B-157 | change | triaged | quick-fixes |  | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
 
 ## Items
 
@@ -951,8 +951,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-157 · change · Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
 
