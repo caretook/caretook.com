@@ -1,13 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SessionAnswer } from "./sessionRules";
 
 import {
+  FRESH_MS,
+  NETWORK_ANSWER_MS,
   OFFLINE_LIMIT_MS,
+  RECHECK_MS,
   RETRY_CAP_MS,
   askSession,
   offlineAllowed,
   retryDelay,
+  sessionFreshness,
   sessionOutcome,
+  shouldRecheck,
+  withTimeout,
   withoutAnswer,
 } from "./sessionRules";
 
@@ -151,5 +157,133 @@ describe("withoutAnswer", () => {
   it("with nobody cached, a rate limit is rate-limited, not signed out", () => {
     expect(withoutAnswer("rateLimited", null, null, now)).toBe("rateLimited");
     expect(withoutAnswer("unknown", null, null, now)).toBe("signedOut");
+  });
+});
+
+describe("sessionFreshness", () => {
+  it("is 15 minutes", () => expect(FRESH_MS).toBe(15 * 60 * 1000));
+
+  it("is fresh up to exactly 15 minutes, then stale", () => {
+    expect(sessionFreshness(now, now)).toBe("fresh");
+    expect(sessionFreshness(now - FRESH_MS, now)).toBe("fresh");
+    expect(sessionFreshness(now - FRESH_MS - 1, now)).toBe("stale");
+    expect(sessionFreshness(now - 4 * day, now)).toBe("stale");
+  });
+
+  it("treats a clock that moved back as no time passed", () => {
+    expect(sessionFreshness(now + day, now)).toBe("fresh");
+  });
+
+  it("is none with no record", () => {
+    expect(sessionFreshness(null, now)).toBe("none");
+    expect(sessionFreshness(Number.NaN, now)).toBe("none");
+  });
+});
+
+describe("shouldRecheck", () => {
+  it("rechecks a confirmation over a minute old", () => {
+    expect(RECHECK_MS).toBe(60 * 1000);
+    expect(shouldRecheck(now, now)).toBe(false);
+    expect(shouldRecheck(now - RECHECK_MS, now)).toBe(false);
+    expect(shouldRecheck(now - RECHECK_MS - 1, now)).toBe(true);
+  });
+
+  it("doesn't recheck after a clock moved back, and does with no record", () => {
+    expect(shouldRecheck(now + day, now)).toBe(false);
+    expect(shouldRecheck(null, now)).toBe(true);
+    expect(shouldRecheck(Number.NaN, now)).toBe(true);
+  });
+});
+
+/** A promise and the functions that settle it. */
+const deferred = <T>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (e: unknown) => void;
+  const promise = new Promise<T>((res, rej) => ((resolve = res), (reject = rej)));
+  return { promise, resolve, reject };
+};
+
+describe("withTimeout", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("passes an answer through in time", async () => {
+    expect(await withTimeout(Promise.resolve("ok"), NETWORK_ANSWER_MS, () => "unknown")).toBe("ok");
+  });
+
+  it("resolves unknown at 3 s and ignores the late answer", async () => {
+    vi.useFakeTimers();
+    expect(NETWORK_ANSWER_MS).toBe(3000);
+    const late = deferred<string>();
+    let result: string | undefined;
+    void withTimeout(late.promise, NETWORK_ANSWER_MS, () => "unknown").then((r) => (result = r));
+    await vi.advanceTimersByTimeAsync(NETWORK_ANSWER_MS - 1);
+    expect(result).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(result).toBe("unknown");
+    late.resolve("ok");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(result).toBe("unknown");
+  });
+
+  it("ignores a late failure too, and rejects an early one", async () => {
+    vi.useFakeTimers();
+    const late = deferred<string>();
+    const timed = withTimeout(late.promise, NETWORK_ANSWER_MS, () => "unknown");
+    await vi.advanceTimersByTimeAsync(NETWORK_ANSWER_MS);
+    late.reject(new Error("late"));
+    expect(await timed).toBe("unknown");
+    await expect(withTimeout(Promise.reject(new Error("bug")), 1000, () => "unknown")).rejects.toThrow("bug");
+  });
+});
+
+describe("askSession under the timeout", () => {
+  afterEach(() => vi.useRealTimers());
+  const user = { id: "u1" };
+
+  it("is unknown when the server doesn't answer within 3 s", async () => {
+    vi.useFakeTimers();
+    const asked = askSession(() => new Promise<never>(() => undefined));
+    await vi.advanceTimersByTimeAsync(NETWORK_ANSWER_MS);
+    expect(await asked).toEqual({ kind: "unknown" });
+  });
+
+  it("retries a 429 inside the budget", async () => {
+    vi.useFakeTimers();
+    const answers = [
+      { data: null, error: { status: 429 }, retryAfter: "10" },
+      { data: user, error: null },
+    ];
+    let calls = 0;
+    const asked = askSession(() => Promise.resolve(answers[calls++]!));
+    await vi.advanceTimersByTimeAsync(RETRY_CAP_MS);
+    expect(await asked).toEqual({ kind: "ok", data: user });
+    expect(calls).toBe(2);
+  });
+
+  it("doesn't retry when the wait would pass the budget", async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const asked = askSession(() => {
+      calls++;
+      return new Promise<SessionAnswer<never> & { retryAfter: string }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: { status: 429 }, retryAfter: "2" }), 1500),
+      );
+    });
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(await asked).toEqual({ kind: "rateLimited" });
+    expect(calls).toBe(1);
+  });
+
+  it("is still rate-limited when the retry doesn't answer in time", async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const asked = askSession(() =>
+      calls++ === 0
+        ? Promise.resolve({ data: null, error: { status: 429 }, retryAfter: "1" })
+        : new Promise<never>(() => undefined),
+    );
+    await vi.advanceTimersByTimeAsync(NETWORK_ANSWER_MS);
+    expect(await asked).toEqual({ kind: "rateLimited" });
+    expect(calls).toBe(2);
   });
 });

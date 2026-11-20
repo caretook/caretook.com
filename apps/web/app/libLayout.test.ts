@@ -12,7 +12,10 @@ const domainDocs = new URL("../../../docs/domain/", import.meta.url);
 /** Modules allowed directly under lib/ (none: every module has a folder). */
 const TOP_LEVEL: string[] = [];
 
-/** lib/sync/: the client, the device schema, the lazy front door, the page cache, live rows, first sync. */
+/**
+ * lib/sync/: the client, the device schema, the lazy front door, the page
+ * cache, live rows, first sync, and the tile cache (remembered live answers).
+ */
 const SYNC_PLUMBING = [
   "client.ts",
   "firstSync.ts",
@@ -20,8 +23,11 @@ const SYNC_PLUMBING = [
   "index.ts",
   "pageCache.test.ts",
   "pageCache.ts",
+  "remembered.test.ts",
+  "remembered.ts",
   "schema.ts",
   "useLiveRows.ts",
+  "useRememberedQuery.ts",
 ];
 
 const areas = readdirSync(domainDocs)

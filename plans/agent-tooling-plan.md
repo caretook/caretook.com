@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State                             | Merge into `prd/agent-tooling` (slice commits) |
-| ----- | ---- | --------------------------------- | ---------------------------------------------- |
-| 1     | 1    | landed (wave 1, cff4d2f) (opus)   | 8d10f6b (9faf638)                              |
-| 2     | 1    | landed (wave 1, cff4d2f) (sonnet) | a23e77c (52a8503)                              |
-| 3     | 1    | landed (wave 1, cff4d2f) (sonnet) | 5ba5669 (bc6bd87)                              |
-| 4     | 2    | landed (wave 2; opus)             | 84809ac (931f2dd, d1a324c)                     |
-| 5     | 3    | not started                       |                                                |
-| 6     | 3    | not started                       |                                                |
+| Slice | Wave | State                             | Merge into `prd/agent-tooling` (slice commits)        |
+| ----- | ---- | --------------------------------- | ----------------------------------------------------- |
+| 1     | 1    | landed (wave 1, cff4d2f) (opus)   | 8d10f6b (9faf638)                                     |
+| 2     | 1    | landed (wave 1, cff4d2f) (sonnet) | a23e77c (52a8503)                                     |
+| 3     | 1    | landed (wave 1, cff4d2f) (sonnet) | 5ba5669 (bc6bd87)                                     |
+| 4     | 2    | landed (wave 2; opus)             | 84809ac (931f2dd, d1a324c)                            |
+| 5     | 3    | landed (wave 3) (sonnet)          | df24172 (47950e2, ed9359a, b9c24f2, 727e640, 1225d8c) |
+| 6     | 3    | landed (wave 3) (sonnet)          | 564f46b (16f706b, 57b5b80)                            |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
 
@@ -21,7 +21,11 @@
 
 **Wave 1:** landed in `dev` as cff4d2f (2026-11-20), full check on 5e08bbc (4167 tests); its decisions folded into AGENTS.md (commands table, backlog multi-id line) and docs/loops.md (the land guard). Told code-layout and check-migration to sync.
 
-**Wave 2:** slice 4 merged (84809ac) with the backlog timeout fix (2c3ee0f); docs and tooling only, so no check (the gate's "none needed"); landing. AGENTS.md 7678 B; docs/agents/ has loop, orchestrator, backlog, planner, hotfix and recovery; docs/loops.md is a stub; `landExempt` removed. Next: wave 3 (slices 5 and 6), gated on no running PRD folding into their docs; slice 6 also on `tasks` landed.
+**Wave 2:** landed in `dev` as 81529fa (2026-11-20; docs and tooling only, no check needed), with the backlog timeout fix. Layout: AGENTS.md core (7678 B); docs/agents/ loop, orchestrator, backlog, planner, hotfix, recovery; docs/loops.md stub; `landExempt` removed. check-migration and timeline-ux told to sync.
+
+**Wave 3:** slices 5 and 6 merged (df24172, 564f46b); every budgeted doc within budget (each trimmed doc about 9.2–9.7 KB). Docs only, so no check needed. Landing it is the PRD's last landing; then `pnpm prd rm agent-tooling`, and message check-migration and timeline-ux.
+
+**PRD done** once wave 3 is in `dev`.
 
 **Backlog hang (code-layout's report):** `pnpm backlog commit` hung once on hash-object at 1d650af; not reproducible on a fresh clone. Guard added: backlog git calls time out after 2 minutes (2c3ee0f, lands with wave 2).
 

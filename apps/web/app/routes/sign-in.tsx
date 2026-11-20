@@ -5,6 +5,7 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 import { Field } from "~/components/ui/plain";
 import { accountUrls, parseSignInMethod } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
+import { sessionChanged } from "~/lib/auth/sessionEpoch";
 import {
   authMessages,
   isCodeShaped,
@@ -72,6 +73,7 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
     if (!isCodeShaped(code)) return failed(authMessages.wrongCode);
     const { error } = await authClient.signIn.emailOtp({ email, otp: code });
     if (error) return failed(requestFailure(error) ?? authMessages.wrongCode);
+    sessionChanged();
     throw redirect(redirectTo);
   }
 
@@ -86,6 +88,7 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
   if (isUnverified(error)) throw redirect(accountUrls.verifyEmail(email, redirectTo));
   // One message for every other failure: don't reveal which emails have accounts.
   if (error) return { intent: "password", error: requestFailure(error) ?? authMessages.wrongPassword };
+  sessionChanged();
   throw redirect(redirectTo);
 }
 

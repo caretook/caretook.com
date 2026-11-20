@@ -9,7 +9,8 @@ import { forgetRecentLines } from "../assistant/recentLines";
 import { forgetRecentSearches } from "../search/recentSearches";
 import { forgetToggles } from "../assistant/simpleModeToggle";
 import { signInUrl } from "../core/redirect";
-import { askSession, withoutAnswer } from "./sessionRules";
+import { sessionEpoch } from "./sessionEpoch";
+import { askSession, sessionFreshness, shouldRecheck, withoutAnswer } from "./sessionRules";
 import { closeSync, openSync } from "../sync";
 
 // The signed-in user and their local database, for /app clientLoaders.
@@ -18,6 +19,14 @@ import { closeSync, openSync } from "../sync";
 // and puts the result in `sessionContext`; every /app loader, action and
 // middleware below it reads it from there (`context.get(sessionContext)`)
 // rather than checking again. Concurrent calls share one in-flight check.
+//
+// A session the server confirmed within 15 minutes (`sessionFreshness`) is
+// fresh: navigation goes ahead with it at once, and a background recheck
+// (once its confirmation is a minute old, `shouldRecheck`) keeps it fresh or
+// ends it. The fresh path needs a session this page has already checked, so
+// the first navigation of every page load, and the first after a sign-in
+// (`sessionChanged` in `sessionEpoch.ts`), always waits for the server (at most
+// `NETWORK_ANSWER_MS`, through `askSession`).
 
 /**
  * `image` and `role` are optional: users cached before they were added have
@@ -33,6 +42,9 @@ export type SessionUser = {
 };
 
 const SESSION_KEY = "caretook:session-user";
+
+/** The session this page last checked, for the fresh path. */
+let known: (Session & { epoch: number }) | null = null;
 
 /** The last signed-in user, so the app still opens when the device is offline. */
 const cachedUser = (): SessionUser | null => {
@@ -98,6 +110,7 @@ const roleOf = (user: object) => {
  * has ended, both go through here. Changes not uploaded yet are lost.
  */
 export const wipeDevice = async () => {
+  known = null;
   await closeSync().catch((e: unknown) => console.error("Couldn't clear local data", e));
   forgetSessionUser();
   forgetSettings();
@@ -113,6 +126,9 @@ type Resolved = SessionUser | "signedOut" | "offlineTooLong" | "rateLimited" | "
 const getSession = async () => {
   let retryAfter: string | null = null;
   const answer = await authClient.getSession({
+    // Always the live session, never Better Auth's cookie cache, so a revoked
+    // session is noticed at the next check (B-140 turns the cache on for /rpc).
+    query: { disableCookieCache: true },
     fetchOptions: {
       onError: ({ response }) => {
         retryAfter = response.headers.get("X-Retry-After") ?? response.headers.get("Retry-After");
@@ -154,16 +170,52 @@ let inflight: Promise<Session | Exclude<Resolved, SessionUser>> | null = null;
 
 const check = () =>
   (inflight ??= (async () => {
+    // Taken before asking, so a sign-in during the request isn't credited to it.
+    const epoch = sessionEpoch();
     const user = await resolveUser();
-    if (typeof user === "string") return user;
+    if (typeof user === "string") {
+      known = null;
+      return user;
+    }
     cacheUser(user);
-    return { user, db: await openSync(user.id) };
+    const session = { user, db: await openSync(user.id) };
+    known = { ...session, epoch };
+    return session;
   })().finally(() => {
     inflight = null;
   }));
 
+/**
+ * A background recheck's answer, from wherever the user is now: signed out
+ * (the device is wiped already, by `resolveUser`) is a full navigation to
+ * sign-in, unverified to verify-email, and someone else's session a reload.
+ * A rate limit or no answer does nothing: the next navigation asks again.
+ */
+const recheck = (userId: string) => {
+  check().then(
+    (session) => {
+      if (session === "signedOut") window.location.assign(signInUrl(new Request(window.location.href)));
+      else if (session === "unverified") window.location.assign(accountUrls.verifyEmail());
+      else if (typeof session !== "string" && session.user.id !== userId) window.location.reload();
+    },
+    (e: unknown) => console.error("Couldn't recheck the session", e),
+  );
+};
+
+/** The session at once when it's fresh (rechecking it in the background when due), else null. */
+const freshSession = (): Session | null => {
+  if (!known || known.epoch !== sessionEpoch() || cachedUser()?.id !== known.user.id) return null;
+  const confirmed = lastConfirmed(known.user.id);
+  const now = Date.now();
+  if (sessionFreshness(confirmed, now) !== "fresh") return null;
+  if (shouldRecheck(confirmed, now)) recheck(known.user.id);
+  return { user: known.user, db: known.db };
+};
+
 /** The user and their open local database, or a redirect to sign-in. */
 export const requireSession = async (request: Request): Promise<Session> => {
+  const fresh = freshSession();
+  if (fresh) return fresh;
   const session = await check();
   if (session === "unverified") throw redirect(accountUrls.verifyEmail());
   if (session === "offlineTooLong") throw redirect(signInUrl(request, { reason: "offline" }));
