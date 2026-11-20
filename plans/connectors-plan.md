@@ -37,6 +37,8 @@
 
 **All slices merged.** Docs folded: aa0c4d51 (connectors.md, area pointers, runbook), 0930f4db (`mcp-unauthenticated` smoke check), plus slice 6's notes in loop.md and connectors.md. Now: `pnpm backlog done B-104`, `pnpm prd check`, serve, the lean `--suite` once, `pnpm prd ready`, land.
 
+**Check, 2026-11-20 at eac9a146:** red under load (34). `router.int.test.ts` changeRole timed out at 5 s and passes alone (8/8), and the component browser crashed in `upcoming.browser.test.tsx`, so 83 files never ran. The full check reruns once, on the tip after slice 6 merges.
+
 **Open for landing:**
 
 - A full clean `pnpm prd check` (load flakes so far: B-178, B-173, providers).
