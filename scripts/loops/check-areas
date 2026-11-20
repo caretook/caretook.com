@@ -26,6 +26,7 @@ packages/*/test/*                        -
 # Component tests and the test device (web:components runs them in pnpm check).
 *.browser.test.tsx                       -
 apps/web/test/*                          -
+apps/web/app/routes/app/groups/timeline/timelineWorld.tsx -
 .nvmrc                                   -
 .gitignore                               -
 *.env.example                            -

@@ -74,9 +74,9 @@ How PRDs, orchestrators and loops run: the `pnpm prd` commands, worktree isolati
 
 | Area changed                                                                 | Checks                                                                                                    |
 | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| the timeline screen, rows and cards, filters, vitals strip                   | `phase2.mjs`                                                                                              |
+| the timeline screen, rows and cards, filters, vitals strip (component tests) | its component tests first; `phase2.mjs` only for sync and offline flows                                   |
 | add and edit sheets, `EntryForm`, local timeline writes                      | `roundtrip.mjs`                                                                                           |
-| the entry page, live notes, `note_document`, editors, Live now               | `live-notes.mjs`                                                                                          |
+| the entry page, live notes, `note_document`, editors, Live now               | its component tests first; `live-notes.mjs` for cross-device, upload and offline flows                    |
 | the `/app` frame, menus, theme, group settings, members                      | `app-shell.mjs` (and `ui.mjs` for settings)                                                               |
 | routes, `routes.ts`, `appUrls`, sheet URLs, settings subpages                | `routing.mjs`                                                                                             |
 | settings saves, `lib/me.ts`                                                  | `settings-layout.mjs`, `layout-offline.mjs` (timeout)                                                     |
