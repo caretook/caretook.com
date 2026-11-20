@@ -9,9 +9,9 @@
 | 1     | 1    | merged                                              | eccc68f (314ec1a, 7e0a210, 5d41650)    |
 | 2     | 2    | running (tasks-2, stackless; agent spawned)         |                                        |
 | 3     | 3    | blocked by 2                                        |                                        |
-| 4     | 2    | running (tasks-4, stackless; agent spawned)         |                                        |
+| 4     | 2    | handed off (d859ea0); merge after 2                 |                                        |
 | 5     | 3    | blocked by 2                                        |                                        |
-| 6     | 2    | running (tasks-6, stackless; agent spawned)         |                                        |
+| 6     | 2    | handed off (4708991); merge after 2 and 4           |                                        |
 | 7     | 2    | running (tasks-7, stackless; agent spawned)         |                                        |
 | 8     | 2    | blocked by `check-migration` slice 2 in `dev`       |                                        |
 
@@ -26,6 +26,10 @@
 **When to land:** this PRD has a migration, so (the user's standing preference for migration PRDs, 2026-11-19) hold landing until every slice is merged, then run checks once at the end. Never `--suite` without asking the user first.
 
 **Slice 1's docs to fold at landing:** new `docs/domain/tasks.md` (table, 3 DB checks, hand-edited event FK and publication in 0022, `assignee_id` set null on account deletion; the due rule; `taskRules` exports; `taskService` and the viewer rule; the leaver via `releaseAssignee` from `careGroupMemberService.remove`; the device module and done-only PATCH; `taskDisplay`, `taskList`, `taskUndo`; the list: chips with default fixed at open, sections, Done paged by 20 and filtered by the chip; sheets: `TaskForm`, `AssigneeField`, `taskSheets` guards, `TASK_SHEET_STATE`; `components/tasks`; seeds with id prefixes `…3f1d2be0…`/`…3f1d2be1…`) and its _Area index_ row; `care-groups.md` permission row (`task`: read any member, create writers, update writers and viewers (viewers completion on their own tasks only), delete writers soft) and the leaver rule; `sync.md` (stream incl. soft-deleted rows, `note_document.task_id`, publication, `taskOp`, the `task` subject); `app-shell.md` (`GROUP_SECTIONS` ends with Tasks, `ListTodo`; `appUrls` `tasks`/`task`/`newTask`/`editTask`/`TASK_PREFILL_PARAMS`); `data-layer.md` (migrations 0000–0022); `components.md` (`components/tasks/`, the fixture `task` builder). Choices to note: Done follows the chip; native date/time inputs; the leaver's name falls back to "Former member". Slice 1 also fixed `upcoming.mjs` for a fifth section.
+
+**Slice 6's hand-off (4708991):** `timeline/SimpleTasks.tsx` + `useSimpleTasks.ts` after `SimpleNow`, before the tiles; `TaskTick` gained an optional `large` prop; `check-areas` two rules. `--changed --list`: no checks. `pnpm check` 3310/3311: `test/device.browser.test.tsx` timed out under load, passed alone 9/9. Docs: `timeline.md` simple-view bullet for My tasks (order box, Now, My tasks, tiles, Remove last, rows; cap `SIMPLE_TASKS_CAP` 5; See all → `tasks?who=mine`; stays up while its Undo is offered; component test `timelineSimpleTasks.browser.test.tsx`); `tasks.md`: `TaskTick large`.
+
+**Slice 4's hand-off (d859ea0):** `lib/upcomingTasks.ts` (`withDueTasks`, `showsTasks`), `upcoming/UpcomingTaskRow.tsx`, `useUpcomingData` merges after `withDueDoses` (90-day horizon), `TaskUndoStatus` on Upcoming; `lib/taskStrip.ts`, `timeline/TaskStrip.tsx` + `useTaskStrip.ts`, two lines in `timeline/route.tsx` after `MedicationStrip`; appended `dueTasksQuery`/`dueTasksThrough`/`useDueTasks` to `lib/sync/tasks.ts` with **its own imports inside the appended block** (dedupe `useMemo` etc. if another slice imports at the top); `check-areas` rule `upcoming/UpcomingTaskRow.tsx -` above `upcoming/*`. Strip link `?who=mine` or `?who=everyone`. `pnpm check` passed (3339). `--changed --list` names **roundtrip, upcoming, search** for landing. Docs: `appointments.md` "Tasks in Upcoming" after due doses; `timeline.md` task strip after the medication strip (red/amber, mine first, +N more, viewers see it, hidden in simple mode); `tasks.md` the three device additions.
 
 **Browser checks run so far:** slice 1's `--changed` ran the whole lean set plus routing, providers, care-periods, upcoming on slice 1's tip: all pass (upcoming after its fix).
 
