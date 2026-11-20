@@ -71,7 +71,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-99 | change | in-progress | quick-fixes | prd/quick-fixes | Don't display recent vitals in the timeline header in mobile, |
 | B-100 | change | triaged | quick-fixes |  | Add "recent vita averages" to the profile page. |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
-| B-105 | change | triaged | quick-fixes |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
+| B-105 | change | in-progress | quick-fixes | prd/quick-fixes | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | triaged | quick-fixes |  | Turning email invites off also blocks staff owner invites from /admin |
 | B-107 | feature | landed | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
 | B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
@@ -372,9 +372,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-105 · change · Care period display on timeline should be a part of the sticky header that includes date instead of…
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (prd/admin): From the inbox: Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header.
