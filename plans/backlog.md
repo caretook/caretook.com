@@ -105,7 +105,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-163 | change | inbox |  |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
 | B-164 | change | inbox |  |  | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
 | B-165 | change | inbox |  |  | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
-| B-166 | change | inbox |  |  | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
+| B-166 | change | triaged | app-speed |  | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
 | B-167 | change | inbox |  |  | Make day summary part of sticky header so it is always visible when scrolling up the timeline. |
 | B-168 | change | inbox |  |  | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
 | B-169 | change | inbox |  |  | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
@@ -714,8 +714,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-166 · change · Using back to timeline from timeline live-note entry (or any browse action) takes you back to the…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: app-speed
 - owner:
 - commit:
 
