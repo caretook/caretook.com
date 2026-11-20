@@ -68,7 +68,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-89 | feature | landed | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-91 | feature | landed | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-98 | change | ready | quick-fixes | prd/quick-fixes | Hide add to timeline buttons behind a + icon in the timeline header. |
-| B-99 | change | in-progress | quick-fixes | prd/quick-fixes | Don't display recent vitals in the timeline header in mobile, |
+| B-99 | change | ready | quick-fixes | prd/quick-fixes | Don't display recent vitals in the timeline header in mobile, |
 | B-100 | change | ready | quick-fixes | prd/quick-fixes | Add "recent vita averages" to the profile page. |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-105 | change | in-progress | quick-fixes | prd/quick-fixes | Care period display on timeline should be a part of the sticky header that includes date instead of… |
@@ -345,10 +345,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-99 · change · Don't display recent vitals in the timeline header in mobile,
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 5070e43
 
 - 2026-11-19 (Robert Bo Davis): quick-fixes: small change to LatestVitals visibility below sm. Touches the timeline header strips, hot for medications-2 (medication strip) and care-periods (period line): start it after both land, ideally in one slice with B-98 (+ button), since both reshape the phone header. If simple-mode (B-87) gets a PRD first, fold both into it.
 - 2026-11-19 (Robert Bo Davis): User 2026-11-19: one quick-fixes slice with B-98, after care-periods and medications-2 land.
