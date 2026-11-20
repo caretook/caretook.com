@@ -40,21 +40,26 @@ export const retryDelayMs = (attempts: number) =>
 // Running delivery after the response
 // ---------------------------------------------------------------------------
 
-type BackgroundRunner = (work: Promise<unknown>) => void;
+export type BackgroundRunner = (work: Promise<unknown>) => void;
 
-const fireAndForget: BackgroundRunner = (work) => {
-  work.catch((error: unknown) => logError("mail: background delivery failed", error));
+/** The default (dev and Node servers): nothing keeps the work alive, and nothing needs to. */
+const fireAndForget: BackgroundRunner = () => {};
+
+let runner: BackgroundRunner = fireAndForget;
+
+/** Hands `work` to the runner already caught: a failure is logged, never unhandled. */
+const runInBackground = (work: Promise<unknown>) => {
+  runner(work.catch((error: unknown) => logError("mail: background delivery failed", error)));
 };
-
-let runInBackground: BackgroundRunner = fireAndForget;
 
 /**
  * How work after a response is kept alive. The default is fire-and-forget
- * (dev and Node servers). On Vercel, register `waitUntil` so the function
- * isn't frozen mid-send. Either way the cron sweep picks up anything missed.
+ * (dev and Node servers). On Vercel, entry.server.tsx registers `waitUntil`
+ * so the function isn't frozen mid-send. Either way the cron sweep picks up
+ * anything missed. The runner gets a promise that never rejects.
  */
-export const setBackgroundRunner = (runner: BackgroundRunner | null) => {
-  runInBackground = runner ?? fireAndForget;
+export const setBackgroundRunner = (next: BackgroundRunner | null) => {
+  runner = next ?? fireAndForget;
 };
 
 /**
