@@ -341,9 +341,10 @@ try {
   await C.waitFor(rowWith(offName), 20000);
   check("viewer: sees the timeline, including the offline entry", true);
   check(
-    "viewer: no add bar, no ⋯ menus, no edit targets",
+    // A viewer's ⋯ is Print alone, on notes and events only (its items: component tests).
+    "viewer: no add bar, no ⋯ menus but notes' and events' Print, no edit targets",
     await C.evaluate(
-      `!document.querySelector('[aria-label="Add to the timeline"]') && !document.querySelector('main ol button[aria-label^="Actions"]') && !document.querySelector('main ol [aria-label^="Edit "]')`,
+      `!document.querySelector('[aria-label="Add to the timeline"]') && !document.querySelector('main ol button[aria-label^="Actions"]:not([aria-label^="Actions for note"]):not([aria-label^="Actions for event"])') && !document.querySelector('main ol [aria-label^="Edit "]')`,
     ),
   );
 

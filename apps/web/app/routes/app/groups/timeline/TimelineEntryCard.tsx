@@ -1,6 +1,8 @@
 import type { EntryViewProps } from "./TimelineEntryRow";
 
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
+import { appUrls } from "~/lib/appUrls";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { cancelledLabel } from "~/lib/upcomingLabels";
 import { actionsLabel } from "./entryLabels";
@@ -55,12 +57,15 @@ export function TimelineEntryCard({
           </>
         }
       />
-      {onDelete && (
+      {(onDelete || canHaveNoteDocument(entry.kind)) && (
         <EntryActions
           kind={entry.kind}
           label={actionsLabel(entry)}
           onEdit={onEdit}
           cancel={cancel}
+          printHref={
+            canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
+          }
           onDelete={onDelete}
         />
       )}

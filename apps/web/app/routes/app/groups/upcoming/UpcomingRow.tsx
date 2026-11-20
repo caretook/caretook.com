@@ -44,7 +44,7 @@ export function UpcomingRow({
   contacts?: LinkedContact[];
   /** A cancelled event's new one, when it was rescheduled and that's on the device. */
   rescheduledTo?: RescheduledTarget;
-  /** The entry's ⋯ menu (writers only). */
+  /** The entry's ⋯ menu (Print for viewers; more for writers). */
   menu?: ReactNode;
 }) {
   const cancelled = cancelledLabel(entry);

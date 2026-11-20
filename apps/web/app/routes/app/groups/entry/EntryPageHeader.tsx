@@ -19,8 +19,9 @@ import { ShareButton } from "./ShareButton";
 /**
  * The entry page's header, filled from its live entry: the title, when it
  * happened (a chip for writers), who's writing, and, once there's an entry to
- * link to, Share for everyone and the ⋯ menu for writers (an event's
- * Reschedule, its Cancel or Undo cancel, then Delete, each confirmed but Undo);
+ * link to, Share and the ⋯ menu (for writers, an event's Reschedule, its
+ * Cancel or Undo cancel, then Print and Delete, each confirmed but Undo; for
+ * viewers, Print);
  * who it was with (providers); for writers on an event that says the
  * recipient moved, a care period to start; and, for events, where it is.
  */
@@ -90,23 +91,23 @@ export function EntryPageHeader({
           stored && (
             <>
               <ShareButton title={heading} path={appUrls.entry(groupId, entry.id)} />
-              {canWrite && (
-                <EntryActions
-                  kind={entry.kind}
-                  label={`Actions for this ${noun}`}
-                  cancel={
-                    entry.kind === "event"
-                      ? {
-                          cancelled: !!entry.cancelledAt,
-                          onCancel: () => setConfirmCancel(true),
-                          onUncancel: live.uncancel,
-                          onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
-                        }
-                      : undefined
-                  }
-                  onDelete={() => setConfirmDelete(true)}
-                />
-              )}
+              <EntryActions
+                kind={entry.kind}
+                label={`Actions for this ${noun}`}
+                cancel={
+                  canWrite && entry.kind === "event"
+                    ? {
+                        cancelled: !!entry.cancelledAt,
+                        onCancel: () => setConfirmCancel(true),
+                        onUncancel: live.uncancel,
+                        onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
+                      }
+                    : undefined
+                }
+                // Everyone can print; only writers delete.
+                onPrint={() => window.print()}
+                onDelete={canWrite ? () => setConfirmDelete(true) : undefined}
+              />
             </>
           )
         }
