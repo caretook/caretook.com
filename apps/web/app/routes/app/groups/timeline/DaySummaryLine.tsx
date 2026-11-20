@@ -24,8 +24,9 @@ function PartText({ part }: { part: SummaryPart }) {
 }
 
 /**
- * One day's summary, under its sticky heading (never inside it): one line,
- * clipped when it's too long, that is also a disclosure button (named by
+ * One day's summary, inside its sticky header under the date (`DayHeader`'s
+ * `summary`), so it stays pinned while the day scrolls by: one line, clipped
+ * when it's too long, that is also a disclosure button (named by
  * `summaryLabel`, so the whole summary is read, arrows in words); tapped (or
  * Enter/Space), the summary's lines show below it, one per kind of thing.
  * Parts are bare text inside their line (no element per part), so an
@@ -48,7 +49,7 @@ export function DaySummaryLine({
   if (!summary || !parts?.length) return null;
 
   return (
-    <div className="px-1 pb-1.5" data-day-summary>
+    <div className="pt-0.5" data-day-summary>
       <button
         type="button"
         className="text-base-content/75 hover:text-base-content flex w-full min-w-0 cursor-pointer items-center gap-1 rounded text-left text-sm"
