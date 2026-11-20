@@ -213,3 +213,30 @@ export const queuedWrites = async (db: SyncDb) => {
       },
   );
 };
+
+// ---- Added by check-migration slice 10 (profiles) ----------------------------
+
+/** PowerSync's status snapshot, as far as `setConnected` touches it (shared-internals 1.6). */
+type StatusSnapshot = { core: Record<string, unknown> | null; jsState: unknown; constructor: unknown };
+
+/**
+ * Stand in for PowerSync's connection: the device never connects, so
+ * `currentStatus.connected` is false unless a test says otherwise. Sets a
+ * new status snapshot (connected or not) and tells PowerSync's status
+ * listeners, as a real connect or disconnect does, so `useSyncState()` (the
+ * profile's online-only Edit, the header's Offline) follows.
+ */
+export const setConnected = (db: SyncDb, connected: boolean) => {
+  const powersync = db.powersync as unknown as {
+    currentStatus: StatusSnapshot;
+    iterateListeners: (cb: (listener: { statusChanged?: (status: unknown) => void }) => void) => void;
+  };
+  const now = powersync.currentStatus;
+  const Snapshot = now.constructor as new (core: unknown, jsState: unknown) => StatusSnapshot;
+  const status = new Snapshot(
+    { connecting: false, downloading: null, streams: [], priority_status: [], ...now.core, connected },
+    now.jsState,
+  );
+  powersync.currentStatus = status;
+  powersync.iterateListeners((listener) => listener.statusChanged?.(status));
+};
