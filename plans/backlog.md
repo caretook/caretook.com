@@ -94,7 +94,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-149 | chore | in-progress | code-layout | prd/code-layout | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
 | B-150 | chore | in-progress | code-layout | prd/code-layout | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
-| B-154 | chore | ready | agent-tooling | prd/agent-tooling | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
+| B-154 | chore | landed | agent-tooling | prd/agent-tooling | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
 | B-155 | chore | triaged | timeline-ux |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | timeline-ux |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 | B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
@@ -596,6 +596,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (Robert Bo Davis): From the inbox: Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`, `quickEntry*`). Folders let an agent read one area, and check-areas use one rule per folder.
 - 2026-11-20 (backlog agent): Triage: code-layout. Moves about 140 files, so it conflicts with any PRD touching lib/: same window as B-149, and check-areas rules change with it (check-migration edits check-areas additively).
 - 2026-11-20 (plan/code-layout): Planned (plan/code-layout): slice 4 groups lib/ into area folders + core/, device queries move in as <name>.sync.ts, lib/sync/ keeps plumbing only; direct imports, codemod, no shims; a layout guard test.
+- 2026-11-20 (slice/code-layout/4): slice 4 built (cc4a8e3): lib/ by area, .sync.ts device queries, layout guard. Component tests flaky under load (medicationList also flakes on the prd/code-layout base, 2/4 runs alone).
 
 ### B-151 · chore · Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373.
 
@@ -609,7 +610,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-154 · chore · Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the…
 
-- status: ready
+- status: landed
 - prd: agent-tooling
 - owner: prd/agent-tooling
 - commit: a23e77c
