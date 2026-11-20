@@ -39,6 +39,8 @@
 
 **Check, 2026-11-20 at eac9a146:** red under load (34). `router.int.test.ts` changeRole timed out at 5 s and passes alone (8/8), and the component browser crashed in `upcoming.browser.test.tsx`, so 83 files never ran. The full check reruns once, on the tip after slice 6 merges.
 
+**Check, at 47dfc163 (the final tip):** red under load. There were two 5 s timeouts: `mcp.int.test.ts` list_timeline and `timelineEntry.int.test.ts` already-deleted. Both pass alone (974 ms and 39 ms). The run took 25 min. Rerunning the full check (third run); the lean `--suite` comes after it.
+
 **Open for landing:**
 
 - A full clean `pnpm prd check` (load flakes so far: B-178, B-173, providers).
