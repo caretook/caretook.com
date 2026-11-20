@@ -1,3 +1,4 @@
+import type { GroupContext } from "~/lib/groupContext";
 import type { MyGroup } from "~/lib/rpc";
 import type { clientLoader as layoutLoader } from "./route";
 import type { GroupRow } from "~/lib/sync/timeline";
@@ -33,6 +34,10 @@ const NO_ROWS: GroupRow[] = [];
  * the name (the period's name as its text and hover hint), and the menu opens
  * with "Now: In hospital · day 4", linking to the period; "Care periods"
  * opens the group's periods page.
+ *
+ * Until the device's list answers (a moment after the page renders), the
+ * group route's own copy of the current group stands in, so the header never
+ * shows without its group menu.
  */
 export function GroupMenu({ groupId }: { groupId: string }) {
   const navigate = useNavigate();
@@ -41,7 +46,19 @@ export function GroupMenu({ groupId }: { groupId: string }) {
   const userId = useRouteLoaderData<typeof layoutLoader>("app")?.user.id ?? "";
   const query = useMemo(() => myGroupsQuery(userId), [userId]);
   const rows = useLiveQuery<GroupRow>(query.sql, query.params, NO_ROWS);
-  const groups = rows.map(toMyGroup);
+  const loaded = useRouteLoaderData<GroupContext>("group");
+  const groups = useMemo(() => {
+    if (rows !== NO_ROWS || loaded?.id !== groupId) return rows.map(toMyGroup);
+    const { recipient } = loaded;
+    return [
+      {
+        id: loaded.id,
+        name: loaded.name,
+        role: loaded.role,
+        recipient: recipient && { id: recipient.id, displayName: recipient.displayName },
+      } satisfies MyGroup,
+    ];
+  }, [rows, loaded, groupId]);
   const current = groups.find((g) => g.id === groupId);
   const timeZone = rows.find((row) => row.id === groupId)?.recipient_time_zone || null;
   const period = useCurrentCarePeriod(groupId, timeZone);
