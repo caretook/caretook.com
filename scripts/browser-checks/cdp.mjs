@@ -1,6 +1,6 @@
 // Minimal CDP harness: launch headless Chrome, open pages, evaluate, screenshot.
 import { spawn } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -15,6 +15,34 @@ export const PORT_OFFSET = Number(process.env.CDP_PORT_OFFSET ?? 0);
 /** How long one DevTools command may take (an `evaluate` includes its awaited promise). */
 export const CDP_TIMEOUT_MS = Number(process.env.CDP_TIMEOUT_MS ?? 120000);
 
+/**
+ * Every Chrome this process started, with its profile dir. On exit (a pass, a
+ * failure, an uncaught error, Ctrl-C or a kill) each one still running is
+ * killed and every profile is deleted: a check that died before its own
+ * `proc.kill()` used to leave Chrome running (orphaned, for hours) and its
+ * profile in the temp dir (2,000 of them, 141 GB).
+ */
+const launched = [];
+const cleanUp = () => {
+  for (const { proc, dir } of launched.splice(0)) {
+    if (proc.exitCode === null && proc.signalCode === null) proc.kill("SIGKILL");
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+    } catch {
+      // Chrome may still be writing as it dies: a leftover dir is harmless.
+    }
+  }
+};
+process.on("exit", cleanUp);
+// A signal ends Node without `exit` unless handled: clean up, then exit as the signal would.
+for (const [signal, code] of [
+  ["SIGINT", 130],
+  ["SIGTERM", 143],
+  ["SIGHUP", 129],
+]) {
+  process.once(signal, () => process.exit(code));
+}
+
 export async function launch(basePort, extraArgs = []) {
   const port = basePort + PORT_OFFSET;
   const dir = mkdtempSync(join(tmpdir(), "cdp-"));
@@ -28,6 +56,7 @@ export async function launch(basePort, extraArgs = []) {
     ...extraArgs,
     "about:blank",
   ]);
+  launched.push({ proc, dir });
   for (let i = 0; i < 150; i++) {
     try {
       const v = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
