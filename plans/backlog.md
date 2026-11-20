@@ -95,7 +95,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | triaged | check-migration |  | Component tests (web:components) can fail under pnpm check's load |
-| B-132 | feature | triaged | loop-recovery |  | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
+| B-132 | feature | in-progress | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 
 ## Items
 
@@ -632,9 +632,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-132 · feature · PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When…
 
-- status: triaged
+- status: in-progress
 - prd: loop-recovery
-- owner:
+- owner: prd/loop-recovery
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When disk space gets low, we have to be able to restart the system and recover the state of the system.
