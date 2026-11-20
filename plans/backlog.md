@@ -781,6 +781,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until the native app ships, and define them once. / They are hard-coded as trusted, with credentials, in routes/rpc.ts and packages/auth/src/auth.ts.
+- 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice together with B-143 (origin and client-IP hardening before going live). Same files as slice 3 (routes/rpc.ts, packages/auth/src/auth.ts), so it follows wave 1. Hosting's orchestrator decides at its wave boundary.
 
 ### B-143 · change · Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts…
 
