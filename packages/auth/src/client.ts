@@ -9,6 +9,9 @@ import { emailOTPClient, jwtClient, magicLinkClient } from "better-auth/client/p
 export const createCaretookAuthClient = (baseURL?: string) =>
   createAuthClient({
     ...(baseURL ? { baseURL } : {}),
+    // The global fetch at each request, not at creation (Better Auth's
+    // default), so a component test's stubbed network reaches it too.
+    fetchOptions: { customFetchImpl: (input, init) => fetch(input, init) },
     plugins: [jwtClient(), magicLinkClient(), emailOTPClient()],
   });
 

@@ -15,10 +15,13 @@ import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/entryOpen";
 import { appUrls } from "~/lib/appUrls";
+import { DayHeader } from "./DayHeader";
 import { foldPassLogs } from "./dayItems";
 import { PassLogItem } from "./PassLogItem";
 import { PeriodMarkerItem } from "./PeriodMarkerItem";
 import { COLUMN_CAP } from "./layout";
+import { summariesByDay } from "./daySummary";
+import { DaySummaryLine } from "./DaySummaryLine";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
@@ -38,9 +41,11 @@ const LIST_CLASS: Record<TimelineView, string> = {
 };
 
 /**
- * The entries, a section per day under a sticky heading, as rows or cards,
+ * The entries, a section per day under a sticky heading (with the care
+ * period that covers the day: `DayHeader`), as rows or cards,
  * with the care periods' boundary markers at their moments (filters on or
- * off; a day with only a marker gets its own section), then `OlderEntries`,
+ * off; a day with only a marker gets its own section), each day's summary
+ * line under its heading while no filter or search is on, then `OlderEntries`,
  * which loads older pages as the end comes near. With
  * `upcoming` (`?upcoming=1`), the Upcoming block comes first, above Today, in
  * the same rows or cards. Writers get each entry's ⋯ menu, with one delete
@@ -71,6 +76,7 @@ export function TimelineEntryList({
     | "passNameOf"
     | "markers"
     | "periods"
+    | "summaryEntries"
   >;
   view: TimelineView;
   units: UnitChoices;
@@ -105,6 +111,15 @@ export function TimelineEntryList({
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
   const recipientZone = useGroup().recipient?.timeZone ?? "UTC";
   const sections = withMarkers(data.days, data.markers, localTimeZone(), new Date());
+  // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then).
+  const summaries =
+    data.summaryEntries &&
+    summariesByDay(
+      data.summaryEntries,
+      sections.map((d) => d.key),
+      localTimeZone(),
+      { units, nameOf: data.nameOf },
+    );
 
   // A new filter starts again from the newest entry: when the list's top is
   // above the screen (a kind icon or author tapped far down), bring it back,
@@ -188,12 +203,14 @@ export function TimelineEntryList({
         )}
         {sections.map((day) => (
           <section key={day.key} aria-labelledby={`day-${day.key}`}>
-            <h3
-              id={`day-${day.key}`}
-              className="bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 px-1 py-2 text-base font-semibold backdrop-blur lg:text-lg"
-            >
-              {day.label}
-            </h3>
+            <DayHeader
+              dayKey={day.key}
+              label={day.label}
+              newestAt={day.entries[0]?.occurredAt}
+              groupId={groupId}
+              periods={data.periods}
+            />
+            {summaries && <DaySummaryLine summary={summaries.get(day.key)} />}
             <ol className={LIST_CLASS[view]} data-view={view}>
               {/* Doses logged in one round fold into one pass log; care period markers keep their moments. */}
               {foldPassLogs(day.entries).map((it) =>

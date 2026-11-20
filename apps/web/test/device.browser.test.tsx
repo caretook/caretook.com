@@ -39,7 +39,7 @@ describe("the test device", () => {
     });
     const { screen } = device;
     await expect.element(screen.getByText("Slept through the night")).toBeVisible();
-    await expect.element(screen.getByText(/Dizzy when standing/)).toBeVisible();
+    await expect.element(screen.getByText(/Dizzy when standing · 4/)).toBeVisible();
     await expect.element(screen.getByText("Lisinopril 10 mg").first()).toBeVisible();
     await expect
       .element(screen.getByRole("link", { name: "Show only Sam Okafor's entries" }))
@@ -78,13 +78,13 @@ describe("the test device", () => {
 
   test("a viewer and a writer see different controls", async () => {
     const owner = await renderWithDevice({ route: TIMELINE, url: timelineUrl, role: "owner" });
-    await expect.element(owner.screen.getByRole("group", { name: "Add to the timeline" })).toBeVisible();
+    await expect.element(owner.screen.getByRole("button", { name: "Add to timeline" })).toBeVisible();
     await owner.screen.unmount();
 
     const viewer = await renderWithDevice({ route: TIMELINE, url: timelineUrl, role: "viewer" });
     await expect.element(viewer.screen.getByRole("heading", { level: 1 })).toBeVisible();
     await expect
-      .element(viewer.screen.getByRole("group", { name: "Add to the timeline" }))
+      .element(viewer.screen.getByRole("button", { name: "Add to timeline" }))
       .not.toBeInTheDocument();
   });
 

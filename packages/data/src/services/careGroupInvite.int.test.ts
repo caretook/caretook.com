@@ -5,10 +5,18 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
-import { careGroupInviteSchema, CONSENT_VERSION, userSchema } from "../db/schema";
+import { appSettingSchema, careGroupInviteSchema, CONSENT_VERSION, userSchema } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupConsentModel, careGroupInviteModel, careGroupMemberModel } from "../models";
-import { careGroupConsentService, careGroupInviteService, careGroupMemberService, userService } from ".";
+import {
+  appSettingService,
+  careGroupConsentService,
+  careGroupInviteService,
+  careGroupMemberService,
+  groupAdminService,
+  staffGroupService,
+  userService,
+} from ".";
 
 // Email invites (invites slice 3). Each test builds its own group and users.
 
@@ -374,5 +382,98 @@ describe("declining, resending, revoking and previewing", () => {
     ok(await careGroupInviteService.revoke(s.owner.ctx, sent.id));
     expect(codeOf(await careGroupInviteService.ticketFor(token))).toBe("ticket:invalid");
     expect(codeOf(await careGroupInviteService.ticketFor("made-up-token-made-up"))).toBe("ticket:invalid");
+  });
+});
+
+describe("while signup.emailInvites is off (B-106)", () => {
+  /** Run `body` with email invites switched off, then put the settings back. */
+  const withEmailInvitesOff = async (
+    body: (staff: Awaited<ReturnType<typeof createUser>>) => Promise<void>,
+  ) => {
+    const staff = await createUser("inv-staff", "admin");
+    ok(
+      await appSettingService.setSetting(staff.ctx, {
+        key: "signup.emailInvites",
+        value: false,
+        reason: "Abuse",
+      }),
+    );
+    try {
+      await body(staff);
+    } finally {
+      await getDb().delete(appSettingSchema);
+      appSettingService.clearSettingsCache();
+    }
+  };
+
+  /** Previewing, the sign-up ticket and accepting, as the invited address. */
+  const useInvite = async (token: string, email: string) => {
+    const preview = await careGroupInviteService.preview(token);
+    const ticket = codeOf(await careGroupInviteService.ticketFor(token));
+    const invitee = await userWith(email);
+    const accepted = await careGroupInviteService.accept(invitee.ctx, { token, consent: true });
+    return { preview, ticket, accepted, invitee };
+  };
+
+  it("lets a staff owner invite to a group be previewed and accepted", async () => {
+    const s = await setup();
+    await withEmailInvitesOff(async (staff) => {
+      const { sent, mail } = recordingMailer();
+      const email = newAddress("staff-owner");
+      ok(
+        await groupAdminService.inviteOwner(
+          staff.ctx,
+          { groupId: s.groupId, email, reason: "Owner left" },
+          { mail },
+        ),
+      );
+      const token = sent[0]?.token ?? "";
+
+      const used = await useInvite(token, email);
+      expect(used.preview).toMatchObject({ state: "usable", invite: { role: "owner" } });
+      expect(used.ticket).toBe("ok");
+      expect(used.accepted).toMatchObject({ status: "joined", groupId: s.groupId, role: "owner" });
+      expect(await roleOf(s.groupId, used.invitee.user.id)).toBe("owner");
+    });
+  });
+
+  it("lets the owner invite of a staff-made group be previewed and accepted", async () => {
+    await withEmailInvitesOff(async (staff) => {
+      const { sent, mail } = recordingMailer();
+      const email = newAddress("staff-new");
+      const made = ok(
+        await staffGroupService.createWithOwnerInvite(
+          staff.ctx,
+          { groupName: "Switch-off group", recipientName: "Lou Example", ownerEmail: email, attested: true },
+          { mail },
+        ),
+      );
+      const token = sent[0]?.token ?? "";
+
+      const used = await useInvite(token, email);
+      expect(used.preview).toMatchObject({ state: "usable" });
+      expect(used.ticket).toBe("ok");
+      expect(used.accepted).toMatchObject({ status: "joined", groupId: made.groupId, role: "owner" });
+    });
+  });
+
+  it("still refuses a member's email invite, an owner's owner invite included, at preview and accept", async () => {
+    const s = await setup();
+    const viewerEmail = newAddress("member-viewer");
+    const ownerEmail = newAddress("member-owner");
+    const viewerInvite = await invite(s.owner, s.groupId, viewerEmail, "viewer");
+    const ownerInvite = await invite(s.owner, s.groupId, ownerEmail, "owner");
+    await withEmailInvitesOff(async () => {
+      for (const [made, email] of [
+        [viewerInvite, viewerEmail],
+        [ownerInvite, ownerEmail],
+      ] as const) {
+        const used = await useInvite(made.token, email);
+        expect(used.preview).toMatchObject({ state: "unavailable", invite: null });
+        expect(used.ticket).toBe("settings:signupClosed");
+        expect(codeOf(used.accepted)).toBe("settings:signupClosed");
+        expect(await roleOf(s.groupId, used.invitee.user.id)).toBeNull();
+      }
+    });
   });
 });

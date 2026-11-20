@@ -201,12 +201,15 @@ async function overlay(trigger: () => HTMLElement, want: { name: string | RegExp
 }
 
 const rowActions = (kind: string) => () => must(`main ol > li button[aria-label^="Actions for ${kind} at"]`);
-const quickAdd = (label: string) => () =>
-  [
-    ...document.querySelectorAll<HTMLElement>(
-      '[aria-label="Add to the timeline"] a, [aria-label="Add to the timeline"] button',
-    ),
-  ].find((el) => el.textContent?.trim().startsWith(label))!;
+const addButton = () => must('main header button[aria-label="Add to timeline"]');
+/** Pick `label` from the header's + menu. */
+const quickAdd = async (label: string) => {
+  await userEvent.click(addButton());
+  await expect.poll(() => q(MENU)).not.toBeNull();
+  await userEvent.click(
+    [...document.querySelectorAll<HTMLElement>(ITEMS)].find((el) => el.textContent?.trim() === label)!,
+  );
+};
 const inSheet = (label: string) => () =>
   [...document.querySelectorAll<HTMLElement>('[role="dialog"] button')].find((b) =>
     b.textContent?.trim().startsWith(label),
@@ -222,7 +225,7 @@ describe.each([
   { width: 420, theme: "light" },
   { width: 1280, theme: "dark" },
 ] as const)("at $width, $theme", (layout) => {
-  test("the timeline's menus: the user and group menus, each row's ⋯, and quick-add Vitals (which stays on the timeline)", async () => {
+  test("the timeline's menus: the user and group menus, each row's ⋯, and the + menu (which stays on the timeline)", async () => {
     const device = await open(TIMELINE, layout);
     await expect.poll(rows).toBe(4);
     await menu(() => page.getByRole("button", { name: /^Account menu for/ }).element() as HTMLElement, {
@@ -234,7 +237,7 @@ describe.each([
     });
     await menu(rowActions("note"), { name: /^Actions for note at /, items: "Print,Delete" });
     await menu(rowActions("symptom"), { name: /^Actions for symptom at /, items: "Edit,Delete" });
-    await menu(quickAdd("Vitals"), { name: "Vital type", count: 10 });
+    await menu(addButton, { name: "Add to timeline", count: 14 });
     expect(device.location()).toBe(TIMELINE);
   });
 
@@ -256,14 +259,14 @@ describe.each([
   test("the add and edit sheets; the field's error; the calendar inside a sheet (Escape closes only it); the kind picker's and Add a reading's menus", async () => {
     await open(TIMELINE, layout);
     await expect.poll(rows).toBe(4);
-    await overlay(quickAdd("Symptom"), { name: "Add to the timeline", sheet: true });
     await overlay(() => must('main ol > li a[aria-label^="Edit symptom"]'), {
       name: "Edit symptom",
       sheet: true,
     });
 
     // A symptom with no name: labelled, invalid, described by its error.
-    await userEvent.click(quickAdd("Symptom")());
+    await quickAdd("Symptom");
+    await expect.poll(() => nameOf(top())).toBe("Add to the timeline");
     await expect.poll(() => q('[role="dialog"] input[name="symptomName"]')).not.toBeNull();
     await userEvent.click(must('[role="dialog"] button[type="submit"]'));
     const input = must<HTMLInputElement>('[role="dialog"] input[name="symptomName"]');

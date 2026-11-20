@@ -1,4 +1,5 @@
 import type { RecipientDetailsRow } from "~/lib/recipientDetails";
+import type { AllergyRows } from "~/lib/sync/allergies";
 import type { PassRow } from "~/lib/sync/medicationPasses";
 import type { SyncDb } from "~/lib/sync";
 import type { MedicationRow } from "~/lib/sync/medications";
@@ -9,6 +10,7 @@ import type { ProviderRow } from "~/lib/sync/providers";
 import { useMemo, useState } from "react";
 import { toRecipientDetails } from "~/lib/recipientDetails";
 import { useLiveQuery } from "~/lib/sync";
+import { loadAllergies, useAllergies } from "~/lib/sync/allergies";
 import { loadSchedulePasses, useSchedulePasses } from "~/lib/sync/medicationPasses";
 import { medicationsQuery, toMedications } from "~/lib/sync/medications";
 import { loadMemberDetailRows, memberDetailsQuery } from "~/lib/sync/members";
@@ -21,7 +23,7 @@ import { emergencySheet } from "./emergencyPrintSheet";
 // What the emergency sheet is made from, all from the device's copy (so it
 // opens and prints offline): the recipient, the writers' details row, the
 // members with their emergency places and shared phones, the medications
-// (with the passes their schedules name) and the providers. The loader reads them once; live queries keep them
+// (with the passes their schedules name), the allergies and the providers. The loader reads them once; live queries keep them
 // current, so another member's change shows before it's printed.
 
 export type EmergencySheetRows = {
@@ -31,18 +33,21 @@ export type EmergencySheetRows = {
   medicationRows: MedicationRow[];
   providerRows: ProviderRow[];
   passRows: PassRow[];
+  allergyRows: AllergyRows;
 };
 
 export async function loadEmergencySheetRows(db: SyncDb, groupId: string): Promise<EmergencySheetRows> {
-  const [profileRows, detailsRows, memberRows, medicationRows, providerRows, passRows] = await Promise.all([
-    readRows<RecipientProfileRow>(db, recipientProfileQuery(groupId)),
-    readRows<RecipientDetailsRow>(db, recipientDetailsQuery(groupId)),
-    loadMemberDetailRows(db, groupId),
-    readRows<MedicationRow>(db, medicationsQuery(groupId)),
-    readRows<ProviderRow>(db, providersQuery(groupId)),
-    loadSchedulePasses(db, groupId),
-  ]);
-  return { profileRows, detailsRows, memberRows, medicationRows, providerRows, passRows };
+  const [profileRows, detailsRows, memberRows, medicationRows, providerRows, passRows, allergyRows] =
+    await Promise.all([
+      readRows<RecipientProfileRow>(db, recipientProfileQuery(groupId)),
+      readRows<RecipientDetailsRow>(db, recipientDetailsQuery(groupId)),
+      loadMemberDetailRows(db, groupId),
+      readRows<MedicationRow>(db, medicationsQuery(groupId)),
+      readRows<ProviderRow>(db, providersQuery(groupId)),
+      loadSchedulePasses(db, groupId),
+      loadAllergies(db, groupId),
+    ]);
+  return { profileRows, detailsRows, memberRows, medicationRows, providerRows, passRows, allergyRows };
 }
 
 /** The sheet, live from the device. */
@@ -69,6 +74,7 @@ export function useEmergencySheet(groupId: string, initial: EmergencySheetRows) 
   );
   const providerRows = useLiveQuery<ProviderRow>(q.providers.sql, q.providers.params, initial.providerRows);
   const passes = useSchedulePasses(groupId, initial.passRows);
+  const { state: allergies } = useAllergies(groupId, initial.allergyRows);
 
   return useMemo(() => {
     const row = profileRows[0];
@@ -78,10 +84,10 @@ export function useEmergencySheet(groupId: string, initial: EmergencySheetRows) 
       members: memberRows,
       medications: toMedications(medicationRows),
       providers: toProviders(providerRows),
-      // Allergies come with B-26; until then the section is left out.
-      allergies: null,
+      // No recipient, no allergies to list (or to say are unrecorded).
+      allergies: row ? allergies : null,
       passes,
       now,
     });
-  }, [profileRows, detailsRows, memberRows, medicationRows, providerRows, passes, now]);
+  }, [profileRows, detailsRows, memberRows, medicationRows, providerRows, passes, allergies, now]);
 }

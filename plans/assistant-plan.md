@@ -6,11 +6,11 @@
 
 | Slice | State                                               | Merge into `prd/assistant` (slice commits) |
 | ----- | --------------------------------------------------- | ------------------------------------------ |
-| 1     | wave 1, running                                     |                                            |
-| 2     | blocked by 1                                        |                                            |
-| 3     | wave 1, running                                     |                                            |
+| 1     | merged                                              | 3766647 (c3c3398, 7ddf05d)                 |
+| 2     | running                                             |                                            |
+| 3     | merged                                              | f358d86 (33436b2, a1d1045)                 |
 | 4     | wave 1, running                                     |                                            |
-| 5     | blocked by 1                                        |                                            |
+| 5     | running                                             |                                            |
 | 6     | blocked by 5                                        |                                            |
 | 7     | blocked by 1, 2, 4, 6 (`medications-2` is in `dev`) |                                            |
 

@@ -68,7 +68,7 @@ export const createWithOwnerInvite = (
     const sent = await careGroupInviteService.createEmail(
       system,
       { groupId: group.id, email: input.ownerEmail, role: "owner", attested: true },
-      opts,
+      { ...opts, staffInvite: true },
     );
     if (isError(sent)) return sent;
 
