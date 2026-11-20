@@ -52,7 +52,8 @@
 // Slice 6, the emergency sheet (`…/profile/print`):
 //
 // - the owner's Print link opens the sheet: the name, birthday, age and day
-//   printed; the sections in order with the empty one (allergies) left out;
+//   printed; the sections in order, allergies among them ("Allergies not
+//   recorded" for the seeds; quick-fixes slice 41);
 //   the emergency contacts in order with the primary marked; current
 //   medications with dose and schedule; the primary providers and pharmacy;
 // - Print calls window.print(); in print media (420 and 1280) no frame or
@@ -1237,7 +1238,16 @@ try {
   const PRINT_LINK = `document.querySelector('main [data-profile-header] a[data-print-link]')`;
   const SHEET_DOC = `document.querySelector('main [data-emergency-sheet]')`;
   const onSheet = `location.pathname === ${JSON.stringify(PRINT)} && !!${SHEET_DOC}?.querySelector('[data-sheet-section="medications"] li')`;
-  const SHEET_SECTIONS = ["basics", "note", "contact", "insurance", "emergency", "medications", "careTeam"];
+  const SHEET_SECTIONS = [
+    "basics",
+    "note",
+    "contact",
+    "insurance",
+    "emergency",
+    "medications",
+    "allergies",
+    "careTeam",
+  ];
   const SHEET_MEDICATIONS = [
     "Acetaminophen 500 mg",
     "Latanoprost 0.005%",
@@ -1261,6 +1271,7 @@ try {
         metformin: [...sheet.querySelectorAll("[data-sheet-medication]")].find((el) => el.textContent.startsWith("Metformin"))?.textContent ?? null,
         team: names("[data-sheet-provider]"),
         plans: sheet.querySelectorAll("[data-sheet-plan]").length,
+        allergies: sheet.querySelector('[data-sheet-section="allergies"] [data-sheet-allergies-empty]')?.textContent.trim() ?? null,
       };
     })()`);
   /** What printing would show: no frame or controls, black on white, nothing wider than the page. */
@@ -1306,12 +1317,18 @@ try {
         JSON.stringify(sheet && { name: sheet.name, born: sheet.born, printed: sheet.printed }),
       );
       check(
-        "the sections in order, the empty one (allergies) left out, code status first",
+        "the sections in order, code status first, and the allergies say they're not recorded",
         JSON.stringify(sheet?.sections) === JSON.stringify(SHEET_SECTIONS) &&
           sheet.codeStatus === "DNR/POLST" &&
-          sheet.plans === 2,
+          sheet.plans === 2 &&
+          sheet.allergies === "Allergies not recorded",
         JSON.stringify(
-          sheet && { sections: sheet.sections, codeStatus: sheet.codeStatus, plans: sheet.plans },
+          sheet && {
+            sections: sheet.sections,
+            codeStatus: sheet.codeStatus,
+            plans: sheet.plans,
+            allergies: sheet.allergies,
+          },
         ),
       );
       check(

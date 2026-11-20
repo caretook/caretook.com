@@ -132,12 +132,15 @@ function SectionBody({ section }: { section: EmergencySection }) {
         </ul>
       );
     case "allergies":
-      return (
+      return section.empty ? (
+        <p className="font-semibold" data-sheet-allergies-empty="">
+          {section.empty}
+        </p>
+      ) : (
         <ul className="space-y-0.5">
-          {section.allergies.map((a, i) => (
-            <li key={i} data-sheet-allergy="">
-              <span className="font-semibold">{a.name}</span>
-              {a.reaction && <Muted> · {a.reaction}</Muted>}
+          {section.allergies.map((a) => (
+            <li key={a.id} className={a.severe ? "font-semibold" : undefined} data-sheet-allergy="">
+              {a.text}
             </li>
           ))}
         </ul>
