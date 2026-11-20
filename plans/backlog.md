@@ -100,7 +100,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-133 | bug | landed | quick-fixes |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
 | B-134 | bug | triaged | quick-fixes |  | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 | B-135 | bug | triaged | quick-fixes |  | simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a… |
-| B-136 | change | inbox |  |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
+| B-136 | change | triaged | app-speed |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | inbox |  |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
 | B-138 | change | inbox |  |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | inbox |  |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
@@ -715,8 +715,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: app-speed
 - owner:
 - commit:
 
