@@ -6,20 +6,28 @@
 
 | Slice | Wave | State                                               | Merge into `prd/tasks` (slice commits) |
 | ----- | ---- | --------------------------------------------------- | -------------------------------------- |
-| 1     | 1    | running (worktree tasks-1, slot 3; agent spawned)   |                                        |
-| 2     | 2    | blocked by 1                                        |                                        |
-| 3     | 3    | blocked by 2 and `assistant` in `dev`               |                                        |
-| 4     | 2    | blocked by 1 and `assistant` in `dev`               |                                        |
+| 1     | 1    | merged                                              | eccc68f (314ec1a, 7e0a210, 5d41650)    |
+| 2     | 2    | running (tasks-2, stackless; agent spawned)         |                                        |
+| 3     | 3    | blocked by 2                                        |                                        |
+| 4     | 2    | running (tasks-4, stackless; agent spawned)         |                                        |
 | 5     | 3    | blocked by 2                                        |                                        |
-| 6     | 3    | blocked by 1 and `assistant` in `dev`               |                                        |
-| 7     | 4    | blocked by 1 and `assistant` in `dev`               |                                        |
-| 8     | 2    | blocked by 1 and `check-migration` slice 2 in `dev` |                                        |
+| 6     | 2    | running (tasks-6, stackless; agent spawned)         |                                        |
+| 7     | 2    | running (tasks-7, stackless; agent spawned)         |                                        |
+| 8     | 2    | blocked by `check-migration` slice 2 in `dev`       |                                        |
 
 **Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue tasks`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
 **External blockers (2026-11-19):** `assistant` wave A (slices 1–5) is in `dev` (a38609b); its slice 6 landed in `dev` as 9ae6b0d (sync it at the wave-1 boundary, not mid-wave); slice 7 (running: `assistantActions` givePass, quick-entry suggestions, `SimpleTimeline`'s Now block, `visitPrep`) is not. Decision: slices 3 and 4 count as unblocked once slice 1 is merged and `dev` synced (slice 7 doesn't touch Upcoming, the strip, or the provider and medication pages); slices 6 (simple view) and 7 (`assistantActions`) wait for assistant slice 7 in `dev`. **Update:** assistant slice 7 landed in `dev` as 7f3ec10 (plus c17c121, a GroupMenu fix), so the whole `assistant` PRD is in `dev`: slices 3, 4, 6 and 7 are all ready once slice 1 is merged and `dev` is synced. For slices 6 and 7 (from assistant's hand-off): `givePass` in `assistantActions`, `context.passes` in the parser, `runActions` returns `{ ids, byAction }`, new `removeEntries`, quick-entry Undo through `lib/passUndo.ts` (`undoFor(groupId, { now, place })`), the simple view's Now block `timeline/SimpleNow.tsx` after the box, `doseSlotsBetween` in `lib/dueDoses.ts`; see docs/domain/assistant.md. `check-migration` slice 2 is merged on `prd/check-migration` (120db6e) but not in `dev`, so slice 8 waits. B-55 claimed by `prd/tasks`.
 
 **Heads-up from check-migration (2026-11-19):** its wave 1 lands in `dev` within the hour. It adds `SYNC_MATRIX` (`scripts/browser-checks/sync-matrix.mjs`), and `scripts/loops/sync-matrix.test.mjs` fails for any device-schema table or `HANDLERS` key without a row. So the first `pnpm prd sync` after slice 1 merges will fail `pnpm check` until `task` has a row: add a cheap one at that sync (or run slice 8 straight away, since its blocker is then in `dev`). Lean ceiling is 357 s (`lean-ceiling` in `scripts/loops/checks`), raisable only by the user.
+
+**Progress:** slice 1 merged as eccc68f; `dev` synced in as 3a3d27b (assistant complete; conflicts in `appUrls.ts`, `appUrls.test.ts`, `check-areas` were additive, both kept; typecheck clean). Migration is `0022_tasks.sql` on top of `dev`'s 0021. Slices 2, 4, 6 and 7 started together (stackless), since all of assistant is in `dev`. Slice 3 and 5 start when 2 merges.
+
+**When to land:** this PRD has a migration, so (the user's standing preference for migration PRDs, 2026-11-19) hold landing until every slice is merged, then run checks once at the end. Never `--suite` without asking the user first.
+
+**Slice 1's docs to fold at landing:** new `docs/domain/tasks.md` (table, 3 DB checks, hand-edited event FK and publication in 0022, `assignee_id` set null on account deletion; the due rule; `taskRules` exports; `taskService` and the viewer rule; the leaver via `releaseAssignee` from `careGroupMemberService.remove`; the device module and done-only PATCH; `taskDisplay`, `taskList`, `taskUndo`; the list: chips with default fixed at open, sections, Done paged by 20 and filtered by the chip; sheets: `TaskForm`, `AssigneeField`, `taskSheets` guards, `TASK_SHEET_STATE`; `components/tasks`; seeds with id prefixes `…3f1d2be0…`/`…3f1d2be1…`) and its _Area index_ row; `care-groups.md` permission row (`task`: read any member, create writers, update writers and viewers (viewers completion on their own tasks only), delete writers soft) and the leaver rule; `sync.md` (stream incl. soft-deleted rows, `note_document.task_id`, publication, `taskOp`, the `task` subject); `app-shell.md` (`GROUP_SECTIONS` ends with Tasks, `ListTodo`; `appUrls` `tasks`/`task`/`newTask`/`editTask`/`TASK_PREFILL_PARAMS`); `data-layer.md` (migrations 0000–0022); `components.md` (`components/tasks/`, the fixture `task` builder). Choices to note: Done follows the chip; native date/time inputs; the leaver's name falls back to "Former member". Slice 1 also fixed `upcoming.mjs` for a fifth section.
+
+**Browser checks run so far:** slice 1's `--changed` ran the whole lean set plus routing, providers, care-periods, upcoming on slice 1's tip: all pass (upcoming after its fix).
 
 **Backlog:** claim B-55 when slice 1 starts; `done` after slice 8 and slice 7 have both merged (the last of the PRD).
 
