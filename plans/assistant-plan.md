@@ -7,12 +7,14 @@
 | Slice | State                                               | Merge into `prd/assistant` (slice commits) |
 | ----- | --------------------------------------------------- | ------------------------------------------ |
 | 1     | merged                                              | 3766647 (c3c3398, 7ddf05d)                 |
-| 2     | running                                             |                                            |
+| 2     | merged                                              | 66b3e35 (98aff27, d94ea40)                 |
 | 3     | merged                                              | f358d86 (33436b2, a1d1045)                 |
-| 4     | wave 1, running                                     |                                            |
+| 4     | merged                                              | bab73d5 (5c7c747, 95b8c05)                 |
 | 5     | running                                             |                                            |
 | 6     | blocked by 5                                        |                                            |
 | 7     | blocked by 1, 2, 4, 6 (`medications-2` is in `dev`) |                                            |
+
+**Wave A** (slices 1–4, plus the dev sync 86f0fba with quick-fixes' + menu and `DayHeader`): merged, landing now; docs folded (new `docs/domain/assistant.md`). Slice 5 running on slot 4.
 
 **Landing:** land each wave as soon as it's green. The user said (2026-11-19) there's no real data, so it doesn't matter when the migration (slice 5) lands; it doesn't force one landing at the end. **Landing mode: run everything through** (queued with `pnpm prd queue assistant`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
