@@ -66,8 +66,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-63 | feature | triaged | appointments-2 |  | Google Calendar sync of a care group's appointments |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
-| B-104 | plan | landed | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
-| B-129 | chore | landed | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
+| B-104 | plan | staging | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
+| B-129 | chore | staging | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
 | B-136 | change | live | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | live | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
 | B-138 | change | live | timeline-ux | prd/timeline-ux | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
@@ -94,13 +94,17 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-174 | bug | triaged | timeline-ux |  | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
 | B-175 | chore | triaged | timeline-ux |  | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
 | B-176 | bug | live | check-migration | prd/check-migration | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
-| B-177 | bug | inbox |  |  | rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone |
+| B-177 | bug | triaged | check-migration |  | rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone |
 | B-178 | bug | live | check-migration | prd/check-migration | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
 | B-179 | bug | dropped | check-migration |  | app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry |
 | B-180 | bug | triaged | check-migration |  | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
 | B-181 | feature | triaged |  |  | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
 | B-182 | bug | triaged | check-migration |  | providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out |
-| B-183 | chore | inbox |  |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
+| B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
+| B-184 | bug | triaged | quick-fixes |  | When viewing the member page as an owner, the simple mode and locked buttons make the data too wide… |
+| B-185 | bug | triaged | quick-fixes |  | The today bar on timeline should always be collapsed unless there is something overdue or upcoming. |
+| B-186 | bug | triaged | quick-fixes |  | vitals section in today block doesn't expand when you click see all, it filters the data instead.… |
+| B-187 | bug | triaged | quick-fixes |  | timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals… |
 
 ## Items
 
@@ -270,7 +274,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-104 · plan · Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server
 
-- status: landed
+- status: staging
 - prd: connectors
 - owner: prd/connectors
 - commit: d77c5884
@@ -280,7 +284,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-129 · chore · Port the lean end-to-end set to Playwright Test
 
-- status: landed
+- status: staging
 - prd: check-migration
 - owner: prd/check-migration
 - commit: f7eceabb
@@ -593,12 +597,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-177 · bug · rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: check-migration
 - owner:
 - commit:
 
 - 2026-11-20 (prd/check-migration): Seen at check-migration's wave 8 landing (2026-11-20): 'Failed query: select … from rate_limit where key = $1', from Better Auth's rate limiter, likely the integration test's Postgres pool under load. Passed alone 2/2. From hosting slice 3 (B-141); not check-migration's. -- check-migration orchestrator
+- 2026-11-20 (Robert Bo Davis): Triage: check-migration, a load flake like B-180/B-182; confirm alone 3x, then fix the race
 
 ### B-178 · bug · medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone
 
@@ -650,9 +655,49 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-183 · chore · Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons)
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: hosting
 - owner:
 - commit:
 
 - 2026-11-20 (hotfix/go-live): Repo is public (B-33), so run logs are public for 7 days. Use ::add-mask:: on email/reason inputs in admin-grant.yml, db-access.yml, rotate-jwks.yml; secrets are already masked.
+- 2026-11-20 (Robert Bo Davis): Triage: hosting, part of going live (B-33): add ::add-mask:: in admin-grant.yml, db-access.yml, rotate-jwks.yml before production
+
+### B-184 · bug · When viewing the member page as an owner, the simple mode and locked buttons make the data too wide…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: When viewing the member page as an owner, the simple mode and locked buttons make the data too wide for the container. Stack those radios on top of each other
+- 2026-11-20 (Robert Bo Davis): Triage: small UI follow-ups (member page; timeline-ux slice 5's Today card), app-shell and timeline-ux are done, so quick-fixes slices
+
+### B-185 · bug · The today bar on timeline should always be collapsed unless there is something overdue or upcoming.
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): Triage: small UI follow-ups (member page; timeline-ux slice 5's Today card), app-shell and timeline-ux are done, so quick-fixes slices
+
+### B-186 · bug · vitals section in today block doesn't expand when you click see all, it filters the data instead.…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: vitals section in today block doesn't expand when you click see all, it filters the data instead. It should expand the number of rowsto show all the vitals if there are more than fit, and shouldn't appear if they fit in the container.
+- 2026-11-20 (Robert Bo Davis): Triage: small UI follow-ups (member page; timeline-ux slice 5's Today card), app-shell and timeline-ux are done, so quick-fixes slices
+
+### B-187 · bug · timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals subfilters. Maybe move into a "filter" button that opens a modal with the filters.
+- 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, one slice: a Filter button opening a sheet/dialog with the vitals subfilters inside; promote to its own topic if the design grows
