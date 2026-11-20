@@ -6,9 +6,9 @@
 
 | Slice | Wave | State           | Merge into `prd/timeline-ux` (slice commits) |
 | ----- | ---- | --------------- | -------------------------------------------- |
-| 1     | 1    | not started     |                                              |
-| 2     | 1    | not started     |                                              |
-| 3     | 1    | not started     |                                              |
+| 1     | 1    | merged          | 9e3a3ad (28991ac, 940af0a)                     |
+| 2     | 1    | started         |                                              |
+| 3     | 1    | handed off (11efa88) |                                              |
 | 4     | 2    | not started     |                                              |
 | 5     | 2    | blocked by 2    |                                              |
 | 6     | 2    | not started     |                                              |
@@ -19,7 +19,15 @@
 
 **Start condition:** `code-layout` in `dev` (it moves `apps/web/app/lib/`, `routes.ts` and `appUrls`). Check `pnpm backlog show B-150` says landed. Every path below that names `lib/…` means its new home after code-layout: find it with `git grep` and don't recreate the old file.
 
-**Landing:** land each wave as soon as it's green. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here.
+**Landing mode: run everything through** (queued with `pnpm prd queue timeline-ux`; 2026-11-20). Start every ready slice, land each green wave without asking, clean up; ask only real questions. The lean-set `--suite` before landing waves 1, 3 and 4 still needs the user's yes (standing rule).
+
+**Models:** slice 1 opus, slice 2 opus, slice 3 sonnet (tooling spelled out).
+
+**Progress log:**
+
+- 2026-11-20: wave 1 started: worktrees timeline-ux-1 (stack, slot 6), -2, -3 made; agents spawned (1 opus, 2 opus, 3 sonnet). B-136, B-156, B-166, B-155 claimed.
+- Slice 3 handed off (11efa88): `pnpm build:budget` (entry/root/app gzip ceilings, forbidden editor/PowerSync modules); `pnpm prd check` now also runs it. Edits `apps/web/vite.config.ts` (manifest + chunk-modules plugin), `scripts/loops/prd.sh`, `.gitignore`.
+- Slice 1 merged (9e3a3ad), B-136/B-156 done, worktree removed. Its `pnpm check` failed only `medicationList.browser.test.tsx` under load (passed alone 3/3): watch it at the landing check. Fold-ins for sync.md: freshness 15 min, recheck after 1 min, 3 s answer budget; the first check per page load and after sign-in (`sessionEpoch.ts`) always waits; cache-first settings and the `useMySettings` store. session-end usual seconds unchanged (lean set is at its 286 ceiling).
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
