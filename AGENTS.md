@@ -46,7 +46,7 @@ Caretook: mobile-first tools for caretakers: a timeline (real-time **and** offli
 
 ## Commands
 
-From the repo root, after `nvm use`: `pnpm dev`, `build`, `build:native`; `pnpm datastore:start` (migrate, seed), `reset`, `generate` (a migration), `start:test` (:5435); `pnpm lint`, `format`, `typecheck`, `test`, and `pnpm check` (all of them); `pnpm log [git log args…]` (no backlog commits; `--grep` turns that off); `pnpm docs:budget` (docs over budget); `pnpm backlog …` and `pnpm prd …` (`pnpm prd help`); `pnpm deploy:env`, `db:roles`, `db:access` ([ops](ops/runbook.md)); `pnpm hooks:install` (once, after cloning).
+From the repo root, after `nvm use`: `pnpm dev`, `build`, `build:native`; `pnpm datastore:start` (migrate, seed), `reset`, `generate` (a migration), `start:test` (:5435); `pnpm lint`, `format`, `typecheck`, `test`, and `pnpm check` (all of them); `pnpm log [git log args…]` (no backlog commits; `--grep` turns that off); `pnpm docs:budget` (docs over budget); `pnpm build:budget` (first-load chunk budget); `pnpm backlog …` and `pnpm prd …` (`pnpm prd help`); `pnpm deploy:env`, `db:roles`, `db:access` ([ops](ops/runbook.md)); `pnpm hooks:install` (once, after cloning).
 
 ## Area index
 

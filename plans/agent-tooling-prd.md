@@ -1,5 +1,7 @@
 # PRD: Agent tooling
 
+> **Done** (2026-11-20): all six slices landed in `dev`. The lasting rules live in AGENTS.md, `docs/agents/` and the trimmed area docs.
+
 > Topic `agent-tooling`. Backlog items B-147, B-148 and B-154. B-152 (the `permissions` block in `.claude/settings.json`) and B-153 (the scripts pick Node 24 themselves) were already done as direct changes on `dev` and are not part of this PRD.
 
 ## Problem Statement

@@ -428,7 +428,7 @@ export const createTaskDocument = async (db: SyncDb, taskId: string): Promise<Ac
 import { addDays, localDate, taskOrder } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { useNow } from "../live-notes/editors.sync";
-import { useLiveQuery } from "../sync/index";
+import { useRememberedQuery } from "../sync/useRememberedQuery";
 
 /**
  * A group's open (not done, not deleted) tasks with a due day, from `from`
@@ -449,28 +449,29 @@ export const DUE_TASKS_TICK_MS = 60_000;
 export const dueTasksThrough = (now: Date | number, timeZone: string, days: number) =>
   addDays(localDate(now, timeZone), days);
 
-// Starting rows when there's no loader's: kept apart by identity, so the hook
-// can tell rows not read yet from none at all.
-const NOT_READ: TaskRow[] = [];
+const NO_TASK_ROWS: TaskRow[] = [];
 
 /**
  * A group's open dated tasks due by `days` after today (0: overdue and
  * today's only), in `taskOrder`, live and re-evaluated once a minute.
  * `timeZone` is the recipient's: due days and times are wall-clock there.
- * `initial` is a loader's rows (from `dueTasksQuery`); left out, `ready` is
- * false until the live query has answered, so nothing flashes.
+ * `initial` is a loader's rows (from `dueTasksQuery`). Left out, the query
+ * reads through the tile cache (`useRememberedQuery`, under `name`, which
+ * differs per `days`): `ready` is true once there's an answer, remembered
+ * from earlier this session or live, and `fresh` once it has answered live.
  */
 export function useDueTasks(
   groupId: string,
   timeZone: string,
-  { days = 0, initial = NOT_READ }: { days?: number; initial?: TaskRow[] } = {},
+  { days = 0, initial }: { days?: number; initial?: TaskRow[] } = {},
 ) {
   const now = useNow(DUE_TASKS_TICK_MS);
   // Keyed on the day, so the query only changes at midnight.
   const query = dueTasksQuery(groupId, null, dueTasksThrough(now, timeZone, days));
-  const rows = useLiveQuery<TaskRow>(query.sql, query.params, initial);
+  const { value, fresh } = useRememberedQuery<TaskRow>({ groupId, name: `dueTasks:${days}` }, query, initial);
+  const rows = value ?? NO_TASK_ROWS;
   const tasks = useMemo(() => taskOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
-  return { tasks, now, timeZone, ready: initial !== NOT_READ || rows !== NOT_READ };
+  return { tasks, now, timeZone, ready: value !== undefined, fresh };
 }
 
 // ---------------------------------------------------------------------------

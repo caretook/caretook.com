@@ -8,7 +8,7 @@ import { QuickEntryBox } from "~/components/quick-entry";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formString } from "~/lib/core/form";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { loadSettings } from "~/lib/app-shell/me";
+import { loadSettings, useMySettings } from "~/lib/app-shell/me";
 import { sessionContext } from "~/lib/auth/session";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
@@ -38,8 +38,9 @@ import { useSimpleModeUrl } from "./useSimpleModeUrl";
 
 // Shared by web + native. Reads and writes go to the device's local copy
 // (PowerSync), so the timeline works offline and other members' changes
-// appear as they sync (`useTimelineData`). Only settings come from the API
-// (cached offline).
+// appear as they sync (`useTimelineData`). Only settings come from the API:
+// the loader answers from their cache, and `useMySettings` follows the
+// background refresh.
 
 /**
  * The page title. Shared by `meta` and the loader, which keeps the loader in
@@ -117,18 +118,21 @@ export function shouldRevalidate({
 }
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { userId, units, kind, author, q, upcoming, vital } = loaderData;
+  const { userId, kind, author, q, upcoming, vital } = loaderData;
   const { groupId } = params;
+  // The loader's settings come from the cache; a background refresh publishes any change.
+  const settings = useMySettings(userId, loaderData);
+  const { units } = settings;
   const group = useGroup();
   const { canWrite } = group;
-  const mode = useSimpleMode(userId, groupId, group, loaderData.simpleMode);
+  const mode = useSimpleMode(userId, groupId, group, settings.simpleMode);
   useSimpleModeUrl(groupId, mode.simple, loaderData);
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
   const filters = { kind, author, vital, match: search.match };
   const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
-  const [view, setView] = useTimelineView(userId, loaderData.timelineView);
-  const [summaryMode, setSummaryMode] = useDaySummaryMode(userId, loaderData.daySummary);
+  const [view, setView] = useTimelineView(userId, settings.timelineView);
+  const [summaryMode, setSummaryMode] = useDaySummaryMode(userId, settings.daySummary);
 
   const sheets = (
     <>
