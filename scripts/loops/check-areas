@@ -298,7 +298,7 @@ apps/web/app/lib/sync/editors.ts         live-notes
 apps/web/app/lib/sync/titleSuggestions.ts live-notes
 
 # Providers.
-apps/web/app/routes/app/groups/provider/ProviderMedications.tsx providers medications
+apps/web/app/routes/app/groups/provider/ProviderMedications.tsx providers
 # Visit prep's button on a provider's page (assistant slice 4): component tests.
 apps/web/app/routes/app/groups/provider/ProviderVisitPrep.tsx -
 apps/web/app/routes/app/groups/provider/*  providers
@@ -317,10 +317,35 @@ apps/web/app/lib/sync/medications.ts     medications
 apps/web/app/lib/sync/medicationPasses.ts medications
 # Allergies (medications-2): the device module; the sheet is under
 # routes/app/groups/medications/allergies/, the region in components/medications/.
-apps/web/app/lib/sync/allergies.ts       medications
+# Its writes reaching another device are roundtrip's sync matrix.
+apps/web/app/lib/sync/allergies.ts       roundtrip
+# The list, a medication's page, the add and edit sheets, the status actions,
+# allergies and the printable sheets (check-migration slice 9): component
+# tests beside them, on medicationWorld.tsx's world. The page's notes
+# document is live-notes'. Today on the list, the schedule's pass slots and
+# the Passes screen stay with medications.mjs (the rules below).
+apps/web/app/routes/app/groups/medications/medicationWorld.tsx -
+apps/web/app/routes/app/groups/medication/useMedicationNotes.ts live-notes
+apps/web/app/routes/app/groups/medication/* -
+apps/web/app/routes/app/groups/medications/new/* -
+apps/web/app/routes/app/groups/medications/edit/* -
+apps/web/app/routes/app/groups/medications/allergies/* -
+apps/web/app/routes/app/groups/medications/print/* -
+apps/web/app/routes/app/groups/medications/MedicationForm.tsx -
+apps/web/app/routes/app/groups/medications/NameField.tsx -
+apps/web/app/routes/app/groups/medications/ProviderPickerField.tsx -
+apps/web/app/routes/app/groups/medications/medicationFormData.ts -
+apps/web/app/routes/app/groups/medications/medicationProviders.ts -
+apps/web/app/routes/app/groups/medications/medicationSheet.ts -
+apps/web/app/routes/app/groups/medications/MedicationList.tsx -
+apps/web/app/routes/app/groups/medications/MedicationListItem.tsx -
+apps/web/app/routes/app/groups/medications/MedicationFilters.tsx -
+apps/web/app/routes/app/groups/medications/PrintMenu.tsx -
+apps/web/app/components/medications/AllergiesRegion.tsx -
+apps/web/app/components/medications/PrintAllergies.tsx -
+apps/web/app/components/medications/MedicationStatusActions.tsx -
 apps/web/app/routes/app/groups/medications/* medications
-apps/web/app/routes/app/groups/medication/* medications
-# The status actions (the medication page and the list's edit sheet).
+# Today's pass cards, dose rows and Undo (the list and the strip).
 apps/web/app/components/medications/*    medications
 # Given all (medications-2): passes due today, the Undo offer, members' names for "who logged it".
 apps/web/app/lib/duePasses.ts            medications upcoming
