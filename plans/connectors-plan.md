@@ -41,6 +41,8 @@
 
 **Check, at 47dfc163 (the final tip):** red under load. There were two 5 s timeouts: `mcp.int.test.ts` list_timeline and `timelineEntry.int.test.ts` already-deleted. Both pass alone (974 ms and 39 ms). The run took 25 min. Rerunning the full check (third run); the lean `--suite` comes after it.
 
+**Full check passed on f14b71a4** (2026-11-20, third rerun; 434 files, 4488 tests, bundle budget ok). The second run's only failure is filed as B-182 (providers chip poll, check-migration). Stack: this worktree's PowerSync had exited at startup 4 h earlier (storage not ready); started it and reset its storage. The lean `--suite` passed 12/12 in 4 m 17 s (roundtrip 27 s), the one approved run.
+
 **Open for landing:**
 
 - A full clean `pnpm prd check` (load flakes so far: B-178, B-173, providers).
