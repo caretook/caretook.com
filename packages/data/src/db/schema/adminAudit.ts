@@ -39,6 +39,7 @@ export const AUDIT_ACTIONS = [
   "setting.set",
   "db.accessGranted",
   "db.accessRevoked",
+  "mail.suppressionCleared",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -65,6 +66,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "setting.set": "Changed a setting",
   "db.accessGranted": "Granted personal database access",
   "db.accessRevoked": "Revoked personal database access",
+  "mail.suppressionCleared": "Cleared an email suppression",
 };
 
 /** A JSON value as `changes` stores it. */

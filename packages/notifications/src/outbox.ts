@@ -4,8 +4,10 @@ import type { NotificationData } from "./render";
 import type { Sender } from "./senders";
 
 import {
+  SUPPRESSED_ERROR,
   SYSTEM_USER,
   dbMayFail,
+  emailSuppressionService,
   getDb,
   isError,
   logError,
@@ -29,6 +31,17 @@ export const BATCH_LIMIT = 100;
 export const PURGE_AFTER_DAYS = 30;
 /** A row left `sending` this long (a crashed sweep) is claimed again. */
 export const STALE_CLAIM_MINUTES = 10;
+
+/**
+ * Sign-in and account mail, sent even to a suppressed address (hosting PRD)
+ * so nobody is locked out of their account. Every other notification to a
+ * suppressed address is skipped with `last_error` = `suppressed`.
+ */
+export const SUPPRESSION_EXEMPT: readonly NotificationName[] = [
+  "signInEmail",
+  "resetPassword",
+  "verifyEmail",
+];
 
 const BACKOFF_BASE_MS = 60_000;
 const BACKOFF_MAX_MS = 6 * 60 * 60_000;
@@ -179,6 +192,17 @@ const redactedBody = (name: string) =>
     ? { html: REDACTED_BODY, text: REDACTED_BODY }
     : {};
 
+/** What the sender gets for an outbox row. */
+const messageOf = (row: typeof outbox.$inferSelect, from: string) => ({
+  name: row.name,
+  to: row.recipient,
+  from,
+  subject: row.subject,
+  html: row.html,
+  text: row.text,
+  idempotencyKey: row.idempotencyKey,
+});
+
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 2000);
 
 /**
@@ -218,7 +242,8 @@ const claim = (limit: number, ids?: readonly string[]) => {
 /**
  * Send what's due: up to `limit` rows (or just `ids`), each once. A failure
  * goes back to pending with exponential backoff, and is marked failed after
- * MAX_ATTEMPTS.
+ * MAX_ATTEMPTS. A row to a suppressed address is skipped (`suppressed`)
+ * unless its notification is in SUPPRESSION_EXEMPT.
  */
 export const deliverDue = async ({
   limit = BATCH_LIMIT,
@@ -238,18 +263,26 @@ export const deliverDue = async ({
   const db = getDb();
   const mine = (id: string) => and(eq(outbox.id, id), eq(outbox.status, "sending"));
 
+  // Suppressed addresses (a hard bounce or a complaint), checked once for the batch.
+  const exempt = (name: string) => SUPPRESSION_EXEMPT.some((n) => n === name);
+  const suppressed = await emailSuppressionService.suppressedAmong(
+    claimed.filter((row) => !exempt(row.name)).map((row) => row.recipient),
+  );
+  if (isError(suppressed)) logError("mail: couldn't read the suppressions", suppressed);
+
   for (const row of claimed) {
     let result: Awaited<ReturnType<Sender["send"]>>;
     try {
-      result = await via.send({
-        name: row.name,
-        to: row.recipient,
-        from: config.from,
-        subject: row.subject,
-        html: row.html,
-        text: row.text,
-        idempotencyKey: row.idempotencyKey,
-      });
+      if (exempt(row.name)) {
+        result = await via.send(messageOf(row, config.from));
+      } else if (isError(suppressed)) {
+        // Unknown whether it's suppressed: try again later rather than risk it.
+        result = { status: "error", error: "Couldn't read the email suppressions" };
+      } else if (suppressed.has(row.recipient.trim().toLowerCase())) {
+        result = { status: "skipped", reason: SUPPRESSED_ERROR };
+      } else {
+        result = await via.send(messageOf(row, config.from));
+      }
     } catch (error) {
       result = { status: "error", error: errorText(error) };
     }
@@ -304,7 +337,7 @@ export const deliverDue = async ({
   return summary;
 };
 
-/** Delete sent and skipped rows older than `olderThanDays`. Returns how many. */
+/** Delete sent, skipped, bounced and complained rows older than `olderThanDays`. Returns how many. */
 export const purgeSent = async ({ olderThanDays = PURGE_AFTER_DAYS } = {}) => {
   const removed = await dbMayFail(
     () =>
@@ -312,7 +345,7 @@ export const purgeSent = async ({ olderThanDays = PURGE_AFTER_DAYS } = {}) => {
         .delete(outbox)
         .where(
           and(
-            inArray(outbox.status, ["sent", "skipped"]),
+            inArray(outbox.status, ["sent", "skipped", "bounced", "complained"]),
             lt(outbox.sentAt, sql`now() - make_interval(days => ${olderThanDays})`),
           ),
         )

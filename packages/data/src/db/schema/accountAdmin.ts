@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { staffReasonZSchema } from "./staffRules";
 
+/** The outbox's `last_error` for a row skipped because its address is suppressed. */
+export const SUPPRESSED_ERROR = "suppressed";
+
 // Staff account help (admin PRD, slice 2): the inputs of /admin/users and an
 // account's page, and how a sent email's failure reads there. Pure and
 // client-safe: the service, the API and the pages share it.
@@ -40,12 +43,16 @@ export type SetRoleInput = z.input<typeof setRoleZSchema>;
 /**
  * A short code for why an email wasn't sent, never the sender's whole
  * message (it can quote the address or the provider's details): a skip
- * outside production is `notAllowlisted`; a provider error's name
+ * outside production is `notAllowlisted`, a suppressed address's skip
+ * `suppressed` (hosting PRD); a provider error's name
  * (Resend's `validation_error: …` → `validation_error`); anything else
  * `error`. Null when there was none.
  */
 export const mailErrorCode = (status: string, lastError: string | null | undefined) => {
   if (!lastError) return null;
-  if (status === "skipped") return /allowlist/i.test(lastError) ? "notAllowlisted" : "skipped";
+  if (status === "skipped") {
+    if (lastError === SUPPRESSED_ERROR) return "suppressed";
+    return /allowlist/i.test(lastError) ? "notAllowlisted" : "skipped";
+  }
   return /^([A-Za-z][\w.-]{0,40}):/.exec(lastError)?.[1] ?? "error";
 };

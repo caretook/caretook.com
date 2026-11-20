@@ -1,5 +1,5 @@
 {
-  "id": "135a5d0c-bd20-43d9-9fb2-d36163577745",
+  "id": "661130e3-a40b-4345-9bf8-61dacac1510a",
   "prevId": "5219ed8d-5f8a-45a7-9995-49520e0e9c3b",
   "version": "7",
   "dialect": "postgresql",
@@ -2252,6 +2252,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "notification_outbox_provider_message_id_idx": {
+          "name": "notification_outbox_provider_message_id_idx",
+          "columns": [
+            {
+              "expression": "provider_message_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -2269,7 +2284,7 @@
       "checkConstraints": {
         "notification_outbox_status_check": {
           "name": "notification_outbox_status_check",
-          "value": "\"notification_outbox\".\"status\" IN ('pending', 'sending', 'sent', 'skipped', 'failed')"
+          "value": "\"notification_outbox\".\"status\" IN ('pending', 'sending', 'sent', 'skipped', 'failed', 'bounced', 'complained')"
         },
         "notification_outbox_attempts_check": {
           "name": "notification_outbox_attempts_check",
@@ -4421,6 +4436,137 @@
       },
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.email_suppression": {
+      "name": "email_suppression",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cleared_at": {
+          "name": "cleared_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cleared_by": {
+          "name": "cleared_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clear_reason": {
+          "name": "clear_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "email_suppression_active_address_idx": {
+          "name": "email_suppression_active_address_idx",
+          "columns": [
+            {
+              "expression": "address",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"email_suppression\".\"cleared_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "email_suppression_created_at_idx": {
+          "name": "email_suppression_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "email_suppression_event_id_unique": {
+          "name": "email_suppression_event_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "event_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "email_suppression_reason_check": {
+          "name": "email_suppression_reason_check",
+          "value": "\"email_suppression\".\"reason\" IN ('bounce', 'complaint')"
+        },
+        "email_suppression_address_check": {
+          "name": "email_suppression_address_check",
+          "value": "\"email_suppression\".\"address\" = lower(btrim(\"email_suppression\".\"address\"))"
+        }
+      },
       "isRLSEnabled": false
     }
   },
