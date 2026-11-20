@@ -155,7 +155,7 @@ apps/web/app/lib/sync/recipientDetails.ts profiles
 packages/data/src/db/schema/careRecipientDetails.ts profiles
 apps/web/app/routes/app/groups/timeline/RecipientCard.tsx profiles
 apps/web/app/routes/app/groups/timeline/TimelineHeader.tsx profiles
-apps/web/app/routes/app/layout/GroupMenu.tsx profiles care-periods
+apps/web/app/routes/app/layout/GroupMenu.tsx profiles
 apps/web/app/routes/app/groups/settings/details/* app-shell profiles
 packages/data/src/db/schema/careRecipient.ts profiles
 packages/data/src/db/schema/profileVisibility.ts profiles
@@ -217,17 +217,13 @@ apps/web/app/routes/app/groups/settings/members/* app-shell invites profiles-con
 apps/web/app/routes/app/groups/settings/* app-shell
 apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts profiles
 # The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
-apps/web/app/components/ui/date/*        ui roundtrip medications care-periods
+apps/web/app/components/ui/date/*        ui roundtrip medications
 apps/web/app/components/ui/*             ui
 apps/web/app/components/brand/*          marketing
 
-# The timeline's care periods (care-periods slice 3): the period in each day's
-# sticky header and the boundary markers among the entries.
-apps/web/app/routes/app/groups/timeline/DayHeader.tsx care-periods
-apps/web/app/routes/app/groups/timeline/PeriodMarkerItem.tsx care-periods
-apps/web/app/routes/app/groups/timeline/timelinePeriods.ts care-periods
-apps/web/app/routes/app/groups/timeline/timelineDays.ts care-periods
-apps/web/app/lib/periodMarkers.ts        care-periods
+# The timeline's care periods (the period in each day's sticky header and the
+# boundary markers) are component tests (timelineCarePeriods, timelineHeader):
+# timeline/* below; lib/periodMarkers.ts has its unit tests.
 # The timeline, its rows, filters, vitals and sheets.
 # Doses and medication changes on the timeline (medications slice 4).
 apps/web/app/routes/app/groups/timeline/new-dose/* medications
@@ -248,9 +244,9 @@ apps/web/app/routes/app/groups/timeline/NextStrip.tsx upcoming
 apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
 apps/web/app/routes/app/groups/timeline/aheadQueries.ts upcoming
 apps/web/app/routes/app/groups/timeline/useHistoryCutoff.ts upcoming
-apps/web/app/routes/app/groups/timeline/useTimelineData.ts upcoming care-periods
-apps/web/app/routes/app/groups/timeline/timelineRows.ts upcoming care-periods
-apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx upcoming care-periods
+apps/web/app/routes/app/groups/timeline/useTimelineData.ts upcoming
+apps/web/app/routes/app/groups/timeline/timelineRows.ts upcoming
+apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx upcoming
 # The timeline's search (the field, the chip, ?q= in the windows, the period
 # chip, marks and snippets) is component tests (timelineSearch.browser.test.tsx):
 # timeline/* below.
@@ -278,9 +274,9 @@ apps/web/app/lib/entryDisplay.ts         -
 apps/web/app/lib/form.ts                 roundtrip
 
 # The entry page and live notes.
-# The entry page's care period suggestion (care-periods slice 5).
-apps/web/app/routes/app/groups/entry/PeriodSuggestionChip.tsx care-periods
-apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx providers care-periods
+# The entry page's care period suggestion is component tests
+# (entry/entryPeriodSuggestion.browser.test.tsx): entry/* below.
+apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx providers
 # The With row and the place: providers.mjs. What the page writes (and so uploads): live-notes.
 apps/web/app/routes/app/groups/entry/EntryWithRow.tsx providers
 apps/web/app/routes/app/groups/entry/withProviders.ts providers
@@ -333,13 +329,17 @@ apps/web/app/components/schedule/*       upcoming
 apps/web/app/components/visitPrep/*      -
 apps/web/app/lib/sync/visitPrep.ts       -
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
-# Care periods (care-periods PRD): the device module, the periods page and
-# its sheets, and a period's page.
-apps/web/app/lib/sync/carePeriods.ts     care-periods
-apps/web/app/routes/app/groups/periods/* care-periods
-apps/web/app/routes/app/groups/period/*  care-periods
-apps/web/app/lib/sync/periodSuggestions.ts care-periods live-notes
-apps/web/app/lib/sync/currentPeriod.ts   care-periods
+# Care periods: the periods page and its sheets, a period's page, the group
+# menu's period and the suggestion are component tests (periods/, period/,
+# layout/groupMenuPeriod, entry/entryPeriodSuggestion). What the device module
+# writes uploads: roundtrip's sync matrix has a care_period row. The period's
+# notes document is the live-notes pattern.
+apps/web/app/lib/sync/carePeriods.ts     roundtrip
+apps/web/app/routes/app/groups/period/useCarePeriodNotes.ts live-notes
+apps/web/app/routes/app/groups/periods/* -
+apps/web/app/routes/app/groups/period/*  -
+apps/web/app/lib/sync/periodSuggestions.ts -
+apps/web/app/lib/sync/currentPeriod.ts   -
 # Search (search PRD). The device index is unit tests (lib/sync/search.test.ts,
 # node's SQLite) and component tests (lib/sync/search.browser.test.tsx, the
 # device's wa-sqlite); signout-wipe checks its tables are dropped at sign-out,
@@ -360,7 +360,7 @@ apps/web/app/routes/marketing/*          marketing
 apps/web/public/*                        marketing
 
 # Server code the device reaches. The upload switch carries every synced write.
-packages/api/src/sync.ts                 roundtrip live-notes providers care-periods
+packages/api/src/sync.ts                 roundtrip live-notes providers
 packages/api/src/invites.ts              invites
 packages/api/src/joinRequests.ts         invites
 packages/api/src/publicForms.ts          marketing
@@ -372,13 +372,13 @@ apps/web/app/routes/rpc.ts               sign-in
 # Shared schemas and seeds: the screens that read them.
 packages/data/src/db/schema/timelineEntry.ts phase2 roundtrip live-notes
 packages/data/src/db/schema/vitals.ts    phase2 roundtrip
-packages/data/src/db/schema/noteDocument.ts live-notes providers care-periods
+packages/data/src/db/schema/noteDocument.ts live-notes providers
 packages/data/src/db/schema/noteYjs.ts   live-notes
 packages/data/src/db/schema/noteEditors.ts live-notes
 packages/data/src/db/schema/provider.ts  providers
 packages/data/src/db/schema/entryProvider.ts providers
 packages/data/src/db/schema/medication.ts medications
-packages/data/src/db/schema/carePeriod*.ts care-periods
+packages/data/src/db/schema/carePeriod*.ts roundtrip
 packages/data/src/db/schema/medicationPass.ts medications
 packages/data/src/db/schema/recipientAllergy.ts medications
 packages/data/src/db/schema/timeZone.ts  roundtrip
@@ -395,10 +395,11 @@ packages/data/src/db/schema/contactMessage.ts marketing
 packages/data/src/db/schema/search.ts    -
 packages/data/src/db/schema/searchDocument.ts -
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
-packages/data/src/db/seeds/providers.ts  providers care-periods
+packages/data/src/db/seeds/providers.ts  providers
 packages/data/src/db/seeds/invites.ts    invites app-shell
 packages/data/src/db/seeds/medications.ts medications
-packages/data/src/db/seeds/carePeriods.ts care-periods
+# Validated by seeds/carePeriods.test.ts; no screen check reads them.
+packages/data/src/db/seeds/carePeriods.ts -
 packages/data/src/db/seeds/medicationPasses.ts medications
 packages/data/src/db/seeds/*             app-shell
 
