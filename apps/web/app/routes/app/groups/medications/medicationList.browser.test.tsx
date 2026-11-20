@@ -98,7 +98,7 @@ describe("the list", () => {
     await device.screen.unmount();
 
     const again = await open({ url: `${LIST}?status=discontinued` });
-    expect(listNames("Discontinued medications")).toEqual(["Oxybutynin 5 mg"]);
+    await expect.poll(() => listNames("Discontinued medications")).toEqual(["Oxybutynin 5 mg"]);
     expect(listNames(CURRENT)).toEqual([]);
     expect(currentChip()).toBe("Discontinued");
     await userEvent.click(chip("All"));

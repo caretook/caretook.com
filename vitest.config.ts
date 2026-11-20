@@ -110,6 +110,10 @@ export default defineConfig({
           // own: this one after the rest, so `pnpm check`'s unit and
           // integration tests aren't competing with Chromium either.
           sequence: { groupOrder: 1 },
+          // expect.poll and expect.element give up after 1 s by default, which a
+          // loaded machine passes before a route's clientLoader or first query
+          // has answered (B-131): 5 s, as waitUntil's default is.
+          expect: { poll: { timeout: 5000 } },
           browser: {
             enabled: true,
             headless: true,
