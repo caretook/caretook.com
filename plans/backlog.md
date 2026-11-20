@@ -87,6 +87,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-123 | chore | inbox |  |  | Move care-periods.mjs to component tests |
 | B-124 | chore | inbox |  |  | Move devices.mjs to component tests |
 | B-125 | chore | inbox |  |  | Move admin.mjs to component tests |
+| B-126 | chore | inbox |  |  | Move roundtrip.mjs's sheet steps to component tests |
 
 ## Items
 
@@ -533,3 +534,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. admin pages are web-only server loaders, so component tests need loader data: move what renders from data (users, groups, audit, settings, the banner) there; keep staff-only access, the audit log written by real actions and the announcement reaching /app. Then e2e yes.
+
+### B-126 · chore · Move roundtrip.mjs's sheet steps to component tests
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): roundtrip.mjs stays in the lean set (devices converging, offline then reconnect, the viewer, the sign-out wipe), but its add and edit sheet steps (validation, When's date picker, edit and delete) are screen behaviour: move them to component tests for the timeline's sheets (new/, edit/, EntryForm) and delete each covered step.
