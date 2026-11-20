@@ -667,3 +667,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (prd/check-migration): check-migration wave 4 suite, 2026-11-20 08:54, load 51→88; passed on the automatic retry (.loops/.browser-flakes.log). The redirect outran the assertion under load; slice 19's Playwright port may make the wait robust.
+- 2026-11-20 (prd/check-migration): Proposed for check-migration: sign-in is a lean session check that slice 20 ports to Playwright; fix the flaky redirect assertion there. -- check-migration orchestrator
