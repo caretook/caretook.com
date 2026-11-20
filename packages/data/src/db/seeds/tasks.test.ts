@@ -29,4 +29,19 @@ describe("task seeds", () => {
     expect(rows.some((r) => !r.assignee && !r.assigneeName && !r.doneAt)).toBe(true);
     expect(new Set(rows.map((r) => r.id)).size).toBe(rows.length);
   });
+
+  it("link a provider, an upcoming appointment and a current medication, after the first nine", () => {
+    const rows = seedRows(NOW);
+    const linked = rows.filter((r) => r.providerId || r.medicationId || r.eventId);
+    expect(linked.map((r) => r.id)).toEqual([
+      "0b6f3c1e-5d1a-4c2e-9a77-3f1d2be01010",
+      "0b6f3c1e-5d1a-4c2e-9a77-3f1d2be01011",
+      "0b6f3c1e-5d1a-4c2e-9a77-3f1d2be01012",
+    ]);
+    expect(linked.map((r) => [!!r.providerId, !!r.eventId, !!r.medicationId])).toEqual([
+      [true, false, false],
+      [false, true, false],
+      [false, false, true],
+    ]);
+  });
 });

@@ -1,5 +1,6 @@
 import type { AssigneeChoice } from "./AssigneeField";
 import type { AssigneeMember } from "./assigneeOptions";
+import type { LinkChoices } from "./taskSheet";
 import type { ActionResult, FieldIssue } from "~/lib/api";
 import type { LocalTask } from "~/lib/sync/tasks";
 
@@ -8,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { Field } from "~/components/ui";
 import { AssigneeField } from "./AssigneeField";
+import { TaskLinkFields } from "./TaskLinkFields";
 import { FIELD, isFieldIssue } from "./taskFormData";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
@@ -19,12 +21,24 @@ const choiceOf = (task: Pick<LocalTask, "assigneeId" | "assigneeName"> | undefin
       ? { kind: "name", name: task.assigneeName }
       : { kind: "none" };
 
-/** A new task's prefills besides its due day (quick entry's Edit): a member's id only when they're one. */
-export type TaskFormPrefill = { title?: string | null; assigneeId?: string | null; dueTime?: string | null };
+/**
+ * A new task's prefills besides its due day: quick entry's Edit (a member's
+ * id only when they're one), and a link from a provider's, medication's or
+ * appointment's page.
+ */
+export type TaskFormPrefill = {
+  title?: string | null;
+  assigneeId?: string | null;
+  dueTime?: string | null;
+  providerId?: string | null;
+  medicationId?: string | null;
+  eventId?: string | null;
+};
 
 /**
- * Add or edit a task: the title, who does it, and an optional due day with
- * an optional time (both in the recipient's zone). Posts to its sheet
+ * Add or edit a task: the title, who does it, an optional due day with an
+ * optional time (both in the recipient's zone), and optional links to a
+ * provider, an appointment and a medication. Posts to its sheet
  * route's clientAction, which writes on the device; the shared Zod schema's
  * messages show on the fields.
  */
@@ -34,6 +48,7 @@ export function TaskForm({
   meId,
   dueOn,
   prefill,
+  links,
   zoneNote,
   onDone,
   onCancel,
@@ -44,8 +59,10 @@ export function TaskForm({
   meId: string;
   /** A new task's due day (a prefill). */
   dueOn?: string | null;
-  /** A new task's title, assignee and due time. */
+  /** A new task's title, assignee, due time and links. */
   prefill?: TaskFormPrefill;
+  /** What the link pickers offer. */
+  links: LinkChoices;
   /** "Times are Los Angeles time", when the device is elsewhere. */
   zoneNote: string | null;
   onDone: () => void;
@@ -71,7 +88,7 @@ export function TaskForm({
     const target =
       form?.querySelector<HTMLElement>('[aria-invalid="true"]') ??
       form?.querySelector<HTMLElement>(
-        '[data-assignee-field]:has([data-picker-error]) input:not([type="hidden"])',
+        ':is([data-assignee-field], [data-link-picker]):has([data-picker-error]) :is(input:not([type="hidden"]), button)',
       );
     target?.focus();
   }, [fetcher.state, fetcher.data, onDone]);
@@ -138,6 +155,20 @@ export function TaskForm({
           )}
         </Field>
       </div>
+
+      <TaskLinkFields
+        choices={links}
+        initial={{
+          providerId: task ? task.providerId : (prefill?.providerId ?? null),
+          eventId: task ? task.eventId : (prefill?.eventId ?? null),
+          medicationId: task ? task.medicationId : (prefill?.medicationId ?? null),
+        }}
+        errors={{
+          providerId: issueFor(issues, FIELD.providerId),
+          eventId: issueFor(issues, FIELD.eventId),
+          medicationId: issueFor(issues, FIELD.medicationId),
+        }}
+      />
 
       {general && (
         <p role="alert" className="text-error text-sm" data-form-error>

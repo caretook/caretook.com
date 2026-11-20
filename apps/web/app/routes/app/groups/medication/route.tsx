@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { AllergiesRegion, MedicationStatusActions } from "~/components/medications";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
+import { LinkedTasks } from "~/components/tasks";
 import { BackLink } from "~/components/ui";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
@@ -167,6 +168,8 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
           />
 
           <MedicationRefills medication={medication} />
+
+          <LinkedTasks link={{ medicationId }} />
 
           <section aria-labelledby="medication-notes-heading" className="space-y-2">
             <div>

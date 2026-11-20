@@ -11,7 +11,16 @@ describe("taskFromForm", () => {
   it("reads the fields, empty ones as none", () => {
     expect(
       taskFromForm(
-        form({ title: "Call", assigneeId: "", assigneeName: " Aunt May ", dueOn: "2026-11-20", dueTime: "" }),
+        form({
+          title: "Call",
+          assigneeId: "",
+          assigneeName: " Aunt May ",
+          dueOn: "2026-11-20",
+          dueTime: "",
+          providerId: "p1",
+          medicationId: "",
+          eventId: "e1",
+        }),
       ),
     ).toEqual({
       title: "Call",
@@ -19,6 +28,9 @@ describe("taskFromForm", () => {
       assigneeName: "Aunt May",
       dueOn: "2026-11-20",
       dueTime: null,
+      providerId: "p1",
+      medicationId: null,
+      eventId: "e1",
     });
     expect(taskFromForm(form({}))).toEqual({
       title: "",
@@ -26,11 +38,15 @@ describe("taskFromForm", () => {
       assigneeName: null,
       dueOn: null,
       dueTime: null,
+      providerId: null,
+      medicationId: null,
+      eventId: null,
     });
   });
 
   it("knows which issues the fields show", () => {
     expect(isFieldIssue("dueTime")).toBe(true);
-    expect(isFieldIssue("providerId")).toBe(false);
+    expect(isFieldIssue("providerId")).toBe(true);
+    expect(isFieldIssue("groupId")).toBe(false);
   });
 });

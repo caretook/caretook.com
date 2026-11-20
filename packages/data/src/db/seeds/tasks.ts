@@ -1,14 +1,18 @@
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
 import { addDays, localDate, taskSchema, userSchema } from "../schema";
+import { appointmentIdIn } from "./appointments";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
+import { SEED_GROUPS as MEDICATION_GROUPS } from "./medications";
+import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
 import { SECOND_GROUP_ID, SECOND_RECIPIENT_ID } from "./secondGroup";
 
 // Fictional tasks: about eight for Dev Family (assigned to member@,
 // caretaker@ and viewer@, one to a typed-in "Aunt May", some unassigned;
 // overdue, today, later and undated; two done) and one for Dev Family 2.
 // Placed by days from today in the recipients' zone (both Los Angeles).
-// Links stay empty until linked seeds are appended (tasks slice 3).
+// The last three link to a seeded provider, appointment and medication
+// (tasks slice 3), by their seeds' keys.
 //
 // Their own ids (…3f1d2be0… Dev Family's, …3f1d2be1… Dev Family 2's),
 // following list order: append only.
@@ -31,6 +35,10 @@ export type SeedTask = {
   /** Done this many days ago, by `doneBy`. */
   doneDaysAgo?: number;
   doneBy?: Person;
+  /** Keys of the group's seeded provider (`seeds/providers.ts`), appointment (`seeds/appointments.ts`) and medication (`seeds/medications.ts`). */
+  provider?: string;
+  event?: string;
+  medication?: string;
 };
 
 export const DEV_FAMILY_TASKS: SeedTask[] = [
@@ -78,6 +86,29 @@ export const DEV_FAMILY_TASKS: SeedTask[] = [
     doneDaysAgo: 1,
     doneBy: "viewer@example.com",
   },
+  // Linked tasks (tasks slice 3).
+  {
+    title: "Ask Dr. Patel's office about the stress test",
+    dueIn: 1,
+    dueTime: "12:00",
+    assignee: "member@example.com",
+    author: "caretaker@example.com",
+    provider: "patel",
+  },
+  {
+    title: "Bring the blood pressure log",
+    dueIn: 2,
+    assignee: "caretaker@example.com",
+    author: "member@example.com",
+    event: "patel",
+  },
+  {
+    title: "Refill Latanoprost",
+    dueIn: 2,
+    assignee: "viewer@example.com",
+    author: "caretaker@example.com",
+    medication: "latanoprost",
+  },
 ];
 
 export const SECOND_GROUP_TASKS: SeedTask[] = [
@@ -94,6 +125,20 @@ const GROUPS = [
   { groupId: SECOND_GROUP_ID, recipientId: SECOND_RECIPIENT_ID, tasks: SECOND_GROUP_TASKS, id: secondTaskId },
 ];
 
+const providerIdIn = (groupId: string, key: string) => {
+  const group = PROVIDER_GROUPS.find((g) => g.groupId === groupId);
+  const index = group?.providers.findIndex((p) => p.key === key) ?? -1;
+  if (!group || index < 0) throw new Error(`Seed task links a missing provider: ${key}`);
+  return group.providerId(index);
+};
+
+const medicationIdIn = (groupId: string, key: string) => {
+  const group = MEDICATION_GROUPS.find((g) => g.groupId === groupId);
+  const index = group?.medications.findIndex((m) => m.key === key) ?? -1;
+  if (!group || index < 0) throw new Error(`Seed task links a missing medication: ${key}`);
+  return group.medicationId(index);
+};
+
 /** Every seeded task as a row, with people as emails (resolved when seeding). */
 export const seedRows = (now = Date.now()) => {
   const today = localDate(now, TIME_ZONE);
@@ -109,6 +154,9 @@ export const seedRows = (now = Date.now()) => {
       dueTime: task.dueTime ?? null,
       doneAt: task.doneDaysAgo === undefined ? null : new Date(now - task.doneDaysAgo * DAY).toISOString(),
       doneBy: task.doneBy ?? null,
+      providerId: task.provider ? providerIdIn(groupId, task.provider) : null,
+      medicationId: task.medication ? medicationIdIn(groupId, task.medication) : null,
+      eventId: task.event ? appointmentIdIn(groupId, task.event) : null,
       author: task.author,
     })),
   );

@@ -11,12 +11,20 @@ import { sessionContext } from "~/lib/session";
 import { createTask } from "~/lib/sync/tasks";
 import { TaskForm } from "../TaskForm";
 import { taskFromForm } from "../taskFormData";
-import { loadMembers, useAssigneeMembers, useCloseTaskSheet } from "../taskSheet";
+import {
+  loadLinkChoices,
+  loadMembers,
+  useAssigneeMembers,
+  useCloseTaskSheet,
+  useLinkChoices,
+} from "../taskSheet";
 import { newTaskGuard } from "~/lib/taskSheets";
 
 // Shared by web + native. `tasks/new`: the add sheet, over the list. It can
-// start with a due day (`?dueOn=`), and from quick entry's Edit a title, an
-// assignee and a time. A viewer lands on the list.
+// start with a due day (`?dueOn=`), from quick entry's Edit a title, an
+// assignee and a time, and from a provider's, medication's or appointment's
+// page its link (`?providerId=`, `?medicationId=`, `?eventId=`). A viewer
+// lands on the list.
 
 export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
@@ -27,7 +35,12 @@ export async function clientLoader({ request, context }: Route.ClientLoaderArgs)
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
   const { db } = context.get(sessionContext);
-  return { memberRows: await loadMembers(db, group.id) };
+  const eventId = new URL(request.url).searchParams.get(TASK_PREFILL_PARAMS.eventId);
+  const [memberRows, linkRows] = await Promise.all([
+    loadMembers(db, group.id),
+    loadLinkChoices(db, group.id, eventId),
+  ]);
+  return { memberRows, linkRows };
 }
 
 /** A local write; the list's live query shows it, and PowerSync uploads it. */
@@ -49,6 +62,7 @@ export default function NewTaskSheet({ loaderData, params }: Route.ComponentProp
   const group = useGroup();
   const { search } = useLocation();
   const members = useAssigneeMembers(params.groupId, loaderData.memberRows);
+  const links = useLinkChoices(params.groupId, loaderData.linkRows);
   const query = new URLSearchParams(search);
   const dueOn = query.get(TASK_PREFILL_PARAMS.dueOn);
   const dueTime = query.get(TASK_PREFILL_PARAMS.dueTime);
@@ -64,7 +78,11 @@ export default function NewTaskSheet({ loaderData, params }: Route.ComponentProp
           title: query.get(TASK_PREFILL_PARAMS.title),
           assigneeId: query.get(TASK_PREFILL_PARAMS.assigneeId),
           dueTime: dueTime && /^\d{2}:\d{2}$/.test(dueTime) ? dueTime : null,
+          providerId: query.get(TASK_PREFILL_PARAMS.providerId),
+          medicationId: query.get(TASK_PREFILL_PARAMS.medicationId),
+          eventId: query.get(TASK_PREFILL_PARAMS.eventId),
         }}
+        links={links}
         zoneNote={scheduleZoneNote(
           group.recipient?.timeZone ?? null,
           Intl.DateTimeFormat().resolvedOptions().timeZone,

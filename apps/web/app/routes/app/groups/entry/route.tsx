@@ -5,6 +5,7 @@ import type { LiveNotesEditorHandle } from "~/components/notes";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
+import { LinkedTasks } from "~/components/tasks";
 import { BackLink } from "~/components/ui";
 import { appUrls, WHEN_PARAM, WITH_PROVIDER_PARAM } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
@@ -143,6 +144,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
               autofocus={live.isNew && !loaderData.pickDay}
               ensureSaved={live.ensureSaved}
             />
+            {entry.kind === "event" && live.stored && <LinkedTasks link={{ eventId: entry.id }} />}
           </>
         )}
       </div>

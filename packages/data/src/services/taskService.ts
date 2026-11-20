@@ -341,3 +341,21 @@ export const releaseAssignee = async (tx: Tx, groupId: string, userId: string) =
   if (isError(updated)) return updated;
   return { count: updated.length };
 };
+
+/**
+ * An event was deleted: tasks linked to it lose the link (`event_id` null),
+ * quietly, done ones included (deleted tasks stay as they were). The FK
+ * does the same on a hard delete; this is the soft one. Runs as the system, inside the caller's
+ * transaction.
+ */
+export const releaseEvent = async (tx: Tx, eventId: string) => {
+  const updated = await taskModel.update({
+    authUser: SYSTEM_USER,
+    tx,
+    filter: { eventId: { type: "eq", value: eventId } },
+    data: { eventId: null },
+  });
+  if (isError(updated) && updated.code === "baseModel:update:nothingUpdated") return { count: 0 };
+  if (isError(updated)) return updated;
+  return { count: updated.length };
+};

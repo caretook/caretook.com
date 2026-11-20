@@ -3,7 +3,9 @@ import type { TaskCreateInput } from "../db";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../test/fixtures";
+import { SYSTEM_USER } from "../constants";
 import { isError } from "../errors";
+import { timelineEntryModel } from "../models";
 import {
   careGroupMemberService,
   medicationService,
@@ -277,6 +279,97 @@ describe("taskService: content", () => {
     expect(issuesOf(await taskService.update(u.caretaker.ctx, linked.id, { medicationId: med.id }))).toEqual([
       "medicationId",
     ]);
+  });
+});
+
+describe("taskService: links over time (tasks slice 3)", () => {
+  const eventIn = async (ctx: Parameters<typeof timelineEntryService.create>[0], groupId: string) =>
+    ok(
+      await timelineEntryService.create(ctx, {
+        groupId,
+        kind: "event",
+        title: "Cardiology follow-up",
+        occurredAt: new Date(Date.now() + 2 * 86_400_000).toISOString(),
+        timeZone: "America/Los_Angeles",
+      }),
+    )!;
+
+  it("keeps a deleted provider's and medication's link readable, and refuses a new link to a deleted event", async () => {
+    const { u, group, input, addTask } = await setup();
+    const provider = ok(
+      await providerService.create(u.caretaker.ctx, {
+        groupId: group.id,
+        type: "clinician",
+        name: "Dr. Lark",
+      }),
+    )!;
+    const medication = ok(
+      await medicationService.create(u.caretaker.ctx, {
+        groupId: group.id,
+        name: "Latanoprost",
+        schedule: { type: "asNeeded" },
+      }),
+    )!;
+    const linked = await addTask({ providerId: provider.id, medicationId: medication.id });
+    ok(await providerService.remove(u.caretaker.ctx, provider.id));
+    ok(await medicationService.remove(u.caretaker.ctx, medication.id));
+
+    // Every member still reads the links; an edit that leaves them alone is fine.
+    expect(ok(await taskService.getById(u.viewer.ctx, linked.id))).toMatchObject({
+      providerId: provider.id,
+      medicationId: medication.id,
+    });
+    expect(
+      ok(await taskService.update(u.caretaker.ctx, linked.id, { title: "Refill at the new pharmacy" })),
+    ).toMatchObject({ providerId: provider.id, medicationId: medication.id });
+    // Clearing a removed link is fine too.
+    expect(ok(await taskService.update(u.caretaker.ctx, linked.id, { providerId: null }))).toMatchObject({
+      providerId: null,
+      medicationId: medication.id,
+    });
+
+    const event = await eventIn(u.caretaker.ctx, group.id);
+    ok(await timelineEntryService.remove(u.caretaker.ctx, event.id));
+    expect(issuesOf(await taskService.create(u.caretaker.ctx, input({ eventId: event.id })))).toEqual([
+      "eventId",
+    ]);
+  });
+
+  it("drops the link when its event is deleted, open and done tasks alike, and leaves other events' tasks", async () => {
+    const { u, group, addTask } = await setup();
+    const event = await eventIn(u.caretaker.ctx, group.id);
+    const other = await eventIn(u.caretaker.ctx, group.id);
+    const open = await addTask({ title: "Bring the insurance card", eventId: event.id });
+    const done = await addTask({ title: "Print the BP log", eventId: event.id });
+    ok(await taskService.complete(u.caretaker.ctx, done.id));
+    const elsewhere = await addTask({ title: "Ask about the stress test", eventId: other.id });
+
+    // A viewer can't delete the event, so nothing changes.
+    expect(codeOf(await timelineEntryService.remove(u.viewer.ctx, event.id))).not.toBe("ok");
+    expect(ok(await taskService.getById(u.owner.ctx, open.id))).toMatchObject({ eventId: event.id });
+
+    ok(await timelineEntryService.remove(u.caretaker.ctx, event.id));
+    expect(ok(await taskService.getById(u.owner.ctx, open.id))).toMatchObject({
+      eventId: null,
+      title: "Bring the insurance card",
+      doneAt: null,
+    });
+    const after = ok(await taskService.getById(u.owner.ctx, done.id));
+    expect(after).toMatchObject({ eventId: null, doneBy: u.caretaker.user.id });
+    expect(ok(await taskService.getById(u.owner.ctx, elsewhere.id))).toMatchObject({ eventId: other.id });
+  });
+
+  it("drops the link when the event row itself goes (the FK's ON DELETE SET NULL)", async () => {
+    const { u, group, addTask } = await setup();
+    const event = await eventIn(u.caretaker.ctx, group.id);
+    const task = await addTask({ eventId: event.id });
+    ok(
+      await timelineEntryModel.purge({
+        authUser: SYSTEM_USER,
+        filter: { id: { type: "eq", value: event.id } },
+      }),
+    );
+    expect(ok(await taskService.getById(u.owner.ctx, task.id))).toMatchObject({ eventId: null });
   });
 });
 

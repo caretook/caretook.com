@@ -14,7 +14,13 @@ import { taskQuery, toTask, updateTask } from "~/lib/sync/tasks";
 import { readRows } from "~/lib/sync/timeline";
 import { TaskForm } from "../TaskForm";
 import { taskFromForm } from "../taskFormData";
-import { loadMembers, useAssigneeMembers, useCloseTaskSheet } from "../taskSheet";
+import {
+  loadLinkChoices,
+  loadMembers,
+  useAssigneeMembers,
+  useCloseTaskSheet,
+  useLinkChoices,
+} from "../taskSheet";
 import { editTaskGuard } from "~/lib/taskSheets";
 
 const NO_ROWS: TaskRow[] = [];
@@ -34,7 +40,11 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     task: row ? toTask(row) : null,
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
-  return { task: decision.sheet, memberRows: await loadMembers(db, group.id) };
+  const [memberRows, linkRows] = await Promise.all([
+    loadMembers(db, group.id),
+    loadLinkChoices(db, group.id, decision.sheet.eventId),
+  ]);
+  return { task: decision.sheet, memberRows, linkRows };
 }
 
 /** A local write; the list's live query shows it, and PowerSync uploads it. */
@@ -59,6 +69,7 @@ export default function EditTaskSheet({ loaderData, params }: Route.ComponentPro
   const close = useCloseTaskSheet();
   const group = useGroup();
   const members = useAssigneeMembers(params.groupId, loaderData.memberRows);
+  const links = useLinkChoices(params.groupId, loaderData.linkRows);
 
   // Deleted elsewhere: nothing left to edit.
   const query = taskQuery(params.taskId);
@@ -76,6 +87,7 @@ export default function EditTaskSheet({ loaderData, params }: Route.ComponentPro
         task={loaderData.task}
         members={members}
         meId={group.userId}
+        links={links}
         zoneNote={scheduleZoneNote(
           group.recipient?.timeZone ?? null,
           Intl.DateTimeFormat().resolvedOptions().timeZone,

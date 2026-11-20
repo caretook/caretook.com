@@ -472,3 +472,62 @@ export function useDueTasks(
   const tasks = useMemo(() => taskOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
   return { tasks, now, timeZone, ready: initial !== NOT_READ || rows !== NOT_READ };
 }
+
+// ---------------------------------------------------------------------------
+// Links (tasks slice 3: the pickers, the task page's link rows, LinkedTasks)
+// ---------------------------------------------------------------------------
+
+/** What a task can link to: one of each. */
+export type TaskLink = { providerId: string } | { medicationId: string } | { eventId: string };
+
+const LINK_COLUMNS = {
+  providerId: "provider_id",
+  medicationId: "medication_id",
+  eventId: "event_id",
+} as const;
+
+/** The one link a `TaskLink` names, as its form field and id. */
+export const linkOf = (link: TaskLink): { field: keyof typeof LINK_COLUMNS; id: string } => {
+  if ("providerId" in link) return { field: "providerId", id: link.providerId };
+  if ("medicationId" in link) return { field: "medicationId", id: link.medicationId };
+  return { field: "eventId", id: link.eventId };
+};
+
+/**
+ * A group's open (not done, not deleted) tasks linked to one provider,
+ * medication or event, by due day (sort with `taskOrder`, which knows the zone).
+ */
+export const linkedTasksQuery = (groupId: string, link: TaskLink): LocalQuery => {
+  const { field, id } = linkOf(link);
+  return {
+    sql: `SELECT * FROM task WHERE group_id = ? AND ${LINK_COLUMNS[field]} = ?
+            AND deleted_at IS NULL AND done_at IS NULL
+          ORDER BY due_on IS NULL, due_on, due_time, created_at, id`,
+    params: [groupId, id],
+  };
+};
+
+/**
+ * The events the task form's appointment picker reads: the group's live
+ * events from `from` (a moment, ISO 8601) on, plus `chosenId` wherever it
+ * is (an older or cancelled one a task already links to, for its chip).
+ * `taskLinks.ts` picks and orders the choices.
+ */
+export const taskEventChoicesQuery = (
+  groupId: string,
+  from: string,
+  chosenId: string | null,
+): LocalQuery => ({
+  sql: `SELECT * FROM timeline_entry WHERE group_id = ? AND kind = 'event' AND deleted_at IS NULL
+          AND (occurred_at >= ? OR id = ?)
+        ORDER BY occurred_at, id`,
+  params: [groupId, toLocalTimestamp(from), chosenId ?? ""],
+});
+
+/** A task's linked event, while it's a live event (a deleted one's link is gone). */
+export const linkedEventQuery = (id: string): LocalQuery => ({
+  sql: "SELECT * FROM timeline_entry WHERE id = ? AND kind = 'event' AND deleted_at IS NULL",
+  params: [id],
+});
+
+import { toLocalTimestamp } from "./timeline";
