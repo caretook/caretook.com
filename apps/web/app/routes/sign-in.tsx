@@ -36,6 +36,8 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
     linkExpired: params.has("expired") || params.has("error"),
     // The /app check sends a device offline for 3 days here (lib/session).
     offlineTooLong: params.get("reason") === "offline",
+    // A session check rate-limited twice, with nobody cached (lib/session, B-130).
+    rateLimited: params.get("reason") === "rate-limited",
   };
 }
 
@@ -87,7 +89,7 @@ const METHODS: { method: SignInMethod; label: string }[] = [
 ];
 
 export default function SignIn({ loaderData, actionData }: Route.ComponentProps) {
-  const { redirectTo, method, linkExpired, offlineTooLong } = loaderData;
+  const { redirectTo, method, linkExpired, offlineTooLong, rateLimited } = loaderData;
   // Busy from submit until the navigation it starts is idle: a successful sign-in
   // redirects, and the state is "loading" while /app's loaders run (up to the first
   // sync), so checking only "submitting" would re-enable the button for a second
@@ -101,6 +103,7 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
   return (
     <AuthCard title="Sign in to Caretook">
       {offlineTooLong && <StatusMessage>{authMessages.offlineTooLong}</StatusMessage>}
+      {rateLimited && <StatusMessage>{authMessages.sessionRateLimited}</StatusMessage>}
       <nav aria-label="Ways to sign in" className="tabs tabs-box tabs-sm grid grid-cols-2">
         {METHODS.map((m) => (
           <Link

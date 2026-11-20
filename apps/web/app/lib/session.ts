@@ -7,7 +7,7 @@ import { forgetGroups } from "./lastGroup";
 import { forgetSettings } from "./me";
 import { forgetRecentSearches } from "./recentSearches";
 import { signInUrl } from "./redirect";
-import { offlineAllowed, sessionOutcome } from "./sessionRules";
+import { askSession, withoutAnswer } from "./sessionRules";
 import { closeSync, openSync } from "./sync";
 
 // The signed-in user and their local database, for /app clientLoaders.
@@ -103,25 +103,34 @@ export const wipeDevice = async () => {
   forgetRecentSearches();
 };
 
-type Resolved = SessionUser | "signedOut" | "offlineTooLong" | "unverified";
+type Resolved = SessionUser | "signedOut" | "offlineTooLong" | "rateLimited" | "unverified";
+
+/** One get-session request, with the retry-after header of a 429. */
+const getSession = async () => {
+  let retryAfter: string | null = null;
+  const answer = await authClient.getSession({
+    fetchOptions: {
+      onError: ({ response }) => {
+        retryAfter = response.headers.get("X-Retry-After") ?? response.headers.get("Retry-After");
+      },
+    },
+  });
+  return { ...answer, retryAfter };
+};
 
 /**
- * Ask the server. With no answer to go on (offline, a rate limit, a server
- * error), the last signed-in user carries on with their local data, but only
- * within 3 days of the last confirmed check (`offlineAllowed`); past that,
- * sign-in, with the local copy kept so unsynced changes still upload after.
- * The server still checks the session before accepting any upload, and
- * PowerSync before sending any data. When the server says there's no
+ * Ask the server (once more after a 429, `askSession`). With no answer to go
+ * on (offline, a rate limit, a server error), the last signed-in user carries
+ * on with their local data, but only within 3 days of the last confirmed
+ * check (`offlineAllowed`); past that, sign-in, with the local copy kept so
+ * unsynced changes still upload after. With nobody cached, a rate limit
+ * sends sign-in a "try again in a moment" (B-130), anything else plain
+ * sign-in. The server still checks the session before accepting any upload,
+ * and PowerSync before sending any data. When the server says there's no
  * session, the device's copy is wiped.
  */
 const resolveUser = async (): Promise<Resolved> => {
-  let answer;
-  try {
-    answer = sessionOutcome(await authClient.getSession());
-  } catch (e) {
-    if (!(e instanceof TypeError)) throw e;
-    answer = { kind: "unknown" } as const;
-  }
+  const answer = await askSession(getSession);
   if (answer.kind === "ok") {
     const { user } = answer.data;
     // Better Auth doesn't sign in an unconfirmed address; this guards the rest.
@@ -134,8 +143,7 @@ const resolveUser = async (): Promise<Resolved> => {
     return "signedOut";
   }
   const cached = cachedUser();
-  if (!cached) return "signedOut";
-  return offlineAllowed(lastConfirmed(cached.id), Date.now()) ? cached : "offlineTooLong";
+  return withoutAnswer(answer.kind, cached, cached && lastConfirmed(cached.id), Date.now());
 };
 
 let inflight: Promise<Session | Exclude<Resolved, SessionUser>> | null = null;
@@ -155,6 +163,7 @@ export const requireSession = async (request: Request): Promise<Session> => {
   const session = await check();
   if (session === "unverified") throw redirect(accountUrls.verifyEmail());
   if (session === "offlineTooLong") throw redirect(signInUrl(request, { reason: "offline" }));
+  if (session === "rateLimited") throw redirect(signInUrl(request, { reason: "rate-limited" }));
   if (session === "signedOut") throw redirect(signInUrl(request));
   return session;
 };
