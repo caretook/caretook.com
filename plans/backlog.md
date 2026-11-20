@@ -345,6 +345,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the profile page, its sheets by role, offline states and the print sheet's layout to component tests (oRPC through the test device's api); keep a save syncing back, demotion losing the writers' details on the next sync. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 10, wave 4 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/10): slice 10: profiles.mjs moved to component tests (profile/*.browser.test.tsx, profileWorld.tsx); demotion losing the details row folded into app-shell step 4; check deleted (f9c1ef9, eef96ac)
 
 ### B-122 · chore · Move profiles-contacts.mjs to component tests
 
