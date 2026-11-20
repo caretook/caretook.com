@@ -66,7 +66,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-63 | feature | triaged | appointments-2 |  | Google Calendar sync of a care group's appointments |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
-| B-104 | plan | ready | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
+| B-104 | plan | landed | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-129 | chore | landed | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
 | B-136 | change | live | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | live | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
@@ -144,6 +144,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (slice/hosting/6): Slice 6 (24a3f02): ops/runbook.md, ops/data-copies.md, ops/break-glass.md written from the code. Gaps found: BETTER_AUTH_SECRET rotation breaks the jwks private key (no tool to clear it); personal db roles read every table incl. auth tables; SEED_USER_PASSWORD rotation doesn't reset seeded accounts.
 - 2026-11-20 (prd/hosting): Hosting waves 1-4 landed in dev (a187dc2, 8b7f683); prd/hosting removed. Slice 7 (going live per ops/runbook.md, staging first) is being run by the user through a hotfix session, which should claim B-33 and mark it done when production is live. To confirm on staging: PowerSync refetches the JWKS after pnpm auth:rotate-jwks; PowerSync Cloud's snapshot uses SELECT *; Vercel runs pnpm 12.
 - 2026-11-20 (Robert Bo Davis): Released the stale claim (prd/hosting is gone). Waves 1-4 are in dev; only slice 7 (going live per ops/runbook.md, staging first) remains. The user's going-live session claims B-33 and marks it done when production is live.
+- 2026-11-20 (hotfix/go-live): 2026-11-20: staging live (hotfix/go-live): deploy, seed, staff, invite mail and two-device sync checked; JWKS rotation check skipped. Production not started (needs paid Neon and PowerSync plans, B-183 first).
 
 ### B-40 · chore · Real app screenshots for the marketing site before launch
 
@@ -269,7 +270,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-104 · plan · Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server
 
-- status: ready
+- status: landed
 - prd: connectors
 - owner: prd/connectors
 - commit: d77c5884
