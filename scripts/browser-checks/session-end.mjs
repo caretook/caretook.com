@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { launch, localCopyHolds, openPage, sleep } from "./cdp.mjs";
+import { BASE, launch, localCopyHolds, openPage, sleep } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 // The device copy ends with the session (quick-fixes slice 28, S-2):
@@ -9,6 +9,13 @@ import { startProxy } from "./proxy.mjs";
 // - online, every check restarts the 3 days;
 // - when the server says the session has ended, the device's copy is wiped
 //   (the sign-out path) and the app goes to sign-in.
+//
+// The session ends as the Devices page ends one (devices.mjs's flow, B-124):
+// another device of the same account, here a client of Better Auth's API
+// with a bearer token, finds this browser's session in list-sessions and
+// revokes it by its token. Then that device's "Sign out everywhere else"
+// ends a third session and keeps its own. The page itself is component
+// tests (settings/devices/devices.browser.test.tsx).
 //
 // A full reload can't load while offline (no service worker yet), so the
 // offline step is an in-app navigation: a kind filter link on the timeline,
@@ -33,6 +40,32 @@ const keys = `Object.keys(localStorage).filter((k) => k.startsWith("caretook:"))
 const confirmedKey = `${keys}.find((k) => k.startsWith("caretook:session-confirmed:"))`;
 const statusText = `document.querySelector('[role="status"]')?.textContent ?? ""`;
 const OFFLINE_MESSAGE = "You've been offline for 3 days. Sign in to keep going.";
+
+/** Another device of the account: Better Auth's API with a bearer token (its own address, for the rate limits). */
+const octet = () => 1 + Math.floor(Math.random() * 250);
+async function otherDevice() {
+  const ip = `10.${octet()}.${octet()}.${octet()}`;
+  const call = async (path, { token, body } = {}) => {
+    const r = await fetch(`${BASE}/api/auth/${path}`, {
+      method: body ? "POST" : "GET",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": ip,
+        origin: BASE,
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return { status: r.status, json: await r.json().catch(() => null) };
+  };
+  const signedIn = await call("sign-in/email", { body: { email: EMAIL, password: PW } });
+  const token = signedIn.json?.token;
+  if (!token) throw new Error(`the other device couldn't sign in: ${signedIn.status}`);
+  return {
+    call: (path, body) => call(path, { token, body }),
+    alive: async () => !!(await call("get-session", { token })).json?.session,
+  };
+}
 
 const proxy = startProxy(9391);
 const b = await launch(9392, proxy.args);
@@ -87,11 +120,28 @@ try {
   const restarted = await p.evaluate(`Number(localStorage.getItem(${confirmedKey}))`);
   check("online again: the timeline opens, the 3 days restart", Date.now() - restarted < 60_000);
 
-  // The session ends on the server: the next online check wipes the device.
-  const deleted = psql(
-    `DELETE FROM session WHERE id = (SELECT s.id FROM session s JOIN "user" u ON u.id = s.user_id WHERE u.email = '${EMAIL}' ORDER BY s.created_at DESC LIMIT 1) RETURNING id`,
+  // Another device signs this one out, as the Devices page does: the next online check wipes it.
+  const pId = await p.evaluate(
+    `fetch("/api/auth/get-session", { credentials: "include" }).then((r) => r.json()).then((j) => j?.session?.id ?? null)`,
   );
-  check("the session row is deleted", deleted.length > 0);
+  const other = await otherDevice();
+  const listed = (await other.call("list-sessions")).json ?? [];
+  const mine = listed.find((s) => s.id === pId);
+  check("the other device lists this browser's session", !!mine?.token, `${pId} in ${listed.length}`);
+  const revoked = await other.call("revoke-session", { token: mine?.token });
+  const gone = psql(`SELECT count(*) FROM session WHERE id = '${pId}'`) === "0";
+  check(
+    "signed out from the other device: the session is gone on the server",
+    revoked.status === 200 && gone,
+  );
+  // Sign out everywhere else: a third session ends, the device that asked stays.
+  const third = await otherDevice();
+  await other.call("revoke-other-sessions", {});
+  check(
+    "sign out everywhere else: the other sessions end, the asking device stays",
+    !(await third.alive()) && (await other.alive()),
+  );
+  await other.call("sign-out", {});
   // Quick entry's recent lines go with the rest.
   await p.evaluate(`localStorage.setItem("caretook:recentLines:x:y", JSON.stringify(["bp 120/80"]))`);
   // A reload (not a new navigation, which can leave the old page and its
@@ -107,6 +157,7 @@ try {
     ),
     wipedKeys,
   );
+  check("signed out elsewhere: the next session check goes to sign-in", true);
   check("signed out: no message about being offline", !(await p.evaluate(statusText)).includes("offline"));
   // The file stays, vacuumed: none of the care data is left in its bytes.
   const left = await p.evaluate(localCopyHolds("Grandma Pat"));

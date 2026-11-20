@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Form, useActionData, useLoaderData, useLocation } from "react-router";
 import { describe, expect, test } from "vitest";
+import { userEvent } from "vitest/browser";
 import { useGroup } from "~/lib/group";
 import { parseSearch } from "@caretook/data/schema";
 import { searchEntryIds, searchIndexStatus } from "~/lib/sync/search";
@@ -147,6 +149,81 @@ describe("the test device", () => {
     expect(document.documentElement.clientWidth).toBe(420);
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(getComputedStyle(document.body).backgroundColor).not.toBe(lightBg);
+  });
+});
+
+/** A web-only route as /admin's are: a server loader and action, which the device never runs. */
+const serverRoute = {
+  loader: () => {
+    throw new Error("the server loader ran");
+  },
+  action: () => {
+    throw new Error("the server action ran");
+  },
+  default: function Notes() {
+    const { notes } = useLoaderData<{ notes: string[] }>();
+    const result = useActionData<{ message: string }>();
+    return (
+      <>
+        <p>{useLocation().pathname}</p>
+        <ul>
+          {notes.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+        <Form method="post">
+          <input name="note" aria-label="Note" />
+          <button type="submit">Add</button>
+        </Form>
+        {result && <p role="status">{result.message}</p>}
+      </>
+    );
+  },
+};
+
+describe("server-loaded routes", () => {
+  test("a route with a server loader renders from loaderData, outside /app; an action gets actionResult, then it reloads", async () => {
+    const notes = ["Called the pharmacy"];
+    const posted: string[] = [];
+    const device = await renderWithDevice({
+      route: {
+        path: "/admin/notes",
+        module: serverRoute,
+        loaderData: () => ({ notes: [...notes] }),
+        actionResult: (form: FormData) => {
+          const note = form.get("note") as string;
+          posted.push(note);
+          notes.push(note);
+          return { message: `Added ${note}.` };
+        },
+      },
+      url: "/admin/notes",
+    });
+    await expect.element(device.screen.getByText("Called the pharmacy")).toBeVisible();
+    await expect.element(device.screen.getByText("/admin/notes")).toBeVisible();
+    expect(device.location()).toBe("/admin/notes");
+
+    await userEvent.fill(device.screen.getByRole("textbox", { name: "Note" }), "Booked a ride");
+    await userEvent.click(device.screen.getByRole("button", { name: "Add" }));
+    await expect.element(device.screen.getByRole("status")).toHaveTextContent("Added Booked a ride.");
+    // The action's revalidation asked loaderData again.
+    await expect.element(device.screen.getByText("Booked a ride")).toBeVisible();
+    expect(posted).toEqual(["Booked a ride"]);
+  });
+
+  test("without loaderData, a server loader is an error naming what to give", async () => {
+    const device = await renderWithDevice({
+      route: { path: "/admin/notes", module: serverRoute },
+      url: "/admin/notes",
+      settle: false,
+    });
+    await expect
+      .element(
+        device.screen.getByRole("heading", {
+          name: /\/admin\/notes has a server loader: give the route loaderData/,
+        }),
+      )
+      .toBeInTheDocument();
   });
 });
 
