@@ -1,4 +1,5 @@
 import type { ZonedDateTime } from "@internationalized/date";
+import type { KeyboardEvent } from "react";
 
 import { now, parseAbsolute } from "@internationalized/date";
 import { useEffect, useState } from "react";
@@ -22,6 +23,14 @@ import {
 import { localTimeZone } from "~/lib/format";
 import { PopoverPanel } from "../Popover";
 import { FIELD_ERROR, FIELD_LABEL } from "../styles";
+
+/** A segment's step keys, as React Aria's spin buttons read them: one, or a page (5 years, 2 months). */
+const SEGMENT_STEPS: Record<string, { sign: 1 | -1; page: boolean }> = {
+  ArrowUp: { sign: 1, page: false },
+  ArrowDown: { sign: -1, page: false },
+  PageUp: { sign: 1, page: true },
+  PageDown: { sign: -1, page: true },
+};
 
 /**
  * Date and time, typed segment by segment (keyboard and screen-reader
@@ -84,6 +93,22 @@ export function DateTimeField({
     return () => clearTimeout(timer);
   }, [calendarOpen]);
 
+  // React Aria steps a month (or year) segment without clamping the day: from
+  // 31 October, ArrowDown shows 31 September, an invalid date it holds back
+  // until blur. Step it here instead whenever the day would clamp, so 31 Oct
+  // goes to 30 Sep and 29 Feb 2028 to 28 Feb 2027, as date pickers do (B-134).
+  const stepClamped = (e: KeyboardEvent<HTMLElement>) => {
+    const field = (e.target as HTMLElement).dataset.type;
+    const step = SEGMENT_STEPS[e.key];
+    if ((field !== "month" && field !== "year") || !step || e.altKey || e.ctrlKey || e.metaKey) return;
+    const amount = step.sign * (step.page ? (field === "year" ? 5 : 2) : 1);
+    const next = value.cycle(field, amount, { round: field === "year" });
+    if (next.day === value.day) return;
+    e.preventDefault();
+    e.stopPropagation();
+    change(next);
+  };
+
   const change = (next: ZonedDateTime | null) => {
     if (!next) return;
     let picked = next;
@@ -113,14 +138,17 @@ export function DateTimeField({
           segments' width and spill out of a narrow popover (B-71). The
           segments wrap (the time drops to a second line) before they'd clip. */}
       <Group className="input h-auto min-h-10 w-full min-w-0 gap-1 py-0.5 pe-1">
-        <DateInput className="flex min-w-0 flex-1 flex-wrap items-center">
-          {(segment) => (
-            <DateSegment
-              segment={segment}
-              className={`rounded tabular-nums outline-none data-[focused]:bg-primary data-[focused]:text-primary-content data-[placeholder]:opacity-60 ${segment.type === "literal" ? "" : "px-0.5"}`}
-            />
-          )}
-        </DateInput>
+        {/* Captures the step keys before the segment's own handler (stepClamped). */}
+        <div className="contents" onKeyDownCapture={stepClamped}>
+          <DateInput className="flex min-w-0 flex-1 flex-wrap items-center">
+            {(segment) => (
+              <DateSegment
+                segment={segment}
+                className={`rounded tabular-nums outline-none data-[focused]:bg-primary data-[focused]:text-primary-content data-[placeholder]:opacity-60 ${segment.type === "literal" ? "" : "px-0.5"}`}
+              />
+            )}
+          </DateInput>
+        </div>
         {/* 32 px to look at, at least 44 px to tap (the after: box, kept inside the field on the right). */}
         <Button
           aria-label="Pick a date"

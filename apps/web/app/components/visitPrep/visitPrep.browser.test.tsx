@@ -1,7 +1,7 @@
 import type { Fixture } from "../../../test/fixtures";
 
 import { buildNoteDoc, NOTE_FRAGMENT, toBase64 } from "@caretook/data/schema";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as Y from "yjs";
 import { renderWithDevice } from "../../../test/device";
@@ -219,16 +219,39 @@ describe("on the appointment's page", () => {
     expect(lines.indexOf("Bring the pill box")).toBeGreaterThan(second);
   });
 
-  test("the start can move back: what came before the last visit joins the preview", async () => {
-    await open(entryPath(APPT.id), { role: "caretaker" });
-    await userEvent.click((await waitFor(PREPARE))!);
-    await previewReady();
-    expect(PREVIEW()).not.toContain("Cough");
-    // The year, not the month: a month back from the 31st is a day some months don't have (B-134).
-    const year = $<HTMLElement>('[data-visit-prep-sheet] [data-type="year"]')!;
-    year.focus();
-    await userEvent.keyboard("{ArrowDown}");
-    await waitUntil(() => PREVIEW().includes("Cough"), 8000, "the longer window");
+  test("the start can move back: a month from the 31st is the 30th, and what came before the last visit joins the preview", async () => {
+    // A fixed clock (Date alone; timers stay real), so the last visit is always on the 31st (B-134).
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-20T20:00:00Z"), shouldAdvanceTime: true });
+    try {
+      const last = fx.event({
+        title: "Checkup with Dr. Lark",
+        occurredAt: at(new Date("2026-10-31T17:00:00Z")),
+      });
+      const appt = fx.event({
+        title: "Visit with Dr. Lark",
+        occurredAt: at(new Date("2026-11-23T17:00:00Z")),
+      });
+      const cough = fx.symptom({
+        name: "Cough",
+        severity: 2,
+        occurredAt: at(new Date("2026-10-10T17:00:00Z")),
+      });
+      const fixtures = [LARK, last, fx.link(last.id, LARK.id), appt, fx.link(appt.id, LARK.id), cough];
+      await renderWithDevice({ route: ROUTES, url: entryPath(appt.id), fixtures, role: "caretaker" });
+      await userEvent.click((await waitFor(PREPARE))!);
+      await waitUntil(() => PREVIEW().includes("Since your last visit"), 8000, "the preview");
+      expect(PREVIEW()).not.toContain("Cough");
+      const segment = (type: string) => $<HTMLElement>(`[data-visit-prep-sheet] [data-type="${type}"]`)!;
+      expect([segment("month").textContent, segment("day").textContent]).toEqual(["10", "31"]);
+      segment("month").focus();
+      await userEvent.keyboard("{ArrowDown}");
+      await expect
+        .poll(() => [segment("month").textContent, segment("day").textContent])
+        .toEqual(["9", "30"]);
+      await waitUntil(() => PREVIEW().includes("Cough"), 8000, "the longer window");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("no Prepare for a viewer", async () => {
