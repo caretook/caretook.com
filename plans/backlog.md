@@ -72,7 +72,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-137 | change | landed | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
 | B-138 | change | landed | timeline-ux | prd/timeline-ux | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | landed | timeline-ux | prd/timeline-ux | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
-| B-140 | change | in-progress | timeline-ux | prd/timeline-ux | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
+| B-140 | change | ready | timeline-ux | prd/timeline-ux | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
 | B-144 | feature | ready | timeline-ux | prd/timeline-ux | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-148 | chore | landed | agent-tooling | prd/agent-tooling | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
@@ -96,6 +96,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-176 | bug | in-progress | check-migration | prd/check-migration | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
 | B-177 | bug | inbox |  |  | rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone |
 | B-178 | bug | in-progress | check-migration | prd/check-migration | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
+| B-179 | bug | inbox |  |  | app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry |
 
 ## Items
 
@@ -340,10 +341,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-140 · change · Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 75f87df2
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every call, public procedures included. / A short cookie cache, or skipping the lookup for public procedures (packages/auth/src/authUser.ts, routes/rpc.ts).
 - 2026-11-20 (backlog agent): Triage: app-speed. Touches packages/auth/src/authUser.ts and routes/rpc.ts, which hosting slice 3 also changes (rate limits): run it after hosting wave 1 is in dev.
@@ -602,3 +603,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/timeline-ux): Seen 2026-11-20 in timeline-ux slices 1, 2 and two landing checks (different test each time); fails before any timeline-ux change too. Probably waits on a fixed render instead of the live query's answer.
 - 2026-11-20 (prd/check-migration): Proposed for check-migration with B-176, the same race (a DOM read before the live query answers). Its search test was fixed in e4b332b; the other tests in the file are left for the B-176 sweep. -- check-migration orchestrator
+
+### B-179 · bug · app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (prd/timeline-ux): Seen 2026-11-20 by timeline-ux slice 10 at load 18-34; passed on a rerun at load 44-65. Not related to /rpc auth.
