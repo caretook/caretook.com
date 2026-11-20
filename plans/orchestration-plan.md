@@ -6,17 +6,17 @@
 
 **Landing mode: run it through** (the user, 2026-11-19): start every ready slice, land each green wave without asking, clean up, ask only real questions.
 
-| Slice | Wave | State              | Merge into `prd/orchestration` (slice commits)                |
-| ----- | ---- | ------------------ | ------------------------------------------------------------- |
-| 1     | 1    | landed (27f5eb2)   | db65cca (a6ac71a, 3cf23d0)                                    |
-| 2     | 1    | landed (27f5eb2)   | 4982bd0 (66e02bd); doc fold 5c0989c                           |
-| 3     | 1    | landed (27f5eb2)   | 399fb18 (8af746c); doc fold 7a144a0                           |
-| 4     | 2    | landed (07bc4eb)   | 35e384f (679e4c6)                                             |
-| 5     | 2    | landed (07bc4eb)   | b0076a1 (2b59955)                                             |
-| 6     | 2    | landed (07bc4eb)   | 56ee562 (f808af4, 9d8c353); lease wiring and doc fold d9bf270 |
-| 7     | 3    | landed (dbbd6bb)   | 3 merge (818ac6e and two prd merges)                          |
-| 8     | 3    | landed (dbbd6bb)   | 99ff656 (463361b, e1eed79)                                    |
-| 9     | 4    | blocked by 7 and 8 |                                                               |
+| Slice | Wave | State                              | Merge into `prd/orchestration` (slice commits)                |
+| ----- | ---- | ---------------------------------- | ------------------------------------------------------------- |
+| 1     | 1    | landed (27f5eb2)                   | db65cca (a6ac71a, 3cf23d0)                                    |
+| 2     | 1    | landed (27f5eb2)                   | 4982bd0 (66e02bd); doc fold 5c0989c                           |
+| 3     | 1    | landed (27f5eb2)                   | 399fb18 (8af746c); doc fold 7a144a0                           |
+| 4     | 2    | landed (07bc4eb)                   | 35e384f (679e4c6)                                             |
+| 5     | 2    | landed (07bc4eb)                   | b0076a1 (2b59955)                                             |
+| 6     | 2    | landed (07bc4eb)                   | 56ee562 (f808af4, 9d8c353); lease wiring and doc fold d9bf270 |
+| 7     | 3    | landed (dbbd6bb)                   | b725e70 (818ac6e)                                             |
+| 8     | 3    | landed (dbbd6bb)                   | 99ff656 (463361b, e1eed79)                                    |
+| 9     | 4    | running (2026-11-19, stack slot 1) |                                                               |
 
 Wave 1 landed in `dev` as 27f5eb2 (not pushed; the user pushes). The sync before it brought medications-2's landing; its AGENTS.md additions were moved into `docs/domain/` (f7581b4). After landing, `pnpm backlog doctor --fix` and `archive` ran on the real backlog (cad38ca, 831792c: 80 items to `plans/backlog-archive.md`). `doctor` still reports B-104's inbox tag (a "PRD tooling needs a way to recover after system restarts" bullet tagged with the Connectors item): the user's to fix. The admin orchestrator was told about the split; medications-2's wasn't reachable (done).
 
