@@ -98,6 +98,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-131 | bug | landed | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | landed | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 | B-133 | bug | triaged | quick-fixes |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
+| B-134 | bug | inbox |  |  | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 
 ## Items
 
@@ -664,3 +665,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (prd/check-migration): Found by check-migration slice 1: useHistoryCutoff changes the history query key at the minute turn, useLiveRows goes not-fresh, pageWindow sets limit = requested − 30, so the last page unmounts and later rows remount. Fails ~1 in 6 isolated runs under CPU load. Product quirk, not a test race; not in check-migration's scope.
 - 2026-11-19 (prd/check-migration): check-migration: timelineScroll's 'three pages down' test now has { retry: 2 } (commit on prd/check-migration); remove it when this is fixed.
 - 2026-11-20 (Robert Bo Davis): Triage: a contained fix in the timeline's history paging (useHistoryCutoff / pageWindow keep the last page mounted across the minute turn), so a quick-fixes slice, not its own PRD. Run it after tasks lands (tasks edits timeline/route.tsx), then remove check-migration's retry: 2 on timelineScroll.
+
+### B-134 · bug · visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent)
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (slice/check-migration/6): Fails on prd/check-migration HEAD 7ddfbb2 without slice 6's changes, alone and in pnpm check: 'timed out waiting for the longer window'. Its last visit is 20 days ago (2026-10-31) and ArrowDown on the month field should take the start before the Cough 25 days ago; probably the 31st not existing in September. Found by check-migration slice 6.
