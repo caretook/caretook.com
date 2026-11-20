@@ -9,7 +9,7 @@ apps/web/app/lib/assistant/quickEntryDraft.ts -
 apps/web/app/lib/assistant/recentLines.ts session-end
 # Simple mode (slices 5 and 6): the view, the tiles, the lock and the Members
 # switch are component tests (timeline/timelineSimple*.browser.test.tsx,
-# groups/settings/simpleTiles.browser.test.tsx); app-shell.mjs keeps the
+# groups/settings/simpleTiles.browser.test.tsx); app-shell.spec.mjs keeps the
 # owner's switch reaching the member's device.
 apps/web/app/lib/assistant/simpleModeToggle.ts app-shell
 apps/web/app/lib/assistant/useSimpleMode.ts app-shell
