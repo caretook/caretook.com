@@ -107,7 +107,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-165 | change | triaged | timeline-ux |  | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
 | B-166 | change | triaged | app-speed |  | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
 | B-167 | change | triaged | timeline-ux |  | Make day summary part of sticky header so it is always visible when scrolling up the timeline. |
-| B-168 | change | inbox |  |  | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
+| B-168 | change | triaged | timeline-ux |  | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
 | B-169 | change | inbox |  |  | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
 | B-170 | change | inbox |  |  | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
 | B-171 | change | inbox |  |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
@@ -739,8 +739,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-168 · change · timeline group titles that are too long wrap to multiple lines on small screens. Truncate the…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: timeline-ux
 - owner:
 - commit:
 
