@@ -4,7 +4,7 @@ import type { LinkedProviderName } from "~/lib/entryProviders";
 import type { EntryCancelActions } from "~/components/entry";
 import type { TimelineEntry } from "~/lib/rpc";
 
-import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
+import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, KindIcon } from "~/components/entry";
 import { initials } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { cancelledLabel } from "~/lib/upcomingLabels";
@@ -35,6 +35,8 @@ export type EntryViewProps = {
   providers?: LinkedProviderName[];
   /** The timeline's search (`?q=`, parsed): its matches are marked. */
   search?: ParsedSearch;
+  /** Simple mode: the kind icon and the author aren't filters (rows only). */
+  simple?: boolean;
 };
 
 /**
@@ -54,16 +56,18 @@ export function TimelineEntryRow({
   liveLabel,
   providers,
   search,
+  simple,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
   return (
     <li
       className={`relative isolate flex items-start gap-2.5 px-3 py-2 ${removing ? "opacity-50" : ""}`}
+      data-simple={simple ? "" : undefined}
       data-cancelled={cancelled ? "" : undefined}
     >
       {open && <EntryOpenTarget open={open} entry={entry} />}
-      <KindFilterLink kind={entry.kind} size="sm" />
+      {simple ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
       <time
         dateTime={entry.occurredAt}
         className="text-base-content/70 w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
@@ -85,12 +89,22 @@ export function TimelineEntryRow({
         }
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
-      <AuthorFilterLink
-        userId={entry.createdBy}
-        name={authorName}
-        initials={initials(authorName)}
-        image={authorImage}
-      />
+      {simple ? (
+        <span
+          className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
+          data-author={entry.createdBy}
+        >
+          <span aria-hidden="true">{initials(authorName)}</span>
+          <span className="sr-only">By {authorName}</span>
+        </span>
+      ) : (
+        <AuthorFilterLink
+          userId={entry.createdBy}
+          name={authorName}
+          initials={initials(authorName)}
+          image={authorImage}
+        />
+      )}
       {onDelete && (
         <EntryActions
           kind={entry.kind}

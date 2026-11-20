@@ -415,3 +415,9 @@ apps/web/app/lib/sync/useLiveRows.ts     phase2 upcoming
 apps/web/app/components/quick-entry/*    -
 apps/web/app/lib/sync/quickEntry.ts      -
 apps/web/app/lib/quickEntryDraft.ts      -
+# Simple mode (assistant slice 5): the simple view, the reduced header, the
+# toggle, the account setting and the Members switch are component tests
+# (timeline/timelineSimple.browser.test.tsx); app-shell.mjs keeps the owner's
+# switch reaching the member's device. lib/simpleMode.ts has its unit test.
+apps/web/app/lib/simpleModeToggle.ts     app-shell
+apps/web/app/lib/useSimpleMode.ts        app-shell

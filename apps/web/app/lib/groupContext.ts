@@ -31,6 +31,8 @@ export type GroupContext = Readonly<{
   /** Whether you may add, change and delete entries. */
   canWrite: boolean;
   recipient: GroupRecipient | null;
+  /** Simple mode as the group's managers set it for you: their default, and whether you're locked in it. */
+  simpleMode: Readonly<{ ownerDefault: boolean; locked: boolean }>;
 }>;
 
 /** The context for one of `userId`'s local group rows. */
@@ -53,5 +55,6 @@ export const toGroupContext = (row: GroupRow, userId: string): GroupContext => {
     role: (row.role ?? null) as MyGroup["role"],
     canWrite: !!row.role && WRITER_ROLES.includes(row.role),
     recipient,
+    simpleMode: { ownerDefault: !!row.simple_mode, locked: !!row.simple_mode_locked },
   };
 };

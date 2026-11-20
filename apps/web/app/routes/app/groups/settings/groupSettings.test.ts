@@ -96,27 +96,57 @@ describe("memberAccess", () => {
 
   it("lets an owner give anyone any role, and remove anyone else", () => {
     for (const memberRole of ALL) {
-      expect(access("owner", memberRole)).toEqual({ roles: ALL, remove: true, leave: false });
+      expect(access("owner", memberRole)).toEqual({
+        roles: ALL,
+        remove: true,
+        leave: false,
+        simpleMode: true,
+      });
     }
   });
   it("lets an owner change their own role and leave (the server refuses the last owner)", () => {
-    expect(access("owner", "owner", true)).toEqual({ roles: ALL, remove: false, leave: true });
+    expect(access("owner", "owner", true)).toEqual({
+      roles: ALL,
+      remove: false,
+      leave: true,
+      simpleMode: true,
+    });
   });
   it("lets an admin change and remove members below owner, without offering owner", () => {
     for (const memberRole of BELOW_OWNER) {
-      expect(access("admin", memberRole)).toEqual({ roles: BELOW_OWNER, remove: true, leave: false });
+      expect(access("admin", memberRole)).toEqual({
+        roles: BELOW_OWNER,
+        remove: true,
+        leave: false,
+        simpleMode: true,
+      });
     }
-    expect(access("admin", "admin", true)).toEqual({ roles: BELOW_OWNER, remove: false, leave: true });
+    expect(access("admin", "admin", true)).toEqual({
+      roles: BELOW_OWNER,
+      remove: false,
+      leave: true,
+      simpleMode: true,
+    });
   });
   it("gives an admin nothing to do to an owner", () => {
-    expect(access("admin", "owner")).toEqual({ roles: [], remove: false, leave: false });
+    expect(access("admin", "owner")).toEqual({ roles: [], remove: false, leave: false, simpleMode: false });
   });
   it("lets caretakers, viewers and anyone without a role only leave", () => {
     for (const actorRole of ["caretaker", "viewer", null]) {
       for (const memberRole of ALL) {
-        expect(access(actorRole, memberRole)).toEqual({ roles: [], remove: false, leave: false });
+        expect(access(actorRole, memberRole)).toEqual({
+          roles: [],
+          remove: false,
+          leave: false,
+          simpleMode: false,
+        });
       }
-      expect(access(actorRole, "viewer", true)).toEqual({ roles: [], remove: false, leave: true });
+      expect(access(actorRole, "viewer", true)).toEqual({
+        roles: [],
+        remove: false,
+        leave: true,
+        simpleMode: false,
+      });
     }
   });
 });
