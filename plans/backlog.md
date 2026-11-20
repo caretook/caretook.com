@@ -419,6 +419,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (prd/medications-2): The emergency sheet (profiles) passes allergies: null, waiting for B-26. medications-2 built allergies (lib/sync/allergies.ts: allergiesQuery, loadAllergies; PrintAllergies), so the sheet can show them now. profiles.mjs's sheet step would need to expect them.
+- 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: one small change to the emergency sheet (pass loadAllergies instead of null) plus profiles.mjs's sheet expectation; medications-2 has landed, so nothing blocks it.
 
 ### B-113 · chore · Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands
 
