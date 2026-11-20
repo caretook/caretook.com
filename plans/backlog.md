@@ -396,6 +396,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (Robert Bo Davis): Proposed for orchestration with B-89 and B-108: check priorities (blocker/major/minor tags on steps or checks, --changed running only blocker+major, full tiers before staging). Needs an interview; the smoke mode (B-39) is a partial version already.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
 - 2026-11-19 (slice/orchestration/6): Slice 6 handed off (9d8c353): web:components project, test device (renderWithDevice, fx builders), ui primitive tests; 53 tests in ~16 s.
+- 2026-11-19 (slice/orchestration/9): Slice 9 (47f03a0 on slice/orchestration/9): the lean end-to-end set is the manifest's e2e set (12 checks, 12/12 in 4m31s); screens with component tests need no browser check in --changed; browser leases moved to .loops/.lease/browser. Remaining checks to move: B-114 to B-127; refused-upload step B-128; Playwright port B-129.
 
 ### B-110 · bug · Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes)
 
