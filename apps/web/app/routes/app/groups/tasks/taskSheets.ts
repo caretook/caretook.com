@@ -5,12 +5,7 @@ import { appUrls } from "../../../../lib/appUrls";
 // lets a sheet go back to where it was opened from. Pure, so web:unit tests
 // it; the routes apply it. Like `lib/medicationSheets.ts`.
 
-/** History state on a link that opens a task sheet. */
-export const TASK_SHEET_STATE = { taskSheet: true } as const;
-
-/** Whether a sheet was opened by one of this app's links (so closing it can go back). */
-export const openedFromApp = (state: unknown) =>
-  typeof state === "object" && state !== null && "taskSheet" in state;
+export { openedFromApp, TASK_SHEET_STATE } from "../../../../lib/taskSheetLink";
 
 export type TaskSheetDecision<Sheet> = { sheet: Sheet } | { redirect: string };
 

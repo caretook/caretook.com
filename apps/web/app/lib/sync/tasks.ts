@@ -254,8 +254,16 @@ export type TaskInput = {
   eventId?: string | null;
 };
 
-/** Add a task on this device (writers). It syncs when the device is online. */
-export const createTask = async (db: SyncDb, groupId: string, input: TaskInput): Promise<TaskWriteResult> => {
+/**
+ * The row `createTask` writes, checked as it checks it (the writer role, the
+ * shared schema, a member assignee, live links), without writing it: quick
+ * entry's runner inserts it in its own transaction.
+ */
+export const plannedTask = async (
+  db: SyncDb,
+  groupId: string,
+  input: TaskInput,
+): Promise<{ ok: true; row: typeof tasks.$inferInsert } | Refusal> => {
   const group = await groupFor(db, groupId);
   if (!isTaskWriter(group?.role)) return forbidden as Refusal;
   const recipientId = await recipientOf(db, groupId);
@@ -269,22 +277,31 @@ export const createTask = async (db: SyncDb, groupId: string, input: TaskInput):
   const links = await linkRefusal(db, groupId, content);
   if (links) return links;
 
-  const id = crypto.randomUUID();
   const now = nowTimestamp();
-  await db.drizzle.insert(tasks).values({
-    id,
-    groupId,
-    recipientId,
-    ...contentColumns(content),
-    doneAt: null,
-    doneBy: null,
-    deletedAt: null,
-    createdAt: now,
-    updatedAt: now,
-    createdBy: db.userId,
-    updatedBy: db.userId,
-  });
-  return { ok: true, id };
+  return {
+    ok: true,
+    row: {
+      id: crypto.randomUUID(),
+      groupId,
+      recipientId,
+      ...contentColumns(content),
+      doneAt: null,
+      doneBy: null,
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: db.userId,
+      updatedBy: db.userId,
+    },
+  };
+};
+
+/** Add a task on this device (writers). It syncs when the device is online. */
+export const createTask = async (db: SyncDb, groupId: string, input: TaskInput): Promise<TaskWriteResult> => {
+  const planned = await plannedTask(db, groupId, input);
+  if (!planned.ok) return planned;
+  await db.drizzle.insert(tasks).values(planned.row);
+  return { ok: true, id: planned.row.id };
 };
 
 /**

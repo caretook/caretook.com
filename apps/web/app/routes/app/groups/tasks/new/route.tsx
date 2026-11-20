@@ -15,7 +15,8 @@ import { loadMembers, useAssigneeMembers, useCloseTaskSheet } from "../taskSheet
 import { newTaskGuard } from "../taskSheets";
 
 // Shared by web + native. `tasks/new`: the add sheet, over the list. It can
-// start with a due day (`?dueOn=`). A viewer lands on the list.
+// start with a due day (`?dueOn=`), and from quick entry's Edit a title, an
+// assignee and a time. A viewer lands on the list.
 
 export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
@@ -48,7 +49,9 @@ export default function NewTaskSheet({ loaderData, params }: Route.ComponentProp
   const group = useGroup();
   const { search } = useLocation();
   const members = useAssigneeMembers(params.groupId, loaderData.memberRows);
-  const dueOn = new URLSearchParams(search).get(TASK_PREFILL_PARAMS.dueOn);
+  const query = new URLSearchParams(search);
+  const dueOn = query.get(TASK_PREFILL_PARAMS.dueOn);
+  const dueTime = query.get(TASK_PREFILL_PARAMS.dueTime);
   return (
     <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add a task">
       <TaskForm
@@ -57,6 +60,11 @@ export default function NewTaskSheet({ loaderData, params }: Route.ComponentProp
         members={members}
         meId={group.userId}
         dueOn={dueOn && /^\d{4}-\d{2}-\d{2}$/.test(dueOn) ? dueOn : null}
+        prefill={{
+          title: query.get(TASK_PREFILL_PARAMS.title),
+          assigneeId: query.get(TASK_PREFILL_PARAMS.assigneeId),
+          dueTime: dueTime && /^\d{2}:\d{2}$/.test(dueTime) ? dueTime : null,
+        }}
         zoneNote={scheduleZoneNote(
           group.recipient?.timeZone ?? null,
           Intl.DateTimeFormat().resolvedOptions().timeZone,
