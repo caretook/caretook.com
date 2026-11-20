@@ -886,6 +886,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog` and read-only git; deny reads of `.env` files and of packages/data/src/db/migrations/meta/** (22 snapshots that pollute searches); deny pushes and setting `CARETOOK_ALLOW_PROTECTED`.
 - 2026-11-20 (backlog agent): Triage: agent-tooling, but small enough to be a direct change on dev if the user asks (one settings file, no app code).
+- 2026-11-20 (backlog agent): Done as a direct change in the main checkout (2026-11-20), not committed yet: a permissions block in .claude/settings.json. Allows pnpm check, pnpm prd, pnpm backlog and read-only git; denies reading .env and .env.local files and migrations/meta, git push, and any command setting CARETOOK_ALLOW_PROTECTED. .env.example and .env.test stay readable.
 
 ### B-153 · chore · Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent…
 
