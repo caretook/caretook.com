@@ -8,23 +8,54 @@ const lines = (text) =>
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith("#"));
 
-/** The manifest's checks, in suite order. Throws on a malformed line. */
+const CEILING = /^lean-ceiling(\s|$)/;
+
+/** The manifest's checks, in suite order (not its `lean-ceiling` line). Throws on a malformed line. */
 export function parseManifest(text) {
-  return lines(text).map((line) => {
-    const [name, usual, cap, neverExits, e2e, ...rest] = line.split(/\s+/);
-    const bad = (why) => new Error(`checks: ${why}: ${line}`);
-    if (rest.length || e2e === undefined) throw bad("want 5 columns");
-    if (!/^[a-z0-9-]+$/.test(name)) throw bad("bad check name");
-    if (!/^\d+$/.test(usual) || !/^\d+$/.test(cap)) throw bad("usual and cap are whole seconds");
-    if (!["yes", "no"].includes(neverExits) || !["yes", "no"].includes(e2e)) throw bad("flags are yes or no");
-    return {
-      name,
-      usual: Number(usual),
-      cap: Number(cap),
-      neverExits: neverExits === "yes",
-      e2e: e2e === "yes",
-    };
-  });
+  return lines(text)
+    .filter((line) => !CEILING.test(line))
+    .map((line) => {
+      const [name, usual, cap, neverExits, e2e, ...rest] = line.split(/\s+/);
+      const bad = (why) => new Error(`checks: ${why}: ${line}`);
+      if (rest.length || e2e === undefined) throw bad("want 5 columns");
+      if (!/^[a-z0-9-]+$/.test(name)) throw bad("bad check name");
+      if (!/^\d+$/.test(usual) || !/^\d+$/.test(cap)) throw bad("usual and cap are whole seconds");
+      if (!["yes", "no"].includes(neverExits) || !["yes", "no"].includes(e2e))
+        throw bad("flags are yes or no");
+      return {
+        name,
+        usual: Number(usual),
+        cap: Number(cap),
+        neverExits: neverExits === "yes",
+        e2e: e2e === "yes",
+      };
+    });
+}
+
+/** The manifest's `lean-ceiling <seconds>`. Throws unless there is exactly one, in whole seconds. */
+export function leanCeiling(text) {
+  const found = lines(text).filter((line) => CEILING.test(line));
+  if (found.length !== 1) throw new Error(`checks: want one lean-ceiling line, found ${found.length}`);
+  const [, seconds, ...rest] = found[0].split(/\s+/);
+  if (rest.length || !/^\d+$/.test(seconds ?? ""))
+    throw new Error(`checks: lean-ceiling takes whole seconds: ${found[0]}`);
+  return Number(seconds);
+}
+
+/**
+ * The lean set's budget: the e2e checks' usual seconds against the ceiling.
+ * Throws when the total is over it, saying by how much.
+ */
+export function leanBudget(text) {
+  const ceiling = leanCeiling(text);
+  const lean = parseManifest(text).filter((c) => c.e2e);
+  const total = lean.reduce((sum, c) => sum + c.usual, 0);
+  if (total > ceiling)
+    throw new Error(
+      `checks: the lean set's usual seconds add up to ${total}, over lean-ceiling ${ceiling} by ${total - ceiling} ` +
+        `(${lean.map((c) => `${c.name} ${c.usual}`).join(", ")}). Shrink a lean check; only the user raises the ceiling.`,
+    );
+  return { total, ceiling };
 }
 
 /** Every check named by a rule in check-areas (not `-`, `@suite` or `@self`). */
