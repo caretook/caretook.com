@@ -1,0 +1,13 @@
+# check-areas: providers. The directory, its sheets and a provider's page
+# (with its medications and visit prep's button) are component tests
+# (providers/providers, providers/providerSheets and provider/provider browser
+# tests; providerWorld.tsx is their world). A provider and a link reaching
+# another device is roundtrip's sync matrix (6b).
+apps/web/app/routes/app/groups/provider/* -
+apps/web/app/routes/app/groups/providers/* -
+apps/web/app/components/providers/*      -
+apps/web/app/lib/sync/providers.ts       roundtrip
+apps/web/app/lib/sync/providerSuggestions.ts -
+packages/data/src/db/schema/provider.ts  roundtrip
+packages/data/src/db/schema/entryProvider.ts roundtrip
+packages/data/src/db/seeds/providers.ts  roundtrip

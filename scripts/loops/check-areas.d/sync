@@ -1,0 +1,9 @@
+# check-areas: the sync client, first sync, the device schema and the upload
+# switch, which carries every synced write.
+apps/web/app/lib/firstSync.ts            first-sync
+apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe session-end
+apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell
+apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
+apps/web/app/lib/sync/schema.ts          roundtrip live-notes phase2
+apps/web/app/lib/sync/useLiveRows.ts     phase2
+packages/api/src/sync.ts                 roundtrip live-notes

@@ -1,0 +1,15 @@
+# check-areas: Upcoming (appointments): the section, its Past tab, the time
+# rules, cancel, undo and reschedule, and the list pieces it shares with the
+# timeline: component tests (upcoming/*.browser.test.tsx; upcomingWorld.tsx is
+# their world), and the lib modules have unit tests. roundtrip uploads a
+# reschedule's one transaction to another member.
+apps/web/app/routes/app/groups/upcoming/* -
+apps/web/app/lib/upcoming.ts             -
+apps/web/app/lib/upcomingLabels.ts       -
+apps/web/app/lib/upcomingDays.ts         -
+apps/web/app/lib/upcomingDoses.ts        -
+apps/web/app/lib/sync/appointments.ts    roundtrip live-notes
+# The time fields and the reschedule sheet: component tests (upcoming/upcomingEvents and entry/entry).
+apps/web/app/components/schedule/*       -
+# Fed to Upcoming (component tests).
+packages/data/src/db/seeds/appointments.ts -

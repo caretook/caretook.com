@@ -1,0 +1,14 @@
+# check-areas: search (search PRD). The device index is unit tests
+# (lib/sync/search.test.ts, node's SQLite) and component tests
+# (lib/sync/search.browser.test.tsx, the device's wa-sqlite); signout-wipe
+# checks its tables are dropped at sign-out, with the database they live in.
+apps/web/app/lib/sync/search.ts          signout-wipe
+apps/web/app/lib/sync/searchTables.ts    sign-in signout-wipe
+# Searching within a care period (care-periods slice 6): the choices, live.
+apps/web/app/lib/sync/periodSearch.ts    -
+# The search page is component tests (search/search.browser.test.tsx); its
+# ranking and grouping (lib/searchResults.ts) and entryOpen are unit-tested.
+apps/web/app/routes/app/groups/search/*  -
+# Recent searches: the store has unit tests, the page's wiring component tests;
+# signout-wipe checks sign-out clears them.
+apps/web/app/lib/recentSearches.ts       signout-wipe
