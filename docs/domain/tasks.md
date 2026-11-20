@@ -20,7 +20,7 @@ PRD: [`plans/tasks-prd.md`](../../plans/tasks-prd.md) (B-55). A task is a to-do 
 ## On the device (`lib/tasks/tasks.sync.ts`)
 
 - `toTask`/`tasksQuery`/`doneCountQuery`/`taskQuery` read; `createTask` (over `plannedTask`, which quick entry uses too), `updateTask`, `completeTask`, `reopenTask`, `removeTask` write. A done-only change is a PATCH of `done_at`/`done_by` that the server maps to `complete` or `reopen`.
-- `createTaskDocument` makes a task's notes document; `dueTasksQuery`, `dueTasksThrough` and `useDueTasks` (ticking every `DUE_TASKS_TICK_MS`) feed Upcoming, the strip and the simple view; `linkedTasksQuery`, `taskEventChoicesQuery`, `linkedEventQuery`, `linkOf` and `TaskLink` serve links.
+- `createTaskDocument` makes a task's notes document; `dueTasksQuery`, `dueTasksThrough` and `useDueTasks` (ticking every `DUE_TASKS_TICK_MS`) feed Upcoming, the Today card and the simple view; `linkedTasksQuery`, `taskEventChoicesQuery`, `linkedEventQuery`, `linkOf` and `TaskLink` serve links.
 - Wording in `lib/tasks/taskDisplay.ts` (`dueText`, `doneText` "Done by … · today", `assigneeLabel`, `linkLabel` "(removed)"); the chips and sections in `lib/tasks/taskList.ts`; the tick's 10-second Undo in `lib/tasks/taskUndo.ts`, shown by `TaskUndoStatus`.
 
 ## Screens
@@ -28,9 +28,9 @@ PRD: [`plans/tasks-prd.md`](../../plans/tasks-prd.md) (B-55). A task is a to-do 
 - **The Tasks section** (`routes/app/groups/tasks/`, `appUrls.tasks`, a `GROUP_SECTIONS` entry after Upcoming, lucide `ListTodo`): chips `?who=mine|unassigned|everyone`, the default fixed when the list opens (mine if any, else everyone); sections Overdue, Today, then by day, then No date; Done follows the chip, newest first, paged by 20; unticking reopens. Rows open the task page for everyone.
 - **Sheets:** `tasks/new` and `tasks/:taskId/edit` (`TaskForm` with native date and time inputs, `AssigneeField`, `TaskLinkFields`). They close back through link state (`TASK_SHEET_STATE`, `openedFromApp` in `lib/tasks/taskSheetLink.ts`); deep links close to the list. Guards and list-search carrying are in `lib/tasks/taskSheets.ts`. `tasks/new` takes prefills (`TASK_PREFILL_PARAMS`): `providerId`, `medicationId`, `eventId`, `dueOn`, and from quick entry `title`, `assigneeId`, `dueTime`.
 - **The task page** (`routes/app/groups/task/`, `tasks/:taskId`): `TaskHeader`, `TaskCompletion`, `TaskDetails`, "Linked to" rows (`TaskLinks`, a removed link reads "(removed)"), `TaskActions` (edit, delete for writers), and notes (`useTaskNotes`, the live-notes editor); a missing or deleted task is a 404. Going back carries the list's chip (`taskPageState`, `listSearchFromState`).
-- **The tick** (`components/tasks/TaskTick`, `useTaskTick`; `large` in the simple view) is shared by the list, the page, Upcoming, the strip and the simple view.
+- **The tick** (`components/tasks/TaskTick`, `useTaskTick`; `large` in the simple view) is shared by the list, the page, Upcoming, the Today card and the simple view.
 - **Links and backlinks:** pickers (`tasks/taskLinks.ts`, `LinkPickerField`) choose one provider, one medication and one appointment. `LinkedTasks`/`useLinkedTasks` (`components/tasks`) list open linked tasks on an event's entry page, a provider's page (after visit prep) and a medication's page (after refills), with "Add task" prefilled with the link. Hidden when empty, except writers keep a lone "Add task".
-- Elsewhere: tasks in Upcoming ([appointments](appointments.md)), the task strip and the simple view's My tasks ([timeline](timeline.md)), the search results' Tasks section ([search](search.md)), and `addTask` in quick entry ([assistant](assistant.md)).
+- Elsewhere: tasks in Upcoming ([appointments](appointments.md)), the Today card and the simple view's My tasks ([timeline](timeline.md)), the search results' Tasks section ([search](search.md)), and `addTask` in quick entry ([assistant](assistant.md)).
 
 ## Seeds and checks
 

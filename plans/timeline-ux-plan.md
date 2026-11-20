@@ -10,8 +10,8 @@
 | 2     | 1    | landed          | de5ccf9 (67f6e34)                            |
 | 3     | 1    | landed          | 448be6e (11efa88)                            |
 | 4     | 2    | merged          | ddf36b0 (2110676)                            |
-| 5     | 2    | started         |                                              |
-| 6     | 2    | handed off (8c4450e) |                                              |
+| 5     | 2    | merged          | fd9b79f4 (174eb84)                           |
+| 6     | 2    | merged          | 127670af (8c4450e)                           |
 | 7     | 3    | blocked by 1, 3 |                                              |
 | 8     | 3    | blocked by 2    |                                              |
 | 9     | 3    | not started     |                                              |
@@ -38,7 +38,8 @@
 - **Wave 1 landed in dev as 5689e47** (full check passed on 2bb2425; then a dev sync of agent-tooling's area-doc trims, docs only: took dev's trimmed sync.md/timeline.md and re-added wave 1's rules tersely; sync.md is 10223 B of 10240, so trim at least what waves 3–4 add). The user chose to land wave 1 without `--suite`.
 - Slice 4 merged (ddf36b0), B-137/B-138 done, worktree removed. Slices 5 and 6 running.
 - **Promises to other orchestrators:** message connectors-4a when B-164/B-165 (slice 6) land in dev, and when slice 10 (B-140, packages/auth) starts and before it lands (their slice 2 adds an oauth-provider plugin in `packages/auth/src/auth.ts`).
-- Slice 6 handed off (8c4450e; subject cites only B-139, it covers B-164/B-165/B-167/B-168 too). Merge after 5. Fold-ins: timeline.md, date heading `text-lg lg:text-xl`; the summary in `DayHeader`'s `summary` region; ⋯ over the author chip in `[data-entry-aside]` (`ASIDE_CLASS`); `offscreenRows.ts` (`content-visibility` on rows of days before the newest page, `contain-intrinsic-size: auto 70px`/100px cards; relayout at 300 rows 2.9 → 1.3 ms). care-periods.md: no place on the day line or marker. Follow-ups to file: pages lost on Back (paging is `useState`); dead `placeNamesQuery`/`placeRows`.
+- Slice 6 handed off (8c4450e; subject cites only B-139, it covers B-164/B-165/B-167/B-168 too). Merge after 5. Fold-ins: timeline.md, date heading `text-lg lg:text-xl`; the summary in `DayHeader`'s `summary` region; ⋯ over the author chip in `[data-entry-aside]` (`ASIDE_CLASS`); `offscreenRows.ts` (`content-visibility` on rows of days before the newest page, `contain-intrinsic-size: auto 70px`/100px cards; relayout at 300 rows 2.9 → 1.3 ms). care-periods.md: no place on the day line or marker. Follow-ups to file: pages lost on Back (paging is `useState`); dead `placeNamesQuery`/`placeRows`. Filed as B-174 and B-175.
+- Slices 5 (fd9b79f4) and 6 (127670af; one doc-comment conflict in `TimelineEntryList.tsx`, resolved) merged; B-169, B-164, B-167, B-165, B-168, B-139 done; worktrees removed. Slice 5 notes: the tasks row keeps due-today tasks but neutral (no amber hue in `todayStatus`); `marketing-screenshots.mjs` selector updated, not run (no screenshots until the launch map). Synced dev (connectors PRD docs). Folded wave 2 into timeline, care-periods, medications, tasks and app-shell docs (all under 10 KB). Full check next (a code conflict was resolved); wave 2 lands on it without `--suite` (plan).
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
