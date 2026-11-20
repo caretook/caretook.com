@@ -42,6 +42,7 @@ import { periodMarkers } from "~/lib/periodMarkers";
 import { aheadQueries } from "./aheadQueries";
 import { useTimelinePeriods } from "./timelinePeriods";
 import { useHistoryCutoff } from "./useHistoryCutoff";
+import { daySummaryQuery, summariesOff, summarySince } from "./daySummaryRows";
 
 // The timeline's data, live: the loader reads the first screenful
 // (`loadTimelineRows`), and live queries here take over from there, so other
@@ -80,6 +81,8 @@ export type TimelineData = {
   periods: TimelinePeriods;
   /** The boundary markers in the loaded window, newest first (all older ones once the beginning is loaded). Ignore the filters. */
   markers: PeriodMarker<LocalCarePeriod>[];
+  /** The day summaries' entries: the loaded days, whole, and the 7 days before them; null while a filter or search is on. */
+  summaryEntries: TimelineEntry[] | null;
 };
 
 /** A live document's title: its entry's, else its kind ("Note"). */
@@ -180,6 +183,15 @@ export function useTimelineData({
   });
   const now = new Date(cutoff);
   const zone = localTimeZone();
+  // The day summaries read whole days, from the oldest shown day's baseline; nothing while filtered.
+  const summariesHidden = summariesOff(filters);
+  const summarySql = daySummaryQuery(
+    groupId,
+    summarySince(shown.at(-1)?.occurredAt ?? null, cutoff, zone),
+    cutoff,
+    summariesHidden,
+  );
+  const summaryRows = useLiveQuery<EntryRow>(summarySql.sql, summarySql.params, initial.summaryRows);
 
   return {
     days: groupByDay(shown, zone, new Date()),
@@ -201,5 +213,6 @@ export function useTimelineData({
     upcoming: firstItems(upcomingSections(withPreview(blockRows), now, zone), UPCOMING_BLOCK_LIMIT),
     periods,
     markers,
+    summaryEntries: summariesHidden ? null : toTimelineEntries(summaryRows),
   };
 }
