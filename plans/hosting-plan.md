@@ -6,18 +6,19 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue hosting`, 2026-11-20): start every ready slice, land each green wave without asking, clean up; ask only real questions. Slice 7 is still done with the user.
 
-| Slice | Wave | State                                       | Merge into `prd/hosting` (slice commits) |
-| ----- | ---- | ------------------------------------------- | ---------------------------------------- |
-| 1     | 1    | merged                                      | 7ce4336 (e459365, ec506bd, 7ada5b5)      |
-| 2     | 1    | merged                                      | 738b731 (3f0ca96, 53adf98)               |
-| 3     | 1    | merged                                      | 5d64d38 (6179cd8)                        |
-| 4     | 2    | merged                                      | d01cb41 (7d0be1d)                        |
-| 5     | 2    | merged                                      | b1d13f5 (d9aa875)                        |
-| 8     | 2    | merged                                      | afda535 (734907d); fix 05b709f           |
-| 6     | 3    | merged                                      | 4a9cd0f (24a3f02)                        |
-| 9     | 4    | paused: worktree kept, agent stopped (opus) |                                          |
-| 7     | 5    | blocked by 9                                |                                          |
+| Slice | Wave | State                                   | Merge into `prd/hosting` (slice commits) |
+| ----- | ---- | --------------------------------------- | ---------------------------------------- |
+| 1     | 1    | merged                                  | 7ce4336 (e459365, ec506bd, 7ada5b5)      |
+| 2     | 1    | merged                                  | 738b731 (3f0ca96, 53adf98)               |
+| 3     | 1    | merged                                  | 5d64d38 (6179cd8)                        |
+| 4     | 2    | merged                                  | d01cb41 (7d0be1d)                        |
+| 5     | 2    | merged                                  | b1d13f5 (d9aa875)                        |
+| 8     | 2    | merged                                  | afda535 (734907d); fix 05b709f           |
+| 6     | 3    | merged                                  | 4a9cd0f (24a3f02)                        |
+| 9     | 4    | in flight: respawned (opus), 2026-11-20 |                                          |
+| 7     | 5    | blocked by 9                            |                                          |
 
+- **Resumed (2026-11-20, new orchestrator):** reconciled with git: slice 9's branch had no commits and a clean worktree, no live agent. Respawned it with `--continue` on opus, with the hand-off's notes. B-161 (sign-in.mjs flake) is not hosting's; left for its owner.
 - **Hand-off (2026-11-20):** the user stopped this orchestrator to save context. Next orchestrator: slice 9's worktree `.loops/hosting-9` is kept with its agent stopped mid-work; respawn it (model opus) with `pnpm prd prompt slice hosting 9 --continue`, plus the orchestrator notes from this session: Node 24 PATH setup, B-158 research Better Auth 1.7.25's jwt plugin first, `deploy.yml`'s env step must equal `DEPLOY_ENV_VARIABLES`, generous timeouts on role tests, list but don't run browser checks. Then merge, fold docs (Slice 9 line), land (run-through), then slice 7 with the user (ops/runbook.md, staging first). B-158–B-160 are claimed by prd/hosting.
 - 2026-11-20: synced `dev` in; claimed B-33, B-68 and B-141 (B-141 is slice 3's work, `done` with it). Added slice 8 for B-142 and B-143 (triaged to hosting by the backlog agent), in wave 2 after 1 and 3.
 - B-134 (visitPrep test) was fixed in `dev` and came in with the sync.
