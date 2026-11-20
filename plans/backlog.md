@@ -89,6 +89,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-125 | chore | inbox |  |  | Move admin.mjs to component tests |
 | B-126 | chore | inbox |  |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | inbox |  |  | Move invites.mjs's screen steps to component tests |
+| B-128 | chore | inbox |  |  | Add a lean end-to-end step for an upload refused by permissions |
 
 ## Items
 
@@ -553,3 +554,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): invites.mjs stays in the lean set (emails through /dev/mail.json, sign-up, consent, join, links and requests). Move its form states (the invite page's views, the wrong-account view, sign-in tabs, the invite sheet and pending list) to component tests and delete each covered step.
+
+### B-128 · chore · Add a lean end-to-end step for an upload refused by permissions
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): The lean set (orchestration slice 9) is meant to cover uploads refused by permissions, but no check asserts one: a device whose role was lowered on the server writes locally, the upload is rejected (4xx acknowledged), and the next sync restores the server's copy. Add it to roundtrip.mjs or app-shell.mjs's demotion step.
