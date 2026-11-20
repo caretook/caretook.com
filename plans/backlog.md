@@ -409,6 +409,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
 - 2026-11-19 (slice/orchestration/8): slice 8: phase2.mjs (130 steps, ~166 s) and live-notes.mjs (118, ~313 s) shrunk to 8 and 41 steps (9 s, 51-56 s); the rest moved to component tests (timeline/*.browser.test.tsx, entry/entry.browser.test.tsx). Their flaky steps (infinite-scroll announce/move under load, live-notes timeouts, Live now and avatar latency) are now component tests or kept with 15 s waits and a 6 s latency bound; the viewer's avatar order waited on the member's proxied upload, now it waits for ps_crud to empty. Vitest browser mode's fixed port (23315) clashes between worktrees running component tests at once.
 - 2026-11-19 (slice/orchestration/7): slice 7: app-shell.mjs and ui.mjs shrunk to their server/sync/real-build flows (13 and 7 assertions, about 8 s and 5 s, from 208 s and 216 s); their screen steps are component tests. The logged FLAKY steps (timeouts under load, and 6g's viewer sign-in on a page that just signed out) went with the moved steps or were fixed: every e2e sign-in now uses a fresh page.
+- 2026-11-19 (slice/orchestration/9): Slice 9: live-notes 'the viewer's row shows the document as its body, and the title' failed once in the lean suite (the text arrived before the title); the step now waits for both. Passed on the next suite run.
 
 ### B-112 · change · Show the recipient's allergies on the profile's printable emergency sheet
 
