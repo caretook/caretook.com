@@ -20,6 +20,11 @@ import { startProxy } from "./proxy.mjs";
 // A full reload can't load while offline (no service worker yet), so the
 // offline step is an in-app navigation: a kind filter link on the timeline,
 // whose route module is already loaded, runs the /app session check again.
+//
+// A fresh session (confirmed within 15 minutes, B-136) doesn't hold up
+// navigation: the session ended elsewhere is found by the background
+// recheck (due once the confirmation is a minute old), which wipes the
+// device and goes to sign-in from wherever the navigation had got to.
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
@@ -144,10 +149,27 @@ try {
   await other.call("sign-out", {});
   // Quick entry's recent lines go with the rest.
   await p.evaluate(`localStorage.setItem("caretook:recentLines:x:y", JSON.stringify(["bp 120/80"]))`);
-  // A reload (not a new navigation, which can leave the old page and its
-  // database connection in the back/forward cache).
-  await p.send("Page.reload");
+  // Fresh, but due a recheck (confirmed 5 minutes ago): an in-app navigation
+  // goes ahead at once, and the background recheck finds the session gone.
+  // A tab-lived flag records whether the filtered timeline was ever shown.
+  await p.evaluate(`localStorage.setItem(${confirmedKey}, String(Date.now() - 5 * 60 * 1000))`);
+  await p.evaluate(`sessionStorage.removeItem("caretook-check:went-ahead");
+    setInterval(() => {
+      if (location.search.includes("kind=symptom") && document.querySelector("main ol > li"))
+        sessionStorage.setItem("caretook-check:went-ahead", "1");
+    }, 5)`);
+  const symptomChip = `document.querySelector('main a[href*="kind=symptom"]')`;
+  await p.waitFor(symptomChip, 5000);
+  await p.evaluate(`${symptomChip}.click()`);
   await p.waitFor(`location.pathname === "/sign-in"`, 20000);
+  check(
+    "fresh session: the navigation went ahead without waiting for the server",
+    (await p.evaluate(`sessionStorage.getItem("caretook-check:went-ahead")`)) === "1",
+  );
+  check(
+    "fresh session ended elsewhere: the background recheck goes to sign-in, back to where it was",
+    (await p.evaluate(`new URLSearchParams(location.search).get("redirectTo")`))?.includes("kind=symptom"),
+  );
   await sleep(1500);
   const wipedKeys = await p.evaluate(`JSON.stringify(${keys})`);
   check(
@@ -157,7 +179,6 @@ try {
     ),
     wipedKeys,
   );
-  check("signed out elsewhere: the next session check goes to sign-in", true);
   check("signed out: no message about being offline", !(await p.evaluate(statusText)).includes("offline"));
   // The file stays, vacuumed: none of the care data is left in its bytes.
   const left = await p.evaluate(localCopyHolds("Grandma Pat"));
