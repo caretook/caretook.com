@@ -81,6 +81,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-117 | chore | inbox |  |  | Move groups.mjs to component tests |
 | B-118 | chore | inbox |  |  | Move medications.mjs to component tests |
 | B-119 | chore | inbox |  |  | Move upcoming.mjs to component tests |
+| B-120 | chore | inbox |  |  | Move search.mjs to component tests |
 
 ## Items
 
@@ -473,3 +474,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (about 203 s). Move the section, Past, filters, adding at ?when=pick, cancel and reschedule dialogs, the Next strip and block, and due doses in Upcoming to component tests; keep reschedule's one transaction uploading and reaching another device. Then e2e yes.
+
+### B-120 · chore · Move search.mjs to component tests
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the timeline's search field and chip, the search page, highlights, snippets and recent searches to component tests (the FTS index runs on the test device's SQLite); keep the index dropped at sign-out and server search if a screen ever calls it. Then e2e yes or delete it.
