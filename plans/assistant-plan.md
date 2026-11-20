@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | State                                               | Merge into `prd/assistant` (slice commits) |
-| ----- | --------------------------------------------------- | ------------------------------------------ |
-| 1     | merged                                              | 3766647 (c3c3398, 7ddf05d)                 |
-| 2     | merged                                              | 66b3e35 (98aff27, d94ea40)                 |
-| 3     | merged                                              | f358d86 (33436b2, a1d1045)                 |
-| 4     | merged                                              | bab73d5 (5c7c747, 95b8c05)                 |
-| 5     | merged (migration 0021_simple_mode)                 | 42c5518 (e082102, b4a282c)                 |
-| 6     | merged                                              | 794c3d2 (b86c1dc, 6a307c6)                 |
-| 7     | running                                             |                                            |
+| Slice | State                               | Merge into `prd/assistant` (slice commits) |
+| ----- | ----------------------------------- | ------------------------------------------ |
+| 1     | merged                              | 3766647 (c3c3398, 7ddf05d)                 |
+| 2     | merged                              | 66b3e35 (98aff27, d94ea40)                 |
+| 3     | merged                              | f358d86 (33436b2, a1d1045)                 |
+| 4     | merged                              | bab73d5 (5c7c747, 95b8c05)                 |
+| 5     | merged (migration 0021_simple_mode) | 42c5518 (e082102, b4a282c)                 |
+| 6     | merged                              | 794c3d2 (b86c1dc, 6a307c6)                 |
+| 7     | running                             |                                            |
 
 **Wave A** (slices 1–5, the dev sync 86f0fba, and check fixes 4e03b6d): **landed in dev as a38609b** (2026-11-19). Lean suite at b723d14 9/12; the three failures (app-shell, roundtrip, live-notes) were check races or load, fixed in the check scripts and passing once each on the fix branch; settings-layout, providers, medications, upcoming, search, care-periods passed by name; `pnpm prd check` 3028/3028 on 4e03b6d. Docs folded (new `docs/domain/assistant.md`; timeline, live-notes, appointments, providers, app-shell, care-groups, sync). B-49 done. **Wave B** (slice 6, 794c3d2): docs folded, landing on its own (its --changed checks passed except app-shell, already fixed in 4e03b6d; rerun app-shell once on the tip). Slice 7 running.
 
