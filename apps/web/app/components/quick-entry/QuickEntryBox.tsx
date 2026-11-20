@@ -1,7 +1,9 @@
 import type { UnitChoices } from "@caretook/data/schema";
 
+import { useRef } from "react";
 import { Field } from "~/components/ui";
 import { QuickEntryCard } from "./QuickEntryCard";
+import { QuickEntrySuggestions } from "./QuickEntrySuggestions";
 import { useQuickEntry } from "./useQuickEntry";
 
 const EXAMPLE = "bp 130/85 hr 72, gave metformin, pain 4 left knee";
@@ -15,6 +17,17 @@ const EXAMPLE = "bp 130/85 hr 72, gave metformin, pain 4 left knee";
 export function QuickEntryBox({ groupId, units }: { groupId: string; units: UnitChoices }) {
   const q = useQuickEntry({ groupId, units });
   const count = q.cards.length;
+  const field = useRef<HTMLTextAreaElement>(null);
+  /** A suggestion fills the box and waits there, the cursor at the end (it never saves). */
+  const fill = (value: string) => {
+    q.setText(value);
+    requestAnimationFrame(() => {
+      const el = field.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(value.length, value.length);
+    });
+  };
   return (
     <section aria-labelledby="quick-entry-heading" className="space-y-2" data-quick-entry>
       <h2 id="quick-entry-heading" className="sr-only">
@@ -31,6 +44,7 @@ export function QuickEntryBox({ groupId, units }: { groupId: string; units: Unit
           {(control) => (
             <textarea
               {...control}
+              ref={field}
               name="quickEntry"
               rows={1}
               className="textarea field-sizing-content max-h-48 min-h-11 w-full resize-none text-base"
@@ -49,6 +63,7 @@ export function QuickEntryBox({ groupId, units }: { groupId: string; units: Unit
             />
           )}
         </Field>
+        <QuickEntrySuggestions groupId={groupId} text={q.text} onFill={fill} />
 
         {count > 0 && (
           <>
