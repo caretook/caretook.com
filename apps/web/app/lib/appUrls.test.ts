@@ -333,3 +333,9 @@ describe("appUrls.newAppointmentWith", () => {
     );
   });
 });
+
+describe("appUrls.groupList", () => {
+  it("is /app, asked to show the list", () => {
+    expect(appUrls.groupList()).toBe("/app?groups=1");
+  });
+});

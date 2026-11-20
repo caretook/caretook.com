@@ -13,6 +13,7 @@ import {
 import { Field } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { EntryKindPicker } from "./EntryKindPicker";
+import { FeelingFields } from "./FeelingFields";
 import { issueFor } from "./formIssues";
 import { SymptomFields } from "./SymptomFields";
 import { useEntryFormSave } from "./useEntryFormSave";
@@ -30,6 +31,10 @@ const latestTime = (stored?: string) => {
  * their own editor): the shell (kind, notes, when, errors, save and cancel)
  * around the kind's own fields: a symptom's name and severity, or vitals'
  * readings in the user's `units`. Posts to the sheet route's clientAction.
+ *
+ * `simple` is simple mode's variant (a tile's sheet): no kind picker or
+ * notes, a symptom is the 0–10 feelings scale (`FeelingFields`), and vitals
+ * are the fields for the one type it opened with.
  */
 export function EntryForm({
   entry,
@@ -37,6 +42,7 @@ export function EntryForm({
   initialKind = "symptom",
   initialVitalType,
   draft,
+  simple,
   onDone,
   onCancel,
 }: {
@@ -48,6 +54,8 @@ export function EntryForm({
   initialVitalType?: VitalType;
   /** For a new entry: what to fill it in with (quick entry's Edit). */
   draft?: EntryDraft | null;
+  /** Simple mode's variant, with the feelings scale's question ("How she feels"). */
+  simple?: { feelLabel: string } | null;
   onDone?: () => void;
   onCancel?: () => void;
 }) {
@@ -71,8 +79,8 @@ export function EntryForm({
       <input type="hidden" name="units" value={JSON.stringify(units)} />
       {entry && <input type="hidden" name="id" value={entry.id} />}
 
-      {entry ? (
-        <input type="hidden" name="kind" value={entry.kind} />
+      {entry || simple ? (
+        <input type="hidden" name="kind" value={entry?.kind ?? kind} />
       ) : (
         <EntryKindPicker
           kind={kind}
@@ -92,28 +100,40 @@ export function EntryForm({
           initial={storedReadings}
           units={units}
           issues={issues}
+          fixed={!!simple}
         />
       )}
 
-      {kind === "symptom" && (
+      {kind === "symptom" && simple && (
+        <FeelingFields
+          label={simple.feelLabel}
+          stored={isSymptomDetails(filled?.details) ? filled.details : undefined}
+          nameError={issueFor(issues, "details.name", "details")}
+          severityError={issueFor(issues, "details.severity")}
+        />
+      )}
+
+      {kind === "symptom" && !simple && (
         <SymptomFields
           stored={isSymptomDetails(filled?.details) ? filled.details : undefined}
           nameError={issueFor(issues, "details.name", "details")}
         />
       )}
 
-      <Field label="Notes (optional)" error={issueFor(issues, "body")}>
-        {(control) => (
-          <textarea
-            {...control}
-            name="body"
-            className="textarea w-full"
-            rows={3}
-            maxLength={TIMELINE_LIMITS.body}
-            defaultValue={filled?.body ?? ""}
-          />
-        )}
-      </Field>
+      {!simple && (
+        <Field label="Notes (optional)" error={issueFor(issues, "body")}>
+          {(control) => (
+            <textarea
+              {...control}
+              name="body"
+              className="textarea w-full"
+              rows={3}
+              maxLength={TIMELINE_LIMITS.body}
+              defaultValue={filled?.body ?? ""}
+            />
+          )}
+        </Field>
+      )}
 
       <DateTimeField
         name="occurredAt"
@@ -130,11 +150,11 @@ export function EntryForm({
       )}
 
       <div className="flex gap-2 pt-2">
-        <button type="submit" className="btn btn-primary" disabled={busy}>
+        <button type="submit" className={`btn btn-primary ${simple ? "btn-lg" : ""}`} disabled={busy}>
           {busy ? "Saving…" : entry ? "Save changes" : "Add to timeline"}
         </button>
         {onCancel && (
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+          <button type="button" className={`btn btn-ghost ${simple ? "btn-lg" : ""}`} onClick={onCancel}>
             Cancel
           </button>
         )}
