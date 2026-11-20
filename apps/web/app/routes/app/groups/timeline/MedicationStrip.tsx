@@ -6,7 +6,7 @@ import { PassUndoStatus, usePassLog } from "~/components/medications";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { givenAllLabel, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { medicationStripText } from "~/lib/medications/medicationStrip";
-import { STRIP_CAP, STRIP_CLASS, STRIP_ICON } from "./layout";
+import { STALE, STRIP_CAP, STRIP_CLASS, STRIP_ICON, STRIP_SKELETON } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 import { useMedicationStrip } from "./useMedicationStrip";
 
@@ -25,11 +25,16 @@ const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
  * earlier pass takes the line's place). For writers the pass's name opens the
  * Dose sheet on that pass (filters kept); Given all logs every open
  * medication in it and offers Undo below. Viewers get the text only.
+ *
+ * It never pops in (the tile cache): what it showed earlier this session
+ * paints at once, dimmed (`data-stale`, no Given all) until the device
+ * confirms it; on a first visit a skeleton holds its 32 px.
  */
 export function MedicationStrip({ groupId, canWrite }: { groupId: string; canWrite: boolean }) {
-  const { strip, timeZone } = useMedicationStrip(groupId);
+  const { strip, ready, fresh, timeZone } = useMedicationStrip(groupId);
   const { search } = useLocation();
   const { givenAll, busy, error } = usePassLog(groupId);
+  if (!ready) return <div className={STRIP_SKELETON} aria-hidden="true" data-strip-skeleton="medications" />;
   if (!strip) return null;
 
   const { state, pass, tomorrow } = strip;
@@ -39,7 +44,7 @@ export function MedicationStrip({ groupId, canWrite }: { groupId: string; canWri
   const dueNow = state !== "next";
 
   return (
-    <div className={STRIP_CAP}>
+    <div className={`${STRIP_CAP} ${fresh ? "" : STALE}`} data-stale={fresh ? undefined : ""}>
       <section
         aria-label="Medications"
         data-med-strip
@@ -82,7 +87,7 @@ export function MedicationStrip({ groupId, canWrite }: { groupId: string; canWri
           <button
             type="button"
             className={`btn btn-xs shrink-0 ${tone.action}`}
-            disabled={busy}
+            disabled={busy || !fresh}
             aria-label={givenAllLabel(pass)}
             data-strip-given-all
             onClick={() => void givenAll(pass)}

@@ -13,7 +13,7 @@ import { SimpleNow } from "./SimpleNow";
 import { SimpleTasks } from "./SimpleTasks";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { SimpleModeToggle } from "./SimpleModeToggle";
-import { SimpleTiles } from "./SimpleTiles";
+import { SimpleTiles, SimpleTilesSkeleton } from "./SimpleTiles";
 import { useSimpleTiles } from "./useSimpleTiles";
 
 /** "Thursday, November 19": today, under the recipient's name. */
@@ -95,9 +95,17 @@ export function SimpleTimeline({
 /** The tiles: writers only (viewers have none to tap), so only they read the tiles' data. */
 function WriterTiles({ canChoose }: { canChoose: boolean }) {
   const group = useGroup();
-  const { tiles, setting, words } = useSimpleTiles(group.id);
+  const { tiles, setting, words, ready, fresh } = useSimpleTiles(group.id);
+  if (!ready) return <SimpleTilesSkeleton />;
   return (
-    <SimpleTiles groupId={group.id} tiles={tiles} setting={setting} words={words} canChoose={canChoose} />
+    <SimpleTiles
+      groupId={group.id}
+      tiles={tiles}
+      setting={setting}
+      words={words}
+      canChoose={canChoose}
+      fresh={fresh}
+    />
   );
 }
 
