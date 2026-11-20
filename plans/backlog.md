@@ -115,7 +115,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-148 | chore | inbox |  |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
 | B-149 | chore | inbox |  |  | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
 | B-150 | chore | inbox |  |  | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
-| B-151 | chore | inbox |  |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
+| B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-152 | chore | inbox |  |  | Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`… |
 | B-153 | chore | inbox |  |  | Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent… |
 | B-154 | chore | inbox |  |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
@@ -861,8 +861,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-151 · chore · Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373.
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: check-migration
 - owner:
 - commit:
 
