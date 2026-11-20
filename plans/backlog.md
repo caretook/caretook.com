@@ -448,6 +448,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (Robert Bo Davis): From the inbox: Stop blocking every /app navigation on a session request: use the session confirmed in the last few minutes and recheck in the background. / `requireSession` (apps/web/app/lib/session.ts) awaits `get-session` on each navigation, with no timeout, so every tap waits a round trip and can hang on a weak connection. / Add a timeout of about 3 s that counts as "no answer". The server still checks every upload and sync token.
 - 2026-11-20 (backlog agent): Triage: new PRD app-speed (navigation and load speed). This one needs a design decision (how long a confirmed session is trusted, what a timeout means offline), so it is PRD work, not a quick fix. Hot file: lib/session.ts.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 1 (plans/app-speed-plan.md). 15 min fresh window, background recheck at most once a minute, 3 s timeout; the app's check bypasses the cookie cache.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
 
 ### B-137 · change · Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk…
 
