@@ -84,7 +84,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
 | B-118 | chore | triaged | check-migration |  | Move medications.mjs to component tests |
 | B-119 | chore | triaged | check-migration |  | Move upcoming.mjs to component tests |
-| B-120 | chore | in-progress | check-migration | prd/check-migration | Move search.mjs to component tests |
+| B-120 | chore | ready | check-migration | prd/check-migration | Move search.mjs to component tests |
 | B-121 | chore | triaged | check-migration |  | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-123 | chore | triaged | check-migration |  | Move care-periods.mjs to component tests |
@@ -519,10 +519,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-120 · chore · Move search.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 7bfa916
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the timeline's search field and chip, the search page, highlights, snippets and recent searches to component tests (the FTS index runs on the test device's SQLite); keep the index dropped at sign-out and server search if a screen ever calls it. Then e2e yes or delete it.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 5, wave 2 (plans/check-migration-plan.md).
