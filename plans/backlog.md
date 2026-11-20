@@ -119,7 +119,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-152 | chore | triaged | agent-tooling |  | Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`… |
 | B-153 | chore | triaged | agent-tooling |  | Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent… |
 | B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
-| B-155 | chore | inbox |  |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
+| B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | inbox |  |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 
 ## Items
@@ -904,8 +904,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-155 · chore · Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: app-speed
 - owner:
 - commit:
 
