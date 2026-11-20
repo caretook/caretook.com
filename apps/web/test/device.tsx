@@ -95,6 +95,9 @@ export type DeviceOptions = {
    * connection does. Give oRPC handlers by procedure path (`"me.get"`,
    * `"careGroup.update"`) to answer those calls; a handler gets the input
    * and returns the output, or a `Response` (an error, say) as it is.
+   * A key that starts with `/` is a path under `/api/` (Better Auth's
+   * `"/api/auth/list-sessions"`): its handler gets the plain JSON body (null
+   * for a GET) and its result is sent as plain JSON.
    */
   api?: Record<string, (input: unknown) => unknown>;
   /**
@@ -145,15 +148,17 @@ const deviceFetch =
     const request = new Request(input, init);
     const { pathname, origin } = new URL(request.url);
     if (origin !== location.origin || !/^\/(rpc|api)\//.test(pathname)) return realFetch(input, init);
-    const handler = pathname.startsWith("/rpc/") ? api[pathname.slice(5).replaceAll("/", ".")] : undefined;
+    const rpc = pathname.startsWith("/rpc/");
+    const handler = rpc ? api[pathname.slice(5).replaceAll("/", ".")] : api[pathname];
     if (!handler) throw new TypeError("Failed to fetch (the test device is offline)");
     const body =
       request.method === "GET"
         ? null
         : ((await request.json().catch(() => null)) as { json?: unknown } | null);
-    const result = await handler(body?.json);
+    // oRPC wraps input and output in `{ json }`; Better Auth's `/api/auth/*` sends plain JSON.
+    const result = await handler(rpc ? body?.json : body);
     if (result instanceof Response) return result;
-    return Response.json({ json: result ?? null, meta: [] });
+    return Response.json(rpc ? { json: result ?? null, meta: [] } : (result ?? null));
   };
 
 let currentLocation = "";
