@@ -578,6 +578,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): invites.mjs stays in the lean set (emails through /dev/mail.json, sign-up, consent, join, links and requests). Move its form states (the invite page's views, the wrong-account view, sign-in tabs, the invite sheet and pending list) to component tests and delete each covered step.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 17, wave 7 (plans/check-migration-plan.md).
 
 ### B-128 · chore · Add a lean end-to-end step for an upload refused by permissions
 
