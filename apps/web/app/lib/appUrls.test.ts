@@ -319,3 +319,17 @@ describe("appUrls.passSheet", () => {
     );
   });
 });
+
+describe("appUrls.printEntry", () => {
+  it("is the entry's page, opened to print", () => {
+    expect(appUrls.printEntry(G, "e1")).toBe(`/app/groups/${G}/entries/e1?print=1`);
+  });
+});
+
+describe("appUrls.newAppointmentWith", () => {
+  it("is a new appointment, day first, with the provider to link", () => {
+    expect(appUrls.newAppointmentWith(G, "p1")).toBe(
+      `/app/groups/${G}/entries/new?kind=event&when=pick&provider=p1`,
+    );
+  });
+});

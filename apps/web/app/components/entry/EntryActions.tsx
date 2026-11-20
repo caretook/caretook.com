@@ -29,6 +29,9 @@ export function EntryActions({
   label,
   onEdit,
   cancel,
+  onPrepare,
+  onPrint,
+  printHref,
   onDelete,
 }: {
   kind: TimelineEntryKind;
@@ -38,7 +41,14 @@ export function EntryActions({
   onEdit?: () => void;
   /** An event's Reschedule, and Cancel or Undo cancel (ignored for other kinds). */
   cancel?: EntryCancelActions;
-  onDelete: () => void;
+  /** Opens visit prep for an upcoming event (Prepare). */
+  onPrepare?: () => void;
+  /** Prints a note or event here (the entry page)… */
+  onPrint?: () => void;
+  /** …or opens its page to print it (rows elsewhere). */
+  printHref?: string;
+  /** Left out (viewers), there's no Delete. */
+  onDelete?: () => void;
 }) {
   const item = (action: EntryAction): MenuEntry => {
     switch (action) {
@@ -50,6 +60,12 @@ export function EntryActions({
         return { id: "cancel", label: "Cancel event", onAction: cancel?.onCancel };
       case "uncancel":
         return { id: "uncancel", label: "Undo cancel", onAction: cancel?.onUncancel };
+      case "prepare":
+        return { id: "prepare", label: "Prepare for this visit", onAction: onPrepare };
+      case "print":
+        return printHref
+          ? { id: "print", label: "Print", href: printHref }
+          : { id: "print", label: "Print", onAction: onPrint };
       case "delete":
         return { id: "delete", label: "Delete", tone: "danger", onAction: onDelete };
     }
@@ -59,6 +75,9 @@ export function EntryActions({
     canCancel: !!cancel,
     cancelled: cancel?.cancelled,
     canReschedule: !!cancel?.onReschedule,
+    canPrepare: !!onPrepare,
+    canPrint: !!(onPrint || printHref),
+    canDelete: !!onDelete,
   }).map(item);
   return (
     <Menu

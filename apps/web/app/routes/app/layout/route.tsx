@@ -12,6 +12,7 @@ import { Announcement } from "./Announcement";
 import { GroupMenu } from "./GroupMenu";
 import { SectionNav, TabBar } from "./SectionNav";
 import { SyncIndicator } from "./SyncIndicator";
+import { useSimpleFrame } from "./useSimpleFrame";
 import { UserMenu } from "./UserMenu";
 
 // Shared by web + native. Do not export a server `loader` or `action` from /app routes.
@@ -46,12 +47,16 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  * - `TabBar` (phones) under the outlet, on group routes.
  *
  * Screens outside a group (`/app`, `/app/settings`) get the header without a
- * group menu, sections or tab bar.
+ * group menu, sections or tab bar. So does a timeline in simple mode
+ * (`useSimpleFrame`), which also has no search and a reduced user menu.
  */
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const { user } = loaderData;
   const { groupId } = useParams();
   const { pathname } = useLocation();
+  // Simple mode's timeline: only the mark, the sync status and a reduced user menu.
+  const simple = useSimpleFrame(user.id, groupId, pathname);
+  const groupFrame = groupId && !simple ? groupId : undefined;
   return (
     <>
       <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur sm:px-6 print:hidden">
@@ -59,28 +64,28 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
           <Link to={appUrls.home()} className="shrink-0 rounded-field">
             <Wordmark wordHiddenBelow={groupId ? "sm" : undefined} />
           </Link>
-          {groupId && <GroupMenu groupId={groupId} />}
+          {groupFrame && <GroupMenu groupId={groupFrame} />}
         </div>
         <div data-region="sections" className="hidden items-center sm:flex">
-          {groupId && <SectionNav groupId={groupId} pathname={pathname} />}
+          {groupFrame && <SectionNav groupId={groupFrame} pathname={pathname} />}
         </div>
-        {groupId && (
+        {groupFrame && (
           <div data-region="search" className="flex items-center">
-            <IconButton to={appUrls.search(groupId)} icon={Search} label="Search this care group" />
+            <IconButton to={appUrls.search(groupFrame)} icon={Search} label="Search this care group" />
           </div>
         )}
         <div data-region="status" className="flex items-center">
           <SyncIndicator />
         </div>
         <div data-region="user" className="flex items-center">
-          <UserMenu user={user} />
+          <UserMenu user={user} simple={simple} />
         </div>
       </header>
       <div data-region="announcement" className="print:hidden">
         <Announcement pathname={pathname} />
       </div>
       <Outlet />
-      {groupId && <TabBar groupId={groupId} pathname={pathname} />}
+      {groupFrame && <TabBar groupId={groupFrame} pathname={pathname} />}
     </>
   );
 }

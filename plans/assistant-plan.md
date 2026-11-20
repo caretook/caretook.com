@@ -6,15 +6,17 @@
 
 | Slice | State                                               | Merge into `prd/assistant` (slice commits) |
 | ----- | --------------------------------------------------- | ------------------------------------------ |
-| 1     | not started                                         |                                            |
-| 2     | blocked by 1                                        |                                            |
-| 3     | not started                                         |                                            |
-| 4     | not started                                         |                                            |
-| 5     | blocked by 1                                        |                                            |
-| 6     | blocked by 5                                        |                                            |
+| 1     | merged                                              | 3766647 (c3c3398, 7ddf05d)                 |
+| 2     | merged                                              | 66b3e35 (98aff27, d94ea40)                 |
+| 3     | merged                                              | f358d86 (33436b2, a1d1045)                 |
+| 4     | merged                                              | bab73d5 (5c7c747, 95b8c05)                 |
+| 5     | merged (migration 0021_simple_mode)                 | 42c5518 (e082102, b4a282c)                 |
+| 6     | running                                             |                                            |
 | 7     | blocked by 1, 2, 4, 6 (`medications-2` is in `dev`) |                                            |
 
-**Landing:** land each wave as soon as it's green. The user said (2026-11-19) there's no real data, so it doesn't matter when the migration (slice 5) lands; it doesn't force one landing at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued.
+**Wave A** (slices 1–5, plus the dev sync 86f0fba with quick-fixes' + menu and `DayHeader`): merged. The lean suite at b723d14 failed `app-shell` (viewers' new ⋯ Print menu counted as writer controls), `roundtrip` (local add 2.3 s > 2 s) and `live-notes` (the viewer's avatar order, already failing at 86f0fba). A fix is running on a fresh `slice/assistant/4` (slot 1); rerun only those three once it merges, then `pnpm prd check` and land. Docs folded for slices 1–4 (new `docs/domain/assistant.md`); slice 5's folded too (app-shell, care-groups, timeline, sync). Slice 6 is running.
+
+**Landing:** land each wave as soon as it's green. The user said (2026-11-19) there's no real data, so it doesn't matter when the migration (slice 5) lands; it doesn't force one landing at the end. **Landing mode: run everything through** (queued with `pnpm prd queue assistant`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
 Backlog: B-12, B-49, B-58 and B-87 are `triaged`. Claim B-12 when slice 1 starts, B-49 with slice 3, B-58 with slice 4, B-87 with slice 5. Mark each `done` after its last slice merges: B-49 after 3, B-58 after 7 (missed doses), B-87 after 7 (the Now block), B-12 after 7.
 

@@ -16,7 +16,7 @@ import { memberHistory } from "./invites";
 import { SharingForm } from "./SharingForm";
 
 // The members list and its rows. Each change posts an intent (`changeRole`,
-// `removeMember`, `updateSharing`) to the route's action. Every row shows the
+// `setMemberMode`, `removeMember`, `updateSharing`) to the route's action. Every row shows the
 // member's relationship to the recipient and what they share with the group;
 // your own row has "What this group sees" (online, from your account's
 // contact details).
@@ -146,7 +146,9 @@ function MemberItem({
     void fetcher.submit({ intent: "changeRole", userId: member.user_id, role }, { method: "post" });
   };
 
-  const error = (result && !result.ok ? result.error : undefined) ?? removeError;
+  const simple = useSimpleModeSwitch(member);
+
+  const error = (result && !result.ok ? result.error : undefined) ?? simple.error ?? removeError;
   return (
     <li data-member={member.user_id} className="space-y-1 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -203,6 +205,26 @@ function MemberItem({
             {roleLabel(member.role)}
           </span>
         )}
+        {access?.simpleMode ? (
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              aria-label={`Simple mode for ${name}`}
+              checked={simple.on}
+              disabled={simple.busy || removing}
+              onChange={(event) => simple.set(event.target.checked)}
+              data-simple-mode-switch=""
+            />
+            <span aria-hidden="true">Simple mode</span>
+          </label>
+        ) : (
+          !!member.simple_mode && (
+            <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
+              Simple mode
+            </span>
+          )
+        )}
         {(access?.remove || access?.leave) && (
           <button
             type="button"
@@ -240,4 +262,27 @@ function MemberItem({
         ))}
     </li>
   );
+}
+
+/**
+ * A member's simple-mode switch (the managers' default for them): the choice
+ * shows while it saves and until it syncs back; a refused change, or anyone
+ * else's change, shows what's saved.
+ */
+function useSimpleModeSwitch(member: MemberDetailRow) {
+  const fetcher = useFetcher<ActionResult>();
+  const busy = fetcher.state !== "idle";
+  const result = busy ? undefined : fetcher.data;
+  const saved = !!member.simple_mode;
+  const [sent, setSent] = useState<{ on: boolean; from: boolean } | null>(null);
+  if (sent && sent.from !== saved) setSent(null);
+  const on = sent && (busy || result?.ok) ? sent.on : saved;
+  const set = (next: boolean) => {
+    setSent({ on: next, from: saved });
+    void fetcher.submit(
+      { intent: "setMemberMode", userId: member.user_id, simpleMode: next ? "on" : "off" },
+      { method: "post" },
+    );
+  };
+  return { on, busy, set, error: result && !result.ok ? result.error : undefined };
 }

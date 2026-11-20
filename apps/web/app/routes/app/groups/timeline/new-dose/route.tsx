@@ -5,13 +5,14 @@ import type { PlannedDose } from "~/lib/dueDoses";
 import type { DoseChoiceRow } from "~/lib/sync/medicationTimeline";
 
 import { useCallback, useMemo, useState } from "react";
-import { redirect } from "react-router";
+import { redirect, useLocation } from "react-router";
 import { MarkDoseDialog, PassCard, PassUndoStatus } from "~/components/medications";
 import { Sheet } from "~/components/ui";
 import { doseWarnings } from "~/lib/dueDoses";
 import { duePasses, isNamedPass, isPassDueNow } from "~/lib/duePasses";
 import { getGroup, useGroup } from "~/lib/group";
 import { doseWarningText } from "~/lib/medicationDisplay";
+import { doseDraftFrom } from "~/lib/quickEntryDraft";
 import { sessionContext } from "~/lib/session";
 import { loadDueDoses, useDueDoses } from "~/lib/sync/dueDoses";
 import { logDose } from "~/lib/sync/medications";
@@ -62,6 +63,8 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
   const { choices, medicationId, slot, passId } = loaderData;
   const close = useCloseSheet();
   const group = useGroup();
+  // Opened from quick entry's Edit: the card's status, amount, note and time, filled in.
+  const draft = doseDraftFrom(useLocation().state);
   const nameOf = useMemberNames(params.groupId, group.userId);
   const [marking, setMarking] = useState<Marking | null>(null);
   const { due, timeZone, passes } = useDueDoses(params.groupId, loaderData.due);
@@ -113,6 +116,7 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
           options={options}
           initialOption={initial}
           warningsFor={warningsFor}
+          draft={draft}
           onDone={close}
           onCancel={close}
         />

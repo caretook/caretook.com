@@ -18,6 +18,7 @@ import { LinkedEntries } from "./LinkedEntries";
 import { loadProvider } from "./loadProvider";
 import { ProviderHeader } from "./ProviderHeader";
 import { ProviderMedications } from "./ProviderMedications";
+import { ProviderVisitPrep } from "./ProviderVisitPrep";
 import { useProviderNotes } from "./useProviderNotes";
 
 // Shared by web + native. A provider's page: who they are, every way to
@@ -99,6 +100,10 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
       ) : (
         <>
           <ContactList provider={provider} />
+
+          {canWrite && (
+            <ProviderVisitPrep groupId={groupId} providerId={providerId} providerName={provider.name} />
+          )}
 
           <section aria-labelledby="provider-notes-heading" className="space-y-2">
             <div>

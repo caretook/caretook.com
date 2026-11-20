@@ -4,6 +4,7 @@ import type { ActionResult } from "~/lib/api";
 import type { TimelineOutlet } from "./sheet";
 
 import { Outlet, PrefetchPageLinks } from "react-router";
+import { QuickEntryBox } from "~/components/quick-entry";
 import { appUrls } from "~/lib/appUrls";
 import { formString } from "~/lib/form";
 import { getGroup, useGroup } from "~/lib/group";
@@ -28,6 +29,10 @@ import { usePeriodSearch } from "./usePeriodSearch";
 import { settledSearchIndexStatus, useSearchIndexStatus } from "./useSearchIndexStatus";
 import { useTimelineData } from "./useTimelineData";
 import { useTimelineView } from "./useTimelineView";
+import { useSimpleMode } from "~/lib/useSimpleMode";
+import { SimpleModeToggle } from "./SimpleModeToggle";
+import { SimpleTimeline } from "./SimpleTimeline";
+import { useSimpleModeUrl } from "./useSimpleModeUrl";
 
 // Shared by web + native. Reads and writes go to the device's local copy
 // (PowerSync), so the timeline works offline and other members' changes
@@ -112,21 +117,46 @@ export function shouldRevalidate({
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const { userId, units, kind, author, q, upcoming, vital } = loaderData;
   const { groupId } = params;
-  const { canWrite } = useGroup();
+  const group = useGroup();
+  const { canWrite } = group;
+  const mode = useSimpleMode(userId, groupId, group, loaderData.simpleMode);
+  useSimpleModeUrl(groupId, mode.simple, loaderData);
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
   const filters = { kind, author, vital, match: search.match };
   const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
   const [view, setView] = useTimelineView(userId, loaderData.timelineView);
 
+  const sheets = (
+    <>
+      {/* The sheets (`new/:kind`, `:entryId/edit`), over the timeline. */}
+      <Outlet context={{ units } satisfies TimelineOutlet} />
+      {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
+      {canWrite && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
+      {/* The pass sheet's too, so a pass log opens it offline. */}
+      {canWrite && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
+    </>
+  );
+  if (mode.simple)
+    return (
+      <SimpleTimeline data={data} units={units} mode={mode}>
+        {sheets}
+      </SimpleTimeline>
+    );
+
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
-      <TimelineHeader view={view} onViewChange={setView} />
+      <TimelineHeader view={view} onViewChange={setView} simpleToggle={<SimpleModeToggle mode={mode} />} />
       <InviteSomeoneCard />
       <LatestVitals vitals={data.latestVitals} units={units} />
       <NextStrip next={data.next} now={data.now} groupId={groupId} showing={upcoming} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
       <MedicationStrip groupId={groupId} canWrite={canWrite} />
+      {canWrite && (
+        <div className={COLUMN_CAP}>
+          <QuickEntryBox groupId={groupId} units={units} />
+        </div>
+      )}
       <div className={COLUMN_CAP}>
         <FilterChips
           kind={kind}
@@ -153,13 +183,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
             : null
         }
       />
-
-      {/* The sheets (`new/:kind`, `:entryId/edit`), over the timeline. */}
-      <Outlet context={{ units } satisfies TimelineOutlet} />
-      {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
-      {canWrite && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
-      {/* The pass sheet's too, so a pass log opens it offline. */}
-      {canWrite && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
+      {sheets}
     </main>
   );
 }
