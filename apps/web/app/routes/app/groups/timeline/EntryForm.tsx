@@ -1,4 +1,5 @@
 import type { TimelineEntryKind, UnitChoices, VitalType } from "@caretook/data/schema";
+import type { EntryDraft } from "~/lib/quickEntryDraft";
 import type { TimelineEntry } from "~/lib/rpc";
 
 import { useState } from "react";
@@ -35,6 +36,7 @@ export function EntryForm({
   units,
   initialKind = "symptom",
   initialVitalType,
+  draft,
   onDone,
   onCancel,
 }: {
@@ -44,17 +46,23 @@ export function EntryForm({
   /** For a new entry: the kind to start with, and for vitals the first reading. */
   initialKind?: TimelineEntryKind;
   initialVitalType?: VitalType;
+  /** For a new entry: what to fill it in with (quick entry's Edit). */
+  draft?: EntryDraft | null;
   onDone?: () => void;
   onCancel?: () => void;
 }) {
   const { Form, formRef, resetKey, busy, result, issues } = useEntryFormSave({ adding: !entry, onDone });
-  const [kind, setKind] = useState<TimelineEntryKind>(entry?.kind ?? initialKind);
+  // Editing fills the form from the entry; a draft fills a new one the same way.
+  const filled = entry ?? draft ?? undefined;
+  const [kind, setKind] = useState<TimelineEntryKind>(filled?.kind ?? initialKind);
   // Symptoms and vitals can't be in the future: the picker stops at now
   // (with the device's few minutes of skew), or at the stored time if later.
   const [latest] = useState(() => latestTime(entry?.occurredAt));
-  const storedReadings = isVitalDetails(entry?.details) ? entry.details.readings.filter(isKnownReading) : [];
+  const storedReadings = isVitalDetails(filled?.details)
+    ? filled.details.readings.filter(isKnownReading)
+    : [];
   const [vitalTypes, setVitalTypes] = useState<VitalType[]>(
-    entry ? storedReadings.map((r) => r.type) : initialVitalType ? [initialVitalType] : [],
+    filled ? storedReadings.map((r) => r.type) : initialVitalType ? [initialVitalType] : [],
   );
 
   return (
@@ -89,7 +97,7 @@ export function EntryForm({
 
       {kind === "symptom" && (
         <SymptomFields
-          stored={isSymptomDetails(entry?.details) ? entry.details : undefined}
+          stored={isSymptomDetails(filled?.details) ? filled.details : undefined}
           nameError={issueFor(issues, "details.name", "details")}
         />
       )}
@@ -102,7 +110,7 @@ export function EntryForm({
             className="textarea w-full"
             rows={3}
             maxLength={TIMELINE_LIMITS.body}
-            defaultValue={entry?.body ?? ""}
+            defaultValue={filled?.body ?? ""}
           />
         )}
       </Field>
@@ -110,7 +118,7 @@ export function EntryForm({
       <DateTimeField
         name="occurredAt"
         label="When"
-        defaultValue={entry?.occurredAt}
+        defaultValue={filled?.occurredAt}
         max={latest}
         error={issueFor(issues, "occurredAt")}
       />
