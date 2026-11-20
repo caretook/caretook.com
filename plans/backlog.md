@@ -81,7 +81,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-135 | change | landed | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
 | B-136 | change | triaged | timeline-ux |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | triaged | timeline-ux |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
-| B-138 | change | triaged | app-speed |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
+| B-138 | change | triaged | timeline-ux |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | triaged | app-speed |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
 | B-140 | change | triaged | app-speed |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
 | B-141 | change | landed | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
@@ -465,7 +465,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-138 · change · Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only…
 
 - status: triaged
-- prd: app-speed
+- prd: timeline-ux
 - owner:
 - commit:
 
