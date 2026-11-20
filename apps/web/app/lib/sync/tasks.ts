@@ -362,3 +362,57 @@ export const removeTask = async (db: SyncDb, id: string): Promise<ActionResult> 
     .where(eq(tasks.id, id));
   return { ok: true };
 };
+
+// ---------------------------------------------------------------------------
+// Due tasks (tasks slice 4: Upcoming and the timeline's task strip)
+// ---------------------------------------------------------------------------
+
+// Kept with this block (not at the top) so parallel slices' additions merge
+// as separate hunks; imports are hoisted either way.
+import { addDays, localDate, taskOrder } from "@caretook/data/schema";
+import { useMemo } from "react";
+import { useNow } from "./editors";
+import { useLiveQuery } from "./index";
+
+/**
+ * A group's open (not done, not deleted) tasks with a due day, from `from`
+ * through `to` ("YYYY-MM-DD", either null for no bound), by due day. Undated
+ * tasks are never due. Sort with `taskOrder`, which knows the zone.
+ */
+export const dueTasksQuery = (groupId: string, from: string | null, to: string | null): LocalQuery => ({
+  sql: `SELECT * FROM task WHERE group_id = ? AND deleted_at IS NULL AND done_at IS NULL
+          AND due_on IS NOT NULL${from ? " AND due_on >= ?" : ""}${to ? " AND due_on <= ?" : ""}
+        ORDER BY due_on, due_time IS NOT NULL, due_time, created_at, id`,
+  params: [groupId, ...(from ? [from] : []), ...(to ? [to] : [])],
+});
+
+/** How often due tasks are re-evaluated (overdue and today follow the clock). */
+export const DUE_TASKS_TICK_MS = 60_000;
+
+/** The last day `useDueTasks` reads, `days` after today in the recipient's zone. */
+export const dueTasksThrough = (now: Date | number, timeZone: string, days: number) =>
+  addDays(localDate(now, timeZone), days);
+
+// Starting rows when there's no loader's: kept apart by identity, so the hook
+// can tell rows not read yet from none at all.
+const NOT_READ: TaskRow[] = [];
+
+/**
+ * A group's open dated tasks due by `days` after today (0: overdue and
+ * today's only), in `taskOrder`, live and re-evaluated once a minute.
+ * `timeZone` is the recipient's: due days and times are wall-clock there.
+ * `initial` is a loader's rows (from `dueTasksQuery`); left out, `ready` is
+ * false until the live query has answered, so nothing flashes.
+ */
+export function useDueTasks(
+  groupId: string,
+  timeZone: string,
+  { days = 0, initial = NOT_READ }: { days?: number; initial?: TaskRow[] } = {},
+) {
+  const now = useNow(DUE_TASKS_TICK_MS);
+  // Keyed on the day, so the query only changes at midnight.
+  const query = dueTasksQuery(groupId, null, dueTasksThrough(now, timeZone, days));
+  const rows = useLiveQuery<TaskRow>(query.sql, query.params, initial);
+  const tasks = useMemo(() => taskOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
+  return { tasks, now, timeZone, ready: initial !== NOT_READ || rows !== NOT_READ };
+}
