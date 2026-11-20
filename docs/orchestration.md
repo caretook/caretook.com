@@ -98,11 +98,24 @@ Every change is committed straight onto `dev` (only those two files), so every s
    cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic>)"
    ```
 
-4. The orchestrator summarises the plan and the backlog, then asks how to land (before each landing, run everything through, or automatically for the waves or slices you pick) and which slices to run. Tell it. It can run wave after wave in one session; if a session gets slow or confused, close it and run the same command again (`pnpm prd start <topic>` reprints it). It picks up from the plan's _Status_ section.
+4. The orchestrator summarises the plan and the backlog, then asks how to land (before each landing, run everything through, or automatically for the waves or slices you pick) and which slices to run. Tell it. It can run wave after wave in one session; if a session gets slow or confused, close it and run the same command again (`pnpm prd start <topic>` reprints it). It picks up from the plan's _Status_ section, which the orchestrator updates at every step (a slice started, handed off or merged, a wave landed), so nothing is lost whenever it stops.
 
 **At most three PRDs run at once.** `pnpm prd start` refuses a fourth (raise `CARETOOK_MAX_PRDS` to override).
 
 **Queue one for later:** `pnpm prd queue <topic>` in a terminal of its own. It waits for a free slot (a finished PRD removed with `pnpm prd rm`), in the order PRDs were queued, then creates the worktree and opens the orchestrator in that terminal. A queued orchestrator runs the whole plan through and lands each wave without asking (`--manual` makes it ask instead); it waits on other PRDs' work by asking their orchestrators to tell it when it lands.
+
+### After a restart, a crash or a usage limit
+
+Orchestrators and their slice agents stop when the machine restarts or a session dies, and sit idle after a usage limit. Each worktree keeps its work (commits and uncommitted changes), and each plan's _Status_ says where its orchestrator was, step by step. To pick a PRD up again, in a new terminal:
+
+```sh
+# its last conversation, if it had one
+cd .loops/<topic> && claude --continue --remote-control prd-<topic>
+# or a fresh orchestrator told it's taking over (add --auto for a queued or run-through PRD)
+cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic> --resume)"
+```
+
+A resumed orchestrator first checks its _Status_ against git (the slice worktrees and branches, and what's already merged), trusting git where they differ. It then restarts one agent per unfinished slice, told to continue from what's in its worktree rather than start over (a slice that had finished just writes its hand-off again), reviews any slice that was handed off but not merged, and carries on in the landing mode you chose before. You don't need to repeat your answers.
 
 ### What runs where
 
