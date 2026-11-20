@@ -12,13 +12,11 @@ import { sessionContext } from "~/lib/session";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/sync/periodSearch";
 import { removeEntry } from "~/lib/sync/timeline";
 import { parseFilters } from "~/lib/timelineFilters";
-import { CurrentPeriodLine } from "./CurrentPeriodLine";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { MedicationStrip } from "./MedicationStrip";
 import { NextStrip } from "./NextStrip";
-import { QuickAddBar } from "./QuickAddBar";
 import { seeAllSearch } from "./aheadQueries";
 import { onlySheetChanged } from "./sheetGuard";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
@@ -124,17 +122,11 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
       <TimelineHeader view={view} onViewChange={setView} />
-      <CurrentPeriodLine groupId={groupId} periods={data.periods} />
       <InviteSomeoneCard />
       <LatestVitals vitals={data.latestVitals} units={units} />
       <NextStrip next={data.next} now={data.now} groupId={groupId} showing={upcoming} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
       <MedicationStrip groupId={groupId} canWrite={canWrite} />
-      {canWrite && (
-        <div className={COLUMN_CAP}>
-          <QuickAddBar groupId={groupId} />
-        </div>
-      )}
       <div className={COLUMN_CAP}>
         <FilterChips
           kind={kind}

@@ -15,6 +15,7 @@ import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/entryOpen";
 import { appUrls } from "~/lib/appUrls";
+import { DayHeader } from "./DayHeader";
 import { foldPassLogs } from "./dayItems";
 import { PassLogItem } from "./PassLogItem";
 import { PeriodMarkerItem } from "./PeriodMarkerItem";
@@ -38,7 +39,8 @@ const LIST_CLASS: Record<TimelineView, string> = {
 };
 
 /**
- * The entries, a section per day under a sticky heading, as rows or cards,
+ * The entries, a section per day under a sticky heading (with the care
+ * period that covers the day: `DayHeader`), as rows or cards,
  * with the care periods' boundary markers at their moments (filters on or
  * off; a day with only a marker gets its own section), then `OlderEntries`,
  * which loads older pages as the end comes near. With
@@ -188,12 +190,13 @@ export function TimelineEntryList({
         )}
         {sections.map((day) => (
           <section key={day.key} aria-labelledby={`day-${day.key}`}>
-            <h3
-              id={`day-${day.key}`}
-              className="bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 px-1 py-2 text-base font-semibold backdrop-blur lg:text-lg"
-            >
-              {day.label}
-            </h3>
+            <DayHeader
+              dayKey={day.key}
+              label={day.label}
+              newestAt={day.entries[0]?.occurredAt}
+              groupId={groupId}
+              periods={data.periods}
+            />
             <ol className={LIST_CLASS[view]} data-view={view}>
               {/* Doses logged in one round fold into one pass log; care period markers keep their moments. */}
               {foldPassLogs(day.entries).map((it) =>
