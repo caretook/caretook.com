@@ -921,6 +921,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the history agents read.
 - 2026-11-20 (backlog agent): Triage: agent-tooling. Changes scripts/backlog (one commit per command batch, or several ids and a note in one write). Stackless.
+- 2026-11-20 (plan/agent-tooling): Planned: agent-tooling slices 1 (multi-id writes, guarded amend) and 2 (pnpm log).
 
 ### B-155 · chore · Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first…
 
