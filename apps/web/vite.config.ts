@@ -5,16 +5,24 @@ import { defineConfig } from "vite";
 // Server-side env for dev and builds: apps/web/.env (auth), then
 // packages/data/.env (DATABASE_URL), so there's one copy of each value. Real
 // env vars win, and missing files are fine (Vercel sets real env vars).
-for (const file of [".env", "../../packages/data/.env"]) {
-  try {
-    process.loadEnvFile(new URL(file, import.meta.url));
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+// Not under Vitest: the web:components project extends this config in the same
+// process as the integration project, and the dev DATABASE_URL loaded here
+// would win over packages/data/.env.test(.local).
+if (!process.env.VITEST) {
+  for (const file of [".env", "../../packages/data/.env"]) {
+    try {
+      process.loadEnvFile(new URL(file, import.meta.url));
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+    }
   }
 }
 
 export default defineConfig({
-  plugins: [tailwindcss(), reactRouter()],
+  // Component tests (Vitest's `web:components` project) load this config for
+  // `~/`, Tailwind, daisyUI and the dedupes, but render routes in React
+  // Router's test stub: the framework plugin isn't for tests.
+  plugins: [tailwindcss(), !process.env.VITEST && reactRouter()],
   // One copy each of yjs (Yjs breaks with two: its `instanceof` checks fail),
   // React, and ProseMirror's packages.
   resolve: {

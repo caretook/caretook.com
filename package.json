@@ -19,7 +19,12 @@
     "test:watch": "vitest",
     "test:unit": "vitest run --project data:unit",
     "test:integration": "vitest run --project integration",
+    "test:components": "vitest run --project web:components",
+    "test:components:install": "playwright install chromium",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "backlog": "node scripts/backlog/backlog.mjs",
+    "prd": "bash scripts/loops/prd.sh",
     "datastore:start": "pnpm datastore:up && pnpm datastore:migrate && pnpm datastore:seed",
     "datastore:up": "docker compose up -d --wait",
     "datastore:stop": "docker compose down",
@@ -28,8 +33,10 @@
     "datastore:migrate": "pnpm --filter @caretook/data datastore:migrate",
     "datastore:seed": "pnpm --filter @caretook/data datastore:seed",
     "datastore:clear": "pnpm --filter @caretook/data datastore:clear",
-    "datastore:reset": "pnpm datastore:clear && pnpm datastore:migrate && pnpm datastore:seed",
+    "datastore:reset": "pnpm datastore:clear && pnpm datastore:migrate && pnpm datastore:seed && pnpm datastore:powersync",
+    "datastore:powersync": "pnpm --filter @caretook/data datastore:powersync",
     "datastore:studio": "pnpm --filter @caretook/data datastore:studio",
+    "admin:grant": "pnpm --filter @caretook/data admin:grant",
     "datastore:start:test": "pnpm datastore:up:test && NODE_ENV=test pnpm datastore:migrate",
     "datastore:up:test": "docker compose -f docker-compose.test.yml up -d --wait",
     "datastore:stop:test": "docker compose -f docker-compose.test.yml down",
@@ -38,14 +45,17 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
+    "@vitest/browser-playwright": "5.1.0",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.14.0",
+    "playwright": "1.65.1",
     "prettier": "^3.10.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.73.0",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "vitest-browser-react": "2.3.0"
   }
 }

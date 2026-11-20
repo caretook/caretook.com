@@ -1,7 +1,19 @@
 import { newError } from "../../errors";
 import { dbMayFail } from "../client";
+import * as accessCodes from "./accessCodes";
 import * as accounts from "./accounts";
+import * as appointments from "./appointments";
 import * as careGroups from "./careGroups";
+import * as carePeriods from "./carePeriods";
+import * as invites from "./invites";
+import * as medicationPasses from "./medicationPasses";
+import * as medications from "./medications";
+import * as moreGroups from "./moreGroups";
+import * as profiles from "./profiles";
+import * as providers from "./providers";
+import * as secondGroup from "./secondGroup";
+import * as staff from "./staff";
+import * as tasks from "./tasks";
 import * as timelineEntries from "./timelineEntries";
 import * as users from "./users";
 
@@ -18,5 +30,17 @@ export const seed = async () => {
     await accounts.seed();
     await careGroups.seed();
     await timelineEntries.seed();
+    await secondGroup.seed();
+    await providers.seed();
+    await invites.seed();
+    await accessCodes.seed();
+    await medicationPasses.seed();
+    await medications.seed();
+    await appointments.seed();
+    await profiles.seed();
+    await carePeriods.seed();
+    await moreGroups.seed();
+    await staff.seed();
+    await tasks.seed();
   }, "db:seed");
 };

@@ -1,0 +1,44 @@
+# The browser checks: `pnpm prd browser` (browser.sh) reads this for the suite's
+# order, each check's cap and which checks never exit on their own.
+# scripts/loops/check-areas maps changed files to these names; a unit test
+# (checks.test.mjs) keeps the two in step.
+#
+# One check per line, in suite order:
+#   check        the file's name without .mjs (scripts/browser-checks/<check>.mjs)
+#   usual        its usual seconds for a full run on a quiet machine (from the logs)
+#   cap          browser.sh kills it after this many seconds, as TIMEOUT (about 3×
+#                usual, at least 120; --timeout overrides it). Unlisted checks: 600.
+#   never-exits  yes: it never exits on its own, and is stopped 2 s after its
+#                last line ("N/M passed", or signout-wipe's "errors:")
+#   e2e          yes: in the lean end-to-end set, the suite (--suite, and
+#                --changed's @suite): flows that need the server, sync or a real
+#                build (sign-in and session, first sync, sign-out wipe, devices
+#                converging, offline then reconnect, invites and email, the CSP
+#                and the check build). no: still runnable, by name or through
+#                --changed, but out of the suite until its screens move to
+#                component tests (one backlog item per check).
+#
+# The budget: the e2e checks' usual seconds may add up to at most
+# lean-ceiling (checks.test.mjs fails above it). A slice that shrinks the lean
+# set lowers it to the new total; nothing raises it without the user.
+lean-ceiling 295
+#
+# check            usual  cap  never-exits  e2e
+phase2               10   120  no           yes
+roundtrip            29   120  no           yes
+live-notes           55   170  no           yes
+app-shell            18   120  no           yes
+layout-offline       27   300  yes          yes
+sign-in               5   120  no           yes
+first-sync           35   150  no           yes
+signout-wipe          5   300  yes          yes
+session-end           5   120  no           yes
+providers            90   270  no           no
+invites              72   270  no           yes
+ui                    5   120  no           yes
+groups               30   120  no           no
+medications         163   490  no           no
+upcoming            203   610  no           no
+profiles             55   180  no           no
+profiles-contacts    20   120  no           no
+marketing            29   120  no           yes

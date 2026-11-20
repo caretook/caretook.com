@@ -23,22 +23,108 @@ streams:
     with:
       my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
     queries:
-      - SELECT id, name FROM care_group WHERE id IN my_groups
-      - SELECT id, group_id, user_id, role FROM care_group_member WHERE group_id IN my_groups
-      - SELECT id, group_id, name, preferred_name FROM care_recipient WHERE group_id IN my_groups
+      # `simple_tiles`: how simple mode picks its four tiles (assistant).
+      - SELECT id, name, simple_tiles FROM care_group WHERE id IN my_groups
+      # `invited_by` and `created_at`: who invited each member and when they joined (the Members page).
+      # `relationship` and `shared_fields`: the member's own sharing choices;
+      # `emergency_rank` and `is_primary_contact`: the emergency list's badges;
+      # `emergency_dropped_at`: the managers' note when someone fell off it.
+      # `simple_mode` and `simple_mode_locked`: the managers' simple-mode default and lock (assistant).
+      - >-
+        SELECT id, group_id, user_id, role, invited_by, created_at,
+        relationship, shared_fields, emergency_rank, is_primary_contact, emergency_dropped_at,
+        simple_mode, simple_mode_locked
+        FROM care_group_member WHERE group_id IN my_groups
+      # `time_zone`: a medication's schedule times are in the recipient's zone.
+      # `date_of_birth`: the printable medication sheet works offline.
+      # The medical basics and `notes` (the note for helpers): every member sees them.
+      # `no_known_allergies_at`: "No known allergies" was recorded (medications-2).
+      - >-
+        SELECT id, group_id, name, preferred_name, time_zone, date_of_birth,
+        code_status, blood_type, primary_language, pronouns, notes, no_known_allergies_at
+        FROM care_recipient WHERE group_id IN my_groups
+      # `ends_at`, `all_day`, `place`, the cancel fields and `rescheduled_to`:
+      # appointments and reminders (future events and notes).
       - >-
         SELECT id, group_id, recipient_id, kind, occurred_at, time_zone, title, body, details,
-        deleted_at, created_at, updated_at, created_by, updated_by
+        deleted_at, created_at, updated_at, created_by, updated_by,
+        ends_at, all_day, place, cancelled_at, cancelled_by, cancel_reason, rescheduled_to
         FROM timeline_entry WHERE group_id IN my_groups
       # Live documents: the compacted snapshot and every pending Yjs update,
       # so any document opens and edits offline. Viewers get them too (read-only).
       # `editors` (who edited, and when) carries "who's typing" past compaction.
+      # `subject` says whose document it is: an entry's (`entry_id`), a provider's
+      # (`provider_id`), a medication's (`medication_id`), a care period's
+      # (`care_period_id`) or a task's (`task_id`).
       - >-
-        SELECT id, group_id, snapshot, text, editors, created_at, updated_at, created_by, updated_by
+        SELECT id, group_id, snapshot, text, editors, created_at, updated_at, created_by, updated_by,
+        subject, entry_id, provider_id, medication_id, care_period_id, task_id
         FROM note_document WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, document_id, data, created_at, created_by
         FROM note_update WHERE group_id IN my_groups
+      # The provider directory, soft-deleted ones included (so deletes reach
+      # devices, and linked entries can still show the name).
+      - >-
+        SELECT id, group_id, type, name, specialty, practice_id, phones, email, address, website,
+        status, is_primary, deleted_at, created_at, updated_at, created_by, updated_by
+        FROM provider WHERE group_id IN my_groups
+      # Which providers each event or note was with.
+      - >-
+        SELECT id, group_id, entry_id, provider_id, created_at, updated_at, created_by, updated_by
+        FROM timeline_entry_provider WHERE group_id IN my_groups
+      # The medication list, soft-deleted ones included (so deletes reach
+      # devices, and doses and changes on the timeline can still show the name).
+      - >-
+        SELECT id, group_id, recipient_id, name, strength, form, dose, directions, reason, schedule,
+        status, started_on, stopped_on, stop_reason, stop_note, prescriber_id, pharmacy_id,
+        last_filled_on, quantity, refills_left, rx_number,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM medication WHERE group_id IN my_groups
+      # What each member shares with the group: only the values they chose
+      # (a projection the services keep in step). Never user_contact itself.
+      - >-
+        SELECT id, group_id, user_id, phones, email, address, updated_at
+        FROM member_contact_share WHERE group_id IN my_groups
+      # Care periods (where care happens, over time), soft-deleted ones
+      # included, so deletes reach devices and the track closes the gap.
+      - >-
+        SELECT id, group_id, recipient_id, type, label, place_provider_id, place_detail,
+        started_at, date_only, deleted_at, created_at, updated_at, created_by, updated_by
+        FROM care_period WHERE group_id IN my_groups
+      # The medication passes (Morning, Evening…), soft-deleted ones included
+      # (a medication naming a deleted pass keeps its last time).
+      - >-
+        SELECT id, group_id, recipient_id, name, time, sort_order,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM medication_pass WHERE group_id IN my_groups
+      # The recipient's allergies, soft-deleted ones included.
+      - >-
+        SELECT id, group_id, recipient_id, substance, reaction, severity,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM recipient_allergy WHERE group_id IN my_groups
+      # The group's tasks, soft-deleted ones included (so deletes reach devices).
+      - >-
+        SELECT id, group_id, recipient_id, title, assignee_id, assignee_name, due_on, due_time,
+        done_at, done_by, provider_id, medication_id, event_id,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM task WHERE group_id IN my_groups
+
+  # The recipient's sensitive details (phones, email, address, insurance,
+  # outside contacts) for owners, admins and caretakers only: viewers' devices
+  # never hold them. A role change moves a device in or out on its next sync.
+  # Writers are every role but viewer (PowerSync has no `IN (…)` over a list):
+  # a new read-only role must be excluded here too.
+  care_group_writers:
+    auto_subscribe: true
+    with:
+      writer_groups: >-
+        SELECT group_id FROM care_group_member
+        WHERE user_id = auth.user_id() AND role != 'viewer'
+    queries:
+      - >-
+        SELECT id, group_id, recipient_id, phones, email, address, insurance, outside_contacts, updated_at
+        FROM care_recipient_details WHERE group_id IN writer_groups
 
   # Co-members' public profiles (name and picture) for author names.
   member_profiles:

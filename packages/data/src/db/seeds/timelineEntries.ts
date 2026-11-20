@@ -15,7 +15,7 @@ import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 const TIME_ZONE = "America/Los_Angeles";
 const HOUR = 60 * 60 * 1000;
 
-type SeedEntry = {
+export type SeedEntry = {
   /** Hours before seeding time, or `at`: a local time some days ago. */
   hoursAgo?: number;
   at?: { daysAgo: number; time: `${number}:${number}` };
@@ -660,7 +660,7 @@ const zonedToUtc = (y: number, m: number, d: number, minutes: number, timeZone: 
 };
 
 /** When an entry happened: `hoursAgo` before now, or `at` (a local time `daysAgo` days back). */
-export const occurredAtOf = (entry: SeedEntry, now: number) => {
+export const occurredAtOf = (entry: Omit<SeedEntry, "author"> & { author?: string }, now: number) => {
   if (!entry.at) return new Date(now - (entry.hoursAgo ?? 0) * HOUR);
   const today = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
@@ -686,7 +686,8 @@ export const occurredAtOf = (entry: SeedEntry, now: number) => {
 
 // Fixed ids keep the seed idempotent: ...c1001, ...c1002, … They follow
 // list order, so add new entries at the end.
-const entryId = (index: number) => `0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c${String(1001 + index).padStart(4, "0")}`;
+export const entryId = (index: number) =>
+  `0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c${String(1001 + index).padStart(4, "0")}`;
 
 /** Kinds whose text lives in their live document. A seed's `body` is that document's text. */
 const DOCUMENT_KINDS: readonly TimelineEntryKind[] = ["note", "event"];
@@ -696,7 +697,7 @@ const DOCUMENT_KINDS: readonly TimelineEntryKind[] = ["note", "event"];
  * the text of its live document (the entry's `body` is then null; an event
  * without one gets an empty document).
  */
-export const seedContentOf = (entry: SeedEntry) => {
+export const seedContentOf = (entry: Omit<SeedEntry, "author"> & { author?: string }) => {
   const hasDocument = DOCUMENT_KINDS.includes(entry.kind);
   return {
     title: entry.title ?? null,
@@ -746,6 +747,8 @@ export const seed = async () => {
     const document = {
       id,
       groupId,
+      subject: "entry" as const,
+      entryId: id,
       snapshot: encodeNoteDoc(doc),
       text: noteText(doc),
       editors: { [createdBy]: occurredAt },

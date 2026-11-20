@@ -26,6 +26,10 @@ export type MaterializeInput = {
   /** ISO 8601. */
   occurredAt: string;
   timeZone: string;
+  /** An event's end (ISO 8601), all day, and place, when set before the first save. */
+  endsAt?: string | null;
+  allDay?: boolean;
+  place?: string | null;
 };
 
 type ExistingRow = { id: string; group_id: string | null; kind: string | null; deleted_at: string | null };
@@ -67,6 +71,9 @@ export const materializeLiveEntry = async (db: SyncDb, input: MaterializeInput):
       occurredAt: input.occurredAt,
       timeZone: input.timeZone,
       details: null,
+      ...(input.allDay && { allDay: true }),
+      ...(input.endsAt && { endsAt: input.endsAt }),
+      ...(input.place && { place: input.place }),
     });
     if (!parsed.success) return invalid(parsed.error);
     const now = nowTimestamp();
@@ -91,6 +98,9 @@ export const materializeLiveEntry = async (db: SyncDb, input: MaterializeInput):
       await tx.insert(noteDocuments).values({
         id: input.id,
         groupId: input.groupId,
+        subject: "entry",
+        entryId: input.id,
+        providerId: null,
         snapshot: null,
         text: "",
         createdAt: now,

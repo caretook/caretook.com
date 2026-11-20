@@ -8,6 +8,7 @@ import {
   NOTE_FRAGMENT,
   noteDocFromText,
   noteText,
+  prependNoteSection,
   toBase64,
 } from "./noteYjs";
 
@@ -128,5 +129,91 @@ describe("buildNoteDoc", () => {
     expect(forward).toContain("From B");
     // A replayed update changes nothing.
     expect(noteText(buildNoteDoc(snapshot, [...updates, ...updates]))).toBe(forward);
+  });
+});
+
+describe("prependNoteSection", () => {
+  const SECTION = [
+    { text: "Since your last visit · Oct 12 – Nov 19", style: "heading" as const },
+    { text: "Symptoms", style: "subheading" as const },
+    { text: "Dizziness: 3 times, worst 6/10", style: "bullet" as const },
+    { text: "Headache: once", style: "bullet" as const },
+    { text: "Nothing else to note." },
+  ];
+
+  it("puts the lines at the start, as headings, one list and paragraphs", () => {
+    const doc = noteDocFromText("Questions:\n• Lower the dose?");
+    prependNoteSection(doc, SECTION);
+    expect(noteText(doc)).toBe(
+      [
+        "Since your last visit · Oct 12 – Nov 19",
+        "Symptoms",
+        "• Dizziness: 3 times, worst 6/10",
+        "• Headache: once",
+        "Nothing else to note.",
+        "Questions:",
+        "• Lower the dose?",
+      ].join("\n"),
+    );
+    const nodes = doc.getXmlFragment(NOTE_FRAGMENT).toArray() as Y.XmlElement[];
+    expect(nodes.map((n) => n.nodeName)).toEqual([
+      "heading",
+      "heading",
+      "bulletList",
+      "paragraph",
+      "paragraph",
+      "bulletList",
+    ]);
+    expect(nodes[0]!.getAttribute("level")).toBe(2);
+    expect(nodes[1]!.getAttribute("level")).toBe(3);
+  });
+
+  it("makes one update that rebuilds the same document elsewhere", () => {
+    const snapshot = encodeNoteDoc(noteDocFromText("Typed earlier"));
+    const doc = buildNoteDoc(snapshot);
+    let count = 0;
+    doc.on("update", () => count++);
+    const update = prependNoteSection(doc, SECTION);
+    expect(count).toBe(1);
+    expect(noteText(buildNoteDoc(snapshot, [toBase64(update)]))).toBe(noteText(doc));
+  });
+
+  it("a rerun goes above the earlier section, leaving it as it was", () => {
+    const doc = noteDocFromText("");
+    prependNoteSection(doc, [{ text: "First", style: "heading" }, { text: "Old line" }]);
+    prependNoteSection(doc, [{ text: "Second", style: "heading" }, { text: "New line" }]);
+    expect(noteText(doc)).toBe("Second\nNew line\nFirst\nOld line");
+  });
+
+  it("converges with someone typing at the same time, keeping both", () => {
+    const snapshot = encodeNoteDoc(noteDocFromText("Ask about the cough"));
+    const a = buildNoteDoc(snapshot);
+    const b = buildNoteDoc(snapshot);
+    const fromA = prependNoteSection(a, SECTION);
+    // B types at the start of the existing paragraph, and adds a line at the very top.
+    const fromB: Uint8Array[] = [];
+    b.on("update", (u: Uint8Array) => fromB.push(u));
+    const root = b.getXmlFragment(NOTE_FRAGMENT);
+    const first = (root.get(0) as Y.XmlElement).get(0) as Y.XmlText;
+    first.insert(0, "Please ");
+    const p = new Y.XmlElement("paragraph");
+    root.insert(0, [p]);
+    const t = new Y.XmlText();
+    p.insert(0, [t]);
+    t.insert(0, "Bring the pill box");
+
+    Y.applyUpdate(a, Y.mergeUpdates(fromB));
+    Y.applyUpdate(b, fromA);
+    const text = noteText(a);
+    expect(noteText(b)).toBe(text);
+    expect(text).toContain("Please Ask about the cough");
+    expect(text).toContain("Bring the pill box");
+    for (const line of SECTION) expect(text).toContain(line.text);
+    // The section stays in one piece, in order.
+    const lines = text.split("\n");
+    const start = lines.indexOf(SECTION[0]!.text);
+    expect(lines.slice(start, start + SECTION.length).map((l) => l.replace(/^• /, ""))).toEqual(
+      SECTION.map((l) => l.text),
+    );
   });
 });

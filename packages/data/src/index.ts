@@ -5,6 +5,7 @@
 export * from "./constants";
 export * from "./db";
 export * from "./errors";
+export * from "./logging";
 export * from "./models";
 export * from "./permissions";
 export * from "./services";

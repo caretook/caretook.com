@@ -1,6 +1,30 @@
-import type { AppError, AuthUser, TimelineEntryUpsertInput } from "@caretook/data";
+import type {
+  AppError,
+  AuthUser,
+  MedicationPassUpsertInput,
+  CarePeriodUpsertInput,
+  MedicationUpsertInput,
+  ProviderUpsertInput,
+  RecipientAllergyUpsertInput,
+  TaskUpsertInput,
+  TimelineEntryUpsertInput,
+} from "@caretook/data";
 
-import { ERRORS, isError, newError, noteDocumentService, timelineEntryService } from "@caretook/data";
+import {
+  entryProviderService,
+  ERRORS,
+  isError,
+  logError,
+  medicationPassService,
+  carePeriodService,
+  medicationService,
+  newError,
+  noteDocumentService,
+  providerService,
+  recipientAllergyService,
+  taskService,
+  timelineEntryService,
+} from "@caretook/data";
 import { z } from "zod";
 import { unwrap } from "./errors";
 import { authedProcedure } from "./procedures";
@@ -73,6 +97,14 @@ const json = (value: unknown): unknown => {
   }
 };
 
+/** SQLite has no boolean: PowerSync stores 1/0. */
+const bool = (value: unknown) =>
+  value === 1 || value === "1" || value === true
+    ? true
+    : value === 0 || value === "0" || value === false
+      ? false
+      : value;
+
 // Content columns a device may set. Ids, kind and audit columns are fixed.
 const CONTENT_COLUMNS = {
   title: (v: unknown) => ["title", text(v)],
@@ -80,6 +112,13 @@ const CONTENT_COLUMNS = {
   occurred_at: (v: unknown) => ["occurredAt", toIsoTimestamp(v)],
   time_zone: (v: unknown) => ["timeZone", text(v)],
   details: (v: unknown) => ["details", json(v)],
+  // Appointments. `cancelled_by` isn't here: the service sets it, like the audit columns.
+  ends_at: (v: unknown) => ["endsAt", toIsoTimestamp(v)],
+  all_day: (v: unknown) => ["allDay", bool(v) ?? false],
+  place: (v: unknown) => ["place", text(v)],
+  cancelled_at: (v: unknown) => ["cancelledAt", toIsoTimestamp(v)],
+  cancel_reason: (v: unknown) => ["cancelReason", text(v)],
+  rescheduled_to: (v: unknown) => ["rescheduledTo", text(v)],
 } as const satisfies Record<string, (v: unknown) => [string, unknown]>;
 
 const FIXED_COLUMNS = ["group_id", "recipient_id", "kind"];
@@ -123,6 +162,9 @@ const timelineEntryOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise
   const content = contentFrom(data);
   if (Object.keys(content).length === 0) return applied;
   const res = await timelineEntryService.update(ctx, op.id, content);
+  // A member who can read but not write (a viewer): refused, not retried.
+  if (isError(res) && res.code === "baseModel:update:nothingUpdated")
+    return newError({ code: "permissions:unauthorized" });
   if (isError(res)) return res;
   return res ? applied : notFound();
 };
@@ -150,7 +192,13 @@ const readOnly = (table: string, op: CrudOp["op"]) =>
 
 const noteDocumentOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
   if (op.op !== "PUT") return readOnly("note_document", op.op);
-  const res = await noteDocumentService.create(ctx, { id: op.id, groupId: text(op.data?.group_id) ?? "" });
+  const res = await noteDocumentService.create(ctx, {
+    id: op.id,
+    groupId: text(op.data?.group_id) ?? "",
+    // An entry's, unless the device says otherwise (older devices never do).
+    subject: (text(op.data?.subject) ?? undefined) as
+      "entry" | "provider" | "medication" | "carePeriod" | "task" | undefined,
+  });
   return isError(res) ? res : applied;
 };
 
@@ -167,6 +215,444 @@ const noteUpdateOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Ou
 };
 
 // ---------------------------------------------------------------------------
+// provider: like timeline_entry. Soft deletes, and the group never changes.
+// ---------------------------------------------------------------------------
+
+const PROVIDER_COLUMNS = {
+  type: (v: unknown) => ["type", text(v)],
+  name: (v: unknown) => ["name", text(v)],
+  specialty: (v: unknown) => ["specialty", text(v)],
+  practice_id: (v: unknown) => ["practiceId", text(v)],
+  phones: (v: unknown) => ["phones", json(v) ?? []],
+  email: (v: unknown) => ["email", text(v)],
+  address: (v: unknown) => ["address", text(v)],
+  website: (v: unknown) => ["website", text(v)],
+  status: (v: unknown) => ["status", text(v)],
+  is_primary: (v: unknown) => ["isPrimary", bool(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const providerContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = PROVIDER_COLUMNS[column as keyof typeof PROVIDER_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a provider that's already deleted is a replay: fine. */
+const removeProvider = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await providerService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "providerService:notFound") return res;
+  const provider = await providerService.getById(ctx, id, { includeDeleted: true });
+  if (isError(provider)) return provider;
+  return provider?.deletedAt ? applied : res;
+};
+
+const providerOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = { id: op.id, groupId: text(data.group_id), ...providerContentFrom(data) };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await providerService.upsert(ctx, input as unknown as ProviderUpsertInput);
+    if (isError(res)) return res;
+    // Created and deleted before it was uploaded.
+    if (data.deleted_at) return removeProvider(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeProvider(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data) return newError({ code: "providerService:immutable" });
+  if (data.deleted_at) return removeProvider(ctx, op.id);
+  const content = providerContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await providerService.update(ctx, op.id, content);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "providerService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
+// timeline_entry_provider: links are added (PUT) and removed (DELETE), never changed.
+// ---------------------------------------------------------------------------
+
+const entryProviderOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  if (op.op === "PATCH") return readOnly("timeline_entry_provider", op.op);
+  if (op.op === "DELETE") {
+    const res = await entryProviderService.unlink(ctx, op.id);
+    return isError(res) ? res : applied;
+  }
+  const data = op.data ?? {};
+  const res = await entryProviderService.link(ctx, {
+    id: op.id,
+    groupId: text(data.group_id) ?? "",
+    entryId: text(data.entry_id) ?? "",
+    providerId: text(data.provider_id) ?? "",
+  });
+  return isError(res) ? res : applied;
+};
+
+// ---------------------------------------------------------------------------
+// medication: like provider. Soft deletes, and the group and recipient never
+// change. The service writes the timeline's change entry with each save,
+// with an id derived from the medication and the device's `updated_at`, so
+// the copy of that entry the device uploads next lands on the same row.
+// ---------------------------------------------------------------------------
+
+/** An integer column. Other values pass through for the service to reject. */
+const int = (value: unknown) =>
+  typeof value === "string" && /^-?\d+$/.test(value) ? Number(value) : (value ?? null);
+
+const MEDICATION_COLUMNS = {
+  name: (v: unknown) => ["name", text(v)],
+  strength: (v: unknown) => ["strength", text(v)],
+  form: (v: unknown) => ["form", text(v)],
+  dose: (v: unknown) => ["dose", text(v)],
+  directions: (v: unknown) => ["directions", text(v)],
+  reason: (v: unknown) => ["reason", text(v)],
+  schedule: (v: unknown) => ["schedule", json(v)],
+  status: (v: unknown) => ["status", text(v)],
+  started_on: (v: unknown) => ["startedOn", text(v)],
+  stopped_on: (v: unknown) => ["stoppedOn", text(v)],
+  stop_reason: (v: unknown) => ["stopReason", text(v)],
+  stop_note: (v: unknown) => ["stopNote", text(v)],
+  prescriber_id: (v: unknown) => ["prescriberId", text(v)],
+  pharmacy_id: (v: unknown) => ["pharmacyId", text(v)],
+  last_filled_on: (v: unknown) => ["lastFilledOn", text(v)],
+  quantity: (v: unknown) => ["quantity", text(v)],
+  refills_left: (v: unknown) => ["refillsLeft", int(v)],
+  rx_number: (v: unknown) => ["rxNumber", text(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const medicationContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = MEDICATION_COLUMNS[column as keyof typeof MEDICATION_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a medication that's already deleted is a replay: fine. */
+const removeMedication = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await medicationService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "medicationService:notFound") return res;
+  const medication = await medicationService.getById(ctx, id, { includeDeleted: true });
+  if (isError(medication)) return medication;
+  return medication?.deletedAt ? applied : res;
+};
+
+const medicationOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  // When the device saved it: the change entry's time, and half of its id.
+  const opts = { changedAt: text(data.updated_at) };
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...medicationContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await medicationService.upsert(ctx, input as unknown as MedicationUpsertInput, opts);
+    if (isError(res)) return res;
+    // Created and deleted before it was uploaded.
+    if (data.deleted_at) return removeMedication(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeMedication(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data || "recipient_id" in data) return newError({ code: "medicationService:immutable" });
+  if (data.deleted_at) return removeMedication(ctx, op.id);
+  const content = medicationContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await medicationService.update(ctx, op.id, content, opts);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "medicationService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
+// medication_pass: like medication. A retime writes its `passMoved` entry
+// (id from the pass and the device's `updated_at`, like a medication's
+// change), and a delete rewrites every schedule naming the pass, so the
+// device's own copies of both, uploaded next, change nothing.
+// ---------------------------------------------------------------------------
+
+const PASS_COLUMNS = {
+  name: (v: unknown) => ["name", text(v)],
+  time: (v: unknown) => ["time", text(v)],
+  sort_order: (v: unknown) => ["sortOrder", int(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const passContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = PASS_COLUMNS[column as keyof typeof PASS_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a pass that's already deleted is a replay: fine. */
+const removePass = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await medicationPassService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "medicationPassService:notFound") return res;
+  const pass = await medicationPassService.getById(ctx, id, { includeDeleted: true });
+  if (isError(pass)) return pass;
+  return pass?.deletedAt ? applied : res;
+};
+
+const medicationPassOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  const opts = { changedAt: text(data.updated_at) };
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...passContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await medicationPassService.upsert(ctx, input as unknown as MedicationPassUpsertInput, opts);
+    if (isError(res)) return res;
+    if (data.deleted_at) return removePass(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removePass(ctx, op.id);
+
+  if ("group_id" in data || "recipient_id" in data)
+    return newError({ code: "medicationPassService:immutable" });
+  if (data.deleted_at) return removePass(ctx, op.id);
+  const content = passContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await medicationPassService.update(ctx, op.id, content, opts);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "medicationPassService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
+// recipient_allergy: like provider. Soft deletes; the group and recipient never change.
+// ---------------------------------------------------------------------------
+
+const ALLERGY_COLUMNS = {
+  substance: (v: unknown) => ["substance", text(v)],
+  reaction: (v: unknown) => ["reaction", text(v)],
+  severity: (v: unknown) => ["severity", text(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const allergyContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = ALLERGY_COLUMNS[column as keyof typeof ALLERGY_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting an allergy that's already deleted is a replay: fine. */
+const removeAllergy = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await recipientAllergyService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "recipientAllergyService:notFound") return res;
+  const allergy = await recipientAllergyService.getById(ctx, id, { includeDeleted: true });
+  if (isError(allergy)) return allergy;
+  return allergy?.deletedAt ? applied : res;
+};
+
+const recipientAllergyOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...allergyContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await recipientAllergyService.upsert(ctx, input as unknown as RecipientAllergyUpsertInput);
+    if (isError(res)) return res;
+    if (data.deleted_at) return removeAllergy(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeAllergy(ctx, op.id);
+
+  if ("group_id" in data || "recipient_id" in data)
+    return newError({ code: "recipientAllergyService:immutable" });
+  if (data.deleted_at) return removeAllergy(ctx, op.id);
+  const content = allergyContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await recipientAllergyService.update(ctx, op.id, content);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "recipientAllergyService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
+// care_recipient: read-only, except "No known allergies". A PATCH touching only
+// `no_known_allergies_at` sets or clears it (care_recipient's update rule);
+// anything else is refused as before.
+// ---------------------------------------------------------------------------
+
+const careRecipientOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  const columns = Object.keys(data);
+  if (op.op !== "PATCH" || columns.length !== 1 || columns[0] !== "no_known_allergies_at")
+    return readOnly(op.table, op.op);
+  const res = await recipientAllergyService.setNoKnownAllergies(
+    ctx,
+    op.id,
+    toIsoTimestamp(data.no_known_allergies_at),
+  );
+  return isError(res) ? res : applied;
+};
+
+// ---------------------------------------------------------------------------
+// care_period: like medication. Soft deletes, and the group and recipient
+// never change. `date_only` arrives as 1/0.
+// ---------------------------------------------------------------------------
+
+const CARE_PERIOD_COLUMNS = {
+  type: (v: unknown) => ["type", text(v)],
+  label: (v: unknown) => ["label", text(v)],
+  place_provider_id: (v: unknown) => ["placeProviderId", text(v)],
+  place_detail: (v: unknown) => ["placeDetail", text(v)],
+  started_at: (v: unknown) => ["startedAt", toIsoTimestamp(v)],
+  date_only: (v: unknown) => ["dateOnly", bool(v) ?? false],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const carePeriodContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = CARE_PERIOD_COLUMNS[column as keyof typeof CARE_PERIOD_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a period that's already deleted is a replay: fine. */
+const removeCarePeriod = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await carePeriodService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "carePeriodService:notFound") return res;
+  const period = await carePeriodService.getById(ctx, id, { includeDeleted: true });
+  if (isError(period)) return period;
+  return period?.deletedAt ? applied : res;
+};
+
+const carePeriodOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...carePeriodContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await carePeriodService.upsert(ctx, input as unknown as CarePeriodUpsertInput);
+    if (isError(res)) return res;
+    // Created and deleted before it was uploaded.
+    if (data.deleted_at) return removeCarePeriod(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeCarePeriod(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data || "recipient_id" in data) return newError({ code: "carePeriodService:immutable" });
+  if (data.deleted_at) return removeCarePeriod(ctx, op.id);
+  const content = carePeriodContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await carePeriodService.update(ctx, op.id, content);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "carePeriodService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
+// task: like care_period (soft deletes; the group and recipient never
+// change). The done fields map to complete and reopen, so a viewer's
+// offline tick uploads; the server sets `done_by` to the uploader.
+// ---------------------------------------------------------------------------
+
+const TASK_COLUMNS = {
+  title: (v: unknown) => ["title", text(v)],
+  assignee_id: (v: unknown) => ["assigneeId", text(v)],
+  assignee_name: (v: unknown) => ["assigneeName", text(v)],
+  due_on: (v: unknown) => ["dueOn", text(v)],
+  due_time: (v: unknown) => ["dueTime", text(v)],
+  provider_id: (v: unknown) => ["providerId", text(v)],
+  medication_id: (v: unknown) => ["medicationId", text(v)],
+  event_id: (v: unknown) => ["eventId", text(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const taskContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = TASK_COLUMNS[column as keyof typeof TASK_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a task that's already deleted is a replay: fine. */
+const removeTask = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await taskService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "taskService:notFound") return res;
+  const task = await taskService.getById(ctx, id, { includeDeleted: true });
+  if (isError(task)) return task;
+  return task?.deletedAt ? applied : res;
+};
+
+/** `done_at` set → complete (at that time), cleared → reopen. */
+const setTaskDone = async (ctx: { authUser: AuthUser }, id: string, doneAt: unknown): Promise<Outcome> => {
+  const at = toIsoTimestamp(doneAt);
+  const res = at ? await taskService.complete(ctx, id, { doneAt: at }) : await taskService.reopen(ctx, id);
+  return isError(res) ? res : applied;
+};
+
+const taskOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...taskContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await taskService.upsert(ctx, input as unknown as TaskUpsertInput);
+    if (isError(res)) return res;
+    // Created and deleted (or ticked) before it was uploaded.
+    if (data.deleted_at) return removeTask(ctx, op.id);
+    if (data.done_at) return setTaskDone(ctx, op.id, data.done_at);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeTask(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data || "recipient_id" in data) return newError({ code: "taskService:immutable" });
+  if (data.deleted_at) return removeTask(ctx, op.id);
+  const content = taskContentFrom(data);
+  if (Object.keys(content).length > 0) {
+    const res = await taskService.update(ctx, op.id, content);
+    if (isError(res)) return res;
+    if (!res) return newError({ code: "taskService:notFound" });
+  }
+  // A done-only PATCH (a tick or a reopen) is a complete or reopen.
+  if ("done_at" in data) return setTaskDone(ctx, op.id, data.done_at);
+  return applied;
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -174,6 +660,14 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   timeline_entry: timelineEntryOp,
   note_document: noteDocumentOp,
   note_update: noteUpdateOp,
+  provider: providerOp,
+  timeline_entry_provider: entryProviderOp,
+  medication: medicationOp,
+  medication_pass: medicationPassOp,
+  recipient_allergy: recipientAllergyOp,
+  care_recipient: careRecipientOp,
+  care_period: carePeriodOp,
+  task: taskOp,
 };
 
 /**
@@ -190,7 +684,7 @@ const compactTouched = async (ops: CrudOp[], results: CrudResult[]) => {
   for (const id of ids) {
     if (!id) continue;
     const res = await noteDocumentService.compactIfDue(id);
-    if (isError(res)) console.error("Live document compaction failed", { documentId: id, code: res.code });
+    if (isError(res)) logError("sync: live document compaction failed", res, { recordId: id });
   }
 };
 

@@ -233,8 +233,44 @@ export const scopeToSql = (schemaName: DbSchemaName, scope: PermissionScope): SQ
 };
 
 /**
+ * A scope whose group rules show only some fields (`groupFields`): `whole`
+ * is true for rows the actor may see in full (the scope's other rules), and
+ * `visible` is what everyone in scope may see. Undefined when nothing is
+ * limited.
+ */
+export type FieldLimits = { whole: SQL; visible: ReadonlySet<string> };
+
+export const fieldLimits = (schemaName: DbSchemaName, scope: PermissionScope): FieldLimits | undefined => {
+  if (scope.type === "all") return undefined;
+  const limited = scope.rules.filter((rule) => rule.type !== "owned" && rule.fields);
+  if (!limited.length) return undefined;
+  const columns = getColumns(schemaName);
+  const wholeRules = scope.rules.filter((rule) => !limited.includes(rule));
+  const whole =
+    or(
+      ...wholeRules.map((rule) => {
+        const column = columns[rule.field];
+        if (!column) throw new Error(`Permission field "${rule.field}" not found on ${schemaName}`);
+        return scopeRuleToSql(sql`${column}`, rule);
+      }),
+    ) ?? sql`false`;
+  const visible = new Set(limited.flatMap((rule) => (rule.type === "owned" ? [] : (rule.fields ?? []))));
+  return { whole, visible };
+};
+
+/** Fields a filter or order names, which a limited row mustn't be matched or sorted on. */
+const namedFields = <K extends DbSchemaName>(args: QuerySelectArgs<K>) => [
+  ...Object.entries(args.filter ?? {})
+    .filter(([, item]) => item !== undefined)
+    .map(([field]) => field),
+  ...(args.orderBy ?? []).map((o) => String(o.field)),
+];
+
+/**
  * The caller's filter ANDed with the permission scope. Every model read and
  * write goes through this, which is what makes RBAC part of the model layer.
+ * A filter or order on a field a limited row hides only matches whole rows,
+ * so hidden values can't be probed.
  */
 export const generateQueryWhere = <K extends DbSchemaName>(
   schemaName: K,
@@ -247,7 +283,54 @@ export const generateQueryWhere = <K extends DbSchemaName>(
   const filterWhere = filterToSql(schemaName, args.filter);
   if (isError(filterWhere)) return filterWhere;
 
-  return and(filterWhere, scopeToSql(schemaName, scope));
+  const limits = fieldLimits(schemaName, scope);
+  const probesHidden = !!limits && namedFields(args).some((field) => !limits.visible.has(field));
+
+  return and(filterWhere, scopeToSql(schemaName, scope), probesHidden ? limits.whole : undefined);
+};
+
+/** The extra column a limited read adds: whether the row may be shown whole. */
+export const WHOLE_ROW_KEY = "__wholeRow";
+
+/**
+ * The relational-query selection for a read whose scope limits fields: the
+ * hidden columns are replaced by `CASE WHEN <whole> THEN col END`, so a
+ * limited row's hidden values never leave the database, plus WHOLE_ROW_KEY.
+ * Undefined when the scope limits nothing.
+ */
+export const limitedSelection = (
+  schemaName: DbSchemaName,
+  permission: SchemaPermission,
+  authUser: AuthUser | null,
+) => {
+  const scope = getPermissionScope(schemaName, permission, authUser);
+  if (isError(scope)) return undefined;
+  const limits = fieldLimits(schemaName, scope);
+  if (!limits) return undefined;
+
+  const hidden = Object.entries(getColumns(schemaName)).filter(
+    (entry): entry is [string, Column] => !!entry[1] && !limits.visible.has(entry[0]),
+  );
+  return {
+    visible: limits.visible,
+    columns: Object.fromEntries(hidden.map(([key]) => [key, false])),
+    extras: {
+      ...Object.fromEntries(
+        hidden.map(([key, column]) => [
+          key,
+          sql`CASE WHEN ${limits.whole} THEN ${column} END`.mapWith(column).as(key),
+        ]),
+      ),
+      [WHOLE_ROW_KEY]: sql<boolean>`(${limits.whole})`.as(WHOLE_ROW_KEY),
+    },
+  };
+};
+
+/** A limited read's row as the model sees it: whole, or only its visible fields. */
+export const applyLimits = (row: Record<string, unknown>, visible: ReadonlySet<string>) => {
+  const { [WHOLE_ROW_KEY]: whole, ...rest } = row;
+  if (whole === true) return rest;
+  return Object.fromEntries(Object.entries(rest).filter(([key]) => visible.has(key)));
 };
 
 /**

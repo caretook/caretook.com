@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_EVENT_TITLE,
-  entryUrl,
   isLiveEntryKind,
   isUnnamedEvent,
-  NEW_ENTRY,
-  newEntryUrl,
   savedTitle,
   shouldMaterialize,
   titleField,
@@ -72,13 +69,7 @@ describe("unnamed events", () => {
   });
 });
 
-describe("urls and kinds", () => {
-  it("builds the new and saved entry urls", () => {
-    expect(newEntryUrl("g1", "note")).toBe(`/app/groups/g1/entries/${NEW_ENTRY}?kind=note`);
-    expect(newEntryUrl("g1", "event")).toBe(`/app/groups/g1/entries/${NEW_ENTRY}?kind=event`);
-    expect(entryUrl("g1", "e1")).toBe("/app/groups/g1/entries/e1");
-  });
-
+describe("kinds", () => {
   it("knows which kinds start as live documents", () => {
     expect(isLiveEntryKind("note")).toBe(true);
     expect(isLiveEntryKind("event")).toBe(true);

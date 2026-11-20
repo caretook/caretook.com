@@ -16,7 +16,7 @@ export const ok = <T>(value: T): Exclude<T, { code: unknown; isTSError?: unknown
 };
 
 /** A new member account with a unique @example.com email. */
-export const createUser = async (label: string, role: "admin" | "member" = "member") => {
+export const createUser = async (label: string, role: "admin" | "support" | "member" = "member") => {
   const email = `${label}-${randomUUID().slice(0, 8)}@example.com`;
   const user = ok(await userService.create(system, { email, name: label, role }));
   if (!user) throw new Error("Fixture failed: user not readable");
@@ -30,7 +30,10 @@ export const createGroup = async (
   members: { user: { id: string }; role: "admin" | "caretaker" | "viewer" | "owner" }[] = [],
 ) => {
   const { group, recipient } = ok(
-    await careGroupService.create(owner.ctx, { name: "Test Family", recipient: { name: "Pat Example" } }),
+    await careGroupService.create(owner.ctx, {
+      name: "Test Family",
+      recipient: { name: "Pat Example", timeZone: "America/Los_Angeles" },
+    }),
   );
   if (!group || !recipient) throw new Error("Fixture failed: group not readable");
   for (const m of members) {

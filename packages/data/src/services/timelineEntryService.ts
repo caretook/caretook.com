@@ -15,15 +15,26 @@ import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   canHaveNoteDocument,
+  FUTURE_DATE_MESSAGE,
+  isDoseDetails,
+  isTooFarAhead,
+  SERVER_FUTURE_SKEW_MS,
+  isSystemWrittenKind,
   timelineEntryContentZSchema,
   timelineEntryCreateZSchema,
   timelineEntryUpdateZSchema,
   timelineEntryUpsertZSchema,
 } from "../db/schema";
 import { isError, newError } from "../errors";
-import { careGroupModel, careRecipientModel, noteDocumentModel, timelineEntryModel } from "../models";
-import { rejectError } from "../permissions";
-
+import {
+  careGroupModel,
+  careRecipientModel,
+  medicationModel,
+  noteDocumentModel,
+  timelineEntryModel,
+} from "../models";
+import { isSystemUser, rejectError } from "../permissions";
+import { releaseEvent } from "./taskService";
 export const serviceName = "timelineEntry";
 export const schemaName = timelineEntryModel.schemaName;
 
@@ -37,8 +48,110 @@ const invalid = (error: z.ZodError) =>
 
 const notFound = () => newError({ code: "timelineEntryService:notFound" });
 
+/**
+ * Medication changes are written by `medicationService`, with the
+ * medication: nobody creates or edits one by hand. (Deleting one is fine.)
+ */
+const refuseSystemWritten = (ctx: ServiceContext, kind: string) =>
+  isSystemWrittenKind(kind) && !isSystemUser(ctx.authUser)
+    ? newError({ code: "timelineEntryService:systemWrittenKind" })
+    : null;
+
+/**
+ * A dose's medication must be in the entry's group, as the actor sees it. A
+ * deleted medication still counts: its doses stay, and a replayed upload of
+ * one must still land.
+ */
+const checkDoseMedication = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  groupId: string,
+  details: TimelineEntry["details"] | undefined,
+) => {
+  if (!isDoseDetails(details)) return null;
+  const medication = await medicationModel.getById(details.medicationId, {
+    ...ctx,
+    tx,
+    includeDeleted: true,
+  });
+  if (isError(medication)) return medication;
+  return medication?.groupId === groupId
+    ? null
+    : newError({
+        code: "timelineEntryService:medicationNotInGroup",
+        meta: {
+          issues: [{ path: "details.medicationId", message: "Choose a medication in this care group" }],
+        },
+      });
+};
+
 /** Postgres timestamptz text → ISO 8601, so stored rows re-validate. */
 const toIso = (value: string) => new Date(value).toISOString();
+const toIsoOrNull = (value: string | null | undefined) => (value ? toIso(value) : null);
+
+/**
+ * Only notes and events may be dated in the future. The server allows an
+ * hour of clock skew (a device allows five minutes): a refused upload is
+ * dropped, so a device whose clock runs fast must not lose a real vital.
+ */
+const refuseFuture = (kind: string, occurredAt: string) =>
+  isTooFarAhead(kind, occurredAt, new Date(), SERVER_FUTURE_SKEW_MS)
+    ? newError({
+        code: "timelineEntryService:invalid",
+        meta: { issues: [{ path: "occurredAt", message: FUTURE_DATE_MESSAGE }] },
+      })
+    : null;
+
+/**
+ * A cancelled event's replacement: another event in the same group, as the
+ * actor sees it. A deleted one still counts, so a replayed upload lands.
+ */
+const checkRescheduledTo = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  { id, groupId, rescheduledTo }: { id?: string; groupId: string; rescheduledTo?: string | null },
+) => {
+  if (!rescheduledTo) return null;
+  const refused = newError({
+    code: "timelineEntryService:rescheduledToNotInGroup",
+    meta: { issues: [{ path: "rescheduledTo", message: "Choose another event in this care group" }] },
+  });
+  if (rescheduledTo === id) return refused;
+  const target = await timelineEntryModel.getById(rescheduledTo, { ...ctx, tx, includeDeleted: true });
+  if (isError(target)) return target;
+  return target?.groupId === groupId && target.kind === "event" ? null : refused;
+};
+
+/**
+ * Who cancelled an event is the server's to say, like the audit columns: the
+ * actor who set `cancelledAt`, kept while it stays cancelled, cleared on undo.
+ */
+const cancelledByFor = (
+  ctx: ServiceContext,
+  before: Pick<TimelineEntry, "cancelledAt" | "cancelledBy"> | null,
+  cancelledAt: string | null | undefined,
+) => {
+  if (!cancelledAt) return null;
+  if (before?.cancelledAt && before.cancelledBy) return before.cancelledBy;
+  return ctx.authUser?.id ?? null;
+};
+
+/** The appointment columns of validated content, with nulls for what's unset. */
+const schedulingColumns = (content: {
+  allDay?: boolean;
+  endsAt?: string | null;
+  place?: string | null;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
+  rescheduledTo?: string | null;
+}) => ({
+  allDay: content.allDay ?? false,
+  endsAt: content.endsAt ?? null,
+  place: content.place ?? null,
+  cancelledAt: content.cancelledAt ?? null,
+  cancelReason: content.cancelReason ?? null,
+  rescheduledTo: content.rescheduledTo ?? null,
+});
 
 /**
  * The recipient an entry is about: `recipientId` when given (it must be in
@@ -158,13 +271,31 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput) =>
     if (!parsed.success) return invalid(parsed.error);
     const { recipientId, details, ...data } = parsed.data;
 
+    const refused = refuseSystemWritten(ctx, data.kind);
+    if (refused) return refused;
+
     const resolved = await resolveRecipient(ctx, tx, data.groupId, recipientId);
     if (isError(resolved)) return resolved;
+
+    const future = refuseFuture(data.kind, data.occurredAt);
+    if (future) return future;
+
+    const medication = await checkDoseMedication(ctx, tx, data.groupId, details);
+    if (medication) return medication;
+
+    const moved = await checkRescheduledTo(ctx, tx, data);
+    if (moved) return moved;
 
     return timelineEntryModel.create({
       ...ctx,
       tx,
-      data: { ...data, recipientId: resolved, details: details ?? null },
+      data: {
+        ...data,
+        ...schedulingColumns(data),
+        cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
+        recipientId: resolved,
+        details: details ?? null,
+      },
     });
   }, ctx);
 
@@ -182,6 +313,9 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
+    const refused = refuseSystemWritten(ctx, existing.kind);
+    if (refused) return refused;
+
     const merged = timelineEntryContentZSchema.safeParse({
       kind: existing.kind,
       title: existing.title,
@@ -189,16 +323,42 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
       occurredAt: toIso(existing.occurredAt),
       timeZone: existing.timeZone,
       details: existing.details,
+      allDay: existing.allDay,
+      endsAt: toIsoOrNull(existing.endsAt),
+      place: existing.place,
+      cancelledAt: toIsoOrNull(existing.cancelledAt),
+      cancelReason: existing.cancelReason,
+      rescheduledTo: existing.rescheduledTo,
       ...patch,
     });
     if (!merged.success) return invalid(merged.error);
     const { kind: _kind, ...content } = merged.data;
 
+    // Checked only when the time moves, so an entry stored before the rule
+    // (or by a fast clock, within the skew) can still be edited.
+    if (new Date(content.occurredAt).getTime() !== new Date(existing.occurredAt).getTime()) {
+      const future = refuseFuture(existing.kind, content.occurredAt);
+      if (future) return future;
+    }
+
+    const medication = await checkDoseMedication(ctx, tx, existing.groupId, content.details);
+    if (medication) return medication;
+
+    if ((content.rescheduledTo ?? null) !== existing.rescheduledTo) {
+      const moved = await checkRescheduledTo(ctx, tx, { ...content, id, groupId: existing.groupId });
+      if (moved) return moved;
+    }
+
     const updated = await timelineEntryModel.update({
       ...ctx,
       tx,
       filter: { id: { type: "eq", value: id } },
-      data: { ...content, details: content.details ?? null },
+      data: {
+        ...content,
+        ...schedulingColumns(content),
+        cancelledBy: cancelledByFor(ctx, existing, content.cancelledAt),
+        details: content.details ?? null,
+      },
     });
     if (isError(updated)) return updated;
     return updated[0] ?? null;
@@ -215,12 +375,21 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
  * - A deleted entry stays deleted (a delete wins over a late edit).
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
+ * - A medication change is never created or edited here: one that exists
+ *   (written by `medicationService` with the medication) is left as it is,
+ *   and one that doesn't is refused.
  */
 export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
   withTransaction(async (tx) => {
     const parsed = timelineEntryUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId, recipientId, kind, title, body, occurredAt, timeZone, details } = parsed.data;
+    // Appointment fields a device sent; ones it left out keep their value.
+    const scheduling = Object.fromEntries(
+      (["allDay", "endsAt", "place", "cancelledAt", "cancelReason", "rescheduledTo"] as const)
+        .filter((key) => key in parsed.data)
+        .map((key) => [key, (parsed.data as Record<string, unknown>)[key]]),
+    );
 
     // Existence is checked as the system, so a taken id is refused cleanly
     // rather than failing on the primary key.
@@ -243,13 +412,36 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
     )
       return newError({ code: "timelineEntryService:immutable" });
     if (visible.deletedAt) return visible;
+    // A device's copy of a change entry the service already wrote with the
+    // medication: the service's stands.
+    if (isSystemWrittenKind(visible.kind)) return visible;
 
-    return update({ ...ctx, tx }, id, { title, body, occurredAt, timeZone, details: details ?? null });
+    return update(
+      { ...ctx, tx },
+      id,
+      // Checked against the entry's kind once merged with the stored row.
+      {
+        title,
+        body,
+        occurredAt,
+        timeZone,
+        details: details ?? null,
+        ...scheduling,
+      } as TimelineEntryUpdateInput,
+    );
   }, ctx);
 
-/** Soft delete. The entry disappears from the timeline but syncs as deleted. */
-export const remove = async (ctx: ServiceContext, id: string) => {
-  const res = await timelineEntryModel.remove({ ...ctx, filter: { id: { type: "eq", value: id } } });
-  if (isError(res) && res.code === "baseModel:remove:nothingRemoved") return notFound();
-  return res;
-};
+/**
+ * Soft delete. The entry disappears from the timeline but syncs as deleted.
+ * Tasks linked to a deleted event lose the link in the same transaction
+ * (tasks PRD), as the task table's FK does on a hard delete.
+ */
+export const remove = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const res = await timelineEntryModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
+    if (isError(res) && res.code === "baseModel:remove:nothingRemoved") return notFound();
+    if (isError(res)) return res;
+    const released = await releaseEvent(tx, id);
+    if (isError(released)) return released;
+    return res;
+  }, ctx);

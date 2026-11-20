@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# shellcheck source=protect.sh
+source "$(dirname "$0")/protect.sh"
+branch=$(current_branch)
+if [[ $branch =~ $PROTECTED_RE ]]; then
+  overridden "commit on $branch" || refuse "a commit on $branch"
+fi
+# dev takes direct commits: landings, the backlog, and small changes made in
+# the main checkout. Bigger work goes through a prd/ branch by convention.
+exit 0
