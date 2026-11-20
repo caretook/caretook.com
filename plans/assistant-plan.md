@@ -14,7 +14,7 @@
 | 6     | running                                             |                                            |
 | 7     | blocked by 1, 2, 4, 6 (`medications-2` is in `dev`) |                                            |
 
-**Wave A** (slices 1–5, plus the dev sync 86f0fba with quick-fixes' + menu and `DayHeader`): merged. The lean suite at b723d14 failed `app-shell` (viewers' new ⋯ Print menu counted as writer controls), `roundtrip` (local add 2.3 s > 2 s) and `live-notes` (the viewer's avatar order, already failing at 86f0fba). A fix is running on a fresh `slice/assistant/4` (slot 1); rerun only those three once it merges, then `pnpm prd check` and land. Docs folded for slices 1–4 (new `docs/domain/assistant.md`); slice 5's (simple mode) are still to fold. Slice 6 is running.
+**Wave A** (slices 1–5, plus the dev sync 86f0fba with quick-fixes' + menu and `DayHeader`): merged. The lean suite at b723d14 failed `app-shell` (viewers' new ⋯ Print menu counted as writer controls), `roundtrip` (local add 2.3 s > 2 s) and `live-notes` (the viewer's avatar order, already failing at 86f0fba). A fix is running on a fresh `slice/assistant/4` (slot 1); rerun only those three once it merges, then `pnpm prd check` and land. Docs folded for slices 1–4 (new `docs/domain/assistant.md`); slice 5's folded too (app-shell, care-groups, timeline, sync). Slice 6 is running.
 
 **Landing:** land each wave as soon as it's green. The user said (2026-11-19) there's no real data, so it doesn't matter when the migration (slice 5) lands; it doesn't force one landing at the end. **Landing mode: run everything through** (queued with `pnpm prd queue assistant`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
