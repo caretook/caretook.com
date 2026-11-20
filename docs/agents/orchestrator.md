@@ -68,10 +68,8 @@ Quick is enough when everything since the last full pass is a conflict-free `pnp
 
 ## Recovery
 
-- **Before a planned restart:** `pnpm prd down` records what's up in `.loops/.down.json` (adding to an existing record) before stopping servers, stacks (`compose stop`, data kept) and the shared test Postgres.
-- **After a restart, crash or usage limit:** `pnpm prd recover` starts Docker (`CARETOOK_DOCKER_WAIT_SECS`), clears stale locks, starts the test Postgres, brings stacks up one at a time (waits for Postgres, migrates, retries a failed migrate once), starts servers, prints gc offers, then opens the recovery agent (`--no-agent` stops before it; a failed step skips it). The record is deleted only when every step succeeded, so a rerun retries what failed. Without a record, stacks come back for PRD and active slice worktrees, servers for PRDs. `--at HH:MM` or `--wait` (probes `claude -p ok` every 10 min) wait out a usage limit. `--dry-run [--json]` only shows.
-- **The inventory** (`inventory.mjs`, pure; facts from `inventory-facts.mjs`) alone classifies worktrees (`prd`, `plan`, `active`, `merged`, `stackless`) and orders the actions. Stale means the holder is gone (a slot with no worktree, a dead queue ticket, the start lock with no `queue.sh`, the backlog lock after 30 s); live locks are never touched.
-- **The recovery agent** (main checkout, `prompt.sh recover`) messages each live `prd-`/`plan-` session to carry on, reopens the rest with `pnpm prd open <target>` (`--continue` on a saved conversation, else the resume prompt, plus `--auto` when _Status_ records run-through; an iTerm2 tab, or the printed command), reports and ends. It changes nothing. Slice worktrees are refused: their orchestrator respawns them.
+`pnpm prd down` before a planned restart, `pnpm prd recover` after a restart, crash or usage limit: the machinery is in [recovery](recovery.md).
+
 - **Resuming as orchestrator:** reconcile _Status_ with git first, and **git wins**: the slice worktrees (dirty or clean), `slice/` branches ahead of `prd/<topic>`, the merges already in. Respawn each in-flight slice with no live agent (`pnpm prd prompt slice <topic> <n> --continue`). Review a slice handed off but not merged from its branch, spawning a `--continue` agent if you need its hand-off. Follow the recorded landing mode.
 
 ## Worktrees and leases
