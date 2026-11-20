@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
+import { clearUndo } from "~/lib/passUndo";
 import { forgetRecentLines, recentLines, recordLine } from "~/lib/recentLines";
 import { addDays, dayInZone, timeInZone, zonedInstant } from "~/lib/zonedDay";
 import * as timeline from "./route";
@@ -51,11 +52,17 @@ const chipLabels = (list: ReturnType<typeof names>) =>
 const tips = () => document.querySelector("[data-quick-tips]");
 const cardKinds = () =>
   [...document.querySelectorAll<HTMLElement>("[data-quick-card]")].map((c) => c.dataset.quickCard);
-const status = () => document.querySelector("[data-quick-status]")?.textContent ?? "";
+/** What the box says: "Saved 3 entries" (on its Undo line) or a refusal. */
+const status = () =>
+  document.querySelector("[data-quick-entry] [data-pass-undo-label]")?.textContent ||
+  (document.querySelector("[data-quick-status]")?.textContent ?? "");
 const entryCount = async (device: Awaited<ReturnType<typeof open>>) =>
   (await device.query("SELECT id FROM timeline_entry")).length;
 
-afterEach(() => forgetRecentLines());
+afterEach(() => {
+  forgetRecentLines();
+  clearUndo();
+});
 
 describe("the tips line", () => {
   test("shows under the empty box with examples, and goes while typing", async () => {

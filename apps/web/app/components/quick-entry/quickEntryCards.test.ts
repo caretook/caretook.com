@@ -134,6 +134,15 @@ describe("editTarget", () => {
     });
   });
 
+  test("a pass's Given all opens the Dose sheet on that pass", () => {
+    const PASS = "77777777-7777-4777-8777-777777777777";
+    const target = editTarget({ type: "givePass", passId: PASS, occurredAt: at }, GROUP);
+    expect(target).toEqual({
+      to: `/app/groups/${GROUP}/timeline/new/dose?pass=${PASS}`,
+      state: { sheetOverTimeline: true },
+    });
+  });
+
   test("notes and events are saved and opened on their page", () => {
     expect(editTarget({ type: "addNote", text: "Hi", occurredAt: at }, GROUP)).toBe("saveAndOpen");
   });

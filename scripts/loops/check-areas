@@ -440,3 +440,10 @@ apps/web/app/lib/useSimpleMode.ts        app-shell
 # so is Details' tiles card (groups/settings/simpleTiles.browser.test.tsx).
 # lib/simpleTiles.ts and lib/simpleModeLock.ts have their unit tests.
 apps/web/app/lib/sync/simpleMode.ts      -
+# Passes everywhere (assistant slice 7): the pass phrases, the due-pass chip,
+# Undo after Save (components/quick-entry/*, lib/sync/quickEntry.ts) and
+# simple mode's Now block (timeline/SimpleNow.tsx, under timeline/*) are
+# component tests (timelineQuickEntryPasses, timelineSimpleNow); missed doses
+# in visit prep are lib/dueDoses.ts and lib/visitPrep.ts's unit tests. The
+# shared Undo and Given all (components/medications/*, lib/passUndo.ts,
+# lib/sync/medications.ts) keep their medications rules above.

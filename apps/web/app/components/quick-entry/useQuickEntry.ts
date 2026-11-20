@@ -1,11 +1,14 @@
 import type { QuickEntryReading, UnitChoices } from "@caretook/data/schema";
 import type { QuickEntryCard } from "./quickEntryCards";
+import type { DuePass } from "~/lib/duePasses";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { parseQuickEntry } from "@caretook/data/schema";
+import { usePassLog } from "~/components/medications";
 import { appUrls } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
+import { offerUndo } from "~/lib/passUndo";
 import { actionPreview } from "~/lib/quickEntryPreview";
 import { recordLine } from "~/lib/recentLines";
 import { getSync } from "~/lib/sync";
@@ -19,6 +22,10 @@ import {
   savedText,
 } from "./quickEntryCards";
 import { useQuickEntryData } from "./useQuickEntryData";
+import { useQuickEntryPasses } from "./useQuickEntryPasses";
+
+/** Where quick entry's Undo is shown (`PassUndoStatus`'s `place`): in the box, under what was saved. */
+export const QUICK_ENTRY_UNDO = "quickEntry";
 
 /** How long the cards wait after typing stops before they're announced. */
 const ANNOUNCE_DELAY_MS = 800;
@@ -28,15 +35,19 @@ const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 /**
  * Quick entry's state: the line, its cards (one per part, with the reading
  * chosen for each and the ones removed), Save (every card in one local
- * transaction) and Edit (the usual sheet, filled in). The line is read
- * against the group's medications and providers on this device, in the
- * user's `units` and the recipient's time zone, so it all works offline.
+ * transaction, then Undo for about 10 s, which removes the whole line) and
+ * Edit (the usual sheet, filled in), and the due passes offered as one tap
+ * (`givePass`: Given all, with the same Undo). The line is read against the
+ * group's medications, passes and providers on this device, in the user's
+ * `units` and the recipient's time zone, so it all works offline.
  */
 export function useQuickEntry({ groupId, units }: { groupId: string; units: UnitChoices }) {
   const group = useGroup();
   const navigate = useNavigate();
   const { search } = useLocation();
   const { medications, providers } = useQuickEntryData(groupId);
+  const { passes, dueNow } = useQuickEntryPasses(groupId);
+  const passLog = usePassLog(groupId);
   const [text, setTextState] = useState("");
   const [chosen, setChosen] = useState<ReadonlyMap<string, number>>(new Map());
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
@@ -47,8 +58,8 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   const timeZone = group.recipient?.timeZone ?? deviceZone();
   const parts = useMemo(
-    () => parseQuickEntry(text, { now: new Date(), timeZone, units, medications, providers }).parts,
-    [text, timeZone, units, medications, providers],
+    () => parseQuickEntry(text, { now: new Date(), timeZone, units, medications, providers, passes }).parts,
+    [text, timeZone, units, medications, providers, passes],
   );
 
   const preview = useMemo(() => {
@@ -57,9 +68,10 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       now: new Date(),
       medications: new Map(medications.map((m) => [m.id, m])),
       providers: new Map(providers.map((p) => [p.id, p])),
+      passes: new Map(passes.map((p) => [p.id, p])),
     };
     return (reading: QuickEntryReading) => actionPreview(reading.actions[0]!, context);
-  }, [units, medications, providers]);
+  }, [units, medications, providers, passes]);
   const titleOf = useCallback((r: QuickEntryReading) => preview(r).title, [preview]);
 
   const cards = useMemo(
@@ -79,6 +91,12 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     setErrors(new Map());
     setStatus("");
   }, []);
+
+  /** A due pass in one tap: Given all now, with Undo in the box. */
+  const givePass = (pass: DuePass) => {
+    setStatus("");
+    void passLog.givenAll(pass, { place: QUICK_ENTRY_UNDO });
+  };
 
   const reset = () => {
     setTextState("");
@@ -122,7 +140,14 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       if (ids) {
         recordLine(group.userId, groupId, text);
         reset();
-        setStatus(savedText(ids.length));
+        // "Saved 3 entries · Undo": Undo removes the whole line.
+        offerUndo({
+          groupId,
+          label: savedText(ids.length),
+          doseIds: [],
+          entryIds: ids,
+          place: QUICK_ENTRY_UNDO,
+        });
       }
     } finally {
       setBusy(false);
@@ -160,5 +185,10 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     save,
     edit,
     clear: reset,
+    passes,
+    dueNow,
+    givePass,
+    passError: passLog.error,
+    passBusy: passLog.busy,
   };
 }
