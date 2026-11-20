@@ -1,0 +1,27 @@
+# check-areas: /admin (admin PRD; check-migration slice 7). Every screen is
+# component tests beside it (routes/admin/*.browser.test.tsx, from loader
+# data), and the services and procedures are integration tests. app-shell.mjs
+# keeps what only the server proves: /admin a 404 for non-staff (the door, the
+# staff rules), a real action's audit row on /admin/audit, and the banner
+# reaching /app.
+apps/web/app/routes/admin/*              -
+apps/web/app/.server/admin.ts            app-shell invites
+packages/api/src/auditAdmin.ts           app-shell
+packages/api/src/procedures.ts           app-shell
+packages/data/src/db/schema/staffRules.ts app-shell
+packages/data/src/db/schema/adminAudit.ts app-shell
+packages/data/src/services/adminAuditService.ts app-shell
+packages/data/src/services/staffAccess.ts app-shell
+packages/data/src/models/adminAuditLog/* app-shell
+packages/auth/src/staffEmails.ts         invites
+# Settings: the registry and the service, and the sign-up switches' consumers
+# (access codes, invites).
+packages/api/src/settingsAdmin.ts        app-shell
+packages/data/src/db/schema/appSettings.ts app-shell invites
+packages/data/src/services/appSettingService.ts app-shell invites
+packages/data/src/models/appSetting/*    app-shell
+# The announcement banner: public.announcement and /app's banner.
+packages/api/src/announcement.ts         app-shell
+apps/web/app/routes/app/layout/Announcement.tsx app-shell
+apps/web/app/routes/app/layout/useAnnouncement.ts app-shell
+apps/web/app/components/shell/AnnouncementBanner.tsx app-shell first-sync

@@ -1,0 +1,13 @@
+# check-areas: the entry page and live notes. The page (its header, the With
+# row, suggestions, the place, the care period suggestion) is component tests
+# (entry/*.browser.test.tsx); what it writes, and so uploads, is live-notes.
+apps/web/app/routes/app/groups/entry/*   -
+apps/web/app/routes/app/groups/entry/useLiveEntry.ts live-notes
+apps/web/app/components/notes/*          live-notes
+apps/web/app/lib/sync/notes.ts           live-notes
+apps/web/app/lib/sync/liveEntry.ts       live-notes
+apps/web/app/lib/sync/editors.ts         live-notes
+apps/web/app/lib/sync/titleSuggestions.ts live-notes
+packages/data/src/db/schema/noteDocument.ts live-notes
+packages/data/src/db/schema/noteYjs.ts   live-notes
+packages/data/src/db/schema/noteEditors.ts live-notes
