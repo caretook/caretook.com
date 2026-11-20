@@ -2,7 +2,7 @@
 # (invites slice 5; check-migration slice 15). /join/:code, the New care group
 # sheet, the Invite someone card and /admin's access codes, new group and
 # waitlist pages are component tests beside them, and the services and
-# procedures integration tests. invites.mjs step 13 keeps /join's sign-up
+# procedures integration tests. invites.spec.mjs step 13 keeps /join's sign-up
 # through the emailed confirmation to the new group (and a revoked code);
 # first-sync.mjs step 2c keeps careGroup.create syncing the new group in.
 apps/web/app/routes/account/join/*       invites
