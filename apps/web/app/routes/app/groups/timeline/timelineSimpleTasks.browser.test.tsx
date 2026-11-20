@@ -64,7 +64,7 @@ const follows = (a: Element | null, b: Element | null) =>
 afterEach(() => clearTaskUndo());
 
 describe("My tasks in simple mode", () => {
-  test("a writer: mine only, overdue and today first, five at most, See all to Mine; between Now and the tiles", async () => {
+  test("a writer: mine only, overdue and today first, five at most, See all to Mine; between Upcoming and the tiles", async () => {
     await open("caretaker", MANY);
     await waitUntil(() => titles().length === 5, 4000, "the card's tasks");
     await expect.element(page.getByRole("region", { name: "My tasks" })).toBeVisible();
@@ -87,14 +87,15 @@ describe("My tasks in simple mode", () => {
     expect(ticks).toHaveLength(5);
     expect(ticks[0]!.classList.contains("checkbox-xl")).toBe(true);
 
-    // The other regions are where they were: box, Now, then the card, the tiles, Remove, the rows.
+    // The other regions are where they were: Upcoming, then the card, the tiles, Remove, the box, the rows.
     const box = document.querySelector("[data-quick-entry]");
     const now = document.querySelector("[data-simple-now]");
+    await waitUntil(() => !!document.querySelector("[data-simple-tiles]"), 4000, "the tiles");
     const tiles = document.querySelector("[data-simple-tiles]");
-    expect(follows(box, now)).toBe(true);
     expect(follows(now, card())).toBe(true);
     expect(follows(card(), tiles)).toBe(true);
     expect(follows(tiles, document.querySelector("[data-remove-last]"))).toBe(true);
+    expect(follows(document.querySelector("[data-remove-last]"), box)).toBe(true);
     await expect.element(page.getByText("Slept well after lunch")).toBeVisible();
     // The card isn't a tile.
     expect(tiles!.contains(card())).toBe(false);
