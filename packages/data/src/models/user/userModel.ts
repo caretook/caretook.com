@@ -1,3 +1,4 @@
+import type { GroupRoleName } from "../../constants/roles";
 import type { User } from "../../db";
 import type { AppError } from "../../errors";
 import type { PermissionRoleName } from "../../permissions";
@@ -8,6 +9,9 @@ import type {
   QueryUpdateArgs,
 } from "../base/queryHelpers";
 
+import { eq, sql } from "drizzle-orm";
+import { dbMayFail, getDb } from "../../db";
+import { careGroupMemberSchema, userSchema } from "../../db/schema";
 import { isError, newError } from "../../errors";
 import * as baseModel from "../base";
 
@@ -104,4 +108,42 @@ export const getByEmail = async (email: string, args: QueryCommonArgs) => {
   if (isError(user)) return user;
   if (!user) return newError({ code: "userModel:notFound" });
   return user;
+};
+
+/** What a session's AuthUser is built from: the account's role and state, and its group roles. */
+export type AuthFacts = {
+  id: string;
+  roleNames: PermissionRoleName[];
+  disabledAt: string | null;
+  groupRoles: Record<string, GroupRoleName>;
+};
+
+/**
+ * The account and its memberships in one query (B-140), for resolving a
+ * session's AuthUser on every authed /rpc call; null when there's no such
+ * user. Unscoped: only the auth package calls it, for the session's own user.
+ */
+export const getAuthFacts = async (id: string): Promise<AuthFacts | null | AppError> => {
+  const res = await dbMayFail(
+    () =>
+      getDb()
+        .select({
+          id: userSchema.id,
+          role: userSchema.role,
+          disabledAt: userSchema.disabledAt,
+          groupRoles: sql<Record<string, GroupRoleName>>`coalesce(
+            jsonb_object_agg(${careGroupMemberSchema.groupId}, ${careGroupMemberSchema.role})
+              filter (where ${careGroupMemberSchema.id} is not null),
+            '{}'::jsonb)`,
+        })
+        .from(userSchema)
+        .leftJoin(careGroupMemberSchema, eq(careGroupMemberSchema.userId, userSchema.id))
+        .where(eq(userSchema.id, id))
+        .groupBy(userSchema.id),
+    "userModel:getAuthFacts",
+  );
+  if (isError(res)) return res;
+  const row = res[0];
+  if (!row) return null;
+  return { id: row.id, roleNames: [row.role], disabledAt: row.disabledAt, groupRoles: row.groupRoles };
 };
