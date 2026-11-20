@@ -227,6 +227,22 @@ describe("the theme", () => {
 describe("the group menu and the last group", () => {
   const lastGroup = () => localStorage.getItem(`caretook:lastGroup:${TEST_USER.id}`);
 
+  test("is in the header from the first paint: never a header without it while the group list loads", async () => {
+    // Watch every frame from before the screen renders until its rows show.
+    const seen: boolean[] = [];
+    let watching = true;
+    const watch = () => {
+      if (document.querySelector("body header") && document.querySelector("main ol > li"))
+        seen.push(!!document.querySelector('body header [aria-label$="switch care group"]'));
+      if (watching) requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+    await open();
+    await expect.poll(() => seen.length).toBeGreaterThan(3);
+    watching = false;
+    expect(seen.every(Boolean)).toBe(true);
+  });
+
   test("two groups and none remembered: /app is the list", async () => {
     const device = await open({ url: "/app", fixtures: louGroup });
     await expect.element(page.getByRole("heading", { name: "Your care groups" })).toBeVisible();

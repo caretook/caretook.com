@@ -286,21 +286,29 @@ function MemberItem({
 /**
  * A member's simple-mode switches: the managers' default for them, and the
  * lock. Locking turns the default on, and turning the default off unlocks
- * (the server's rule, shown at once). The choice shows while it saves and
- * until it syncs back; a refused change, or anyone else's change, shows
- * what's saved.
+ * (the server's rule, shown at once). The latest choice shows while it saves
+ * and until it syncs back. Each change sent is remembered until its own echo
+ * arrives, so an earlier change syncing back after a later click doesn't
+ * undo the later one on screen; a refused change, or a saved value none of
+ * ours explains (anyone else's change), shows what's saved.
  */
 function useSimpleModeSwitch(member: MemberDetailRow) {
   const fetcher = useFetcher<ActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
   const saved = { on: !!member.simple_mode, locked: !!member.simple_mode_locked };
-  const [sent, setSent] = useState<{ on: boolean; locked: boolean; from: string } | null>(null);
-  const savedKey = `${saved.on}:${saved.locked}`;
-  if (sent && sent.from !== savedKey) setSent(null);
-  const shown = sent && (busy || result?.ok) ? sent : saved;
-  const send = (next: { on: boolean; locked: boolean }, field: "simpleMode" | "locked", value: boolean) => {
-    setSent({ ...next, from: savedKey });
+  const savedKey = modeKey(saved);
+  // What we've sent, oldest first, and the saved value we last looked at.
+  const [sent, setSent] = useState<{ pending: string[]; seen: string }>({ pending: [], seen: savedKey });
+  if (sent.seen !== savedKey) {
+    const echo = sent.pending.indexOf(savedKey);
+    // Our own change arriving drops it and anything older; anything else is someone else's.
+    setSent({ pending: echo < 0 ? [] : sent.pending.slice(echo + 1), seen: savedKey });
+  }
+  const latest = sent.pending.at(-1);
+  const shown = latest && (busy || result?.ok) ? parseModeKey(latest) : saved;
+  const send = (next: ModeState, field: "simpleMode" | "locked", value: boolean) => {
+    setSent({ pending: [...sent.pending, modeKey(next)], seen: savedKey });
     void fetcher.submit(
       { intent: "setMemberMode", userId: member.user_id, [field]: value ? "on" : "off" },
       { method: "post" },
@@ -315,3 +323,10 @@ function useSimpleModeSwitch(member: MemberDetailRow) {
     error: result && !result.ok ? result.error : undefined,
   };
 }
+
+type ModeState = { on: boolean; locked: boolean };
+const modeKey = ({ on, locked }: ModeState) => `${on}:${locked}`;
+const parseModeKey = (key: string): ModeState => {
+  const [on, locked] = key.split(":");
+  return { on: on === "true", locked: locked === "true" };
+};

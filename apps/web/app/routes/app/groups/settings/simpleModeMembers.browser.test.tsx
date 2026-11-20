@@ -128,6 +128,28 @@ describe("the Locked switch on Members", () => {
     await expect.element(samLock()).not.toBeChecked();
   });
 
+  test("the lock syncing back after simple mode was already turned off doesn't turn it back on", async () => {
+    const calls = apiCalls();
+    const device = await open("owner", calls.record({ "careGroup.setMemberMode": () => null }));
+    await ready();
+    await userEvent.click(samLock());
+    await expect.poll(() => calls.of("careGroup.setMemberMode").length).toBe(1);
+    await userEvent.click(samSwitch());
+    await expect.poll(() => calls.of("careGroup.setMemberMode").length).toBe(2);
+    await expect.element(samLock()).not.toBeChecked();
+    // The lock's own echo arrives late, then the unlock's.
+    await device.sync(samMembership(1, 1));
+    await expect
+      .poll(() => device.query("SELECT 1 FROM care_group_member WHERE simple_mode_locked = 1"))
+      .toHaveLength(1);
+    // Give the live query time to show it (an assertion that nothing changes).
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await expect.element(samLock()).not.toBeChecked();
+    await expect.element(samSwitch()).not.toBeChecked();
+    await device.sync(samMembership(0, 0));
+    await expect.element(samLock()).not.toBeChecked();
+  });
+
   test("a refusal shows the server's reason and the lock goes back", async () => {
     await open("owner", { "careGroup.setMemberMode": () => refusal("careGroupMemberService:ownLock") });
     await ready();
