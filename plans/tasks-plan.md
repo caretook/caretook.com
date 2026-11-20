@@ -13,7 +13,7 @@
 | 5     | 3    | merged                                              | 0d22486 (56b8721)                      |
 | 6     | 2    | merged                                              | e7d622a (4708991)                      |
 | 7     | 2    | merged (fixed `lib/taskSheets.ts` re-export path)   | 38a3c7a (b3da051)                      |
-| 8     | 2    | blocked by `check-migration` slice 2 in `dev`       |                                        |
+| 8     | 2    | running (tasks-8)                                   |                                        |
 
 **Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue tasks`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
@@ -41,6 +41,8 @@
 **Slice 3's hand-off (bd0a951):** `taskService.releaseEvent` called from `timelineEntryService.remove` (now in a transaction; soft deletes don't fire the FK), device `removeEntry` clears `event_id` too; pickers (`taskLinks.ts`, `LinkPickerField`, `TaskLinkFields`, link prefills); task page "Linked to" (`TaskLinks.tsx`); `LinkedTasks`/`useLinkedTasks` in `components/tasks` on the entry page (events), provider page (after visit prep), medication page (after refills) — writers keep a lone "Add task" when empty; seeds +3 linked tasks (`…3f1d2be01010–12`), `appointmentIdIn` in `seeds/appointments.ts`. `--changed --list`: **phase2, roundtrip, providers, medications, upcoming, search**. Docs: `tasks.md` (links, pickers, page rows, LinkedTasks, device queries, the deleted-event rule, linked seeds); one line each in `appointments.md`, `providers.md`, `medications.md`.
 
 **Wave 3 merged** (3 then 5); typecheck clean. Only slice 8 left (waiting on check-migration's wave 1; asked its ETA, else run 8 as a plain roundtrip step).
+
+**Synced `dev` (d2bf131, 2026-11-20):** check-migration waves 1–2 are in `dev` (2040ed3): `SYNC_MATRIX`, and the routing, search and settings-layout checks became component tests. The entry who's-writing conflict took `dev`'s `device.settle()` over 48c7f9a. Typecheck clean; `sync-matrix.test.mjs` fails only for the missing `task` row. Lean ceiling is now 350 s and the lean total is exactly 350, so slice 8 must fit or report the overage for the user. Slice 8 started.
 
 **Landing checks to run (once, on the synced tip):** the lean set (`--suite`, migration + sync-config: **ask the user first**) plus by name the `e2e no` ones the diff names: providers, medications, upcoming, search, routing (and whatever `--changed --base dev --list` adds).
 
