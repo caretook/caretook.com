@@ -6,8 +6,8 @@
 
 | Slice | State                                | Merge into `prd/check-migration` (slice commits) |
 | ----- | ------------------------------------ | ------------------------------------------------ |
-| 1     | in progress (wave 1)                 |                                                  |
-| 2     | handed off (df8db5a)                 |                                                  |
+| 1     | landed (wave 1)                      | 372c658 (f6cd078, e262c12)                       |
+| 2     | landed (wave 1)                      | 120db6e (df8db5a); ceiling 357 in 9c0b2bf        |
 | 3     | blocked by 1, 2                      |                                                  |
 | 4     | blocked by 1, 2                      |                                                  |
 | 5     | blocked by 1, 2                      |                                                  |
@@ -34,9 +34,9 @@
 
 **Suite:** the user chose (2026-11-19) one `pnpm prd browser --suite` run per wave, before its landing. Loops still run each check once and never the suite.
 
-**Ceiling:** the user raised it to 357 (2026-11-19): slice 2's sync matrix and refused upload take `roundtrip` to 31 s. The orchestrator sets `lean-ceiling 357` after merging slices 1 and 2.
+**Ceiling:** the user raised it to 357 (2026-11-19): slice 2's sync matrix and refused upload take `roundtrip` to 31 s. Set in 9c0b2bf.
 
-**Now:** wave 1 (slices 1, 2) started 2026-11-19.
+**Now:** wave 1 (slices 1, 2) landed 2026-11-19: `pnpm prd check` green after one fix (f6a4db8: the settle test counts matches, since `dev`'s day summary shows a symptom twice), suite 12/12 in 5m32s. Next: wave 2 (3, 4, 5). Filed B-133 (timeline minute-turn remount that flakes `timelineScroll`), not in this PRD.
 
 Backlog: claim each slice's items when it starts: 1 B-131; 2 B-128; 3 B-114; 4 B-115; 5 B-120; 6 B-124; 7 B-125 (and B-113's admin part); 9 and 11 B-118 (done after 11); 10 B-121; 12 B-126; 13 B-119; 14 B-116 (and B-113's providers part; B-113 done after 14); 15 B-117; 16 B-122; 17 B-127; 19 to 23 B-129 (done after 23).
 
