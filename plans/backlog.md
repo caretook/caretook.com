@@ -91,7 +91,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-125 | chore | triaged | check-migration |  | Move admin.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
-| B-128 | chore | triaged | check-migration |  | Add a lean end-to-end step for an upload refused by permissions |
+| B-128 | chore | in-progress | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | in-progress | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
@@ -589,9 +589,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-128 · chore · Add a lean end-to-end step for an upload refused by permissions
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): The lean set (orchestration slice 9) is meant to cover uploads refused by permissions, but no check asserts one: a device whose role was lowered on the server writes locally, the upload is rejected (4xx acknowledged), and the next sync restores the server's copy. Add it to roundtrip.mjs or app-shell.mjs's demotion step.
