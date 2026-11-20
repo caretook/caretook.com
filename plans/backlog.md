@@ -10,37 +10,39 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | PRD               | Doc                                                          | Depends on                                           | Hot files                                                                   |
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
-| `orchestration` | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done**, all 9 slices in `dev` (`94e6b80`); follow-ups are `check-migration` and `loop-recovery` | (none) | none now |
-| `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done**, all 10 slices in `dev` | (none) | none now |
+| `orchestration` | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done** (`94e6b80`) | — | none now |
+| `live-notes-ux` | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done** | — | none now |
 | `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–46 in `dev` (44–46: B-135, B-134, B-157 in `2d57e70`); new fixes append as slice 47 on |  (none) | varies by slice; none now |
-| `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | none now |
-| `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done**, all 7 slices in `dev` | `live-notes-ux`, `app-shell`, `routing`, `components` (all done) | none now |
-| `search` | [PRD](search-prd.md), [plan](search-plan.md): **done**, all 6 slices in `dev` (`a5f3d4d`) | (none) | none now |
-| `providers`       | [PRD](providers-prd.md), [plan](providers-plan.md): **done**, all slices in `dev` (`7c075d1`); follow-ups B-25, B-48 | (none) | none now |
-| `medications`     | [PRD](medications-prd.md), [plan](medications-plan.md): **done**, all six slices in `dev` (`8ff8354`; Today and Due now are in, so `appointments` slice 7 is unblocked). Follow-ups B-26, B-51 | `providers`, `routing`, `components` (all done) | `TIMELINE_ENTRY_KINDS`, `KIND_META`, timeline strips and quick add, `care_recipient`, `note_document`, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`, the Dose sheet |
-| `medications-2` | [PRD](medications-2-prd.md), [plan](medications-2-plan.md): **done**, all 7 slices in `dev` (`a6738b4`) | (none) | none now |
-| `assistant`       | ✅ **done** (2026-11-19): [PRD](assistant-prd.md), [plan](assistant-plan.md): all 7 slices in `dev` (`7f3ec10`): quick entry, suggestions, day summaries, visit prep and Print, simple mode, passes everywhere (B-12, B-49, B-58, B-87). Decisions in `docs/domain/assistant.md` | `medications-2` (done) | none now |
+| `app-shell` | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done** | — | none now |
+| `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done** | — | none now |
+| `search` | [PRD](search-prd.md), [plan](search-plan.md): **done** (`a5f3d4d`) | — | none now |
+| `providers` | [PRD](providers-prd.md), [plan](providers-plan.md): **done** (`7c075d1`) | — | none now |
+| `medications` | [PRD](medications-prd.md), [plan](medications-plan.md): **done** (`8ff8354`) | — | none now |
+| `medications-2` | [PRD](medications-2-prd.md), [plan](medications-2-plan.md): **done** (`a6738b4`) | — | none now |
+| `assistant` | [PRD](assistant-prd.md), [plan](assistant-plan.md): **done** (`7f3ec10`) | — | none now |
 | `connectors`      | to write (B-104): an MCP server so a user's own Claude or ChatGPT reads and writes their group (writes confirmed in chat, labelled), OAuth with group-limited tokens, consent and an owners' switch | `assistant` (its actions layer); B-80 (Devices page, token revocation) | `packages/auth` (OAuth provider), `packages/api` (a new MCP mount), group settings, the privacy pages, its area's `permissions/` part |
-| `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): **done**, all 5 slices in `dev` (`ff25ef2`) | (none) | none now; new routes go in their area's `routes.ts` and `lib/<area>/urls.ts` parts |
-| `components`      | [PRD](components-prd.md), [plan](components-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `ca39416`) | `routing` (done) | none now; new UI uses `components/ui/` and the feature folders (AGENTS.md, _Components_) |
-| `invites`         | [PRD](invites-prd.md), [plan](invites-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `e6286f4`) | (none) | none now; follow-ups (Withdraw for a join request, the recipient's time zone) and launch work are in AGENTS.md |
-| `marketing`       | [PRD](marketing-prd.md), [plan](marketing-plan.md): **done**, all 5 slices in `dev`. B-40 and B-54 wait on the user | `invites` (done) | none now |
-| `profiles`        | [PRD](profiles-prd.md), [plan](profiles-plan.md): **done**, all 6 slices in `dev` (`88890df`) | `invites`, `medications` slice 1 (both done); the sheet reads medications and providers | none now |
-| `appointments` | [PRD](appointments-prd.md), [plan](appointments-plan.md): **done**, all 7 slices in `dev` (B-47 landed); follow-ups B-60–B-63, not planned | (none) | none now |
-| `care-periods` | [PRD](care-periods-prd.md), [plan](care-periods-plan.md): **done**, all 6 slices in `dev` (`f6c4e92`) | (none) | none now |
-| `data-rights`     | to write (B-52, B-53)                                        | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
-| `tasks`           | [PRD](tasks-prd.md), [plan](tasks-plan.md): **done**, all 8 slices in `dev` (`1ee7864`, B-55) | (none) | none now |
+| `providers-2` | to write (B-25, B-48): @-mentions of providers in notes and events, and importing providers from another group you belong to (its cross-group permission rules) | `providers` (done) | live-notes editor (mentions), `providerService`, its area's `permissions/` part |
+| `appointments-2` | planning (`plan/appointments-2`; B-60–B-63): recurring appointments, reminders, iCal feed, Google Calendar | `timeline-ux` wave 2 (the Today card) | the Today card, Upcoming, `appointmentService`, notifications |
+| `routing` | [PRD](routing-prd.md), [plan](routing-plan.md): **done** (`ff25ef2`) | — | none now |
+| `components` | [PRD](components-prd.md), [plan](components-plan.md): **done** (`ca39416`) | — | none now |
+| `invites` | [PRD](invites-prd.md), [plan](invites-plan.md): **done** (`e6286f4`) | — | none now |
+| `marketing` | [PRD](marketing-prd.md), [plan](marketing-plan.md): **done**; B-40 and B-54 wait on the user | — | none now |
+| `profiles` | [PRD](profiles-prd.md), [plan](profiles-plan.md): **done** (`88890df`) | — | none now |
+| `appointments` | [PRD](appointments-prd.md), [plan](appointments-plan.md): **done** | — | none now |
+| `care-periods` | [PRD](care-periods-prd.md), [plan](care-periods-plan.md): **done** (`f6c4e92`) | — | none now |
+| `data-rights`     | to write (B-52, B-53, B-84)                                  | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
+| `tasks` | [PRD](tasks-prd.md), [plan](tasks-plan.md): **done** (`1ee7864`) | — | none now |
 | `documents`       | to write (B-56)                                              | hosting (B-33, file storage); `profiles` (soft); `encryption` decision | file storage, its area's `routes.ts`, `urls.ts`, schema and `permissions/` parts, `GROUP_SECTIONS`              |
 | `encryption`      | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 | (none); affects `assistant` and `documents` | none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
 | `onboarding`      | to write (B-31)                                              | `invites` (done)                                     | seeds, `careGroupService`, `/app` home                                     |
 | `account-security` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) | `invites` (done); B-80 (the Devices page) first (soft) | `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
-| `admin` | [PRD](admin-prd.md), [plan](admin-plan.md): **done**, all 6 slices in `dev` (B-91 landed); B-106 moved to quick-fixes, B-113 still open | (none) | none now |
+| `admin` | [PRD](admin-prd.md), [plan](admin-plan.md): **done** | — | none now |
 | `check-migration` | [PRD](check-migration-prd.md), [plan](check-migration-plan.md): 23 slices, 10 waves of ≤ 3: steady component tests and a lean-budget ratchet (356 s → ≤ 300), a sync matrix and refused uploads, then each area check moved to component tests (flows folded into lean checks only for a new mechanism), then the lean set ported to Playwright Test and the CDP harness deleted (B-113–B-129, B-131) | `orchestration` (done); slices 11–17 wait for named `assistant` slices in `dev` | `scripts/loops/checks` and `check-areas` (additive), `scripts/browser-checks/`, `browser.sh`, `apps/web/test/` (the test device), test files beside screens, root `package.json` (`@playwright/test`, slice 19) |
-| `loop-recovery` | [PRD](loop-recovery-prd.md), [plan](loop-recovery-plan.md): 5 slices, all stackless, waves (1, 2, 3) → 4 → 5: the inventory and `recover --dry-run`, the disk guard and `reclaim`, resume prompts and _Status_ at every step, `down` and `recover`, then the recovery agent with iTerm2 tabs (B-132) | `orchestration` (done): **done**, all 5 slices in `dev` (`503e900`) | none now |
+| `loop-recovery` | [PRD](loop-recovery-prd.md), [plan](loop-recovery-plan.md): **done** | — | none now |
 | `hosting` | [PRD](hosting-prd.md), [plan](hosting-plan.md): **done** except going live: waves 1–4 in `dev` (`8b7f683`), `prd/hosting` removed; slice 7 (going live, B-33) is the user's, with a hotfix agent | (none) | none now |
-| `app-speed` | [PRD](app-speed-prd.md), [plan](app-speed-plan.md): **folded into `timeline-ux`** (the user, 2026-11-20); its PRD is the speed half's input, its plan is superseded, its items moved | (none) | none now |
-| `agent-tooling` | [PRD](agent-tooling-prd.md), [plan](agent-tooling-plan.md): 6 slices, all stackless, waves (1, 2, 3) → 4 → (5, 6): batched backlog commits (multi-id writes, guarded amend), `pnpm log`, a doc budget guard, then AGENTS.md and `docs/loops.md` split into a core and `docs/agents/` role docs, then the six area docs over 10 KB trimmed to contracts (B-147, B-148, B-154; B-152 and B-153 already on `dev`). **Ready to start** | (none); slice 4 waits until no landing is imminent; slice 6 waits for `tasks` to land | `scripts/backlog/`, `scripts/loops/` (prompt.sh, land.sh, new budget files), root `package.json` (two script lines), AGENTS.md, `docs/loops.md`, new `docs/agents/`, `docs/domain/` (timeline, medications, app-shell, care-groups, components, sync) |
-| `code-layout` | [PRD](code-layout-prd.md), [plan](code-layout-plan.md): **done**, all 5 slices in `dev` (`18e9cf8`): 5 slices, all stackless, waves 1 → (2, 3, 4) → 5: check-areas as `check-areas.d/<area>` with most-specific-wins and a lint, then errors, permissions and schema by area, the API router by area, `lib/` grouped by domain (device queries as `<name>.sync.ts`), then `routes.ts` and `appUrls` by area. Pure refactor, no migration; one lean `--suite` at the last landing (B-149, B-150) | `tasks` and `hosting` wave 1 in `dev`, and no PRD with unmerged `check-areas` edits (`check-migration`), before slice 1; nothing else touching `lib/` or the registries while it runs | (none now; registries are composed from area parts: AGENTS.md, _Rules across PRDs_) |
+| `app-speed` | [PRD](app-speed-prd.md), [plan](app-speed-plan.md): **folded into `timeline-ux`** (its PRD is the speed half's input) | — | none now |
+| `agent-tooling` | [PRD](agent-tooling-prd.md), [plan](agent-tooling-plan.md): **done**, all 6 slices in `dev` (`5d5e1d7`): batched backlog commits, `pnpm log`, the doc budget guard, the core + `docs/agents/` split, the six area docs trimmed | (none) | none now |
+| `code-layout` | [PRD](code-layout-prd.md), [plan](code-layout-plan.md): **done** (`18e9cf8`) | — | none now |
 | `timeline-ux` | [PRD](timeline-ux-prd.md) (speed half: [app-speed PRD](app-speed-prd.md)), [plan](timeline-ux-plan.md): 10 slices, waves (1, 2, 3) → (4, 5, 6) → (7, 8, 9) → 10: navigation that doesn't wait, tiles that remember (dimmed until fresh), the bundle budget, prefetched tabs, one Today card with status hues, the day header with its summary and rows with the author under the menu and no period places, the service worker, simple mode's order and type scale, quick entry's rotating placeholder, open-after-save and lean recent lines, cheaper `/rpc` auth (B-136–B-140, B-144, B-155, B-156, B-162–B-171). **Started 2026-11-20 as a 4th PRD** (the user: no wait on code-layout) | wave 1: none; wave 2 on: `code-layout` slice 5 in `dev` (`appUrls`), or coordinate with it | `lib/auth/session.ts`, `lib/auth/sessionRules.ts`, `lib/app-shell/me.ts`, `lib/sync/` (the remembering hook), `recentLines` (at code-layout's paths), `SectionNav`, the `/app` layout (update notice), the timeline route, its strips (replaced by `TodayCard`), `DayHeader`, `DaySummaryLine`, the row components, `PeriodMarkerItem`, `SimpleTimeline`, quick entry, `packages/auth`, `packages/api/src/procedures.ts`, `routes/rpc.ts`, `scripts/loops/prd.sh`, `scripts/loops/check-areas.d/`, new `scripts/build/` |
 
 ## Summary
@@ -49,11 +51,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
+| B-25 | feature | triaged | providers-2 |  | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
+| B-48 | feature | triaged | providers-2 |  | Allow import of providers from other care groups that you have access to. |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
@@ -73,7 +75,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-140 | change | triaged | timeline-ux |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
 | B-144 | feature | triaged | timeline-ux |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
-| B-148 | chore | ready | agent-tooling | prd/agent-tooling | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
+| B-148 | chore | landed | agent-tooling | prd/agent-tooling | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-155 | chore | ready | timeline-ux | prd/timeline-ux | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | ready | timeline-ux | prd/timeline-ux | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
@@ -95,12 +97,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
 - status: triaged
-- prd: providers
+- prd: providers-2
 - owner:
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Later, after providers' linking lands. Typing @ in a note's or event's text suggests providers; a mention links the provider like the With row. Needs @tiptap/extension-mention and @tiptap/suggestion (new dependencies: the user's approval). Out of scope for the providers PRD.
 - 2026-11-18 (prd/providers): Triaged to providers by its orchestrator: @-mentions need the provider table and links (slices 1 and 5). A follow-up after slice 5, not in the current plan.
+- 2026-11-20 (Robert Bo Davis): Moved from providers (done) to a new providers-2 PRD, to write (the user, 2026-11-20): B-48's cross-group permission rules want an interview, and B-25 touches the live-notes editor. Same commit: the PRD table's done rows shortened, rows added for providers-2 and appointments-2. -- backlog agent
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 
@@ -145,11 +148,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
 - status: triaged
-- prd: providers
+- prd: providers-2
 - owner:
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed as a providers follow-up (the PRD is done, like B-25): copy a provider from another group you belong to into this one (a copy, not a shared row, since providers are per group and synced per group). Needs a small PRD addendum or a quick-fixes slice once scoped.
+- 2026-11-20 (Robert Bo Davis): Moved from providers (done) to a new providers-2 PRD, to write (the user, 2026-11-20): B-48's cross-group permission rules want an interview, and B-25 touches the live-notes editor. Same commit: the PRD table's done rows shortened, rows added for providers-2 and appointments-2. -- backlog agent
 
 ### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
 
@@ -362,7 +366,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-148 · chore · Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and…
 
-- status: ready
+- status: landed
 - prd: agent-tooling
 - owner: prd/agent-tooling
 - commit: 2de3177
