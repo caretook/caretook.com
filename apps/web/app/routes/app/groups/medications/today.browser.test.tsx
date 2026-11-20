@@ -3,6 +3,7 @@ import type { DoseRow } from "./medicationWorld";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, medicationPass } from "../../../../../test/fixtures";
 import { clearUndo } from "~/lib/medications/passUndo";
@@ -94,7 +95,7 @@ const mark = async (row: HTMLElement, item: "Skipped…" | "Refused…", note: s
   await expect.poll(() => menuItem(item)).toBeTruthy();
   await userEvent.click(menuItem(item)!);
   await expect.poll(() => OPEN_DIALOG()?.querySelector("textarea")).toBeTruthy();
-  await userEvent.type(OPEN_DIALOG()!.querySelector("textarea")!, note);
+  await userEvent.type(await found(() => OPEN_DIALOG()?.querySelector("textarea")), note);
   await userEvent.click(dialogButton(item === "Skipped…" ? "Mark skipped" : "Mark refused")!);
 };
 

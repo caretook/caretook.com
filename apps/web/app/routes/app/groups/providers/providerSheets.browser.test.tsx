@@ -5,6 +5,7 @@ import { useLayoutEffect } from "react";
 import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import {
   createAndLinkProvider,
   createProvider,
@@ -99,7 +100,7 @@ const stored = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
 
 const addPhone = () => userEvent.click(formButton("Add a phone number")!);
 const openAdd = async () => {
-  await userEvent.click(ADD_PROVIDER()!);
+  await userEvent.click(await found(ADD_PROVIDER));
   await waitUntil(() => !!FORM(), 4000, "the add sheet");
 };
 
@@ -233,7 +234,7 @@ describe("editing a provider", () => {
     await device.settle();
     expect(listNames("Current providers")).not.toContain("Dr. Nadia Brooks");
     expect(SHOW_PAST()?.textContent.trim()).toBe("Show past (2)");
-    await userEvent.click(SHOW_PAST()!);
+    await userEvent.click(await found(SHOW_PAST));
     await expect.poll(() => listNames("Past providers")).toContain("Dr. Nadia Brooks");
   });
 

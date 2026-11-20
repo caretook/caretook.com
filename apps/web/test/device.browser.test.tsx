@@ -8,6 +8,7 @@ import { searchEntryIds, searchIndexStatus } from "~/lib/search/search.sync";
 import { createEntry, removeEntry } from "~/lib/timeline/timeline.sync";
 import * as timeline from "~/routes/app/groups/timeline/route";
 import { renderWithDevice } from "./device";
+import { found } from "./found";
 import { fx, TEST_GROUP } from "./fixtures";
 
 // The test device's own tests: what every component test leans on.
@@ -274,5 +275,32 @@ describe("settle", () => {
     await expect(device.settle({ timeout: 300 })).rejects.toThrow(
       "settle: the screen didn't settle within 300 ms: the screen kept changing (the DOM changed in every frame).",
     );
+  });
+});
+
+describe("found", () => {
+  test("waits for an element that appears late, and returns it", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    setTimeout(() => host.append(Object.assign(document.createElement("button"), { id: "late" })), 150);
+    expect(host.querySelector("#late")).toBeNull();
+    const button = await found(() => host.querySelector("#late"));
+    expect(button.id).toBe("late");
+    host.remove();
+  });
+
+  test("treats a throwing read as not there yet", async () => {
+    let tries = 0;
+    const el = await found(() => {
+      if (++tries < 3) throw new TypeError("not rendered");
+      return document.body;
+    });
+    expect(el).toBe(document.body);
+  });
+
+  test("times out, saying what it waited for", async () => {
+    await expect(
+      found(() => document.querySelector("#never"), { timeout: 100, message: "the never button" }),
+    ).rejects.toThrow(/found: no element within 100 ms: the never button \(.*#never.*\)\./);
   });
 });

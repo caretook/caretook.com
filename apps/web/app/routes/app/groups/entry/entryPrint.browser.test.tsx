@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, TEST_GROUP } from "../../../../../test/fixtures";
 import * as timeline from "../timeline/route";
@@ -95,7 +96,7 @@ describe("Print in the ⋯ menu", () => {
     const print = printed();
     await renderWithDevice({ route: ROUTES, url: entryPath(VISIT.id), fixtures: world(), role: "caretaker" });
     await waitUntil(() => !!MENU());
-    await userEvent.click(MENU()!);
+    await userEvent.click(await found(MENU));
     await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
     expect(menuItems().slice(-2)).toEqual(["Print", "Delete"]);
     await userEvent.click(menuItem("Print")!);
@@ -106,7 +107,7 @@ describe("Print in the ⋯ menu", () => {
     const print = printed();
     await renderWithDevice({ route: ROUTES, url: entryPath(NOTE.id), fixtures: world(), role: "viewer" });
     await waitUntil(() => !!MENU());
-    await userEvent.click(MENU()!);
+    await userEvent.click(await found(MENU));
     await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
     expect(menuItems()).toEqual(["Print"]);
     await userEvent.click(menuItem("Print")!);

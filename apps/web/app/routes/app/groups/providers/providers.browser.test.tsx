@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import {
   $,
@@ -42,7 +43,7 @@ describe("the directory", () => {
     expect(listNames("Past providers")).toEqual([]);
     expect(SHOW_PAST()?.textContent.trim()).toBe("Show past (1)");
 
-    await userEvent.click(SHOW_PAST()!);
+    await userEvent.click(await found(SHOW_PAST));
     await expect.poll(() => listNames("Past providers")).toEqual(["Dr. Alan Whitford"]);
     expect(params(device)).toEqual({ past: "1" });
     expect(listNames("Current providers")).toEqual(CURRENT_NAMES);
@@ -50,7 +51,7 @@ describe("the directory", () => {
 
   test("search by specialty filters as you type and goes in the URL; a reload (a fresh load of that URL) keeps the box and the list", async () => {
     const device = await open();
-    await userEvent.type(SEARCH()!, "cardio");
+    await userEvent.type(await found(SEARCH), "cardio");
     await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Samuel Patel"]);
     await expect.poll(() => params(device).q).toBe("cardio");
     expect(listNames("Past providers")).toEqual([]);
@@ -64,7 +65,7 @@ describe("the directory", () => {
 
   test("a practice's name finds its clinicians too; the Clinicians chip keeps the search (?q=westside&type=clinician), and survives a reload", async () => {
     const device = await open();
-    await userEvent.type(SEARCH()!, "westside");
+    await userEvent.type(await found(SEARCH), "westside");
     await expect
       .poll(() => listNames("Current providers"))
       .toEqual(["Dr. Elena Alvarez", "Westside Family Medicine"]);

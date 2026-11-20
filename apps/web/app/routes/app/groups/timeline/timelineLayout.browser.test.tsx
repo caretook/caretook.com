@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { at, fx } from "../../../../../test/fixtures";
 import {
   authorOf,
@@ -485,7 +486,7 @@ describe("the author tooltip", () => {
     expect([link, ...link.querySelectorAll("*")].filter((el) => el.hasAttribute("title")).length).toBe(0);
     expect(link.getAttribute("aria-describedby")).toBeNull();
     // A pointer press first: after keys (an earlier test's), React Aria shows tooltips on hover only once the pointer is used again.
-    await userEvent.click(document.querySelector("section h3")!);
+    await userEvent.click(await found(() => document.querySelector("section h3")));
     // The quick-entry suggestions (their chips depend on the time of day) land after the rows and push the list down: hover once the link has stopped moving.
     let top = -1;
     let still = 0;

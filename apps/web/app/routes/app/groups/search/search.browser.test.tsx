@@ -4,6 +4,7 @@ import type { Fixture } from "../../../../../test/fixtures";
 import { useNavigate, useParams } from "react-router";
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, newId, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { TIMELINE_ROUTES } from "../timeline/timelineWorld";
@@ -252,7 +253,7 @@ describe("results", () => {
     await searchFor("garden");
     expect(resultIds("entry").length).toBe(5);
     expect(total("entry")).toBe(8);
-    await userEvent.click(document.querySelector('[data-show-all="entry"]')!);
+    await userEvent.click(await found(() => document.querySelector('[data-show-all="entry"]')));
     await expect.poll(() => device.location()).toBe(searchUrl("?q=garden&all=entry"));
     await expect.poll(() => resultIds("entry").length).toBe(8);
 
@@ -327,7 +328,7 @@ describe("recent searches", () => {
     await expect.poll(recent).toEqual(["metformin", "lisinopril"]);
     expect(tips()).toBe(true);
 
-    await userEvent.click(document.querySelector('[data-recent-search="lisinopril"]')!);
+    await userEvent.click(await found(() => document.querySelector('[data-recent-search="lisinopril"]')));
     await showing("lisinopril");
     expect(field().value).toBe("lisinopril");
     expect(resultIds("medication")).toEqual([lisinopril.id]);
