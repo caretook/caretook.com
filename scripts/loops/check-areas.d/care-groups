@@ -14,11 +14,11 @@ packages/api/src/invites.ts              invites
 packages/api/src/joinRequests.ts         invites
 packages/data/src/services/careGroupInviteService.ts invites
 packages/data/src/services/accessCodeService.ts invites
-packages/data/src/db/schema/accessCode.ts invites
-packages/data/src/db/schema/newCareGroup.ts first-sync invites
-packages/data/src/db/schema/inviteRules.ts invites app-shell
-packages/data/src/db/schema/careGroup*.ts app-shell invites
-packages/data/src/db/schema/careGroupMember.ts profiles-contacts app-shell
+packages/data/src/db/schema/care-groups/accessCode.ts invites
+packages/data/src/db/schema/care-groups/newCareGroup.ts first-sync invites
+packages/data/src/db/schema/care-groups/inviteRules.ts invites app-shell
+packages/data/src/db/schema/care-groups/careGroup*.ts app-shell invites
+packages/data/src/db/schema/care-groups/careGroupMember.ts profiles-contacts app-shell
 packages/data/src/db/seeds/accessCodes.ts invites
 packages/data/src/db/seeds/invites.ts    invites app-shell
 # Members on the device: the Members page, invites and contact sharing.

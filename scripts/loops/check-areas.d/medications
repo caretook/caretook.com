@@ -20,8 +20,8 @@ apps/web/app/lib/sync/dueDoses.ts        phase2
 apps/web/app/lib/duePasses.ts            -
 apps/web/app/lib/passUndo.ts             -
 apps/web/app/lib/sync/memberNames.ts     -
-packages/data/src/db/schema/medication.ts roundtrip
-packages/data/src/db/schema/medicationPass.ts roundtrip
-packages/data/src/db/schema/recipientAllergy.ts roundtrip
+packages/data/src/db/schema/medications/medication.ts roundtrip
+packages/data/src/db/schema/medications/medicationPass.ts roundtrip
+packages/data/src/db/schema/profiles/recipientAllergy.ts roundtrip
 packages/data/src/db/seeds/medications.ts phase2
 packages/data/src/db/seeds/medicationPasses.ts -

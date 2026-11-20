@@ -94,3 +94,6 @@ export type ScopeRule =
 
 /** The resolved scope for one request: what the WHERE clause must enforce. */
 export type PermissionScope = { type: "all" } | { type: "rules"; rules: readonly ScopeRule[] };
+
+/** One area's part of the permission map: some of the tables, each fully described. */
+export type PartialPermissions = { readonly [K in DbSchemaName]?: SchemaEntry<K> };
