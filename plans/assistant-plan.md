@@ -6,15 +6,15 @@
 
 | Slice | State                                               | Merge into `prd/assistant` (slice commits) |
 | ----- | --------------------------------------------------- | ------------------------------------------ |
-| 1     | not started                                         |                                            |
+| 1     | wave 1, running                                     |                                            |
 | 2     | blocked by 1                                        |                                            |
-| 3     | not started                                         |                                            |
-| 4     | not started                                         |                                            |
+| 3     | wave 1, running                                     |                                            |
+| 4     | wave 1, running                                     |                                            |
 | 5     | blocked by 1                                        |                                            |
 | 6     | blocked by 5                                        |                                            |
 | 7     | blocked by 1, 2, 4, 6 (`medications-2` is in `dev`) |                                            |
 
-**Landing:** land each wave as soon as it's green. The user said (2026-11-19) there's no real data, so it doesn't matter when the migration (slice 5) lands; it doesn't force one landing at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued.
+**Landing:** land each wave as soon as it's green. The user said (2026-11-19) there's no real data, so it doesn't matter when the migration (slice 5) lands; it doesn't force one landing at the end. **Landing mode: run everything through** (queued with `pnpm prd queue assistant`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
 Backlog: B-12, B-49, B-58 and B-87 are `triaged`. Claim B-12 when slice 1 starts, B-49 with slice 3, B-58 with slice 4, B-87 with slice 5. Mark each `done` after its last slice merges: B-49 after 3, B-58 after 7 (missed doses), B-87 after 7 (the Now block), B-12 after 7.
 
