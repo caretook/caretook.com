@@ -797,6 +797,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side).
 - 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice with B-142. Slice 3 owns the limiter; this changes what key it gets (the host's own client-IP header, not the first x-forwarded-for entry).
+- 2026-11-20 (prd/hosting): Planned as hosting slice 8 (wave 2, after slices 1 and 3), with B-142.
 
 ### B-144 · feature · Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload…
 
