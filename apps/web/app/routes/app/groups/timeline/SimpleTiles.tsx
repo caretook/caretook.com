@@ -19,8 +19,8 @@ const tileHref = (groupId: string, tile: SimpleTile) => {
  * Simple mode's four big tiles (writers only): each opens one short form,
  * the simple variant of its sheet (the feelings scale, one vital type's
  * fields, the Dose sheet) or a new note. Labelled in plain words about the
- * recipient. While nobody has chosen the tiles (they're learned from use), a
- * hint says owners can set them, with the way there for those who can.
+ * recipient. While nobody has chosen the tiles (they're learned from use),
+ * those who can choose them get a link there; members see nothing more.
  */
 export function SimpleTiles({
   groupId,
@@ -58,16 +58,11 @@ export function SimpleTiles({
           );
         })}
       </ul>
-      {!setting && (
-        <p className="text-base-content/70 text-base" data-tiles-hint="">
-          These follow what's logged most.{" "}
-          {canChoose ? (
-            <Link to={appUrls.groupSettings(groupId, "details")} className="link link-primary">
-              Choose the tiles
-            </Link>
-          ) : (
-            "The group's owners can choose them."
-          )}
+      {!setting && canChoose && (
+        <p className="text-base" data-tiles-hint="">
+          <Link to={appUrls.groupSettings(groupId, "details")} className="link link-primary">
+            Choose the tiles
+          </Link>
         </p>
       )}
     </section>

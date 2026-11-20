@@ -12,7 +12,7 @@ import { useQuickEntrySuggestions } from "./useQuickEntrySuggestions";
  * the box empty: first the passes due now as one tap each ("Give evening
  * meds (4)": Given all, with Undo), then what the group usually logs around
  * now and your recent lines, as chips that only fill the box (Save is still
- * yours), then the tips.
+ * yours), then the tips (left out with `showTips={false}`, as simple mode does).
  */
 export function QuickEntrySuggestions({
   groupId,
@@ -22,6 +22,7 @@ export function QuickEntrySuggestions({
   duePasses = [],
   onGivePass,
   passBusy = false,
+  showTips = true,
 }: {
   groupId: string;
   text: string;
@@ -34,6 +35,8 @@ export function QuickEntrySuggestions({
   /** Given all for a pass (its chip saves at once). */
   onGivePass?: (pass: DuePass) => void;
   passBusy?: boolean;
+  /** The typing tips under the empty box (simple mode leaves them out). */
+  showTips?: boolean;
 }) {
   const { usual, recent, completions } = useQuickEntrySuggestions({ groupId, text, passes });
 
@@ -83,10 +86,12 @@ export function QuickEntrySuggestions({
           />
         </Row>
       )}
-      <p className="text-base-content/70 text-sm" data-quick-tips>
-        Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas
-        separate entries; start with “n:” for a note.
-      </p>
+      {showTips && (
+        <p className="text-base-content/70 text-sm" data-quick-tips>
+          Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas
+          separate entries; start with “n:” for a note.
+        </p>
+      )}
     </div>
   );
 }

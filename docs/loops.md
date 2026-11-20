@@ -15,9 +15,9 @@ How PRDs, orchestrators and loops run: the `pnpm prd` commands, worktree isolati
 | `pnpm prd plan <topic> [--open] [B-n…]`               | a docs-only worktree for writing a PRD and plan; `--open` starts its planning session in that terminal                                                                                                                                                       |
 | `pnpm prd plan`                                       | no topic: a backlog and inbox planning session in the main checkout, which helps decide what's next (`prompt.sh backlog`)                                                                                                                                    |
 | `pnpm prd slice <topic> <n>`                          | a slice's worktree; a stack only for `Stack: yes`                                                                                                                                                                                                            |
-| `pnpm prd hotfix <name>`                              | a stackless worktree on `hotfix/<name>` from `dev`, for one contained fix outside any PRD (see _Hotfixes_ under _Landing a wave_)                                                                                                                            |
+| `pnpm prd hotfix <name> [--open] ["<the fix>"]`       | a stackless worktree on `hotfix/<name>` from `dev`, for one contained fix outside any PRD (reused if it exists); `--open` starts its session in this terminal (see _Hotfixes_ under _Landing a wave_)                                                        |
 | `pnpm prd serve [name] [--restart]`                   | run that worktree's dev server in the background (it outlives the session) and print the link; `--built` serves a check build instead                                                                                                                        |
-| `pnpm prd check`                                      | `pnpm check` under a machine-wide check lease (three at once, `CARETOOK_CHECK_SLOTS`), then record that this commit passed                                                                                                                                   |
+| `pnpm prd check [--quick "<why>"]`                    | `pnpm check` under a machine-wide check lease (three at once, `CARETOOK_CHECK_SLOTS`), then record that this commit passed; `--quick`: typecheck, lint, format and the related tests only, with its reason (_The check gate_)                                |
 | `pnpm prd browser <check> [args…]`                    | run one check under a machine-wide lease (four at once); `--changed` for what the diff needs; `--suite`; `--timeout <s>`                                                                                                                                     |
 | `pnpm prd sync`                                       | merge `dev` into this PRD branch                                                                                                                                                                                                                             |
 | `pnpm prd ready [topic]`                              | the ready-to-land report: the link, the backlog items it addresses, what changed, any blockers                                                                                                                                                               |
@@ -147,10 +147,10 @@ The table's machine-readable form is `scripts/loops/check-areas`; keep the two i
 
 **Landing a wave in `dev`:**
 
-1. **Sync and check.** In the integration worktree: `pnpm prd sync` (merges `dev`; resolve conflicts there, regenerate your migration if `dev` gained one, `pnpm datastore:reset`), `pnpm prd serve --restart`, the wave's browser checks (a wave that changes screens or flows: `caffeinate -i pnpm prd browser --suite`, the **lean set once**, one check at a time under one lease, with a pass/fail table, plus, by name, any `e2e no` check that `--changed --base dev --list` names; any other wave: `pnpm prd browser --changed --base dev`; see _Browser check budget_), then `pnpm prd check`. Backlog-only commits on `dev` don't count as drift, so `pnpm backlog` writes never force another sync.
+1. **Sync and check.** In the integration worktree: `pnpm prd sync` (merges `dev`; resolve conflicts there, regenerate your migration if `dev` gained one, `pnpm datastore:reset`), `pnpm prd serve --restart`, the wave's browser checks (a wave that changes screens or flows: `caffeinate -i pnpm prd browser --suite`, the **lean set once**, one check at a time under one lease, with a pass/fail table, plus, by name, any `e2e no` check that `--changed --base dev --list` names; any other wave: `pnpm prd browser --changed --base dev`; see _Browser check budget_), then `pnpm prd check`, or `pnpm prd check --quick "<why>"` when _The check gate_ allows it (docs and tooling-only changes need neither). Backlog-only commits on `dev` don't count as drift, so `pnpm backlog` writes never force another sync.
 2. **Serve it and report.** `pnpm prd serve --restart`, then show the user the output of `pnpm prd ready`: the dev server link and seed accounts, the backlog items this landing addresses (grouped as bugs fixed, features, changes), what's still open in the PRD, the commits, and warnings for a migration, seed, sync-config or dependency change. Add the browser checks you ran and two or three things worth trying by hand. If it lists blockers, fix them first.
 3. **Wait for the user.** They may try it at the link, ask for changes (send those back to a loop, then repeat from step 1), or say to land it.
-4. **Land on their word only:** `pnpm prd land <topic> -m "feat(<topic>): <what the wave adds> (B-<n>, …)"`. It refuses unless the branch is synced and `pnpm prd check` passed on its tip, or on an earlier commit with only Markdown changed since (docs-only changes skip `pnpm check`), so the code landing in `dev` is exactly the code that was checked; no recheck on `dev` is needed. It prints what the main checkout needs afterwards (`pnpm datastore:reset`, a PowerSync restart after a sync-config change, `pnpm install`) and never pushes: `git push origin dev` is the user's.
+4. **Land on their word only:** `pnpm prd land <topic> -m "feat(<topic>): <what the wave adds> (B-<n>, …)"`. It refuses unless the branch is synced and passes _The check gate_ (a full or quick `pnpm prd check` on its tip, or on an earlier commit with only docs and tooling changed since, or a branch of only docs and tooling), and prints which, so the code landing in `dev` is the code that was checked; no recheck on `dev` is needed. It prints what the main checkout needs afterwards (`pnpm datastore:reset`, a PowerSync restart after a sync-config change, `pnpm install`) and never pushes: `git push origin dev` is the user's.
 5. Other orchestrators run `pnpm prd sync` at their next wave boundary, not mid-wave.
 6. When a PRD is finished and landed, `pnpm prd rm <topic>` removes its worktree and deletes `prd/<topic>`.
 
@@ -160,7 +160,7 @@ A go-ahead covers one landing, unless the user chose a landing mode that lands w
 
 **Hotfixes also live outside the PRD rules.** When the user asks for a small fix in its own worktree (rather than straight onto `dev` in the main checkout), use `pnpm prd hotfix <name>`: one stackless worktree, `.loops/hotfix-<name>` on `hotfix/<name>` from `dev`, worked by the session the user asked in, with no PRD, plan, orchestrator, slices or `Stack`/`Reads`/`Tests` fields.
 
-- **Starting one.** A session the user opens in the main checkout ("you are a hotfix agent…") runs `pnpm prd hotfix <name>` itself and from then on works only inside `.loops/hotfix-<name>`, with absolute paths, never in the main checkout. For a fresh session, `pnpm prd hotfix <name>` prints the command: `cd .loops/hotfix-<name> && claude --remote-control hotfix-<name> "$(scripts/loops/prompt.sh hotfix <name> '<the fix>')"`.
+- **Starting one.** A session the user opens in the main checkout ("you are a hotfix agent…") runs `pnpm prd hotfix <name>` itself and from then on works only inside `.loops/hotfix-<name>`, with absolute paths, never in the main checkout. For a fresh session, `pnpm prd hotfix <name> --open "<the fix>"` makes the worktree (or reuses it) and starts the session in that terminal; without `--open` it prints the command: `cd .loops/hotfix-<name> && claude --remote-control hotfix-<name> "$(scripts/loops/prompt.sh hotfix <name> '<the fix>')"`.
 - **Talk it through first** when the fix is a judgement call (what to show, what to cut): summarise what's there, then poll the user with AskUserQuestion before building.
 - **Background agents are allowed** (a test run, a search, a review), working in the hotfix worktree only.
 
@@ -168,12 +168,43 @@ A go-ahead covers one landing, unless the user chose a landing mode that lands w
 - Keep it to one contained change (the same size as a small change on `dev`); anything bigger, parallel, on a running PRD's hot file, or with a migration is a PRD or a `quick-fixes` slice.
 - Screens still get component tests, and the docs the change makes stale are updated on the branch (a hotfix session may edit `docs/` and AGENTS.md, as a session on `dev` may). The hotfix pattern is still being worked out: write any new rule the session and the user settle on into this section, on the branch, so it lands with the fix.
 - A small tooling change the user asks for in the same session (like this section's own updates) may ride on the hotfix branch as its own commit (`chore(loops): …`).
-- Commit on the branch only when the user asks. Then, each on their go-ahead: `pnpm prd check` there, `pnpm prd browser --changed` once (it needs a stack: `pnpm prd stack up`), and `pnpm prd sync` if `dev` has moved.
-- Land on the user's word only, like a PRD: `pnpm prd land hotfix/<name> -m "fix(<area>): …"`. It needs a passing `pnpm prd check` on the tip, and its default type is `fix`. Then `pnpm prd rm hotfix-<name>`, which deletes the merged branch.
-- **Targeted tests instead of the full check**, when the user asks: run only the tests the fix changed and those that directly cover the changed code (unit, integration and component files by name), plus typecheck, lint and format check; list them for the user, then land with `--force` only on the user's word (`pnpm prd land hotfix/<name> --force -m …`), which skips the `pnpm prd check` gate. Before running checks, look for tests that assert an exact shape you changed (a `toEqual` on an API's output, say) and update them.
+- Commit on the branch only when the user asks. Then, each on their go-ahead: the check _The check gate_ asks for there (`pnpm prd check --quick "<why>"` by default for a hotfix; none for docs and tooling only), `pnpm prd browser --changed` once (it needs a stack: `pnpm prd stack up`), and `pnpm prd sync` if `dev` has moved.
+- Land on the user's word only, like a PRD: `pnpm prd land hotfix/<name> -m "fix(<area>): …"`. It needs the tip to pass _The check gate_, and its default type is `fix`. Then `pnpm prd rm hotfix-<name>`, which deletes the merged branch.
+- **Targeted tests instead of the full check** (older than `--quick`, which now does this by default), when the user asks for named tests only: run only the tests the fix changed and those that directly cover the changed code (unit, integration and component files by name), plus typecheck, lint and format check; list them for the user, then land with `--force` only on the user's word (`pnpm prd land hotfix/<name> --force -m …`), which skips the `pnpm prd check` gate. Before running checks, look for tests that assert an exact shape you changed (a `toEqual` on an API's output, say) and update them.
 - A backlog item, if there is one, is claimed and marked through `pnpm backlog` as usual; the backlog files are never edited on the branch.
 
 The _Rules across PRDs_ and _Loop rules_ are in [AGENTS.md](../AGENTS.md).
+
+### The check gate
+
+`pnpm prd land` and `pnpm prd ready` accept a branch's tip on one of these, and say which (`lib.sh`, `checked_ok` and `checked_how`):
+
+- **None needed:** everything the branch changes against `dev` (`dev...<tip>`) is docs or internal tooling: Markdown, `scripts/loops/`, `scripts/backlog/` and `.githooks/`. Later commits of only those files also keep an earlier pass. The gate asks for nothing here; still run the tooling's own test file for what you changed, by name.
+- **Full:** `pnpm prd check` passed on the tip.
+- **Quick:** `pnpm prd check --quick "<why>"` passed on the tip: typecheck, lint, format check, and only the tests related to the diff since the last full pass (`vitest run --changed <base>`; Vitest reruns everything when its config or a `package.json` changes). The reason is recorded and shown at landing.
+
+**Quick or full is the agent's judgement**, stated with its reason in the report (`pnpm prd ready` shows it). Quick is enough when everything since the last full pass is one of these:
+
+- a `pnpm prd sync` merged without conflicts, where the branch's work and the incoming `dev` work change no file in common (each side passed a full check on its own);
+- slice merges into `prd/<topic>` whose slices each passed `pnpm check` on their own branch (loops still run the full check before hand-off), with no conflicts in code;
+- a hotfix (quick is its default).
+
+Run the full check when a conflict was resolved in code; when the diff adds or changes a migration, seeds, `powersync/sync-config.yaml`, `pnpm-lock.yaml` or a `package.json`; when both sides changed a shared registry (_Rules across PRDs_) or a hot file; or when you're unsure. A quick pass's base stays the last full pass, so quick passes don't drift: the related tests grow with the diff.
+
+### Models
+
+Spawned agents can't spawn more, so the top-level sessions choose: orchestrators, hotfix, planning and backlog sessions, through the Agent tool's `model`. Use the cheapest model that does the job well, with a tight brief that asks for a short answer, so the session's own context and budget go on judgement.
+
+| Work                                                                                                             | Model                                  |
+| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Reading long output: run a check or browser check and report only failures, the ■ lines and the table            | haiku                                  |
+| Searches and summaries: sweeping the codebase, summarising a long doc, plan, PRD, hand-off or diff               | haiku (sonnet when it needs judgement) |
+| Backlog chores: `ingest`, `doctor`, `list` and notes; triage proposals the session reviews before setting        | haiku                                  |
+| A mechanical slice: a rename, moving checks to component tests, a contained fix the plan spells out step by step | sonnet                                 |
+| A design-heavy slice: a new table or permission, sync, a new screen's UX, a cross-cutting refactor               | the session's own (opus)               |
+| Reviewing a hand-off, resolving conflicts, choosing the check, landing, and talking with the user                | the session itself                     |
+
+An orchestrator picks each slice's model from what its plan says it does, and notes it in _Status_. When a cheaper agent's result looks wrong or thin, redo it on a stronger model rather than patching on top.
 
 ### Loop gotchas
 

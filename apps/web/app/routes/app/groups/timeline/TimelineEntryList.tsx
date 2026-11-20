@@ -15,7 +15,7 @@ import { useLocation, useNavigate } from "react-router";
 import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { canReschedule } from "~/lib/eventReschedule";
-import { localTimeZone } from "~/lib/format";
+import { dayLabel, localTimeZone } from "~/lib/format";
 import { useGroup } from "~/lib/group";
 import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
@@ -31,7 +31,8 @@ import { DaySummaryLine } from "./DaySummaryLine";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
-import { withMarkers } from "./timelineDays";
+import { dayKeyIn, withMarkers } from "./timelineDays";
+import { QuickAddPrefetch } from "./QuickAddMenu";
 import { UpcomingBlock } from "./UpcomingBlock";
 import { useEntryRemoval } from "./useEntryRemoval";
 
@@ -60,7 +61,9 @@ const LIST_CLASS: Record<TimelineView, string> = {
  * which loads older pages as the end comes near. With
  * `upcoming` (`?upcoming=1`), the Upcoming block comes first, above Today, in
  * the same rows or cards. Writers get each entry's ⋯ menu, with one delete
- * confirm for the whole list.
+ * confirm for the whole list, and each day heading's + menu; a writer's list
+ * always has a Today heading (empty when nothing's logged today), so today's
+ * + is always there.
  *
  * `simple` is simple mode's list: rows only, shown larger (the whole list is
  * zoomed, so icons and taps grow with the text; `SIMPLE_ZOOM`), with no ⋯
@@ -133,7 +136,15 @@ export function TimelineEntryList({
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
   const recipientZone = useGroup().recipient?.timeZone ?? "UTC";
-  const sections = withMarkers(data.days, simple ? NO_MARKERS : data.markers, localTimeZone(), new Date());
+  const now = new Date();
+  const timeZone = localTimeZone();
+  const days = withMarkers(data.days, simple ? NO_MARKERS : data.markers, timeZone, now);
+  const todayKey = dayKeyIn(now.toISOString(), timeZone);
+  const adding = canWrite && !simple;
+  const sections =
+    adding && days[0]?.key !== todayKey
+      ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
+      : days;
   // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then; none when they're off).
   const summaries =
     summaryMode !== "off" &&
@@ -141,7 +152,7 @@ export function TimelineEntryList({
     summariesByDay(
       data.summaryEntries,
       sections.map((d) => d.key),
-      localTimeZone(),
+      timeZone,
       { units, nameOf: data.nameOf },
     );
 
@@ -226,11 +237,6 @@ export function TimelineEntryList({
         <p role="status" className="sr-only" data-search-status>
           {announcement}
         </p>
-        {data.days.length === 0 && (
-          <p className="text-base-content/70" data-empty>
-            {searchStateText(searching.state) ?? emptyText}
-          </p>
-        )}
         {sections.map((day) => (
           <section key={day.key} aria-labelledby={`day-${day.key}`}>
             <DayHeader
@@ -242,37 +248,48 @@ export function TimelineEntryList({
               simple={simple}
             />
             {summaries && <DaySummaryLine summary={summaries.get(day.key)} mode={summaryMode} />}
-            <ol className={LIST_CLASS[view]} data-view={view}>
-              {/* Doses logged in one round fold into one pass log; care period markers keep their moments. */}
-              {foldPassLogs(day.entries).map((it) =>
-                it.type === "entry" ? (
-                  item(it.entry, true)
-                ) : it.type === "marker" ? (
-                  <PeriodMarkerItem
-                    key={it.key}
-                    marker={it.marker}
-                    groupId={groupId}
-                    timeZone={recipientZone}
-                    placeName={data.periods.placeName}
-                    view={view}
-                  />
-                ) : (
-                  <PassLogItem
-                    key={it.id}
-                    view={view}
-                    passLogId={it.id}
-                    passName={data.passNameOf(it.passId)}
-                    doses={it.entries}
-                    occurredAt={it.occurredAt}
-                    authorName={data.nameOf(it.entries[0]!.createdBy)}
-                    authorImage={data.imageOf(it.entries[0]!.createdBy)}
-                    sheetTo={canWrite && !simple ? appUrls.passSheet(groupId, it.id, { search }) : undefined}
-                  />
-                ),
-              )}
-            </ol>
+            {day.entries.length > 0 && (
+              <ol className={LIST_CLASS[view]} data-view={view}>
+                {/* Doses logged in one round fold into one pass log; care period markers keep their moments. */}
+                {foldPassLogs(day.entries).map((it) =>
+                  it.type === "entry" ? (
+                    item(it.entry, true)
+                  ) : it.type === "marker" ? (
+                    <PeriodMarkerItem
+                      key={it.key}
+                      marker={it.marker}
+                      groupId={groupId}
+                      timeZone={recipientZone}
+                      placeName={data.periods.placeName}
+                      view={view}
+                    />
+                  ) : (
+                    <PassLogItem
+                      key={it.id}
+                      view={view}
+                      passLogId={it.id}
+                      passName={data.passNameOf(it.passId)}
+                      doses={it.entries}
+                      occurredAt={it.occurredAt}
+                      authorName={data.nameOf(it.entries[0]!.createdBy)}
+                      authorImage={data.imageOf(it.entries[0]!.createdBy)}
+                      sheetTo={
+                        canWrite && !simple ? appUrls.passSheet(groupId, it.id, { search }) : undefined
+                      }
+                    />
+                  ),
+                )}
+              </ol>
+            )}
           </section>
         ))}
+        {/* After the headings, so a writer's empty timeline starts with Today's +. */}
+        {data.days.length === 0 && (
+          <p className="text-base-content/70" data-empty>
+            {searchStateText(searching.state) ?? emptyText}
+          </p>
+        )}
+        {adding && <QuickAddPrefetch groupId={groupId} />}
 
         <OlderEntries
           hasOlder={data.hasOlder}

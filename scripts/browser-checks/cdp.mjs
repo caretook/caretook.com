@@ -343,7 +343,7 @@ export async function openPage(browser, label) {
   };
 
   /**
-   * Add to the timeline through its header's + menu (quick-fixes slice 39):
+   * Add to the timeline through Today's + menu (quick-fixes slices 39, 44):
    * open it, then choose `item` ("Note", "Symptom", "Heart rate"…), with a
    * real tap (`how: "tap"`) or a synthetic press (the default).
    */
@@ -420,8 +420,11 @@ export const localCopyHolds = (text) => `(async () => {
  * only its core path (one role, one happy path, no offline, no second device),
  * in about 20 s. Hand-offs and landings run the full check.
  */
-/** The timeline header's + button (writers only), which opens the add menu. */
-export const ADD_BUTTON = `document.querySelector('main header button[aria-label="Add to timeline"]')`;
+/**
+ * Today's + button on the timeline (on Today's day heading; writers only, and
+ * a writer's timeline always has a Today heading), which opens the add menu.
+ */
+export const ADD_BUTTON = `document.querySelector('main [data-day-header] button[aria-label="Add to Today"]')`;
 
 export const SMOKE = process.env.SMOKE === "1";
 

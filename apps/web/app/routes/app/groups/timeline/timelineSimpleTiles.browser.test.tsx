@@ -13,7 +13,7 @@ import { TIMELINE_URL, waitUntil } from "./timelineWorld";
 // Simple mode's tiles (assistant slice 6), on the test device and offline:
 // which four show for each of the group's choices (learned from use, the
 // fixed set, four picked), their labels about the recipient, the first-run
-// hint, and each tile's simple sheet saving an entry locally. The choices
+// link to choose them, and each tile's simple sheet saving an entry locally. The choices
 // themselves are group settings Details' (simpleTiles.browser.test.tsx);
 // learnedTiles and the labels have unit tests (lib/simpleTiles.test.ts).
 
@@ -72,11 +72,12 @@ const queuedEntries = async (device: Awaited<ReturnType<typeof open>>) =>
 const FIXED = ["How she feels", "Blood pressure", "Her medicines", "A note about her day"];
 
 describe("which tiles", () => {
-  test("a new group's are learned: the fixed set until something is logged, with the hint that owners choose them", async () => {
+  test("a new group's are learned: the fixed set until something is logged, and a member sees no hint or link", async () => {
     await open();
     await ready();
     expect(tileLabels()).toEqual(FIXED);
-    expect(hint()).toBe("These follow what's logged most. The group's owners can choose them.");
+    expect(hint()).toBeNull();
+    expect(page.getByRole("link", { name: "Choose the tiles" }).elements()).toHaveLength(0);
   });
 
   test("learned from the last 30 days: the most-logged first, padded with the fixed set", async () => {
@@ -96,12 +97,13 @@ describe("which tiles", () => {
     ]);
   });
 
-  test("an owner gets the way to choose them", async () => {
+  test("an owner gets only the way to choose them, with no hint text", async () => {
     await open({ role: "owner" });
     await ready();
     await expect
       .element(page.getByRole("link", { name: "Choose the tiles" }))
       .toHaveAttribute("href", `/app/groups/${TEST_GROUP.id}/settings/details`);
+    expect(hint()).toBe("Choose the tiles");
   });
 
   test("the fixed set, or four picked, and no hint once someone has chosen", async () => {

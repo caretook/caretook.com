@@ -14,6 +14,7 @@ import {
   SEPARATOR,
   Sheet,
 } from "./index";
+import { DateTimeField } from "./date";
 import { Tooltip } from "./tooltip";
 
 // The ui/ primitives' behaviour (what ui.mjs checks through screens), on the
@@ -388,6 +389,40 @@ describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
     await expect
       .element(page.getByRole("link", { name: "Search this care group" }))
       .toHaveAttribute("href", "/search");
+  });
+});
+
+describe("DateTimeField", () => {
+  const ZONE = "America/Los_Angeles";
+  const segment = (type: string) => document.querySelector<HTMLElement>(`[data-type="${type}"]`)!;
+  /** Focus a segment of a field starting at `iso`, press `key`, and return what onChange got. */
+  const step = async (iso: string, type: "month" | "year", key: string) => {
+    const onChange = vi.fn<(iso: string) => void>();
+    await renderInRouter(
+      <DateTimeField label="Start from" defaultValue={iso} timeZone={ZONE} onChange={onChange} />,
+    );
+    segment(type).focus();
+    await userEvent.keyboard(key);
+    await expect.poll(() => onChange.mock.calls.length).toBe(1);
+    return onChange.mock.calls[0]![0];
+  };
+
+  // Each at 10:00 in Los Angeles (UTC−7 in summer time, −8 in winter).
+  test("a month stepped back from the 31st clamps the day: 31 October to 30 September", async () => {
+    expect(await step("2026-10-31T17:00:00.000Z", "month", "{ArrowDown}")).toBe("2026-09-30T17:00:00.000Z");
+    await expect.poll(() => [segment("month").textContent, segment("day").textContent]).toEqual(["9", "30"]);
+  });
+
+  test("31 March to 29 February in a leap year", async () => {
+    expect(await step("2028-03-31T17:00:00.000Z", "month", "{ArrowDown}")).toBe("2028-02-29T18:00:00.000Z");
+  });
+
+  test("a year stepped off 29 February clamps to the 28th", async () => {
+    expect(await step("2028-02-29T18:00:00.000Z", "year", "{ArrowDown}")).toBe("2027-02-28T18:00:00.000Z");
+  });
+
+  test("a step that keeps the day is React Aria's own", async () => {
+    expect(await step("2026-10-15T17:00:00.000Z", "month", "{ArrowDown}")).toBe("2026-09-15T17:00:00.000Z");
   });
 });
 

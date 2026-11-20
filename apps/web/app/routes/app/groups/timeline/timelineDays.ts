@@ -9,6 +9,48 @@ export type TimelineDay<T> = { key: string; label: string; entries: T[] };
 export const dayKeyIn = (iso: string, timeZone: string) =>
   new Date(iso).toLocaleDateString("en-CA", { timeZone });
 
+/** The hour a past day's adds start at (the + on its heading): midday. */
+const DAY_START_HOUR = 12;
+
+/**
+ * When an add from a day's + starts (`dayKey`, the viewer's day in
+ * `timeZone`, as `dayKeyIn` keys it): now for today, else 12:00 that day in
+ * the zone (DST changes happen at night, so midday is always on the clock).
+ */
+export const dayStartAt = (dayKey: string, timeZone: string, now: Date): string => {
+  if (dayKey === dayKeyIn(now.toISOString(), timeZone)) return now.toISOString();
+  const [y, m, d] = dayKey.split("-").map(Number) as [number, number, number];
+  const wall = Date.UTC(y, m - 1, d, DAY_START_HOUR);
+  // The zone's offset at that moment: its wall clock read as UTC, less the moment.
+  const offsetAt = (t: number) => {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+        .formatToParts(t)
+        .map((p) => [p.type, p.value]),
+    );
+    const read = Date.UTC(
+      +parts.year!,
+      +parts.month! - 1,
+      +parts.day!,
+      +parts.hour!,
+      +parts.minute!,
+      +parts.second!,
+    );
+    return read - t;
+  };
+  const guess = wall - offsetAt(wall);
+  return new Date(wall - offsetAt(guess)).toISOString();
+};
+
 /**
  * Consecutive entries grouped by calendar day in `timeZone` (the viewer's),
  * labelled by `dayLabel` ("Today", "Yesterday", "Monday, Nov 16"). The list
