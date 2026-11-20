@@ -14,6 +14,8 @@ const APAP = "33333333-3333-4333-8333-333333333333";
 const METO = "44444444-4444-4444-8444-444444444444";
 const LEE = "55555555-5555-4555-8555-555555555555";
 const RIVER = "66666666-6666-4666-8666-666666666666";
+const SAM = "77777777-7777-4777-8777-777777777777";
+const JO = "88888888-8888-4888-8888-888888888888";
 
 /** Thursday, Nov 19, 2026, 8:00 in Los Angeles (16:00 UTC). */
 const NOW = new Date("2026-11-19T16:00:00Z");
@@ -38,12 +40,21 @@ const context = (over: Partial<QuickEntryContext> = {}): QuickEntryContext => ({
     { id: LEE, name: "Dr. Sandra Lee", type: "clinician" },
     { id: RIVER, name: "Riverside Dialysis", type: "practice", address: "12 River Rd" },
   ],
+  members: [
+    { id: SAM, name: "Sam Rivera" },
+    { id: JO, name: "Jo Ann Okafor" },
+  ],
   ...over,
 });
 
 const parse = (line: string, over?: Partial<QuickEntryContext>) => parseQuickEntry(line, context(over)).parts;
 const top = (line: string, over?: Partial<QuickEntryContext>) => parse(line, over)[0]!.readings[0]!;
 const action = (r: QuickEntryReading) => r.actions[0]!;
+/** When an action is dated (a task has a due day instead). */
+const when = (r: QuickEntryReading) => {
+  const a = action(r);
+  return "occurredAt" in a ? a.occurredAt : undefined;
+};
 const blocking = (r: QuickEntryReading) => r.warnings.filter((w) => w.blocking).map((w) => w.message);
 const warnings = (r: QuickEntryReading) => r.warnings.map((w) => w.message);
 const at = (iso: string) => new Date(iso).toISOString();
@@ -60,6 +71,8 @@ describe("splitting", () => {
     ["n: ate lunch, then napped and watched tv", ["n: ate lunch, then napped and watched tv"]],
     ["e: lunch with Ann, and a walk", ["e: lunch with Ann, and a walk"]],
     ["candy, sandwich", ["candy", "sandwich"]],
+    ["todo: pick up milk and bread, bp 130/85", ["todo: pick up milk and bread", "bp 130/85"]],
+    ["bp 130/85 and t: call the pharmacy then fax it", ["bp 130/85", "t: call the pharmacy then fax it"]],
     ["   ", []],
     [",,, ;", []],
   ])("%s", (line, parts) => {
@@ -309,7 +322,7 @@ describe("passes", () => {
     expect(passOf(top("gave meds", { passes: both }))).toBe(MORNING);
     const r = top("gave meds at 8pm", { now: new Date("2026-11-20T05:00:00Z"), passes: both });
     expect(passOf(r)).toBe(EVENING);
-    expect(action(r).occurredAt).toBe(at("2026-11-20T04:00:00Z"));
+    expect(when(r)).toBe(at("2026-11-20T04:00:00Z"));
   });
 
   test("a pass with nothing left to give can't be saved", () => {
@@ -503,6 +516,129 @@ describe("prefixes", () => {
   });
 });
 
+describe("tasks", () => {
+  type Task = { title: string; assigneeId: string | null; dueOn: string | null; dueTime: string | null };
+  const task = (line: string, over?: Partial<QuickEntryContext>) => {
+    const r = top(line, over);
+    expect(r.kind).toBe("task");
+    expect(r.label).toBe("Task");
+    const a = action(r);
+    if (a.type !== "addTask") throw new Error(`not a task: ${a.type}`);
+    return {
+      title: a.title,
+      assigneeId: a.assigneeId ?? null,
+      dueOn: a.dueOn ?? null,
+      dueTime: a.dueTime ?? null,
+    };
+  };
+  const plain = (title: string, more: Partial<Task> = {}): Task => ({
+    title,
+    assigneeId: null,
+    dueOn: null,
+    dueTime: null,
+    ...more,
+  });
+
+  test.each<[string, Task]>([
+    // Each prefix; the time phrase is the due day (read ahead), and the time when it says one.
+    ["todo: call pharmacy friday", plain("Call pharmacy", { dueOn: "2026-11-20" })],
+    ["TODO call pharmacy", plain("Call pharmacy")],
+    ["task: fax the insurance form", plain("Fax the insurance form")],
+    [
+      "t: pick up the walker tomorrow at 3pm",
+      plain("Pick up the walker", { dueOn: "2026-11-20", dueTime: "15:00" }),
+    ],
+    ["to-do: refill metformin", plain("Refill metformin")],
+    ["todo: pick up milk and bread", plain("Pick up milk and bread")],
+    // Due phrases: a day, a day and time, a time alone (the next one), relative, "by".
+    ["todo: call the office by 5pm", plain("Call the office", { dueOn: "2026-11-19", dueTime: "17:00" })],
+    ["todo: call the office at 7", plain("Call the office", { dueOn: "2026-11-19", dueTime: "19:00" })],
+    ["todo: order supplies next tue", plain("Order supplies", { dueOn: "2026-11-24" })],
+    ["todo: book a ride nov 30 9am", plain("Book a ride", { dueOn: "2026-11-30", dueTime: "09:00" })],
+    ["todo: call back in 2 hours", plain("Call back", { dueOn: "2026-11-19", dueTime: "10:00" })],
+    ["todo: water the plants thursday", plain("Water the plants", { dueOn: "2026-11-19" })],
+    // Members by "for" or "@": first name, full name, folded case; the words leave the title.
+    ["todo: call pharmacy friday for Sam", plain("Call pharmacy", { assigneeId: SAM, dueOn: "2026-11-20" })],
+    ["todo: @sam call pharmacy", plain("Call pharmacy", { assigneeId: SAM })],
+    ["todo: call pharmacy @Sam", plain("Call pharmacy", { assigneeId: SAM })],
+    ["t: for Sam Rivera: pick up groceries", plain("Pick up groceries", { assigneeId: SAM })],
+    ["t: buy stamps for jo ann okafor", plain("Buy stamps", { assigneeId: JO })],
+    ["t: buy stamps for jo", plain("Buy stamps", { assigneeId: JO })],
+    // Not a member: the name stays in the title (a typed-in assignee is set in the sheet).
+    ["todo: call pharmacy for Aunt May", plain("Call pharmacy for Aunt May")],
+    ["todo: ask @dana about the ramp", plain("Ask @dana about the ramp")],
+    ["todo: buy a card for Sam's birthday", plain("Buy a card for Sam's birthday")],
+    [
+      "todo: pick up a prescription for mom for Sam",
+      plain("Pick up a prescription for mom", { assigneeId: SAM }),
+    ],
+  ])("%s", (line, expected) => {
+    expect(task(line)).toEqual(expected);
+    expect(blocking(top(line))).toEqual([]);
+    expect(assistantActionZSchema.safeParse(action(top(line))).success).toBe(true);
+  });
+
+  test("with no members known, a name stays in the title", () => {
+    expect(task("todo: call pharmacy for Sam", { members: [] })).toEqual(plain("Call pharmacy for Sam"));
+  });
+
+  test("two members with the name: nobody is assigned, and the card says so", () => {
+    const members = [
+      { id: SAM, name: "Sam Rivera" },
+      { id: JO, name: "Sam Okafor" },
+    ];
+    expect(task("todo: call pharmacy for Sam", { members })).toEqual(plain("Call pharmacy"));
+    expect(warnings(top("todo: call pharmacy for Sam", { members }))).toEqual([
+      "More than one member is called Sam, so nobody is assigned. Edit it to choose.",
+    ]);
+    // The full name settles it.
+    expect(task("todo: call pharmacy for sam okafor", { members })).toEqual(
+      plain("Call pharmacy", { assigneeId: JO }),
+    );
+  });
+
+  test("a due day already past is allowed, and the card says it's overdue", () => {
+    const r = top("todo: send the form yesterday");
+    expect(task("todo: send the form yesterday")).toEqual(plain("Send the form", { dueOn: "2026-11-18" }));
+    expect(warnings(r)).toEqual(["That's already past, so it's overdue."]);
+    expect(blocking(r)).toEqual([]);
+  });
+
+  test("a task needs words besides its due day", () => {
+    const r = top("todo: friday");
+    expect(r.kind).toBe("task");
+    expect(blocking(r)).toEqual(["Say what the task is."]);
+  });
+
+  test("the alternative is a note of the same words", () => {
+    const readings = parse("todo: call pharmacy friday")[0]!.readings;
+    expect(readings.map((r) => r.label)).toEqual(["Task", "Note"]);
+    expect(action(readings[1]!)).toMatchObject({ type: "addNote", text: "call pharmacy friday" });
+  });
+
+  test("without a prefix there's no task", () => {
+    expect(parse("call pharmacy friday")[0]!.readings.map((r) => r.kind)).not.toContain("task");
+  });
+
+  test("in another zone, the due day and time are the recipient's", () => {
+    // 16:00 UTC is 11:00 in New York, so "at 5" is 17:00 there.
+    expect(task("todo: call the office at 5", { timeZone: "America/New_York" })).toEqual(
+      plain("Call the office", { dueOn: "2026-11-19", dueTime: "17:00" }),
+    );
+  });
+
+  test("a task beside other parts in one line", () => {
+    const parts = parse("bp 130/85, todo: call pharmacy friday for Sam, gave metformin");
+    expect(parts.map((p) => p.readings[0]!.kind)).toEqual(["vital", "task", "dose"]);
+    expect(action(parts[1]!.readings[0]!)).toMatchObject({
+      type: "addTask",
+      title: "Call pharmacy",
+      assigneeId: SAM,
+      dueOn: "2026-11-20",
+    });
+  });
+});
+
 describe("times", () => {
   test.each([
     ["bp 120/80", "2026-11-19T16:00:00Z"],
@@ -525,7 +661,7 @@ describe("times", () => {
     ["gave metformin at 20:00", "2026-11-19T04:00:00Z"],
   ])("%s → %s", (line, iso) => {
     const r = top(line);
-    expect(r.actions[0]!.occurredAt).toBe(at(iso));
+    expect(when(r)).toBe(at(iso));
     expect(blocking(r)).toEqual([]);
   });
 
@@ -549,21 +685,21 @@ describe("times", () => {
 
   test("across the fall DST change (Nov 1, 2026)", () => {
     const now = new Date("2026-11-02T18:00:00Z"); // Mon 10:00 PST
-    expect(action(top("bp 120/80 yesterday 9pm", { now })).occurredAt).toBe(at("2026-11-02T05:00:00Z"));
-    expect(action(top("bp 120/80 yesterday 1am", { now })).occurredAt).toBe(at("2026-11-01T08:00:00Z")); // the first 1 am (PDT)
+    expect(when(top("bp 120/80 yesterday 9pm", { now }))).toBe(at("2026-11-02T05:00:00Z"));
+    expect(when(top("bp 120/80 yesterday 1am", { now }))).toBe(at("2026-11-01T08:00:00Z")); // the first 1 am (PDT)
     // Two days back at the same time of day, across the change: 10:00 PDT.
-    expect(action(top("bp 120/80 2 days ago", { now })).occurredAt).toBe(at("2026-10-31T17:00:00Z"));
+    expect(when(top("bp 120/80 2 days ago", { now }))).toBe(at("2026-10-31T17:00:00Z"));
   });
 
   test("across the spring DST change (Mar 8, 2026): a skipped time moves forward", () => {
     const now = new Date("2026-03-08T18:00:00Z"); // Sun 11:00 PDT
-    expect(action(top("bp 120/80 at 2:30am", { now })).occurredAt).toBe(at("2026-03-08T10:30:00Z"));
-    expect(action(top("bp 120/80 yesterday 8am", { now })).occurredAt).toBe(at("2026-03-07T16:00:00Z"));
+    expect(when(top("bp 120/80 at 2:30am", { now }))).toBe(at("2026-03-08T10:30:00Z"));
+    expect(when(top("bp 120/80 yesterday 8am", { now }))).toBe(at("2026-03-07T16:00:00Z"));
   });
 
   test("in another zone, times are the recipient's", () => {
     const r = top("bp 120/80 at 7am", { timeZone: "America/New_York" });
-    expect(r.actions[0]!.occurredAt).toBe(at("2026-11-19T12:00:00Z"));
+    expect(when(r)).toBe(at("2026-11-19T12:00:00Z"));
   });
 });
 

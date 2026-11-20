@@ -4,6 +4,8 @@ import type { EntryFilters, EntryRow, MemberRow } from "~/lib/sync/timeline";
 import type { ContactRow, LinkedContact } from "./upcomingContact";
 import type { UpcomingSection } from "~/lib/upcomingDays";
 import type { WithDoses } from "~/lib/upcomingDoses";
+import type { WithTasks } from "~/lib/upcomingTasks";
+import type { LocalTask } from "~/lib/sync/tasks";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
 import type { RescheduledTargetRow } from "./upcomingQueries";
 
@@ -14,12 +16,20 @@ import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/paging";
 import { useLiveQuery } from "~/lib/sync";
 import { useDueDoses } from "~/lib/sync/dueDoses";
 import { useNow } from "~/lib/sync/editors";
+import { useDueTasks } from "~/lib/sync/tasks";
 import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
-import { fromLocalTimestamp, membersQuery, toMember, toTimelineEntries } from "~/lib/sync/timeline";
+import {
+  fromLocalTimestamp,
+  membersQuery,
+  toMember,
+  toTimelineEntries,
+  UPCOMING_HORIZON_DAYS,
+} from "~/lib/sync/timeline";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { contactsByEntry } from "./upcomingContact";
 import { pastSections, upcomingSections } from "~/lib/upcomingDays";
 import { showsDoses, upcomingDoses, withDueDoses } from "~/lib/upcomingDoses";
+import { showsTasks, upcomingTasks, withDueTasks } from "~/lib/upcomingTasks";
 import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
 
 // Upcoming's and the Past tab's data, live: the loaders read the first
@@ -30,8 +40,8 @@ import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomin
 /** How often the clock ticks: an item leaves Upcoming within this long of its end. */
 export const UPCOMING_TICK_MS = 30_000;
 
-/** An entry, or (in Upcoming only) one of today's open dose slots. */
-export type UpcomingListItem = WithDoses<TimelineEntry>;
+/** An entry, or (in Upcoming only) one of today's open dose slots or an open dated task. */
+export type UpcomingListItem = WithTasks<WithDoses<TimelineEntry>, LocalTask>;
 
 export type UpcomingListData = {
   sections: UpcomingSection<UpcomingListItem>[];
@@ -43,6 +53,8 @@ export type UpcomingListData = {
   imageOf: (userId: string) => string | null;
   /** An entry's linked providers, in link order, with how to reach them. */
   contactsOf: (entryId: string) => LinkedContact[] | undefined;
+  /** The recipient's zone, which tasks' due days and times are in (Upcoming only). */
+  taskZone?: string;
 };
 
 /** Where a cancelled event was rescheduled to. */
@@ -117,13 +129,20 @@ export function useUpcomingData({
   const shown = support.withPreview(toTimelineEntries(entryRows));
   const sections = upcomingSections(shown, at, zone);
   const doses = showsDoses(filters) ? upcomingDoses(dueDoses.due, dueDoses.passes) : [];
+  // Open dated tasks through Upcoming's last day, live: completing one drops it out.
+  const dueTasks = useDueTasks(groupId, dueDoses.timeZone, {
+    days: UPCOMING_HORIZON_DAYS,
+    initial: initial.taskRows,
+  });
+  const tasks = showsTasks(filters) ? upcomingTasks(dueTasks.tasks, at, dueDoses.timeZone) : [];
   return {
-    sections: withDueDoses(sections, doses, at, zone),
+    sections: withDueTasks(withDueDoses(sections, doses, at, zone), tasks, at, zone, dueDoses.timeZone),
     rescheduledOf: support.rescheduledOf,
     now: at,
     nameOf: support.nameOf,
     imageOf: support.imageOf,
     contactsOf: support.contactsOf,
+    taskZone: dueDoses.timeZone,
   };
 }
 

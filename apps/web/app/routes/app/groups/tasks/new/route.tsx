@@ -1,0 +1,95 @@
+import type { Route } from "./+types/route";
+import type { ShouldRevalidateFunctionArgs } from "react-router";
+import type { ActionResult } from "~/lib/api";
+
+import { redirect, useLocation } from "react-router";
+import { Sheet } from "~/components/ui";
+import { TASK_PREFILL_PARAMS } from "~/lib/appUrls";
+import { getGroup, useGroup } from "~/lib/group";
+import { scheduleZoneNote } from "~/lib/medicationDisplay";
+import { sessionContext } from "~/lib/session";
+import { createTask } from "~/lib/sync/tasks";
+import { TaskForm } from "../TaskForm";
+import { taskFromForm } from "../taskFormData";
+import {
+  loadLinkChoices,
+  loadMembers,
+  useAssigneeMembers,
+  useCloseTaskSheet,
+  useLinkChoices,
+} from "../taskSheet";
+import { newTaskGuard } from "~/lib/taskSheets";
+
+// Shared by web + native. `tasks/new`: the add sheet, over the list. It can
+// start with a due day (`?dueOn=`), from quick entry's Edit a title, an
+// assignee and a time, and from a provider's, medication's or appointment's
+// page its link (`?providerId=`, `?medicationId=`, `?eventId=`). A viewer
+// lands on the list.
+
+export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
+  const group = getGroup(context);
+  const decision = newTaskGuard({
+    groupId: group.id,
+    search: new URL(request.url).search,
+    canWrite: group.canWrite,
+  });
+  if ("redirect" in decision) throw redirect(decision.redirect);
+  const { db } = context.get(sessionContext);
+  const eventId = new URL(request.url).searchParams.get(TASK_PREFILL_PARAMS.eventId);
+  const [memberRows, linkRows] = await Promise.all([
+    loadMembers(db, group.id),
+    loadLinkChoices(db, group.id, eventId),
+  ]);
+  return { memberRows, linkRows };
+}
+
+/** A local write; the list's live query shows it, and PowerSync uploads it. */
+export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
+  const group = getGroup(context);
+  const { db } = context.get(sessionContext);
+  const result = await createTask(db, group.id, taskFromForm(await request.formData()));
+  return result.ok ? { ok: true } : result;
+}
+
+/** The sheet closes on a save, so its own loader needn't run again. */
+export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+  if (formMethod) return false;
+  return defaultShouldRevalidate;
+}
+
+export default function NewTaskSheet({ loaderData, params }: Route.ComponentProps) {
+  const close = useCloseTaskSheet();
+  const group = useGroup();
+  const { search } = useLocation();
+  const members = useAssigneeMembers(params.groupId, loaderData.memberRows);
+  const links = useLinkChoices(params.groupId, loaderData.linkRows);
+  const query = new URLSearchParams(search);
+  const dueOn = query.get(TASK_PREFILL_PARAMS.dueOn);
+  const dueTime = query.get(TASK_PREFILL_PARAMS.dueTime);
+  return (
+    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add a task">
+      <TaskForm
+        // A new URL is a new form.
+        key={search}
+        members={members}
+        meId={group.userId}
+        dueOn={dueOn && /^\d{4}-\d{2}-\d{2}$/.test(dueOn) ? dueOn : null}
+        prefill={{
+          title: query.get(TASK_PREFILL_PARAMS.title),
+          assigneeId: query.get(TASK_PREFILL_PARAMS.assigneeId),
+          dueTime: dueTime && /^\d{2}:\d{2}$/.test(dueTime) ? dueTime : null,
+          providerId: query.get(TASK_PREFILL_PARAMS.providerId),
+          medicationId: query.get(TASK_PREFILL_PARAMS.medicationId),
+          eventId: query.get(TASK_PREFILL_PARAMS.eventId),
+        }}
+        links={links}
+        zoneNote={scheduleZoneNote(
+          group.recipient?.timeZone ?? null,
+          Intl.DateTimeFormat().resolvedOptions().timeZone,
+        )}
+        onDone={close}
+        onCancel={close}
+      />
+    </Sheet>
+  );
+}

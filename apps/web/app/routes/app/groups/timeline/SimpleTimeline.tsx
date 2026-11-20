@@ -10,6 +10,7 @@ import { useGroup } from "~/lib/group";
 import { nextStripText, upcomingTitle } from "~/lib/upcomingLabels";
 import { RemoveLastEntry } from "./RemoveLastEntry";
 import { SimpleNow } from "./SimpleNow";
+import { SimpleTasks } from "./SimpleTasks";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { SimpleModeToggle } from "./SimpleModeToggle";
 import { SimpleTiles } from "./SimpleTiles";
@@ -23,7 +24,8 @@ export const simpleTodayText = (now: Date, locale?: string) =>
  * Simple mode's timeline (assistant PRD): one large-type column with the
  * recipient's name and today; for writers the quick-entry box in large type
  * with a hint to dictate; the Now block (due passes with Given all, the next
- * appointment; for viewers as text); for writers the four tiles and "Remove
+ * appointment; for viewers as text); "My tasks" (mine, with big ticks;
+ * viewers too); for writers the four tiles and "Remove
  * my last entry"; then the timeline's rows, bigger
  * and read-only (`TimelineEntryList`'s `simple`). No strips, filters,
  * search, add menu or layout switch; the /app header is reduced to match
@@ -64,6 +66,7 @@ export function SimpleTimeline({
         next={hasNext(data.next, data.now) ? <NextText next={data.next} now={data.now} /> : null}
         className={COLUMN_CAP}
       />
+      <SimpleTasks className={COLUMN_CAP} />
       {mode.inputs && (
         <div className={`space-y-3 ${COLUMN_CAP}`}>
           <WriterTiles canChoose={(group.role === "owner" || group.role === "admin") && !mode.locked} />

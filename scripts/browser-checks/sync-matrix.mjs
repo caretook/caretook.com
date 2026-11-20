@@ -61,6 +61,7 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
       allergy: randomUUID(),
       period: randomUUID(),
       update: randomUUID(),
+      task: randomUUID(),
     },
   };
 };
@@ -225,6 +226,26 @@ export const SYNC_MATRIX = [
         ...audit(ctx),
       }),
   ),
+  // Unassigned and undated, so it sits at the end of the open list.
+  device(
+    "task",
+    (ctx) => ctx.ids.task,
+    (ctx) =>
+      insert("task", {
+        id: ctx.ids.task,
+        group_id: ctx.groupId,
+        recipient_id: ctx.recipientId,
+        title: `${ctx.tag} matrix task`,
+        assignee_id: null,
+        assignee_name: null,
+        due_on: null,
+        due_time: null,
+        done_at: null,
+        done_by: null,
+        deleted_at: null,
+        ...audit(ctx),
+      }),
+  ),
   // Patched, not inserted: see RECIPIENT_PATCH.
   { table: "care_recipient", by: "patch" },
   server("care_group", (ctx) => `SELECT '${ctx.groupId}'`),
@@ -274,9 +295,9 @@ export const cleanupSql = (ctx, recordedAt) =>
     `DELETE FROM note_document WHERE id = '${ctx.ids.provider}'`,
     // The note, and the medication's "started" entry the service wrote with it.
     `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND (id = '${ctx.ids.entry}' OR details->>'medicationId' = '${ctx.ids.medication}')`,
-    ...["provider", "medication", "medication_pass", "recipient_allergy", "care_period"].map(
+    ...["provider", "medication", "medication_pass", "recipient_allergy", "care_period", "task"].map(
       (t) =>
-        `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}')`,
+        `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.task}')`,
     ),
     `UPDATE care_recipient SET no_known_allergies_at = ${recordedAt ? `'${recordedAt}'` : "NULL"} WHERE id = '${ctx.recipientId}' AND no_known_allergies_at IS DISTINCT FROM ${recordedAt ? `'${recordedAt}'::timestamptz` : "NULL"}`,
   ].join(";\n");

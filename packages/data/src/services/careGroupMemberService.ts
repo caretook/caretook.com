@@ -7,6 +7,7 @@ import { isError, newError } from "../errors";
 import { careGroupMemberModel } from "../models";
 import { isSystemUser } from "../permissions";
 import { getService } from "./baseService";
+import { releaseAssignee } from "./taskService";
 
 export const serviceName = "careGroupMember";
 export const schemaName = careGroupMemberModel.schemaName;
@@ -16,6 +17,7 @@ export const schemaName = careGroupMemberModel.schemaName;
 //   - only owners add, promote to, demote from, or remove owners
 //   - a group always keeps at least one owner
 //   - nobody locks or unlocks simple mode for themselves
+//   - a member who goes keeps their open tasks as a typed-in name
 export const { get, getById, list } = getService(careGroupMemberModel);
 
 /** Whether the actor may touch owner memberships in `groupId`. */
@@ -142,7 +144,16 @@ export const remove = (ctx: ServiceContext, id: string) =>
       if (lastOwner) return lastOwner;
     }
 
-    return careGroupMemberModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
+    const removed = await careGroupMemberModel.remove({
+      ...ctx,
+      tx,
+      filter: { id: { type: "eq", value: id } },
+    });
+    if (isError(removed)) return removed;
+    // Their open tasks keep their name as a typed-in assignee (tasks PRD).
+    const released = await releaseAssignee(tx, target.groupId, target.userId);
+    if (isError(released)) return released;
+    return removed;
   }, ctx);
 
 /** The actor leaves `groupId`. The last owner must hand over ownership first. */

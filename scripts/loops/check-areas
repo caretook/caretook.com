@@ -425,6 +425,10 @@ packages/data/src/db/seeds/medications.ts medications
 # Validated by seeds/carePeriods.test.ts; no screen check reads them.
 packages/data/src/db/seeds/carePeriods.ts -
 packages/data/src/db/seeds/medicationPasses.ts medications
+# Tasks' seeds (tasks slice 3 appends linked ones): no browser check reads
+# them; seeds/tasks.test.ts checks them. Appointments' seeds feed Upcoming (component tests).
+packages/data/src/db/seeds/tasks.ts      -
+packages/data/src/db/seeds/appointments.ts -
 packages/data/src/db/seeds/*             app-shell
 
 # The rest of the data layer (services, models, permissions, errors) has
@@ -440,6 +444,9 @@ apps/web/app/routes/app/groups/upcoming/* -
 apps/web/app/lib/upcoming.ts             -
 apps/web/app/lib/upcomingLabels.ts       -
 apps/web/app/lib/upcomingDays.ts         -
+# Tasks in Upcoming (tasks slice 4): the task row is a component test
+# (upcoming/upcomingTasks.browser.test.tsx); lib/upcomingTasks.ts has unit tests.
+apps/web/app/routes/app/groups/upcoming/UpcomingTaskRow.tsx -
 # Today's due doses in Upcoming, and the sheet-link state they open the Dose sheet with.
 apps/web/app/lib/upcomingDoses.ts        -
 apps/web/app/lib/timelineSheet.ts        roundtrip medications
@@ -477,3 +484,31 @@ apps/web/app/lib/sync/simpleMode.ts      -
 # in visit prep are lib/dueDoses.ts and lib/visitPrep.ts's unit tests. The
 # shared Undo and Given all (components/medications/*, lib/passUndo.ts,
 # lib/sync/medications.ts) keep their medications rules above.
+# Tasks (tasks PRD slice 1): the list and its sheets, the shared tick and
+# Undo pieces, and the device module are component tests
+# (routes/app/groups/tasks/tasks.browser.test.tsx); the pure wording, list
+# and Undo store have unit tests; the service and upload are integration
+# tests. roundtrip takes the device-to-device step in slice 8.
+apps/web/app/routes/app/groups/tasks/*   -
+apps/web/app/components/tasks/*          -
+apps/web/app/lib/sync/tasks.ts           -
+# The task page (slice 2): component tests (routes/app/groups/task/task.browser.test.tsx);
+# its wording has unit tests, task documents are integration tests.
+apps/web/app/routes/app/groups/task/*    -
+# My tasks in simple mode (tasks PRD slice 6): the card (timeline/SimpleTasks.tsx
+# and useSimpleTasks.ts, under timeline/*) is a component test
+# (timeline/timelineSimpleTasks.browser.test.tsx).
+apps/web/app/routes/app/groups/timeline/SimpleTasks.tsx -
+apps/web/app/routes/app/groups/timeline/useSimpleTasks.ts -
+# Quick entry adds tasks (tasks PRD slice 7): the task card, its Save and
+# Undo, and Edit into the add-task sheet are component tests
+# (timeline/timelineQuickEntryTasks.browser.test.tsx); the phrases are rows in
+# quickEntry.test.ts. The task sheets' link state lives in lib/ so quick
+# entry can open them; taskSheets.test.ts covers it.
+apps/web/app/lib/taskSheetLink.ts        -
+# Links and backlinks (tasks PRD slice 3): the pickers, the task page's link
+# rows and LinkedTasks (components/tasks/, on the entry, provider and
+# medication pages) are component tests (tasks/taskLinks.browser.test.tsx,
+# task/taskLinks.browser.test.tsx, components/tasks/linkedTasks.browser.test.tsx);
+# the pickers' choices are unit tests (tasks/taskLinks.test.ts). Covered by the
+# rules above (tasks/*, task/*, components/tasks/*).

@@ -27,7 +27,7 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
   2. Add a `PERMISSIONS` entry (the type requires one).
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
-- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0020 so far.
+- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0022 so far.
   - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
   - Until the first deploy it's fine to delete and regenerate migrations.
 - **DB client:** the pool is created lazily (importing never needs `DATABASE_URL`). Only the **pool** survives HMR (`utils/remember.ts`); the drizzle wrapper is rebuilt, so new tables work without a restart.
