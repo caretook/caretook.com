@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx } from "../../../../../test/fixtures";
 import {
@@ -126,8 +127,8 @@ describe("adding", () => {
   test("validation shows on the fields: a name, each time once (focus on the name), and an as-needed maximum in range", async () => {
     await open(`${LIST}/new`);
     await waitUntil(() => !!FORM(), 4000, "the add sheet");
-    await userEvent.click(FORM()!.querySelector("[data-add-time]")!);
-    await userEvent.click(FORM()!.querySelector("[data-add-time]")!);
+    await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
+    await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, 4000, "two times");
     await userEvent.fill(times()[0]!, "08:00");
     await userEvent.fill(times()[1]!, "08:00");
@@ -148,8 +149,8 @@ describe("adding", () => {
     const device = await open(LIST);
     await openAddSheet();
     await userEvent.fill(field("name")!, "Sertraline");
-    await userEvent.click(FORM()!.querySelector("[data-add-time]")!);
-    await userEvent.click(FORM()!.querySelector("[data-add-time]")!);
+    await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
+    await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, 4000, "two times");
     await userEvent.fill(times()[0]!, "20:00");
     await userEvent.fill(times()[1]!, "08:00");
@@ -250,7 +251,7 @@ describe("the status actions", () => {
     await userEvent.click(
       OPEN_DIALOG()!.querySelector<HTMLInputElement>('input[name="stopReason"][aria-label="Side effects"]')!,
     );
-    await userEvent.fill(OPEN_DIALOG()!.querySelector("textarea[name=stopNote]")!, "Dizzy");
+    await userEvent.fill(await found(() => OPEN_DIALOG()?.querySelector("textarea[name=stopNote]")), "Dizzy");
     await userEvent.click(dialogButton("Discontinue")!);
     await waitUntil(() => !OPEN_DIALOG(), 4000, "the dialog to close");
     await device.settle();

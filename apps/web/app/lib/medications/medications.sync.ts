@@ -1,5 +1,6 @@
 import type {
   DoseDetails,
+  DoseInput,
   MedicationChangeDetails,
   MedicationContent,
   MedicationContentInput,
@@ -693,13 +694,7 @@ export const createMedicationDocument = async (db: SyncDb, medicationId: string)
 // Doses
 // ---------------------------------------------------------------------------
 
-export type DoseInput = Omit<DoseDetails, "medicationId"> & {
-  medicationId: string;
-  /** When it was given, skipped or refused (ISO 8601). Now, when left out. */
-  occurredAt?: string;
-  /** The device's IANA zone, when left out. */
-  timeZone?: string;
-};
+export type { DoseInput } from "@caretook/data/schema";
 
 const deviceTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 

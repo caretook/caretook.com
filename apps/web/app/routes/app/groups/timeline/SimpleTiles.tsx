@@ -8,6 +8,13 @@ import { tileKey, tileLabel } from "~/lib/assistant/simpleTiles";
 import { STALE } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 
+/**
+ * The tiles share one row, scrolling sideways when a phone can't fit four:
+ * each at least 5.5rem wide, and (with the buttons' min-h-11) never under 44 px.
+ */
+const TILE_ROW = "flex items-stretch gap-2 overflow-x-auto";
+const TILE_CELL = "min-w-[5.5rem] flex-1";
+
 /** Where a tile goes: its kind's simple sheet over the timeline, or a new note's page. */
 const tileHref = (groupId: string, tile: SimpleTile) => {
   if (tile.kind === "note") return appUrls.newEntry(groupId, "note");
@@ -51,17 +58,17 @@ export function SimpleTiles({
       data-simple-tiles=""
       data-stale={fresh ? undefined : ""}
     >
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className={TILE_ROW}>
         {tiles.map((tile) => {
           const href = tileHref(groupId, tile);
           return (
-            <li key={tileKey(tile)}>
+            <li key={tileKey(tile)} className={TILE_CELL}>
               <Link
                 to={href}
                 state={tile.kind === "note" ? undefined : SHEET_LINK_STATE}
                 preventScrollReset
                 prefetch="render"
-                className="btn btn-outline h-auto min-h-24 w-full flex-col gap-2 py-4 text-xl font-semibold whitespace-normal"
+                className="btn btn-outline h-full min-h-11 w-full flex-col gap-1 px-1 py-2 text-sm leading-tight font-semibold whitespace-normal"
                 data-tile={tileKey(tile)}
               >
                 <KindIcon kind={tile.kind} />
@@ -85,9 +92,9 @@ export function SimpleTiles({
 /** The four tiles' place while they aren't known yet (a first visit this session). */
 export function SimpleTilesSkeleton() {
   return (
-    <ul className="grid grid-cols-2 gap-3" aria-hidden="true" data-simple-skeleton="tiles">
+    <ul className={TILE_ROW} aria-hidden="true" data-simple-skeleton="tiles">
       {[0, 1, 2, 3].map((i) => (
-        <li key={i} className="skeleton rounded-box min-h-24" />
+        <li key={i} className={`skeleton rounded-box h-16 ${TILE_CELL}`} />
       ))}
     </ul>
   );

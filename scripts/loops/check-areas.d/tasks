@@ -12,3 +12,4 @@ apps/web/app/lib/tasks/*.sync.ts        -
 apps/web/app/lib/tasks/taskSheetLink.ts  -
 # No browser check reads them; seeds/tasks.test.ts checks them.
 packages/data/src/db/seeds/tasks.ts      -
+apps/web/app/lib/tasks/taskDisplay.ts -

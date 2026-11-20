@@ -1,14 +1,62 @@
-import type { AuthUser, StaffCapability } from "@caretook/data";
+import type { AppError, AuthUser, StaffCapability } from "@caretook/data";
 
 import { isError, logError, staffCan } from "@caretook/data";
 import { ORPCError, os } from "@orpc/server";
+import { unwrap } from "./errors";
 
 /**
- * Per-request context. The mount point resolves the session (and the
- * caller's IP address, for the public forms' rate limit); procedures never
- * read requests.
+ * The mount point's session lookup. `live` reads the session row itself,
+ * bypassing Better Auth's 3-minute session cookie cache (docs/domain/auth.md).
  */
-export type ApiContext = { authUser: AuthUser | null; clientIp?: string | null };
+export type AuthUserLookup = (opts: { live: boolean }) => Promise<AuthUser | null | AppError>;
+
+/** A request's lazy AuthUser: resolved on first use, once per mode (`lazyAuthUser`). */
+export type LazyAuthUser = {
+  (opts?: { live?: boolean }): Promise<AuthUser | null | AppError>;
+  /** What's been resolved so far, without looking anything up (for logs). */
+  resolved: () => AuthUser | null | undefined;
+};
+
+/**
+ * Memoise `lookup` for one request (B-140). Public procedures never call
+ * it; authed ones resolve it once, staff ones once with `live`. A live
+ * answer also stands for a cached one.
+ */
+export const lazyAuthUser = (lookup: AuthUserLookup): LazyAuthUser => {
+  let cached: Promise<AuthUser | null | AppError> | undefined;
+  let live: Promise<AuthUser | null | AppError> | undefined;
+  let settled: AuthUser | null | undefined;
+  const remember = (answer: AuthUser | null | AppError) => {
+    if (!isError(answer)) settled = answer;
+    return answer;
+  };
+  const get = (opts: { live?: boolean } = {}) => {
+    if (opts.live) return (live ??= lookup({ live: true }).then(remember));
+    return live ?? (cached ??= lookup({ live: false }).then(remember));
+  };
+  return Object.assign(get, { resolved: () => settled });
+};
+
+/**
+ * Per-request context; procedures never read requests. Either `authUser`
+ * is given (in-process callers and tests), or the mount point passes
+ * `getAuthUser`, which authed and staff procedures resolve in their
+ * middleware; public procedures never look up a session. `clientIp` is the
+ * caller's address, for the public forms' rate limit.
+ */
+export type ApiContext = {
+  authUser?: AuthUser | null;
+  getAuthUser?: LazyAuthUser;
+  clientIp?: string | null;
+};
+
+/** The caller, as `authedProcedure` and `staffProcedure` resolve it (a lookup error is a 500). */
+const resolveAuthUser = async (context: ApiContext, live: boolean) =>
+  context.authUser !== undefined
+    ? context.authUser
+    : context.getAuthUser
+      ? unwrap(await context.getAuthUser({ live }))
+      : null;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -35,7 +83,7 @@ export const logFailures = os.$context<ApiContext>().middleware(async ({ context
       const appError = error instanceof ORPCError && isError(error.cause) ? error.cause : error;
       logError("rpc: procedure failed", appError, {
         procedure: path.join("."),
-        actorId: context.authUser?.id,
+        actorId: (context.authUser ?? context.getAuthUser?.resolved())?.id,
         groupId: groupIdOf(input),
       });
     }
@@ -46,19 +94,23 @@ export const logFailures = os.$context<ApiContext>().middleware(async ({ context
 export const publicProcedure = os.$context<ApiContext>().use(logFailures);
 
 /** Requires a signed-in user (`context.authUser` is non-null inside). */
-export const authedProcedure = publicProcedure.use(({ context, next }) => {
-  if (!context.authUser) throw new ORPCError("UNAUTHORIZED");
-  return next({ context: { authUser: context.authUser } });
+export const authedProcedure = publicProcedure.use(async ({ context, next }) => {
+  const authUser = await resolveAuthUser(context, false);
+  if (!authUser) throw new ORPCError("UNAUTHORIZED");
+  return next({ context: { authUser } });
 });
 
 /**
  * Caretook staff with `capability` (db/schema/staffRules.ts: admin and
  * support, each with their own powers). Group roles count for nothing here:
  * a group's owner is refused like anyone else (a 403), and so is support on
- * an admin-only capability.
+ * an admin-only capability. The session is read live, never from the
+ * cookie cache (B-140), so a revoked staff session is refused at once.
  */
 export const staffProcedure = (capability: StaffCapability) =>
-  authedProcedure.use(({ context, next }) => {
-    if (!staffCan(context.authUser.roleNames, capability)) throw new ORPCError("FORBIDDEN");
-    return next({ context });
+  publicProcedure.use(async ({ context, next }) => {
+    const authUser = await resolveAuthUser(context, true);
+    if (!authUser) throw new ORPCError("UNAUTHORIZED");
+    if (!staffCan(authUser.roleNames, capability)) throw new ORPCError("FORBIDDEN");
+    return next({ context: { authUser } });
   });

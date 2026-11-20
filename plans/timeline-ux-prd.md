@@ -1,5 +1,7 @@
 # PRD: Timeline UX
 
+**✅ Done (2026-11-20):** all 10 slices are in `dev` (last landing 8b3179ab); the lasting decisions are in the area docs (timeline, sync, app-shell, assistant, auth, api, care-periods, medications, security-headers).
+
 Topic `timeline-ux`. Backlog items B-136, B-137, B-138, B-139, B-140, B-144, B-155, B-156 (the speed half, from `app-speed`), B-166, and B-162, B-163, B-164, B-165, B-167, B-168, B-169, B-170, B-171 (the timeline and simple mode). Interviewed 2026-11-20.
 
 **This PRD absorbs `app-speed`.** [`app-speed-prd.md`](app-speed-prd.md) stays as written and is this PRD's speed half: its problem statement, user stories 1–40 and decisions carry over unchanged (the user, 2026-11-20). Its plan, `app-speed-plan.md`, is superseded by [`timeline-ux-plan.md`](timeline-ux-plan.md). Why one PRD: both halves wait on `code-layout` (it moves `lib/` and `routes.ts`), and both touch the timeline route, its header and its rows, so one plan orders those edits instead of splitting the screen into regions first.

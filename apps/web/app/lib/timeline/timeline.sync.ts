@@ -93,6 +93,8 @@ export type EntryRow = {
   cancelled_by?: string | null;
   cancel_reason?: string | null;
   rescheduled_to?: string | null;
+  // Written through a member's AI assistant (connectors; optional until the device schema has it).
+  via?: string | null;
 };
 
 /**
@@ -123,6 +125,7 @@ export const toTimelineEntry = (row: EntryRow): TimelineEntry | null => {
     cancelledBy: row.cancelled_by ?? null,
     cancelReason: row.cancel_reason ?? null,
     rescheduledTo: row.rescheduled_to ?? null,
+    via: row.via ?? null,
   };
 };
 

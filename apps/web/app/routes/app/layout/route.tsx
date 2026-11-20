@@ -12,6 +12,7 @@ import { Announcement } from "./Announcement";
 import { GroupMenu } from "./GroupMenu";
 import { SectionNav, TabBar } from "./SectionNav";
 import { SyncIndicator } from "./SyncIndicator";
+import { UpdateNotice } from "./UpdateNotice";
 import { useSeveralGroups, useSimpleFrame } from "./useSimpleFrame";
 import { UserMenu } from "./UserMenu";
 
@@ -44,7 +45,8 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  * - header `user`: `UserMenu`;
  * - `announcement`: staff's banner (`Announcement`), when there is one;
  * - the outlet;
- * - `TabBar` (phones) under the outlet, on group routes.
+ * - `TabBar` (phones) under the outlet, on group routes;
+ * - `update`: "A new version is ready" (`UpdateNotice`), when a new service worker waits.
  *
  * Screens outside a group (`/app`, `/app/settings`) get the header without a
  * group menu, sections or tab bar. So does a timeline in simple mode
@@ -87,6 +89,9 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
       </div>
       <Outlet />
       {groupFrame && <TabBar groupId={groupFrame} pathname={pathname} />}
+      <div data-region="update">
+        <UpdateNotice />
+      </div>
     </>
   );
 }

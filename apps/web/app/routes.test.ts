@@ -18,6 +18,10 @@ const flatten = (routes: RouteConfigEntry[], parent = ""): string[] =>
   });
 
 const WEB = [
+  "/.well-known/oauth-authorization-server/api/auth|routes/connectors/well-known/authorization-server.ts|",
+  "/.well-known/oauth-authorization-server|routes/connectors/well-known/authorization-server-root.ts|",
+  "/.well-known/oauth-protected-resource/mcp|routes/connectors/well-known/protected-resource.ts|",
+  "/.well-known/oauth-protected-resource|routes/connectors/well-known/protected-resource-root.ts|",
   "/about|routes/marketing/about/route.tsx|",
   "/admin/access-codes/:id/print|routes/admin/access-codes-print/route.tsx|",
   "/admin/access-codes|routes/admin/access-codes/route.tsx|",
@@ -59,6 +63,7 @@ const WEB = [
   "/app/groups/:groupId/providers/new|routes/app/groups/providers/new/route.tsx|",
   "/app/groups/:groupId/providers|routes/app/groups/providers/route.tsx|",
   "/app/groups/:groupId/search|routes/app/groups/search/route.tsx|",
+  "/app/groups/:groupId/settings/assistants|routes/app/groups/settings/assistants/route.tsx|",
   "/app/groups/:groupId/settings/details|routes/app/groups/settings/details/route.tsx|",
   "/app/groups/:groupId/settings/members|routes/app/groups/settings/members/route.tsx|",
   "/app/groups/:groupId/settings|routes/app/groups/settings/index/route.tsx||index",
@@ -85,6 +90,7 @@ const WEB = [
   "/app/settings|routes/app/settings/index/route.tsx||index",
   "/app/settings|routes/app/settings/layout/route.tsx|",
   "/app|routes/app/home/route.tsx||index",
+  "/connect|routes/connectors/connect/route.tsx|",
   "/contact|routes/marketing/contact/route.tsx|",
   "/dev/mail.json|routes/dev/mail/json/route.ts|",
   "/dev/mail/:id|routes/dev/mail/message/route.tsx|",
@@ -94,6 +100,7 @@ const WEB = [
   "/health-data-privacy|routes/marketing/health-data-privacy/route.tsx|",
   "/invite/:token|routes/account/invite/route.tsx|",
   "/join/:code|routes/account/join/route.tsx|",
+  "/mcp|routes/connectors/mcp/route.ts|",
   "/privacy|routes/marketing/privacy/route.tsx|",
   "/reset-password|routes/account/reset-password/route.tsx|",
   "/robots.txt|routes/marketing/robots/route.ts|",
@@ -135,6 +142,7 @@ const NATIVE = [
   "/app/groups/:groupId/providers/new|routes/app/groups/providers/new/route.tsx|",
   "/app/groups/:groupId/providers|routes/app/groups/providers/route.tsx|",
   "/app/groups/:groupId/search|routes/app/groups/search/route.tsx|",
+  "/app/groups/:groupId/settings/assistants|routes/app/groups/settings/assistants/route.tsx|",
   "/app/groups/:groupId/settings/details|routes/app/groups/settings/details/route.tsx|",
   "/app/groups/:groupId/settings/members|routes/app/groups/settings/members/route.tsx|",
   "/app/groups/:groupId/settings|routes/app/groups/settings/index/route.tsx||index",

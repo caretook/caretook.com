@@ -113,14 +113,18 @@ export const careGroup = {
   /**
    * Rename a group, or choose how simple mode picks its tiles (`simpleTiles`;
    * null: learned from use). Owners and admins; fields left out keep their
-   * value. Other members get a 403, non-members a 404.
+   * value. Other members get a 403, non-members a 404. The Assistants switch
+   * (`connectorsEnabled`, connectors) is owners' only (an admin gets a 403);
+   * turning it off disconnects every member's assistant, and turning it on
+   * reconnects none.
    */
   update: authedProcedure
     .input(
-      careGroupInsertZSchema
-        .pick({ name: true })
-        .partial()
-        .extend({ groupId: id, simpleTiles: simpleTilesZSchema.nullable().optional() }),
+      careGroupInsertZSchema.pick({ name: true }).partial().extend({
+        groupId: id,
+        simpleTiles: simpleTilesZSchema.nullable().optional(),
+        connectorsEnabled: z.boolean().optional(),
+      }),
     )
     .handler(async ({ context, input }) => {
       const group = unwrap(await careGroupService.getById(context, input.groupId));
@@ -128,6 +132,7 @@ export const careGroup = {
       const data = {
         ...(input.name !== undefined && { name: input.name }),
         ...(input.simpleTiles !== undefined && { simpleTiles: input.simpleTiles }),
+        ...(input.connectorsEnabled !== undefined && { connectorsEnabled: input.connectorsEnabled }),
       };
       if (Object.keys(data).length === 0)
         return { id: group.id, name: group.name, simpleTiles: group.simpleTiles };

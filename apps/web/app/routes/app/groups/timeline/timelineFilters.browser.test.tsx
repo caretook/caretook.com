@@ -34,7 +34,7 @@ const KNOWN = [
   "Show only doses",
   "Show only medication changes",
 ];
-const vitalsLine = () => document.querySelector('section[aria-labelledby="latest-vitals"] ul')?.textContent;
+const vitalsLine = () => document.querySelector('[data-today-row="vitals"]')?.textContent;
 const authorChip = () =>
   document.querySelector<HTMLAnchorElement>('nav[aria-label="Show entries"] a[aria-label^="By "]');
 
@@ -130,7 +130,7 @@ describe("the author filter", () => {
     const vitals = vitalsLine();
     await userEvent.click(samLink());
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
-    expect(vitalsLine()).toBe(vitals); // Latest vitals ignores the author filter.
+    expect(vitalsLine()).toBe(vitals); // The Today card's vitals ignore the author filter.
 
     await userEvent.click(iconOf(rowOf("Symptom")!));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom&author=${SAM.id}`);

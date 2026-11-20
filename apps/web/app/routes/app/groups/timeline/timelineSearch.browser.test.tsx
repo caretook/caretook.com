@@ -3,6 +3,7 @@ import type { Fixture } from "../../../../../test/fixtures";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { commands, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
 import { TIMELINE_ROUTES, TIMELINE_URL, frames, world } from "./timelineWorld";
@@ -10,8 +11,8 @@ import { TIMELINE_ROUTES, TIMELINE_URL, frames, world } from "./timelineWorld";
 // The timeline's search on the test device (from search.mjs, slices 2 and 4
 // and care-periods 6): the magnifier's field narrowing the list as you type,
 // `?q=` through a reload and Back, with the kind filter, the Matching chip's
-// ✕, the empty state and the announcement, the Next strip and the Upcoming
-// block showing only matches, paging to the oldest match and a new search
+// ✕, the empty state and the announcement, the Today card's appointment
+// showing only a match, paging to the oldest match and a new search
 // starting from one page, cards at 1280, a viewer, a search used there
 // joining the recent searches; marks and snippets in rows and cards, with
 // contrast in light and dark; and the "Within a period" chip. The device is
@@ -57,7 +58,7 @@ const chipStarting = (text: string) =>
   );
 const statusText = () => document.querySelector("[data-search-status]")?.textContent ?? "";
 const params = (location: string) => new URLSearchParams(location.split("?")[1] ?? "");
-const vitals = () => document.querySelector('section[aria-labelledby="latest-vitals"]')?.textContent ?? "";
+const vitals = () => document.querySelector('[data-today-row="vitals"]')?.textContent ?? "";
 
 /** Open the field with the magnifier (once the screen is up: the loader can still be reading). */
 const openField = async () => {
@@ -69,9 +70,9 @@ const openField = async () => {
 // --- The field ---------------------------------------------------------------
 
 describe("searching the timeline", () => {
-  test("the magnifier opens a focused field over the chips; typing narrows the list, carries q in the URL, is announced, and keeps narrowing; the Next strip and latest vitals", async () => {
+  test("the magnifier opens a focused field over the chips; typing narrows the list, carries q in the URL, is announced, and keeps narrowing; the Today card's appointment and vitals", async () => {
     const device = await open();
-    await expect.poll(vitals).toMatch(/^Latest vitals/);
+    await expect.poll(vitals).toMatch(/Latest vitals: /);
     await device.settle();
     const vitalsBefore = vitals();
     await openField();
@@ -85,7 +86,7 @@ describe("searching the timeline", () => {
 
     await userEvent.type(field()!, " alpha");
     await expect.poll(texts).toEqual([expect.stringContaining("Quince alpha")]);
-    // The appointment doesn't match "alpha": no Next strip.
+    // The appointment doesn't match "alpha": no appointment row.
     expect(document.querySelector("[data-next]")).toBeNull();
     expect(vitals()).toBe(vitalsBefore);
   });
@@ -105,15 +106,11 @@ describe("searching the timeline", () => {
     expect(params(empty.location()).get("kind")).toBe("vital");
   });
 
-  test("the Next strip names the matching appointment, and the Upcoming block shows only matches", async () => {
-    await open("?upcoming=1&q=quince");
+  test("the Today card's appointment row names the matching appointment", async () => {
+    await open("?q=quince");
     await expect
       .poll(() => document.querySelector<HTMLElement>("[data-next]")?.dataset.next)
       .toBe(tagged.visit.id);
-    const block = [...document.querySelectorAll("[data-upcoming-block] [data-block-view] > li")].map(
-      (li) => li.textContent,
-    );
-    expect(block).toEqual([expect.stringContaining("Quince visit")]);
   });
 
   test("Back after opening a match comes back to the search", async () => {
@@ -150,7 +147,7 @@ describe("searching the timeline", () => {
   test("cards at 1280 show the matches, and the field sits beside the chips", async () => {
     await open("?q=quince", { width: 1280 });
     await expect.poll(() => texts().length).toBe(3);
-    await userEvent.click(document.querySelector('button[aria-label="Cards"]')!);
+    await userEvent.click(await found(() => document.querySelector('button[aria-label="Cards"]')));
     await expect.poll(() => document.querySelector<HTMLElement>("[data-view]")?.dataset.view).toBe("cards");
     expect(texts().length).toBe(3);
     await openField();
@@ -244,7 +241,7 @@ describe("highlights and snippets", () => {
   test("cards at 1280 mark matches with no snippet (all the text shows); without a search nothing is marked", async () => {
     const device = await open("?q=plumber", { fixtures: [world(), marked], width: 1280 });
     await expect.poll(() => !!rowWith("Visit note")).toBe(true);
-    await userEvent.click(document.querySelector('button[aria-label="Cards"]')!);
+    await userEvent.click(await found(() => document.querySelector('button[aria-label="Cards"]')));
     await expect.poll(() => document.querySelector<HTMLElement>("[data-view]")?.dataset.view).toBe("cards");
     await frames();
     const card = rowWith("Visit note")!;

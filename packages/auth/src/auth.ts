@@ -17,9 +17,16 @@ import {
   verificationSchema,
 } from "@caretook/data";
 import { getAuthConfig } from "./config";
+import {
+  CONNECTOR_DISABLED_PATHS,
+  connectorAuthSchema,
+  connectorOAuthProvider,
+  connectorTokens,
+} from "./connectors";
 import { isDisabledEmail, isDisabledUser, noSession, wrongCode, wrongPassword } from "./disabled";
 import { sendResetPassword, sendSignInEmail, sendVerificationEmail, sendVerificationOTP } from "./emails";
 import { allowedOrigins, clientIpHeader } from "./host";
+import { readsLiveSession } from "./liveSession";
 
 // The email-OTP plugin's endpoints we don't use: a code only signs in.
 // Resets go through the emailed link, and verification through its own link.
@@ -47,14 +54,30 @@ const bodyEmail = (body: unknown) =>
  * hashed anyway, as Better Auth does for an unknown address, so the answer
  * takes as long. The session hook below is the backstop for every path.
  */
-const refuseDisabledSignIn = createAuthMiddleware(async (ctx) => {
-  if (ctx.path !== "/sign-in/email" && ctx.path !== "/sign-in/email-otp") return;
-  const email = bodyEmail(ctx.body);
+const refuseDisabledSignIn = async (
+  path: string,
+  body: unknown,
+  hash: (password: string) => Promise<unknown>,
+) => {
+  if (path !== "/sign-in/email" && path !== "/sign-in/email-otp") return;
+  const email = bodyEmail(body);
   if (!email || !(await isDisabledEmail(email))) return;
-  if (ctx.path === "/sign-in/email-otp") throw wrongCode();
-  const password = (ctx.body as { password?: unknown }).password;
-  if (typeof password === "string") await ctx.context.password.hash(password);
+  if (path === "/sign-in/email-otp") throw wrongCode();
+  const password = (body as { password?: unknown }).password;
+  if (typeof password === "string") await hash(password);
   throw wrongPassword();
+};
+
+/**
+ * Before every endpoint. PowerSync's token (`/token`, the jwt plugin)
+ * always reads the live session, never the cookie cache, whatever the
+ * request's query says (B-140): a revoked session can't open a new sync
+ * connection. The path is matched exactly (liveSession.ts). Sign-in
+ * refuses a disabled account (above).
+ */
+const beforeHooks = createAuthMiddleware(async (ctx) => {
+  if (readsLiveSession(ctx.path)) return { context: { query: { ...ctx.query, disableCookieCache: true } } };
+  await refuseDisabledSignIn(ctx.path, ctx.body, (password) => ctx.context.password.hash(password));
 });
 
 /**
@@ -97,6 +120,7 @@ export const createAuth = ({
         verification: verificationSchema,
         jwks: jwksSchema,
         rateLimit: rateLimitSchema,
+        ...connectorAuthSchema,
       },
     }),
     // Better Auth's limits (on only with NODE_ENV=production, check builds
@@ -115,8 +139,8 @@ export const createAuth = ({
       ...(ipHeader ? { ipAddress: { ipAddressHeaders: [ipHeader] } } : {}),
       ...(originCheck === undefined ? {} : { disableOriginCheck: !originCheck }),
     },
-    disabledPaths: UNUSED_OTP_PATHS,
-    hooks: { before: refuseDisabledSignIn },
+    disabledPaths: [...UNUSED_OTP_PATHS, ...CONNECTOR_DISABLED_PATHS],
+    hooks: { before: beforeHooks },
     // A disabled account never gets a session, by any path (password, link,
     // code, verification's auto sign-in): the answer is a wrong password's.
     databaseHooks: {
@@ -132,7 +156,17 @@ export const createAuth = ({
     // Auth's list-sessions refuses a session older than `freshAge` (a day by
     // default), which would hide the list from anyone signed in for longer.
     // Nothing else we use checks freshness (deleteUser and unlink-account are off).
-    session: { freshAge: 0 },
+    //
+    // ⚠ The cookie cache (B-140): a signed copy of the session in a cookie
+    // stands in for the session table for up to 3 minutes, so ordinary /rpc
+    // calls skip that read. The tradeoff: for up to 3 minutes after a session
+    // is revoked (signed out elsewhere, removed on the Devices page, a
+    // password reset), ordinary /rpc calls carrying its cookie still succeed.
+    // Staff procedures, /token (above) and the app's own session check read
+    // the live session; the account (disabled, role) and its memberships are
+    // read live on every call. See docs/domain/auth.md and
+    // plans/security-review.md; reconsider before launch.
+    session: { freshAge: 0, cookieCache: { enabled: true, maxAge: 180 } },
     // Accounts come only from invitations (invites slices 3–5), never from
     // public sign-up. An unverified account can't sign in with a password:
     // it gets a fresh verification email and EMAIL_NOT_VERIFIED instead.
@@ -183,6 +217,10 @@ export const createAuth = ({
       }),
       // Short-lived JWTs (and a JWKS endpoint) for PowerSync and workers.
       jwt({
+        // No `set-auth-jwt` header on every get-session (nothing reads it):
+        // /token mints them. Signing one cost each /rpc lookup a key read
+        // and a disabled-account check, and failed it for a disabled one (B-140).
+        disableSettingJwtHeader: true,
         // `pnpm auth:rotate-jwks` expires the signing key; the next token
         // makes a new one. The old public key stays in the JWKS for an hour,
         // so tokens it signed (15 minutes at most) verify until they expire.
@@ -199,6 +237,9 @@ export const createAuth = ({
           },
         },
       }),
+      // Members' own AI assistants (connectors PRD): OAuth 2.1 for /mcp.
+      connectorOAuthProvider(baseURL ?? "http://localhost:5173"),
+      connectorTokens(baseURL ?? "http://localhost:5173"),
     ],
   });
   createSignInCode = (email) => instance.api.createVerificationOTP({ body: { email, type: "sign-in" } });

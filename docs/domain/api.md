@@ -3,11 +3,12 @@
 The api area's rules and decisions, moved out of AGENTS.md (whose core rules still apply). An orchestrator folds a landing's lasting decisions for this area in here.
 
 - Chosen over tRPC for OpenAPI output (AI tools, MCP, integrations), contract-first, files and streaming, and fetch, Node and Lambda adapters. It has no runtime dependency, so it mounts in a resource route, runs directly from server loaders, or runs in an AWS worker.
-- **Procedures:** `publicProcedure`/`authedProcedure` with context `{ authUser }`, resolved by the mount point (`getAuthUser`). Procedures never read requests.
+- **Procedures:** `publicProcedure`, `authedProcedure` and `staffProcedure`, with context `{ authUser?, getAuthUser?, clientIp? }`. `/rpc` passes a memoised lookup (`lazyAuthUser`) that only `authedProcedure` (cookie cache allowed) and `staffProcedure` (live) resolve, so public procedures never look up a session; a lookup error is a 500. In-process callers pass `authUser`. Procedures never read requests.
 - **Errors:** handlers call services and `unwrap()`. `toORPCError` maps an AppError's `statusCode` (400/401/403/404/409) to an oRPC code with `data: { code, issues? }`. Anything else becomes a generic 500, with the `AppError` on the `ORPCError`'s `cause` (never sent).
 - **Logging** (`logError(event, error, fields?)` from `@caretook/data`, server only; in apps/web through `~/.server/data` or `~/.server/api`): server logs carry an error's code (an `AppError`'s `code`, or a constant-looking code and class name otherwise), stack frames without the message, and only the fields `procedure`, `actorId`, `groupId`, `recordId`, `notification`, `attempts`. Never messages, `meta`, `issues`, bodies or values. `publicProcedure`'s first middleware (`logFailures`) logs every 5xx and unexpected throw once; 4xx aren't logged. **Never `console.error(error)` in server code.**
 - **DTOs:** `dto.ts` turns timestamps into ISO 8601. Inputs reuse the client-safe Zod schemas from `@caretook/data/schema`.
 - **Public profiles only:** `careGroup.members` returns name, image and role, never email. Keep it that way for new procedures.
+- **`/mcp`** (`src/connectors/`) is JSON-RPC, not oRPC, behind its web route; `connector.*` is composed in `router.ts`. See [connectors](connectors.md).
 - **HTTP:** `createRpcHandler({ prefix, allowedOrigins })`:
   - CSRF through `SimpleCsrfProtection` (the client link sends `x-csrf-token`).
   - CORS for `allowedOrigins()` only (`packages/auth/src/host.ts`, shared with Better Auth): `AUTH_TRUSTED_ORIGINS`, plus Capacitor's origins only with `NATIVE_APP_ORIGINS=1` (off in dev, tests, checks and deploys until the native app ships). The list is defined once, in `host.ts`.

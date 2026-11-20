@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { fx, TEST_USER } from "../../../../../test/fixtures";
 import { rows, rowWith, TIMELINE_URL as T, openTimeline } from "./timelineWorld";
 
@@ -59,7 +60,7 @@ const openAdd = async (fixtures: ReturnType<typeof fx.symptom>[] = []) => {
 describe("the add sheet", () => {
   test("a symptom with no name shows a field error and writes nothing; Cancel closes it", async () => {
     const device = await openAdd();
-    await userEvent.click(SUBMIT());
+    await userEvent.click(await found(SUBMIT));
     await expect.poll(() => NAME()?.getAttribute("aria-invalid")).toBe("true");
     expect(SHEET()).not.toBeNull();
     expect(await entriesNamed(device, "")).toHaveLength(0);
@@ -72,8 +73,8 @@ describe("the add sheet", () => {
 
   test("a save shows on the device at once, stored and queued as the signed-in user", async () => {
     const device = await openAdd();
-    await userEvent.fill(NAME()!, "Knee pain");
-    await userEvent.click(SUBMIT());
+    await userEvent.fill(await found(NAME), "Knee pain");
+    await userEvent.click(await found(SUBMIT));
     await expect.poll(SHEET).toBeNull();
     await expect.poll(() => rowWith("Knee pain")).toBeTruthy();
     const [saved] = await entriesNamed(device, "Knee pain");
@@ -91,8 +92,8 @@ describe("the edit sheet", () => {
     await expect.poll(() => rowWith("Sore knee")).toBeTruthy();
     await userEvent.click(rowWith("Sore knee")!.querySelector('a[aria-label^="Edit "]')!, { force: true });
     await expect.poll(() => SHEET()?.textContent?.includes("Edit symptom")).toBe(true);
-    await userEvent.fill(NAME()!, "Sore knee, edited");
-    await userEvent.click(SUBMIT());
+    await userEvent.fill(await found(NAME), "Sore knee, edited");
+    await userEvent.click(await found(SUBMIT));
     await expect.poll(SHEET).toBeNull();
     await expect.poll(() => rowWith("Sore knee, edited")).toBeTruthy();
     const [saved] = await entriesNamed(device, "Sore knee, edited");
@@ -111,7 +112,7 @@ describe("delete", () => {
     await expect.poll(() => menuItem("Delete")).toBeTruthy();
     await userEvent.click(menuItem("Delete")!);
     await expect.poll(() => document.querySelector("dialog[open] .btn-error")).toBeTruthy();
-    await userEvent.click(document.querySelector("dialog[open] .btn-error")!);
+    await userEvent.click(await found(() => document.querySelector("dialog[open] .btn-error")));
     await expect.poll(() => rowWith("Delete me")).toBeUndefined();
     const [gone] = await entriesNamed(device, "Delete me");
     expect(gone!.deleted_at).not.toBeNull();
@@ -164,7 +165,7 @@ describe("When's date picker", () => {
 
   test("typing a segment still works and the calendar shows the typed date; tapping a day sets it; the save is under Yesterday, and editing opens the calendar on its date", async () => {
     await openAdd();
-    await userEvent.fill(NAME()!, "Picked date");
+    await userEvent.fill(await found(NAME), "Picked date");
     const s0 = segments();
     const yesterday = before(s0);
 
@@ -173,7 +174,7 @@ describe("When's date picker", () => {
     await userEvent.keyboard("{ArrowDown}{ArrowDown}");
     const typed = segments();
     expect(typed.day).not.toBe(s0.day);
-    await userEvent.click(PICK()!, { force: true });
+    await userEvent.click(await found(PICK), { force: true });
     await expect.poll(SELECTED_DAY).toBe(typed.day);
     expect(CAL_HEADING()).toBe(heading(typed));
 
@@ -183,14 +184,14 @@ describe("When's date picker", () => {
     expect([s2.day, s2.month]).toEqual([yesterday.day, yesterday.month]);
     expect(sameTime(s2, s0)).toBe(true);
 
-    await userEvent.click(SUBMIT());
+    await userEvent.click(await found(SUBMIT));
     await expect.poll(SHEET).toBeNull();
     await expect.poll(() => rowWith("Picked date")).toBeTruthy();
     expect(dayOf("Picked date")).toBe("Yesterday");
 
     await userEvent.click(rowWith("Picked date")!.querySelector('a[aria-label^="Edit "]')!, { force: true });
     await expect.poll(() => SHEET()?.textContent?.includes("Edit symptom") && PICK()).toBeTruthy();
-    await userEvent.click(PICK()!, { force: true });
+    await userEvent.click(await found(PICK), { force: true });
     await expect.poll(SELECTED_DAY).toBe(yesterday.day);
     expect(CAL_HEADING()).toBe(heading({ year: yesterday.year, month: yesterday.month }));
     await userEvent.keyboard("{Escape}");

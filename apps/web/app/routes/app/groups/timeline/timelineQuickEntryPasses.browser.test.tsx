@@ -4,6 +4,8 @@ import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE } from "../../../../../test/fixtures";
+import { DEFAULT_UNITS } from "@caretook/data/schema";
+import { QuickEntryBox } from "~/components/quick-entry";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
 import { dayInZone, timeInZone } from "~/lib/core/zonedDay";
@@ -132,12 +134,12 @@ describe("passes in the box", () => {
     await waitUntil(() => dueChips().length === 1, 4000, "the due pass's chip");
   });
 
-  test("Undo is offered for about 10 s only in the box, not on the medication strip", async () => {
+  test("Undo is offered for about 10 s only in the box, not on the Today card's medications row", async () => {
     await open();
     await typeUntil("gave evening meds", "Evening medications");
     await userEvent.click(saveButton());
     await expect.poll(undoLabel).toBe("Saved 2 entries");
-    const strip = document.querySelector("[data-med-strip]")?.parentElement;
+    const strip = document.querySelector('[data-today-row="medications"]');
     expect(strip?.querySelector("[data-pass-undo-label]") ?? null).toBeNull();
     expect(
       document.querySelector("[data-quick-entry] [data-pass-undo]")?.closest("[role=status]"),
@@ -198,5 +200,31 @@ describe("the runner", () => {
     ]);
     expect(empty).toMatchObject({ ok: false, index: 0, error: "Noon has no medications." });
     expect((await live(device)).map((r) => r.kind)).toEqual(["dose", "dose"]);
+  });
+});
+
+describe("the due-pass chip", () => {
+  test("a box with passChips off (simple mode, whose Upcoming block has Given all) shows none; the default box does", async () => {
+    function Boxes() {
+      return (
+        <>
+          <div data-boxes="plain">
+            <QuickEntryBox groupId={TEST_GROUP.id} units={DEFAULT_UNITS} passChips={false} />
+          </div>
+          <div data-boxes="full">
+            <QuickEntryBox groupId={TEST_GROUP.id} units={DEFAULT_UNITS} />
+          </div>
+        </>
+      );
+    }
+    await renderWithDevice({
+      route: [{ path: "/app/groups/:groupId/timeline", module: { default: Boxes } }],
+      url: TIMELINE_URL,
+      fixtures: [EVENING, NOON, LISINOPRIL, METFORMIN, METOPROLOL],
+    });
+    const inBox = (which: string) =>
+      document.querySelectorAll(`[data-boxes="${which}"] [data-quick-row="due"] button`);
+    await waitUntil(() => inBox("full").length === 1, 4000, "the due chip in the default box");
+    expect(inBox("plain")).toHaveLength(0);
   });
 });

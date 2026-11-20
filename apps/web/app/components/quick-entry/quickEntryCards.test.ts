@@ -8,6 +8,7 @@ import {
   cardActions,
   cardsAnnouncement,
   editTarget,
+  openAfterSave,
   partKey,
   savedText,
 } from "./quickEntryCards";
@@ -169,4 +170,30 @@ test("drafts are read only from quick entry's history state", () => {
   expect(entryDraftFrom({ sheetOverTimeline: true })).toBeNull();
   expect(entryDraftFrom({ [QUICK_ENTRY_DRAFT]: { kind: "dose" } })).toBeNull();
   expect(doseDraftFrom({ [QUICK_ENTRY_DRAFT]: { kind: "vital" } })).toBeNull();
+});
+
+describe("openAfterSave", () => {
+  test("a lone note or event opens its page", () => {
+    expect(openAfterSave([{ type: "addNote", ids: ["n1"] }])).toBe("n1");
+    expect(openAfterSave([{ type: "addEvent", ids: ["e1"] }])).toBe("e1");
+  });
+  test("a note plus a vital, or two notes, stays", () => {
+    expect(
+      openAfterSave([
+        { type: "logVital", ids: ["v1"] },
+        { type: "addNote", ids: ["n1"] },
+      ]),
+    ).toBeNull();
+    expect(
+      openAfterSave([
+        { type: "addNote", ids: ["n1"] },
+        { type: "addNote", ids: ["n2"] },
+      ]),
+    ).toBeNull();
+  });
+  test("a lone dose, vital or task stays, and so does nothing saved", () => {
+    expect(openAfterSave([{ type: "logDose", ids: ["d1"] }])).toBeNull();
+    expect(openAfterSave([{ type: "addTask", ids: ["t1"] }])).toBeNull();
+    expect(openAfterSave([])).toBeNull();
+  });
 });

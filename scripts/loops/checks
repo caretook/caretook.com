@@ -4,7 +4,7 @@
 # (checks.test.mjs) keeps the two in step.
 #
 # One check per line, in suite order:
-#   check        the file's name without .mjs (scripts/browser-checks/<check>.mjs)
+#   check        the check's name: its Playwright Test spec, scripts/browser-checks/<check>.spec.mjs
 #   usual        its usual seconds for a full run on a quiet machine (from the logs)
 #   cap          browser.sh kills it after this many seconds, as TIMEOUT (about 3×
 #                usual, at least 120; --timeout overrides it). Unlisted checks: 600.
@@ -21,18 +21,18 @@
 # The budget: the e2e checks' usual seconds may add up to at most
 # lean-ceiling (checks.test.mjs fails above it). A slice that shrinks the lean
 # set lowers it to the new total; nothing raises it without the user.
-lean-ceiling 286
+lean-ceiling 255
 #
 # check            usual  cap  never-exits  e2e
-phase2               10   120  no           yes
-roundtrip            29   120  no           yes
-live-notes           56   170  no           yes
-app-shell            15   120  no           yes
-layout-offline       19   300  yes          yes
+phase2               11   120  no           yes
+roundtrip            28   120  no           yes
+live-notes           62   170  no           yes
+app-shell            19   120  no           yes
+layout-offline       15   120  no           yes
 sign-in               4   120  no           yes
-first-sync           36   150  no           yes
-signout-wipe          6   300  yes          yes
-session-end           5   120  no           yes
-invites              72   270  no           yes
-ui                    5   120  no           yes
-marketing            29   120  no           yes
+first-sync           20   150  no           yes
+signout-wipe          3   120  no           yes
+session-end           6   120  no           yes
+invites              49   270  no           yes
+ui                    7   120  no           yes
+marketing            31   120  no           yes

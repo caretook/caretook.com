@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, newId, TEST_USER } from "../../../../../test/fixtures";
 import { medicationEntriesQuery } from "~/lib/medications/medications.sync";
@@ -125,7 +126,7 @@ describe("the notes", () => {
     await waitUntil(() => medPage().editable === "true", 4000, "an editable editor");
     expect(medPage().notes).toBe("");
     expect(await device.query("SELECT id FROM note_document WHERE id = ?", [LISINOPRIL.id])).toEqual([]);
-    await userEvent.click(NOTES()!);
+    await userEvent.click(await found(NOTES));
     await userEvent.keyboard("Crush into yogurt");
     await expect
       .poll(() =>

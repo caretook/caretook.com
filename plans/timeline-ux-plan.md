@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State                | Merge into `prd/timeline-ux` (slice commits) |
-| ----- | ---- | -------------------- | -------------------------------------------- |
-| 1     | 1    | merged               | 9e3a3ad (28991ac, 940af0a)                   |
-| 2     | 1    | merged               | de5ccf9 (67f6e34)                            |
-| 3     | 1    | merged               | 448be6e (11efa88)                            |
-| 4     | 2    | handed off (2110676) |                                              |
-| 5     | 2    | started              |                                              |
-| 6     | 2    | started              |                                              |
-| 7     | 3    | blocked by 1, 3      |                                              |
-| 8     | 3    | blocked by 2         |                                              |
-| 9     | 3    | not started          |                                              |
-| 10    | 4    | blocked by 1         |                                              |
+| Slice | Wave | State  | Merge into `prd/timeline-ux` (slice commits) |
+| ----- | ---- | ------ | -------------------------------------------- |
+| 1     | 1    | landed | 9e3a3ad (28991ac, 940af0a)                   |
+| 2     | 1    | landed | de5ccf9 (67f6e34)                            |
+| 3     | 1    | landed | 448be6e (11efa88)                            |
+| 4     | 2    | landed | ddf36b0 (2110676)                            |
+| 5     | 2    | landed | fd9b79f4 (174eb84)                           |
+| 6     | 2    | landed | 127670af (8c4450e)                           |
+| 7     | 3    | landed | c3e5ca6b (b3b1e9a8, 638b5689, 88c581fa)      |
+| 8     | 3    | landed | 3f342072 (5aa523ac)                          |
+| 9     | 3    | landed | aa3d0273 (b838735e)                          |
+| 10    | 4    | landed | 75f87df2 (6cad2485)                          |
 
 **Start condition:** `code-layout` in `dev` (it moves `apps/web/app/lib/`, `routes.ts` and `appUrls`). Check `pnpm backlog show B-150` says landed. Every path below that names `lib/…` means its new home after code-layout: find it with `git grep` and don't recreate the old file.
 
@@ -35,6 +35,23 @@
 - agent-tooling is trimming components, care-groups, sync, medications, timeline and app-shell to ~9 KB; fold onto whatever is in dev; message agent-tooling-29 after each landing that touches sync/timeline/app-shell/medications.
 - Wave 1 check: two load flakes (`medicationList`, `profile` component tests; both pass alone 2/2 at load 25). Synced dev again (docs/tooling only). Folded wave 1 into sync.md, timeline.md, docs/agents/orchestrator.md and AGENTS.md (no doc grew past dev's size); rerunning the full check.
 - Slice 4 handed off (2110676; its subject wrongly cites B-168: the items are B-137, B-138). Its pnpm check had 2 unnamed load flakes and the plan's Prettier warning (since fixed). Merge after wave 1 lands.
+- **Wave 1 landed in dev as 5689e47** (full check passed on 2bb2425; then a dev sync of agent-tooling's area-doc trims, docs only: took dev's trimmed sync.md/timeline.md and re-added wave 1's rules tersely; sync.md is 10223 B of 10240, so trim at least what waves 3–4 add). The user chose to land wave 1 without `--suite`.
+- Slice 4 merged (ddf36b0), B-137/B-138 done, worktree removed. Slices 5 and 6 running.
+- **Promises to other orchestrators:** message connectors-4a when B-164/B-165 (slice 6) land in dev, and when slice 10 (B-140, packages/auth) starts and before it lands (their slice 2 adds an oauth-provider plugin in `packages/auth/src/auth.ts`).
+- Slice 6 handed off (8c4450e; subject cites only B-139, it covers B-164/B-165/B-167/B-168 too). Merge after 5. Fold-ins: timeline.md, date heading `text-lg lg:text-xl`; the summary in `DayHeader`'s `summary` region; ⋯ over the author chip in `[data-entry-aside]` (`ASIDE_CLASS`); `offscreenRows.ts` (`content-visibility` on rows of days before the newest page, `contain-intrinsic-size: auto 70px`/100px cards; relayout at 300 rows 2.9 → 1.3 ms). care-periods.md: no place on the day line or marker. Follow-ups to file: pages lost on Back (paging is `useState`); dead `placeNamesQuery`/`placeRows`. Filed as B-174 and B-175.
+- Slices 5 (fd9b79f4) and 6 (127670af; one doc-comment conflict in `TimelineEntryList.tsx`, resolved) merged; B-169, B-164, B-167, B-165, B-168, B-139 done; worktrees removed. Slice 5 notes: the tasks row keeps due-today tasks but neutral (no amber hue in `todayStatus`); `marketing-screenshots.mjs` selector updated, not run (no screenshots until the launch map). Synced dev (connectors PRD docs). Folded wave 2 into timeline, care-periods, medications, tasks and app-shell docs (all under 10 KB). Full check next (a code conflict was resolved); wave 2 lands on it without `--suite` (plan).
+- Wave 2 check: only `medicationList` failed (load flake, passes alone; filed B-178). The rerun failed `timelineSimpleTasks` (2 of 3 alone): a race from slice 2's tiles skeleton; the orchestrator fixed the test (waits for the tiles; 4/4). Quick check passed on 2ce46450; landing.
+- Wave 3 started from d3d62eeb while the wave 2 check runs: timeline-ux-7 (stack, slot 3), -8, -9; agents 7 opus, 8 sonnet, 9 sonnet. B-144, B-162, B-163, B-170, B-171 claimed.
+- Slice 8 handed off (5aa523ac): order, "Upcoming", one-row tiles, no zoom, `canDictate` + `DICTATION_HINT` under the box in `SimpleTimeline`; box now `size="md"`, which turns on a due-pass chip that duplicates Given all: asked slice 9 to add a prop that hides it in simple mode (pass it in `SimpleTimeline` at merge). Fold-ins: timeline.md simple-view lines; assistant.md (the box size, dictation hint, pass chip).
+- **Wave 2 landed in dev as 60260949** (quick check on 2ce46450, then a docs-only dev sync). Told connectors-4a B-164/B-165 landed.
+- Slice 8 merged (3f342072; took slice 8's side of the `timelineSimpleTasks` test conflict, which already had the tiles wait), B-162 done, worktree removed. Slices 7 and 9 running.
+- Slice 9 handed off (b838735e). At merge: pass `passChips={false}` from `SimpleTimeline`. Its `--changed` named `session-end` (recentLines → sign-out wipe) and failed for lack of a stack: covered by the wave 3 lean set, or run it by name at landing. Undo after a lone note/event is effectively gone (the page opens). Fold-ins for assistant.md: no tips line, rotating placeholder + sr-only rules, open-after-save, reduced recent lines (`recentLineFor`, filtered on read), `passChips`.
+- Slice 7: gate passed (the server's /app document, cached with its headers, boots any /app/* under the CSP); told it not to run the lean set (the user's yes, once at landing).
+- Slices 7 (c3e5ca6b) and 9 (aa3d0273) merged, no conflicts; then 858936e7 passes `passChips={false}` in `SimpleTimeline` (test fails without it). B-144, B-163, B-170, B-171 done; worktrees removed. dev had nothing new. Folded wave 3 into timeline, assistant, sync, app-shell, components and security-headers (all within budget). Next: full check, then ask the user about the lean `--suite` (wave 3 changes the build; `--changed` names the whole lean set). Staging follow-up: confirm `/sw.js` 200 after `vercel build`.
+- Wave 3 full check passed on 293c64a7; the user chose to land wave 3 on the check alone (no `--suite`). Landing refused (dev moved): synced check-migration wave 8 (Playwright harness, test-race fixes, package.json/lockfile); one conflict in `timelineSimpleTasks` (kept our order plus dev's wait for all regions). Rerunning the full check.
+- Wave 4 started: timeline-ux-10 (stack, slot 3), opus; B-140 claimed. Told connectors-4a; they asked for an exact `ctx.path === "/token"` match (their plugin adds `/oauth2/token`): passed to the slice. Message connectors-4a before wave 4 lands.
+- Wave 3 rerun: only `scripts/loops/browser.test.mjs` failed (load 49; identical to dev's; 3/3 alone). Slice 10 handed off and merged (75f87df2), B-140 done, worktree removed; it also set `jwt({ disableSettingJwtHeader: true })` inside `plugins` (flag for connectors). Its app-shell member-share step flaked (B-179). Folded into auth.md (⚠ section), api.md, sync.md and security-review S-13. Waves 3 and 4 land together after one full check; the user chose to land on the check alone (no `--suite`). Full check passed on b8560895; landing.
+- **Waves 3 and 4 landed in dev as 8b3179ab. The PRD is done.** Told connectors-4a. Follow-ups filed: B-174 (pages lost on Back), B-175 (dead place query), B-178 (medicationList flake), B-179 (app-shell member-share flake); on staging, confirm `/sw.js` returns 200. `pnpm prd rm timeline-ux` next.
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 

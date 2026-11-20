@@ -131,10 +131,13 @@ describe("onlySheetChanged", () => {
 
   it("is false when the filters change", () => {
     expect(onlySheetChanged(G, url(`${TIMELINE}`), url(`${TIMELINE}/new/symptom?kind=symptom`))).toBe(false);
-    expect(onlySheetChanged(G, url(`${TIMELINE}?upcoming=1`), url(`${TIMELINE}/new/symptom`))).toBe(false);
     expect(
-      onlySheetChanged(G, url(`${TIMELINE}?upcoming=1`), url(`${TIMELINE}/new/symptom?upcoming=1`)),
-    ).toBe(true);
+      onlySheetChanged(
+        G,
+        url(`${TIMELINE}?kind=vital&vital=weight`),
+        url(`${TIMELINE}/new/vital?kind=vital`),
+      ),
+    ).toBe(false);
   });
 
   it("is false for the same path, or a path off the timeline", () => {

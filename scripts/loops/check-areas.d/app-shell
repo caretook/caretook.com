@@ -1,7 +1,7 @@
 # check-areas: the /app frame, menus, theme, the group route, routes and
 # URLs, account and group settings. The frame's screen (header, menus, theme
 # choice, last group, tab bar, section links) is component tests
-# (layout/frame.browser.test.tsx); app-shell.mjs keeps the flows: the theme
+# (layout/frame.browser.test.tsx); app-shell.spec.mjs keeps the flows: the theme
 # before first paint, sign-out from the menu, a rename and members across
 # devices. The layout route runs the session check on every /app navigation.
 # Its header's magnifier is component tests (search/search.browser.test.tsx).
@@ -47,3 +47,6 @@ apps/web/app/components/settings/*       -
 packages/data/src/db/schema/app-shell/userPreferences.ts layout-offline
 apps/web/app/routes/app/groups/settings/members/* app-shell invites
 apps/web/app/routes/app/groups/settings/* app-shell
+# The service worker (lib/app-shell/serviceWorker*.ts; B-144) serves every /app
+# page load and the assets: the lean set.
+apps/web/app/lib/app-shell/serviceWorker* @suite

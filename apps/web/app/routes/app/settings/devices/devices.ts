@@ -33,8 +33,10 @@ export const deviceRows = (sessions: readonly SessionLike[], currentId: string |
     }))
     .sort((a, b) => Number(b.current) - Number(a.current) || b.lastActive.localeCompare(a.lastActive));
 
-export const OFFLINE_DEVICES = "Needs a connection to show your devices and sign them out.";
+export const OFFLINE_DEVICES =
+  "Needs a connection to show your devices and assistants, and to sign them out.";
 export const SIGN_OUT_FAILED = "Couldn't sign that device out. Try again.";
+export const DISCONNECT_FAILED = "Couldn't disconnect that assistant. Try again.";
 
 /** The form's posts: one device, or every other one. */
 export type DevicesIntent = { intent: "signOut"; id: string } | { intent: "signOutOthers" } | null;
@@ -45,4 +47,11 @@ export const devicesIntent = (form: FormData): DevicesIntent => {
   if (intent === "signOutOthers") return { intent };
   if (intent === "signOut" && typeof id === "string" && id) return { intent, id };
   return null;
+};
+
+/** Disconnecting one of the member's connected assistants (by its grant's id). */
+export const connectionIntent = (form: FormData): { intent: "disconnect"; id: string } | null => {
+  const intent = form.get("intent");
+  const id = form.get("id");
+  return intent === "disconnect" && typeof id === "string" && id ? { intent, id } : null;
 };

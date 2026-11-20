@@ -193,6 +193,7 @@ Staging only:
 2. **Staff:** sign up the first staff account through an invite or access code (it must exist), then run **Grant staff** (`admin-grant.yml`): environment, the account's email, role `admin`. It's recorded in the audit log with the system as actor. `/admin` then opens for that account.
 3. **Staging only: Seed staging** (`seed-staging.yml`). The fictional seed, idempotent; seeded accounts use `SEED_USER_PASSWORD`. The seed refuses production.
 4. **Hand checks on staging:** sign in on two devices as seeded users and see an edit sync; send an invite to an allowlisted address and check it arrives in the inbox with SPF, DKIM and DMARC passing and no tracking; `robots.txt` disallows everything.
+   - **Connectors** ([connectors](../docs/domain/connectors.md)): as Dev Family's owner (its switch is seeded on), add `https://<staging host>/mcp` as a custom connector in Claude (Settings → Connectors) and in ChatGPT (developer mode). Each should register, send you to `/connect`, and come back connected. Ask it to read today's timeline, then to log a vital: the client asks before the write, and the entry shows "via <client>". Then disconnect in Settings → Devices, and the next call fails.
 5. Production: the same, by a PR from `staging` into `main`, then Grant staff for the dev keeper's account. No seed.
 
 ## Rotation
@@ -236,14 +237,14 @@ Better Auth (1.7.25) encrypts the JWT signing key's private half (`jwks.private_
 
 The previous deploy is still live. GitHub emails the pusher. Look at the run's failed step:
 
-| Step      | Usual causes                                                                                                                                                                                   |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| env check | a missing or malformed secret: the log names the variable (never the value)                                                                                                                    |
-| migrate   | a migration error, or `MIGRATIONS_DATABASE_URL` wrong. Migrations run in a transaction each; fix the migration and push.                                                                       |
-| roles     | a stream column the schema doesn't have, a `*` in `sync-config.yaml`, or a synced table the replication role can't `SELECT *` (add its columns to the stream or to `REPLICATION_WHOLE_TABLES`) |
-| powersync | the instance id or token, or the instance not set up yet (it must be deployed once in the dashboard), or a sync config PowerSync rejects                                                       |
-| vercel    | the token or project ids, or a build error (reproduce with `pnpm build`)                                                                                                                       |
-| smoke     | the check's table names what failed: `home` (status or security headers), `jwks`, `rpc-unauthenticated`, `cron-locked`, `powersync`, `noindex` (staging)                                       |
+| Step      | Usual causes                                                                                                                                                                                                                             |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| env check | a missing or malformed secret: the log names the variable (never the value)                                                                                                                                                              |
+| migrate   | a migration error, or `MIGRATIONS_DATABASE_URL` wrong. Migrations run in a transaction each; fix the migration and push.                                                                                                                 |
+| roles     | a stream column the schema doesn't have, a `*` in `sync-config.yaml`, or a synced table the replication role can't `SELECT *` (add its columns to the stream or to `REPLICATION_WHOLE_TABLES`)                                           |
+| powersync | the instance id or token, or the instance not set up yet (it must be deployed once in the dashboard), or a sync config PowerSync rejects                                                                                                 |
+| vercel    | the token or project ids, or a build error (reproduce with `pnpm build`)                                                                                                                                                                 |
+| smoke     | the check's table names what failed: `home` (status or security headers), `jwks`, `rpc-unauthenticated`, `cron-locked`, `mcp-unauthenticated` (`/mcp` without a token is 401 with `resource_metadata`), `powersync`, `noindex` (staging) |
 
 - **Smoke fails after the Vercel deploy:** the new code **is** live. Roll back in Vercel first, then investigate.
 - **A 503 "configuration is incomplete":** the server's own env check; Vercel's function log names the variables. Fix them in Vercel and redeploy.

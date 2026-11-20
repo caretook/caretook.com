@@ -4,6 +4,7 @@ import type { Route } from "./+types/route";
 import { useNavigate } from "react-router";
 import { afterEach, describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import * as editSheet from "../timeline/edit/route";
@@ -136,7 +137,7 @@ const counts = async (device: Awaited<ReturnType<typeof open>>) =>
 
 /** Open the time chip, move the day by `steps` (negative is earlier), then Done. */
 const shiftDay = async (steps: number) => {
-  await userEvent.click(TIME_CHIP()!);
+  await userEvent.click(await found(TIME_CHIP));
   await waitUntil(() => !!DAY(), 4000, "the day segment");
   DAY()!.focus();
   for (let i = 0; i < Math.abs(steps); i++) await userEvent.keyboard(steps < 0 ? "{ArrowDown}" : "{ArrowUp}");
@@ -244,11 +245,11 @@ describe("an event in one tap, and title chips", () => {
 
     // A chip renames the unnamed event; then a typed rename.
     const pick = CHIPS()[0]!.textContent.trim();
-    await userEvent.click(CHIPS()[0]!);
+    await userEvent.click(await found(() => CHIPS()[0]));
     await waitUntil(() => TITLE()?.value === pick && CHIPS().length === 0, 4000, "the chip's title");
     await expect.poll(async () => (await stored(device, id))?.title).toBe(pick);
     TITLE()!.focus();
-    await userEvent.clear(TITLE()!);
+    await userEvent.clear(await found(TITLE));
     await userEvent.keyboard("Dr. Lee visit");
     TITLE()!.blur();
     await expect.poll(async () => (await stored(device, id))?.title).toBe("Dr. Lee visit");
@@ -264,7 +265,9 @@ describe("an event in one tap, and title chips", () => {
       4000,
       "the chips",
     );
-    await userEvent.click(CHIPS().find((b) => b.textContent?.trim() === "Physical therapy")!);
+    await userEvent.click(
+      await found(() => CHIPS()?.find((b) => b.textContent?.trim() === "Physical therapy")),
+    );
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     const id = idOf(device.location());
     await waitUntil(() => TITLE()?.value === "Physical therapy" && CHIPS().length === 0);
@@ -278,7 +281,7 @@ describe("an event in one tap, and title chips", () => {
     TITLE()!.focus();
     await userEvent.keyboard("Podiatrist");
     await waitUntil(() => CHIPS().length === 0, 3000, "the chips to go");
-    await userEvent.clear(TITLE()!);
+    await userEvent.clear(await found(TITLE));
     await waitUntil(() => CHIPS().length > 0, 3000, "the chips to come back");
     await userEvent.keyboard("Podiatrist");
     TITLE()!.blur();
@@ -335,7 +338,7 @@ describe("who's writing", () => {
     ]);
     expect(!!HEADER_TIME() && !!SHARE()).toBe(true);
     // The viewer's ⋯ is Print alone.
-    await userEvent.click(MENU()!);
+    await userEvent.click(await found(MENU));
     await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
       "Print",
@@ -385,19 +388,21 @@ describe("the header: time and Delete", () => {
     const target = new Date(moved);
     const heading = target.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-    await userEvent.click(TIME_CHIP()!);
+    await userEvent.click(await found(TIME_CHIP));
     await waitUntil(() => !!PICK_DATE());
-    await userEvent.click(PICK_DATE()!);
+    await userEvent.click(await found(PICK_DATE));
     await waitUntil(() => !!GRID(), 4000, "the calendar");
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !GRID(), 3000, "the calendar to close");
     expect(DAY()).toBeTruthy();
 
-    await userEvent.click(PICK_DATE()!);
+    await userEvent.click(await found(PICK_DATE));
     await waitUntil(() => !!GRID());
     const calHeading = () => GRID()!.closest("[role=dialog]")!.querySelector("h2")!.textContent.trim();
     if (calHeading() !== heading)
-      await userEvent.click(GRID()!.closest("[role=dialog]")!.querySelector('[aria-label="Next month"]')!);
+      await userEvent.click(
+        await found(() => GRID()?.closest("[role=dialog]")?.querySelector('[aria-label="Next month"]')),
+      );
     await waitUntil(() => calHeading() === heading);
     const cell = [...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find(
       (c) => c.textContent?.trim() === String(target.getDate()) && !c.hasAttribute("data-outside-month"),
@@ -416,7 +421,7 @@ describe("the header: time and Delete", () => {
     const note = fx.note({ text: "To delete", occurredAt: hoursAgo(1) });
     const device = await open(entryPath(note.id), { fixtures: [base(), note] });
     await waitUntil(() => !!MENU());
-    await userEvent.click(MENU()!);
+    await userEvent.click(await found(MENU));
     await waitUntil(() => !!menuItem("Delete"));
     await userEvent.click(menuItem("Delete")!);
     await waitUntil(() => !!$("dialog[open]"));
@@ -426,7 +431,7 @@ describe("the header: time and Delete", () => {
     expect(device.location()).toBe(entryPath(note.id));
     expect(MENU()).toBeTruthy();
 
-    await userEvent.click(MENU()!);
+    await userEvent.click(await found(MENU));
     await waitUntil(() => !!menuItem("Delete"));
     await userEvent.click(menuItem("Delete")!);
     await waitUntil(() => !!$("dialog[open]"));
@@ -462,7 +467,7 @@ describe("Share", () => {
     stub("clipboard", { writeText: (t: string) => (copied.push(t), Promise.resolve()) });
     const device = await open(entryPath(note.id), { fixtures: [base(), note] });
     await waitUntil(() => !!SHARE());
-    await userEvent.click(SHARE()!);
+    await userEvent.click(await found(SHARE));
     await expect.element(device.screen.getByText("Link copied")).toBeVisible();
     expect(copied).toEqual([location.origin + entryPath(note.id)]);
     await expect.element(device.screen.getByText("Link copied"), { timeout: 5000 }).not.toBeInTheDocument();
@@ -475,7 +480,7 @@ describe("Share", () => {
     stub("canShare", () => true);
     await open(entryPath(note.id), { role: "viewer", fixtures: [base(), note] });
     await waitUntil(() => !!SHARE() && document.body.textContent.includes("You can view this"));
-    await userEvent.click(SHARE()!);
+    await userEvent.click(await found(SHARE));
     await expect
       .poll(() => shared)
       .toEqual([{ title: "Morning", url: location.origin + entryPath(note.id) }]);
@@ -530,7 +535,9 @@ describe("appointments", () => {
     await waitUntil(() => !!CHIP_DIALOG() && !!GRID(), 4000, "the calendar");
     const calHeading = () => GRID()!.closest("[role=dialog]")!.querySelector("h2")!.textContent.trim();
     if (calHeading() !== heading)
-      await userEvent.click(GRID()!.closest("[role=dialog]")!.querySelector('[aria-label="Next month"]')!);
+      await userEvent.click(
+        await found(() => GRID()?.closest("[role=dialog]")?.querySelector('[aria-label="Next month"]')),
+      );
     await waitUntil(() => calHeading() === heading);
     const cell = [...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find(
       (c) => c.textContent?.trim() === String(d.getDate()) && !c.hasAttribute("data-outside-month"),
@@ -562,7 +569,7 @@ describe("appointments", () => {
     const appt = fx.event({ title: "Cardiology", occurredAt: at(ahead()), text: "" });
     const device = await open(entryPath(appt.id), { fixtures: [base(), appt] });
     await waitUntil(() => !!TIME_CHIP());
-    await userEvent.click(TIME_CHIP()!);
+    await userEvent.click(await found(TIME_CHIP));
     await waitUntil(() => !!button("Add an end time"));
     await userEvent.click(button("Add an end time")!);
     await waitUntil(() => !!seg("hour", 1));
@@ -639,9 +646,9 @@ describe("appointments", () => {
     const appt = fx.event({ title: "Move day", occurredAt: at(ahead()), text: "" });
     const device = await open(entryPath(appt.id), { fixtures: [base(), appt] });
     await waitUntil(() => !!TIME_CHIP());
-    await userEvent.click(TIME_CHIP()!);
+    await userEvent.click(await found(TIME_CHIP));
     await waitUntil(() => !!CHIP_DIALOG()?.querySelector("input[type=checkbox]"));
-    await userEvent.click(CHIP_DIALOG()!.querySelector("input[type=checkbox]")!);
+    await userEvent.click(await found(() => CHIP_DIALOG()?.querySelector("input[type=checkbox]")));
     await waitUntil(() => !seg("hour") && !button("Add an end time"));
     await userEvent.click(button("Done")!);
     await waitUntil(() => !CHIP_DIALOG());

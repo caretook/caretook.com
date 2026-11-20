@@ -5,6 +5,7 @@ import { useLayoutEffect } from "react";
 import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
 import {
@@ -160,7 +161,7 @@ describe("the notes", () => {
     expect(NOTES()!.textContent).toBe("");
     expect(await device.query("SELECT id FROM note_document WHERE id = ?", [LANG.id])).toEqual([]);
 
-    await userEvent.click(NOTES()!);
+    await userEvent.click(await found(NOTES));
     await userEvent.keyboard("Park on level 3");
     await expect
       .poll(() =>

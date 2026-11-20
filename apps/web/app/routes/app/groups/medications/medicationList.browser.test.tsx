@@ -62,8 +62,8 @@ describe("the list", () => {
 
   test("current medications first by name, then the completed and discontinued ones; each row's form, dose, schedule and reason, and how a stopped one ended", async () => {
     await open();
-    expect(listNames(CURRENT)).toEqual(SEEDED_CURRENT);
-    expect(listNames(STOPPED)).toEqual(SEEDED_STOPPED);
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    await expect.poll(() => listNames(STOPPED)).toEqual(SEEDED_STOPPED);
     expect(rowText("Metformin", "summary")).toBe("Tablet · 1 tablet · Morning and Evening");
     expect(rowText("Acetaminophen", "summary")).toBe("Tablet · 2 tablets · As needed, up to 4 a day");
     expect(rowText("Lisinopril", "reason")).toBe("Reason: Blood pressure");
@@ -78,6 +78,8 @@ describe("the list", () => {
 
   test("search filters as it's typed (by reason too) and goes in the URL; the URL's search opens filtered", async () => {
     const device = await open();
+    // The search box can render after open() resolves on a loaded machine: wait for it.
+    await expect.poll(() => SEARCH()).toBeTruthy();
     await userEvent.fill(SEARCH(), "blood");
     await expect.poll(() => listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
     expect(listNames(STOPPED)).toEqual([]);
@@ -85,8 +87,8 @@ describe("the list", () => {
     await device.screen.unmount();
 
     await open({ url: `${LIST}?q=blood` });
-    expect(SEARCH().value).toBe("blood");
-    expect(listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
+    await expect.poll(() => SEARCH()?.value).toBe("blood");
+    await expect.poll(() => listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
   });
 
   test("the Discontinued chip shows only Oxybutynin and goes in the URL, which opens filtered; All shows everything again", async () => {
@@ -109,7 +111,7 @@ describe("the list", () => {
 
   test("a viewer sees the list, told it's view-only, with no Add medication", async () => {
     await open({ role: "viewer" });
-    expect(listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
     expect($("main header p")?.textContent).toContain("You can view this list");
     expect($("main [data-add-medication]")).toBeNull();
   });
@@ -122,7 +124,9 @@ describe("the list", () => {
       row: { ...LISINOPRIL.row, status: "discontinued", stop_reason: "ineffective", stopped_on: dayAgo(0) },
     });
     await device.settle();
-    expect(listNames(CURRENT)).toEqual(SEEDED_CURRENT.filter((n) => !n.startsWith("Lisinopril")));
-    expect(listNames(STOPPED)).toContain("Lisinopril 10 mg");
+    await expect
+      .poll(() => listNames(CURRENT))
+      .toEqual(SEEDED_CURRENT.filter((n) => !n.startsWith("Lisinopril")));
+    await expect.poll(() => listNames(STOPPED)).toContain("Lisinopril 10 mg");
   });
 });

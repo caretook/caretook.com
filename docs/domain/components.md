@@ -4,9 +4,9 @@ The components area's rules and decisions. An orchestrator folds a landing's las
 
 ## Layout
 
-- **`ui/`** holds primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `Sheet`, `Popover`, `ConfirmDialog`, `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`. **Only `ui/` imports `react-aria-components`.**
+- **`ui/`** holds primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `Sheet`, `Popover`, `ConfirmDialog`, `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast` (`role="status"`, above the tab bar), `ViaTag` ("via X", `data-via`; nothing when empty). **Only `ui/` imports `react-aria-components`.**
   - `ui/tooltip/` and `ui/date/` (`DateTimeField`, which clamps a month or year step onto a shorter month to its last day) have their own indexes, so the date picker (~42 KB) and tooltip stay off pages that don't use them.
-  - `ui/plain` is the light entry for pages that must not load React Aria (below).
+  - `ui/plain` is the light entry for pages that must not load React Aria (below); it exports `ChoiceGroup` (`/connect`).
   - `ComboBox` takes data in (`options`, a controlled `inputValue`, `onSelect`, an optional `onCreate` last option); the caller filters.
 - **Feature folders:** `brand/`, `contact/`, `entry/` (shared by the timeline and Upcoming), `groups/`, `medications/`, `notes/` (the Tiptap editor, kept apart so it never reaches the timeline through an index), `providers/`, `quick-entry/`, `schedule/`, `settings/`, `shell/`, `tasks/`, `visitPrep/`.
 - **Import through each folder's `index.ts`**, never a file inside it, and a route never imports another route's folder. An index brings its folder's whole chunk, so keep heavy pieces (the editor, the date picker) out of indexes that light routes use.
@@ -41,7 +41,7 @@ The components area's rules and decisions. An orchestrator folds a landing's las
 - **Parallelism:** `web:components` runs with `maxWorkers: 4` and `sequence.groupOrder: 1`, so it runs after the other projects (9 workers timed out under load).
 - **Gotchas:**
   - Test Back with a `BackProbe` that captures `navigate(-1)`; under `createRoutesStub` never call `history.back()`.
-  - On a route whose `clientLoader` calls the `api`, or before the first rows, wait on an element (`expect.poll`), since settle covers the database only.
+  - On a route whose `clientLoader` calls the `api`, or before the first rows, wait on an element, since settle covers the database only: `await found(() => X()?.querySelector(…))` (`test/found.ts`, 5 s, names what it waited for) before acting on it, never `X()!`; `expect.poll` for values.
   - `getByText("…")` matches whole text. A closed native `<dialog>` drops out of `getByRole` (assert `dialog.open`; poll `dialog[open]` after a `ConfirmDialog`).
   - Click a row's text with `userEvent.click(el, { force: true })` (its stretched link covers it). Pass a locator to `userEvent.hover`; a tooltip shows on hover only after the next pointer press.
   - A menu's accessible name comes from its trigger. A `DeviceRoute` child that reuses its parent's path needs an explicit `id`.
