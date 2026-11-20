@@ -1,6 +1,8 @@
 # Seed staging (hosting slice 5): the fictional seed, on staging only. The
 # seed's own guard refuses production, and staging without a secret
-# SEED_USER_PASSWORD (every seeded account's password). Idempotent.
+# SEED_USER_PASSWORD (every seeded account's password). Idempotent. Seeded
+# accounts that already exist move to the current SEED_USER_PASSWORD, so
+# rotating it is: change the secret, then run this.
 #
 # Secrets (the `staging` environment's):
 #   DATABASE_URL, SEED_USER_PASSWORD

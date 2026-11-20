@@ -40,6 +40,7 @@ export const AUDIT_ACTIONS = [
   "db.accessGranted",
   "db.accessRevoked",
   "mail.suppressionCleared",
+  "auth.jwksRotated",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -67,6 +68,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "db.accessGranted": "Granted personal database access",
   "db.accessRevoked": "Revoked personal database access",
   "mail.suppressionCleared": "Cleared an email suppression",
+  "auth.jwksRotated": "Rotated the JWT signing keys",
 };
 
 /** A JSON value as `changes` stores it. */

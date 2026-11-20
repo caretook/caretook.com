@@ -33,7 +33,8 @@ Never for curiosity, testing, product research or anything the app's own `/admin
    ```
 
 3. **Run `Database access`** (GitHub → Actions → Database access → Run workflow): the environment, action `grant`, your staff email, hours (**the fewest that will do**, 1 to 24), the reason, and the public key from step 2.
-   - It runs `pnpm db:access grant <email> --hours N --reason "…"` as the migrations role. That makes a personal role `staff_<your email as an identifier>`: `LOGIN`, read-only (`default_transaction_read_only`), `SELECT` only, `VALID UNTIL` now plus the hours. A second grant resets its password and expiry.
+   - It runs `pnpm db:access grant <email> --hours N --reason "…"` as the migrations role. That makes a personal role `staff_<your email as an identifier>`: `LOGIN`, read-only (`default_transaction_read_only`), `SELECT` only, `VALID UNTIL` now plus the hours. A second grant resets its password and expiry (and narrows a role granted before the list below).
+   - It can't read the secrets (`PERSONAL_ACCESS_EXCLUDED`, `packages/data/src/db/roles/personalAccess.ts`): Better Auth's `account`, `session`, `verification` and `jwks`, the rate-limit tables, the invites' `token_hash` and `token_ciphertext`, `access_code.code`, and the emails' `html` and `text` (`notification_outbox`, `dev_mail`). On a table with excluded columns, name the columns you need (`SELECT *` is refused).
    - The audit log records **`db.accessGranted`**: the system as actor, you as the target, the reason, the role, the hours and the expiry. GitHub records who dispatched the run.
    - The job summary holds only the connection string **encrypted to your key**. Decrypt it locally:
 
@@ -41,8 +42,8 @@ Never for curiosity, testing, product research or anything the app's own `/admin
      echo '<blob>' | base64 -d | openssl pkeyutl -decrypt -inkey access.key -pkeyopt rsa_padding_mode:oaep
      ```
 
-4. **Look, and only at what the reason needs**, with `psql` from your machine. Query the group's rows by id; don't browse other groups. The role can read every table, including ones you must not open: `account` (password hashes), `session`, `verification`, `jwks` and the invites' sealed tokens. Don't query those.
-5. **Revoke as soon as you're done**, even before the hours run out: `Database access` with action `revoke`, your email and a reason (e.g. "done: <case>"). It ends the role's open connections (best effort) and drops it, and records **`db.accessRevoked`**. `VALID UNTIL` only stops new logins; a connection left open outlives it, so the revoke is not optional.
+4. **Look, and only at what the reason needs**, with `psql` from your machine. Query the group's rows by id; don't browse other groups. The secrets above are refused (`permission denied`).
+5. **Revoke as soon as you're done**, even before the hours run out: `Database access` with action `revoke`, your email and a reason (e.g. "done: <case>"). It revokes exactly what the grant gave, ends the role's open connections (best effort) and drops it, and records **`db.accessRevoked`**. `VALID UNTIL` only stops new logins; a connection left open outlives it, so the revoke is not optional.
 6. **Delete `access.key`** and anything you noted that holds care data.
 
 ## Never
@@ -65,4 +66,3 @@ Within **3 days** of the revoke:
 
 - Neon's own statement logging (pgaudit or the console's records) is **to confirm** (runbook, Neon step 8). Until then the record of what was looked at is the written note, not the database's.
 - Console and dashboard access (Neon, PowerSync, Resend, Vercel) is limited to the named people, with two-factor, but nothing in Caretook records it.
-- The personal role reads every table; a narrower grant (care tables only, no auth tables) is a later change.

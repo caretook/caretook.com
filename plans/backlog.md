@@ -66,10 +66,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
-| B-113 | chore | ready | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
-| B-116 | chore | ready | check-migration | prd/check-migration | Move providers.mjs to component tests |
-| B-117 | chore | ready | check-migration | prd/check-migration | Move groups.mjs to component tests |
-| B-118 | chore | ready | check-migration | prd/check-migration | Move medications.mjs to component tests |
+| B-113 | chore | landed | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
+| B-116 | chore | landed | check-migration | prd/check-migration | Move providers.mjs to component tests |
+| B-117 | chore | landed | check-migration | prd/check-migration | Move groups.mjs to component tests |
+| B-118 | chore | landed | check-migration | prd/check-migration | Move medications.mjs to component tests |
 | B-119 | chore | landed | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-121 | chore | landed | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
@@ -90,17 +90,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-147 | chore | triaged | agent-tooling |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
 | B-148 | chore | triaged | agent-tooling |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
-| B-149 | chore | triaged | code-layout |  | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
+| B-149 | chore | in-progress | code-layout | prd/code-layout | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
 | B-150 | chore | triaged | code-layout |  | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
 | B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 | B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
-| B-158 | change | ready | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
-| B-159 | change | ready | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
-| B-160 | change | ready | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
+| B-158 | change | landed | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
+| B-159 | change | landed | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
+| B-160 | change | landed | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
 | B-161 | bug | triaged | check-migration |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
+| B-162 | change | inbox |  |  | In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the… |
+| B-163 | change | inbox |  |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
 
 ## Items
 
@@ -289,7 +291,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-113 · chore · Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner:
 - commit: 0e0ab28
@@ -304,7 +306,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-116 · chore · Move providers.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 0e0ab28
@@ -315,7 +317,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-117 · chore · Move groups.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 0e0ab28
@@ -326,7 +328,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-118 · chore · Move medications.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 0e0ab28
@@ -557,9 +559,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-149 · chore · Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop…
 
-- status: triaged
+- status: in-progress
 - prd: code-layout
-- owner:
+- owner: prd/code-layout
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop conflicting on them. / The most-edited files in 30 days: scripts/loops/check-areas (69 commits), routes.ts (46), appUrls.ts (32), errors/constants.ts (28), db/schema/index.ts (26), permissions.ts, router.ts.
@@ -631,7 +633,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-158 · change · Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 5a67e22
@@ -641,7 +643,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-159 · change · Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 5a67e22
@@ -651,7 +653,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-160 · change · Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail)
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 5a67e22
@@ -668,3 +670,21 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/check-migration): check-migration wave 4 suite, 2026-11-20 08:54, load 51→88; passed on the automatic retry (.loops/.browser-flakes.log). The redirect outran the assertion under load; slice 19's Playwright port may make the wait robust.
 - 2026-11-20 (prd/check-migration): Proposed for check-migration: sign-in is a lean session check that slice 20 ports to Playwright; fix the flaky redirect assertion there. -- check-migration orchestrator
+
+### B-162 · change · In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (prd/hosting): From the inbox: In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the full layout. Replace "Now" heading with "Upcoming". Reduce size of quick action buttons so that they are one row with smaller buttons so they are one row."Tap the microphone on your keyboard to say it instead of typing." should only appear on devices that support voice input via keyboard (ios/andriod?). All text is too large and should be reduced in size. Assume users that can't see well will have there devices set to larger text, or zoom their browsers.
+
+### B-163 · change · "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (prd/hosting): From the inbox: "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas separate entries; start with “n:” for a note." should be a tooltip.
