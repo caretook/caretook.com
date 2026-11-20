@@ -6,17 +6,17 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue hosting`, 2026-11-20): start every ready slice, land each green wave without asking, clean up; ask only real questions. Slice 7 is still done with the user.
 
-| Slice | Wave | State                                   | Merge into `prd/hosting` (slice commits) |
-| ----- | ---- | --------------------------------------- | ---------------------------------------- |
-| 1     | 1    | merged                                  | 7ce4336 (e459365, ec506bd, 7ada5b5)      |
-| 2     | 1    | merged                                  | 738b731 (3f0ca96, 53adf98)               |
-| 3     | 1    | merged                                  | 5d64d38 (6179cd8)                        |
-| 4     | 2    | merged                                  | d01cb41 (7d0be1d)                        |
-| 5     | 2    | merged                                  | b1d13f5 (d9aa875)                        |
-| 8     | 2    | merged                                  | afda535 (734907d); fix 05b709f           |
-| 6     | 3    | merged                                  | 4a9cd0f (24a3f02)                        |
-| 9     | 4    | in flight: respawned (opus), 2026-11-20 |                                          |
-| 7     | 5    | blocked by 9                            |                                          |
+| Slice | Wave | State        | Merge into `prd/hosting` (slice commits)     |
+| ----- | ---- | ------------ | -------------------------------------------- |
+| 1     | 1    | merged       | 7ce4336 (e459365, ec506bd, 7ada5b5)          |
+| 2     | 1    | merged       | 738b731 (3f0ca96, 53adf98)                   |
+| 3     | 1    | merged       | 5d64d38 (6179cd8)                            |
+| 4     | 2    | merged       | d01cb41 (7d0be1d)                            |
+| 5     | 2    | merged       | b1d13f5 (d9aa875)                            |
+| 8     | 2    | merged       | afda535 (734907d); fix 05b709f               |
+| 6     | 3    | merged       | 4a9cd0f (24a3f02)                            |
+| 9     | 4    | merged       | 5a67e22 (2a40ae3, 4003267, 9d70d9f, 818cdc1) |
+| 7     | 5    | blocked by 9 |                                              |
 
 - **Slice 9 merged (5a67e22)**; B-158–B-160 `done`; docs folded (data-layer, auth). Not landed yet: dev's `timelineLayout.browser.test.tsx` author-tooltip test fails on dev itself (chips shift the list; not ours). check-migration owns the fix (76a3161 on prd/check-migration) and will message when it lands in dev; a background watch waits for it too. Then: `pnpm prd sync`, `pnpm prd check` (full: slice 9 changes `package.json`), land wave 4, then slice 7 with the user. Hand-off findings for slice 7: confirm PowerSync refetches the JWKS after `pnpm auth:rotate-jwks`; the rotate command wasn't run by hand (tests cover it). Browser checks `--changed` names the lean set only because of `package.json` script lines; by file: sign-in, first-sync, signout-wipe, invites, app-shell.
 - **Resumed (2026-11-20, new orchestrator):** reconciled with git: slice 9's branch had no commits and a clean worktree, no live agent. Respawned it with `--continue` on opus, with the hand-off's notes. B-161 (sign-in.mjs flake) is not hosting's; left for its owner.
