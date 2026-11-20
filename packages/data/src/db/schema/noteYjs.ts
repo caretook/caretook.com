@@ -132,3 +132,53 @@ export const noteText = (doc: Y.Doc) =>
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+/**
+ * One line of a section put into a document from outside the editor: a
+ * heading (level 2), a subheading (level 3), a bullet (runs of them make one
+ * list), or a paragraph (the default).
+ */
+export type NoteSectionLine = { text: string; style?: "heading" | "subheading" | "bullet" };
+
+const HEADING_LEVEL = { heading: 2, subheading: 3 } as const;
+
+/**
+ * Put `lines` at the very start of the document, as one Yjs transaction,
+ * the way the editor would if someone typed them there. Nothing already in
+ * the document is changed or moved, so text others type at the same time
+ * (here or on another device) is kept when the updates merge. Returns the
+ * update it made, to store as a `note_update`.
+ */
+export const prependNoteSection = (doc: Y.Doc, lines: readonly NoteSectionLine[]) => {
+  const before = Y.encodeStateVector(doc);
+  doc.transact(() => {
+    const fragment = doc.getXmlFragment(NOTE_FRAGMENT);
+    let index = 0;
+    let list: Y.XmlElement | null = null;
+    for (const line of lines) {
+      if (line.style === "bullet") {
+        if (!list) {
+          list = new Y.XmlElement("bulletList");
+          fragment.insert(index++, [list]);
+        }
+        const item = new Y.XmlElement("listItem");
+        list.push([item]);
+        paragraph(item, line.text);
+        continue;
+      }
+      list = null;
+      const level =
+        line.style === "heading" || line.style === "subheading" ? HEADING_LEVEL[line.style] : null;
+      const block = new Y.XmlElement(level ? "heading" : "paragraph");
+      fragment.insert(index++, [block]);
+      // Tiptap's heading level is a number, as the editor stores it.
+      if (level) (block as unknown as Y.XmlElement<{ level: number }>).setAttribute("level", level);
+      if (line.text) {
+        const t = new Y.XmlText();
+        block.push([t]);
+        t.insert(0, line.text);
+      }
+    }
+  });
+  return Y.encodeStateAsUpdate(doc, before);
+};

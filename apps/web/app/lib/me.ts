@@ -137,6 +137,10 @@ export const loadSettings = async (request: Request, userId: string): Promise<My
   }
 };
 
+/** The settings this device last had (with pending changes on top), or the defaults: no network. */
+export const cachedSettings = (userId: string): MySettings =>
+  merge(readCache(userId) ?? DEFAULTS, readPending(userId) ?? {});
+
 /** Forget every cached copy of settings, and every pending change, on this device (sign-out). */
 export const forgetSettings = () => {
   try {
