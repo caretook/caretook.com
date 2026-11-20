@@ -5,6 +5,7 @@ import {
   memberName,
   parseGroupName,
   parseRecipientTimeZone,
+  parseSimpleTilesChoice,
   roleLabel,
   sortMembers,
   timeZoneLabel,
@@ -101,6 +102,7 @@ describe("memberAccess", () => {
         remove: true,
         leave: false,
         simpleMode: true,
+        lock: true,
       });
     }
   });
@@ -110,6 +112,8 @@ describe("memberAccess", () => {
       remove: false,
       leave: true,
       simpleMode: true,
+      // Nobody locks themselves.
+      lock: false,
     });
   });
   it("lets an admin change and remove members below owner, without offering owner", () => {
@@ -119,6 +123,7 @@ describe("memberAccess", () => {
         remove: true,
         leave: false,
         simpleMode: true,
+        lock: true,
       });
     }
     expect(access("admin", "admin", true)).toEqual({
@@ -126,10 +131,17 @@ describe("memberAccess", () => {
       remove: false,
       leave: true,
       simpleMode: true,
+      lock: false,
     });
   });
   it("gives an admin nothing to do to an owner", () => {
-    expect(access("admin", "owner")).toEqual({ roles: [], remove: false, leave: false, simpleMode: false });
+    expect(access("admin", "owner")).toEqual({
+      roles: [],
+      remove: false,
+      leave: false,
+      simpleMode: false,
+      lock: false,
+    });
   });
   it("lets caretakers, viewers and anyone without a role only leave", () => {
     for (const actorRole of ["caretaker", "viewer", null]) {
@@ -139,6 +151,7 @@ describe("memberAccess", () => {
           remove: false,
           leave: false,
           simpleMode: false,
+          lock: false,
         });
       }
       expect(access(actorRole, "viewer", true)).toEqual({
@@ -146,6 +159,7 @@ describe("memberAccess", () => {
         remove: false,
         leave: true,
         simpleMode: false,
+        lock: false,
       });
     }
   });
@@ -183,5 +197,44 @@ describe("roleLabel and memberName", () => {
     expect(memberName(" Sam Example ")).toBe("Sam Example");
     expect(memberName("  ")).toBe("Member");
     expect(memberName(null)).toBe("Member");
+  });
+});
+
+describe("parseSimpleTilesChoice", () => {
+  const four = ["symptom", "vital:bloodGlucose", "dose", "note"];
+  it("takes learned, fixed, or four different tiles", () => {
+    expect(parseSimpleTilesChoice({ mode: "learned", tiles: four })).toEqual({
+      ok: true,
+      data: { simpleTiles: { mode: "learned" } },
+    });
+    expect(parseSimpleTilesChoice({ mode: "fixed", tiles: [] })).toEqual({
+      ok: true,
+      data: { simpleTiles: { mode: "fixed" } },
+    });
+    expect(parseSimpleTilesChoice({ mode: "custom", tiles: four })).toEqual({
+      ok: true,
+      data: {
+        simpleTiles: {
+          mode: "custom",
+          tiles: [
+            { kind: "symptom" },
+            { kind: "vital", vitalType: "bloodGlucose" },
+            { kind: "dose" },
+            { kind: "note" },
+          ],
+        },
+      },
+    });
+  });
+
+  it("refuses fewer than four, repeats, unknown tiles and unknown modes", () => {
+    const error = (mode: string, tiles: string[]) => {
+      const parsed = parseSimpleTilesChoice({ mode, tiles });
+      return parsed.ok ? null : parsed.error;
+    };
+    expect(error("custom", ["note", "dose", "symptom"])).toBe("Pick four tiles.");
+    expect(error("custom", ["note", "dose", "symptom", "vital:mood"])).toBe("Pick four tiles.");
+    expect(error("custom", ["note", "dose", "symptom", "note"])).toBe("Pick four different tiles.");
+    expect(error("sometimes", four)).toBe("Choose how the tiles are picked.");
   });
 });
