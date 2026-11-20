@@ -6,13 +6,15 @@
 
 | Slice | Wave | State           | Merge into `prd/loop-recovery` (slice commits) |
 | ----- | ---- | --------------- | ---------------------------------------------- |
-| 1     | 1    | not started     |                                                |
-| 2     | 1    | not started     |                                                |
-| 3     | 1    | not started     |                                                |
+| 1     | 1    | in progress     |                                                |
+| 2     | 1    | in progress     |                                                |
+| 3     | 1    | in progress     |                                                |
 | 4     | 2    | blocked by 1    |                                                |
 | 5     | 3    | blocked by 3, 4 |                                                |
 
-**Landing:** land each wave as soon as it's green. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here.
+**Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue loop-recovery`): start every ready slice, land each green wave without asking, clean up. Ask only real questions.
+
+**Backlog:** B-132 (claimed by `prd/loop-recovery`). Wave 1 (slices 1, 2, 3) started 2026-11-19.
 
 ## Architectural decisions
 
