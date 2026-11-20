@@ -541,6 +541,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the Devices page's list, labels and offline notice to component tests; keep signing another device out (its next session check goes to sign-in) as a lean flow, possibly folded into session-end.mjs. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 6, wave 3 (plans/check-migration-plan.md).
 
 ### B-125 · chore · Move admin.mjs to component tests
 
