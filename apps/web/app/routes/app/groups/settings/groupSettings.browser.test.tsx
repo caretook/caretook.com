@@ -357,6 +357,7 @@ describe("Members", () => {
     await expect.element(page.getByRole("combobox", { name: "Role for Sam Okafor" })).toHaveValue("admin");
     const membership = SAM.with![0]!;
     await device.sync(fx.member({ id: membership.id, userId: SAM.id, role: "admin" }));
+    await device.settle();
     expect(listed()).toBe(
       "Alex Moreno (you):Owner*:Leave,Sam Okafor:Admin*:Remove,Rita Okafor:Viewer*:Remove",
     );
@@ -427,6 +428,7 @@ describe("Members", () => {
       TEST_USER.id,
     ]);
     await device.sync(fx.member({ id: mine!.id, userId: TEST_USER.id, role: "viewer" }));
+    await device.settle();
     await expect.element(page.getByRole("button", { name: "Add to timeline" })).not.toBeInTheDocument();
     expect(
       document.querySelectorAll('main ol button[aria-label^="Actions"], main ol [aria-label^="Edit "]'),

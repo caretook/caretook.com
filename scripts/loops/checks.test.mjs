@@ -2,7 +2,7 @@
 // map (check-areas) and the checks on disk.
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { areaChecks, parseManifest } from "./checks.mjs";
+import { areaChecks, leanBudget, leanCeiling, parseManifest } from "./checks.mjs";
 
 const read = (name) => readFileSync(new URL(name, import.meta.url), "utf8");
 const manifest = parseManifest(read("./checks"));
@@ -22,6 +22,47 @@ describe("the manifest", () => {
 
   it("gives every check a cap above its usual time", () => {
     for (const c of manifest) expect(c.cap, c.name).toBeGreaterThan(c.usual);
+  });
+
+  it("keeps the lean set's usual seconds within its lean-ceiling", () => {
+    const { total, ceiling } = leanBudget(read("./checks"));
+    expect(total).toBeLessThanOrEqual(ceiling);
+  });
+});
+
+describe("leanBudget", () => {
+  // The lean set as the ceiling was set (2026-11-19): 356 s in all.
+  const lean = [
+    "phase2 15 120 no yes",
+    "roundtrip 30 120 no yes",
+    "live-notes 55 170 no yes",
+    "app-shell 10 120 no yes",
+    "layout-offline 15 300 yes yes",
+    "sign-in 10 120 no yes",
+    "first-sync 40 150 no yes",
+    "signout-wipe 15 300 yes yes",
+    "session-end 60 180 no yes",
+    "invites 90 270 no yes",
+    "ui 6 120 no yes",
+    "marketing 10 120 no yes",
+    "medications 163 490 no no",
+  ];
+  const withCeiling = (ceiling, rows = lean) => `# the budget\nlean-ceiling ${ceiling}\n${rows.join("\n")}\n`;
+
+  it("passes at 356, counting only the e2e checks", () => {
+    expect(leanBudget(withCeiling(356))).toEqual({ total: 356, ceiling: 356 });
+  });
+
+  it("fails when the lean total exceeds the ceiling, saying by how much", () => {
+    expect(() => leanBudget(withCeiling(355))).toThrow(/add up to 356, over lean-ceiling 355 by 1/);
+    const grown = lean.map((l) => l.replace("roundtrip 30", "roundtrip 45"));
+    expect(() => leanBudget(withCeiling(356, grown))).toThrow(/add up to 371, over lean-ceiling 356 by 15/);
+  });
+
+  it("wants exactly one ceiling, in whole seconds", () => {
+    expect(() => leanCeiling(lean.join("\n"))).toThrow(/found 0/);
+    expect(() => leanCeiling("lean-ceiling 1\nlean-ceiling 2")).toThrow(/found 2/);
+    expect(() => leanCeiling("lean-ceiling five")).toThrow(/whole seconds/);
   });
 });
 

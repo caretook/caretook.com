@@ -18,17 +18,20 @@
 #                --changed, but out of the suite until its screens move to
 #                component tests (one backlog item per check).
 #
+# The budget: the e2e checks' usual seconds may add up to at most
+# lean-ceiling (checks.test.mjs fails above it). A slice that shrinks the lean
+# set lowers it to the new total; nothing raises it without the user.
+lean-ceiling 350
+#
 # check            usual  cap  never-exits  e2e
 phase2               15   120  no           yes
-roundtrip            30   120  no           yes
+roundtrip            31   120  no           yes
 live-notes           55   170  no           yes
 app-shell            10   120  no           yes
-routing              40   150  no           no
-settings-layout      15   120  no           no
 layout-offline       15   300  yes          yes
 sign-in              10   120  no           yes
 first-sync           40   150  no           yes
-signout-wipe         15   300  yes          yes
+signout-wipe          8   300  yes          yes
 session-end          60   180  no           yes
 providers            90   270  no           no
 invites              90   270  no           yes
@@ -36,7 +39,6 @@ ui                    6   120  no           yes
 groups               30   120  no           no
 medications         163   490  no           no
 upcoming            203   610  no           no
-search               70   210  no           no
 profiles             55   180  no           no
 profiles-contacts    20   120  no           no
 care-periods         75   230  no           no

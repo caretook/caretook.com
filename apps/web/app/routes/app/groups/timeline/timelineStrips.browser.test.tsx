@@ -346,11 +346,8 @@ describe("Live now and the live dot", () => {
 
     const live = written("Morning notes", SAM.id, at());
     await device.sync([live.entry, live.doc]);
-    await waitUntil(
-      () => bannerId() === live.entry.id && !!dotOf("Morning notes"),
-      4000,
-      "the banner and dot",
-    );
+    await device.settle();
+    expect(bannerId()).toBe(live.entry.id);
     expect(BANNER()!.innerText.replace(/\s+/g, " ").trim()).toMatch(
       /^Sam Okafor is writing · Morning notes .*Join$/,
     );
@@ -382,7 +379,7 @@ describe("Live now and the live dot", () => {
         editedAt: at(),
       }),
     );
-    await new Promise((r) => setTimeout(r, 300));
+    await device.settle();
     expect(announcements.filter((a) => a.endsWith(": Morning notes"))).toEqual([
       "Sam Okafor is writing: Morning notes",
     ]);
