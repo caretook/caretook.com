@@ -8,9 +8,9 @@
 | ----- | ---- | --------------------------------------------------- | -------------------------------------- |
 | 1     | 1    | merged                                              | eccc68f (314ec1a, 7e0a210, 5d41650)    |
 | 2     | 2    | merged                                              | 897bc7d (b46f601, bc19797)             |
-| 3     | 3    | running (tasks-3, stackless; agent spawned)         |                                        |
+| 3     | 3    | merged                                              | 95f4c12 (bd0a951)                      |
 | 4     | 2    | merged (conflict in `lib/sync/tasks.ts`, both kept) | 80018b2 (d859ea0)                      |
-| 5     | 3    | handed off (56b8721); merge after 3                 |                                        |
+| 5     | 3    | merged                                              | 0d22486 (56b8721)                      |
 | 6     | 2    | merged                                              | e7d622a (4708991)                      |
 | 7     | 2    | merged (fixed `lib/taskSheets.ts` re-export path)   | 38a3c7a (b3da051)                      |
 | 8     | 2    | blocked by `check-migration` slice 2 in `dev`       |                                        |
@@ -37,6 +37,12 @@
 **Checks needed at landing so far:** routing, upcoming, roundtrip, search (by name / from `--changed --base dev`), plus the lean set (migration) — ask the user before `--suite`.
 
 **Slice 5's hand-off (56b8721):** `taskSearchDocument` in `searchDocument.ts`, `task` appended to `SEARCH_ITEM_TYPES`, new `SERVER_SEARCH_ITEM_TYPES` (server search and `search.query` scopes exclude tasks; edits in `searchService.ts` and `packages/api/src/search.ts`); device triggers via `searchTables.ts`, `readTasks`, `SEARCH_INDEX_VERSION` 2; search page Tasks section after medications (`TaskResultItem`, Done badge, notes snippet, `?all=task`), placeholder mentions tasks. `--changed --list`: **sign-in, signout-wipe, search**. Docs: `search.md` (all the above; server search doesn't cover tasks); `tasks.md` a pointer to search.md.
+
+**Slice 3's hand-off (bd0a951):** `taskService.releaseEvent` called from `timelineEntryService.remove` (now in a transaction; soft deletes don't fire the FK), device `removeEntry` clears `event_id` too; pickers (`taskLinks.ts`, `LinkPickerField`, `TaskLinkFields`, link prefills); task page "Linked to" (`TaskLinks.tsx`); `LinkedTasks`/`useLinkedTasks` in `components/tasks` on the entry page (events), provider page (after visit prep), medication page (after refills) — writers keep a lone "Add task" when empty; seeds +3 linked tasks (`…3f1d2be01010–12`), `appointmentIdIn` in `seeds/appointments.ts`. `--changed --list`: **phase2, roundtrip, providers, medications, upcoming, search**. Docs: `tasks.md` (links, pickers, page rows, LinkedTasks, device queries, the deleted-event rule, linked seeds); one line each in `appointments.md`, `providers.md`, `medications.md`.
+
+**Wave 3 merged** (3 then 5); typecheck clean. Only slice 8 left (waiting on check-migration's wave 1; asked its ETA, else run 8 as a plain roundtrip step).
+
+**Landing checks to run (once, on the synced tip):** the lean set (`--suite`, migration + sync-config: **ask the user first**) plus by name the `e2e no` ones the diff names: providers, medications, upcoming, search, routing (and whatever `--changed --base dev --list` adds).
 
 **Browser checks run so far:** slice 1's `--changed` ran the whole lean set plus routing, providers, care-periods, upcoming on slice 1's tip: all pass (upcoming after its fix).
 
