@@ -18,7 +18,7 @@
 
 **Models:** slice 1 sonnet (a mechanical move), slice 2 opus (design-heavy), slice 7 sonnet (text).
 
-**Waiting on:** slice 3 needs timeline-ux's row and header slices (B-164, B-165) in `dev`; check at wave 2.
+**Waiting on:** slice 3 needs timeline-ux's slice 6 (B-164 day header, B-165 author under the ⋯ menu) in `dev`; it lands with timeline-ux wave 2, a few hours out (2026-11-20). Its orchestrator (timeline-ux-dd) will message on landing; a background check also watches the backlog. That slice doesn't touch `EntryHeader`, so slice 3 can place the tag there freely. B-140 (packages/auth) is timeline-ux slice 10, after its wave 3; they'll warn before it starts and lands.
 
 **When to land:** this PRD has a migration and a new dependency, so hold landing until every slice is merged, then run the checks once at the end. Ask the user before any `--suite`.
 
