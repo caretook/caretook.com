@@ -114,6 +114,19 @@ describe("row taps", () => {
     expect(dialog()).toBeNull();
     expect(device.location()).toBe(TIMELINE_URL);
     expect(rowOf("Symptom")!.querySelector('button[aria-label^="Actions"]')).toBeNull();
+    // After Go back the quick-entry chips land late and push the rows down: click ⋯ once it stops moving.
+    let top = -1;
+    let still = 0;
+    await waitUntil(
+      () => {
+        const now = actionsOf(rowOf("Note")!).getBoundingClientRect().top;
+        still = now === top ? still + 1 : 0;
+        top = now;
+        return still >= 20;
+      },
+      4000,
+      "the layout to settle",
+    );
     await userEvent.click(actionsOf(rowOf("Note")!));
     await waitUntil(() => menuItems().length > 0, 4000, "the menu");
     expect(menuItems()).toEqual(["Print"]);
