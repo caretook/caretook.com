@@ -17,12 +17,12 @@
 | 9     | landed (wave 4)                 | 35dceff (cc30504, 72c7166)                       |
 | 10    | landed (wave 4)                 | 3bb168a (f9c1ef9, eef96ac)                       |
 | 11    | landed (wave 5, 74f6723) · opus | d72b0f6 (af6b87d, f274fd5)                       |
-| 12    | ready; waits for code-layout 1  |                                                  |
+| 12    | wave 6: running · sonnet        |                                                  |
 | 13    | landed (wave 4)                 | bc5104e (0b06086)                                |
 | 14    | landed (wave 5, 74f6723) · opus | 6ebb3ec (cce2ed2)                                |
 | 15    | landed (wave 5, 74f6723) · opus | 0e0ab28 (3b2a5ad)                                |
-| 16    | ready; waits for code-layout 1  |                                                  |
-| 17    | ready; waits for code-layout 1  |                                                  |
+| 16    | wave 6: running · sonnet        |                                                  |
+| 17    | wave 6: running · sonnet        |                                                  |
 | 18    | blocked by 3–17                 |                                                  |
 | 19    | blocked by 18                   |                                                  |
 | 20    | blocked by 19                   |                                                  |
@@ -36,7 +36,7 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19) for slice 2's sync matrix (9c0b2bf); slice 5 lowered it to 350.
 
-**Now (2026-11-20, check-migration-17):** wave 5 (11, 14, 15) **landed in dev as 74f6723**, after its suite (12/12) and a full `pnpm prd check` on 76a3161 (4089 tests). Messaged hosting-5b (it waited for the tooltip fix) and code-layout-d2 (our check-areas edits are in dev). **Waiting:** every remaining slice (12, 16–23) edits check-areas, so none starts until code-layout's slice 1 (check-areas → `check-areas.d/`) lands in dev. code-layout-d2 will message on landing, and a background watch checks for `scripts/loops/check-areas.d` in dev. Then: `pnpm prd sync`, backlog ingest/list, and wave 6 (12, 16, 17 on sonnet; their `assistant` blockers 1, 5, 6 are in dev).
+**Now (2026-11-20, check-migration-17):** wave 5 landed in dev as 74f6723. code-layout's slice 1 landed (7fca12d: `scripts/loops/check-areas` is now `check-areas.d/<area>`, with a lint in `pnpm check` for unmapped files, dead rules and duplicate globs) and is synced in. **Wave 6 (12, 16, 17) started:** worktrees `.loops/check-migration-{12,16,17}`, one sonnet agent each, B-126, B-122 and B-127 claimed. Each agent's brief adds orchestrator notes: the Node PATH, the check-areas.d lint, waiting for the layout to settle, and avoiding code-layout wave 2's paths (packages/data errors/permissions/schema, packages/api/src, apps/web/app/lib/). A crash means respawn each with `--continue`. Landing needs the full `pnpm prd check`, since the sync brought in code. B-162 and B-163 are in the inbox but not this PRD's (simple mode and quick-entry UI).
 
 - **Resumed 2026-11-20 10:25 (session check-migration-17):** Status matched git (nothing in flight). Synced (dev had only backlog commits). `timelineLayout` › "the author tooltip… hover" **fails alone at low load too**: deterministic, not load. App code is unchanged since wave 4 landed (it passed then), so it's likely time-of-day dependent and on dev as well. Cause (sonnet helper): the quick-entry suggestion chips (time-of-day dependent) land after the rows and push the list down ~40 px, so the hover lands on another row's button. Test-only fix: wait for the link to stop moving before hovering (file passes 20/20 three times). Full `pnpm prd check` passed on 76a3161 (4089 tests, 371 files). Landing wave 5. After landing, message hosting-5b (it hit the same failure on prd/hosting and is waiting for the fix in dev) as well as code-layout-d2. B-161 (sign-in flake) proposed for this PRD (slice 20 ports sign-in).
 - Earlier: wave 4 (9, 10, 13) landed as 54a1880 (its suite: `roundtrip` failed twice at load 68–75 and passed alone at load 20; `sign-in` flaky at load 88, filed as B-161). Wave 3 landed as 68571c8, waves 1–2 as 2040ed3. Only `profiles-contacts` is left as an area check. Lean times are the median of the last three clean suites (waves 2, 3, 5): total and ceiling **286**.
