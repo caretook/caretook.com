@@ -472,6 +472,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (Robert Bo Davis): From the inbox: Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only after the loaders finish.
 - 2026-11-20 (backlog agent): Triage: app-speed. Small (useNavigation in SectionNav), same file as B-137.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 2 (plans/app-speed-plan.md). Highlight from useNavigation's pending location.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
 
 ### B-139 · change · Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no…
 
