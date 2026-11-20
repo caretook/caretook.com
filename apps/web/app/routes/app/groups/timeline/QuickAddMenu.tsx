@@ -1,6 +1,6 @@
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { MenuEntry } from "~/components/ui";
-import type { SheetKind } from "~/lib/app-shell/appUrls";
+import type { SheetKind } from "~/lib/timeline/urls";
 
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { Plus } from "lucide-react";

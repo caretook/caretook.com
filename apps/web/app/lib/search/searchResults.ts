@@ -1,12 +1,7 @@
 import type { SearchItemType } from "@caretook/data/schema";
 
 import { SEARCH_MAX_LENGTH } from "@caretook/data/schema";
-import {
-  isSearchItemType,
-  SEARCH_ALL_PARAM,
-  SEARCH_PERIOD_PARAM,
-  SEARCH_QUERY_PARAM,
-} from "../app-shell/appUrls";
+import { isSearchItemType, SEARCH_ALL_PARAM, SEARCH_PERIOD_PARAM, SEARCH_QUERY_PARAM } from "./urls";
 import { isRowId } from "../timeline/timelineFilters";
 
 // The search page's results: what its URL asks for, which sections it shows
