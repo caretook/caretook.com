@@ -205,6 +205,14 @@ const GROUPS: Group[] = [
   },
 ];
 
+/** The id of a group's seed appointment by its key (tasks link to them). */
+export const appointmentIdIn = (groupId: string, key: string) => {
+  const group = GROUPS.find((g) => g.groupId === groupId);
+  const index = group?.appointments.findIndex((a) => a.key === key) ?? -1;
+  if (!group || index < 0) throw new Error(`No seed appointment ${key} in group ${groupId}`);
+  return group.id(index);
+};
+
 /** Where a seed appointment starts and ends (ISO 8601), relative to `now`. */
 export const timesOf = (a: SeedAppointment, now: number) => {
   const start = occurredAtOf(

@@ -397,6 +397,10 @@ packages/data/src/db/seeds/invites.ts    invites app-shell
 packages/data/src/db/seeds/medications.ts medications
 packages/data/src/db/seeds/carePeriods.ts care-periods
 packages/data/src/db/seeds/medicationPasses.ts medications
+# Tasks' seeds (tasks slice 3 appends linked ones): no browser check reads
+# them; seeds/tasks.test.ts checks them. Appointments' seeds feed Upcoming.
+packages/data/src/db/seeds/tasks.ts      -
+packages/data/src/db/seeds/appointments.ts upcoming
 packages/data/src/db/seeds/*             app-shell
 
 # The rest of the data layer (services, models, permissions, errors) has
@@ -472,3 +476,9 @@ apps/web/app/routes/app/groups/timeline/useSimpleTasks.ts -
 # quickEntry.test.ts. The task sheets' link state lives in lib/ so quick
 # entry can open them; taskSheets.test.ts covers it.
 apps/web/app/lib/taskSheetLink.ts        -
+# Links and backlinks (tasks PRD slice 3): the pickers, the task page's link
+# rows and LinkedTasks (components/tasks/, on the entry, provider and
+# medication pages) are component tests (tasks/taskLinks.browser.test.tsx,
+# task/taskLinks.browser.test.tsx, components/tasks/linkedTasks.browser.test.tsx);
+# the pickers' choices are unit tests (tasks/taskLinks.test.ts). Covered by the
+# rules above (tasks/*, task/*, components/tasks/*).

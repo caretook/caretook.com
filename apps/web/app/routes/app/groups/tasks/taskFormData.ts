@@ -9,6 +9,9 @@ export const FIELD = {
   assigneeName: "assigneeName",
   dueOn: "dueOn",
   dueTime: "dueTime",
+  providerId: "providerId",
+  eventId: "eventId",
+  medicationId: "medicationId",
 } as const;
 
 /** The fields the form shows issues on; anything else is the form's general message. */
@@ -26,4 +29,7 @@ export const taskFromForm = (form: FormData): TaskInput => ({
   assigneeName: value(form, FIELD.assigneeName),
   dueOn: value(form, FIELD.dueOn),
   dueTime: value(form, FIELD.dueTime),
+  providerId: value(form, FIELD.providerId),
+  medicationId: value(form, FIELD.medicationId),
+  eventId: value(form, FIELD.eventId),
 });

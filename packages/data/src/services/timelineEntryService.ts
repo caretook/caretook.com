@@ -34,6 +34,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
+import { releaseEvent } from "./taskService";
 export const serviceName = "timelineEntry";
 export const schemaName = timelineEntryModel.schemaName;
 
@@ -430,9 +431,17 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
     );
   }, ctx);
 
-/** Soft delete. The entry disappears from the timeline but syncs as deleted. */
-export const remove = async (ctx: ServiceContext, id: string) => {
-  const res = await timelineEntryModel.remove({ ...ctx, filter: { id: { type: "eq", value: id } } });
-  if (isError(res) && res.code === "baseModel:remove:nothingRemoved") return notFound();
-  return res;
-};
+/**
+ * Soft delete. The entry disappears from the timeline but syncs as deleted.
+ * Tasks linked to a deleted event lose the link in the same transaction
+ * (tasks PRD), as the task table's FK does on a hard delete.
+ */
+export const remove = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const res = await timelineEntryModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
+    if (isError(res) && res.code === "baseModel:remove:nothingRemoved") return notFound();
+    if (isError(res)) return res;
+    const released = await releaseEvent(tx, id);
+    if (isError(released)) return released;
+    return res;
+  }, ctx);

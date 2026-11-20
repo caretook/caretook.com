@@ -19,6 +19,7 @@ import { DELETE_INTENT, TaskActions } from "./TaskActions";
 import { TaskCompletion } from "./TaskCompletion";
 import { TaskDetails } from "./TaskDetails";
 import { TaskHeader } from "./TaskHeader";
+import { TaskLinks } from "./TaskLinks";
 import { useTaskNotes } from "./useTaskNotes";
 import { useTaskPage } from "./useTaskPage";
 
@@ -125,6 +126,8 @@ function TaskPage({ loaderData, params }: Route.ComponentProps) {
             timeZone={page.timeZone}
             zoneNote={page.zoneNote}
           />
+
+          <TaskLinks groupId={groupId} task={task} loaded={loaderData.linkRows} />
 
           {mayComplete && (
             <TaskCompletion
