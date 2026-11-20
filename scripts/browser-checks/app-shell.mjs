@@ -334,11 +334,13 @@ try {
     );
 
     // What caretaker@ shares with the group (member_contact_share) reaches the owner's device.
+    // An upsert: the seeds give caretaker@ a share row (010-1002) until a run's removal
+    // cascades it away, and DO NOTHING on that row would never write the marker (B-173).
     const shareRows = `window.caretookSync.powersync.getAll("SELECT count(*) AS n FROM member_contact_share WHERE group_id = ? AND phones LIKE '%010-1999%'", [${JSON.stringify(DEV_FAMILY)}]).then((r) => r[0].n)`;
     psql(
-      `INSERT INTO member_contact_share (id, group_id, user_id, phones, created_by, updated_by) SELECT id, group_id, user_id, '[{"label":"Mobile","number":"(555) 010-1999"}]'::jsonb, user_id, user_id FROM care_group_member WHERE group_id = '${DEV_FAMILY}' AND user_id = (SELECT id FROM "user" WHERE email = 'caretaker@example.com') ON CONFLICT (group_id, user_id) DO NOTHING`,
+      `INSERT INTO member_contact_share (id, group_id, user_id, phones, created_by, updated_by) SELECT id, group_id, user_id, '[{"label":"Mobile","number":"(555) 010-1999"}]'::jsonb, user_id, user_id FROM care_group_member WHERE group_id = '${DEV_FAMILY}' AND user_id = (SELECT id FROM "user" WHERE email = 'caretaker@example.com') ON CONFLICT (group_id, user_id) DO UPDATE SET phones = EXCLUDED.phones, email = NULL, address = NULL, updated_at = now()`,
     );
-    // waitFor polls an expression's truthiness, and a promise is always truthy: poll the count.
+    // Polls the count from node, reporting the last value it saw.
     const shareRowsBecome = async (want) => {
       for (let i = 0; i < 60; i++) {
         if ((await M.evaluate(shareRows)) === want) return;
