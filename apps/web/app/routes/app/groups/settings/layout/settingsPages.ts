@@ -1,7 +1,7 @@
 import type { GroupSettingsPage } from "~/lib/care-groups/urls";
 import type { SettingsItem } from "~/lib/app-shell/settingsNav";
 
-import { Info, Users } from "lucide-react";
+import { Bot, Info, Users } from "lucide-react";
 import { appUrls } from "~/lib/app-shell/appUrls";
 
 /**
@@ -24,5 +24,12 @@ export const groupSettingsPages = (groupId: string): (SettingsItem & { id: Group
     description: "Who's in the care group, and their roles",
     icon: Users,
     path: appUrls.groupSettings(groupId, "members"),
+  },
+  {
+    id: "assistants",
+    label: "Assistants",
+    description: "Whether members may connect their own AI assistant",
+    icon: Bot,
+    path: appUrls.groupSettings(groupId, "assistants"),
   },
 ];

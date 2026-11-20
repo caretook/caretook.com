@@ -4,21 +4,57 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/connectors` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------- |
-| 1     | 1    | not started |                                             |
-| 2     | 1    | not started |                                             |
-| 7     | 1    | not started |                                             |
-| 3     | 2    | not started |                                             |
-| 4     | 2    | not started |                                             |
-| 5     | 2    | not started |                                             |
-| 6     | 3    | not started |                                             |
+| Slice | Wave | State                                                                                                                                                    | Merge into `prd/connectors` (slice commits) |
+| ----- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 1     | 1    | merged, worktree removed (load flakes in untouched component tests; landing check reruns)                                                                | 5225d442 (de3bedd0)                         |
+| 2     | 1    | merged, worktree removed (check: load flakes only, B-178/B-173; lean set 11/12, app-shell flake passed alone)                                            | f54a93ae (b8309a7f, fd5725ec)               |
+| 7     | 1    | merged, worktree removed (`marketing` passed in slice 2's lean run)                                                                                      | 1552855d (210766d1)                         |
+| 3     | 2    | merged, worktree removed (check green but the frozen-names test; browser phase2, roundtrip, live-notes, ui for landing)                                  | 9a9c1ee6 (b21582f2, 19d43db4)               |
+| 4     | 2    | merged, worktree removed (conflicts in `tools/index.ts` and `mcp.int.test.ts`, resolved: both slices' tools, slice 3's assertion)                        | 0a4c9711 (90bf850c)                         |
+| 5     | 2    | merged, worktree removed (browser checks named for landing: phase2, roundtrip, live-notes, app-shell, layout-offline, first-sync, invites)               | 85bc64ab (e80d2808)                         |
+| 6     | 3    | merged (CDP step 71fb43a2, lost to B-129's deletion; Playwright port e1d79309, e99a8213); roundtrip 30 s alone; lean usuals sum to exactly 255 = ceiling | 71fb43a2, e1d79309                          |
 
-**Landing mode:** not chosen yet (the orchestrator asks first).
+**Landing mode:** run everything through (queued with `pnpm prd queue connectors`, 2026-11-20): start every ready slice, land each green wave without asking (here: one landing after slice 6, per _When to land_), clean up; ask only real questions.
+
+**Models:** slice 6 sonnet (e2e step on existing helpers); slice 1 sonnet (a mechanical move), 2 opus (design-heavy), 7 sonnet (text), 3 opus (server runner, sync, UI tag), 4 sonnet (read tools on slice 2's pattern), 5 opus (new UX, procedures).
+
+**Waves 1 and 2 merged.** Fixes on `prd/connectors`:
+
+- ab58c783: the schema's frozen `EXPORTS` list gained the 58 names slice 1 moved in.
+- c09c7e72: the privacy text, after the user's decisions (2026-11-20). Providers' business phone, address and website are sent (clinicians, practices, pharmacies; never a provider email or an "other" contact's); "conditions" is dropped, since no such field exists, and filed as B-181.
+- `pnpm prd sync` 9452b3f9: brought B-140 and the service worker (B-144). Conflicts resolved:
+  - `ui/index.ts`: `Toast` and `ViaTag`;
+  - `auth.ts`: `beforeHooks` with our `CONNECTOR_DISABLED_PATHS`, keeping their `disableSettingJwtHeader`.
+- In the same commit, `/connect` reads the session live (`getAuthUser(…, { live: true })`), because consent mints 30-day tokens. B-140's `/token` hook is an exact match. The service worker only serves `/app` navigations, so `/connect`, `/mcp` and `/.well-known` go to the network.
+- Typecheck is clean, and the connectors integration tests pass (68).
+
+**Decisions for the docs:**
+
+- `add_task` takes the assignee by name, not id, since `group_overview` has no member ids.
+- The runner returns an AppError with `meta.index`, not the PRD's `{ ok: false, index }`.
+- `list_providers` returns business contacts only; `recipient_profile` has no conditions (B-181).
+- `/connect` needs JS to redirect back to the client (CSP `form-action 'self'`).
+
+**All slices merged.** Docs folded: aa0c4d51 (connectors.md, area pointers, runbook), 0930f4db (`mcp-unauthenticated` smoke check), plus slice 6's notes in loop.md and connectors.md. Now: `pnpm backlog done B-104`, `pnpm prd check`, serve, the lean `--suite` once, `pnpm prd ready`, land.
+
+**Check, 2026-11-20 at eac9a146:** red under load (34). `router.int.test.ts` changeRole timed out at 5 s and passes alone (8/8), and the component browser crashed in `upcoming.browser.test.tsx`, so 83 files never ran. The full check reruns once, on the tip after slice 6 merges.
+
+**Check, at 47dfc163 (the final tip):** red under load. There were two 5 s timeouts: `mcp.int.test.ts` list_timeline and `timelineEntry.int.test.ts` already-deleted. Both pass alone (974 ms and 39 ms). The run took 25 min. Rerunning the full check (third run); the lean `--suite` comes after it.
+
+**Full check passed on f14b71a4** (2026-11-20, third rerun; 434 files, 4488 tests, bundle budget ok). The second run's only failure is filed as B-182 (providers chip poll, check-migration). Stack: this worktree's PowerSync had exited at startup 4 h earlier (storage not ready); started it and reset its storage. The lean `--suite` passed 12/12 in 4 m 17 s (roundtrip 27 s), the one approved run.
+
+**Landing:** `pnpm prd sync` 3231f540 (check-migration's CDP harness deletion, conflict-free, only Markdown shared); quick check passed on it, and `pnpm prd ready` is green. Landing in run-through mode.
+
+**Open for landing:**
+
+- A full clean `pnpm prd check` (load flakes so far: B-178, B-173, providers).
+- The lean set once: the user approved one `--suite` run at landing (2026-11-20). It covers what slices 3 and 5 named.
+- `first-sync` showed FLAKY in slice 2's run, logged in `.browser-flakes.log` and not yet filed.
+- Fold the docs: slice hand-offs list them. Write a new connectors.md.
 
 **When to land:** this PRD has a migration and a new dependency, so hold landing until every slice is merged, then run the checks once at the end. Ask the user before any `--suite`.
 
-**Backlog:** claim B-104 when slice 2 starts; `done` after slice 6 merges (the last of the PRD).
+**Backlog:** B-104 claimed (slice 2 started); `done` after slice 6 merges (the last of the PRD).
 
 ## Architectural decisions
 

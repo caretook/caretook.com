@@ -43,7 +43,7 @@ const firstEntry = (value: string | null | undefined) => value?.split(",")[0]?.t
  * `CLIENT_IP_HEADER` set, that header's first entry and nothing else (null if
  * it's missing). Unset (dev, tests, checks): the first `x-forwarded-for`
  * entry, else `x-real-ip`; the browser checks give each page its own
- * `x-forwarded-for` (`cdp.mjs`).
+ * `x-forwarded-for` (the check fixtures).
  */
 export const clientIpOf = (headers: Headers, env: Env = process.env): string | null => {
   const header = clientIpHeader(env);

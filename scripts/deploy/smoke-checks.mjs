@@ -25,7 +25,15 @@ export const POWERSYNC_HEALTH_PATH = "/probes/liveness";
 export const SECURITY_HEADERS = ["strict-transport-security", "content-security-policy", "x-frame-options"];
 
 /** The check names, in the order they're reported. */
-export const SMOKE_CHECKS = ["home", "jwks", "rpc-unauthenticated", "cron-locked", "powersync", "noindex"];
+export const SMOKE_CHECKS = [
+  "home",
+  "jwks",
+  "rpc-unauthenticated",
+  "cron-locked",
+  "mcp-unauthenticated",
+  "powersync",
+  "noindex",
+];
 
 const join = (base, path) => `${base.replace(/\/+$/, "")}${path}`;
 
@@ -99,6 +107,23 @@ export async function smoke({ appUrl, powersyncUrl, fetch, staging = false, time
       const res = await get(join(appUrl, "/api/cron/outbox"), {}, signal);
       if (res.status !== 401) return fail(`status ${res.status}, expected 401`);
       return pass("401 without a bearer");
+    },
+    // The connectors' MCP endpoint refuses a call without a token and points
+    // the client at its OAuth metadata (docs/domain/connectors.md).
+    "mcp-unauthenticated": async (signal) => {
+      const res = await get(
+        join(appUrl, "/mcp"),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+        },
+        signal,
+      );
+      if (res.status !== 401) return fail(`status ${res.status}, expected 401`);
+      if (!/resource_metadata=/.test(res.headers.get("www-authenticate") ?? ""))
+        return fail("401 without WWW-Authenticate resource_metadata");
+      return pass("401 with resource_metadata");
     },
     powersync: async (signal) => {
       const res = await get(join(powersyncUrl, POWERSYNC_HEALTH_PATH), {}, signal);

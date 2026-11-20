@@ -108,6 +108,10 @@ export const timelineEntrySchema = pgTable(
     cancelReason: text("cancel_reason"),
     // The event a cancelled one was moved to, in the same group.
     rescheduledTo: uuid("rescheduled_to"),
+    // Written through a member's AI assistant (connectors PRD): the client's
+    // name at write time ("Claude"), kept after a disconnect. Only the
+    // server's assistant runner sets it.
+    via: text("via"),
     ...timestamps,
     ...audits,
   },

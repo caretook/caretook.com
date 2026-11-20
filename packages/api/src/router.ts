@@ -2,6 +2,7 @@ import { admin } from "./admin/admin";
 import { announcement } from "./admin/announcement";
 import { accessCode } from "./care-groups/groups";
 import { careGroup } from "./care-groups/careGroup";
+import { connector } from "./connectors/connector";
 import { invite } from "./care-groups/invites";
 import { joinRequest } from "./care-groups/joinRequests";
 import { me } from "./app-shell/me";
@@ -21,5 +22,6 @@ export const router = {
   admin,
   public: { ...publicForms, announcement },
   search,
+  connector,
 };
 export type Router = typeof router;

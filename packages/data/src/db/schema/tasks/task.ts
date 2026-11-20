@@ -55,6 +55,9 @@ export const taskSchema = pgTable(
     medicationId: uuid("medication_id"),
     eventId: uuid("event_id"),
     deletedAt: timestampColumn("deleted_at"),
+    // Added through a member's AI assistant: the client's name at write time
+    // (as timeline_entry.via). Only the server's assistant runner sets it.
+    via: text("via"),
     ...timestamps,
     ...audits,
   },

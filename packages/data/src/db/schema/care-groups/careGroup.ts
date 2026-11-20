@@ -3,7 +3,7 @@ import type { ProtectedField } from "../core/columns";
 
 import type { SimpleTiles } from "../app-shell/simpleMode";
 
-import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import { audits, id, timestamps } from "../core/columns";
@@ -17,6 +17,9 @@ export const careGroupSchema = pgTable("care_group", {
   name: text("name").notNull(),
   // How simple mode picks its four tiles (simpleMode.ts); null: learned from use.
   simpleTiles: jsonb("simple_tiles").$type<SimpleTiles>(),
+  // Members may connect their own AI assistant (connectors PRD): off until
+  // an owner turns it on (careGroupService.update); off revokes every grant.
+  connectorsEnabled: boolean("connectors_enabled").notNull().default(false),
   ...timestamps,
   ...audits,
 });

@@ -59,4 +59,19 @@ export const AUTH_PERMISSIONS = {
   verificationSchema: SYSTEM_ONLY_SCHEMA,
 
   jwksSchema: SYSTEM_ONLY_SCHEMA,
+
+  // The OAuth provider plugin's tables (connectors PRD), likewise.
+  oauthClientSchema: SYSTEM_ONLY_SCHEMA,
+
+  oauthResourceSchema: SYSTEM_ONLY_SCHEMA,
+
+  oauthClientResourceSchema: SYSTEM_ONLY_SCHEMA,
+
+  oauthRefreshTokenSchema: SYSTEM_ONLY_SCHEMA,
+
+  oauthAccessTokenSchema: SYSTEM_ONLY_SCHEMA,
+
+  oauthConsentSchema: SYSTEM_ONLY_SCHEMA,
+
+  oauthClientAssertionSchema: SYSTEM_ONLY_SCHEMA,
 } as const satisfies PartialPermissions;

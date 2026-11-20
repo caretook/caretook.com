@@ -29,7 +29,8 @@ streams:
       my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
     queries:
       # `simple_tiles`: how simple mode picks its four tiles (assistant).
-      - SELECT id, name, simple_tiles, created_at, updated_at, created_by, updated_by FROM care_group WHERE id IN my_groups
+      # `connectors_enabled`: the owners' Assistants switch (connectors).
+      - SELECT id, name, simple_tiles, created_at, updated_at, created_by, updated_by, connectors_enabled FROM care_group WHERE id IN my_groups
       # `invited_by` and `created_at`: who invited each member and when they joined (the Members page).
       # `relationship` and `shared_fields`: the member's own sharing choices;
       # `emergency_rank` and `is_primary_contact`: the emergency list's badges;
@@ -51,10 +52,11 @@ streams:
         FROM care_recipient WHERE group_id IN my_groups
       # `ends_at`, `all_day`, `place`, the cancel fields and `rescheduled_to`:
       # appointments and reminders (future events and notes).
+      # `via`: written through a member's AI assistant ("via Claude"; connectors).
       - >-
         SELECT id, group_id, recipient_id, kind, occurred_at, time_zone, title, body, details,
         deleted_at, created_at, updated_at, created_by, updated_by,
-        ends_at, all_day, place, cancelled_at, cancelled_by, cancel_reason, rescheduled_to
+        ends_at, all_day, place, cancelled_at, cancelled_by, cancel_reason, rescheduled_to, via
         FROM timeline_entry WHERE group_id IN my_groups
       # Live documents: the compacted snapshot and every pending Yjs update,
       # so any document opens and edits offline. Viewers get them too (read-only).
@@ -110,10 +112,11 @@ streams:
         deleted_at, created_at, updated_at, created_by, updated_by
         FROM recipient_allergy WHERE group_id IN my_groups
       # The group's tasks, soft-deleted ones included (so deletes reach devices).
+      # `via`: added through a member's AI assistant (connectors).
       - >-
         SELECT id, group_id, recipient_id, title, assignee_id, assignee_name, due_on, due_time,
         done_at, done_by, provider_id, medication_id, event_id,
-        deleted_at, created_at, updated_at, created_by, updated_by
+        deleted_at, created_at, updated_at, created_by, updated_by, via
         FROM task WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,

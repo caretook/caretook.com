@@ -13,6 +13,8 @@ export const careGroups = sqliteTable("care_group", {
   name: text("name"),
   // How simple mode picks its tiles (JSON text: `SimpleTiles`; null: learned).
   simpleTiles: text("simple_tiles"),
+  // The owners' Assistants switch (connectors; 1 or 0): whether members may connect their own AI assistant.
+  connectorsEnabled: integer("connectors_enabled"),
 });
 
 export const careGroupMembers = sqliteTable(
@@ -87,6 +89,8 @@ export const timelineEntries = sqliteTable(
     cancelledBy: text("cancelled_by"),
     cancelReason: text("cancel_reason"),
     rescheduledTo: text("rescheduled_to"),
+    // Written through a member's AI assistant ("via Claude"; connectors). Only the server sets it.
+    via: text("via"),
   },
   (t) => [index("timeline_entry_group_occurred").on(t.groupId, t.occurredAt)],
 );
@@ -353,6 +357,8 @@ export const tasks = sqliteTable(
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),
     updatedBy: text("updated_by"),
+    // Added through a member's AI assistant (connectors). Only the server sets it.
+    via: text("via"),
   },
   (t) => [index("task_group").on(t.groupId)],
 );

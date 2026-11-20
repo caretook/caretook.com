@@ -4,7 +4,7 @@ import type { LiveEntry } from "./useLiveEntry";
 
 import { useState } from "react";
 import { CancelEventDialog, EntryActions, useEventReschedule } from "~/components/entry";
-import { ConfirmDialog } from "~/components/ui";
+import { ConfirmDialog, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
@@ -112,6 +112,7 @@ export function EntryPageHeader({
           )
         }
         editors={editors}
+        via={entry.via && <ViaTag via={entry.via} />}
         with={
           !deleted && (
             <EntryWithRow

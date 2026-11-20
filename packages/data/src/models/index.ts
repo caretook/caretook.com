@@ -111,3 +111,7 @@ export type * from "./appSetting/types";
 import * as taskModel from "./task";
 export { taskModel };
 export type * from "./task/types";
+
+import * as connectorGrantModel from "./connectorGrant";
+export { connectorGrantModel };
+export type * from "./connectorGrant/types";

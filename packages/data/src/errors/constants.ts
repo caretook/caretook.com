@@ -2,6 +2,7 @@ import { ADMIN_ERRORS } from "./admin";
 import { AUTH_ERRORS } from "./auth";
 import { CARE_GROUPS_ERRORS } from "./care-groups";
 import { CARE_PERIODS_ERRORS } from "./care-periods";
+import { CONNECTORS_ERRORS } from "./connectors";
 import { CORE_ERRORS } from "./core";
 import { LIVE_NOTES_ERRORS } from "./live-notes";
 import { MARKETING_ERRORS } from "./marketing";
@@ -239,6 +240,7 @@ export const SERVICE_ERRORS = {
   ...AUTH_ERRORS,
   ...CARE_GROUPS_ERRORS,
   ...CARE_PERIODS_ERRORS,
+  ...CONNECTORS_ERRORS,
   ...CORE_ERRORS,
   ...LIVE_NOTES_ERRORS,
   ...MARKETING_ERRORS,
