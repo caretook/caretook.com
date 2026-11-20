@@ -27,12 +27,13 @@ import {
   noteDocumentModel,
   noteUpdateModel,
   providerModel,
+  taskModel,
   timelineEntryModel,
 } from "../models";
 import { rejectError } from "../permissions";
 
 // Live documents (collaborative notes) on note and event entries, on
-// providers and on medications. Write documents and updates through here, not the models: this
+// providers, medications, care periods and tasks. Write documents and updates through here, not the models: this
 // is where the owner's kind, group and deletion are checked.
 //
 // A document's state is its snapshot plus its pending updates. Devices only
@@ -57,7 +58,7 @@ export const COMPACT_AFTER_UPDATES = 20;
 export const COMPACT_AFTER_SECONDS = 60;
 
 /**
- * The document's owner (an entry, a provider, a medication or a care period), as the actor sees it.
+ * The document's owner (an entry, a provider, a medication, a care period or a task), as the actor sees it.
  * Deleted owners are hidden, and so are their documents.
  */
 const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubject, id: string) => {
@@ -82,8 +83,13 @@ const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubje
       ? { groupId: period.groupId, kind: null }
       : newError({ code: "noteDocumentService:carePeriodNotFound" });
   }
-  // Task documents arrive with the task page (tasks slice 2): until then, none.
-  if (subject === "task") return newError({ code: "noteDocumentService:taskNotFound" });
+  if (subject === "task") {
+    const task = await taskModel.getById(id, { ...ctx, tx });
+    if (isError(task)) return task;
+    return task
+      ? { groupId: task.groupId, kind: null }
+      : newError({ code: "noteDocumentService:taskNotFound" });
+  }
   const entry = await timelineEntryModel.getById(id, { ...ctx, tx });
   if (isError(entry)) return entry;
   return entry
