@@ -21,6 +21,7 @@
     "test:integration": "vitest run --project integration",
     "test:components": "vitest run --project web:components",
     "test:components:install": "playwright install chromium",
+    "build:budget": "node scripts/build/check.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:budget",
     "hooks:install": "git config core.hooksPath .githooks",
     "backlog": "node scripts/backlog/backlog.mjs",

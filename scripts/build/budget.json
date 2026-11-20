@@ -1,0 +1,5 @@
+{
+  "forbidden": ["@tiptap/", "yjs", "y-", "prosemirror-", "@powersync/"],
+  "forbiddenIn": ["entry", "app"],
+  "ceilings": { "entry": 123857, "root": 130380, "app": 406187 }
+}
