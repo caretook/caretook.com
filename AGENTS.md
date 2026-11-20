@@ -180,6 +180,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 
 ### Hosting
 
+- ✅ **Built (hosting PRD):** Vercel `cle1`, Neon `aws-us-east-2`, PowerSync Cloud US; two environments (`APP_ENV` staging and production), deployed only by `.github/workflows/deploy.yml` (env check → migrate → roles → sync config → Vercel → smoke). Details: [api](docs/domain/api.md) (deploy env), [data-layer](docs/domain/data-layer.md) (roles), [sync](docs/domain/sync.md) (_Production_). Migrations stay additive (expand, then contract in a later deploy) so instant rollback is safe.
 - 🟡 **Vercel** for request/response work (CRUD, auth, uploads, calendar cron and webhooks). **AWS** for long-running work (AI jobs on SQS with Lambda or ECS, and the sync service if self-hosted).
 - Live appointment audio would go from the client straight to the AI provider, with a short-lived token.
 - Costs of the split: JWT auth that works everywhere, CORS, Postgres pooling, and functions in the database's region.
@@ -217,6 +218,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 | `pnpm check`                                                  | typecheck, lint, format check and tests: run it before handing off                                |
 | `pnpm backlog …`                                              | the live backlog on `dev` (`ingest`, `list`, `claim`, `done`, …)                                  |
 | `pnpm prd …`                                                  | parallel PRD worktrees (`status`, `start`, `check`, `land`, …; see `docs/loops.md`)               |
+| `pnpm deploy:env`/`deploy:smoke`, `db:roles`, `db:access`     | deploy env and smoke checks, database roles, personal access (`data-layer.md`)                    |
 | `pnpm hooks:install`                                          | turn on the branch protection hooks (`.githooks/`): once, after cloning                           |
 
 ## Area index

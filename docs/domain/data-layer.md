@@ -27,7 +27,7 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
   2. Add a `PERMISSIONS` entry (the type requires one).
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
-- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0022 so far.
+- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0023 so far.
   - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
   - Until the first deploy it's fine to delete and regenerate migrations.
 - **DB client:** the pool is created lazily (importing never needs `DATABASE_URL`). Only the **pool** survives HMR (`utils/remember.ts`); the drizzle wrapper is rebuilt, so new tables work without a restart.
@@ -35,5 +35,11 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
 - **Local Postgres:** Docker `postgres:18.7-alpine` with `wal_level=logical`, dev on :5434 and test on :5435, data in `.postgres/`.
   - Integration tests: the main checkout uses its test database on :5435; a `.loops` worktree uses its own `caretook_test_<worktree>` database on the shared test Postgres (:5436, [loops](../loops.md)). The guard, `src/db/testDatabase.ts` (pure, tested), refuses a non-local host, a port other than `PG_TEST_PORT` and, on the shared server, any other database name.
   - `datastore:clear` refuses a non-localhost database, and drops the publication.
-  - `datastore:seed` refuses production and uses `@example.com` accounts only.
-- ❓ The hosted database (same region as Vercel functions, with pooling), and how production migrations run.
+  - `datastore:seed` uses `@example.com` accounts only, behind `seedRefusal(env)` (`seeds/guard.ts`): `APP_ENV=production` is refused (`db:seed:production`), staging needs a set, non-default `SEED_USER_PASSWORD` (`db:seed:password`), an unknown `APP_ENV` is refused, and with no `APP_ENV` so are `NODE_ENV=production` and any non-localhost database (`db:seed:notLocal`).
+- ✅ **The hosted database** (Neon, `aws-us-east-2`, beside Vercel's `cle1`; set up by [`ops/runbook.md`](../../ops/runbook.md)) has three roles, made idempotently by `pnpm db:roles` (`db/roles/`, `rolesSql`) without passwords (Neon sets them):
+  - `caretook_migrations` owns the schema (DDL); migrations and `db:roles` use its direct URL, `MIGRATIONS_DATABASE_URL`, held only in GitHub. `datastore:migrate` refuses a deployed `APP_ENV` without it (`migrationsDatabaseUrl`).
+  - `caretook_app` (Neon's pooled `DATABASE_URL`): read and write on every table, no `CREATE`; default privileges cover tables the migrations role adds later.
+  - `caretook_replication`: see [sync](sync.md), _Production_.
+  - `db:roles` runs after every migration (it narrows the publication migrations widen). Integration tests that create roles use unique names and drop them.
+- **Personal access** (`pnpm db:access grant <email> --hours N | revoke <email> | list`, `dbAccessService`): a `staff_<slug>` LOGIN role, read-only (`default_transaction_read_only`, SELECT on every table), `VALID UNTIL` at most 24 h, the password sent only as a SCRAM verifier and printed once. Staff accounts only. Audited `db.accessGranted` / `db.accessRevoked` (system actor, the staff member as target). `revoke` ends its sessions and is safe twice. `VALID UNTIL` stops new sign-ins only. The procedure is [`ops/break-glass.md`](../../ops/break-glass.md).
+- **System-only tables written directly** (no model, no audits): `rate_limit_hit` and Better Auth's `rate_limit` (`rateLimitService`, Better Auth), and `email_suppression` (`emailSuppressionService`).
