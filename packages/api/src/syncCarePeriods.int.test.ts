@@ -1,6 +1,6 @@
 import type { AuthUser } from "@caretook/data";
 
-import { carePeriodService } from "@caretook/data";
+import { carePeriodService, providerService } from "@caretook/data";
 import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
@@ -162,5 +162,46 @@ describe("sync.upload: care_period", () => {
       { id, status: "applied" },
       { id, status: "applied" },
     ]);
+  });
+
+  it("applies a period with its new place in one batch: the practice first, then the period naming it", async () => {
+    const { group, recipient, owner } = await setup();
+    const placeId = randomUUID();
+    const id = randomUUID();
+    const res = await owner.api.sync.upload({
+      ops: [
+        {
+          op: "PUT",
+          table: "provider",
+          id: placeId,
+          data: {
+            group_id: group.id,
+            type: "practice",
+            name: "Lakeview Medical",
+            status: "current",
+            is_primary: 0,
+          },
+        },
+        {
+          op: "PUT",
+          table: "care_period",
+          id,
+          data: periodRow(group.id, recipient.id, { place_provider_id: placeId, place_detail: "Room 7" }),
+        },
+      ],
+    });
+    expect(res.results).toEqual([
+      { id: placeId, status: "applied" },
+      { id, status: "applied" },
+    ]);
+    expect(ok(await providerService.getById(owner.ctx, placeId))).toMatchObject({
+      type: "practice",
+      name: "Lakeview Medical",
+    });
+    expect(ok(await carePeriodService.getById(owner.ctx, id))).toMatchObject({
+      type: "hospital",
+      placeProviderId: placeId,
+      placeDetail: "Room 7",
+    });
   });
 });

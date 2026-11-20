@@ -11,10 +11,10 @@
 | 3     | landed (wave 2)                      | c7ebf04 (dc3b2ec, a1f84cb, 988c4de)              |
 | 4     | landed (wave 2)                      | 7e632ee (58cfc90)                                |
 | 5     | landed (wave 2)                      | 7bfa916 (3542457, e554d48)                       |
-| 6     | blocked by 1, 2                      |                                                  |
-| 7     | blocked by 1, 2                      |                                                  |
-| 8     | blocked by 1, 2                      |                                                  |
-| 9     | blocked by 1, 2                      |                                                  |
+| 6     | landed (wave 3)                      | 17f91aa (3dfa6fd)                                |
+| 7     | landed (wave 3)                      | 3c0418e (97af38e)                                |
+| 8     | landed (wave 3)                      | 2cdba7f (c6d0b95, 55676bf)                       |
+| 9     | in progress (wave 4)                 |                                                  |
 | 10    | blocked by 1, 2                      |                                                  |
 | 11    | blocked by 9 and `assistant` slice 7 |                                                  |
 | 12    | blocked by 1, 2 and `assistant` 1, 5 |                                                  |
@@ -36,7 +36,12 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19) for slice 2's sync matrix (9c0b2bf); slice 5 lowered it to 350.
 
-**Now:** waves 1 and 2 (slices 1–5) landed together on 2026-11-19, after assistant's c17c121 fixed dev's two failing tests: suite 12/12 in 5m19s, `pnpm prd check` 3238/3238. Lean total and ceiling 350. `layout-offline` ran 33 s against its listed 15 (27 s before this wave's folds); its usual seconds are understated, so a later slice that touches it should measure it. Orchestrator fixes on this branch: f6a4db8 (settle test), the timelineFilters race (B-131), `retry: 2` on timelineScroll's B-133 flake (remove when B-133 is fixed). Next: wave 3 (6, 7, 8).
+**Now:** wave 3 (6, 7, 8) landed 2026-11-20: suite 12/12 in 5m07s, `pnpm prd check` 3380/3380. Waves 1–2 landed as 2040ed3 on 2026-11-19. Next: wave 4 (9, 10).
+
+- **Ceiling 295** (2026-11-20). Slice 6 cut `session-end` from 60 to 7 (it runs in 5–6 s), which took the ceiling to 297. Then the orchestrator set every lean check's usual seconds to the median of the three suite runs so far (the listed values had drifted: `marketing` 10 vs 29 measured, `app-shell` 10 vs 18, `layout-offline` 15 vs 27, `sign-in` 10 vs 5), which made the total 295. The lean set is already under slice 18's 300; slice 18 still makes 300 the hard limit and trims what it can.
+- Orchestrator fixes on this branch so far: f6a4db8 (settle test), the timelineFilters race (B-131), `retry: 2` on timelineScroll's B-133 flake (remove when B-133 is fixed), 1384054 (visit prep steps the year, not the month: B-134, date-dependent on dev).
+- Filed for the user's triage (not this PRD): B-133 (timeline minute-turn remount), B-134 (a month step back from the 31st in visit prep).
+- Stale comments for later slices: `groups.mjs:296` names admin.mjs (slice 15); `profiles.mjs:338` says care periods' own check covers it (slice 10).
 
 Backlog: claim each slice's items when it starts: 1 B-131; 2 B-128; 3 B-114; 4 B-115; 5 B-120; 6 B-124; 7 B-125 (and B-113's admin part); 9 and 11 B-118 (done after 11); 10 B-121; 12 B-126; 13 B-119; 14 B-116 (and B-113's providers part; B-113 done after 14); 15 B-117; 16 B-122; 17 B-127; 19 to 23 B-129 (done after 23).
 
