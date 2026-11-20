@@ -247,6 +247,7 @@ Read a doc when your work touches its area. A slice's `Reads` field names the on
 | [security-headers](docs/domain/security-headers.md) | the CSP, a new script, origin or inline style                                   |
 | [admin](docs/domain/admin.md)                       | staff roles and capabilities, `/admin`, the audit log, app settings, the banner |
 | [assistant](docs/domain/assistant.md)               | quick entry: the actions, the parser, the runner, the box and its suggestions   |
+| [tasks](docs/domain/tasks.md)                       | the task table and rules, the Tasks section, the task page, links               |
 
 ## Next steps
 

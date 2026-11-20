@@ -40,7 +40,9 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   | care_period             | any member                                | writers                                  | writers                    | writers (soft)                    |
   | medication_pass         | any member                                | writers                                  | writers                    | writers (soft)                    |
   | recipient_allergy       | any member                                | writers                                  | writers                    | writers (soft)                    |
+  | task                    | any member                                | writers                                  | writers, viewers ¹         | writers (soft)                    |
 
+- ¹ `taskService` limits a viewer to ticking or unticking a task assigned to them (`taskService:viewerCompletionOnly`); see [tasks](tasks.md).
 - `system` has `all` everywhere.
 - Ids that point at the group can't be changed except by `system`.
 - **Staff get no default access to care data.** Support access, if ever needed, will be an explicit, audited grant.
@@ -48,6 +50,7 @@ The shared space for the caretakers of one care recipient. Always say "care grou
 - **Write memberships and invites through the services**, because they enforce what the map can't:
   - `careGroupService.create` makes the creator the first owner.
   - Only owners add, promote, demote or remove owners. A group keeps at least one owner (owner rows are locked `FOR UPDATE`).
+  - Removing or leaving a membership hands that user's open tasks in the group to a free-text assignee (their display name), in the same transaction (`taskService.releaseAssignee`).
   - `careGroupInviteService` (rules in the pure, client-safe `inviteRules.ts`: `canInvite`, `invitableRoles`, `linkRoleAllowed`, `inviteState`, `emailMatches`, `CONSENT_TEXT`/`CONSENT_VERSION`, `ATTESTATION_TEXT`, `INVITE_TTL_DAYS`):
     - `createEmail` requires the inviter's attestation, only owners invite owners, refuses current members and a second waiting invite, and replaces an expired one (7-day expiry). `resend` rotates the token (the old link stops working) and resets the expiry; `revoke` withdraws it. No procedure returns a token.
     - `preview(token)` (public; closed invites never name the group), `ticketFor(token)` (for sign-up), `accept` (the signed-in, verified email must match; one transaction as `system`: the membership with `invitedBy`, the consent row, email verified, the invite accepted; idempotent) and `decline(token)` (anyone holding the link, signed in or not).

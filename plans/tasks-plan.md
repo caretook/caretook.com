@@ -13,7 +13,7 @@
 | 5     | 3    | merged                                              | 0d22486 (56b8721)                      |
 | 6     | 2    | merged                                              | e7d622a (4708991)                      |
 | 7     | 2    | merged (fixed `lib/taskSheets.ts` re-export path)   | 38a3c7a (b3da051)                      |
-| 8     | 2    | running (tasks-8)                                   |                                        |
+| 8     | 2    | merged 5a5eadf (138f2ce)                            |                                        |
 
 **Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue tasks`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
@@ -44,7 +44,9 @@
 
 **Synced `dev` (d2bf131, 2026-11-20):** check-migration waves 1–2 are in `dev` (2040ed3): `SYNC_MATRIX`, and the routing, search and settings-layout checks became component tests. The entry who's-writing conflict took `dev`'s `device.settle()` over 48c7f9a. Typecheck clean; `sync-matrix.test.mjs` fails only for the missing `task` row. Lean ceiling is now 350 s and the lean total is exactly 350, so slice 8 must fit or report the overage for the user. Slice 8 started.
 
-**Landing checks to run (once, on the synced tip):** the lean set (`--suite`, migration + sync-config: **ask the user first**) plus by name the `e2e no` ones the diff names: providers, medications, upcoming, search, routing (and whatever `--changed --base dev --list` adds).
+**Slice 8 merged (5a5eadf, 2026-11-20):** the `task` matrix row and step 6d in `roundtrip` (sharing 6c's offline window): roundtrip passed 53/53 in 29 s (usual 31 left in the manifest; lean total stays 350/350). B-55 `done` at 5a5eadf; tasks-8 removed. Its `pnpm check` hit two base failures, fixed here in 52ef672: `visitPrep` › "the start can move back" (fails on `dev` too whenever the last visit is on a 31st: a month back is 9/31, which React Aria commits only on blur) and `linkedTasks` › "a note's page has none" (the entry's hidden print view repeats the text). `dev` synced again (B-133 timeline fix, check tooling). Docs folded: new `docs/domain/tasks.md` and its _Area index_ row; care-groups, sync, app-shell, data-layer, components, layout, live-notes, appointments, providers, medications, timeline, search, assistant. `docs/loops.md` unchanged (the lean set's flows didn't change).
+
+**Landing checks to run (once, on the synced tip):** the lean set (`--suite`, migration + sync-config: **ask the user first**) plus by name the `e2e no` ones the diff names: providers, medications, upcoming (search and routing are component tests now), and whatever `--changed --base dev --list` adds.
 
 **Browser checks run so far:** slice 1's `--changed` ran the whole lean set plus routing, providers, care-periods, upcoming on slice 1's tip: all pass (upcoming after its fix).
 
