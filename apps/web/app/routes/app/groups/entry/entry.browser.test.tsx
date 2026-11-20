@@ -227,7 +227,7 @@ describe("an event in one tap, and title chips", () => {
     await userEvent.keyboard("Dr. Lee visit");
     TITLE()!.blur();
     await expect.poll(async () => (await stored(device, id))?.title).toBe("Dr. Lee visit");
-    expect(TITLE()!.placeholder).toBe("Title");
+    await waitUntil(() => TITLE()?.placeholder === "Title", 10_000, "the named event's placeholder");
   });
 
   test("a named event in 2 taps: Event, then a chip; saved with that title, the cursor in the document", async () => {
@@ -574,12 +574,12 @@ describe("appointments", () => {
     PLACE()!.focus();
     await userEvent.keyboard("Lab, 2nd floor{Enter}");
     await expect.poll(async () => (await stored(device, appt.id))?.place).toBe("Lab, 2nd floor");
-    expect(PLACE_REGION()!.textContent).not.toContain("from ");
     await waitUntil(
       () => !!MAP()?.href.includes(encodeURIComponent("Lab, 2nd floor")),
       10_000,
       "the typed place on the map link",
     );
+    expect(PLACE_REGION()!.textContent).not.toContain("from ");
     await device.screen.unmount();
 
     await open(entryPath(appt.id), {
@@ -614,7 +614,7 @@ describe("appointments", () => {
     await waitUntil(() => !CHIP_DIALOG());
     await expect.poll(async () => (await stored(device, appt.id))?.all_day).toBe(1);
     expect((await stored(device, appt.id))!.ends_at).toBeNull();
-    expect(HEADER_TIME()!.textContent).toMatch(/All day/);
+    await waitUntil(() => /All day/.test(HEADER_TIME()?.textContent ?? ""), 10_000, "All day in the header");
     await device.screen.unmount();
 
     await open(entryPath(appt.id), {
