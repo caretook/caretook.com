@@ -110,7 +110,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-140 | change | triaged | app-speed |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
 | B-141 | change | ready | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
 | B-142 | change | in-progress | hosting | prd/hosting | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
-| B-143 | change | triaged | hosting |  | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
+| B-143 | change | in-progress | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
 | B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-146 | question | dropped | check-migration |  | Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for… |
@@ -800,9 +800,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-143 · change · Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts…
 
-- status: triaged
+- status: in-progress
 - prd: hosting
-- owner:
+- owner: prd/hosting
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side).
