@@ -91,9 +91,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-170 | change | in-progress | timeline-ux | prd/timeline-ux | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
 | B-171 | change | in-progress | timeline-ux | prd/timeline-ux | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
 | B-173 | bug | ready | check-migration | prd/check-migration | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
-| B-174 | bug | inbox |  |  | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
-| B-175 | chore | inbox |  |  | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
+| B-174 | bug | triaged | timeline-ux |  | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
+| B-175 | chore | triaged | timeline-ux |  | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
 | B-176 | bug | triaged | check-migration |  | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
+| B-177 | bug | inbox |  |  | rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone |
+| B-178 | bug | inbox |  |  | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
 
 ## Items
 
@@ -554,21 +556,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-174 · bug · Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: timeline-ux
 - owner:
 - commit:
 
 - 2026-11-20 (prd/timeline-ux): Found by timeline-ux slice 6 in the component-test router; check with the real ScrollRestoration before fixing.
+- 2026-11-20 (Robert Bo Davis): Triaged to timeline-ux: found by its slice 6 and touches its hot files (timeline route, useTimelineData); its orchestrator can add a slice or a follow-up after slice 5 lands.
 
 ### B-175 · chore · Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: timeline-ux
 - owner:
 - commit:
 
 - 2026-11-20 (prd/timeline-ux): Slice 6 dropped places from the timeline; left in place to stay clear of slice 5.
+- 2026-11-20 (Robert Bo Davis): Triaged to timeline-ux: found by its slice 6 and touches its hot files (timeline route, useTimelineData); its orchestrator can add a slice or a follow-up after slice 5 lands.
 
 ### B-176 · bug · Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files
 
@@ -578,3 +582,21 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (prd/check-migration): Found at wave 8's landing (2026-11-20). medicationList's search and periods' Add each failed one full check this way and passed alone; both fixed (e4b332b and the periods commit). Proposed for check-migration: sweep the 24 files with grep -rlE 'await userEvent\.(click|fill|hover)\([A-Z_]+\(\)!', and use a waiting query (page.getByRole or a until-present helper beside settle) in renderWithDevice's tests. -- check-migration orchestrator
+
+### B-177 · bug · rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (prd/check-migration): Seen at check-migration's wave 8 landing (2026-11-20): 'Failed query: select … from rate_limit where key = $1', from Better Auth's rate limiter, likely the integration test's Postgres pool under load. Passed alone 2/2. From hosting slice 3 (B-141); not check-migration's. -- check-migration orchestrator
+
+### B-178 · bug · medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (prd/timeline-ux): Seen 2026-11-20 in timeline-ux slices 1, 2 and two landing checks (different test each time); fails before any timeline-ux change too. Probably waits on a fixed render instead of the live query's answer.
