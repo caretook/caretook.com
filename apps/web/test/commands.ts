@@ -14,10 +14,19 @@ const colorScheme: BrowserCommand<[scheme: "light" | "dark" | null]> = async (ct
   });
 };
 
-export const deviceCommands = { colorScheme };
+/** The page's media type: "print" lays it out as printing would (`@media print`); null resets it. */
+const media: BrowserCommand<[type: "print" | "screen" | null]> = async (ctx, type) => {
+  if (ctx.provider.name !== "playwright") throw new Error("media needs the Playwright provider");
+  await (ctx as unknown as { page: { emulateMedia(o: object): Promise<void> } }).page.emulateMedia({
+    media: type,
+  });
+};
+
+export const deviceCommands = { colorScheme, media };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
     colorScheme: (scheme: "light" | "dark" | null) => Promise<void>;
+    media: (type: "print" | "screen" | null) => Promise<void>;
   }
 }
