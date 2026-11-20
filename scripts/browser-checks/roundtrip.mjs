@@ -1,7 +1,8 @@
 // Two-member sync of the sheet's entries (symptoms), plus offline, the viewer
 // and sign-out. Notes and events are their documents and have their own
-// check (live-notes.mjs); this one covers the sheet path: add, edit, delete,
-// validation, When's date picker (keyboard, typed, tapped, edit), an entry
+// check (live-notes.mjs); this one covers the sheet path reaching the other
+// member: add, edit, delete (the sheets' validation, When's date picker and
+// their screens are component tests: timelineSheets.browser.test.tsx), an entry
 // written offline (through a switchable proxy, because CDP network emulation
 // doesn't cut PowerSync's stream), a read-only viewer, a reschedule's one
 // transaction uploading and reaching the other member, the sync matrix (every
@@ -41,72 +42,11 @@ const waitForSql = async (sql, test, ms = 15000) => {
 
 const rowWith = (text) =>
   `[...document.querySelectorAll("main ol > li")].find((li) => li.textContent.includes(${JSON.stringify(text)}))`;
-const button = (text, scope = "document") =>
-  `[...${scope}.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
 const menuItem = (text) =>
   `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim() === ${JSON.stringify(text)})`;
 const NAME = `document.querySelector('[role=dialog] input[name="symptomName"]')`;
 const SUBMIT = `document.querySelector('[role=dialog] button[type="submit"]')`;
 const SHEET = `document.querySelector("[role=dialog]")`;
-
-// The When field's date picker (DateTimeField): its segments, its "Pick a
-// date" button and the calendar it opens.
-const SEGMENTS = `(() => { const s = {}; for (const el of document.querySelectorAll('[role=dialog] [data-type]')) s[el.dataset.type] = el.textContent.trim(); return s; })()`;
-const PICK = `document.querySelector('[role=dialog] [aria-label="Pick a date"]')`;
-const GRID = `document.querySelector("[role=grid]")`;
-const CAL_HEADING = `${GRID}?.closest("[role=dialog]")?.querySelector("h2")?.textContent.trim()`;
-const SELECTED_DAY = `document.querySelector("[role=grid] [data-selected]")?.textContent.trim()`;
-const FOCUSED_DAY = `(document.activeElement?.closest("[role=grid]") ? document.activeElement.textContent.trim() : null)`;
-const dayCell = (day) =>
-  `[...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find((c) => c.textContent.trim() === ${JSON.stringify(String(day))} && !c.hasAttribute("data-outside-month"))`;
-const dayHeaderOf = (text) =>
-  `(${rowWith(text)}?.closest("section")?.querySelector("h3")?.textContent.trim() ?? null)`;
-/** The browser's yesterday: day and month numbers, and the calendar's month heading. */
-const YESTERDAY = `(() => { const d = new Date(); d.setDate(d.getDate() - 1);
-  return { day: String(d.getDate()), month: String(d.getMonth() + 1), heading: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }) }; })()`;
-const monthHeading = (s) =>
-  `new Date(${Number(s.year)}, ${Number(s.month) - 1}, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })`;
-async function pressKey(p, key, code, keyCode, text) {
-  await p.send("Input.dispatchKeyEvent", {
-    type: "keyDown",
-    key,
-    code,
-    windowsVirtualKeyCode: keyCode,
-    ...(text ? { text } : {}),
-  });
-  await p.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode: keyCode });
-}
-const KEY = {
-  Tab: ["Tab", "Tab", 9],
-  Enter: ["Enter", "Enter", 13, "\r"],
-  Escape: ["Escape", "Escape", 27],
-  ArrowLeft: ["ArrowLeft", "ArrowLeft", 37],
-  ArrowUp: ["ArrowUp", "ArrowUp", 38],
-};
-const key = (p, name) => pressKey(p, ...KEY[name]);
-/** Screenshots of the open calendar: light and dark, at 420 and 1280. */
-async function calendarScreenshots(p, name) {
-  for (const width of [420, 1280]) {
-    await p.send("Emulation.setDeviceMetricsOverride", {
-      width,
-      height: 900,
-      deviceScaleFactor: 1,
-      mobile: width < 600,
-    });
-    for (const theme of ["light", "dark"]) {
-      await p.evaluate(`document.documentElement.dataset.theme = ${JSON.stringify(theme)}`);
-      await sleep(300);
-      await p.screenshot(`${name}-${width}-${theme}`);
-    }
-  }
-  await p.evaluate(`delete document.documentElement.dataset.theme`);
-  await p.send("Emulation.setDeviceMetricsOverride", {
-    width: 420,
-    height: 900,
-    deviceScaleFactor: 1,
-    mobile: true,
-  });
-}
 
 // Waits on state get 10 s: they return as soon as the state is there, and the
 // 3–5 s they had timed out at low load on a cold check build (B-93).
@@ -228,23 +168,7 @@ try {
     )) === "caretaker@example.com",
   );
 
-  // 3. Validation stays local: a symptom needs a name.
-  await A.addToTimeline("Symptom");
-  await A.waitFor(NAME);
-  await A.press(SUBMIT);
-  await A.waitFor(`${NAME}?.getAttribute("aria-invalid") === "true"`, 10000).then(
-    () => check("validation: a symptom with no name shows a field error", true),
-    async () =>
-      check(
-        "validation: a symptom with no name shows a field error",
-        false,
-        await A.evaluate(`${SHEET}?.innerText`),
-      ),
-  );
-  await A.press(button("Cancel", SHEET));
-  await A.waitFor(`!${SHEET}`);
-
-  // 4. Delete on A, disappears on B, soft-deleted.
+  // 3. Delete on A, disappears on B, soft-deleted.
   await A.press(`${rowWith(name)}.querySelector('button[aria-label^="Actions"]')`);
   await A.waitFor(menuItem("Delete"));
   await A.press(menuItem("Delete"));
@@ -260,109 +184,6 @@ try {
       (r) => r === "true",
     )) === "true",
   );
-
-  // 4b. When's date picker: keyboard, typed segments, a tapped day, and the
-  // saved day; then the edit sheet's calendar opens on the entry's date.
-  const picked = `${tag} picked date`;
-  const yesterday = await A.evaluate(YESTERDAY);
-  await A.addToTimeline("Symptom");
-  await A.waitFor(NAME);
-  await A.type(NAME, picked);
-  const s0 = await A.evaluate(SEGMENTS);
-  const sameTime = (s) => s.hour === s0.hour && s.minute === s0.minute && s.dayPeriod === s0.dayPeriod;
-  await A.evaluate(`[...document.querySelectorAll('[role=dialog] [data-type]')].at(-1).focus()`);
-  await key(A, "Tab");
-  await A.waitFor(`document.activeElement === ${PICK}`, 5000, { quiet: true }).catch(() => undefined);
-  check(
-    "picker: Tab from the segments reaches Pick a date",
-    await A.evaluate(`document.activeElement === ${PICK}`),
-  );
-  await key(A, "Enter");
-  await A.waitFor(`${GRID} && ${FOCUSED_DAY}`, 10000);
-  check(
-    "picker: Enter opens the calendar on the current month, focus on the selected day",
-    (await A.evaluate(FOCUSED_DAY)) === s0.day &&
-      (await A.evaluate(SELECTED_DAY)) === s0.day &&
-      (await A.evaluate(CAL_HEADING)) === (await A.evaluate(monthHeading(s0))),
-    `${await A.evaluate(CAL_HEADING)}, ${await A.evaluate(FOCUSED_DAY)}`,
-  );
-  await key(A, "ArrowLeft");
-  await A.waitFor(`${FOCUSED_DAY} === ${JSON.stringify(yesterday.day)}`, 10000).then(
-    () => check("picker: arrow keys move the focused day", true),
-    async () => check("picker: arrow keys move the focused day", false, await A.evaluate(FOCUSED_DAY)),
-  );
-  await key(A, "Escape");
-  await A.waitFor(`!${GRID}`, 10000);
-  // React Aria hands focus back to the button a moment after the popover goes.
-  await A.waitFor(`document.activeElement === ${PICK}`, 10000, { quiet: true }).catch(() => undefined);
-  check(
-    "picker: Escape closes it, focus back on the button, date unchanged",
-    (await A.evaluate(`document.activeElement === ${PICK}`)) &&
-      (await A.evaluate(SEGMENTS)).day === s0.day &&
-      (await A.evaluate(`!!${SHEET}`)),
-  );
-  await key(A, "Enter");
-  await A.waitFor(`${GRID} && ${FOCUSED_DAY}`, 10000);
-  await key(A, "ArrowLeft");
-  await A.waitFor(`${FOCUSED_DAY} === ${JSON.stringify(yesterday.day)}`, 10000);
-  await key(A, "Enter");
-  await A.waitFor(`!${GRID}`, 10000);
-  const s1 = await A.evaluate(SEGMENTS);
-  check(
-    "picker: Enter picks the day, keeps the time and closes the calendar",
-    s1.day === yesterday.day && s1.month === yesterday.month && sameTime(s1),
-    `${s1.month}/${s1.day} ${s1.hour}:${s1.minute}`,
-  );
-  // Typed segments, then the calendar shows the typed date.
-  await A.evaluate(`document.querySelector('[role=dialog] [data-type="day"]').focus()`);
-  await key(A, "ArrowUp");
-  const typed = await A.evaluate(SEGMENTS);
-  await A.tap(PICK);
-  await A.waitFor(`${GRID} && ${SELECTED_DAY}`, 10000);
-  check(
-    "picker: typing still works, and the calendar shows the typed date",
-    typed.day !== s1.day &&
-      (await A.evaluate(SELECTED_DAY)) === typed.day &&
-      (await A.evaluate(CAL_HEADING)) === (await A.evaluate(monthHeading(typed))),
-    `typed ${typed.month}/${typed.day}, calendar ${await A.evaluate(CAL_HEADING)} ${await A.evaluate(SELECTED_DAY)}`,
-  );
-  await calendarScreenshots(A, "roundtrip-calendar");
-  await A.tap(dayCell(yesterday.day));
-  await A.waitFor(`!${GRID}`, 10000).then(
-    () => true,
-    () => null,
-  );
-  const s2 = await A.evaluate(SEGMENTS);
-  check(
-    "picker: tapping a day sets the date, keeps the time and closes the calendar",
-    !(await A.evaluate(`!!${GRID}`)) &&
-      s2.day === yesterday.day &&
-      s2.month === yesterday.month &&
-      sameTime(s2),
-    `${s2.month}/${s2.day} ${s2.hour}:${s2.minute}`,
-  );
-  await A.press(SUBMIT);
-  await A.waitFor(`!${SHEET}`, 10000);
-  await A.waitFor(rowWith(picked), 10000);
-  check(
-    "picker: the saved entry is under Yesterday",
-    (await A.evaluate(dayHeaderOf(picked))) === "Yesterday",
-    await A.evaluate(dayHeaderOf(picked)),
-  );
-  await A.press(`${rowWith(picked)}.querySelector('a[aria-label^="Edit "]')`);
-  await A.waitFor(`${SHEET}?.textContent.includes("Edit symptom") && ${PICK}`, 10000);
-  await A.tap(PICK);
-  await A.waitFor(`${GRID} && ${SELECTED_DAY}`, 10000);
-  check(
-    "picker: editing opens the calendar on the entry's date, not today's",
-    (await A.evaluate(SELECTED_DAY)) === yesterday.day &&
-      (await A.evaluate(CAL_HEADING)) === yesterday.heading,
-    `${await A.evaluate(CAL_HEADING)} ${await A.evaluate(SELECTED_DAY)}`,
-  );
-  await key(A, "Escape");
-  await A.waitFor(`!${GRID}`, 10000);
-  await A.press(button("Cancel", SHEET));
-  await A.waitFor(`!${SHEET}`, 10000);
 
   // 5. Offline on A.
   const offName = `${tag} offline dizziness`;
