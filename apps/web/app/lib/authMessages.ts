@@ -21,6 +21,7 @@ export const authMessages = {
     `If ${email} still needs confirming, we've sent it a new link. It works for an hour.`,
   verifyExpired: "This link has expired or was already used. Send yourself a new one.",
   tooManyTries: "Too many tries. Wait a minute, then try again.",
+  sessionRateLimited: "Too many attempts. Try again in a moment.",
   offlineTooLong: "You've been offline for 3 days. Sign in to keep going.",
   offline: "Couldn't reach Caretook. Check your connection and try again.",
   failed: "Something went wrong. Try again.",

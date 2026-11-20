@@ -45,7 +45,6 @@ const menuItem = (text) =>
 const tempRadio = (unit) => `document.querySelector('input[name="temperature"][value="${unit}"]')`;
 const button = (text, scope = "document") =>
   `[...${scope}.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
-const vitalsTile = `[...document.querySelectorAll('[aria-label="Add to the timeline"] button')].find((b) => b.textContent.trim().startsWith("Vitals"))`;
 const DIALOG = `document.querySelector("[role=dialog]")`;
 const noteRow = `[...document.querySelectorAll("ol > li")].find((li) => li.querySelector(".sr-only")?.textContent === "Note: ")`;
 
@@ -148,9 +147,7 @@ try {
   await p.evaluate("history.go(-2)");
   await p.waitFor(`location.pathname === ${JSON.stringify(timeline)} && ${rows} > 0`, 15000);
   await sleep(300);
-  await p.press(vitalsTile);
-  await p.waitFor(menuItem("Temperature"), 5000);
-  await p.press(menuItem("Temperature"));
+  await p.addToTimeline("Temperature");
   await p.waitFor(
     `${DIALOG} && ${DIALOG}.querySelector('input[name="vital.0.type"]')?.value === "temperature"`,
     10000,

@@ -313,6 +313,28 @@ export async function openPage(browser, label) {
     await press(item);
   };
 
+  /**
+   * Add to the timeline through its header's + menu (quick-fixes slice 39):
+   * open it, then choose `item` ("Note", "Symptom", "Heart rate"…), with a
+   * real tap (`how: "tap"`) or a synthetic press (the default).
+   */
+  const addToTimeline = async (item, { how = "press", ms = 10000 } = {}) => {
+    const choice = `[...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find((el) => el.textContent.trim() === ${JSON.stringify(item)})`;
+    const act = how === "tap" ? tap : press;
+    await waitFor(ADD_BUTTON, ms);
+    await act(ADD_BUTTON);
+    // A tap that lands while a menu is still closing doesn't open it: once more.
+    const opened = await waitFor(choice, 3000, { quiet: true }).then(
+      () => true,
+      () => false,
+    );
+    if (!opened) {
+      await act(ADD_BUTTON);
+      await waitFor(choice, 5000);
+    }
+    await act(choice);
+  };
+
   return {
     send,
     evaluate,
@@ -326,6 +348,7 @@ export async function openPage(browser, label) {
     signIn,
     openDevFamily,
     signOut,
+    addToTimeline,
     errors,
     uncaught,
     diagnose,
@@ -368,6 +391,9 @@ export const localCopyHolds = (text) => `(async () => {
  * only its core path (one role, one happy path, no offline, no second device),
  * in about 20 s. Hand-offs and landings run the full check.
  */
+/** The timeline header's + button (writers only), which opens the add menu. */
+export const ADD_BUTTON = `document.querySelector('main header button[aria-label="Add to timeline"]')`;
+
 export const SMOKE = process.env.SMOKE === "1";
 
 /** Every page's CSP violations; any at all fails the run, whatever the check's own verdict. */

@@ -21,7 +21,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           settings/ (layout, index, units, timeline, account),
                           groups/layout/ (the group route), groups/index/, groups/timeline/ (useTimelineData, TimelineHeader,
                           TimelineEntryList, EntryBody, TimelineEntryRow/Card, EntryOpenTarget, TimelineFilters, LatestVitals,
-                          LiveNowBanner, LiveDot, QuickAddBar, EntryForm, EntryKindPicker, SymptomFields, VitalReadingsFields,
+                          LiveNowBanner, LiveDot, QuickAddMenu, DayHeader, EntryForm, EntryKindPicker, SymptomFields, VitalReadingsFields,
                           VitalReadingRow, VitalField, VitalTypeMenu, useEntryFormSave, useEntryRemoval, new/, edit/),
                           groups/entry/ (loadEntry, useLiveEntry, EntryPageHeader, EntryHeader, EntryTitleRegion,
                           EntryTimeChip, EventTitleChips, ShareButton, share),
