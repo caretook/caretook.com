@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/timeline-ux` (slice commits) |
-| ----- | ---- | --------------- | -------------------------------------------- |
-| 1     | 1    | landed          | 9e3a3ad (28991ac, 940af0a)                   |
-| 2     | 1    | landed          | de5ccf9 (67f6e34)                            |
-| 3     | 1    | landed          | 448be6e (11efa88)                            |
-| 4     | 2    | merged          | ddf36b0 (2110676)                            |
-| 5     | 2    | merged          | fd9b79f4 (174eb84)                           |
-| 6     | 2    | merged          | 127670af (8c4450e)                           |
-| 7     | 3    | blocked by 1, 3 |                                              |
-| 8     | 3    | blocked by 2    |                                              |
-| 9     | 3    | not started     |                                              |
-| 10    | 4    | blocked by 1    |                                              |
+| Slice | Wave | State        | Merge into `prd/timeline-ux` (slice commits) |
+| ----- | ---- | ------------ | -------------------------------------------- |
+| 1     | 1    | landed       | 9e3a3ad (28991ac, 940af0a)                   |
+| 2     | 1    | landed       | de5ccf9 (67f6e34)                            |
+| 3     | 1    | landed       | 448be6e (11efa88)                            |
+| 4     | 2    | merged       | ddf36b0 (2110676)                            |
+| 5     | 2    | merged       | fd9b79f4 (174eb84)                           |
+| 6     | 2    | merged       | 127670af (8c4450e)                           |
+| 7     | 3    | started      |                                              |
+| 8     | 3    | started      |                                              |
+| 9     | 3    | started      |                                              |
+| 10    | 4    | blocked by 1 |                                              |
 
 **Start condition:** `code-layout` in `dev` (it moves `apps/web/app/lib/`, `routes.ts` and `appUrls`). Check `pnpm backlog show B-150` says landed. Every path below that names `lib/…` means its new home after code-layout: find it with `git grep` and don't recreate the old file.
 
@@ -40,6 +40,8 @@
 - **Promises to other orchestrators:** message connectors-4a when B-164/B-165 (slice 6) land in dev, and when slice 10 (B-140, packages/auth) starts and before it lands (their slice 2 adds an oauth-provider plugin in `packages/auth/src/auth.ts`).
 - Slice 6 handed off (8c4450e; subject cites only B-139, it covers B-164/B-165/B-167/B-168 too). Merge after 5. Fold-ins: timeline.md, date heading `text-lg lg:text-xl`; the summary in `DayHeader`'s `summary` region; ⋯ over the author chip in `[data-entry-aside]` (`ASIDE_CLASS`); `offscreenRows.ts` (`content-visibility` on rows of days before the newest page, `contain-intrinsic-size: auto 70px`/100px cards; relayout at 300 rows 2.9 → 1.3 ms). care-periods.md: no place on the day line or marker. Follow-ups to file: pages lost on Back (paging is `useState`); dead `placeNamesQuery`/`placeRows`. Filed as B-174 and B-175.
 - Slices 5 (fd9b79f4) and 6 (127670af; one doc-comment conflict in `TimelineEntryList.tsx`, resolved) merged; B-169, B-164, B-167, B-165, B-168, B-139 done; worktrees removed. Slice 5 notes: the tasks row keeps due-today tasks but neutral (no amber hue in `todayStatus`); `marketing-screenshots.mjs` selector updated, not run (no screenshots until the launch map). Synced dev (connectors PRD docs). Folded wave 2 into timeline, care-periods, medications, tasks and app-shell docs (all under 10 KB). Full check next (a code conflict was resolved); wave 2 lands on it without `--suite` (plan).
+- Wave 2 check: only `medicationList` failed (load flake, passes alone; filed B-178); rerunning.
+- Wave 3 started from d3d62eeb while the wave 2 check runs: timeline-ux-7 (stack, slot 3), -8, -9; agents 7 opus, 8 sonnet, 9 sonnet. B-144, B-162, B-163, B-170, B-171 claimed.
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
