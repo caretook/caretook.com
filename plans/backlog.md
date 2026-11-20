@@ -91,7 +91,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
 | B-128 | chore | triaged | check-migration |  | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
-| B-130 | bug | inbox |  |  | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
+| B-130 | bug | triaged | quick-fixes |  | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | inbox |  |  | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | inbox |  |  | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 
@@ -585,8 +585,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-130 · bug · A rate-limited session check right after sign-in sends the user back to /sign-in with no message
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
 
