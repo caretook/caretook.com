@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { UnitChoices } from "@caretook/data/schema";
+import type { DaySummaryMode, UnitChoices } from "@caretook/data/schema";
 import type { SimpleModeState } from "~/lib/useSimpleMode";
 import type { TimelineData } from "./useTimelineData";
 
@@ -35,11 +35,14 @@ export function SimpleTimeline({
   data,
   units,
   mode,
+  summaryMode,
   children,
 }: {
   data: TimelineData;
   units: UnitChoices;
   mode: SimpleModeState;
+  /** The viewer's day summaries setting (set from the full view's header). */
+  summaryMode?: DaySummaryMode;
   /** The sheets over the timeline (its `Outlet`), so a card's Edit opens. */
   children?: ReactNode;
 }) {
@@ -82,6 +85,7 @@ export function SimpleTimeline({
         kind={null}
         author={null}
         simple
+        summaryMode={summaryMode}
       />
       {children}
     </main>

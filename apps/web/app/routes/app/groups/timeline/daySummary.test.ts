@@ -36,14 +36,18 @@ const BEFORE = "2026-11-15T18:00:00Z";
 
 describe("daySummary", () => {
   it("is empty for an empty day", () => {
-    expect(daySummary([], [], context)).toEqual({ parts: [], lines: [] });
+    expect(daySummary([], [], context)).toEqual({ parts: [], highlights: [], lines: [] });
   });
 
   it("is empty for a day of doses only (doses aren't summarised)", () => {
     expect(daySummary([dose(DAY)], [], context).parts).toEqual([]);
   });
 
-  it("sums up vitals, symptoms, events, notes and who logged, in that order", () => {
+  it("is empty for a day of notes only (notes aren't summarised)", () => {
+    expect(daySummary([note(DAY), note(DAY, "sam")], [], context).parts).toEqual([]);
+  });
+
+  it("sums up vitals, symptoms, events and who logged, in that order (notes count only as logging)", () => {
     const day = [
       note("2026-11-18T22:00:00Z", "sam"),
       bp("2026-11-18T20:00:00Z", 141, 88),
@@ -57,13 +61,47 @@ describe("daySummary", () => {
     const baseline = [bp(BEFORE, 125, 78), bp(BEFORE, 138, 86)];
     const summary = daySummary(day, baseline, context);
     expect(summaryText(summary.parts)).toBe(
-      "BP 128–141/80–88 ↑ · Pain 6 (new) · Fell in bathroom · 3 notes · Ann, Sam",
+      "BP 128–141/80–88 ↑ · Pain 6 (new) · Fell in bathroom · Ann, Sam",
     );
     expect(summary.parts[0]).toMatchObject({ direction: "up", directionLabel: "higher than last week" });
     expect(summaryLabel(summary.parts)).toBe(
-      "BP 128–141/80–88, higher than last week; Pain 6 (new); Fell in bathroom; 3 notes; Ann, Sam",
+      "BP 128–141/80–88, higher than last week; Pain 6 (new); Fell in bathroom; Ann, Sam",
     );
-    expect(summary.lines.map((l) => l.label)).toEqual(["Vitals", "Symptoms", "Events", "Notes", "Logged by"]);
+    expect(summary.lines.map((l) => l.label)).toEqual(["Vitals", "Symptoms", "Events", "Logged by"]);
+  });
+
+  it("highlights vitals with an arrow, new or severe symptoms, and events; not who logged", () => {
+    const day = [
+      bp(DAY, 150, 90),
+      hr(DAY, 70),
+      symptom(DAY, "Cough", 2),
+      symptom(DAY, "Nausea", 5),
+      symptom(DAY, "Rash", 1),
+      event(DAY, "PT visit"),
+    ];
+    const baseline = [
+      bp(BEFORE, 120, 80),
+      hr(BEFORE, 64),
+      hr(BEFORE, 80),
+      symptom(BEFORE, "Cough"),
+      symptom(BEFORE, "Nausea"),
+    ];
+    const summary = daySummary(day, baseline, context);
+    expect(summaryText(summary.parts)).toBe(
+      "BP 150/90 ↑ · HR 70 bpm · Nausea 5 · Cough 2 · Rash 1 (new) · PT visit · Ann",
+    );
+    // HR is within last week, Cough is old and mild: left out.
+    expect(summaryText(summary.highlights)).toBe("BP 150/90 ↑ · Nausea 5 · Rash 1 (new) · PT visit");
+  });
+
+  it("has no highlights on an unremarkable day", () => {
+    const summary = daySummary(
+      [hr(DAY, 70), symptom(DAY, "Cough", 2)],
+      [hr(BEFORE, 64), hr(BEFORE, 80), symptom(BEFORE, "Cough")],
+      context,
+    );
+    expect(summary.parts).not.toEqual([]);
+    expect(summary.highlights).toEqual([]);
   });
 
   it("marks a symptom new only when the baseline didn't have it (any case or spacing)", () => {
@@ -133,7 +171,9 @@ describe("daySummary", () => {
   it("uses full names when two authors share a first name", () => {
     const names = { a: "Sam Lee", b: "Sam Okafor", c: "Ann Lee" };
     const ctx = { units: UNITS, nameOf: (id: string) => names[id as keyof typeof names] };
-    const day = [note(DAY, "a"), note(DAY, "b"), note(DAY, "c")];
+    const day = [event(DAY, "Walk"), note(DAY, "a"), note(DAY, "b"), note(DAY, "c")].map((e, i) =>
+      i === 0 ? { ...e, createdBy: "a" } : e,
+    );
     expect(daySummary(day, [], ctx).lines.at(-1)!.parts[0]!.text).toBe("Sam Lee, Sam Okafor, Ann");
   });
 });
@@ -156,6 +196,7 @@ describe("summariesByDay", () => {
   it("gives a day with nothing in it an empty summary", () => {
     expect(summariesByDay([], ["2026-11-18"], LA, context).get("2026-11-18")).toEqual({
       parts: [],
+      highlights: [],
       lines: [],
     });
   });

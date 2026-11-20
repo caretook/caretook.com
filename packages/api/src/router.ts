@@ -16,6 +16,7 @@ import {
   isKnownReading,
   resolveSimpleModeSetting,
   resolveTimelineView,
+  resolveDaySummaryMode,
   resolveUnits,
   simpleTilesZSchema,
   userPreferencesZSchema,
@@ -107,6 +108,7 @@ const me = {
       units: resolveUnits(user.preferences),
       timelineView: resolveTimelineView(user.preferences),
       simpleMode: resolveSimpleModeSetting(user.preferences),
+      daySummary: resolveDaySummaryMode(user.preferences),
     };
   }),
 
@@ -126,6 +128,7 @@ const me = {
       units: resolveUnits(preferences),
       timelineView: resolveTimelineView(preferences),
       simpleMode: resolveSimpleModeSetting(preferences),
+      daySummary: resolveDaySummaryMode(preferences),
     };
   }),
 

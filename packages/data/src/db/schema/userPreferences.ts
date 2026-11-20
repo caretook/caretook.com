@@ -28,11 +28,17 @@ export const TIMELINE_VIEWS = ["rows", "cards"] as const;
 export type TimelineView = (typeof TIMELINE_VIEWS)[number];
 export const DEFAULT_TIMELINE_VIEW: TimelineView = "rows";
 
+/** The line under each timeline day: nothing, only what stands out, or everything. */
+export const DAY_SUMMARY_MODES = ["off", "highlights", "full"] as const;
+export type DaySummaryMode = (typeof DAY_SUMMARY_MODES)[number];
+export const DEFAULT_DAY_SUMMARY_MODE: DaySummaryMode = "highlights";
+
 export const userPreferencesZSchema = z.strictObject({
   units: unitChoicesZSchema.partial().optional(),
   timelineView: z.enum(TIMELINE_VIEWS).optional(),
   /** Simple mode: follow the group's default for you, or always simple or full (simpleMode.ts). */
   simpleMode: z.enum(SIMPLE_MODE_SETTINGS).optional(),
+  daySummary: z.enum(DAY_SUMMARY_MODES).optional(),
 });
 export type UserPreferences = z.infer<typeof userPreferencesZSchema>;
 
@@ -47,3 +53,6 @@ export const resolveTimelineView = (prefs: UserPreferences | null | undefined): 
 
 export const resolveSimpleModeSetting = (prefs: UserPreferences | null | undefined): SimpleModeSetting =>
   prefs?.simpleMode ?? DEFAULT_SIMPLE_MODE_SETTING;
+
+export const resolveDaySummaryMode = (prefs: UserPreferences | null | undefined): DaySummaryMode =>
+  prefs?.daySummary ?? DEFAULT_DAY_SUMMARY_MODE;
