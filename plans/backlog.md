@@ -62,13 +62,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
-| B-68 | chore | in-progress | hosting | prd/hosting | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
+| B-68 | chore | ready | hosting | prd/hosting | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-116 | chore | in-progress | check-migration | prd/check-migration | Move providers.mjs to component tests |
-| B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
+| B-117 | chore | in-progress | check-migration | prd/check-migration | Move groups.mjs to component tests |
 | B-118 | chore | in-progress | check-migration | prd/check-migration | Move medications.mjs to component tests |
 | B-119 | chore | ready | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-121 | chore | ready | check-migration | prd/check-migration | Move profiles.mjs to component tests |
@@ -76,16 +76,16 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
-| B-134 | bug | triaged | quick-fixes |  | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
-| B-135 | change | triaged | quick-fixes |  | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
+| B-134 | bug | ready | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
+| B-135 | change | ready | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
 | B-136 | change | triaged | app-speed |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | triaged | app-speed |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
 | B-138 | change | triaged | app-speed |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | triaged | app-speed |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
 | B-140 | change | triaged | app-speed |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
 | B-141 | change | ready | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
-| B-142 | change | in-progress | hosting | prd/hosting | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
-| B-143 | change | in-progress | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
+| B-142 | change | ready | hosting | prd/hosting | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
+| B-143 | change | ready | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
 | B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-147 | chore | triaged | agent-tooling |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
@@ -96,7 +96,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
 | B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
-| B-157 | change | triaged | quick-fixes |  | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
+| B-157 | change | ready | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
+| B-158 | change | triaged | hosting |  | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
+| B-159 | change | triaged | hosting |  | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
+| B-160 | change | triaged | hosting |  | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
+| B-161 | bug | inbox |  |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
 
 ## Items
 
@@ -135,6 +139,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (slice/hosting/2): hosting slice 2: PowerSync 1.28.3 snapshots tables with SELECT * (modules/module-postgres/src/replication/SnapshotQuery.ts), so column-only grants fail its initial snapshot on the 8 partly synced tables (user, care_group, care_group_member, care_recipient, care_recipient_details, member_contact_share, note_update). Needs a decision before slice 7.
 - 2026-11-20 (slice/hosting/2): Correction: that's 7 partly synced tables, not 8.
 - 2026-11-20 (prd/hosting): Decided with the user: six partly-synced tables get their timestamp/audit columns in the streams; the replication role gets table-level SELECT on user only (PowerSync's snapshot runs SELECT *). Ask PowerSync Cloud at slice 7.
+- 2026-11-20 (slice/hosting/5): slice 5 (d9aa875): deploy.yml + admin-grant/seed-staging/db-access Actions, pnpm deploy:smoke, CLIs pinned in .github/cli-versions.env (vercel@65.16.0, powersync@0.10.3), Vercel Git deploys off. Confirm at slice 7: PowerSync Cloud /probes/liveness, Vercel rootDirectory with vercel build from the repo root.
+- 2026-11-20 (slice/hosting/6): Slice 6 (24a3f02): ops/runbook.md, ops/data-copies.md, ops/break-glass.md written from the code. Gaps found: BETTER_AUTH_SECRET rotation breaks the jwks private key (no tool to clear it); personal db roles read every table incl. auth tables; SEED_USER_PASSWORD rotation doesn't reset seeded accounts.
 
 ### B-40 · chore · Real app screenshots for the marketing site before launch
 
@@ -243,15 +249,16 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
-- status: in-progress
+- status: ready
 - prd: hosting
 - owner: prd/hosting
-- commit:
+- commit: 05b709f
 
 - 2026-11-18 (prd/invites orchestrator): From the invites PRD (AGENTS.md, Notifications → Before launch): turn off Resend's open and click tracking on the sending domain (not per message); SPF, DKIM and DMARC on the sending subdomain; verified bounce webhooks (Svix); a host cron for /api/cron/outbox with CRON_SECRET; and Better Auth's rate-limit storage (in-memory per serverless instance today). Part of launch work, related to B-33.
 - 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-7: shared rate-limit storage is a launch blocker (Better Auth and packages/api/src/rateLimit.ts are per instance).
 - 2026-11-19 (Robert Bo Davis): Triaged to hosting with B-33: email domain setup, bounce webhooks, the outbox cron and shared rate-limit storage are part of the same deploy work.
 - 2026-11-19 (Robert Bo Davis): In the hosting plan: Postgres rate-limit storage (slice 3), Resend bounce/complaint webhook with suppression (slice 4), the per-minute cron and waitUntil (slice 1), DNS and tracking off in the runbook (slices 6-7).
+- 2026-11-20 (slice/hosting/4): Slice 4 committed on slice/hosting/4 (7d0be1d): Svix-verified /api/webhooks/resend, email_suppression (in migration 0022_rate_limits_suppression), notify skips suppressed except sign-in/reset/verify, /admin/suppressions.
 
 ### B-84 · feature · Deleting an entry, provider or medication scrubs its content everywhere
 
@@ -293,6 +300,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (prd/orchestration): orchestration wave 3 landed. app-shell.mjs (now 13 assertions, 8 s) passed on the new suite at low load; every sign-in is on a fresh page, which removes the step 6g repeat sign-in. Probable app cause (unconfirmed, log gone): a 429 on the first get-session after sign-in counts as unknown, and with no cached user requireSession treats it as signed out and redirects to /sign-in silently (apps/web/app/lib/session.ts resolveUser). providers.mjs and admin.mjs weren't rerun here.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slices 7 (admin) and 14 (providers); app-shell was rechecked by orchestration wave 3 (plans/check-migration-plan.md).
 - 2026-11-20 (slice/check-migration/7): check-migration slice 7: admin.mjs is deleted (B-125). Its server flows folded into app-shell.mjs step 6 (member@ 404 on /admin, admin@'s audited announcement on /admin/audit, the banner in member@'s /app), every sign-in on a fresh page: app-shell passed 18/18 first run (24 s, load 30-56), no 429. The 429-after-sign-in app wart is handled by B-130 (sign-in.browser.test.tsx: a rate-limited session check goes to sign-in with a message). Admin part closed; providers part waits for slice 14.
+- 2026-11-20 (slice/check-migration/14): check-migration slice 14 (cce2ed2): providers.mjs is deleted (B-116). How each check ended: admin.mjs deleted in slice 7 (its server flows folded into app-shell step 6; no 429); app-shell.mjs kept and passing (18/18 in slice 7, every sign-in on a fresh page, the 429 bounce covered by B-130's sign-in.browser.test); providers.mjs deleted here. Its '1280: every suggestion shows' race (1 chip at 420 vs 5 at 1280) is now a component test on fixed fixtures with five chips (entry/entryWithRow.browser.test.tsx), passing. Nothing left open: B-113 can close.
 
 ### B-116 · chore · Move providers.mjs to component tests
 
@@ -303,16 +311,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the directory (list, search, filters), the sheets, the provider page, the entry page's With row and suggestions to component tests on the test device; keep two-browser notes, offline add and edit then upload, and the viewer's refused writes. Then e2e yes. B-113 asks for a recheck of it too.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 14, wave 6 (after assistant slice 4) (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/14): slice 14 (cce2ed2): providers.mjs moved to 43 component tests (providers/, provider/, entry/entryWithRow) on providerWorld.tsx, plus one integration test (two members' devices linking the same pair: one link). No fold; check, manifest line and check-areas rules gone.
 
 ### B-117 · chore · Move groups.mjs to component tests
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the New care group sheet, the invite card and /join/:code's form states to component tests; keep the server flows (careGroup.create then the new group syncing in, /join sign-up and the refused codes, /admin's 404 for non-staff, the QR). Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 15, wave 6 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/15): slice 15 (3b2a5ad): groups.mjs deleted; screens are component tests (join, new group sheet, invite card, admin access codes/print/new group/waitlist); /join sign-up folded into invites step 13, careGroup.create syncing in into first-sync step 2c.
 
 ### B-118 · chore · Move medications.mjs to component tests
 
@@ -324,6 +334,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (the biggest check, about 163 s). Move the list, search and status, the forms, status actions, Today, the Due now strip, the Dose sheet's states, passes, allergies and the print sheet's layout to component tests; keep a second device seeing a dose, offline then upload, and the service-written change entries. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slices 9 (wave 4) and 11 (wave 5, after assistant slice 7) (plans/check-migration-plan.md).
 - 2026-11-20 (slice/check-migration/9): slice 9 (part A): list, page, notes, forms, status actions, allergies, print sheets, provider region and the device module moved to component tests (medicationWorld.tsx); offline batch upload as an integration test; medications.mjs keeps Today, timeline doses, passes, Given all, strip, pass logs for slice 11.
+- 2026-11-20 (prd/check-migration): part A merged into prd/check-migration (35dceff, slice 9); part B is slice 11
+- 2026-11-20 (slice/check-migration/11): slice 11: medications.mjs deleted; Today, Dose sheet, strip, passes, pass logs are component tests (af6b87d, f274fd5); no roundtrip fold (6a covers a multi-row upload)
 
 ### B-119 · chore · Move upcoming.mjs to component tests
 
@@ -390,25 +402,27 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-134 · bug · visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent)
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 03dfa05
 
 - 2026-11-20 (slice/check-migration/6): Fails on prd/check-migration HEAD 7ddfbb2 without slice 6's changes, alone and in pnpm check: 'timed out waiting for the longer window'. Its last visit is 20 days ago (2026-10-31) and ArrowDown on the month field should take the start before the Cough 25 days ago; probably the 31st not existing in September. Found by check-migration slice 6.
 - 2026-11-20 (prd/check-migration): check-migration orchestrator: the test now steps the year back instead of the month (commit on prd/check-migration, lands with wave 3). The app question remains for triage: should a month step back from the 31st clamp to the 30th? React Aria's month segment gave no change in the preview.
 - 2026-11-20 (backlog agent): Triage: the test is already fixed on prd/check-migration (1384054). What is left is small: decide whether stepping the month back from the 31st should clamp to the 30th in the visit prep start field. One quick-fixes slice, or drop it if React Aria's behaviour is acceptable.
+- 2026-11-20 (slice/quick-fixes/45): slice 45 (f068feb): fixed in ui/date/DateTimeField (React Aria held 31 Sep invalid until blur); month/year steps now clamp the day. Visit prep test steps the month on a fixed clock.
 
 ### B-135 · change · Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days)
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 03dfa05
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a regression that may block B-98.
 - 2026-11-20 (backlog agent): Triage: a regression against B-98 (the + in the timeline header). One quick-fixes slice: find whether the + menu went missing in the normal view or only where the quick entry box shows, and restore it. Touches the timeline header, which tasks slice 4 also changed, so start it after tasks lands.
 - 2026-11-20 (Robert Bo Davis): The user (2026-11-20): not a regression. The + is there, but in an awkward spot next to the view-mode switch. Move it beside the day heading in the timeline so it travels with the sticky header. Adding from a day's + sets that day's time: today gives now, any other day gives midday (12:00) that day. Still quick-fixes slice 44; it touches the timeline header and sticky day heading (tasks slice 4 changed the header), so start it after tasks lands.
+- 2026-11-20 (slice/quick-fixes/44): slice 44 built at 22bffaa: + on each day heading, ?at= start times; writer's list always has a Today heading (new behaviour, see hand-off)
 
 ### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
 
@@ -478,10 +492,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-142 · change · Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until…
 
-- status: in-progress
+- status: ready
 - prd: hosting
 - owner: prd/hosting
-- commit:
+- commit: 05b709f
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until the native app ships, and define them once. / They are hard-coded as trusted, with credentials, in routes/rpc.ts and packages/auth/src/auth.ts.
 - 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice together with B-143 (origin and client-IP hardening before going live). Same files as slice 3 (routes/rpc.ts, packages/auth/src/auth.ts), so it follows wave 1. Hosting's orchestrator decides at its wave boundary.
@@ -489,10 +503,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-143 · change · Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts…
 
-- status: in-progress
+- status: ready
 - prd: hosting
 - owner: prd/hosting
-- commit:
+- commit: 05b709f
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side).
 - 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice with B-142. Slice 3 owns the limiter; this changes what key it gets (the host's own client-IP header, not the first x-forwarded-for entry).
@@ -607,10 +621,46 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-157 · change · Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under…
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 03dfa05
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under the big box, and the tiles hint ("These follow what's logged most. The group's owners can choose them."). / Tips: `QuickEntrySuggestions` (`data-quick-tips`) could take a `showTips` prop that `QuickEntryBox` turns off for `size="lg"`; the dictation hint stays. / Tiles: in `SimpleTiles.tsx`, show only the "Choose the tiles" link to those who can choose, and nothing to members. Update `timelineSimpleTiles.browser.test.tsx` (the hint text) and docs/domain/timeline.md (the first-run hint).
 - 2026-11-20 (Robert Bo Davis): Triage (backlog agent): small copy and prop change in simple mode (QuickEntrySuggestions showTips, SimpleTiles hint), one component test and a timeline.md line. One quick-fixes slice, next to B-135 and B-134 (slice 46). Touches the simple view, which tasks slice 6 changed, so start it after tasks lands.
+
+### B-158 · change · Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS
+
+- status: triaged
+- prd: hosting
+- owner:
+- commit:
+
+- 2026-11-20 (prd/hosting): Found by hosting slice 6 (ops/runbook.md marks it a gap with an interim step). Proposed for hosting: needed before the first secret rotation, not for going live.
+
+### B-159 · change · Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens
+
+- status: triaged
+- prd: hosting
+- owner:
+- commit:
+
+- 2026-11-20 (prd/hosting): Found by hosting slice 6; break-glass forbids querying them, but the grant allows it. Proposed for hosting: a small rolesSql/dbAccessService change (exclude the auth tables) before production access is used.
+
+### B-160 · change · Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail)
+
+- status: triaged
+- prd: hosting
+- owner:
+- commit:
+
+- 2026-11-20 (prd/hosting): Found by hosting slice 6; for now rotating means recreating staging's database (runbook). Proposed for hosting, low priority: the seed could update the seeded accounts' password on staging.
+
+### B-161 · bug · sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…')
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (prd/check-migration): check-migration wave 4 suite, 2026-11-20 08:54, load 51→88; passed on the automatic retry (.loops/.browser-flakes.log). The redirect outran the assertion under load; slice 19's Playwright port may make the wait robust.

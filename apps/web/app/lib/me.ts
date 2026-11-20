@@ -1,11 +1,16 @@
 import type { ApiOutputs } from "./rpc";
 
 import { ORPCError } from "@orpc/client";
-import { DEFAULT_SIMPLE_MODE_SETTING, DEFAULT_TIMELINE_VIEW, DEFAULT_UNITS } from "@caretook/data/schema";
+import {
+  DEFAULT_DAY_SUMMARY_MODE,
+  DEFAULT_SIMPLE_MODE_SETTING,
+  DEFAULT_TIMELINE_VIEW,
+  DEFAULT_UNITS,
+} from "@caretook/data/schema";
 import { load } from "./api";
 import { rpc } from "./rpc";
 
-// The signed-in user's settings (units, timeline layout, simple mode). They live on
+// The signed-in user's settings (units, timeline layout, simple mode, day summaries). They live on
 // `user.preferences`, which isn't synced, so the last copy is cached on the
 // device: screens still show the right units offline.
 //
@@ -15,7 +20,10 @@ import { rpc } from "./rpc";
 // this device overwrites one made on another device in the meantime, which is
 // fine for display preferences.
 
-export type MySettings = Pick<ApiOutputs["me"]["get"], "units" | "timelineView" | "simpleMode">;
+export type MySettings = Pick<
+  ApiOutputs["me"]["get"],
+  "units" | "timelineView" | "simpleMode" | "daySummary"
+>;
 /** A change to some settings. `units` may name only some measures. */
 export type SettingsChange = Partial<Omit<MySettings, "units">> & { units?: Partial<MySettings["units"]> };
 
@@ -23,6 +31,7 @@ const DEFAULTS: MySettings = {
   units: DEFAULT_UNITS,
   timelineView: DEFAULT_TIMELINE_VIEW,
   simpleMode: DEFAULT_SIMPLE_MODE_SETTING,
+  daySummary: DEFAULT_DAY_SUMMARY_MODE,
 };
 
 const PREFIX = "caretook:settings:";
@@ -69,6 +78,7 @@ const clearPending = (userId: string, sent: SettingsChange) => {
   const left: SettingsChange = { ...pending };
   if ("timelineView" in sent && same(left.timelineView, sent.timelineView)) delete left.timelineView;
   if ("simpleMode" in sent && same(left.simpleMode, sent.simpleMode)) delete left.simpleMode;
+  if ("daySummary" in sent && same(left.daySummary, sent.daySummary)) delete left.daySummary;
   if (left.units && sent.units) {
     const units: Record<string, unknown> = { ...left.units };
     for (const [measure, unit] of Object.entries(sent.units))
@@ -132,7 +142,12 @@ export const loadSettings = async (request: Request, userId: string): Promise<My
   }
   try {
     const me = await load(request, rpc.me.get());
-    const settings = { units: me.units, timelineView: me.timelineView, simpleMode: me.simpleMode };
+    const settings = {
+      units: me.units,
+      timelineView: me.timelineView,
+      simpleMode: me.simpleMode,
+      daySummary: me.daySummary,
+    };
     cacheSettings(userId, settings);
     return settings;
   } catch (e) {
