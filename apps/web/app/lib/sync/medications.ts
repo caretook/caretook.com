@@ -757,17 +757,15 @@ export const logDose = async (
 };
 
 /**
- * Log several doses at once (a pass's Given all), in one local transaction:
- * all of them or none. Each is checked as `logDose` checks one. Returns the
- * new entries' ids, in order, so they can be undone exactly.
+ * The rows `logDoses` writes, checked as `logDose` checks one, without
+ * writing them: for a caller that writes them in its own transaction (quick
+ * entry's runner). The writer role is the caller's to check.
  */
-export const logDoses = async (
+export const doseRows = async (
   db: SyncDb,
   groupId: string,
   doses: readonly DoseInput[],
-): Promise<{ ok: true; ids: string[] } | Refusal> => {
-  const group = await groupFor(db, groupId);
-  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden as Refusal;
+): Promise<{ ok: true; rows: (typeof timelineEntries.$inferInsert)[] } | Refusal> => {
   const now = nowTimestamp();
   const rows: (typeof timelineEntries.$inferInsert)[] = [];
   for (const { medicationId, occurredAt, timeZone, ...rest } of doses) {
@@ -795,6 +793,24 @@ export const logDoses = async (
       updatedBy: db.userId,
     });
   }
+  return { ok: true, rows };
+};
+
+/**
+ * Log several doses at once (a pass's Given all), in one local transaction:
+ * all of them or none. Each is checked as `logDose` checks one. Returns the
+ * new entries' ids, in order, so they can be undone exactly.
+ */
+export const logDoses = async (
+  db: SyncDb,
+  groupId: string,
+  doses: readonly DoseInput[],
+): Promise<{ ok: true; ids: string[] } | Refusal> => {
+  const group = await groupFor(db, groupId);
+  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden as Refusal;
+  const planned = await doseRows(db, groupId, doses);
+  if (!planned.ok) return planned;
+  const { rows } = planned;
   if (rows.length)
     await db.drizzle.transaction(async (tx) => {
       for (const row of rows) await tx.insert(timelineEntries).values(row);

@@ -63,6 +63,15 @@ describe("logDose", () => {
   });
 });
 
+describe("givePass", () => {
+  test("a pass and a time; nothing else (the medications are worked out where it's carried out)", () => {
+    expect(ok({ type: "givePass", passId: MED, occurredAt: at })).toBe(true);
+    expect(issues({ type: "givePass", passId: "evening", occurredAt: at })).toEqual(["passId"]);
+    expect(issues({ type: "givePass", passId: MED, occurredAt: at, medicationIds: [MED] })).toEqual([""]);
+    expect(issues({ type: "givePass", passId: MED })).toEqual(["occurredAt"]);
+  });
+});
+
 describe("addNote and addEvent", () => {
   test("a note needs text", () => {
     expect(ok({ type: "addNote", text: "Good day", occurredAt: at })).toBe(true);
@@ -95,5 +104,6 @@ test("every action names the kind it writes", () => {
     logDose: "dose",
     addNote: "note",
     addEvent: "event",
+    givePass: "dose",
   });
 });

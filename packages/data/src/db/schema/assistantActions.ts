@@ -47,6 +47,17 @@ export const logDoseActionZSchema = z.strictObject({
   occurredAt,
 });
 
+/**
+ * A pass's Given all: every medication in the pass still open on its day,
+ * given at `occurredAt`, as one round (what the medication strip's Given all
+ * writes). Whoever carries it out works out which medications those are.
+ */
+export const givePassActionZSchema = z.strictObject({
+  type: z.literal("givePass"),
+  passId: z.uuid(),
+  occurredAt,
+});
+
 /** A note: its text becomes the note's live document. */
 export const addNoteActionZSchema = z.strictObject({
   type: z.literal("addNote"),
@@ -71,13 +82,14 @@ export const addEventActionZSchema = z.strictObject({
   timeZone: timeZoneZSchema,
 });
 
-/** Every action. `givePass` (a pass's Given all) joins once passes reach quick entry. */
+/** Every action. */
 export const assistantActionZSchema = z.discriminatedUnion("type", [
   logVitalActionZSchema,
   logSymptomActionZSchema,
   logDoseActionZSchema,
   addNoteActionZSchema,
   addEventActionZSchema,
+  givePassActionZSchema,
 ]);
 export type AssistantAction = z.output<typeof assistantActionZSchema>;
 export type AssistantActionInput = z.input<typeof assistantActionZSchema>;
@@ -91,5 +103,6 @@ export const ACTION_KINDS = {
   logDose: "dose",
   addNote: "note",
   addEvent: "event",
+  givePass: "dose",
 } as const satisfies Record<AssistantActionType, string>;
 export type ActionKind = (typeof ACTION_KINDS)[AssistantActionType];

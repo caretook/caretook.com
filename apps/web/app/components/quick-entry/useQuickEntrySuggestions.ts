@@ -1,3 +1,4 @@
+import type { QuickEntryPass } from "@caretook/data/schema";
 import type { CompletionName } from "~/lib/quickEntryCompletion";
 import type { PredictionRow } from "~/lib/sync/quickEntrySuggestions";
 
@@ -16,16 +17,26 @@ import { useQuickEntryData } from "./useQuickEntryData";
 const USUAL_TICK_MS = 5 * 60_000;
 
 const NO_ROWS: PredictionRow[] = [];
+const NO_PASSES: QuickEntryPass[] = [];
 
 const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /**
  * Quick entry's suggestions for what's typed so far, all from this device
- * (so they work offline): the medication and provider names the last word
+ * (so they work offline): the medication, pass and provider names the last word
  * starts, what the group usually logs around now (`usualAtHour`, in the
  * recipient's zone), and your own recent lines in this group.
  */
-export function useQuickEntrySuggestions({ groupId, text }: { groupId: string; text: string }) {
+export function useQuickEntrySuggestions({
+  groupId,
+  text,
+  passes = NO_PASSES,
+}: {
+  groupId: string;
+  text: string;
+  /** The group's passes (the box reads them), for their names. */
+  passes?: readonly QuickEntryPass[];
+}) {
   const group = useGroup();
   const timeZone = group.recipient?.timeZone ?? deviceZone();
   const now = useNow(USUAL_TICK_MS);
@@ -47,9 +58,10 @@ export function useQuickEntrySuggestions({ groupId, text }: { groupId: string; t
   const names = useMemo<CompletionName[]>(
     () => [
       ...medications.map((m) => ({ id: m.id, name: m.name, kind: "medication" as const })),
+      ...passes.map((p) => ({ id: p.id, name: p.name, kind: "pass" as const })),
       ...providers.map((p) => ({ id: p.id, name: p.name, kind: "provider" as const })),
     ],
-    [medications, providers],
+    [medications, passes, providers],
   );
   const completions = useMemo(() => completeName(text, names), [text, names]);
 
