@@ -8,9 +8,9 @@
 | ----- | ------------------------------------ | ------------------------------------------------ |
 | 1     | landed (wave 1)                      | 372c658 (f6cd078, e262c12)                       |
 | 2     | landed (wave 1)                      | 120db6e (df8db5a); ceiling 357 in 9c0b2bf        |
-| 3     | blocked by 1, 2                      |                                                  |
-| 4     | blocked by 1, 2                      |                                                  |
-| 5     | blocked by 1, 2                      |                                                  |
+| 3     | in progress (wave 2)                 |                                                  |
+| 4     | in progress (wave 2)                 |                                                  |
+| 5     | in progress (wave 2)                 |                                                  |
 | 6     | blocked by 1, 2                      |                                                  |
 | 7     | blocked by 1, 2                      |                                                  |
 | 8     | blocked by 1, 2                      |                                                  |
@@ -36,7 +36,7 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19): slice 2's sync matrix and refused upload take `roundtrip` to 31 s. Set in 9c0b2bf.
 
-**Now:** wave 1 (slices 1, 2) landed 2026-11-19: `pnpm prd check` green after one fix (f6a4db8: the settle test counts matches, since `dev`'s day summary shows a symptom twice), suite 12/12 in 5m32s. Next: wave 2 (3, 4, 5). Filed B-133 (timeline minute-turn remount that flakes `timelineScroll`), not in this PRD.
+**Now:** wave 1 (slices 1, 2) merged and green (suite 12/12, 5m32s) but **not landed yet**. After syncing assistant's 9ae6b0d, two component tests fail on dev itself (`inScreens` "the timeline's menus…", `simpleModeMembers` "an owner locks a caretaker in…"). Assistant's orchestrator has been asked to fix them and message back; land wave 1 once dev is green (`pnpm prd sync`, `pnpm prd check`; no new suite needed unless the fix touches flows). Orchestrator fixes on this branch: f6a4db8 (settle test counts matches), the timelineFilters race (B-131), and `retry: 2` on timelineScroll's B-133 flake. Wave 2 (3, 4, 5) started 2026-11-19 alongside. Filed B-133 (timeline minute-turn remount), not in this PRD.
 
 Backlog: claim each slice's items when it starts: 1 B-131; 2 B-128; 3 B-114; 4 B-115; 5 B-120; 6 B-124; 7 B-125 (and B-113's admin part); 9 and 11 B-118 (done after 11); 10 B-121; 12 B-126; 13 B-119; 14 B-116 (and B-113's providers part; B-113 done after 14); 15 B-117; 16 B-122; 17 B-127; 19 to 23 B-129 (done after 23).
 
