@@ -7,12 +7,12 @@
 | Slice | Wave | State                                               | Merge into `prd/tasks` (slice commits) |
 | ----- | ---- | --------------------------------------------------- | -------------------------------------- |
 | 1     | 1    | merged                                              | eccc68f (314ec1a, 7e0a210, 5d41650)    |
-| 2     | 2    | running (tasks-2, stackless; agent spawned)         |                                        |
-| 3     | 3    | blocked by 2                                        |                                        |
-| 4     | 2    | handed off (d859ea0); merge after 2                 |                                        |
-| 5     | 3    | blocked by 2                                        |                                        |
-| 6     | 2    | handed off (4708991); merge after 2 and 4           |                                        |
-| 7     | 2    | running (tasks-7, stackless; agent spawned)         |                                        |
+| 2     | 2    | merged                                              | 897bc7d (b46f601, bc19797)             |
+| 3     | 3    | running (tasks-3, stackless; agent spawned)         |                                        |
+| 4     | 2    | merged (conflict in `lib/sync/tasks.ts`, both kept) | 80018b2 (d859ea0)                      |
+| 5     | 3    | running (tasks-5, stackless; agent spawned)         |                                        |
+| 6     | 2    | merged                                              | e7d622a (4708991)                      |
+| 7     | 2    | merged (fixed `lib/taskSheets.ts` re-export path)   | 38a3c7a (b3da051)                      |
 | 8     | 2    | blocked by `check-migration` slice 2 in `dev`       |                                        |
 
 **Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue tasks`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
@@ -30,6 +30,11 @@
 **Slice 6's hand-off (4708991):** `timeline/SimpleTasks.tsx` + `useSimpleTasks.ts` after `SimpleNow`, before the tiles; `TaskTick` gained an optional `large` prop; `check-areas` two rules. `--changed --list`: no checks. `pnpm check` 3310/3311: `test/device.browser.test.tsx` timed out under load, passed alone 9/9. Docs: `timeline.md` simple-view bullet for My tasks (order box, Now, My tasks, tiles, Remove last, rows; cap `SIMPLE_TASKS_CAP` 5; See all → `tasks?who=mine`; stays up while its Undo is offered; component test `timelineSimpleTasks.browser.test.tsx`); `tasks.md`: `TaskTick large`.
 
 **Slice 4's hand-off (d859ea0):** `lib/upcomingTasks.ts` (`withDueTasks`, `showsTasks`), `upcoming/UpcomingTaskRow.tsx`, `useUpcomingData` merges after `withDueDoses` (90-day horizon), `TaskUndoStatus` on Upcoming; `lib/taskStrip.ts`, `timeline/TaskStrip.tsx` + `useTaskStrip.ts`, two lines in `timeline/route.tsx` after `MedicationStrip`; appended `dueTasksQuery`/`dueTasksThrough`/`useDueTasks` to `lib/sync/tasks.ts` with **its own imports inside the appended block** (dedupe `useMemo` etc. if another slice imports at the top); `check-areas` rule `upcoming/UpcomingTaskRow.tsx -` above `upcoming/*`. Strip link `?who=mine` or `?who=everyone`. `pnpm check` passed (3339). `--changed --list` names **roundtrip, upcoming, search** for landing. Docs: `appointments.md` "Tasks in Upcoming" after due doses; `timeline.md` task strip after the medication strip (red/amber, mine first, +N more, viewers see it, hidden in simple mode); `tasks.md` the three device additions.
+
+**Slice 2's hand-off:** task page `routes/app/groups/task/` (`TaskHeader`, `TaskActions`, `TaskDetails`, `TaskCompletion`, `loadTask`, `useTaskPage`, `useTaskNotes`, `taskPage.ts`), `noteDocumentService.liveOwner` task lookup, `createTaskDocument`, `taskSheets` moved to `lib/taskSheets.ts` (+ `taskPageState`, `listSearchFromState`), list rows open the page for everyone. `--changed --list`: **routing**. Docs: `live-notes.md` (`task` subject, `taskNotFound`, `createTaskDocument`); `tasks.md` the page (regions, 404s, delete, chip carried back, taskSheets in lib/); components/layout: `task/` beside `tasks/`.
+**Slice 7's hand-off:** `addTask` in `assistantActionZSchema` (no id, **no `occurredAt`**, kind `task`), parser prefixes `t:`/`task:`/`todo:`/`to-do:`, `context.members` matching, due read forward; runner via `plannedTask` (split out of `createTask`), `removeEntries` removes tasks; "Saved N entries and M tasks"; Edit → `tasks/new` with prefills `title`/`assigneeId`/`dueTime` (`TaskForm` `prefill`); `lib/taskSheetLink.ts` holds `TASK_SHEET_STATE`/`openedFromApp`. `--changed --list`: none. Docs: `assistant.md` (all of that, fix the "every action has occurredAt" line); `tasks.md` (`plannedTask`, prefills, taskSheetLink, quick entry as a way in).
+**Open issue:** `entry.browser.test.tsx` › "who's writing" › "idle: no avatars…" (expects 'SO', gets 'S') fails on prd/tasks at 3a3d27b (found by slice 2); to investigate whether it's from `dev` or slice 1's fixtures.
+**Checks needed at landing so far:** routing, upcoming, roundtrip, search (by name / from `--changed --base dev`), plus the lean set (migration) — ask the user before `--suite`.
 
 **Browser checks run so far:** slice 1's `--changed` ran the whole lean set plus routing, providers, care-periods, upcoming on slice 1's tip: all pass (upcoming after its fix).
 
