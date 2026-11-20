@@ -169,6 +169,9 @@ export const MODEL_ERRORS = {
     message: "Only the user's public profile is readable",
     statusCode: 403,
   },
+  "userModel:getAuthFacts": {
+    message: "Failed to look up the signed-in user",
+  },
   "careGroupInviteModel:getSealedToken": {
     message: "Failed to read the invite link",
   },
