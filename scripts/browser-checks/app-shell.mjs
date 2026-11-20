@@ -340,7 +340,7 @@ try {
     psql(
       `INSERT INTO member_contact_share (id, group_id, user_id, phones, created_by, updated_by) SELECT id, group_id, user_id, '[{"label":"Mobile","number":"(555) 010-1999"}]'::jsonb, user_id, user_id FROM care_group_member WHERE group_id = '${DEV_FAMILY}' AND user_id = (SELECT id FROM "user" WHERE email = 'caretaker@example.com') ON CONFLICT (group_id, user_id) DO UPDATE SET phones = EXCLUDED.phones, email = NULL, address = NULL, updated_at = now()`,
     );
-    // Polls the count from node, reporting the last value it saw.
+    // Polls the count from node every 0.5 s, for up to 30 s.
     const shareRowsBecome = async (want) => {
       for (let i = 0; i < 60; i++) {
         if ((await M.evaluate(shareRows)) === want) return;
