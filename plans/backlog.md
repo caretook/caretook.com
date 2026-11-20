@@ -584,6 +584,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the periods list, sheets, period page, timeline line and markers, group menu and suggestions to component tests; keep a second device, offline then upload, and ties. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 8, wave 3 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/8): slice 8: care-periods.mjs deleted (55676bf); screens in component tests (c6d0b95), no fold, lean set unchanged
 
 ### B-124 · chore · Move devices.mjs to component tests
 
