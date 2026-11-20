@@ -98,7 +98,7 @@ const menuItem = (text: string) =>
   );
 /** + → `item`, pressed where they are. */
 const addFrom = async (item: string) => {
-  press(document.querySelector('button[aria-label="Add to timeline"]')!);
+  press(document.querySelector('button[aria-label="Add to Today"]')!);
   await waitUntil(() => !!menuItem(item), 4000, `${item} in the + menu`);
   press(menuItem(item)!);
   await waitUntil(() => !!dialog()?.querySelector("form"), 4000, "the sheet");

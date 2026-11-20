@@ -95,7 +95,7 @@ const dialogButton = (text: string) =>
   [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
     (b) => b.textContent?.trim() === text,
   );
-const addButton = () => document.querySelector<HTMLElement>('button[aria-label="Add to timeline"]');
+const addButton = () => document.querySelector<HTMLElement>('button[aria-label="Add to Today"]');
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const waitUntil = async (test: () => boolean, ms = 8000, what = "condition") => {
   const end = Date.now() + ms;
@@ -105,7 +105,7 @@ const waitUntil = async (test: () => boolean, ms = 8000, what = "condition") => 
   }
   throw new Error(`timed out waiting for ${what}`);
 };
-/** Pick `text` from the timeline header's + menu. */
+/** Pick `text` from today's + menu. */
 const addFrom = async (text: string) => {
   await userEvent.click(addButton()!);
   await waitUntil(() => !!menuItem(text), 4000, `${text} in the + menu`);
@@ -192,6 +192,30 @@ describe("a note in one tap", () => {
     // Its row shows the document as its body, with no "live notes" block.
     await waitUntil(() => document.body.textContent.includes("first words"));
     expect(/live notes/i.test(document.body.innerText)).toBe(false);
+  });
+});
+
+describe("a note from a past day's +", () => {
+  test("starts at 12:00 that day, and saves with that time", async () => {
+    const device = await open(TIMELINE);
+    await waitUntil(() => !!addButton());
+    // Physical therapy's day (two days back): its heading has its own +.
+    const key = new Date(Date.now() - 48 * 3_600_000).toLocaleDateString("en-CA");
+    const header = document.getElementById(`day-${key}`)!.closest("[data-day-header]")!;
+    const plus = header.querySelector<HTMLElement>('button[aria-label^="Add to "]')!;
+    expect(plus.getAttribute("aria-label")).toBe(`Add to ${header.querySelector("h3")!.textContent}`);
+    await userEvent.click(plus);
+    await waitUntil(() => !!menuItem("Note"), 4000, "Note in the day's + menu");
+    await userEvent.click(menuItem("Note")!);
+    await waitUntil(() => editorFocused(), 4000, "the editor's focus");
+    const [y, m, d] = key.split("-").map(Number) as [number, number, number];
+    const noon = new Date(y, m - 1, d, 12).getTime();
+    expect(new Date(HEADER_TIME()!.dateTime).getTime()).toBe(noon);
+
+    await userEvent.keyboard("from that day");
+    await expect.poll(() => device.location()).toMatch(ON_ENTRY);
+    const row = (await stored(device, idOf(device.location())))!;
+    expect(Date.parse(row.occurred_at)).toBe(noon);
   });
 });
 

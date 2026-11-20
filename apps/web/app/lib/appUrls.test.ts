@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appUrls, searchString, withoutSheetParams } from "./appUrls";
+import { appUrls, searchString, startAtFrom, withoutSheetParams } from "./appUrls";
 import { NEW_ENTRY } from "./liveEntry";
 
 const G = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
@@ -190,6 +190,36 @@ describe("appUrls.newDose", () => {
     expect(appUrls.timeline(G, withoutSheetParams(`?kind=dose&medication=${M}&pass=${M}&slot=08:00`))).toBe(
       `/app/groups/${G}/timeline?kind=dose`,
     );
+  });
+});
+
+describe("a new entry's start time (`?at=`)", () => {
+  const AT = "2026-11-16T20:00:00.000Z";
+  it("goes on the add sheets and the new entry page, after their other parameters", () => {
+    expect(appUrls.newSheet("g", "vital", { type: "spo2", search: "?kind=vital", at: AT })).toBe(
+      `/app/groups/g/timeline/new/vital?kind=vital&type=spo2&at=${encodeURIComponent(AT)}`,
+    );
+    expect(appUrls.newDose("g", { search: "?at=x", at: AT })).toBe(
+      `/app/groups/g/timeline/new/dose?at=${encodeURIComponent(AT)}`,
+    );
+    expect(appUrls.newEntry("g", "note", { at: AT })).toBe(
+      `/app/groups/g/entries/${NEW_ENTRY}?kind=note&at=${encodeURIComponent(AT)}`,
+    );
+    expect(appUrls.newEntry("g", "event", {})).toBe(`/app/groups/g/entries/${NEW_ENTRY}?kind=event`);
+  });
+
+  it("is dropped from the timeline a sheet closes to", () => {
+    expect(appUrls.timeline("g", withoutSheetParams(`?kind=symptom&at=${AT}`))).toBe(
+      "/app/groups/g/timeline?kind=symptom",
+    );
+  });
+
+  it("reads back as an ISO time, or null when missing or not a time", () => {
+    expect(startAtFrom(`?at=${encodeURIComponent(AT)}`)).toBe(AT);
+    expect(startAtFrom({ at: "2026-11-16T12:00:00-08:00" })).toBe(AT);
+    expect(startAtFrom("?at=tomorrow")).toBeNull();
+    expect(startAtFrom("?kind=note")).toBeNull();
+    expect(startAtFrom()).toBeNull();
   });
 });
 

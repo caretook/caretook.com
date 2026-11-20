@@ -69,6 +69,16 @@ export const DOSE_SLOT_PARAM = "slot";
 /** The Dose sheet's pass, shown first (with Given all): `?pass=<passId>`. */
 export const DOSE_PASS_PARAM = "pass";
 
+/** A new entry's starting time, from a past day's + on the timeline: `?at=<ISO>`. */
+export const START_AT_PARAM = "at";
+/** The `?at=` time as an ISO string, or null when it's missing or not a time (the form then starts at now). */
+export const startAtFrom = (search?: Search): string | null => {
+  const value = new URLSearchParams(searchString(search)).get(START_AT_PARAM);
+  if (!value) return null;
+  const time = new Date(value);
+  return Number.isNaN(time.getTime()) ? null : time.toISOString();
+};
+
 /** `search` without the add sheets' own parameters: the timeline's filters, as a sheet carries them. */
 export const withoutSheetParams = (search?: Search) => {
   const params = new URLSearchParams(searchString(search));
@@ -76,6 +86,7 @@ export const withoutSheetParams = (search?: Search) => {
   params.delete(DOSE_MEDICATION_PARAM);
   params.delete(DOSE_SLOT_PARAM);
   params.delete(DOSE_PASS_PARAM);
+  params.delete(START_AT_PARAM);
   return params;
 };
 
@@ -144,16 +155,18 @@ export const appUrls = {
   /**
    * The add sheet over a group's timeline, carrying the timeline's filters.
    * A vital can start with a reading's `type`; an unknown type, or a type on
-   * a symptom, is dropped. An unknown kind is the timeline itself.
+   * a symptom, is dropped. An unknown kind is the timeline itself. `at`
+   * (an ISO time) starts the form at that time.
    */
   newSheet: (
     groupId: string,
     kind: SheetKind,
-    { type, search }: { type?: VitalType; search?: Search } = {},
+    { type, search, at }: { type?: VitalType; search?: Search; at?: string } = {},
   ) => {
     const params = withoutSheetParams(search);
     if (!isSheetKind(kind)) return `${groupHome(groupId)}/timeline${searchString(params)}`;
     if (kind === "vital" && isVitalType(type)) params.set(VITAL_TYPE_PARAM, type);
+    if (at) params.set(START_AT_PARAM, at);
     return `${groupHome(groupId)}/timeline/new/${kind}${searchString(params)}`;
   },
   /**
@@ -164,9 +177,12 @@ export const appUrls = {
     `${groupHome(groupId)}/timeline/${segment(entryId)}/edit${searchString(withoutSheetParams(search))}`,
   /** A note's or event's page (also a share link). */
   entry: (groupId: string, entryId: string) => `${groupHome(groupId)}/entries/${segment(entryId)}`,
-  /** A new note or event (a draft until its first change). An unknown kind is dropped. */
-  newEntry: (groupId: string, kind: LiveEntryKind) =>
-    `${groupHome(groupId)}/entries/${NEW_ENTRY}${searchString({ kind: isLiveEntryKind(kind) ? kind : null })}`,
+  /** A new note or event (a draft until its first change), starting at `at` when given. An unknown kind is dropped. */
+  newEntry: (groupId: string, kind: LiveEntryKind, { at }: { at?: string } = {}) =>
+    `${groupHome(groupId)}/entries/${NEW_ENTRY}${searchString({
+      kind: isLiveEntryKind(kind) ? kind : null,
+      [START_AT_PARAM]: at,
+    })}`,
   /**
    * A group's settings: the list, or one of its subpages. An unknown subpage
    * is dropped (the list).
@@ -197,7 +213,8 @@ export const appUrls = {
     `${groupHome(groupId)}/medications${searchString(search)}`,
   /**
    * The Dose sheet over a group's timeline, carrying the timeline's filters.
-   * It can start on one medication, and the slot the dose answers ("08:00").
+   * It can start on one medication, and the slot the dose answers ("08:00"),
+   * and at `at` (an ISO time).
    */
   newDose: (
     groupId: string,
@@ -206,12 +223,14 @@ export const appUrls = {
       slot,
       passId,
       search,
-    }: { medicationId?: string; slot?: string; passId?: string; search?: Search } = {},
+      at,
+    }: { medicationId?: string; slot?: string; passId?: string; search?: Search; at?: string } = {},
   ) => {
     const params = withoutSheetParams(search);
     if (medicationId) params.set(DOSE_MEDICATION_PARAM, medicationId);
     if (slot) params.set(DOSE_SLOT_PARAM, slot);
     if (passId) params.set(DOSE_PASS_PARAM, passId);
+    if (at) params.set(START_AT_PARAM, at);
     return `${groupHome(groupId)}/timeline/new/dose${searchString(params)}`;
   },
   /** A medication's page: details, schedule, providers, refills, its live notes and its history. */

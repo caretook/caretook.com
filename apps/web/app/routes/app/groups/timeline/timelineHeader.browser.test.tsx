@@ -5,14 +5,29 @@ import { at, fx } from "../../../../../test/fixtures";
 import { frames, openTimeline, rows, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
 
 // The timeline's header on a phone and a desktop (quick-fixes slice 39): the
-// + menu in place of the quick-add bar, the latest vitals only from `sm`,
-// and the care period in each day's sticky header instead of the page's.
+// latest vitals only from `sm`, and the care period in each day's sticky
+// header instead of the page's. The + menu is on each day's heading
+// (quick-fixes slice 44): today's adds start at now, another day's at 12:00.
 
 const ready = () => waitUntil(() => rows().length > 0, 8000, "the first rows");
-const addButton = () => page.getByRole("button", { name: "Add to timeline" });
+const addButton = () => page.getByRole("button", { name: "Add to Today" });
 const menuItems = () => [...document.querySelectorAll('[role="menu"] [role="menuitem"]')];
-const pick = async (name: string) => {
-  await userEvent.click(addButton());
+const dayHeaders = () => [...document.querySelectorAll<HTMLElement>("[data-day-header]")];
+const plusOf = (header: Element) => header.querySelector<HTMLElement>('button[aria-label^="Add to "]');
+/** The day header two days back (the filler's): a past day other than Yesterday. */
+const pastDay = () => {
+  const t = new Date();
+  t.setDate(t.getDate() - 2);
+  const key = t.toLocaleDateString("en-CA");
+  return { key, header: document.getElementById(`day-${key}`)!.closest<HTMLElement>("[data-day-header]")! };
+};
+/** The sheet's When, as the local "YYYY-MM-DDTHH:mm" it shows, and as a moment. */
+const when = () => {
+  const value = document.querySelector<HTMLInputElement>('[role=dialog] input[name="occurredAt"]')!.value;
+  return { local: value.slice(0, 16), at: new Date(value.replace(/\[.*\]$/, "")).getTime() };
+};
+const pick = async (name: string, button: Parameters<typeof userEvent.click>[0] = addButton()) => {
+  await userEvent.click(button);
   await expect.element(page.getByRole("menu")).toBeVisible();
   await userEvent.click(page.getByRole("menuitem", { name, exact: true }));
 };
@@ -23,7 +38,7 @@ describe("the + menu", () => {
     await ready();
     expect(document.querySelector('[aria-label="Add to the timeline"]')).toBeNull();
     await userEvent.click(addButton());
-    await expect.element(page.getByRole("menu", { name: "Add to timeline" })).toBeVisible();
+    await expect.element(page.getByRole("menu", { name: "Add to Today" })).toBeVisible();
     expect(menuItems().map((el) => el.textContent?.trim())).toEqual([
       "Note",
       "Event",
@@ -32,6 +47,22 @@ describe("the + menu", () => {
       ...VITAL_TYPES.map((t) => VITALS[t].label),
     ]);
     await userEvent.keyboard("{Escape}");
+  });
+
+  test("every day heading has its own +, named for the day, beside its heading; the timeline header has none", async () => {
+    await openTimeline();
+    await ready();
+    const headers = dayHeaders();
+    expect(headers.length).toBeGreaterThan(2);
+    for (const header of headers) {
+      const label = header.querySelector("h3")!.textContent;
+      expect(plusOf(header)?.getAttribute("aria-label")).toBe(`Add to ${label}`);
+      // Beside the heading, in the sticky header.
+      expect(plusOf(header)!.parentElement).toBe(header.querySelector("h3")!.parentElement);
+    }
+    expect(plusOf(headers[0]!)!.getAttribute("aria-label")).toBe("Add to Today");
+    expect(plusOf(headers[1]!)!.getAttribute("aria-label")).toBe("Add to Yesterday");
+    expect(document.querySelector('main > header button[aria-label^="Add to "]')).toBeNull();
   });
 
   test("Symptom opens the add sheet over the timeline; a vital type opens it with that type; Note opens the new note page", async () => {
@@ -54,13 +85,55 @@ describe("the + menu", () => {
     expect(device.location()).toMatch(/\/entries\/new\?kind=note$/);
   });
 
+  test("today's + starts the sheet at now; a past day's + at 12:00 that day", async () => {
+    const device = await openTimeline();
+    await ready();
+    await pick("Symptom");
+    await expect.element(page.getByRole("dialog", { name: "Add to the timeline" })).toBeVisible();
+    expect(Math.abs(when().at - Date.now())).toBeLessThan(60_000);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(device.location).toBe(TIMELINE_URL);
+
+    const { key, header } = pastDay();
+    await pick("Symptom", plusOf(header)!);
+    await expect.element(page.getByRole("dialog", { name: "Add to the timeline" })).toBeVisible();
+    expect(device.location()).toMatch(new RegExp(`^${TIMELINE_URL}/new/symptom\\?at=`));
+    expect(when().local).toBe(`${key}T12:00`);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(device.location).toBe(TIMELINE_URL);
+
+    // A vital from that day too.
+    await pick("Heart rate", plusOf(pastDay().header)!);
+    await expect.element(page.getByRole("dialog", { name: "Add to the timeline" })).toBeVisible();
+    expect(when().local).toBe(`${key}T12:00`);
+  });
+
   test("a viewer sees no + button", async () => {
     await openTimeline({ role: "viewer" });
     await ready();
-    expect(page.getByRole("button", { name: "Add to timeline" }).query()).toBeNull();
+    expect(page.getByRole("button", { name: /^Add to / }).query()).toBeNull();
+    expect(dayHeaders().length).toBeGreaterThan(2);
+    expect(dayHeaders().some(plusOf)).toBe(false);
     expect(page.getByRole("group", { name: "Layout" }).query()).not.toBeNull();
   });
+
+  test("a writer's timeline with nothing today still has Today's +", async () => {
+    await openTimeline({ fixtures: [fx.symptom({ name: "Sore knee", occurredAt: at(pastNoon(3)) })] });
+    await waitUntil(() => rows().length === 1, 8000, "the row");
+    const headers = dayHeaders();
+    expect(headers.map((h) => h.querySelector("h3")!.textContent)[0]).toBe("Today");
+    expect(headers).toHaveLength(2);
+    expect(plusOf(headers[0]!)!.getAttribute("aria-label")).toBe("Add to Today");
+  });
 });
+
+/** `d` days back at 12:00 local. */
+const pastNoon = (d: number) => {
+  const t = new Date();
+  t.setDate(t.getDate() - d);
+  t.setHours(12, 0, 0, 0);
+  return t;
+};
 
 describe("latest vitals", () => {
   const strip = () => document.querySelector<HTMLElement>('section[aria-labelledby="latest-vitals"]');
