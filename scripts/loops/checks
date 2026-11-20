@@ -25,7 +25,7 @@ lean-ceiling 356
 #
 # check            usual  cap  never-exits  e2e
 phase2               15   120  no           yes
-roundtrip            30   120  no           yes
+roundtrip            31   120  no           yes
 live-notes           55   170  no           yes
 app-shell            10   120  no           yes
 routing              40   150  no           no
