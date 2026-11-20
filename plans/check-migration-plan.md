@@ -7,7 +7,7 @@
 | Slice | State                                | Merge into `prd/check-migration` (slice commits) |
 | ----- | ------------------------------------ | ------------------------------------------------ |
 | 1     | in progress (wave 1)                 |                                                  |
-| 2     | in progress (wave 1)                 |                                                  |
+| 2     | handed off (df8db5a)                 |                                                  |
 | 3     | blocked by 1, 2                      |                                                  |
 | 4     | blocked by 1, 2                      |                                                  |
 | 5     | blocked by 1, 2                      |                                                  |
@@ -33,6 +33,8 @@
 **Landing mode: run everything through** (queued with `pnpm prd queue check-migration`, 2026-11-19). The orchestrator starts every ready slice, lands each green wave itself with `pnpm prd land`, and cleans up; it asks the user only real questions.
 
 **Suite:** the user chose (2026-11-19) one `pnpm prd browser --suite` run per wave, before its landing. Loops still run each check once and never the suite.
+
+**Ceiling:** the user raised it to 357 (2026-11-19): slice 2's sync matrix and refused upload take `roundtrip` to 31 s. The orchestrator sets `lean-ceiling 357` after merging slices 1 and 2.
 
 **Now:** wave 1 (slices 1, 2) started 2026-11-19.
 
