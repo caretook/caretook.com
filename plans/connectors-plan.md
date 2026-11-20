@@ -12,7 +12,7 @@
 | 3     | 2    | merged, worktree removed (check green but the frozen-names test; browser phase2, roundtrip, live-notes, ui for landing)                    | 9a9c1ee6 (b21582f2, 19d43db4)               |
 | 4     | 2    | merged, worktree removed (conflicts in `tools/index.ts` and `mcp.int.test.ts`, resolved: both slices' tools, slice 3's assertion)          | 0a4c9711 (90bf850c)                         |
 | 5     | 2    | merged, worktree removed (browser checks named for landing: phase2, roundtrip, live-notes, app-shell, layout-offline, first-sync, invites) | 85bc64ab (e80d2808)                         |
-| 6     | 3    | started (worktree `.loops/connectors-6`, sonnet agent spawned 2026-11-20)                                                                  |                                             |
+| 6     | 3    | merged, worktree and stack removed (roundtrip 47/47, 29 s usual unchanged)                                                                 | 71fb43a2 (8893fd16)                         |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue connectors`, 2026-11-20): start every ready slice, land each green wave without asking (here: one landing after slice 6, per _When to land_), clean up; ask only real questions.
 
@@ -34,6 +34,8 @@
 - The runner returns an AppError with `meta.index`, not the PRD's `{ ok: false, index }`.
 - `list_providers` returns business contacts only; `recipient_profile` has no conditions (B-181).
 - `/connect` needs JS to redirect back to the client (CSP `form-action 'self'`).
+
+**All slices merged.** Docs folded: aa0c4d51 (connectors.md, area pointers, runbook), 0930f4db (`mcp-unauthenticated` smoke check), plus slice 6's notes in loop.md and connectors.md. Now: `pnpm backlog done B-104`, `pnpm prd check`, serve, the lean `--suite` once, `pnpm prd ready`, land.
 
 **Open for landing:**
 

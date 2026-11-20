@@ -53,4 +53,5 @@ PRD: [`plans/connectors-prd.md`](../../plans/connectors-prd.md); plan: [`plans/c
 ## Tests
 
 - `testing.ts`: `connectAssistant` and `registerClient` run the whole OAuth flow in process and return real tokens. Integration: `oauth.int.test.ts`, `connectorGrant.int.test.ts`, `mcp.int.test.ts`, `readTools.int.test.ts`, `mcpWrites.int.test.ts`, `assistantAction.int.test.ts`, `connector.int.test.ts`, `syncVia.int.test.ts`.
+- Browser checks mint a token with `mintToken.ts` (`pnpm --filter @caretook/data exec tsx ../api/src/connectors/mintToken.ts <email> <groupId> [clientName]`, the stack's env and seed password); `roundtrip` writes a note through `/mcp` and sees the tag on device A.
 - By hand before launch: connect from Claude and ChatGPT ([runbook](../../ops/runbook.md)).
