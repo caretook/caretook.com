@@ -50,7 +50,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
-| B-49 | feature | triaged | assistant |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
+| B-49 | feature | in-progress | assistant | prd/assistant | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
@@ -164,9 +164,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-49 · feature · Once we have agentic integration, Add ai generated summary to each day on the timeline and the…
 
-- status: triaged
+- status: in-progress
 - prd: assistant
-- owner:
+- owner: prd/assistant
 - commit:
 
 - 2026-11-18 (prd/marketing): From the inbox: Once we have agentic integration, Add ai generated summary to each day on the timeline and the option to view a condensed summary of days for quick scanning.
