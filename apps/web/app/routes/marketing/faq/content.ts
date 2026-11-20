@@ -81,6 +81,13 @@ export const content = {
           ],
         },
         {
+          question: "Can I connect my own AI assistant like Claude or ChatGPT?",
+          answer: [
+            "Yes, if an owner of your care group has turned it on (it's off until they do). When you connect, what you can see in that group goes to the AI vendor you chose, under that vendor's terms. Contact details are never sent, and we keep no record of what the assistant read, only that you connected and when it was last used.",
+            "You can disconnect in Settings, then Devices, and an owner can switch it off for the whole group.",
+          ],
+        },
+        {
           question: "Do you sell our data or show ads?",
           answer: [
             "No. We never show ads, we never sell or rent your information, and no advertising or analytics tools can see your care data. Any AI provider we use may not keep your data or train on it.",
