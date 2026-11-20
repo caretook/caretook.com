@@ -39,6 +39,5 @@ ui                    5   120  no           yes
 groups               30   120  no           no
 medications         163   490  no           no
 upcoming            203   610  no           no
-profiles             55   180  no           no
 profiles-contacts    20   120  no           no
 marketing            29   120  no           yes
