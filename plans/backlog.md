@@ -70,7 +70,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-116 | chore | triaged | check-migration |  | Move providers.mjs to component tests |
 | B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
 | B-118 | chore | in-progress | check-migration | prd/check-migration | Move medications.mjs to component tests |
-| B-119 | chore | in-progress | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
+| B-119 | chore | ready | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-121 | chore | in-progress | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
@@ -327,10 +327,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-119 · chore · Move upcoming.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: bc5104e
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (about 203 s). Move the section, Past, filters, adding at ?when=pick, cancel and reschedule dialogs, the Next strip and block, and due doses in Upcoming to component tests; keep reschedule's one transaction uploading and reaching another device. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 13, wave 5 (after assistant slice 4) (plans/check-migration-plan.md).
