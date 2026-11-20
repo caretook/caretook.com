@@ -91,7 +91,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-147 | chore | in-progress | agent-tooling | prd/agent-tooling | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
 | B-148 | chore | triaged | agent-tooling |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
-| B-149 | chore | in-progress | code-layout | prd/code-layout | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
+| B-149 | chore | ready | code-layout | prd/code-layout | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
 | B-150 | chore | landed | code-layout | prd/code-layout | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-154 | chore | landed | agent-tooling | prd/agent-tooling | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
@@ -113,6 +113,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-170 | change | triaged | timeline-ux |  | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
 | B-171 | change | triaged | timeline-ux |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
 | B-172 | bug | landed | check-migration | prd/check-migration | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
+| B-173 | bug | triaged | check-migration |  | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
 
 ## Items
 
@@ -584,10 +585,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-149 · chore · Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop…
 
-- status: in-progress
+- status: ready
 - prd: code-layout
 - owner: prd/code-layout
-- commit:
+- commit: f1fbfea
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop conflicting on them. / The most-edited files in 30 days: scripts/loops/check-areas (69 commits), routes.ts (46), appUrls.ts (32), errors/constants.ts (28), db/schema/index.ts (26), permissions.ts, router.ts.
 - 2026-11-20 (backlog agent): Triage: new PRD code-layout (structure refactors). Every running PRD adds to these registries (tasks and hosting both do now), so this must run alone on those files: after tasks and hosting wave 1 land, and before the next feature PRD starts. Replaces the 'additive edits' rule in AGENTS.md.
@@ -822,3 +823,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/check-migration): Found by slice 16 (2026-11-20). Proposed for check-migration: count in node with M.evaluate, as slice 16's member-share fold does; Playwright's port (slice 21/22) can fix it too. Grep other checks for waitFor(`${...}.then(` too. -- check-migration orchestrator
 - 2026-11-20 (prd/check-migration): User approved for check-migration (2026-11-20): slice 18 fixes it. -- check-migration orchestrator
+
+### B-173 · bug · app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out
+
+- status: triaged
+- prd: check-migration
+- owner:
+- commit:
+
+- 2026-11-20 (prd/code-layout): Found at code-layout's final landing (2026-11-20, suite log app-shell-20261120-131200.log in code-layout's git dir). The step came in with check-migration slice 16 (the profiles-contacts fold). Proposed for check-migration: it owns the step. code-layout changes no stream, schema or sync code.
