@@ -7,7 +7,7 @@
 | Slice | Wave | State                                         | Merge into `prd/code-layout` (slice commits) |
 | ----- | ---- | --------------------------------------------- | -------------------------------------------- |
 | 1     | 1    | landed (wave 1, 7fca12d)                      | c1954ac (1914958)                            |
-| 2     | 2    | started (sonnet, worktree code-layout-2)      |                                              |
+| 2     | 2    | merged (sonnet)                               | 7bad436 (fdd21a0)                            |
 | 3     | 2    | merged (sonnet; admin rule conflict resolved) | 821894d (9728b64, 7137146)                   |
 | 4     | 2    | started (opus, worktree code-layout-4)        |                                              |
 | 5     | 3    | blocked by 4                                  |                                              |
