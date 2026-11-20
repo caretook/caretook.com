@@ -80,7 +80,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-116 | chore | triaged | check-migration |  | Move providers.mjs to component tests |
 | B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
 | B-118 | chore | triaged | check-migration |  | Move medications.mjs to component tests |
-| B-119 | chore | inbox |  |  | Move upcoming.mjs to component tests |
+| B-119 | chore | triaged | check-migration |  | Move upcoming.mjs to component tests |
 | B-120 | chore | inbox |  |  | Move search.mjs to component tests |
 | B-121 | chore | inbox |  |  | Move profiles.mjs to component tests |
 | B-122 | chore | inbox |  |  | Move profiles-contacts.mjs to component tests |
@@ -481,8 +481,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-119 · chore · Move upcoming.mjs to component tests
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: check-migration
 - owner:
 - commit:
 
