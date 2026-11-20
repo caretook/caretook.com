@@ -19,6 +19,9 @@ import { ADD_BUTTON, launch, openPage, sleep, step } from "./cdp.mjs";
 //    timeline has no writer controls), then removes them (their rows go on the
 //    next sync, and /app says they're in no care group). The seeds'
 //    memberships are put back in SQL.
+// 5. Simple mode across two devices (assistant slice 5): the owner turns on
+//    simple mode for caretaker@ from Members; caretaker@'s open timeline
+//    switches to the simple view without a reload. Put back in SQL.
 //
 // Every sign-in is on a fresh page: Better Auth limits sign-ins and session
 // checks per client IP, and cdp.mjs gives each page its own. Signing in again
@@ -75,6 +78,9 @@ const SEEDED = [
 ];
 const restoreSeeds = () => {
   psql(`UPDATE care_group SET name = '${SEED_GROUP}' WHERE id = '${DEV_FAMILY}'`);
+  psql(
+    `UPDATE care_group_member SET simple_mode = false, simple_mode_locked = false WHERE group_id = '${DEV_FAMILY}' AND (simple_mode OR simple_mode_locked)`,
+  );
   for (const [email, role] of SEEDED)
     psql(
       `INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by) SELECT '${DEV_FAMILY}', id, '${role}', id, id FROM "user" WHERE email = '${email}' ON CONFLICT (group_id, user_id) DO UPDATE SET role = EXCLUDED.role WHERE care_group_member.role <> EXCLUDED.role`,
@@ -317,6 +323,43 @@ try {
       back && serverMembers() === "Dev Member:owner,Dev Caretaker:caretaker,Dev Viewer:viewer",
       await listed(M),
     );
+  });
+
+  // ── 5. Simple mode: the owner's switch reaching the member's device ───────
+  await step("simple mode: the owner's switch reaches the member's device", async () => {
+    const bS = await launch(9479);
+    browsers.push(bS);
+    const S = await signedIn(bS, "simple-member", "caretaker@example.com");
+    await S.goto(TIMELINE);
+    await S.waitFor(`document.querySelector('[data-simple-toggle="simple"]') && ${rows} > 0`, 40000);
+    await S.evaluate(`window.__stay = 1`);
+
+    const MEMBERS = `document.querySelector('main [data-section="members"]')`;
+    const toggle = `[...(${MEMBERS}?.querySelectorAll("li[data-member]") ?? [])].find((li) => li.querySelector("p").textContent.includes("Dev Caretaker"))?.querySelector("[data-simple-mode-switch]")`;
+    await M.goto(`/app/groups/${DEV_FAMILY}/settings/members`);
+    await M.waitFor(`${toggle} && !${toggle}.disabled`, 40000);
+    await M.evaluate(`${toggle}.click()`);
+    const serverSimple = () =>
+      psql(
+        `SELECT m.simple_mode FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}' AND u.email = 'caretaker@example.com'`,
+      );
+    let saved = serverSimple();
+    for (let i = 0; i < 40 && saved !== "t"; i++) {
+      await sleep(500);
+      saved = serverSimple();
+    }
+    const switched = await passes(
+      S.waitFor(
+        `document.querySelector("[data-simple-timeline]") && !document.querySelector('header [data-region="search"]')`,
+        30000,
+      ),
+    );
+    check(
+      "the owner turns on simple mode for caretaker@: saved on the server, and their timeline switches without a reload",
+      saved === "t" && switched && (await S.evaluate(`window.__stay`)) === 1,
+      `server ${saved} / switched ${switched}`,
+    );
+    restoreSeeds();
   });
 
   const noise =

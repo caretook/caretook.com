@@ -14,8 +14,10 @@ import {
   timelineEntryService,
   timelineEntryUpdateZSchema,
   isKnownReading,
+  resolveSimpleModeSetting,
   resolveTimelineView,
   resolveUnits,
+  simpleTilesZSchema,
   userPreferencesZSchema,
   userService,
 } from "@caretook/data";
@@ -104,6 +106,7 @@ const me = {
       /** Display units with defaults filled in: what screens should use. */
       units: resolveUnits(user.preferences),
       timelineView: resolveTimelineView(user.preferences),
+      simpleMode: resolveSimpleModeSetting(user.preferences),
     };
   }),
 
@@ -118,7 +121,12 @@ const me = {
       units: { ...user.preferences.units, ...input.units },
     };
     unwrap(await userService.update(context, { filter: self, data: { preferences } }));
-    return { preferences, units: resolveUnits(preferences), timelineView: resolveTimelineView(preferences) };
+    return {
+      preferences,
+      units: resolveUnits(preferences),
+      timelineView: resolveTimelineView(preferences),
+      simpleMode: resolveSimpleModeSetting(preferences),
+    };
   }),
 
   /** Your own contact details (profiles.ts). */
@@ -176,16 +184,31 @@ const careGroup = {
     });
   }),
 
-  /** Rename a group (owners and admins). Other members get a 403, non-members a 404. */
+  /**
+   * Rename a group, or choose how simple mode picks its tiles (`simpleTiles`;
+   * null: learned from use). Owners and admins; fields left out keep their
+   * value. Other members get a 403, non-members a 404.
+   */
   update: authedProcedure
-    .input(careGroupInsertZSchema.pick({ name: true }).extend({ groupId: id }))
+    .input(
+      careGroupInsertZSchema
+        .pick({ name: true })
+        .partial()
+        .extend({ groupId: id, simpleTiles: simpleTilesZSchema.nullable().optional() }),
+    )
     .handler(async ({ context, input }) => {
       const group = unwrap(await careGroupService.getById(context, input.groupId));
       if (!group) throw new ORPCError("NOT_FOUND");
-      const [renamed = group] = updated(
-        await careGroupService.update(context, { filter: { id: eq(group.id) }, data: { name: input.name } }),
+      const data = {
+        ...(input.name !== undefined && { name: input.name }),
+        ...(input.simpleTiles !== undefined && { simpleTiles: input.simpleTiles }),
+      };
+      if (Object.keys(data).length === 0)
+        return { id: group.id, name: group.name, simpleTiles: group.simpleTiles };
+      const [saved = group] = updated(
+        await careGroupService.update(context, { filter: { id: eq(group.id) }, data }),
       );
-      return { id: renamed.id, name: renamed.name };
+      return { id: saved.id, name: saved.name, simpleTiles: saved.simpleTiles };
     }),
 
   /**
@@ -233,6 +256,40 @@ const careGroup = {
       );
       const user = unwrap(await userService.getById(context, saved.userId));
       return { userId: saved.userId, role: saved.role, name: user?.name ?? null, image: user?.image ?? null };
+    }),
+
+  /**
+   * Simple mode for a member: the default the managers choose for them
+   * (`simpleMode`) and the lock (`locked`; locking turns the default on, and
+   * turning the default off unlocks). Owners and admins; only owners change
+   * an owner's (403), and nobody locks or unlocks themselves (403). Other
+   * members get a 403, non-members and unknown members a 404. Fields left out
+   * keep their value. Reaches the member's devices by sync.
+   */
+  setMemberMode: authedProcedure
+    .input(
+      z.object({
+        groupId: id,
+        userId: id,
+        simpleMode: z.boolean().optional(),
+        locked: z.boolean().optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const membership = unwrap(
+        await careGroupMemberService.get(context, {
+          filter: { groupId: eq(input.groupId), userId: eq(input.userId) },
+        }),
+      );
+      if (!membership) throw new ORPCError("NOT_FOUND");
+      const saved = updated(
+        await careGroupMemberService.setMode(context, {
+          id: membership.id,
+          simpleMode: input.simpleMode,
+          locked: input.locked,
+        }),
+      );
+      return { userId: saved.userId, simpleMode: saved.simpleMode, locked: saved.simpleModeLocked };
     }),
 
   /**

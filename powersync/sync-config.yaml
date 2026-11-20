@@ -23,14 +23,17 @@ streams:
     with:
       my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
     queries:
-      - SELECT id, name FROM care_group WHERE id IN my_groups
+      # `simple_tiles`: how simple mode picks its four tiles (assistant).
+      - SELECT id, name, simple_tiles FROM care_group WHERE id IN my_groups
       # `invited_by` and `created_at`: who invited each member and when they joined (the Members page).
       # `relationship` and `shared_fields`: the member's own sharing choices;
       # `emergency_rank` and `is_primary_contact`: the emergency list's badges;
       # `emergency_dropped_at`: the managers' note when someone fell off it.
+      # `simple_mode` and `simple_mode_locked`: the managers' simple-mode default and lock (assistant).
       - >-
         SELECT id, group_id, user_id, role, invited_by, created_at,
-        relationship, shared_fields, emergency_rank, is_primary_contact, emergency_dropped_at
+        relationship, shared_fields, emergency_rank, is_primary_contact, emergency_dropped_at,
+        simple_mode, simple_mode_locked
         FROM care_group_member WHERE group_id IN my_groups
       # `time_zone`: a medication's schedule times are in the recipient's zone.
       # `date_of_birth`: the printable medication sheet works offline.
