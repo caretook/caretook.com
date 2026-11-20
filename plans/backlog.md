@@ -82,6 +82,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-118 | chore | inbox |  |  | Move medications.mjs to component tests |
 | B-119 | chore | inbox |  |  | Move upcoming.mjs to component tests |
 | B-120 | chore | inbox |  |  | Move search.mjs to component tests |
+| B-121 | chore | inbox |  |  | Move profiles.mjs to component tests |
 
 ## Items
 
@@ -483,3 +484,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the timeline's search field and chip, the search page, highlights, snippets and recent searches to component tests (the FTS index runs on the test device's SQLite); keep the index dropped at sign-out and server search if a screen ever calls it. Then e2e yes or delete it.
+
+### B-121 · chore · Move profiles.mjs to component tests
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the profile page, its sheets by role, offline states and the print sheet's layout to component tests (oRPC through the test device's api); keep a save syncing back, demotion losing the writers' details on the next sync. Then e2e yes.
