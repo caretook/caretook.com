@@ -66,7 +66,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-63 | feature | triaged | appointments-2 |  | Google Calendar sync of a care group's appointments |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
-| B-104 | plan | in-progress | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
+| B-104 | plan | ready | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-129 | chore | in-progress | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
 | B-136 | change | landed | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | landed | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
@@ -267,10 +267,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-104 · plan · Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server
 
-- status: in-progress
+- status: ready
 - prd: connectors
 - owner: prd/connectors
-- commit:
+- commit: d77c5884
 
 - 2026-11-19 (Robert Bo Davis): From the 2026-11-19 planning discussion. A remote MCP server over the assistant PRD's actions layer (Claude connectors and ChatGPT's Apps SDK both speak MCP). Reads and writes; each write is confirmed in the chat, labelled as from an assistant on the timeline, and deletable as usual. Needs OAuth (check Better Auth's OAuth-provider plugins), tokens limited to one group with read and write scopes, revocable on the Devices page (B-80), a per-group consent record, an owners' on/off group setting, and a privacy-page change (data goes to the user's chosen AI vendor). Online only. Siri and Alexa are out for now: dictation only.
 - 2026-11-20 (plan/connectors): PRD and plan written (plans/connectors-prd.md, connectors-plan.md; user approved 2026-11-20): 7 slices, waves (1, 2, 7) → (3, 4, 5) → 6. New dependency approved: @better-auth/oauth-provider 1.7.25; MCP hand-rolled, no SDK. Owners' switch default off; one group per grant; scope by role; via tag; slice 3's tag waits for timeline-ux's row/header slices.
