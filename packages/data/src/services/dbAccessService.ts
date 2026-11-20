@@ -3,7 +3,7 @@ import type { Tx } from "../db";
 import { sql } from "drizzle-orm";
 import { SYSTEM_USER } from "../constants";
 import { dbMayFail, getDb, withTransaction } from "../db";
-import { ident, literal, scramVerifier } from "../db/roles";
+import { ident, literal, personalAccessSql, schemaTables, scramVerifier } from "../db/roles";
 import { auditChanges, isStaff } from "../db/schema";
 import { isError, newError } from "../errors";
 import { userModel } from "../models";
@@ -13,7 +13,9 @@ export const serviceName = "dbAccess";
 export const schemaName = userModel.schemaName;
 
 // Personal database access (hosting PRD, `pnpm db:access`): a staff member
-// gets a named LOGIN role that can only read, and that stops working at its
+// gets a named LOGIN role that can only read, never the secrets
+// (`PERSONAL_ACCESS_EXCLUDED`: the auth tables, rate limits, invite tokens,
+// access codes and email bodies), and that stops working at its
 // VALID UNTIL (at most 24 hours). Each grant and revoke is recorded in the
 // audit log in the same transaction, as the system with the staff member as
 // the target. Runs with the migrations role (CREATEROLE), never from the app.
@@ -107,7 +109,7 @@ export const grant = ({
       `ALTER ROLE ${r} SET default_transaction_read_only = on`,
       `DO $$ BEGIN EXECUTE format('GRANT CONNECT ON DATABASE %I TO ${r.replace(/'/g, "''")}', current_database()); END $$`,
       `GRANT USAGE ON SCHEMA public TO ${r}`,
-      `GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${r}`,
+      ...personalAccessSql(role, schemaTables()).grant,
     ];
     for (const statement of statements) {
       const res = await exec(tx, statement);
@@ -157,7 +159,7 @@ export const revoke = ({ email, reason = REVOKE_REASON }: { email: string; reaso
     // privileges, which the migrations role may not have), then drop it.
     const r = ident(role);
     const statements = [
-      `REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${r}`,
+      ...personalAccessSql(role, schemaTables()).revoke,
       `REVOKE USAGE ON SCHEMA public FROM ${r}`,
       `DO $$ BEGIN EXECUTE format('REVOKE CONNECT ON DATABASE %I FROM ${r.replace(/'/g, "''")}', current_database()); END $$`,
       `DROP ROLE ${r}`,
