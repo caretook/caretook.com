@@ -88,7 +88,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-124 | chore | triaged | check-migration |  | Move devices.mjs to component tests |
 | B-125 | chore | triaged | check-migration |  | Move admin.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
-| B-127 | chore | inbox |  |  | Move invites.mjs's screen steps to component tests |
+| B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
 | B-128 | chore | inbox |  |  | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | inbox |  |  | Port the lean end-to-end set to Playwright Test |
 
@@ -553,8 +553,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-127 · chore · Move invites.mjs's screen steps to component tests
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: check-migration
 - owner:
 - commit:
 
