@@ -14,13 +14,13 @@
 | 6     | landed (wave 3)                      | 17f91aa (3dfa6fd)                                |
 | 7     | landed (wave 3)                      | 3c0418e (97af38e)                                |
 | 8     | landed (wave 3)                      | 2cdba7f (c6d0b95, 55676bf)                       |
-| 9     | merged, lands with wave 4            | 35dceff (cc30504, 72c7166)                       |
-| 10    | merged, lands with wave 4            | 3bb168a (f9c1ef9, eef96ac)                       |
-| 11    | handed off (af6b87d, f274fd5)        |                                                  |
+| 9     | landed (wave 4)                      | 35dceff (cc30504, 72c7166)                       |
+| 10    | landed (wave 4)                      | 3bb168a (f9c1ef9, eef96ac)                       |
+| 11    | landed (wave 5) · opus               | d72b0f6 (af6b87d, f274fd5)                       |
 | 12    | blocked by 1, 2 and `assistant` 1, 5 |                                                  |
-| 13    | merged, lands with wave 4            | bc5104e (0b06086)                                |
-| 14    | handed off (cce2ed2)                 |                                                  |
-| 15    | in progress (started early)          |                                                  |
+| 13    | landed (wave 4)                      | bc5104e (0b06086)                                |
+| 14    | landed (wave 5) · opus               | 6ebb3ec (cce2ed2)                                |
+| 15    | landed (wave 5) · opus               | 0e0ab28 (3b2a5ad)                                |
 | 16    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
 | 17    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
 | 18    | blocked by 3–17                      |                                                  |
@@ -36,7 +36,11 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19) for slice 2's sync matrix (9c0b2bf); slice 5 lowered it to 350.
 
-**Now:** wave 4 (9, 10, 13) landing 2026-11-20 after tasks landed in dev (its `task` row is in the sync matrix; Upcoming's section test now finds its link by name, since Tasks follows it). Suite: 10 passed, `sign-in` FLAKY at load 88 (filed), `roundtrip` failed twice at load 68–75 (a 90 s silent timeout, then 'shows on this device at once' at 2024 ms) and passed alone at load 20 in 47 s. Usual seconds not changed from this suite (too loaded to measure by). Slices 11 and 14 handed off and merge after this landing; 15 is running. Wave 3 landed as 68571c8, waves 1–2 as 2040ed3.
+**Now:** wave 5 (11, 14, 15) landing 2026-11-20: suite 12/12 in 5m20s at load 11. Wave 4 (9, 10, 13) landed as 54a1880 (its suite: `roundtrip` failed twice at load 68–75 and passed alone at load 20; `sign-in` flaky at load 88, filed as B-161). Only `profiles-contacts` is left as an area check. Lean times are the median of the last three clean suites (waves 2, 3, 5), total and ceiling **286**.
+
+- **Paused for code-layout:** its slice 1 rewrites `scripts/loops/check-areas` into `check-areas.d/`. Agreed with its orchestrator (code-layout-d2) not to start a slice that edits check-areas (12, 16, 17, 18, 19–23: all of them) until that lands; it messages on landing, then sync and add rules to the matching `check-areas.d/<area>` file.
+- **Loop rules from ab204ec:** the check gate (none / quick / full, docs/loops.md _The check gate_) and models (_Models_): move slices are mechanical, so sonnet from now on; slices 1–15 ran on opus (the session's model). Tell each slice agent to read both sections.
+- Component test polls now wait 5 s (`expect.poll.timeout` in vitest.config.ts, B-131), after load flakes at landing.
 
 - **Ceiling 295** (2026-11-20). Slice 6 cut `session-end` from 60 to 7 (it runs in 5–6 s), which took the ceiling to 297. Then the orchestrator set every lean check's usual seconds to the median of the three suite runs so far (the listed values had drifted: `marketing` 10 vs 29 measured, `app-shell` 10 vs 18, `layout-offline` 15 vs 27, `sign-in` 10 vs 5), which made the total 295. The lean set is already under slice 18's 300; slice 18 still makes 300 the hard limit and trims what it can.
 - Orchestrator fixes on this branch so far: f6a4db8 (settle test), the timelineFilters race (B-131), `retry: 2` on timelineScroll's B-133 flake (remove when B-133 is fixed), 1384054 (visit prep steps the year, not the month: B-134, date-dependent on dev).
