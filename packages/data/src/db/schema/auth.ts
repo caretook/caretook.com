@@ -80,7 +80,10 @@ export const verificationSchema = pgTable(
 );
 
 // Signing keys for the JWT plugin (PowerSync and workers verify against the
-// JWKS endpoint). Better Auth encrypts `private_key` with BETTER_AUTH_SECRET.
+// JWKS endpoint). Better Auth encrypts `private_key` with the current secret
+// (BETTER_AUTH_SECRET, or BETTER_AUTH_SECRETS' first entry, whose version it
+// records). Signing uses the newest unexpired key, and makes one when none
+// is left: `pnpm auth:rotate-jwks` (authKeysService) sets `expires_at`.
 export const jwksSchema = pgTable("jwks", {
   id: id(),
   publicKey: text("public_key").notNull(),
@@ -90,6 +93,13 @@ export const jwksSchema = pgTable("jwks", {
   createdAt: dateColumn("created_at").defaultNow().notNull(),
   expiresAt: dateColumn("expires_at"),
 });
+
+/**
+ * How long a rotated key's public half stays in the JWKS (the jwt plugin's
+ * `gracePeriod`, seconds): past the 15-minute tokens it signed, with room.
+ * A rotation deletes keys retired longer ago than this.
+ */
+export const JWKS_GRACE_SECONDS = 60 * 60;
 
 export type Session = InferSelectModel<typeof sessionSchema>;
 export type Account = InferSelectModel<typeof accountSchema>;
