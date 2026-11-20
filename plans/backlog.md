@@ -62,7 +62,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
-| B-68 | chore | ready | hosting | prd/hosting | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
+| B-68 | chore | landed | hosting | prd/hosting | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
@@ -76,16 +76,16 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
-| B-134 | bug | ready | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
-| B-135 | change | ready | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
+| B-134 | bug | landed | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
+| B-135 | change | landed | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
 | B-136 | change | triaged | app-speed |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | triaged | app-speed |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
 | B-138 | change | triaged | app-speed |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | triaged | app-speed |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
 | B-140 | change | triaged | app-speed |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
-| B-141 | change | ready | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
-| B-142 | change | ready | hosting | prd/hosting | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
-| B-143 | change | ready | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
+| B-141 | change | landed | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
+| B-142 | change | landed | hosting | prd/hosting | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
+| B-143 | change | landed | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
 | B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-147 | chore | triaged | agent-tooling |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
@@ -96,7 +96,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
 | B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
-| B-157 | change | ready | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
+| B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
 | B-158 | change | triaged | hosting |  | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
 | B-159 | change | triaged | hosting |  | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
 | B-160 | change | triaged | hosting |  | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
@@ -249,7 +249,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 05b709f
@@ -402,7 +402,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-134 · bug · visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent)
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 03dfa05
@@ -414,7 +414,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-135 · change · Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days)
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 03dfa05
@@ -481,7 +481,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-141 · change · Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts).
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 5d64d38
@@ -492,7 +492,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-142 · change · Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until…
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 05b709f
@@ -503,7 +503,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-143 · change · Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts…
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 05b709f
@@ -621,7 +621,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-157 · change · Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under…
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 03dfa05
