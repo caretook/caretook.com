@@ -114,8 +114,6 @@ const caretakerId = psql(`SELECT id FROM "user" WHERE email = 'caretaker@example
 const DIALOG = `document.querySelector("[role=dialog]")`;
 const ROWS = `document.querySelectorAll("main ol > li").length`;
 const VITAL_TYPE = `(document.querySelector('[role=dialog] input[name="vital.0.type"]')?.value ?? null)`;
-const tile = (text) =>
-  `[...document.querySelectorAll('[aria-label="Add to the timeline"] a, [aria-label="Add to the timeline"] button')].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
 const button = (text, scope = "document") =>
   `[...${scope}.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
 const menuItem = (text) =>
@@ -318,7 +316,7 @@ async function editSheetSteps(p) {
   // A symptom of our own, added through the add sheet.
   await p.goto(T);
   await p.waitFor(`${ROWS} > 0`, 30000);
-  await p.press(tile("Symptom"));
+  await p.addToTimeline("Symptom");
   await p.waitFor(NAME_INPUT, 10000);
   await p.type(NAME_INPUT, name);
   await p.press(`document.querySelector('[role=dialog] button[type="submit"]')`);
@@ -699,7 +697,7 @@ try {
   );
 
   const openSymptom = async () => {
-    await c.press(tile("Symptom"));
+    await c.addToTimeline("Symptom");
     await c.waitFor(`${DIALOG} && document.querySelector('[role=dialog] input[name="symptomName"]')`, 10000);
   };
   const sameTimeline = async (how) => {
@@ -725,7 +723,7 @@ try {
   await openSymptom();
   const sheetOpen = await where(c);
   check(
-    "Quick add → Symptom goes to …/timeline/new/symptom with the filters",
+    "+ → Symptom goes to …/timeline/new/symptom with the filters",
     sheetOpen.path === `${T}/new/symptom` && sheetOpen.search === filters && sheetOpen.dialog,
     JSON.stringify(sheetOpen),
   );
@@ -823,12 +821,10 @@ try {
       "offline: not on the server yet",
       psql(`SELECT count(*) FROM timeline_entry WHERE details->>'name' = '${offName}'`) === "0",
     );
-    await c.press(tile("Vitals"));
-    await c.waitFor(menuItem("Heart rate"), 5000);
-    await c.press(menuItem("Heart rate"));
+    await c.addToTimeline("Heart rate");
     await c.waitFor(DIALOG, 10000).catch(() => {});
     check(
-      "offline: Vitals → Heart rate opens new/vital?type=heartRate with Heart rate",
+      "offline: + → Heart rate opens new/vital?type=heartRate with Heart rate",
       (await c.evaluate(
         `location.pathname.endsWith("/new/vital") && location.search === "?type=heartRate" && ${VITAL_TYPE} === "heartRate"`,
       )) === true,

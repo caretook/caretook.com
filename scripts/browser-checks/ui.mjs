@@ -1,4 +1,4 @@
-import { launch, openPage, sleep } from "./cdp.mjs";
+import { ADD_BUTTON, launch, openPage, sleep } from "./cdp.mjs";
 // The UI primitives on a real check build: the production CSS (Tailwind and
 // daisyUI as built), React Aria's styles under the CSP, and real CDP taps and
 // keys. One pass at a phone's width in dark and one at a desktop's in light:
@@ -25,7 +25,6 @@ const check = (name, ok, detail = "") => {
 
 const MENU = `document.querySelector('[role="menu"]')`;
 const USER = `document.querySelector('header [data-region="user"] button[aria-label^="Account menu for"]')`;
-const SYMPTOM = `[...document.querySelectorAll('[aria-label="Add to the timeline"] a')].find((a) => a.textContent.trim() === "Symptom")`;
 const DIALOGS = `[...document.querySelectorAll('[role="dialog"], dialog[open]')]`;
 const PICK = `document.querySelector('[role="dialog"] [aria-label="Pick a date"]')`;
 const ACTIVE = `document.activeElement?.outerHTML.slice(0, 160)`;
@@ -75,7 +74,7 @@ async function pass(p, width, scheme) {
   });
   await p.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: scheme }] });
   await p.goto(TIMELINE);
-  await p.waitFor(`document.querySelectorAll("main ol > li").length > 0 && ${USER} && ${SYMPTOM}`, 45000);
+  await p.waitFor(`document.querySelectorAll("main ol > li").length > 0 && ${USER} && ${ADD_BUTTON}`, 45000);
   await sleep(300);
 
   // The user menu.
@@ -101,7 +100,7 @@ async function pass(p, width, scheme) {
   );
 
   // The add sheet, and the calendar inside it.
-  await p.tap(SYMPTOM);
+  await p.addToTimeline("Symptom", { how: "tap" });
   const sheetOpen = await p.waitFor(`${DIALOGS}.length === 1 && ${PICK}`, 15000).then(
     () => true,
     () => false,
@@ -139,8 +138,8 @@ async function pass(p, width, scheme) {
   );
   await escape(p);
   check(
-    `${tag} add sheet: Escape closes it, and focus returns to its link`,
-    await settlesOn(p, `${DIALOGS}.length === 0`, SYMPTOM),
+    `${tag} add sheet: Escape closes it, and focus returns to the + button`,
+    await settlesOn(p, `${DIALOGS}.length === 0`, ADD_BUTTON),
     await p.evaluate(ACTIVE),
   );
 }

@@ -143,6 +143,10 @@ packages/data/src/db/seeds/accessCodes.ts groups
 # Details' link). Above the timeline's, layout's and settings' general rules.
 # The emergency sheet (profiles slice 6): its own print media steps, and the shared print CSS's.
 apps/web/app/routes/app/groups/profile/print/* profiles
+# Recent vital averages (quick-fixes slice 42, B-100): read-only, covered by
+# vitalAverages.browser.test.tsx and lib/vitalAverages.test.ts.
+apps/web/app/routes/app/groups/profile/VitalAveragesCard.tsx -
+apps/web/app/lib/sync/vitalAverages.ts   -
 apps/web/app/routes/app/groups/profile/* profiles
 apps/web/app/lib/sync/profile.ts         profiles
 # The writers' details (profiles slice 3): Contact and Insurance and their sheets.
@@ -214,9 +218,9 @@ apps/web/app/components/ui/date/*        ui roundtrip medications care-periods
 apps/web/app/components/ui/*             ui
 apps/web/app/components/brand/*          marketing
 
-# The timeline's care periods (care-periods slice 3): the current-period line
-# and the boundary markers among the entries.
-apps/web/app/routes/app/groups/timeline/CurrentPeriodLine.tsx care-periods
+# The timeline's care periods (care-periods slice 3): the period in each day's
+# sticky header and the boundary markers among the entries.
+apps/web/app/routes/app/groups/timeline/DayHeader.tsx care-periods
 apps/web/app/routes/app/groups/timeline/PeriodMarkerItem.tsx care-periods
 apps/web/app/routes/app/groups/timeline/timelinePeriods.ts care-periods
 apps/web/app/routes/app/groups/timeline/timelineDays.ts care-periods
@@ -263,6 +267,8 @@ apps/web/app/routes/app/groups/timeline/useEntryRemoval.ts roundtrip
 apps/web/app/routes/app/groups/timeline/sheet.ts roundtrip
 apps/web/app/routes/app/groups/timeline/sheetGuard.ts roundtrip
 apps/web/app/routes/app/groups/timeline/route.tsx roundtrip search
+# The header's + menu: every add flow starts there.
+apps/web/app/routes/app/groups/timeline/QuickAddMenu.tsx roundtrip
 # The rest of the timeline screen is component tests (timeline/timeline*.browser.test.tsx);
 # phase2.mjs keeps sync arriving, server links and offline, through lib/sync/.
 apps/web/app/routes/app/groups/timeline/* -

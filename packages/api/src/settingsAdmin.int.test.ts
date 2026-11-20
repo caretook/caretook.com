@@ -229,6 +229,54 @@ describe("sign-up switches", () => {
     ).toBe("FORBIDDEN:settings:signupClosed");
     expect(await codeOf(api.invite.createLink({ groupId: group.id, role: "viewer" }))).toBe("ok");
   });
+
+  it("still lets staff invite an owner while email invites are off (B-106)", async () => {
+    const { admin } = await staff();
+    const owner = await createUser("set-owner-s");
+    const { group } = await createGroup(owner);
+    await admin.api.admin.settings.set({ key: "signup.emailInvites", value: false, reason: "Abuse" });
+    const ownerInvitesTo = (email: string) =>
+      getDb().query.notificationOutboxSchema.findMany({
+        where: (t, { and, eq }) => and(eq(t.recipient, email), eq(t.name, "ownerInvite")),
+      });
+
+    // A member's email invite is still refused.
+    expect(
+      await codeOf(
+        clientFor(owner.ctx.authUser).invite.createEmail({
+          groupId: group.id,
+          email: newAddress("inv"),
+          role: "viewer",
+          attested: true,
+        }),
+      ),
+    ).toBe("FORBIDDEN:settings:signupClosed");
+
+    // /admin's owner invite to an existing group.
+    const invited = newAddress("staff-owner");
+    const sent = await admin.api.admin.groups.inviteOwner({
+      groupId: group.id,
+      email: invited,
+      reason: "Only owner left",
+    });
+    expect(sent.email).toBe(invited);
+    expect(await ownerInvitesTo(invited)).toHaveLength(1);
+    const invite = await getDb().query.careGroupInviteSchema.findFirst({
+      where: (t, { eq }) => eq(t.id, sent.inviteId),
+    });
+    expect(invite).toMatchObject({ role: "owner", status: "pending", kind: "email" });
+
+    // A new group with an owner invite.
+    const ownerEmail = newAddress("staff-new");
+    const created = await admin.api.admin.careGroup.createWithOwnerInvite({
+      groupName: `Switch-off group ${randomUUID().slice(0, 6)}`,
+      recipientName: "Lou Example",
+      ownerEmail,
+      attested: true,
+    });
+    expect(created.groupId).toBeTruthy();
+    expect(await ownerInvitesTo(ownerEmail)).toHaveLength(1);
+  });
 });
 
 describe("invite link limits", () => {

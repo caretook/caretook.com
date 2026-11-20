@@ -45,8 +45,8 @@ describe("the day summary", () => {
     await waitUntil(() => summaries().length === 2, 4000, "two summaries");
     const [today, yesterday] = summaries();
     // Right after the sticky heading, outside it.
-    expect(today!.previousElementSibling?.tagName).toBe("H3");
-    expect(today!.closest("h3")).toBeNull();
+    expect(today!.previousElementSibling?.hasAttribute("data-day-header")).toBe(true);
+    expect(today!.closest("[data-day-header]")).toBeNull();
     expect(lineOf(0)).toBe(TODAY_TEXT);
     expect(lineOf(1)).toBe("BP 120/80 · Cough 3 (new) · Alex");
     expect(yesterday).toBeTruthy();
