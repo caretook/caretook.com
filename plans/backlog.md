@@ -97,10 +97,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 | B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
-| B-158 | change | ready | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
-| B-159 | change | ready | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
-| B-160 | change | ready | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
+| B-158 | change | landed | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
+| B-159 | change | landed | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
+| B-160 | change | landed | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
 | B-161 | bug | triaged | check-migration |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
+| B-162 | change | inbox |  |  | In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the… |
+| B-163 | change | inbox |  |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
 
 ## Items
 
@@ -631,7 +633,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-158 · change · Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 5a67e22
@@ -641,7 +643,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-159 · change · Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 5a67e22
@@ -651,7 +653,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-160 · change · Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail)
 
-- status: ready
+- status: landed
 - prd: hosting
 - owner: prd/hosting
 - commit: 5a67e22
@@ -668,3 +670,21 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/check-migration): check-migration wave 4 suite, 2026-11-20 08:54, load 51→88; passed on the automatic retry (.loops/.browser-flakes.log). The redirect outran the assertion under load; slice 19's Playwright port may make the wait robust.
 - 2026-11-20 (prd/check-migration): Proposed for check-migration: sign-in is a lean session check that slice 20 ports to Playwright; fix the flaky redirect assertion there. -- check-migration orchestrator
+
+### B-162 · change · In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (prd/hosting): From the inbox: In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the full layout. Replace "Now" heading with "Upcoming". Reduce size of quick action buttons so that they are one row with smaller buttons so they are one row."Tap the microphone on your keyboard to say it instead of typing." should only appear on devices that support voice input via keyboard (ios/andriod?). All text is too large and should be reduced in size. Assume users that can't see well will have there devices set to larger text, or zoom their browsers.
+
+### B-163 · change · "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (prd/hosting): From the inbox: "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas separate entries; start with “n:” for a note." should be a tooltip.
