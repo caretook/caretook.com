@@ -3,6 +3,7 @@ import type { Fixture } from "../../../../../test/fixtures";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { commands, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
 import { TIMELINE_ROUTES, TIMELINE_URL, frames, world } from "./timelineWorld";
@@ -146,7 +147,7 @@ describe("searching the timeline", () => {
   test("cards at 1280 show the matches, and the field sits beside the chips", async () => {
     await open("?q=quince", { width: 1280 });
     await expect.poll(() => texts().length).toBe(3);
-    await userEvent.click(document.querySelector('button[aria-label="Cards"]')!);
+    await userEvent.click(await found(() => document.querySelector('button[aria-label="Cards"]')));
     await expect.poll(() => document.querySelector<HTMLElement>("[data-view]")?.dataset.view).toBe("cards");
     expect(texts().length).toBe(3);
     await openField();
@@ -240,7 +241,7 @@ describe("highlights and snippets", () => {
   test("cards at 1280 mark matches with no snippet (all the text shows); without a search nothing is marked", async () => {
     const device = await open("?q=plumber", { fixtures: [world(), marked], width: 1280 });
     await expect.poll(() => !!rowWith("Visit note")).toBe(true);
-    await userEvent.click(document.querySelector('button[aria-label="Cards"]')!);
+    await userEvent.click(await found(() => document.querySelector('button[aria-label="Cards"]')));
     await expect.poll(() => document.querySelector<HTMLElement>("[data-view]")?.dataset.view).toBe("cards");
     await frames();
     const card = rowWith("Visit note")!;

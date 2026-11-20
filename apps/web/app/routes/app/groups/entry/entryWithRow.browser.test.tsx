@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { entryProviderId } from "@caretook/data/schema";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo } from "../../../../../test/fixtures";
@@ -94,7 +95,9 @@ describe("the With row", () => {
     }
     expect(ADD_LINK()!.textContent.trim()).toBe("Add");
 
-    await userEvent.click(WITH()!.querySelector('button[aria-label="Remove Cornerstone Pharmacy"]')!);
+    await userEvent.click(
+      await found(() => WITH()?.querySelector('button[aria-label="Remove Cornerstone Pharmacy"]')),
+    );
     await waitUntil(() => chips().length === 1, 4000, "one chip left");
     expect(chips()[0]!.text).toBe("Dr. Samuel Patel");
     expect(await linkedIds(device, VISIT.id)).toEqual([PATEL.id]);
@@ -109,7 +112,7 @@ describe("the With row", () => {
   test("the picker leaves out linked providers; Escape closes it, focus back on Add", async () => {
     await open(entryUrl(VISIT.id), { fixtures: [directory(), VISIT, fx.link(VISIT.id, PATEL.id)] });
     await waitUntil(() => chips().length === 1);
-    await userEvent.click(ADD_LINK()!);
+    await userEvent.click(await found(ADD_LINK));
     await waitUntil(() => document.activeElement === PICKER(), 4000, "the picker");
     await userEvent.keyboard("patel");
     await pause(300);
@@ -187,7 +190,7 @@ describe("suggestions", () => {
     const device = await open(kind === "note" ? NEW_NOTE : NEW_EVENT, options);
     await waitUntil(() => !!NOTES() && !!ENTRY_TITLE(), 4000, "the draft");
     if (title) {
-      await userEvent.click(ENTRY_TITLE()!);
+      await userEvent.click(await found(ENTRY_TITLE));
       await userEvent.keyboard(title);
     }
     return device;

@@ -66,7 +66,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-63 | feature | triaged | appointments-2 |  | Google Calendar sync of a care group's appointments |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
-| B-104 | plan | in-progress | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
+| B-104 | plan | ready | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-129 | chore | in-progress | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
 | B-136 | change | landed | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | landed | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
@@ -93,10 +93,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-173 | bug | landed | check-migration | prd/check-migration | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
 | B-174 | bug | triaged | timeline-ux |  | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
 | B-175 | chore | triaged | timeline-ux |  | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
-| B-176 | bug | ready | check-migration | prd/check-migration | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
+| B-176 | bug | landed | check-migration | prd/check-migration | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
 | B-177 | bug | inbox |  |  | rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone |
-| B-178 | bug | ready | check-migration | prd/check-migration | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
-| B-179 | bug | inbox |  |  | app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry |
+| B-178 | bug | landed | check-migration | prd/check-migration | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
+| B-179 | bug | dropped | check-migration |  | app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry |
 | B-180 | bug | triaged | check-migration |  | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
 | B-181 | feature | triaged |  |  | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
 
@@ -267,10 +267,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-104 · plan · Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server
 
-- status: in-progress
+- status: ready
 - prd: connectors
 - owner: prd/connectors
-- commit:
+- commit: d77c5884
 
 - 2026-11-19 (Robert Bo Davis): From the 2026-11-19 planning discussion. A remote MCP server over the assistant PRD's actions layer (Claude connectors and ChatGPT's Apps SDK both speak MCP). Reads and writes; each write is confirmed in the chat, labelled as from an assistant on the timeline, and deletable as usual. Needs OAuth (check Better Auth's OAuth-provider plugins), tokens limited to one group with read and write scopes, revocable on the Devices page (B-80), a per-group consent record, an owners' on/off group setting, and a privacy-page change (data goes to the user's chosen AI vendor). Online only. Siri and Alexa are out for now: dictation only.
 - 2026-11-20 (plan/connectors): PRD and plan written (plans/connectors-prd.md, connectors-plan.md; user approved 2026-11-20): 7 slices, waves (1, 2, 7) → (3, 4, 5) → 6. New dependency approved: @better-auth/oauth-provider 1.7.25; MCP hand-rolled, no SDK. Owners' switch default off; one group per grant; scope by role; via tag; slice 3's tag waits for timeline-ux's row/header slices.
@@ -579,7 +579,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-176 · bug · Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: a8043f42
@@ -598,7 +598,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-178 · bug · medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: a8043f42
@@ -608,12 +608,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-179 · bug · app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry
 
-- status: inbox
-- prd:
+- status: dropped
+- prd: check-migration
 - owner:
 - commit:
 
 - 2026-11-20 (prd/timeline-ux): Seen 2026-11-20 by timeline-ux slice 10 at load 18-34; passed on a rerun at load 44-65. Not related to /rpc auth.
+- 2026-11-20 (prd/check-migration): Duplicate of B-173, fixed in 6502603 (in dev since e640ba50). The cause wasn't replication: the seeds give caretaker@ a share row, so the step's ON CONFLICT DO NOTHING never wrote its marker. The step is an upsert now, and app-shell is a spec since wave 9. -- check-migration orchestrator
 
 ### B-180 · bug · Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races
 

@@ -1,7 +1,7 @@
 # check-areas: the /app frame, menus, theme, the group route, routes and
 # URLs, account and group settings. The frame's screen (header, menus, theme
 # choice, last group, tab bar, section links) is component tests
-# (layout/frame.browser.test.tsx); app-shell.mjs keeps the flows: the theme
+# (layout/frame.browser.test.tsx); app-shell.spec.mjs keeps the flows: the theme
 # before first paint, sign-out from the menu, a rename and members across
 # devices. The layout route runs the session check on every /app navigation.
 # Its header's magnifier is component tests (search/search.browser.test.tsx).

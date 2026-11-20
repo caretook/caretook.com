@@ -176,6 +176,31 @@ export async function addToTimeline(page, item) {
 }
 
 /**
+ * Resolves once the page has no app asset or rpc request in flight for `quietMs`:
+ * the build prefetches route chunks after a load, and cutting the network
+ * mid-prefetch makes React Router reload the page (into the browser's error page).
+ */
+export async function assetsSettled(page, quietMs = 1000) {
+  let inflight = 0;
+  let lastActivity = Date.now();
+  const relevant = (r) => /\/(assets|rpc)\//.test(new URL(r.url()).pathname);
+  const start = (r) => relevant(r) && (inflight++, (lastActivity = Date.now()));
+  const end = (r) => relevant(r) && (inflight--, (lastActivity = Date.now()));
+  page.on("request", start);
+  page.on("requestfinished", end);
+  page.on("requestfailed", end);
+  try {
+    await expect
+      .poll(() => inflight <= 0 && Date.now() - lastActivity >= quietMs, { timeout: 30_000 })
+      .toBe(true);
+  } finally {
+    page.off("request", start);
+    page.off("requestfinished", end);
+    page.off("requestfailed", end);
+  }
+}
+
+/**
  * A forward proxy that can be switched off, on a free port (proxy.mjs's, for
  * specs). Chrome sends WebSockets through a proxy as CONNECT tunnels, so it
  * tunnels CONNECT too. Vite's own sockets (protocols `vite-hmr`, `vite-ping`;
@@ -185,14 +210,20 @@ export async function addToTimeline(page, item) {
  */
 export async function startProxy() {
   let online = true;
+  // `hold(port)`: requests and tunnels to that port wait until `release()`.
+  let gate = null;
+  const gated = async (port) => {
+    if (gate && String(port) === gate.port) await gate.open;
+  };
   const sockets = new Set();
   const track = (s) => {
     sockets.add(s);
     s.on("close", () => sockets.delete(s));
   };
-  const server = http.createServer((req, res) => {
+  const server = http.createServer(async (req, res) => {
     if (!online) return req.socket.destroy();
     const url = new URL(req.url);
+    await gated(url.port);
     const upstream = http.request(
       {
         host: url.hostname,
@@ -210,9 +241,10 @@ export async function startProxy() {
     req.pipe(upstream);
   });
   server.on("connection", (s) => (online ? track(s) : s.destroy()));
-  server.on("connect", (req, socket, head) => {
+  server.on("connect", async (req, socket, head) => {
     if (!online) return socket.destroy();
     const [host, port] = req.url.split(":");
+    await gated(port);
     const up = net.connect(Number(port) || 443, host, () => {
       socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
       if (head.length) up.write(head);
@@ -236,12 +268,60 @@ export async function startProxy() {
       online = on;
       if (!on) for (const s of sockets) s.destroy();
     },
+    /** Hold new traffic to `port` (PowerSync's, say) until `release()`; a held request waits, it isn't refused. */
+    hold(port) {
+      let open;
+      gate = { port: String(port), open: new Promise((r) => (open = r)), release: open };
+    },
+    release() {
+      gate?.release();
+      gate = null;
+    },
     close: () => {
+      gate?.release();
       for (const s of sockets) s.destroy();
       server.close();
     },
   };
 }
+
+/**
+ * Whether the device's IndexedDB copy of the local database (caretook.sqlite)
+ * still holds `text` in its bytes: "holds it", "clean", "no file" or
+ * "open hung". Sign-out deletes or vacuums the file, so "clean" is what a
+ * wipe leaves.
+ */
+export const localCopyHolds = (page, text) =>
+  page.evaluate(async (needle) => {
+    if (!(await indexedDB.databases()).some((d) => d.name === "caretook.sqlite")) return "no file";
+    const db = await Promise.race([
+      new Promise((res, rej) => {
+        const r = indexedDB.open("caretook.sqlite");
+        r.onsuccess = () => res(r.result);
+        r.onerror = rej;
+      }),
+      new Promise((res) => setTimeout(() => res(null), 3000)),
+    ]);
+    if (!db) return "open hung";
+    const dec = new TextDecoder("latin1");
+    let hits = 0;
+    const visit = (v) => {
+      if (v instanceof ArrayBuffer || ArrayBuffer.isView(v)) {
+        const u =
+          v instanceof ArrayBuffer ? new Uint8Array(v) : new Uint8Array(v.buffer, v.byteOffset, v.byteLength);
+        if (dec.decode(u).includes(needle)) hits++;
+      } else if (v && typeof v === "object") for (const k of Object.keys(v)) visit(v[k]);
+    };
+    for (const name of db.objectStoreNames) {
+      const all = await new Promise((res) => {
+        const r = db.transaction(name).objectStore(name).getAll();
+        r.onsuccess = () => res(r.result);
+      });
+      all.forEach(visit);
+    }
+    db.close();
+    return hits ? "holds it" : "clean";
+  }, text);
 
 /** What a page reported, as cdp.mjs collected it. */
 function watchPage(page, label, sink) {

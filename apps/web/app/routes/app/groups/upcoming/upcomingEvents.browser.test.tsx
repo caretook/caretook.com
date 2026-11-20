@@ -2,6 +2,7 @@ import type { SyncDb } from "~/lib/sync";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { fx } from "../../../../../test/fixtures";
 import { cancelEvent, rescheduleEvent, uncancelEvent } from "~/lib/appointments/appointments.sync";
 import {
@@ -89,8 +90,10 @@ const openSheet = async () => {
 const rescheduleBy = async (days: number, keep: boolean) => {
   SHEET()!.querySelector<HTMLElement>('[data-type="day"]')!.focus();
   for (let i = 0; i < days; i++) await userEvent.keyboard("{ArrowUp}");
-  if (KEEP()!.checked !== keep) await userEvent.click(KEEP()!);
-  await userEvent.click(SHEET()!.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+  if (KEEP()!.checked !== keep) await userEvent.click(await found(KEEP));
+  await userEvent.click(
+    await found(() => SHEET()?.querySelector<HTMLButtonElement>('button[type="submit"]')),
+  );
   await expect.poll(SHEET, { timeout: 5000 }).toBeNull();
 };
 

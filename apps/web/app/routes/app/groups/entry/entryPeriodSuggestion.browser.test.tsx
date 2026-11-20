@@ -2,6 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import {
@@ -118,7 +119,7 @@ describe("the period suggestion", () => {
   test('a renamed event\'s chip follows ("Hospice intake" offers Hospice at home); its sheet opens prefilled, and Cancel comes back to the entry', async () => {
     const device = await open(REHAB.id);
     await waitUntil(() => chip()?.dataset.periodSuggestion === "rehab", 4000, "the rehab chip");
-    await userEvent.fill(TITLE()!, "Hospice intake");
+    await userEvent.fill(await found(TITLE), "Hospice intake");
     await userEvent.tab();
     await waitUntil(() => chip()?.dataset.periodSuggestion === "hospiceHome", 4000, "the hospice chip");
     expect(chip()!.textContent?.trim()).toBe("Start a hospice at home period?");

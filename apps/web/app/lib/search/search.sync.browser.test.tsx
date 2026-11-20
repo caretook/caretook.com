@@ -3,6 +3,7 @@ import type { Fixture } from "../../../test/fixtures";
 import { parseSearch } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../test/found";
 import { renderWithDevice } from "../../../test/device";
 import { at, fx, hoursAgo, newId, TEST_GROUP, TEST_USER } from "../../../test/fixtures";
 import * as entryRoute from "../../routes/app/groups/entry/route";
@@ -163,21 +164,21 @@ describe("the index follows the device", () => {
       search: true,
     });
     await expect.poll(() => !!document.querySelector(".ProseMirror")).toBe(true);
-    await userEvent.click(document.querySelector(".ProseMirror")!);
+    await userEvent.click(await found(() => document.querySelector(".ProseMirror")));
     await userEvent.keyboard(" with the crossword");
     const typed = Date.now();
     // Polling the index without forcing the indexer: what a screen would see.
     const db = device.db;
-    let found = 0;
+    let foundAfter = 0;
     while (Date.now() - typed < 3000) {
       if ((await searchEntryIds(db, G, parseSearch("crossword"))).includes(note.id)) {
-        found = Date.now() - typed;
+        foundAfter = Date.now() - typed;
         break;
       }
       await new Promise((r) => setTimeout(r, 25));
     }
-    expect(found).toBeGreaterThan(0);
-    expect(found).toBeLessThanOrEqual(1000);
+    expect(foundAfter).toBeGreaterThan(0);
+    expect(foundAfter).toBeLessThanOrEqual(1000);
   });
 
   test("an index in an old format is rebuilt on the next open, and searches still work", async () => {
