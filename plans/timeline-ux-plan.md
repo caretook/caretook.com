@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/timeline-ux` (slice commits) |
-| ----- | ---- | --------------- | -------------------------------------------- |
-| 1     | 1    | merged          | 9e3a3ad (28991ac, 940af0a)                   |
-| 2     | 1    | merged          | de5ccf9 (67f6e34)                            |
-| 3     | 1    | merged          | 448be6e (11efa88)                            |
-| 4     | 2    | started         |                                              |
-| 5     | 2    | started         |                                              |
-| 6     | 2    | started         |                                              |
-| 7     | 3    | blocked by 1, 3 |                                              |
-| 8     | 3    | blocked by 2    |                                              |
-| 9     | 3    | not started     |                                              |
-| 10    | 4    | blocked by 1    |                                              |
+| Slice | Wave | State                | Merge into `prd/timeline-ux` (slice commits) |
+| ----- | ---- | -------------------- | -------------------------------------------- |
+| 1     | 1    | merged               | 9e3a3ad (28991ac, 940af0a)                   |
+| 2     | 1    | merged               | de5ccf9 (67f6e34)                            |
+| 3     | 1    | merged               | 448be6e (11efa88)                            |
+| 4     | 2    | handed off (2110676) |                                              |
+| 5     | 2    | started              |                                              |
+| 6     | 2    | started              |                                              |
+| 7     | 3    | blocked by 1, 3      |                                              |
+| 8     | 3    | blocked by 2         |                                              |
+| 9     | 3    | not started          |                                              |
+| 10    | 4    | blocked by 1         |                                              |
 
 **Start condition:** `code-layout` in `dev` (it moves `apps/web/app/lib/`, `routes.ts` and `appUrls`). Check `pnpm backlog show B-150` says landed. Every path below that names `lib/…` means its new home after code-layout: find it with `git grep` and don't recreate the old file.
 
@@ -32,6 +32,9 @@
 - Wave 1 landing: `pnpm prd sync` merged dev (code-layout wave 3: routes and URLs by area; one common file, `check-areas.d/app-shell`, no conflicts); full `pnpm prd check` running (a big refactor came in). Lean `--suite`: the user chose to land wave 1 on the check alone (2026-11-20).
 - Wave 2 started from the synced branch: worktrees timeline-ux-4, -5, -6 (no stacks); agents spawned (4 sonnet, 5 opus, 6 opus). B-137, B-138, B-169, B-164, B-167, B-165, B-168, B-139 claimed.
 - agent-tooling's doc split landed in dev (81529fa): the handbook is now `docs/agents/` (loop, orchestrator, backlog…), AGENTS.md an 8 KB core; the land guard enforces budgets (docs/domain 10 KB; timeline.md and app-shell.md already over, so trim at least what we fold). Sync again before landing wave 1. Told agent-tooling-29 our remaining folds into timeline.md (waves 1–3) and app-shell.md (waves 2–3) and suggested they trim first.
+- agent-tooling is trimming components, care-groups, sync, medications, timeline and app-shell to ~9 KB; fold onto whatever is in dev; message agent-tooling-29 after each landing that touches sync/timeline/app-shell/medications.
+- Wave 1 check: two load flakes (`medicationList`, `profile` component tests; both pass alone 2/2 at load 25). Synced dev again (docs/tooling only). Folded wave 1 into sync.md, timeline.md, docs/agents/orchestrator.md and AGENTS.md (no doc grew past dev's size); rerunning the full check.
+- Slice 4 handed off (2110676; its subject wrongly cites B-168: the items are B-137, B-138). Its pnpm check had 2 unnamed load flakes and the plan's Prettier warning (since fixed). Merge after wave 1 lands.
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
