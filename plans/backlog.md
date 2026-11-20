@@ -79,6 +79,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-115 | chore | inbox |  |  | Move settings-layout.mjs to component tests |
 | B-116 | chore | inbox |  |  | Move providers.mjs to component tests |
 | B-117 | chore | inbox |  |  | Move groups.mjs to component tests |
+| B-118 | chore | inbox |  |  | Move medications.mjs to component tests |
 
 ## Items
 
@@ -453,3 +454,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the New care group sheet, the invite card and /join/:code's form states to component tests; keep the server flows (careGroup.create then the new group syncing in, /join sign-up and the refused codes, /admin's 404 for non-staff, the QR). Then e2e yes.
+
+### B-118 · chore · Move medications.mjs to component tests
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (the biggest check, about 163 s). Move the list, search and status, the forms, status actions, Today, the Due now strip, the Dose sheet's states, passes, allergies and the print sheet's layout to component tests; keep a second device seeing a dose, offline then upload, and the service-written change entries. Then e2e yes.
