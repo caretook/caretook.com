@@ -45,7 +45,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-12 | plan | in-progress | assistant | prd/assistant | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
+| B-12 | plan | ready | assistant | prd/assistant | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
@@ -103,10 +103,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-12 · plan · Assistant: lightweight chat, with voice, for quick actions and questions about the timeline
 
-- status: in-progress
+- status: ready
 - prd: assistant
 - owner: prd/assistant
-- commit:
+- commit: ed7029d
 
 - 2026-11-17 (dev keeper): Quick actions go through the same local write paths as the forms (offline, synced), as a draft the user confirms. Questions need server-side retrieval and an AI vendor that doesn't retain or train on our data.
 - 2026-11-18 (plan/assistant): Draft PRD written on plan/assistant: plans/assistant-prd.md. Interview 2026-11-18: actions first then questions; floating button + sheet; server transcription (vendor open); conversations not saved; drafts confirmed; offline queue (text + audio, drafts wait); opt-in per group (owner consents, members acknowledge); read tools over services; Anthropic TS SDK; model chosen by an eval; create + edit recent; Save as note; 'via assistant' marker; daily caps per user. Questions wait on search's server side.
