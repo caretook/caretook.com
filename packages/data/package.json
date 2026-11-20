@@ -19,7 +19,8 @@
     "datastore:studio": "drizzle-kit studio",
     "admin:grant": "tsx scripts/adminGrant.ts",
     "db:roles": "tsx scripts/dbRoles.ts",
-    "db:access": "tsx scripts/dbAccess.ts"
+    "db:access": "tsx scripts/dbAccess.ts",
+    "auth:rotate-jwks": "tsx scripts/authRotateJwks.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",

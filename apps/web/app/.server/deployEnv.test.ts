@@ -94,6 +94,24 @@ describe("checkDeployEnv", () => {
     expect(DEPLOY_ENV_VARIABLES).toContain("NATIVE_APP_ORIGINS");
   });
 
+  it.each(TARGETS)("takes an optional BETTER_AUTH_SECRETS list of long, versioned secrets (%s)", (target) => {
+    const other = "t".repeat(44);
+    expect(DEPLOY_ENV_VARIABLES).toContain("BETTER_AUTH_SECRETS");
+    expect(variables(target, { BETTER_AUTH_SECRETS: `2:${other}, 1:${SECRET}` })).toEqual([]);
+    expect(problemsFor(target, { BETTER_AUTH_SECRETS: `2:${other},${SECRET}` })).toEqual([
+      { variable: "BETTER_AUTH_SECRETS", problem: "entry 2 must be <version>:<secret>" },
+    ]);
+    expect(problemsFor(target, { BETTER_AUTH_SECRETS: `1:${other},01:${SECRET}` })).toEqual([
+      { variable: "BETTER_AUTH_SECRETS", problem: "entry 2 repeats version 01" },
+    ]);
+    expect(problemsFor(target, { BETTER_AUTH_SECRETS: "1:short" })).toEqual([
+      { variable: "BETTER_AUTH_SECRETS", problem: "entry 1 must be at least 32 characters" },
+    ]);
+    // Names only, never the value.
+    const lines = formatDeployEnvProblems(problemsFor(target, { BETTER_AUTH_SECRETS: "1:short" }));
+    expect(lines.join("\n")).not.toContain("short");
+  });
+
   it.each(TARGETS)("needs CLIENT_IP_HEADER to be one header name (%s)", (target) => {
     expect(variables(target, { CLIENT_IP_HEADER: "X-Vercel-Forwarded-For" })).toEqual([]);
     for (const bad of ["x-vercel-forwarded-for, x-forwarded-for", "x vercel", "x-real-ip:"])

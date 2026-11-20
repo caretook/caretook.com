@@ -11,6 +11,8 @@
 #   CRON_SECRET, INVITE_LINK_KEY, RESEND_WEBHOOK_SECRET,
 #   CLIENT_IP_HEADER (x-vercel-forwarded-for)
 #   NATIVE_APP_ORIGINS (optional: unset until the native app ships, then 1)
+#   BETTER_AUTH_SECRETS (optional: versioned secrets, from the first rotation of
+#     BETTER_AUTH_SECRET on; ops/runbook.md, Rotation)
 #   MAIL_ALLOWLIST, SEED_USER_PASSWORD (staging only)
 #   MIGRATIONS_DATABASE_URL (the migrations role's direct URL; only here)
 #   VERCEL_TOKEN, POWERSYNC_ADMIN_TOKEN (CI only)
@@ -77,6 +79,7 @@ jobs:
           SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
           CLIENT_IP_HEADER: ${{ secrets.CLIENT_IP_HEADER }}
           NATIVE_APP_ORIGINS: ${{ secrets.NATIVE_APP_ORIGINS }}
+          BETTER_AUTH_SECRETS: ${{ secrets.BETTER_AUTH_SECRETS }}
         run: pnpm deploy:env "$DEPLOY_TARGET"
 
       - id: migrate

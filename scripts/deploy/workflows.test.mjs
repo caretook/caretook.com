@@ -36,6 +36,7 @@ describe("the deploy workflows", () => {
       ".github/workflows/admin-grant.yml",
       ".github/workflows/db-access.yml",
       ".github/workflows/deploy.yml",
+      ".github/workflows/rotate-jwks.yml",
       ".github/workflows/seed-staging.yml",
     ]);
   });
@@ -135,7 +136,11 @@ describe("the deploy workflows", () => {
 
   it("seeds staging only, and grants run in the chosen environment", () => {
     expect(parseYaml(read(".github/workflows/seed-staging.yml")).jobs.seed.environment).toBe("staging");
-    for (const path of [".github/workflows/admin-grant.yml", ".github/workflows/db-access.yml"]) {
+    for (const path of [
+      ".github/workflows/admin-grant.yml",
+      ".github/workflows/db-access.yml",
+      ".github/workflows/rotate-jwks.yml",
+    ]) {
       const doc = parseYaml(read(path));
       expect(doc.on.workflow_dispatch.inputs.environment.options).toEqual(["staging", "production"]);
     }

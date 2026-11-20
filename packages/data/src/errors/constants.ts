@@ -768,6 +768,9 @@ export const SERVICE_ERRORS = {
   "dbAccess:failed": {
     message: "Failed to change database access",
   },
+  "authKeys:failed": {
+    message: "Failed to rotate the JWT signing keys",
+  },
   "rateLimitService:store": {
     message: "Failed to read or write the rate limits",
   },
