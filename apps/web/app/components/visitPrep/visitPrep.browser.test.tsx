@@ -226,7 +226,10 @@ describe("on the appointment's page", () => {
     expect(PREVIEW()).not.toContain("Cough");
     const month = $<HTMLElement>('[data-visit-prep-sheet] [data-type="month"]')!;
     month.focus();
+    // A month back from the 31st (9/31) is only constrained, and committed,
+    // once the field loses focus: leave it, as a person would.
     await userEvent.keyboard("{ArrowDown}");
+    month.blur();
     await waitUntil(() => PREVIEW().includes("Cough"), 8000, "the longer window");
   });
 

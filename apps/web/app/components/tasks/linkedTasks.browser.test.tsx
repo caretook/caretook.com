@@ -176,7 +176,8 @@ describe("LinkedTasks", () => {
       text: "Fine night.",
     });
     await open(`entries/${note.id}`, "owner", [...world(), note]);
-    await expect.element(page.getByText("Fine night.")).toBeInTheDocument();
+    // The editor's copy (the hidden print view has one too).
+    await expect.poll(() => document.querySelector(".ProseMirror")?.textContent).toContain("Fine night.");
     expect(document.querySelector("[data-linked-tasks-add]")).toBeNull();
   });
 });
