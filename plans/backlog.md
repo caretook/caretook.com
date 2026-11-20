@@ -61,7 +61,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
-| B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
+| B-68 | chore | triaged | hosting |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-87 | plan | in-progress | assistant | prd/assistant | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
@@ -273,8 +273,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: hosting
 - owner:
 - commit:
 
