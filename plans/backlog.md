@@ -675,3 +675,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (slice/check-migration/6): Fails on prd/check-migration HEAD 7ddfbb2 without slice 6's changes, alone and in pnpm check: 'timed out waiting for the longer window'. Its last visit is 20 days ago (2026-10-31) and ArrowDown on the month field should take the start before the Cough 25 days ago; probably the 31st not existing in September. Found by check-migration slice 6.
+- 2026-11-20 (prd/check-migration): check-migration orchestrator: the test now steps the year back instead of the month (commit on prd/check-migration, lands with wave 3). The app question remains for triage: should a month step back from the 31st clamp to the 30th? React Aria's month segment gave no change in the preview.
