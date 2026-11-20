@@ -1,10 +1,10 @@
-import type { AllergyState } from "~/lib/allergies";
+import type { AllergyState } from "~/lib/medications/allergies";
 
 import { ShieldAlert } from "lucide-react";
 import { Link } from "react-router";
-import { allergyText, NO_KNOWN_ALLERGIES, ALLERGIES_NOT_RECORDED } from "~/lib/allergies";
-import { appUrls } from "~/lib/appUrls";
-import { MEDICATION_SHEET_STATE } from "~/lib/medicationSheets";
+import { allergyText, NO_KNOWN_ALLERGIES, ALLERGIES_NOT_RECORDED } from "~/lib/medications/allergies";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { MEDICATION_SHEET_STATE } from "~/lib/medications/medicationSheets";
 
 /**
  * The recipient's allergies, at the top of the medication list and each

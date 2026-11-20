@@ -1,10 +1,10 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
-import type { TimelineFilters } from "../../../../lib/timelineFilters";
+import type { TimelineFilters } from "../../../../lib/timeline/timelineFilters";
 
-import { AUTHOR_PARAM, KIND_PARAM, parseFilters } from "../../../../lib/timelineFilters";
+import { AUTHOR_PARAM, KIND_PARAM, parseFilters } from "../../../../lib/timeline/timelineFilters";
 
 // Upcoming's filters: the timeline's `?kind=` and `?author=` (read and
-// changed through `lib/timelineFilters`), narrowed to what Upcoming lists.
+// changed through `lib/timeline/timelineFilters`), narrowed to what Upcoming lists.
 // Pure, so web:unit tests it.
 
 /** The kinds Upcoming lists: appointments (events) and reminders (notes). */

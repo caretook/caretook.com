@@ -5,9 +5,9 @@ import { Search } from "lucide-react";
 import { Wordmark } from "~/components/brand";
 import { FirstSyncPending } from "~/components/shell";
 import { IconButton } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { isFirstSyncPending } from "~/lib/firstSync";
-import { requireSession, sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { isFirstSyncPending } from "~/lib/sync/firstSync";
+import { requireSession, sessionContext } from "~/lib/auth/session";
 import { Announcement } from "./Announcement";
 import { GroupMenu } from "./GroupMenu";
 import { SectionNav, TabBar } from "./SectionNav";
@@ -94,7 +94,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
 // Errors inside /app (a missing group, a failed load) render here, so the
 // page keeps its frame and a way back.
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  // A new device that hasn't got the group yet (lib/firstSync.ts).
+  // A new device that hasn't got the group yet (lib/sync/firstSync.ts).
   if (isFirstSyncPending(error)) return <FirstSyncPending />;
   const notFound = isRouteErrorResponse(error) && error.status === 404;
   if (!notFound) console.error(error);

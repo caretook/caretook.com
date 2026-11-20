@@ -1,8 +1,8 @@
-import type { LocalProvider } from "~/lib/sync/providers";
+import type { LocalProvider } from "~/lib/providers/providers.sync";
 
-import { chipLabel } from "~/lib/entryProviders";
-import { shownPlace } from "~/lib/entryPlace";
-import { scheduleText } from "~/lib/entrySchedule";
+import { chipLabel } from "~/lib/providers/entryProviders";
+import { shownPlace } from "~/lib/appointments/entryPlace";
+import { scheduleText } from "~/lib/appointments/entrySchedule";
 
 /**
  * A note or event on paper: its title, when, where (events), who it was

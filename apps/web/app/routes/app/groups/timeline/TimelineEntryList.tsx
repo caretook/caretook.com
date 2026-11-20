@@ -6,7 +6,7 @@ import type {
   UnitChoices,
   VitalType,
 } from "@caretook/data/schema";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 
 import { parseSearch } from "@caretook/data/schema";
@@ -14,13 +14,13 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
-import { canReschedule } from "~/lib/eventReschedule";
-import { dayLabel, localTimeZone } from "~/lib/format";
-import { useGroup } from "~/lib/group";
+import { canReschedule } from "~/lib/appointments/eventReschedule";
+import { dayLabel, localTimeZone } from "~/lib/core/format";
+import { useGroup } from "~/lib/app-shell/group";
 import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
-import { entryOpen } from "~/lib/entryOpen";
-import { appUrls } from "~/lib/appUrls";
+import { entryOpen } from "~/lib/timeline/entryOpen";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import { DayHeader } from "./DayHeader";
 import { foldPassLogs } from "./dayItems";
 import { PassLogItem } from "./PassLogItem";

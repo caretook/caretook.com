@@ -1,19 +1,19 @@
-import type { GroupContext } from "~/lib/groupContext";
-import type { MyGroup } from "~/lib/rpc";
+import type { GroupContext } from "~/lib/app-shell/groupContext";
+import type { MyGroup } from "~/lib/core/rpc";
 import type { clientLoader as layoutLoader } from "./route";
-import type { GroupRow } from "~/lib/sync/timeline";
+import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
 import { ChevronDown, History, Plus, Settings, UserRound } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useNavigate, useRouteLoaderData } from "react-router";
 import { Menu, SEPARATOR } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { rememberGroup } from "~/lib/lastGroup";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { rememberGroup } from "~/lib/app-shell/lastGroup";
 import { useLiveQuery } from "~/lib/sync";
-import { myGroupsQuery, toMyGroup } from "~/lib/sync/timeline";
-import { NEW_GROUP_LINK_STATE } from "~/lib/newGroupLink";
-import { menuNowText, periodName, periodTypeMeta } from "~/lib/periodDisplay";
-import { useCurrentCarePeriod } from "~/lib/sync/currentPeriod";
+import { myGroupsQuery, toMyGroup } from "~/lib/timeline/timeline.sync";
+import { NEW_GROUP_LINK_STATE } from "~/lib/care-groups/newGroupLink";
+import { menuNowText, periodName, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
+import { useCurrentCarePeriod } from "~/lib/care-periods/currentPeriod.sync";
 
 /** What a group is called in the header: its recipient (preferred name first), then the group's name. */
 const displayName = (group: MyGroup) => group.recipient?.displayName || group.name;

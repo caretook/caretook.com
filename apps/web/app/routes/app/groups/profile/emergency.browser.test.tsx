@@ -9,7 +9,7 @@ import { $, emergencyNames, NORA_ID, openProfile, RITA, rowsFor, SAM, sheetUrl }
 // the owner's sheet (members who share a phone, outside contacts, moves by
 // keyboard, the primary contact, one save of three calls), a member who
 // stopped sharing their phone, and the Members page's badges. The order
-// rules are unit-tested (lib/emergencyList.test.ts); what the server
+// rules are unit-tested (lib/profiles/emergencyList.test.ts); what the server
 // enforces, including dropping a member who stops sharing a phone, is in
 // packages/data/src/services/profiles.int.test.ts and
 // packages/api/src/profiles.int.test.ts.

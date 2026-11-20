@@ -1,15 +1,15 @@
 import type { SyncDb } from "~/lib/sync";
-import type { LocalProvider, ProviderRow } from "~/lib/sync/providers";
+import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync";
 
 import { useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { openedFromApp } from "~/lib/periodSheets";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { openedFromApp } from "~/lib/care-periods/periodSheets";
 import { useLiveQuery } from "~/lib/sync";
-import { placeChoicesQuery } from "~/lib/sync/carePeriods";
-import { toProviders } from "~/lib/sync/providers";
-import { readRows } from "~/lib/sync/timeline";
+import { placeChoicesQuery } from "~/lib/care-periods/carePeriods.sync";
+import { toProviders } from "~/lib/providers/providers.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 
 // Sheets over the periods page are child routes (`periods/new`): the page
 // stays mounted underneath. Like the medication list's sheets.

@@ -1,17 +1,17 @@
 import type { MedicationStopReason } from "@caretook/data/schema";
 import type { MenuEntry } from "~/components/ui";
-import type { ActionResult } from "~/lib/api";
-import type { StatusIntent } from "~/lib/medicationStatusForm";
-import type { LocalMedication } from "~/lib/sync/medications";
+import type { ActionResult } from "~/lib/core/api";
+import type { StatusIntent } from "~/lib/medications/medicationStatusForm";
+import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Ban, CircleCheck, Ellipsis, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { MEDICATION_LIMITS, MEDICATION_STOP_REASONS } from "@caretook/data/schema";
 import { ChoiceGroup, ConfirmDialog, Field, Menu, SEPARATOR } from "~/components/ui";
-import { medicationTitle, STOP_REASON_LABELS, stoppedText } from "~/lib/medicationDisplay";
-import { STATUS_FIELD } from "~/lib/medicationStatusForm";
-import { dayInZone } from "~/lib/sync/medications";
+import { medicationTitle, STOP_REASON_LABELS, stoppedText } from "~/lib/medications/medicationDisplay";
+import { STATUS_FIELD } from "~/lib/medications/medicationStatusForm";
+import { dayInZone } from "~/lib/medications/medications.sync";
 
 type Dialog = Exclude<StatusIntent, "restart">;
 

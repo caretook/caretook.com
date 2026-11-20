@@ -1,12 +1,12 @@
-import type { ProviderRow } from "~/lib/sync/providers";
-import type { NoteDocParts, NoteDocRow } from "~/lib/sync/notes";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
+import type { NoteDocParts, NoteDocRow } from "~/lib/live-notes/notes.sync";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { PRINT_PARAM } from "~/lib/appUrls";
+import { PRINT_PARAM } from "~/lib/app-shell/appUrls";
 import { useLiveQuery } from "~/lib/sync";
-import { documentPreviewQuery, previewText } from "~/lib/sync/notes";
-import { entryProvidersQuery, toProviders } from "~/lib/sync/providers";
+import { documentPreviewQuery, previewText } from "~/lib/live-notes/notes.sync";
+import { entryProvidersQuery, toProviders } from "~/lib/providers/providers.sync";
 
 const NO_PROVIDERS: ProviderRow[] = [];
 

@@ -1,5 +1,5 @@
 import type { MedicationContent, MedicationStatus, ProviderPhone, ProviderType } from "@caretook/data/schema";
-import type { SchedulePass } from "../../../../../lib/medicationDisplay";
+import type { SchedulePass } from "../../../../../lib/medications/medicationDisplay";
 
 import {
   FORM_LABELS,
@@ -8,7 +8,7 @@ import {
   scheduleText,
   STATUS_LABELS,
   STOP_REASON_LABELS,
-} from "../../../../../lib/medicationDisplay";
+} from "../../../../../lib/medications/medicationDisplay";
 
 // The printable medication sheet's view model: what the print page shows, in
 // the order it shows it. Pure: no React or database here; web:unit tests it,

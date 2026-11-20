@@ -4,11 +4,10 @@
 # their world), and the lib modules have unit tests. roundtrip uploads a
 # reschedule's one transaction to another member.
 apps/web/app/routes/app/groups/upcoming/* -
-apps/web/app/lib/upcoming.ts             -
-apps/web/app/lib/upcomingLabels.ts       -
-apps/web/app/lib/upcomingDays.ts         -
-apps/web/app/lib/upcomingDoses.ts        -
-apps/web/app/lib/sync/appointments.ts    roundtrip live-notes
+apps/web/app/lib/appointments/*.sync.ts  roundtrip live-notes
+# Visit prep's reads (live notes' prepared section): component tests
+# (components/visitPrep/visitPrep.browser.test.tsx).
+apps/web/app/lib/appointments/visitPrep.sync.ts -
 # The time fields and the reschedule sheet: component tests (upcoming/upcomingEvents and entry/entry).
 apps/web/app/components/schedule/*       -
 # Fed to Upcoming (component tests).

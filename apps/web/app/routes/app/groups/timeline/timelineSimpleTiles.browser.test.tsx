@@ -15,7 +15,7 @@ import { TIMELINE_URL, waitUntil } from "./timelineWorld";
 // fixed set, four picked), their labels about the recipient, the first-run
 // link to choose them, and each tile's simple sheet saving an entry locally. The choices
 // themselves are group settings Details' (simpleTiles.browser.test.tsx);
-// learnedTiles and the labels have unit tests (lib/simpleTiles.test.ts).
+// learnedTiles and the labels have unit tests (lib/assistant/simpleTiles.test.ts).
 
 /** Stands in for the note page a note tile opens. */
 function EntryProbe() {

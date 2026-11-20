@@ -1,7 +1,7 @@
 import type { DoseStatus } from "@caretook/data/schema";
-import type { DoseInput } from "../../../../lib/sync/medications";
+import type { DoseInput } from "../../../../lib/medications/medications.sync";
 
-import { formString } from "../../../../lib/form";
+import { formString } from "../../../../lib/core/form";
 
 // What Today posts to the medications route's clientAction (one tap on
 // Given, Skipped or Refused with a note, an as-needed Log), and how the

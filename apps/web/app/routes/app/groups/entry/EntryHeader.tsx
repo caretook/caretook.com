@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { useState } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
-import { scheduleText } from "~/lib/entrySchedule";
+import { scheduleText } from "~/lib/appointments/entrySchedule";
 import { KindIcon } from "~/components/entry";
 import { Field } from "~/components/ui";
 

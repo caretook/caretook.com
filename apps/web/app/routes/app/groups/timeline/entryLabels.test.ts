@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatTime } from "../../../../lib/format";
+import { formatTime } from "../../../../lib/core/format";
 import { actionsLabel, emptyTimelineText, entryLabel, openLabel } from "./entryLabels";
 
 const AT = "2026-11-17T17:30:00.000Z";

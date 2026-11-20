@@ -1,15 +1,19 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { redirect } from "react-router";
 import { canEditRecipient } from "@caretook/data/schema";
 import { Sheet } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup } from "~/lib/group";
-import { rpc } from "~/lib/rpc";
-import { sessionContext } from "~/lib/session";
-import { loadRecipientProfileRows, toRecipientProfile, waitForRecipientProfile } from "~/lib/sync/profile";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup } from "~/lib/app-shell/group";
+import { rpc } from "~/lib/core/rpc";
+import { sessionContext } from "~/lib/auth/session";
+import {
+  loadRecipientProfileRows,
+  toRecipientProfile,
+  waitForRecipientProfile,
+} from "~/lib/profiles/profile.sync";
 import { basicsValues, parseBasics } from "../basicsFormData";
 import { BasicsForm } from "../BasicsForm";
 import { failedProfileSave, useCloseProfileSheet } from "../profileSheet";

@@ -1,28 +1,28 @@
-import type { EntryProviderLinkRow, LinkedProviderName } from "~/lib/entryProviders";
-import type { LiveDocument } from "~/lib/liveNow";
-import type { LatestVital, TimelineEntry } from "~/lib/rpc";
-import type { NoteDocRow } from "~/lib/sync/notes";
-import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
+import type { EntryProviderLinkRow, LinkedProviderName } from "~/lib/providers/entryProviders";
+import type { LiveDocument } from "~/lib/live-notes/liveNow";
+import type { LatestVital, TimelineEntry } from "~/lib/core/rpc";
+import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
 import type { TimelineRows } from "./timelineRows";
 import type { TimelineDay } from "./timelineDays";
-import type { UpcomingSection } from "~/lib/upcomingDays";
-import type { PeriodMarker } from "~/lib/periodMarkers";
-import type { LocalCarePeriod } from "~/lib/sync/carePeriods";
+import type { UpcomingSection } from "~/lib/appointments/upcomingDays";
+import type { PeriodMarker } from "~/lib/care-periods/periodMarkers";
+import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import type { TimelinePeriods } from "./timelinePeriods";
 
 import { useMemo, useState } from "react";
-import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
-import { groupLinksByEntry } from "~/lib/entryProviders";
-import { localTimeZone } from "~/lib/format";
-import { isLiveEntryKind } from "~/lib/liveEntry";
-import { liveDotLabel } from "~/lib/liveNow";
-import { withMedication } from "~/lib/medicationEntries";
+import { isEntryKind, KIND_META } from "~/lib/timeline/entryDisplay";
+import { groupLinksByEntry } from "~/lib/providers/entryProviders";
+import { localTimeZone } from "~/lib/core/format";
+import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
+import { liveDotLabel } from "~/lib/live-notes/liveNow";
+import { withMedication } from "~/lib/medications/medicationEntries";
 import { useLiveQuery } from "~/lib/sync";
-import { useLiveDocuments } from "~/lib/sync/editors";
-import { useSchedulePasses } from "~/lib/sync/medicationPasses";
-import { useTimelineMedications } from "~/lib/sync/medicationTimeline";
-import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
-import { timelineLinksQuery } from "~/lib/sync/providers";
+import { useLiveDocuments } from "~/lib/live-notes/editors.sync";
+import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { useTimelineMedications } from "~/lib/medications/medicationTimeline.sync";
+import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
+import { timelineLinksQuery } from "~/lib/providers/providers.sync";
 import {
   fromLocalTimestamp,
   historyQuery,
@@ -31,14 +31,14 @@ import {
   toLatestVitals,
   toMember,
   toTimelineEntries,
-} from "~/lib/sync/timeline";
+} from "~/lib/timeline/timeline.sync";
 import { groupByDay } from "./timelineDays";
-import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/paging";
+import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/core/paging";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
-import { rowPassLogId, wholeLogsPage } from "~/lib/passLogs";
-import { nextUp } from "~/lib/upcoming";
-import { firstItems, UPCOMING_BLOCK_LIMIT, upcomingSections } from "~/lib/upcomingDays";
-import { periodMarkers } from "~/lib/periodMarkers";
+import { rowPassLogId, wholeLogsPage } from "~/lib/medications/passLogs";
+import { nextUp } from "~/lib/appointments/upcoming";
+import { firstItems, UPCOMING_BLOCK_LIMIT, upcomingSections } from "~/lib/appointments/upcomingDays";
+import { periodMarkers } from "~/lib/care-periods/periodMarkers";
 import { aheadQueries } from "./aheadQueries";
 import { useTimelinePeriods } from "./timelinePeriods";
 import { useHistoryCutoff } from "./useHistoryCutoff";

@@ -1,13 +1,13 @@
 import type { QuickEntryMedication, QuickEntryMember, QuickEntryProvider } from "@caretook/data/schema";
-import type { MedicationRow } from "~/lib/sync/medications";
-import type { ProviderRow } from "~/lib/sync/providers";
-import type { MemberRow } from "~/lib/sync/timeline";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
+import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { useMemo } from "react";
 import { useLiveQuery } from "~/lib/sync";
-import { medicationsQuery, toMedications } from "~/lib/sync/medications";
-import { providersQuery, toProviders } from "~/lib/sync/providers";
-import { membersQuery } from "~/lib/sync/timeline";
+import { medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
+import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
+import { membersQuery } from "~/lib/timeline/timeline.sync";
 
 const NO_ROWS: never[] = [];
 

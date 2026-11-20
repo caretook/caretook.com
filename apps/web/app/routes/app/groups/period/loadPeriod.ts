@@ -1,11 +1,11 @@
 import type { SyncDb } from "~/lib/sync";
-import type { CarePeriodRow } from "~/lib/sync/carePeriods";
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { data } from "react-router";
-import { carePeriodQuery, carePeriodsQuery, toCarePeriod } from "~/lib/sync/carePeriods";
-import { providerQuery } from "~/lib/sync/providers";
-import { readRows } from "~/lib/sync/timeline";
+import { carePeriodQuery, carePeriodsQuery, toCarePeriod } from "~/lib/care-periods/carePeriods.sync";
+import { providerQuery } from "~/lib/providers/providers.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 
 /**
  * The period, the group's track (for its end and its neighbours), its place,

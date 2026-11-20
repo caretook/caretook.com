@@ -1,4 +1,4 @@
-import { formString } from "../../../../../lib/form";
+import { formString } from "../../../../../lib/core/form";
 
 // The Passes screen's posts, read from the form: add, edit (rename or
 // retime), move up or down, delete. Pure; web:unit tests it.

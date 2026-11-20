@@ -1,20 +1,20 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import type { ProvidersOutlet } from "./providerSheet";
 
 import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { directoryList, parseDirectoryFilters } from "~/lib/providerDirectory";
-import { PROVIDER_SHEET_STATE } from "~/lib/providerSheetLink";
-import { sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { directoryList, parseDirectoryFilters } from "~/lib/providers/providerDirectory";
+import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
+import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
-import { providersQuery, toProviders } from "~/lib/sync/providers";
-import { readRows } from "~/lib/sync/timeline";
+import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { ProviderSearch, TypeFilter } from "./DirectoryFilters";
 import { DirectoryResults } from "./DirectoryResults";
 import { onlyProviderSheetChanged } from "./providerSheetGuard";
@@ -23,7 +23,7 @@ import { onlyProviderSheetChanged } from "./providerSheetGuard";
 // device's local copy (live, so it works offline and follows other members'
 // changes). Search (`?q=`), the type (`?type=`) and past providers (`?past=1`)
 // live in the URL; the list is filtered and ordered on the device
-// (`lib/providerDirectory.ts`).
+// (`lib/providers/providerDirectory.ts`).
 
 export const meta = () => [{ title: "Providers · Caretook" }];
 

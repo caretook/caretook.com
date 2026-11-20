@@ -1,4 +1,4 @@
-import { toActionResult } from "~/lib/api";
+import { toActionResult } from "~/lib/core/api";
 
 // What a refused admin action shows.
 

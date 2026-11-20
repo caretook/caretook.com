@@ -1,4 +1,4 @@
-import type { LocalProvider } from "~/lib/sync/providers";
+import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useId, useMemo, useState } from "react";
 import { ChipList, ComboBox } from "~/components/ui";

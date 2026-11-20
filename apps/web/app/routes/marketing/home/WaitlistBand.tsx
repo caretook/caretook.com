@@ -1,8 +1,8 @@
 import type { WaitlistBandContent } from "../sections/types";
 
 import { CARING_FOR, CARING_FOR_LABELS, HEARD_FROM_MAX, NAME_MAX } from "@caretook/data/schema";
-import { formString } from "~/lib/form";
-import { rpc } from "~/lib/rpc";
+import { formString } from "~/lib/core/form";
+import { rpc } from "~/lib/core/rpc";
 import { waitlistSource } from "../sections/forms";
 import { PublicFormFrame, SelectField, SubmitButton, TextField, usePublicForm } from "../sections/PublicForm";
 import { CtaLink } from "../sections/Sections";

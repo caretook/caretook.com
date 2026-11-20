@@ -1,18 +1,18 @@
 import type { Route } from "./+types/route";
-import type { ActionResult } from "~/lib/api";
-import type { MedicationRow } from "~/lib/sync/medications";
-import type { EntryRow } from "~/lib/sync/timeline";
+import type { ActionResult } from "~/lib/core/api";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
+import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
 import { useEffect, useMemo } from "react";
 import { redirect } from "react-router";
-import { KIND_META } from "~/lib/entryDisplay";
-import { formString } from "~/lib/form";
-import { getGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
-import { medicationIdOf, medicationLabel } from "~/lib/medicationEntries";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { formString } from "~/lib/core/form";
+import { getGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
+import { medicationIdOf, medicationLabel } from "~/lib/medications/medicationEntries";
 import { useLiveQuery } from "~/lib/sync";
-import { medicationQuery, updateDose } from "~/lib/sync/medications";
-import { readRows, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
+import { medicationQuery, updateDose } from "~/lib/medications/medications.sync";
+import { readRows, toTimelineEntry, updateEntry } from "~/lib/timeline/timeline.sync";
 import { DoseForm } from "../DoseForm";
 import { dosePatchFromForm } from "../doseFormData";
 import { entryUpdateFromForm, parseUnits } from "../entryFormData";

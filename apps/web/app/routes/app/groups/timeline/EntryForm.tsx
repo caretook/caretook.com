@@ -1,6 +1,6 @@
 import type { TimelineEntryKind, UnitChoices, VitalType } from "@caretook/data/schema";
-import type { EntryDraft } from "~/lib/quickEntryDraft";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { EntryDraft } from "~/lib/assistant/quickEntryDraft";
+import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { useState } from "react";
 import {

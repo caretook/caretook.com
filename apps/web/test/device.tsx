@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import type { RenderResult } from "vitest-browser-react";
-import type { SessionUser } from "~/lib/session";
+import type { SessionUser } from "~/lib/auth/session";
 import type { SyncDb } from "~/lib/sync";
 import type { Fixture, Fixtures, GroupRole } from "./fixtures";
 
@@ -8,9 +8,9 @@ import { useLayoutEffect } from "react";
 import { createRoutesStub, Outlet, RouterContextProvider, useLocation } from "react-router";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { sessionContext } from "~/lib/session";
+import { sessionContext } from "~/lib/auth/session";
 import { installTestDatabase } from "~/lib/sync";
-import { searchIndexSettled } from "~/lib/sync/search";
+import { searchIndexSettled } from "~/lib/search/search.sync";
 import * as appLayout from "~/routes/app/layout/route";
 import * as groupLayout from "~/routes/app/groups/layout/route";
 import { openTestDatabase, queuedWrites, setConnected, settle, syncDown, syncRemove } from "./database";

@@ -1,12 +1,12 @@
 import type { SyncDb } from "~/lib/sync";
-import type { PassRow } from "~/lib/sync/medicationPasses";
-import type { MedicationRow } from "~/lib/sync/medications";
+import type { PassRow } from "~/lib/medications/medicationPasses.sync";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
 
 import { useMemo } from "react";
 import { useLiveQuery } from "~/lib/sync";
-import { passesQuery, passesWithMedications, toPasses } from "~/lib/sync/medicationPasses";
-import { medicationsQuery, toMedications } from "~/lib/sync/medications";
-import { readRows } from "~/lib/sync/timeline";
+import { passesQuery, passesWithMedications, toPasses } from "~/lib/medications/medicationPasses.sync";
+import { medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 
 // The Passes screen's data: the group's live passes in the day's order, each
 // with the current medications in it, read locally (so it works offline) and

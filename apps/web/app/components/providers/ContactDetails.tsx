@@ -1,4 +1,4 @@
-import type { ContactDetail } from "~/lib/contactActions";
+import type { ContactDetail } from "~/lib/providers/contactActions";
 
 import { ACTION_ICONS, actionLinkProps } from "./ContactActions";
 

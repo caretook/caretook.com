@@ -1,16 +1,16 @@
 import type { SyncDb } from "~/lib/sync";
-import type { NoteDocRow } from "~/lib/sync/notes";
-import type { EntryFilters, EntryRow, MemberRow } from "~/lib/sync/timeline";
+import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { EntryFilters, EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 import type { ContactRow } from "./upcomingContact";
 import type { RescheduledTargetRow } from "./upcomingQueries";
-import type { TaskRow } from "~/lib/sync/tasks";
+import type { TaskRow } from "~/lib/tasks/tasks.sync";
 
-import { PAGE_SIZE } from "~/lib/paging";
-import { loadDueDoses } from "~/lib/sync/dueDoses";
-import { groupDocumentsQuery } from "~/lib/sync/notes";
-import { dueTasksQuery, dueTasksThrough } from "~/lib/sync/tasks";
-import { membersQuery, readRows, UPCOMING_HORIZON_DAYS } from "~/lib/sync/timeline";
-import { historyCutoff } from "~/lib/upcoming";
+import { PAGE_SIZE } from "~/lib/core/paging";
+import { loadDueDoses } from "~/lib/medications/dueDoses.sync";
+import { groupDocumentsQuery } from "~/lib/live-notes/notes.sync";
+import { dueTasksQuery, dueTasksThrough } from "~/lib/tasks/tasks.sync";
+import { membersQuery, readRows, UPCOMING_HORIZON_DAYS } from "~/lib/timeline/timeline.sync";
+import { historyCutoff } from "~/lib/appointments/upcoming";
 import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
 
 // The first render's rows for Upcoming and its Past tab, read from the

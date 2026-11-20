@@ -1,4 +1,4 @@
-import type { DeviceAnnouncement } from "~/lib/announcement";
+import type { DeviceAnnouncement } from "~/lib/admin/announcement";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";

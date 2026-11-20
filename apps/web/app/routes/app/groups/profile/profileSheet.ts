@@ -1,10 +1,10 @@
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { toActionResult } from "~/lib/api";
-import { appUrls } from "~/lib/appUrls";
-import { PROFILE_NEEDS_CONNECTION } from "~/lib/recipientDisplay";
+import { toActionResult } from "~/lib/core/api";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { PROFILE_NEEDS_CONNECTION } from "~/lib/profiles/recipientDisplay";
 import { useSyncState } from "~/lib/sync";
 
 // The profile's edit sheets are child routes (`profile/basics`, and later

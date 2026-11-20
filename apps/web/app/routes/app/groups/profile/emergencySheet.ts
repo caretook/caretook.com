@@ -1,17 +1,17 @@
 import type { RouterContextProvider } from "react-router";
-import type { ActionResult } from "~/lib/api";
-import type { EmergencySave } from "~/lib/emergencyList";
+import type { ActionResult } from "~/lib/core/api";
+import type { EmergencySave } from "~/lib/profiles/emergencyList";
 
 import { canManageEmergencyContacts, outsideContactsZSchema } from "@caretook/data/schema";
 import { redirect } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { EMERGENCY_FIELD, outsideFieldName, parseEmergencySave } from "~/lib/emergencyList";
-import { getGroup } from "~/lib/group";
-import { toRecipientDetails } from "~/lib/recipientDetails";
-import { rpc } from "~/lib/rpc";
-import { sessionContext } from "~/lib/session";
-import { loadMemberDetailRows, waitForEmergencyList } from "~/lib/sync/members";
-import { loadRecipientDetailsRows } from "~/lib/sync/recipientDetails";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { EMERGENCY_FIELD, outsideFieldName, parseEmergencySave } from "~/lib/profiles/emergencyList";
+import { getGroup } from "~/lib/app-shell/group";
+import { toRecipientDetails } from "~/lib/profiles/recipientDetails";
+import { rpc } from "~/lib/core/rpc";
+import { sessionContext } from "~/lib/auth/session";
+import { loadMemberDetailRows, waitForEmergencyList } from "~/lib/care-groups/members.sync";
+import { loadRecipientDetailsRows } from "~/lib/profiles/recipientDetails.sync";
 import { failedProfileSave } from "./profileSheet";
 
 // The `profile/emergency` sheet's loader and save (owners and admins only).

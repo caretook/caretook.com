@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 import type { DaySummaryMode, UnitChoices } from "@caretook/data/schema";
-import type { SimpleModeState } from "~/lib/useSimpleMode";
+import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 import type { TimelineData } from "./useTimelineData";
 
 import { Link } from "react-router";
 import { QuickEntryBox } from "~/components/quick-entry";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { nextStripText, upcomingTitle } from "~/lib/upcomingLabels";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { RemoveLastEntry } from "./RemoveLastEntry";
 import { SimpleNow } from "./SimpleNow";
 import { SimpleTasks } from "./SimpleTasks";

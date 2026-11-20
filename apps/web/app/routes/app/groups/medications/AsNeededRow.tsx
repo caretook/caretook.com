@@ -1,12 +1,12 @@
-import type { AsNeededToday, DueDoses } from "~/lib/dueDoses";
+import type { AsNeededToday, DueDoses } from "~/lib/medications/dueDoses";
 
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { ConfirmDialog } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { doseWarnings } from "~/lib/dueDoses";
-import { asNeededCountText, doseWarningText, medicationTitle } from "~/lib/medicationDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { doseWarnings } from "~/lib/medications/dueDoses";
+import { asNeededCountText, doseWarningText, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useLogDose } from "./useLogDose";
 
 /**

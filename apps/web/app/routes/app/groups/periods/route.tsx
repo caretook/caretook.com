@@ -1,18 +1,18 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { CarePeriodRow } from "~/lib/sync/carePeriods";
+import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
 
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
 import { Link, Outlet } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { PERIOD_SHEET_STATE, onlyPeriodSheetChanged } from "~/lib/periodSheets";
-import { sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { PERIOD_SHEET_STATE, onlyPeriodSheetChanged } from "~/lib/care-periods/periodSheets";
+import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
-import { carePeriodsQuery, toPeriodSpans } from "~/lib/sync/carePeriods";
-import { readRows } from "~/lib/sync/timeline";
-import { useNow } from "~/lib/sync/editors";
+import { carePeriodsQuery, toPeriodSpans } from "~/lib/care-periods/carePeriods.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
+import { useNow } from "~/lib/live-notes/editors.sync";
 import { PeriodList } from "./PeriodList";
 import { loadPlaceRows, usePlaceChoices } from "./periodSheet";
 

@@ -1,5 +1,5 @@
 import type { AppSettingKey, StaffCapability } from "@caretook/data/schema";
-import type { ApiOutputs } from "~/lib/rpc";
+import type { ApiOutputs } from "~/lib/core/rpc";
 import type { AuditEntryView } from "~/routes/admin/AuditEntryList";
 import type { SettingRow } from "~/routes/admin/settings/SettingCard";
 

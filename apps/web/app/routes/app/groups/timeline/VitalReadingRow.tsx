@@ -1,5 +1,5 @@
 import type { UnitChoices, VitalReading, VitalType } from "@caretook/data/schema";
-import type { FieldIssue } from "~/lib/api";
+import type { FieldIssue } from "~/lib/core/api";
 
 import { VITALS } from "@caretook/data/schema";
 import { vitalInputName } from "./entryFormData";

@@ -42,6 +42,12 @@
 //      group's timeline with the Invite someone card. A revoked code says so
 //      with no form, and signed out, staff pages ask to sign in.
 //
+// Check migration slice 17 (B-127): the invite page's views, the wrong-account
+// view, the sign-in tabs, the invite sheet and the Pending list are component
+// tests (routes/account/invite/invite.browser.test.tsx, routes/sign-in.browser.test.tsx,
+// members/invites.browser.test.tsx). Here an invite's state is read from
+// `invite.preview`, and only step 5 drives the sheet.
+//
 // Order-independent and self-cleaning: it makes its own fictional accounts
 // (inv<run>-…@example.com, with the seed password) and deletes them, their
 // mail and their outbox rows at the end (their invites, consent rows,
@@ -202,12 +208,9 @@ try {
   // 1. Magic link --------------------------------------------------------------
   await step("1. sign in with an emailed link", { smoke: true }, async () => {
     const p = await open(9501, "link");
-    await p.goto("/sign-in");
-    await p.waitFor(q('nav[aria-label="Ways to sign in"]'));
-    await p.press(
-      `[...document.querySelectorAll('nav[aria-label="Ways to sign in"] a')].find((a) => a.textContent.trim() === "Email")`,
-    );
-    await p.waitFor(`location.search.includes("with=email") && ${submit("Send email")}`);
+    // The Email tab itself is a component test (sign-in.browser.test.tsx).
+    await p.goto("/sign-in?with=email");
+    await p.waitFor(submit("Send email"));
     await p.type(q('input[name="email"]'), linkUser);
     await doublePress(p, submit("Send email"));
     await p.waitFor(`${statusText}.startsWith("Check your email") && ${q('input[name="code"]')}`, 15000);
@@ -499,20 +502,38 @@ try {
   await owner.signIn("member@example.com", PASSWORD);
   await openMembers(owner);
 
+  const rpcCall = (p, path, json) =>
+    p.evaluate(
+      `fetch("/rpc/${path}", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: JSON.stringify({ json: ${JSON.stringify(json)} }) }).then(async (r) => ({ status: r.status, body: await r.json() }))`,
+    );
+  /** What the server says an invite link is (public): its state, never the group's name. The page's views are component tests. */
+  const previewOf = async (link) => {
+    const token = link.split("/").pop();
+    const res = await fetch(`${BASE}/rpc/invite/preview`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-csrf-token": "orpc" },
+      body: JSON.stringify({ json: { token } }),
+    });
+    const text = await res.text();
+    return { state: JSON.parse(text).json?.state, leaksGroup: text.includes("Grandma") };
+  };
+  /** An email invite sent through the API as the owner (the sheet itself is a component test; step 5 uses it once). */
+  const apiInvite = async (address, role) => {
+    const res = await rpcCall(owner, "invite/createEmail", {
+      groupId: DEV_FAMILY,
+      email: address,
+      role,
+      attested: true,
+    });
+    if (res.status !== 200) throw new Error(`createEmail answered ${res.status}`);
+  };
+  const inviteIdOf = (address) => psql(`SELECT id FROM care_group_invite WHERE email = '${address}'`);
+
   // 5. A new person: invite, mail, sign up with the email locked, consent, join.
   const newbie = email("newbie");
   await step("5. a new person is invited, signs up, consents and joins", { smoke: true }, async () => {
     await inviteFromMembers(owner, newbie, "caretaker");
     check(true, "an owner invites a new address from the Members page");
-    const pendingText = await owner.evaluate(`${pendingRow(newbie)}.textContent`);
-    check(
-      pendingText.includes("Caretaker") &&
-        pendingText.includes(`Sent by ${inviterName}`) &&
-        pendingText.includes("Expires"),
-      "Pending lists it with role, sender and expiry",
-      pendingText,
-    );
-
     const mail = await waitForMail(newbie, "groupInvite");
     check(
       mail.subject.includes(inviterName) && mail.subject.includes("Grandma Pat"),
@@ -534,16 +555,7 @@ try {
 
     const p = await open(9512, "inv-newbie");
     await p.goto(pathOf(link));
-    await p.waitFor(`${heading}.startsWith("Join")`, 20000);
-    const form = await p.evaluate(
-      `(() => { const e = document.querySelector('[data-invite-form="signUp"] input[name="email"]'); return { value: e?.value, readOnly: e?.readOnly, title: ${heading} }; })()`,
-    );
-    check(
-      form.value === newbie && form.readOnly,
-      "signing up, the email is the invite's and locked",
-      JSON.stringify(form),
-    );
-    check(form.title === "Join Grandma Pat's care group", "the page names the group", form.title);
+    await p.waitFor(`document.querySelector('[data-invite-form="signUp"]')`, 20000);
     await p.type(
       `document.querySelector('[data-invite-form="signUp"] input[name="name"]')`,
       `Inv Newbie ${RUN}`,
@@ -556,12 +568,6 @@ try {
     check(
       psql(`SELECT email_verified FROM "user" WHERE email = '${newbie}'`) === "t",
       "the new account is verified",
-    );
-    const consentText = await p.evaluate(`document.querySelector('[data-invite-form="accept"]').textContent`);
-    check(
-      /shares the care recipient's health information/.test(consentText) && /Timeline/.test(consentText),
-      "the consent screen says what the group shares",
-      consentText.slice(0, 120),
     );
     await p.press(`document.querySelector('[data-invite-form="accept"] input[name="consent"]')`);
     await p.press(button("Join the care group"));
@@ -613,15 +619,12 @@ try {
       history,
     );
 
-    // The used link now says so, and names nothing.
-    const q2 = await open(9513, "inv-used");
-    await q2.goto(pathOf(link));
-    await q2.waitFor(`${heading}.length > 0`, 20000);
-    const used = await q2.evaluate(`({ h: ${heading}, body: document.querySelector("main").textContent })`);
+    // The used link now says so, and names nothing (its page is a component test).
+    const used = await previewOf(link);
     check(
-      used.h === "This invitation was already accepted" && !used.body.includes("Grandma"),
-      "an accepted link says so without the recipient's details",
-      used.h,
+      used.state === "accepted" && !used.leaksGroup,
+      "an accepted link says so, naming nothing",
+      used.state,
     );
   });
 
@@ -630,7 +633,7 @@ try {
     const existing = createAccount("existing");
     await owner.goto(MEMBERS_PATH);
     await openMembers(owner);
-    await inviteFromMembers(owner, existing, "viewer");
+    await apiInvite(existing, "viewer");
     const link = inviteLink(await waitForMail(existing, "groupInvite"));
 
     const p = await open(9514, "inv-existing");
@@ -661,15 +664,12 @@ try {
 
     // Now signed in as `existing`, open an invite for someone else.
     const other = email("other");
-    await inviteFromMembers(owner, other, "caretaker");
+    await apiInvite(other, "caretaker");
     const otherLink = inviteLink(await waitForMail(other, "groupInvite"));
     await p.goto(pathOf(otherLink));
-    await p.waitFor(`${heading}.length > 0`, 20000);
-    check(
-      (await p.evaluate(heading)) === "This invitation is for another email address",
-      "signed in as someone else, the invite says it's for another address",
-    );
-    check(!(await p.evaluate(`document.querySelector('[data-invite-form="accept"]')`)), "and offers no Join");
+    // Signed in as someone else, the page says it's for another address and
+    // offers no Join (a component test); Sign out is the flow kept here.
+    await p.waitFor(button("Sign out"), 20000);
     await p.press(button("Sign out"));
     await p.waitFor(
       `location.pathname === ${JSON.stringify(pathOf(otherLink))} && document.querySelector('[data-invite-form="signUp"]')`,
@@ -684,71 +684,44 @@ try {
       psql(`SELECT status FROM care_group_invite WHERE email = '${other}'`) === "declined",
       "Decline marks the invite declined",
     );
-    await p.goto(pathOf(otherLink));
-    await p.waitFor(`${heading}.length > 0`, 20000);
-    check((await p.evaluate(heading)) === "This invitation was declined", "a declined link says so");
-    await openMembers(owner);
-    await owner.waitFor(pendingRow(other), 15000);
-    check(
-      (await owner.evaluate(`${pendingRow(other)}.textContent`)).includes("Declined"),
-      "the inviter sees it declined in Pending",
-    );
+    check((await previewOf(otherLink)).state === "declined", "a declined link says so");
+    // The inviter's Pending list showing it declined: invites.int.test.ts and invites.browser.test.tsx.
   });
 
   // 8. Resend rotates the link; revoke and expiry close it.
   await step("8. resend rotates the link; revoke and expiry close it", async () => {
     const target = email("resend");
-    await inviteFromMembers(owner, target, "viewer");
+    await apiInvite(target, "viewer");
     const first = inviteLink(await waitForMail(target, "groupInvite"));
-    await owner.press(`${pendingRow(target)}.querySelector("button")`); // Resend
+    await rpcCall(owner, "invite/resend", { id: inviteIdOf(target) });
     const second = inviteLink(await waitForMail(target, "groupInvite", 2));
     check(first !== second, "Resend sends a new link");
 
-    const p = await open(9515, "inv-closed");
-    await p.goto(pathOf(first));
-    await p.waitFor(`${heading}.length > 0`, 20000);
-    const old = await p.evaluate(`({ h: ${heading}, body: document.querySelector("main").textContent })`);
-    check(
-      old.h === "This invitation isn't valid" && !old.body.includes("Grandma"),
-      "and the old one stops working",
-      old.h,
-    );
-    await p.goto(pathOf(second));
-    await p.waitFor(`${heading}.startsWith("Join")`, 20000);
-    check(true, "the new link works");
+    const old = await previewOf(first);
+    check(old.state === "notFound" && !old.leaksGroup, "and the old one stops working", old.state);
+    check((await previewOf(second)).state === "usable", "the new link works");
 
-    await owner.press(
-      `[...${pendingRow(target)}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Revoke")`,
-    );
-    await owner.waitFor(`document.querySelector("dialog[open]")`, 5000);
-    await owner.press(
-      `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === "Revoke")`,
-    );
-    await owner.waitFor(`!${pendingRow(target)}`, 15000);
+    await rpcCall(owner, "invite/revoke", { id: inviteIdOf(target) });
     check(
       psql(`SELECT status FROM care_group_invite WHERE email = '${target}'`) === "revoked",
       "Revoke withdraws it",
     );
-    await p.goto(pathOf(second));
-    await p.waitFor(`${heading}.length > 0`, 20000);
-    const revoked = await p.evaluate(`({ h: ${heading}, body: document.querySelector("main").textContent })`);
+    const revoked = await previewOf(second);
     check(
-      revoked.h === "This invitation was withdrawn" && !revoked.body.includes("Grandma"),
+      revoked.state === "revoked" && !revoked.leaksGroup,
       "a revoked link says so at once, naming nothing",
-      revoked.h,
+      revoked.state,
     );
 
     const late = email("late");
-    await inviteFromMembers(owner, late, "viewer");
+    await apiInvite(late, "viewer");
     const lateLink = inviteLink(await waitForMail(late, "groupInvite"));
     psql(`UPDATE care_group_invite SET expires_at = now() - interval '1 minute' WHERE email = '${late}'`);
-    await p.goto(pathOf(lateLink));
-    await p.waitFor(`${heading}.length > 0`, 20000);
-    const expired = await p.evaluate(`({ h: ${heading}, body: document.querySelector("main").textContent })`);
+    const expired = await previewOf(lateLink);
     check(
-      expired.h === "This invitation has expired" && !expired.body.includes("Grandma"),
+      expired.state === "expired" && !expired.leaksGroup,
       "an expired link says so, naming nothing",
-      expired.h,
+      expired.state,
     );
   });
 
@@ -757,15 +730,7 @@ try {
     for (const who of ["caretaker", "viewer"]) {
       const p = await open(who === "caretaker" ? 9516 : 9517, `inv-${who}`);
       await p.signIn(`${who}@example.com`, PASSWORD);
-      await openMembers(p);
-      const controls = await p.evaluate(
-        `({ invite: !!document.querySelector("[data-invite-controls]"), pending: !!document.querySelector("[data-pending-invites]"), link: !!document.querySelector("[data-link-controls]"), links: !!document.querySelector("[data-invite-links]"), requests: !!document.querySelector("[data-join-requests]") })`,
-      );
-      check(
-        Object.values(controls).every((shown) => !shown),
-        `a ${who} sees no Invite or Create a link button, and no Pending, links or requests`,
-        JSON.stringify(controls),
-      );
+      // The absent controls are a component test (members/invites.browser.test.tsx).
       const linkStatus = await p.evaluate(
         `fetch("/rpc/invite/createLink", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: JSON.stringify({ json: { groupId: ${JSON.stringify(DEV_FAMILY)}, role: "viewer" } }) }).then((r) => r.status)`,
       );
@@ -800,10 +765,6 @@ try {
       navigator.canShare = () => true;
       navigator.share = (d) => (window.__shared.push(d), Promise.resolve());
       return true; })()`);
-  const rpcCall = (p, path, json) =>
-    p.evaluate(
-      `fetch("/rpc/${path}", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: JSON.stringify({ json: ${JSON.stringify(json)} }) }).then(async (r) => ({ status: r.status, body: await r.json() }))`,
-    );
   /** A link made through the API as the owner, for the steps that don't test the form. */
   const apiLink = async (input) => {
     const res = await rpcCall(owner, "invite/createLink", { groupId: DEV_FAMILY, ...input });
@@ -890,18 +851,7 @@ try {
     const p = await open(9522, "inv-joiner");
     const path = pathOf(url);
     await p.goto(path);
-    await p.waitFor(
-      `${heading}.startsWith("Join") && document.querySelector('[data-invite-form="signUp"]')`,
-      20000,
-    );
-    const form = await p.evaluate(
-      `(() => { const e = document.querySelector('[data-invite-form="signUp"] input[name="email"]'); return { value: e?.value, readOnly: e?.readOnly, decline: !!document.querySelector('[data-invite-form="decline"]') }; })()`,
-    );
-    check(
-      form.value === "" && !form.readOnly && !form.decline,
-      "a link's sign-up takes any address, with no Decline",
-      JSON.stringify(form),
-    );
+    await p.waitFor(`document.querySelector('[data-invite-form="signUp"]')`, 20000);
     await p.type(`document.querySelector('[data-invite-form="signUp"] input[name="email"]')`, joiner);
     await p.type(
       `document.querySelector('[data-invite-form="signUp"] input[name="name"]')`,
@@ -928,11 +878,6 @@ try {
       30000,
     );
     check(true, "the confirmation link signs them in and brings them back to the link");
-    const consentText = await p.evaluate(`document.querySelector('[data-invite-form="accept"]').textContent`);
-    check(
-      /health information/.test(consentText) && /approves each request/.test(consentText),
-      "the consent screen says what's shared and that a request waits for approval",
-    );
     await p.press(`document.querySelector('[data-invite-form="accept"] input[name="consent"]')`);
     await p.press(button("Ask to join"));
     await p.waitFor(`location.pathname === "/app" && ${myRequest}`, 30000);
@@ -1018,10 +963,7 @@ try {
     // A link whose uses are all taken (counting is covered by the integration tests).
     const once = await apiLink({ role: "viewer", maxUses: 1 });
     psql(`UPDATE care_group_invite SET use_count = 1 WHERE id = '${once.id}'`);
-    const late = await open(9524, "inv-late");
-    await late.goto(once.path);
-    await late.waitFor(`${heading}.length > 0`, 20000);
-    check((await late.evaluate(heading)) === "This invitation has been used up", "a used-up link says so");
+    check((await previewOf(once.path)).state === "usedUp", "a used-up link says so");
 
     // Decline, from Members.
     await openMembers(owner);
@@ -1059,20 +1001,12 @@ try {
       `[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === "Revoke")`,
     );
     await owner.waitFor(`!${linkRow(revoked.id)}`, 15000);
-    await late.goto(revoked.path);
-    await late.waitFor(`${heading}.length > 0`, 20000);
-    const gone = await late.evaluate(`({ h: ${heading}, body: document.querySelector("main").textContent })`);
-    check(
-      gone.h === "This invitation was withdrawn" && !gone.body.includes("Grandma"),
-      "a revoked link stops at once",
-      gone.h,
-    );
+    const gone = await previewOf(revoked.path);
+    check(gone.state === "revoked" && !gone.leaksGroup, "a revoked link stops at once", gone.state);
 
     const old = await apiLink({ role: "viewer", expiresInDays: 1 });
     psql(`UPDATE care_group_invite SET expires_at = now() - interval '1 minute' WHERE id = '${old.id}'`);
-    await late.goto(old.path);
-    await late.waitFor(`${heading}.length > 0`, 20000);
-    check((await late.evaluate(heading)) === "This invitation has expired", "an expired link says so");
+    check((await previewOf(old.path)).state === "expired", "an expired link says so");
 
     // The API never makes an owner or admin link, and never reads back an email invite's token.
     for (const role of ["owner", "admin"]) {

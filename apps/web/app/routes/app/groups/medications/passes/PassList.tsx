@@ -1,13 +1,13 @@
 import type { MenuEntry } from "~/components/ui";
-import type { LocalPass } from "~/lib/sync/medicationPasses";
-import type { LocalMedication } from "~/lib/sync/medications";
+import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
+import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { ArrowDown, ArrowUp, Clock, Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useFetcher } from "react-router";
 import { ConfirmDialog, Menu, SEPARATOR } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { clockTime, medicationTitle } from "~/lib/medicationDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { clockTime, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { PASS_FIELD } from "./passActions";
 
 export type PassWithMedications = { pass: LocalPass; medications: LocalMedication[] };

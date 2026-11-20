@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { normalizeQuery, parseFilters, setQuery } from "~/lib/timelineFilters";
+import { normalizeQuery, parseFilters, setQuery } from "~/lib/timeline/timelineFilters";
 
 /** How long typing pauses before the URL (and so the list) follows. */
 export const SEARCH_DEBOUNCE_MS = 250;

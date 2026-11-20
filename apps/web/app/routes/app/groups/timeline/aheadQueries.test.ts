@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { windowLinksQuery } from "../../../../lib/sync/providers";
-import { upcomingQuery, upcomingWindow } from "../../../../lib/sync/timeline";
+import { windowLinksQuery } from "../../../../lib/providers/providers.sync";
+import { upcomingQuery, upcomingWindow } from "../../../../lib/timeline/timeline.sync";
 import { aheadQueries, seeAllSearch } from "./aheadQueries";
 
 const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";

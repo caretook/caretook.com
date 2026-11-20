@@ -1,14 +1,14 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { redirect, useLocation } from "react-router";
 import { Sheet } from "~/components/ui";
-import { TASK_PREFILL_PARAMS } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { scheduleZoneNote } from "~/lib/medicationDisplay";
-import { sessionContext } from "~/lib/session";
-import { createTask } from "~/lib/sync/tasks";
+import { TASK_PREFILL_PARAMS } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
+import { sessionContext } from "~/lib/auth/session";
+import { createTask } from "~/lib/tasks/tasks.sync";
 import { TaskForm } from "../TaskForm";
 import { taskFromForm } from "../taskFormData";
 import {
@@ -18,7 +18,7 @@ import {
   useCloseTaskSheet,
   useLinkChoices,
 } from "../taskSheet";
-import { newTaskGuard } from "~/lib/taskSheets";
+import { newTaskGuard } from "~/lib/tasks/taskSheets";
 
 // Shared by web + native. `tasks/new`: the add sheet, over the list. It can
 // start with a due day (`?dueOn=`), from quick entry's Edit a title, an

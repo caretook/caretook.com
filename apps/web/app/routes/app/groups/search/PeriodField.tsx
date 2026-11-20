@@ -1,10 +1,10 @@
-import type { PeriodChoice } from "~/lib/periodSearch";
+import type { PeriodChoice } from "~/lib/care-periods/periodSearch";
 import type { SearchItemType } from "@caretook/data/schema";
 
 import { useNavigate } from "react-router";
 import { Field } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { choiceText } from "~/lib/periodSearch";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { choiceText } from "~/lib/care-periods/periodSearch";
 
 const ANY_TIME = "";
 

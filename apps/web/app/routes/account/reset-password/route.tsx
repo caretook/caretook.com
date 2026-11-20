@@ -2,16 +2,16 @@ import type { Route } from "./+types/route";
 
 import { Form, Link, useNavigation } from "react-router";
 import { Field } from "~/components/ui/plain";
-import { accountUrls } from "~/lib/accountUrls";
-import { authClient } from "~/lib/auth-client";
+import { accountUrls } from "~/lib/auth/accountUrls";
+import { authClient } from "~/lib/auth/auth-client";
 import {
   authMessages,
   isBadToken,
   MIN_PASSWORD_LENGTH,
   newPasswordProblem,
   requestFailure,
-} from "~/lib/authMessages";
-import { formString } from "~/lib/form";
+} from "~/lib/auth/authMessages";
+import { formString } from "~/lib/core/form";
 import { AuthCard, useSubmitOnce, EmailField, ErrorMessage, StatusMessage } from "../AuthCard";
 
 // Shared by web + native: client-only. "Forgot password?" on sign-in opens it

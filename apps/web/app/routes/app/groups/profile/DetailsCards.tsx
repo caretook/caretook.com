@@ -1,14 +1,19 @@
-import type { ProfileSheet } from "~/lib/appUrls";
-import type { MemberContactLine } from "~/lib/memberContact";
-import type { RecipientDetails } from "~/lib/recipientDetails";
+import type { ProfileSheet } from "~/lib/app-shell/appUrls";
+import type { MemberContactLine } from "~/lib/profiles/memberContact";
+import type { RecipientDetails } from "~/lib/profiles/recipientDetails";
 
 import { Pencil } from "lucide-react";
 import { Link } from "react-router";
 import { ContactLines } from "~/components/contact";
-import { appUrls } from "~/lib/appUrls";
-import { memberContactLines } from "~/lib/memberContact";
-import { INSURANCE_RANK_LABELS, insuranceCall, plansByRank, planTitle } from "~/lib/recipientDetails";
-import { PROFILE_NEEDS_CONNECTION } from "~/lib/recipientDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { memberContactLines } from "~/lib/profiles/memberContact";
+import {
+  INSURANCE_RANK_LABELS,
+  insuranceCall,
+  plansByRank,
+  planTitle,
+} from "~/lib/profiles/recipientDetails";
+import { PROFILE_NEEDS_CONNECTION } from "~/lib/profiles/recipientDisplay";
 import { ProfileCard } from "./ProfileCards";
 import { PROFILE_SHEET_STATE, useOnline } from "./profileSheet";
 

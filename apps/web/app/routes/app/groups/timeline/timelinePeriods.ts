@@ -1,10 +1,10 @@
 import type { PeriodSpan } from "@caretook/data/schema";
-import type { CarePeriodRow, LocalCarePeriod } from "~/lib/sync/carePeriods";
-import type { LocalQuery } from "~/lib/sync/timeline";
+import type { CarePeriodRow, LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
+import type { LocalQuery } from "~/lib/timeline/timeline.sync";
 
 import { useMemo } from "react";
 import { useLiveQuery } from "~/lib/sync";
-import { carePeriodsQuery, toPeriodSpans } from "~/lib/sync/carePeriods";
+import { carePeriodsQuery, toPeriodSpans } from "~/lib/care-periods/carePeriods.sync";
 
 // The timeline's care periods: the group's track (for the current-period
 // line and the boundary markers) and the names of the places they name, live.

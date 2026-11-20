@@ -1,15 +1,15 @@
 import type { Measure } from "@caretook/data/schema";
 import type { Route } from "./+types/route";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { UNIT_LABEL, UNIT_OPTIONS, unitChoicesZSchema } from "@caretook/data/schema";
 import { useFetcher } from "react-router";
 import { SaveRow, SettingsCard, SettingsPage } from "~/components/settings";
 import { ChoiceGroup } from "~/components/ui";
-import { toActionResult } from "~/lib/api";
-import { formString } from "~/lib/form";
-import { loadSettings, saveSettings } from "~/lib/me";
-import { sessionContext } from "~/lib/session";
+import { toActionResult } from "~/lib/core/api";
+import { formString } from "~/lib/core/form";
+import { loadSettings, saveSettings } from "~/lib/app-shell/me";
+import { sessionContext } from "~/lib/auth/session";
 
 // `/app/settings/units`. Shared by web + native: client-only data
 // (clientLoader/clientAction). Units save through `saveSettings`, like the

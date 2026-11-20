@@ -1,13 +1,13 @@
-import type { MemberRow } from "~/lib/sync/timeline";
+import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { CalendarX2 } from "lucide-react";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { cancelledByLine } from "~/lib/eventCancel";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { cancelledByLine } from "~/lib/appointments/eventCancel";
 import { useLiveQuery } from "~/lib/sync";
-import { fromLocalTimestamp, membersQuery } from "~/lib/sync/timeline";
-import { useNow } from "~/lib/sync/editors";
-import { rescheduledLabel } from "~/lib/upcomingLabels";
+import { fromLocalTimestamp, membersQuery } from "~/lib/timeline/timeline.sync";
+import { useNow } from "~/lib/live-notes/editors.sync";
+import { rescheduledLabel } from "~/lib/appointments/upcomingLabels";
 
 const NO_MEMBERS: MemberRow[] = [];
 const NO_TARGET: { id: string; occurred_at: string | null }[] = [];

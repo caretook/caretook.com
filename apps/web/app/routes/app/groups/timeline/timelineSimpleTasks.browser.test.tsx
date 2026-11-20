@@ -6,7 +6,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, task, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
-import { clearTaskUndo } from "~/lib/taskUndo";
+import { clearTaskUndo } from "~/lib/tasks/taskUndo";
 import * as timeline from "./route";
 import { waitUntil } from "./timelineWorld";
 

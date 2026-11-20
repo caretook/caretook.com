@@ -1,6 +1,6 @@
 import type { OutsideContact } from "@caretook/data/schema";
-import type { ActionResult, FieldIssue } from "~/lib/api";
-import type { DraftEntry, EmergencyDraft, EmergencyMemberRow } from "~/lib/emergencyList";
+import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { DraftEntry, EmergencyDraft, EmergencyMemberRow } from "~/lib/profiles/emergencyList";
 
 import { CONTACT_LIMITS, DETAILS_LIMITS, PROVIDER_LIMITS } from "@caretook/data/schema";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
@@ -18,7 +18,7 @@ import {
   movedText,
   outsideFieldName,
   withoutPhoneText,
-} from "~/lib/emergencyList";
+} from "~/lib/profiles/emergencyList";
 import { SheetButtons } from "./SheetButtons";
 
 const NO_PRIMARY = "none";

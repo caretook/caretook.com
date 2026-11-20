@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import type { LocalCarePeriod } from "~/lib/sync/carePeriods";
+import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 
-import { periodTitle, periodTypeMeta } from "~/lib/periodDisplay";
+import { periodTitle, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
 
 /**
  * The period's header, in regions like `MedicationHeader`'s:

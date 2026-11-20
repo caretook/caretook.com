@@ -1,5 +1,5 @@
 import type { CareRecipientProfileInput } from "@caretook/data/schema";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { careRecipientProfileZSchema, RECIPIENT_LIMITS } from "@caretook/data/schema";
 

@@ -4,7 +4,7 @@ import type { AdminActionResult } from "../adminForms";
 import { ORPCError } from "@orpc/client";
 import { Link } from "react-router";
 import { requireStaff } from "~/.server/admin";
-import { formString } from "~/lib/form";
+import { formString } from "~/lib/core/form";
 import { adminFailure } from "../adminForms";
 import { adminUrls } from "../adminUrls";
 import { AuditEntryList } from "../AuditEntryList";
