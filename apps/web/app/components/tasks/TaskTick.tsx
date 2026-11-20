@@ -8,17 +8,20 @@ export function TaskTick({
   done,
   disabled,
   onChange,
+  large = false,
 }: {
   title: string;
   done: boolean;
   disabled?: boolean;
   onChange: (done: boolean) => void;
+  /** Simple mode's size: a much bigger box and hit area. */
+  large?: boolean;
 }) {
   return (
-    <label className="-m-2 flex shrink-0 cursor-pointer items-center p-2">
+    <label className={`flex shrink-0 cursor-pointer items-center ${large ? "-m-3 p-3" : "-m-2 p-2"}`}>
       <input
         type="checkbox"
-        className="checkbox checkbox-primary"
+        className={`checkbox checkbox-primary ${large ? "checkbox-xl" : ""}`}
         checked={done}
         disabled={disabled}
         aria-label={done ? `Reopen “${title}”` : `Mark “${title}” done`}

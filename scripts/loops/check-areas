@@ -455,3 +455,8 @@ apps/web/app/lib/sync/simpleMode.ts      -
 apps/web/app/routes/app/groups/tasks/*   -
 apps/web/app/components/tasks/*          -
 apps/web/app/lib/sync/tasks.ts           -
+# My tasks in simple mode (tasks PRD slice 6): the card (timeline/SimpleTasks.tsx
+# and useSimpleTasks.ts, under timeline/*) is a component test
+# (timeline/timelineSimpleTasks.browser.test.tsx).
+apps/web/app/routes/app/groups/timeline/SimpleTasks.tsx -
+apps/web/app/routes/app/groups/timeline/useSimpleTasks.ts -
