@@ -4,21 +4,25 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/connectors` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------- |
-| 1     | 1    | not started |                                             |
-| 2     | 1    | not started |                                             |
-| 7     | 1    | not started |                                             |
-| 3     | 2    | not started |                                             |
-| 4     | 2    | not started |                                             |
-| 5     | 2    | not started |                                             |
-| 6     | 3    | not started |                                             |
+| Slice | Wave | State                                                                     | Merge into `prd/connectors` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------- | ------------------------------------------- |
+| 1     | 1    | started (worktree `.loops/connectors-1`, sonnet agent spawned 2026-11-20) |                                             |
+| 2     | 1    | started (worktree `.loops/connectors-2`, opus agent spawned 2026-11-20)   |                                             |
+| 7     | 1    | started (worktree `.loops/connectors-7`, sonnet agent spawned 2026-11-20) |                                             |
+| 3     | 2    | not started                                                               |                                             |
+| 4     | 2    | not started                                                               |                                             |
+| 5     | 2    | not started                                                               |                                             |
+| 6     | 3    | not started                                                               |                                             |
 
-**Landing mode:** not chosen yet (the orchestrator asks first).
+**Landing mode:** run everything through (queued with `pnpm prd queue connectors`, 2026-11-20): start every ready slice, land each green wave without asking (here: one landing after slice 6, per _When to land_), clean up; ask only real questions.
+
+**Models:** slice 1 sonnet (a mechanical move), slice 2 opus (design-heavy), slice 7 sonnet (text).
+
+**Waiting on:** slice 3 needs timeline-ux's row and header slices (B-164, B-165) in `dev`; check at wave 2.
 
 **When to land:** this PRD has a migration and a new dependency, so hold landing until every slice is merged, then run the checks once at the end. Ask the user before any `--suite`.
 
-**Backlog:** claim B-104 when slice 2 starts; `done` after slice 6 merges (the last of the PRD).
+**Backlog:** B-104 claimed (slice 2 started); `done` after slice 6 merges (the last of the PRD).
 
 ## Architectural decisions
 
