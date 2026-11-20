@@ -415,3 +415,9 @@ apps/web/app/lib/sync/useLiveRows.ts     phase2 upcoming
 apps/web/app/components/quick-entry/*    -
 apps/web/app/lib/sync/quickEntry.ts      -
 apps/web/app/lib/quickEntryDraft.ts      -
+# Suggestions (assistant slice 2): component tests in
+# timeline/timelineQuickEntrySuggestions.browser.test.tsx; the predictions,
+# completion and recent-lines store have unit tests. session-end checks the
+# recent lines are wiped at sign-out.
+apps/web/app/lib/sync/quickEntrySuggestions.ts -
+apps/web/app/lib/recentLines.ts          session-end

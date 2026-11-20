@@ -7,6 +7,7 @@ import { parseQuickEntry } from "@caretook/data/schema";
 import { appUrls } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
 import { actionPreview } from "~/lib/quickEntryPreview";
+import { recordLine } from "~/lib/recentLines";
 import { getSync } from "~/lib/sync";
 import { runActions } from "~/lib/sync/quickEntry";
 import {
@@ -119,6 +120,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     try {
       const ids = await write(cards);
       if (ids) {
+        recordLine(group.userId, groupId, text);
         reset();
         setStatus(savedText(ids.length));
       }
