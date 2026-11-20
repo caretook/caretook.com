@@ -6,7 +6,7 @@
 
 | Slice | Wave | State                                                                                           | Merge into `prd/connectors` (slice commits) |
 | ----- | ---- | ----------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| 1     | 1    | started (worktree `.loops/connectors-1`, sonnet agent spawned 2026-11-20)                       |                                             |
+| 1     | 1    | merged, worktree removed (load flakes in untouched component tests; landing check reruns)       | 5225d442 (de3bedd0)                         |
 | 2     | 1    | started (worktree `.loops/connectors-2`, opus agent spawned 2026-11-20)                         |                                             |
 | 7     | 1    | handed off (210766d1; check green but a load flake; `marketing` browser check left for landing) |                                             |
 | 3     | 2    | not started                                                                                     |                                             |
