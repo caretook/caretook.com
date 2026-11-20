@@ -20,7 +20,10 @@ import { ADD_BUTTON, launch, openPage, sleep, step } from "./cdp.mjs";
 //    the recipient's writers-only details row off their device: profiles.mjs's
 //    fold), then removes them (their rows go on the next sync, and /app says
 //    they're in no care group). The seeds' memberships are put back in SQL,
-//    and the details row comes back with the caretaker role.
+//    and the details row comes back with the caretaker role. Also the
+//    member-share stream (profiles-contacts.mjs's fold): a share row the
+//    server holds for caretaker@ reaches the owner's device, and goes from it
+//    with the membership when they're removed.
 // 5. Simple mode across two devices (assistant slice 5): the owner turns on
 //    simple mode for caretaker@ from Members; caretaker@'s open timeline
 //    switches to the simple view without a reload. Put back in SQL.
@@ -85,6 +88,9 @@ const SEEDED = [
   ["viewer@example.com", "viewer"],
 ];
 const restoreSeeds = () => {
+  psql(
+    `DELETE FROM member_contact_share WHERE group_id = '${DEV_FAMILY}' AND phones->0->>'number' = '(555) 010-1999'`,
+  );
   psql(`UPDATE care_group SET name = '${SEED_GROUP}' WHERE id = '${DEV_FAMILY}'`);
   psql(
     `UPDATE care_group_member SET simple_mode = false, simple_mode_locked = false WHERE group_id = '${DEV_FAMILY}' AND (simple_mode OR simple_mode_locked)`,
@@ -327,6 +333,22 @@ try {
       `rows ${detailsBefore} → ${await O.evaluate(detailsRows)}`,
     );
 
+    // What caretaker@ shares with the group (member_contact_share) reaches the owner's device.
+    const shareRows = `window.caretookSync.powersync.getAll("SELECT count(*) AS n FROM member_contact_share WHERE group_id = ? AND phones LIKE '%010-1999%'", [${JSON.stringify(DEV_FAMILY)}]).then((r) => r[0].n)`;
+    psql(
+      `INSERT INTO member_contact_share (id, group_id, user_id, phones, created_by, updated_by) SELECT id, group_id, user_id, '[{"label":"Mobile","number":"(555) 010-1999"}]'::jsonb, user_id, user_id FROM care_group_member WHERE group_id = '${DEV_FAMILY}' AND user_id = (SELECT id FROM "user" WHERE email = 'caretaker@example.com') ON CONFLICT (group_id, user_id) DO NOTHING`,
+    );
+    // waitFor polls an expression's truthiness, and a promise is always truthy: poll the count.
+    const shareRowsBecome = async (want) => {
+      for (let i = 0; i < 60; i++) {
+        if ((await M.evaluate(shareRows)) === want) return;
+        await sleep(500);
+      }
+      throw new Error(`member_contact_share rows never became ${want}`);
+    };
+    const shareArrived = await passes(shareRowsBecome(1));
+    check("a member's shared details reach the owner's device (the member-share stream)", shareArrived);
+
     const removeButton = `${memberRow("Dev Caretaker")}?.querySelector("button")`;
     await M.waitFor(`${removeButton} && !${removeButton}.disabled`, 20000);
     await M.evaluate(`${removeButton}.click()`);
@@ -347,6 +369,13 @@ try {
       "removed: their device loses the group's entries on the next sync, and /app says they're in no care group",
       removed === "Dev Member:owner,Dev Viewer:viewer" && emptied && lost,
       `${removed} / emptied ${emptied} / ${await O.evaluate(`location.pathname`)}`,
+    );
+
+    const shareGone = await passes(shareRowsBecome(0));
+    check(
+      "removed: their shared details leave the owner's device with them",
+      shareGone,
+      `${await M.evaluate(shareRows)} rows`,
     );
 
     restoreSeeds();

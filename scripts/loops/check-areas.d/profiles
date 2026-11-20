@@ -12,9 +12,10 @@ packages/data/src/db/schema/profiles/careRecipientDetails.ts roundtrip app-shell
 packages/data/src/db/schema/profiles/careRecipient.ts roundtrip
 packages/data/src/db/schema/profiles/profileVisibility.ts app-shell
 # Your contact details, what each member shares and your own choices
-# (profiles slice 4); contact links shared by the Members page and the
-# recipient's profile (profiles slice 3; the profile's are component tests).
-apps/web/app/routes/app/settings/contact/* profiles-contacts
-apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profiles-contacts
-apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts
-apps/web/app/components/contact/*        profiles-contacts
+# (profiles slice 4) are component tests (settings/contact/contact and
+# settings/members/memberSharing .browser.test.tsx); app-shell's step 4 keeps
+# the member-share stream (a removed member's share leaves the owner's device).
+apps/web/app/routes/app/settings/contact/* -
+apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell
+apps/web/app/routes/app/groups/settings/members/SharingForm.tsx -
+apps/web/app/components/contact/*        -
