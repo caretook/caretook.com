@@ -612,6 +612,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (Robert Bo Davis): From the orchestration PRD (slice 7, investigating B-113's app-shell step 6g). Unconfirmed, the log was gone: a 429 on the first get-session after sign-in counts as unknown, and with no cached user (sign-out wiped it) requireSession treats it as signed out and redirects to /sign-in silently (apps/web/app/lib/session.ts, resolveUser). Likely fix: retry the session check once on 429, or show a 'try again' message instead of a silent redirect.
 - 2026-11-19 (Robert Bo Davis): Triage: a contained fix in apps/web/app/lib/session.ts (retry get-session once on 429, or a 'try again' message), so a quick-fixes slice.
+- 2026-11-19 (slice/quick-fixes/43): slice 43: 429 on get-session retried once (X-Retry-After, capped 2 s); still 429 with no cached user -> /sign-in?reason=rate-limited with a message. Reproduced on the built server: Better Auth's limiter (on only with NODE_ENV=production) allows 100 get-session per IP per 10 s, then 429 with x-retry-after up to 10, so the 2 s retry usually still 429s and the message shows. Commit 9fc492c.
 
 ### B-131 · bug · Component tests (web:components) can fail under pnpm check's load
 
