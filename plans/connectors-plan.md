@@ -4,25 +4,43 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                                         | Merge into `prd/connectors` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| 1     | 1    | merged, worktree removed (load flakes in untouched component tests; landing check reruns)                     | 5225d442 (de3bedd0)                         |
-| 2     | 1    | merged, worktree removed (check: load flakes only, B-178/B-173; lean set 11/12, app-shell flake passed alone) | f54a93ae (b8309a7f, fd5725ec)               |
-| 7     | 1    | merged, worktree removed (`marketing` passed in slice 2's lean run)                                           | 1552855d (210766d1)                         |
-| 3     | 2    | started (worktree `.loops/connectors-3`, opus agent spawned 2026-11-20)                                       |                                             |
-| 4     | 2    | started (worktree `.loops/connectors-4`, sonnet agent spawned 2026-11-20)                                     |                                             |
-| 5     | 2    | started (worktree `.loops/connectors-5`, opus agent spawned 2026-11-20)                                       |                                             |
-| 6     | 3    | not started                                                                                                   |                                             |
+| Slice | Wave | State                                                                                                                                      | Merge into `prd/connectors` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| 1     | 1    | merged, worktree removed (load flakes in untouched component tests; landing check reruns)                                                  | 5225d442 (de3bedd0)                         |
+| 2     | 1    | merged, worktree removed (check: load flakes only, B-178/B-173; lean set 11/12, app-shell flake passed alone)                              | f54a93ae (b8309a7f, fd5725ec)               |
+| 7     | 1    | merged, worktree removed (`marketing` passed in slice 2's lean run)                                                                        | 1552855d (210766d1)                         |
+| 3     | 2    | merged, worktree removed (check green but the frozen-names test; browser phase2, roundtrip, live-notes, ui for landing)                    | 9a9c1ee6 (b21582f2, 19d43db4)               |
+| 4     | 2    | merged, worktree removed (conflicts in `tools/index.ts` and `mcp.int.test.ts`, resolved: both slices' tools, slice 3's assertion)          | 0a4c9711 (90bf850c)                         |
+| 5     | 2    | merged, worktree removed (browser checks named for landing: phase2, roundtrip, live-notes, app-shell, layout-offline, first-sync, invites) | 85bc64ab (e80d2808)                         |
+| 6     | 3    | started (worktree `.loops/connectors-6`, sonnet agent spawned 2026-11-20)                                                                  |                                             |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue connectors`, 2026-11-20): start every ready slice, land each green wave without asking (here: one landing after slice 6, per _When to land_), clean up; ask only real questions.
 
-**Models:** slice 1 sonnet (a mechanical move), 2 opus (design-heavy), 7 sonnet (text), 3 opus (server runner, sync, UI tag), 4 sonnet (read tools on slice 2's pattern), 5 opus (new UX, procedures).
+**Models:** slice 6 sonnet (e2e step on existing helpers); slice 1 sonnet (a mechanical move), 2 opus (design-heavy), 7 sonnet (text), 3 opus (server runner, sync, UI tag), 4 sonnet (read tools on slice 2's pattern), 5 opus (new UX, procedures).
 
-**Wave 1 done.** `pnpm prd sync` 00f5e759: one conflict, `dev` added `OVERDUE_AFTER_MINUTES` to the web `dueDoses.ts` that slice 1 moved; ported into `packages/data/src/db/schema/medications/dueDoses.ts` and the web re-export (typecheck and check-areas clean). Dev's TodayCard replaced the header strips (`MedicationStrip`, `TaskStrip`, `NextStrip`, `UpcomingBlock`, `LatestVitals`).
+**Waves 1 and 2 merged.** Fixes on `prd/connectors`:
 
-**Open for landing:** a full clean `pnpm check` (load flakes B-178, B-173 so far); the lean set once; `/connect` needs JS to redirect back to the client (CSP `form-action 'self'`), documented not fixed; B-140 (timeline-ux slice 10) is landing in `dev` now (2026-11-20). It changes `auth.ts` in three places: `session.cookieCache` 180 s; `hooks.before` becomes `beforeHooks`, with an exact `/token` match via `readsLiveSession` (`liveSession.test.ts` proves `/oauth2/*` don't match); and `disableSettingJwtHeader: true` inside `jwt({` (the likeliest conflict with our plugins). Also `getAuthUser(headers, { live })` (cached by default), `staffProcedure` reads live, and `createRpcHandler` takes a lookup function (watch slice 5's procedures). **At the wave 2 sync:** make `/connect`'s loader and action read the session live (`{ live: true }` or `disableCookieCache`), since consent mints long-lived tokens; then rerun the oauth and connect tests.
+- ab58c783: the schema's frozen `EXPORTS` list gained the 58 names slice 1 moved in.
+- c09c7e72: the privacy text, after the user's decisions (2026-11-20). Providers' business phone, address and website are sent (clinicians, practices, pharmacies; never a provider email or an "other" contact's); "conditions" is dropped, since no such field exists, and filed as B-181.
+- `pnpm prd sync` 9452b3f9: brought B-140 and the service worker (B-144). Conflicts resolved:
+  - `ui/index.ts`: `Toast` and `ViaTag`;
+  - `auth.ts`: `beforeHooks` with our `CONNECTOR_DISABLED_PATHS`, keeping their `disableSettingJwtHeader`.
+- In the same commit, `/connect` reads the session live (`getAuthUser(…, { live: true })`), because consent mints 30-day tokens. B-140's `/token` hook is an exact match. The service worker only serves `/app` navigations, so `/connect`, `/mcp` and `/.well-known` go to the network.
+- Typecheck is clean, and the connectors integration tests pass (68).
 
-**Placement notes for slice 3 (timeline-ux 60260949):** rows put ⋯ `EntryActions` over the author chip in `div[data-entry-aside]` (`ASIDE_CLASS`, `timeline/layout.ts`); cards show the author in their footer; `DayHeader` has a `summary` region; `EntryHeader` untouched.
+**Decisions for the docs:**
+
+- `add_task` takes the assignee by name, not id, since `group_overview` has no member ids.
+- The runner returns an AppError with `meta.index`, not the PRD's `{ ok: false, index }`.
+- `list_providers` returns business contacts only; `recipient_profile` has no conditions (B-181).
+- `/connect` needs JS to redirect back to the client (CSP `form-action 'self'`).
+
+**Open for landing:**
+
+- A full clean `pnpm prd check` (load flakes so far: B-178, B-173, providers).
+- The lean set once, with the user's OK for `--suite` first. It covers what slices 3 and 5 named.
+- `first-sync` showed FLAKY in slice 2's run, logged in `.browser-flakes.log` and not yet filed.
+- Fold the docs: slice hand-offs list them. Write a new connectors.md.
 
 **When to land:** this PRD has a migration and a new dependency, so hold landing until every slice is merged, then run the checks once at the end. Ask the user before any `--suite`.
 
