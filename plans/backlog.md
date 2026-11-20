@@ -50,7 +50,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
-| B-49 | feature | ready | assistant | prd/assistant | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
+| B-49 | feature | landed | assistant | prd/assistant | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
@@ -165,7 +165,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-49 · feature · Once we have agentic integration, Add ai generated summary to each day on the timeline and the…
 
-- status: ready
+- status: landed
 - prd: assistant
 - owner: prd/assistant
 - commit: f358d86
@@ -598,6 +598,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): The lean set (orchestration slice 9) is meant to cover uploads refused by permissions, but no check asserts one: a device whose role was lowered on the server writes locally, the upload is rejected (4xx acknowledged), and the next sync restores the server's copy. Add it to roundtrip.mjs or app-shell.mjs's demotion step.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 2, wave 1 (plans/check-migration-plan.md).
+- 2026-11-19 (slice/check-migration/2): slice 2: roundtrip now has the refused-upload flow (caretaker demoted to viewer while offline; its edit is refused on upload, queue empties, server copy restored) and the sync matrix (sync-matrix.mjs, every device-schema table; unit test scripts/loops/sync-matrix.test.mjs).
 
 ### B-129 · chore · Port the lean end-to-end set to Playwright Test
 
