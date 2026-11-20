@@ -85,6 +85,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-121 | chore | inbox |  |  | Move profiles.mjs to component tests |
 | B-122 | chore | inbox |  |  | Move profiles-contacts.mjs to component tests |
 | B-123 | chore | inbox |  |  | Move care-periods.mjs to component tests |
+| B-124 | chore | inbox |  |  | Move devices.mjs to component tests |
 
 ## Items
 
@@ -513,3 +514,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the periods list, sheets, period page, timeline line and markers, group menu and suggestions to component tests; keep a second device, offline then upload, and ties. Then e2e yes.
+
+### B-124 · chore · Move devices.mjs to component tests
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the Devices page's list, labels and offline notice to component tests; keep signing another device out (its next session check goes to sign-in) as a lean flow, possibly folded into session-end.mjs. Then e2e yes.
