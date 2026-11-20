@@ -7,7 +7,8 @@ import { readFileSync } from "node:fs";
 import { ServerResponse } from "node:http";
 
 const config = JSON.parse(readFileSync(new URL("../../apps/web/vercel.json", import.meta.url), "utf8"));
-const headers = config.headers.find((h) => h.source === "/(.*)")?.headers ?? [];
+// The unconditional block (the staging host's X-Robots-Tag block has `has`).
+const headers = config.headers.find((h) => h.source === "/(.*)" && !h.has)?.headers ?? [];
 
 const writeHead = ServerResponse.prototype.writeHead;
 ServerResponse.prototype.writeHead = function (...args) {

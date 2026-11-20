@@ -1,0 +1,114 @@
+# Database access (hosting slice 5): a staff member's personal, read-only
+# database role that expires on its own (`pnpm db:access`), recorded in the
+# audit log. ops/break-glass.md says who may, and when.
+#
+# A grant's connection string is never printed. Give the RSA public key of a
+# key pair only you hold (one line, base64 DER):
+#   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out access.key
+#   openssl pkey -in access.key -pubout -outform DER | base64 | tr -d '\n'
+# The job summary holds the connection string encrypted to it. Decrypt with:
+#   echo '<blob>' | base64 -d | openssl pkeyutl -decrypt -inkey access.key -pkeyopt rsa_padding_mode:oaep
+# then delete access.key once the access ends.
+#
+# Secrets (GitHub environment secrets):
+#   MIGRATIONS_DATABASE_URL (CREATEROLE: the role is made by the migrations role)
+name: Database access
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Where
+        type: choice
+        options:
+          - staging
+          - production
+      action:
+        description: Grant or revoke
+        type: choice
+        options:
+          - grant
+          - revoke
+      email:
+        description: The staff account's email address
+        type: string
+        required: true
+      hours:
+        description: How long the role lasts (grant; 1 to 24)
+        type: string
+        default: "1"
+      reason:
+        description: Why (recorded in the audit log)
+        type: string
+        required: true
+      public_key:
+        description: Your RSA public key, base64 DER on one line (grant)
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - id: access
+        name: Grant or revoke
+        env:
+          APP_ENV: ${{ inputs.environment }}
+          MIGRATIONS_DATABASE_URL: ${{ secrets.MIGRATIONS_DATABASE_URL }}
+          ACTION: ${{ inputs.action }}
+          EMAIL: ${{ inputs.email }}
+          HOURS: ${{ inputs.hours }}
+          REASON: ${{ inputs.reason }}
+          PUBLIC_KEY: ${{ inputs.public_key }}
+        run: |
+          if [ "$ACTION" = revoke ]; then
+            pnpm --silent db:access revoke "$EMAIL" --reason "$REASON"
+            echo "Revoked database access for $EMAIL (the log says whether a role was dropped)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Check the key before granting anything.
+          key="$RUNNER_TEMP/access.pub.der"
+          if [ -z "$PUBLIC_KEY" ] || ! printf '%s' "$PUBLIC_KEY" | base64 -d > "$key" 2>/dev/null \
+            || ! openssl pkey -pubin -inform DER -in "$key" -noout 2>/dev/null; then
+            echo "::error::A grant needs public_key: an RSA public key, base64 DER on one line (see the top of db-access.yml)."
+            exit 1
+          fi
+
+          # Captured, never echoed: the connection string is masked at once,
+          # and only its encrypted form leaves the runner.
+          out=$(pnpm --silent db:access grant "$EMAIL" --hours "$HOURS" --reason "$REASON")
+          conn=$(printf '%s\n' "$out" | grep -E '^postgres(ql)?://' || true)
+          if [ -z "$conn" ]; then
+            echo "::error::The grant printed no connection string."
+            exit 1
+          fi
+          echo "::add-mask::$conn"
+          printf '%s\n' "$out" | grep -vE '^(postgres(ql)?://|Connection string)' || true
+          blob=$(printf '%s' "$conn" \
+            | openssl pkeyutl -encrypt -pubin -keyform DER -inkey "$key" -pkeyopt rsa_padding_mode:oaep \
+            | base64 -w0)
+          unset conn out
+          {
+            echo "Granted read-only database access to $EMAIL for $HOURS hour(s)."
+            echo
+            echo "The connection string, encrypted to your key:"
+            echo
+            echo '```'
+            echo "$blob"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

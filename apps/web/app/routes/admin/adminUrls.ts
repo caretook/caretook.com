@@ -16,4 +16,6 @@ export const adminUrls = {
   /** `search` is a query string from `auditSearch` ("?…" or ""). */
   audit: (search = "") => `/admin/audit${search}`,
   settings: () => "/admin/settings",
+  /** `search` is a query string from `suppressionSearch` ("?…" or ""). */
+  suppressions: (search = "") => `/admin/suppressions${search}`,
 };

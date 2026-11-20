@@ -1,3 +1,4 @@
+import { isNoindex } from "../../../lib/noindex";
 import { absoluteUrl } from "./meta";
 import { MARKETING_PAGES } from "./pages";
 
@@ -12,7 +13,12 @@ export function isDisallowed(path: string): boolean {
   return ROBOTS_DISALLOW.some((prefix) => path.startsWith(prefix));
 }
 
-export function robotsTxt(siteUrl: string): string {
+/**
+ * robots.txt. On staging (`APP_ENV=staging`) it disallows everything and
+ * names no sitemap; elsewhere the private prefixes only.
+ */
+export function robotsTxt(siteUrl: string, appEnv?: string): string {
+  if (isNoindex(appEnv)) return ["User-agent: *", "Disallow: /", ""].join("\n");
   return [
     "User-agent: *",
     "Allow: /",
@@ -32,7 +38,11 @@ function escapeXml(text: string): string {
     .replace(/'/g, "&apos;");
 }
 
-/** Every marketing page's URL. */
+/** The pages the sitemap lists: every marketing page, or none on staging. */
+export const sitemapPaths = (appEnv?: string): readonly string[] =>
+  isNoindex(appEnv) ? [] : MARKETING_PAGES.map((p) => p.path);
+
+/** Every marketing page's URL (or the paths given). */
 export function sitemapXml(siteUrl: string, paths: readonly string[] = MARKETING_PAGES.map((p) => p.path)) {
   const urls = paths.map((path) => `  <url><loc>${escapeXml(absoluteUrl(siteUrl, path))}</loc></url>`);
   return [

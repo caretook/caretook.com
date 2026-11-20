@@ -323,13 +323,13 @@ describe("public forms' rate", () => {
   it("follows publicForms.perMinute", async () => {
     const { admin } = await staff();
     await admin.api.admin.settings.set({ key: "publicForms.perMinute", value: 2, reason: "Spam" });
-    resetPublicFormLimits();
+    await resetPublicFormLimits();
     const visitor = clientFor(null, "198.51.100.77");
     const join = () =>
       visitor.public.waitlist.join({ email: newAddress("rate"), elapsedMs: MIN_FORM_MS + 1000 });
     expect(await codeOf(join())).toBe("ok");
     expect(await codeOf(join())).toBe("ok");
     expect(await codeOf(join())).toMatch(/^TOO_MANY_REQUESTS/);
-    resetPublicFormLimits();
+    await resetPublicFormLimits();
   });
 });

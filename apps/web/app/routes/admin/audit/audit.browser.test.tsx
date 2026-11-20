@@ -13,7 +13,16 @@ import * as audit from "./route";
 // URL). Which rows a filter matches is the API's job
 // (packages/api/src/auditAdmin.int.test.ts, staffAdmin.int.test.ts).
 
-const STAFF_NAV = ["Users", "Groups", "Access codes", "New group", "Waitlist", "Audit", "Settings"];
+const STAFF_NAV = [
+  "Users",
+  "Groups",
+  "Access codes",
+  "New group",
+  "Waitlist",
+  "Audit",
+  "Settings",
+  "Suppressions",
+];
 
 const CODE = "CARE-7K2P-4XQM";
 const created = adminFx.auditEntry({
