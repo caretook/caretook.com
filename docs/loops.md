@@ -25,7 +25,7 @@ How PRDs, orchestrators and loops run: the `pnpm prd` commands, worktree isolati
 | `pnpm prd stack up\|down [name]`               | add or remove a worktree's dev stack (containers, data, env files, slot), keeping the worktree                                                        |
 | `pnpm prd gc [--list\|--yes]`                  | merged slice worktrees and stacks stopped for a day, removed after a yes                                                                              |
 | `pnpm prd test-db status\|up\|down\|list\|use` | the shared test Postgres (:5436)                                                                                                                      |
-| `pnpm prd prompt orchestrator\|plan\|slice`    | the first prompt for a session (`orchestrator <topic> --auto` for the run-through mode)                                                               |
+| `pnpm prd prompt orchestrator\|plan\|slice`    | the first prompt for a session (`orchestrator <topic> --auto`: run-through; `--resume`, `slice … --continue`: after an interruption)                  |
 
 ### Isolation
 
@@ -100,10 +100,17 @@ The table's machine-readable form is `scripts/loops/check-areas`; keep the two i
 
 **Waiting on another PRD:** an orchestrator whose next slice is blocked by another PRD's work asks that orchestrator (ListAgents, SendMessage) to message it when the work lands in `dev`, and sets a background check that exits when `git log dev` or `pnpm backlog list` shows it, then syncs and carries on. Both prompts say so.
 
-**Keep each orchestrator's context small.** A session may run wave after wave; start a fresh one (the same command) whenever it gets slow or confused. The plan's _Status_ section makes that safe at any wave boundary.
+**Keep each orchestrator's context small.** A session may run wave after wave; start a fresh one (the same command) whenever it gets slow or confused. The plan's _Status_ section makes that safe at any moment, not only at a wave boundary.
 
 - It works from its plan's _Status_ section, the backlog, the loops' hand-offs, `git diff --stat` and `pnpm check` output. It doesn't read whole diffs or debug inside a loop: it sends the problem back to that loop's agent with SendMessage.
-- Before it ends, it updates its plan's _Status_ section (what's merged, with SHAs; what's ready; open issues) and its backlog items. Those are the hand-off to the next orchestrator.
+- **It updates _Status_ at every step**, not only at wave boundaries: a slice started (worktree made, agent spawned), handed off, merged (with the merge SHA), a wave landed; plus what's ready, open issues and the landing mode. It writes the file as it goes (the worktree survives a crash, so a step needn't be its own commit) and commits it with its merges and before `pnpm prd check`. With its backlog items, that's the hand-off to the next orchestrator, so a crash, a restart or a usage limit loses nothing a fresh one needs.
+
+**Resuming after an interruption** (a restart, a crash, a usage limit): in the PRD's worktree, `claude --continue --remote-control prd-<topic>` reopens the last conversation when there is one. Otherwise start a fresh orchestrator with the resume prompt: `cd .loops/<topic> && claude --remote-control prd-<topic> "$(scripts/loops/prompt.sh orchestrator <topic> --resume)"` (add `--auto` for a PRD that was queued or told to run everything through; _Status_ records which). The resume prompt says:
+
+- **Reconcile _Status_ with git first; git wins over a stale line.** It checks the slice worktrees (`pnpm prd status`, dirty or clean), the `slice/<topic>/<n>` branches ahead of `prd/<topic>`, and the merges already in `prd/<topic>`, and corrects _Status_ before acting.
+- **Respawn each in-flight slice** (a worktree whose branch isn't merged, and no live agent in ListAgents) with one background agent and `pnpm prd prompt slice <topic> <n> --continue`. That prompt is the slice prompt plus "you're continuing": read `git log prd/<topic>..HEAD`, `git status` and the diffs (committed and not) first, keep the earlier agent's work, and finish from there; if everything is committed and `pnpm check` passes, write the hand-off without rebuilding.
+- **Review a slice handed off but not merged from its branch** (its hand-off message is lost); spawn a `--continue` agent for it when a fresh hand-off is needed. Then merge in plan order as usual.
+- **Follow the landing mode _Status_ records**, asking only when it records none.
 
 ### Running a wave
 
@@ -111,11 +118,11 @@ The table's machine-readable form is `scripts/loops/check-areas`; keep the two i
 
 1. Read your plan and `pnpm backlog list --prd <topic>`. A slice is **ready** when every slice it's blocked by has been merged into `prd/<topic>`. Start only what the user asks for, and `claim` its items.
 2. For each ready slice: `pnpm prd slice <topic> <n>`.
-3. Spawn one background agent per slice (not with `isolation: worktree`; it already is one), with the prompt from `pnpm prd prompt slice <topic> <n>` plus anything the slice needs that the plan doesn't say.
-4. As each loop hands off, review its branch: `git diff prd/<topic>...slice/<topic>/<n>`, its hand-off, and that the acceptance criteria are covered.
+3. Spawn one background agent per slice (not with `isolation: worktree`; it already is one), with the prompt from `pnpm prd prompt slice <topic> <n>` plus anything the slice needs that the plan doesn't say. Mark it started in _Status_.
+4. As each loop hands off, mark it handed off in _Status_, then review its branch: `git diff prd/<topic>...slice/<topic>/<n>`, its hand-off, and that the acceptance criteria are covered.
 5. Merge **in plan order** into `prd/<topic>`, in your integration worktree, with `git merge --no-ff -m "feat(<topic>): <what it adds> (slice <n>, B-<n>)" slice/<topic>/<n>`. Resolve conflicts in the shared files yourself. Don't run checks between merges: they run once, before landing (step 1 of _Landing a wave_). A failure there goes back to the loop that caused it.
-6. Once merged: `pnpm backlog done B-<n>` for its items, then `pnpm prd rm <topic>-<n>` (it deletes the merged branch). Start the slices it unblocked.
-7. **Land the wave** when it's green. Don't wait for the whole PRD: small, frequent landings keep PRDs from drifting apart.
+6. Once merged: record the merge SHA in _Status_, `pnpm backlog done B-<n>` for its items, then `pnpm prd rm <topic>-<n>` (it deletes the merged branch). Start the slices it unblocked.
+7. **Land the wave** when it's green, and mark it landed in _Status_. Don't wait for the whole PRD: small, frequent landings keep PRDs from drifting apart.
 
 ### Landing a wave
 
