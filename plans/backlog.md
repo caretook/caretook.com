@@ -111,6 +111,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-169 | change | inbox |  |  | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
 | B-170 | change | inbox |  |  | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
 | B-171 | change | inbox |  |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
+| B-172 | bug | triaged | check-migration |  | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
 
 ## Items
 
@@ -745,6 +746,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: timeline group titles that are too long wrap to multiple lines on small screens. Truncate the provider on small screens.
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
 
 ### B-169 · change · vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is…
 
@@ -772,3 +774,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: your recent lines should exclude notes and events. vitals should only show the vital key, not the value so that the user can log those quickly without deleting the value.
+
+### B-172 · bug · app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy
+
+- status: triaged
+- prd: check-migration
+- owner:
+- commit:
+
+- 2026-11-20 (prd/check-migration): Found by slice 16 (2026-11-20). Proposed for check-migration: count in node with M.evaluate, as slice 16's member-share fold does; Playwright's port (slice 21/22) can fix it too. Grep other checks for waitFor(`${...}.then(` too. -- check-migration orchestrator
