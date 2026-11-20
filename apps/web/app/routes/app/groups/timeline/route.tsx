@@ -17,6 +17,7 @@ import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { MedicationStrip } from "./MedicationStrip";
+import { TaskStrip } from "./TaskStrip";
 import { NextStrip } from "./NextStrip";
 import { seeAllSearch } from "./aheadQueries";
 import { onlySheetChanged } from "./sheetGuard";
@@ -152,6 +153,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <NextStrip next={data.next} now={data.now} groupId={groupId} showing={upcoming} />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
       <MedicationStrip groupId={groupId} canWrite={canWrite} />
+      <TaskStrip groupId={groupId} />
       {canWrite && (
         <div className={COLUMN_CAP}>
           <QuickEntryBox groupId={groupId} units={units} />

@@ -406,6 +406,9 @@ packages/data/scripts/*                  -
 
 # Upcoming (appointments): the section, its Past tab, the time rules and the
 # list pieces it shares with the timeline.
+# Tasks in Upcoming (tasks slice 4): the task row is a component test
+# (upcoming/upcomingTasks.browser.test.tsx); lib/upcomingTasks.ts has unit tests.
+apps/web/app/routes/app/groups/upcoming/UpcomingTaskRow.tsx -
 apps/web/app/routes/app/groups/upcoming/* upcoming
 apps/web/app/lib/upcoming.ts             upcoming
 apps/web/app/lib/upcomingLabels.ts       upcoming
