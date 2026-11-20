@@ -2,7 +2,7 @@ import type { DueDose, DueMedication } from "./dueDoses";
 
 import { normalizeSchedule } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
-import { doseWarnings, dueDoses, dueNow } from "./dueDoses";
+import { doseSlotsBetween, doseWarnings, dueDoses, dueNow, missedDoseCounts } from "./dueDoses";
 
 const LA = "America/Los_Angeles";
 const NY = "America/New_York";
@@ -380,5 +380,90 @@ describe("doseWarnings", () => {
     // No maximum: never.
     const open = run([med({ id: "q", schedule: { type: "asNeeded" } })], [dose("q", AM)], plus(AM, 30));
     expect(doseWarnings(open, { medicationId: "q", status: "given" }, plus(AM, 30))).toEqual([]);
+  });
+});
+
+describe("doseSlotsBetween (a range of days: visit prep's missed doses)", () => {
+  const MORNING = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d2001";
+  const between = (
+    medications: DueMedication[],
+    doses: DueDose[],
+    from: string,
+    to: string,
+    passes: { id: string; time: string }[] = [],
+  ) => doseSlotsBetween({ medications, passes, doses, from, to, timeZone: LA });
+  const tally = (slots: ReturnType<typeof doseSlotsBetween>) =>
+    slots.reduce<Record<string, number>>((t, s) => ({ ...t, [s.state]: (t[s.state] ?? 0) + 1 }), {});
+
+  it("expands every day's slots across the fall-back change, in the recipient's zone", () => {
+    // Oct 31 to Nov 2: 8:00 is 15:00 UTC on PDT days and 16:00 on PST days.
+    // To Nov 3, 0:30: Nov 2 is over, so its slots are missed.
+    const slots = between([med({ id: "a" })], [], "2026-10-31T07:00:00Z", "2026-11-03T08:30:00Z");
+    expect(slots.filter((s) => s.time === "08:00").map((s) => s.at)).toEqual([
+      "2026-10-31T15:00:00.000Z",
+      "2026-11-01T16:00:00.000Z",
+      "2026-11-02T16:00:00.000Z",
+    ]);
+    expect(tally(slots)).toEqual({ missed: 6 });
+  });
+
+  it("holds on the spring-forward day: a skipped 2:30 moves on by the gap", () => {
+    const m = med({ id: "a", schedule: { type: "scheduled", slots: [{ time: "02:30" }] } });
+    const slots = between([m], [], "2026-03-07T08:00:00Z", "2026-03-09T07:00:00Z");
+    expect(slots.map((s) => [s.day, s.at])).toEqual([
+      ["2026-03-07", "2026-03-07T10:30:00.000Z"],
+      ["2026-03-08", "2026-03-08T10:30:00.000Z"],
+    ]);
+  });
+
+  it("answers slots as dueDoses does, missed only once the day is over, and leaves out slots outside the range", () => {
+    const doses = [
+      dose("a", "2026-11-17T16:05:00Z"), // Nov 17 8:00 given
+      dose("a", "2026-11-17T04:10:00Z", "refused", "20:00"), // Nov 16 20:00 refused
+      dose("a", "2026-11-18T16:00:00Z", "skipped", "08:00"), // Nov 18 8:00 skipped
+    ];
+    // From Nov 16 noon to Nov 19 9:00: Nov 16 20:00 … Nov 19 8:00.
+    const slots = between([med({ id: "a" })], doses, "2026-11-16T20:00:00Z", "2026-11-19T17:00:00Z");
+    expect(slots.map((s) => `${s.day} ${s.time} ${s.state}`)).toEqual([
+      "2026-11-16 20:00 refused",
+      "2026-11-17 08:00 given",
+      "2026-11-17 20:00 missed",
+      "2026-11-18 08:00 skipped",
+      "2026-11-18 20:00 missed",
+      "2026-11-19 08:00 overdue",
+    ]);
+    expect(missedDoseCounts(slots)).toMatchObject([{ missed: 2, skipped: 1, refused: 1, slots: 5 }]);
+  });
+
+  it("keeps a retimed pass's answered doses: they answer the pass's slot by its id", () => {
+    // Given at 8:00 every day in the Morning pass, then Morning was moved to 9:30.
+    const m = med({ id: "a", schedule: { type: "scheduled", slots: [{ passId: MORNING }] } });
+    const doses = ["2026-11-16", "2026-11-17", "2026-11-18"].map((day) => ({
+      id: `d${++doseId}`,
+      occurredAt: `${day}T16:00:00.000Z`,
+      details: { medicationId: "a", status: "given" as const, scheduledFor: "08:00", passId: MORNING },
+    }));
+    const slots = between([m], doses, "2026-11-16T08:00:00Z", "2026-11-19T08:00:00Z", [
+      { id: MORNING, time: "09:30" },
+    ]);
+    expect(slots.map((s) => `${s.time} ${s.state}`)).toEqual(["09:30 given", "09:30 given", "09:30 given"]);
+    expect(missedDoseCounts(slots)).toEqual([]);
+  });
+
+  it("counts a stopped medication up to the day it stopped, and none before it was added or started", () => {
+    const stopped = med({ id: "s", status: "discontinued", stoppedOn: "2026-11-18" });
+    const added = med({ id: "n", createdAt: "2026-11-18T20:00:00.000Z" });
+    const late = med({ id: "l", startedOn: "2026-11-18" });
+    const gone = med({ id: "g", deletedAt: "2026-11-18T00:00:00.000Z" });
+    const slots = between([stopped, added, late, gone], [], "2026-11-16T08:00:00Z", "2026-11-20T08:00:00Z");
+    const days = (id: string) => [...new Set(slots.filter((s) => s.medication.id === id).map((s) => s.day))];
+    expect(days("s")).toEqual(["2026-11-16", "2026-11-17"]);
+    expect(days("n")).toEqual(["2026-11-18", "2026-11-19"]);
+    expect(days("l")).toEqual(["2026-11-18", "2026-11-19"]);
+    expect(days("g")).toEqual([]);
+  });
+
+  it("is empty for a range that ends before it starts", () => {
+    expect(between([med({ id: "a" })], [], "2026-11-19T00:00:00Z", "2026-11-18T00:00:00Z")).toEqual([]);
   });
 });

@@ -1,10 +1,11 @@
 import type { UnitChoices } from "@caretook/data/schema";
 
 import { useRef } from "react";
+import { PassUndoStatus } from "~/components/medications";
 import { Field } from "~/components/ui";
 import { QuickEntryCard } from "./QuickEntryCard";
 import { QuickEntrySuggestions } from "./QuickEntrySuggestions";
-import { useQuickEntry } from "./useQuickEntry";
+import { QUICK_ENTRY_UNDO, useQuickEntry } from "./useQuickEntry";
 
 const EXAMPLE = "bp 130/85 hr 72, gave metformin, pain 4 left knee";
 /** Simple mode's hint under its large box: talking is the easy way in. */
@@ -21,8 +22,10 @@ const BUTTON_SIZE: Record<QuickEntrySize, string> = { md: "", lg: "btn-lg" };
 /**
  * One box to say what happened: type (or dictate with the keyboard's mic)
  * a line, see a card per part, fix any with its chips, Edit or Remove, then
- * Save writes them all at once, on this device (offline too). Nothing is
- * saved before Save. Writers only: the timeline leaves it out for viewers.
+ * Save writes them all at once, on this device (offline too), and offers
+ * Undo for the whole line for about 10 s. Nothing is saved before Save,
+ * except a due pass's chip, which is Given all in one tap (with the same
+ * Undo). Writers only: the timeline leaves it out for viewers.
  */
 export function QuickEntryBox({
   groupId,
@@ -86,7 +89,16 @@ export function QuickEntryBox({
             />
           )}
         </Field>
-        <QuickEntrySuggestions groupId={groupId} text={q.text} onFill={fill} />
+        <QuickEntrySuggestions
+          groupId={groupId}
+          text={q.text}
+          onFill={fill}
+          passes={q.passes}
+          duePasses={q.dueNow}
+          // Simple mode (`lg`) has its Now block for that, right below.
+          onGivePass={size === "md" ? q.givePass : undefined}
+          passBusy={q.passBusy}
+        />
 
         {count > 0 && (
           <>
@@ -114,8 +126,9 @@ export function QuickEntryBox({
           </>
         )}
       </form>
+      <PassUndoStatus groupId={groupId} place={QUICK_ENTRY_UNDO} className="empty:hidden" />
       <p role="status" className="text-base-content/80 text-sm empty:hidden" data-quick-status>
-        {q.status}
+        {q.status || q.passError}
       </p>
       <p aria-live="polite" className="sr-only" data-quick-announce>
         {q.announcement}

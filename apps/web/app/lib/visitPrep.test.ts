@@ -183,6 +183,48 @@ describe("visitPrepSection", () => {
     ]);
   });
 
+  it("counts missed doses in the window per medication, with skips and refusals, after the current list", () => {
+    const window: VisitWindow = { from: "2026-11-15T17:00:00Z", to: NOW.toISOString(), lastVisit: null };
+    const given = (day: string, status: "given" | "refused" = "given") => ({
+      id: `${day}-${status}`,
+      occurredAt: `${day}T16:02:00.000Z`,
+      details: { medicationId: LISINOPRIL.id, status, scheduledFor: "08:00", passId: "pass-am" },
+    });
+    const lines = texts(
+      visitPrepSection(
+        data({
+          medications: [LISINOPRIL, { ...OXY, stoppedOn: "2026-11-17" }],
+          // Morning on Nov 16 given, Nov 17 refused, Nov 18 nothing; today's is still open.
+          doses: [given("2026-11-16"), given("2026-11-17", "refused")],
+        }),
+        window,
+      ),
+    );
+    expect(lines.slice(lines.indexOf("Missed doses") - 2)).toEqual([
+      "Current medications",
+      "Lisinopril 10 mg · 1 tablet · Morning",
+      "Missed doses",
+      // Most first, then by name; Oxybutynin's 20:00 on Nov 15 and 16, until it stopped.
+      "Lisinopril 10 mg: 1 missed, 1 refused (of 3)",
+      "Oxybutynin 5 mg: 2 missed (of 2)",
+    ]);
+  });
+
+  it("leaves out missed doses when every dose was given, or without the doses", () => {
+    const window: VisitWindow = { from: "2026-11-17T17:00:00Z", to: NOW.toISOString(), lastVisit: null };
+    const doses = ["2026-11-18"].map((day) => ({
+      id: day,
+      occurredAt: `${day}T16:00:00.000Z`,
+      details: { medicationId: LISINOPRIL.id, status: "given" as const, scheduledFor: "08:00" },
+    }));
+    expect(texts(visitPrepSection(data({ medications: [LISINOPRIL], doses }), window))).not.toContain(
+      "Missed doses",
+    );
+    expect(texts(visitPrepSection(data({ medications: [LISINOPRIL] }), WINDOW))).not.toContain(
+      "Missed doses",
+    );
+  });
+
   it("lists medication changes in the window and the current medications", () => {
     const lines = texts(
       visitPrepSection(

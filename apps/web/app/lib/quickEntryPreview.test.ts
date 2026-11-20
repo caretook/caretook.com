@@ -60,6 +60,22 @@ describe("actionPreview", () => {
     ).toBe("Refused · spat it out");
   });
 
+  test("a pass's Given all names the pass and how many are left", () => {
+    const PASS = "77777777-7777-4777-8777-777777777777";
+    const passes = new Map([[PASS, { name: "Evening", open: 4 }]]);
+    expect(actionPreview({ type: "givePass", passId: PASS, occurredAt: at }, { ...context, passes })).toEqual(
+      {
+        title: "Evening medications",
+        detail: "Given all · 4 medications",
+        when: "Now",
+      },
+    );
+    expect(actionPreview({ type: "givePass", passId: PASS, occurredAt: at }, context)).toMatchObject({
+      title: "Medications",
+      detail: "Given all",
+    });
+  });
+
   test("an event with its place and providers", () => {
     expect(
       actionPreview(

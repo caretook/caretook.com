@@ -1,6 +1,8 @@
 // The last Given all on this page, for its Undo: "Morning logged · Undo" for
 // about 10 s, wherever a `PassUndoStatus` is mounted (Today, the Dose sheet,
-// the timeline's medication strip). One at a time: a newer round replaces it.
+// the timeline's medication strip). Quick entry's Save offers the same Undo
+// for a whole line ("Saved 3 entries · Undo"), shown only where it was saved
+// (its `place`). One at a time: a newer offer replaces it.
 // Plain module state (no React), so a sheet that closes doesn't take the
 // Undo with it. Pure apart from the clock; web:unit tests it.
 
@@ -15,6 +17,13 @@ export type PassUndo = {
   label: string;
   /** Exactly the doses Given all wrote. */
   doseIds: readonly string[];
+  /** Other entries written with them (quick entry's line: notes, vitals, …), undone together. */
+  entryIds?: readonly string[];
+  /**
+   * Where it's shown: a `PassUndoStatus` with this `place` (quick entry's box,
+   * simple mode's Now block). Left out, the medication screens' lines show it.
+   */
+  place?: string | null;
   /** Epoch ms after which Undo is no longer offered. */
   expiresAt: number;
 };
@@ -29,9 +38,17 @@ export function offerUndo(round: Omit<PassUndo, "key" | "expiresAt">, now = Date
   emit();
 }
 
-/** The round Undo is offered for in this group, or null (none, another group's, or expired). */
-export function undoFor(groupId: string, now = Date.now()): PassUndo | null {
-  return current && current.groupId === groupId && current.expiresAt > now ? current : null;
+/** The round Undo is offered for in this group and place, or null (none, another group's or place's, or expired). */
+export function undoFor(
+  groupId: string,
+  { now = Date.now(), place = null }: { now?: number; place?: string | null } = {},
+): PassUndo | null {
+  return current &&
+    current.groupId === groupId &&
+    (current.place ?? null) === place &&
+    current.expiresAt > now
+    ? current
+    : null;
 }
 
 /** Stop offering Undo (after it's used, or once it expires). Only `key`'s, when given. */

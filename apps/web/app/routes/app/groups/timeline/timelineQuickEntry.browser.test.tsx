@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { clearUndo } from "~/lib/passUndo";
 import { runActions } from "~/lib/sync/quickEntry";
 import * as editSheet from "./edit/route";
 import * as newDose from "./new-dose/route";
@@ -62,7 +63,10 @@ const cards = () => [...document.querySelectorAll<HTMLElement>("[data-quick-card
 const cardKinds = () => cards().map((c) => c.dataset.quickCard);
 const cardWith = (text: string) => cards().find((c) => c.textContent?.includes(text))!;
 const saveButton = () => document.querySelector<HTMLButtonElement>("[data-quick-entry] button[type=submit]");
-const status = () => document.querySelector("[data-quick-status]")?.textContent ?? "";
+/** What the box says: "Saved 3 entries" (on its Undo line) or a refusal. */
+const status = () =>
+  document.querySelector("[data-quick-entry] [data-pass-undo-label]")?.textContent ||
+  (document.querySelector("[data-quick-status]")?.textContent ?? "");
 /** Type a line and wait for its cards (with `kinds`, until they read as those: names match once the group's medications and providers have loaded). */
 const type = async (text: string, kinds?: string[]) => {
   await userEvent.fill(box(), text);
@@ -74,6 +78,7 @@ const type = async (text: string, kinds?: string[]) => {
 };
 
 afterEach(() => {
+  clearUndo();
   localStorage.removeItem(`caretook:settings:${TEST_USER.id}`);
 });
 

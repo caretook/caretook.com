@@ -24,6 +24,20 @@ describe("completeName", () => {
     expect(offered("gave ac")).toEqual(["Acetaminophen", "Folic acid"]);
   });
 
+  it("offers pass names too, after medications and before providers", () => {
+    const names: CompletionName[] = [
+      ...NAMES,
+      { id: "x1", name: "Evening", kind: "pass" },
+      { id: "x2", name: "Lean morning", kind: "pass" },
+    ];
+    expect(completeName("gave eve", names).map((c) => c.text)).toEqual(["gave Evening "]);
+    expect(completeName("appt le", names).map((c) => c.name)).toEqual([
+      "Lean morning",
+      "Leeward Pharmacy",
+      "Dr. Sandra Lee",
+    ]);
+  });
+
   it("completes the word, keeping the rest of the line", () => {
     expect(completed("bp 120/80, gave met", "Metformin")).toBe("bp 120/80, gave Metformin ");
     expect(completed("gave folic ac", "Folic acid")).toBe("gave Folic acid ");

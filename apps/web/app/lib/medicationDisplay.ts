@@ -408,6 +408,17 @@ export const passLoggedText = (
 /** What Undo's status says after Given all: "Morning logged", "Metformin 500 mg logged". */
 export const passLoggedLabel = (pass: Pick<PassWording, "name" | "slots">) => `${passTitle(pass)} logged`;
 
+/**
+ * A due pass as one tap (quick entry's chip, simple mode's Now block): "Give
+ * evening meds (4)", with how many are still open. A pass already called
+ * "… meds" isn't doubled; a time of its own is named by its medication.
+ */
+export const givePassText = (pass: Pick<PassWording, "name" | "slots" | "open">) => {
+  const title = pass.name ? pass.name.trim().toLocaleLowerCase("en-US") : passTitle(pass);
+  const meds = !pass.name || /\b(meds|medications?|medicines?|pills)$/i.test(title) ? "" : " meds";
+  return `Give ${title}${meds} (${pass.open.length})`;
+};
+
 /** Given all's accessible name: "Given all: Morning, 8:00". */
 export const givenAllLabel = (pass: Pick<PassWording, "name" | "slots" | "time">) =>
   `Given all: ${passTitle(pass)}, ${clockTime(pass.time)}`;

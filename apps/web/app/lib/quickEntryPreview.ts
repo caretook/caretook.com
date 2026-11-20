@@ -2,7 +2,7 @@ import type { AssistantAction, UnitChoices } from "@caretook/data/schema";
 
 import { formatReading, isKnownReading } from "@caretook/data/schema";
 import { dayLabel } from "./format";
-import { doseText, listText, medicationTitle } from "./medicationDisplay";
+import { doseText, listText, medicationCountText, medicationTitle } from "./medicationDisplay";
 
 // The wording of a quick-entry card: what an assistant action will save, in
 // the app's own words (vitals' `formatReading`, `medicationTitle` and
@@ -14,6 +14,8 @@ export type PreviewContext = {
   /** The group's medications and providers by id, for their names. */
   medications: ReadonlyMap<string, { name: string; strength?: string | null }>;
   providers: ReadonlyMap<string, { name: string }>;
+  /** The group's passes by id, with how many medications are still open in each today. */
+  passes?: ReadonlyMap<string, { name: string; open?: number }>;
   locale?: string;
   /** The zone times read in (the device's, by default). */
   timeZone?: string;
@@ -82,6 +84,14 @@ export const actionPreview = (action: AssistantAction, context: PreviewContext):
       return {
         title: medication ? medicationTitle(medication) : "Medication",
         detail: joined(doseText(action), action.note),
+        when,
+      };
+    }
+    case "givePass": {
+      const pass = context.passes?.get(action.passId);
+      return {
+        title: pass ? `${pass.name} medications` : "Medications",
+        detail: joined("Given all", pass?.open ? medicationCountText(pass.open) : null),
         when,
       };
     }
