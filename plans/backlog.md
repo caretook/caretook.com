@@ -92,7 +92,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-123 | chore | in-progress | check-migration | prd/check-migration | Move care-periods.mjs to component tests |
 | B-124 | chore | ready | check-migration | prd/check-migration | Move devices.mjs to component tests |
-| B-125 | chore | in-progress | check-migration | prd/check-migration | Move admin.mjs to component tests |
+| B-125 | chore | ready | check-migration | prd/check-migration | Move admin.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
 | B-128 | chore | landed | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
@@ -598,10 +598,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-125 · chore · Move admin.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 3c0418e
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. admin pages are web-only server loaders, so component tests need loader data: move what renders from data (users, groups, audit, settings, the banner) there; keep staff-only access, the audit log written by real actions and the announcement reaching /app. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 7, wave 3 (plans/check-migration-plan.md).
