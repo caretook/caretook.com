@@ -453,6 +453,10 @@ try {
       );
       check("avatars: the writer doesn't see themselves", (await A.evaluate(`${AVATARS}.length`)) === 0);
       // The member's edits upload first (their device is behind a proxy, B-110), so the caretaker's are the most recent.
+      // The editor writes a burst 250 ms after the last keystroke (at most 1 s), so wait that out first: an
+      // earlier edit's avatar (within its 2 minutes) can satisfy the wait above at once, and an empty queue
+      // then only means the burst isn't written yet.
+      await sleep(1200);
       await A.waitFor(`${localRows("SELECT count(*) AS n FROM ps_crud")}.then((r) => r[0].n === 0)`, 15000);
       await typeInEditor(B, ` ${tag}-b`);
       await A.waitFor(hasAvatar(CARETAKER), 15000);

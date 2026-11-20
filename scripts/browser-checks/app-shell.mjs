@@ -277,17 +277,33 @@ try {
     );
     await O.evaluate(`${BAR}.querySelector("a").click()`);
     await O.waitFor(`location.pathname === ${JSON.stringify(TIMELINE)} && ${rows} > 0`, 20000);
+    // A viewer keeps a ⋯ on notes and events, holding Print alone; anything else is a writer control.
+    const PRINT_ONLY = `button[aria-label^="Actions for note"], button[aria-label^="Actions for event"]`;
     const noWriter = await O.evaluate(`({
       addBar: !!${ADD_BUTTON},
-      menus: document.querySelectorAll('main ol button[aria-label^="Actions"], main ol [aria-label^="Edit "]').length,
+      quickEntry: !!document.querySelector("[data-quick-entry]"),
+      menus: document.querySelectorAll('main ol button[aria-label^="Actions"]:not(:is(${PRINT_ONLY})), main ol [aria-label^="Edit "]').length,
       stay: window.__stay,
     })`);
+    // One of those menus, opened: Print, with no Edit or Delete.
+    noWriter.items = await O.evaluate(`(async () => {
+      const button = document.querySelector('main ol :is(${PRINT_ONLY})');
+      if (!button) return null;
+      button.click();
+      for (let i = 0; i < 100 && !document.querySelector("[role=menuitem]"); i++) await new Promise((r) => setTimeout(r, 50));
+      const items = [...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent.trim());
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      return items;
+    })()`);
     check(
       "made a viewer: their list follows, and their next timeline has no writer controls (no reload)",
       viewer === "Dev Member:owner,Dev Caretaker:viewer,Dev Viewer:viewer" &&
         demoted &&
         !noWriter.addBar &&
+        !noWriter.quickEntry &&
         noWriter.menus === 0 &&
+        (noWriter.items === null || noWriter.items.join(",") === "Print") &&
         noWriter.stay === 1,
       `${viewer} / ${JSON.stringify(noWriter)}`,
     );
