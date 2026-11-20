@@ -18,7 +18,7 @@
 
 **Models:** slice 1 sonnet (a mechanical move), slice 2 opus (design-heavy), slice 7 sonnet (text).
 
-**Waiting on:** slice 3 needs timeline-ux's slice 6 (B-164 day header, B-165 author under the ⋯ menu) in `dev`; it lands with timeline-ux wave 2, a few hours out (2026-11-20). Its orchestrator (timeline-ux-dd) will message on landing; a background check also watches the backlog. That slice doesn't touch `EntryHeader`, so slice 3 can place the tag there freely. B-140 (packages/auth) is timeline-ux slice 10, after its wave 3; they'll warn before it starts and lands.
+**Waiting on:** timeline-ux's B-164/B-165 are in `dev` (60260949): rows put ⋯ `EntryActions` over the author chip in `div[data-entry-aside]` (`ASIDE_CLASS`, `timeline/layout.ts`); cards unchanged (author in the footer); `DayHeader` has a `summary` region; `EntryHeader` untouched; the header strips became one `TodayCard`. So slice 3 waits only on slice 2: at the wave 2 boundary run `pnpm prd sync` first, and give slice 3 these placement notes. B-140 (packages/auth) is timeline-ux's last wave; they'll warn.
 
 **When to land:** this PRD has a migration and a new dependency, so hold landing until every slice is merged, then run the checks once at the end. Ask the user before any `--suite`.
 
