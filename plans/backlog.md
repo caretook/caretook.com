@@ -253,6 +253,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-7: shared rate-limit storage is a launch blocker (Better Auth and packages/api/src/rateLimit.ts are per instance).
 - 2026-11-19 (Robert Bo Davis): Triaged to hosting with B-33: email domain setup, bounce webhooks, the outbox cron and shared rate-limit storage are part of the same deploy work.
 - 2026-11-19 (Robert Bo Davis): In the hosting plan: Postgres rate-limit storage (slice 3), Resend bounce/complaint webhook with suppression (slice 4), the per-minute cron and waitUntil (slice 1), DNS and tracking off in the runbook (slices 6-7).
+- 2026-11-20 (slice/hosting/4): Slice 4 committed on slice/hosting/4 (7d0be1d): Svix-verified /api/webhooks/resend, email_suppression (in migration 0022_rate_limits_suppression), notify skips suppressed except sign-in/reset/verify, /admin/suppressions.
 
 ### B-84 · feature · Deleting an entry, provider or medication scrubs its content everywhere
 
