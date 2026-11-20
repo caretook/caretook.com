@@ -6,7 +6,8 @@
 // tooling, config, build and the checks themselves. One rule per line: a glob
 // (bash pattern: * also matches /, ? and [...] as in bash), then the checks it
 // needs as plain names, or `-` for none, `@suite` for the lean set, or `@self`
-// (a check file runs itself; one the change deleted needs nothing). # starts a
+// (a check file, <check>.mjs or <check>.spec.mjs, runs itself; one the change
+// deleted needs nothing). # starts a
 // comment line.
 //
 // Most specific wins, across every file: among the rules whose glob matches,
@@ -158,7 +159,9 @@ export function resolveFile(file, rules, exists) {
     const tied = found.filter((r) => compareSpecificity(r, rule) === 0);
     const tie = tied.length > 1 ? tied : undefined;
     if (rule.checks === "@self") {
-      const checks = !file.endsWith(".mjs") ? "-" : exists(file) ? basename(file, ".mjs") : "- (deleted)";
+      // A spec (sign-in.spec.mjs) or a plain check (phase2.mjs) runs as its name.
+      const name = basename(file, ".mjs").replace(/\.spec$/, "");
+      const checks = !file.endsWith(".mjs") ? "-" : exists(file) ? name : "- (deleted)";
       return { checks, rule, tie };
     }
     return { checks: rule.checks, rule, tie };

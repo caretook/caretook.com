@@ -69,33 +69,33 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-104 | plan | in-progress | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-129 | chore | in-progress | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
 | B-136 | change | landed | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
-| B-137 | change | ready | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
-| B-138 | change | ready | timeline-ux | prd/timeline-ux | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
-| B-139 | change | ready | timeline-ux | prd/timeline-ux | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
-| B-140 | change | triaged | timeline-ux |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
-| B-144 | feature | in-progress | timeline-ux | prd/timeline-ux | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
+| B-137 | change | landed | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
+| B-138 | change | landed | timeline-ux | prd/timeline-ux | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
+| B-139 | change | landed | timeline-ux | prd/timeline-ux | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
+| B-140 | change | in-progress | timeline-ux | prd/timeline-ux | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
+| B-144 | feature | ready | timeline-ux | prd/timeline-ux | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-148 | chore | landed | agent-tooling | prd/agent-tooling | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-155 | chore | landed | timeline-ux | prd/timeline-ux | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | landed | timeline-ux | prd/timeline-ux | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
-| B-161 | bug | ready | check-migration | prd/check-migration | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
-| B-162 | change | in-progress | timeline-ux | prd/timeline-ux | In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the… |
-| B-163 | change | in-progress | timeline-ux | prd/timeline-ux | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
-| B-164 | change | ready | timeline-ux | prd/timeline-ux | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
-| B-165 | change | ready | timeline-ux | prd/timeline-ux | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
+| B-161 | bug | landed | check-migration | prd/check-migration | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
+| B-162 | change | ready | timeline-ux | prd/timeline-ux | In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the… |
+| B-163 | change | ready | timeline-ux | prd/timeline-ux | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
+| B-164 | change | landed | timeline-ux | prd/timeline-ux | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
+| B-165 | change | landed | timeline-ux | prd/timeline-ux | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
 | B-166 | change | landed | timeline-ux | prd/timeline-ux | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
-| B-167 | change | ready | timeline-ux | prd/timeline-ux | Make day summary part of sticky header so it is always visible when scrolling up the timeline. |
-| B-168 | change | ready | timeline-ux | prd/timeline-ux | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
-| B-169 | change | ready | timeline-ux | prd/timeline-ux | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
-| B-170 | change | in-progress | timeline-ux | prd/timeline-ux | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
-| B-171 | change | in-progress | timeline-ux | prd/timeline-ux | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
-| B-173 | bug | ready | check-migration | prd/check-migration | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
+| B-167 | change | landed | timeline-ux | prd/timeline-ux | Make day summary part of sticky header so it is always visible when scrolling up the timeline. |
+| B-168 | change | landed | timeline-ux | prd/timeline-ux | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
+| B-169 | change | landed | timeline-ux | prd/timeline-ux | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
+| B-170 | change | ready | timeline-ux | prd/timeline-ux | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
+| B-171 | change | ready | timeline-ux | prd/timeline-ux | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
+| B-173 | bug | landed | check-migration | prd/check-migration | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
 | B-174 | bug | triaged | timeline-ux |  | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
 | B-175 | chore | triaged | timeline-ux |  | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
 | B-176 | bug | triaged | check-migration |  | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
 | B-177 | bug | inbox |  |  | rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone |
-| B-178 | bug | inbox |  |  | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
+| B-178 | bug | triaged | check-migration |  | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
 
 ## Items
 
@@ -301,7 +301,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-137 · change · Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk…
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: ddf36b0
@@ -314,7 +314,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-138 · change · Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only…
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: ddf36b0
@@ -327,7 +327,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-139 · change · Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no…
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 127670af
@@ -340,9 +340,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-140 · change · Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux
-- owner:
+- owner: prd/timeline-ux
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every call, public procedures included. / A short cookie cache, or skipping the lookup for public procedures (packages/auth/src/authUser.ts, routes/rpc.ts).
@@ -353,10 +353,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-144 · feature · Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 858936e7
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload works offline (docs/domain/sync.md already notes the gap).
 - 2026-11-20 (backlog agent): Triage: app-speed, its largest slice (a precached shell for the web target only; update flow, CSP worker-src, how it meets PowerSync's own workers). Needs the PRD interview. Likely a new dependency question (hand-written worker or a Vite plugin).
@@ -425,7 +425,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-161 · bug · sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…')
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: d0c4496
@@ -436,10 +436,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-162 · change · In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 3f342072
 
 - 2026-11-20 (prd/hosting): From the inbox: In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the full layout. Replace "Now" heading with "Upcoming". Reduce size of quick action buttons so that they are one row with smaller buttons so they are one row."Tap the microphone on your keyboard to say it instead of typing." should only appear on devices that support voice input via keyboard (ios/andriod?). All text is too large and should be reduced in size. Assume users that can't see well will have there devices set to larger text, or zoom their browsers.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
@@ -447,10 +447,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-163 · change · "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 858936e7
 
 - 2026-11-20 (prd/hosting): From the inbox: "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas separate entries; start with “n:” for a note." should be a tooltip.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
@@ -458,7 +458,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-164 · change · "day/date" heder for full timeline is too small compared to the + button. Make text larger.
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 127670af
@@ -468,7 +468,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-165 · change · Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space.
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 127670af
@@ -492,7 +492,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-167 · change · Make day summary part of sticky header so it is always visible when scrolling up the timeline.
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 127670af
@@ -502,7 +502,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-168 · change · timeline group titles that are too long wrap to multiple lines on small screens. Truncate the…
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 127670af
@@ -513,7 +513,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-169 · change · vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is…
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 127670af
@@ -524,10 +524,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-170 · change · When creating a new timeline entry for a note or event, we should navigate to edit page on save so…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 858936e7
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: When creating a new timeline entry for a note or event, we should navigate to edit page on save so the user can add more info to the live document immediately without an extra tap.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
@@ -535,10 +535,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-171 · change · your recent lines should exclude notes and events. vitals should only show the vital key, not the…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 858936e7
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: your recent lines should exclude notes and events. vitals should only show the vital key, not the value so that the user can log those quickly without deleting the value.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
@@ -546,7 +546,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-173 · bug · app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 6502603
@@ -594,9 +594,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-178 · bug · medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: check-migration
 - owner:
 - commit:
 
 - 2026-11-20 (prd/timeline-ux): Seen 2026-11-20 in timeline-ux slices 1, 2 and two landing checks (different test each time); fails before any timeline-ux change too. Probably waits on a fixed render instead of the live query's answer.
+- 2026-11-20 (prd/check-migration): Proposed for check-migration with B-176, the same race (a DOM read before the live query answers). Its search test was fixed in e4b332b; the other tests in the file are left for the B-176 sweep. -- check-migration orchestrator
