@@ -21,10 +21,11 @@
     "test:integration": "vitest run --project integration",
     "test:components": "vitest run --project web:components",
     "test:components:install": "playwright install chromium",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:budget",
     "hooks:install": "git config core.hooksPath .githooks",
     "backlog": "node scripts/backlog/backlog.mjs",
     "prd": "bash scripts/loops/prd.sh",
+    "log": "bash scripts/loops/log.sh",
     "deploy:env": "node scripts/deploy/env.mjs",
     "datastore:start": "pnpm datastore:up && pnpm datastore:migrate && pnpm datastore:seed",
     "datastore:up": "docker compose up -d --wait",
@@ -45,7 +46,8 @@
     "datastore:up:test": "docker compose -f docker-compose.test.yml up -d --wait",
     "datastore:stop:test": "docker compose -f docker-compose.test.yml down",
     "datastore:reset:test": "NODE_ENV=test pnpm datastore:clear && NODE_ENV=test pnpm datastore:migrate",
-    "deploy:smoke": "node scripts/deploy/smoke.mjs"
+    "deploy:smoke": "node scripts/deploy/smoke.mjs",
+    "docs:budget": "node scripts/loops/doc-budget.mjs warn || true"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

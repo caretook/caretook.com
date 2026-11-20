@@ -4,16 +4,26 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/agent-tooling` (slice commits) |
-| ----- | ---- | ----------- | ---------------------------------------------- |
-| 1     | 1    | not started |                                                |
-| 2     | 1    | not started |                                                |
-| 3     | 1    | not started |                                                |
-| 4     | 2    | not started |                                                |
-| 5     | 3    | not started |                                                |
-| 6     | 3    | not started |                                                |
+| Slice | Wave | State           | Merge into `prd/agent-tooling` (slice commits) |
+| ----- | ---- | --------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus)   | 8d10f6b (9faf638)                              |
+| 2     | 1    | merged (sonnet) | a23e77c (52a8503)                              |
+| 3     | 1    | merged (sonnet) | 5ba5669 (bc6bd87)                              |
+| 4     | 2    | not started     |                                                |
+| 5     | 3    | not started     |                                                |
+| 6     | 3    | not started     |                                                |
 
-**Landing mode:** not chosen yet (the orchestrator asks at start).
+**Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
+
+**2026-11-20:** all three wave 1 agents stopped at a usage limit with work uncommitted in their worktrees; resumed by message after the reset (not respawned).
+
+**Slice 2 note:** its `pnpm check` had 1–3 failures in medicationList/passSheet component tests at load ~40; medicationList passed 6/6 on the base alone, and the slice touches no app code: load flakes.
+
+**Wave 1:** all three merged; synced, full `pnpm prd check` passed on 5e08bbc (4167 tests), decisions folded into AGENTS.md and docs/loops.md; landing. Slice 3's `pnpm check` also had 2 component flakes (medicationList, providerSheets), both passed alone.
+
+**Land guard (user's choice, 2026-11-20):** AGENTS.md and docs/loops.md are `landExempt` (warn only) until slice 4, which removes the flags.
+
+**Claimed:** B-154, B-147 (2026-11-20). B-148 is claimed at wave 3.
 
 **Backlog:**
 
@@ -217,6 +227,7 @@ Stack: no · Reads: docs/loops.md, docs/orchestration.md · Tests: unit
   - Recovery reads the orchestrator doc.
 - **docs/orchestration.md:** its links point to the new docs. It isn't rewritten.
 - **Every current rule lands in exactly one place.** The hand-off lists any rule dropped as stale, with the reason.
+- **Remove the land exemptions** (`landExempt` on AGENTS.md and docs/loops.md in `scripts/loops/doc-budget.config.mjs`, added at wave 1's landing on the user's word so other PRDs' folds weren't blocked meanwhile).
 - **Before landing:** `pnpm prd sync`. Any additions a landing made meanwhile to the old AGENTS.md or docs/loops.md are moved into the new layout and listed in the hand-off.
 
 **Acceptance criteria:**
