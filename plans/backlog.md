@@ -103,6 +103,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-161 | bug | triaged | check-migration |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
 | B-162 | change | inbox |  |  | In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the… |
 | B-163 | change | inbox |  |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
+| B-164 | change | inbox |  |  | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
+| B-165 | change | inbox |  |  | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
+| B-166 | change | inbox |  |  | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
+| B-167 | change | inbox |  |  | Make day summary part of sticky header so it is always visible when scrolling up the timeline. |
+| B-168 | change | inbox |  |  | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
+| B-169 | change | inbox |  |  | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
+| B-170 | change | inbox |  |  | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
+| B-171 | change | inbox |  |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
 
 ## Items
 
@@ -689,3 +697,69 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (prd/hosting): From the inbox: "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas separate entries; start with “n:” for a note." should be a tooltip.
+
+### B-164 · change · "day/date" heder for full timeline is too small compared to the + button. Make text larger.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-165 · change · Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-166 · change · Using back to timeline from timeline live-note entry (or any browse action) takes you back to the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Using back to timeline from timeline live-note entry (or any browse action) takes you back to the timeline, causes all lazy loaded header elements to reload. Can we cache their state with a visual indicator (maybe greyed out) and load in the background so that it doesn't cause page shift? Maybe keep a placeholder in the header so that it doesn't cause a flash on load any time?
+
+### B-167 · change · Make day summary part of sticky header so it is always visible when scrolling up the timeline.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-168 · change · timeline group titles that are too long wrap to multiple lines on small screens. Truncate the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: timeline group titles that are too long wrap to multiple lines on small screens. Truncate the provider on small screens.
+
+### B-169 · change · vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is collapsible. They should all have a right side link to the full view that is formatted similarly.
+
+### B-170 · change · When creating a new timeline entry for a note or event, we should navigate to edit page on save so…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: When creating a new timeline entry for a note or event, we should navigate to edit page on save so the user can add more info to the live document immediately without an extra tap.
+
+### B-171 · change · your recent lines should exclude notes and events. vitals should only show the vital key, not the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: your recent lines should exclude notes and events. vitals should only show the vital key, not the value so that the user can log those quickly without deleting the value.
