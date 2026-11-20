@@ -6,7 +6,7 @@ The timeline area's rules and decisions. An orchestrator folds a landing's lasti
   - `group_id` and `recipient_id` are on the row (streams filter on them); the composite FK to `care_recipient` is `NO ACTION`, so deleting a recipient with entries fails, while deleting the group cascades.
   - `occurred_at` plus the device's IANA `time_zone`; optional `title`, `body`, and `details` jsonb (a Zod discriminated union per kind).
 - **Rules:**
-  - **Soft delete** (`deleted_at`), checked against the delete permission. Reads hide deleted rows unless `includeDeleted`.
+  - **Soft delete** (`deleted_at`), checked against the delete permission. Reads hide deleted rows unless `includeDeleted`, and `update` refuses them. A hard delete cascades to the entry's document.
   - **Keyset pagination** on `(occurred_at, id)`, because offline devices insert older entries.
   - `create` defaults `recipientId` and checks the group first, so a non-member learns nothing. `update` validates the **merged** row.
   - `occurredAt` reads back as Postgres text; normalise it at the API.
@@ -44,5 +44,5 @@ The timeline area's rules and decisions. An orchestrator folds a landing's lasti
 - **The simple view** (a view of the timeline route, chosen by `useSimpleMode`: `SimpleTimeline.tsx`): `QuickEntryBox size="lg"` (writers), then `TimelineEntryList simple`: rows only, zoomed, no ⋯ menus, filter links or period markers; day summaries stay. Only notes and events open. Adding, the layout switch, the strips and filter chips are hidden, and `useSimpleModeUrl` replaces a filtered URL with the plain timeline.
   - **The Now block** (`SimpleNow.tsx`): writers get each due pass as a big Given all button with Undo, plus the next appointment; viewers get text only.
   - **My tasks** (`SimpleTasks.tsx`): my open tasks, at most `SIMPLE_TASKS_CAP`, each with a large tick and Undo; works offline.
-  - **Tiles** (writers, `SimpleTiles.tsx`; pure `lib/assistant/simpleTiles.ts`): four big links, fixed, learned (most-logged over 30 days) or the group's picked tiles (`care_group.simple_tiles`, via `useSimpleSetup`). Each opens the existing sheet in its **simple variant** (`TimelineOutlet.simple`). While `simple_tiles` is null, owners and admins see only a "Choose the tiles" link to Details; saving any choice, even learned, stores a value and hides it.
+  - **Tiles** (writers, `SimpleTiles.tsx`; pure `lib/assistant/simpleTiles.ts`): four big links, fixed, learned (most-logged over 30 days) or the group's picked tiles (`care_group.simple_tiles`, via `useSimpleSetup`). Labels use the recipient's pronouns (she, he, they) when known, else their name. Each opens the existing sheet in its **simple variant** (`TimelineOutlet.simple`). While `simple_tiles` is null, owners and admins see only a "Choose the tiles" link to Details; saving any choice, even learned, stores a value and hides it.
   - **Remove my last entry** (writers, `removeLast.ts`): your own latest entry from the last 30 minutes (not a medication change), after a confirm.
