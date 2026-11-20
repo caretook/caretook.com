@@ -11,6 +11,7 @@ docs/*                                   -
 .claude/*                                -
 scripts/loops/*                          -
 scripts/backlog/*                        -
+scripts/build/*                          -
 packages/*/test/*                        -
 # The test device and component-test worlds (web:components runs them in pnpm check).
 apps/web/test/*                          -
