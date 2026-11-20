@@ -11,13 +11,24 @@
 // load sends it.
 //
 // The device's proxy cuts the whole browser's network (the rpc call is what
-// matters). A full page reload can't load at all while offline (there's no
-// service worker yet), so "reload while offline" is a revisit inside the app:
-// open a note, then go back, which runs the timeline's clientLoader again.
+// matters). "Reload while offline" for the pending layout is a revisit inside
+// the app: open a note, then go back, which runs the timeline's clientLoader
+// again. A real reload offline has its own steps: the service worker (B-144)
+// serves the shell, and the timeline and a provider's page open from local data.
 //
 // The sheets open offline too, once a full load has their route modules (the
 // add sheet for °C below, and a row's edit sheet).
-import { addToTimeline, assetsSettled, expect, psql, signIn, signOut, test, waitFor } from "./fixtures.mjs";
+import {
+  addToTimeline,
+  assetsSettled,
+  DEV_FAMILY,
+  expect,
+  psql,
+  signIn,
+  signOut,
+  test,
+  waitFor,
+} from "./fixtures.mjs";
 
 const EMAIL = "member@example.com";
 
@@ -219,9 +230,47 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
       expect(serverView()).toBe("rows");
     });
 
+    // A real reload offline (B-144): the full loads above installed the service
+    // worker, so an /app page load gets its cached shell and the screen opens
+    // from the local database: a provider's page (a route the shell's own
+    // document never loads), then the timeline.
+    await test.step("service worker: installed and controlling the page", async () => {
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() =>
+              navigator.serviceWorker.ready.then(() => !!navigator.serviceWorker.controller),
+            ),
+          {
+            timeout: 20_000,
+          },
+        )
+        .toBe(true);
+    });
+    const providerId = psql(
+      `SELECT id FROM provider WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL ORDER BY name LIMIT 1`,
+    );
+    const providerName = psql(`SELECT name FROM provider WHERE id = '${providerId}'`);
+    const providerPage = timeline.replace(/\/timeline$/, `/providers/${providerId}`);
+
     // Sign-out clears pending changes (one left by an offline switch).
     await assetsSettled(page);
     d.offline(true);
+    // The provider's page first, so the timeline is where the steps below go on.
+    await test.step("offline reload: a provider's page opens from local data", async () => {
+      await page.goto(providerPage);
+      await expect(page.locator("main h1")).toContainText(providerName, { timeout: 30_000 });
+      expect(await page.evaluate(() => performance.getEntriesByType("navigation")[0].workerStart > 0)).toBe(
+        true,
+      );
+    });
+    await test.step("offline reload: the timeline opens from local data", async () => {
+      await page.goto(timeline);
+      await expect(rows(page).first()).toBeVisible({ timeout: 30_000 });
+      expect(await page.evaluate(() => performance.getEntriesByType("navigation")[0].workerStart > 0)).toBe(
+        true,
+      );
+    });
     await setView(page, "Cards");
     await expect.poll(() => pendingCount(page)).toBe(1);
     d.offline(false);
