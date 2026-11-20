@@ -297,6 +297,8 @@ apps/web/app/lib/sync/titleSuggestions.ts live-notes
 
 # Providers.
 apps/web/app/routes/app/groups/provider/ProviderMedications.tsx providers medications
+# Visit prep's button on a provider's page (assistant slice 4): component tests.
+apps/web/app/routes/app/groups/provider/ProviderVisitPrep.tsx -
 apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
@@ -326,6 +328,11 @@ apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 # The time fields and the reschedule sheet (the entry page's time chip, and
 # Reschedule from the timeline, Upcoming and the entry page).
 apps/web/app/components/schedule/*       upcoming
+# Visit prep (assistant slice 4): the sheet and its hooks, and the device
+# module (reads, and one note_update like typing): component tests
+# (components/visitPrep/visitPrep.browser.test.tsx).
+apps/web/app/components/visitPrep/*      -
+apps/web/app/lib/sync/visitPrep.ts       -
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 # Care periods (care-periods PRD): the device module, the periods page and
 # its sheets, and a period's page.

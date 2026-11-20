@@ -27,6 +27,14 @@ export const groupDocumentsQuery = (groupId: string) => ({
   params: [groupId],
 });
 
+/** One document with its pending updates, like `groupDocumentsQuery`'s rows (for its preview text). */
+export const documentPreviewQuery = (id: string) => ({
+  sql: `SELECT d.id, d.snapshot, d.text,
+               (SELECT json_group_array(u.data) FROM note_update u WHERE u.document_id = d.id) AS updates
+        FROM note_document d WHERE d.id = ?`,
+  params: [id],
+});
+
 const pendingUpdates = (row: NoteDocRow) => {
   try {
     return (JSON.parse(row.updates) as (string | null)[]).filter((u): u is string => !!u);

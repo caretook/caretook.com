@@ -15,6 +15,7 @@ import { isLiveEntryKind, savedTitle, shouldMaterialize } from "~/lib/liveEntry"
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { cancelEvent, uncancelEvent } from "~/lib/sync/appointments";
 import { materializeLiveEntry } from "~/lib/sync/liveEntry";
+import { linkProvider } from "~/lib/sync/providers";
 import { removeEntry, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
 import { entrySql } from "./loadEntry";
 
@@ -121,12 +122,17 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       }
       setSaveError(null);
       saved.current = true;
+      // A new appointment from a provider's page is with them.
+      if (data.withProvider) {
+        const linked = await linkProvider(getSync(), draft.id, data.withProvider);
+        if (!linked.ok) setSaveError(linked.error);
+      }
       // Back from here goes to the timeline, and the link is the entry's own.
       if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true });
       return true;
     })();
     return saving.current;
-  }, [draft, groupId, isNew, navigate]);
+  }, [draft, groupId, isNew, navigate, data.withProvider]);
 
   // The editor asks on each local change until this says it's saved.
   const ensureSaved = useCallback(
@@ -160,8 +166,12 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const changeSchedule = (next: Schedule) => {
     scheduleRef.current = next;
     setDraftSchedule(next);
-    // Picking a time alone never saves a draft.
-    if (isNew && !saved.current) return;
+    // Picking a time alone never saves a draft, unless it's an appointment
+    // with a provider (from their page): then it's ready to prepare.
+    if (isNew && !saved.current) {
+      if (data.withProvider) void save();
+      return;
+    }
     const { occurredAt, allDay, endsAt } = next;
     void updateEntry(getSync(), draft.id, {
       occurredAt,

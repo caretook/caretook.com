@@ -4,7 +4,9 @@ import type { LinkedProviderName } from "~/lib/entryProviders";
 import type { EntryCancelActions } from "~/components/entry";
 import type { TimelineEntry } from "~/lib/rpc";
 
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
+import { appUrls } from "~/lib/appUrls";
 import { initials } from "~/lib/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/format";
 import { cancelledLabel } from "~/lib/upcomingLabels";
@@ -25,7 +27,7 @@ export type EntryViewProps = {
   open?: EntryOpen;
   /** The ⋯ menu's Edit, for symptoms and vitals. */
   onEdit?: () => void;
-  /** Omitted for people who can't change the timeline (viewers): no ⋯ menu. */
+  /** Omitted for people who can't change the timeline (viewers): no Delete (notes and events keep Print). */
   onDelete?: () => void;
   /** An event's Cancel or Undo cancel in the ⋯ menu (writers). */
   cancel?: EntryCancelActions;
@@ -91,12 +93,15 @@ export function TimelineEntryRow({
         initials={initials(authorName)}
         image={authorImage}
       />
-      {onDelete && (
+      {(onDelete || canHaveNoteDocument(entry.kind)) && (
         <EntryActions
           kind={entry.kind}
           label={actionsLabel(entry)}
           onEdit={onEdit}
           cancel={cancel}
+          printHref={
+            canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
+          }
           onDelete={onDelete}
         />
       )}
