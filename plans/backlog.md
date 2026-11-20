@@ -76,7 +76,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-122 | chore | landed | check-migration | prd/check-migration | Move profiles-contacts.mjs to component tests |
 | B-126 | chore | landed | check-migration | prd/check-migration | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | landed | check-migration | prd/check-migration | Move invites.mjs's screen steps to component tests |
-| B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
+| B-129 | chore | in-progress | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
 | B-134 | bug | landed | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 | B-135 | change | landed | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
 | B-136 | change | in-progress | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
@@ -101,7 +101,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-158 | change | landed | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
 | B-159 | change | landed | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
 | B-160 | change | landed | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
-| B-161 | bug | triaged | check-migration |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
+| B-161 | bug | in-progress | check-migration | prd/check-migration | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
 | B-162 | change | triaged | timeline-ux |  | In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the… |
 | B-163 | change | triaged | timeline-ux |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
 | B-164 | change | triaged | timeline-ux |  | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
@@ -112,7 +112,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-169 | change | triaged | timeline-ux |  | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
 | B-170 | change | triaged | timeline-ux |  | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
 | B-171 | change | triaged | timeline-ux |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
-| B-172 | bug | ready | check-migration | prd/check-migration | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
+| B-172 | bug | landed | check-migration | prd/check-migration | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
 
 ## Items
 
@@ -405,9 +405,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-129 · chore · Port the lean end-to-end set to Playwright Test
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): A non-goal of the orchestration PRD, filed as its follow-up: the CDP harness (cdp.mjs, proxy.mjs) could become Playwright Test now that playwright is a dev dependency (component tests). Only the lean set (scripts/loops/checks e2e yes); keep the lease, the watchdog and the check build.
@@ -695,9 +695,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-161 · bug · sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…')
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-20 (prd/check-migration): check-migration wave 4 suite, 2026-11-20 08:54, load 51→88; passed on the automatic retry (.loops/.browser-flakes.log). The redirect outran the assertion under load; slice 19's Playwright port may make the wait robust.
@@ -815,7 +815,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-172 · bug · app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 86aac2e
