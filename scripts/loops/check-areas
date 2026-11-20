@@ -61,7 +61,7 @@ apps/web/app/.server/securityHeaders.ts  sign-in phase2 roundtrip live-notes mar
 apps/web/app/lib/csp.ts                  sign-in phase2 roundtrip live-notes marketing invites
 apps/web/app/routes/web/*                sign-in marketing invites
 apps/web/vercel.json                     sign-in marketing
-apps/web/app/app.css                     ui medications profiles
+apps/web/app/app.css                     ui medications
 powersync/*                              @suite
 docker-compose*.yml                      @suite
 packages/data/src/db/migrations/*        @suite
@@ -144,32 +144,24 @@ packages/data/src/db/schema/accessCode.ts groups
 packages/data/src/db/schema/newCareGroup.ts groups
 packages/data/src/db/seeds/accessCodes.ts groups
 
-# Profiles (profiles slice 2): the recipient's profile, its Basics sheet, and
-# the ways in (the group menu, the timeline's recipient card, group settings
-# Details' link). Above the timeline's, layout's and settings' general rules.
-# The emergency sheet (profiles slice 6): its own print media steps, and the shared print CSS's.
-apps/web/app/routes/app/groups/profile/print/* profiles
-# Recent vital averages (quick-fixes slice 42, B-100): read-only, covered by
-# vitalAverages.browser.test.tsx and lib/vitalAverages.test.ts.
-apps/web/app/routes/app/groups/profile/VitalAveragesCard.tsx -
+# The recipient's profile, its sheets, the emergency sheet and the ways in
+# (the group menu, the timeline's recipient card, group settings Details'
+# link) are component tests (profile/profile, emergency and
+# print/emergencySheetPage .browser.test.tsx, with profileWorld.tsx); the print
+# CSS's layout is in the last. app-shell's step 4 keeps the details stream's
+# own rule: a member demoted to viewer loses the writers-only details row.
+# The rows reaching a second device are roundtrip's sync matrix (6b).
+apps/web/app/routes/app/groups/profile/* -
+apps/web/app/lib/sync/profile.ts         -
 apps/web/app/lib/sync/vitalAverages.ts   -
-apps/web/app/routes/app/groups/profile/* profiles
-apps/web/app/lib/sync/profile.ts         profiles
-# The writers' details (profiles slice 3): Contact and Insurance and their sheets.
-apps/web/app/lib/sync/recipientDetails.ts profiles
-packages/data/src/db/schema/careRecipientDetails.ts profiles
-apps/web/app/routes/app/groups/timeline/RecipientCard.tsx profiles
-apps/web/app/routes/app/groups/timeline/TimelineHeader.tsx profiles
-apps/web/app/routes/app/layout/GroupMenu.tsx profiles
-apps/web/app/routes/app/groups/settings/details/* app-shell profiles
-packages/data/src/db/schema/careRecipient.ts profiles
-packages/data/src/db/schema/profileVisibility.ts profiles
-packages/data/src/db/seeds/profiles.ts   profiles app-shell
-# Emergency contacts (profiles slice 5): the list on the profile, its sheet, and the Members page's badges.
-apps/web/app/lib/emergencyList.ts        profiles
-packages/data/src/db/schema/emergencyContacts.ts profiles
-packages/data/src/db/schema/careGroupMember.ts profiles profiles-contacts app-shell
-apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profiles profiles-contacts
+apps/web/app/lib/sync/recipientDetails.ts app-shell
+packages/data/src/db/schema/careRecipientDetails.ts roundtrip app-shell
+packages/data/src/db/schema/careRecipient.ts roundtrip
+packages/data/src/db/schema/profileVisibility.ts app-shell
+packages/data/src/db/seeds/profiles.ts   app-shell
+packages/data/src/db/schema/emergencyContacts.ts -
+packages/data/src/db/schema/careGroupMember.ts profiles-contacts app-shell
+apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profiles-contacts
 
 # Sign-in, session, the sync client and first sync.
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites session-end
@@ -222,7 +214,7 @@ apps/web/app/routes/app/home/*           first-sync
 apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts
 apps/web/app/routes/app/groups/settings/members/* app-shell invites profiles-contacts
 apps/web/app/routes/app/groups/settings/* app-shell
-apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts profiles
+apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts
 # The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
 apps/web/app/components/ui/date/*        ui roundtrip medications
 apps/web/app/components/ui/*             ui
@@ -300,8 +292,9 @@ apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
 # Phone fields shared by the provider sheet and your contact details (profiles slice 4).
-# Contact links shared by the Members page and the recipient's profile (profiles slice 3).
-apps/web/app/components/contact/ContactLines.tsx profiles-contacts profiles
+# Contact links shared by the Members page and the recipient's profile (profiles slice 3;
+# the profile's are component tests).
+apps/web/app/components/contact/ContactLines.tsx profiles-contacts
 apps/web/app/components/contact/*        providers profiles-contacts
 apps/web/app/lib/sync/providers.ts       providers
 # The medication list: the device module, the list and a medication's page
