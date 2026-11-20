@@ -83,6 +83,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-119 | chore | inbox |  |  | Move upcoming.mjs to component tests |
 | B-120 | chore | inbox |  |  | Move search.mjs to component tests |
 | B-121 | chore | inbox |  |  | Move profiles.mjs to component tests |
+| B-122 | chore | inbox |  |  | Move profiles-contacts.mjs to component tests |
 
 ## Items
 
@@ -493,3 +494,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the profile page, its sheets by role, offline states and the print sheet's layout to component tests (oRPC through the test device's api); keep a save syncing back, demotion losing the writers' details on the next sync. Then e2e yes.
+
+### B-122 · chore · Move profiles-contacts.mjs to component tests
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move account Contact details and the Members page's sharing form to component tests; keep a share reaching a co-member's device. Then e2e yes.
