@@ -113,6 +113,15 @@ export type * from "./types";
 import * as taskService from "./taskService";
 export { taskService };
 
+import * as connectorGrantService from "./connectorGrantService";
+export { connectorGrantService };
+export type {
+  ConnectorGrantView,
+  ValidateToken,
+  ValidatedToken,
+  VerifiedConnector,
+} from "./connectorGrantService";
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -142,6 +151,7 @@ export const services = {
   groupAdmin: groupAdminService,
   appSetting: appSettingService,
   task: taskService,
+  connectorGrant: connectorGrantService,
 };
 
 export type ServiceTypeMap = typeof services;

@@ -169,6 +169,13 @@
       "when": 1795181746263,
       "tag": "0023_rate_limits_suppression",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795202528250,
+      "tag": "0024_connectors",
+      "breakpoints": true
     }
   ]
 }

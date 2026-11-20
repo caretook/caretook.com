@@ -7,6 +7,7 @@ import { isError, newError } from "../errors";
 import { careGroupMemberModel } from "../models";
 import { isSystemUser } from "../permissions";
 import { getService } from "./baseService";
+import { revokeForMember } from "./connectorGrantService";
 import { releaseAssignee } from "./taskService";
 
 export const serviceName = "careGroupMember";
@@ -18,6 +19,7 @@ export const schemaName = careGroupMemberModel.schemaName;
 //   - a group always keeps at least one owner
 //   - nobody locks or unlocks simple mode for themselves
 //   - a member who goes keeps their open tasks as a typed-in name
+//   - a member who goes loses their assistants' connections to the group
 export const { get, getById, list } = getService(careGroupMemberModel);
 
 /** Whether the actor may touch owner memberships in `groupId`. */
@@ -153,6 +155,9 @@ export const remove = (ctx: ServiceContext, id: string) =>
     // Their open tasks keep their name as a typed-in assignee (tasks PRD).
     const released = await releaseAssignee(tx, target.groupId, target.userId);
     if (isError(released)) return released;
+    // Their AI assistants' access to the group ends with the membership (connectors PRD).
+    const disconnected = await revokeForMember(tx, target.groupId, target.userId);
+    if (disconnected) return disconnected;
     return removed;
   }, ctx);
 

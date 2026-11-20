@@ -11,6 +11,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@better-auth/oauth-provider": "1.7.25",
     "@caretook/data": "workspace:*",
     "@caretook/notifications": "workspace:*",
     "better-auth": "1.7.25",
