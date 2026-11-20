@@ -4,7 +4,7 @@
 // PowerSync clears the local copy, so one user's index never outlives
 // their data on a shared device.
 //
-//   search_item    one row per indexed entry, provider or medication
+//   search_item    one row per indexed entry, provider, medication or task
 //   search_fts     FTS5 over its weighted fields, rowid = search_item.rowid
 //   search_meta    the index's format version
 //   search_dirty   what changed since the indexer last ran, filled by triggers
@@ -29,6 +29,7 @@ const SOURCES = [
   { table: "medication", id: "ROW.id" },
   { table: "timeline_entry_provider", id: "json_extract(ROW.data, '$.entry_id')" },
   { table: "user", id: "ROW.id" },
+  { table: "task", id: "ROW.id" },
 ] as const;
 
 export type SearchSource = (typeof SOURCES)[number]["table"];

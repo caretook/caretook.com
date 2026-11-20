@@ -1,6 +1,7 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
+import { TaskUndoStatus } from "~/components/tasks";
 import { getGroup } from "~/lib/group";
 import { sessionContext } from "~/lib/session";
 import { loadUpcoming } from "./loadUpcoming";
@@ -43,6 +44,8 @@ export default function Upcoming({ loaderData, params }: Route.ComponentProps) {
         kind={kind}
         author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}
       />
+      {/* Undo after ticking a task in the list. */}
+      <TaskUndoStatus groupId={groupId} />
       <UpcomingList
         data={data}
         groupId={groupId}

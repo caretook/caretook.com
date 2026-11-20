@@ -37,6 +37,7 @@ const COLUMNS: Record<string, string[]> = {
   provider: ["group_id", "type", "name", "specialty", "practice_id", "deleted_at"],
   medication: ["group_id", "name", "strength", "reason", "directions", "deleted_at"],
   timeline_entry_provider: ["group_id", "entry_id", "provider_id"],
+  task: ["group_id", "title", "done_at", "deleted_at"],
 };
 
 const makeStore = () => {
@@ -332,6 +333,27 @@ describe("the device search index", () => {
       "m-lis",
     ]);
     expect((await searchGroup(s.db, G1, parseSearch("oxybutynin"))).medication.total).toBe(0);
+  });
+
+  it("indexes a task's title and notes, done ones too, follows renames and leaves deleted ones out", async () => {
+    s.put("task", "t-form", { group_id: G1, title: "Insurance form" });
+    s.put("task", "t-fax", { group_id: G1, title: "Fax the referral", done_at: "2026-11-18 10:00:00Z" });
+    s.put("task", "t-other", { group_id: G2, title: "Insurance card" });
+    s.put("note_document", "t-form", { group_id: G1, text: "Ask for the claim number" });
+    await indexSearchChanges(s.store);
+    const taskIds = async (q: string) =>
+      (await searchGroup(s.db, G1, parseSearch(q))).task.hits.map((h) => h.id);
+    expect(await taskIds("insurance")).toEqual(["t-form"]);
+    expect((await searchGroup(s.db, G1, parseSearch("insurance"))).task.hits[0]?.titleMatch).toBe(true);
+    expect(await taskIds("claim")).toEqual(["t-form"]);
+    expect(await taskIds("referral")).toEqual(["t-fax"]);
+
+    s.put("task", "t-form", { group_id: G1, title: "Benefits paperwork" });
+    s.put("task", "t-fax", { group_id: G1, title: "Fax the referral", deleted_at: "2026-11-19" });
+    await indexSearchChanges(s.store);
+    expect(await taskIds("insurance")).toEqual([]);
+    expect(await taskIds("paperwork")).toEqual(["t-form"]);
+    expect(await taskIds("referral")).toEqual([]);
   });
 
   it("rebuilds when the format version changes", async () => {

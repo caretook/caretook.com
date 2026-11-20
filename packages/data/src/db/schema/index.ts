@@ -55,5 +55,7 @@ export * from "./assistantActions";
 export * from "./quickEntryTime";
 export * from "./quickEntry";
 export * from "./simpleMode";
+export * from "./task";
+export * from "./taskRules";
 export * from "./rateLimit";
 export * from "./emailSuppression";

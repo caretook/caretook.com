@@ -6,7 +6,7 @@ The sync area's rules and decisions, moved out of AGENTS.md (whose core rules st
   - Ruled out: Zero (offline writes), ElectricSQL (read-only sync), Convex (offline, lock-in), and InstantDB, Triplit and Jazz (control).
 - **Hosting:** PowerSync Cloud in production; locally the `journeyapps/powersync-service:1.28.3` container on :8080, with bucket storage in its own Postgres (`.postgres/powersync-storage`).
 - **Sync Streams** (`powersync/sync-config.yaml`, edition 3; Sync Rules are deprecated). **Queries list their columns explicitly**, so a new column must be added there too.
-  - `care_groups`: one bucket per group the user belongs to. It carries `care_group`, `care_group_member`, `care_recipient` (names, `time_zone` and `date_of_birth`), `timeline_entry` (including soft-deleted rows), `note_document`, `note_update`, `provider` (including soft-deleted rows), `timeline_entry_provider`, `medication`, `care_period`, `medication_pass` and `recipient_allergy` (all four including soft-deleted rows); `care_recipient` also carries `no_known_allergies_at`.
+  - `care_groups`: one bucket per group the user belongs to. It carries `care_group`, `care_group_member`, `care_recipient` (names, `time_zone` and `date_of_birth`), `timeline_entry` (including soft-deleted rows), `note_document`, `note_update`, `provider` (including soft-deleted rows), `timeline_entry_provider`, `medication`, `care_period`, `medication_pass`, `recipient_allergy` and `task` (all five including soft-deleted rows); `care_recipient` also carries `no_known_allergies_at`, and `note_document` `task_id`.
   - `member_profiles`: co-members' `id`, `name` and `image`.
   - `care_group_writers`: `care_recipient_details` for groups where the user's role is not `viewer` (PowerSync 1.28.3 rejects `role IN (...)`, so **a future read-only role must be excluded there too**). A demoted member loses the row on the next sync.
   - The service reads the file at startup: run `docker compose restart powersync` after editing it.
@@ -17,12 +17,13 @@ The sync area's rules and decisions, moved out of AGENTS.md (whose core rules st
     - PUT → `upsert` (idempotent on id). A changed group, kind or recipient → `immutable`, and an id in a group the actor can't see → `unauthorized`.
     - PATCH → `update`, or `remove` when it sets `deleted_at`.
     - DELETE → `remove`.
-  - `note_document`/`note_update`: PUT → `create`/`appendUpdate`. Anything else → `sync:readOnlyTable`. A document PUT passes the device's `subject` (none means `entry`).
+  - `note_document`/`note_update`: PUT → `create`/`appendUpdate`. Anything else → `sync:readOnlyTable`. A document PUT passes the device's `subject` (none means `entry`). Subjects: `entry`, `provider`, `medication`, `task`.
   - `provider`: like `timeline_entry` (PUT upsert, PATCH update or soft remove, DELETE soft remove; a changed group → `immutable`). `is_primary` arrives as 1/0 and `phones` as JSON text.
   - `timeline_entry_provider`: PUT → link, DELETE → unlink, PATCH → `sync:readOnlyTable`.
   - `medication_pass` and `recipient_allergy`: like `medication` (PUT upsert, PATCH update or soft remove, DELETE soft remove; a changed group or recipient → `immutable`). A pass's retime and delete repeat their side effects idempotently (see _Medications_).
   - `care_recipient`: read-only, except a PATCH of `no_known_allergies_at` alone (`recipientAllergyService.setNoKnownAllergies`).
   - `care_period`: like `provider` (PUT upsert, PATCH update or soft remove, DELETE soft remove; a changed group or recipient → `immutable`). `date_only` arrives as 1/0.
+  - `task` (`taskOp`): PUT upsert, PATCH update or soft remove, DELETE soft remove; a changed group or recipient → `immutable`. A PATCH of only `done_at`/`done_by` maps to `complete` or `reopen`, so a viewer's tick passes `taskService`'s completion rule (see [tasks](tasks.md)).
   - Other tables → `sync:readOnlyTable`.
   - 4xx outcomes are acknowledged as rejected, and the next sync restores the server's copy. Other errors throw, so the batch retries.
   - After each batch, touched documents are compacted when due (best effort).

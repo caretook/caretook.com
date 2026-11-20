@@ -20,7 +20,7 @@ import {
 import { and, eq, isNull } from "drizzle-orm";
 import { isEntryKind } from "../entryDisplay";
 import { TIMELINE_KINDS } from "../timelineFilters";
-import { timelineEntries } from "./schema";
+import { tasks, timelineEntries } from "./schema";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
 // `useLiveQuery`; rows map to the same shapes the oRPC API returns, so the
@@ -535,7 +535,8 @@ export const updateEntry = async (
 /**
  * Soft delete, so the deletion syncs to everyone's devices. Deleting an
  * event that others were rescheduled to leaves them cancelled, with no
- * link (in the same local transaction).
+ * link, and its linked tasks without their link (in the same local
+ * transaction).
  */
 export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const entry = await existingEntry(db, id);
@@ -560,6 +561,11 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
             isNull(timelineEntries.deletedAt),
           ),
         );
+      // Tasks linked to it lose the link quietly (tasks slice 3; the server does the same).
+      await tx
+        .update(tasks)
+        .set({ eventId: null, updatedAt: now, updatedBy: db.userId })
+        .where(and(eq(tasks.groupId, entry.groupId), eq(tasks.eventId, id), isNull(tasks.deletedAt)));
     }
   });
   return { ok: true };

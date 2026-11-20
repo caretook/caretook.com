@@ -107,6 +107,9 @@ export { emailSuppressionService };
 
 export type * from "./types";
 
+import * as taskService from "./taskService";
+export { taskService };
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -135,6 +138,7 @@ export const services = {
   adminGrant: adminGrantService,
   groupAdmin: groupAdminService,
   appSetting: appSettingService,
+  task: taskService,
 };
 
 export type ServiceTypeMap = typeof services;

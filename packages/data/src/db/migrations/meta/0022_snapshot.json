@@ -1,5 +1,5 @@
 {
-  "id": "661130e3-a40b-4345-9bf8-61dacac1510a",
+  "id": "aa8506a4-fcdf-4a2e-be14-7ed6f20a36ba",
   "prevId": "5219ed8d-5f8a-45a7-9995-49520e0e9c3b",
   "version": "7",
   "dialect": "postgresql",
@@ -1053,6 +1053,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "task_id": {
+          "name": "task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "snapshot": {
           "name": "snapshot",
           "type": "text",
@@ -1161,6 +1167,21 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "note_document_task_fk": {
+          "name": "note_document_task_fk",
+          "tableFrom": "note_document",
+          "tableTo": "task",
+          "columnsFrom": [
+            "group_id",
+            "task_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1178,11 +1199,11 @@
       "checkConstraints": {
         "note_document_subject_check": {
           "name": "note_document_subject_check",
-          "value": "\"note_document\".\"subject\" IN ('entry', 'provider', 'medication', 'carePeriod')"
+          "value": "\"note_document\".\"subject\" IN ('entry', 'provider', 'medication', 'carePeriod', 'task')"
         },
         "note_document_owner_check": {
           "name": "note_document_owner_check",
-          "value": "(\"note_document\".\"subject\" = 'entry' AND \"note_document\".\"entry_id\" = \"note_document\".\"id\" AND \"note_document\".\"provider_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL AND \"note_document\".\"care_period_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'provider' AND \"note_document\".\"provider_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL AND \"note_document\".\"care_period_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'medication' AND \"note_document\".\"medication_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"provider_id\" IS NULL AND \"note_document\".\"care_period_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'carePeriod' AND \"note_document\".\"care_period_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"provider_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL)"
+          "value": "(\"note_document\".\"subject\" = 'entry' AND \"note_document\".\"entry_id\" = \"note_document\".\"id\" AND \"note_document\".\"provider_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL AND \"note_document\".\"care_period_id\" IS NULL AND \"note_document\".\"task_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'provider' AND \"note_document\".\"provider_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL AND \"note_document\".\"care_period_id\" IS NULL AND \"note_document\".\"task_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'medication' AND \"note_document\".\"medication_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"provider_id\" IS NULL AND \"note_document\".\"care_period_id\" IS NULL AND \"note_document\".\"task_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'carePeriod' AND \"note_document\".\"care_period_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"provider_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL AND \"note_document\".\"task_id\" IS NULL)\n        OR (\"note_document\".\"subject\" = 'task' AND \"note_document\".\"task_id\" = \"note_document\".\"id\" AND \"note_document\".\"entry_id\" IS NULL AND \"note_document\".\"provider_id\" IS NULL AND \"note_document\".\"medication_id\" IS NULL AND \"note_document\".\"care_period_id\" IS NULL)"
         }
       },
       "isRLSEnabled": false
@@ -2252,21 +2273,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "notification_outbox_provider_message_id_idx": {
-          "name": "notification_outbox_provider_message_id_idx",
-          "columns": [
-            {
-              "expression": "provider_message_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {},
@@ -2284,7 +2290,7 @@
       "checkConstraints": {
         "notification_outbox_status_check": {
           "name": "notification_outbox_status_check",
-          "value": "\"notification_outbox\".\"status\" IN ('pending', 'sending', 'sent', 'skipped', 'failed', 'bounced', 'complained')"
+          "value": "\"notification_outbox\".\"status\" IN ('pending', 'sending', 'sent', 'skipped', 'failed')"
         },
         "notification_outbox_attempts_check": {
           "name": "notification_outbox_attempts_check",
@@ -4307,8 +4313,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.rate_limit_hit": {
-      "name": "rate_limit_hit",
+    "public.task": {
+      "name": "task",
       "schema": "",
       "columns": {
         "id": {
@@ -4318,170 +4324,81 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "key": {
-          "name": "key",
+        "group_id": {
+          "name": "group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "hit_at": {
-          "name": "hit_at",
+        "assignee_id": {
+          "name": "assignee_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assignee_name": {
+          "name": "assignee_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "due_on": {
+          "name": "due_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "due_time": {
+          "name": "due_time",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "done_at": {
+          "name": "done_at",
           "type": "timestamp(3) with time zone",
           "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "rate_limit_hit_key_hit_at_idx": {
-          "name": "rate_limit_hit_key_hit_at_idx",
-          "columns": [
-            {
-              "expression": "key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "hit_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "notNull": false
         },
-        "rate_limit_hit_hit_at_idx": {
-          "name": "rate_limit_hit_hit_at_idx",
-          "columns": [
-            {
-              "expression": "hit_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.rate_limit": {
-      "name": "rate_limit",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
+        "done_by": {
+          "name": "done_by",
           "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "key": {
-          "name": "key",
-          "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "count": {
-          "name": "count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_request": {
-          "name": "last_request",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "rate_limit_last_request_idx": {
-          "name": "rate_limit_last_request_idx",
-          "columns": [
-            {
-              "expression": "last_request",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "rate_limit_key_unique": {
-          "name": "rate_limit_key_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.email_suppression": {
-      "name": "email_suppression",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
+        "provider_id": {
+          "name": "provider_id",
           "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "address": {
-          "name": "address",
-          "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "reason": {
-          "name": "reason",
-          "type": "text",
+        "medication_id": {
+          "name": "medication_id",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "event_id": {
           "name": "event_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cleared_at": {
-          "name": "cleared_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cleared_by": {
-          "name": "cleared_by",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "clear_reason": {
-          "name": "clear_reason",
-          "type": "text",
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp(3) with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -4513,27 +4430,38 @@
         }
       },
       "indexes": {
-        "email_suppression_active_address_idx": {
-          "name": "email_suppression_active_address_idx",
+        "task_group_due_idx": {
+          "name": "task_group_due_idx",
           "columns": [
             {
-              "expression": "address",
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "due_on",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": true,
-          "where": "\"email_suppression\".\"cleared_at\" IS NULL",
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "email_suppression_created_at_idx": {
-          "name": "email_suppression_created_at_idx",
+        "task_group_assignee_idx": {
+          "name": "task_group_assignee_idx",
           "columns": [
             {
-              "expression": "created_at",
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "assignee_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4545,26 +4473,118 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "task_group_id_care_group_id_fk": {
+          "name": "task_group_id_care_group_id_fk",
+          "tableFrom": "task",
+          "tableTo": "care_group",
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "task_assignee_id_user_id_fk": {
+          "name": "task_assignee_id_user_id_fk",
+          "tableFrom": "task",
+          "tableTo": "user",
+          "columnsFrom": [
+            "assignee_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "task_recipient_fk": {
+          "name": "task_recipient_fk",
+          "tableFrom": "task",
+          "tableTo": "care_recipient",
+          "columnsFrom": [
+            "group_id",
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "task_provider_fk": {
+          "name": "task_provider_fk",
+          "tableFrom": "task",
+          "tableTo": "provider",
+          "columnsFrom": [
+            "group_id",
+            "provider_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "task_medication_fk": {
+          "name": "task_medication_fk",
+          "tableFrom": "task",
+          "tableTo": "medication",
+          "columnsFrom": [
+            "group_id",
+            "medication_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "task_event_fk": {
+          "name": "task_event_fk",
+          "tableFrom": "task",
+          "tableTo": "timeline_entry",
+          "columnsFrom": [
+            "group_id",
+            "event_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "email_suppression_event_id_unique": {
-          "name": "email_suppression_event_id_unique",
+        "task_group_id_id_unique": {
+          "name": "task_group_id_id_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "event_id"
+            "group_id",
+            "id"
           ]
         }
       },
       "policies": {},
       "checkConstraints": {
-        "email_suppression_reason_check": {
-          "name": "email_suppression_reason_check",
-          "value": "\"email_suppression\".\"reason\" IN ('bounce', 'complaint')"
+        "task_assignee_check": {
+          "name": "task_assignee_check",
+          "value": "\"task\".\"assignee_id\" IS NULL OR \"task\".\"assignee_name\" IS NULL"
         },
-        "email_suppression_address_check": {
-          "name": "email_suppression_address_check",
-          "value": "\"email_suppression\".\"address\" = lower(btrim(\"email_suppression\".\"address\"))"
+        "task_due_time_check": {
+          "name": "task_due_time_check",
+          "value": "\"task\".\"due_time\" IS NULL OR \"task\".\"due_on\" IS NOT NULL"
+        },
+        "task_done_check": {
+          "name": "task_done_check",
+          "value": "(\"task\".\"done_at\" IS NULL) = (\"task\".\"done_by\" IS NULL)"
         }
       },
       "isRLSEnabled": false

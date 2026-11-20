@@ -15,8 +15,8 @@ import { SearchField } from "./SearchField";
 import { SearchResults } from "./SearchResults";
 import { useSearchPage } from "./useSearchPage";
 
-// Shared by web + native. Search one care group's entries, providers and
-// medications on the device (`lib/sync/search.ts`), offline too. The text
+// Shared by web + native. Search one care group's entries, providers,
+// medications and tasks on the device (`lib/sync/search.ts`), offline too. The text
 // (`?q=`) and the section shown in full (`?all=`) live in the URL, so Back
 // from a result comes back to the same results. A search that's used
 // (the field left with it, or one of its results opened) joins this

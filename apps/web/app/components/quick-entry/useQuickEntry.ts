@@ -45,7 +45,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const group = useGroup();
   const navigate = useNavigate();
   const { search } = useLocation();
-  const { medications, providers } = useQuickEntryData(groupId);
+  const { medications, providers, members } = useQuickEntryData(groupId);
   const { passes, dueNow } = useQuickEntryPasses(groupId);
   const passLog = usePassLog(groupId);
   const [text, setTextState] = useState("");
@@ -58,8 +58,10 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   const timeZone = group.recipient?.timeZone ?? deviceZone();
   const parts = useMemo(
-    () => parseQuickEntry(text, { now: new Date(), timeZone, units, medications, providers, passes }).parts,
-    [text, timeZone, units, medications, providers, passes],
+    () =>
+      parseQuickEntry(text, { now: new Date(), timeZone, units, medications, providers, passes, members })
+        .parts,
+    [text, timeZone, units, medications, providers, passes, members],
   );
 
   const preview = useMemo(() => {
@@ -69,9 +71,11 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       medications: new Map(medications.map((m) => [m.id, m])),
       providers: new Map(providers.map((p) => [p.id, p])),
       passes: new Map(passes.map((p) => [p.id, p])),
+      members: new Map(members.map((m) => [m.id, { name: m.id === group.userId ? "You" : m.name }])),
+      recipientTimeZone: timeZone,
     };
     return (reading: QuickEntryReading) => actionPreview(reading.actions[0]!, context);
-  }, [units, medications, providers, passes]);
+  }, [units, medications, providers, passes, members, group.userId, timeZone]);
   const titleOf = useCallback((r: QuickEntryReading) => preview(r).title, [preview]);
 
   const cards = useMemo(
@@ -116,7 +120,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   const remove = (card: QuickEntryCard) => setRemoved((s) => new Set(s).add(card.key));
 
-  /** Write these cards together; true when they're saved. */
+  /** Write these cards together: what they wrote (and how many are tasks), or null when refused. */
   const write = async (which: readonly QuickEntryCard[]) => {
     const planned = cardActions(which);
     const result = await runActions(
@@ -124,7 +128,13 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       groupId,
       planned.map((p) => p.action),
     );
-    if (result.ok) return result.ids;
+    if (result.ok) {
+      const tasks = planned.reduce(
+        (n, p, i) => n + (p.action.type === "addTask" ? (result.byAction[i]?.length ?? 0) : 0),
+        0,
+      );
+      return { ids: result.ids, tasks };
+    }
     const key = result.index !== null ? planned[result.index]?.key : undefined;
     const message = result.issues[0]?.message ?? result.error;
     if (key) setErrors(new Map([[key, message]]));
@@ -136,16 +146,16 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     if (busy || !canSaveCards(cards)) return;
     setBusy(true);
     try {
-      const ids = await write(cards);
-      if (ids) {
+      const saved = await write(cards);
+      if (saved) {
         recordLine(group.userId, groupId, text);
         reset();
-        // "Saved 3 entries · Undo": Undo removes the whole line.
+        // "Saved 3 entries · Undo": Undo removes the whole line (its tasks too).
         offerUndo({
           groupId,
-          label: savedText(ids.length),
+          label: savedText(saved.ids.length, saved.tasks),
           doseIds: [],
-          entryIds: ids,
+          entryIds: saved.ids,
           place: QUICK_ENTRY_UNDO,
         });
       }
@@ -160,10 +170,10 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     if (target === "saveAndOpen") {
       // A note or event is written on its page: save this card and open it there.
       if (card.blocking.length) return;
-      const ids = await write([card]);
-      if (!ids?.[0]) return;
+      const saved = await write([card]);
+      if (!saved?.ids[0]) return;
       remove(card);
-      await navigate(appUrls.entry(groupId, ids[0]));
+      await navigate(appUrls.entry(groupId, saved.ids[0]));
       return;
     }
     remove(card);

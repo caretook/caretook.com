@@ -4,6 +4,7 @@ import type { DoseDraft, EntryDraft } from "../../lib/quickEntryDraft";
 
 import { appUrls } from "../../lib/appUrls";
 import { QUICK_ENTRY_DRAFT } from "../../lib/quickEntryDraft";
+import { TASK_SHEET_STATE } from "../../lib/taskSheetLink";
 import { SHEET_LINK_STATE } from "../../lib/timelineSheet";
 
 // The pure rules behind quick entry's cards: which reading each part shows,
@@ -68,8 +69,15 @@ export const cardActions = (cards: readonly QuickEntryCard[]) =>
 export const canSaveCards = (cards: readonly QuickEntryCard[]) =>
   cards.length > 0 && cards.every((c) => c.blocking.length === 0);
 
-/** "Saved 3 entries", "Saved 1 entry". */
-export const savedText = (count: number) => `Saved ${count} ${count === 1 ? "entry" : "entries"}`;
+const counted = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** "Saved 3 entries", "Saved 1 entry", "Saved 1 task", "Saved 2 entries and 1 task". */
+export const savedText = (count: number, tasks = 0) => {
+  const entries = count - tasks;
+  if (!tasks) return `Saved ${counted(count, "entry", "entries")}`;
+  if (!entries) return `Saved ${counted(tasks, "task", "tasks")}`;
+  return `Saved ${counted(entries, "entry", "entries")} and ${counted(tasks, "task", "tasks")}`;
+};
 
 /** What the cards say, for screen readers: "2 cards: Vital, BP 130/85 mmHg; Dose, Metformin 500 mg". */
 export const cardsAnnouncement = (
@@ -93,9 +101,10 @@ export const cardsAnnouncement = (
  * Where Edit takes a card: symptoms and vitals to the add sheet, doses to
  * the Dose sheet on that medication (a pass's Given all to the Dose sheet on
  * the pass), each filled in through history state
- * (and coming back to the timeline on close). Notes and events have no
- * sheet: their page is where they're written, so Edit saves the card and
- * opens it.
+ * (and coming back to the timeline on close). A task opens the add-task
+ * sheet filled in through its URL (closing comes back). Notes and events
+ * have no sheet: their page is where they're written, so Edit saves the
+ * card and opens it.
  */
 export const editTarget = (
   action: AssistantAction,
@@ -139,6 +148,19 @@ export const editTarget = (
       return {
         to: appUrls.newDose(groupId, { passId: action.passId, search }),
         state: { ...SHEET_LINK_STATE },
+      };
+    case "addTask":
+      return {
+        to: appUrls.newTask(groupId, {
+          title: action.title,
+          assigneeId: action.assigneeId ?? undefined,
+          dueOn: action.dueOn ?? undefined,
+          dueTime: action.dueTime ?? undefined,
+          providerId: action.providerId ?? undefined,
+          medicationId: action.medicationId ?? undefined,
+          eventId: action.eventId ?? undefined,
+        }),
+        state: { ...TASK_SHEET_STATE },
       };
     case "addNote":
     case "addEvent":

@@ -512,6 +512,22 @@ export const PERMISSIONS: Permissions = {
     delete: NOBODY_ENTRY,
   },
 
+  // The group's tasks (tasks PRD). Any member reads; writers create, edit
+  // and soft-delete. Viewers may update, but taskService limits them to
+  // completing and reopening tasks assigned to them
+  // (taskService:viewerCompletionOnly). Write through taskService.
+  taskSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(ANY_GROUP_ROLE),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+    },
+    delete: groupEntry(WRITERS),
+  },
+
   // Shared rate limits (hosting PRD): our limiter's hits and Better Auth's
   // counters. Written directly (rateLimitService, Better Auth's adapter),
   // never through a model.

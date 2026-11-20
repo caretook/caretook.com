@@ -85,7 +85,7 @@ export function SearchField({
               ref={input}
               type="search"
               name="q"
-              placeholder="Search notes, providers, medications…"
+              placeholder="Search notes, providers, medications, tasks…"
               autoComplete="off"
               enterKeyHint="search"
               value={text}

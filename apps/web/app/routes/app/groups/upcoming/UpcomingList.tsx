@@ -14,9 +14,11 @@ import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/sync/timeline";
 import { isUpcoming } from "~/lib/upcoming";
 import { isUpcomingDose } from "~/lib/upcomingDoses";
+import { isUpcomingTask } from "~/lib/upcomingTasks";
 import { upcomingTitle } from "~/lib/upcomingLabels";
 import { UpcomingDoseRow } from "./UpcomingDoseRow";
 import { UpcomingRow } from "./UpcomingRow";
+import { UpcomingTaskRow } from "./UpcomingTaskRow";
 
 // Upcoming lists notes and events only, which show no vital readings: the default units do.
 const UNITS = resolveUnits(null);
@@ -31,7 +33,8 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * upcoming appointment, Reschedule, then Cancel or Undo cancel for events,
  * Print, then Delete, with one Cancel and one Delete confirm for the list;
  * for viewers, Print.
- * Upcoming's sections can also hold today's open dose slots (`UpcomingDoseRow`).
+ * Upcoming's sections can also hold today's open dose slots (`UpcomingDoseRow`)
+ * and open dated tasks (`UpcomingTaskRow`).
  */
 export function UpcomingList({
   data,
@@ -47,7 +50,8 @@ export function UpcomingList({
   empty: string;
   children?: ReactNode;
 }) {
-  const { canWrite } = useGroup();
+  const { canWrite, userId } = useGroup();
+  const taskNameOf = (id: string) => (id === userId ? "you" : data.nameOf(id));
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -99,7 +103,15 @@ export function UpcomingList({
           </h3>
           <ol className={LIST_CLASS}>
             {section.items.map((entry) =>
-              isUpcomingDose(entry) ? (
+              isUpcomingTask(entry) ? (
+                <UpcomingTaskRow
+                  key={entry.key}
+                  item={entry}
+                  nameOf={taskNameOf}
+                  timeZone={data.taskZone ?? "UTC"}
+                  now={data.now}
+                />
+              ) : isUpcomingDose(entry) ? (
                 <UpcomingDoseRow key={entry.key} dose={entry} groupId={groupId} canWrite={canWrite} />
               ) : (
                 <UpcomingRow
