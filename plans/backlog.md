@@ -72,7 +72,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-105 | change | triaged | quick-fixes |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | triaged | quick-fixes |  | Turning email invites off also blocks staff owner invites from /admin |
 | B-107 | feature | ready | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
-| B-110 | bug | in-progress | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
+| B-110 | bug | ready | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-112 | change | triaged | quick-fixes |  | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | admin |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-114 | chore | triaged | check-migration |  | Move routing.mjs to component tests |
@@ -401,10 +401,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-110 · bug · Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes)
 
-- status: in-progress
+- status: ready
 - prd: orchestration
 - owner: prd/orchestration
-- commit:
+- commit: 8ca25cf
 
 - 2026-11-19 (backlog planner): User 2026-11-19: in the orchestration PRD. 42 FLAKY retries logged: app-shell 11, phase2 6, ui 4, live-notes 4, medications 3, first-sync 3.
 - 2026-11-19 (plan/orchestration): Planned in plans/orchestration-plan.md (2026-11-19).
