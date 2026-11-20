@@ -526,6 +526,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the timeline's search field and chip, the search page, highlights, snippets and recent searches to component tests (the FTS index runs on the test device's SQLite); keep the index dropped at sign-out and server search if a screen ever calls it. Then e2e yes or delete it.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 5, wave 2 (plans/check-migration-plan.md).
+- 2026-11-19 (slice/check-migration/5): slice 5: search.mjs moved to component tests (lib/sync/search, search page, timelineSearch); sign-out drop of the index and recent searches folded into signout-wipe; commits 3542457, e554d48
 
 ### B-121 · chore · Move profiles.mjs to component tests
 
