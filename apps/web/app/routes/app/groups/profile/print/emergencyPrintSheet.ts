@@ -7,10 +7,12 @@ import type {
   ProviderStatus,
   ProviderType,
 } from "@caretook/data/schema";
+import type { AllergyLike, AllergyState } from "../../../../../lib/allergies";
 import type { EmergencyMemberRow } from "../../../../../lib/emergencyList";
 import type { SchedulePass } from "../../../../../lib/medicationDisplay";
 import type { BasicLine } from "../../../../../lib/recipientDisplay";
 
+import { allergySummary, allergyText } from "../../../../../lib/allergies";
 import { emergencyEntries } from "../../../../../lib/emergencyList";
 import { formatDate, medicationTitle, scheduleText } from "../../../../../lib/medicationDisplay";
 import { PROVIDER_TYPE_META } from "../../../../../lib/providerDirectory";
@@ -62,8 +64,8 @@ export type EmergencyProviderInput = {
   deletedAt?: string | null;
 };
 
-/** Allergies (B-26 isn't built yet): the section shows only when a list with entries is given. */
-export type EmergencyAllergyInput = { name: string; reaction?: string | null };
+/** The recipient's allergies, as `allergyState` gives them (on file, "No known allergies", or not recorded). */
+export type EmergencyAllergiesInput = AllergyState<AllergyLike>;
 
 export type SheetPhone = { label: string | null; number: string };
 
@@ -110,7 +112,14 @@ export type EmergencySection =
         directions: string | null;
       }[];
     }
-  | { id: "allergies"; title: "Allergies"; allergies: { name: string; reaction: string | null }[] }
+  | {
+      id: "allergies";
+      title: "Allergies";
+      /** Each allergy on file, as the printed medication sheets word it: "Penicillin (hives, severe)". */
+      allergies: { id: string; text: string; severe: boolean }[];
+      /** With none on file: "No known allergies" or "Allergies not recorded", so a blank is never read as none. */
+      empty: string | null;
+    }
   | {
       id: "careTeam";
       title: "Care team";
@@ -219,7 +228,8 @@ const careTeam = (
  *   contacts, the primary contact marked;
  * - current medications (not completed, discontinued or deleted) by name,
  *   with dose and schedule;
- * - allergies, when given (B-26);
+ * - allergies, whenever they're given: each one on file (most severe first),
+ *   else "No known allergies" or "Allergies not recorded";
  * - the care team: primary providers and the pharmacy, with a phone each.
  *
  * `locale` is for tests; screens pass none.
@@ -240,7 +250,8 @@ export const emergencySheet = ({
   members: readonly EmergencyMemberRow[];
   medications: readonly EmergencyMedicationInput[];
   providers: readonly EmergencyProviderInput[];
-  allergies?: readonly EmergencyAllergyInput[] | null;
+  /** Null or left out leaves the section out (no recipient to have any). */
+  allergies?: EmergencyAllergiesInput | null;
   /** The group's passes, deleted ones too: schedules read by pass name, as the medication screens do. */
   passes?: readonly SchedulePass[];
   now: Date;
@@ -289,11 +300,20 @@ export const emergencySheet = ({
   }));
   if (meds.length) sections.push({ id: "medications", title: "Current medications", medications: meds });
 
-  const allergyRows = (allergies ?? []).flatMap((a) => {
-    const name = blank(a.name);
-    return name ? [{ name, reaction: blank(a.reaction) }] : [];
-  });
-  if (allergyRows.length) sections.push({ id: "allergies", title: "Allergies", allergies: allergyRows });
+  if (allergies)
+    sections.push({
+      id: "allergies",
+      title: "Allergies",
+      allergies:
+        allergies.kind === "recorded"
+          ? allergies.allergies.map((a) => ({
+              id: a.id,
+              text: allergyText(a),
+              severe: a.severity === "severe",
+            }))
+          : [],
+      empty: allergies.kind === "recorded" ? null : allergySummary(allergies),
+    });
 
   const team = careTeam(providers, current);
   if (team.length) sections.push({ id: "careTeam", title: "Care team", providers: team });
