@@ -4,19 +4,24 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/hosting` (slice commits) |
-| ----- | ---- | --------------- | ---------------------------------------- |
-| 1     | 1    | not started     |                                          |
-| 2     | 1    | not started     |                                          |
-| 3     | 1    | not started     |                                          |
-| 4     | 2    | blocked by 3    |                                          |
-| 5     | 2    | blocked by 1, 2 |                                          |
-| 6     | 3    | blocked by 1–5  |                                          |
-| 7     | 4    | blocked by 6    |                                          |
+**Landing mode: run everything through** (queued with `pnpm prd queue hosting`, 2026-11-20): start every ready slice, land each green wave without asking, clean up; ask only real questions. Slice 7 is still done with the user.
+
+| Slice | Wave | State                     | Merge into `prd/hosting` (slice commits) |
+| ----- | ---- | ------------------------- | ---------------------------------------- |
+| 1     | 1    | started (worktree, agent) |                                          |
+| 2     | 1    | started (worktree, agent) |                                          |
+| 3     | 1    | started (worktree, agent) |                                          |
+| 4     | 2    | blocked by 3              |                                          |
+| 5     | 2    | blocked by 1, 2           |                                          |
+| 8     | 2    | blocked by 1, 3           |                                          |
+| 6     | 3    | blocked by 1–5, 8         |                                          |
+| 7     | 4    | blocked by 6              |                                          |
+
+- 2026-11-20: synced `dev` in; claimed B-33, B-68 and B-141 (B-141 is slice 3's work, `done` with it). Added slice 8 for B-142 and B-143 (triaged to hosting by the backlog agent), in wave 2 after 1 and 3.
 
 **Landing:** land each wave as soon as it's green. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here. Slice 7 is done with the user, not by a loop.
 
-Backlog: claim B-68 when slice 3 starts (`done` after slice 4) and B-33 when slice 1 starts (`done` after slice 7).
+Backlog: claim B-68 when slice 3 starts (`done` after slice 4) and B-33 when slice 1 starts (`done` after slice 7). B-141 is `done` with slice 3; B-142 and B-143 are claimed when slice 8 starts and `done` with it.
 
 Fold into the area docs at each landing:
 
@@ -24,6 +29,7 @@ Fold into the area docs at each landing:
 - **Slice 2:** roles and grants go in `docs/domain/data-layer.md` and `docs/domain/sync.md`, closing the "Production" ❓.
 - **Slice 3:** rate-limit storage goes in `docs/domain/auth.md`, closing its ❓.
 - **Slice 4:** suppression and the webhook go in `docs/domain/notifications.md`, and the suppressions screen in `docs/domain/admin.md`.
+- **Slice 8:** the native-origins flag and the client-IP header go in `docs/domain/api.md` and `docs/domain/auth.md`.
 - **Slice 6:** a pointer to `ops/` goes in AGENTS.md (_Hosting_, the _Area index_, _Open questions_, _Next steps_, and the Stack's "check that Vercel runs pnpm 12" line once slice 7 confirms it).
 
 ## Architectural decisions
@@ -60,7 +66,7 @@ Durable decisions every slice follows:
   - 2 owns the roles generator and the access scripts (`packages/data/scripts/`).
   - 3 owns the limiter and Better Auth's rate-limit config.
   - 1 and 3 both touch `packages/auth` lightly: 1 only reads env, 3 changes `rateLimit`. Merge in number order.
-- **Wave 2: slices 4 and 5.** 4 extends 3's migration; 5 adds `.github/` and `scripts/deploy/`.
+- **Wave 2: slices 4, 5 and 8.** 4 extends 3's migration; 5 adds `.github/` and `scripts/deploy/`; 8 changes `routes/rpc.ts`, `packages/auth` and `checkDeployEnv` lightly. Merge in the order 4, 5, 8.
 - **Wave 3: slice 6** (the `ops/` docs, written from what 1–5 built).
 - **Wave 4: slice 7**, run by the orchestrator with the user. It's not a loop: the user creates the accounts, DNS and secrets following the runbook. The orchestrator fixes the runbook where reality differs (on `prd/hosting`, committed as `docs(hosting): …`), and records the answers (pgaudit, PowerSync region, header merge).
 - Merge in number order within a wave, with no checks between merges.
@@ -120,7 +126,7 @@ Stack: no · Reads: docs/domain/notifications.md, docs/domain/security-headers.m
 - [ ] The hand-off says whether `vercel build` ran locally, and what it showed about function headers versus `vercel.json`'s.
 - [ ] `pnpm check` passes.
 
-**Blocked by:** none. **Blocks:** 5, 6.
+**Blocked by:** none. **Blocks:** 5, 6, 8.
 
 ---
 
@@ -194,7 +200,7 @@ Stack: no · Reads: docs/domain/auth.md, docs/domain/api.md, docs/domain/data-la
 - [ ] The migration is generated on the current base and its SQL order is reread.
 - [ ] `pnpm check` passes.
 
-**Blocked by:** none. **Blocks:** 4, 6.
+**Blocked by:** none. **Blocks:** 4, 6, 8.
 
 ---
 
@@ -336,7 +342,7 @@ Stack: no · Reads: docs/domain/data-layer.md, docs/domain/sync.md, docs/domain/
 - [ ] The break-glass procedure names the scripts and audit actions exactly as slice 2 built them.
 - [ ] `pnpm format:check` passes on `ops/`.
 
-**Blocked by:** 1, 2, 3, 4, 5. **Blocks:** 7.
+**Blocked by:** 1, 2, 3, 4, 5, 8. **Blocks:** 7.
 
 ---
 
@@ -368,3 +374,33 @@ Stack: no · Reads: docs/loops.md · Tests: none (the live smoke check)
 - [ ] B-33 and B-68 are `done`.
 
 **Blocked by:** 6. **Blocks:** none.
+
+---
+
+## Slice 8: Native origins behind a flag, and the client IP from the host
+
+Stack: no · Reads: docs/domain/api.md, docs/domain/auth.md, docs/domain/security-headers.md · Tests: unit, integration
+
+**Backlog:** B-142, B-143. Added by the orchestrator on 2026-11-20 from the backlog agent's triage.
+
+**What to build:**
+
+- **Native origins, defined once and off by default (B-142).**
+  - Today `capacitor://localhost` and `https://localhost` are hard-coded as trusted origins, with credentials, in `apps/web/app/routes/rpc.ts` and `packages/auth/src/auth.ts`. Define the list once (a small client-unsafe module in `packages/auth`, imported by both) and trust it only when `NATIVE_APP_ORIGINS=1` (env, read lazily like the rest of config).
+  - Unset, neither CORS on `/rpc` nor Better Auth's `trustedOrigins` includes them. Dev, tests and checks run unset.
+  - `checkDeployEnv` (slice 1) accepts it unset or `1` and rejects anything else; `.env.example` gains it with a comment.
+- **The client IP from the host's own header (B-143).**
+  - `clientIpOf` (`routes/rpc.ts`) and Better Auth's `advanced.ipAddress.ipAddressHeaders` both take one configured header, `CLIENT_IP_HEADER` (default: today's behaviour, the first `x-forwarded-for` entry, which the browser checks rely on through `cdp.mjs`'s per-page header).
+  - On Vercel the deploy env sets `CLIENT_IP_HEADER=x-vercel-forwarded-for`; `checkDeployEnv` requires it on both targets. The value is a single header name, lower-cased; the first comma-separated entry is taken.
+  - Define the header choice once and use it from both callers, so the limiter (slice 3) and Better Auth key on the same IP.
+
+**Acceptance criteria:**
+
+- [ ] Unit tests: the origin list is empty unless the flag is `1`; `clientIpOf` with the default, with `CLIENT_IP_HEADER` set (a spoofed `x-forwarded-for` is ignored), and with the header missing (null).
+- [ ] An integration test through `getAuth().handler(new Request(…))`: with the flag unset, a sign-in POST from `Origin: capacitor://localhost` is refused; with it set, accepted.
+- [ ] The `/rpc` CORS answer for `capacitor://localhost` is unit-tested both ways.
+- [ ] `checkDeployEnv` tests cover both new variables.
+- [ ] Nothing else still hard-codes the native origins (`grep`).
+- [ ] `pnpm check` passes.
+
+**Blocked by:** 1, 3. **Blocks:** 6.
