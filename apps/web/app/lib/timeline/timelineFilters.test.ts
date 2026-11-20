@@ -4,7 +4,6 @@ import {
   clearFilters,
   clearKind,
   clearQuery,
-  clearUpcoming,
   clearVital,
   hasFilters,
   normalizeQuery,
@@ -14,7 +13,6 @@ import {
   setQuery,
   setPeriod,
   clearPeriod,
-  setUpcoming,
   setVital,
 } from "./timelineFilters";
 
@@ -26,7 +24,6 @@ describe("parseFilters", () => {
     expect(parseFilters("")).toEqual({
       kind: null,
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -34,7 +31,6 @@ describe("parseFilters", () => {
     expect(parseFilters("?")).toEqual({
       kind: null,
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -45,7 +41,6 @@ describe("parseFilters", () => {
     expect(parseFilters("?kind=symptom")).toEqual({
       kind: "symptom",
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -53,7 +48,6 @@ describe("parseFilters", () => {
     expect(parseFilters(`?author=${ALEX}`)).toEqual({
       kind: null,
       author: ALEX,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -61,7 +55,6 @@ describe("parseFilters", () => {
     expect(parseFilters(`?kind=vital&author=${ALEX}`)).toEqual({
       kind: "vital",
       author: ALEX,
-      upcoming: false,
       vital: null,
       q: "",
       period: null,
@@ -69,7 +62,6 @@ describe("parseFilters", () => {
     expect(parseFilters(`?author=${ALEX}&kind=note`)).toEqual({
       kind: "note",
       author: ALEX,
-      upcoming: false,
       vital: null,
       q: "",
       period: null,
@@ -80,7 +72,6 @@ describe("parseFilters", () => {
     expect(parseFilters("kind=event")).toEqual({
       kind: "event",
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -97,7 +88,6 @@ describe("parseFilters", () => {
     expect(parseFilters("?kind=medication")).toEqual({
       kind: null,
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -105,7 +95,6 @@ describe("parseFilters", () => {
     expect(parseFilters("?kind=")).toEqual({
       kind: null,
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -113,7 +102,6 @@ describe("parseFilters", () => {
     expect(parseFilters("?kind=Symptom")).toEqual({
       kind: null,
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -124,7 +112,6 @@ describe("parseFilters", () => {
     expect(parseFilters("?author=alex")).toEqual({
       kind: null,
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -132,7 +119,6 @@ describe("parseFilters", () => {
     expect(parseFilters("?author=")).toEqual({
       kind: null,
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -140,7 +126,6 @@ describe("parseFilters", () => {
     expect(parseFilters(`?author=${ALEX}'%20OR%201=1`)).toEqual({
       kind: null,
       author: null,
-      upcoming: false,
       vital: null,
       q: "",
       period: null,
@@ -151,7 +136,6 @@ describe("parseFilters", () => {
     expect(parseFilters(`?kind=nope&author=${ALEX}`)).toEqual({
       kind: null,
       author: ALEX,
-      upcoming: false,
       vital: null,
       q: "",
       period: null,
@@ -159,7 +143,6 @@ describe("parseFilters", () => {
     expect(parseFilters("?kind=note&author=nope")).toEqual({
       kind: "note",
       author: null,
-      upcoming: false,
       vital: null,
       q: "",
       period: null,
@@ -174,7 +157,6 @@ describe("parseFilters", () => {
     expect(parseFilters("?view=cards&kind=event")).toEqual({
       kind: "event",
       author: null,
-      upcoming: false,
       vital: null,
       q: "",
       period: null,
@@ -302,7 +284,6 @@ describe("a round trip", () => {
     expect(parseFilters(search)).toEqual({
       kind: "symptom",
       author: ALEX,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -311,7 +292,6 @@ describe("a round trip", () => {
     expect(parseFilters(search)).toEqual({
       kind: null,
       author: ALEX,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -321,7 +301,6 @@ describe("a round trip", () => {
     expect(parseFilters(search)).toEqual({
       kind: "note",
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,
@@ -329,42 +308,11 @@ describe("a round trip", () => {
   });
 });
 
-describe("the Upcoming block (?upcoming=1)", () => {
-  it("reads only 1 as on", () => {
-    expect(parseFilters("?upcoming=1").upcoming).toBe(true);
-    expect(parseFilters("?upcoming=0").upcoming).toBe(false);
-    expect(parseFilters("?upcoming=true").upcoming).toBe(false);
-    expect(parseFilters(`?kind=event&author=${ALEX}&upcoming=1`)).toEqual({
-      kind: "event",
-      author: ALEX,
-      upcoming: true,
-      vital: null,
-      q: "",
-      period: null,
-    });
-  });
-
-  it("is not a filter", () => {
+describe("an old ?upcoming=1 (the Upcoming block's switch, gone with it)", () => {
+  it("is just another parameter: kept, after the filters, and no filter", () => {
+    expect(parseFilters("?upcoming=1")).toEqual(parseFilters(""));
     expect(hasFilters(parseFilters("?upcoming=1"))).toBe(false);
-  });
-
-  it("turns on after the filters, and off again, keeping them", () => {
-    expect(setUpcoming("")).toBe("?upcoming=1");
-    expect(setUpcoming(`?author=${ALEX}&kind=event`)).toBe(`?kind=event&author=${ALEX}&upcoming=1`);
-    expect(clearUpcoming(`?kind=event&upcoming=1`)).toBe("?kind=event");
-    expect(clearUpcoming("?upcoming=1")).toBe("");
-  });
-
-  it("returns the same search when it changes nothing", () => {
-    expect(setUpcoming("?upcoming=1&x=y")).toBe("?upcoming=1&x=y");
-    expect(clearUpcoming("?kind=note")).toBe("?kind=note");
-  });
-
-  it("stays through every filter change", () => {
     expect(setKind("?upcoming=1", "note")).toBe("?kind=note&upcoming=1");
-    expect(setAuthor("?upcoming=1", ALEX)).toBe(`?author=${ALEX}&upcoming=1`);
-    expect(clearKind("?kind=note&upcoming=1")).toBe("?upcoming=1");
-    expect(clearAuthor(`?author=${ALEX}&upcoming=1`)).toBe("?upcoming=1");
     expect(clearFilters(`?kind=note&author=${ALEX}&upcoming=1`)).toBe("?upcoming=1");
   });
 });
@@ -396,7 +344,7 @@ describe("the search (?q=)", () => {
     expect(hasFilters(parseFilters("?q=%20"))).toBe(false);
   });
 
-  it("sets the search after the kind and author, before upcoming", () => {
+  it("sets the search after the kind and author, before other parameters", () => {
     expect(setQuery("", "fall")).toBe("?q=fall");
     expect(setQuery(`?upcoming=1&author=${ALEX}&kind=note`, "fall")).toBe(
       `?kind=note&author=${ALEX}&q=fall&upcoming=1`,
@@ -492,7 +440,6 @@ describe("the search's care period (?period=)", () => {
     expect(parseFilters(`?kind=note&period=${PERIOD}`)).toEqual({
       kind: "note",
       author: null,
-      upcoming: false,
       q: "",
       period: null,
       vital: null,

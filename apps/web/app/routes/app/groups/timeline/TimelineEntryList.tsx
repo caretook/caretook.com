@@ -33,7 +33,6 @@ import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
 import { dayKeyIn, withMarkers } from "./timelineDays";
 import { QuickAddPrefetch } from "./QuickAddMenu";
-import { UpcomingBlock } from "./UpcomingBlock";
 import { useEntryRemoval } from "./useEntryRemoval";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
@@ -58,9 +57,7 @@ const LIST_CLASS: Record<TimelineView, string> = {
  * with the care periods' boundary markers at their moments (filters on or
  * off; a day with only a marker gets its own section), each day's summary
  * line under its heading while no filter or search is on, then `OlderEntries`,
- * which loads older pages as the end comes near. With
- * `upcoming` (`?upcoming=1`), the Upcoming block comes first, above Today, in
- * the same rows or cards. Writers get each entry's ⋯ menu, with one delete
+ * which loads older pages as the end comes near. Writers get each entry's ⋯ menu, with one delete
  * confirm for the whole list, and each day heading's + menu; a writer's list
  * always has a Today heading (empty when nothing's logged today), so today's
  * + is always there.
@@ -81,7 +78,6 @@ export function TimelineEntryList({
   author,
   vital = null,
   search: searching = NO_SEARCH,
-  upcoming,
   simple = false,
   summaryMode = "highlights",
 }: {
@@ -111,8 +107,6 @@ export function TimelineEntryList({
   vital?: VitalType | null;
   /** The search (`?q=`) and what it's doing (`timelineSearch`). */
   search?: { q: string; state: TimelineSearchState };
-  /** The Upcoming block, when it's on, and where its "See all in Upcoming" goes. */
-  upcoming?: { items: TimelineData["upcoming"]; seeAll: string } | null;
   /** Simple mode's larger, read-only list (above). */
   simple?: boolean;
   /** The day summaries' setting: none, highlights (the default) or everything. */
@@ -208,17 +202,6 @@ export function TimelineEntryList({
 
   return (
     <>
-      {upcoming && (
-        <div className={COLUMN_CAP}>
-          <UpcomingBlock
-            upcoming={upcoming.items}
-            view={view}
-            listClass={LIST_CLASS[view]}
-            seeAll={upcoming.seeAll}
-            entry={(entry) => item(entry)}
-          />
-        </div>
-      )}
       <section
         ref={list}
         aria-labelledby="timeline-heading"
