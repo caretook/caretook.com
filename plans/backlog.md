@@ -111,7 +111,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-146 | question | triaged | check-migration |  | Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for… |
-| B-147 | chore | inbox |  |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
+| B-147 | chore | triaged | agent-tooling |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
 | B-148 | chore | inbox |  |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
 | B-149 | chore | inbox |  |  | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
 | B-150 | chore | inbox |  |  | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
@@ -825,8 +825,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-147 · chore · Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: agent-tooling
 - owner:
 - commit:
 
