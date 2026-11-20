@@ -93,9 +93,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-173 | bug | landed | check-migration | prd/check-migration | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
 | B-174 | bug | triaged | timeline-ux |  | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
 | B-175 | chore | triaged | timeline-ux |  | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
-| B-176 | bug | triaged | check-migration |  | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
+| B-176 | bug | in-progress | check-migration | prd/check-migration | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
 | B-177 | bug | inbox |  |  | rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone |
-| B-178 | bug | triaged | check-migration |  | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
+| B-178 | bug | in-progress | check-migration | prd/check-migration | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
 
 ## Items
 
@@ -576,12 +576,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-176 · bug · Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-20 (prd/check-migration): Found at wave 8's landing (2026-11-20). medicationList's search and periods' Add each failed one full check this way and passed alone; both fixed (e4b332b and the periods commit). Proposed for check-migration: sweep the 24 files with grep -rlE 'await userEvent\.(click|fill|hover)\([A-Z_]+\(\)!', and use a waiting query (page.getByRole or a until-present helper beside settle) in renderWithDevice's tests. -- check-migration orchestrator
+- 2026-11-20 (prd/check-migration): User chose 2026-11-20: check-migration sweeps it now, as slice 24 alongside wave 9 (with B-178). -- check-migration orchestrator
 
 ### B-177 · bug · rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone
 
@@ -594,9 +595,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-178 · bug · medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-20 (prd/timeline-ux): Seen 2026-11-20 in timeline-ux slices 1, 2 and two landing checks (different test each time); fails before any timeline-ux change too. Probably waits on a fixed render instead of the live query's answer.
