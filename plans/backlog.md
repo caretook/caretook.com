@@ -871,6 +871,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop conflicting on them. / The most-edited files in 30 days: scripts/loops/check-areas (69 commits), routes.ts (46), appUrls.ts (32), errors/constants.ts (28), db/schema/index.ts (26), permissions.ts, router.ts.
 - 2026-11-20 (backlog agent): Triage: new PRD code-layout (structure refactors). Every running PRD adds to these registries (tasks and hosting both do now), so this must run alone on those files: after tasks and hosting wave 1 land, and before the next feature PRD starts. Replaces the 'additive edits' rule in AGENTS.md.
+- 2026-11-20 (plan/code-layout): Planned (plan/code-layout): slices 1 (check-areas.d, most specific wins), 2 (errors, permissions, schema by area), 3 (API router by area), 5 (routes and appUrls by area). Pure refactor; one lean --suite at the last landing.
 
 ### B-150 · chore · Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,…
 
