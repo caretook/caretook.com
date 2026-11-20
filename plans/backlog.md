@@ -73,9 +73,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-118 | chore | landed | check-migration | prd/check-migration | Move medications.mjs to component tests |
 | B-119 | chore | landed | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-121 | chore | landed | check-migration | prd/check-migration | Move profiles.mjs to component tests |
-| B-122 | chore | ready | check-migration | prd/check-migration | Move profiles-contacts.mjs to component tests |
-| B-126 | chore | ready | check-migration | prd/check-migration | Move roundtrip.mjs's sheet steps to component tests |
-| B-127 | chore | ready | check-migration | prd/check-migration | Move invites.mjs's screen steps to component tests |
+| B-122 | chore | landed | check-migration | prd/check-migration | Move profiles-contacts.mjs to component tests |
+| B-126 | chore | landed | check-migration | prd/check-migration | Move roundtrip.mjs's sheet steps to component tests |
+| B-127 | chore | landed | check-migration | prd/check-migration | Move invites.mjs's screen steps to component tests |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-134 | bug | landed | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 | B-135 | change | landed | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
@@ -112,7 +112,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-169 | change | triaged | timeline-ux |  | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
 | B-170 | change | triaged | timeline-ux |  | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
 | B-171 | change | triaged | timeline-ux |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
-| B-172 | bug | triaged | check-migration |  | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
+| B-172 | bug | in-progress | check-migration | prd/check-migration | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
 
 ## Items
 
@@ -375,7 +375,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-122 · chore · Move profiles-contacts.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: d487b30
@@ -385,7 +385,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-126 · chore · Move roundtrip.mjs's sheet steps to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: d487b30
@@ -395,7 +395,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-127 · chore · Move invites.mjs's screen steps to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: d487b30
@@ -793,9 +793,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-172 · bug · app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-20 (prd/check-migration): Found by slice 16 (2026-11-20). Proposed for check-migration: count in node with M.evaluate, as slice 16's member-share fold does; Playwright's port (slice 21/22) can fix it too. Grep other checks for waitFor(`${...}.then(` too. -- check-migration orchestrator
