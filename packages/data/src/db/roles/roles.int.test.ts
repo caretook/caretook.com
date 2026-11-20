@@ -62,7 +62,9 @@ afterAll(async () => {
   }
 });
 
-describe("applyRoles", () => {
+// Each test grants on every table and rewrites the publication: about 2 s
+// alone, past the 5 s default when other PRDs load the machine.
+describe("applyRoles", { timeout: 20_000 }, () => {
   it("applies twice without error and ends with the same grants", async () => {
     if ("code" in generated) throw new Error(String(generated.code), { cause: generated });
     const again = await applyRoles({ names });
