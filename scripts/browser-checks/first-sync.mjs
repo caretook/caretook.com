@@ -2,7 +2,8 @@
 // sync is slow, and a synced device never shows the syncing state (B-22).
 //
 // 1. Normal sign-in (fast first sync): straight to the timeline, no syncing state.
-// 2. Reload a synced timeline: no syncing state.
+// 2. Reload a synced timeline: no syncing state. Then a sheet's URL loaded as a
+//    page (a deep link after a full load) opens the sheet.
 // 3. Slow first sync (a proxy holds PowerSync's traffic for HOLD_MS): home shows
 //    "Getting your care groups…" (never "not in a care group"), then goes
 //    straight to the timeline once the group arrives.
@@ -178,6 +179,31 @@ try {
     const r = JSON.parse(await p.evaluate(`JSON.stringify(window.__m)`));
     console.log("synced reload:", JSON.stringify(r));
     expect(!r.seenPending, "a synced device opens the timeline with no syncing state");
+
+    // 2b. A deep link after a full load (routing.mjs's): a sheet's URL loaded
+    // as a page opens the sheet over the timeline, and closing it replaces it
+    // with the timeline, filters kept.
+    const DIALOG = `document.querySelector("[role=dialog]")`;
+    const vitalType = `document.querySelector('[role=dialog] input[name="vital.0.type"]')?.value`;
+    await p.goto(`${path}/new/vital?kind=vital&type=heartRate`);
+    const opened = await p
+      .waitFor(`document.readyState === "complete" && ${vitalType} === "heartRate"`, 20000)
+      .then(
+        () => true,
+        () => false,
+      );
+    expect(opened, "a sheet's URL loaded as a page opens the sheet with its vital type");
+    await p.press(`[...${DIALOG}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")`);
+    const closed = await p
+      .waitFor(
+        `!${DIALOG} && location.pathname === ${JSON.stringify(path)} && location.search === "?kind=vital"`,
+        10000,
+      )
+      .then(
+        () => true,
+        () => false,
+      );
+    expect(closed, "…and closing it lands on the timeline, filters kept");
     errors.push(...p.errors);
     p.close();
   }

@@ -15,6 +15,9 @@ import { startProxy } from "./proxy.mjs";
 // A full page reload can't load at all while offline (there's no service
 // worker yet), so "reload while offline" is a revisit inside the app: open a
 // note, then go back, which runs the timeline's clientLoader again.
+//
+// The sheets open offline too, once a full load has their route modules (the
+// add sheet for °C below, and a row's edit sheet: routing.mjs's).
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
@@ -112,6 +115,14 @@ try {
   check("online again: the server has cards", serverView() === "cards", serverView());
   check("online again: nothing left pending", (await p.evaluate(`${pendingKeys}.length`)) === 0);
   await p.screenshot("layout-offline-cards");
+  // The sheets' route modules, loaded after a full load (prefetched by the +
+  // menu and the rows); offline below, they must open without the server.
+  await p
+    .waitFor(
+      `["new", "edit"].every((r) => window.__reactRouterRouteModules?.["routes/app/groups/timeline/" + r + "/route"])`,
+      20000,
+    )
+    .catch(() => {});
 
   // Units: open Settings → Units inside the app while online (so the
   // timeline's code stays loaded), then go offline and choose °C.
@@ -158,6 +169,27 @@ try {
     (await p.evaluate(`${sheetUnits}.includes("°C") && !${sheetUnits}.includes("°F")`)) === true,
     await p.evaluate(sheetUnits),
   );
+  await p.press(button("Cancel", DIALOG));
+  await p.waitFor(`!${DIALOG}`, 5000).catch(() => {});
+
+  // Still offline: a row's edit link opens its edit sheet (routing.mjs's).
+  const editLink = `document.querySelector('main ol a[aria-label^="Edit "]')`;
+  await p.waitFor(editLink, 10000).catch(() => {});
+  await p.press(editLink);
+  await p
+    .waitFor(
+      `${DIALOG}?.querySelector("form") && /Edit (symptom|vital|dose)/i.test(${DIALOG}.textContent)`,
+      10000,
+    )
+    .then(
+      () => check("offline: a row's edit link opens its edit sheet", true),
+      async () =>
+        check(
+          "offline: a row's edit link opens its edit sheet",
+          false,
+          await p.evaluate(`location.pathname + " " + (${DIALOG}?.textContent.slice(0, 80) ?? "no sheet")`),
+        ),
+    );
   await p.press(button("Cancel", DIALOG));
   await p.waitFor(`!${DIALOG}`, 5000).catch(() => {});
 

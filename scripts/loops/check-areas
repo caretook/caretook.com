@@ -183,20 +183,22 @@ apps/web/app/lib/sync/schema.ts          roundtrip live-notes providers phase2
 packages/auth/src/*                      sign-in first-sync signout-wipe invites
 apps/web/app/components/shell/*          first-sync
 
-# Routes, URLs, the group route and settings subpages.
-apps/web/app/routes.ts                   routing
-apps/web/app/routes/app/groups/layout/*  routing app-shell
-apps/web/app/routes/app/groups/index/*   routing
-apps/web/app/lib/group.tsx               routing
-apps/web/app/lib/groupContext.ts         routing
-apps/web/app/lib/groupSections.ts        routing upcoming
+# Routes, URLs, the group route and settings subpages: component tests
+# (groupRoute, timelineSheetUrls and settingsFrame browser tests); first-sync
+# keeps a deep link after a full load and the group route's syncing state,
+# layout-offline the sheets opening offline. lib/groupContext.ts has its unit test.
+apps/web/app/routes.ts                   first-sync layout-offline
+apps/web/app/routes/app/groups/layout/*  app-shell first-sync
+apps/web/app/routes/app/groups/index/*   -
+apps/web/app/lib/group.tsx               first-sync
+apps/web/app/lib/groupSections.ts        upcoming
 # Your contact details (profiles slice 4).
-apps/web/app/routes/app/settings/contact/* profiles-contacts settings-layout routing
+apps/web/app/routes/app/settings/contact/* profiles-contacts settings-layout
 # Devices: the account's sessions and signing them out (quick-fixes slice 29).
-apps/web/app/routes/app/settings/devices/* devices routing
-apps/web/app/routes/app/settings/*       routing settings-layout layout-offline
+apps/web/app/routes/app/settings/devices/* devices
+apps/web/app/routes/app/settings/*       settings-layout layout-offline
 apps/web/app/lib/me.ts                   settings-layout layout-offline
-apps/web/app/components/settings/*       routing settings-layout
+apps/web/app/components/settings/*       settings-layout
 
 # The /app frame, menus, theme, group settings and members. The frame's screen
 # (header, menus, theme choice, last group, tab bar, section links) is component
@@ -212,7 +214,7 @@ apps/web/app/routes/app/home/*           first-sync
 # What each member shares, and your own choices (profiles slice 4).
 apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts
 apps/web/app/routes/app/groups/settings/members/* app-shell invites profiles-contacts
-apps/web/app/routes/app/groups/settings/* routing
+apps/web/app/routes/app/groups/settings/* app-shell
 apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts profiles
 # The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
 apps/web/app/components/ui/date/*        ui roundtrip medications care-periods
