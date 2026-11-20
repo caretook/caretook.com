@@ -274,7 +274,7 @@ describe("who's writing", () => {
     const editors = (e: Record<string, string>) =>
       fx.document({ ownerId: event.id, text: "Stretches", editors: JSON.stringify(e) });
     await device.sync(editors({ [SAM.id]: at() }));
-    await waitUntil(() => AVATARS().length === 1, 4000, "Sam's avatar");
+    await waitUntil(() => AVATARS().length === 1 && AVATARS()[0]!.textContent === "SO", 4000, "Sam's avatar");
     expect(AVATARS()[0]!.textContent).toBe("SO");
     expect($('main [data-region="editors"] [role="group"]')!.getAttribute("aria-label")).toMatch(
       /is editing$/,
