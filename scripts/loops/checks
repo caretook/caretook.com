@@ -21,7 +21,7 @@
 # The budget: the e2e checks' usual seconds may add up to at most
 # lean-ceiling (checks.test.mjs fails above it). A slice that shrinks the lean
 # set lowers it to the new total; nothing raises it without the user.
-lean-ceiling 286
+lean-ceiling 276
 #
 # check            usual  cap  never-exits  e2e
 phase2               10   120  no           yes
@@ -33,6 +33,6 @@ sign-in               4   120  no           yes
 first-sync           36   150  no           yes
 signout-wipe          6   300  yes          yes
 session-end           5   120  no           yes
-invites              72   270  no           yes
+invites              62   270  no           yes
 ui                    5   120  no           yes
 marketing            29   120  no           yes
