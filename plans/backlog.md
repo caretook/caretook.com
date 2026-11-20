@@ -19,7 +19,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `providers`       | [PRD](providers-prd.md), [plan](providers-plan.md): **done**, all slices in `dev` (`7c075d1`); follow-ups B-25, B-48 | (none) | none now |
 | `medications`     | [PRD](medications-prd.md), [plan](medications-plan.md): **done**, all six slices in `dev` (`8ff8354`; Today and Due now are in, so `appointments` slice 7 is unblocked). Follow-ups B-26, B-51 | `providers`, `routing`, `components` (all done) | `TIMELINE_ENTRY_KINDS`, `KIND_META`, timeline strips and quick add, `care_recipient`, `note_document`, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`, the Dose sheet |
 | `medications-2` | [PRD](medications-2-prd.md), [plan](medications-2-plan.md): **done**, all 7 slices in `dev` (`a6738b4`) | (none) | none now |
-| `assistant`       | [PRD](assistant-prd.md), [plan](assistant-plan.md): 7 slices, in `dev` (`613a15c`). Waves (1, 3, 4) → (2, 5) → 6 → 7; land per wave (migration timing doesn't matter, the user said): quick entry, suggestions, day summaries, visit prep and Print, simple mode (basics, complete), passes everywhere (B-12, B-49, B-58, B-87). No remote AI | `medications-2` (done): **ready to start**; B-98/B-99 sync first if landed | the timeline route folder (box above entries; day sections), `routes/app/layout/route.tsx` (reduced header), entry page and `entryActionItems` (Print), provider page, Upcoming rows, group settings Details and Members, one migration (`care_group_member`, `care_group`), `PERMISSIONS`, stream and device schema, `userPreferences`, `routes.ts`, `appUrls` |
+| `assistant`       | ✅ **done** (2026-11-19): [PRD](assistant-prd.md), [plan](assistant-plan.md): all 7 slices in `dev` (`7f3ec10`): quick entry, suggestions, day summaries, visit prep and Print, simple mode, passes everywhere (B-12, B-49, B-58, B-87). Decisions in `docs/domain/assistant.md` | `medications-2` (done) | none now |
 | `connectors`      | to write (B-104): an MCP server so a user's own Claude or ChatGPT reads and writes their group (writes confirmed in chat, labelled), OAuth with group-limited tokens, consent and an owners' switch | `assistant` (its actions layer); B-80 (Devices page, token revocation) | `packages/auth` (OAuth provider), `packages/api` (a new MCP mount), group settings, the privacy pages, `PERMISSIONS` |
 | `routing`         | [PRD](routing-prd.md), [plan](routing-plan.md): **done**, all 5 slices in `dev` (`ff25ef2`) | (none) | none now; new routes go through `routes.ts` and `appUrls` |
 | `components`      | [PRD](components-prd.md), [plan](components-plan.md): **done**, all 6 slices in `dev` (landed 2026-11-18, `ca39416`) | `routing` (done) | none now; new UI uses `components/ui/` and the feature folders (AGENTS.md, _Components_) |
@@ -45,7 +45,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-12 | plan | ready | assistant | prd/assistant | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
+| B-12 | plan | landed | assistant | prd/assistant | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
@@ -57,7 +57,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-55 | feature | in-progress | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-58 | plan | ready | assistant | prd/assistant | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
+| B-58 | plan | landed | assistant | prd/assistant | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
@@ -65,7 +65,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-68 | chore | triaged | hosting |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
-| B-87 | plan | ready | assistant | prd/assistant | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
+| B-87 | plan | landed | assistant | prd/assistant | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 | B-89 | feature | landed | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-91 | feature | landed | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-98 | change | landed | quick-fixes | prd/quick-fixes | Hide add to timeline buttons behind a + icon in the timeline header. |
@@ -103,7 +103,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-12 · plan · Assistant: lightweight chat, with voice, for quick actions and questions about the timeline
 
-- status: ready
+- status: landed
 - prd: assistant
 - owner: prd/assistant
 - commit: ed7029d
@@ -230,7 +230,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-58 · plan · Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions…
 
-- status: ready
+- status: landed
 - prd: assistant
 - owner: prd/assistant
 - commit: ed7029d
@@ -308,7 +308,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-87 · plan · "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to…
 
-- status: ready
+- status: landed
 - prd: assistant
 - owner: prd/assistant
 - commit: ed7029d
