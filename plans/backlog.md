@@ -98,7 +98,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-131 | bug | landed | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | landed | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 | B-133 | bug | landed | quick-fixes |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
-| B-134 | bug | inbox |  |  | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
+| B-134 | bug | triaged | quick-fixes |  | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 | B-135 | bug | inbox |  |  | simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a… |
 | B-136 | change | inbox |  |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | inbox |  |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
@@ -694,8 +694,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-134 · bug · visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent)
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: quick-fixes
 - owner:
 - commit:
 
