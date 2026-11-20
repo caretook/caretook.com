@@ -861,6 +861,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`, `quickEntry*`). Folders let an agent read one area, and check-areas use one rule per folder.
+- 2026-11-20 (backlog agent): Triage: code-layout. Moves about 140 files, so it conflicts with any PRD touching lib/: same window as B-149, and check-areas rules change with it (check-migration edits check-areas additively).
 
 ### B-151 · chore · Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373.
 
