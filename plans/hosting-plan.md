@@ -8,9 +8,9 @@
 
 | Slice | Wave | State                     | Merge into `prd/hosting` (slice commits) |
 | ----- | ---- | ------------------------- | ---------------------------------------- |
-| 1     | 1    | handed off                | (e459365, ec506bd, 7ada5b5)              |
-| 2     | 1    | handed off                | (3f0ca96, 53adf98)                       |
-| 3     | 1    | handed off                | (6179cd8)                                |
+| 1     | 1    | merged                    | 7ce4336 (e459365, ec506bd, 7ada5b5)      |
+| 2     | 1    | merged                    | 738b731 (3f0ca96, 53adf98)               |
+| 3     | 1    | merged                    | 5d64d38 (6179cd8)                        |
 | 4     | 2    | blocked by 3              |                                          |
 | 5     | 2    | blocked by 1, 2           |                                          |
 | 8     | 2    | blocked by 1, 3           |                                          |
