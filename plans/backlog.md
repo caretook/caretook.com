@@ -90,6 +90,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-126 | chore | inbox |  |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | inbox |  |  | Move invites.mjs's screen steps to component tests |
 | B-128 | chore | inbox |  |  | Add a lean end-to-end step for an upload refused by permissions |
+| B-129 | chore | inbox |  |  | Port the lean end-to-end set to Playwright Test |
 
 ## Items
 
@@ -563,3 +564,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): The lean set (orchestration slice 9) is meant to cover uploads refused by permissions, but no check asserts one: a device whose role was lowered on the server writes locally, the upload is rejected (4xx acknowledged), and the next sync restores the server's copy. Add it to roundtrip.mjs or app-shell.mjs's demotion step.
+
+### B-129 · chore · Port the lean end-to-end set to Playwright Test
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): A non-goal of the orchestration PRD, filed as its follow-up: the CDP harness (cdp.mjs, proxy.mjs) could become Playwright Test now that playwright is a dev dependency (component tests). Only the lean set (scripts/loops/checks e2e yes); keep the lease, the watchdog and the check build.
