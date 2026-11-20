@@ -4,20 +4,22 @@
 
 ## Status
 
-| Slice | Wave | State                                          | Merge into `prd/agent-tooling` (slice commits) |
-| ----- | ---- | ---------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | merged (opus)                                  | 8d10f6b (9faf638)                              |
-| 2     | 1    | merged (sonnet)                                | a23e77c (52a8503)                              |
-| 3     | 1    | started (worktree made, agent spawned; sonnet) |                                                |
-| 4     | 2    | not started                                    |                                                |
-| 5     | 3    | not started                                    |                                                |
-| 6     | 3    | not started                                    |                                                |
+| Slice | Wave | State           | Merge into `prd/agent-tooling` (slice commits) |
+| ----- | ---- | --------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus)   | 8d10f6b (9faf638)                              |
+| 2     | 1    | merged (sonnet) | a23e77c (52a8503)                              |
+| 3     | 1    | merged (sonnet) | 5ba5669 (bc6bd87)                              |
+| 4     | 2    | not started     |                                                |
+| 5     | 3    | not started     |                                                |
+| 6     | 3    | not started     |                                                |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
 
 **2026-11-20:** all three wave 1 agents stopped at a usage limit with work uncommitted in their worktrees; resumed by message after the reset (not respawned).
 
 **Slice 2 note:** its `pnpm check` had 1–3 failures in medicationList/passSheet component tests at load ~40; medicationList passed 6/6 on the base alone, and the slice touches no app code: load flakes.
+
+**Wave 1:** all three merged; next: `pnpm prd sync`, full `pnpm prd check` (package.json changed), land. Slice 3's `pnpm check` also had 2 component flakes (medicationList, providerSheets), both passed alone.
 
 **Claimed:** B-154, B-147 (2026-11-20). B-148 is claimed at wave 3.
 
