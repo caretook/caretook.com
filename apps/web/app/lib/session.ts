@@ -5,6 +5,7 @@ import { accountUrls } from "./accountUrls";
 import { authClient } from "./auth-client";
 import { forgetGroups } from "./lastGroup";
 import { forgetSettings } from "./me";
+import { forgetRecentLines } from "./recentLines";
 import { forgetRecentSearches } from "./recentSearches";
 import { signInUrl } from "./redirect";
 import { askSession, withoutAnswer } from "./sessionRules";
@@ -92,7 +93,7 @@ const roleOf = (user: object) => {
 /**
  * Wipe this device's copy: stop syncing, empty the local database (vacuumed,
  * so no freed page keeps a deleted row) and drop its search index, and forget the cached user, settings (pending changes too),
- * last group and recent searches. Sign-out, and a session the server says
+ * last group, recent searches and quick entry's recent lines. Sign-out, and a session the server says
  * has ended, both go through here. Changes not uploaded yet are lost.
  */
 export const wipeDevice = async () => {
@@ -101,6 +102,7 @@ export const wipeDevice = async () => {
   forgetSettings();
   forgetGroups();
   forgetRecentSearches();
+  forgetRecentLines();
 };
 
 type Resolved = SessionUser | "signedOut" | "offlineTooLong" | "rateLimited" | "unverified";
