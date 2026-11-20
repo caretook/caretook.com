@@ -157,7 +157,7 @@ export const createAuth = ({
     plugins: [
       // `Authorization: Bearer <session token>` for Capacitor, where cookies don't work.
       bearer(),
-      // "Email me a sign-in link": one email with the link and a code
+      // "Send email": one email with the link and a code
       // (B-96), existing accounts only.
       magicLink({
         disableSignUp: true,

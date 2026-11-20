@@ -71,3 +71,15 @@ describe("a rate-limited session check", () => {
     expect(page.getByRole("status").elements()).toHaveLength(0);
   });
 });
+
+describe("the email tab", () => {
+  test("is labelled Email, and its form has no explanation above it", async () => {
+    sessionAnswers(() => Response.json(null));
+    await open("/sign-in?with=email");
+    const tab = page.getByRole("link", { name: "Email", exact: true });
+    await expect.element(tab).toHaveAttribute("aria-current", "page");
+    await expect.element(page.getByRole("button", { name: "Send email" })).toBeVisible();
+    const form = page.getByRole("button", { name: "Send email" }).element().closest("form")!;
+    expect(form.querySelector("p")).toBeNull();
+  });
+});

@@ -3,7 +3,7 @@ import { defineNotification } from "../define";
 import { appPathZ, tokenZ } from "./appPath";
 import { ButtonLink, Code, EmailLayout, Muted, Paragraph } from "./layout";
 
-// "Email me a sign-in link" (B-96): one email with both a one-tap link and a
+// "Send email" (B-96): one email with both a one-tap link and a
 // 6-digit code, so the code works when the email is read on another device
 // (or in the app, where a link would open the browser instead). Only sent to
 // existing accounts, but the screen says the same thing either way.
