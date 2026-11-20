@@ -4,7 +4,7 @@ import type { SessionUser } from "~/lib/session";
 import type { SyncDb } from "~/lib/sync";
 import type { Fixture, Fixtures, GroupRole } from "./fixtures";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { createRoutesStub, Outlet, RouterContextProvider, useLocation } from "react-router";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -12,7 +12,7 @@ import { sessionContext } from "~/lib/session";
 import { installTestDatabase } from "~/lib/sync";
 import * as appLayout from "~/routes/app/layout/route";
 import * as groupLayout from "~/routes/app/groups/layout/route";
-import { openTestDatabase, queuedWrites, syncDown, syncRemove } from "./database";
+import { openTestDatabase, queuedWrites, settle, syncDown, syncRemove } from "./database";
 import { flattenFixtures, fx, TEST_GROUP, TEST_USER } from "./fixtures";
 
 // The test device: a screen rendered as it runs on a phone, with the real
@@ -93,6 +93,12 @@ export type DeviceOptions = {
    * and returns the output, or a `Response` (an error, say) as it is.
    */
   api?: Record<string, (input: unknown) => unknown>;
+  /**
+   * Wait for the first screen to settle before returning (default true):
+   * every live query has reported and the DOM is still for a frame. False
+   * returns as soon as React has rendered, for a test of what shows first.
+   */
+  settle?: boolean;
 };
 
 export type Device = {
@@ -111,6 +117,14 @@ export type Device = {
   queued: () => ReturnType<typeof queuedWrites>;
   /** Run a query against the device's copy. */
   query: <T>(sql: string, params?: unknown[]) => Promise<T[]>;
+  /**
+   * Wait for the screen to catch up with the database: every live query whose
+   * tables changed has rerun, and the DOM is then unchanged for a frame. Call
+   * it after a stored write, `sync()` or `unsync()`, before reading the
+   * screen without a retrying `expect.element`. Throws after `timeout` ms
+   * (default 5000), naming what was still moving.
+   */
+  settle: (options?: { timeout?: number }) => Promise<void>;
 };
 
 const GROUP_PREFIX = "/app/groups/:groupId";
@@ -140,10 +154,14 @@ const deviceFetch =
 
 let currentLocation = "";
 
-/** Records where the router is, for `device.location()`. */
+/**
+ * Records where the router is, for `device.location()`. A layout effect, so
+ * it's current by the time the new screen is in the DOM (a plain effect can
+ * run after a test has already seen the screen and read the old location).
+ */
 function LocationProbe() {
   const location = useLocation();
-  useEffect(() => {
+  useLayoutEffect(() => {
     currentLocation = location.pathname + location.search;
   }, [location]);
   return null;
@@ -242,6 +260,7 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
 
   currentLocation = url;
   const screen = await render(<Stub initialEntries={[url]} />);
+  if (options.settle ?? true) await settle(db);
 
   return {
     screen,
@@ -252,6 +271,7 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
     unsync: (fixtures) => syncRemove(db, fixtures),
     queued: () => queuedWrites(db),
     query: (sql, params = []) => db.powersync.getAll(sql, params),
+    settle: (settleOptions) => settle(db, settleOptions),
   };
 };
 
