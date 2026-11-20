@@ -100,7 +100,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-158 | change | in-progress | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
 | B-159 | change | in-progress | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
 | B-160 | change | in-progress | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
-| B-161 | bug | inbox |  |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
+| B-161 | bug | triaged | check-migration |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
 
 ## Items
 
@@ -661,8 +661,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-161 · bug · sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…')
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: check-migration
 - owner:
 - commit:
 
