@@ -71,6 +71,16 @@ const queuedEntries = async (device: Awaited<ReturnType<typeof open>>) =>
 
 const FIXED = ["How she feels", "Blood pressure", "Her medicines", "A note about her day"];
 
+describe("the row", () => {
+  test("all four share one row at phone width, each a 44 px target at least", async () => {
+    await open();
+    await ready();
+    const tops = new Set(tiles().map((t) => t.getBoundingClientRect().top));
+    expect(tops.size).toBe(1);
+    for (const t of tiles()) expect(t.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  });
+});
+
 describe("which tiles", () => {
   test("a new group's are learned: the fixed set until something is logged, and a member sees no hint or link", async () => {
     await open();

@@ -47,3 +47,6 @@ apps/web/app/components/settings/*       -
 packages/data/src/db/schema/app-shell/userPreferences.ts layout-offline
 apps/web/app/routes/app/groups/settings/members/* app-shell invites
 apps/web/app/routes/app/groups/settings/* app-shell
+# The service worker (lib/app-shell/serviceWorker*.ts; B-144) serves every /app
+# page load and the assets: the lean set.
+apps/web/app/lib/app-shell/serviceWorker* @suite

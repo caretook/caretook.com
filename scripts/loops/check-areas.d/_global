@@ -44,6 +44,12 @@ pnpm-workspace.yaml                      @suite
 apps/web/package.json                    @suite
 apps/web/vite.config.ts                  @suite
 apps/web/react-router.config.ts          @suite
+# The service worker (B-144) serves every /app page load and the assets, so a
+# change to its build step (and the precache list it reads) or the client
+# entry that registers it runs the lean set (the worker itself: app-shell).
+apps/web/app/entry.client.tsx            @suite
+scripts/build/service-worker.mjs         @suite
+scripts/build/manifest.mjs               @suite
 apps/web/build-target.ts                 @suite
 apps/web/app/root.tsx                    @suite
 # The production PowerSync settings, for the runbook (hosting slice 2): nothing loads it.

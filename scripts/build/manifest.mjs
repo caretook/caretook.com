@@ -61,3 +61,29 @@ export function readListing(clientDir) {
     gzipOf: (chunk) => gzipSync(readFileSync(join(clientDir, chunk))).length,
   });
 }
+
+/**
+ * The service worker's precache list (scripts/build/service-worker.mjs): the
+ * shell first, then every JS and CSS file in Vite's client manifest, and the
+ * route manifest (React Router writes it outside Vite's). WASM stays out: the
+ * four SQLite builds are 7 MB and a device loads one, which PowerSync's
+ * workers fetch and the browser's HTTP cache keeps (immutable assets), as it
+ * does the workers' own files, which Vite's manifest doesn't list.
+ */
+export function precacheList({ viteManifest, routeManifestFile, shell = "/app" }) {
+  const files = new Set();
+  for (const chunk of Object.values(viteManifest)) {
+    for (const f of [chunk.file, ...(chunk.css ?? []), ...(chunk.assets ?? [])]) files.add(f);
+  }
+  files.add(routeManifestFile);
+  const assets = [...files].filter((f) => /\.(js|css)$/.test(f)).map((f) => `/${file(f)}`);
+  return [shell, ...assets.sort()];
+}
+
+/** The precache list of a build's client directory. */
+export function readPrecacheList(clientDir) {
+  const routeManifestFile = readdirSync(join(clientDir, "assets")).find((f) => /^manifest-.*\.js$/.test(f));
+  if (!routeManifestFile) throw new Error(`no route manifest in ${clientDir}/assets: build the web target first`);
+  const viteManifest = JSON.parse(readFileSync(join(clientDir, ".vite/manifest.json"), "utf8"));
+  return precacheList({ viteManifest, routeManifestFile: `assets/${routeManifestFile}` });
+}

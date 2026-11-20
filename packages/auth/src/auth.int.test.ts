@@ -89,7 +89,10 @@ describe("signing in", () => {
     const login = await createLogin();
     const headers = cookieHeaders(await signIn(login.email));
     await getAuth().api.signOut({ headers });
-    expect(await getAuthUser(headers)).toBeNull();
+    // The live session is gone. The old cookies, kept past sign-out (the
+    // browser drops them), still read from the cookie cache: the tradeoff
+    // rpcAuth.int.test.ts in @caretook/api pins.
+    expect(await getAuthUser(headers, { live: true })).toBeNull();
   });
 });
 

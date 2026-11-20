@@ -10,7 +10,7 @@ import { dayInZone, timeInZone } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
 import { waitUntil } from "./timelineWorld";
 
-// Simple mode's Now block (assistant slice 7), on the test device (offline):
+// Simple mode's Upcoming block (assistant slice 7), on the test device (offline):
 // the pass due now as one big Given all with Undo, and the next appointment,
 // for writers; the same as text for viewers. Times are relative to now in
 // the recipient's zone, so the pass is due whatever the clock.
@@ -51,20 +51,20 @@ const doses = async (device: Awaited<ReturnType<typeof open>>) =>
 
 afterEach(() => clearUndo());
 
-describe("the Now block", () => {
+describe("the Upcoming block", () => {
   test("a writer: the due pass as one big Given all, with Undo there, and the next appointment", async () => {
     const device = await open("caretaker");
     await waitUntil(() => give().length === 1, 4000, "the due pass");
-    const block = page.getByRole("region", { name: "Now" });
+    const block = page.getByRole("region", { name: "Upcoming" });
     await expect.element(block).toBeVisible();
-    await expect.element(block.getByRole("heading", { name: "Now" })).toBeVisible();
+    await expect.element(block.getByRole("heading", { name: "Upcoming" })).toBeVisible();
     expect(give()[0]!.textContent).toBe("Give evening meds (2)");
     expect(now()!.querySelector("[data-simple-next]")?.textContent).toMatch(/^Next: Visit with Dr\. Lark · /);
-    // The box above has no chip of its own for it.
-    expect(document.querySelector('[data-quick-row="due"]')).toBeNull();
-    // It comes after the box and before the tiles.
+    // It comes before the quick-entry box.
     const box = document.querySelector("[data-quick-entry]")!;
-    expect(box.compareDocumentPosition(now()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(now()!.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The box offers no due-pass chip of its own: Given all is here (passChips={false}).
+    expect(box.querySelectorAll('[data-quick-row="due"] button')).toHaveLength(0);
 
     await userEvent.click(give()[0]!);
     await expect.poll(async () => (await doses(device)).length).toBe(2);
@@ -87,7 +87,7 @@ describe("the Now block", () => {
     expect(now()!.querySelectorAll("button")).toHaveLength(0);
   });
 
-  test("nothing due and nothing ahead: no Now heading", async () => {
+  test("nothing due and nothing ahead: no Upcoming heading", async () => {
     await open("caretaker", []);
     await waitUntil(() => !!document.querySelector("[data-simple-timeline]"), 4000, "the simple view");
     expect(now()?.querySelector("h2") ?? null).toBeNull();

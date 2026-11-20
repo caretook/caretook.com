@@ -42,7 +42,6 @@ export { COLUMN_CAP } from "./layout";
 const NO_SEARCH = { q: "", state: "none" } as const;
 
 /** Simple mode's larger list: everything in it, text, icons and taps alike, a quarter bigger. */
-const SIMPLE_ZOOM = "[zoom:1.25]";
 /** Simple mode shows no care period markers. */
 const NO_MARKERS: never[] = [];
 
@@ -63,9 +62,8 @@ const LIST_CLASS: Record<TimelineView, string> = {
  * always has a Today heading (empty when nothing's logged today), so today's
  * + is always there.
  *
- * `simple` is simple mode's list: rows only, shown larger (the whole list is
- * zoomed, so icons and taps grow with the text; `SIMPLE_ZOOM`), with no ⋯
- * menus, no filter links, no care periods (markers or the day headers'
+ * `simple` is simple mode's list: rows only, at the full timeline's type
+ * scale (no zoom), with no ⋯ menus, no filter links, no care periods (markers or the day headers'
  * period) and nothing to edit: notes and events open as usual, other rows
  * open nothing.
  */
@@ -208,7 +206,7 @@ export function TimelineEntryList({
       <section
         ref={list}
         aria-labelledby="timeline-heading"
-        className={`space-y-4 ${COLUMN_CAP} ${simple ? SIMPLE_ZOOM : ""}`}
+        className={`space-y-4 ${COLUMN_CAP}`}
         data-simple-list={simple ? "" : undefined}
       >
         <h2 id="timeline-heading" className="sr-only">

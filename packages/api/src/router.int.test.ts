@@ -1063,7 +1063,9 @@ describe("sync.upload", () => {
 });
 
 describe("HTTP handler", () => {
-  const handle = createRpcHandler({ prefix: "/rpc", allowedOrigins: ["capacitor://localhost"] });
+  const rpc = createRpcHandler({ prefix: "/rpc", allowedOrigins: ["capacitor://localhost"] });
+  const handle = (request: Request, authUser: AuthUser | null) =>
+    rpc(request, () => Promise.resolve(authUser));
 
   const call = (path: string, init: RequestInit = {}) =>
     new Request(`http://localhost/rpc/${path}`, {
