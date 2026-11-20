@@ -18,7 +18,7 @@
 
 **Models:** slice 1 sonnet (a mechanical move), slice 2 opus (design-heavy), slice 7 sonnet (text).
 
-**Waiting on:** timeline-ux's B-164/B-165 are in `dev` (60260949): rows put ⋯ `EntryActions` over the author chip in `div[data-entry-aside]` (`ASIDE_CLASS`, `timeline/layout.ts`); cards unchanged (author in the footer); `DayHeader` has a `summary` region; `EntryHeader` untouched; the header strips became one `TodayCard`. So slice 3 waits only on slice 2: at the wave 2 boundary run `pnpm prd sync` first, and give slice 3 these placement notes. B-140 (packages/auth) is timeline-ux's last wave; they'll warn.
+**Waiting on:** timeline-ux's B-164/B-165 are in `dev` (60260949): rows put ⋯ `EntryActions` over the author chip in `div[data-entry-aside]` (`ASIDE_CLASS`, `timeline/layout.ts`); cards unchanged (author in the footer); `DayHeader` has a `summary` region; `EntryHeader` untouched; the header strips became one `TodayCard`. So slice 3 waits only on slice 2: at the wave 2 boundary run `pnpm prd sync` first, and give slice 3 these placement notes. B-140 (timeline-ux slice 10) started 2026-11-20: Better Auth `session.cookieCache` (`maxAge: 180`), a `before` hook refusing the cookie cache on `/token`, a lazy `getAuthUser` in `routes/rpc.ts`, procedure middleware. Expected in `dev` before us; at our sync check that its hook matches `/token` exactly (we asked) and doesn't catch `/oauth2/token`, and that `/connect` and revocation behave with the 180 s cookie cache. They'll message before it lands.
 
 **When to land:** this PRD has a migration and a new dependency, so hold landing until every slice is merged, then run the checks once at the end. Ask the user before any `--suite`.
 
