@@ -223,7 +223,9 @@ export async function openPage(browser, label) {
       try {
         // One poll never outlasts the wait (a stuck page fails the wait on time).
         const timeout = Math.max(2000, end - Date.now());
-        if (await evaluate(`!!(${expression})`, { timeout })) return true;
+        // Awaited, so an expression that is a promise (`getAll(...).then((r) => r[0].n === 0)`)
+        // is judged by what it resolves to, not by being a (truthy) promise (B-172).
+        if (await evaluate(`(async () => !!(await (${expression})))()`, { timeout })) return true;
       } catch {
         // Not there yet (or the page is navigating): keep polling.
       }
