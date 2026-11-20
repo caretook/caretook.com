@@ -224,8 +224,9 @@ describe("on the appointment's page", () => {
     await userEvent.click((await waitFor(PREPARE))!);
     await previewReady();
     expect(PREVIEW()).not.toContain("Cough");
-    const month = $<HTMLElement>('[data-visit-prep-sheet] [data-type="month"]')!;
-    month.focus();
+    // The year, not the month: a month back from the 31st is a day some months don't have (B-134).
+    const year = $<HTMLElement>('[data-visit-prep-sheet] [data-type="year"]')!;
+    year.focus();
     await userEvent.keyboard("{ArrowDown}");
     await waitUntil(() => PREVIEW().includes("Cough"), 8000, "the longer window");
   });
