@@ -13,6 +13,8 @@ export const careGroups = sqliteTable("care_group", {
   name: text("name"),
   // How simple mode picks its tiles (JSON text: `SimpleTiles`; null: learned).
   simpleTiles: text("simple_tiles"),
+  // The owners' Assistants switch (connectors; 1 or 0): whether members may connect their own AI assistant.
+  connectorsEnabled: integer("connectors_enabled"),
 });
 
 export const careGroupMembers = sqliteTable(
