@@ -32,6 +32,15 @@ export const searchString = (search?: Search): string => {
   return text ? `?${text}` : "";
 };
 
+/** What `tasks/new` can start with (`appUrls.newTask`): a link and a due day. */
+export const TASK_PREFILL_PARAMS = {
+  providerId: "providerId",
+  medicationId: "medicationId",
+  eventId: "eventId",
+  dueOn: "dueOn",
+} as const;
+export type TaskPrefill = { providerId?: string; medicationId?: string; eventId?: string; dueOn?: string };
+
 /** The kinds added in a sheet over the timeline (notes and events have a page: `newEntry`). */
 export const SHEET_KINDS = ["symptom", "vital"] as const satisfies readonly TimelineEntryKind[];
 export type SheetKind = (typeof SHEET_KINDS)[number];
@@ -283,4 +292,23 @@ export const appUrls = {
       [WHEN_PARAM]: WHEN_PICK,
       [WITH_PROVIDER_PARAM]: providerId,
     })}`,
+  /** A group's tasks, with the Mine / Unassigned / Everyone chip (`?who=`) carried through. */
+  tasks: (groupId: string, search?: Search) => `${groupHome(groupId)}/tasks${searchString(search)}`,
+  /** One task's page. */
+  task: (groupId: string, taskId: string) => `${groupHome(groupId)}/tasks/${segment(taskId)}`,
+  /**
+   * The add sheet over the task list, optionally prefilled with a link
+   * (a provider, a medication, an event) or a due day, carrying the list's chip.
+   */
+  newTask: (groupId: string, prefill: TaskPrefill = {}, search?: Search) =>
+    `${groupHome(groupId)}/tasks/new${searchString({
+      ...Object.fromEntries(new URLSearchParams(searchString(search))),
+      [TASK_PREFILL_PARAMS.providerId]: prefill.providerId,
+      [TASK_PREFILL_PARAMS.medicationId]: prefill.medicationId,
+      [TASK_PREFILL_PARAMS.eventId]: prefill.eventId,
+      [TASK_PREFILL_PARAMS.dueOn]: prefill.dueOn,
+    })}`,
+  /** The edit sheet for one task, over the task list, carrying the list's chip. */
+  editTask: (groupId: string, taskId: string, search?: Search) =>
+    `${groupHome(groupId)}/tasks/${segment(taskId)}/edit${searchString(search)}`,
 } as const;
