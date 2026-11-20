@@ -1,23 +1,23 @@
-import type { MedicationRow } from "~/lib/sync/medications";
-import type { ProviderRow } from "~/lib/sync/providers";
-import type { EntryRow } from "~/lib/sync/timeline";
-import type { LocalTask } from "~/lib/sync/tasks";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
+import type { EntryRow } from "~/lib/timeline/timeline.sync";
+import type { LocalTask } from "~/lib/tasks/tasks.sync";
 import type { loadTask } from "./loadTask";
 
 import { CalendarClock, Pill } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
-import { appUrls } from "~/lib/appUrls";
-import { quickActions } from "~/lib/contactActions";
-import { formatDate, medicationTitle } from "~/lib/medicationDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { quickActions } from "~/lib/providers/contactActions";
+import { formatDate, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
-import { medicationQuery, toMedication } from "~/lib/sync/medications";
-import { providerQuery, toProvider } from "~/lib/sync/providers";
-import { linkedEventQuery } from "~/lib/sync/tasks";
-import { toTimelineEntry } from "~/lib/sync/timeline";
-import { linkLabel } from "~/lib/taskDisplay";
-import { cancelledLabel, timeRange, upcomingTitle } from "~/lib/upcomingLabels";
+import { medicationQuery, toMedication } from "~/lib/medications/medications.sync";
+import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
+import { linkedEventQuery } from "~/lib/tasks/tasks.sync";
+import { toTimelineEntry } from "~/lib/timeline/timeline.sync";
+import { linkLabel } from "~/lib/tasks/taskDisplay";
+import { cancelledLabel, timeRange, upcomingTitle } from "~/lib/appointments/upcomingLabels";
 
 type Loaded = Awaited<ReturnType<typeof loadTask>>["linkRows"];
 

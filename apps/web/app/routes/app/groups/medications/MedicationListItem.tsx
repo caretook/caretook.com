@@ -1,10 +1,10 @@
-import type { SchedulePass } from "~/lib/medicationDisplay";
-import type { LocalMedication } from "~/lib/sync/medications";
+import type { SchedulePass } from "~/lib/medications/medicationDisplay";
+import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Pill } from "lucide-react";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { medicationSummaryLine, medicationTitle, stoppedText } from "~/lib/medicationDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { medicationSummaryLine, medicationTitle, stoppedText } from "~/lib/medications/medicationDisplay";
 
 /**
  * A medication in the list: its name and strength, its form, dose and

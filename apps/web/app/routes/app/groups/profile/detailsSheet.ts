@@ -1,15 +1,15 @@
 import type { RouterContextProvider } from "react-router";
-import type { ActionResult, FieldIssue } from "~/lib/api";
-import type { SavedDetails } from "~/lib/recipientDetails";
+import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { SavedDetails } from "~/lib/profiles/recipientDetails";
 
 import { redirect } from "react-router";
 import { canEditRecipient } from "@caretook/data/schema";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup } from "~/lib/group";
-import { toRecipientDetails } from "~/lib/recipientDetails";
-import { rpc } from "~/lib/rpc";
-import { sessionContext } from "~/lib/session";
-import { loadRecipientDetailsRows, waitForRecipientDetails } from "~/lib/sync/recipientDetails";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup } from "~/lib/app-shell/group";
+import { toRecipientDetails } from "~/lib/profiles/recipientDetails";
+import { rpc } from "~/lib/core/rpc";
+import { sessionContext } from "~/lib/auth/session";
+import { loadRecipientDetailsRows, waitForRecipientDetails } from "~/lib/profiles/recipientDetails.sync";
 import { failedProfileSave } from "./profileSheet";
 
 // The writers' sheets over the profile (`profile/contact`, `profile/insurance`):

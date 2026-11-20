@@ -1,7 +1,7 @@
 import type { QuickEntryPart, QuickEntryReading } from "@caretook/data/schema";
 
 import { describe, expect, test } from "vitest";
-import { doseDraftFrom, entryDraftFrom, QUICK_ENTRY_DRAFT } from "../../lib/quickEntryDraft";
+import { doseDraftFrom, entryDraftFrom, QUICK_ENTRY_DRAFT } from "../../lib/assistant/quickEntryDraft";
 import {
   buildCards,
   canSaveCards,

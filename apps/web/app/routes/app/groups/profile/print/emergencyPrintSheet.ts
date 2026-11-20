@@ -7,18 +7,18 @@ import type {
   ProviderStatus,
   ProviderType,
 } from "@caretook/data/schema";
-import type { AllergyLike, AllergyState } from "../../../../../lib/allergies";
-import type { EmergencyMemberRow } from "../../../../../lib/emergencyList";
-import type { SchedulePass } from "../../../../../lib/medicationDisplay";
-import type { BasicLine } from "../../../../../lib/recipientDisplay";
+import type { AllergyLike, AllergyState } from "../../../../../lib/medications/allergies";
+import type { EmergencyMemberRow } from "../../../../../lib/profiles/emergencyList";
+import type { SchedulePass } from "../../../../../lib/medications/medicationDisplay";
+import type { BasicLine } from "../../../../../lib/profiles/recipientDisplay";
 
-import { allergySummary, allergyText } from "../../../../../lib/allergies";
-import { emergencyEntries } from "../../../../../lib/emergencyList";
-import { formatDate, medicationTitle, scheduleText } from "../../../../../lib/medicationDisplay";
-import { PROVIDER_TYPE_META } from "../../../../../lib/providerDirectory";
-import { INSURANCE_RANK_LABELS, plansByRank, planTitle } from "../../../../../lib/recipientDetails";
-import { ageText, basicLines, birthdayText } from "../../../../../lib/recipientDisplay";
-import { dayInZone } from "../../../../../lib/zonedDay";
+import { allergySummary, allergyText } from "../../../../../lib/medications/allergies";
+import { emergencyEntries } from "../../../../../lib/profiles/emergencyList";
+import { formatDate, medicationTitle, scheduleText } from "../../../../../lib/medications/medicationDisplay";
+import { PROVIDER_TYPE_META } from "../../../../../lib/providers/providerDirectory";
+import { INSURANCE_RANK_LABELS, plansByRank, planTitle } from "../../../../../lib/profiles/recipientDetails";
+import { ageText, basicLines, birthdayText } from "../../../../../lib/profiles/recipientDisplay";
+import { dayInZone } from "../../../../../lib/core/zonedDay";
 
 // The printable emergency sheet's view model (profiles slice 6): what
 // `profile/print` shows, in the order it shows it. Pure: no React or database

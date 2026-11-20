@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { duePasses } from "~/lib/duePasses";
-import { medicationStrip } from "~/lib/medicationStrip";
-import { useDueDoses } from "~/lib/sync/dueDoses";
+import { duePasses } from "~/lib/medications/duePasses";
+import { medicationStrip } from "~/lib/medications/medicationStrip";
+import { useDueDoses } from "~/lib/medications/dueDoses.sync";
 
 /**
  * The medication strip's data: the pass it shows (`medicationStrip` over

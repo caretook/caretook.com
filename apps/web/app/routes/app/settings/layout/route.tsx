@@ -1,4 +1,4 @@
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import { SettingsFrame } from "~/components/settings";
 import { ACCOUNT_SETTINGS } from "./settingsPages";
 

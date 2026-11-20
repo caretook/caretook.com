@@ -1,4 +1,4 @@
-import type { TimelineEntry } from "~/lib/rpc";
+import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { useState } from "react";
 import { useFetcher } from "react-router";

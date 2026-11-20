@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import type { LocalMedication } from "~/lib/sync/medications";
+import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Pill } from "lucide-react";
-import { FORM_LABELS, medicationTitle, STATUS_LABELS } from "~/lib/medicationDisplay";
+import { FORM_LABELS, medicationTitle, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 
 /**
  * The medication's header, in regions like `ProviderHeader`'s:

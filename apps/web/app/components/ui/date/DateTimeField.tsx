@@ -20,7 +20,7 @@ import {
   Heading,
   Label,
 } from "react-aria-components";
-import { localTimeZone } from "~/lib/format";
+import { localTimeZone } from "~/lib/core/format";
 import { PopoverPanel } from "../Popover";
 import { FIELD_ERROR, FIELD_LABEL } from "../styles";
 

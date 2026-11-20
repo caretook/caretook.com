@@ -2,7 +2,7 @@ import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Field } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 
 /** Wait this long after the last keystroke before searching (and writing `?q=`). */
 const DEBOUNCE_MS = 200;

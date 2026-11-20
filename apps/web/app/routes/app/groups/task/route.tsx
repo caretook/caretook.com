@@ -1,6 +1,6 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { canCompleteTask } from "@caretook/data/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -8,12 +8,12 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { useTaskTick } from "~/components/tasks";
 import { BackLink } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
 import { getSync } from "~/lib/sync";
-import { removeTask } from "~/lib/sync/tasks";
-import { listSearchFromState } from "~/lib/taskSheets";
+import { removeTask } from "~/lib/tasks/tasks.sync";
+import { listSearchFromState } from "~/lib/tasks/taskSheets";
 import { loadTask } from "./loadTask";
 import { DELETE_INTENT, TaskActions } from "./TaskActions";
 import { TaskCompletion } from "./TaskCompletion";

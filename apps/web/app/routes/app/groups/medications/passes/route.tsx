@@ -1,17 +1,17 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
-import type { LocalPass } from "~/lib/sync/medicationPasses";
+import type { ActionResult } from "~/lib/core/api";
+import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 
 import { canAddPass } from "@caretook/data/schema";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { BackLink, Sheet } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { scheduleZoneNote } from "~/lib/medicationDisplay";
-import { sessionContext } from "~/lib/session";
-import { createPass, movePass, removePass, updatePass } from "~/lib/sync/medicationPasses";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
+import { sessionContext } from "~/lib/auth/session";
+import { createPass, movePass, removePass, updatePass } from "~/lib/medications/medicationPasses.sync";
 import { passActionFromForm } from "./passActions";
 import { PassForm } from "./PassForm";
 import { PassList } from "./PassList";
@@ -21,7 +21,7 @@ import { loadPasses, usePasses } from "./usePasses";
 // (Morning, Evening…) in the day's order, with the medications in each, read
 // from the device's local copy (live, so it works offline and follows other
 // members' changes). Writers add, rename, retime, reorder and delete them
-// (local writes; see lib/sync/medicationPasses.ts). Viewers read only.
+// (local writes; see lib/medications/medicationPasses.sync.ts). Viewers read only.
 
 export const meta = () => [{ title: "Passes · Medications · Caretook" }];
 

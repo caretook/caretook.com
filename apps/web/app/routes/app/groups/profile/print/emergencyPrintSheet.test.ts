@@ -1,4 +1,4 @@
-import type { EmergencyMemberRow } from "../../../../../lib/emergencyList";
+import type { EmergencyMemberRow } from "../../../../../lib/profiles/emergencyList";
 import type {
   EmergencyDetailsInput,
   EmergencyMedicationInput,
@@ -8,7 +8,7 @@ import type {
 } from "./emergencyPrintSheet";
 
 import { describe, expect, it } from "vitest";
-import { allergyState } from "../../../../../lib/allergies";
+import { allergyState } from "../../../../../lib/medications/allergies";
 import { EMERGENCY_SECTION_ORDER, emergencySheet } from "./emergencyPrintSheet";
 
 const ZONE = "America/Los_Angeles";

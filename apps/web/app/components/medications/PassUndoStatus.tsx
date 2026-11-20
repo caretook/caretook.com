@@ -1,12 +1,12 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { clearUndo, subscribeUndo, undoFor, undoSnapshot } from "~/lib/passUndo";
+import { clearUndo, subscribeUndo, undoFor, undoSnapshot } from "~/lib/medications/passUndo";
 import { undoPassLog } from "./usePassLog";
 
 const noOffer = () => null;
 
 /**
  * The Undo after Given all: "Morning logged · Undo" in one polite status
- * line for about 10 s (`lib/passUndo.ts`), for this group's last round.
+ * line for about 10 s (`lib/medications/passUndo.ts`), for this group's last round.
  * Undo soft-deletes exactly the doses it wrote; the pass is open again
  * (quick entry's: every entry its line wrote).
  * The live region is always rendered (empty when there's nothing to undo),

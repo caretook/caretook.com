@@ -1,12 +1,12 @@
-import type { TaskRow } from "~/lib/sync/tasks";
+import type { TaskRow } from "~/lib/tasks/tasks.sync";
 
 import { taskOrder } from "@caretook/data/schema";
 import { useMemo, useSyncExternalStore } from "react";
-import { useGroup } from "~/lib/group";
+import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
-import { useNow } from "~/lib/sync/editors";
-import { tasksQuery, toTasks } from "~/lib/sync/tasks";
-import { subscribeTaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/taskUndo";
+import { useNow } from "~/lib/live-notes/editors.sync";
+import { tasksQuery, toTasks } from "~/lib/tasks/tasks.sync";
+import { subscribeTaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/tasks/taskUndo";
 
 /** How many tasks simple mode's card shows; "See all" opens the rest. */
 export const SIMPLE_TASKS_CAP = 5;

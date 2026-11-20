@@ -5,9 +5,9 @@ import { Printer } from "lucide-react";
 import { Navigate, redirect } from "react-router";
 import { canReadRecipient } from "@caretook/data/schema";
 import { BackLink } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
 import { EmergencySheet } from "./EmergencySheet";
 import { loadEmergencySheetRows, useEmergencySheet } from "./useEmergencySheet";
 

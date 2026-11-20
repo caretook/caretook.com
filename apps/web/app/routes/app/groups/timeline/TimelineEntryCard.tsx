@@ -2,9 +2,9 @@ import type { EntryViewProps } from "./TimelineEntryRow";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
-import { appUrls } from "~/lib/appUrls";
-import { formatTime, formatTimeInZone } from "~/lib/format";
-import { cancelledLabel } from "~/lib/upcomingLabels";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { formatTime, formatTimeInZone } from "~/lib/core/format";
+import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";

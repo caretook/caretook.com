@@ -1,16 +1,21 @@
 import type { ContactValues } from "@caretook/data/schema";
-import type { ActionResult } from "~/lib/api";
-import type { MemberDetailRow } from "~/lib/sync/members";
+import type { ActionResult } from "~/lib/core/api";
+import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
 
 import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ContactLines } from "~/components/contact";
 import { ConfirmDialog, UserAvatar } from "~/components/ui";
-import { emergencyBadges } from "~/lib/emergencyList";
+import { emergencyBadges } from "~/lib/profiles/emergencyList";
 import { useLiveQuery } from "~/lib/sync";
-import { memberContactLines, memberShare, parseSharedFields, sharedSummary } from "~/lib/memberContact";
-import { memberDetailsQuery } from "~/lib/sync/members";
+import {
+  memberContactLines,
+  memberShare,
+  parseSharedFields,
+  sharedSummary,
+} from "~/lib/profiles/memberContact";
+import { memberDetailsQuery } from "~/lib/care-groups/members.sync";
 import { memberAccess, memberName, roleLabel, sortMembers } from "../groupSettings";
 import { memberHistory } from "./invites";
 import { SharingForm } from "./SharingForm";

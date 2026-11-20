@@ -1,5 +1,5 @@
-import type { FieldIssue } from "~/lib/api";
-import type { LocalPass } from "~/lib/sync/medicationPasses";
+import type { FieldIssue } from "~/lib/core/api";
+import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import type { MedicationSchedule } from "@caretook/data/schema";
 
 import { Plus, X } from "lucide-react";
@@ -7,7 +7,7 @@ import { useId, useState } from "react";
 import { Link } from "react-router";
 import { MEDICATION_LIMITS } from "@caretook/data/schema";
 import { ChoiceGroup, Field, IconButton } from "~/components/ui";
-import { clockTime } from "~/lib/medicationDisplay";
+import { clockTime } from "~/lib/medications/medicationDisplay";
 import { FIELD, passAmountField } from "./medicationFormData";
 import { initialSlots } from "./scheduleSlots";
 

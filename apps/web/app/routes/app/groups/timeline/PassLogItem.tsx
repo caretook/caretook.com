@@ -1,14 +1,14 @@
 import type { TimelineView } from "@caretook/data/schema";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { AuthorFilterLink, KindFilterLink, MedicationHeading } from "~/components/entry";
-import { initials } from "~/lib/entryDisplay";
-import { formatTime } from "~/lib/format";
-import { passLogText } from "~/lib/medicationDisplay";
-import { medicationEntryText } from "~/lib/medicationEntries";
-import { passLogCounts } from "~/lib/passLogs";
+import { initials } from "~/lib/timeline/entryDisplay";
+import { formatTime } from "~/lib/core/format";
+import { passLogText } from "~/lib/medications/medicationDisplay";
+import { medicationEntryText } from "~/lib/medications/medicationEntries";
+import { passLogCounts } from "~/lib/medications/passLogs";
 import { SHEET_LINK_STATE } from "./sheet";
 
 /**

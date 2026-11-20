@@ -3,7 +3,7 @@ import type { SyncDb } from "~/lib/sync";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { fx } from "../../../../../test/fixtures";
-import { cancelEvent, rescheduleEvent, uncancelEvent } from "~/lib/sync/appointments";
+import { cancelEvent, rescheduleEvent, uncancelEvent } from "~/lib/appointments/appointments.sync";
 import {
   BLOOD_DRAW,
   CARDIOLOGY,

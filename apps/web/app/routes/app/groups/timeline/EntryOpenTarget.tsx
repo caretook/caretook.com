@@ -1,5 +1,5 @@
-import type { EntryOpen } from "~/lib/entryOpen";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { EntryOpen } from "~/lib/timeline/entryOpen";
+import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { Link } from "react-router";
 import { openLabel } from "./entryLabels";

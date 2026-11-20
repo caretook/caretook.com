@@ -1,16 +1,16 @@
 import type { QuickEntryPass } from "@caretook/data/schema";
-import type { CompletionName } from "~/lib/quickEntryCompletion";
-import type { PredictionRow } from "~/lib/sync/quickEntrySuggestions";
+import type { CompletionName } from "~/lib/assistant/quickEntryCompletion";
+import type { PredictionRow } from "~/lib/assistant/quickEntrySuggestions.sync";
 
 import { useMemo } from "react";
-import { useGroup } from "~/lib/group";
-import { completeName } from "~/lib/quickEntryCompletion";
-import { USUAL_DAYS, usualAtHour } from "~/lib/quickEntryPredictions";
-import { useRecentLines } from "~/lib/recentLines";
+import { useGroup } from "~/lib/app-shell/group";
+import { completeName } from "~/lib/assistant/quickEntryCompletion";
+import { USUAL_DAYS, usualAtHour } from "~/lib/assistant/quickEntryPredictions";
+import { useRecentLines } from "~/lib/assistant/recentLines";
 import { useLiveQuery } from "~/lib/sync";
-import { useNow } from "~/lib/sync/editors";
-import { predictionEntriesQuery, toPredictionEntries } from "~/lib/sync/quickEntrySuggestions";
-import { addDays, dayInZone, startOfDay } from "~/lib/zonedDay";
+import { useNow } from "~/lib/live-notes/editors.sync";
+import { predictionEntriesQuery, toPredictionEntries } from "~/lib/assistant/quickEntrySuggestions.sync";
+import { addDays, dayInZone, startOfDay } from "~/lib/core/zonedDay";
 import { useQuickEntryData } from "./useQuickEntryData";
 
 /** "Around now" moves on with the clock: recheck every few minutes. */

@@ -1,12 +1,12 @@
-import type { LearnedEntry } from "~/lib/simpleTiles";
-import type { LocalQuery } from "~/lib/sync/timeline";
+import type { LearnedEntry } from "~/lib/assistant/simpleTiles";
+import type { LocalQuery } from "~/lib/timeline/timeline.sync";
 
-import { LEARNED_DAYS } from "~/lib/simpleTiles";
-import { toLocalTimestamp } from "~/lib/sync/timeline";
+import { LEARNED_DAYS } from "~/lib/assistant/simpleTiles";
+import { toLocalTimestamp } from "~/lib/timeline/timeline.sync";
 
 // Simple mode's local reads on the timeline (assistant PRD): the last 30
 // days' entries the learned tiles count, and your latest entry for "Remove
-// my last entry". The group's tile choice is `lib/sync/simpleMode.ts`.
+// my last entry". The group's tile choice is `lib/assistant/simpleMode.sync.ts`.
 
 /** One entry the learned tiles count: its kind, when, and a vital's reading types (JSON text). */
 export type LearnedRow = { kind: string; occurred_at: string; types: string | null };

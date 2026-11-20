@@ -1,10 +1,10 @@
 import type { TimelineView } from "@caretook/data/schema";
-import type { PeriodMarker } from "~/lib/periodMarkers";
-import type { LocalCarePeriod } from "~/lib/sync/carePeriods";
+import type { PeriodMarker } from "~/lib/care-periods/periodMarkers";
+import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { markerSentence, markerText, periodTypeMeta } from "~/lib/periodDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { markerSentence, markerText, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
 
 const ITEM_CLASS: Record<TimelineView, string> = {
   rows: "bg-base-200/50",

@@ -1,4 +1,4 @@
-import type { TaskInput } from "~/lib/sync/tasks";
+import type { TaskInput } from "~/lib/tasks/tasks.sync";
 
 // The task sheet's form (pure; web:unit tests it): its field names, and the
 // posted form as a write's input. Empty fields mean none.

@@ -54,7 +54,7 @@ describe("the first screen", () => {
     expect(view()).toBe("rows");
     await setView("Cards");
     await device.screen.unmount();
-    // The next visit reads the device's settings copy (lib/me.ts): no server needed.
+    // The next visit reads the device's settings copy (lib/app-shell/me.ts): no server needed.
     await openTimeline();
     await waitUntil(() => view() === "cards", 4000, "cards on the next visit");
   });

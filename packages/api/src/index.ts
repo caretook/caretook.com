@@ -4,6 +4,6 @@ export * from "./dto";
 export * from "./errors";
 export * from "./handler";
 export * from "./procedures";
-export * from "./publicForms";
+export * from "./marketing/publicForms";
 export * from "./router";
 export * from "./sync";

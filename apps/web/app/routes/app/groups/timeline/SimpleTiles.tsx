@@ -1,10 +1,10 @@
 import type { SimpleTile, SimpleTiles as TilesSetting } from "@caretook/data/schema";
-import type { RecipientWords } from "~/lib/simpleTiles";
+import type { RecipientWords } from "~/lib/assistant/simpleTiles";
 
 import { Link } from "react-router";
 import { KindIcon } from "~/components/entry";
-import { appUrls } from "~/lib/appUrls";
-import { tileKey, tileLabel } from "~/lib/simpleTiles";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { tileKey, tileLabel } from "~/lib/assistant/simpleTiles";
 import { SHEET_LINK_STATE } from "./sheet";
 
 /** Where a tile goes: its kind's simple sheet over the timeline, or a new note's page. */

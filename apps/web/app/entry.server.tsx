@@ -21,7 +21,7 @@ import { waitUntil } from "@vercel/functions";
 import { deployEnvRefusal } from "./.server/deployEnv";
 import { setBackgroundRunner } from "./.server/notifications";
 import { applySecurityHeaders, contentSecurityPolicy, envOptions, newNonce } from "./.server/securityHeaders";
-import { CspContext } from "./lib/csp";
+import { CspContext } from "./lib/security-headers/csp";
 
 export const streamTimeout = 5_000;
 

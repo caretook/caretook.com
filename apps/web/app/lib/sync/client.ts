@@ -2,10 +2,10 @@ import type { AbstractPowerSyncDatabase, PowerSyncBackendConnector } from "@powe
 
 import { DrizzleAppSchema, wrapPowerSyncWithDrizzle } from "@powersync/drizzle-driver";
 import { PowerSyncDatabase } from "@powersync/web";
-import { authClient } from "../auth-client";
-import { rpc } from "../rpc";
+import { authClient } from "../auth/auth-client";
+import { rpc } from "../core/rpc";
 import { releaseSyncLocksWhenCached } from "./pageCache";
-import { dropSearchTables } from "./searchTables";
+import { dropSearchTables } from "../search/searchTables.sync";
 import { drizzleSchema } from "./schema";
 
 // The PowerSync database and its connection. Browser only: load it through

@@ -1,13 +1,13 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
-import { getGroup, useGroup } from "~/lib/group";
-import { loadSettings } from "~/lib/me";
-import { findPeriodChoice } from "~/lib/periodSearch";
-import { recordSearch } from "~/lib/recentSearches";
-import { parseSearchPage } from "~/lib/searchResults";
-import { sessionContext } from "~/lib/session";
-import { loadSearchPeriods, useSearchPeriods } from "~/lib/sync/periodSearch";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { loadSettings } from "~/lib/app-shell/me";
+import { findPeriodChoice } from "~/lib/care-periods/periodSearch";
+import { recordSearch } from "~/lib/search/recentSearches";
+import { parseSearchPage } from "~/lib/search/searchResults";
+import { sessionContext } from "~/lib/auth/session";
+import { loadSearchPeriods, useSearchPeriods } from "~/lib/care-periods/periodSearch.sync";
 import { loadSearch } from "./loadSearch";
 import { PeriodField } from "./PeriodField";
 import { RecentSearches } from "./RecentSearches";
@@ -16,7 +16,7 @@ import { SearchResults } from "./SearchResults";
 import { useSearchPage } from "./useSearchPage";
 
 // Shared by web + native. Search one care group's entries, providers,
-// medications and tasks on the device (`lib/sync/search.ts`), offline too. The text
+// medications and tasks on the device (`lib/search/search.sync.ts`), offline too. The text
 // (`?q=`) and the section shown in full (`?all=`) live in the URL, so Back
 // from a result comes back to the same results. A search that's used
 // (the field left with it, or one of its results opened) joins this

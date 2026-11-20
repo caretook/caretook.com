@@ -1,6 +1,6 @@
 import type { MarkStatus } from "./DoseSlotRow";
-import type { DoseSlot } from "~/lib/dueDoses";
-import type { DuePass, PassState } from "~/lib/duePasses";
+import type { DoseSlot } from "~/lib/medications/dueDoses";
+import type { DuePass, PassState } from "~/lib/medications/duePasses";
 
 import { CheckCheck, ChevronDown } from "lucide-react";
 import { useId, useState } from "react";
@@ -12,7 +12,7 @@ import {
   passLoggedText,
   passStateText,
   passTitle,
-} from "~/lib/medicationDisplay";
+} from "~/lib/medications/medicationDisplay";
 import { DoseSlotRow } from "./DoseSlotRow";
 import { usePassLog } from "./usePassLog";
 

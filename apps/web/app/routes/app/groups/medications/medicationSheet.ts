@@ -1,18 +1,18 @@
-import type { LocalProvider, ProviderRow } from "~/lib/sync/providers";
+import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync";
 import type { SyncDb } from "~/lib/sync";
-import type { LocalPass, PassRow } from "~/lib/sync/medicationPasses";
-import type { MedicationNameRow } from "~/lib/sync/medications";
+import type { LocalPass, PassRow } from "~/lib/medications/medicationPasses.sync";
+import type { MedicationNameRow } from "~/lib/medications/medications.sync";
 
 import { useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { openedFromApp } from "~/lib/medicationSheets";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { openedFromApp } from "~/lib/medications/medicationSheets";
 import { useLiveQuery } from "~/lib/sync";
-import { loadSchedulePasses, useSchedulePasses } from "~/lib/sync/medicationPasses";
-import { medicationNamesQuery } from "~/lib/sync/medications";
-import { providersQuery, toProviders } from "~/lib/sync/providers";
-import { readRows } from "~/lib/sync/timeline";
+import { loadSchedulePasses, useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { medicationNamesQuery } from "~/lib/medications/medications.sync";
+import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 
 // Sheets over the medication list are child routes (`medications/new`,
 // `medications/:medicationId/edit`): the list stays mounted underneath, with

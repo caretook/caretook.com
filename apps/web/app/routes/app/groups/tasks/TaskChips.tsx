@@ -1,8 +1,8 @@
-import type { TaskWho } from "~/lib/taskList";
+import type { TaskWho } from "~/lib/tasks/taskList";
 
 import { useLocation } from "react-router";
 import { ChipGroup } from "~/components/ui";
-import { setWho, TASK_WHO, WHO_LABELS } from "~/lib/taskList";
+import { setWho, TASK_WHO, WHO_LABELS } from "~/lib/tasks/taskList";
 
 /** Mine / Unassigned / Everyone: links that set `?who=`, so the chip survives reloads. */
 export function TaskChips({ who }: { who: TaskWho }) {

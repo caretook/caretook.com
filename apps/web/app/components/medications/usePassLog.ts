@@ -1,14 +1,14 @@
 import type { DoseStatus } from "@caretook/data/schema";
-import type { DoseSlot } from "~/lib/dueDoses";
-import type { DuePass } from "~/lib/duePasses";
+import type { DoseSlot } from "~/lib/medications/dueDoses";
+import type { DuePass } from "~/lib/medications/duePasses";
 
 import { useCallback, useState } from "react";
-import { givenAllWrites } from "~/lib/duePasses";
-import { passLoggedLabel } from "~/lib/medicationDisplay";
-import { clearUndo, offerUndo } from "~/lib/passUndo";
+import { givenAllWrites } from "~/lib/medications/duePasses";
+import { passLoggedLabel } from "~/lib/medications/medicationDisplay";
+import { clearUndo, offerUndo } from "~/lib/medications/passUndo";
 import { getSync } from "~/lib/sync";
-import { logDose, logDoses, removeDoses } from "~/lib/sync/medications";
-import { removeEntries } from "~/lib/sync/quickEntry";
+import { logDose, logDoses, removeDoses } from "~/lib/medications/medications.sync";
+import { removeEntries } from "~/lib/assistant/quickEntry.sync";
 
 /**
  * Logging doses by pass, the one path for Today, the Dose sheet and the

@@ -2,12 +2,12 @@ import type { TimelinePeriods } from "./timelinePeriods";
 
 import { periodAt, periodDay } from "@caretook/data/schema";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { localTimeZone } from "~/lib/format";
-import { useGroup } from "~/lib/group";
-import { currentLineText, periodTypeMeta } from "~/lib/periodDisplay";
-import { PERIOD_SHEET_STATE } from "~/lib/periodSheets";
-import { useNow } from "~/lib/sync/editors";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { localTimeZone } from "~/lib/core/format";
+import { useGroup } from "~/lib/app-shell/group";
+import { currentLineText, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
+import { PERIOD_SHEET_STATE } from "~/lib/care-periods/periodSheets";
+import { useNow } from "~/lib/live-notes/editors.sync";
 import { QuickAddMenu } from "./QuickAddMenu";
 import { dayKeyIn } from "./timelineDays";
 

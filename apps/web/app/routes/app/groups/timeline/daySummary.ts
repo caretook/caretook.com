@@ -1,5 +1,5 @@
 import type { UnitChoices, VitalFieldSpec, VitalReading, VitalType } from "@caretook/data/schema";
-import type { TimelineEntry } from "../../../../lib/rpc";
+import type { TimelineEntry } from "../../../../lib/core/rpc";
 
 import {
   fieldUnitLabel,

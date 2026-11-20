@@ -1,4 +1,4 @@
-import { dayLabel } from "../../../../lib/format";
+import { dayLabel } from "../../../../lib/core/format";
 
 // The timeline's day sections. Pure, so web:unit tests it.
 
@@ -80,7 +80,7 @@ export type TimelineItem<E, M> =
 
 /**
  * The day sections with the boundary markers placed at their moments
- * (`lib/periodMarkers` picks which). Both lists are newest first. An entry
+ * (`lib/care-periods/periodMarkers` picks which). Both lists are newest first. An entry
  * at a marker's exact moment is in the new period, so it sits above the
  * marker. A day with only a marker gets its own section.
  */

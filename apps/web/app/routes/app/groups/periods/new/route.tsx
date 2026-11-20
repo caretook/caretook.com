@@ -1,14 +1,14 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { redirect, useLocation } from "react-router";
 import { Sheet } from "~/components/ui";
-import { getGroup, useGroup } from "~/lib/group";
-import { scheduleZoneNote } from "~/lib/medicationDisplay";
-import { newPeriodGuard, parsePeriodPrefill } from "~/lib/periodSheets";
-import { sessionContext } from "~/lib/session";
-import { createCarePeriod } from "~/lib/sync/carePeriods";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
+import { newPeriodGuard, parsePeriodPrefill } from "~/lib/care-periods/periodSheets";
+import { sessionContext } from "~/lib/auth/session";
+import { createCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import { PeriodForm } from "../PeriodForm";
 import { periodFromForm } from "../periodFormData";
 import { loadPlaceRows, useClosePeriodSheet, usePlaceChoices } from "../periodSheet";

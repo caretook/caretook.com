@@ -1,9 +1,9 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { Sheet } from "~/components/ui";
-import { issuesForRows, phonesFromForm } from "~/lib/contactForm";
+import { issuesForRows, phonesFromForm } from "~/lib/core/contactForm";
 import { parseRecipientContact } from "../detailsFormData";
 import { loadDetailsSheet, saveDetails } from "../detailsSheet";
 import { useCloseProfileSheet } from "../profileSheet";

@@ -5,8 +5,8 @@ import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
-import { clearUndo } from "~/lib/passUndo";
-import { dayInZone, timeInZone } from "~/lib/zonedDay";
+import { clearUndo } from "~/lib/medications/passUndo";
+import { dayInZone, timeInZone } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
 import { waitUntil } from "./timelineWorld";
 

@@ -1,9 +1,9 @@
-import type { LocalProvider } from "~/lib/sync/providers";
+import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
-import { appUrls } from "~/lib/appUrls";
-import { allActions } from "~/lib/contactActions";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { allActions } from "~/lib/providers/contactActions";
 
 /**
  * Where the period is: the place (a link to its provider page, with every

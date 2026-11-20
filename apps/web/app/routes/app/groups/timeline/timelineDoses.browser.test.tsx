@@ -5,9 +5,9 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, medicationPass, TEST_GROUP } from "../../../../../test/fixtures";
-import { clearUndo } from "~/lib/passUndo";
-import { updatePass } from "~/lib/sync/medicationPasses";
-import { updateMedication } from "~/lib/sync/medications";
+import { clearUndo } from "~/lib/medications/passUndo";
+import { updatePass } from "~/lib/medications/medicationPasses.sync";
+import { updateMedication } from "~/lib/medications/medications.sync";
 import {
   AMOXICILLIN,
   clockAt,

@@ -1,11 +1,11 @@
 import type { TaskRuleFields, TaskState } from "@caretook/data/schema";
 
 import { localDate } from "@caretook/data/schema";
-import { assigneeLabel, dueText, shortDay } from "../../../../lib/taskDisplay";
+import { assigneeLabel, dueText, shortDay } from "../../../../lib/tasks/taskDisplay";
 
 // How the task page words a task (pure; web:unit tests it): the header's
 // badge, the assignee, the due day and the done-by line. Days and times are
-// wall-clock in the recipient's zone, like the list's (`lib/taskDisplay.ts`).
+// wall-clock in the recipient's zone, like the list's (`lib/tasks/taskDisplay.ts`).
 
 /** The header's badge: "Done" or "Overdue", else none. */
 export const taskBadge = (state: TaskState): { label: string; tone: "done" | "overdue" } | null => {

@@ -3,7 +3,10 @@ import type { AuthUser } from "./types";
 import { describe, expect, it } from "vitest";
 import { SYSTEM_USER } from "../constants";
 import { isError } from "../errors";
-import { getPermissionScope, getUnauthorizedFields, hasPermission } from "./permissions";
+import { is } from "drizzle-orm";
+import { PgTable } from "drizzle-orm/pg-core";
+import * as schema from "../db/schema";
+import { PERMISSIONS, getPermissionScope, getUnauthorizedFields, hasPermission } from "./permissions";
 
 const member: AuthUser = { id: "u-member", roleNames: ["member"] };
 const staff: AuthUser = { id: "u-staff", roleNames: ["admin"] };
@@ -135,5 +138,16 @@ describe("hasPermission", () => {
   it("is false without a target unless access is unrestricted", () => {
     expect(hasPermission({ authUser: member, schemaName: "userSchema", permission: "read" })).toBe(false);
     expect(hasPermission({ authUser: staff, schemaName: "userSchema", permission: "read" })).toBe(true);
+  });
+});
+
+describe("PERMISSIONS", () => {
+  it("has an entry for every table the schema exports, and for nothing else", () => {
+    const tables = Object.entries(schema)
+      .filter(([, value]) => is(value, PgTable))
+      .map(([name]) => name)
+      .sort();
+    expect(tables.length).toBeGreaterThan(20);
+    expect(Object.keys(PERMISSIONS).sort()).toEqual(tables);
   });
 });

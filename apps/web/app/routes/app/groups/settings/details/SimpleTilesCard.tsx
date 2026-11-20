@@ -1,14 +1,14 @@
 import type { SimpleTile, SimpleTileMode, SimpleTiles } from "@caretook/data/schema";
-import type { ActionResult } from "~/lib/api";
-import type { RecipientWords } from "~/lib/simpleTiles";
+import type { ActionResult } from "~/lib/core/api";
+import type { RecipientWords } from "~/lib/assistant/simpleTiles";
 
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { SIMPLE_TILE_COUNT } from "@caretook/data/schema";
 import { Detail, Details, SaveRow, SettingsCard } from "~/components/settings";
 import { ChoiceGroup, Field } from "~/components/ui";
-import { FIXED_TILES, recipientWords, TILE_CHOICES, tileKey, tileLabel } from "~/lib/simpleTiles";
-import { useSimpleSetup } from "~/lib/sync/simpleMode";
+import { FIXED_TILES, recipientWords, TILE_CHOICES, tileKey, tileLabel } from "~/lib/assistant/simpleTiles";
+import { useSimpleSetup } from "~/lib/assistant/simpleMode.sync";
 import { tileFieldName } from "../groupSettings";
 
 const MODE_OPTIONS: { value: SimpleTileMode; label: string }[] = [

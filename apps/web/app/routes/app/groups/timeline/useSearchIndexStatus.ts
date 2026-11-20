@@ -1,7 +1,7 @@
-import type { SearchIndexStatus } from "~/lib/sync/search";
+import type { SearchIndexStatus } from "~/lib/search/search.sync";
 
 import { useSyncExternalStore } from "react";
-import { searchIndexStatus, subscribeSearchIndexStatus } from "~/lib/sync/search";
+import { searchIndexStatus, subscribeSearchIndexStatus } from "~/lib/search/search.sync";
 
 /** The device's search index status, live ("Preparing search…" until it's ready). */
 export const useSearchIndexStatus = (): SearchIndexStatus =>

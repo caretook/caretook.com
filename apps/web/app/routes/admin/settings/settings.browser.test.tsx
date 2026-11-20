@@ -3,7 +3,7 @@ import type { SettingRow } from "./SettingCard";
 
 import { APP_SETTING_KEYS, APP_SETTINGS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
-import { formString } from "~/lib/form";
+import { formString } from "~/lib/core/form";
 import { page, userEvent } from "vitest/browser";
 import { adminFx } from "../../../../test/adminFixtures";
 import { openAdmin, postedForms } from "../adminWorld";
