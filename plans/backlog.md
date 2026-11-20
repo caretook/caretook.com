@@ -76,6 +76,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-112 | change | inbox |  |  | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | admin |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-114 | chore | inbox |  |  | Move routing.mjs to component tests |
+| B-115 | chore | inbox |  |  | Move settings-layout.mjs to component tests |
 
 ## Items
 
@@ -423,3 +424,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set (e2e no) since orchestration slice 9. Move its screen steps (appUrls links, sheet URLs open and close, settings subpages, the group route's redirects and 404s) to *.browser.test.tsx beside the routes, delete each covered step (map step -> test in the hand-off), keep only what needs a real page load (route discovery offline, a deep link after a full load); then e2e yes or delete it. Rules: docs/loops.md, Browser check budget.
+
+### B-115 · chore · Move settings-layout.mjs to component tests
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. The Settings <-> timeline toggle on one device is a component test (settings.browser.test.tsx); keep only the choice following the account to a second browser, ideally folded into layout-offline.mjs; then delete settings-layout or set it e2e yes.
