@@ -88,6 +88,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-124 | chore | inbox |  |  | Move devices.mjs to component tests |
 | B-125 | chore | inbox |  |  | Move admin.mjs to component tests |
 | B-126 | chore | inbox |  |  | Move roundtrip.mjs's sheet steps to component tests |
+| B-127 | chore | inbox |  |  | Move invites.mjs's screen steps to component tests |
 
 ## Items
 
@@ -543,3 +544,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): roundtrip.mjs stays in the lean set (devices converging, offline then reconnect, the viewer, the sign-out wipe), but its add and edit sheet steps (validation, When's date picker, edit and delete) are screen behaviour: move them to component tests for the timeline's sheets (new/, edit/, EntryForm) and delete each covered step.
+
+### B-127 · chore · Move invites.mjs's screen steps to component tests
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): invites.mjs stays in the lean set (emails through /dev/mail.json, sign-up, consent, join, links and requests). Move its form states (the invite page's views, the wrong-account view, sign-in tabs, the invite sheet and pending list) to component tests and delete each covered step.
