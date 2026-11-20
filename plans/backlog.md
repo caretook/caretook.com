@@ -113,7 +113,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-170 | change | triaged | timeline-ux |  | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
 | B-171 | change | triaged | timeline-ux |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
 | B-172 | bug | landed | check-migration | prd/check-migration | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
-| B-173 | bug | triaged | check-migration |  | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
+| B-173 | bug | ready | check-migration | prd/check-migration | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
 
 ## Items
 
@@ -834,10 +834,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-173 · bug · app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out
 
-- status: triaged
+- status: ready
 - prd: check-migration
-- owner:
-- commit:
+- owner: prd/check-migration
+- commit: 6502603
 
 - 2026-11-20 (prd/code-layout): Found at code-layout's final landing (2026-11-20, suite log app-shell-20261120-131200.log in code-layout's git dir). The step came in with check-migration slice 16 (the profiles-contacts fold). Proposed for check-migration: it owns the step. code-layout changes no stream, schema or sync code.
 - 2026-11-20 (prd/check-migration): Proposed for check-migration slice 22, which ports app-shell. It also failed once in slice 18's runs, at load 5.9, so it isn't only load: find why the row is slow to arrive before raising the timeout. -- check-migration orchestrator
