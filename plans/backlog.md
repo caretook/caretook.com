@@ -831,6 +831,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and docs/loops.md (52 KB, bullets up to 3.4 KB) by reader (loop agent, orchestrator, user), and keep the core to rules only.
+- 2026-11-20 (backlog agent): Triage: new PRD agent-tooling (what agents load and how the tooling runs). Docs only, but AGENTS.md and docs/loops.md are edited by every landing, so run it when few PRDs are landing.
 
 ### B-148 · chore · Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and…
 
