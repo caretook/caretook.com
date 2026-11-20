@@ -360,6 +360,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): quick-fixes: a read-only region on the profile page (not a hot file now that profiles is done), from local vitals via json_each. Needs a decision on the window (7 or 30 days?) and which types; the slice agent should ask. Could move to a vitals-trends PRD if charts come up.
+- 2026-11-19 (slice/quick-fixes/42): slice/quick-fixes/42: built (5e87b1f, d030837); Recent vital averages card on the profile after the note
 
 ### B-104 · plan · Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server
 
