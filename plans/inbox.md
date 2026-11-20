@@ -27,6 +27,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Tips: `QuickEntrySuggestions` (`data-quick-tips`) could take a `showTips` prop that `QuickEntryBox` turns off for `size="lg"`; the dictation hint stays.
   Tiles: in `SimpleTiles.tsx`, show only the "Choose the tiles" link to those who can choose, and nothing to members. Update `timelineSimpleTiles.browser.test.tsx` (the hint text) and docs/domain/timeline.md (the first-run hint).
 - Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side). (B-143)
+- In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the full layout. Replace "Now" heading with "Upcoming". Reduce size of quick action buttons so that they are one row with smaller buttons so they are one row."Tap the microphone on your keyboard to say it instead of typing." should only appear on devices that support voice input via keyboard (ios/andriod?). All text is too large and should be reduced in size. Assume users that can't see well will have there devices set to larger text, or zoom their browsers. (B-162)
+- "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas separate entries; start with “n:” for a note." should be a tooltip. (B-163)
 
 ## Feature requests
 

@@ -97,6 +97,9 @@ export { appSettingService };
 import * as dbAccessService from "./dbAccessService";
 export { dbAccessService };
 export type { GrantResult as DbAccessGrant, PersonalRole } from "./dbAccessService";
+// Not in `services`: `pnpm auth:rotate-jwks` only (Better Auth's jwks table).
+import * as authKeysService from "./authKeysService";
+export { authKeysService };
 
 // Not in `services`: no model behind it (shared rate limits, hosting PRD).
 import * as rateLimitService from "./rateLimitService";

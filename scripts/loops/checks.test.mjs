@@ -1,6 +1,6 @@
 // The browser-check manifest (scripts/loops/checks) against the file → check
-// map (check-areas) and the checks on disk.
-import { existsSync, readFileSync } from "node:fs";
+// map (check-areas.d/) and the checks on disk.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { areaChecks, leanBudget, leanCeiling, parseManifest } from "./checks.mjs";
 
@@ -9,8 +9,11 @@ const manifest = parseManifest(read("./checks"));
 const names = manifest.map((c) => c.name);
 
 describe("the manifest", () => {
-  it("lists every check named in check-areas, and nothing else", () => {
-    const areas = [...areaChecks(read("./check-areas"))].sort();
+  it("lists every check named in check-areas.d/, and nothing else", () => {
+    const rules = readdirSync(new URL("./check-areas.d/", import.meta.url))
+      .map((name) => read(`./check-areas.d/${name}`))
+      .join("\n");
+    const areas = [...areaChecks(rules)].sort();
     expect([...names].sort()).toEqual(areas);
   });
 
