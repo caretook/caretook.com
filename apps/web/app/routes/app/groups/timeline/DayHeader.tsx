@@ -14,6 +14,7 @@ import { dayKeyIn } from "./timelineDays";
  * A day section's sticky header: the day's heading ("Today", "Monday, Nov
  * 16") and, beside it, the care period that covers the day (`DayPeriod`).
  * The heading names the section (`day-<key>`); the period isn't part of it.
+ * Simple mode shows the heading only.
  */
 export function DayHeader({
   dayKey,
@@ -21,6 +22,7 @@ export function DayHeader({
   newestAt,
   groupId,
   periods,
+  simple = false,
 }: {
   /** The day's key ("2026-11-17", the viewer's zone). */
   dayKey: string;
@@ -29,6 +31,7 @@ export function DayHeader({
   newestAt: string | undefined;
   groupId: string;
   periods: TimelinePeriods;
+  simple?: boolean;
 }) {
   const today = dayKey === dayKeyIn(new Date().toISOString(), localTimeZone());
   return (
@@ -39,7 +42,7 @@ export function DayHeader({
       <h3 id={`day-${dayKey}`} className="text-base font-semibold lg:text-lg">
         {label}
       </h3>
-      {today ? (
+      {simple ? null : today ? (
         <TodayPeriod groupId={groupId} periods={periods} />
       ) : (
         newestAt && <DayPeriod groupId={groupId} periods={periods} at={newestAt} />

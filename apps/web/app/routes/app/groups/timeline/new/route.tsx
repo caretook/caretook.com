@@ -3,6 +3,7 @@ import type { ActionResult } from "~/lib/api";
 
 import { redirect, useLocation } from "react-router";
 import { formString } from "~/lib/form";
+import { entryDraftFrom } from "~/lib/quickEntryDraft";
 import { getGroup } from "~/lib/group";
 import { sessionContext } from "~/lib/session";
 import { createEntry } from "~/lib/sync/timeline";
@@ -42,7 +43,10 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
 export default function NewEntrySheet({ loaderData }: Route.ComponentProps) {
   const { units } = useTimelineOutlet();
   const close = useCloseSheet();
-  const { search } = useLocation();
+  const location = useLocation();
+  const { search } = location;
+  // Opened from quick entry's Edit: the card's reading, filled in.
+  const draft = entryDraftFrom(location.state as unknown);
   return (
     <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add to the timeline">
       <EntryForm
@@ -51,6 +55,7 @@ export default function NewEntrySheet({ loaderData }: Route.ComponentProps) {
         units={units}
         initialKind={loaderData.kind}
         initialVitalType={loaderData.vitalType ?? undefined}
+        draft={draft?.kind === loaderData.kind ? draft : null}
         onDone={close}
         onCancel={close}
       />

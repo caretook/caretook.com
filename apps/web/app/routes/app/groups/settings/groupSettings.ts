@@ -153,13 +153,15 @@ export const memberAccess = ({
   actorRole: string | null;
   memberRole: string | null;
   isSelf: boolean;
-}): { roles: MemberRole[]; remove: boolean; leave: boolean } => {
+}): { roles: MemberRole[]; remove: boolean; leave: boolean; simpleMode: boolean } => {
   const owner = actorRole === "owner";
   const manages = (owner || actorRole === "admin") && (owner || memberRole !== "owner");
   return {
     roles: manages ? MEMBER_ROLES.filter((role) => owner || role !== "owner") : [],
     remove: manages && !isSelf,
     leave: isSelf,
+    // Simple mode's default for them: whoever may change their role.
+    simpleMode: manages,
   };
 };
 

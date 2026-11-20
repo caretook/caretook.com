@@ -1,6 +1,8 @@
+import type { SimpleModeSetting } from "./simpleMode";
 import type { UnitChoices } from "./vitals";
 
 import { z } from "zod";
+import { DEFAULT_SIMPLE_MODE_SETTING, SIMPLE_MODE_SETTINGS } from "./simpleMode";
 import { UNIT_OPTIONS } from "./vitals";
 
 // Per-user settings, stored as jsonb on `user.preferences`. Every field is
@@ -29,6 +31,8 @@ export const DEFAULT_TIMELINE_VIEW: TimelineView = "rows";
 export const userPreferencesZSchema = z.strictObject({
   units: unitChoicesZSchema.partial().optional(),
   timelineView: z.enum(TIMELINE_VIEWS).optional(),
+  /** Simple mode: follow the group's default for you, or always simple or full (simpleMode.ts). */
+  simpleMode: z.enum(SIMPLE_MODE_SETTINGS).optional(),
 });
 export type UserPreferences = z.infer<typeof userPreferencesZSchema>;
 
@@ -40,3 +44,6 @@ export const resolveUnits = (prefs: UserPreferences | null | undefined): UnitCho
 
 export const resolveTimelineView = (prefs: UserPreferences | null | undefined): TimelineView =>
   prefs?.timelineView ?? DEFAULT_TIMELINE_VIEW;
+
+export const resolveSimpleModeSetting = (prefs: UserPreferences | null | undefined): SimpleModeSetting =>
+  prefs?.simpleMode ?? DEFAULT_SIMPLE_MODE_SETTING;

@@ -1,6 +1,7 @@
 import type { DoseDetails, DoseStatus } from "@caretook/data/schema";
 import type { FormEvent } from "react";
 import type { PlannedDose } from "~/lib/dueDoses";
+import type { DoseDraft } from "~/lib/quickEntryDraft";
 import type { TimelineEntry } from "~/lib/rpc";
 import type { DoseOption } from "./doseFormData";
 
@@ -25,6 +26,8 @@ type Props = {
       initialOption?: string | null;
       /** Why a dose about to be logged may be a mistake ("already given"), asked before saving. */
       warningsFor?: (planned: PlannedDose) => string[];
+      /** What to fill it in with (quick entry's Edit). */
+      draft?: DoseDraft | null;
       entry?: never;
       medicationName?: never;
     }
@@ -36,6 +39,7 @@ type Props = {
       options?: never;
       initialOption?: never;
       warningsFor?: never;
+      draft?: never;
     }
 );
 
@@ -58,11 +62,12 @@ export function DoseForm(props: Props) {
   const doseOf = (value: string) => options.find((o) => o.value === value)?.dose ?? "";
   // A slot in a pass logs the pass too, so the dose still answers it after the pass moves.
   const passId = options.find((o) => o.value === choice)?.passId ?? null;
-  const [status, setStatus] = useState<DoseStatus>(stored?.status ?? "given");
-  // The amount follows the chosen medication's dose until it's typed in.
+  const draft = props.draft ?? null;
+  const [status, setStatus] = useState<DoseStatus>(stored?.status ?? draft?.status ?? "given");
+  // The amount follows the chosen medication's dose until it's typed in (or came filled in).
   const [amount, setAmount] = useState({
-    value: stored ? (stored.amount ?? "") : doseOf(choice),
-    typed: !!entry,
+    value: stored ? (stored.amount ?? "") : draft?.amount ? draft.amount : doseOf(choice),
+    typed: !!entry || !!draft?.amount,
   });
   // Warnings shown for this choice; submitting again with the same ones saves.
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -136,7 +141,7 @@ export function DoseForm(props: Props) {
       <DateTimeField
         name="occurredAt"
         label="When"
-        defaultValue={entry?.occurredAt}
+        defaultValue={entry?.occurredAt ?? draft?.occurredAt}
         error={issueFor(issues, "occurredAt")}
       />
 
@@ -148,7 +153,7 @@ export function DoseForm(props: Props) {
             className="textarea w-full"
             rows={2}
             maxLength={MEDICATION_LIMITS.doseNote}
-            defaultValue={stored?.note ?? ""}
+            defaultValue={stored?.note ?? draft?.note ?? ""}
           />
         )}
       </Field>

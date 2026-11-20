@@ -287,7 +287,7 @@ describe("who's writing", () => {
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id]);
   });
 
-  test("a viewer sees every writer, most recent first, and is read-only: plain time, no title field, chips, toolbar, time chip or ⋯, but Share", async () => {
+  test("a viewer sees every writer, most recent first, and is read-only: plain time, no title field, chips, toolbar, time chip, or ⋯ but Print; Share", async () => {
     const event = fx.event({ title: "Event", occurredAt: hoursAgo(2), text: "Notes" });
     const editors = { [SAM.id]: at(), [TEST_USER.id]: at(new Date(Date.now() - 20_000)) };
     await open(entryPath(event.id), {
@@ -303,10 +303,20 @@ describe("who's writing", () => {
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id]);
     expect(HEADER()!.textContent).toContain("Event");
     expect(EDITOR()!.getAttribute("contenteditable")).toBe("false");
-    expect([!!TITLE(), !!$('[aria-label="Suggested titles"]'), !!TOOLBAR(), !!TIME_CHIP(), !!MENU()]).toEqual(
-      [false, false, false, false, false],
-    );
+    expect([!!TITLE(), !!$('[aria-label="Suggested titles"]'), !!TOOLBAR(), !!TIME_CHIP()]).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
     expect(!!HEADER_TIME() && !!SHARE()).toBe(true);
+    // The viewer's ⋯ is Print alone.
+    await userEvent.click(MENU()!);
+    await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
+    expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
+      "Print",
+    ]);
+    await userEvent.keyboard("{Escape}");
   });
 
   test("two others: the most recent first", async () => {
@@ -601,7 +611,7 @@ describe("appointments", () => {
     expect(PLACE_REGION()?.textContent ?? "").toBe("");
   });
 
-  test("all day: the day alone with no end; saved, and the header says All day; a viewer gets no chip, field or ⋯", async () => {
+  test("all day: the day alone with no end; saved, and the header says All day; a viewer gets no chip or field", async () => {
     const appt = fx.event({ title: "Move day", occurredAt: at(ahead()), text: "" });
     const device = await open(entryPath(appt.id), { fixtures: [base(), appt] });
     await waitUntil(() => !!TIME_CHIP());
@@ -621,6 +631,6 @@ describe("appointments", () => {
       fixtures: [base(), { ...appt, row: { ...appt.row, all_day: 1 } }],
     });
     await waitUntil(() => /All day/.test(HEADER_TIME()?.textContent ?? ""));
-    expect([!!TIME_CHIP(), !!PLACE(), !!MENU()]).toEqual([false, false, false]);
+    expect([!!TIME_CHIP(), !!PLACE()]).toEqual([false, false]);
   });
 });

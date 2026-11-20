@@ -12,7 +12,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
 | `orchestration` | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done**, all 9 slices in `dev` (`94e6b80`); follow-ups are `check-migration` and `loop-recovery` | (none) | none now |
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done**, all 10 slices in `dev` | (none) | none now |
-| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–14 in `dev`; new fixes append as slice 15 on. Triaged and waiting: B-64, B-69, B-70, B-78, and from the security review B-79 to B-83 |  (none) | varies by slice; B-44 the providers route folder (`ProviderListItem`); B-73 `components/ui/Sheet` (after `medications` slice 3); B-71 `components/ui/date/` |
+| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–43 in `dev`; new fixes append as slice 44 on. Nothing triaged and waiting |  (none) | varies by slice; none now |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | none now |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done**, all 7 slices in `dev` | `live-notes-ux`, `app-shell`, `routing`, `components` (all done) | none now |
 | `search` | [PRD](search-prd.md), [plan](search-plan.md): **done**, all 6 slices in `dev` (`a5f3d4d`) | (none) | none now |
@@ -29,7 +29,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `appointments` | [PRD](appointments-prd.md), [plan](appointments-plan.md): **done**, all 7 slices in `dev` (B-47 landed); follow-ups B-60–B-63, not planned | (none) | none now |
 | `care-periods` | [PRD](care-periods-prd.md), [plan](care-periods-plan.md): **done**, all 6 slices in `dev` (`f6c4e92`) | (none) | none now |
 | `data-rights`     | to write (B-52, B-53)                                        | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
-| `tasks`           | to write (B-55)                                              | (none); `notifications` for reminders (soft)          | a new table, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`     |
+| `tasks`           | [PRD](tasks-prd.md), [plan](tasks-plan.md): 8 slices, waves 1 → (2, 4, 8) → (3, 5, 6) → 7: the list end to end (one migration), the task page and notes, links and backlinks, Upcoming and the strip, search, the simple mode card, quick entry `addTask`, the `roundtrip` step (B-55). No email | `assistant` in `dev` for slices 3, 4, 6, 7; `check-migration` slice 2 for slice 8: **ready to start** (slice 1 needs neither) | one migration (`task`, `note_document` subject), `PERMISSIONS`, stream, device schema and upload switch, `careGroupMemberService` (the leaver), `routes.ts`, `GROUP_SECTIONS`, `appUrls`, Upcoming, the timeline strips, entry, provider and medication pages, the simple view, `assistantActions` and the parser, the search document, `roundtrip.mjs` |
 | `documents`       | to write (B-56)                                              | hosting (B-33, file storage); `profiles` (soft); `encryption` decision | file storage, `routes.ts`, `GROUP_SECTIONS`, `PERMISSIONS`              |
 | `encryption`      | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 | (none); affects `assistant` and `documents` | none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
 | `onboarding`      | to write (B-31)                                              | `invites` (done)                                     | seeds, `careGroupService`, `/app` home                                     |
@@ -37,6 +37,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `admin` | [PRD](admin-prd.md), [plan](admin-plan.md): **done**, all 6 slices in `dev` (B-91 landed); B-106 moved to quick-fixes, B-113 still open | (none) | none now |
 | `check-migration` | [PRD](check-migration-prd.md), [plan](check-migration-plan.md): 23 slices, 10 waves of ≤ 3: steady component tests and a lean-budget ratchet (356 s → ≤ 300), a sync matrix and refused uploads, then each area check moved to component tests (flows folded into lean checks only for a new mechanism), then the lean set ported to Playwright Test and the CDP harness deleted (B-113–B-129, B-131) | `orchestration` (done); slices 11–17 wait for named `assistant` slices in `dev` | `scripts/loops/checks` and `check-areas` (additive), `scripts/browser-checks/`, `browser.sh`, `apps/web/test/` (the test device), test files beside screens, root `package.json` (`@playwright/test`, slice 19) |
 | `loop-recovery` | [PRD](loop-recovery-prd.md), [plan](loop-recovery-plan.md): 5 slices, all stackless, waves (1, 2, 3) → 4 → 5: the inventory and `recover --dry-run`, the disk guard and `reclaim`, resume prompts and _Status_ at every step, `down` and `recover`, then the recovery agent with iTerm2 tabs (B-132) | `orchestration` (done): **ready to start** | `scripts/loops/` (`prd.sh`, `lib.sh`, `ls.sh`, `prompt.sh`, `new.sh`, `stack.sh`; additive), `browser.sh` (one guard call; also `check-migration`), `docs/loops.md`, `docs/orchestration.md` |
+| `hosting` | [PRD](hosting-prd.md), [plan](hosting-plan.md): 7 slices, all stackless, waves (1, 2, 3) → (4, 5) → 6 → 7: Vercel build and env check, database roles and personal access, shared rate limits, bounces and suppression, deploy Actions and smoke, the `ops/` docs, then going live with the user (B-33, B-68). Vercel Pro `cle1`, Neon `aws-us-east-2`, PowerSync Cloud US; staging and production | (none): **ready to start**; `documents` needs it for file storage (not in this PRD) | `vercel.json`, the React Router config, `packages/auth` (rate-limit storage), `packages/api/src/rateLimit.ts` and its callers, `notify` and the `resend` sender, one migration, `routes.ts` (webhook route), `ADMIN_SECTIONS`, `AUDIT_ACTIONS`, `scripts/loops/check-areas` (additive), new `.github/`, `ops/`, `scripts/deploy/` |
 
 ## Summary
 
@@ -47,10 +48,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-12 | plan | in-progress | assistant | prd/assistant | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
-| B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
+| B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
-| B-49 | feature | ready | assistant | prd/assistant | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
+| B-49 | feature | landed | assistant | prd/assistant | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
@@ -61,7 +62,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
-| B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
+| B-68 | chore | triaged | hosting |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-87 | plan | in-progress | assistant | prd/assistant | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
@@ -91,11 +92,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-125 | chore | triaged | check-migration |  | Move admin.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
-| B-128 | chore | triaged | check-migration |  | Add a lean end-to-end step for an upload refused by permissions |
+| B-128 | chore | ready | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
-| B-131 | bug | triaged | check-migration |  | Component tests (web:components) can fail under pnpm check's load |
-| B-132 | feature | triaged | loop-recovery |  | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
+| B-131 | bug | ready | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
+| B-132 | feature | in-progress | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
+| B-133 | bug | inbox |  |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
 
 ## Items
 
@@ -134,14 +136,16 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-33 · plan · Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: hosting
 - owner:
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Not planned yet; the user will say when. Covers the open questions in AGENTS.md: hosted database (same region as Vercel functions, pooling), how production migrations run, PowerSync Cloud (replication role with column-limited grants, sslmode verify-full, how it reaches the JWKS), rate-limit storage, env and secrets, a real staging environment, and confirming the first Vercel deploy runs pnpm 12. Invites (B-30) and marketing (B-32) need it to go live.
 - 2026-11-18 (prd/invites orchestrator): Email sending setup for launch (tracking off, SPF/DKIM/DMARC, bounce webhooks, the outbox cron, rate-limit storage) is filed as B-68.
 - 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-4 and S-6 (launch): separate database roles (app, migrations, column-limited replication), named and audited human access, a break-glass procedure; and a register of every data copy (Postgres, backups, PowerSync storage, Resend, logs) with region, encryption at rest, retention, access and breach terms.
+- 2026-11-19 (Robert Bo Davis): Triaged to a new hosting PRD: the user picked deployment (Vercel and the other providers) as the next PRD to write, 2026-11-19.
+- 2026-11-19 (Robert Bo Davis): PRD and plan written (plans/hosting-prd.md, hosting-plan.md): staging and production, Vercel Pro cle1, Neon aws-us-east-2, PowerSync Cloud US, a GitHub Action deploy, generated least-privilege roles, ops/ runbook, data-copy register and break-glass. Done after slice 7 (going live).
 
 ### B-40 · chore · Real app screenshots for the marketing site before launch
 
@@ -164,7 +168,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-49 · feature · Once we have agentic integration, Add ai generated summary to each day on the timeline and the…
 
-- status: ready
+- status: landed
 - prd: assistant
 - owner: prd/assistant
 - commit: f358d86
@@ -211,6 +215,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'tasks' (to write): a todo list per group with assignees, due dates and done state, as a group section. Due dates could show with appointments (B-47); reminders would go through notifications.
+- 2026-11-19 (plan/tasks): PRD and plan written (plans/tasks-prd.md, tasks-plan.md): 8 slices, waves 1 → (2, 4, 8) → (3, 5, 6) → 7. One assignee (member, a typed name, or none); viewers complete their own; links to a provider, appointment and medication; Upcoming, strip, search, simple card, quick entry addTask. Slices 3, 4, 6, 7 wait for assistant in dev; 8 for check-migration slice 2.
 
 ### B-56 · feature · ability to upload photos of patient drivers license, insurance card, DNR, etc.
 
@@ -221,6 +226,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'documents' (to write): photos and files (ID, insurance card, DNR) per recipient. Needs file storage, which waits on hosting (B-33), plus encryption and sync decisions (files likely online-first, not in PowerSync). Pairs with profiles (B-45).
 - 2026-11-19 (plan/encryption): Security review (plans/security-review.md): E2E decision (2026-11-19) is option C for files: plan end-to-end encrypted uploads (a group key wrapped per member device, recovery codes) as part of the documents PRD.
+- 2026-11-19 (Robert Bo Davis): planning opened on plan/documents (.loops/plan-documents). Building it waits on hosting (file storage) and includes option C from the security review (E2E for files only)
 
 ### B-58 · plan · Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions…
 
@@ -272,13 +278,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: hosting
 - owner:
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From the invites PRD (AGENTS.md, Notifications → Before launch): turn off Resend's open and click tracking on the sending domain (not per message); SPF, DKIM and DMARC on the sending subdomain; verified bounce webhooks (Svix); a host cron for /api/cron/outbox with CRON_SECRET; and Better Auth's rate-limit storage (in-memory per serverless instance today). Part of launch work, related to B-33.
 - 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-7: shared rate-limit storage is a launch blocker (Better Auth and packages/api/src/rateLimit.ts are per instance).
+- 2026-11-19 (Robert Bo Davis): Triaged to hosting with B-33: email domain setup, bounce webhooks, the outbox cron and shared rate-limit storage are part of the same deploy work.
+- 2026-11-19 (Robert Bo Davis): In the hosting plan: Postgres rate-limit storage (slice 3), Resend bounce/complaint webhook with suppression (slice 4), the per-minute cron and waitUntil (slice 1), DNS and tracking off in the runbook (slices 6-7).
 
 ### B-84 · feature · Deleting an entry, provider or medication scrubs its content everywhere
 
@@ -589,13 +597,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-128 · chore · Add a lean end-to-end step for an upload refused by permissions
 
-- status: triaged
+- status: ready
 - prd: check-migration
-- owner:
-- commit:
+- owner: prd/check-migration
+- commit: 9c0b2bf
 
 - 2026-11-19 (slice/orchestration/9): The lean set (orchestration slice 9) is meant to cover uploads refused by permissions, but no check asserts one: a device whose role was lowered on the server writes locally, the upload is rejected (4xx acknowledged), and the next sync restores the server's copy. Add it to roundtrip.mjs or app-shell.mjs's demotion step.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 2, wave 1 (plans/check-migration-plan.md).
+- 2026-11-19 (slice/check-migration/2): slice 2: roundtrip now has the refused-upload flow (caretaker demoted to viewer while offline; its edit is refused on upload, queue empties, server copy restored) and the sync matrix (sync-matrix.mjs, every device-schema table; unit test scripts/loops/sync-matrix.test.mjs).
 
 ### B-129 · chore · Port the lean end-to-end set to Playwright Test
 
@@ -621,22 +630,32 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-131 · bug · Component tests (web:components) can fail under pnpm check's load
 
-- status: triaged
+- status: ready
 - prd: check-migration
-- owner:
-- commit:
+- owner: prd/check-migration
+- commit: 9c0b2bf
 
 - 2026-11-19 (Robert Bo Davis): From the orchestration PRD. Slice 9's first pnpm prd check failed two component test files once (trace in apps/web/test/device.tsx; details lost), then passed on every rerun. At wave 3's landing three entry page tests raced the same way (they read the screen right after a stored write) and were fixed to wait for the screen. If it recurs, capture the log, look for DOM reads right after a database poll, and consider a lower parallelism for web:components inside pnpm check.
 - 2026-11-19 (Robert Bo Davis): Triage: check-migration moves most screen checks into web:components, which makes this load flake matter more; its first slice should capture logs and settle web:components parallelism inside pnpm check.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 1, wave 1 (plans/check-migration-plan.md).
+- 2026-11-19 (slice/check-migration/1): slice/check-migration/1: reproduced under one concurrent pnpm test:components (load 20-118 on 10 cores): (1) entry 'who's writing' read avatar initials before the members live query answered ('S' for 'Someone'); (2) inScreens menu tests timed out at 15 s with 9 workers, and read the group switcher before its query answered; (3) device.location() lagged the screen (LocationProbe used useEffect); (4) timelineScroll 'three pages down…' flakes at a minute turn: useHistoryCutoff changes the query key, useLiveRows goes not-fresh and pageWindow drops the last page (limit = requested - 30), so rows past it remount; a product quirk, not a race, left for a follow-up item. Fixed 1-3 with device.settle(), renderWithDevice settling first, maxWorkers 4 and a layout-effect probe.
 
 ### B-132 · feature · PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When…
 
-- status: triaged
+- status: in-progress
 - prd: loop-recovery
-- owner:
+- owner: prd/loop-recovery
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When disk space gets low, we have to be able to restart the system and recover the state of the system.
 - 2026-11-19 (Robert Bo Davis): Triage: new topic loop-recovery (orchestration is done): resume PRDs and loops after a restart, crash or token exhaustion, with state recovery when disk runs low. Touches scripts/loops/ and scripts/backlog/; can run beside app PRDs but not beside check-migration's scripts/browser-checks edits without care.
 - 2026-11-19 (Robert Bo Davis): Planned: plans/loop-recovery-prd.md and -plan.md (5 stackless slices). pnpm prd down/recover (Docker, stacks of active work, PRD servers, stale locks, --at/--wait for usage limits), a recovery agent that messages live orchestrators and reopens dead ones in iTerm2 (claude --continue, else a fresh --resume orchestrator), Status at every step, a 10 GB disk guard and pnpm prd reclaim.
+
+### B-133 · bug · Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test)
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (prd/check-migration): Found by check-migration slice 1: useHistoryCutoff changes the history query key at the minute turn, useLiveRows goes not-fresh, pageWindow sets limit = requested − 30, so the last page unmounts and later rows remount. Fails ~1 in 6 isolated runs under CPU load. Product quirk, not a test race; not in check-migration's scope.

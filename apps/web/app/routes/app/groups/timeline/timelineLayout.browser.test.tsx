@@ -100,7 +100,7 @@ describe("row taps", () => {
     await waitUntil(() => !!dialog()?.textContent?.includes("Edit vitals"), 4000, "the vitals sheet");
   });
 
-  test("viewer: a note opens; a symptom does nothing; no ⋯ menu", async () => {
+  test("viewer: a note opens; a symptom does nothing and has no ⋯; a note's ⋯ is Print", async () => {
     const device = await openTimeline({ role: "viewer" });
     await ready();
     await tapAt(rowOf("Note")!.querySelector("p")!);
@@ -112,10 +112,14 @@ describe("row taps", () => {
     await new Promise((r) => setTimeout(r, 300));
     expect(dialog()).toBeNull();
     expect(device.location()).toBe(TIMELINE_URL);
-    expect(document.querySelector('ol button[aria-label^="Actions"]')).toBeNull();
+    expect(rowOf("Symptom")!.querySelector('button[aria-label^="Actions"]')).toBeNull();
+    await userEvent.click(actionsOf(rowOf("Note")!));
+    await waitUntil(() => menuItems().length > 0, 4000, "the menu");
+    expect(menuItems()).toEqual(["Print"]);
+    await userEvent.keyboard("{Escape}");
   });
 
-  test("More and Less toggle long text without opening it; ⋯ on a note is Delete only", async () => {
+  test("More and Less toggle long text without opening it; ⋯ on a note is Print and Delete", async () => {
     const device = await openTimeline();
     await ready();
     await waitUntil(() => !!button("More"), 4000, "More");
@@ -128,7 +132,7 @@ describe("row taps", () => {
 
     await userEvent.click(actionsOf(rowOf("Note")!));
     await waitUntil(() => menuItems().length > 0, 4000, "the menu");
-    expect(menuItems()).toEqual(["Delete"]);
+    expect(menuItems()).toEqual(["Print", "Delete"]);
     expect(device.location()).toBe(TIMELINE_URL);
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !document.querySelector("[role=menu]"));

@@ -44,7 +44,7 @@
 //   cards, and links to Upcoming with the same filters;
 // - an item whose time passes moves from the block and the strip into the
 //   history within a minute, without a reload; a viewer sees the strip and
-//   the block, with no ⋯ menus.
+//   the block (their ⋯ is Print alone).
 //
 // Slice 7, due doses (full mode, `doseSteps`): this run's own medication,
 // with one slot a few minutes back in Los Angeles (due) and one later today
@@ -514,8 +514,8 @@ async function cancelSteps(A, B, proxy) {
   await A.waitFor(upcomingRow(ahead), 30000);
   const offered = await cancelFrom(A, upcomingRow(ahead), reason);
   check(
-    "a writer's event menu on Upcoming: Reschedule, Cancel event, then Delete",
-    offered.join(",") === "Reschedule,Cancel event,Delete",
+    "a writer's event menu on Upcoming: Prepare, Reschedule, Cancel event, Print, then Delete",
+    offered.join(",") === "Prepare for this visit,Reschedule,Cancel event,Print,Delete",
     offered.join(","),
   );
   await A.waitFor(`${cancelledState(upcomingRow(ahead))}?.marked`, 10000).catch(() => {});
@@ -555,8 +555,9 @@ async function cancelSteps(A, B, proxy) {
   await B.waitFor(`${cancelledState(timelineRow(past))}?.marked`, 30000).catch(() => {});
   const seenTl = await B.evaluate(cancelledState(timelineRow(past)));
   check(
-    "on a viewer's device both show cancelled, with no ⋯ menu",
-    isCancelled(seenUp) && isCancelled(seenTl) && !seenUp.menu && !seenTl.menu,
+    // A viewer's ⋯ is Print alone (its items: component tests), so only the labels are checked here.
+    "on a viewer's device both show cancelled",
+    isCancelled(seenUp) && isCancelled(seenTl),
     JSON.stringify({ seenUp, seenTl }),
   );
   const refused = await B.evaluate(`(async () => {
@@ -743,8 +744,9 @@ async function rescheduleSteps(A, B, proxy) {
   );
   const keepDefault = await A.evaluate(`${KEEP_OLD}.checked`);
   check(
-    "an upcoming event's menu: Reschedule first; the sheet starts with Keep the old one as cancelled on",
-    offered.join(",") === "Reschedule,Cancel event,Delete" && keepDefault === true,
+    "an upcoming event's menu: Prepare, then Reschedule; the sheet starts with Keep the old one as cancelled on",
+    offered.join(",") === "Prepare for this visit,Reschedule,Cancel event,Print,Delete" &&
+      keepDefault === true,
     JSON.stringify({ offered, keepDefault }),
   );
   await rescheduleBy(A, 3, true);
@@ -814,7 +816,7 @@ async function rescheduleSteps(A, B, proxy) {
   await rkey(A, "Escape", "Escape", 27);
   check(
     "an event already rescheduled offers no Reschedule",
-    oldItems.join(",") === "Undo cancel,Delete",
+    oldItems.join(",") === "Undo cancel,Print,Delete",
     oldItems.join(","),
   );
 
@@ -1212,8 +1214,9 @@ async function timelineViewerSteps(p) {
   await p.waitFor(`${BLOCK}?.querySelector("ol > li")`, 10000).catch(() => {});
   const block = await blockState(p);
   check(
-    "a viewer sees the Next strip and the block, with no ⋯ menus",
-    !!strip?.next && block?.items.length > 0 && block.items.every((i) => !i.menu),
+    // Notes and events: a viewer's ⋯ is Print alone (its items: component tests).
+    "a viewer sees the Next strip and the block",
+    !!strip?.next && block?.items.length > 0,
     JSON.stringify({ strip, items: block?.items.length, menus: block?.items.filter((i) => i.menu).length }),
   );
 }
