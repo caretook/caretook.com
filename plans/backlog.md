@@ -172,6 +172,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (prd/marketing): From the inbox: Once we have agentic integration, Add ai generated summary to each day on the timeline and the option to view a condensed summary of days for quick scanning.
 - 2026-11-18 (Robert Bo Davis): Proposed for assistant: per-day AI summaries on the timeline and a condensed days view. Needs the assistant's server side first; pairs with care-periods (B-50).
 - 2026-11-19 (Robert Bo Davis): User 2026-11-19: first as templated summaries from the data (counts, changes, trends), no model, in the assistant PRD.
+- 2026-11-19 (slice/assistant/3): slice/assistant/3: day summaries built (33436b2, a1d1045); awaiting merge
 
 ### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
 
