@@ -7,12 +7,14 @@ import type { PlaceNameRow } from "./timelinePeriods";
 
 import { groupDocumentsQuery } from "~/lib/sync/notes";
 import { timelineLinksQuery } from "~/lib/sync/providers";
-import { historyQuery, membersQuery, readingsQuery, readRows } from "~/lib/sync/timeline";
+import { fromLocalTimestamp, historyQuery, membersQuery, readingsQuery, readRows } from "~/lib/sync/timeline";
 import { PAGE_SIZE } from "~/lib/paging";
 import { historyCutoff } from "~/lib/upcoming";
 import { carePeriodsQuery } from "~/lib/sync/carePeriods";
 import { aheadQueries } from "./aheadQueries";
 import { placeNamesQuery } from "./timelinePeriods";
+import { daySummaryQuery, summariesOff, summarySince } from "./daySummaryRows";
+import { localTimeZone } from "~/lib/format";
 
 // The timeline's first screenful, read from the device's local copy
 // (PowerSync) by the route's loader; `useTimelineData` takes over from there
@@ -51,6 +53,13 @@ export const loadTimelineRows = async (
     readRows<CarePeriodRow>(db, carePeriodsQuery(groupId)),
     readRows<PlaceNameRow>(db, placeNamesQuery(groupId)),
   ]);
+  const oldest = entryRows.at(-1)?.occurred_at;
+  // The day summaries: whole days from the oldest loaded one's baseline (none while filtered).
+  const since = summarySince(oldest ? fromLocalTimestamp(oldest) : null, cutoff, localTimeZone());
+  const summaryRows = await readRows<EntryRow>(
+    db,
+    daySummaryQuery(groupId, since, cutoff, summariesOff(filters)),
+  );
   return {
     cutoff,
     entryRows,
@@ -63,6 +72,7 @@ export const loadTimelineRows = async (
     blockLinkRows,
     periodRows,
     placeRows,
+    summaryRows,
   };
 };
 

@@ -44,5 +44,5 @@ The sync area's rules and decisions, moved out of AGENTS.md (whose core rules st
 - ❓ **Production:** a dedicated replication role with column-limited grants, `sslmode: verify-full`, the Cloud instance, and how Cloud reaches the JWKS.
 - 🟡 Not built:
   - **Offline web reload** needs a service worker. Offline already works within a loaded session, and will in Capacitor.
-  - `/app/settings` loads offline from the settings cache, and the timeline layout choice saves as pending; the timeline layout choice and units both save as pending offline through `saveSettings` (the units page says "Saved on this device. It'll sync when you're back online.").
+  - `/app/settings` loads offline from the settings cache, and the timeline layout choice saves as pending; the timeline layout choice and units both save as pending offline through `saveSettings` (the units page says "Saved on this device. It'll sync when you're back online."). The simple mode setting saves the same way; `cachedSettings(userId)` (`lib/me.ts`) reads the cache plus pending changes without the network, for screens that can't wait for a loader.
   - Deleting a whole group dropping its buckets is untested end to end. (Losing a membership is covered: `app-shell.mjs` sees a removed member's timeline rows go without a reload.)

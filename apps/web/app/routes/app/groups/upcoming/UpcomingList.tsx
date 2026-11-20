@@ -6,10 +6,13 @@ import { resolveUnits } from "@caretook/data/schema";
 import { useState } from "react";
 import { CancelEventDialog, EntryActions, useEventCancel, useEventReschedule } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
+import { useVisitPrep } from "~/components/visitPrep";
+import { appUrls } from "~/lib/appUrls";
 import { canReschedule } from "~/lib/eventReschedule";
 import { useGroup } from "~/lib/group";
 import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/sync/timeline";
+import { isUpcoming } from "~/lib/upcoming";
 import { isUpcomingDose } from "~/lib/upcomingDoses";
 import { upcomingTitle } from "~/lib/upcomingLabels";
 import { UpcomingDoseRow } from "./UpcomingDoseRow";
@@ -24,8 +27,10 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * Upcoming's (or the Past tab's) items, a section per day under a sticky
  * heading ("Now", "Today", "Tomorrow", "Friday, Nov 27"), with `empty`
  * when there are none. `children` comes after the last section (the Past
- * tab's paging). Writers get each item's ⋯ menu (Reschedule, then Cancel or
- * Undo cancel for events, then Delete), with one Cancel and one Delete confirm for the list.
+ * tab's paging). Each item has a ⋯ menu: for writers, Prepare for an
+ * upcoming appointment, Reschedule, then Cancel or Undo cancel for events,
+ * Print, then Delete, with one Cancel and one Delete confirm for the list;
+ * for viewers, Print.
  * Upcoming's sections can also hold today's open dose slots (`UpcomingDoseRow`).
  */
 export function UpcomingList({
@@ -46,24 +51,28 @@ export function UpcomingList({
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const menuOf = (entry: TimelineEntry) =>
-    canWrite && (
-      <EntryActions
-        kind={entry.kind}
-        label={`Actions for ${upcomingTitle(entry)}`}
-        cancel={
-          entry.kind === "event"
-            ? {
-                cancelled: !!entry.cancelledAt,
-                onCancel: () => cancelling.ask(entry.id),
-                onUncancel: () => cancelling.undo(entry.id),
-                onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
-              }
-            : undefined
-        }
-        onDelete={() => setDeleting(entry.id)}
-      />
-    );
+  const prep = useVisitPrep(groupId, canWrite, { openAfter: true });
+  const preparable = (entry: TimelineEntry) =>
+    entry.kind === "event" && !entry.cancelledAt && !entry.rescheduledTo && isUpcoming(entry, data.now);
+  const menuOf = (entry: TimelineEntry) => (
+    <EntryActions
+      kind={entry.kind}
+      label={`Actions for ${upcomingTitle(entry)}`}
+      onPrepare={canWrite && preparable(entry) ? () => prep.ask(entry) : undefined}
+      printHref={appUrls.printEntry(groupId, entry.id)}
+      cancel={
+        canWrite && entry.kind === "event"
+          ? {
+              cancelled: !!entry.cancelledAt,
+              onCancel: () => cancelling.ask(entry.id),
+              onUncancel: () => cancelling.undo(entry.id),
+              onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
+            }
+          : undefined
+      }
+      onDelete={canWrite ? () => setDeleting(entry.id) : undefined}
+    />
+  );
 
   return (
     <section aria-labelledby="upcoming-list-heading" className="space-y-4" data-upcoming-list>
@@ -113,6 +122,7 @@ export function UpcomingList({
       {children}
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
       {rescheduling.sheet}
+      {prep.sheet}
       <ConfirmDialog
         open={!!deleting}
         title="Delete this entry?"

@@ -1,8 +1,9 @@
 import type { SessionUser } from "~/lib/session";
+import type { SimpleModeState } from "~/lib/useSimpleMode";
 
 import type { Theme } from "~/lib/theme";
 
-import { LogOut, Monitor, Moon, Settings, ShieldCheck, Sun } from "lucide-react";
+import { LayoutGrid, LogOut, Monitor, Moon, Settings, ShieldCheck, Sun } from "lucide-react";
 import { useState } from "react";
 import { useSubmit } from "react-router";
 import { Menu, SEPARATOR, UserAvatar } from "~/components/ui";
@@ -21,8 +22,10 @@ const isTheme = (id: string): id is Theme => THEME_ITEMS.some((t) => t.id === id
 /**
  * The header's `user` region: the signed-in user's avatar, opening their
  * account menu. The header (name, email) isn't an item, so it's never focused.
+ * In simple mode (`simple`) it's reduced to Settings, "Full app" (unless
+ * locked) and Sign out.
  */
-export function UserMenu({ user }: { user: SessionUser }) {
+export function UserMenu({ user, simple }: { user: SessionUser; simple?: SimpleModeState | null }) {
   const submit = useSubmit();
   const who = user.name || user.email;
   const admin = adminLink(user.role, import.meta.env.VITE_API_ORIGIN);
@@ -30,6 +33,42 @@ export function UserMenu({ user }: { user: SessionUser }) {
   const [theme, setThemeState] = useState<Theme>(() =>
     typeof window === "undefined" ? "system" : readTheme(),
   );
+
+  const signOut = {
+    id: "sign-out",
+    label: "Sign out",
+    icon: LogOut,
+    // POST, as the old header form did (a GET link could be triggered by any page).
+    onAction: () => void submit(null, { method: "post", action: "/sign-out" }),
+  };
+  const settings = { id: "settings", label: "Settings", icon: Settings, href: appUrls.settings() };
+
+  if (simple)
+    return (
+      <Menu
+        label={`Account menu for ${who}`}
+        menuLabel="Account"
+        className="btn btn-ghost btn-circle btn-md"
+        width="lg"
+        items={[
+          {
+            type: "section",
+            id: "account",
+            header: { title: user.name || undefined, subtitle: user.email },
+            items: [
+              settings,
+              ...(simple.canToggle
+                ? [{ id: "full-app", label: "Full app", icon: LayoutGrid, onAction: simple.toggle }]
+                : []),
+            ],
+          },
+          SEPARATOR,
+          signOut,
+        ]}
+      >
+        <UserAvatar name={user.name} email={user.email} image={user.image} size="md" />
+      </Menu>
+    );
 
   return (
     <Menu
@@ -43,7 +82,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
           id: "account",
           header: { title: user.name || undefined, subtitle: user.email },
           items: [
-            { id: "settings", label: "Settings", icon: Settings, href: appUrls.settings() },
+            settings,
             // Staff only. /admin is its own server-rendered frame: a full load on
             // the web, the system browser from the native build.
             ...(admin
@@ -78,13 +117,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
           },
         },
         SEPARATOR,
-        {
-          id: "sign-out",
-          label: "Sign out",
-          icon: LogOut,
-          // POST, as the old header form did (a GET link could be triggered by any page).
-          onAction: () => void submit(null, { method: "post", action: "/sign-out" }),
-        },
+        signOut,
       ]}
     >
       <UserAvatar name={user.name} email={user.email} image={user.image} size="md" />
