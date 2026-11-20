@@ -9,16 +9,19 @@ import { canEditRecipient, canManageEmergencyContacts, canReadRecipient } from "
 import { useMemo } from "react";
 import { appUrls } from "~/lib/appUrls";
 import { getGroup, useGroup } from "~/lib/group";
+import { loadSettings } from "~/lib/me";
 import { VIEWER_DETAILS_LINE } from "~/lib/recipientDisplay";
 import { sessionContext } from "~/lib/session";
 import { useLiveQuery } from "~/lib/sync";
 import { loadMemberDetailRows, memberDetailsQuery } from "~/lib/sync/members";
 import { loadRecipientProfileRows, useRecipientProfile } from "~/lib/sync/profile";
 import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/sync/recipientDetails";
+import { loadRecentReadingRows, useVitalAverages } from "~/lib/sync/vitalAverages";
 import { ContactCard, InsuranceCard } from "./DetailsCards";
 import { EmergencyCard } from "./EmergencyCard";
 import { BasicsCard, NoteCard } from "./ProfileCards";
 import { ProfileHeader } from "./ProfileHeader";
+import { VitalAveragesCard } from "./VitalAveragesCard";
 
 // Shared by web + native. `…/profile`: the care recipient's profile, for
 // every member. Read from the device's copy (live, so it works offline and
@@ -31,10 +34,15 @@ export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: loaderData?.title ? `${loaderData.title} · Profile · Caretook` : "Profile · Caretook" }];
 }
 
-export async function clientLoader({ params, context }: Route.ClientLoaderArgs) {
+export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const rows = await loadRecipientProfileRows(db, params.groupId);
+  const [rows, { units }] = await Promise.all([
+    loadRecipientProfileRows(db, params.groupId),
+    loadSettings(request, db.userId),
+  ]);
+  // Recent vital averages: the windows are days in the recipient's zone.
+  const readingRows = await loadRecentReadingRows(db, params.groupId, rows[0]?.time_zone ?? null);
   // Writers' details: only owners', admins' and caretakers' devices have them.
   const detailsRows = canReadRecipient(group.role, "details")
     ? await loadRecipientDetailsRows(db, params.groupId)
@@ -43,7 +51,14 @@ export async function clientLoader({ params, context }: Route.ClientLoaderArgs) 
   const memberRows = canReadRecipient(group.role, "details")
     ? await loadMemberDetailRows(db, params.groupId)
     : NO_MEMBERS;
-  return { rows, detailsRows, memberRows, title: group.recipient?.displayName ?? group.displayName };
+  return {
+    rows,
+    readingRows,
+    units,
+    detailsRows,
+    memberRows,
+    title: group.recipient?.displayName ?? group.displayName,
+  };
 }
 
 /** A viewer's details rows: none (a module constant, so the live query's `initial` keeps its identity). */
@@ -77,6 +92,12 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   const editsDetails = canEditRecipient(group.role, "details");
   const membersQuery = useMemo(() => memberDetailsQuery(params.groupId), [params.groupId]);
   const members = useLiveQuery<MemberDetailRow>(membersQuery.sql, membersQuery.params, loaderData.memberRows);
+  const averages = useVitalAverages(
+    params.groupId,
+    profile?.timeZone ?? null,
+    loaderData.units,
+    loaderData.readingRows,
+  );
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-profile="">
@@ -90,6 +111,7 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
           <ProfileHeader profile={profile} />
           <BasicsCard profile={profile} />
           <NoteCard profile={profile} canEdit={group.canWrite} />
+          {averages && <VitalAveragesCard rows={averages} />}
           {readsDetails && (
             <>
               <ContactCard
