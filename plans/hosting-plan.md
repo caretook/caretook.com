@@ -13,7 +13,7 @@
 | 3     | 1    | merged                    | 5d64d38 (6179cd8)                        |
 | 4     | 2    | started (worktree, agent) |                                          |
 | 5     | 2    | started (worktree, agent) |                                          |
-| 8     | 2    | started (worktree, agent) |                                          |
+| 8     | 2    | handed off                | (734907d)                                |
 | 6     | 3    | blocked by 1–5, 8         |                                          |
 | 7     | 4    | blocked by 6              |                                          |
 
