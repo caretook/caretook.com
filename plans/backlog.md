@@ -20,7 +20,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `medications` | [PRD](medications-prd.md), [plan](medications-plan.md): **done** (`8ff8354`) | — | none now |
 | `medications-2` | [PRD](medications-2-prd.md), [plan](medications-2-plan.md): **done** (`a6738b4`) | — | none now |
 | `assistant` | [PRD](assistant-prd.md), [plan](assistant-plan.md): **done** (`7f3ec10`) | — | none now |
-| `connectors`      | to write (B-104): an MCP server so a user's own Claude or ChatGPT reads and writes their group (writes confirmed in chat, labelled), OAuth with group-limited tokens, consent and an owners' switch | `assistant` (its actions layer); B-80 (Devices page, token revocation) | `packages/auth` (OAuth provider), `packages/api` (a new MCP mount), group settings, the privacy pages, its area's `permissions/` part |
+| `connectors`      | [PRD](connectors-prd.md), [plan](connectors-plan.md): 7 slices, waves (1, 2, 7) → (3, 4, 5) → 6: the due-doses core and preview moved to `@caretook/data`, then the tracer bullet (OAuth via `@better-auth/oauth-provider` 1.7.25, `/connect` consent, one-group grants, the owners' switch, a hand-rolled stateless MCP server at `/mcp`, the first read tools), the privacy text, then write tools with the "via" tag, the other read tools, and the Assistants and Devices screens, then a `roundtrip` step (B-104). **Ready to start** | `assistant` (done); B-80 (done); slice 3's tag waits for `timeline-ux`'s row and header slices in `dev` | `packages/auth` (`auth.ts`, the plugin), `db/schema/auth/`, one migration (`care_group`, `timeline_entry`, `task` columns), `sync-config.yaml` and the device schema (`via`), the upload switch, timeline rows and cards, the entry header, the task page, `GROUP_SETTINGS`, Settings → Devices, the legal pages, `roundtrip` |
 | `providers-2` | to write (B-25, B-48): @-mentions of providers in notes and events, and importing providers from another group you belong to (its cross-group permission rules) | `providers` (done) | live-notes editor (mentions), `providerService`, its area's `permissions/` part |
 | `appointments-2` | planning (`plan/appointments-2`; B-60–B-63): recurring appointments, reminders, iCal feed, Google Calendar | `timeline-ux` wave 2 (the Today card) | the Today card, Upcoming, `appointmentService`, notifications |
 | `routing` | [PRD](routing-prd.md), [plan](routing-plan.md): **done** (`ff25ef2`) | — | none now |
@@ -68,23 +68,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-129 | chore | in-progress | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
-| B-136 | change | ready | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
-| B-137 | change | in-progress | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
-| B-138 | change | in-progress | timeline-ux | prd/timeline-ux | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
+| B-136 | change | landed | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
+| B-137 | change | ready | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
+| B-138 | change | ready | timeline-ux | prd/timeline-ux | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | in-progress | timeline-ux | prd/timeline-ux | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
 | B-140 | change | triaged | timeline-ux |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
 | B-144 | feature | triaged | timeline-ux |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-148 | chore | landed | agent-tooling | prd/agent-tooling | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
-| B-155 | chore | ready | timeline-ux | prd/timeline-ux | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
-| B-156 | chore | ready | timeline-ux | prd/timeline-ux | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
+| B-155 | chore | landed | timeline-ux | prd/timeline-ux | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
+| B-156 | chore | landed | timeline-ux | prd/timeline-ux | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 | B-161 | bug | ready | check-migration | prd/check-migration | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
 | B-162 | change | triaged | timeline-ux |  | In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the… |
 | B-163 | change | triaged | timeline-ux |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
 | B-164 | change | in-progress | timeline-ux | prd/timeline-ux | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
 | B-165 | change | in-progress | timeline-ux | prd/timeline-ux | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
-| B-166 | change | ready | timeline-ux | prd/timeline-ux | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
+| B-166 | change | landed | timeline-ux | prd/timeline-ux | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
 | B-167 | change | in-progress | timeline-ux | prd/timeline-ux | Make day summary part of sticky header so it is always visible when scrolling up the timeline. |
 | B-168 | change | in-progress | timeline-ux | prd/timeline-ux | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
 | B-169 | change | in-progress | timeline-ux | prd/timeline-ux | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
@@ -277,7 +277,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 9e3a3ad
@@ -292,10 +292,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-137 · change · Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: ddf36b0
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk (and works offline). / The links in routes/app/layout/SectionNav.tsx (SectionNav and TabBar) have no `prefetch`; sheets already use `prefetch="render"`.
 - 2026-11-20 (backlog agent): Triage: app-speed. Small (prefetch on SectionNav and TabBar links), grouped with B-136 and B-138 because all three change the same navigation path.
@@ -305,10 +305,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-138 · change · Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: ddf36b0
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only after the loaders finish.
 - 2026-11-20 (backlog agent): Triage: app-speed. Small (useNavigation in SectionNav), same file as B-137.
@@ -388,7 +388,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-155 · chore · Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first…
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 448be6e
@@ -402,7 +402,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-156 · chore · Check whether `loadSettings` in the timeline loader waits on the network before using its cache.
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 9e3a3ad
@@ -469,7 +469,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-166 · change · Using back to timeline from timeline live-note entry (or any browse action) takes you back to the…
 
-- status: ready
+- status: landed
 - prd: timeline-ux
 - owner: prd/timeline-ux
 - commit: 448be6e
