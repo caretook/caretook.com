@@ -4,7 +4,7 @@ import { content as healthData } from "../health-data-privacy/content";
 import { content as privacy } from "../privacy/content";
 import { content as terms } from "../terms/content";
 import { MARKETING_PAGES } from "../site/pages";
-import { formatLegalDate, inlineParts } from "./legal";
+import { TOC_MIN_SECTIONS, formatLegalDate, inlineParts } from "./legal";
 import type { LegalPageContent } from "./legal";
 
 // The legal content modules' shape: what the legal page needs to render, so a
@@ -79,6 +79,27 @@ describe("compliance coverage", () => {
       expect(text(healthData)).toMatch(point);
     }
     expect(text(terms)).toMatch(/medical advice/i);
+  });
+});
+
+describe("connecting your own AI assistant", () => {
+  const withSection = [
+    ["privacy", privacy],
+    ["health-data-privacy", healthData],
+  ] as const;
+  it.each(withSection)("%s has the section with an anchor, which the table of contents lists", (_, page) => {
+    const section = page.sections.find((s) => s.id === "own-assistant");
+    expect(section?.heading).toBe("Connecting your own AI assistant");
+    // The table of contents is built from every section when there are enough of them.
+    expect(page.sections.length).toBeGreaterThanOrEqual(TOC_MIN_SECTIONS);
+    expect(page.lastUpdated).toBe("2026-11-20");
+  });
+  it("keeps the promises the code keeps", () => {
+    const text = JSON.stringify(privacy.sections.find((s) => s.id === "own-assistant"));
+    expect(text).toMatch(/contact details/);
+    expect(text).toMatch(/off for every care group until an owner/);
+    expect(text).toMatch(/Settings, Devices/);
+    expect(text).toMatch(/do not keep a record of what the assistant/);
   });
 });
 
