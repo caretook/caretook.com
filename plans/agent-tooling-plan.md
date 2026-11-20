@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State                             | Merge into `prd/agent-tooling` (slice commits) |
-| ----- | ---- | --------------------------------- | ---------------------------------------------- |
-| 1     | 1    | landed (wave 1, cff4d2f) (opus)   | 8d10f6b (9faf638)                              |
-| 2     | 1    | landed (wave 1, cff4d2f) (sonnet) | a23e77c (52a8503)                              |
-| 3     | 1    | landed (wave 1, cff4d2f) (sonnet) | 5ba5669 (bc6bd87)                              |
-| 4     | 2    | not started                       |                                                |
-| 5     | 3    | not started                       |                                                |
-| 6     | 3    | not started                       |                                                |
+| Slice | Wave | State                                        | Merge into `prd/agent-tooling` (slice commits) |
+| ----- | ---- | -------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | landed (wave 1, cff4d2f) (opus)              | 8d10f6b (9faf638)                              |
+| 2     | 1    | landed (wave 1, cff4d2f) (sonnet)            | a23e77c (52a8503)                              |
+| 3     | 1    | landed (wave 1, cff4d2f) (sonnet)            | 5ba5669 (bc6bd87)                              |
+| 4     | 2    | started (worktree made, agent spawned; opus) |                                                |
+| 5     | 3    | not started                                  |                                                |
+| 6     | 3    | not started                                  |                                                |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
 
@@ -21,7 +21,7 @@
 
 **Wave 1:** landed in `dev` as cff4d2f (2026-11-20), full check on 5e08bbc (4167 tests); its decisions folded into AGENTS.md (commands table, backlog multi-id line) and docs/loops.md (the land guard). Told code-layout and check-migration to sync.
 
-**Now: waiting on slice 4's gate.** code-layout's wave 3 (its final landing, a few hours out) folds heavily into AGENTS.md, docs/loops.md and docs/layout.md; check-migration's wave 6 landed (fdb07b2); its next slice (18) touches no docs, and it folds into the new layout after the split. code-layout's wave 2 landed (446359c, no doc folds); its wave 3 (slice 5) is running and code-layout-d2 will message at that final landing; a background check also watches `dev` for their landing merges. Start slice 4 (opus: a judgement-heavy rewrite) after code-layout's final landing.
+**Now: wave 2 (slice 4) running** (2026-11-20). Gate met: code-layout's final landing is in `dev` (18e9cf8), synced in; check-migration (slice 19) and timeline-ux (wave 1) are mid-wave. Before landing slice 4: `pnpm prd sync` and have the slice move any new additions to the old AGENTS.md or docs/loops.md into the new layout. Slice 4 removes the `landExempt` flags.
 
 **Land guard (user's choice, 2026-11-20):** AGENTS.md and docs/loops.md are `landExempt` (warn only) until slice 4, which removes the flags.
 
