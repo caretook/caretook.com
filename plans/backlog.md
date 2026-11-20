@@ -114,7 +114,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-147 | chore | triaged | agent-tooling |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
 | B-148 | chore | triaged | agent-tooling |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
 | B-149 | chore | triaged | code-layout |  | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
-| B-150 | chore | inbox |  |  | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
+| B-150 | chore | triaged | code-layout |  | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-152 | chore | triaged | agent-tooling |  | Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`… |
 | B-153 | chore | triaged | agent-tooling |  | Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent… |
@@ -855,8 +855,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-150 · chore · Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: code-layout
 - owner:
 - commit:
 
