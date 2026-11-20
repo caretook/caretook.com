@@ -14,53 +14,58 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 
 ## Status
 
-| Slice | Item              | State  | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ----------------- | ------ | ----------------------------------------------------- |
-| 1     | B-1               | merged | 1e00754 (5ab3b67)                                     |
-| 2     | B-17              | merged | 4629e8c (32355db)                                     |
-| 3     | B-22              | merged | b0325d0 (46ef320)                                     |
-| 4     | B-28              | merged | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29              | merged | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34              | merged | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27              | merged | 75127be (004abfe)                                     |
-| 8     | B-35              | merged | 6dcc71d (7c0725f)                                     |
-| 9     | B-36              | merged | e6fc148 (cc12901)                                     |
-| 10    | B-39              | merged | 2052075 (1870973, 9e7d83b)                            |
-| 11    | B-38              | merged | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41              | merged | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42              | merged | 94ce803 (eccbd1a)                                     |
-| 14    | B-37              | merged | 9c08e01 (cf1f804)                                     |
-| 15    | B-71              | landed | 23e1be2 (wave 7)                                      |
-| 16    | B-72              | landed | 23e1be2 (wave 7)                                      |
-| 17    | B-44              | landed | 23e1be2 (wave 7)                                      |
-| 18    | B-73              | merged | 59f380a (f6a783e)                                     |
-| 19    | B-67              | merged | 0ddaaa7 (46e8be0)                                     |
-| 20    | B-74              | merged | 679fa87 (d7a1631)                                     |
-| 21    | B-70              | merged | 27c2c74 (62a459a)                                     |
-| 22    | B-81              | merged | 376f8b7 (22470b8)                                     |
-| 23    | B-82              | merged | 5047c71 (8d6f089)                                     |
-| 24    | B-64              | merged | 290fd21 (fbbf94f)                                     |
-| 25    | B-69              | merged | 2431a55 (14da487)                                     |
-| 26    | B-78              | merged | 17a89b1 (484d825)                                     |
-| 27    | B-65              | merged | 5d8af6e (07ab7bf)                                     |
-| 28    | B-79              | merged | 6573d31 (036c039)                                     |
-| 29    | B-80              | merged | 25757d4 (e392d3c, 21941f0)                            |
-| 30    | B-92              | merged | dab620f (51f5fb8)                                     |
-| 31    | B-93              | merged | 998cc44 (938bec1)                                     |
-| 32    | B-95              | merged | 420d5e9 (280d527)                                     |
-| 33    | B-83              | merged | dac3172 (b27a1ec)                                     |
-| 34    | B-90              | merged | dd5f4f3 (d366cac)                                     |
-| 35    | B-94              | merged | 1fc9168 (81fdddf)                                     |
-| 36    | B-97              | merged | 0065420 (6273693)                                     |
-| 37    | B-96              | merged | 8b28fda (5f1d8de)                                     |
-| 38    | B-79, B-90, B-97  | landed | f2a9079 (waves 9–10)                                  |
-| 39    | B-98, B-99, B-105 | merged | 5070e43 (0bbf0b9, b87450f)                            |
-| 40    | B-106             | merged | 29ebc9f (adfb130, 8fe09e0)                            |
-| 41    | B-112             | merged | 5116a8f (67b943d)                                     |
-| 42    | B-100             | merged | c85575d (5e87b1f, d030837)                            |
-| 43    | B-130             | merged | b8d516e (9fc492c)                                     |
+| Slice | Item              | State   | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ----------------- | ------- | ----------------------------------------------------- |
+| 1     | B-1               | merged  | 1e00754 (5ab3b67)                                     |
+| 2     | B-17              | merged  | 4629e8c (32355db)                                     |
+| 3     | B-22              | merged  | b0325d0 (46ef320)                                     |
+| 4     | B-28              | merged  | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29              | merged  | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34              | merged  | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27              | merged  | 75127be (004abfe)                                     |
+| 8     | B-35              | merged  | 6dcc71d (7c0725f)                                     |
+| 9     | B-36              | merged  | e6fc148 (cc12901)                                     |
+| 10    | B-39              | merged  | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38              | merged  | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41              | merged  | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42              | merged  | 94ce803 (eccbd1a)                                     |
+| 14    | B-37              | merged  | 9c08e01 (cf1f804)                                     |
+| 15    | B-71              | landed  | 23e1be2 (wave 7)                                      |
+| 16    | B-72              | landed  | 23e1be2 (wave 7)                                      |
+| 17    | B-44              | landed  | 23e1be2 (wave 7)                                      |
+| 18    | B-73              | merged  | 59f380a (f6a783e)                                     |
+| 19    | B-67              | merged  | 0ddaaa7 (46e8be0)                                     |
+| 20    | B-74              | merged  | 679fa87 (d7a1631)                                     |
+| 21    | B-70              | merged  | 27c2c74 (62a459a)                                     |
+| 22    | B-81              | merged  | 376f8b7 (22470b8)                                     |
+| 23    | B-82              | merged  | 5047c71 (8d6f089)                                     |
+| 24    | B-64              | merged  | 290fd21 (fbbf94f)                                     |
+| 25    | B-69              | merged  | 2431a55 (14da487)                                     |
+| 26    | B-78              | merged  | 17a89b1 (484d825)                                     |
+| 27    | B-65              | merged  | 5d8af6e (07ab7bf)                                     |
+| 28    | B-79              | merged  | 6573d31 (036c039)                                     |
+| 29    | B-80              | merged  | 25757d4 (e392d3c, 21941f0)                            |
+| 30    | B-92              | merged  | dab620f (51f5fb8)                                     |
+| 31    | B-93              | merged  | 998cc44 (938bec1)                                     |
+| 32    | B-95              | merged  | 420d5e9 (280d527)                                     |
+| 33    | B-83              | merged  | dac3172 (b27a1ec)                                     |
+| 34    | B-90              | merged  | dd5f4f3 (d366cac)                                     |
+| 35    | B-94              | merged  | 1fc9168 (81fdddf)                                     |
+| 36    | B-97              | merged  | 0065420 (6273693)                                     |
+| 37    | B-96              | merged  | 8b28fda (5f1d8de)                                     |
+| 38    | B-79, B-90, B-97  | landed  | f2a9079 (waves 9–10)                                  |
+| 39    | B-98, B-99, B-105 | landed  | 5070e43 (0bbf0b9, b87450f)                            |
+| 40    | B-106             | landed  | 29ebc9f (adfb130, 8fe09e0)                            |
+| 41    | B-112             | landed  | 5116a8f (67b943d)                                     |
+| 42    | B-100             | landed  | c85575d (5e87b1f, d030837)                            |
+| 43    | B-130             | landed  | b8d516e (9fc492c)                                     |
+| 44    | B-135             | started | (wave 12)                                             |
+| 45    | B-134             | started | (wave 12)                                             |
+| 46    | B-157             | started | (wave 12)                                             |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**Wave 12 (slices 44–46), 2026-11-20:** wave 11 landed in `dev` as 8728000; `prd/quick-fixes` level with `dev`. Queued again, same run-through mode. Slices 44–46 written from B-135, B-134 and B-157 (tasks has landed, so none waits). All three stackless; started at once. Slice 45's rule (a month step onto a shorter month clamps to its last day) is the orchestrator's default, not a user answer.
 
 Waves 9–10 (slices 28–38) are in `dev`; `prd/quick-fixes` was level with `dev` when this orchestrator started (2026-11-19, queued again, same run-through mode). Wave 11 (slices 39–43) was written then from the seven items triaged to quick-fixes; B-100's window and types are the user's answer (7 and 30 days, a fixed core set). Slice 39 shares the timeline route folder with `assistant` (running): its orchestrator was told. and asked to be messaged when 39 lands in `dev`. All five merged (40–43 ahead of 39: no shared files) and synced with `dev`. Landing checks: the loops' `--changed` runs (39: 12 checks, three passing after fixes; 40: invites, groups, admin; 41 and 42: profiles; 43: sign-in, first-sync, signout-wipe, session-end, invites), plus `profiles` once on the merged branch (41 and 42 both edited it); no `--suite` (the user's standing rule). Decisions: 39 dropped the timeline's "Where is <name> now? / Add care period" prompt (periods are added from the Care periods page) and a day with no rows shows no period; 40 tells a staff owner invite by `createdBy = SYSTEM_USER`; 43's `packages/auth` client takes `customFetchImpl` (per-request `fetch`), and reproduced the get-session limiter (100 per 10 s per IP) behind B-113. Docs folded: timeline, care-periods, layout, profiles, admin, sync, auth.
 
@@ -1058,3 +1063,63 @@ Stack: yes · Reads: docs/domain/sync.md, docs/domain/auth.md · Tests: unit, e2
 - [ ] `pnpm check` passes; `pnpm prd browser --changed` once (`sign-in` and the session checks).
 
 **Blocks:** none. **Blocked by:** none.
+
+## Slice 44: The + add-entry menu sits on each day's heading, with that day's time (B-135)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/components.md · Tests: unit, component
+
+**Problem.** The timeline's + "Add to timeline" menu (`routes/app/groups/timeline/QuickAddMenu.tsx`) sits in `TimelineHeader` next to the rows/cards switch, away from the day you're looking at. Every add starts at now, so adding something for an earlier day means changing the time by hand.
+
+**Build.**
+
+- Take `QuickAddMenu` out of `TimelineHeader`. Put it in `DayHeader`, beside the day's heading (the `h3`), for writers only, so it moves with the sticky heading. Simple mode is unchanged: no + there.
+- `QuickAddMenu` takes the day (`dayKey`). Today gives now (today's adds behave as they do now). Any other day gives 12:00 that day in the viewer's zone, the same zone `dayKeyIn` uses. Work the time out in a small pure helper beside `timelineDays.ts`, with a unit test.
+- Pass the time through to every kind: the add sheets (symptom, vital, dose) and the new note and event pages. Add an optional `at` (an ISO time) to `appUrls.newSheet`, `newDose` and `newEntry`, at the end of each options object. The forms start at that time when `at` is given and fall back to now when it's missing or invalid. Drafts that already have a time keep it.
+- Keep the prefetches (`PrefetchPageLinks`) rendered once, not once per day: hoist them to the list, or render them only for the first day.
+- The menu's label names the day ("Add to Today", "Add to Monday, Nov 16"), so every day's + has its own accessible name.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: the day's start time. Today gives now; a past day gives 12:00 that day, including across a DST change.
+- [ ] Component test (beside the timeline's existing ones): each day heading has a + for writers and none for viewers; the timeline header no longer has one. Choosing Symptom from a past day's + opens the sheet with that day at 12:00. From today's + it opens at now (within a minute).
+- [ ] Component test: a new note from a past day's + starts at that day's 12:00.
+- [ ] Update the existing tests that found the + in the header (`timelineHeader.browser.test.tsx` and others) and any browser check that clicks "Add to timeline".
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none (tasks has landed).
+
+## Slice 45: Stepping the visit-prep start's month back from the 31st (B-134)
+
+Stack: no · Reads: docs/domain/assistant.md, docs/domain/components.md · Tests: component
+
+**Problem.** In the visit prep sheet (`components/visitPrep/`), when the start is a 31st (2026-10-31), ArrowDown on the month segment doesn't change it: React Aria has no September 31st, and the preview stays the same. check-migration's test now steps the year instead (1384054). This slice fixes the app.
+
+**Build.** Stepping a month segment onto a shorter month clamps to that month's last day (31 Oct → 30 Sep, 31 Mar → 28 or 29 Feb), the way date pickers usually do. Find where it gets stuck: React Aria's `DateField` segment, our `ui/` date primitive (`components/ui/date/`), or visit prep's own min/max or value handling. Fix it in the primitive if the bug is there, so every date field clamps. Keep the fix small. If React Aria already clamps and visit prep's bounds cause the bug, fix the bounds.
+
+**Acceptance criteria.**
+
+- [ ] Component test (visit prep): with the start on the 31st, ArrowDown on the month takes it to the 30th of the month before, and the preview takes in what came before (the Cough). Use a fixed clock, so the test doesn't depend on today's date.
+- [ ] If the fix is in the primitive: a component test beside it for the 31st → 30th month step.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 46: Less instruction text in simple mode (B-157)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/assistant.md · Tests: component
+
+**Problem.** Simple mode's timeline shows too much instruction text: quick entry's typing tips under the big box, and the tiles hint ("These follow what's logged most. The group's owners can choose them.").
+
+**Build.**
+
+- `components/quick-entry/QuickEntrySuggestions.tsx`: add a `showTips` prop (default true). `QuickEntryBox` turns it off for `size="lg"`, the simple view's box. The dictation hint stays, and the normal view keeps its tips.
+- `routes/app/groups/timeline/SimpleTiles.tsx`: drop the hint sentence. Those who can choose the tiles see only the "Choose the tiles" link. Members see nothing there.
+- The orchestrator updates docs/domain/timeline.md (the first-run hint) at landing. List the line that needs changing in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`timelineSimpleTiles.browser.test.tsx`): an owner sees only the "Choose the tiles" link, with no hint text; a member sees neither.
+- [ ] Component test (`timelineQuickEntrySuggestions.browser.test.tsx` or the simple view's test): no `[data-quick-tips]` in simple mode; the normal view still shows them.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none. Slices 44 and 46 both touch the timeline folder but not the same files (44: `DayHeader`, `TimelineHeader`, `QuickAddMenu`; 46: `SimpleTiles`, quick entry). Merge in order.
