@@ -16,7 +16,7 @@ import { defaultWho, parseWho } from "~/lib/taskList";
 import { DoneTasks } from "./DoneTasks";
 import { TaskChips } from "./TaskChips";
 import { TaskSections } from "./TaskSections";
-import { listSearch, onlyTaskSheetChanged, TASK_SHEET_STATE } from "./taskSheets";
+import { listSearch, onlyTaskSheetChanged, TASK_SHEET_STATE } from "~/lib/taskSheets";
 import { DONE_PAGE, useTaskList } from "./useTaskList";
 
 // Shared by web + native. The group's tasks, read from the device's local

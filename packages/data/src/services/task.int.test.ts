@@ -7,6 +7,7 @@ import { isError } from "../errors";
 import {
   careGroupMemberService,
   medicationService,
+  noteDocumentService,
   providerService,
   taskService,
   timelineEntryService,
@@ -310,5 +311,52 @@ describe("taskService: a member who goes", () => {
       assigneeId: null,
       assigneeName: "viewer",
     });
+  });
+});
+
+describe("taskService: live notes", () => {
+  it("makes a task's document for a live task in the group, and refuses deleted and other groups' tasks", async () => {
+    const { u, group, addTask } = await setup();
+    const task = await addTask();
+    const doc = (id: string, groupId = group.id) => ({ id, groupId, subject: "task" as const });
+
+    const created = ok(await noteDocumentService.create(u.caretaker.ctx, doc(task.id)));
+    expect(created).toMatchObject({ id: task.id, groupId: group.id, subject: "task", taskId: task.id });
+    expect(created).toMatchObject({
+      entryId: null,
+      providerId: null,
+      medicationId: null,
+      carePeriodId: null,
+    });
+    // Idempotent, and readable through the service.
+    expect(ok(await noteDocumentService.create(u.owner.ctx, doc(task.id)))?.id).toBe(task.id);
+    expect(ok(await noteDocumentService.getById(u.viewer.ctx, task.id))?.id).toBe(task.id);
+
+    // Viewers read the notes but can't make them, even on their own task.
+    const viewers = await addTask({ assigneeId: u.viewer.user.id });
+    expect(codeOf(await noteDocumentService.create(u.viewer.ctx, doc(viewers.id)))).toBe(
+      "permissions:unauthorized",
+    );
+
+    // A deleted task: none, and its document is hidden.
+    const gone = await addTask();
+    ok(await taskService.remove(u.caretaker.ctx, gone.id));
+    expect(codeOf(await noteDocumentService.create(u.caretaker.ctx, doc(gone.id)))).toBe(
+      "noteDocumentService:taskNotFound",
+    );
+    ok(await taskService.remove(u.caretaker.ctx, task.id));
+    expect(codeOf(await noteDocumentService.getById(u.caretaker.ctx, task.id))).toBe(
+      "noteDocumentService:notFound",
+    );
+
+    // Another group's task: unseen from here, and refused under either group.
+    const other = await setup();
+    const theirs = await other.addTask();
+    expect(codeOf(await noteDocumentService.create(u.caretaker.ctx, doc(theirs.id)))).toBe(
+      "noteDocumentService:taskNotFound",
+    );
+    expect(codeOf(await noteDocumentService.create(other.u.caretaker.ctx, doc(theirs.id)))).toBe(
+      "noteDocumentService:immutable",
+    );
   });
 });

@@ -15,7 +15,7 @@ import { readRows } from "~/lib/sync/timeline";
 import { TaskForm } from "../TaskForm";
 import { taskFromForm } from "../taskFormData";
 import { loadMembers, useAssigneeMembers, useCloseTaskSheet } from "../taskSheet";
-import { editTaskGuard } from "../taskSheets";
+import { editTaskGuard } from "~/lib/taskSheets";
 
 const NO_ROWS: TaskRow[] = [];
 

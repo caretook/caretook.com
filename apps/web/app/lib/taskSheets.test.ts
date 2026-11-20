@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   editTaskGuard,
   listSearch,
+  listSearchFromState,
   newTaskGuard,
   onlyTaskSheetChanged,
   openedFromApp,
   TASK_SHEET_STATE,
+  taskPageState,
 } from "./taskSheets";
 
 const G = "g1";
@@ -41,5 +43,15 @@ describe("task sheet guards", () => {
     expect(onlyTaskSheetChanged(G, url(LIST), url(`${LIST}/new`))).toBe(true);
     expect(onlyTaskSheetChanged(G, url(`${LIST}/t1/edit`), url(LIST))).toBe(true);
     expect(onlyTaskSheetChanged(G, url(LIST), url(`/app/groups/${G}/timeline`))).toBe(false);
+  });
+});
+
+describe("the task page's way back", () => {
+  it("carries the list's chip from a row to the page, and nothing else", () => {
+    expect(listSearchFromState(taskPageState("?who=everyone&providerId=p1"))).toBe("?who=everyone");
+    expect(listSearchFromState(taskPageState(""))).toBe("");
+    expect(listSearchFromState(null)).toBe("");
+    expect(listSearchFromState(TASK_SHEET_STATE)).toBe("");
+    expect(listSearchFromState({ taskListSearch: 3 })).toBe("");
   });
 });

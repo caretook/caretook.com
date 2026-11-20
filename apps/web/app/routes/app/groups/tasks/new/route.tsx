@@ -12,7 +12,7 @@ import { createTask } from "~/lib/sync/tasks";
 import { TaskForm } from "../TaskForm";
 import { taskFromForm } from "../taskFormData";
 import { loadMembers, useAssigneeMembers, useCloseTaskSheet } from "../taskSheet";
-import { newTaskGuard } from "../taskSheets";
+import { newTaskGuard } from "~/lib/taskSheets";
 
 // Shared by web + native. `tasks/new`: the add sheet, over the list. It can
 // start with a due day (`?dueOn=`). A viewer lands on the list.

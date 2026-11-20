@@ -7,6 +7,7 @@ import { page, userEvent } from "vitest/browser";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as tasksRoute from "./route";
+import * as taskPage from "../task/route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, task, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 
@@ -24,6 +25,7 @@ const ROUTES: DeviceRoute[] = [
       { path: `${BASE}/:taskId/edit`, module: editSheet },
     ],
   },
+  { path: `${BASE}/:taskId`, module: taskPage },
 ];
 const LIST = `/app/groups/${TEST_GROUP.id}/tasks`;
 
@@ -143,7 +145,7 @@ describe("the task list", () => {
     expect(titles("done")).toEqual([]);
   });
 
-  test("a viewer sees ticks only on their own tasks, no Add and no edit links", async () => {
+  test("a viewer sees ticks only on their own tasks and no Add", async () => {
     const mine = task({
       title: "Pick up groceries",
       dueOn: today,
@@ -158,15 +160,15 @@ describe("the task list", () => {
       "Mark “Pick up groceries” done",
     ]);
     expect(document.querySelector("[data-add-task]")).toBeNull();
-    expect(document.querySelector("main a[data-task-title]")).toBeNull();
   });
 
-  test("a writer's row opens the edit sheet", async () => {
-    const device = await open();
-    await userEvent.click(page.getByRole("link", { name: "Pick up the walker" }));
-    await expect.element(page.getByRole("dialog", { name: "Edit task" })).toBeInTheDocument();
-    expect(device.location()).toContain("/tasks/7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7b02/edit");
-    await expect.element(page.getByRole("textbox", { name: "Task" })).toHaveValue("Pick up the walker");
+  test("a row opens the task's page, for viewers too; its way back keeps the chip", async () => {
+    const device = await open("viewer", `${LIST}?who=everyone`);
+    await userEvent.click(page.getByRole("link", { name: "Fax the form" }));
+    await expect.element(page.getByRole("heading", { name: "Fax the form", level: 1 })).toBeInTheDocument();
+    expect(device.location()).toBe(`${LIST}/7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7b03`);
+    await userEvent.click(page.getByRole("link", { name: "Tasks" }));
+    await expect.poll(() => device.location()).toBe(`${LIST}?who=everyone`);
   });
 });
 
