@@ -71,8 +71,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-105 | change | triaged | quick-fixes |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | triaged | quick-fixes |  | Turning email invites off also blocks staff owner invites from /admin |
-| B-107 | feature | ready | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
-| B-110 | bug | ready | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
+| B-107 | feature | landed | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
+| B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-112 | change | triaged | quick-fixes |  | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | admin |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-114 | chore | triaged | check-migration |  | Move routing.mjs to component tests |
@@ -91,6 +91,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
 | B-128 | chore | triaged | check-migration |  | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
+| B-130 | bug | inbox |  |  | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 
 ## Items
 
@@ -388,7 +389,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-107 · feature · Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests…
 
-- status: ready
+- status: landed
 - prd: orchestration
 - owner: prd/orchestration
 - commit: 8ca25cf
@@ -401,7 +402,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-110 · bug · Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes)
 
-- status: ready
+- status: landed
 - prd: orchestration
 - owner: prd/orchestration
 - commit: 8ca25cf
@@ -579,3 +580,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): A non-goal of the orchestration PRD, filed as its follow-up: the CDP harness (cdp.mjs, proxy.mjs) could become Playwright Test now that playwright is a dev dependency (component tests). Only the lean set (scripts/loops/checks e2e yes); keep the lease, the watchdog and the check build.
 - 2026-11-19 (Robert Bo Davis): Proposed for check-migration, last: port only the lean set to Playwright Test once B-114 to B-128 have shrunk it.
+
+### B-130 · bug · A rate-limited session check right after sign-in sends the user back to /sign-in with no message
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the orchestration PRD (slice 7, investigating B-113's app-shell step 6g). Unconfirmed, the log was gone: a 429 on the first get-session after sign-in counts as unknown, and with no cached user (sign-out wiped it) requireSession treats it as signed out and redirects to /sign-in silently (apps/web/app/lib/session.ts, resolveUser). Likely fix: retry the session check once on 429, or show a 'try again' message instead of a silent redirect.
