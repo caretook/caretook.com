@@ -74,7 +74,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-121 | chore | landed | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | in-progress | check-migration | prd/check-migration | Move profiles-contacts.mjs to component tests |
 | B-126 | chore | in-progress | check-migration | prd/check-migration | Move roundtrip.mjs's sheet steps to component tests |
-| B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
+| B-127 | chore | in-progress | check-migration | prd/check-migration | Move invites.mjs's screen steps to component tests |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-134 | bug | landed | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 | B-135 | change | landed | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
@@ -384,9 +384,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-127 · chore · Move invites.mjs's screen steps to component tests
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): invites.mjs stays in the lean set (emails through /dev/mail.json, sign-up, consent, join, links and requests). Move its form states (the invite page's views, the wrong-account view, sign-in tabs, the invite sheet and pending list) to component tests and delete each covered step.
