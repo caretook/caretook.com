@@ -69,9 +69,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-116 | chore | in-progress | check-migration | prd/check-migration | Move providers.mjs to component tests |
 | B-117 | chore | in-progress | check-migration | prd/check-migration | Move groups.mjs to component tests |
-| B-118 | chore | in-progress | check-migration | prd/check-migration | Move medications.mjs to component tests |
-| B-119 | chore | ready | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
-| B-121 | chore | ready | check-migration | prd/check-migration | Move profiles.mjs to component tests |
+| B-118 | chore | ready | check-migration | prd/check-migration | Move medications.mjs to component tests |
+| B-119 | chore | landed | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
+| B-121 | chore | landed | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
@@ -326,10 +326,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-118 · chore · Move medications.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 0e0ab28
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (the biggest check, about 163 s). Move the list, search and status, the forms, status actions, Today, the Due now strip, the Dose sheet's states, passes, allergies and the print sheet's layout to component tests; keep a second device seeing a dose, offline then upload, and the service-written change entries. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slices 9 (wave 4) and 11 (wave 5, after assistant slice 7) (plans/check-migration-plan.md).
@@ -339,7 +339,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-119 · chore · Move upcoming.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: bc5104e
@@ -350,7 +350,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-121 · chore · Move profiles.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 3bb168a
