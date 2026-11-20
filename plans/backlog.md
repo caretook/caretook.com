@@ -564,6 +564,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): roundtrip.mjs stays in the lean set (devices converging, offline then reconnect, the viewer, the sign-out wipe), but its add and edit sheet steps (validation, When's date picker, edit and delete) are screen behaviour: move them to component tests for the timeline's sheets (new/, edit/, EntryForm) and delete each covered step.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 12, wave 5 (after assistant slices 1 and 5) (plans/check-migration-plan.md).
 
 ### B-127 · chore · Move invites.mjs's screen steps to component tests
 
