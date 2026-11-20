@@ -1,0 +1,22 @@
+# check-areas: quick entry, suggestions, simple mode and visit prep (assistant
+# PRD). The box, its cards and the runner are component tests
+# (timeline/timelineQuickEntry*.browser.test.tsx); the runner's rows are the
+# ones roundtrip already uploads. The parser and actions are packages/data
+# (unit tests). session-end checks the recent lines are wiped at sign-out.
+apps/web/app/components/quick-entry/*    -
+apps/web/app/lib/sync/quickEntry.ts      -
+apps/web/app/lib/quickEntryDraft.ts      -
+apps/web/app/lib/sync/quickEntrySuggestions.ts -
+apps/web/app/lib/recentLines.ts          session-end
+# Simple mode (slices 5 and 6): the view, the tiles, the lock and the Members
+# switch are component tests (timeline/timelineSimple*.browser.test.tsx,
+# groups/settings/simpleTiles.browser.test.tsx); app-shell.mjs keeps the
+# owner's switch reaching the member's device.
+apps/web/app/lib/simpleModeToggle.ts     app-shell
+apps/web/app/lib/useSimpleMode.ts        app-shell
+apps/web/app/lib/sync/simpleMode.ts      -
+# Visit prep (slice 4): the sheet, its hooks and the device module (reads, and
+# one note_update like typing): component tests
+# (components/visitPrep/visitPrep.browser.test.tsx).
+apps/web/app/components/visitPrep/*      -
+apps/web/app/lib/sync/visitPrep.ts       -

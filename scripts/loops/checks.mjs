@@ -1,6 +1,6 @@
 // Parsers for the browser-check manifest (scripts/loops/checks) and the file →
-// check map (scripts/loops/check-areas). browser.sh reads both with awk; these
-// are for tests that keep them in step.
+// check map (scripts/loops/check-areas.d/). browser.sh reads the manifest with awk
+// and the map through check-areas.mjs; these are for tests that keep them in step.
 
 const lines = (text) =>
   text
@@ -58,7 +58,7 @@ export function leanBudget(text) {
   return { total, ceiling };
 }
 
-/** Every check named by a rule in check-areas (not `-`, `@suite` or `@self`). */
+/** Every check named by a rule in check-areas.d/ text (not `-`, `@suite` or `@self`). */
 export function areaChecks(text) {
   const names = new Set();
   for (const line of lines(text)) {

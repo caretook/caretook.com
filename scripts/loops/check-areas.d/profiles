@@ -1,0 +1,21 @@
+# check-areas: the recipient's profile, its sheets, the emergency sheet and
+# the ways in (the group menu, the timeline's recipient card, group settings
+# Details' link) are component tests (profile/profile, emergency and
+# print/emergencySheetPage .browser.test.tsx, with profileWorld.tsx); the
+# print CSS's layout is in the last. app-shell's step 4 keeps the details
+# stream's own rule: a member demoted to viewer loses the writers-only details
+# row. The rows reaching a second device are roundtrip's sync matrix (6b).
+apps/web/app/routes/app/groups/profile/* -
+apps/web/app/lib/sync/profile.ts         -
+apps/web/app/lib/sync/vitalAverages.ts   -
+apps/web/app/lib/sync/recipientDetails.ts app-shell
+packages/data/src/db/schema/careRecipientDetails.ts roundtrip app-shell
+packages/data/src/db/schema/careRecipient.ts roundtrip
+packages/data/src/db/schema/profileVisibility.ts app-shell
+# Your contact details, what each member shares and your own choices
+# (profiles slice 4); contact links shared by the Members page and the
+# recipient's profile (profiles slice 3; the profile's are component tests).
+apps/web/app/routes/app/settings/contact/* profiles-contacts
+apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profiles-contacts
+apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts
+apps/web/app/components/contact/*        profiles-contacts
