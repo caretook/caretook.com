@@ -5,7 +5,8 @@ import { openTimeline, rows, SAM, setView, TIMELINE_URL, waitUntil } from "./tim
 
 // The day summaries on the test device: the line under each day's heading,
 // what it says (arrows in words), expanding by tap and keyboard, live updates
-// (a local add and another device's entry), and every filter hiding it.
+// (a local add and another device's entry), every filter hiding it, and the
+// header's Highlights / Full / Off switch.
 
 const minutesAgo = (m: number) => at(new Date(Date.now() - m * 60_000));
 const daysAgo = (d: number, hour = 10) => {
@@ -33,7 +34,9 @@ const YESTERDAY = [
 ];
 const fixtures = [SAM, ...TODAY, ...YESTERDAY];
 
-const TODAY_TEXT = "BP 150/90 ↑ · Nausea 5 (new) · Cough 2 · Fell in bathroom · 2 notes · Alex, Sam";
+/** The default line: highlights only (Cough 2 is old and mild; notes and authors aren't highlights). */
+const TODAY_TEXT = "BP 150/90 ↑ · Nausea 5 (new) · Fell in bathroom";
+const TODAY_FULL = "BP 150/90 ↑ · Nausea 5 (new) · Cough 2 · Fell in bathroom · Alex, Sam";
 
 const summaries = () => [...document.querySelectorAll<HTMLElement>("[data-day-summary]")];
 const summaryButton = (i = 0) => summaries()[i]?.querySelector("button");
@@ -48,7 +51,7 @@ describe("the day summary", () => {
     expect(today!.previousElementSibling?.hasAttribute("data-day-header")).toBe(true);
     expect(today!.closest("[data-day-header]")).toBeNull();
     expect(lineOf(0)).toBe(TODAY_TEXT);
-    expect(lineOf(1)).toBe("BP 120/80 · Cough 3 (new) · Alex");
+    expect(lineOf(1)).toBe("Cough 3 (new)");
     expect(yesterday).toBeTruthy();
   });
 
@@ -59,7 +62,7 @@ describe("the day summary", () => {
     await expect
       .element(button)
       .toHaveAccessibleName(
-        "Day summary: BP 150/90, higher than last week; Nausea 5 (new); Cough 2; Fell in bathroom; 2 notes; Alex, Sam",
+        "Day summary: BP 150/90, higher than last week; Nausea 5 (new); Fell in bathroom",
       );
   });
 
@@ -78,7 +81,6 @@ describe("the day summary", () => {
       "Vitals: BP 150/90 ↑(higher than last week)",
       "Symptoms: Nausea 5 (new), Cough 2",
       "Events: Fell in bathroom",
-      "Notes: 2 notes",
       "Logged by: Alex, Sam",
     ]);
     await userEvent.click(button);
@@ -126,6 +128,36 @@ describe("the day summary", () => {
     await userEvent.click(device.screen.getByRole("link", { name: clear }));
     await expect.poll(() => device.location()).toBe(TIMELINE_URL);
     await waitUntil(() => summaries().length === 2, 4000, "summaries back");
+  });
+
+  test("the header's menu switches to the full line, and off", async () => {
+    const device = await openTimeline({ fixtures });
+    await waitUntil(() => summaries().length === 2);
+    const choose = async (mode: string) => {
+      await userEvent.click(device.screen.getByRole("button", { name: "Day summaries" }));
+      await userEvent.click(device.screen.getByRole("menuitemradio", { name: new RegExp(`^${mode}`) }));
+    };
+
+    await choose("Full");
+    await waitUntil(() => lineOf(0) === TODAY_FULL, 4000, "the full line");
+    expect(lineOf(1)).toBe("BP 120/80 · Cough 3 (new) · Alex");
+
+    await choose("Off");
+    await waitUntil(() => summaries().length === 0, 4000, "no summaries");
+
+    await choose("Highlights");
+    await waitUntil(() => lineOf(0) === TODAY_TEXT, 4000, "highlights back");
+  });
+
+  test("a day with nothing that stands out has no line in highlights", async () => {
+    await openTimeline({
+      fixtures: [
+        fx.symptom({ occurredAt: minutesAgo(30), name: "Cough", severity: 2 }),
+        fx.symptom({ occurredAt: daysAgo(2), name: "Cough", severity: 2 }),
+      ],
+    });
+    await waitUntil(() => summaries().length === 1, 4000, "only the older day's line");
+    expect(lineOf(0)).toBe("Cough 2 (new)");
   });
 
   test("a day with only doses has no summary", async () => {

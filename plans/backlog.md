@@ -76,8 +76,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
-| B-134 | bug | in-progress | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
-| B-135 | change | in-progress | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
+| B-134 | bug | ready | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
+| B-135 | change | ready | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
 | B-136 | change | triaged | app-speed |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | triaged | app-speed |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
 | B-138 | change | triaged | app-speed |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
@@ -96,7 +96,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
 | B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
-| B-157 | change | in-progress | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
+| B-157 | change | ready | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
 | B-158 | change | triaged | hosting |  | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
 | B-159 | change | triaged | hosting |  | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
 | B-160 | change | triaged | hosting |  | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
@@ -402,10 +402,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-134 · bug · visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent)
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 03dfa05
 
 - 2026-11-20 (slice/check-migration/6): Fails on prd/check-migration HEAD 7ddfbb2 without slice 6's changes, alone and in pnpm check: 'timed out waiting for the longer window'. Its last visit is 20 days ago (2026-10-31) and ArrowDown on the month field should take the start before the Cough 25 days ago; probably the 31st not existing in September. Found by check-migration slice 6.
 - 2026-11-20 (prd/check-migration): check-migration orchestrator: the test now steps the year back instead of the month (commit on prd/check-migration, lands with wave 3). The app question remains for triage: should a month step back from the 31st clamp to the 30th? React Aria's month segment gave no change in the preview.
@@ -414,14 +414,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-135 · change · Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days)
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 03dfa05
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a regression that may block B-98.
 - 2026-11-20 (backlog agent): Triage: a regression against B-98 (the + in the timeline header). One quick-fixes slice: find whether the + menu went missing in the normal view or only where the quick entry box shows, and restore it. Touches the timeline header, which tasks slice 4 also changed, so start it after tasks lands.
 - 2026-11-20 (Robert Bo Davis): The user (2026-11-20): not a regression. The + is there, but in an awkward spot next to the view-mode switch. Move it beside the day heading in the timeline so it travels with the sticky header. Adding from a day's + sets that day's time: today gives now, any other day gives midday (12:00) that day. Still quick-fixes slice 44; it touches the timeline header and sticky day heading (tasks slice 4 changed the header), so start it after tasks lands.
+- 2026-11-20 (slice/quick-fixes/44): slice 44 built at 22bffaa: + on each day heading, ?at= start times; writer's list always has a Today heading (new behaviour, see hand-off)
 
 ### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
 
@@ -620,10 +621,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-157 · change · Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under…
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 03dfa05
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under the big box, and the tiles hint ("These follow what's logged most. The group's owners can choose them."). / Tips: `QuickEntrySuggestions` (`data-quick-tips`) could take a `showTips` prop that `QuickEntryBox` turns off for `size="lg"`; the dictation hint stays. / Tiles: in `SimpleTiles.tsx`, show only the "Choose the tiles" link to those who can choose, and nothing to members. Update `timelineSimpleTiles.browser.test.tsx` (the hint text) and docs/domain/timeline.md (the first-run hint).
 - 2026-11-20 (Robert Bo Davis): Triage (backlog agent): small copy and prop change in simple mode (QuickEntrySuggestions showTips, SimpleTiles hint), one component test and a timeline.md line. One quick-fixes slice, next to B-135 and B-134 (slice 46). Touches the simple view, which tasks slice 6 changed, so start it after tasks lands.

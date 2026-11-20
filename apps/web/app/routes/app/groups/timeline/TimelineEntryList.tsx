@@ -1,5 +1,11 @@
 import type { TimelineData } from "./useTimelineData";
-import type { TimelineEntryKind, TimelineView, UnitChoices, VitalType } from "@caretook/data/schema";
+import type {
+  DaySummaryMode,
+  TimelineEntryKind,
+  TimelineView,
+  UnitChoices,
+  VitalType,
+} from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 
@@ -74,6 +80,7 @@ export function TimelineEntryList({
   search: searching = NO_SEARCH,
   upcoming,
   simple = false,
+  summaryMode = "highlights",
 }: {
   data: Pick<
     TimelineData,
@@ -105,6 +112,8 @@ export function TimelineEntryList({
   upcoming?: { items: TimelineData["upcoming"]; seeAll: string } | null;
   /** Simple mode's larger, read-only list (above). */
   simple?: boolean;
+  /** The day summaries' setting: none, highlights (the default) or everything. */
+  summaryMode?: DaySummaryMode;
 }) {
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -125,8 +134,9 @@ export function TimelineEntryList({
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
   const recipientZone = useGroup().recipient?.timeZone ?? "UTC";
   const sections = withMarkers(data.days, simple ? NO_MARKERS : data.markers, localTimeZone(), new Date());
-  // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then).
+  // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then; none when they're off).
   const summaries =
+    summaryMode !== "off" &&
     data.summaryEntries &&
     summariesByDay(
       data.summaryEntries,
@@ -231,7 +241,7 @@ export function TimelineEntryList({
               periods={data.periods}
               simple={simple}
             />
-            {summaries && <DaySummaryLine summary={summaries.get(day.key)} />}
+            {summaries && <DaySummaryLine summary={summaries.get(day.key)} mode={summaryMode} />}
             <ol className={LIST_CLASS[view]} data-view={view}>
               {/* Doses logged in one round fold into one pass log; care period markers keep their moments. */}
               {foldPassLogs(day.entries).map((it) =>
