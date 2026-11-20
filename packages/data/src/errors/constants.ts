@@ -729,6 +729,9 @@ export const SERVICE_ERRORS = {
   "dbAccess:failed": {
     message: "Failed to change database access",
   },
+  "rateLimitService:store": {
+    message: "Failed to read or write the rate limits",
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {

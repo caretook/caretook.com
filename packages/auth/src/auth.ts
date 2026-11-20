@@ -8,6 +8,7 @@ import {
   accountSchema,
   getDb,
   jwksSchema,
+  rateLimitSchema,
   sessionSchema,
   SYSTEM_USER,
   USER_ROLE_NAMES,
@@ -57,7 +58,12 @@ const refuseDisabledSignIn = createAuthMiddleware(async (ctx) => {
   throw wrongPassword();
 });
 
-const createAuth = () => {
+/**
+ * A new Better Auth instance. The app uses `getAuth()`'s one; tests make
+ * more (two instances stand for two serverless instances), and
+ * `rateLimitEnabled` turns the limits on outside production.
+ */
+export const createAuth = ({ rateLimitEnabled }: { rateLimitEnabled?: boolean } = {}) => {
   const { secret, baseURL, trustedOrigins, powersyncURL } = getAuthConfig();
   if (!secret) throw new Error("BETTER_AUTH_SECRET is not set");
 
@@ -78,8 +84,17 @@ const createAuth = () => {
         account: accountSchema,
         verification: verificationSchema,
         jwks: jwksSchema,
+        rateLimit: rateLimitSchema,
       },
     }),
+    // Better Auth's limits (on only with NODE_ENV=production, check builds
+    // included; get-session 100 per 10 s per client IP, sign-in 3 per 10 s),
+    // counted in Postgres (`rate_limit`) so every serverless instance shares
+    // them. Old rows go in the outbox cron's sweep (rateLimitService.purge).
+    rateLimit: {
+      storage: "database",
+      ...(rateLimitEnabled === undefined ? {} : { enabled: rateLimitEnabled }),
+    },
     advanced: {
       // Our tables use uuid ids with gen_random_uuid() defaults.
       database: { generateId: "uuid" },

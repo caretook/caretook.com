@@ -98,6 +98,10 @@ import * as dbAccessService from "./dbAccessService";
 export { dbAccessService };
 export type { GrantResult as DbAccessGrant, PersonalRole } from "./dbAccessService";
 
+// Not in `services`: no model behind it (shared rate limits, hosting PRD).
+import * as rateLimitService from "./rateLimitService";
+export { rateLimitService };
+
 export type * from "./types";
 
 export const services = {

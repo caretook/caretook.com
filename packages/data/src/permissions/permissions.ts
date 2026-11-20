@@ -511,6 +511,12 @@ export const PERMISSIONS: Permissions = {
     update: SYSTEM_ONLY_ENTRY,
     delete: NOBODY_ENTRY,
   },
+
+  // Shared rate limits (hosting PRD): our limiter's hits and Better Auth's
+  // counters. Written directly (rateLimitService, Better Auth's adapter),
+  // never through a model.
+  rateLimitHitSchema: SYSTEM_ONLY_SCHEMA,
+  rateLimitSchema: SYSTEM_ONLY_SCHEMA,
 };
 
 // ---------------------------------------------------------------------------
