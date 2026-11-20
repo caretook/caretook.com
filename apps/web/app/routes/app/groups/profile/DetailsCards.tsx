@@ -1,4 +1,4 @@
-import type { ProfileSheet } from "~/lib/app-shell/appUrls";
+import type { ProfileSheet } from "~/lib/profiles/urls";
 import type { MemberContactLine } from "~/lib/profiles/memberContact";
 import type { RecipientDetails } from "~/lib/profiles/recipientDetails";
 

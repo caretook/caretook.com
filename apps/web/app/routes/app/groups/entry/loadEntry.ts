@@ -5,7 +5,8 @@ import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { data } from "react-router";
-import { startAtFrom, WHEN_PICK } from "~/lib/app-shell/appUrls";
+import { startAtFrom } from "~/lib/timeline/urls";
+import { WHEN_PICK } from "~/lib/live-notes/urls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { localTimeZone } from "~/lib/core/format";
 import { isLiveEntryKind, NEW_ENTRY } from "~/lib/live-notes/liveEntry";

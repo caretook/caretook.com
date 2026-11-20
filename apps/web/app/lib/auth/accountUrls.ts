@@ -1,5 +1,5 @@
 import { safeRedirect } from "../core/redirect";
-import { searchString } from "../app-shell/appUrls";
+import { searchString } from "../core/urls";
 
 // The signed-out account pages: sign-in (and its two methods), password
 // reset and email verification. Like `appUrls`, but for the pages outside

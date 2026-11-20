@@ -3,7 +3,8 @@ import type { DosePatch } from "../../../../../lib/medications/medications.sync"
 import type { PassLogJoin } from "../../../../../lib/medications/passLogs.sync";
 import type { SheetDecision } from "../sheetGuard";
 
-import { appUrls, withoutSheetParams } from "../../../../../lib/app-shell/appUrls";
+import { appUrls } from "../../../../../lib/app-shell/appUrls";
+import { withoutSheetParams } from "../../../../../lib/timeline/urls";
 import { formString } from "../../../../../lib/core/form";
 import { parseOccurredAt } from "../entryFormData";
 

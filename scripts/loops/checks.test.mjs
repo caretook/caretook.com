@@ -34,32 +34,36 @@ describe("the manifest", () => {
 });
 
 describe("leanBudget", () => {
-  // The lean set as the ceiling was set (2026-11-19): 356 s in all.
+  // A lean set that exactly fills the hard limit: 300 s in all.
   const lean = [
-    "phase2 15 120 no yes",
-    "roundtrip 30 120 no yes",
-    "live-notes 55 170 no yes",
-    "app-shell 10 120 no yes",
-    "layout-offline 15 300 yes yes",
-    "sign-in 10 120 no yes",
-    "first-sync 40 150 no yes",
-    "signout-wipe 15 300 yes yes",
-    "session-end 60 180 no yes",
-    "invites 90 270 no yes",
-    "ui 6 120 no yes",
-    "marketing 10 120 no yes",
+    "phase2 10 120 no yes",
+    "roundtrip 29 120 no yes",
+    "live-notes 56 170 no yes",
+    "app-shell 15 120 no yes",
+    "layout-offline 19 300 yes yes",
+    "sign-in 4 120 no yes",
+    "first-sync 36 150 no yes",
+    "signout-wipe 6 300 yes yes",
+    "session-end 5 120 no yes",
+    "invites 86 270 no yes",
+    "ui 5 120 no yes",
+    "marketing 29 120 no yes",
     "medications 163 490 no no",
   ];
   const withCeiling = (ceiling, rows = lean) => `# the budget\nlean-ceiling ${ceiling}\n${rows.join("\n")}\n`;
 
-  it("passes at 356, counting only the e2e checks", () => {
-    expect(leanBudget(withCeiling(356))).toEqual({ total: 356, ceiling: 356 });
+  it("passes at 300, counting only the e2e checks", () => {
+    expect(leanBudget(withCeiling(300))).toEqual({ total: 300, ceiling: 300 });
   });
 
   it("fails when the lean total exceeds the ceiling, saying by how much", () => {
-    expect(() => leanBudget(withCeiling(355))).toThrow(/add up to 356, over lean-ceiling 355 by 1/);
-    const grown = lean.map((l) => l.replace("roundtrip 30", "roundtrip 45"));
-    expect(() => leanBudget(withCeiling(356, grown))).toThrow(/add up to 371, over lean-ceiling 356 by 15/);
+    expect(() => leanBudget(withCeiling(299))).toThrow(/add up to 300, over lean-ceiling 299 by 1/);
+    const grown = lean.map((l) => l.replace("roundtrip 29", "roundtrip 44"));
+    expect(() => leanBudget(withCeiling(300, grown))).toThrow(/add up to 315, over lean-ceiling 300 by 15/);
+  });
+
+  it("fails at a ceiling of 301: 300 s is the hard limit", () => {
+    expect(() => leanBudget(withCeiling(301))).toThrow(/lean-ceiling 301 is over the hard limit of 300/);
   });
 
   it("wants exactly one ceiling, in whole seconds", () => {
