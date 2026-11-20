@@ -79,6 +79,7 @@ const dayOf = (d: Date) =>
 describe("the periods page", () => {
   test("lists the track newest first: only the latest is Now; the hospital shows its place and room, until its end; a date-only start has no time", async () => {
     await open();
+    await expect.poll(() => listRows().length).toBe(5);
     const rows = listRows();
     expect(rows.map((r) => r.title)).toEqual([
       "Home",

@@ -61,7 +61,7 @@ apps/web/app/.server/securityHeaders.ts  sign-in phase2 roundtrip live-notes mar
 apps/web/app/lib/csp.ts                  sign-in phase2 roundtrip live-notes marketing invites
 apps/web/app/routes/web/*                sign-in marketing invites
 apps/web/vercel.json                     sign-in marketing
-apps/web/app/app.css                     ui medications profiles
+apps/web/app/app.css                     ui medications
 # The production PowerSync settings, for the runbook (hosting slice 2): nothing loads it.
 powersync/service.production.example.yaml -
 powersync/*                              @suite
@@ -150,32 +150,24 @@ packages/data/src/db/schema/accessCode.ts groups
 packages/data/src/db/schema/newCareGroup.ts groups
 packages/data/src/db/seeds/accessCodes.ts groups
 
-# Profiles (profiles slice 2): the recipient's profile, its Basics sheet, and
-# the ways in (the group menu, the timeline's recipient card, group settings
-# Details' link). Above the timeline's, layout's and settings' general rules.
-# The emergency sheet (profiles slice 6): its own print media steps, and the shared print CSS's.
-apps/web/app/routes/app/groups/profile/print/* profiles
-# Recent vital averages (quick-fixes slice 42, B-100): read-only, covered by
-# vitalAverages.browser.test.tsx and lib/vitalAverages.test.ts.
-apps/web/app/routes/app/groups/profile/VitalAveragesCard.tsx -
+# The recipient's profile, its sheets, the emergency sheet and the ways in
+# (the group menu, the timeline's recipient card, group settings Details'
+# link) are component tests (profile/profile, emergency and
+# print/emergencySheetPage .browser.test.tsx, with profileWorld.tsx); the print
+# CSS's layout is in the last. app-shell's step 4 keeps the details stream's
+# own rule: a member demoted to viewer loses the writers-only details row.
+# The rows reaching a second device are roundtrip's sync matrix (6b).
+apps/web/app/routes/app/groups/profile/* -
+apps/web/app/lib/sync/profile.ts         -
 apps/web/app/lib/sync/vitalAverages.ts   -
-apps/web/app/routes/app/groups/profile/* profiles
-apps/web/app/lib/sync/profile.ts         profiles
-# The writers' details (profiles slice 3): Contact and Insurance and their sheets.
-apps/web/app/lib/sync/recipientDetails.ts profiles
-packages/data/src/db/schema/careRecipientDetails.ts profiles
-apps/web/app/routes/app/groups/timeline/RecipientCard.tsx profiles
-apps/web/app/routes/app/groups/timeline/TimelineHeader.tsx profiles
-apps/web/app/routes/app/layout/GroupMenu.tsx profiles
-apps/web/app/routes/app/groups/settings/details/* app-shell profiles
-packages/data/src/db/schema/careRecipient.ts profiles
-packages/data/src/db/schema/profileVisibility.ts profiles
-packages/data/src/db/seeds/profiles.ts   profiles app-shell
-# Emergency contacts (profiles slice 5): the list on the profile, its sheet, and the Members page's badges.
-apps/web/app/lib/emergencyList.ts        profiles
-packages/data/src/db/schema/emergencyContacts.ts profiles
-packages/data/src/db/schema/careGroupMember.ts profiles profiles-contacts app-shell
-apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profiles profiles-contacts
+apps/web/app/lib/sync/recipientDetails.ts app-shell
+packages/data/src/db/schema/careRecipientDetails.ts roundtrip app-shell
+packages/data/src/db/schema/careRecipient.ts roundtrip
+packages/data/src/db/schema/profileVisibility.ts app-shell
+packages/data/src/db/seeds/profiles.ts   app-shell
+packages/data/src/db/schema/emergencyContacts.ts -
+packages/data/src/db/schema/careGroupMember.ts profiles-contacts app-shell
+apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profiles-contacts
 
 # Sign-in, session, the sync client and first sync.
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites session-end
@@ -207,7 +199,7 @@ apps/web/app/routes.ts                   first-sync layout-offline
 apps/web/app/routes/app/groups/layout/*  app-shell first-sync
 apps/web/app/routes/app/groups/index/*   -
 apps/web/app/lib/group.tsx               first-sync
-apps/web/app/lib/groupSections.ts        upcoming
+apps/web/app/lib/groupSections.ts        -
 # Your contact details (profiles slice 4).
 apps/web/app/routes/app/settings/contact/* profiles-contacts
 # Devices: the account's sessions and signing them out (quick-fixes slice 29).
@@ -233,7 +225,7 @@ apps/web/app/routes/app/home/*           first-sync
 apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts
 apps/web/app/routes/app/groups/settings/members/* app-shell invites profiles-contacts
 apps/web/app/routes/app/groups/settings/* app-shell
-apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts profiles
+apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts
 # The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
 apps/web/app/components/ui/date/*        ui roundtrip medications
 apps/web/app/components/ui/*             ui
@@ -256,15 +248,10 @@ apps/web/app/lib/sync/medicationTimeline.ts medications phase2
 # Today and the Due now strip (medications slice 5).
 apps/web/app/routes/app/groups/timeline/MedicationStrip.tsx medications
 apps/web/app/routes/app/groups/timeline/useMedicationStrip.ts medications
-apps/web/app/lib/sync/dueDoses.ts        medications phase2 upcoming
-# The timeline's Next strip and Upcoming block, and the data they share with the history.
-apps/web/app/routes/app/groups/timeline/NextStrip.tsx upcoming
-apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
-apps/web/app/routes/app/groups/timeline/aheadQueries.ts upcoming
-apps/web/app/routes/app/groups/timeline/useHistoryCutoff.ts upcoming
-apps/web/app/routes/app/groups/timeline/useTimelineData.ts upcoming
-apps/web/app/routes/app/groups/timeline/timelineRows.ts upcoming
-apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx upcoming
+apps/web/app/lib/sync/dueDoses.ts        medications phase2
+# The timeline's Next strip and Upcoming block, and the data they share with
+# the history: component tests (timeline/timelineUpcoming.browser.test.tsx),
+# under timeline/* below.
 # The timeline's search (the field, the chip, ?q= in the windows, the period
 # chip, marks and snippets) is component tests (timelineSearch.browser.test.tsx):
 # timeline/* below.
@@ -285,9 +272,9 @@ apps/web/app/routes/app/groups/timeline/QuickAddMenu.tsx roundtrip
 # The rest of the timeline screen is component tests (timeline/timeline*.browser.test.tsx);
 # phase2.mjs keeps sync arriving, server links and offline, through lib/sync/.
 apps/web/app/routes/app/groups/timeline/* -
-apps/web/app/components/entry/*          roundtrip upcoming
+apps/web/app/components/entry/*          roundtrip
 apps/web/app/components/forms/*          roundtrip live-notes
-apps/web/app/lib/sync/timeline.ts        phase2 roundtrip upcoming
+apps/web/app/lib/sync/timeline.ts        phase2 roundtrip
 apps/web/app/lib/entryDisplay.ts         -
 apps/web/app/lib/form.ts                 roundtrip
 
@@ -309,15 +296,16 @@ apps/web/app/lib/sync/editors.ts         live-notes
 apps/web/app/lib/sync/titleSuggestions.ts live-notes
 
 # Providers.
-apps/web/app/routes/app/groups/provider/ProviderMedications.tsx providers medications
+apps/web/app/routes/app/groups/provider/ProviderMedications.tsx providers
 # Visit prep's button on a provider's page (assistant slice 4): component tests.
 apps/web/app/routes/app/groups/provider/ProviderVisitPrep.tsx -
 apps/web/app/routes/app/groups/provider/*  providers
 apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
 # Phone fields shared by the provider sheet and your contact details (profiles slice 4).
-# Contact links shared by the Members page and the recipient's profile (profiles slice 3).
-apps/web/app/components/contact/ContactLines.tsx profiles-contacts profiles
+# Contact links shared by the Members page and the recipient's profile (profiles slice 3;
+# the profile's are component tests).
+apps/web/app/components/contact/ContactLines.tsx profiles-contacts
 apps/web/app/components/contact/*        providers profiles-contacts
 apps/web/app/lib/sync/providers.ts       providers
 # The medication list: the device module, the list and a medication's page
@@ -328,19 +316,48 @@ apps/web/app/lib/sync/medications.ts     medications
 apps/web/app/lib/sync/medicationPasses.ts medications
 # Allergies (medications-2): the device module; the sheet is under
 # routes/app/groups/medications/allergies/, the region in components/medications/.
-apps/web/app/lib/sync/allergies.ts       medications
+# Its writes reaching another device are roundtrip's sync matrix.
+apps/web/app/lib/sync/allergies.ts       roundtrip
+# The list, a medication's page, the add and edit sheets, the status actions,
+# allergies and the printable sheets (check-migration slice 9): component
+# tests beside them, on medicationWorld.tsx's world. The page's notes
+# document is live-notes'. Today on the list, the schedule's pass slots and
+# the Passes screen stay with medications.mjs (the rules below).
+apps/web/app/routes/app/groups/medications/medicationWorld.tsx -
+apps/web/app/routes/app/groups/medication/useMedicationNotes.ts live-notes
+apps/web/app/routes/app/groups/medication/* -
+apps/web/app/routes/app/groups/medications/new/* -
+apps/web/app/routes/app/groups/medications/edit/* -
+apps/web/app/routes/app/groups/medications/allergies/* -
+apps/web/app/routes/app/groups/medications/print/* -
+apps/web/app/routes/app/groups/medications/MedicationForm.tsx -
+apps/web/app/routes/app/groups/medications/NameField.tsx -
+apps/web/app/routes/app/groups/medications/ProviderPickerField.tsx -
+apps/web/app/routes/app/groups/medications/medicationFormData.ts -
+apps/web/app/routes/app/groups/medications/medicationProviders.ts -
+apps/web/app/routes/app/groups/medications/medicationSheet.ts -
+apps/web/app/routes/app/groups/medications/MedicationList.tsx -
+apps/web/app/routes/app/groups/medications/MedicationListItem.tsx -
+apps/web/app/routes/app/groups/medications/MedicationFilters.tsx -
+apps/web/app/routes/app/groups/medications/PrintMenu.tsx -
+apps/web/app/components/medications/AllergiesRegion.tsx -
+apps/web/app/components/medications/PrintAllergies.tsx -
+apps/web/app/components/medications/MedicationStatusActions.tsx -
 apps/web/app/routes/app/groups/medications/* medications
-apps/web/app/routes/app/groups/medication/* medications
-# The status actions (the medication page and the list's edit sheet).
+# Today's pass cards, dose rows and Undo (the list and the strip).
 apps/web/app/components/medications/*    medications
 # Given all (medications-2): passes due today, the Undo offer, members' names for "who logged it".
-apps/web/app/lib/duePasses.ts            medications upcoming
+apps/web/app/lib/duePasses.ts            medications
 apps/web/app/lib/passUndo.ts             medications
 apps/web/app/lib/sync/memberNames.ts     medications
-apps/web/app/lib/sync/appointments.ts    upcoming live-notes
+# Cancel, undo and reschedule (the device module): component tests
+# (upcoming/upcomingEvents.browser.test.tsx); roundtrip uploads a reschedule's
+# one transaction to another member.
+apps/web/app/lib/sync/appointments.ts    roundtrip live-notes
 # The time fields and the reschedule sheet (the entry page's time chip, and
-# Reschedule from the timeline, Upcoming and the entry page).
-apps/web/app/components/schedule/*       upcoming
+# Reschedule from the timeline, Upcoming and the entry page): component tests
+# (upcoming/upcomingEvents and entry/entry browser tests).
+apps/web/app/components/schedule/*       -
 # Visit prep (assistant slice 4): the sheet and its hooks, and the device
 # module (reads, and one note_update like typing): component tests
 # (components/visitPrep/visitPrep.browser.test.tsx).
@@ -426,9 +443,9 @@ packages/data/src/db/seeds/medications.ts medications
 packages/data/src/db/seeds/carePeriods.ts -
 packages/data/src/db/seeds/medicationPasses.ts medications
 # Tasks' seeds (tasks slice 3 appends linked ones): no browser check reads
-# them; seeds/tasks.test.ts checks them. Appointments' seeds feed Upcoming.
+# them; seeds/tasks.test.ts checks them. Appointments' seeds feed Upcoming (component tests).
 packages/data/src/db/seeds/tasks.ts      -
-packages/data/src/db/seeds/appointments.ts upcoming
+packages/data/src/db/seeds/appointments.ts -
 # The seed guard (hosting slice 1): unit and integration tests.
 packages/data/src/db/seeds/guard.ts      -
 packages/data/src/db/seeds/*             app-shell
@@ -439,18 +456,20 @@ packages/data/src/*                      -
 packages/data/scripts/*                  -
 
 # Upcoming (appointments): the section, its Past tab, the time rules and the
-# list pieces it shares with the timeline.
+# list pieces it shares with the timeline: component tests
+# (upcoming/upcoming.browser.test.tsx; upcomingWorld.tsx is their world), and
+# the lib modules have unit tests.
+apps/web/app/routes/app/groups/upcoming/* -
+apps/web/app/lib/upcoming.ts             -
+apps/web/app/lib/upcomingLabels.ts       -
+apps/web/app/lib/upcomingDays.ts         -
 # Tasks in Upcoming (tasks slice 4): the task row is a component test
 # (upcoming/upcomingTasks.browser.test.tsx); lib/upcomingTasks.ts has unit tests.
 apps/web/app/routes/app/groups/upcoming/UpcomingTaskRow.tsx -
-apps/web/app/routes/app/groups/upcoming/* upcoming
-apps/web/app/lib/upcoming.ts             upcoming
-apps/web/app/lib/upcomingLabels.ts       upcoming
-apps/web/app/lib/upcomingDays.ts         upcoming
 # Today's due doses in Upcoming, and the sheet-link state they open the Dose sheet with.
-apps/web/app/lib/upcomingDoses.ts        upcoming
-apps/web/app/lib/timelineSheet.ts        roundtrip medications upcoming
-apps/web/app/lib/sync/useLiveRows.ts     phase2 upcoming
+apps/web/app/lib/upcomingDoses.ts        -
+apps/web/app/lib/timelineSheet.ts        roundtrip medications
+apps/web/app/lib/sync/useLiveRows.ts     phase2
 # Quick entry (assistant slice 1): the box and its cards are component tests
 # (timeline/timelineQuickEntry.browser.test.tsx), and so is the runner, whose
 # rows are the ones roundtrip already uploads. The parser and actions are

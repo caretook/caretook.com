@@ -377,6 +377,90 @@ describe("sync.upload: medication change entries", () => {
     expect(await changesOf(id)).toHaveLength(0);
     expect(ok(await medicationService.getById(owner.ctx, id))).toMatchObject({ status: "current" });
   });
+
+  // medications.mjs's offline form steps (check-migration slice 9): what the
+  // add sheet, the edit sheet and Discontinue queue offline, uploaded together.
+  it("takes an offline add with a new prescriber, an edit and a discontinue as one batch: the prescriber linked, one entry each", async () => {
+    const { owner, group, recipient, changesOf } = await setup();
+    const id = randomUUID();
+    const prescriberId = randomUUID();
+    const STOPPED_AT = "2026-11-18T10:00:00.000000Z";
+    const ops = [
+      {
+        op: "PUT" as const,
+        table: "provider",
+        id: prescriberId,
+        data: {
+          group_id: group.id,
+          type: "clinician",
+          name: "Dr. Ada Moss",
+          specialty: null,
+          practice_id: null,
+          phones: "[]",
+          email: null,
+          address: null,
+          website: null,
+          status: "current",
+          is_primary: 0,
+          deleted_at: null,
+          created_by: "ignored",
+        },
+      },
+      {
+        op: "PUT" as const,
+        table: "medication",
+        id,
+        data: medicationRow(group.id, recipient.id, { name: "Albuterol", prescriber_id: prescriberId }),
+      },
+      changeRow(group.id, recipient.id, id, SAVED_AT, { change: "started", after: { name: "Albuterol" } }),
+      { op: "PATCH" as const, table: "medication", id, data: { dose: "2 puffs", updated_at: EDITED_AT } },
+      changeRow(group.id, recipient.id, id, EDITED_AT, {
+        change: "changed",
+        fields: ["dose"],
+        before: { dose: "1 tablet" },
+        after: { dose: "2 puffs" },
+      }),
+      {
+        op: "PATCH" as const,
+        table: "medication",
+        id,
+        data: {
+          status: "discontinued",
+          stopped_on: "2026-11-18",
+          stop_reason: "ineffective",
+          updated_at: STOPPED_AT,
+        },
+      },
+      changeRow(group.id, recipient.id, id, STOPPED_AT, {
+        change: "stopped",
+        stopStatus: "discontinued",
+        stopReason: "ineffective",
+      }),
+    ];
+
+    const res = await owner.api.sync.upload({ ops });
+    expect(res.results.map((r) => r.status)).toEqual(Array(ops.length).fill("applied"));
+    expect(ok(await medicationService.getById(owner.ctx, id))).toMatchObject({
+      name: "Albuterol",
+      dose: "2 puffs",
+      status: "discontinued",
+      stopReason: "ineffective",
+      prescriberId,
+    });
+    expect(ok(await providerService.getById(owner.ctx, prescriberId))).toMatchObject({
+      name: "Dr. Ada Moss",
+      type: "clinician",
+    });
+    const changes = await changesOf(id);
+    expect(changes.map((c) => (c.details as MedicationChangeDetails).change)).toEqual([
+      "started",
+      "changed",
+      "stopped",
+    ]);
+    expect(changes.map((c) => c.id)).toEqual(
+      [SAVED_AT, EDITED_AT, STOPPED_AT].map((at) => medicationChangeId(id, at)),
+    );
+  });
 });
 
 describe("sync.upload: doses and medication notes", () => {

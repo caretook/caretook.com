@@ -14,13 +14,13 @@
 | 6     | landed (wave 3)                      | 17f91aa (3dfa6fd)                                |
 | 7     | landed (wave 3)                      | 3c0418e (97af38e)                                |
 | 8     | landed (wave 3)                      | 2cdba7f (c6d0b95, 55676bf)                       |
-| 9     | in progress (wave 4)                 |                                                  |
-| 10    | blocked by 1, 2                      |                                                  |
-| 11    | blocked by 9 and `assistant` slice 7 |                                                  |
+| 9     | merged, lands with wave 4            | 35dceff (cc30504, 72c7166)                       |
+| 10    | merged, lands with wave 4            | 3bb168a (f9c1ef9, eef96ac)                       |
+| 11    | handed off (af6b87d, f274fd5)        |                                                  |
 | 12    | blocked by 1, 2 and `assistant` 1, 5 |                                                  |
-| 13    | blocked by 1, 2 and `assistant` 4    |                                                  |
-| 14    | blocked by 1, 2 and `assistant` 4    |                                                  |
-| 15    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
+| 13    | merged, lands with wave 4            | bc5104e (0b06086)                                |
+| 14    | handed off (cce2ed2)                 |                                                  |
+| 15    | in progress (started early)          |                                                  |
 | 16    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
 | 17    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
 | 18    | blocked by 3–17                      |                                                  |
@@ -36,7 +36,7 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19) for slice 2's sync matrix (9c0b2bf); slice 5 lowered it to 350.
 
-**Now:** wave 3 (6, 7, 8) landed 2026-11-20: suite 12/12 in 5m07s, `pnpm prd check` 3380/3380. Waves 1–2 landed as 2040ed3 on 2026-11-19. Next: wave 4 (9, 10).
+**Now:** wave 4 (9, 10, 13) landing 2026-11-20 after tasks landed in dev (its `task` row is in the sync matrix; Upcoming's section test now finds its link by name, since Tasks follows it). Suite: 10 passed, `sign-in` FLAKY at load 88 (filed), `roundtrip` failed twice at load 68–75 (a 90 s silent timeout, then 'shows on this device at once' at 2024 ms) and passed alone at load 20 in 47 s. Usual seconds not changed from this suite (too loaded to measure by). Slices 11 and 14 handed off and merge after this landing; 15 is running. Wave 3 landed as 68571c8, waves 1–2 as 2040ed3.
 
 - **Ceiling 295** (2026-11-20). Slice 6 cut `session-end` from 60 to 7 (it runs in 5–6 s), which took the ceiling to 297. Then the orchestrator set every lean check's usual seconds to the median of the three suite runs so far (the listed values had drifted: `marketing` 10 vs 29 measured, `app-shell` 10 vs 18, `layout-offline` 15 vs 27, `sign-in` 10 vs 5), which made the total 295. The lean set is already under slice 18's 300; slice 18 still makes 300 the hard limit and trims what it can.
 - Orchestrator fixes on this branch so far: f6a4db8 (settle test), the timelineFilters race (B-131), `retry: 2` on timelineScroll's B-133 flake (remove when B-133 is fixed), 1384054 (visit prep steps the year, not the month: B-134, date-dependent on dev).

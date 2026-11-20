@@ -14,10 +14,28 @@ const colorScheme: BrowserCommand<[scheme: "light" | "dark" | null]> = async (ct
   });
 };
 
-export const deviceCommands = { colorScheme };
+/** Print media on (true) or off (false), as Chrome lays a page out to print it (check-migration slice 10). */
+const printMedia: BrowserCommand<[on: boolean]> = async (ctx, on) => {
+  if (ctx.provider.name !== "playwright") throw new Error("printMedia needs the Playwright provider");
+  await (ctx as unknown as { page: { emulateMedia(o: object): Promise<void> } }).page.emulateMedia({
+    media: on ? "print" : null,
+  });
+};
+
+/** The page's media type: "print" lays it out as printing would (`@media print`); null resets it. */
+const media: BrowserCommand<[type: "print" | "screen" | null]> = async (ctx, type) => {
+  if (ctx.provider.name !== "playwright") throw new Error("media needs the Playwright provider");
+  await (ctx as unknown as { page: { emulateMedia(o: object): Promise<void> } }).page.emulateMedia({
+    media: type,
+  });
+};
+
+export const deviceCommands = { colorScheme, printMedia, media };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
     colorScheme: (scheme: "light" | "dark" | null) => Promise<void>;
+    printMedia: (on: boolean) => Promise<void>;
+    media: (type: "print" | "screen" | null) => Promise<void>;
   }
 }
