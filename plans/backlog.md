@@ -860,6 +860,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and carry slice and backlog history that git already holds.
 - 2026-11-20 (backlog agent): Triage: agent-tooling. Docs only; timeline.md and medications.md first. Tasks folds into timeline.md at its landing, so trim after tasks lands.
+- 2026-11-20 (plan/agent-tooling): Planned: agent-tooling slices 5 (components, sync, care-groups, medications) and 6 (timeline, app-shell, after tasks lands).
 
 ### B-149 · chore · Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop…
 
