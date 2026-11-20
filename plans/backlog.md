@@ -67,10 +67,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
-| B-116 | chore | triaged | check-migration |  | Move providers.mjs to component tests |
+| B-116 | chore | in-progress | check-migration | prd/check-migration | Move providers.mjs to component tests |
 | B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
 | B-118 | chore | in-progress | check-migration | prd/check-migration | Move medications.mjs to component tests |
-| B-119 | chore | in-progress | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
+| B-119 | chore | ready | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-121 | chore | in-progress | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
@@ -296,9 +296,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-116 · chore · Move providers.mjs to component tests
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the directory (list, search, filters), the sheets, the provider page, the entry page's With row and suggestions to component tests on the test device; keep two-browser notes, offline add and edit then upload, and the viewer's refused writes. Then e2e yes. B-113 asks for a recheck of it too.
@@ -327,13 +327,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-119 · chore · Move upcoming.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: bc5104e
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (about 203 s). Move the section, Past, filters, adding at ?when=pick, cancel and reschedule dialogs, the Next strip and block, and due doses in Upcoming to component tests; keep reschedule's one transaction uploading and reaching another device. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 13, wave 5 (after assistant slice 4) (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/13): slice 13 (0b06086): upcoming.mjs deleted; screens in upcoming/upcoming, upcomingEvents and timeline/timelineUpcoming browser tests on a fixed clock; reschedule's transaction folded into roundtrip 6a
 
 ### B-121 · chore · Move profiles.mjs to component tests
 
@@ -344,6 +345,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the profile page, its sheets by role, offline states and the print sheet's layout to component tests (oRPC through the test device's api); keep a save syncing back, demotion losing the writers' details on the next sync. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 10, wave 4 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/10): slice 10: profiles.mjs moved to component tests (profile/*.browser.test.tsx, profileWorld.tsx); demotion losing the details row folded into app-shell step 4; check deleted (f9c1ef9, eef96ac)
 
 ### B-122 · chore · Move profiles-contacts.mjs to component tests
 
