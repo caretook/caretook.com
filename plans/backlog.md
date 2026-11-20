@@ -333,6 +333,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (plan/check-migration): Planned: check-migration slices 9 (wave 4) and 11 (wave 5, after assistant slice 7) (plans/check-migration-plan.md).
 - 2026-11-20 (slice/check-migration/9): slice 9 (part A): list, page, notes, forms, status actions, allergies, print sheets, provider region and the device module moved to component tests (medicationWorld.tsx); offline batch upload as an integration test; medications.mjs keeps Today, timeline doses, passes, Given all, strip, pass logs for slice 11.
 - 2026-11-20 (prd/check-migration): part A merged into prd/check-migration (35dceff, slice 9); part B is slice 11
+- 2026-11-20 (slice/check-migration/11): slice 11: medications.mjs deleted; Today, Dose sheet, strip, passes, pass logs are component tests (af6b87d, f274fd5); no roundtrip fold (6a covers a multi-row upload)
 
 ### B-119 · chore · Move upcoming.mjs to component tests
 
