@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/agent-tooling` (slice commits) |
-| ----- | ---- | --------------- | ---------------------------------------------- |
-| 1     | 1    | merged (opus)   | 8d10f6b (9faf638)                              |
-| 2     | 1    | merged (sonnet) | a23e77c (52a8503)                              |
-| 3     | 1    | merged (sonnet) | 5ba5669 (bc6bd87)                              |
-| 4     | 2    | not started     |                                                |
-| 5     | 3    | not started     |                                                |
-| 6     | 3    | not started     |                                                |
+| Slice | Wave | State                             | Merge into `prd/agent-tooling` (slice commits) |
+| ----- | ---- | --------------------------------- | ---------------------------------------------- |
+| 1     | 1    | landed (wave 1, cff4d2f) (opus)   | 8d10f6b (9faf638)                              |
+| 2     | 1    | landed (wave 1, cff4d2f) (sonnet) | a23e77c (52a8503)                              |
+| 3     | 1    | landed (wave 1, cff4d2f) (sonnet) | 5ba5669 (bc6bd87)                              |
+| 4     | 2    | not started                       |                                                |
+| 5     | 3    | not started                       |                                                |
+| 6     | 3    | not started                       |                                                |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
 
@@ -19,7 +19,9 @@
 
 **Slice 2 note:** its `pnpm check` had 1–3 failures in medicationList/passSheet component tests at load ~40; medicationList passed 6/6 on the base alone, and the slice touches no app code: load flakes.
 
-**Wave 1:** all three merged; synced, full `pnpm prd check` passed on 5e08bbc (4167 tests), decisions folded into AGENTS.md and docs/loops.md; landing. Slice 3's `pnpm check` also had 2 component flakes (medicationList, providerSheets), both passed alone.
+**Wave 1:** landed in `dev` as cff4d2f (2026-11-20), full check on 5e08bbc (4167 tests); its decisions folded into AGENTS.md (commands table, backlog multi-id line) and docs/loops.md (the land guard). Told code-layout and check-migration to sync.
+
+**Now: waiting on slice 4's gate.** code-layout's wave 3 (its final landing, a few hours out) folds heavily into AGENTS.md, docs/loops.md and docs/layout.md; check-migration has wave 6 merged and unlanded. code-layout-d2 will message at its wave 2 and wave 3 landings; a background check also watches `dev` for their landing merges. Start slice 4 (opus: a judgement-heavy rewrite) after code-layout's final landing and once check-migration has no landing imminent.
 
 **Land guard (user's choice, 2026-11-20):** AGENTS.md and docs/loops.md are `landExempt` (warn only) until slice 4, which removes the flags.
 
