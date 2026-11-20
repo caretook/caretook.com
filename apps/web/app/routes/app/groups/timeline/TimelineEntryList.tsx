@@ -34,6 +34,11 @@ export { COLUMN_CAP } from "./layout";
 
 const NO_SEARCH = { q: "", state: "none" } as const;
 
+/** Simple mode's larger list: everything in it, text, icons and taps alike, a quarter bigger. */
+const SIMPLE_ZOOM = "[zoom:1.25]";
+/** Simple mode shows no care period markers. */
+const NO_MARKERS: never[] = [];
+
 const LIST_CLASS: Record<TimelineView, string> = {
   rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",
   // One column at every width: side-by-side cards are hard to read in time order.
@@ -50,6 +55,12 @@ const LIST_CLASS: Record<TimelineView, string> = {
  * `upcoming` (`?upcoming=1`), the Upcoming block comes first, above Today, in
  * the same rows or cards. Writers get each entry's ⋯ menu, with one delete
  * confirm for the whole list.
+ *
+ * `simple` is simple mode's list: rows only, shown larger (the whole list is
+ * zoomed, so icons and taps grow with the text; `SIMPLE_ZOOM`), with no ⋯
+ * menus, no filter links, no care periods (markers or the day headers'
+ * period) and nothing to edit: notes and events open as usual, other rows
+ * open nothing.
  */
 export function TimelineEntryList({
   data,
@@ -62,6 +73,7 @@ export function TimelineEntryList({
   vital = null,
   search: searching = NO_SEARCH,
   upcoming,
+  simple = false,
 }: {
   data: Pick<
     TimelineData,
@@ -91,6 +103,8 @@ export function TimelineEntryList({
   search?: { q: string; state: TimelineSearchState };
   /** The Upcoming block, when it's on, and where its "See all in Upcoming" goes. */
   upcoming?: { items: TimelineData["upcoming"]; seeAll: string } | null;
+  /** Simple mode's larger, read-only list (above). */
+  simple?: boolean;
 }) {
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -99,7 +113,7 @@ export function TimelineEntryList({
   const rescheduling = useEventReschedule(groupId, canWrite);
   // Writers reschedule or cancel an event (or undo the cancel) from its ⋯ menu.
   const cancelOf = (entry: TimelineEntry) =>
-    canWrite && entry.kind === "event"
+    canWrite && !simple && entry.kind === "event"
       ? {
           cancelled: !!entry.cancelledAt,
           onCancel: () => cancelling.ask(entry.id),
@@ -110,7 +124,7 @@ export function TimelineEntryList({
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
   const recipientZone = useGroup().recipient?.timeZone ?? "UTC";
-  const sections = withMarkers(data.days, data.markers, localTimeZone(), new Date());
+  const sections = withMarkers(data.days, simple ? NO_MARKERS : data.markers, localTimeZone(), new Date());
   // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then).
   const summaries =
     data.summaryEntries &&
@@ -146,7 +160,7 @@ export function TimelineEntryList({
   // Matches are marked in the history's rows and cards (the Upcoming block stays as it is).
   const parsed = useMemo(() => (searching.q ? parseSearch(searching.q) : undefined), [searching.q]);
   const item = (entry: TimelineEntry, marked = false) => {
-    const open = entryOpen({ groupId, entry, canWrite, search });
+    const open = entryOpen({ groupId, entry, canWrite: canWrite && !simple, search });
     return (
       <Entry
         key={entry.id}
@@ -161,11 +175,12 @@ export function TimelineEntryList({
             ? () => void navigate(open.to, { state: SHEET_LINK_STATE, preventScrollReset: true })
             : undefined
         }
-        onDelete={canWrite ? () => removal.ask(entry) : undefined}
+        onDelete={canWrite && !simple ? () => removal.ask(entry) : undefined}
         cancel={cancelOf(entry)}
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
         search={marked ? parsed : undefined}
+        simple={simple}
       />
     );
   };
@@ -183,7 +198,12 @@ export function TimelineEntryList({
           />
         </div>
       )}
-      <section ref={list} aria-labelledby="timeline-heading" className={`space-y-4 ${COLUMN_CAP}`}>
+      <section
+        ref={list}
+        aria-labelledby="timeline-heading"
+        className={`space-y-4 ${COLUMN_CAP} ${simple ? SIMPLE_ZOOM : ""}`}
+        data-simple-list={simple ? "" : undefined}
+      >
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
@@ -209,6 +229,7 @@ export function TimelineEntryList({
               newestAt={day.entries[0]?.occurredAt}
               groupId={groupId}
               periods={data.periods}
+              simple={simple}
             />
             {summaries && <DaySummaryLine summary={summaries.get(day.key)} />}
             <ol className={LIST_CLASS[view]} data-view={view}>
@@ -235,7 +256,7 @@ export function TimelineEntryList({
                     occurredAt={it.occurredAt}
                     authorName={data.nameOf(it.entries[0]!.createdBy)}
                     authorImage={data.imageOf(it.entries[0]!.createdBy)}
-                    sheetTo={canWrite ? appUrls.passSheet(groupId, it.id, { search }) : undefined}
+                    sheetTo={canWrite && !simple ? appUrls.passSheet(groupId, it.id, { search }) : undefined}
                   />
                 ),
               )}

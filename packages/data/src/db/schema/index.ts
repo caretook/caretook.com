@@ -54,3 +54,4 @@ export * from "./appSettings";
 export * from "./assistantActions";
 export * from "./quickEntryTime";
 export * from "./quickEntry";
+export * from "./simpleMode";

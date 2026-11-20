@@ -428,3 +428,9 @@ apps/web/app/lib/quickEntryDraft.ts      -
 # recent lines are wiped at sign-out.
 apps/web/app/lib/sync/quickEntrySuggestions.ts -
 apps/web/app/lib/recentLines.ts          session-end
+# Simple mode (assistant slice 5): the simple view, the reduced header, the
+# toggle, the account setting and the Members switch are component tests
+# (timeline/timelineSimple.browser.test.tsx); app-shell.mjs keeps the owner's
+# switch reaching the member's device. lib/simpleMode.ts has its unit test.
+apps/web/app/lib/simpleModeToggle.ts     app-shell
+apps/web/app/lib/useSimpleMode.ts        app-shell

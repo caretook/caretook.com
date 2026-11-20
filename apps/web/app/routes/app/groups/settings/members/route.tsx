@@ -29,8 +29,8 @@ import { PendingInvites } from "./PendingInvites";
 
 // `…/settings/members`. Shared by web + native. Members and roles come from
 // the device's local copy (live, so they work offline and follow other
-// members' changes). Changing a role, removing and leaving go through the
-// API: online only. So do invites (`InviteSheet`, `PendingInvites`), which
+// members' changes). Changing a role or a member's simple mode, removing and
+// leaving go through the API: online only. So do invites (`InviteSheet`, `PendingInvites`), which
 // owners and admins send, resend and revoke here, and invite links and the
 // requests to join they bring (`InviteLinks`, `JoinRequests`). Each member's
 // relationship and shared contact details come from the local copy too; your
@@ -82,6 +82,11 @@ export async function clientAction({
       const role = MEMBER_ROLES.find((known) => known === chosen);
       if (!role) return { ok: false, error: "Choose a role.", issues: [] };
       await rpc.careGroup.changeRole({ groupId, userId: formString(form, "userId"), role });
+      return { ok: true };
+    }
+    if (intent === "setMemberMode") {
+      const simpleMode = formString(form, "simpleMode") === "on";
+      await rpc.careGroup.setMemberMode({ groupId, userId: formString(form, "userId"), simpleMode });
       return { ok: true };
     }
     if (intent === "updateSharing") {

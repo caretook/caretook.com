@@ -15,6 +15,7 @@ export const schemaName = careGroupMemberModel.schemaName;
 // Writes add rules the permissions map can't express:
 //   - only owners add, promote to, demote from, or remove owners
 //   - a group always keeps at least one owner
+//   - nobody locks or unlocks simple mode for themselves
 export const { get, getById, list } = getService(careGroupMemberModel);
 
 /** Whether the actor may touch owner memberships in `groupId`. */
@@ -77,6 +78,48 @@ export const updateRole = (ctx: ServiceContext, { id, role }: { id: string; role
       tx,
       filter: { id: { type: "eq", value: id } },
       data: { role },
+    });
+    if (isError(updated)) return updated;
+    return updated[0] ?? newError({ code: "careGroupMemberService:notFound" });
+  }, ctx);
+
+/**
+ * Set simple mode for a member (assistant PRD): `simpleMode` is the default
+ * the managers choose for them, and `locked` keeps them in it (a lock means
+ * simple, so locking turns the default on, and turning the default off
+ * unlocks). Owners and admins (the map); only owners change an owner's, and
+ * nobody locks or unlocks themselves.
+ */
+export const setMode = (
+  ctx: ServiceContext,
+  { id, simpleMode, locked }: { id: string; simpleMode?: boolean; locked?: boolean },
+) =>
+  withTransaction(async (tx) => {
+    const target = await getTarget(ctx, id, tx);
+    if (isError(target)) return target;
+
+    const data: { simpleMode?: boolean; simpleModeLocked?: boolean } = {};
+    if (simpleMode !== undefined) data.simpleMode = simpleMode;
+    if (locked !== undefined) data.simpleModeLocked = locked;
+    if (locked) data.simpleMode = true;
+    if (simpleMode === false && locked === undefined) data.simpleModeLocked = false;
+
+    const lockChanges =
+      data.simpleModeLocked !== undefined && data.simpleModeLocked !== target.simpleModeLocked;
+    if (lockChanges && !isSystemUser(ctx.authUser) && target.userId === ctx.authUser?.id)
+      return newError({ code: "careGroupMemberService:ownLock" });
+    if (target.role === "owner") {
+      const isOwner = await actorIsOwner(ctx, target.groupId, tx);
+      if (isError(isOwner)) return isOwner;
+      if (!isOwner) return newError({ code: "careGroupMemberService:ownerOnly" });
+    }
+    if (Object.keys(data).length === 0) return target;
+
+    const updated = await careGroupMemberModel.update({
+      ...ctx,
+      tx,
+      filter: { id: { type: "eq", value: id } },
+      data,
     });
     if (isError(updated)) return updated;
     return updated[0] ?? newError({ code: "careGroupMemberService:notFound" });

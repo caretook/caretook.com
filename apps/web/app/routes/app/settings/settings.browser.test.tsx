@@ -69,7 +69,7 @@ describe.each([420, 1280])("at %i", (width) => {
     expect(after).toBeGreaterThanOrEqual(0);
   });
 
-  test("Timeline layout: one choice, named by the page's heading: Rows or Cards", async () => {
+  test("Timeline layout: the layout, named by the page's heading (Rows or Cards), then simple mode", async () => {
     await open("/app/settings/timeline", width);
     const group = page.getByRole("radiogroup", { name: "Timeline layout" });
     await expect.element(group).toBeVisible();
@@ -79,7 +79,14 @@ describe.each([420, 1280])("at %i", (width) => {
         .elements()
         .map((r) => r.getAttribute("aria-label")),
     ).toEqual(["Rows", "Cards"]);
-    expect(page.getByRole("radiogroup").elements()).toHaveLength(1);
+    expect(page.getByRole("radiogroup").elements()).toHaveLength(2);
+    expect(
+      page
+        .getByRole("radiogroup", { name: "Simple mode" })
+        .getByRole("radio")
+        .elements()
+        .map((r) => r.getAttribute("aria-label")),
+    ).toEqual(["Follow the group", "Always", "Never"]);
     frameAt(width, "timeline");
   });
 
