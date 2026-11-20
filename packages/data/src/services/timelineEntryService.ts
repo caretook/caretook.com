@@ -228,6 +228,8 @@ export type TimelineListOptions = IncludeDeleted & {
   from?: string;
   /** Exclusive upper bound on occurredAt (ISO 8601). */
   to?: string;
+  /** Only entries this member wrote (`created_by`). */
+  authorId?: string;
   cursor?: string | null;
   limit?: number;
 };
@@ -239,7 +241,7 @@ export type TimelineListOptions = IncludeDeleted & {
  */
 export const list = async (
   ctx: ServiceContext,
-  { groupId, kinds, from, to, ...opts }: TimelineListOptions,
+  { groupId, kinds, from, to, authorId, ...opts }: TimelineListOptions,
 ) => {
   const range = [
     ...(from ? [{ type: "gte" as const, value: from }] : []),
@@ -248,6 +250,7 @@ export const list = async (
   const filter: Filter<K> = {
     groupId: { type: "eq", value: groupId },
     ...(kinds?.length ? { kind: { type: "inArray", value: kinds } } : {}),
+    ...(authorId ? { createdBy: { type: "eq", value: authorId } } : {}),
     ...(range.length ? { occurredAt: { type: "and", value: range } } : {}),
   };
   const page = await timelineEntryModel.listPage({ ...ctx, ...opts, filter });

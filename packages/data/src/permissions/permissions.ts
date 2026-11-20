@@ -16,6 +16,7 @@ import { ADMIN_PERMISSIONS } from "./admin";
 import { AUTH_PERMISSIONS } from "./auth";
 import { CARE_GROUPS_PERMISSIONS } from "./care-groups";
 import { CARE_PERIODS_PERMISSIONS } from "./care-periods";
+import { CONNECTORS_PERMISSIONS } from "./connectors";
 import { CORE_PERMISSIONS } from "./core";
 import { LIVE_NOTES_PERMISSIONS } from "./live-notes";
 import { MARKETING_PERMISSIONS } from "./marketing";
@@ -45,6 +46,7 @@ export const PERMISSIONS: Permissions = {
   ...AUTH_PERMISSIONS,
   ...CARE_GROUPS_PERMISSIONS,
   ...CARE_PERIODS_PERMISSIONS,
+  ...CONNECTORS_PERMISSIONS,
   ...CORE_PERMISSIONS,
   ...LIVE_NOTES_PERMISSIONS,
   ...MARKETING_PERMISSIONS,

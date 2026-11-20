@@ -4,3 +4,4 @@
 export { Field } from "../Field";
 export type { FieldControl } from "../fieldIds";
 export { IconButton } from "../IconButton";
+export { ChoiceGroup } from "../ChoiceGroup";

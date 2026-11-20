@@ -1,0 +1,11 @@
+# check-areas: connectors (connectors PRD): members' own AI assistants over
+# MCP. /connect is component tests (from loader data); the OAuth dance, the
+# grant service and /mcp are integration tests (packages/api/src/connectors/,
+# packages/data/src/services/connectorGrant.int.test.ts). No browser check
+# owns a connector flow yet.
+apps/web/app/routes/connectors/*         -
+apps/web/app/.server/connectors.ts       -
+# The OAuth plugin's hooks run on every sign-in.
+packages/auth/src/connectors.ts          sign-in
+packages/auth/src/connectorToken.ts      -
+packages/data/src/db/seeds/connectors.ts app-shell
