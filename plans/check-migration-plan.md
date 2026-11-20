@@ -36,7 +36,7 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19) for slice 2's sync matrix (9c0b2bf); slice 5 lowered it to 350.
 
-**Now (2026-11-20 13:00, check-migration-17):** **wave 7 (slice 18) landed in dev as c4d97d5**, after the suite (12/12 at load 13–22; app-shell's member-share step passed) and a full `pnpm prd check` on 9692923 (4239 tests). Wave 6 landed as fdb07b2. **Wave 8: slice 19 running** on **opus**, since a new cross-cutting harness is design-heavy work (_Models_). Worktree `.loops/check-migration-19`; B-129 and B-161 claimed. Its brief adds: `@playwright/test` 1.65.1 only, and stop if it needs `allowBuilds` or a newer release; keep `waitFor` awaiting; times are measured, never estimated. A crash means respawn with `--continue`. After 19: wave 9 (20, 21, 22 on sonnet: ports), then wave 10 (23).
+**Now (2026-11-20 13:00, check-migration-17):** **wave 7 (slice 18) landed in dev as c4d97d5**, after the suite (12/12 at load 13–22; app-shell's member-share step passed) and a full `pnpm prd check` on 9692923 (4239 tests). Wave 6 landed as fdb07b2. B-173 (app-shell's member-share step flaky; filed by code-layout) is proposed for slice 22, for the user to review. code-layout has finished (18e9cf8: routes and URLs by area). Sync at the next boundary. **Wave 8: slice 19 running** on **opus**, since a new cross-cutting harness is design-heavy work (_Models_). Worktree `.loops/check-migration-19`; B-129 and B-161 claimed. Its brief adds: `@playwright/test` 1.65.1 only, and stop if it needs `allowBuilds` or a newer release; keep `waitFor` awaiting; times are measured, never estimated. A crash means respawn with `--continue`. After 19: wave 9 (20, 21, 22 on sonnet: ports), then wave 10 (23).
 
 - **Resumed 2026-11-20 10:25 (session check-migration-17):** Status matched git (nothing in flight). Synced (dev had only backlog commits). `timelineLayout` › "the author tooltip… hover" **fails alone at low load too**: deterministic, not load. App code is unchanged since wave 4 landed (it passed then), so it's likely time-of-day dependent and on dev as well. Cause (sonnet helper): the quick-entry suggestion chips (time-of-day dependent) land after the rows and push the list down ~40 px, so the hover lands on another row's button. Test-only fix: wait for the link to stop moving before hovering (file passes 20/20 three times). Full `pnpm prd check` passed on 76a3161 (4089 tests, 371 files). Landing wave 5. After landing, message hosting-5b (it hit the same failure on prd/hosting and is waiting for the fix in dev) as well as code-layout-d2. B-161 (sign-in flake) proposed for this PRD (slice 20 ports sign-in).
 - Earlier: wave 4 (9, 10, 13) landed as 54a1880 (its suite: `roundtrip` failed twice at load 68–75 and passed alone at load 20; `sign-in` flaky at load 88, filed as B-161). Wave 3 landed as 68571c8, waves 1–2 as 2040ed3. Only `profiles-contacts` is left as an area check. Lean times are the median of the last three clean suites (waves 2, 3, 5): total and ceiling **286**.
@@ -50,7 +50,7 @@
 - Filed for the user's triage (not this PRD): B-133 (timeline minute-turn remount), B-134 (a month step back from the 31st in visit prep).
 - Stale comments for later slices: `groups.mjs:296` names admin.mjs (slice 15); `profiles.mjs:338` says care periods' own check covers it (slice 10).
 
-Backlog: claim each slice's items when it starts: 1 B-131; 2 B-128; 3 B-114; 4 B-115; 5 B-120; 6 B-124; 7 B-125 (and B-113's admin part); 9 and 11 B-118 (done after 11); 10 B-121; 12 B-126; 13 B-119; 14 B-116 (and B-113's providers part; B-113 done after 14); 15 B-117; 16 B-122; 17 B-127; 19 to 23 B-129 (done after 23).; 18 also B-172; 19 also B-161 (user approved both 2026-11-20)
+Backlog: claim each slice's items when it starts: 1 B-131; 2 B-128; 3 B-114; 4 B-115; 5 B-120; 6 B-124; 7 B-125 (and B-113's admin part); 9 and 11 B-118 (done after 11); 10 B-121; 12 B-126; 13 B-119; 14 B-116 (and B-113's providers part; B-113 done after 14); 15 B-117; 16 B-122; 17 B-127; 19 to 23 B-129 (done after 23).; 22 also B-173 (proposed); 18 also B-172; 19 also B-161 (user approved both 2026-11-20)
 
 Fold into the area docs at each landing: the settle helper, parallelism and `loaderData` in `docs/domain/components.md` (_Component tests_); the lean rule, the ceiling, the sync matrix and each deleted check in `docs/loops.md` (_Browser check budget_, the area table, the manifest's list); the Playwright harness in `docs/loops.md` (_Browser checks_) and AGENTS.md's _Loop rules_ (`cdp.mjs` and `proxy.mjs` are named there).
 
@@ -447,7 +447,7 @@ Stack: yes · Reads: docs/loops.md, docs/domain/care-groups.md, docs/domain/app-
 
 ### What to build
 
-Port `app-shell` and `invites` (emails through `/dev/mail.json`) as specs, with step-for-step parity.
+Port `app-shell` and `invites` (emails through `/dev/mail.json`) as specs, with step-for-step parity. Also fix B-173: `app-shell` step 4's member-share fold (slice 16) times out at times, failing at load 5.9 and at load 20, when its 30 s poll waits for a SQL-inserted `member_contact_share` row to reach the owner's device. Find why the row is slow to arrive (the stream's parameter rule, or a SQL insert with no change PowerSync sees) before you touch the timeout.
 
 ### Acceptance criteria
 
