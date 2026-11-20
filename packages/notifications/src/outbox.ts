@@ -11,6 +11,7 @@ import {
   logError,
   newError,
   notificationOutboxSchema as outbox,
+  rateLimitService,
   txOrDb,
 } from "@caretook/data";
 import { and, eq, inArray, lt, lte, or, sql } from "drizzle-orm";
@@ -316,11 +317,16 @@ export const purgeSent = async ({ olderThanDays = PURGE_AFTER_DAYS } = {}) => {
   return isError(removed) ? removed : removed.length;
 };
 
-/** One cron run: deliver what's due, then purge old sent rows. */
+/**
+ * One cron run: deliver what's due, then purge old sent rows and old
+ * rate-limit rows (ours and Better Auth's; hosting PRD).
+ */
 export const sweepOutbox = async (opts: { sender?: Sender; limit?: number } = {}) => {
   const delivered = await deliverDue(opts);
   if (isError(delivered)) return delivered;
   const purged = await purgeSent();
   if (isError(purged)) return purged;
-  return { ...delivered, purged };
+  const rateLimits = await rateLimitService.purge();
+  if (isError(rateLimits)) return rateLimits;
+  return { ...delivered, purged, rateLimitsPurged: rateLimits.hits + rateLimits.authCounters };
 };

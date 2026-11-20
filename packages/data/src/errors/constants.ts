@@ -702,6 +702,9 @@ export const SERVICE_ERRORS = {
     message: "No known allergies needs a time, or none to clear it",
     statusCode: 400,
   },
+  "rateLimitService:store": {
+    message: "Failed to read or write the rate limits",
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {

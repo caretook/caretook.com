@@ -390,6 +390,10 @@ packages/data/src/db/schema/publicForms.ts marketing
 packages/data/src/db/schema/publicFormRules.ts marketing
 packages/data/src/db/schema/waitlistEntry.ts marketing
 packages/data/src/db/schema/contactMessage.ts marketing
+# Shared rate limits (hosting): check builds (NODE_ENV=production) count
+# Better Auth's and the public forms' limits in Postgres.
+packages/data/src/db/schema/rateLimit.ts sign-in marketing
+packages/data/src/services/rateLimitService.ts sign-in marketing
 # The query language and search documents: unit tests (packages/data), and the
 # component tests above on the device.
 packages/data/src/db/schema/search.ts    -

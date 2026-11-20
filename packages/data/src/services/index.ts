@@ -94,6 +94,10 @@ export { groupAdminService };
 import * as appSettingService from "./appSettingService";
 export { appSettingService };
 
+// Not in `services`: no model behind it (shared rate limits, hosting PRD).
+import * as rateLimitService from "./rateLimitService";
+export { rateLimitService };
+
 export type * from "./types";
 
 export const services = {
