@@ -36,11 +36,16 @@
 //  12. A requester withdraws a waiting request from home (after a confirm):
 //      the row goes, it's withdrawn in Postgres and gone from Members;
 //      offline the button is disabled; a declined row has no button.
+// Check migration slice 15 (groups.mjs's folds):
+//  13. An access code's /join: one call makes the account, its group (as
+//      owner) and the redemption; the emailed confirmation opens the new
+//      group's timeline with the Invite someone card. A revoked code says so
+//      with no form, and signed out, staff pages ask to sign in.
 //
 // Order-independent and self-cleaning: it makes its own fictional accounts
 // (inv<run>-…@example.com, with the seed password) and deletes them, their
-// mail and their outbox rows at the end (their invites, consent rows and
-// memberships too). Later slices append their steps.
+// mail and their outbox rows at the end (their invites, consent rows,
+// memberships, and step 13's group and code too). Later slices append their steps.
 import { execFileSync } from "node:child_process";
 import { BASE, launch, openPage, sleep, step } from "./cdp.mjs";
 
@@ -50,6 +55,10 @@ const SYSTEM = "00000000-0000-0000-0000-000000000000";
 const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const RUN = `inv${Date.now().toString(36)}`;
 const email = (who) => `${RUN}-${who}@example.com`;
+// Step 13's revoked access code (one per run).
+const CLOSED_CODE = ((s) => `INVX-${s.slice(0, 4)}-${s.slice(4)}`)(
+  RUN.slice(3).toUpperCase().padStart(8, "0").slice(-8),
+);
 
 const psql = (sql) =>
   execFileSync("docker", [
@@ -106,6 +115,8 @@ const cleanUp = () => {
   const like = `'${RUN}-%@example.com'`;
   const links = linkIds.length ? linkIds.map((id) => `'${id}'`).join(", ") : "NULL";
   psql(`
+    DELETE FROM care_group WHERE id IN (SELECT group_id FROM care_recipient WHERE name LIKE '${RUN}%');
+    DELETE FROM access_code WHERE code = '${CLOSED_CODE}';
     DELETE FROM care_group_invite WHERE id IN (${links});
     DELETE FROM dev_mail WHERE name = 'joinRequested' AND text LIKE '%${RUN}-%';
     DELETE FROM notification_outbox WHERE name = 'joinRequested' AND text LIKE '%${RUN}-%';
@@ -1125,6 +1136,62 @@ try {
     await openMembers(owner);
     await owner.waitFor(`document.querySelector("[data-link-controls]")`, 15000);
     check(!(await owner.evaluate(`!!${requestRow(withdrawer)}`)), "owners no longer see it under Requests");
+  });
+
+  // 13. An access code (groups.mjs's fold; the form's states are component
+  // tests in routes/account/join/, the server's rules groups.int.test.ts's).
+  await step("13. /join: sign up with a code, confirm, the new group opens; a closed code", async () => {
+    const joiner = email("codejoiner");
+    const p = await open(9526, "inv-join");
+    await p.goto("/join/care-demo-0001");
+    await p.waitFor(q('[data-join-form="account"]'), 20000);
+    await p.type(q('[name="name"]'), "Inv Joiner Tester");
+    await p.type(q('[name="email"]'), joiner);
+    await p.type(q('[name="password"]'), PASSWORD);
+    await p.type(q('[name="confirm"]'), PASSWORD);
+    await p.press(
+      `[...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Continue")`,
+    );
+    await p.waitFor(q('[data-join-form="recipient"]'));
+    await p.type(q('[name="recipientName"]'), `${RUN} Rose Example`);
+    await p.press(submit("Create care group"));
+    await p.waitFor(`location.pathname === "/verify-email"`, 20000);
+    const row = psql(`
+      SELECT m.role || '|' || (SELECT count(*) FROM access_code_redemption r WHERE r.user_id = u.id AND r.group_id = m.group_id)
+      FROM "user" u JOIN care_group_member m ON m.user_id = u.id WHERE u.email = '${joiner}'`);
+    check(row === "owner|1", "one call makes the account, its group as owner, and the redemption", row);
+    const mail = await waitForMail(joiner, "verifyEmail");
+    const link = mail.links.find((l) => l.includes("/verify-email?token="));
+    await p.goto(new URL(link).pathname + new URL(link).search);
+    await p.waitFor(`document.querySelector("main h1")?.textContent === "Email confirmed"`, 20000);
+    await p.press(
+      `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Continue to Caretook")`,
+    );
+    const opened = await p
+      .waitFor(`/\\/timeline$/.test(location.pathname) && ${q("[data-invite-card]")}`, 45000)
+      .then(
+        () => true,
+        () => false,
+      );
+    check(opened, "the confirmed link opens the new group's timeline, with the Invite someone card");
+
+    psql(`
+      INSERT INTO access_code (code, label, expires_at, max_uses, use_count, revoked_at, created_by, updated_by)
+      VALUES ('${CLOSED_CODE}', '${RUN} revoked', now() + interval '1 day', NULL, 0, now(), '${SYSTEM}', '${SYSTEM}')`);
+    await p.goto(`/join/${CLOSED_CODE}`);
+    await p.waitFor(q("[data-code-state]"), 20000);
+    const state = await p.evaluate(`${q("[data-code-state]")}.dataset.codeState`);
+    check(
+      state === "revoked" && !(await p.evaluate(`!!${q("[data-join-form]")}`)),
+      "a revoked code says so, with no form",
+      state,
+    );
+    const anon = await fetch(`${BASE}/admin/access-codes`, { redirect: "manual" });
+    check(
+      anon.status === 302 && (anon.headers.get("location") ?? "").startsWith("/sign-in"),
+      "signed out, staff pages ask to sign in",
+      String(anon.status),
+    );
   });
 } catch (error) {
   failed++;

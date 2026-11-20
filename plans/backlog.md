@@ -66,12 +66,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
-| B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
-| B-116 | chore | in-progress | check-migration | prd/check-migration | Move providers.mjs to component tests |
-| B-117 | chore | in-progress | check-migration | prd/check-migration | Move groups.mjs to component tests |
-| B-118 | chore | in-progress | check-migration | prd/check-migration | Move medications.mjs to component tests |
-| B-119 | chore | ready | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
-| B-121 | chore | ready | check-migration | prd/check-migration | Move profiles.mjs to component tests |
+| B-113 | chore | ready | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
+| B-116 | chore | ready | check-migration | prd/check-migration | Move providers.mjs to component tests |
+| B-117 | chore | ready | check-migration | prd/check-migration | Move groups.mjs to component tests |
+| B-118 | chore | ready | check-migration | prd/check-migration | Move medications.mjs to component tests |
+| B-119 | chore | landed | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
+| B-121 | chore | landed | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
@@ -97,10 +97,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 | B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
-| B-158 | change | triaged | hosting |  | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
-| B-159 | change | triaged | hosting |  | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
-| B-160 | change | triaged | hosting |  | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
-| B-161 | bug | inbox |  |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
+| B-158 | change | ready | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
+| B-159 | change | ready | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
+| B-160 | change | ready | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
+| B-161 | bug | triaged | check-migration |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
 
 ## Items
 
@@ -289,10 +289,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-113 · chore · Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands
 
-- status: triaged
+- status: ready
 - prd: check-migration
 - owner:
-- commit:
+- commit: 0e0ab28
 
 - 2026-11-19 (prd/admin): Admin landed with two suite failures treated as flaky (the user's call): app-shell.mjs failed twice at low load in step 6g (viewer@'s sign-in on a page that signed out stays on /sign-in, no alert, 60 s timeout; slice 3 changed sign-in hooks, so rule that out); providers.mjs failed once at '1280: every suggestion shows' (chip count 1 at 420 vs 5 at 1280, likely a race). Logs: .git/worktrees/admin/caretook-browser/app-shell-20261119-172829.log and providers-20261119-173206.log. Run both on the new suite; if app-shell still fails there, it's a real bug from admin slice 3.
 - 2026-11-19 (prd/orchestration): orchestration wave 2 landed (07bc4eb). app-shell.mjs is being shrunk by orchestration slice 7 (wave 3), which was asked to investigate step 6g (sign-in after sign-out on one page); results noted here when wave 3 lands.
@@ -304,10 +304,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-116 · chore · Move providers.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 0e0ab28
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the directory (list, search, filters), the sheets, the provider page, the entry page's With row and suggestions to component tests on the test device; keep two-browser notes, offline add and edit then upload, and the viewer's refused writes. Then e2e yes. B-113 asks for a recheck of it too.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 14, wave 6 (after assistant slice 4) (plans/check-migration-plan.md).
@@ -315,10 +315,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-117 · chore · Move groups.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 0e0ab28
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the New care group sheet, the invite card and /join/:code's form states to component tests; keep the server flows (careGroup.create then the new group syncing in, /join sign-up and the refused codes, /admin's 404 for non-staff, the QR). Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 15, wave 6 (plans/check-migration-plan.md).
@@ -326,10 +326,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-118 · chore · Move medications.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 0e0ab28
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (the biggest check, about 163 s). Move the list, search and status, the forms, status actions, Today, the Due now strip, the Dose sheet's states, passes, allergies and the print sheet's layout to component tests; keep a second device seeing a dose, offline then upload, and the service-written change entries. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slices 9 (wave 4) and 11 (wave 5, after assistant slice 7) (plans/check-migration-plan.md).
@@ -339,7 +339,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-119 · chore · Move upcoming.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: bc5104e
@@ -350,7 +350,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-121 · chore · Move profiles.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 3bb168a
@@ -631,36 +631,40 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-158 · change · Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS
 
-- status: triaged
+- status: ready
 - prd: hosting
-- owner:
-- commit:
+- owner: prd/hosting
+- commit: 5a67e22
 
 - 2026-11-20 (prd/hosting): Found by hosting slice 6 (ops/runbook.md marks it a gap with an interim step). Proposed for hosting: needed before the first secret rotation, not for going live.
+- 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
 
 ### B-159 · change · Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens
 
-- status: triaged
+- status: ready
 - prd: hosting
-- owner:
-- commit:
+- owner: prd/hosting
+- commit: 5a67e22
 
 - 2026-11-20 (prd/hosting): Found by hosting slice 6; break-glass forbids querying them, but the grant allows it. Proposed for hosting: a small rolesSql/dbAccessService change (exclude the auth tables) before production access is used.
+- 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
 
 ### B-160 · change · Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail)
 
-- status: triaged
+- status: ready
 - prd: hosting
-- owner:
-- commit:
+- owner: prd/hosting
+- commit: 5a67e22
 
 - 2026-11-20 (prd/hosting): Found by hosting slice 6; for now rotating means recreating staging's database (runbook). Proposed for hosting, low priority: the seed could update the seeded accounts' password on staging.
+- 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
 
 ### B-161 · bug · sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…')
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: check-migration
 - owner:
 - commit:
 
 - 2026-11-20 (prd/check-migration): check-migration wave 4 suite, 2026-11-20 08:54, load 51→88; passed on the automatic retry (.loops/.browser-flakes.log). The redirect outran the assertion under load; slice 19's Playwright port may make the wait robust.
+- 2026-11-20 (prd/check-migration): Proposed for check-migration: sign-in is a lean session check that slice 20 ports to Playwright; fix the flaky redirect assertion there. -- check-migration orchestrator

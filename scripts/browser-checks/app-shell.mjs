@@ -16,9 +16,11 @@ import { ADD_BUTTON, launch, openPage, sleep, step } from "./cdp.mjs";
 //    the timeline through sync; the seeds' name is put back through the page.
 // 4. Members across two devices: the owner makes caretaker@ an admin (their
 //    device gets the controls without a reload), then a viewer (their next
-//    timeline has no writer controls), then removes them (their rows go on the
-//    next sync, and /app says they're in no care group). The seeds'
-//    memberships are put back in SQL.
+//    timeline has no writer controls, and the details stream's own rule takes
+//    the recipient's writers-only details row off their device: profiles.mjs's
+//    fold), then removes them (their rows go on the next sync, and /app says
+//    they're in no care group). The seeds' memberships are put back in SQL,
+//    and the details row comes back with the caretaker role.
 // 5. Simple mode across two devices (assistant slice 5): the owner turns on
 //    simple mode for caretaker@ from Members; caretaker@'s open timeline
 //    switches to the simple view without a reload. Put back in SQL.
@@ -273,6 +275,10 @@ try {
       `${admin} / ${adminList}`,
     );
 
+    // The recipient's writers-only details (care_recipient_details) are on a writer's device only.
+    const detailsRows = `window.caretookSync.powersync.getAll("SELECT count(*) AS n FROM care_recipient_details WHERE group_id = ?", [${JSON.stringify(DEV_FAMILY)}]).then((r) => r[0].n)`;
+    const detailsBefore = await O.evaluate(detailsRows);
+
     await choose(M, "Dev Caretaker", "viewer");
     const viewer = await serverBecomes("Dev Member:owner,Dev Caretaker:viewer,Dev Viewer:viewer");
     const demoted = await passes(
@@ -314,6 +320,13 @@ try {
       `${viewer} / ${JSON.stringify(noWriter)}`,
     );
 
+    const detailsGone = await passes(O.waitFor(`${detailsRows}.then((n) => n === 0)`, 30000));
+    check(
+      "made a viewer: the details stream takes the recipient's writers-only details off their device",
+      detailsBefore === 1 && detailsGone,
+      `rows ${detailsBefore} → ${await O.evaluate(detailsRows)}`,
+    );
+
     const removeButton = `${memberRow("Dev Caretaker")}?.querySelector("button")`;
     await M.waitFor(`${removeButton} && !${removeButton}.disabled`, 20000);
     await M.evaluate(`${removeButton}.click()`);
@@ -345,6 +358,8 @@ try {
       back && serverMembers() === "Dev Member:owner,Dev Caretaker:caretaker,Dev Viewer:viewer",
       await listed(M),
     );
+    const detailsBack = await passes(O.waitFor(`${detailsRows}.then((n) => n === 1)`, 30000));
+    check("a caretaker again: the details row comes back on the next sync", detailsBack);
   });
 
   // ── 5. Simple mode: the owner's switch reaching the member's device ───────

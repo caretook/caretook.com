@@ -454,6 +454,19 @@ describe("the author tooltip", () => {
     expect(link.getAttribute("aria-describedby")).toBeNull();
     // A pointer press first: after keys (an earlier test's), React Aria shows tooltips on hover only once the pointer is used again.
     await userEvent.click(document.querySelector("section h3")!);
+    // The quick-entry suggestions (their chips depend on the time of day) land after the rows and push the list down: hover once the link has stopped moving.
+    let top = -1;
+    let still = 0;
+    await waitUntil(
+      () => {
+        const now = link.getBoundingClientRect().top;
+        still = now === top ? still + 1 : 0;
+        top = now;
+        return still >= 20;
+      },
+      4000,
+      "the layout to settle",
+    );
     await userEvent.hover(link);
     await waitUntil(() => !!TIP(), 3000, "the tooltip");
     const t = TIP()!;
