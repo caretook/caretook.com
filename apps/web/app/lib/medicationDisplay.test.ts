@@ -22,6 +22,7 @@ import {
   medicationCountText,
   passLoggedLabel,
   passLoggedText,
+  passMovedText,
   passStateText,
   passTitle,
 } from "./medicationDisplay";
@@ -377,5 +378,17 @@ describe("pass wording", () => {
     ).toBe("Ann and you logged 2 of 2");
     expect(medicationCountText(1)).toBe("1 medication");
     expect(medicationCountText(3)).toBe("3 medications");
+  });
+});
+
+describe("passMovedText (check-migration slice 11)", () => {
+  it("says a pass's move as one line, in the app's 24-hour times, with no medication", () => {
+    const moved = { change: "passMoved" as const, passId: NOON, passName: "Lunch", medicationIds: [MED] };
+    expect(passMovedText({ ...moved, beforeTime: "08:00", afterTime: "08:30" })).toBe(
+      "Lunch moved 8:00 → 8:30",
+    );
+    expect(passMovedText({ ...moved, beforeTime: "12:00", afterTime: "12:30" })).toBe(
+      "Lunch moved 12:00 → 12:30",
+    );
   });
 });
