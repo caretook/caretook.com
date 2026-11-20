@@ -88,7 +88,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-121 | chore | triaged | check-migration |  | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-123 | chore | in-progress | check-migration | prd/check-migration | Move care-periods.mjs to component tests |
-| B-124 | chore | in-progress | check-migration | prd/check-migration | Move devices.mjs to component tests |
+| B-124 | chore | ready | check-migration | prd/check-migration | Move devices.mjs to component tests |
 | B-125 | chore | in-progress | check-migration | prd/check-migration | Move admin.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
@@ -561,10 +561,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-124 · chore · Move devices.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 17f91aa
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the Devices page's list, labels and offline notice to component tests; keep signing another device out (its next session check goes to sign-in) as a lean flow, possibly folded into session-end.mjs. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 6, wave 3 (plans/check-migration-plan.md).
