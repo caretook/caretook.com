@@ -43,6 +43,8 @@
 
 **Full check passed on f14b71a4** (2026-11-20, third rerun; 434 files, 4488 tests, bundle budget ok). The second run's only failure is filed as B-182 (providers chip poll, check-migration). Stack: this worktree's PowerSync had exited at startup 4 h earlier (storage not ready); started it and reset its storage. The lean `--suite` passed 12/12 in 4 m 17 s (roundtrip 27 s), the one approved run.
 
+**Landing:** `pnpm prd sync` 3231f540 (check-migration's CDP harness deletion, conflict-free, only Markdown shared); quick check passed on it, and `pnpm prd ready` is green. Landing in run-through mode.
+
 **Open for landing:**
 
 - A full clean `pnpm prd check` (load flakes so far: B-178, B-173, providers).
