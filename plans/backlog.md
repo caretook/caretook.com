@@ -103,7 +103,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-136 | change | triaged | app-speed |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | triaged | app-speed |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
 | B-138 | change | triaged | app-speed |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
-| B-139 | change | inbox |  |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
+| B-139 | change | triaged | app-speed |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
 | B-140 | change | inbox |  |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
 | B-141 | change | inbox |  |  | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
 | B-142 | change | inbox |  |  | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
@@ -745,8 +745,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-139 · change · Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: app-speed
 - owner:
 - commit:
 
