@@ -95,7 +95,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-128 | chore | in-progress | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
-| B-131 | bug | in-progress | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
+| B-131 | bug | ready | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | in-progress | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 
 ## Items
@@ -629,10 +629,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-131 · bug · Component tests (web:components) can fail under pnpm check's load
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 9c0b2bf
 
 - 2026-11-19 (Robert Bo Davis): From the orchestration PRD. Slice 9's first pnpm prd check failed two component test files once (trace in apps/web/test/device.tsx; details lost), then passed on every rerun. At wave 3's landing three entry page tests raced the same way (they read the screen right after a stored write) and were fixed to wait for the screen. If it recurs, capture the log, look for DOM reads right after a database poll, and consider a lower parallelism for web:components inside pnpm check.
 - 2026-11-19 (Robert Bo Davis): Triage: check-migration moves most screen checks into web:components, which makes this load flake matter more; its first slice should capture logs and settle web:components parallelism inside pnpm check.
