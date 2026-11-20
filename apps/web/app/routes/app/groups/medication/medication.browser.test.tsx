@@ -1,0 +1,185 @@
+import { describe, expect, test } from "vitest";
+import { page, userEvent } from "vitest/browser";
+import { renderWithDevice } from "../../../../../test/device";
+import { at, fx, newId, TEST_USER } from "../../../../../test/fixtures";
+import { medicationEntriesQuery } from "~/lib/sync/medications";
+import * as provider from "../provider/route";
+import {
+  $,
+  daysAgo,
+  ELM,
+  GROUP,
+  LARK,
+  LATANOPROST,
+  LISINOPRIL,
+  MEDICATION_ROUTES,
+  medicationUrl,
+  medPage,
+  METFORMIN,
+  NOTES,
+  OXYBUTYNIN,
+  RECIPIENT,
+  waitUntil,
+  world,
+} from "../medications/medicationWorld";
+
+// A medication's page (medications.mjs's page, notes, offline, viewer and
+// 404 steps): the details with the schedule's zone note when the recipient
+// lives elsewhere, the prescriber and pharmacy as links to their pages with
+// contact actions, refills, the history newest first, a stopped medication's
+// how and why, the notes (writable for a writer, made on the first
+// keystroke; read-only for a viewer with no actions), and the 404s with no
+// names. The device is offline throughout, so the page here is the offline
+// one too. Two browsers writing one document together is live-notes.mjs's; a
+// medication or its document reaching another device is roundtrip.mjs's
+// sync matrix (6b).
+
+const ROUTES = [
+  ...MEDICATION_ROUTES,
+  { path: "/app/groups/:groupId/providers/:providerId", module: provider },
+];
+const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
+  renderWithDevice({ route: ROUTES, url, fixtures: world(), ...options });
+/** The page is up: its title, notes editor and history (whichever medication the URL names). */
+const onPage = () =>
+  !!$("main .ProseMirror") && !!$("main h1")?.textContent && !!$("main [data-medication-history]");
+const NOT_FOUND = () => page.getByRole("heading", { name: "Not found" });
+
+describe("the page", () => {
+  test("Lisinopril's details, its prescriber and pharmacy as links with contact actions, and its doses and changes newest first", async () => {
+    const device = await open(medicationUrl(LISINOPRIL.id));
+    await waitUntil(onPage, 4000, "the page");
+    const state = medPage();
+    expect(state).toMatchObject({ h1: "Lisinopril 10 mg", badge: null, details: "Tablet · 1 tablet" });
+    expect(state.rows.schedule).toBe("Morning");
+    expect(state.rows.reason).toBe("Blood pressure");
+    expect(state.rows.directions).toMatch(/^Once every morning/);
+    expect(state.rows.started).toBeTruthy();
+    expect(state.providers).toEqual([
+      ["prescriber", "Dr. Mira Lark", `/app/groups/${GROUP}/providers/${LARK.id}`, true],
+      ["pharmacy", "Elm Street Pharmacy", `/app/groups/${GROUP}/providers/${ELM.id}`, true],
+    ]);
+    const q = medicationEntriesQuery(LISINOPRIL.id);
+    const ids = (await device.query<{ id: string }>(q.sql, q.params)).map((r) => r.id);
+    expect(state.history.map((h) => h.id)).toEqual(ids);
+    expect(state.history.filter((h) => h.kind === "medicationChange").map((h) => h.text)).toEqual([
+      "Changed strength 5 mg → 10 mg",
+      "Started",
+    ]);
+    expect(state.history.at(-1)?.text).toBe("Started");
+    expect(state.history.filter((h) => h.kind === "dose").map((h) => h.text)).toEqual([
+      "Given 1 tablet",
+      "Given 1 tablet",
+    ]);
+
+    // The prescriber's name opens their page.
+    await userEvent.click($('main li[data-medication-provider="prescriber"] a[data-provider-name]')!);
+    await expect.poll(device.location).toBe(`/app/groups/${GROUP}/providers/${LARK.id}`);
+  });
+
+  test("with the recipient in another zone, the schedule says whose times they are", async () => {
+    await open(medicationUrl(LISINOPRIL.id), {
+      fixtures: [world(), { ...RECIPIENT, row: { ...RECIPIENT.row, time_zone: "America/New_York" } }],
+    });
+    await waitUntil(onPage, 4000, "the page");
+    expect(medPage().rows.schedule).toBe("MorningTimes are New York time");
+  });
+
+  test("a discontinued medication says so, with the reason and the note, its stop first in the history", async () => {
+    await open(medicationUrl(OXYBUTYNIN.id));
+    await waitUntil(onPage, 4000, "the page");
+    const state = medPage();
+    expect(state.badge).toBe("Discontinued");
+    expect(state.stopped).toMatch(/^Discontinued \w{3} \d{1,2}, \d{4} · Side effects/);
+    expect(state.stopped).toContain("Dry mouth");
+    expect(state.history[0]?.text).toBe("Discontinued: side effects");
+  });
+
+  test("refills show on the page, the refill wrote no change entry, and only the pharmacy is listed", async () => {
+    await open(medicationUrl(LATANOPROST.id));
+    await waitUntil(() => onPage() && !!$("main li[data-medication-provider]"), 4000, "the page");
+    const state = medPage();
+    expect(state.rows.quantity).toBe("1 bottle (2.5 mL)");
+    expect(state.rows["refills-left"]).toBe("3");
+    expect(state.rows["rx-number"]).toBe("RX 0104-2277");
+    expect(state.rows["last-filled"]).toBeTruthy();
+    expect(state.history.filter((h) => h.kind === "medicationChange").map((h) => h.text)).toEqual([
+      "Started",
+    ]);
+    expect(state.providers.map((p) => p[0])).toEqual(["pharmacy"]);
+  });
+});
+
+describe("the notes", () => {
+  test("the seeded notes show in the editor, writable for a caretaker, with Edit and the status actions", async () => {
+    await open(medicationUrl(METFORMIN.id), { role: "caretaker" });
+    await waitUntil(() => !!NOTES()?.textContent?.includes("applesauce"), 4000, "the notes");
+    const state = medPage();
+    expect(state.editable).toBe("true");
+    expect(state.actions).toBe(true);
+    expect($("main [data-edit-medication]")).not.toBeNull();
+  });
+
+  test("a medication without notes opens with an empty editor and no document; the first keystroke makes it (subject medication)", async () => {
+    const device = await open(medicationUrl(LISINOPRIL.id));
+    await waitUntil(() => medPage().editable === "true", 4000, "an editable editor");
+    expect(medPage().notes).toBe("");
+    expect(await device.query("SELECT id FROM note_document WHERE id = ?", [LISINOPRIL.id])).toEqual([]);
+    await userEvent.click(NOTES()!);
+    await userEvent.keyboard("Crush into yogurt");
+    await expect
+      .poll(() =>
+        device.query("SELECT subject, medication_id, entry_id FROM note_document WHERE id = ?", [
+          LISINOPRIL.id,
+        ]),
+      )
+      .toEqual([{ subject: "medication", medication_id: LISINOPRIL.id, entry_id: null }]);
+  });
+
+  test("a viewer reads the notes read-only, with no Edit or status actions", async () => {
+    await open(medicationUrl(METFORMIN.id), { role: "viewer" });
+    await waitUntil(() => !!NOTES()?.textContent?.includes("applesauce"), 4000, "the notes");
+    expect(medPage()).toMatchObject({ editable: "false", readonly: "true", actions: false });
+    await expect
+      .element(page.getByText("Shared with the care group. You can view these notes."))
+      .toBeVisible();
+  });
+});
+
+describe("the 404s", () => {
+  const OTHER = { group: newId(), recipient: newId() };
+  const otherGroup = (member: boolean) => [
+    fx.group({ id: OTHER.group, name: "Moreno Family 2" }),
+    fx.recipient({
+      id: OTHER.recipient,
+      groupId: OTHER.group,
+      name: "Lou Moreno",
+      preferredName: "Grandpa Lou",
+    }),
+    member && fx.member({ userId: TEST_USER.id, groupId: OTHER.group, role: "owner" }),
+  ];
+  const TAMSULOSIN = fx.medication({
+    name: "Tamsulosin",
+    reason: "Prostate",
+    groupId: OTHER.group,
+    recipientId: OTHER.recipient,
+  });
+  const DELETED = fx.medication({ name: "Deletedmed", deletedAt: at(daysAgo(1)) });
+  const fixtures = (member: boolean) => [world(), otherGroup(member), TAMSULOSIN, DELETED];
+
+  test.each([
+    ["a deleted medication", medicationUrl(DELETED.id), true],
+    ["another group's medication under this group (the user is in both)", medicationUrl(TAMSULOSIN.id), true],
+    ["a medication that isn't on the device", medicationUrl(newId()), true],
+    ["a group the user isn't in", `/app/groups/${OTHER.group}/medications/${TAMSULOSIN.id}`, false],
+  ])("%s is Not found, with no names", async (_, url, member) => {
+    await open(url, { fixtures: fixtures(member) });
+    await expect.element(NOT_FOUND(), { timeout: 4000 }).toBeVisible();
+    expect($("main")?.textContent).not.toMatch(/Tamsulosin|Prostate|Grandpa Lou|Deletedmed/);
+  });
+
+  test("another group's medication opens under its own group", async () => {
+    await open(`/app/groups/${OTHER.group}/medications/${TAMSULOSIN.id}`, { fixtures: fixtures(true) });
+    await expect.element(page.getByRole("heading", { name: /^Tamsulosin/, level: 1 })).toBeVisible();
+  });
+});
