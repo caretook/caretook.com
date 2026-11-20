@@ -69,7 +69,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-91 | feature | landed | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
 | B-98 | change | in-progress | quick-fixes | prd/quick-fixes | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-99 | change | in-progress | quick-fixes | prd/quick-fixes | Don't display recent vitals in the timeline header in mobile, |
-| B-100 | change | triaged | quick-fixes |  | Add "recent vita averages" to the profile page. |
+| B-100 | change | in-progress | quick-fixes | prd/quick-fixes | Add "recent vita averages" to the profile page. |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-105 | change | in-progress | quick-fixes | prd/quick-fixes | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | in-progress | quick-fixes | prd/quick-fixes | Turning email invites off also blocks staff owner invites from /admin |
@@ -354,9 +354,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-100 · change · Add "recent vita averages" to the profile page.
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): quick-fixes: a read-only region on the profile page (not a hot file now that profiles is done), from local vitals via json_each. Needs a decision on the window (7 or 30 days?) and which types; the slice agent should ask. Could move to a vitals-trends PRD if charts come up.
