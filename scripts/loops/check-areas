@@ -41,6 +41,7 @@ tsconfig*.json                           -
 # The checks themselves. The harness runs the basics; a check runs itself.
 scripts/browser-checks/cdp.mjs           sign-in roundtrip
 scripts/browser-checks/proxy.mjs         first-sync layout-offline
+scripts/browser-checks/sync-matrix.mjs   roundtrip
 scripts/browser-checks/*.png             -
 scripts/browser-checks/*                 @self
 
