@@ -11,7 +11,8 @@ import { syncedColumns } from "./syncConfig";
 //   USAGE/SELECT on sequences, no CREATE; default privileges give it the same
 //   on tables the migrations role creates later.
 // - replication: REPLICATION, and SELECT on exactly the columns the sync
-//   config reads (`syncedColumns`); nothing on any other table.
+//   config reads (`syncedColumns`), or on the whole table for
+//   REPLICATION_WHOLE_TABLES; nothing on any other table.
 // - the publication: the same tables with the same column lists.
 //
 // Roles are created without passwords (the runbook sets them). Pure: it only
@@ -30,6 +31,27 @@ export const DEFAULT_ROLE_NAMES: RoleNames = {
   replication: "caretook_replication",
   publication: "powersync",
 };
+
+/**
+ * Synced tables the replication role reads whole (a table-level SELECT), not
+ * column by column. PowerSync's first snapshot of a table runs `SELECT *`
+ * (1.28.3: module-postgres SnapshotQuery), which Postgres refuses unless the
+ * role can read every column, so a synced table must either list all its
+ * columns in sync-config.yaml or be here. The publication still lists only
+ * the streams' columns for every table, so changes replicate just those; the
+ * other columns reach only PowerSync's server-side storage, in the snapshot,
+ * never devices.
+ *
+ * - "user": its email, role, preferences and disabled fields must never
+ *   reach devices (the streams and the publication list id, name, image).
+ * - "note_document" and "timeline_entry": `search_vector` (migration 0016,
+ *   hand-written, not in the Drizzle schema) is derived from text these
+ *   tables already sync, and devices build their own index.
+ *
+ * Keep this list short; the parser still refuses `*` in streams. A test
+ * fails when a synced table can't be read with `SELECT *`.
+ */
+export const REPLICATION_WHOLE_TABLES: readonly string[] = ["user", "note_document", "timeline_entry"];
 
 const NAME = /^[a-z_][a-z0-9_]{0,62}$/;
 
@@ -94,14 +116,21 @@ export const rolesSql = ({
   syncConfig,
   tables,
   names = DEFAULT_ROLE_NAMES,
+  wholeTables = REPLICATION_WHOLE_TABLES,
 }: {
   syncConfig: string;
   tables: SchemaTables;
   names?: RoleNames;
+  /** Synced tables granted whole (default REPLICATION_WHOLE_TABLES). */
+  wholeTables?: readonly string[];
 }): RolesSql => {
   checkNames(names);
   const replication = syncedColumns(syncConfig, tables);
   if (replication.length === 0) throw new Error("rolesSql: the sync config syncs no tables");
+  for (const table of wholeTables) {
+    if (!replication.some((g) => g.table === table))
+      throw new Error(`rolesSql: "${table}" is granted whole but isn't synced`);
+  }
   const { migrations, app, replication: repl, publication } = names;
   const m = ident(migrations);
   const a = ident(app);
@@ -144,8 +173,10 @@ export const rolesSql = ({
     `GRANT USAGE ON SCHEMA public TO ${r};`,
     `REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${r};`,
     `REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM ${r};`,
-    ...replication.map(
-      (g) => `GRANT SELECT (${g.columns.map(ident).join(", ")}) ON TABLE ${ident(g.table)} TO ${r};`,
+    ...replication.map((g) =>
+      wholeTables.includes(g.table)
+        ? `GRANT SELECT ON TABLE ${ident(g.table)} TO ${r};`
+        : `GRANT SELECT (${g.columns.map(ident).join(", ")}) ON TABLE ${ident(g.table)} TO ${r};`,
     ),
 
     // The publication: the same tables and columns.

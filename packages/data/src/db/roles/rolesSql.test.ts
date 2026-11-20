@@ -1,6 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_ROLE_NAMES, rolesSql, schemaTables, SyncConfigError, syncedColumns } from ".";
+import {
+  DEFAULT_ROLE_NAMES,
+  REPLICATION_WHOLE_TABLES,
+  rolesSql,
+  schemaTables,
+  SyncConfigError,
+  syncedColumns,
+} from ".";
 
 // The replication grants come from the sync config (hosting slice 2): the
 // columns each stream reads, per table, the union across streams, nothing
@@ -131,7 +138,7 @@ describe("syncedColumns", () => {
 
 describe("rolesSql", () => {
   it("returns the parsed grants with its SQL", () => {
-    const res = rolesSql({ syncConfig: CONFIG, tables: TABLES });
+    const res = rolesSql({ syncConfig: CONFIG, tables: TABLES, wholeTables: ["user"] });
     expect(res.names).toEqual(DEFAULT_ROLE_NAMES);
     expect(res.replication).toEqual(syncedColumns(CONFIG, TABLES));
     expect(res.statements.length).toBeGreaterThan(10);
@@ -142,6 +149,26 @@ describe("rolesSql", () => {
     expect(() => rolesSql({ syncConfig: CONFIG, tables: TABLES, names })).toThrow(/plain lower-case/);
     const same = { ...DEFAULT_ROLE_NAMES, app: DEFAULT_ROLE_NAMES.replication };
     expect(() => rolesSql({ syncConfig: CONFIG, tables: TABLES, names: same })).toThrow(/different names/);
+  });
+
+  it("refuses a whole-table grant for a table that isn't synced", () => {
+    expect(() => rolesSql({ syncConfig: CONFIG, tables: TABLES, wholeTables: ["account"] })).toThrow(
+      /isn't synced/,
+    );
+  });
+
+  it("leaves no table partly synced in the real sync config unless it's granted whole", () => {
+    const config = readFileSync(
+      new URL("../../../../../powersync/sync-config.yaml", import.meta.url),
+      "utf8",
+    );
+    const tables = schemaTables();
+    const partial = syncedColumns(config, tables)
+      .filter((g) => g.columns.length < (tables[g.table]?.length ?? 0))
+      .map((g) => g.table);
+    // Columns outside the Drizzle schema (search_vector) show only in the integration test.
+    expect(partial.filter((t) => !REPLICATION_WHOLE_TABLES.includes(t))).toEqual([]);
+    expect(partial).toContain("user");
   });
 
   it("refuses a sync config it can't read", () => {

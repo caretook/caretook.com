@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getDb } from "../client";
-import { applyRoles, ident, literal, type RoleNames } from ".";
+import { applyRoles, ident, literal, REPLICATION_WHOLE_TABLES, type RoleNames } from ".";
 
 // The generated roles on the test database (hosting slice 2): applied twice,
 // then used by connecting as each role. Roles are cluster-wide and the shared
@@ -105,13 +105,13 @@ describe("applyRoles", () => {
     }
   });
 
-  it("lets the replication role read only the synced columns", async () => {
+  it("lets the replication role read only the synced tables, and only their columns", async () => {
     if ("code" in generated) throw new Error("not applied");
     const replication = await connectAs(names.replication);
     expect(await failsWith(replication, `SELECT id, name, image FROM "user"`)).toBeNull();
     expect(await failsWith(replication, `SELECT id, group_id, title FROM timeline_entry`)).toBeNull();
-    expect(await failsWith(replication, `SELECT email FROM "user"`)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(await failsWith(replication, `SELECT password FROM account`)).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(await failsWith(replication, `SELECT id FROM session`)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(await failsWith(replication, `SELECT id FROM admin_audit_log`)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(
       await failsWith(replication, `INSERT INTO "user" (id, email) VALUES (gen_random_uuid(), 'x')`),
@@ -121,11 +121,31 @@ describe("applyRoles", () => {
       sql`SELECT rolreplication FROM pg_roles WHERE rolname = ${names.replication}`,
     );
     expect(role.rows).toEqual([{ rolreplication: true }]);
+    // Column grants for every synced table but REPLICATION_WHOLE_TABLES, which get a table grant.
     const replicationRole = generated.summary.roles.find((r) => r.role === names.replication);
     expect(replicationRole?.columns).toEqual(
-      Object.fromEntries(generated.generated.replication.map((g) => [g.table, [...g.columns].sort()])),
+      Object.fromEntries(
+        generated.generated.replication
+          .filter((g) => !REPLICATION_WHOLE_TABLES.includes(g.table))
+          .map((g) => [g.table, [...g.columns].sort()]),
+      ),
     );
-    expect(replicationRole?.tablePrivileges).toEqual({});
+    expect(replicationRole?.tablePrivileges).toEqual({ SELECT: REPLICATION_WHOLE_TABLES.length });
+  });
+
+  // PowerSync's first snapshot of each published table is `SELECT * FROM <table>`
+  // (1.28.3, module-postgres SnapshotQuery). A synced table whose stream leaves a
+  // column out, and that isn't in REPLICATION_WHOLE_TABLES, fails here, not on
+  // the first deploy.
+  it("lets the replication role run PowerSync's snapshot query on every synced table", async () => {
+    if ("code" in generated) throw new Error("not applied");
+    const replication = await connectAs(names.replication);
+    const refused: string[] = [];
+    for (const { table } of generated.generated.replication) {
+      const code = await failsWith(replication, `SELECT * FROM ${ident(table)} LIMIT 1`);
+      if (code) refused.push(`${table} (${code})`);
+    }
+    expect(refused).toEqual([]);
   });
 
   it("publishes the same tables with the same column lists", () => {
@@ -136,5 +156,7 @@ describe("applyRoles", () => {
     expect(sorted(generated.summary.publication)).toEqual(sorted(expected));
     expect([...(generated.summary.publication.user ?? [])].sort()).toEqual(["id", "image", "name"]);
     expect(generated.summary.publication).not.toHaveProperty("account");
+    // "user" is granted whole for the snapshot, but its changes replicate only these.
+    expect(generated.summary.publication.user).not.toContain("email");
   });
 });
