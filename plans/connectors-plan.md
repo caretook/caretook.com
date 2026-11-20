@@ -4,21 +4,25 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                           | Merge into `prd/connectors` (slice commits) |
-| ----- | ---- | ----------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| 1     | 1    | merged, worktree removed (load flakes in untouched component tests; landing check reruns)       | 5225d442 (de3bedd0)                         |
-| 2     | 1    | started (worktree `.loops/connectors-2`, opus agent spawned 2026-11-20)                         |                                             |
-| 7     | 1    | handed off (210766d1; check green but a load flake; `marketing` browser check left for landing) |                                             |
-| 3     | 2    | not started                                                                                     |                                             |
-| 4     | 2    | not started                                                                                     |                                             |
-| 5     | 2    | not started                                                                                     |                                             |
-| 6     | 3    | not started                                                                                     |                                             |
+| Slice | Wave | State                                                                                                         | Merge into `prd/connectors` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 1     | 1    | merged, worktree removed (load flakes in untouched component tests; landing check reruns)                     | 5225d442 (de3bedd0)                         |
+| 2     | 1    | merged, worktree removed (check: load flakes only, B-178/B-173; lean set 11/12, app-shell flake passed alone) | f54a93ae (b8309a7f, fd5725ec)               |
+| 7     | 1    | merged, worktree removed (`marketing` passed in slice 2's lean run)                                           | 1552855d (210766d1)                         |
+| 3     | 2    | started (worktree `.loops/connectors-3`, opus agent spawned 2026-11-20)                                       |                                             |
+| 4     | 2    | started (worktree `.loops/connectors-4`, sonnet agent spawned 2026-11-20)                                     |                                             |
+| 5     | 2    | started (worktree `.loops/connectors-5`, opus agent spawned 2026-11-20)                                       |                                             |
+| 6     | 3    | not started                                                                                                   |                                             |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue connectors`, 2026-11-20): start every ready slice, land each green wave without asking (here: one landing after slice 6, per _When to land_), clean up; ask only real questions.
 
-**Models:** slice 1 sonnet (a mechanical move), slice 2 opus (design-heavy), slice 7 sonnet (text).
+**Models:** slice 1 sonnet (a mechanical move), 2 opus (design-heavy), 7 sonnet (text), 3 opus (server runner, sync, UI tag), 4 sonnet (read tools on slice 2's pattern), 5 opus (new UX, procedures).
 
-**Waiting on:** timeline-ux's B-164/B-165 are in `dev` (60260949): rows put ⋯ `EntryActions` over the author chip in `div[data-entry-aside]` (`ASIDE_CLASS`, `timeline/layout.ts`); cards unchanged (author in the footer); `DayHeader` has a `summary` region; `EntryHeader` untouched; the header strips became one `TodayCard`. So slice 3 waits only on slice 2: at the wave 2 boundary run `pnpm prd sync` first, and give slice 3 these placement notes. B-140 (timeline-ux slice 10) started 2026-11-20: Better Auth `session.cookieCache` (`maxAge: 180`), a `before` hook refusing the cookie cache on `/token`, a lazy `getAuthUser` in `routes/rpc.ts`, procedure middleware. Expected in `dev` before us; at our sync check that its hook matches `/token` exactly (we asked) and doesn't catch `/oauth2/token`, and that `/connect` and revocation behave with the 180 s cookie cache. They'll message before it lands.
+**Wave 1 done.** `pnpm prd sync` 00f5e759: one conflict, `dev` added `OVERDUE_AFTER_MINUTES` to the web `dueDoses.ts` that slice 1 moved; ported into `packages/data/src/db/schema/medications/dueDoses.ts` and the web re-export (typecheck and check-areas clean). Dev's TodayCard replaced the header strips (`MedicationStrip`, `TaskStrip`, `NextStrip`, `UpcomingBlock`, `LatestVitals`).
+
+**Open for landing:** a full clean `pnpm check` (load flakes B-178, B-173 so far); the lean set once; `/connect` needs JS to redirect back to the client (CSP `form-action 'self'`), documented not fixed; B-140 (timeline-ux slice 10: `cookieCache` 180 s, a `/token` before-hook) expected in `dev` before us — at sync check the hook doesn't catch `/oauth2/token` (asked for an exact match) and that `/connect` and revocation still work.
+
+**Placement notes for slice 3 (timeline-ux 60260949):** rows put ⋯ `EntryActions` over the author chip in `div[data-entry-aside]` (`ASIDE_CLASS`, `timeline/layout.ts`); cards show the author in their footer; `DayHeader` has a `summary` region; `EntryHeader` untouched.
 
 **When to land:** this PRD has a migration and a new dependency, so hold landing until every slice is merged, then run the checks once at the end. Ask the user before any `--suite`.
 
