@@ -57,7 +57,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-55 | feature | in-progress | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-58 | plan | in-progress | assistant | prd/assistant | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
+| B-58 | plan | ready | assistant | prd/assistant | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
@@ -230,10 +230,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-58 · plan · Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions…
 
-- status: in-progress
+- status: ready
 - prd: assistant
 - owner: prd/assistant
-- commit:
+- commit: ed7029d
 
 - 2026-11-18 (prd/marketing): From the inbox: Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions for provider appointments.
 - 2026-11-18 (Robert Bo Davis): Proposed for assistant: review the timeline, explain concerns, and a printable cheat sheet of questions for a provider visit (the Product section's 'questions for visits'). Pairs with appointments (B-47) for the visit context.
