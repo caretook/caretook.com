@@ -8,6 +8,6 @@ apps/web/app/routes/app/groups/providers/* -
 apps/web/app/components/providers/*      -
 apps/web/app/lib/sync/providers.ts       roundtrip
 apps/web/app/lib/sync/providerSuggestions.ts -
-packages/data/src/db/schema/provider.ts  roundtrip
-packages/data/src/db/schema/entryProvider.ts roundtrip
+packages/data/src/db/schema/providers/provider.ts  roundtrip
+packages/data/src/db/schema/providers/entryProvider.ts roundtrip
 packages/data/src/db/seeds/providers.ts  roundtrip

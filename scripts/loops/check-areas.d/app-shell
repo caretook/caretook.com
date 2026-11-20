@@ -27,6 +27,6 @@ apps/web/app/lib/groupSections.ts        -
 apps/web/app/routes/app/settings/*       layout-offline
 apps/web/app/lib/me.ts                   layout-offline
 apps/web/app/components/settings/*       -
-packages/data/src/db/schema/userPreferences.ts layout-offline
+packages/data/src/db/schema/app-shell/userPreferences.ts layout-offline
 apps/web/app/routes/app/groups/settings/members/* app-shell invites profiles-contacts
 apps/web/app/routes/app/groups/settings/* app-shell

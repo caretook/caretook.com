@@ -3,7 +3,7 @@
 # (sync), so the area files name only the schemas and seeds screens read.
 packages/data/src/*                      -
 packages/data/scripts/*                  -
-packages/data/src/db/schema/timeZone.ts  roundtrip
+packages/data/src/db/schema/core/timeZone.ts  roundtrip
 # Seeds: the screens that read them.
 packages/data/src/db/seeds/*             app-shell
 # The seed guard (hosting slice 1): unit and integration tests.

@@ -24,6 +24,6 @@ apps/web/app/routes/app/groups/timeline/route.tsx roundtrip
 apps/web/app/routes/app/groups/timeline/QuickAddMenu.tsx roundtrip
 # The sheet-link state Upcoming's due doses open the Dose sheet with.
 apps/web/app/lib/timelineSheet.ts        roundtrip
-packages/data/src/db/schema/timelineEntry.ts phase2 roundtrip live-notes
-packages/data/src/db/schema/vitals.ts    phase2 roundtrip
+packages/data/src/db/schema/timeline/timelineEntry.ts phase2 roundtrip live-notes
+packages/data/src/db/schema/timeline/vitals.ts    phase2 roundtrip
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
