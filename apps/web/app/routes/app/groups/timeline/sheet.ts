@@ -2,7 +2,8 @@ import type { UnitChoices } from "@caretook/data/schema";
 
 import { useCallback, useRef } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router";
-import { appUrls, withoutSheetParams } from "~/lib/app-shell/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { withoutSheetParams } from "~/lib/timeline/urls";
 import { useGroup } from "~/lib/app-shell/group";
 import { openedOverTimeline } from "~/lib/timeline/timelineSheet";
 

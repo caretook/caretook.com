@@ -3,7 +3,7 @@ import type { NoteDocParts, NoteDocRow } from "~/lib/live-notes/notes.sync";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { PRINT_PARAM } from "~/lib/app-shell/appUrls";
+import { PRINT_PARAM } from "~/lib/live-notes/urls";
 import { useLiveQuery } from "~/lib/sync";
 import { documentPreviewQuery, previewText } from "~/lib/live-notes/notes.sync";
 import { entryProvidersQuery, toProviders } from "~/lib/providers/providers.sync";

@@ -1,7 +1,8 @@
 import type { CarePeriodType } from "@caretook/data/schema";
 
 import { isCarePeriodType } from "@caretook/data/schema";
-import { appUrls, PERIOD_PREFILL_PARAMS } from "../app-shell/appUrls";
+import { appUrls } from "../app-shell/appUrls";
+import { PERIOD_PREFILL_PARAMS } from "./urls";
 
 // The care periods page's sheet routes (`periods/new`, later
 // `periods/:periodId/edit`): which sheet a URL opens, or where it goes

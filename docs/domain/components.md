@@ -1,6 +1,6 @@
 # Components (`apps/web/app/components/`)
 
-The components area's rules and decisions, moved out of AGENTS.md (whose core rules still apply). An orchestrator folds a landing's lasting decisions for this area in here.
+The components area's rules and decisions. An orchestrator folds a landing's lasting decisions for this area in here.
 
 **Components** (`app/components/`, from the `components` PRD):
 
@@ -17,7 +17,7 @@ The components area's rules and decisions, moved out of AGENTS.md (whose core ru
   - `components/tasks/` (tasks PRD) holds what several routes share: `TaskTick` (`large` for the simple view), `useTaskTick`, `TaskUndoStatus`, `LinkedTasks` and `useLinkedTasks`. The list (`routes/app/groups/tasks/`) and the page (`routes/app/groups/task/`) are separate route folders.
   - **When a component moves:** it lives beside its route until a second route needs it, then moves to the matching feature folder under `components/` (or `ui/` if it's feature-free) and is exported from that folder's index. Keep heavy pieces (the editor, the date picker) out of indexes light routes import.
   - **Settings pages** use `SettingsPage` (heading, plus `offlineNotice` for online-only writes), `SettingsCard` (a titled `section` with `data-section`) and `SaveRow`.
-  - **Light pages** (sign-in, the account forms, the marketing site) import `Field`, `FieldControl` and `IconButton` from `~/components/ui/plain`, never `~/components/ui` (whose chunk carries React Aria: the marketing layout went from 143 to 380 KB). `IconButton` has `size` (`sm`, default, or `md`, 24 px icon). `Field` ids come from `useId`, so checks select account inputs by `input[name=…]`. `PROVIDER_SHEET_STATE` lives in `lib/providerSheetLink.ts`.
+  - **Light pages** (sign-in, the account forms, the marketing site) import `Field`, `FieldControl` and `IconButton` from `~/components/ui/plain`, never `~/components/ui` (whose chunk carries React Aria: the marketing layout went from 143 to 380 KB). `IconButton` has `size` (`sm`, default, or `md`, 24 px icon). `Field` ids come from `useId`, so checks select account inputs by `input[name=…]`. `PROVIDER_SHEET_STATE` lives in `lib/providers/providerSheetLink.ts`.
 
 ## Component tests
 

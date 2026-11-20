@@ -1,8 +1,8 @@
-import type { SheetKind } from "../../../../lib/app-shell/appUrls";
+import type { SheetKind } from "../../../../lib/timeline/urls";
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
+import { appUrls } from "../../../../lib/app-shell/appUrls";
 import {
-  appUrls,
   DOSE_MEDICATION_PARAM,
   DOSE_SLOT_PARAM,
   DOSE_PASS_PARAM,
@@ -10,7 +10,7 @@ import {
   isVitalType,
   VITAL_TYPE_PARAM,
   withoutSheetParams,
-} from "../../../../lib/app-shell/appUrls";
+} from "../../../../lib/timeline/urls";
 import { canHaveNoteDocument, isSystemWrittenKind, scheduleTimeZSchema } from "@caretook/data/schema";
 import { parseFilters } from "../../../../lib/timeline/timelineFilters";
 

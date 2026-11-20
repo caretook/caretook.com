@@ -6,7 +6,7 @@ import type { DoseChoiceRow } from "~/lib/medications/medicationTimeline.sync";
 
 import { useCallback, useMemo, useState } from "react";
 import { redirect, useLocation } from "react-router";
-import { startAtFrom } from "~/lib/app-shell/appUrls";
+import { startAtFrom } from "~/lib/timeline/urls";
 import { MarkDoseDialog, PassCard, PassUndoStatus } from "~/components/medications";
 import { Sheet } from "~/components/ui";
 import { doseWarnings } from "~/lib/medications/dueDoses";

@@ -4,7 +4,8 @@ import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
 import { Link, redirect } from "react-router";
 import { FirstSyncPending } from "~/components/shell";
-import { appUrls, GROUP_LIST_PARAM } from "~/lib/app-shell/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { GROUP_LIST_PARAM } from "~/lib/app-shell/urls";
 import { rememberedGroup, resolveHomeGroup } from "~/lib/app-shell/lastGroup";
 import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery, waitForFirstSync } from "~/lib/sync";

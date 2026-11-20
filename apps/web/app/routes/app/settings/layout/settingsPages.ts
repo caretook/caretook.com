@@ -1,5 +1,5 @@
 import type { SettingsItem } from "~/lib/app-shell/settingsNav";
-import type { AccountSettingsPage } from "~/lib/app-shell/appUrls";
+import type { AccountSettingsPage } from "~/lib/app-shell/urls";
 
 import { LayoutList, MonitorSmartphone, Phone, Ruler, UserRound } from "lucide-react";
 import { appUrls } from "~/lib/app-shell/appUrls";
