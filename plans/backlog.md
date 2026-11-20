@@ -801,6 +801,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload works offline (docs/domain/sync.md already notes the gap).
+- 2026-11-20 (backlog agent): Triage: app-speed, its largest slice (a precached shell for the web target only; update flow, CSP worker-src, how it meets PowerSync's own workers). Needs the PRD interview. Likely a new dependency question (hand-written worker or a Vite plugin).
 
 ### B-145 · question · Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for…
 
