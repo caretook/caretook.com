@@ -8,7 +8,9 @@
 # Secrets (GitHub environment secrets, set in both `staging` and `production`):
 #   APP_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, DATABASE_URL, POWERSYNC_URL,
 #   VITE_POWERSYNC_URL, MAIL_SENDER, RESEND_API_KEY, MAIL_FROM, SUPPORT_EMAIL,
-#   CRON_SECRET, INVITE_LINK_KEY, RESEND_WEBHOOK_SECRET
+#   CRON_SECRET, INVITE_LINK_KEY, RESEND_WEBHOOK_SECRET,
+#   CLIENT_IP_HEADER (x-vercel-forwarded-for)
+#   NATIVE_APP_ORIGINS (optional: unset until the native app ships, then 1)
 #   MAIL_ALLOWLIST, SEED_USER_PASSWORD (staging only)
 #   MIGRATIONS_DATABASE_URL (the migrations role's direct URL; only here)
 #   VERCEL_TOKEN, POWERSYNC_ADMIN_TOKEN (CI only)
@@ -73,6 +75,8 @@ jobs:
           INVITE_LINK_KEY: ${{ secrets.INVITE_LINK_KEY }}
           RESEND_WEBHOOK_SECRET: ${{ secrets.RESEND_WEBHOOK_SECRET }}
           SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
+          CLIENT_IP_HEADER: ${{ secrets.CLIENT_IP_HEADER }}
+          NATIVE_APP_ORIGINS: ${{ secrets.NATIVE_APP_ORIGINS }}
         run: pnpm deploy:env "$DEPLOY_TARGET"
 
       - id: migrate
