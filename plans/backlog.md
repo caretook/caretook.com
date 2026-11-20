@@ -464,6 +464,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/orchestration/9): Out of the lean set (e2e no) since orchestration slice 9. Move its screen steps (appUrls links, sheet URLs open and close, settings subpages, the group route's redirects and 404s) to *.browser.test.tsx beside the routes, delete each covered step (map step -> test in the hand-off), keep only what needs a real page load (route discovery offline, a deep link after a full load); then e2e yes or delete it. Rules: docs/loops.md, Browser check budget.
 - 2026-11-19 (Robert Bo Davis): Proposed (B-114 to B-128) a new check-migration topic: one slice per check moved to component tests, plus B-128's refused-upload step; tests only, no migration, can run beside feature PRDs. Start after orchestration lands.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 3, wave 2 (plans/check-migration-plan.md).
+- 2026-11-19 (slice/check-migration/3): slice 3: routing.mjs deleted; screen steps in groupRoute/timelineSheetUrls/settingsFrame browser tests; full-load deep link folded into first-sync, offline edit sheet into layout-offline (dc3b2ec..988c4de)
 
 ### B-115 · chore · Move settings-layout.mjs to component tests
 
