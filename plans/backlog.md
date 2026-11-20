@@ -66,10 +66,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
-| B-113 | chore | ready | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
-| B-116 | chore | ready | check-migration | prd/check-migration | Move providers.mjs to component tests |
-| B-117 | chore | ready | check-migration | prd/check-migration | Move groups.mjs to component tests |
-| B-118 | chore | ready | check-migration | prd/check-migration | Move medications.mjs to component tests |
+| B-113 | chore | landed | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
+| B-116 | chore | landed | check-migration | prd/check-migration | Move providers.mjs to component tests |
+| B-117 | chore | landed | check-migration | prd/check-migration | Move groups.mjs to component tests |
+| B-118 | chore | landed | check-migration | prd/check-migration | Move medications.mjs to component tests |
 | B-119 | chore | landed | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-121 | chore | landed | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
@@ -90,7 +90,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-147 | chore | triaged | agent-tooling |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
 | B-148 | chore | triaged | agent-tooling |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
-| B-149 | chore | triaged | code-layout |  | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
+| B-149 | chore | in-progress | code-layout | prd/code-layout | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
 | B-150 | chore | triaged | code-layout |  | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
@@ -289,7 +289,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-113 · chore · Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner:
 - commit: 0e0ab28
@@ -304,7 +304,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-116 · chore · Move providers.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 0e0ab28
@@ -315,7 +315,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-117 · chore · Move groups.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 0e0ab28
@@ -326,7 +326,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-118 · chore · Move medications.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 0e0ab28
@@ -557,9 +557,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-149 · chore · Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop…
 
-- status: triaged
+- status: in-progress
 - prd: code-layout
-- owner:
+- owner: prd/code-layout
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop conflicting on them. / The most-edited files in 30 days: scripts/loops/check-areas (69 commits), routes.ts (46), appUrls.ts (32), errors/constants.ts (28), db/schema/index.ts (26), permissions.ts, router.ts.
