@@ -13,17 +13,17 @@ The api area's rules and decisions, moved out of AGENTS.md (whose core rules sti
   - CORS for `allowedOrigins()` only (`packages/auth/src/host.ts`, shared with Better Auth): `AUTH_TRUSTED_ORIGINS`, plus Capacitor's origins only with `NATIVE_APP_ORIGINS=1` (off in dev, tests, checks and deploys until the native app ships). The list is defined once, in `host.ts`.
   - `clientIp` is `clientIpOf(headers)` from `host.ts`: the configured `CLIENT_IP_HEADER`'s first entry (`x-vercel-forwarded-for` on Vercel; a spoofed `x-forwarded-for` is ignored), else the first `x-forwarded-for` entry, then `x-real-ip` (what browser checks rely on). Better Auth keys its limits on the same header (`ipAddressHeaders`).
   - GET is refused.
-- **Mounting:** apps/web mounts it at `/rpc/*` through `app/.server/api.ts`. The browser client (`app/lib/rpc.ts`) uses a type-only router import and sends cookies.
-- **Procedures:**
+- **Mounting:** apps/web mounts it at `/rpc/*` through `app/.server/api.ts`. The browser client (`app/lib/core/rpc.ts`) uses a type-only router import and sends cookies.
+- **Procedures** live in `packages/api/src/<area>/` (with their integration tests); `router.ts` composes the area routers, and `routerPaths.test.ts` freezes every procedure path, so a new procedure adds its path there:
   - `me.get` and `me.updatePreferences`;
   - `careGroup.listMine` and `careGroup.members`;
   - `careGroup.update` (the name; owners and admins), `careGroup.recipient` (the profile with the date of birth, which is also synced; any member) and `careGroup.updateRecipient` (owners, admins and caretakers; fields left out keep their value, and an empty preferred name clears it). A non-member gets a 404, and a member without the role a 403 (the `updated()` helper maps `baseModel:update:nothingUpdated`, which has no status code);
-  - `invite.listForGroup`, `invite.createEmail`, `invite.resend`, `invite.revoke` (owners and admins), the public `invite.preview`, `invite.signUp` and `invite.decline`, and `invite.accept` (`packages/api/src/invites.ts`; `api` depends on `@caretook/auth` and `@caretook/notifications`);
-  - `invite.listLinks`, `invite.createLink` (returns the token), `invite.copyLink`; `joinRequest.list`, `mine`, `approve`, `decline`, `withdraw` (`packages/api/src/joinRequests.ts`; requesters' name and email go to managers only);
-  - `careGroup.create` (signed in: the group, its recipient and the creator as owner, one transaction); the public `accessCode.preview` and `accessCode.signUp`; `admin.accessCode.list|get|create|revoke` and `admin.careGroup.createWithOwnerInvite` behind `staffProcedure(capability)`; `admin.audit`, `admin.users`, `admin.groups`, `admin.settings` and the public `public.announcement` (see [admin](admin.md)) (`packages/api/src/groups.ts`);
+  - `invite.listForGroup`, `invite.createEmail`, `invite.resend`, `invite.revoke` (owners and admins), the public `invite.preview`, `invite.signUp` and `invite.decline`, and `invite.accept` (`packages/api/src/care-groups/invites.ts`; `api` depends on `@caretook/auth` and `@caretook/notifications`);
+  - `invite.listLinks`, `invite.createLink` (returns the token), `invite.copyLink`; `joinRequest.list`, `mine`, `approve`, `decline`, `withdraw` (`packages/api/src/care-groups/joinRequests.ts`; requesters' name and email go to managers only);
+  - `careGroup.create` (signed in: the group, its recipient and the creator as owner, one transaction); the public `accessCode.preview` and `accessCode.signUp`; `admin.accessCode.list|get|create|revoke` and `admin.careGroup.createWithOwnerInvite` behind `staffProcedure(capability)`; `admin.audit`, `admin.users`, `admin.groups`, `admin.settings` and the public `public.announcement` (see [admin](admin.md)) (`packages/api/src/care-groups/groups.ts`);
   - `careGroup.changeRole` and `careGroup.removeMember` (removing yourself is leaving), thin over `careGroupMemberService`, returning public profiles only. The `removed()` helper maps `baseModel:remove:nothingRemoved` to a 403, as `updated()` does;
   - `timeline.list`, `create`, `update`, `remove` and `latestVitals`;
-  - `search.query` (`packages/api/src/search.ts`, over `searchService`; see _Search_);
+  - `search.query` (`packages/api/src/search/search.ts`, over `searchService`; see _Search_);
   - `sync.upload`;
   - `admin.suppressions.list` (`users.read`) and `admin.suppressions.clear` (`users.help`; see [admin](admin.md)).
 
