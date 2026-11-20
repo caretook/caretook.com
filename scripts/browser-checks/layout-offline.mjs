@@ -15,9 +15,10 @@ import { startProxy } from "./proxy.mjs";
 // load sends it.
 //
 // The proxy cuts the whole browser's network (the rpc call is what matters).
-// A full page reload can't load at all while offline (there's no service
-// worker yet), so "reload while offline" is a revisit inside the app: open a
-// note, then go back, which runs the timeline's clientLoader again.
+// "Reload while offline" for the pending layout is a revisit inside the app:
+// open a note, then go back, which runs the timeline's clientLoader again. A
+// real reload offline has its own step: the service worker (B-144) serves the
+// shell, and the timeline and a provider's page open from local data.
 //
 // The sheets open offline too, once a full load has their route modules (the
 // add sheet for °C below, and a row's edit sheet: routing.mjs's).
@@ -25,6 +26,7 @@ import { startProxy } from "./proxy.mjs";
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
 const EMAIL = "member@example.com";
+const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -37,6 +39,11 @@ const psql = (sql) =>
     .trim();
 const serverView = () =>
   psql(`SELECT coalesce(preferences->>'timelineView', 'rows') FROM "user" WHERE email = '${EMAIL}'`);
+
+/** Polls the server's saved layout until it's `view` (an online save), for up to 5 s. */
+const serverViewBecomes = async (view) => {
+  for (const end = Date.now() + 5000; Date.now() < end && serverView() !== view;) await sleep(150);
+};
 
 const rows = `document.querySelectorAll("ol > li").length`;
 const isCards = `(document.querySelector("ol")?.dataset.view === "cards")`;
@@ -90,11 +97,13 @@ try {
 
   // Online: saved straight away, nothing pending.
   await setView(p, "Cards");
-  await sleep(1000);
+  await serverViewBecomes("cards");
+  // The device drops its pending copy once the save has answered.
+  await p.waitFor(`${pendingKeys}.length === 0`, 3000, { quiet: true }).catch(() => {});
   check("online: the server has cards at once", serverView() === "cards", serverView());
   check("online: nothing left pending", (await p.evaluate(`${pendingKeys}.length`)) === 0);
   await setView(p, "Rows");
-  await sleep(1000);
+  await serverViewBecomes("rows");
   check("online: switching back saves too", serverView() === "rows", serverView());
 
   // Open a note once while online, so its page's code is loaded (in dev, Vite
@@ -217,9 +226,52 @@ try {
     !(await p.evaluate(isCards)) && serverView() === "rows",
   );
 
-  // Sign-out clears pending changes (one left by an offline switch).
+  // A real reload offline (B-144): the full loads above installed the service
+  // worker, so an /app page load gets its cached shell and the screen opens
+  // from the local database: a provider's page (a route the shell's own
+  // document never loads), then the timeline.
+  const swControls = `navigator.serviceWorker.ready.then(() => !!navigator.serviceWorker.controller)`;
+  await p.waitFor(swControls, 20000).then(
+    () => check("service worker: installed and controlling the page", true),
+    async () =>
+      check(
+        "service worker: installed and controlling the page",
+        false,
+        await p.evaluate(`String(!!navigator.serviceWorker.controller)`),
+      ),
+  );
+  const providerId = psql(
+    `SELECT id FROM provider WHERE group_id = '${DEV_FAMILY}' AND deleted_at IS NULL ORDER BY name LIMIT 1`,
+  );
+  const providerName = psql(`SELECT name FROM provider WHERE id = '${providerId}'`);
+  const providerPage = timeline.replace(/\/timeline$/, `/providers/${providerId}`);
   proxy.setOnline(false);
   await sleep(300);
+  // The provider's page first, so the timeline is where the steps below go on.
+  for (const [name, path, ready] of [
+    [
+      "a provider's page",
+      providerPage,
+      `document.querySelector("main h1")?.textContent.includes(${JSON.stringify(providerName)})`,
+    ],
+    ["the timeline", timeline, `${rows} > 0`],
+  ]) {
+    const label = `offline reload: ${name} opens from local data`;
+    await p
+      .goto(path)
+      .then(() => p.waitFor(`location.pathname === ${JSON.stringify(path)} && ${ready}`, 30000))
+      .then(
+        async () => {
+          // The page came from the worker, not the network (which is cut).
+          const viaWorker = await p.evaluate(`performance.getEntriesByType("navigation")[0].workerStart > 0`);
+          check(label, viaWorker, viaWorker ? "" : "not served by the service worker");
+        },
+        async () =>
+          check(label, false, await p.evaluate(`document.title + " " + location.href`).catch(String)),
+      );
+  }
+
+  // Sign-out clears pending changes (one left by an offline switch; still offline).
   await setView(p, "Cards");
   await sleep(800);
   const before = await p.evaluate(`${pendingKeys}.length`);
