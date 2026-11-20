@@ -7,6 +7,7 @@ import { bearer, emailOTP, jwt, magicLink } from "better-auth/plugins";
 import {
   accountSchema,
   getDb,
+  JWKS_GRACE_SECONDS,
   jwksSchema,
   rateLimitSchema,
   sessionSchema,
@@ -66,9 +67,9 @@ export const createAuth = ({
   rateLimitEnabled,
   originCheck,
 }: { rateLimitEnabled?: boolean; originCheck?: boolean } = {}) => {
-  const { secret, baseURL, powersyncURL } = getAuthConfig();
+  const { secret, secrets, baseURL, powersyncURL } = getAuthConfig();
   const ipHeader = clientIpHeader();
-  if (!secret) throw new Error("BETTER_AUTH_SECRET is not set");
+  if (!secret && !secrets) throw new Error("BETTER_AUTH_SECRET is not set");
 
   // Set once the instance exists: the email's code comes from its own
   // email-OTP plugin (typed here, so the instance's type doesn't loop).
@@ -76,7 +77,14 @@ export const createAuth = ({
 
   const instance = betterAuth({
     appName: "Caretook",
-    secret,
+    // With a list (BETTER_AUTH_SECRETS), its first entry is current: it signs
+    // session cookies and bearer tokens (checked against it alone, so making
+    // a new one current signs everyone out) and encrypts new data, which
+    // records its version; every listed version, and the legacy `secret` for
+    // data from before the list, still decrypt (the JWKS private key). See
+    // ops/runbook.md, _Rotation_.
+    ...(secret ? { secret } : {}),
+    ...(secrets ? { secrets } : {}),
     baseURL,
     // The native app (its WebView talks to /api/auth) only with NATIVE_APP_ORIGINS=1.
     trustedOrigins: allowedOrigins(),
@@ -175,6 +183,10 @@ export const createAuth = ({
       }),
       // Short-lived JWTs (and a JWKS endpoint) for PowerSync and workers.
       jwt({
+        // `pnpm auth:rotate-jwks` expires the signing key; the next token
+        // makes a new one. The old public key stays in the JWKS for an hour,
+        // so tokens it signed (15 minutes at most) verify until they expire.
+        jwks: { gracePeriod: JWKS_GRACE_SECONDS },
         jwt: {
           // PowerSync only accepts tokens addressed to it (its instance URL on Cloud).
           ...(powersyncURL ? { audience: powersyncURL } : {}),

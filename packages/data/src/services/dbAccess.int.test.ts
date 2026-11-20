@@ -4,7 +4,7 @@ import pg from "pg";
 import { afterAll, describe, expect, it } from "vitest";
 import { createUser, ok } from "../../test/fixtures";
 import { getDb } from "../db";
-import { ident, randomPassword } from "../db/roles";
+import { ident, personalAccessSql, randomPassword, schemaTables } from "../db/roles";
 import { adminAuditLogSchema } from "../db/schema";
 import { isError } from "../errors";
 import { dbAccessService } from ".";
@@ -48,6 +48,25 @@ const roleRow = async (role: string) =>
       sql`SELECT rolname, rolvaliduntil, rolcanlogin FROM pg_roles WHERE rolname = ${role}`,
     )
   ).rows[0] as { rolname: string; rolvaliduntil: Date | null; rolcanlogin: boolean } | undefined;
+
+/** Every grant `role` holds, table-level and column-level, from both views. */
+const grantsOf = async (role: string) => {
+  const tables = await getDb().execute(
+    sql`SELECT table_name, privilege_type FROM information_schema.role_table_grants WHERE grantee = ${role}`,
+  );
+  const columns = await getDb().execute(
+    sql`SELECT table_name, column_name FROM information_schema.column_privileges WHERE grantee = ${role}`,
+  );
+  return { tables: tables.rows, columns: columns.rows };
+};
+
+class Rollback extends Error {}
+
+const refusal = (client: pg.Client, query: string) =>
+  client.query(query).then(
+    () => "allowed",
+    (e: { code?: string }) => e.code,
+  );
 
 describe("dbAccessService", () => {
   it("grants a read-only role that expires, and records it", async () => {
@@ -117,6 +136,76 @@ describe("dbAccessService", () => {
     const actions = (await entriesFor(user.id)).map((e) => e.action).sort();
     expect(actions).toEqual(["db.accessGranted", "db.accessRevoked"]);
   });
+
+  it("reads care tables but never the secrets, and revoke leaves no grants", async () => {
+    const { user } = await createUser("db-narrow", "support");
+    const password = randomPassword();
+    const res = ok(await dbAccessService.grant({ email: user.email, hours: 1, password }));
+    made.add(res.role);
+    const staff = await connectAs(res.role, password);
+
+    expect((await staff.query("SELECT count(*) FROM care_group")).rows).toHaveLength(1);
+    expect(
+      (await staff.query("SELECT id, status FROM care_group_invite LIMIT 1")).rowCount,
+    ).toBeGreaterThanOrEqual(0);
+    for (const query of [
+      "SELECT password FROM account",
+      "SELECT token FROM session",
+      "SELECT * FROM jwks",
+      "SELECT value FROM verification",
+      "SELECT key FROM rate_limit",
+      "SELECT token_hash FROM care_group_invite",
+      "SELECT token_ciphertext FROM care_group_invite",
+      "SELECT * FROM care_group_invite",
+      "SELECT code FROM access_code",
+      "SELECT html FROM notification_outbox",
+    ])
+      expect([query, await refusal(staff, query)]).toEqual([query, "42501"]);
+
+    const granted = await grantsOf(res.role);
+    expect(granted.tables).toContainEqual({ table_name: "care_group", privilege_type: "SELECT" });
+    expect(granted.tables.map((g) => g.table_name)).not.toContain("account");
+    expect(granted.columns).toContainEqual({ table_name: "care_group_invite", column_name: "status" });
+    expect(granted.columns).not.toContainEqual({
+      table_name: "care_group_invite",
+      column_name: "token_hash",
+    });
+
+    // The revoke's statements (before its DROP ROLE) leave nothing; the drop
+    // itself would fail while any grant remained.
+    await getDb()
+      .transaction(async (tx) => {
+        for (const statement of personalAccessSql(res.role, schemaTables()).revoke)
+          await tx.execute(sql.raw(statement));
+        const left = await Promise.all([
+          tx.execute(sql`SELECT 1 FROM information_schema.role_table_grants WHERE grantee = ${res.role}`),
+          tx.execute(sql`SELECT 1 FROM information_schema.column_privileges WHERE grantee = ${res.role}`),
+        ]);
+        expect(left.map((l) => l.rows)).toEqual([[], []]);
+        throw new Rollback();
+      })
+      .catch((e: unknown) => {
+        if (!(e instanceof Rollback)) throw e;
+      });
+
+    ok(await dbAccessService.revoke({ email: user.email }));
+    expect(await roleRow(res.role)).toBeUndefined();
+    expect(await grantsOf(res.role)).toEqual({ tables: [], columns: [] });
+  }, 20_000);
+
+  it("narrows a role granted everything before the list", async () => {
+    const { user } = await createUser("db-legacy", "admin");
+    const password = randomPassword();
+    const first = ok(await dbAccessService.grant({ email: user.email, hours: 1, password }));
+    made.add(first.role);
+    // What a grant gave before slice 9.
+    await getDb().execute(sql.raw(`GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${ident(first.role)}`));
+    ok(await dbAccessService.grant({ email: user.email, hours: 1, password }));
+    const staff = await connectAs(first.role, password);
+    expect(await refusal(staff, "SELECT password FROM account")).toBe("42501");
+    ok(await dbAccessService.revoke({ email: user.email }));
+    expect(await roleRow(first.role)).toBeUndefined();
+  }, 20_000);
 
   it("refuses non-staff, disabled and unknown accounts, and hours past 24", async () => {
     const { user } = await createUser("db-member");

@@ -72,6 +72,7 @@ export const DEPLOY_ENV_VARIABLES: readonly string[] = [
   ...REQUIRED_STAGING_DEPLOY,
   "MIGRATIONS_DATABASE_URL",
   "NATIVE_APP_ORIGINS",
+  "BETTER_AUTH_SECRETS",
 ];
 
 export const isDeployTarget = (value: string | undefined): value is DeployTarget =>
@@ -177,6 +178,23 @@ export function checkDeployEnv(
   for (const name of ["BETTER_AUTH_SECRET", "CRON_SECRET", "INVITE_LINK_KEY"]) {
     if (has(name) && value(env, name).length < MIN_SECRET_LENGTH)
       problem(name, `must be at least ${MIN_SECRET_LENGTH} characters`);
+  }
+  // Optional: Better Auth's versioned secrets, `<version>:<secret>`, current
+  // first, for rotating BETTER_AUTH_SECRET (ops/runbook.md, _Rotation_).
+  if (has("BETTER_AUTH_SECRETS")) {
+    const versions = new Set<string>();
+    value(env, "BETTER_AUTH_SECRETS")
+      .split(",")
+      .forEach((entry, i) => {
+        const match = /^\s*(\d+):(.*)$/.exec(entry);
+        const secret = match?.[2]?.trim() ?? "";
+        if (!match?.[1]) problem("BETTER_AUTH_SECRETS", `entry ${i + 1} must be <version>:<secret>`);
+        else if (versions.has(String(Number(match[1]))))
+          problem("BETTER_AUTH_SECRETS", `entry ${i + 1} repeats version ${match[1]}`);
+        else if (secret.length < MIN_SECRET_LENGTH)
+          problem("BETTER_AUTH_SECRETS", `entry ${i + 1} must be at least ${MIN_SECRET_LENGTH} characters`);
+        if (match?.[1]) versions.add(String(Number(match[1])));
+      });
   }
   if (has("RESEND_WEBHOOK_SECRET")) {
     const secret = value(env, "RESEND_WEBHOOK_SECRET");

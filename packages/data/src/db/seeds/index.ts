@@ -26,6 +26,8 @@ import * as users from "./users";
  *
  * Refuses production, a non-local database (unless `APP_ENV=staging`), and
  * staging without a secret `SEED_USER_PASSWORD` (`seedRefusal`, guard.ts).
+ * On staging it also moves seeded accounts to the current
+ * `SEED_USER_PASSWORD` (`accounts.rotateStagingPasswords`).
  */
 export const seed = async () => {
   const refusal = seedRefusal({ ...process.env, DATABASE_URL: getDbConfig().url });
@@ -48,5 +50,8 @@ export const seed = async () => {
     await moreGroups.seed();
     await staff.seed();
     await tasks.seed();
+    // Last, once every seed has made its accounts.
+    const { updated } = await accounts.rotateStagingPasswords();
+    if (updated) console.log(`Set ${updated} seeded account(s) to the current SEED_USER_PASSWORD`);
   }, "db:seed");
 };
