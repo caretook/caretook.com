@@ -30,6 +30,10 @@ packages/data/drizzle.config.ts          -
 # The checks themselves. The harness runs the basics; a check runs itself.
 scripts/browser-checks/cdp.mjs           sign-in roundtrip
 scripts/browser-checks/proxy.mjs         first-sync layout-offline
+# The Playwright Test harness (fixtures, config, reporter) for the specs.
+scripts/browser-checks/fixtures.mjs      sign-in ui
+scripts/browser-checks/playwright.config.mjs sign-in
+scripts/browser-checks/reporter.mjs      sign-in
 scripts/browser-checks/sync-matrix.mjs   roundtrip
 scripts/browser-checks/*                 @self
 

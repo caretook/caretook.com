@@ -88,8 +88,14 @@ describe("My tasks in simple mode", () => {
     expect(ticks[0]!.classList.contains("checkbox-xl")).toBe(true);
 
     // The other regions are where they were: box, Now, then the card, the tiles, Remove, the rows.
-    // The tiles replace their skeleton when their own query answers, so wait for them.
-    await waitUntil(() => !!document.querySelector("[data-simple-tiles]"), 4000, "the tiles");
+    // They can render after the card on a loaded machine (the tiles replace their skeleton
+    // when their own query answers): wait for all of them first.
+    const REGIONS = ["[data-quick-entry]", "[data-simple-now]", "[data-simple-tiles]", "[data-remove-last]"];
+    await waitUntil(
+      () => REGIONS.every((r) => !!document.querySelector(r)),
+      4000,
+      "the simple view's regions",
+    );
     const box = document.querySelector("[data-quick-entry]");
     const now = document.querySelector("[data-simple-now]");
     const tiles = document.querySelector("[data-simple-tiles]");
