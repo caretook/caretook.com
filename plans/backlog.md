@@ -110,7 +110,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-168 | change | triaged | timeline-ux |  | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
 | B-169 | change | triaged | timeline-ux |  | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
 | B-170 | change | triaged | timeline-ux |  | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
-| B-171 | change | inbox |  |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
+| B-171 | change | triaged | timeline-ux |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
 | B-172 | bug | triaged | check-migration |  | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
 
 ## Items
@@ -770,8 +770,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-171 · change · your recent lines should exclude notes and events. vitals should only show the vital key, not the…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: timeline-ux
 - owner:
 - commit:
 
