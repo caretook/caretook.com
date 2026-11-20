@@ -10,6 +10,7 @@ import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { sessionContext } from "~/lib/session";
 import { installTestDatabase } from "~/lib/sync";
+import { searchIndexSettled } from "~/lib/sync/search";
 import * as appLayout from "~/routes/app/layout/route";
 import * as groupLayout from "~/routes/app/groups/layout/route";
 import { openTestDatabase, queuedWrites, settle, syncDown, syncRemove } from "./database";
@@ -83,7 +84,10 @@ export type DeviceOptions = {
   frame?: boolean;
   /** Whether the device counts as synced (default true; false shows "Getting your care groups…" states). */
   firstSyncDone?: boolean;
-  /** Build the search index (only search tests need it). */
+  /**
+   * Build the search index (only search tests need it). The device starts
+   * with it built, and `settle()` also waits for it to take in changes.
+   */
   search?: boolean;
   /**
    * The server, as far as this test needs one. The device is offline by
@@ -259,8 +263,14 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
   );
 
   currentLocation = url;
+  // With the search index on, settling includes the index taking in what changed.
+  const settled = async (settleOptions?: { timeout?: number }) => {
+    if (options.search) await searchIndexSettled();
+    await settle(db, settleOptions);
+  };
+  if (options.search) await searchIndexSettled();
   const screen = await render(<Stub initialEntries={[url]} />);
-  if (options.settle ?? true) await settle(db);
+  if (options.settle ?? true) await settled();
 
   return {
     screen,
@@ -271,7 +281,7 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
     unsync: (fixtures) => syncRemove(db, fixtures),
     queued: () => queuedWrites(db),
     query: (sql, params = []) => db.powersync.getAll(sql, params),
-    settle: (settleOptions) => settle(db, settleOptions),
+    settle: settled,
   };
 };
 
