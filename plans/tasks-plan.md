@@ -6,7 +6,7 @@
 
 | Slice | Wave | State                                               | Merge into `prd/tasks` (slice commits) |
 | ----- | ---- | --------------------------------------------------- | -------------------------------------- |
-| 1     | 1    | not started                                         |                                        |
+| 1     | 1    | running (worktree tasks-1, slot 3; agent spawned)   |                                        |
 | 2     | 2    | blocked by 1                                        |                                        |
 | 3     | 3    | blocked by 2 and `assistant` in `dev`               |                                        |
 | 4     | 2    | blocked by 1 and `assistant` in `dev`               |                                        |
@@ -15,7 +15,11 @@
 | 7     | 4    | blocked by 1 and `assistant` in `dev`               |                                        |
 | 8     | 2    | blocked by 1 and `check-migration` slice 2 in `dev` |                                        |
 
-**Landing:** land each wave as soon as it's green. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here.
+**Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue tasks`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**External blockers (2026-11-19):** `assistant` wave A (slices 1–5) is in `dev` (a38609b); its slice 6 landed in `dev` as 9ae6b0d (sync it at the wave-1 boundary, not mid-wave); slice 7 (running: `assistantActions` givePass, quick-entry suggestions, `SimpleTimeline`'s Now block, `visitPrep`) is not. Decision: slices 3 and 4 count as unblocked once slice 1 is merged and `dev` synced (slice 7 doesn't touch Upcoming, the strip, or the provider and medication pages); slices 6 (simple view) and 7 (`assistantActions`) wait for assistant slice 7 in `dev`. **Update:** assistant slice 7 landed in `dev` as 7f3ec10 (plus c17c121, a GroupMenu fix), so the whole `assistant` PRD is in `dev`: slices 3, 4, 6 and 7 are all ready once slice 1 is merged and `dev` is synced. For slices 6 and 7 (from assistant's hand-off): `givePass` in `assistantActions`, `context.passes` in the parser, `runActions` returns `{ ids, byAction }`, new `removeEntries`, quick-entry Undo through `lib/passUndo.ts` (`undoFor(groupId, { now, place })`), the simple view's Now block `timeline/SimpleNow.tsx` after the box, `doseSlotsBetween` in `lib/dueDoses.ts`; see docs/domain/assistant.md. `check-migration` slice 2 is merged on `prd/check-migration` (120db6e) but not in `dev`, so slice 8 waits. B-55 claimed by `prd/tasks`.
+
+**Heads-up from check-migration (2026-11-19):** its wave 1 lands in `dev` within the hour. It adds `SYNC_MATRIX` (`scripts/browser-checks/sync-matrix.mjs`), and `scripts/loops/sync-matrix.test.mjs` fails for any device-schema table or `HANDLERS` key without a row. So the first `pnpm prd sync` after slice 1 merges will fail `pnpm check` until `task` has a row: add a cheap one at that sync (or run slice 8 straight away, since its blocker is then in `dev`). Lean ceiling is 357 s (`lean-ceiling` in `scripts/loops/checks`), raisable only by the user.
 
 **Backlog:** claim B-55 when slice 1 starts; `done` after slice 8 and slice 7 have both merged (the last of the PRD).
 
