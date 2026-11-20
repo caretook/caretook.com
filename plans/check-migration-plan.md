@@ -23,7 +23,7 @@
 | 15    | landed (wave 5, 74f6723) · opus   | 0e0ab28 (3b2a5ad)                                |
 | 16    | landed (wave 6, fdb07b2) · sonnet | 222c37d (22f1f2b)                                |
 | 17    | landed (wave 6, fdb07b2) · sonnet | d487b30 (515b3f4)                                |
-| 18    | blocked by 3–17                   |                                                  |
+| 18    | wave 7: running · sonnet          |                                                  |
 | 19    | blocked by 18                     |                                                  |
 | 20    | blocked by 19                     |                                                  |
 | 21    | blocked by 19                     |                                                  |
