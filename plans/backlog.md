@@ -78,13 +78,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-112 | change | landed | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
-| B-114 | chore | ready | check-migration | prd/check-migration | Move routing.mjs to component tests |
-| B-115 | chore | ready | check-migration | prd/check-migration | Move settings-layout.mjs to component tests |
+| B-114 | chore | landed | check-migration | prd/check-migration | Move routing.mjs to component tests |
+| B-115 | chore | landed | check-migration | prd/check-migration | Move settings-layout.mjs to component tests |
 | B-116 | chore | triaged | check-migration |  | Move providers.mjs to component tests |
 | B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
 | B-118 | chore | triaged | check-migration |  | Move medications.mjs to component tests |
 | B-119 | chore | triaged | check-migration |  | Move upcoming.mjs to component tests |
-| B-120 | chore | ready | check-migration | prd/check-migration | Move search.mjs to component tests |
+| B-120 | chore | landed | check-migration | prd/check-migration | Move search.mjs to component tests |
 | B-121 | chore | triaged | check-migration |  | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-123 | chore | triaged | check-migration |  | Move care-periods.mjs to component tests |
@@ -92,10 +92,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-125 | chore | triaged | check-migration |  | Move admin.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
-| B-128 | chore | ready | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
+| B-128 | chore | landed | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
-| B-131 | bug | ready | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
+| B-131 | bug | landed | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | landed | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 | B-133 | bug | inbox |  |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
 
@@ -456,7 +456,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-114 · chore · Move routing.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 7e632ee
@@ -468,7 +468,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-115 · chore · Move settings-layout.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 7e632ee
@@ -519,7 +519,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-120 · chore · Move search.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 7bfa916
@@ -600,7 +600,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-128 · chore · Add a lean end-to-end step for an upload refused by permissions
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 9c0b2bf
@@ -633,7 +633,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-131 · bug · Component tests (web:components) can fail under pnpm check's load
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 9c0b2bf
