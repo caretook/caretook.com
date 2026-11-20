@@ -167,3 +167,18 @@ export const editTarget = (
       return "saveAndOpen";
   }
 };
+
+/**
+ * The entry to open after a line saved: its id when the whole line wrote
+ * exactly one thing and it's a note or an event (their pages hold the live
+ * document); nothing otherwise (several entries, a vital, a dose, a task).
+ * `saved` is each action's type with the ids it wrote, in order. Pure.
+ */
+export const openAfterSave = (
+  saved: readonly { type: AssistantAction["type"]; ids: readonly string[] }[],
+): string | null => {
+  const written = saved.filter((s) => s.ids.length > 0);
+  const only = written.length === 1 ? written[0]! : null;
+  if (!only || only.ids.length !== 1) return null;
+  return only.type === "addNote" || only.type === "addEvent" ? only.ids[0]! : null;
+};

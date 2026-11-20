@@ -140,10 +140,12 @@ describe("the box and its cards", () => {
     await userEvent.fill(box(), "appt dr lee tomorrow 2pm");
     await waitUntil(() => !!cards()[0]?.textContent?.includes("with Dr. Sandra Lee"), 4000, "the provider");
     await userEvent.click(saveButton()!);
-    await expect.poll(status).toBe("Saved 1 entry");
+    // A lone event opens on its page.
+    await expect.poll(() => device.location()).toMatch(/\/entries\//);
     const [event] = await device.query<{ id: string; title: string }>(
       "SELECT id, title FROM timeline_entry WHERE kind = 'event'",
     );
+    expect(device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/${event!.id}`);
     expect(event!.title).toBe("Appointment with Dr. Sandra Lee");
     const links = await device.query<{ provider_id: string }>(
       "SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?",
@@ -152,11 +154,15 @@ describe("the box and its cards", () => {
     expect(links.map((l) => l.provider_id)).toEqual([LEE.id]);
     const docs = await device.query("SELECT id FROM note_document WHERE id = ?", [event!.id]);
     expect(docs).toHaveLength(1);
+  });
 
-    await userEvent.fill(box(), "Grandma had a good day");
-    await waitUntil(() => cardKinds().join() === "note");
+  test("a note beside a vital is saved and stays on the timeline", async () => {
+    const device = await open();
+    await userEvent.fill(box(), "bp 120/80, n: Grandma had a good day");
+    await waitUntil(() => cardKinds().join() === "vital,note");
     await userEvent.keyboard("{Enter}");
-    await expect.poll(status).toBe("Saved 1 entry");
+    await expect.poll(status).toBe("Saved 2 entries");
+    expect(device.location()).toBe(TIMELINE_URL);
     await waitUntil(() => !!rowWith("Grandma had a good day"), 4000, "the note's preview on the timeline");
   });
 
@@ -178,7 +184,7 @@ describe("the box and its cards", () => {
     await waitUntil(() => cardKinds().join() === "note");
     expect(saveButton()?.textContent).toBe("Save");
     await userEvent.click(saveButton()!);
-    await expect.poll(status).toBe("Saved 1 entry");
+    await expect.poll(() => device.location()).toMatch(/\/entries\//);
     const kinds = await device.query<{ kind: string }>(
       "SELECT kind FROM timeline_entry WHERE created_at > ? ORDER BY kind",
       [at(new Date(Date.now() - 60_000))],
@@ -299,6 +305,28 @@ describe("Edit", () => {
       "SELECT e.id FROM timeline_entry e JOIN note_update u ON u.document_id = e.id WHERE e.kind = 'note'",
     );
     expect(device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/${note!.id}`);
+  });
+});
+
+describe("open after save", () => {
+  test("saving a lone note navigates to the new entry's page", async () => {
+    const device = await open();
+    await type("n: slept well", ["note"]);
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("heading", { name: "Entry page" })).toBeVisible();
+    const [note] = await device.query<{ id: string }>(
+      "SELECT id FROM timeline_entry WHERE kind = 'note' AND created_at > ?",
+      [at(new Date(Date.now() - 60_000))],
+    );
+    expect(device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/${note!.id}`);
+  });
+
+  test("saving a vital with a note stays on the timeline", async () => {
+    const device = await open();
+    await type("bp 120/80, n: tired", ["vital", "note"]);
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(status).toBe("Saved 2 entries");
+    expect(device.location()).toBe(TIMELINE_URL);
   });
 });
 

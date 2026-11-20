@@ -20,9 +20,15 @@ import { rowWith, TIMELINE_URL, waitUntil } from "./timelineWorld";
 const SAM_ID = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7c02";
 const SAM = fx.person({ id: SAM_ID, name: "Sam Okafor", role: "caretaker" });
 
+/** Stands in for the entry page. */
+function EntryProbe() {
+  return <h1>Entry page</h1>;
+}
+
 const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/timeline", module: timeline },
   { path: "/app/groups/:groupId/tasks/new", module: newTask },
+  { path: "/app/groups/:groupId/entries/:entryId", module: { default: EntryProbe } },
 ];
 
 const open = (options: Parameters<typeof renderWithDevice>[0] = {}) =>
@@ -127,7 +133,8 @@ describe("quick entry adds tasks", () => {
     await userEvent.click(page.getByRole("button", { name: "Note instead" }));
     await waitUntil(() => cardKinds().join() === "note");
     await userEvent.click(saveButton()!);
-    await expect.poll(status).toBe("Saved 1 entry");
+    // A lone note opens on its page.
+    await expect.poll(() => device.location()).toMatch(/\/entries\//);
     expect(await device.query("SELECT id FROM task")).toEqual([]);
   });
 

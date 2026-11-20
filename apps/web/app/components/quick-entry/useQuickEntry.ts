@@ -10,7 +10,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { offerUndo } from "~/lib/medications/passUndo";
 import { actionPreview } from "~/lib/assistant/quickEntryPreview";
-import { recordLine } from "~/lib/assistant/recentLines";
+import { recentLineFor, recordLine } from "~/lib/assistant/recentLines";
 import { getSync } from "~/lib/sync";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
 import {
@@ -19,6 +19,7 @@ import {
   cardActions,
   cardsAnnouncement,
   editTarget,
+  openAfterSave,
   savedText,
 } from "./quickEntryCards";
 import { useQuickEntryData } from "./useQuickEntryData";
@@ -133,7 +134,8 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
         (n, p, i) => n + (p.action.type === "addTask" ? (result.byAction[i]?.length ?? 0) : 0),
         0,
       );
-      return { ids: result.ids, tasks };
+      const typed = planned.map((p, i) => ({ type: p.action.type, ids: result.byAction[i] ?? [] }));
+      return { ids: result.ids, tasks, typed };
     }
     const key = result.index !== null ? planned[result.index]?.key : undefined;
     const message = result.issues[0]?.message ?? result.error;
@@ -148,7 +150,15 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     try {
       const saved = await write(cards);
       if (saved) {
-        recordLine(group.userId, groupId, text);
+        recordLine(
+          group.userId,
+          groupId,
+          recentLineFor(
+            text,
+            cards.map((c) => ({ text: c.text, readings: [c.reading] })),
+          ),
+        );
+        const open = openAfterSave(saved.typed);
         reset();
         // "Saved 3 entries · Undo": Undo removes the whole line (its tasks too).
         offerUndo({
@@ -158,6 +168,8 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
           entryIds: saved.ids,
           place: QUICK_ENTRY_UNDO,
         });
+        // A lone note or event opens on its page (a push: Back returns here).
+        if (open) await navigate(appUrls.entry(groupId, open));
       }
     } finally {
       setBusy(false);
