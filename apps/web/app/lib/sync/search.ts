@@ -7,6 +7,8 @@ import {
   medicationSearchDocument,
   parseSearch,
   providerSearchDocument,
+  SEARCH_ITEM_TYPES,
+  taskSearchDocument,
   toFtsMatch,
 } from "@caretook/data/schema";
 import { previewText } from "./notes";
@@ -15,8 +17,8 @@ import { toLocalTimestamp } from "./timeline";
 
 export { parseSearch };
 
-// The device's search index: SQLite FTS5 over every entry, provider and
-// medication of every group on the device, kept current as rows change
+// The device's search index: SQLite FTS5 over every entry, provider,
+// medication and task of every group on the device, kept current as rows change
 // (synced or typed here), so search works offline and finds what was typed
 // a moment ago. Tables and triggers: ./searchTables. What each row's text
 // is: `@caretook/data/schema`'s search documents. Every query is scoped to
@@ -27,7 +29,7 @@ export { parseSearch };
  * search document holds change: devices then rebuild their index on the
  * next open.
  */
-export const SEARCH_INDEX_VERSION = 1;
+export const SEARCH_INDEX_VERSION = 2;
 
 /** bm25 weights for (title, body): a match in a title-like field ranks above one in the text. */
 const WEIGHTS = "4.0, 1.0";
@@ -206,10 +208,40 @@ const readMedications = async (db: SqlRunner, ids: string[] | null): Promise<Sea
   });
 };
 
+type TaskSourceRow = DocumentColumns & {
+  id: string;
+  group_id: string | null;
+  title: string | null;
+  deleted_at: string | null;
+};
+
+const readTasks = async (db: SqlRunner, ids: string[] | null): Promise<SearchDocument[]> => {
+  const filter = idFilter("t.id", ids);
+  const rows = await db.getAll<TaskSourceRow>(
+    `SELECT t.id, t.group_id, t.title, t.deleted_at, ${documentColumns("t.id")}
+     FROM task t
+     LEFT JOIN note_document d ON d.id = t.id
+     ${filter.sql}`,
+    filter.params,
+  );
+  return rows.flatMap((row) => {
+    if (!row.group_id) return [];
+    const doc = taskSearchDocument({
+      id: row.id,
+      groupId: row.group_id,
+      title: row.title,
+      deletedAt: row.deleted_at,
+      documentText: row.deleted_at ? null : documentText(row),
+    });
+    return doc ? [doc] : [];
+  });
+};
+
 const READERS: Record<SearchItemType, (db: SqlRunner, ids: string[] | null) => Promise<SearchDocument[]>> = {
   entry: readEntries,
   provider: readProviders,
   medication: readMedications,
+  task: readTasks,
 };
 
 // ---------------------------------------------------------------------------
@@ -255,7 +287,7 @@ const replaceItems = async (tx: Tx, type: SearchItemType, ids: string[] | null, 
 const dirtyItems = async (tx: Tx): Promise<Record<SearchItemType, string[]>> => {
   const ids = (rows: { id: string | null }[]) => [...new Set(rows.flatMap((r) => (r.id ? [r.id] : [])))];
   const dirty = (sources: string) => `SELECT id FROM search_dirty WHERE source IN (${sources})`;
-  const [entry, provider, medication] = await Promise.all([
+  const [entry, provider, medication, task] = await Promise.all([
     tx.getAll<{ id: string | null }>(
       `${dirty("'timeline_entry', 'note_document', 'note_update', 'timeline_entry_provider'")}
        UNION SELECT l.entry_id FROM timeline_entry_provider l WHERE l.provider_id IN (${dirty("'provider'")})
@@ -269,8 +301,9 @@ const dirtyItems = async (tx: Tx): Promise<Record<SearchItemType, string[]>> => 
        UNION SELECT p.id FROM provider p WHERE p.practice_id IN (${dirty("'provider'")})`,
     ),
     tx.getAll<{ id: string | null }>(dirty("'medication', 'note_document', 'note_update'")),
+    tx.getAll<{ id: string | null }>(dirty("'task', 'note_document', 'note_update'")),
   ]);
-  return { entry: ids(entry), provider: ids(provider), medication: ids(medication) };
+  return { entry: ids(entry), provider: ids(provider), medication: ids(medication), task: ids(task) };
 };
 
 /** Re-index what changed since the last run. Returns how many items it re-read. */
@@ -278,7 +311,7 @@ export const indexSearchChanges = async (store: SearchStore) =>
   store.writeTransaction(async (tx) => {
     const items = await dirtyItems(tx);
     let count = 0;
-    for (const type of ["entry", "provider", "medication"] as const) {
+    for (const type of SEARCH_ITEM_TYPES) {
       const ids = items[type];
       if (!ids.length) continue;
       count += ids.length;
@@ -294,7 +327,7 @@ const rebuildIn = async (tx: Tx) => {
   await tx.execute(`DELETE FROM search_item`);
   await tx.execute(`DELETE FROM search_fts`);
   let count = 0;
-  for (const type of ["entry", "provider", "medication"] as const) {
+  for (const type of SEARCH_ITEM_TYPES) {
     const docs = await READERS[type](tx, null);
     count += docs.length;
     await replaceItems(tx, type, null, docs);
@@ -555,7 +588,7 @@ const DEFAULT_LIMIT = 5;
 /**
  * The search page's query: every matching item of the group, best first
  * (title matches, rank, newest). With a `range` (a care period's dates),
- * only entries within it: providers and medications have no dates, so none.
+ * only entries within it: providers, medications and tasks aren't dated by it, so none.
  */
 export const searchGroupQuery = (groupId: string, parsed: ParsedSearch, range?: SearchRange | null) => {
   const match = toFtsMatch(parsed);
@@ -591,6 +624,7 @@ export const searchGroup = async (
     entry: { hits: [], total: 0 },
     provider: { hits: [], total: 0 },
     medication: { hits: [], total: 0 },
+    task: { hits: [], total: 0 },
   };
   const query = searchGroupQuery(groupId, parsed, range);
   if (!query) return results;

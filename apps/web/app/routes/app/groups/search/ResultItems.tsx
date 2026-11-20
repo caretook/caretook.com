@@ -2,9 +2,10 @@ import type { SchedulePass } from "~/lib/medicationDisplay";
 import type { EntryResult, ProviderResult } from "./loadSearch";
 import type { ParsedSearch, Snippet, UnitChoices } from "@caretook/data/schema";
 import type { LocalMedication } from "~/lib/sync/medications";
+import type { LocalTask } from "~/lib/sync/tasks";
 
 import { highlightRanges, notesSnippet } from "@caretook/data/schema";
-import { Pill } from "lucide-react";
+import { CircleCheck, ListTodo, Pill } from "lucide-react";
 import { Link } from "react-router";
 import { EntryBody, KindIcon } from "~/components/entry";
 import { ProviderTypeIcon } from "~/components/providers";
@@ -15,6 +16,7 @@ import { entryOpen, SHEET_LINK_STATE } from "~/lib/entryOpen";
 import { dayLabel, formatTime, localTimeZone } from "~/lib/format";
 import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "~/lib/medicationDisplay";
 import { PROVIDER_TYPE_META } from "~/lib/providerDirectory";
+import { dueText } from "~/lib/taskDisplay";
 
 /** A link stretched over its row, so a tap anywhere opens the result (the row is `relative isolate`). */
 const STRETCHED =
@@ -200,6 +202,63 @@ export function MedicationResultItem({
         <p className="text-base-content/70 text-sm">
           <Marked text={summary} search={search} />
         </p>
+        <NotesSnippet snippet={snippet} />
+      </div>
+    </li>
+  );
+}
+
+/**
+ * A task as a result: its title and its due line, or a "Done" marker for a
+ * done one. It opens the task's page. Matches are marked, and a match only
+ * in its notes shows a line from them.
+ */
+export function TaskResultItem({
+  task,
+  notes,
+  now,
+  timeZone,
+  search,
+}: {
+  task: LocalTask;
+  notes?: string;
+  now: Date;
+  /** The recipient's zone: due days and times are theirs. */
+  timeZone: string;
+  search: ParsedSearch;
+}) {
+  const done = !!task.doneAt;
+  const due = dueText(task, now, timeZone);
+  const snippet = notesSnippet([task.title], notes, search);
+  const Icon = done ? CircleCheck : ListTodo;
+  return (
+    <li
+      className={`${ROW} hover:bg-base-200/50`}
+      data-result="task"
+      data-result-id={task.id}
+      data-done={done ? "" : undefined}
+    >
+      <span
+        aria-hidden="true"
+        className={`grid size-8 shrink-0 place-items-center rounded-full ${done ? "bg-base-200 text-base-content/60" : "bg-primary/15 text-primary"}`}
+      >
+        <Icon className="size-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="flex min-w-0 items-center gap-1.5">
+          <Link
+            to={appUrls.task(task.groupId, task.id)}
+            className={`font-medium wrap-break-word ${STRETCHED} ${done ? "text-base-content/70" : ""}`}
+          >
+            <Marked text={task.title} search={search} />
+          </Link>
+          {done && (
+            <span className="badge badge-ghost badge-sm shrink-0" data-marker>
+              Done
+            </span>
+          )}
+        </p>
+        {due && <p className="text-base-content/70 text-sm">{due}</p>}
         <NotesSnippet snippet={snippet} />
       </div>
     </li>

@@ -1,6 +1,6 @@
 import type { SearchHit } from "@caretook/data";
 
-import { SEARCH_ITEM_TYPES, searchService, TIMELINE_ENTRY_KINDS } from "@caretook/data";
+import { SERVER_SEARCH_ITEM_TYPES, searchService, TIMELINE_ENTRY_KINDS } from "@caretook/data";
 import { z } from "zod";
 import { iso } from "./dto";
 import { unwrap } from "./errors";
@@ -39,7 +39,7 @@ export const search = {
       z.object({
         groupId: z.uuid(),
         q: z.string().max(1000),
-        scopes: z.array(z.enum(SEARCH_ITEM_TYPES)).optional(),
+        scopes: z.array(z.enum(SERVER_SEARCH_ITEM_TYPES)).optional(),
         kinds: z.array(z.enum(TIMELINE_ENTRY_KINDS)).optional(),
         from: timestamp.optional(),
         to: timestamp.optional(),
