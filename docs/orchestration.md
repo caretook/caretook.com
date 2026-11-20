@@ -25,7 +25,7 @@ pnpm prd ready <topic>   # is it ready to land? what's in it?
 
 Not everything needs a PRD. For a small change (a docs or tooling tweak, a config change, a contained fix), open an agent in the main checkout, ask for it, and have it commit straight onto `dev`. Use a PRD when the work needs its own database and dev server, runs in parallel with other work, or adds a migration. An agent that can't tell which a request is will ask you.
 
-To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `pnpm prd hotfix <name>` makes a stackless worktree on `hotfix/<name>`, the agent works there and asks you before each long test, commit and sync, and you land it with `pnpm prd land hotfix/<name>` when you're happy (_Hotfixes_ in [loops](loops.md)).
+To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `pnpm prd hotfix <name>` makes a stackless worktree on `hotfix/<name>`, the agent works there and asks you before each long test, commit and sync, and you land it with `pnpm prd land hotfix/<name>` when you're happy (_Hotfixes_ in [loops](loops.md)). Either tell an agent in the main checkout it's a hotfix agent (it makes the worktree and moves there), or start one in a new terminal with the command `pnpm prd hotfix <name>` prints (`prompt.sh hotfix <name> "<the fix>"`).
 
 ## Branches
 

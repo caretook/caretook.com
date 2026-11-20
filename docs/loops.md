@@ -30,7 +30,7 @@ How PRDs, orchestrators and loops run: the `pnpm prd` commands, worktree isolati
 | `pnpm prd recover [--at HH:MM] [--wait] [--no-agent]` | after a restart, crash or usage limit, run the inventory's actions (Docker, stale locks, the test Postgres, stacks one at a time, servers), print gc offers, then open the recovery agent in this terminal. `--dry-run [--json]` only shows what it would do |
 | `pnpm prd open <name> [--print]`                      | reopen a PRD or plan worktree's session in a new iTerm2 tab: its last conversation if it has one, else a fresh one with the resume prompt (`--print`: print the command)                                                                                     |
 | `pnpm prd down`                                       | before a planned restart: record what's up (`.loops/.down.json`), then stop dev servers, stacks (`compose stop`, data kept) and the shared test Postgres                                                                                                     |
-| `pnpm prd prompt orchestrator\|plan\|slice`           | the first prompt for a session (`orchestrator <topic> --auto`: run-through; `--resume`, `slice … --continue`: after an interruption)                                                                                                                         |
+| `pnpm prd prompt orchestrator\|plan\|slice\|hotfix`   | the first prompt for a session (`orchestrator <topic> --auto`: run-through; `--resume`, `slice … --continue`: after an interruption; `hotfix <name> ["<the fix>"]`)                                                                                          |
 
 ### Isolation
 
@@ -62,7 +62,7 @@ How PRDs, orchestrators and loops run: the `pnpm prd` commands, worktree isolati
   - `open-session.mjs` chooses the command, `open-session.sh` runs it. A saved conversation (a `*.jsonl` under `~/.claude/projects/<path with non-alphanumerics as ->`; `CARETOOK_CLAUDE_PROJECTS` overrides) gives `claude --continue --remote-control <session>`; otherwise a fresh session with `prompt.sh orchestrator <topic> --resume` (plus `--auto` when _Status_ records run-through) or `prompt.sh plan <topic>`. Session names stay `prd-<topic>` and `plan-<topic>`. It opens an iTerm2 tab via `osascript`, or prints the command without iTerm2 (`CARETOOK_ITERM_APP`) or with `--print`. Slice worktrees are refused: their orchestrator respawns them.
 - `ls.sh` lists every worktree: slot, branch, commits ahead of the branch it merges into, dirty or clean, its stack, the PRD count against the cap, and stale leases.
 - `rm.sh <name> [--force] [--keep-branch]` stops the worktree's containers, deletes its database files, removes the worktree and releases its slot. Then it **deletes the branch if it's merged** into its parent (`slice/…` into `prd/<topic>`; `prd/` and `plan/` into `dev`), and keeps it otherwise. It refuses uncommitted changes, and a PRD worktree whose slices still have worktrees, unless `--force`.
-- `prompt.sh orchestrator <topic>` and `prompt.sh slice <topic> <n>` print the first prompt for those sessions.
+- `prompt.sh orchestrator <topic>`, `prompt.sh slice <topic> <n>` and `prompt.sh hotfix <name> ["<the fix>"]` print the first prompt for those sessions.
 - The main checkout keeps the default ports (5173, 5434, 5435, 8080).
 - Every port, the Compose project name and the PowerSync audience come from env, defaulting to the main checkout's values. If you add a service, a port or a hardcoded container name, make it configurable the same way.
 
@@ -160,11 +160,17 @@ A go-ahead covers one landing, unless the user chose a landing mode that lands w
 
 **Hotfixes also live outside the PRD rules.** When the user asks for a small fix in its own worktree (rather than straight onto `dev` in the main checkout), use `pnpm prd hotfix <name>`: one stackless worktree, `.loops/hotfix-<name>` on `hotfix/<name>` from `dev`, worked by the session the user asked in, with no PRD, plan, orchestrator, slices or `Stack`/`Reads`/`Tests` fields.
 
-- **Ask the user first, at every step that takes time or changes shared state**, unless they say not to: before a long-running test (`pnpm check`, `pnpm prd check`, any browser check, adding a stack), before committing, before syncing, and before landing or removing it. Say what you'll run and why, and wait.
+- **Starting one.** A session the user opens in the main checkout ("you are a hotfix agent…") runs `pnpm prd hotfix <name>` itself and from then on works only inside `.loops/hotfix-<name>`, with absolute paths, never in the main checkout. For a fresh session, `pnpm prd hotfix <name>` prints the command: `cd .loops/hotfix-<name> && claude --remote-control hotfix-<name> "$(scripts/loops/prompt.sh hotfix <name> '<the fix>')"`.
+- **Talk it through first** when the fix is a judgement call (what to show, what to cut): summarise what's there, then poll the user with AskUserQuestion before building.
+- **Background agents are allowed** (a test run, a search, a review), working in the hotfix worktree only.
+
+- **Ask the user first, at every step that takes time or changes shared state**, unless they say not to: before a long-running test (`pnpm check`, `pnpm prd check`, component tests, any browser check, adding a stack), before committing, before syncing, and before landing or removing it. Say what you'll run and why, and wait. Reads, edits, a typecheck, one unit-test file and creating the worktree need no ask.
 - Keep it to one contained change (the same size as a small change on `dev`); anything bigger, parallel, on a running PRD's hot file, or with a migration is a PRD or a `quick-fixes` slice.
-- Screens still get component tests, and the docs the change makes stale are updated on the branch (a hotfix session may edit `docs/` and AGENTS.md, as a session on `dev` may).
+- Screens still get component tests, and the docs the change makes stale are updated on the branch (a hotfix session may edit `docs/` and AGENTS.md, as a session on `dev` may). The hotfix pattern is still being worked out: write any new rule the session and the user settle on into this section, on the branch, so it lands with the fix.
+- A small tooling change the user asks for in the same session (like this section's own updates) may ride on the hotfix branch as its own commit (`chore(loops): …`).
 - Commit on the branch only when the user asks. Then, each on their go-ahead: `pnpm prd check` there, `pnpm prd browser --changed` once (it needs a stack: `pnpm prd stack up`), and `pnpm prd sync` if `dev` has moved.
 - Land on the user's word only, like a PRD: `pnpm prd land hotfix/<name> -m "fix(<area>): …"`. It needs a passing `pnpm prd check` on the tip, and its default type is `fix`. Then `pnpm prd rm hotfix-<name>`, which deletes the merged branch.
+- **Targeted tests instead of the full check**, when the user asks: run only the tests the fix changed and those that directly cover the changed code (unit, integration and component files by name), plus typecheck, lint and format check; list them for the user, then land with `--force` only on the user's word (`pnpm prd land hotfix/<name> --force -m …`), which skips the `pnpm prd check` gate. Before running checks, look for tests that assert an exact shape you changed (a `toEqual` on an API's output, say) and update them.
 - A backlog item, if there is one, is claimed and marked through `pnpm backlog` as usual; the backlog files are never edited on the branch.
 
 The _Rules across PRDs_ and _Loop rules_ are in [AGENTS.md](../AGENTS.md).
