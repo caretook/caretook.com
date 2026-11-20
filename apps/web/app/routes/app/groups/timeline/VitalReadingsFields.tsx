@@ -8,7 +8,8 @@ import { VitalTypeMenu } from "./VitalTypeMenu";
 /**
  * The readings of one vitals entry: a block per type, each removable while
  * more than one is left, then "Add a reading". Values show and are typed in
- * the user's units; entryContentFromForm converts them back.
+ * the user's units; entryContentFromForm converts them back. `fixed` (simple
+ * mode's tile) keeps to the types given: no removing or adding.
  */
 export function VitalReadingsFields({
   types,
@@ -16,6 +17,7 @@ export function VitalReadingsFields({
   initial = [],
   units,
   issues,
+  fixed = false,
 }: {
   types: VitalType[];
   onChange: (types: VitalType[]) => void;
@@ -23,6 +25,7 @@ export function VitalReadingsFields({
   initial?: VitalReading[];
   units: UnitChoices;
   issues: FieldIssue[];
+  fixed?: boolean;
 }) {
   const listIssue = readingsIssue(issues);
   return (
@@ -35,19 +38,21 @@ export function VitalReadingsFields({
           stored={initial.find((r) => r.type === type)}
           units={units}
           issues={issues}
-          onRemove={types.length > 1 ? () => onChange(types.filter((t) => t !== type)) : undefined}
+          onRemove={types.length > 1 && !fixed ? () => onChange(types.filter((t) => t !== type)) : undefined}
         />
       ))}
 
       {listIssue && <p className="text-error text-sm">{listIssue}</p>}
 
-      <VitalTypeMenu
-        className="btn btn-sm btn-ghost"
-        exclude={types}
-        onSelect={(t) => onChange([...types, t])}
-      >
-        + Add a reading
-      </VitalTypeMenu>
+      {!fixed && (
+        <VitalTypeMenu
+          className="btn btn-sm btn-ghost"
+          exclude={types}
+          onSelect={(t) => onChange([...types, t])}
+        >
+          + Add a reading
+        </VitalTypeMenu>
+      )}
     </div>
   );
 }

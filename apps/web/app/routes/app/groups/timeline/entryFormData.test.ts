@@ -54,6 +54,18 @@ describe("entryContentFromForm", () => {
     expect(content.occurredAt).toBe("");
   });
 
+  it("names a symptom from the feelings scale by its default when nothing is typed", () => {
+    const fields = { kind: "symptom", severity: "3", symptomNameDefault: "Feeling", occurredAt: WHEN };
+    expect(entryContentFromForm(form({ ...fields, symptomName: " " }), DEFAULT_UNITS).details).toEqual({
+      name: "Feeling",
+      severity: 3,
+    });
+    expect(entryContentFromForm(form({ ...fields, symptomName: "Dizzy" }), DEFAULT_UNITS).details).toEqual({
+      name: "Dizzy",
+      severity: 3,
+    });
+  });
+
   it("converts vitals back to stored units, in the order typed", () => {
     const content = entryContentFromForm(
       form({
