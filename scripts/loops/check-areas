@@ -466,3 +466,7 @@ apps/web/app/lib/sync/simpleMode.ts      -
 scripts/deploy/*                         -
 apps/web/app/lib/noindex.ts              -
 apps/web/app/env.d.ts                    -
+# Deploy Actions (hosting slice 5): the workflows, their setup action and the
+# pinned CLI versions are unit-tested (scripts/deploy/workflows.test.mjs);
+# they run only on GitHub.
+.github/*                                -

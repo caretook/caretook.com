@@ -1,0 +1,41 @@
+# Seed staging (hosting slice 5): the fictional seed, on staging only. The
+# seed's own guard refuses production, and staging without a secret
+# SEED_USER_PASSWORD (every seeded account's password). Idempotent.
+#
+# Secrets (the `staging` environment's):
+#   DATABASE_URL, SEED_USER_PASSWORD
+name: Seed staging
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: seed-staging
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - id: seed
+        name: Seed
+        env:
+          APP_ENV: staging
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
+        run: pnpm datastore:seed
