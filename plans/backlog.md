@@ -73,7 +73,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-119 | chore | landed | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-121 | chore | landed | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | in-progress | check-migration | prd/check-migration | Move profiles-contacts.mjs to component tests |
-| B-126 | chore | in-progress | check-migration | prd/check-migration | Move roundtrip.mjs's sheet steps to component tests |
+| B-126 | chore | ready | check-migration | prd/check-migration | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | in-progress | check-migration | prd/check-migration | Move invites.mjs's screen steps to component tests |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-134 | bug | landed | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
@@ -384,10 +384,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-126 · chore · Move roundtrip.mjs's sheet steps to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: d487b30
 
 - 2026-11-19 (slice/orchestration/9): roundtrip.mjs stays in the lean set (devices converging, offline then reconnect, the viewer, the sign-out wipe), but its add and edit sheet steps (validation, When's date picker, edit and delete) are screen behaviour: move them to component tests for the timeline's sheets (new/, edit/, EntryForm) and delete each covered step.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 12, wave 5 (after assistant slices 1 and 5) (plans/check-migration-plan.md).
