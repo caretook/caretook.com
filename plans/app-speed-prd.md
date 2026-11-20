@@ -1,5 +1,7 @@
 # PRD: App speed
 
+> **Folded into `timeline-ux`** (2026-11-20): this PRD is its speed half, unchanged; see [`timeline-ux-prd.md`](timeline-ux-prd.md) and [`timeline-ux-plan.md`](timeline-ux-plan.md).
+
 > Backlog: B-136, B-137, B-138, B-139, B-140, B-144, B-155 and B-156. Topic `app-speed`. Written 2026-11-20 from an interview with the user.
 
 ## Problem Statement
