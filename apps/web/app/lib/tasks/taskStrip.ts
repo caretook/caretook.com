@@ -18,6 +18,8 @@ export type TaskStrip<T extends TaskRuleFields = TaskRuleFields> = {
   mine: boolean;
   /** Other open tasks overdue or due today. */
   more: number;
+  /** How many open tasks are overdue (the named one among them when `state` is `overdue`). */
+  overdue: number;
 };
 
 /**
@@ -47,6 +49,7 @@ export function taskStrip<T extends TaskRuleFields>(
     task,
     mine: isMine(task),
     more: overdue.length + today.length - 1,
+    overdue: overdue.length,
   };
 }
 
