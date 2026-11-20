@@ -75,7 +75,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-106 | bug | in-progress | quick-fixes | prd/quick-fixes | Turning email invites off also blocks staff owner invites from /admin |
 | B-107 | feature | landed | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
 | B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
-| B-112 | change | triaged | quick-fixes |  | Show the recipient's allergies on the profile's printable emergency sheet |
+| B-112 | change | in-progress | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | admin |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-114 | chore | triaged | check-migration |  | Move routing.mjs to component tests |
 | B-115 | chore | triaged | check-migration |  | Move settings-layout.mjs to component tests |
@@ -419,9 +419,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-112 · change · Show the recipient's allergies on the profile's printable emergency sheet
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-19 (prd/medications-2): The emergency sheet (profiles) passes allergies: null, waiting for B-26. medications-2 built allergies (lib/sync/allergies.ts: allergiesQuery, loadAllergies; PrintAllergies), so the sheet can show them now. profiles.mjs's sheet step would need to expect them.
