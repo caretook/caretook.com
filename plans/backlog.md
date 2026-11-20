@@ -67,7 +67,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
-| B-116 | chore | in-progress | check-migration | prd/check-migration | Move providers.mjs to component tests |
+| B-116 | chore | ready | check-migration | prd/check-migration | Move providers.mjs to component tests |
 | B-117 | chore | in-progress | check-migration | prd/check-migration | Move groups.mjs to component tests |
 | B-118 | chore | ready | check-migration | prd/check-migration | Move medications.mjs to component tests |
 | B-119 | chore | landed | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
@@ -304,10 +304,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-116 · chore · Move providers.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 0e0ab28
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the directory (list, search, filters), the sheets, the provider page, the entry page's With row and suggestions to component tests on the test device; keep two-browser notes, offline add and edit then upload, and the viewer's refused writes. Then e2e yes. B-113 asks for a recheck of it too.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 14, wave 6 (after assistant slice 4) (plans/check-migration-plan.md).
