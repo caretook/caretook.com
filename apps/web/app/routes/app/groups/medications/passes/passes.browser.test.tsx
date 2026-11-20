@@ -2,6 +2,7 @@ import type { DeviceRoute } from "../../../../../../test/device";
 
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
 import { fx } from "../../../../../../test/fixtures";
 import * as medications from "../route";
@@ -61,7 +62,7 @@ const fillForm = async ({ name, time }: { name?: string; time?: string }) => {
   await expect.poll(FORM).toBeTruthy();
   if (name !== undefined) await userEvent.fill(input("name"), name);
   if (time !== undefined) await userEvent.fill(input("time"), time);
-  await userEvent.click(FORM()!.querySelector('button[type="submit"]')!);
+  await userEvent.click(await found(() => FORM()?.querySelector('button[type="submit"]')));
 };
 const action = async (name: string, item: string) => {
   await userEvent.click(row(name)!.querySelector(`button[aria-label="Actions for ${name}"]`)!);

@@ -41,7 +41,7 @@ The components area's rules and decisions. An orchestrator folds a landing's las
 - **Parallelism:** `web:components` runs with `maxWorkers: 4` and `sequence.groupOrder: 1`, so it runs after the other projects (9 workers timed out under load).
 - **Gotchas:**
   - Test Back with a `BackProbe` that captures `navigate(-1)`; under `createRoutesStub` never call `history.back()`.
-  - On a route whose `clientLoader` calls the `api`, or before the first rows, wait on an element (`expect.poll`), since settle covers the database only.
+  - On a route whose `clientLoader` calls the `api`, or before the first rows, wait on an element, since settle covers the database only: `await found(() => X()?.querySelector(…))` (`test/found.ts`, 5 s, names what it waited for) before acting on it, never `X()!`; `expect.poll` for values.
   - `getByText("…")` matches whole text. A closed native `<dialog>` drops out of `getByRole` (assert `dialog.open`; poll `dialog[open]` after a `ConfirmDialog`).
   - Click a row's text with `userEvent.click(el, { force: true })` (its stretched link covers it). Pass a locator to `userEvent.hover`; a tooltip shows on hover only after the next pointer press.
   - A menu's accessible name comes from its trigger. A `DeviceRoute` child that reuses its parent's path needs an explicit `id`.

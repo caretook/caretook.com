@@ -2,6 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
 import {
@@ -77,7 +78,7 @@ describe("today's line", () => {
     );
     expect(CHANGE()).not.toBeNull();
 
-    await userEvent.click(CHANGE()!);
+    await userEvent.click(await found(CHANGE));
     await waitUntil(() => !!FORM(), 4000, "the add sheet");
     expect(device.location()).toMatch(/\/periods\/new$/);
     await userEvent.click(typeRadio("Rehab or skilled nursing")!);
@@ -103,7 +104,7 @@ describe("today's line", () => {
   test("the line opens its period", async () => {
     const device = await open();
     await ready();
-    await userEvent.click(document.querySelector("main [data-period-current]")!);
+    await userEvent.click(await found(() => document.querySelector("main [data-period-current]")));
     await expect.poll(device.location).toBe(periodUrl(HOME_NOW.id));
     await waitUntil(() => !!document.querySelector("main[data-period-page]"), 4000, "the period page");
   });

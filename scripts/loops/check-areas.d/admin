@@ -1,6 +1,6 @@
 # check-areas: /admin (admin PRD; check-migration slice 7). Every screen is
 # component tests beside it (routes/admin/*.browser.test.tsx, from loader
-# data), and the services and procedures are integration tests. app-shell.mjs
+# data), and the services and procedures are integration tests. app-shell.spec.mjs
 # keeps what only the server proves: /admin a 404 for non-staff (the door, the
 # staff rules), a real action's audit row on /admin/audit, and the banner
 # reaching /app.

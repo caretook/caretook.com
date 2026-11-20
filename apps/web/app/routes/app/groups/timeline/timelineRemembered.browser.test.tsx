@@ -5,6 +5,7 @@ import { addDays, localDate } from "@caretook/data/schema";
 import { Link } from "react-router";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, medicationPass, task, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clockAt, fixClock } from "../medications/medicationWorld";
@@ -103,12 +104,14 @@ describe("the header tiles remember", () => {
     expect(taskStrip()).toEqual({ stale: false, text: "Overdue: Call the pharmacy" });
 
     // Away to another page, where the answer changes (another device's task arrives).
-    await userEvent.click(document.querySelector<HTMLElement>('[data-today-row="tasks"] a[data-see-all]')!);
+    await userEvent.click(
+      await found(() => document.querySelector<HTMLElement>('[data-today-row="tasks"] a[data-see-all]')),
+    );
     await waitUntil(() => !!document.querySelector("h1")?.textContent?.includes("Elsewhere"));
     await device.sync([task({ title: "Refill the pill box", dueOn: day(-3) })]);
 
     const page = watchPage(taskStrip);
-    await userEvent.click(document.querySelector<HTMLElement>("main a")!);
+    await userEvent.click(await found(() => document.querySelector<HTMLElement>("main a")));
     await waitUntil(
       () => {
         const s = taskStrip();
@@ -192,10 +195,10 @@ describe("simple mode's tiles remember", () => {
     expect(tasks()).toMatchObject({ stale: false });
     expect(tiles()).toMatchObject({ stale: false });
 
-    await userEvent.click(document.querySelector<HTMLElement>("[data-simple-tasks-all]")!);
+    await userEvent.click(await found(() => document.querySelector<HTMLElement>("[data-simple-tasks-all]")));
     await waitUntil(() => !!document.querySelector("h1")?.textContent?.includes("Elsewhere"));
     const again = watchPage(() => ({ tasks: tasks(), tiles: tiles() }));
-    await userEvent.click(document.querySelector<HTMLElement>("main a")!);
+    await userEvent.click(await found(() => document.querySelector<HTMLElement>("main a")));
     await waitUntil(
       () => {
         const [t, l] = [tasks(), tiles()];

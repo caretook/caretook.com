@@ -2,6 +2,7 @@ import type { DeviceRoute } from "../../../../test/device";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../test/found";
 import { renderWithDevice } from "../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
 import {
@@ -95,7 +96,9 @@ describe("the group menu's care period", () => {
       await waitUntil(() => !!document.querySelector("main [data-period-list]"), 4000, "the list");
       expect(menuState(), "the periods page").toEqual(HOME_STATE);
 
-      await userEvent.click(document.querySelector(`main [data-period="${HOSPITAL.id}"] a`)!);
+      await userEvent.click(
+        await found(() => document.querySelector(`main [data-period="${HOSPITAL.id}"] a`)),
+      );
       await waitUntil(
         () => !!document.querySelector(`main[data-period-page="${HOSPITAL.id}"]`),
         4000,

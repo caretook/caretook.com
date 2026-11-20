@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
 import {
@@ -198,7 +199,7 @@ describe("editing from the page", () => {
 
     await userEvent.fill(field("label")!, "Notes stay edited");
     // 14:00 → 12:00: the hour segment counts within AM or PM, so it mustn't cross noon.
-    await userEvent.click(FORM()!.querySelector('[data-period-start] [data-type="hour"]')!);
+    await userEvent.click(await found(() => FORM()?.querySelector('[data-period-start] [data-type="hour"]')));
     await userEvent.keyboard("{ArrowDown}{ArrowDown}");
     await userEvent.click(submit());
     await waitUntil(

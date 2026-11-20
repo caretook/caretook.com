@@ -4,6 +4,7 @@ import type { Fixture, GroupRole } from "../../../../../test/fixtures";
 import { useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, medicationPass, task, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
@@ -222,7 +223,7 @@ describe("the medications row", () => {
       { medicationId: SA.id, scheduledFor: clockAt(-65) },
     ]);
 
-    await userEvent.click(document.querySelector<HTMLElement>("[data-pass-undo-button]")!);
+    await userEvent.click(await found(() => document.querySelector<HTMLElement>("[data-pass-undo-button]")));
     await expect.poll(medState, { timeout: 5000 }).toEqual(["overdue", `pass:${LATE.id}`]);
     expect(await device.query(DOSES_SQL)).toHaveLength(0);
   });

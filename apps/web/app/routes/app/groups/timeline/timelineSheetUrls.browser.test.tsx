@@ -5,6 +5,7 @@ import { useLayoutEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, TEST_GROUP } from "../../../../../test/fixtures";
 import * as editSheet from "./edit/route";
@@ -138,7 +139,7 @@ describe("the add sheet", () => {
       [
         "a save",
         async () => {
-          await userEvent.fill(NAME()!, "Hiccups");
+          await userEvent.fill(await found(NAME), "Hiccups");
           await userEvent.click(dialog()!.querySelector('button[type="submit"]')!);
         },
       ],
@@ -211,7 +212,7 @@ describe("the edit sheet", () => {
     expect(device.location()).toBe(`${T}/${KNEE.id}/edit${SYMPTOMS}`);
     expect(NAME()!.value).toBe("Sore knee");
 
-    await userEvent.fill(NAME()!, "Sore knee, left");
+    await userEvent.fill(await found(NAME), "Sore knee, left");
     await userEvent.click(dialog()!.querySelector('button[type="submit"]')!);
     await waitUntil(() => !dialog(), 4000, "the sheet to close");
     await expect.poll(device.location).toBe(`${T}${SYMPTOMS}`);

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "vitest";
 import { commands, userEvent } from "vitest/browser";
+import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
 import { allergy } from "../../../../../../test/fixtures";
 import {
@@ -82,11 +83,11 @@ describe("the region and the sheet", () => {
   test("No known allergies records at once; adding one clears it; edit in place (severe first) and remove behind a confirm (soft); Done closes back to the list", async () => {
     const device = await open(LIST);
     await waitUntil(() => !!REGION()?.querySelector("[data-edit-allergies]"), 4000, "the region");
-    await userEvent.click(REGION()!.querySelector("[data-edit-allergies]")!);
+    await userEvent.click(await found(() => REGION()?.querySelector("[data-edit-allergies]")));
     await waitUntil(() => !!ADD(), 4000, "the sheet");
     expect(device.location()).toBe(`${LIST}/allergies`);
 
-    await userEvent.click(SHEET()!.querySelector("[data-record-no-known]")!);
+    await userEvent.click(await found(() => SHEET()?.querySelector("[data-record-no-known]")));
     await expect.poll(() => region().state).toBe("none");
     expect(region().text).toBe("No known allergies");
     expect((await device.query<{ at: string | null }>(NO_KNOWN_SQL, [RECIPIENT.id]))[0]?.at).toBeTruthy();
@@ -118,7 +119,7 @@ describe("the region and the sheet", () => {
       (await device.query<{ deleted_at: string | null }>(ALLERGY_SQL, ["Sulfa"]))[0]?.deleted_at,
     ).toBeTruthy();
 
-    await userEvent.click(SHEET()!.querySelector("[data-allergies-done]")!);
+    await userEvent.click(await found(() => SHEET()?.querySelector("[data-allergies-done]")));
     await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
     const listed = region();
     expect(listed.state).toBe("recorded");
@@ -139,9 +140,9 @@ describe("the region and the sheet", () => {
     const device = await open(medicationUrl(LISINOPRIL.id), { fixtures: [world(), PENICILLIN] });
     await waitUntil(() => !!REGION()?.querySelector("[data-edit-allergies]"), 4000, "the region");
     expect(region().text).toContain("Penicillin (hives, severe)");
-    await userEvent.click(REGION()!.querySelector("[data-edit-allergies]")!);
+    await userEvent.click(await found(() => REGION()?.querySelector("[data-edit-allergies]")));
     await waitUntil(() => !!ADD(), 4000, "the sheet");
-    await userEvent.click(SHEET()!.querySelector("[data-allergies-done]")!);
+    await userEvent.click(await found(() => SHEET()?.querySelector("[data-allergies-done]")));
     await expect.poll(() => !SHEET() && device.location()).toBe(medicationUrl(LISINOPRIL.id));
     await waitUntil(() => !!REGION(), 4000, "the page again");
   });
