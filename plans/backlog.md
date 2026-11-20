@@ -59,10 +59,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-55 | feature | landed | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
-| B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
-| B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
-| B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
+| B-60 | feature | triaged | appointments-2 |  | Recurring appointments (weekly PT, dialysis three times a week) |
+| B-61 | feature | triaged | appointments-2 |  | Appointment reminders by email and push before the appointment |
+| B-62 | feature | triaged | appointments-2 |  | iCal feed of a care group's upcoming appointments |
+| B-63 | feature | triaged | appointments-2 |  | Google Calendar sync of a care group's appointments |
 | B-68 | chore | landed | hosting | prd/hosting | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
@@ -79,7 +79,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-129 | chore | in-progress | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
 | B-134 | bug | landed | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 | B-135 | change | landed | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
-| B-136 | change | in-progress | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
+| B-136 | change | ready | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | triaged | timeline-ux |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
 | B-138 | change | triaged | timeline-ux |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | triaged | timeline-ux |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
@@ -95,8 +95,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-150 | chore | landed | code-layout | prd/code-layout | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-154 | chore | landed | agent-tooling | prd/agent-tooling | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
-| B-155 | chore | in-progress | timeline-ux | prd/timeline-ux | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
-| B-156 | chore | in-progress | timeline-ux | prd/timeline-ux | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
+| B-155 | chore | ready | timeline-ux | prd/timeline-ux | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
+| B-156 | chore | ready | timeline-ux | prd/timeline-ux | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 | B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
 | B-158 | change | landed | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
 | B-159 | change | landed | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
@@ -106,7 +106,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-163 | change | triaged | timeline-ux |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
 | B-164 | change | triaged | timeline-ux |  | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
 | B-165 | change | triaged | timeline-ux |  | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
-| B-166 | change | in-progress | timeline-ux | prd/timeline-ux | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
+| B-166 | change | ready | timeline-ux | prd/timeline-ux | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
 | B-167 | change | triaged | timeline-ux |  | Make day summary part of sticky header so it is always visible when scrolling up the timeline. |
 | B-168 | change | triaged | timeline-ux |  | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
 | B-169 | change | triaged | timeline-ux |  | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
@@ -229,38 +229,42 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
 
 - status: triaged
-- prd: appointments
+- prd: appointments-2
 - owner:
 - commit:
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
+- 2026-11-20 (Robert Bo Davis): Moved from appointments (done) to a new appointments-2 PRD, to plan now (the user, 2026-11-20). Touches timeline-ux's Today card, so start it after timeline-ux wave 2; B-61's push needs a decision in the interview. -- backlog agent
 
 ### B-61 · feature · Appointment reminders by email and push before the appointment
 
 - status: triaged
-- prd: appointments
+- prd: appointments-2
 - owner:
 - commit:
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
+- 2026-11-20 (Robert Bo Davis): Moved from appointments (done) to a new appointments-2 PRD, to plan now (the user, 2026-11-20). Touches timeline-ux's Today card, so start it after timeline-ux wave 2; B-61's push needs a decision in the interview. -- backlog agent
 
 ### B-62 · feature · iCal feed of a care group's upcoming appointments
 
 - status: triaged
-- prd: appointments
+- prd: appointments-2
 - owner:
 - commit:
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
+- 2026-11-20 (Robert Bo Davis): Moved from appointments (done) to a new appointments-2 PRD, to plan now (the user, 2026-11-20). Touches timeline-ux's Today card, so start it after timeline-ux wave 2; B-61's push needs a decision in the interview. -- backlog agent
 
 ### B-63 · feature · Google Calendar sync of a care group's appointments
 
 - status: triaged
-- prd: appointments
+- prd: appointments-2
 - owner:
 - commit:
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
+- 2026-11-20 (Robert Bo Davis): Moved from appointments (done) to a new appointments-2 PRD, to plan now (the user, 2026-11-20). Touches timeline-ux's Today card, so start it after timeline-ux wave 2; B-61's push needs a decision in the interview. -- backlog agent
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
@@ -441,10 +445,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 9e3a3ad
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Stop blocking every /app navigation on a session request: use the session confirmed in the last few minutes and recheck in the background. / `requireSession` (apps/web/app/lib/session.ts) awaits `get-session` on each navigation, with no timeout, so every tap waits a round trip and can hang on a weak connection. / Add a timeout of about 3 s that counts as "no answer". The server still checks every upload and sync token.
 - 2026-11-20 (backlog agent): Triage: new PRD app-speed (navigation and load speed). This one needs a design decision (how long a confirmed session is trusted, what a timeout means offline), so it is PRD work, not a quick fix. Hot file: lib/session.ts.
@@ -630,10 +634,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-155 · chore · Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 448be6e
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first chunk.
 - 2026-11-20 (backlog agent): Triage: app-speed. A budget in the build check that keeps the editor and PowerSync out of the first chunk; it guards the gains of the other slices.
@@ -644,10 +648,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-156 · chore · Check whether `loadSettings` in the timeline loader waits on the network before using its cache.
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 9e3a3ad
 
 - 2026-11-20 (backlog agent): Triage: app-speed. An investigation first (does loadSettings wait on the network before using its cache?); a fix only if it does.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 1 (plans/app-speed-plan.md). Investigated: it does wait (me.get, after pending updatePreferences). Becomes cache-first with a background refresh that updates the open screen.
@@ -751,16 +755,17 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-166 · change · Using back to timeline from timeline live-note entry (or any browse action) takes you back to the…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux
 - owner: prd/timeline-ux
-- commit:
+- commit: 448be6e
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Using back to timeline from timeline live-note entry (or any browse action) takes you back to the timeline, causes all lazy loaded header elements to reload. Can we cache their state with a visual indicator (maybe greyed out) and load in the background so that it doesn't cause page shift? Maybe keep a placeholder in the header so that it doesn't cause a flash on load any time?
 - 2026-11-20 (Robert Bo Davis): Triaged to app-speed: header elements reloading on back-navigation is a caching/navigation-speed issue, next to B-136/B-137.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
 - 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 - 2026-11-20 (Robert Bo Davis): Start now (the user, 2026-11-20): timeline-ux runs as a 4th PRD (CARETOOK_MAX_PRDS=4) without waiting for code-layout slice 5. This overrides the plan's start condition, which wrongly names B-150; B-149 is code-layout's last item. Wave 1 (slices 1-3) touches none of slice 5's files (routes.ts, appUrls). Before wave 2: pnpm prd sync; if code-layout hasn't landed yet, slices 5, 6, 8, 9 import appUrls, so message the code-layout orchestrator or hold wave 2 until it lands.
+- 2026-11-20 (slice/timeline-ux/2): slice 2 built on slice/timeline-ux/2 (67f6e34): tile cache + useRememberedQuery; strips and simple blocks dimmed when remembered, skeletons on first visit
 
 ### B-167 · change · Make day summary part of sticky header so it is always visible when scrolling up the timeline.
 
