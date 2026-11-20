@@ -26,6 +26,7 @@ import { foldPassLogs } from "./dayItems";
 import { PassLogItem } from "./PassLogItem";
 import { PeriodMarkerItem } from "./PeriodMarkerItem";
 import { COLUMN_CAP } from "./layout";
+import { OFFSCREEN_ROWS, ROW_SIZE, settledDays } from "./offscreenRows";
 import { summariesByDay } from "./daySummary";
 import { DaySummaryLine } from "./DaySummaryLine";
 import { SHEET_LINK_STATE } from "./sheet";
@@ -33,7 +34,6 @@ import { TimelineEntryCard } from "./TimelineEntryCard";
 import { TimelineEntryRow } from "./TimelineEntryRow";
 import { dayKeyIn, withMarkers } from "./timelineDays";
 import { QuickAddPrefetch } from "./QuickAddMenu";
-import { UpcomingBlock } from "./UpcomingBlock";
 import { useEntryRemoval } from "./useEntryRemoval";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
@@ -57,10 +57,8 @@ const LIST_CLASS: Record<TimelineView, string> = {
  * period that covers the day: `DayHeader`), as rows or cards,
  * with the care periods' boundary markers at their moments (filters on or
  * off; a day with only a marker gets its own section), each day's summary
- * line under its heading while no filter or search is on, then `OlderEntries`,
- * which loads older pages as the end comes near. With
- * `upcoming` (`?upcoming=1`), the Upcoming block comes first, above Today, in
- * the same rows or cards. Writers get each entry's ⋯ menu, with one delete
+ * line in its sticky header while no filter or search is on, then `OlderEntries`,
+ * which loads older pages as the end comes near. Writers get each entry's ⋯ menu, with one delete
  * confirm for the whole list, and each day heading's + menu; a writer's list
  * always has a Today heading (empty when nothing's logged today), so today's
  * + is always there.
@@ -81,7 +79,6 @@ export function TimelineEntryList({
   author,
   vital = null,
   search: searching = NO_SEARCH,
-  upcoming,
   simple = false,
   summaryMode = "highlights",
 }: {
@@ -111,8 +108,6 @@ export function TimelineEntryList({
   vital?: VitalType | null;
   /** The search (`?q=`) and what it's doing (`timelineSearch`). */
   search?: { q: string; state: TimelineSearchState };
-  /** The Upcoming block, when it's on, and where its "See all in Upcoming" goes. */
-  upcoming?: { items: TimelineData["upcoming"]; seeAll: string } | null;
   /** Simple mode's larger, read-only list (above). */
   simple?: boolean;
   /** The day summaries' setting: none, highlights (the default) or everything. */
@@ -145,6 +140,8 @@ export function TimelineEntryList({
     adding && days[0]?.key !== todayKey
       ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
       : days;
+  // Days before the newest page skip drawing their rows while off screen (`offscreenRows`).
+  const settled = settledDays(sections);
   // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then; none when they're off).
   const summaries =
     summaryMode !== "off" &&
@@ -208,17 +205,6 @@ export function TimelineEntryList({
 
   return (
     <>
-      {upcoming && (
-        <div className={COLUMN_CAP}>
-          <UpcomingBlock
-            upcoming={upcoming.items}
-            view={view}
-            listClass={LIST_CLASS[view]}
-            seeAll={upcoming.seeAll}
-            entry={(entry) => item(entry)}
-          />
-        </div>
-      )}
       <section
         ref={list}
         aria-labelledby="timeline-heading"
@@ -246,10 +232,13 @@ export function TimelineEntryList({
               groupId={groupId}
               periods={data.periods}
               simple={simple}
+              summary={summaries && <DaySummaryLine summary={summaries.get(day.key)} mode={summaryMode} />}
             />
-            {summaries && <DaySummaryLine summary={summaries.get(day.key)} mode={summaryMode} />}
             {day.entries.length > 0 && (
-              <ol className={LIST_CLASS[view]} data-view={view}>
+              <ol
+                className={`${LIST_CLASS[view]} ${ROW_SIZE[view]} ${settled.has(day.key) ? OFFSCREEN_ROWS : ""}`}
+                data-view={view}
+              >
                 {/* Doses logged in one round fold into one pass log; care period markers keep their moments. */}
                 {foldPassLogs(day.entries).map((it) =>
                   it.type === "entry" ? (
@@ -260,7 +249,6 @@ export function TimelineEntryList({
                       marker={it.marker}
                       groupId={groupId}
                       timeZone={recipientZone}
-                      placeName={data.periods.placeName}
                       view={view}
                     />
                   ) : (

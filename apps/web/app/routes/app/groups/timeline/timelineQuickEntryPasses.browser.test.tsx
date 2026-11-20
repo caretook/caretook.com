@@ -132,12 +132,12 @@ describe("passes in the box", () => {
     await waitUntil(() => dueChips().length === 1, 4000, "the due pass's chip");
   });
 
-  test("Undo is offered for about 10 s only in the box, not on the medication strip", async () => {
+  test("Undo is offered for about 10 s only in the box, not on the Today card's medications row", async () => {
     await open();
     await typeUntil("gave evening meds", "Evening medications");
     await userEvent.click(saveButton());
     await expect.poll(undoLabel).toBe("Saved 2 entries");
-    const strip = document.querySelector("[data-med-strip]")?.parentElement;
+    const strip = document.querySelector('[data-today-row="medications"]');
     expect(strip?.querySelector("[data-pass-undo-label]") ?? null).toBeNull();
     expect(
       document.querySelector("[data-quick-entry] [data-pass-undo]")?.closest("[role=status]"),

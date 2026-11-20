@@ -1,0 +1,352 @@
+import type { DeviceRoute } from "../../../../../test/device";
+import type { Fixture, GroupRole } from "../../../../../test/fixtures";
+
+import { useLocation } from "react-router";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { page, userEvent } from "vitest/browser";
+import { renderWithDevice } from "../../../../../test/device";
+import { at, fx, medicationPass, task, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
+import { clearUndo } from "~/lib/medications/passUndo";
+import { clockAt, clockMoment, CLOCK, DOSES_SQL, fixClock } from "../medications/medicationWorld";
+import * as newDose from "./new-dose/route";
+import * as timeline from "./route";
+import { TIMELINE_URL } from "./timelineWorld";
+
+// The Today card (timeline-ux slice 5, B-169) on a fixed clock: 10:00 on
+// Wed Nov 18 2026 in Los Angeles. Its rows (vitals, the next appointment,
+// the medications due and the tasks) each show only with something to say,
+// tinted and iconned by `todayStatus` (whose edges are todayStatus.test.ts's),
+// each ending in "See all ›" to its full view. Given all stays on the
+// medications row for writers. The header collapses the card to one line,
+// remembered on this device. What the strips' old tests checked moved here;
+// remembering across a remount (dimmed, then fresh) is
+// timelineRemembered.browser.test.tsx's.
+
+const G = TEST_GROUP.id;
+
+/** Stands in for every other page: says where it is. */
+function Probe() {
+  const { pathname, search } = useLocation();
+  return (
+    <main>
+      <h1>
+        Probe {pathname}
+        {search}
+      </h1>
+    </main>
+  );
+}
+
+const ROUTES: DeviceRoute[] = [
+  {
+    path: "/app/groups/:groupId/timeline",
+    module: timeline,
+    children: [{ path: "/app/groups/:groupId/timeline/new/dose", module: newDose }],
+  },
+  { path: "/app/groups/:groupId/entries/:entryId", module: { default: Probe } },
+  { path: "/app/groups/:groupId/upcoming", module: { default: Probe } },
+  { path: "/app/groups/:groupId/medications", module: { default: Probe } },
+  { path: "/app/groups/:groupId/tasks", module: { default: Probe } },
+];
+
+const TODAY = "2026-11-18";
+const LATE = medicationPass({ name: "Late", time: clockAt(-65), sortOrder: 0 });
+const NOW = medicationPass({ name: "Now", time: clockAt(-3), sortOrder: 1 });
+const LATER = medicationPass({ name: "Later", time: clockAt(30), sortOrder: 2 });
+const med = (name: string, passId: string) =>
+  fx.medication({ name, strength: "5 mg", schedule: { type: "scheduled", slots: [{ passId }] } });
+const SA = med("Sa", LATE.id);
+const SB = med("Sb", NOW.id);
+const SC = med("Sc", NOW.id);
+const SD = med("Sd", LATER.id);
+const PASSES: Fixture[] = [LATE, NOW, LATER, SA, SB, SC, SD];
+
+/** Two days old: amber. */
+const OLD_BP = fx.vital({
+  occurredAt: clockMoment(-49 * 60),
+  readings: [{ type: "bloodPressure", systolic: 130, diastolic: 85 }],
+} as never);
+/** In an hour: blue. */
+const CARDIOLOGY = fx.event({ title: "Cardiology", occurredAt: clockMoment(60) });
+const WALKER = task({ title: "Pick up the walker", dueOn: TODAY });
+const DAY_NOTE = fx.note({ text: "A day", occurredAt: clockMoment(-30) });
+const EVERYTHING: Fixture[] = [DAY_NOTE, OLD_BP, CARDIOLOGY, WALKER, ...PASSES];
+
+const open = (fixtures: Fixture[], role: GroupRole = "caretaker") =>
+  renderWithDevice({ route: ROUTES, url: TIMELINE_URL, role, fixtures });
+
+const CARD = () => document.querySelector<HTMLElement>("main [data-today-card]");
+const row = (name: string) => CARD()?.querySelector<HTMLElement>(`[data-today-row="${name}"]`) ?? null;
+const shownRows = () =>
+  [...(CARD()?.querySelectorAll<HTMLElement>("[data-today-row]") ?? [])].map((r) => r.dataset.todayRow);
+const toggle = () => CARD()!.querySelector<HTMLButtonElement>("[data-today-toggle]")!;
+const seeAll = (name: string) => row(name)!.querySelector<HTMLAnchorElement>("a[data-see-all]")!;
+const givenAll = () => row("medications")?.querySelector<HTMLButtonElement>("[data-given-all]") ?? null;
+const medState = () => {
+  const el = row("medications")?.querySelector<HTMLElement>("[data-med-state]");
+  return [el?.dataset.medState ?? null, el?.dataset.medPass ?? null];
+};
+const UNDO = () => document.querySelector("[data-pass-undo-label]")?.textContent?.trim() ?? null;
+
+beforeEach(() => {
+  fixClock();
+});
+afterEach(() => {
+  clearUndo();
+  vi.useRealTimers();
+});
+
+describe("the Today card's rows", () => {
+  test("only rows with something to say; none at all hides the card; a row arrives with its data", async () => {
+    const device = await open([DAY_NOTE, task({ title: "Fax the form", dueOn: "2026-11-21" })]);
+    await expect.element(page.getByText("A day")).toBeInTheDocument();
+    // Once the medications and tasks have answered (skeletons until then), nothing is left.
+    await expect.poll(CARD).toBeNull();
+
+    await device.sync([OLD_BP]);
+    await device.settle();
+    await expect.poll(shownRows).toEqual(["vitals"]);
+
+    await device.sync([WALKER, ...PASSES]);
+    await device.settle();
+    await expect.poll(shownRows).toEqual(["vitals", "medications", "tasks"]);
+    // It sits above the list, at every width (the old vitals strip hid below `sm`).
+    expect(CARD()!.compareDocumentPosition(document.querySelector("main ol")!) & 4).toBeTruthy();
+    expect(row("vitals")!.getBoundingClientRect().height).toBeGreaterThan(0);
+  });
+
+  test("each status: its tint, its own icon and its words for screen readers; a calm row has neither", async () => {
+    await open(EVERYTHING);
+    await expect.poll(shownRows).toEqual(["vitals", "appointment", "medications", "tasks"]);
+    const look = (name: string) => {
+      const r = row(name)!;
+      return {
+        status: r.dataset.status,
+        icon: r.querySelector("svg[data-status-icon]")?.getAttribute("data-status-icon") ?? null,
+        said: r.querySelector("[data-status-text]")?.textContent ?? null,
+        tint: [...r.classList].find((c) => c.startsWith("bg-")) ?? null,
+      };
+    };
+    expect(look("medications")).toEqual({
+      status: "error",
+      icon: "error",
+      said: "Urgent: ",
+      tint: "bg-error/10",
+    });
+    expect(look("vitals")).toEqual({
+      status: "warning",
+      icon: "warning",
+      said: "Needs attention: ",
+      tint: "bg-warning/10",
+    });
+    expect(look("appointment")).toEqual({
+      status: "info",
+      icon: "info",
+      said: "Coming up soon: ",
+      tint: "bg-info/10",
+    });
+    expect(look("tasks")).toEqual({ status: "neutral", icon: null, said: null, tint: null });
+    // Every row's icon is hidden from screen readers: the words carry it.
+    expect(CARD()!.querySelectorAll("li svg:not([aria-hidden])")).toHaveLength(0);
+  });
+
+  test("the rows' words: the latest readings with their time, the next appointment (+N more), the pass, the task", async () => {
+    await open([...EVERYTHING, fx.event({ title: "Dentist", occurredAt: clockMoment(26 * 60) })]);
+    await expect.poll(shownRows).toHaveLength(4);
+    expect(row("vitals")!.textContent).toMatch(/^Needs attention: Latest vitals: BP 130\/85 mmHg 2d ago/);
+    const next = row("appointment")!.querySelector<HTMLAnchorElement>("a[data-next]")!;
+    expect(next.textContent).toBe("Next: Cardiology · Today 11:00 AM · +1 more");
+    expect(next.getAttribute("href")).toBe(`/app/groups/${G}/entries/${CARDIOLOGY.id}`);
+    expect(row("medications")!.textContent).toContain("Overdue: Late · 8:55 · 1 med · +1 more");
+    expect(row("tasks")!.textContent).toMatch(/^Today: Pick up the walker/);
+  });
+
+  test("every row ends in See all, alike, to its full view", async () => {
+    const device = await open(EVERYTHING);
+    await expect.poll(shownRows).toHaveLength(4);
+    const links = ["vitals", "appointment", "medications", "tasks"].map((name) => ({
+      name: seeAll(name).getAttribute("aria-label"),
+      text: seeAll(name).textContent,
+      href: seeAll(name).getAttribute("href"),
+      look: seeAll(name).className,
+    }));
+    expect(links.map(({ name, text, href }) => ({ name, text, href }))).toEqual([
+      { name: "See all vitals", text: "See all", href: `${TIMELINE_URL}?kind=vital` },
+      { name: "See all upcoming", text: "See all", href: `/app/groups/${G}/upcoming` },
+      { name: "See all medications", text: "See all", href: `/app/groups/${G}/medications` },
+      { name: "See all tasks", text: "See all", href: `/app/groups/${G}/tasks?who=everyone` },
+    ]);
+    expect(new Set(links.map((l) => l.look)).size).toBe(1);
+
+    // Vitals is the timeline's own kind filter.
+    await userEvent.click(seeAll("vitals"));
+    await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital`);
+    await expect
+      .poll(
+        () => document.querySelector('nav[aria-label="Show entries"] a[aria-current="true"]')?.textContent,
+      )
+      .toBe("Vitals");
+    await userEvent.click(seeAll("tasks"));
+    await expect
+      .element(page.getByRole("heading", { name: `Probe /app/groups/${G}/tasks?who=everyone` }))
+      .toBeVisible();
+  });
+});
+
+describe("the Today card's width", () => {
+  test("1280: capped like Live now (1152 px), centred, framing the entries' column", async () => {
+    await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: EVERYTHING, width: 1280 });
+    await expect.poll(shownRows).toHaveLength(4);
+    const r = CARD()!.getBoundingClientRect();
+    const pageWidth = document.documentElement.clientWidth;
+    expect(Math.abs(r.width - 1152)).toBeLessThan(1);
+    expect(Math.abs(r.left + r.right - pageWidth)).toBeLessThan(2);
+    // Each row is one line.
+    for (const name of ["vitals", "appointment", "medications", "tasks"])
+      expect(row(name)!.getBoundingClientRect().height).toBeLessThan(40);
+  });
+});
+
+describe("the medications row", () => {
+  test("Given all for a writer logs the overdue pass and offers Undo; the due pass follows; Undo brings it back", async () => {
+    const device = await open([DAY_NOTE, ...PASSES]);
+    await expect.poll(medState).toEqual(["overdue", `pass:${LATE.id}`]);
+    expect(givenAll()!.disabled).toBe(false);
+
+    await userEvent.click(givenAll()!);
+    await expect.poll(medState, { timeout: 5000 }).toEqual(["due", `pass:${NOW.id}`]);
+    expect(row("medications")!.dataset.status).toBe("warning");
+    await expect.poll(UNDO).toBe("Late logged");
+    expect(await device.query(DOSES_SQL)).toMatchObject([
+      { medicationId: SA.id, scheduledFor: clockAt(-65) },
+    ]);
+
+    await userEvent.click(document.querySelector<HTMLElement>("[data-pass-undo-button]")!);
+    await expect.poll(medState, { timeout: 5000 }).toEqual(["overdue", `pass:${LATE.id}`]);
+    expect(await device.query(DOSES_SQL)).toHaveLength(0);
+  });
+
+  test("the due pass's name opens the Dose sheet on it; once logged, the next pass shows, calm, with no Given all", async () => {
+    const given = fx.dose({ medicationId: SA.id, scheduledFor: clockAt(-65), occurredAt: clockMoment(-60) });
+    const device = await open([DAY_NOTE, ...PASSES, given]);
+    await expect.poll(medState).toEqual(["due", `pass:${NOW.id}`]);
+    expect(row("medications")!.textContent).toContain("Due: Now · 9:57 · 2 meds");
+
+    await userEvent.click(row("medications")!.querySelector<HTMLElement>("[data-med-open]")!);
+    await expect.poll(() => device.location()).toContain(`/timeline/new/dose?`);
+    expect(new URLSearchParams(device.location().split("?")[1]).get("pass")).toBe(NOW.id);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
+
+    await userEvent.click(givenAll()!);
+    await expect.poll(medState, { timeout: 5000 }).toEqual(["next", `pass:${LATER.id}`]);
+    expect(row("medications")!.textContent).toContain("Next: Later · 10:30 · 1 med");
+    expect(row("medications")!.dataset.status).toBe("neutral");
+    expect(givenAll()).toBeNull();
+  });
+
+  test("a viewer sees the row as text with See all: no Dose sheet link, no Given all", async () => {
+    await open([DAY_NOTE, ...PASSES], "viewer");
+    await expect.poll(medState).toEqual(["overdue", `pass:${LATE.id}`]);
+    expect([...row("medications")!.querySelectorAll("a, button")].map((el) => el.textContent)).toEqual([
+      "See all",
+    ]);
+  });
+});
+
+describe("the tasks row", () => {
+  test("overdue: red, my late task first, +N more counting today's; done on another device, it goes", async () => {
+    const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
+    type TaskValues = Parameters<typeof task>[0] & { id: string };
+    const id = () => crypto.randomUUID();
+    const walker: TaskValues = { id: id(), title: "Pick up the walker", dueOn: TODAY };
+    const mine: TaskValues = {
+      id: id(),
+      title: "Refill the pill box",
+      dueOn: "2026-11-17",
+      assigneeId: TEST_USER.id,
+    };
+    const sams: TaskValues = {
+      id: id(),
+      title: "Call the pharmacy",
+      dueOn: "2026-11-16",
+      assigneeId: SAM.id,
+    };
+    const device = await open([SAM, DAY_NOTE, task(walker), task(sams), task(mine)]);
+    const words = () => row("tasks")?.querySelector("[data-task]")?.textContent ?? null;
+    await expect.poll(() => row("tasks")?.dataset.status).toBe("error");
+    expect(words()).toBe("Overdue: Refill the pill box · +2 more");
+    expect(seeAll("tasks").getAttribute("href")).toBe(`/app/groups/${G}/tasks?who=mine`);
+
+    const done = (t: TaskValues) => task({ ...t, doneAt: at(), doneBy: SAM.id });
+    await device.sync([done(mine), done(walker)]);
+    await device.settle();
+    await expect.poll(words).toBe("Overdue: Call the pharmacy");
+    expect(seeAll("tasks").getAttribute("href")).toBe(`/app/groups/${G}/tasks?who=everyone`);
+
+    await device.sync(done(sams));
+    await device.settle();
+    await expect.poll(() => row("tasks")).toBeNull();
+  });
+});
+
+describe("the appointment row", () => {
+  test("an event saved for later today is next at once; when its time passes it moves into the history", async () => {
+    const device = await open([DAY_NOTE, CARDIOLOGY]);
+    await expect
+      .poll(() => row("appointment")?.querySelector<HTMLElement>("[data-next]")?.dataset.next)
+      .toBe(CARDIOLOGY.id);
+    const id = crypto.randomUUID();
+    const saved = await materializeLiveEntry(device.db, {
+      id,
+      groupId: G,
+      kind: "event",
+      title: "Ride to the lab",
+      // 10:01:20: after the history's end (the end of this minute), so still to come.
+      occurredAt: new Date(CLOCK.getTime() + 80_000).toISOString(),
+      timeZone: "America/Los_Angeles",
+    });
+    expect(saved.ok).toBe(true);
+    await device.settle();
+    await expect
+      .poll(() => row("appointment")?.querySelector<HTMLElement>("[data-next]")?.dataset.next)
+      .toBe(id);
+    const history = () => document.querySelector('main section[aria-labelledby="timeline-heading"]')!;
+    expect(history().querySelector(`a[href$="/entries/${id}"]`)).toBeNull();
+
+    await vi.advanceTimersByTimeAsync(2 * 60_000);
+    await device.settle();
+    await expect.poll(() => !!history().querySelector(`a[href$="/entries/${id}"]`)).toBe(true);
+    expect(row("appointment")?.querySelector<HTMLElement>("[data-next]")?.dataset.next).toBe(CARDIOLOGY.id);
+  });
+});
+
+describe("collapsing the card", () => {
+  test("the header collapses it to one summary line, remembered on this device across a remount; it opens again", async () => {
+    const device = await open(EVERYTHING);
+    await expect.poll(shownRows).toHaveLength(4);
+    expect(toggle().getAttribute("aria-expanded")).toBe("true");
+    expect(CARD()!.querySelector("[data-today-summary]")).toBeNull();
+
+    await userEvent.click(toggle());
+    await expect.poll(() => toggle().getAttribute("aria-expanded")).toBe("false");
+    const summary = CARD()!.querySelector<HTMLElement>("[data-today-summary]")!;
+    expect(summary.textContent).toBe("BP 130/85 mmHg · 1 appt · 1 med overdue · 1 task today");
+    expect(document.getElementById(toggle().getAttribute("aria-controls")!)!.hidden).toBe(true);
+    expect(row("vitals")!.checkVisibility()).toBe(false);
+    // One line.
+    expect(summary.getBoundingClientRect().height).toBeLessThan(24);
+
+    await device.screen.unmount();
+    await open(EVERYTHING);
+    await expect
+      .poll(() => CARD()?.querySelector("[data-today-summary]")?.textContent)
+      .toBe("BP 130/85 mmHg · 1 appt · 1 med overdue · 1 task today");
+    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+
+    await userEvent.click(toggle());
+    await expect.poll(() => row("vitals")?.checkVisibility()).toBe(true);
+    expect(CARD()!.querySelector("[data-today-summary]")).toBeNull();
+  });
+});

@@ -9,6 +9,7 @@ import { formatTime } from "~/lib/core/format";
 import { passLogText } from "~/lib/medications/medicationDisplay";
 import { medicationEntryText } from "~/lib/medications/medicationEntries";
 import { passLogCounts } from "~/lib/medications/passLogs";
+import { ASIDE_CLASS } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 
 /**
@@ -118,12 +119,14 @@ export function PassLogItem({
         )}
       </div>
       {!cards && (
-        <AuthorFilterLink
-          userId={author}
-          name={authorName}
-          initials={initials(authorName)}
-          image={authorImage}
-        />
+        <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
+          <AuthorFilterLink
+            userId={author}
+            name={authorName}
+            initials={initials(authorName)}
+            image={authorImage}
+          />
+        </div>
       )}
     </li>
   );

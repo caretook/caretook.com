@@ -135,18 +135,18 @@ const pastNoon = (d: number) => {
   return t;
 };
 
-describe("latest vitals", () => {
-  const strip = () => document.querySelector<HTMLElement>('section[aria-labelledby="latest-vitals"]');
+describe("the Today card's vitals", () => {
+  const vitals = () =>
+    document.querySelector<HTMLElement>('main [data-today-card] [data-today-row="vitals"]');
   const shown = () => {
-    const s = strip();
-    return !!s && s.getBoundingClientRect().height > 0 && getComputedStyle(s).display !== "none";
+    const s = vitals();
+    return !!s && s.getBoundingClientRect().height > 0 && s.checkVisibility();
   };
 
-  test("at 420 there's no latest-vitals strip; at 1280 it shows", async () => {
+  test("show at every width: 420 and 1280", async () => {
     await openTimeline({ width: 420 });
     await ready();
-    expect(strip()).not.toBeNull();
-    expect(shown()).toBe(false);
+    expect(shown()).toBe(true);
     await page.viewport(1280, 900);
     await frames();
     expect(shown()).toBe(true);

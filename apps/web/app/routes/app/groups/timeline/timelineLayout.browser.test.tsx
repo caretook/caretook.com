@@ -167,25 +167,28 @@ describe("day headings", () => {
     );
   });
 
-  test("16 px, semibold, normal case, full contrast and sticky in both themes; the colour follows the theme; 18 px at 1280", async () => {
+  test("18 px (text-lg, to balance its + button), semibold, normal case, full contrast and sticky in both themes; the colour follows the theme; 20 px (lg:text-xl) at 1280", async () => {
     const colors: string[] = [];
     for (const theme of ["light", "dark"] as const) {
       const device = await openTimeline({ theme });
       await ready();
       expect(headingStyle()).toEqual({
-        size: "16px",
+        size: "18px",
         weight: "600",
         transform: "none",
         full: true,
         position: "sticky",
       });
       colors.push(getComputedStyle(document.querySelector("section h3")!).color);
+      expect([...document.querySelector("section h3")!.classList]).toEqual(
+        expect.arrayContaining(["text-lg", "lg:text-xl", "font-semibold"]),
+      );
       await device.screen.unmount();
     }
     expect(colors[0]).not.toBe(colors[1]);
     await openTimeline({ width: 1280 });
     await ready();
-    expect(headingStyle().size).toBe("18px");
+    expect(headingStyle().size).toBe("20px");
   });
 
   test.each(["Rows", "Cards"] as const)(
@@ -440,6 +443,35 @@ describe("the wide layout", () => {
   });
 });
 
+describe("the author chip", () => {
+  test.each(["caretaker", "viewer"] as const)(
+    "%s: in the right-hand column under the ⋯ menu, so the text runs to it",
+    async (role) => {
+      await openTimeline({ role });
+      await ready();
+      const li = rowOf("Note")!;
+      const aside = li.querySelector<HTMLElement>(":scope > [data-entry-aside]")!;
+      const menu = aside.querySelector<HTMLElement>('button[aria-label^="Actions"]')!;
+      const chip = aside.querySelector<HTMLElement>("a[data-author]")!;
+      expect(menu.compareDocumentPosition(chip)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      // The column is the row's last thing, and the chip is under the ⋯, not beside it.
+      expect(li.lastElementChild).toBe(aside);
+      const [m, c, row] = [
+        menu.getBoundingClientRect(),
+        chip.getBoundingClientRect(),
+        li.getBoundingClientRect(),
+      ];
+      expect(c.top).toBeGreaterThanOrEqual(m.bottom - 4);
+      expect(Math.abs(c.left + c.width / 2 - (m.left + m.width / 2))).toBeLessThan(1);
+      // The text reaches the column: one 32 px column, its gap and the row's padding (it was 88 px with both beside it).
+      const body = li.querySelector<HTMLElement>(":scope > div.flex-1")!.getBoundingClientRect();
+      expect(row.right - body.right).toBeLessThanOrEqual(32 + 10 + 12 + 1);
+      // Still the filter, with its name.
+      expect(chip.getAttribute("aria-label")).toMatch(/^Show only .+'s entries$/);
+    },
+  );
+});
+
 describe("the author tooltip", () => {
   const TIP = () => document.querySelector<HTMLElement>('[role="tooltip"]');
   const firstLink = () =>
@@ -467,11 +499,15 @@ describe("the author tooltip", () => {
       4000,
       "the layout to settle",
     );
+    // The initials sit under the ⋯ menu: scroll the day just under its stuck header, so the tooltip opens over it.
+    const day = link.closest("section")!;
+    window.scrollTo(0, day.getBoundingClientRect().top + scrollY + 25);
+    await frames();
     await userEvent.hover(link);
     await waitUntil(() => !!TIP(), 3000, "the tooltip");
     const t = TIP()!;
     const r = t.getBoundingClientRect();
-    const h = link.closest("section")!.querySelector("h3")!.getBoundingClientRect();
+    const h = day.querySelector("[data-day-header]")!.getBoundingClientRect();
     expect(t.textContent?.trim().endsWith(name)).toBe(true);
     expect(t.querySelector('[aria-hidden="true"]')).toBeTruthy();
     expect((link.getAttribute("aria-describedby") ?? "").split(" ")).toContain(t.id);
