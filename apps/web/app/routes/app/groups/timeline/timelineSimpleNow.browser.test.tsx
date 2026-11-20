@@ -63,6 +63,8 @@ describe("the Upcoming block", () => {
     // It comes before the quick-entry box.
     const box = document.querySelector("[data-quick-entry]")!;
     expect(now()!.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The box offers no due-pass chip of its own: Given all is here (passChips={false}).
+    expect(box.querySelectorAll('[data-quick-row="due"] button')).toHaveLength(0);
 
     await userEvent.click(give()[0]!);
     await expect.poll(async () => (await doses(device)).length).toBe(2);

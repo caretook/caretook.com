@@ -75,7 +75,7 @@ export function SimpleTimeline({
       )}
       {mode.inputs && (
         <div className={`space-y-2 ${COLUMN_CAP}`}>
-          <QuickEntryBox groupId={group.id} units={units} size="md" />
+          <QuickEntryBox groupId={group.id} units={units} size="md" passChips={false} />
           {dictate && (
             <p className="text-base-content/70 text-sm" data-dictation-hint="">
               {DICTATION_HINT}
