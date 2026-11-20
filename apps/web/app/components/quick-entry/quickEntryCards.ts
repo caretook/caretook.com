@@ -91,7 +91,8 @@ export const cardsAnnouncement = (
 
 /**
  * Where Edit takes a card: symptoms and vitals to the add sheet, doses to
- * the Dose sheet on that medication, each filled in through history state
+ * the Dose sheet on that medication (a pass's Given all to the Dose sheet on
+ * the pass), each filled in through history state
  * (and coming back to the timeline on close). Notes and events have no
  * sheet: their page is where they're written, so Edit saves the card and
  * opens it.
@@ -132,6 +133,12 @@ export const editTarget = (
           note: action.note ?? null,
           occurredAt: action.occurredAt,
         }),
+      };
+    case "givePass":
+      // The Dose sheet on that pass: its medications one by one, with Given all.
+      return {
+        to: appUrls.newDose(groupId, { passId: action.passId, search }),
+        state: { ...SHEET_LINK_STATE },
       };
     case "addNote":
     case "addEvent":

@@ -43,6 +43,14 @@ const APPT = fx.event({
   text: "Bring the pill box",
 });
 const PAST_EVENT = fx.event({ title: "Fell in the hallway", occurredAt: hoursAgo(10 * DAY_H) });
+/** Lisinopril at 8:00 every day; two days ago's was refused, the rest never logged (missed). */
+const LISINOPRIL = fx.medication();
+const REFUSED = fx.dose({
+  medicationId: LISINOPRIL.id,
+  status: "refused",
+  scheduledFor: "08:00",
+  occurredAt: hoursAgo(2 * DAY_H),
+});
 
 const world = () => [
   fx.person({ name: "Ria Patel", role: "viewer" }),
@@ -59,7 +67,8 @@ const world = () => [
   // Before the last visit: not in the section.
   fx.symptom({ name: "Cough", severity: 2, occurredAt: hoursAgo(25 * DAY_H) }),
   fx.vital({ readings: [{ type: "heartRate", value: 78 }], occurredAt: hoursAgo(2 * DAY_H) }),
-  fx.medication(),
+  LISINOPRIL,
+  REFUSED,
 ];
 
 const open = (url: string, options: Parameters<typeof renderWithDevice>[0] = {}) =>
@@ -155,8 +164,11 @@ describe("on the appointment's page", () => {
       "Heart rate: 1 reading, 78 bpm, average 78 bpm",
       "Fell in the hallway",
       "Lisinopril 10 mg · 1 tablet",
+      "Missed doses",
     ])
       expect(preview).toContain(text);
+    // The window's missed-dose count (the slot rules of what's due, over the window).
+    expect(preview).toMatch(/Lisinopril 10 mg: \d+ missed, 1 refused \(of \d+\)/);
     // The cancelled visit, the last visit itself, and what came before it are left out; so is an empty section.
     for (const text of ["Cough", "Follow-up", "Checkup", "Hospital and other stays", "Medication changes"])
       expect(preview).not.toContain(text);

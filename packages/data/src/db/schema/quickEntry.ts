@@ -44,6 +44,18 @@ export type QuickEntryProvider = {
   address?: string | null;
 };
 
+/** A medication pass (a named round), as quick entry reads it. */
+export type QuickEntryPass = {
+  id: string;
+  name: string;
+  /** "HH:MM" in the recipient's zone. */
+  time: string;
+  /** Due or overdue now, with medications still to give: "gave meds" means it. */
+  due?: boolean;
+  /** How many of its medications are still to give today (unknown when left out). */
+  open?: number;
+};
+
 export type QuickEntryContext = {
   now: Date;
   /** The recipient's IANA zone: time phrases are read in it. */
@@ -54,6 +66,8 @@ export type QuickEntryContext = {
   medications: readonly QuickEntryMedication[];
   /** The group's live providers. */
   providers: readonly QuickEntryProvider[];
+  /** The group's live passes, in the day's order (due ones flagged). */
+  passes?: readonly QuickEntryPass[];
 };
 
 /** Something to show on a card. A blocking one stops that card from saving. */
@@ -238,6 +252,28 @@ const DOSE_VERBS: Record<string, DoseStatus> = {
 };
 const REFUSING = new Set(["wouldnt", "wouldn't", "wont", "won't", "didnt", "didn't"]);
 
+/** Words that mean "the medications due" rather than naming one: "gave meds", "gave all". */
+const GENERIC_MEDS_WORDS = [
+  "meds",
+  "medications",
+  "medicines",
+  "tablets",
+  "all",
+  "everything",
+  "round",
+  "pass",
+];
+const GENERIC_MEDS = new Set([
+  ...GENERIC_MEDS_WORDS,
+  "med",
+  "medication",
+  "medicine",
+  "pill",
+  "pills",
+  "dose",
+  "doses",
+]);
+
 /** Words in a dose line that aren't the medication's name. */
 const DOSE_FILLER = new Set([
   ...FILLER,
@@ -249,6 +285,7 @@ const DOSE_FILLER = new Set([
   "pill",
   "pills",
   "her's",
+  ...GENERIC_MEDS_WORDS,
 ]);
 
 /** The start of words for things felt or reported (symptoms). */
@@ -933,6 +970,99 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   });
 };
 
+/**
+ * A pass's Given all: "gave evening meds", "gave morning", "evening meds
+ * given", and "gave meds" or "gave all", which mean the pass due now (the
+ * pass nearest a time phrase when there is one; otherwise due passes first,
+ * then the nearest by the clock). Only "given": skipping or refusing a whole
+ * pass is a dose at a time. Any other word (a medication's name, a note)
+ * makes it something else.
+ */
+const passReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
+  const passes = s.context.passes ?? [];
+  if (!passes.length) return [];
+  let status: DoseStatus | null = null;
+  let verb = -1;
+  for (const i of s.free) {
+    const w = s.tokens[i]!.w;
+    if (REFUSING.has(w) || w === "not") return [];
+    if (w in DOSE_VERBS) {
+      status = DOSE_VERBS[w]!;
+      verb = i;
+      break;
+    }
+  }
+  const inherited = status ?? s.previousDose;
+  if (inherited && inherited !== "given") return [];
+  const rest = s.free.filter((i) => i !== verb);
+
+  // A pass named by all its words, the longest name first ("Late evening" over "Evening").
+  const restWords = new Map(rest.map((i) => [i, wordsOf(s.tokens[i]!.w)[0] ?? ""]));
+  const named = passes
+    .map((pass) => {
+      const words = wordsOf(pass.name);
+      const used = words.map((w) => [...restWords].find(([, t]) => t === w)?.[0]);
+      return words.length && used.every((i) => i !== undefined) ? { pass, used } : null;
+    })
+    .filter((m): m is { pass: QuickEntryPass; used: number[] } => !!m)
+    .sort((a, b) => b.used.length - a.used.length)[0];
+  const others = rest.filter((i) => !named?.used.includes(i) && !FILLER.has(s.tokens[i]!.w));
+  if (!others.every((i) => GENERIC_MEDS.has(s.tokens[i]!.w))) return [];
+  const generic = others.length > 0;
+  if (!named && !generic) return [];
+  if (!inherited && !forced && !(named && generic)) return [];
+
+  const at = s.time.past.at;
+  const minutes = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return (h ?? 0) * 60 + (m ?? 0);
+  };
+  const clock = (d: Date) => {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+      timeZone: s.context.timeZone,
+    }).formatToParts(d);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+    return minutes(`${get("hour")}:${get("minute")}`);
+  };
+  const distance = (pass: QuickEntryPass) => {
+    const d = Math.abs(minutes(pass.time) - clock(at));
+    return Math.min(d, 24 * 60 - d);
+  };
+  // Without a name: with a time phrase, the pass nearest it; otherwise due passes first.
+  const ranked = named
+    ? [named.pass]
+    : [...passes].sort(
+        (a, b) =>
+          Number(a.open === 0) - Number(b.open === 0) ||
+          (s.time.spec ? 0 : Number(!a.due) - Number(!b.due)) ||
+          distance(a) - distance(b),
+      );
+  for (const i of [...(verb >= 0 ? [verb] : []), ...(named?.used ?? []), ...others]) s.claimed.add(i);
+  return ranked.slice(0, 3).map((pass, rank) => {
+    const base = named
+      ? status || forced
+        ? 0.97
+        : inherited
+          ? 0.85
+          : 0.75
+      : (pass.due && pass.open !== 0) || s.time.spec
+        ? 0.92
+        : 0.55;
+    const warnings = futureWarning(at, s.context);
+    if (pass.open === 0 && !s.time.spec)
+      warnings.push({ message: `Nothing is left to give in ${pass.name} today.`, blocking: true });
+    return reading(
+      "dose",
+      { type: "givePass", passId: pass.id, occurredAt: at.toISOString() },
+      base - rank * 0.05,
+      warnings,
+    );
+  });
+};
+
 const hasSymptomWord = (tokens: readonly Token[], idx: readonly number[]) => {
   const text = ` ${idx.map((i) => tokens[i]!.w).join(" ")} `;
   return SYMPTOM_STEMS.some((stem) =>
@@ -1125,7 +1255,7 @@ const DETECTORS: Record<
   (s: PartState, forced: boolean) => QuickEntryReading[]
 > = {
   vital: vitalReadings,
-  dose: doseReadings,
+  dose: (s, forced) => [...passReadings(s, forced), ...doseReadings(s, forced)],
   symptom: symptomReadings,
   event: eventReadings,
 };
@@ -1165,6 +1295,7 @@ const parsePart = (
   } else {
     readings = [
       ...vitalReadings(s, false),
+      ...passReadings(s, false),
       ...doseReadings(s, false),
       ...symptomReadings(s, false),
       ...eventReadings(s, false),
@@ -1243,7 +1374,7 @@ export const parseQuickEntry = (text: string, context: QuickEntryContext): Quick
   for (const piece of splitQuickEntry(text)) {
     const part = parsePart(piece, context, previousDose);
     const top = best(part).actions[0];
-    previousDose = top?.type === "logDose" ? top.status : null;
+    previousDose = top?.type === "logDose" ? top.status : top?.type === "givePass" ? "given" : null;
     parts.push(part);
   }
   return { parts: mergeVitals(parts) };

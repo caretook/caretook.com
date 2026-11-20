@@ -12,9 +12,11 @@
 | 4     | merged                              | bab73d5 (5c7c747, 95b8c05)                 |
 | 5     | merged (migration 0021_simple_mode) | 42c5518 (e082102, b4a282c)                 |
 | 6     | merged                              | 794c3d2 (b86c1dc, 6a307c6)                 |
-| 7     | running                             |                                            |
+| 7     | merged                              | ed7029d (f5cd7f7, 7de6916)                 |
 
-**Wave A** (slices 1–5, the dev sync 86f0fba, and check fixes 4e03b6d): **landed in dev as a38609b** (2026-11-19). Lean suite at b723d14 9/12; the three failures (app-shell, roundtrip, live-notes) were check races or load, fixed in the check scripts and passing once each on the fix branch; settings-layout, providers, medications, upcoming, search, care-periods passed by name; `pnpm prd check` 3028/3028 on 4e03b6d. Docs folded (new `docs/domain/assistant.md`; timeline, live-notes, appointments, providers, app-shell, care-groups, sync). B-49 done. **Wave B** (slice 6, 794c3d2, plus the loop-recovery dev sync 7bb1517): **landed in dev as 9ae6b0d**; app-shell passed on the tip, `pnpm prd check` passed on 7bb1517. Slice 7 running; the tasks orchestrator (tasks-62) asked to be messaged when slice 7 lands.
+**Wave A** (slices 1–5, the dev sync 86f0fba, and check fixes 4e03b6d): **landed in dev as a38609b** (2026-11-19). Lean suite at b723d14 9/12; the three failures (app-shell, roundtrip, live-notes) were check races or load, fixed in the check scripts and passing once each on the fix branch; settings-layout, providers, medications, upcoming, search, care-periods passed by name; `pnpm prd check` 3028/3028 on 4e03b6d. Docs folded (new `docs/domain/assistant.md`; timeline, live-notes, appointments, providers, app-shell, care-groups, sync). B-49 done. **Wave B** (slice 6, 794c3d2, plus the loop-recovery dev sync 7bb1517): **landed in dev as 9ae6b0d**; app-shell passed on the tip, `pnpm prd check` passed on 7bb1517. Then a fix for two intermittent slice-6 component tests (the group menu's first paint, Members' late echo; 014e073) **landed as c17c121** for the check-migration PRD.
+
+**Wave C** (slice 7, ed7029d): `medications` passed on the slice branch; docs folded; landing, then `pnpm prd rm assistant`. **The PRD is done.**
 
 **Landing:** land each wave as soon as it's green. The user said (2026-11-19) there's no real data, so it doesn't matter when the migration (slice 5) lands; it doesn't force one landing at the end. **Landing mode: run everything through** (queued with `pnpm prd queue assistant`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
