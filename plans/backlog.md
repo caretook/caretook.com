@@ -35,8 +35,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `onboarding`      | to write (B-31)                                              | `invites` (done)                                     | seeds, `careGroupService`, `/app` home                                     |
 | `account-security` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) | `invites` (done); B-80 (the Devices page) first (soft) | `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 | `admin` | [PRD](admin-prd.md), [plan](admin-plan.md): **done**, all 6 slices in `dev` (B-91 landed); B-106 moved to quick-fixes, B-113 still open | (none) | none now |
-| `check-migration` | to plan (B-114–B-129, B-131): move the screen browser checks to component tests, port the lean e2e set to Playwright Test, settle web:components under load | `orchestration` (done) | `scripts/browser-checks/`, `scripts/loops/check-areas`, component test files beside each screen, `vitest.config.ts` |
-| `loop-recovery` | to write (B-132): resume PRDs and loops after a restart, crash or token exhaustion; recover state when disk runs low | `orchestration` (done) | `scripts/loops/`, `scripts/backlog/` (also `check-migration`: `scripts/loops/check-areas`) |
+| `check-migration` | [PRD](check-migration-prd.md), [plan](check-migration-plan.md): 23 slices, 10 waves of ≤ 3: steady component tests and a lean-budget ratchet (356 s → ≤ 300), a sync matrix and refused uploads, then each area check moved to component tests (flows folded into lean checks only for a new mechanism), then the lean set ported to Playwright Test and the CDP harness deleted (B-113–B-129, B-131) | `orchestration` (done); slices 11–17 wait for named `assistant` slices in `dev` | `scripts/loops/checks` and `check-areas` (additive), `scripts/browser-checks/`, `browser.sh`, `apps/web/test/` (the test device), test files beside screens, root `package.json` (`@playwright/test`, slice 19) |
+| `loop-recovery` | [PRD](loop-recovery-prd.md), [plan](loop-recovery-plan.md): 5 slices, all stackless, waves (1, 2, 3) → 4 → 5: the inventory and `recover --dry-run`, the disk guard and `reclaim`, resume prompts and _Status_ at every step, `down` and `recover`, then the recovery agent with iTerm2 tabs (B-132) | `orchestration` (done): **ready to start** | `scripts/loops/` (`prd.sh`, `lib.sh`, `ls.sh`, `prompt.sh`, `new.sh`, `stack.sh`; additive), `browser.sh` (one guard call; also `check-migration`), `docs/loops.md`, `docs/orchestration.md` |
 
 ## Summary
 
@@ -44,19 +44,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-12 | plan | triaged | assistant |  | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
+| B-12 | plan | in-progress | assistant | prd/assistant | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-33 | plan | inbox |  |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
-| B-49 | feature | triaged | assistant |  | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
+| B-49 | feature | ready | assistant | prd/assistant | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-55 | feature | triaged | tasks |  | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-58 | plan | triaged | assistant |  | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
+| B-58 | plan | in-progress | assistant | prd/assistant | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
@@ -64,19 +64,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-68 | chore | inbox |  |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
-| B-87 | plan | triaged | assistant |  | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
+| B-87 | plan | in-progress | assistant | prd/assistant | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 | B-89 | feature | landed | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-91 | feature | landed | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
-| B-98 | change | triaged | quick-fixes |  | Hide add to timeline buttons behind a + icon in the timeline header. |
-| B-99 | change | triaged | quick-fixes |  | Don't display recent vitals in the timeline header in mobile, |
-| B-100 | change | triaged | quick-fixes |  | Add "recent vita averages" to the profile page. |
+| B-98 | change | ready | quick-fixes | prd/quick-fixes | Hide add to timeline buttons behind a + icon in the timeline header. |
+| B-99 | change | ready | quick-fixes | prd/quick-fixes | Don't display recent vitals in the timeline header in mobile, |
+| B-100 | change | ready | quick-fixes | prd/quick-fixes | Add "recent vita averages" to the profile page. |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
-| B-105 | change | triaged | quick-fixes |  | Care period display on timeline should be a part of the sticky header that includes date instead of… |
-| B-106 | bug | triaged | quick-fixes |  | Turning email invites off also blocks staff owner invites from /admin |
+| B-105 | change | ready | quick-fixes | prd/quick-fixes | Care period display on timeline should be a part of the sticky header that includes date instead of… |
+| B-106 | bug | ready | quick-fixes | prd/quick-fixes | Turning email invites off also blocks staff owner invites from /admin |
 | B-107 | feature | landed | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
 | B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
-| B-112 | change | triaged | quick-fixes |  | Show the recipient's allergies on the profile's printable emergency sheet |
-| B-113 | chore | triaged | admin |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
+| B-112 | change | ready | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
+| B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-114 | chore | triaged | check-migration |  | Move routing.mjs to component tests |
 | B-115 | chore | triaged | check-migration |  | Move settings-layout.mjs to component tests |
 | B-116 | chore | triaged | check-migration |  | Move providers.mjs to component tests |
@@ -93,7 +93,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
 | B-128 | chore | triaged | check-migration |  | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
-| B-130 | bug | triaged | quick-fixes |  | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
+| B-130 | bug | ready | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | triaged | check-migration |  | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | triaged | loop-recovery |  | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 
@@ -101,9 +101,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-12 · plan · Assistant: lightweight chat, with voice, for quick actions and questions about the timeline
 
-- status: triaged
+- status: in-progress
 - prd: assistant
-- owner:
+- owner: prd/assistant
 - commit:
 
 - 2026-11-17 (dev keeper): Quick actions go through the same local write paths as the forms (offline, synced), as a draft the user confirms. Questions need server-side retrieval and an AI vendor that doesn't retain or train on our data.
@@ -164,14 +164,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-49 · feature · Once we have agentic integration, Add ai generated summary to each day on the timeline and the…
 
-- status: triaged
+- status: ready
 - prd: assistant
-- owner:
-- commit:
+- owner: prd/assistant
+- commit: f358d86
 
 - 2026-11-18 (prd/marketing): From the inbox: Once we have agentic integration, Add ai generated summary to each day on the timeline and the option to view a condensed summary of days for quick scanning.
 - 2026-11-18 (Robert Bo Davis): Proposed for assistant: per-day AI summaries on the timeline and a condensed days view. Needs the assistant's server side first; pairs with care-periods (B-50).
 - 2026-11-19 (Robert Bo Davis): User 2026-11-19: first as templated summaries from the data (counts, changes, trends), no model, in the assistant PRD.
+- 2026-11-19 (slice/assistant/3): slice/assistant/3: day summaries built (33436b2, a1d1045); awaiting merge
 
 ### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
 
@@ -223,9 +224,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-58 · plan · Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions…
 
-- status: triaged
+- status: in-progress
 - prd: assistant
-- owner:
+- owner: prd/assistant
 - commit:
 
 - 2026-11-18 (prd/marketing): From the inbox: Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions for provider appointments.
@@ -298,9 +299,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-87 · plan · "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to…
 
-- status: triaged
+- status: in-progress
 - prd: assistant
-- owner:
+- owner: prd/assistant
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to and view the timeline without having to learn the full interface. This is a pre-launch feature once other features are in place.
@@ -334,32 +335,33 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-98 · change · Hide add to timeline buttons behind a + icon in the timeline header.
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 5070e43
 
 - 2026-11-19 (prd/quick-fixes): Proposed for quick-fixes: one contained change to the timeline's QuickAddBar (a + menu in the header); not yet a slice in the plan.
 - 2026-11-19 (Robert Bo Davis): User 2026-11-19: one quick-fixes slice with B-99, after care-periods and medications-2 land.
 
 ### B-99 · change · Don't display recent vitals in the timeline header in mobile,
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 5070e43
 
 - 2026-11-19 (Robert Bo Davis): quick-fixes: small change to LatestVitals visibility below sm. Touches the timeline header strips, hot for medications-2 (medication strip) and care-periods (period line): start it after both land, ideally in one slice with B-98 (+ button), since both reshape the phone header. If simple-mode (B-87) gets a PRD first, fold both into it.
 - 2026-11-19 (Robert Bo Davis): User 2026-11-19: one quick-fixes slice with B-98, after care-periods and medications-2 land.
 
 ### B-100 · change · Add "recent vita averages" to the profile page.
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: b8d516e
 
 - 2026-11-19 (Robert Bo Davis): quick-fixes: a read-only region on the profile page (not a hot file now that profiles is done), from local vitals via json_each. Needs a decision on the window (7 or 30 days?) and which types; the slice agent should ask. Could move to a vitals-trends PRD if charts come up.
+- 2026-11-19 (slice/quick-fixes/42): slice/quick-fixes/42: built (5e87b1f, d030837); Recent vital averages card on the profile after the note
 
 ### B-104 · plan · Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server
 
@@ -372,24 +374,26 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-105 · change · Care period display on timeline should be a part of the sticky header that includes date instead of…
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 5070e43
 
 - 2026-11-19 (prd/admin): From the inbox: Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header.
 - 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: moves CurrentPeriodLine into the sticky day header. Same timeline-header area as B-98/B-99 (hot for medications-2's strip): fold into that one slice after medications-2 lands.
 
 ### B-106 · bug · Turning email invites off also blocks staff owner invites from /admin
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: b8d516e
 
 - 2026-11-19 (prd/admin): From the user while admin slice 5 merged: not the intended behaviour. careGroupInviteService.createEmail refuses with settings:signupClosed when signup.emailInvites is off, and groupAdminService.inviteOwner and staffGroupService.createWithOwnerInvite go through it, so staff can't invite an owner. Staff owner invites should bypass the switch. Not addressed in the admin PRD's current slices; fix later.
 - 2026-11-19 (Robert Bo Davis): Inbox bullet 'Browser testing without a timeout…' had been mis-tagged (B-106) by an add commit; untagged and re-filed as B-108.
 - 2026-11-19 (Robert Bo Davis): Moved from admin (done, landed) to quick-fixes: a contained service fix (staff owner invites bypass signup.emailInvites).
+- 2026-11-19 (slice/quick-fixes/40): slice 40 (adfb130): createEmail's internal staffInvite option skips signup.emailInvites for inviteOwner and createWithOwnerInvite. The invitee's preview/accept still obey the switch (kindRefusal), so such an owner invite can't be opened until email invites are back on.
+- 2026-11-19 (slice/quick-fixes/40): slice 40 (8fe09e0): preview, accept and ticketFor now skip the switch too, for staff owner invites only (kind email, role owner, createdBy = system). This replaces the earlier note's caveat: no migration was needed.
 
 ### B-107 · feature · Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests…
 
@@ -419,10 +423,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-112 · change · Show the recipient's allergies on the profile's printable emergency sheet
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: b8d516e
 
 - 2026-11-19 (prd/medications-2): The emergency sheet (profiles) passes allergies: null, waiting for B-26. medications-2 built allergies (lib/sync/allergies.ts: allergiesQuery, loadAllergies; PrintAllergies), so the sheet can show them now. profiles.mjs's sheet step would need to expect them.
 - 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: one small change to the emergency sheet (pass loadAllergies instead of null) plus profiles.mjs's sheet expectation; medications-2 has landed, so nothing blocks it.
@@ -430,7 +434,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-113 · chore · Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands
 
 - status: triaged
-- prd: admin
+- prd: check-migration
 - owner:
 - commit:
 
@@ -438,6 +442,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (prd/orchestration): orchestration wave 2 landed (07bc4eb). app-shell.mjs is being shrunk by orchestration slice 7 (wave 3), which was asked to investigate step 6g (sign-in after sign-out on one page); results noted here when wave 3 lands.
 - 2026-11-19 (slice/orchestration/7): slice 7 (orchestration): app-shell 6g's stall is a harness race that also shows an app wart. The check signed viewer@ in again on the same page that had just signed out (same x-forwarded-for, after a run of session checks), so Better Auth's limiter could answer the first get-session after sign-in with a 429. requireSession treats 429 as 'unknown'; sign-out wiped the cached user, so with no cached user it returns 'signedOut' and redirects to /sign-in with no message (lib/session.ts resolveUser). Harness fixed in slice 7 (fresh page per sign-in). App: a rate-limited session check right after a successful sign-in silently bounces to /sign-in; worth a message or a retry (not changed in slice 7).
 - 2026-11-19 (prd/orchestration): orchestration wave 3 landed. app-shell.mjs (now 13 assertions, 8 s) passed on the new suite at low load; every sign-in is on a fresh page, which removes the step 6g repeat sign-in. Probable app cause (unconfirmed, log gone): a 429 on the first get-session after sign-in counts as unknown, and with no cached user requireSession treats it as signed out and redirects to /sign-in silently (apps/web/app/lib/session.ts resolveUser). providers.mjs and admin.mjs weren't rerun here.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slices 7 (admin) and 14 (providers); app-shell was rechecked by orchestration wave 3 (plans/check-migration-plan.md).
 
 ### B-114 · chore · Move routing.mjs to component tests
 
@@ -448,6 +453,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set (e2e no) since orchestration slice 9. Move its screen steps (appUrls links, sheet URLs open and close, settings subpages, the group route's redirects and 404s) to *.browser.test.tsx beside the routes, delete each covered step (map step -> test in the hand-off), keep only what needs a real page load (route discovery offline, a deep link after a full load); then e2e yes or delete it. Rules: docs/loops.md, Browser check budget.
 - 2026-11-19 (Robert Bo Davis): Proposed (B-114 to B-128) a new check-migration topic: one slice per check moved to component tests, plus B-128's refused-upload step; tests only, no migration, can run beside feature PRDs. Start after orchestration lands.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 3, wave 2 (plans/check-migration-plan.md).
 
 ### B-115 · chore · Move settings-layout.mjs to component tests
 
@@ -457,6 +463,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. The Settings <-> timeline toggle on one device is a component test (settings.browser.test.tsx); keep only the choice following the account to a second browser, ideally folded into layout-offline.mjs; then delete settings-layout or set it e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 4, wave 2 (plans/check-migration-plan.md).
 
 ### B-116 · chore · Move providers.mjs to component tests
 
@@ -466,6 +473,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the directory (list, search, filters), the sheets, the provider page, the entry page's With row and suggestions to component tests on the test device; keep two-browser notes, offline add and edit then upload, and the viewer's refused writes. Then e2e yes. B-113 asks for a recheck of it too.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 14, wave 6 (after assistant slice 4) (plans/check-migration-plan.md).
 
 ### B-117 · chore · Move groups.mjs to component tests
 
@@ -475,6 +483,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the New care group sheet, the invite card and /join/:code's form states to component tests; keep the server flows (careGroup.create then the new group syncing in, /join sign-up and the refused codes, /admin's 404 for non-staff, the QR). Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 15, wave 6 (plans/check-migration-plan.md).
 
 ### B-118 · chore · Move medications.mjs to component tests
 
@@ -484,6 +493,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (the biggest check, about 163 s). Move the list, search and status, the forms, status actions, Today, the Due now strip, the Dose sheet's states, passes, allergies and the print sheet's layout to component tests; keep a second device seeing a dose, offline then upload, and the service-written change entries. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slices 9 (wave 4) and 11 (wave 5, after assistant slice 7) (plans/check-migration-plan.md).
 
 ### B-119 · chore · Move upcoming.mjs to component tests
 
@@ -493,6 +503,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (about 203 s). Move the section, Past, filters, adding at ?when=pick, cancel and reschedule dialogs, the Next strip and block, and due doses in Upcoming to component tests; keep reschedule's one transaction uploading and reaching another device. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 13, wave 5 (after assistant slice 4) (plans/check-migration-plan.md).
 
 ### B-120 · chore · Move search.mjs to component tests
 
@@ -502,6 +513,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the timeline's search field and chip, the search page, highlights, snippets and recent searches to component tests (the FTS index runs on the test device's SQLite); keep the index dropped at sign-out and server search if a screen ever calls it. Then e2e yes or delete it.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 5, wave 2 (plans/check-migration-plan.md).
 
 ### B-121 · chore · Move profiles.mjs to component tests
 
@@ -511,6 +523,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the profile page, its sheets by role, offline states and the print sheet's layout to component tests (oRPC through the test device's api); keep a save syncing back, demotion losing the writers' details on the next sync. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 10, wave 4 (plans/check-migration-plan.md).
 
 ### B-122 · chore · Move profiles-contacts.mjs to component tests
 
@@ -520,6 +533,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move account Contact details and the Members page's sharing form to component tests; keep a share reaching a co-member's device. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 16, wave 6 (plans/check-migration-plan.md).
 
 ### B-123 · chore · Move care-periods.mjs to component tests
 
@@ -529,6 +543,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the periods list, sheets, period page, timeline line and markers, group menu and suggestions to component tests; keep a second device, offline then upload, and ties. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 8, wave 3 (plans/check-migration-plan.md).
 
 ### B-124 · chore · Move devices.mjs to component tests
 
@@ -538,6 +553,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the Devices page's list, labels and offline notice to component tests; keep signing another device out (its next session check goes to sign-in) as a lean flow, possibly folded into session-end.mjs. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 6, wave 3 (plans/check-migration-plan.md).
 
 ### B-125 · chore · Move admin.mjs to component tests
 
@@ -547,6 +563,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. admin pages are web-only server loaders, so component tests need loader data: move what renders from data (users, groups, audit, settings, the banner) there; keep staff-only access, the audit log written by real actions and the announcement reaching /app. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 7, wave 3 (plans/check-migration-plan.md).
 
 ### B-126 · chore · Move roundtrip.mjs's sheet steps to component tests
 
@@ -556,6 +573,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): roundtrip.mjs stays in the lean set (devices converging, offline then reconnect, the viewer, the sign-out wipe), but its add and edit sheet steps (validation, When's date picker, edit and delete) are screen behaviour: move them to component tests for the timeline's sheets (new/, edit/, EntryForm) and delete each covered step.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 12, wave 5 (after assistant slices 1 and 5) (plans/check-migration-plan.md).
 
 ### B-127 · chore · Move invites.mjs's screen steps to component tests
 
@@ -565,6 +583,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): invites.mjs stays in the lean set (emails through /dev/mail.json, sign-up, consent, join, links and requests). Move its form states (the invite page's views, the wrong-account view, sign-in tabs, the invite sheet and pending list) to component tests and delete each covered step.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 17, wave 7 (plans/check-migration-plan.md).
 
 ### B-128 · chore · Add a lean end-to-end step for an upload refused by permissions
 
@@ -574,6 +593,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): The lean set (orchestration slice 9) is meant to cover uploads refused by permissions, but no check asserts one: a device whose role was lowered on the server writes locally, the upload is rejected (4xx acknowledged), and the next sync restores the server's copy. Add it to roundtrip.mjs or app-shell.mjs's demotion step.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 2, wave 1 (plans/check-migration-plan.md).
 
 ### B-129 · chore · Port the lean end-to-end set to Playwright Test
 
@@ -584,16 +604,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): A non-goal of the orchestration PRD, filed as its follow-up: the CDP harness (cdp.mjs, proxy.mjs) could become Playwright Test now that playwright is a dev dependency (component tests). Only the lean set (scripts/loops/checks e2e yes); keep the lease, the watchdog and the check build.
 - 2026-11-19 (Robert Bo Davis): Proposed for check-migration, last: port only the lean set to Playwright Test once B-114 to B-128 have shrunk it.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slices 19-23, waves 8-10 (@playwright/test 1.65.1 approved by the user) (plans/check-migration-plan.md).
 
 ### B-130 · bug · A rate-limited session check right after sign-in sends the user back to /sign-in with no message
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: b8d516e
 
 - 2026-11-19 (Robert Bo Davis): From the orchestration PRD (slice 7, investigating B-113's app-shell step 6g). Unconfirmed, the log was gone: a 429 on the first get-session after sign-in counts as unknown, and with no cached user (sign-out wiped it) requireSession treats it as signed out and redirects to /sign-in silently (apps/web/app/lib/session.ts, resolveUser). Likely fix: retry the session check once on 429, or show a 'try again' message instead of a silent redirect.
 - 2026-11-19 (Robert Bo Davis): Triage: a contained fix in apps/web/app/lib/session.ts (retry get-session once on 429, or a 'try again' message), so a quick-fixes slice.
+- 2026-11-19 (slice/quick-fixes/43): slice 43: 429 on get-session retried once (X-Retry-After, capped 2 s); still 429 with no cached user -> /sign-in?reason=rate-limited with a message. Reproduced on the built server: Better Auth's limiter (on only with NODE_ENV=production) allows 100 get-session per IP per 10 s, then 429 with x-retry-after up to 10, so the 2 s retry usually still 429s and the message shows. Commit 9fc492c.
 
 ### B-131 · bug · Component tests (web:components) can fail under pnpm check's load
 
@@ -604,6 +626,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (Robert Bo Davis): From the orchestration PRD. Slice 9's first pnpm prd check failed two component test files once (trace in apps/web/test/device.tsx; details lost), then passed on every rerun. At wave 3's landing three entry page tests raced the same way (they read the screen right after a stored write) and were fixed to wait for the screen. If it recurs, capture the log, look for DOM reads right after a database poll, and consider a lower parallelism for web:components inside pnpm check.
 - 2026-11-19 (Robert Bo Davis): Triage: check-migration moves most screen checks into web:components, which makes this load flake matter more; its first slice should capture logs and settle web:components parallelism inside pnpm check.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 1, wave 1 (plans/check-migration-plan.md).
 
 ### B-132 · feature · PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When…
 
@@ -614,3 +637,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When disk space gets low, we have to be able to restart the system and recover the state of the system.
 - 2026-11-19 (Robert Bo Davis): Triage: new topic loop-recovery (orchestration is done): resume PRDs and loops after a restart, crash or token exhaustion, with state recovery when disk runs low. Touches scripts/loops/ and scripts/backlog/; can run beside app PRDs but not beside check-migration's scripts/browser-checks edits without care.
+- 2026-11-19 (Robert Bo Davis): Planned: plans/loop-recovery-prd.md and -plan.md (5 stackless slices). pnpm prd down/recover (Docker, stacks of active work, PRD servers, stale locks, --at/--wait for usage limits), a recovery agent that messages live orchestrators and reopens dead ones in iTerm2 (claude --continue, else a fresh --resume orchestrator), Status at every step, a 10 GB disk guard and pnpm prd reclaim.
