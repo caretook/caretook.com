@@ -12,7 +12,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
 | `orchestration` | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done**, all 9 slices in `dev` (`94e6b80`); follow-ups are `check-migration` and `loop-recovery` | (none) | none now |
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done**, all 10 slices in `dev` | (none) | none now |
-| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–14 in `dev`; new fixes append as slice 15 on. Triaged and waiting: B-64, B-69, B-70, B-78, and from the security review B-79 to B-83 |  (none) | varies by slice; B-44 the providers route folder (`ProviderListItem`); B-73 `components/ui/Sheet` (after `medications` slice 3); B-71 `components/ui/date/` |
+| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–43 in `dev`; new fixes append as slice 44 on. Nothing triaged and waiting |  (none) | varies by slice; none now |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | none now |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done**, all 7 slices in `dev` | `live-notes-ux`, `app-shell`, `routing`, `components` (all done) | none now |
 | `search` | [PRD](search-prd.md), [plan](search-plan.md): **done**, all 6 slices in `dev` (`a5f3d4d`) | (none) | none now |
@@ -29,7 +29,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `appointments` | [PRD](appointments-prd.md), [plan](appointments-plan.md): **done**, all 7 slices in `dev` (B-47 landed); follow-ups B-60–B-63, not planned | (none) | none now |
 | `care-periods` | [PRD](care-periods-prd.md), [plan](care-periods-plan.md): **done**, all 6 slices in `dev` (`f6c4e92`) | (none) | none now |
 | `data-rights`     | to write (B-52, B-53)                                        | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
-| `tasks`           | to write (B-55)                                              | (none); `notifications` for reminders (soft)          | a new table, sync and upload registries, `GROUP_SECTIONS`, `routes.ts`     |
+| `tasks`           | [PRD](tasks-prd.md), [plan](tasks-plan.md): 8 slices, waves 1 → (2, 4, 8) → (3, 5, 6) → 7: the list end to end (one migration), the task page and notes, links and backlinks, Upcoming and the strip, search, the simple mode card, quick entry `addTask`, the `roundtrip` step (B-55). No email | `assistant` in `dev` for slices 3, 4, 6, 7; `check-migration` slice 2 for slice 8: **ready to start** (slice 1 needs neither) | one migration (`task`, `note_document` subject), `PERMISSIONS`, stream, device schema and upload switch, `careGroupMemberService` (the leaver), `routes.ts`, `GROUP_SECTIONS`, `appUrls`, Upcoming, the timeline strips, entry, provider and medication pages, the simple view, `assistantActions` and the parser, the search document, `roundtrip.mjs` |
 | `documents`       | to write (B-56)                                              | hosting (B-33, file storage); `profiles` (soft); `encryption` decision | file storage, `routes.ts`, `GROUP_SECTIONS`, `PERMISSIONS`              |
 | `encryption`      | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 | (none); affects `assistant` and `documents` | none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
 | `onboarding`      | to write (B-31)                                              | `invites` (done)                                     | seeds, `careGroupService`, `/app` home                                     |
@@ -214,6 +214,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'tasks' (to write): a todo list per group with assignees, due dates and done state, as a group section. Due dates could show with appointments (B-47); reminders would go through notifications.
+- 2026-11-19 (plan/tasks): PRD and plan written (plans/tasks-prd.md, tasks-plan.md): 8 slices, waves 1 → (2, 4, 8) → (3, 5, 6) → 7. One assignee (member, a typed name, or none); viewers complete their own; links to a provider, appointment and medication; Upcoming, strip, search, simple card, quick entry addTask. Slices 3, 4, 6, 7 wait for assistant in dev; 8 for check-migration slice 2.
 
 ### B-56 · feature · ability to upload photos of patient drivers license, insurance card, DNR, etc.
 
@@ -224,6 +225,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'documents' (to write): photos and files (ID, insurance card, DNR) per recipient. Needs file storage, which waits on hosting (B-33), plus encryption and sync decisions (files likely online-first, not in PowerSync). Pairs with profiles (B-45).
 - 2026-11-19 (plan/encryption): Security review (plans/security-review.md): E2E decision (2026-11-19) is option C for files: plan end-to-end encrypted uploads (a group key wrapped per member device, recovery codes) as part of the documents PRD.
+- 2026-11-19 (Robert Bo Davis): planning opened on plan/documents (.loops/plan-documents). Building it waits on hosting (file storage) and includes option C from the security review (E2E for files only)
 
 ### B-58 · plan · Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions…
 
@@ -635,6 +637,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (Robert Bo Davis): From the orchestration PRD. Slice 9's first pnpm prd check failed two component test files once (trace in apps/web/test/device.tsx; details lost), then passed on every rerun. At wave 3's landing three entry page tests raced the same way (they read the screen right after a stored write) and were fixed to wait for the screen. If it recurs, capture the log, look for DOM reads right after a database poll, and consider a lower parallelism for web:components inside pnpm check.
 - 2026-11-19 (Robert Bo Davis): Triage: check-migration moves most screen checks into web:components, which makes this load flake matter more; its first slice should capture logs and settle web:components parallelism inside pnpm check.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 1, wave 1 (plans/check-migration-plan.md).
+- 2026-11-19 (slice/check-migration/1): slice/check-migration/1: reproduced under one concurrent pnpm test:components (load 20-118 on 10 cores): (1) entry 'who's writing' read avatar initials before the members live query answered ('S' for 'Someone'); (2) inScreens menu tests timed out at 15 s with 9 workers, and read the group switcher before its query answered; (3) device.location() lagged the screen (LocationProbe used useEffect); (4) timelineScroll 'three pages down…' flakes at a minute turn: useHistoryCutoff changes the query key, useLiveRows goes not-fresh and pageWindow drops the last page (limit = requested - 30), so rows past it remount; a product quirk, not a race, left for a follow-up item. Fixed 1-3 with device.settle(), renderWithDevice settling first, maxWorkers 4 and a layout-effect probe.
 
 ### B-132 · feature · PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When…
 
