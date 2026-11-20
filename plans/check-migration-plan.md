@@ -36,7 +36,7 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19) for slice 2's sync matrix (9c0b2bf); slice 5 lowered it to 350.
 
-**Now:** wave 3 (6, 7, 8) landed in dev as 68571c8 on 2026-11-20: suite 12/12 in 5m07s, `pnpm prd check` 3380/3380. Waves 1–2 landed as 2040ed3 on 2026-11-19. Wave 4 (9, 10) started 2026-11-20, with 13 started early in the third slot (its `assistant` dependency is in dev); 13 merged ahead of 9 and 10 to free its slot for 14. The `assistant` PRD is done and in dev (38311d8), so slices 11–17 wait only on this PRD's own slices.
+**Now:** wave 3 (6, 7, 8) landed in dev as 68571c8 on 2026-11-20: suite 12/12 in 5m07s, `pnpm prd check` 3380/3380. Waves 1–2 landed as 2040ed3 on 2026-11-19. Wave 4 (9, 10) started 2026-11-20, with 13 started early in the third slot (its `assistant` dependency is in dev); 13 and 10 merged ahead of 9 to free their slots for 14 and 15. The `assistant` PRD is done and in dev (38311d8), so slices 11–17 wait only on this PRD's own slices.
 
 - **Ceiling 295** (2026-11-20). Slice 6 cut `session-end` from 60 to 7 (it runs in 5–6 s), which took the ceiling to 297. Then the orchestrator set every lean check's usual seconds to the median of the three suite runs so far (the listed values had drifted: `marketing` 10 vs 29 measured, `app-shell` 10 vs 18, `layout-offline` 15 vs 27, `sign-in` 10 vs 5), which made the total 295. The lean set is already under slice 18's 300; slice 18 still makes 300 the hard limit and trims what it can.
 - Orchestrator fixes on this branch so far: f6a4db8 (settle test), the timelineFilters race (B-131), `retry: 2` on timelineScroll's B-133 flake (remove when B-133 is fixed), 1384054 (visit prep steps the year, not the month: B-134, date-dependent on dev).
