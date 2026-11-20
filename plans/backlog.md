@@ -41,7 +41,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `app-speed` | [PRD](app-speed-prd.md), [plan](app-speed-plan.md): **folded into `timeline-ux`** (the user, 2026-11-20); its PRD is the speed half's input, its plan is superseded, its items moved | (none) | none now |
 | `agent-tooling` | [PRD](agent-tooling-prd.md), [plan](agent-tooling-plan.md): 6 slices, all stackless, waves (1, 2, 3) → 4 → (5, 6): batched backlog commits (multi-id writes, guarded amend), `pnpm log`, a doc budget guard, then AGENTS.md and `docs/loops.md` split into a core and `docs/agents/` role docs, then the six area docs over 10 KB trimmed to contracts (B-147, B-148, B-154; B-152 and B-153 already on `dev`). **Ready to start** | (none); slice 4 waits until no landing is imminent; slice 6 waits for `tasks` to land | `scripts/backlog/`, `scripts/loops/` (prompt.sh, land.sh, new budget files), root `package.json` (two script lines), AGENTS.md, `docs/loops.md`, new `docs/agents/`, `docs/domain/` (timeline, medications, app-shell, care-groups, components, sync) |
 | `code-layout` | [PRD](code-layout-prd.md), [plan](code-layout-plan.md): 5 slices, all stackless, waves 1 → (2, 3, 4) → 5: check-areas as `check-areas.d/<area>` with most-specific-wins and a lint, then errors, permissions and schema by area, the API router by area, `lib/` grouped by domain (device queries as `<name>.sync.ts`), then `routes.ts` and `appUrls` by area. Pure refactor, no migration; one lean `--suite` at the last landing (B-149, B-150) | `tasks` and `hosting` wave 1 in `dev`, and no PRD with unmerged `check-areas` edits (`check-migration`), before slice 1; nothing else touching `lib/` or the registries while it runs | `scripts/loops/check-areas`, `routes.ts`, `appUrls.ts`, `errors/constants.ts`, `db/schema/`, `permissions.ts`, `packages/api/src/`, all of `apps/web/app/lib/` and its importers |
-| `timeline-ux` | to write (planning now, 2026-11-20): app-speed's PRD (B-136–B-140, B-144, B-155, B-156) plus B-166 and the timeline UI changes B-162–B-165, B-167–B-171, planned as one PRD (the user) | `code-layout` in `dev` (it moves `lib/` and `routes.ts`) | `lib/session.ts`, `lib/sessionRules.ts`, `lib/me.ts` (at code-layout's new paths), `SectionNav`, the `/app` layout, the timeline screen and header, timeline rows (`EntryHeader`), the simple view, quick entry and its suggestions, the strips, `packages/auth`, `packages/api/src/procedures.ts`, `routes/rpc.ts`, `scripts/loops/prd.sh`, `scripts/loops/check-areas.d/` |
+| `timeline-ux` | [PRD](timeline-ux-prd.md) (speed half: [app-speed PRD](app-speed-prd.md)), [plan](timeline-ux-plan.md): 10 slices, waves (1, 2, 3) → (4, 5, 6) → (7, 8, 9) → 10: navigation that doesn't wait, tiles that remember (dimmed until fresh), the bundle budget, prefetched tabs, one Today card with status hues, the day header with its summary and rows with the author under the menu and no period places, the service worker, simple mode's order and type scale, quick entry's rotating placeholder, open-after-save and lean recent lines, cheaper `/rpc` auth (B-136–B-140, B-144, B-155, B-156, B-162–B-171). **Ready to start once `code-layout` is in `dev`** | `code-layout` in `dev` (it moves `lib/` and `routes.ts`) | `lib/session.ts`, `lib/sessionRules.ts`, `lib/me.ts`, `lib/sync/` (the remembering hook), `recentLines` (at code-layout's paths), `SectionNav`, the `/app` layout (update notice), the timeline route, its strips (replaced by `TodayCard`), `DayHeader`, `DaySummaryLine`, the row components, `PeriodMarkerItem`, `SimpleTimeline`, quick entry, `packages/auth`, `packages/api/src/procedures.ts`, `routes/rpc.ts`, `scripts/loops/prd.sh`, `scripts/loops/check-areas.d/`, new `scripts/build/` |
 
 ## Summary
 
@@ -92,7 +92,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-147 | chore | in-progress | agent-tooling | prd/agent-tooling | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
 | B-148 | chore | triaged | agent-tooling |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
 | B-149 | chore | in-progress | code-layout | prd/code-layout | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
-| B-150 | chore | ready | code-layout | prd/code-layout | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
+| B-150 | chore | landed | code-layout | prd/code-layout | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-154 | chore | landed | agent-tooling | prd/agent-tooling | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
 | B-155 | chore | triaged | timeline-ux |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
@@ -449,6 +449,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (backlog agent): Triage: new PRD app-speed (navigation and load speed). This one needs a design decision (how long a confirmed session is trusted, what a timeout means offline), so it is PRD work, not a quick fix. Hot file: lib/session.ts.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 1 (plans/app-speed-plan.md). 15 min fresh window, background recheck at most once a minute, 3 s timeout; the app's check bypasses the cookie cache.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-137 · change · Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk…
 
@@ -461,6 +462,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (backlog agent): Triage: app-speed. Small (prefetch on SectionNav and TabBar links), grouped with B-136 and B-138 because all three change the same navigation path.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 2 (plans/app-speed-plan.md). prefetch=render on SectionNav and TabBar.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-138 · change · Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only…
 
@@ -473,6 +475,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (backlog agent): Triage: app-speed. Small (useNavigation in SectionNav), same file as B-137.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 2 (plans/app-speed-plan.md). Highlight from useNavigation's pending location.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-139 · change · Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no…
 
@@ -485,6 +488,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (backlog agent): Triage: app-speed. Small CSS change on timeline rows; needs a check that scroll restore and the paging sentinel still work.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 3 (plans/app-speed-plan.md). content-visibility: auto + contain-intrinsic-size; timelineScroll tests guard restore and paging.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-140 · change · Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every…
 
@@ -497,6 +501,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (backlog agent): Triage: app-speed. Touches packages/auth/src/authUser.ts and routes/rpc.ts, which hosting slice 3 also changes (rate limits): run it after hosting wave 1 is in dev.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 6 (plans/app-speed-plan.md). Lazy AuthUser, one query, Better Auth cookie cache 3 min (staff and /token bypass it; tradeoff documented in auth.md and security-review.md). Needs hosting slice 3 in dev.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-141 · change · Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts).
 
@@ -542,6 +547,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (backlog agent): Triage: app-speed, its largest slice (a precached shell for the web target only; update flow, CSP worker-src, how it meets PowerSync's own workers). Needs the PRD interview. Likely a new dependency question (hand-written worker or a Vite plugin).
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 5 (plans/app-speed-plan.md). Hand-written worker, web only; cached shell for /app/* documents; 'new version ready: Reload' notice. Blocked by slices 1 and 4.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-145 · question · Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for…
 
@@ -588,7 +594,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-150 · chore · Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,…
 
-- status: ready
+- status: landed
 - prd: code-layout
 - owner: prd/code-layout
 - commit: 9ce225a
@@ -630,6 +636,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (backlog agent): Triage: app-speed. A budget in the build check that keeps the editor and PowerSync out of the first chunk; it guards the gains of the other slices.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 4 (plans/app-speed-plan.md). pnpm build:budget (manifest reader + pure checker + budget.json), run by pnpm prd check.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-156 · chore · Check whether `loadSettings` in the timeline loader waits on the network before using its cache.
 
@@ -641,6 +648,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (backlog agent): Triage: app-speed. An investigation first (does loadSettings wait on the network before using its cache?); a fix only if it does.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 1 (plans/app-speed-plan.md). Investigated: it does wait (me.get, after pending updatePreferences). Becomes cache-first with a background refresh that updates the open screen.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-157 · change · Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under…
 
@@ -702,6 +710,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/hosting): From the inbox: In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the full layout. Replace "Now" heading with "Upcoming". Reduce size of quick action buttons so that they are one row with smaller buttons so they are one row."Tap the microphone on your keyboard to say it instead of typing." should only appear on devices that support voice input via keyboard (ios/andriod?). All text is too large and should be reduced in size. Assume users that can't see well will have there devices set to larger text, or zoom their browsers.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-163 · change · "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas…
 
@@ -712,6 +721,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/hosting): From the inbox: "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas separate entries; start with “n:” for a note." should be a tooltip.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-164 · change · "day/date" heder for full timeline is too small compared to the + button. Make text larger.
 
@@ -721,6 +731,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-165 · change · Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space.
 
@@ -730,6 +741,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-166 · change · Using back to timeline from timeline live-note entry (or any browse action) takes you back to the…
 
@@ -741,6 +753,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (Robert Bo Davis): From the inbox: Using back to timeline from timeline live-note entry (or any browse action) takes you back to the timeline, causes all lazy loaded header elements to reload. Can we cache their state with a visual indicator (maybe greyed out) and load in the background so that it doesn't cause page shift? Maybe keep a placeholder in the header so that it doesn't cause a flash on load any time?
 - 2026-11-20 (Robert Bo Davis): Triaged to app-speed: header elements reloading on back-navigation is a caching/navigation-speed issue, next to B-136/B-137.
 - 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-167 · change · Make day summary part of sticky header so it is always visible when scrolling up the timeline.
 
@@ -750,6 +763,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-168 · change · timeline group titles that are too long wrap to multiple lines on small screens. Truncate the…
 
@@ -760,6 +774,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: timeline group titles that are too long wrap to multiple lines on small screens. Truncate the provider on small screens.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-169 · change · vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is…
 
@@ -770,6 +785,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is collapsible. They should all have a right side link to the full view that is formatted similarly.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-170 · change · When creating a new timeline entry for a note or event, we should navigate to edit page on save so…
 
@@ -780,6 +796,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: When creating a new timeline entry for a note or event, we should navigate to edit page on save so the user can add more info to the live document immediately without an extra tap.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-171 · change · your recent lines should exclude notes and events. vitals should only show the vital key, not the…
 
@@ -790,6 +807,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: your recent lines should exclude notes and events. vitals should only show the vital key, not the value so that the user can log those quickly without deleting the value.
 - 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
 
 ### B-172 · bug · app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy
 
