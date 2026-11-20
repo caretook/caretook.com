@@ -32,7 +32,19 @@ import { flattenFixtures, fx, TEST_GROUP, TEST_USER } from "./fixtures";
 // The stub mirrors routes.ts: the /app layout (id "app"; its middleware puts
 // the session in the router context, as `requireSession` would), the group
 // route (id "group", its real module) for paths under /app/groups/:groupId,
-// then your routes. Paths are absolute patterns, nested by prefix.
+// then your routes. Paths are absolute patterns, nested by prefix. A path
+// outside /app (`/admin/...`) is a top-level route beside /app.
+//
+// Web-only routes with a server `loader` or `action` (/admin) render from
+// what the test gives instead: `loaderData` (a value, or a function called on
+// every load, so it can change after an action) and `actionResult` (a value,
+// or a function of the posted form). Their `~/.server/*` imports resolve to
+// stubs in test/server/ (vitest.config.ts) that throw if called.
+//
+//   await renderWithDevice({
+//     route: { path: "/admin/settings", module: settings, loaderData: { settings, canWrite: true } },
+//     url: "/admin/settings",
+//   });
 
 /** A route module as React Router's framework mode reads it (only what the stub uses). */
 export type RouteModule = {
@@ -45,11 +57,20 @@ export type RouteModule = {
   clientLoader?: (args: any) => unknown;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   clientAction?: (args: any) => unknown;
+  /** A server loader (web-only routes): never run in tests; give `loaderData`. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  loader?: (args: any) => unknown;
+  /** A server action: never run in tests; give `actionResult`. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  action?: (args: any) => unknown;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   clientMiddleware?: ((args: any, next: any) => unknown)[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   shouldRevalidate?: (args: any) => boolean;
 };
+
+/** What a `loaderData` function gets: the URL being loaded and the route's params. */
+export type LoaderArgs = { url: URL; params: Record<string, string | undefined> };
 
 /** One route to render: an absolute path pattern, its module, and child routes (sheets). */
 export type DeviceRoute = {
@@ -58,6 +79,17 @@ export type DeviceRoute = {
   /** The route's id (`useRouteLoaderData`); defaults to the path. */
   id?: string;
   children?: DeviceRoute[];
+  /**
+   * For a route with a server `loader`: what it returns. A function is
+   * called on every load (the first, each navigation, and each revalidation
+   * after an action) with the URL and params, so it can answer by search.
+   */
+  loaderData?: unknown;
+  /**
+   * For a route with a server `action`: what a post returns, or a function of
+   * the posted form (record what was sent, answer by intent).
+   */
+  actionResult?: unknown;
 };
 
 export type DeviceOptions = {
@@ -173,17 +205,66 @@ function LocationProbe() {
 
 type StubRoute = Parameters<typeof createRoutesStub>[0][number];
 
-const toStub = ({ path, module, id, children }: DeviceRoute): StubRoute => ({
-  id: id ?? path,
-  path,
-  Component: module.default,
-  ErrorBoundary: module.ErrorBoundary,
-  loader: module.clientLoader,
-  action: module.clientAction,
-  middleware: module.clientMiddleware as StubRoute["middleware"],
-  shouldRevalidate: module.shouldRevalidate,
-  children: children?.map(toStub),
+/** A server-only export the test didn't stand in for: fail loudly, naming the route. */
+const serverOnly = (path: string, what: string) => () => {
+  throw new Error(
+    `${path} has a server ${what}: give the route ${what === "loader" ? "loaderData" : "actionResult"}`,
+  );
+};
+
+/** A server loader's stand-in: the given data, or what its function returns for this load. */
+const givenLoader =
+  (data: unknown) =>
+  ({ request, params }: { request: Request; params: Record<string, string | undefined> }) =>
+    typeof data === "function"
+      ? (data as (args: LoaderArgs) => unknown)({ url: new URL(request.url), params })
+      : data;
+
+/** A server action's stand-in: the given result, or its function of the posted form. */
+const givenAction =
+  (result: unknown) =>
+  async ({ request }: { request: Request }) =>
+    typeof result === "function" ? (result as (form: FormData) => unknown)(await request.formData()) : result;
+
+const stubLoader = ({ path, module, loaderData }: DeviceRoute) => {
+  if (loaderData !== undefined) return givenLoader(loaderData);
+  if (module.loader) return serverOnly(path, "loader");
+  return module.clientLoader;
+};
+
+const stubAction = ({ path, module, actionResult }: DeviceRoute) => {
+  if (actionResult !== undefined) return givenAction(actionResult);
+  if (module.action) return serverOnly(path, "action");
+  return module.clientAction;
+};
+
+const toStub = (route: DeviceRoute): StubRoute => ({
+  id: route.id ?? route.path,
+  path: route.path,
+  Component: route.module.default,
+  ErrorBoundary: route.module.ErrorBoundary,
+  loader: stubLoader(route),
+  action: stubAction(route),
+  middleware: route.module.clientMiddleware as StubRoute["middleware"],
+  shouldRevalidate: route.module.shouldRevalidate,
+  children: route.children?.map(toStub),
 });
+
+/** A top-level route outside /app (/admin): the location probe, then its component. */
+const outsideApp = (route: DeviceRoute): StubRoute => {
+  const stub = toStub(route);
+  const Component = stub.Component;
+  return {
+    ...stub,
+    // The stub passes route component props (loaderData, actionData, params) through.
+    Component: (props: object) => (
+      <>
+        <LocationProbe />
+        {Component ? <Component {...props} /> : <Outlet />}
+      </>
+    ),
+  };
+};
 
 /** The /app route's component: the location probe, then the real frame or a bare outlet. */
 const withProbe =
@@ -226,7 +307,10 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
     ];
   };
   const elementInGroup = !options.route && url.startsWith("/app/groups/");
-  const routes = options.route ? [options.route].flat() : [];
+  const allRoutes = options.route ? [options.route].flat() : [];
+  const isApp = (r: DeviceRoute) => r.path === "/app" || r.path.startsWith("/app/");
+  const routes = allRoutes.filter(isApp);
+  const outside = allRoutes.filter((r) => !isApp(r)).map(outsideApp);
   const inGroup = [
     ...routes.filter((r) => r.path.startsWith(GROUP_PREFIX)).map(toStub),
     ...(elementInGroup ? elementRoutes(GROUP_PREFIX) : []),
@@ -258,6 +342,7 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
             : []),
         ],
       },
+      ...outside,
     ],
     context,
   );

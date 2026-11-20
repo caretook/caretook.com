@@ -22,6 +22,12 @@ import { ADD_BUTTON, launch, openPage, sleep, step } from "./cdp.mjs";
 // 5. Simple mode across two devices (assistant slice 5): the owner turns on
 //    simple mode for caretaker@ from Members; caretaker@'s open timeline
 //    switches to the simple view without a reload. Put back in SQL.
+// 6. Staff (admin.mjs's folds; its screens are component tests under
+//    routes/admin/ and routes/app/layout/staff.browser.test.tsx): every /admin
+//    page is a 404 for member@ (a group's owner, not staff); admin@ posts an
+//    announcement through admin.settings.set, a real staff action, which
+//    writes one audit row that the server-loaded /admin/audit lists; and the
+//    banner reaches member@'s /app. Put back through the API.
 //
 // Every sign-in is on a fresh page: Better Auth limits sign-ins and session
 // checks per client IP, and cdp.mjs gives each page its own. Signing in again
@@ -376,6 +382,62 @@ try {
       `server ${saved} / switched ${switched}`,
     );
     restoreSeeds();
+  });
+
+  // ── 6. Staff: /admin only for staff, a real audit row, the banner in /app ─
+  await step("staff: /admin is staff only, an action is audited, the banner reaches /app", async () => {
+    const TAG = `ASH${Date.now().toString(36)}`;
+    const TEXT = `${TAG} Maintenance tonight from 22:00`;
+    const before = psql(`SELECT value::text FROM app_setting WHERE key = 'announcement'`);
+    const bA = await launch(9483);
+    browsers.push(bA);
+    const A = await signedIn(bA, "staff-admin", "admin@example.com", { home: true });
+    const setAnnouncement = (value, reason) =>
+      A.evaluate(
+        `fetch("/rpc/admin/settings/set", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: ${JSON.stringify(JSON.stringify({ json: { key: "announcement", value, reason } }))} }).then((r) => r.status)`,
+      );
+    try {
+      const member = M ?? (await signedIn(b, "staff-member", "member@example.com", { home: true }));
+      const status = await member.evaluate(
+        `Promise.all(["/admin", "/admin/audit", "/admin/users", "/admin/settings"].map((u) => fetch(u, { credentials: "include" }).then((r) => r.status)))`,
+      );
+      check(
+        "member@ (not staff): every /admin page is a 404",
+        status.every((s) => s === 404),
+        JSON.stringify(status),
+      );
+
+      const posted = await setAnnouncement({ text: TEXT, tone: "warning" }, `${TAG} maintenance notice`);
+      const rows = psql(
+        `SELECT count(*) FROM admin_audit_log a JOIN "user" u ON u.id = a.actor_id WHERE a.action = 'setting.set' AND a.reason = '${TAG} maintenance notice' AND u.email = 'admin@example.com'`,
+      );
+      const page = await A.evaluate(
+        `fetch("/admin/audit?action=setting.set", { credentials: "include" }).then(async (r) => ({ status: r.status, listed: (await r.text()).includes(${JSON.stringify(`${TAG} maintenance notice`)}) }))`,
+      );
+      check(
+        "admin@ posts a banner: one audit row by admin@, listed on /admin/audit",
+        posted === 200 && rows === "1" && page.status === 200 && page.listed,
+        `${posted} / rows ${rows} / ${JSON.stringify(page)}`,
+      );
+
+      const BANNER = `document.querySelector('[data-region="announcement"] [data-announcement]')`;
+      await member.goto("/app");
+      const shown = await passes(
+        member.waitFor(`${BANNER}?.textContent.includes(${JSON.stringify(TEXT)})`, 20000),
+      );
+      check(
+        "member@'s /app shows the banner",
+        shown,
+        await member.evaluate(`${BANNER}?.textContent ?? "none"`),
+      );
+    } finally {
+      const restored = await setAnnouncement(before ? JSON.parse(before) : null, `${TAG} put back`).catch(
+        () => 0,
+      );
+      if (!before) psql(`DELETE FROM app_setting WHERE key = 'announcement'`);
+      psql(`DELETE FROM admin_audit_log WHERE reason LIKE '${TAG}%'`);
+      check("the announcement is put back as it was", restored === 200, String(restored));
+    }
   });
 
   const noise =

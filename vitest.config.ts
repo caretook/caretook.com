@@ -1,4 +1,5 @@
 import { createServer } from "node:net";
+import { fileURLToPath } from "node:url";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import { deviceCommands } from "./apps/web/test/commands.ts";
@@ -76,6 +77,20 @@ export default defineConfig({
       },
       {
         extends: "./apps/web/vite.config.ts",
+        // Server-only modules (`~/.server/*`, which web-only routes import for
+        // their loaders) resolve to stubs that throw if called: the test
+        // device gives those routes `loaderData` instead (apps/web/test/server/).
+        resolve: {
+          alias: [
+            {
+              find: /^~\/\.server\/(.*)$/,
+              replacement: fileURLToPath(new URL("./apps/web/test/server/$1", import.meta.url)),
+            },
+          ],
+        },
+        // The account and group pages import ORPCError for their loaders: pre-bundled
+        // up front, so the first run doesn't re-optimize and reload mid-test.
+        optimizeDeps: { include: ["@orpc/server"] },
         test: {
           name: "web:components",
           // The browser server listens on this port (Vitest 5 reads `test.api`).

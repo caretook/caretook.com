@@ -79,55 +79,60 @@ apps/web/app/routes/dev/*                -
 apps/web/app/.server/notifications.ts    -
 
 # Starting care groups (invites slice 5): /join/:code, the New care group
-# sheet, the timeline's Invite someone card and the web-only /admin pages.
+# sheet, the timeline's Invite someone card and /admin's access codes, new
+# group and waitlist pages.
 apps/web/app/routes/account/join/*       groups
-# The staff foundation (admin PRD): /admin's frame, nav and audit log, its
-# door, the staff rules, the audit service and the Admin menu item.
-apps/web/app/routes/admin/audit/*        admin
-apps/web/app/routes/admin/AuditEntryList.tsx admin
-apps/web/app/routes/admin/auditDisplay.ts admin
-apps/web/app/routes/admin/auditFilters.ts admin
-# Users (admin slice 2): search, an account's page and its help actions.
-apps/web/app/routes/admin/users/*        admin
-apps/web/app/routes/admin/user/*         admin
-apps/web/app/routes/admin/AccountBadges.tsx admin
-apps/web/app/routes/admin/accountDisplay.ts admin
-apps/web/app/routes/admin/groups/*       admin
-apps/web/app/routes/admin/group/*        admin
-apps/web/app/routes/admin/groupDisplay.ts admin
-# Settings (admin slice 5): /admin/settings, the registry and the service,
-# and the sign-up switches' consumers (access codes, invites).
-apps/web/app/routes/admin/settings/*     admin
-packages/api/src/settingsAdmin.ts        admin
-packages/data/src/db/schema/appSettings.ts admin groups invites
-packages/data/src/services/appSettingService.ts admin groups invites
-packages/data/src/models/appSetting/*    admin
-# The announcement banner (admin slice 6): public.announcement and /app's banner.
-packages/api/src/announcement.ts         admin
-apps/web/app/routes/app/layout/Announcement.tsx admin
-apps/web/app/routes/app/layout/useAnnouncement.ts admin
-apps/web/app/components/shell/AnnouncementBanner.tsx admin first-sync
+# /admin (admin PRD; check-migration slice 7): every screen is component tests
+# beside it (routes/admin/*.browser.test.tsx, from loader data), and the
+# services and procedures are integration tests. app-shell.mjs keeps what only
+# the server proves: /admin a 404 for non-staff (the door, the staff rules), a
+# real action's audit row on /admin/audit, and the banner reaching /app.
+# Access codes, new group and the waitlist are still groups.mjs's.
+apps/web/app/routes/admin/adminWorld.tsx -
+apps/web/app/routes/admin/audit/*        -
+apps/web/app/routes/admin/AuditEntryList.tsx -
+apps/web/app/routes/admin/auditDisplay.ts -
+apps/web/app/routes/admin/auditFilters.ts -
+apps/web/app/routes/admin/users/*        -
+apps/web/app/routes/admin/user/*         -
+apps/web/app/routes/admin/AccountBadges.tsx -
+apps/web/app/routes/admin/accountDisplay.ts -
+apps/web/app/routes/admin/groups/*       -
+apps/web/app/routes/admin/group/*        -
+apps/web/app/routes/admin/groupDisplay.ts -
+# Settings: /admin/settings, the registry and the service, and the sign-up
+# switches' consumers (access codes, invites).
+apps/web/app/routes/admin/settings/*     -
+packages/api/src/settingsAdmin.ts        app-shell
+packages/data/src/db/schema/appSettings.ts app-shell groups invites
+packages/data/src/services/appSettingService.ts app-shell groups invites
+packages/data/src/models/appSetting/*    app-shell
+# The announcement banner: public.announcement and /app's banner.
+packages/api/src/announcement.ts         app-shell
+apps/web/app/routes/app/layout/Announcement.tsx app-shell
+apps/web/app/routes/app/layout/useAnnouncement.ts app-shell
+apps/web/app/components/shell/AnnouncementBanner.tsx app-shell first-sync
 packages/data/src/services/careGroupInviteService.ts invites groups
-apps/web/app/routes/admin/*              admin groups
-apps/web/app/.server/admin.ts            admin groups
-packages/api/src/auditAdmin.ts           admin
-packages/api/src/procedures.ts           admin groups
-packages/data/src/db/schema/staffRules.ts admin groups
-packages/data/src/db/schema/adminAudit.ts admin
-packages/data/src/services/adminAuditService.ts admin
-packages/data/src/services/staffAccess.ts admin groups
-packages/data/src/models/adminAuditLog/* admin
-packages/api/src/usersAdmin.ts           admin
-packages/data/src/services/accountAdminService.ts admin
-packages/data/src/db/schema/accountAdmin.ts admin
-packages/auth/src/staffEmails.ts         admin
-packages/data/src/services/groupAdminService.ts admin
-packages/data/src/models/groupDirectory/* admin
-packages/data/src/db/schema/groupAdminRules.ts admin
-packages/api/src/groupsAdmin.ts          admin
-packages/data/src/db/seeds/staff.ts      admin
-packages/data/src/services/accessCodeService.ts groups admin
-packages/data/src/services/staffGroupService.ts groups admin
+apps/web/app/routes/admin/*              groups
+apps/web/app/.server/admin.ts            app-shell groups
+packages/api/src/auditAdmin.ts           app-shell
+packages/api/src/procedures.ts           app-shell groups
+packages/data/src/db/schema/staffRules.ts app-shell groups
+packages/data/src/db/schema/adminAudit.ts app-shell
+packages/data/src/services/adminAuditService.ts app-shell
+packages/data/src/services/staffAccess.ts app-shell groups
+packages/data/src/models/adminAuditLog/* app-shell
+packages/api/src/usersAdmin.ts           -
+packages/data/src/services/accountAdminService.ts -
+packages/data/src/db/schema/accountAdmin.ts -
+packages/auth/src/staffEmails.ts         invites
+packages/data/src/services/groupAdminService.ts -
+packages/data/src/models/groupDirectory/* -
+packages/data/src/db/schema/groupAdminRules.ts -
+packages/api/src/groupsAdmin.ts          -
+packages/data/src/db/seeds/staff.ts      app-shell
+packages/data/src/services/accessCodeService.ts groups
+packages/data/src/services/staffGroupService.ts groups
 apps/web/app/routes/app/groups/new/*     groups
 apps/web/app/components/groups/*         groups
 apps/web/app/routes/app/home/NewGroupLink.tsx groups first-sync
@@ -207,7 +212,7 @@ apps/web/app/components/settings/*       -
 # The layout route runs the session check on every /app navigation. Its
 # header's magnifier is component tests (search/search.browser.test.tsx).
 apps/web/app/routes/app/layout/route.tsx sign-in session-end
-apps/web/app/routes/app/layout/UserMenu.tsx app-shell admin
+apps/web/app/routes/app/layout/UserMenu.tsx app-shell
 apps/web/app/routes/app/layout/*         -
 apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
 apps/web/app/routes/app/home/*           first-sync
