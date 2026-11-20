@@ -116,7 +116,7 @@ const doses = (device: { query: <T>(sql: string) => Promise<T[]> }) =>
 
 /** Open the Dose sheet from the + menu. */
 const openDoseSheet = async () => {
-  await userEvent.click(page.getByRole("button", { name: "Add to timeline" }));
+  await userEvent.click(page.getByRole("button", { name: "Add to Today" }));
   await userEvent.click(page.getByRole("menuitem", { name: "Dose", exact: true }));
   await expect.poll(() => SHEET()?.querySelector('input[name="medicationId"]')).toBeTruthy();
 };
