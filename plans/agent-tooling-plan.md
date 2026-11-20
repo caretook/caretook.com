@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State                                        | Merge into `prd/agent-tooling` (slice commits) |
-| ----- | ---- | -------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | landed (wave 1, cff4d2f) (opus)              | 8d10f6b (9faf638)                              |
-| 2     | 1    | landed (wave 1, cff4d2f) (sonnet)            | a23e77c (52a8503)                              |
-| 3     | 1    | landed (wave 1, cff4d2f) (sonnet)            | 5ba5669 (bc6bd87)                              |
-| 4     | 2    | started (worktree made, agent spawned; opus) |                                                |
-| 5     | 3    | not started                                  |                                                |
-| 6     | 3    | not started                                  |                                                |
+| Slice | Wave | State                                                                                               | Merge into `prd/agent-tooling` (slice commits) |
+| ----- | ---- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | landed (wave 1, cff4d2f) (opus)                                                                     | 8d10f6b (9faf638)                              |
+| 2     | 1    | landed (wave 1, cff4d2f) (sonnet)                                                                   | a23e77c (52a8503)                              |
+| 3     | 1    | landed (wave 1, cff4d2f) (sonnet)                                                                   | 5ba5669 (bc6bd87)                              |
+| 4     | 2    | handed off (931f2dd); follow-up asked: headroom in AGENTS.md and orchestrator.md, layout.md pointer |                                                |
+| 5     | 3    | not started                                                                                         |                                                |
+| 6     | 3    | not started                                                                                         |                                                |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
 
