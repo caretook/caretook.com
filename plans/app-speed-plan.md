@@ -1,5 +1,7 @@
 # Plan: App speed
 
+> **Superseded** (2026-11-20): folded into `timeline-ux`. Its slices are in [`timeline-ux-plan.md`](timeline-ux-plan.md) (1, 4, 2, 5, 6 became 1, 3, 4, 7, 10; slice 3 joined slice 6). Kept for reference only.
+
 > Source PRD: [`plans/app-speed-prd.md`](app-speed-prd.md). User-story numbers (US) refer to it. Backlog items B-136, B-137, B-138, B-139, B-140, B-144, B-155 and B-156. Topic `app-speed`.
 
 ## Status
