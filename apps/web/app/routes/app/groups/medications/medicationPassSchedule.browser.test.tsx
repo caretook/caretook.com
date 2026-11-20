@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
 import {
@@ -79,7 +80,7 @@ const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   const placeholder = passAmount(MORNING.id)!.placeholder;
   await userEvent.fill(passAmount(MORNING.id)!, "50 mg");
   await userEvent.click(passBox(EVENING.id));
-  await userEvent.click(FORM()!.querySelector("[data-add-time]")!);
+  await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
   await expect.poll(() => times().length).toBe(1);
   await userEvent.fill(times()[0]!, "14:00");
   await userEvent.fill(timeAmounts()[0]!, "12.5 mg");

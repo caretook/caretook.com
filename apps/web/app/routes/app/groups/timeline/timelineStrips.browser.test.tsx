@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { cdp, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 
 /** Chrome DevTools, for media emulation (Vitest types the session loosely). */
 const devtools = () => cdp() as unknown as { send: (method: string, params: object) => Promise<unknown> };
@@ -154,7 +155,7 @@ describe("Live now and the live dot", () => {
     expect(!!dotOf("Lunch") && !!dotOf("PT visit")).toBe(true);
     await setView("Cards");
     expect(dotOf("PT visit")).toBeTruthy();
-    await userEvent.click(BANNER()!.querySelector("a")!);
+    await userEvent.click(await found(() => BANNER()?.querySelector("a")));
     await expect
       .poll(() => device.location())
       .toBe(`/app/groups/${TEST_GROUP.id}/entries/${second.entry.id}`);

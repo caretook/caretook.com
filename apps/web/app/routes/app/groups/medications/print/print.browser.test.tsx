@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
+import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
 import { allergy } from "../../../../../../test/fixtures";
 import { $, $$, LIST, MEDICATION_ROUTES, SEEDED_CURRENT, waitUntil, world } from "../medicationWorld";
@@ -35,7 +36,7 @@ const printItem = (label: string) =>
   $$("[role=menuitem]").find((m) => m.textContent?.trim().startsWith(label));
 const choosePrint = async (label: string) => {
   await waitUntil(() => !!PRINT_MENU(), 4000, "the Print menu");
-  await userEvent.click(PRINT_MENU()!);
+  await userEvent.click(await found(PRINT_MENU));
   await waitUntil(() => !!printItem(label), 4000, `the menu item ${label}`);
   await userEvent.click(printItem(label)!);
 };
@@ -99,7 +100,7 @@ describe("the medication list sheet", () => {
   test("the Print menu offers both sheets; the list opens with the recipient, date of birth, group and day printed", async () => {
     const device = await open(LIST);
     await waitUntil(() => !!PRINT_MENU(), 4000, "the Print menu");
-    await userEvent.click(PRINT_MENU()!);
+    await userEvent.click(await found(PRINT_MENU));
     await waitUntil(() => !!printItem("Weekly chart"), 4000, "the menu");
     expect($$("[role=menuitem]").map((m) => m.querySelector(".truncate")?.textContent?.trim())).toEqual([
       "Medication list",
@@ -139,7 +140,7 @@ describe("the medication list sheet", () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
     await open(`${LIST}/print`);
     await waitUntil(() => !!PRINT_MENU(), 4000, "the Print button");
-    await userEvent.click(PRINT_MENU()!);
+    await userEvent.click(await found(PRINT_MENU));
     expect(print).toHaveBeenCalledTimes(1);
   });
 

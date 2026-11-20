@@ -3,6 +3,7 @@ import type { Fixture } from "../../../../../../test/fixtures";
 
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
+import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
 import { at, fx, medicationPass, newId } from "../../../../../../test/fixtures";
 import * as timeline from "../route";
@@ -105,8 +106,13 @@ describe("a pass log", () => {
     await userEvent.click(
       FORM()!.querySelector<HTMLInputElement>(`input[name="status:${DB.id}"][value="skipped"]`)!,
     );
-    await userEvent.fill(FORM()!.querySelector<HTMLInputElement>(`[name="amount:${DA.id}"]`)!, "3 tablets");
-    await userEvent.click(FORM()!.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+    await userEvent.fill(
+      await found(() => FORM()?.querySelector<HTMLInputElement>(`[name="amount:${DA.id}"]`)),
+      "3 tablets",
+    );
+    await userEvent.click(
+      await found(() => FORM()?.querySelector<HTMLButtonElement>('button[type="submit"]')),
+    );
     await expect.poll(() => device.location()).toBe(DOSE_URL);
     await expect.poll(rowText).toBe("Log: 1 given, 1 skipped, 1 refused");
     const saved = await logRows(device);
@@ -123,13 +129,15 @@ describe("a pass log", () => {
     await openSheet(device);
     const select = SHEET()!.querySelector<HTMLSelectElement>("[data-pass-log-add] select")!;
     await userEvent.selectOptions(select, QD.id);
-    await userEvent.click(SHEET()!.querySelector<HTMLElement>('[data-pass-log-add] button[type="submit"]')!);
+    await userEvent.click(
+      await found(() => SHEET()?.querySelector<HTMLElement>('[data-pass-log-add] button[type="submit"]')),
+    );
     await expect.poll(fieldsets).toBe(4);
     expect(await logRows(device)).toEqual(
       expect.arrayContaining([{ medicationId: QD.id, status: "given", amount: "1 tablet", live: 1 }]),
     );
 
-    await userEvent.click(SHEET()!.querySelector<HTMLElement>("[data-pass-log-delete]")!);
+    await userEvent.click(await found(() => SHEET()?.querySelector<HTMLElement>("[data-pass-log-delete]")));
     await expect.poll(() => document.querySelector("dialog[open]")).toBeTruthy();
     await expect.poll(() => button("Delete", document.querySelector("dialog[open]")!)?.disabled).toBe(false);
     await userEvent.click(button("Delete", document.querySelector("dialog[open]")!));
