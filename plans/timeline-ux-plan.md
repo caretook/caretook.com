@@ -11,7 +11,7 @@
 | 3     | 1    | landed          | 448be6e (11efa88)                            |
 | 4     | 2    | merged          | ddf36b0 (2110676)                            |
 | 5     | 2    | started         |                                              |
-| 6     | 2    | started         |                                              |
+| 6     | 2    | handed off (8c4450e) |                                              |
 | 7     | 3    | blocked by 1, 3 |                                              |
 | 8     | 3    | blocked by 2    |                                              |
 | 9     | 3    | not started     |                                              |
@@ -37,6 +37,8 @@
 - Slice 4 handed off (2110676; its subject wrongly cites B-168: the items are B-137, B-138). Its pnpm check had 2 unnamed load flakes and the plan's Prettier warning (since fixed). Merge after wave 1 lands.
 - **Wave 1 landed in dev as 5689e47** (full check passed on 2bb2425; then a dev sync of agent-tooling's area-doc trims, docs only: took dev's trimmed sync.md/timeline.md and re-added wave 1's rules tersely; sync.md is 10223 B of 10240, so trim at least what waves 3–4 add). The user chose to land wave 1 without `--suite`.
 - Slice 4 merged (ddf36b0), B-137/B-138 done, worktree removed. Slices 5 and 6 running.
+- **Promises to other orchestrators:** message connectors-4a when B-164/B-165 (slice 6) land in dev, and when slice 10 (B-140, packages/auth) starts and before it lands (their slice 2 adds an oauth-provider plugin in `packages/auth/src/auth.ts`).
+- Slice 6 handed off (8c4450e; subject cites only B-139, it covers B-164/B-165/B-167/B-168 too). Merge after 5. Fold-ins: timeline.md, date heading `text-lg lg:text-xl`; the summary in `DayHeader`'s `summary` region; ⋯ over the author chip in `[data-entry-aside]` (`ASIDE_CLASS`); `offscreenRows.ts` (`content-visibility` on rows of days before the newest page, `contain-intrinsic-size: auto 70px`/100px cards; relayout at 300 rows 2.9 → 1.3 ms). care-periods.md: no place on the day line or marker. Follow-ups to file: pages lost on Back (paging is `useState`); dead `placeNamesQuery`/`placeRows`.
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
