@@ -18,3 +18,7 @@ packages/data/src/db/schema/medications/medicationPass.ts roundtrip
 packages/data/src/db/schema/profiles/recipientAllergy.ts roundtrip
 packages/data/src/db/seeds/medications.ts phase2
 packages/data/src/db/seeds/medicationPasses.ts -
+# Re-exports of the pure modules that moved to @caretook/data/schema (unit-tested there).
+apps/web/app/lib/medications/dueDoses.ts -
+apps/web/app/lib/medications/duePasses.ts -
+apps/web/app/lib/medications/medicationDisplay.ts -

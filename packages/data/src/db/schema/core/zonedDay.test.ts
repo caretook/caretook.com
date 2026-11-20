@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addDays, dayBounds, dayInZone, startOfDay, timeInZone, zonedInstant } from "./zonedDay";
+import { addDays } from "./entryTiming";
+import { dayBounds, dayInZone, startOfDay, timeInZone, zonedInstant } from "./zonedDay";
 
 const LA = "America/Los_Angeles";
 const NY = "America/New_York";
