@@ -1117,7 +1117,7 @@ async function groupMenuSteps(p) {
       louNowItem === "Now: In rehab · day 1",
     JSON.stringify({ made, louNow, louNowItem }),
   );
-  // Dev Family 2 goes back to no periods, which the timeline's prompt step needs.
+  // Dev Family 2 goes back to no periods, which the timeline's no-period step needs.
   if (made.ok) await onDevice(p, `return periods.removeCarePeriod(db, ${JSON.stringify(made.id)});`);
 
   // Back to Dev Family: its own period, never Grandpa Lou's.
@@ -1147,12 +1147,14 @@ async function groupMenuSteps(p) {
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3: the timeline's current-period line and boundary markers.
+// Slice 3: the care period in the timeline's day headers (quick-fixes slice 39
+// moved it there from above the list) and the boundary markers.
 // ---------------------------------------------------------------------------
 
 const TIMELINE = `/app/groups/${DEV_FAMILY}/timeline`;
-const LINE = `document.querySelector("main [data-period-line]")`;
-const LINE_TEXT = `(document.querySelector("main [data-period-current]")?.textContent.trim() ?? null)`;
+// The newest day's header comes first, so these read today's.
+const LINE = `document.querySelector("main [data-day-header] [data-period-line]")`;
+const LINE_TEXT = `(document.querySelector("main [data-day-header] [data-period-current]")?.textContent.trim() ?? null)`;
 const markerLi = (id) => `document.querySelector('main ol > li[data-marker="${id}"]')`;
 /** Every row of the history in DOM order: entries by their time, markers by their start. */
 const listOrder = (p) =>
@@ -1181,7 +1183,7 @@ const OLDER_STATUS = `(document.querySelector("[data-older-entries] [role=status
 async function lineSteps(p) {
   await toFront(p);
   await p.goto(`${TIMELINE}?kind=dose`);
-  await need(p, `${LINE_TEXT} !== null`, 20000, "the current-period line");
+  await need(p, `${LINE_TEXT} !== null`, 20000, "today's period line");
   const latest = await latestLocalId(p, DEV_FAMILY);
   const line = await p.evaluate(`({
     text: ${LINE_TEXT},
@@ -1189,7 +1191,7 @@ async function lineSteps(p) {
     change: !!document.querySelector("main [data-period-change]"),
   })`);
   check(
-    "the timeline's line names the current period with its day count, links to it, and gives a writer Change",
+    "today's header names the current period with its day count, links to it, and gives a writer Change",
     !!latest &&
       line.href?.endsWith(`/periods/${latest}`) &&
       / · day \d+$/.test(line.text ?? "") &&
@@ -1289,32 +1291,14 @@ async function markerViewSteps(p, viewer, id) {
   );
 }
 
-/** A group with no periods: a writer is asked where the recipient is (the sheet closes back); a viewer sees nothing. */
+/** A group with no periods: no day header names one, for a writer or a viewer. */
 async function promptSteps(writer, viewer) {
   const timeline2 = `/app/groups/${DEV_FAMILY_2}/timeline`;
   await toFront(writer);
   await writer.goto(timeline2);
-  await need(writer, `document.querySelector('main [data-period-line="empty"]')`, 20000, "the prompt");
-  const prompt = await writer.evaluate(
-    `document.querySelector('main [data-period-line="empty"]')?.textContent.trim()`,
-  );
-  check(
-    "a writer on a group with no periods is asked where the recipient is, with Add care period",
-    /^Where is .+ now\?Add care period$/.test(prompt ?? ""),
-    prompt,
-  );
-  await writer.tap(`document.querySelector("main [data-period-add]")`);
-  await need(writer, `${FORM} && location.pathname.endsWith("/periods/new")`, 10000, "the add sheet");
-  await writer.press(
-    `[...${FORM}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel")`,
-  );
-  const closed = await need(
-    writer,
-    `!${SHEET} && location.pathname === ${JSON.stringify(timeline2)}`,
-    10000,
-    "back to the timeline",
-  );
-  check("Add care period opens the add sheet, and Cancel comes back to the timeline", closed);
+  await need(writer, `document.querySelectorAll("main ol > li").length > 0`, 20000, "the writer's timeline");
+  await sleep(1000);
+  check("a writer on a group with no periods sees no period line", !(await writer.evaluate(`!!${LINE}`)));
 
   // viewer@ joins Dev Family 2 as a viewer for this step only.
   const viewerId = psql(`SELECT id FROM "user" WHERE email = 'viewer@example.com'`);
@@ -1439,7 +1423,7 @@ try {
     await step("markers under an author filter, in cards, and for a viewer", () =>
       lined ? markerViewSteps(A, C, lined) : undefined,
     );
-    await step("the prompt on a group with no periods", () => promptSteps(B, C));
+    await step("no period line on a group with no periods", () => promptSteps(B, C));
     await step("markers while scrolling back", () => scrollSteps(A));
   }
 

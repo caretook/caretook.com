@@ -7,7 +7,7 @@
 // and sign-out wiping the device. Every entry it writes has this run's tag,
 // so it passes run after run without a reset.
 import { execSync } from "node:child_process";
-import { launch, localCopyHolds, openPage, sleep } from "./cdp.mjs";
+import { ADD_BUTTON, launch, localCopyHolds, openPage, sleep } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
@@ -40,8 +40,6 @@ const button = (text, scope = "document") =>
   `[...${scope}.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
 const menuItem = (text) =>
   `[...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.trim() === ${JSON.stringify(text)})`;
-const tile = (text) =>
-  `[...document.querySelectorAll('[aria-label="Add to the timeline"] a, [aria-label="Add to the timeline"] button')].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
 const NAME = `document.querySelector('[role=dialog] input[name="symptomName"]')`;
 const SUBMIT = `document.querySelector('[role=dialog] button[type="submit"]')`;
 const SHEET = `document.querySelector("[role=dialog]")`;
@@ -110,7 +108,7 @@ async function calendarScreenshots(p, name) {
 
 /** Add a symptom through the sheet. */
 async function addSymptom(p, name) {
-  await p.press(tile("Symptom"));
+  await p.addToTimeline("Symptom");
   await p.waitFor(NAME);
   await p.type(NAME, name);
   await p.press(SUBMIT);
@@ -176,7 +174,7 @@ try {
   );
 
   // 3. Validation stays local: a symptom needs a name.
-  await A.press(tile("Symptom"));
+  await A.addToTimeline("Symptom");
   await A.waitFor(NAME);
   await A.press(SUBMIT);
   await A.waitFor(`${NAME}?.getAttribute("aria-invalid") === "true"`, 10000).then(
@@ -212,7 +210,7 @@ try {
   // saved day; then the edit sheet's calendar opens on the entry's date.
   const picked = `${tag} picked date`;
   const yesterday = await A.evaluate(YESTERDAY);
-  await A.press(tile("Symptom"));
+  await A.addToTimeline("Symptom");
   await A.waitFor(NAME);
   await A.type(NAME, picked);
   const s0 = await A.evaluate(SEGMENTS);
@@ -341,9 +339,9 @@ try {
   await C.waitFor(rowWith(offName), 20000);
   check("viewer: sees the timeline, including the offline entry", true);
   check(
-    "viewer: no add bar, no ⋯ menus, no edit targets",
+    "viewer: no + button, no ⋯ menus, no edit targets",
     await C.evaluate(
-      `!document.querySelector('[aria-label="Add to the timeline"]') && !document.querySelector('main ol button[aria-label^="Actions"]') && !document.querySelector('main ol [aria-label^="Edit "]')`,
+      `!${ADD_BUTTON} && !document.querySelector('main ol button[aria-label^="Actions"]') && !document.querySelector('main ol [aria-label^="Edit "]')`,
     ),
   );
 
