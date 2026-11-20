@@ -25,3 +25,15 @@ export const STRIP_ICON = "size-4 shrink-0";
 
 /** A strip's action button at its end. */
 export const STRIP_ACTION = "btn btn-ghost btn-xs text-base-content/70 shrink-0";
+
+/**
+ * A header tile showing what it remembered from earlier this session (the
+ * tile cache), until its live query confirms: dimmed, beside `data-stale`.
+ */
+export const STALE = "opacity-60";
+
+/**
+ * A strip's place while nothing is known yet (a first visit this session):
+ * the strip's own 32 px, so nothing below moves when it arrives.
+ */
+export const STRIP_SKELETON = `skeleton rounded-box h-8 ${STRIP_CAP}`;

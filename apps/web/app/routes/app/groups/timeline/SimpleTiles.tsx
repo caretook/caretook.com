@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { KindIcon } from "~/components/entry";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { tileKey, tileLabel } from "~/lib/assistant/simpleTiles";
+import { STALE } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 
 /** Where a tile goes: its kind's simple sheet over the timeline, or a new note's page. */
@@ -21,6 +22,10 @@ const tileHref = (groupId: string, tile: SimpleTile) => {
  * fields, the Dose sheet) or a new note. Labelled in plain words about the
  * recipient. While nobody has chosen the tiles (they're learned from use),
  * those who can choose them get a link there; members see nothing more.
+ *
+ * `fresh` false (tiles remembered from earlier this session, not confirmed
+ * yet) dims them (`data-stale`); `SimpleTilesSkeleton` holds their place
+ * on a first visit.
  */
 export function SimpleTiles({
   groupId,
@@ -28,6 +33,7 @@ export function SimpleTiles({
   setting,
   words,
   canChoose,
+  fresh = true,
 }: {
   groupId: string;
   tiles: SimpleTile[];
@@ -35,9 +41,16 @@ export function SimpleTiles({
   words: RecipientWords;
   /** You may choose the group's tiles (an owner or admin, not locked). */
   canChoose: boolean;
+  /** The tiles are confirmed by the device (not remembered ones). */
+  fresh?: boolean;
 }) {
   return (
-    <section aria-label="Log something" className="space-y-3" data-simple-tiles="">
+    <section
+      aria-label="Log something"
+      className={`space-y-3 ${fresh ? "" : STALE}`}
+      data-simple-tiles=""
+      data-stale={fresh ? undefined : ""}
+    >
       <ul className="grid grid-cols-2 gap-3">
         {tiles.map((tile) => {
           const href = tileHref(groupId, tile);
@@ -66,5 +79,16 @@ export function SimpleTiles({
         </p>
       )}
     </section>
+  );
+}
+
+/** The four tiles' place while they aren't known yet (a first visit this session). */
+export function SimpleTilesSkeleton() {
+  return (
+    <ul className="grid grid-cols-2 gap-3" aria-hidden="true" data-simple-skeleton="tiles">
+      {[0, 1, 2, 3].map((i) => (
+        <li key={i} className="skeleton rounded-box min-h-24" />
+      ))}
+    </ul>
   );
 }

@@ -1,17 +1,16 @@
 import type { TimelineView } from "@caretook/data/schema";
 
-import { useState } from "react";
 import { saveSettings } from "~/lib/app-shell/me";
 
 /**
- * The rows/cards layout, a per-user setting. It switches at once; offline,
- * it's saved on the next online visit (see `saveSettings`).
+ * The rows/cards layout, a per-user setting. `current` comes from the
+ * settings store (`useMySettings`), which a change publishes to at once, so it
+ * switches straight away; offline, it's saved on the next online visit (see
+ * `saveSettings`).
  */
-export function useTimelineView(userId: string, initial: TimelineView) {
-  const [view, setView] = useState<TimelineView>(initial);
+export function useTimelineView(userId: string, current: TimelineView) {
   const changeView = (next: TimelineView) => {
-    setView(next);
     saveSettings(userId, { timelineView: next }).catch(() => undefined);
   };
-  return [view, changeView] as const;
+  return [current, changeView] as const;
 }

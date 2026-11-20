@@ -4,7 +4,7 @@ import { ListTodo } from "lucide-react";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { taskStripText, taskStripWho } from "~/lib/tasks/taskStrip";
-import { STRIP_CAP, STRIP_CLASS, STRIP_ICON } from "./layout";
+import { STALE, STRIP_CAP, STRIP_CLASS, STRIP_ICON, STRIP_SKELETON } from "./layout";
 import { useTaskStrip } from "./useTaskStrip";
 
 const TONE: Record<TaskStripState, { box: string; icon: string }> = {
@@ -18,15 +18,20 @@ const TONE: Record<TaskStripState, { box: string; icon: string }> = {
  * +2 more" (red) or "Today: Pick up walker" (amber), naming my task first.
  * The title opens the Tasks list, on Mine when the named task is mine (else
  * Everyone, so it's there).
+ *
+ * It never pops in (the tile cache): what it showed earlier this session
+ * paints at once, dimmed (`data-stale`) until the device confirms it; on a
+ * first visit a skeleton holds its 32 px.
  */
 export function TaskStrip({ groupId }: { groupId: string }) {
-  const strip = useTaskStrip(groupId);
+  const { strip, ready, fresh } = useTaskStrip(groupId);
+  if (!ready) return <div className={STRIP_SKELETON} aria-hidden="true" data-strip-skeleton="tasks" />;
   if (!strip) return null;
 
   const { lead, title, rest, text } = taskStripText(strip);
   const tone = TONE[strip.state];
   return (
-    <div className={STRIP_CAP}>
+    <div className={`${STRIP_CAP} ${fresh ? "" : STALE}`} data-stale={fresh ? undefined : ""}>
       <section
         aria-label="Tasks"
         data-task-strip

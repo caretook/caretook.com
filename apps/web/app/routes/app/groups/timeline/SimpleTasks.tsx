@@ -6,6 +6,7 @@ import { TaskTick, TaskUndoStatus, useTaskTick } from "~/components/tasks";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { dueText } from "~/lib/tasks/taskDisplay";
+import { STALE } from "./layout";
 import { useSimpleTasks } from "./useSimpleTasks";
 
 /**
@@ -14,16 +15,33 @@ import { useSimpleTasks } from "./useSimpleTasks";
  * and "See all" to the Tasks list on Mine. Viewers get it too (they may
  * complete what they were given). Nothing when I have none. Not a tile:
  * the tiles open entry forms.
+ *
+ * It never pops in (the tile cache): tasks remembered from earlier this
+ * session paint at once, dimmed (`data-stale`, ticks off) until the device
+ * confirms them; on a first visit a skeleton holds its place.
  */
 export function SimpleTasks({ className = "" }: { className?: string }) {
   const group = useGroup();
-  const { tasks, total, shown, now, timeZone } = useSimpleTasks(group.id);
+  const { tasks, total, shown, ready, fresh, now, timeZone } = useSimpleTasks(group.id);
   const { complete, reopen, busy, error } = useTaskTick(group.id);
+  if (!ready)
+    return (
+      <div
+        className={`skeleton rounded-box h-32 ${className}`}
+        aria-hidden="true"
+        data-simple-skeleton="tasks"
+      />
+    );
   if (!shown) return null;
 
   const tick = (task: LocalTask, done: boolean) => void (done ? complete(task) : reopen(task));
   return (
-    <section aria-label="My tasks" className={`space-y-3 ${className}`} data-simple-tasks="">
+    <section
+      aria-label="My tasks"
+      className={`space-y-3 ${fresh ? "" : STALE} ${className}`}
+      data-simple-tasks=""
+      data-stale={fresh ? undefined : ""}
+    >
       <h2 className="text-2xl font-semibold">My tasks</h2>
       {tasks.length > 0 && (
         <ul className="space-y-1" aria-label="My open tasks">
@@ -40,7 +58,7 @@ export function SimpleTasks({ className = "" }: { className?: string }) {
                   <TaskTick
                     title={task.title}
                     done={!!task.doneAt}
-                    disabled={busy}
+                    disabled={busy || !fresh}
                     large
                     onChange={(done) => tick(task, done)}
                   />

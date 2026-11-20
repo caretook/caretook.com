@@ -8,7 +8,7 @@ import { useMemo } from "react";
 import { dueDoses } from "./dueDoses";
 import { addDays, dayInZone, startOfDay } from "../core/zonedDay";
 import { useNow } from "../live-notes/editors.sync";
-import { useLiveQuery } from "../sync/index";
+import { useRememberedQuery } from "../sync/useRememberedQuery";
 import { passesQuery, toPasses } from "./medicationPasses.sync";
 import { isDoseEntry, recipientQuery, toMedicationEntries, toMedications } from "./medications.sync";
 import { readRows, toLocalTimestamp } from "../timeline/timeline.sync";
@@ -55,9 +55,7 @@ export type DueDosesRows = {
 /** The group's passes as due doses and schedule wording need them: deleted ones too. */
 export const duePassesQuery = (groupId: string) => passesQuery(groupId, { includeDeleted: true });
 
-// Starting rows when there's no loader's: kept apart by identity, so the hook
-// can tell rows not read yet from none at all.
-const NOT_READ: DueDosesRows = { medications: [], passes: [], doses: [], recipient: [] };
+const NO_ROWS: never[] = [];
 
 /** A loader's first read, so a screen renders complete before the live queries take over. */
 export async function loadDueDoses(db: SyncDb, groupId: string): Promise<DueDosesRows> {
@@ -84,37 +82,58 @@ export const toDueDoses = (rows: DueDosesRows, now: Date): DueDoses =>
 /**
  * Today's slots, yesterday's missed ones and the as-needed counts, live and
  * re-evaluated every `DUE_TICK_MS`. `initial` is a loader's `loadDueDoses`
- * (pass the same object while it's unchanged); left out, `ready` is false
- * until the live queries have answered, so a screen shows nothing rather
- * than every slot as due.
+ * (pass the same object while it's unchanged). Left out, the queries read
+ * through the tile cache (`useRememberedQuery`): `ready` is true once every
+ * query has an answer, remembered from earlier this session or live, and
+ * `fresh` once every one has answered live. Before `ready` a screen shows a
+ * skeleton rather than every slot as due; while not `fresh` it shows the
+ * remembered answer dimmed, and offers no action on it.
  */
-export function useDueDoses(groupId: string, initial: DueDosesRows = NOT_READ) {
+export function useDueDoses(groupId: string, initial?: DueDosesRows) {
   const now = useNow(DUE_TICK_MS);
   const recipientQ = recipientQuery(groupId);
-  const recipient = useLiveQuery<RecipientRow>(recipientQ.sql, recipientQ.params, initial.recipient);
-  const zone = recipient[0]?.time_zone || FALLBACK_ZONE;
-  const medicationsQ = dueMedicationsQuery(groupId);
-  const medications = useLiveQuery<MedicationRow>(medicationsQ.sql, medicationsQ.params, initial.medications);
-  const passesQ = duePassesQuery(groupId);
-  const passRows = useLiveQuery<PassRow>(passesQ.sql, passesQ.params, initial.passes);
-  const passes = useMemo(() => toPasses(passRows), [passRows]);
+  const recipient = useRememberedQuery<RecipientRow>(
+    { groupId, name: "dueDoses:recipient" },
+    recipientQ,
+    initial?.recipient,
+  );
+  const zone = recipient.value?.[0]?.time_zone || FALLBACK_ZONE;
+  const medications = useRememberedQuery<MedicationRow>(
+    { groupId, name: "dueDoses:medications" },
+    dueMedicationsQuery(groupId),
+    initial?.medications,
+  );
+  const passRows = useRememberedQuery<PassRow>(
+    { groupId, name: "dueDoses:passes" },
+    duePassesQuery(groupId),
+    initial?.passes,
+  );
+  const passValue = passRows.value ?? NO_ROWS;
+  const passes = useMemo(() => toPasses(passValue), [passValue]);
   // Keyed on the day, so the query only changes at midnight.
   const day = dayInZone(new Date(now), zone);
   const from = useMemo(() => startOfDay(addDays(day, -1), zone), [day, zone]);
-  const dosesQ = dosesSinceQuery(groupId, from);
-  const doses = useLiveQuery<EntryRow>(dosesQ.sql, dosesQ.params, initial.doses);
-
-  const due = useMemo(
-    () => toDueDoses({ medications, passes: passRows, doses, recipient }, new Date(now)),
-    [medications, passRows, doses, recipient, now],
+  const doses = useRememberedQuery<EntryRow>(
+    { groupId, name: "dueDoses:doses" },
+    dosesSinceQuery(groupId, from),
+    initial?.doses,
   );
-  // Without a loader's rows, nothing is known until every query has answered
-  // once: before then, every slot would read as unanswered.
-  const ready =
-    initial !== NOT_READ ||
-    (medications !== NOT_READ.medications &&
-      passRows !== NOT_READ.passes &&
-      doses !== NOT_READ.doses &&
-      recipient !== NOT_READ.recipient);
-  return { due, ready, timeZone: zone, now, passes };
+
+  const rows = [recipient, medications, passRows, doses];
+  const medicationValue = medications.value ?? NO_ROWS;
+  const doseValue = doses.value ?? NO_ROWS;
+  const recipientValue = recipient.value ?? NO_ROWS;
+  const due = useMemo(
+    () =>
+      toDueDoses(
+        { medications: medicationValue, passes: passValue, doses: doseValue, recipient: recipientValue },
+        new Date(now),
+      ),
+    [medicationValue, passValue, doseValue, recipientValue, now],
+  );
+  // Nothing is known until every query has an answer: before then, every
+  // slot would read as unanswered.
+  const ready = rows.every((r) => r.value !== undefined);
+  const fresh = rows.every((r) => r.fresh);
+  return { due, ready, fresh, timeZone: zone, now, passes };
 }
