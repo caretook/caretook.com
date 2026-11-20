@@ -33,7 +33,6 @@ sign-in               5   120  no           yes
 first-sync           35   150  no           yes
 signout-wipe          5   300  yes          yes
 session-end           5   120  no           yes
-providers            90   270  no           no
 invites              72   270  no           yes
 ui                    5   120  no           yes
 groups               30   120  no           no
