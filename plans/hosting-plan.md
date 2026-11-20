@@ -11,14 +11,15 @@
 | 1     | 1    | merged                    | 7ce4336 (e459365, ec506bd, 7ada5b5)      |
 | 2     | 1    | merged                    | 738b731 (3f0ca96, 53adf98)               |
 | 3     | 1    | merged                    | 5d64d38 (6179cd8)                        |
-| 4     | 2    | blocked by 3              |                                          |
-| 5     | 2    | blocked by 1, 2           |                                          |
-| 8     | 2    | blocked by 1, 3           |                                          |
+| 4     | 2    | started (worktree, agent) |                                          |
+| 5     | 2    | started (worktree, agent) |                                          |
+| 8     | 2    | started (worktree, agent) |                                          |
 | 6     | 3    | blocked by 1–5, 8         |                                          |
 | 7     | 4    | blocked by 6              |                                          |
 
 - 2026-11-20: synced `dev` in; claimed B-33, B-68 and B-141 (B-141 is slice 3's work, `done` with it). Added slice 8 for B-142 and B-143 (triaged to hosting by the backlog agent), in wave 2 after 1 and 3.
 - Open: `pnpm check` fails one component test outside this PRD (visitPrep "the start can move back", B-134, date-dependent; fails on the base too). The test fix is on `prd/check-migration` (1384054); if it isn't in `dev` by landing, cherry-pick it.
+- Landing: wave 1 is not landed on its own. Slice 4 regenerates slice 3's migration so the PRD lands one migration, and the user prefers one suite at the end for migration PRDs. So waves 1 and 2 land together once 4, 5 and 8 are merged, with the lean set run once (the user chose this, 2026-11-20).
 - Decided (user, 2026-11-20): PowerSync's snapshot runs `SELECT *`, so column-only replication grants fail on 7 partly-synced tables. The six whose unsynced columns are only timestamps and audits get them added to their streams; `user` gets a table-level SELECT for the replication role (emails reach PowerSync's storage, not devices; the publication keeps its column list). Ask PowerSync Cloud at slice 7 whether it snapshots with `SELECT *`. Done in slice 2 (53adf98): `REPLICATION_WHOLE_TABLES` is `user`, `note_document` and `timeline_entry` (the last two for the hand-written `search_vector` column, derived from synced text); a snapshot test fails on any synced table the role can't `SELECT *`.
 
 **Landing:** land each wave as soon as it's green. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here. Slice 7 is done with the user, not by a loop.
