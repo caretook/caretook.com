@@ -647,6 +647,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (prd/hosting): Found by hosting slice 6; break-glass forbids querying them, but the grant allows it. Proposed for hosting: a small rolesSql/dbAccessService change (exclude the auth tables) before production access is used.
+- 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
 
 ### B-160 · change · Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail)
 
