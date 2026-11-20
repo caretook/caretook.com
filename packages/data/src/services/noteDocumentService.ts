@@ -82,6 +82,8 @@ const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubje
       ? { groupId: period.groupId, kind: null }
       : newError({ code: "noteDocumentService:carePeriodNotFound" });
   }
+  // Task documents arrive with the task page (tasks slice 2): until then, none.
+  if (subject === "task") return newError({ code: "noteDocumentService:taskNotFound" });
   const entry = await timelineEntryModel.getById(id, { ...ctx, tx });
   if (isError(entry)) return entry;
   return entry
@@ -102,12 +104,13 @@ const visibleDocument = async (ctx: ServiceContext, tx: Tx, id: string) => {
 const ownerColumns = (
   subject: NoteDocumentSubject,
   id: string,
-): Pick<NoteDocument, "subject" | "entryId" | "providerId" | "medicationId" | "carePeriodId"> => ({
+): Pick<NoteDocument, "subject" | "entryId" | "providerId" | "medicationId" | "carePeriodId" | "taskId"> => ({
   subject,
   entryId: subject === "entry" ? id : null,
   providerId: subject === "provider" ? id : null,
   medicationId: subject === "medication" ? id : null,
   carePeriodId: subject === "carePeriod" ? id : null,
+  taskId: subject === "task" ? id : null,
 });
 
 // ---------------------------------------------------------------------------

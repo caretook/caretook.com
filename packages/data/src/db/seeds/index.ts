@@ -13,6 +13,7 @@ import * as profiles from "./profiles";
 import * as providers from "./providers";
 import * as secondGroup from "./secondGroup";
 import * as staff from "./staff";
+import * as tasks from "./tasks";
 import * as timelineEntries from "./timelineEntries";
 import * as users from "./users";
 
@@ -40,5 +41,6 @@ export const seed = async () => {
     await carePeriods.seed();
     await moreGroups.seed();
     await staff.seed();
+    await tasks.seed();
   }, "db:seed");
 };
