@@ -434,6 +434,19 @@ apps/web/app/lib/recentLines.ts          session-end
 # switch reaching the member's device. lib/simpleMode.ts has its unit test.
 apps/web/app/lib/simpleModeToggle.ts     app-shell
 apps/web/app/lib/useSimpleMode.ts        app-shell
+# Simple mode complete (assistant slice 6): the tiles and their sheets, the
+# lock, viewers and "Remove my last entry" are component tests
+# (timeline/timelineSimpleTiles and timelineSimpleLock.browser.test.tsx), and
+# so is Details' tiles card (groups/settings/simpleTiles.browser.test.tsx).
+# lib/simpleTiles.ts and lib/simpleModeLock.ts have their unit tests.
+apps/web/app/lib/sync/simpleMode.ts      -
+# Passes everywhere (assistant slice 7): the pass phrases, the due-pass chip,
+# Undo after Save (components/quick-entry/*, lib/sync/quickEntry.ts) and
+# simple mode's Now block (timeline/SimpleNow.tsx, under timeline/*) are
+# component tests (timelineQuickEntryPasses, timelineSimpleNow); missed doses
+# in visit prep are lib/dueDoses.ts and lib/visitPrep.ts's unit tests. The
+# shared Undo and Given all (components/medications/*, lib/passUndo.ts,
+# lib/sync/medications.ts) keep their medications rules above.
 # Tasks (tasks PRD slice 1): the list and its sheets, the shared tick and
 # Undo pieces, and the device module are component tests
 # (routes/app/groups/tasks/tasks.browser.test.tsx); the pure wording, list

@@ -4,7 +4,7 @@ import type { GroupRow } from "~/lib/sync/timeline";
 
 import { Link, redirect } from "react-router";
 import { FirstSyncPending } from "~/components/shell";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls, GROUP_LIST_PARAM } from "~/lib/appUrls";
 import { rememberedGroup, resolveHomeGroup } from "~/lib/lastGroup";
 import { sessionContext } from "~/lib/session";
 import { useLiveQuery, waitForFirstSync } from "~/lib/sync";
@@ -20,11 +20,15 @@ export function meta({}: Route.MetaArgs) {
 // opened on this device, or the only group (the usual case). On a new device
 // whose first sync is slow, say so (and reload when it lands) rather than
 // "no care group".
-export async function clientLoader({ context }: Route.ClientLoaderArgs) {
+//
+// `?groups=1` (`appUrls.groupList`) always shows the list: simple mode has no
+// group menu, so it's how a member there reaches their other groups.
+export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
   const { db } = context.get(sessionContext);
   const synced = await waitForFirstSync(db);
   const rows = await readRows<GroupRow>(db, myGroupsQuery(db.userId));
-  const home = resolveHomeGroup({ groups: rows, remembered: rememberedGroup(db.userId) });
+  const listed = new URL(request.url).searchParams.has(GROUP_LIST_PARAM);
+  const home = listed ? null : resolveHomeGroup({ groups: rows, remembered: rememberedGroup(db.userId) });
   if (home) throw redirect(appUrls.timeline(home));
   return { userId: db.userId, rows, synced, requests: await loadMyRequests() };
 }

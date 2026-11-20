@@ -130,7 +130,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const sheets = (
     <>
       {/* The sheets (`new/:kind`, `:entryId/edit`), over the timeline. */}
-      <Outlet context={{ units } satisfies TimelineOutlet} />
+      <Outlet context={{ units, simple: mode.simple } satisfies TimelineOutlet} />
       {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
       {canWrite && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
       {/* The pass sheet's too, so a pass log opens it offline. */}

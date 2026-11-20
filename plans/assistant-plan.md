@@ -4,17 +4,19 @@
 
 ## Status
 
-| Slice | State                                               | Merge into `prd/assistant` (slice commits) |
-| ----- | --------------------------------------------------- | ------------------------------------------ |
-| 1     | merged                                              | 3766647 (c3c3398, 7ddf05d)                 |
-| 2     | merged                                              | 66b3e35 (98aff27, d94ea40)                 |
-| 3     | merged                                              | f358d86 (33436b2, a1d1045)                 |
-| 4     | merged                                              | bab73d5 (5c7c747, 95b8c05)                 |
-| 5     | merged (migration 0021_simple_mode)                 | 42c5518 (e082102, b4a282c)                 |
-| 6     | running                                             |                                            |
-| 7     | blocked by 1, 2, 4, 6 (`medications-2` is in `dev`) |                                            |
+| Slice | State                               | Merge into `prd/assistant` (slice commits) |
+| ----- | ----------------------------------- | ------------------------------------------ |
+| 1     | merged                              | 3766647 (c3c3398, 7ddf05d)                 |
+| 2     | merged                              | 66b3e35 (98aff27, d94ea40)                 |
+| 3     | merged                              | f358d86 (33436b2, a1d1045)                 |
+| 4     | merged                              | bab73d5 (5c7c747, 95b8c05)                 |
+| 5     | merged (migration 0021_simple_mode) | 42c5518 (e082102, b4a282c)                 |
+| 6     | merged                              | 794c3d2 (b86c1dc, 6a307c6)                 |
+| 7     | merged                              | ed7029d (f5cd7f7, 7de6916)                 |
 
-**Wave A** (slices 1–5, plus the dev sync 86f0fba with quick-fixes' + menu and `DayHeader`): merged. The lean suite at b723d14 failed `app-shell` (viewers' new ⋯ Print menu counted as writer controls), `roundtrip` (local add 2.3 s > 2 s) and `live-notes` (the viewer's avatar order, already failing at 86f0fba). A fix is running on a fresh `slice/assistant/4` (slot 1); rerun only those three once it merges, then `pnpm prd check` and land. Docs folded for slices 1–4 (new `docs/domain/assistant.md`); slice 5's folded too (app-shell, care-groups, timeline, sync). Slice 6 is running.
+**Wave A** (slices 1–5, the dev sync 86f0fba, and check fixes 4e03b6d): **landed in dev as a38609b** (2026-11-19). Lean suite at b723d14 9/12; the three failures (app-shell, roundtrip, live-notes) were check races or load, fixed in the check scripts and passing once each on the fix branch; settings-layout, providers, medications, upcoming, search, care-periods passed by name; `pnpm prd check` 3028/3028 on 4e03b6d. Docs folded (new `docs/domain/assistant.md`; timeline, live-notes, appointments, providers, app-shell, care-groups, sync). B-49 done. **Wave B** (slice 6, 794c3d2, plus the loop-recovery dev sync 7bb1517): **landed in dev as 9ae6b0d**; app-shell passed on the tip, `pnpm prd check` passed on 7bb1517. Then a fix for two intermittent slice-6 component tests (the group menu's first paint, Members' late echo; 014e073) **landed as c17c121** for the check-migration PRD.
+
+**Wave C** (slice 7, ed7029d): `medications` passed on the slice branch; docs folded; landing, then `pnpm prd rm assistant`. **The PRD is done.**
 
 **Landing:** land each wave as soon as it's green. The user said (2026-11-19) there's no real data, so it doesn't matter when the migration (slice 5) lands; it doesn't force one landing at the end. **Landing mode: run everything through** (queued with `pnpm prd queue assistant`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 

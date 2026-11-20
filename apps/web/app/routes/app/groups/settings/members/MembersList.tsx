@@ -221,9 +221,28 @@ function MemberItem({
         ) : (
           !!member.simple_mode && (
             <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
-              Simple mode
+              {member.simple_mode_locked ? "Simple mode, locked" : "Simple mode"}
             </span>
           )
+        )}
+        {access?.lock && (
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              aria-label={`Lock ${name} in simple mode`}
+              checked={simple.locked}
+              disabled={simple.busy || removing}
+              onChange={(event) => simple.lock(event.target.checked)}
+              data-simple-lock-switch=""
+            />
+            <span aria-hidden="true">Locked</span>
+          </label>
+        )}
+        {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
+          <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
+            Locked
+          </span>
         )}
         {(access?.remove || access?.leave) && (
           <button
@@ -265,24 +284,49 @@ function MemberItem({
 }
 
 /**
- * A member's simple-mode switch (the managers' default for them): the choice
- * shows while it saves and until it syncs back; a refused change, or anyone
- * else's change, shows what's saved.
+ * A member's simple-mode switches: the managers' default for them, and the
+ * lock. Locking turns the default on, and turning the default off unlocks
+ * (the server's rule, shown at once). The latest choice shows while it saves
+ * and until it syncs back. Each change sent is remembered until its own echo
+ * arrives, so an earlier change syncing back after a later click doesn't
+ * undo the later one on screen; a refused change, or a saved value none of
+ * ours explains (anyone else's change), shows what's saved.
  */
 function useSimpleModeSwitch(member: MemberDetailRow) {
   const fetcher = useFetcher<ActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
-  const saved = !!member.simple_mode;
-  const [sent, setSent] = useState<{ on: boolean; from: boolean } | null>(null);
-  if (sent && sent.from !== saved) setSent(null);
-  const on = sent && (busy || result?.ok) ? sent.on : saved;
-  const set = (next: boolean) => {
-    setSent({ on: next, from: saved });
+  const saved = { on: !!member.simple_mode, locked: !!member.simple_mode_locked };
+  const savedKey = modeKey(saved);
+  // What we've sent, oldest first, and the saved value we last looked at.
+  const [sent, setSent] = useState<{ pending: string[]; seen: string }>({ pending: [], seen: savedKey });
+  if (sent.seen !== savedKey) {
+    const echo = sent.pending.indexOf(savedKey);
+    // Our own change arriving drops it and anything older; anything else is someone else's.
+    setSent({ pending: echo < 0 ? [] : sent.pending.slice(echo + 1), seen: savedKey });
+  }
+  const latest = sent.pending.at(-1);
+  const shown = latest && (busy || result?.ok) ? parseModeKey(latest) : saved;
+  const send = (next: ModeState, field: "simpleMode" | "locked", value: boolean) => {
+    setSent({ pending: [...sent.pending, modeKey(next)], seen: savedKey });
     void fetcher.submit(
-      { intent: "setMemberMode", userId: member.user_id, simpleMode: next ? "on" : "off" },
+      { intent: "setMemberMode", userId: member.user_id, [field]: value ? "on" : "off" },
       { method: "post" },
     );
   };
-  return { on, busy, set, error: result && !result.ok ? result.error : undefined };
+  return {
+    on: shown.on,
+    locked: shown.locked,
+    busy,
+    set: (on: boolean) => send({ on, locked: on && shown.locked }, "simpleMode", on),
+    lock: (locked: boolean) => send({ on: locked || shown.on, locked }, "locked", locked),
+    error: result && !result.ok ? result.error : undefined,
+  };
 }
+
+type ModeState = { on: boolean; locked: boolean };
+const modeKey = ({ on, locked }: ModeState) => `${on}:${locked}`;
+const parseModeKey = (key: string): ModeState => {
+  const [on, locked] = key.split(":");
+  return { on: on === "true", locked: locked === "true" };
+};

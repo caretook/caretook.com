@@ -2,7 +2,7 @@ import { HONORIFICS } from "@caretook/data/schema";
 import { fold } from "./providerDirectory";
 
 // Quick entry's name autocomplete: while the last word typed is the start of
-// one of the group's medication or provider names, offer the name; picking
+// one of the group's medication, pass or provider names, offer the name; picking
 // it completes the word (with any title or first name typed before it).
 // Matching folds case and accents and skips honorifics, as the medication
 // and provider suggestions do. Pure; web:unit tests it.
@@ -12,7 +12,10 @@ export const COMPLETION_MIN_LENGTH = 2;
 /** At most this many names are offered. */
 export const COMPLETION_LIMIT = 4;
 
-export type CompletionName = { id: string; name: string; kind: "medication" | "provider" };
+export type CompletionName = { id: string; name: string; kind: "medication" | "pass" | "provider" };
+
+/** Medications first, then passes, then providers. */
+const KIND_ORDER: Record<CompletionName["kind"], number> = { medication: 0, pass: 1, provider: 2 };
 
 /** A name to offer, and the line with it completed (ending in a space, ready for the rest). */
 export type Completion = CompletionName & { text: string };
@@ -29,7 +32,7 @@ const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: tr
  * The names that the word being typed at the end of `text` starts (a word
  * of the name, never a title like "Dr"), best first: names whose first word
  * it starts, then a later word ("acid" finds "Folic acid", "le" finds
- * "Dr. Sandra Lee"); medications before providers. Nothing while the line
+ * "Dr. Sandra Lee"); medications, then passes, then providers. Nothing while the line
  * is blank or ends in a space, and nothing already typed in full. The
  * completed text replaces that word, and the words just before it that are
  * part of the name or a title ("dr san" becomes "Dr. Sandra Lee ").
@@ -85,7 +88,7 @@ export function completeName(
     .sort(
       (a, b) =>
         a.rank - b.rank ||
-        Number(a.completion.kind === "provider") - Number(b.completion.kind === "provider") ||
+        KIND_ORDER[a.completion.kind] - KIND_ORDER[b.completion.kind] ||
         collator.compare(a.completion.name, b.completion.name),
     )
     .slice(0, Math.max(0, limit))

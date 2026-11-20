@@ -7,16 +7,26 @@ const noOffer = () => null;
 /**
  * The Undo after Given all: "Morning logged · Undo" in one polite status
  * line for about 10 s (`lib/passUndo.ts`), for this group's last round.
- * Undo soft-deletes exactly the doses it wrote; the pass is open again.
+ * Undo soft-deletes exactly the doses it wrote; the pass is open again
+ * (quick entry's: every entry its line wrote).
  * The live region is always rendered (empty when there's nothing to undo),
  * so the announcement isn't lost. Today, the Dose sheet and the timeline's
  * medication strip each mount one.
  */
-export function PassUndoStatus({ groupId, className = "" }: { groupId: string; className?: string }) {
+export function PassUndoStatus({
+  groupId,
+  place = null,
+  className = "",
+}: {
+  groupId: string;
+  /** Show only offers made here (`offerUndo`'s `place`); left out, Given all's from the medication screens. */
+  place?: string | null;
+  className?: string;
+}) {
   const offer = useSyncExternalStore(subscribeUndo, undoSnapshot, noOffer);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const shown = offer ? undoFor(groupId) : null;
+  const shown = offer ? undoFor(groupId, { place }) : null;
 
   // Clears itself when its time is up.
   useEffect(() => {
@@ -38,7 +48,7 @@ export function PassUndoStatus({ groupId, className = "" }: { groupId: string; c
             onClick={() => {
               setBusy(true);
               setError(null);
-              void undoPassLog(shown.key, shown.doseIds)
+              void undoPassLog(shown.key, shown.doseIds, shown.entryIds)
                 .then((result) => !result.ok && setError(result.error))
                 .finally(() => setBusy(false));
             }}

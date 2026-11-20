@@ -2,7 +2,14 @@ import type { AuthUser } from "@caretook/data/permissions";
 import type { ActionResult } from "~/lib/api";
 
 import { hasPermission } from "@caretook/data/permissions";
-import { careGroupInsertZSchema, careRecipientProfileZSchema } from "@caretook/data/schema";
+import type { SimpleTile, SimpleTiles } from "@caretook/data/schema";
+
+import {
+  careGroupInsertZSchema,
+  careRecipientProfileZSchema,
+  SIMPLE_TILE_COUNT,
+} from "@caretook/data/schema";
+import { tileFromKey, tileKey } from "../../../../lib/simpleTiles";
 
 // The pure parts of group settings (`./route.tsx`): who may
 // edit what, and turning a submitted form into a valid change or field errors.
@@ -83,6 +90,28 @@ export const parseRecipientTimeZone = (values: { timeZone: string }): Parsed<{ t
   return { ok: true, data: parsed.data.timeZone ? { timeZone: parsed.data.timeZone } : {} };
 };
 
+/** The tiles card's form fields: one per picked tile, when picking four. */
+export const tileFieldName = (index: number) => `tile${index}`;
+
+/**
+ * A submitted "Simple mode tiles" choice: learned from use, the fixed set,
+ * or four different tiles (`custom`). Anything else is the card's error.
+ */
+export const parseSimpleTilesChoice = (form: {
+  mode: string;
+  tiles: readonly string[];
+}): Parsed<{ simpleTiles: SimpleTiles }> => {
+  if (form.mode === "learned" || form.mode === "fixed")
+    return { ok: true, data: { simpleTiles: { mode: form.mode } } };
+  if (form.mode !== "custom") return { ok: false, error: "Choose how the tiles are picked.", issues: [] };
+  const tiles = form.tiles.map(tileFromKey);
+  const picked = tiles.filter((tile): tile is SimpleTile => !!tile);
+  if (picked.length !== SIMPLE_TILE_COUNT) return { ok: false, error: "Pick four tiles.", issues: [] };
+  if (new Set(picked.map(tileKey)).size !== SIMPLE_TILE_COUNT)
+    return { ok: false, error: "Pick four different tiles.", issues: [] };
+  return { ok: true, data: { simpleTiles: { mode: "custom", tiles: picked } } };
+};
+
 // ---------------------------------------------------------------------------
 // Time zone
 // ---------------------------------------------------------------------------
@@ -153,7 +182,7 @@ export const memberAccess = ({
   actorRole: string | null;
   memberRole: string | null;
   isSelf: boolean;
-}): { roles: MemberRole[]; remove: boolean; leave: boolean; simpleMode: boolean } => {
+}): { roles: MemberRole[]; remove: boolean; leave: boolean; simpleMode: boolean; lock: boolean } => {
   const owner = actorRole === "owner";
   const manages = (owner || actorRole === "admin") && (owner || memberRole !== "owner");
   return {
@@ -162,6 +191,8 @@ export const memberAccess = ({
     leave: isSelf,
     // Simple mode's default for them: whoever may change their role.
     simpleMode: manages,
+    // Locking them in it: the same, but never yourself.
+    lock: manages && !isSelf,
   };
 };
 

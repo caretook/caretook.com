@@ -11,8 +11,12 @@ import { openedOverTimeline } from "~/lib/timelineSheet";
 // scroll position, loaded pages and filters, and serves its sheets what they
 // share through the outlet.
 
-/** What the timeline gives the sheet routes rendered in its `Outlet`. */
-export type TimelineOutlet = { units: UnitChoices };
+/**
+ * What the timeline gives the sheet routes rendered in its `Outlet`: the
+ * user's units, and whether the timeline is in simple mode (the add sheet
+ * then opens its simple variant).
+ */
+export type TimelineOutlet = { units: UnitChoices; simple?: boolean };
 
 export const useTimelineOutlet = () => useOutletContext<TimelineOutlet>();
 

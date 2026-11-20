@@ -1,5 +1,7 @@
 # PRD: Assistant (quick entry, simple mode, day summaries, visit prep)
 
+> ✅ **Done** (2026-11-19): all seven slices in `dev`. Lasting decisions live in [`docs/domain/assistant.md`](../docs/domain/assistant.md) and the timeline, live-notes, appointments, providers, medications, app-shell, care-groups and sync docs.
+
 Topic `assistant`, backlog B-12, B-49, B-58, B-87. Interviewed 2026-11-19. Replaces the earlier draft (`dd0d7a9`: a remote-AI chat sheet with server-side voice), which stays in git history.
 
 **No remote AI in this PRD.** Everything here is plain code on the device: it works offline, costs nothing per use, and sends no care data anywhere new. Voice is the keyboard's own dictation. A user's own Claude or ChatGPT comes later through `connectors` (B-104), which reuses this PRD's action shapes. On-device models (Capacitor) and paid remote calls are later decisions.

@@ -3,7 +3,7 @@ import type { SimpleModeState } from "~/lib/useSimpleMode";
 
 import type { Theme } from "~/lib/theme";
 
-import { LayoutGrid, LogOut, Monitor, Moon, Settings, ShieldCheck, Sun } from "lucide-react";
+import { LayoutGrid, LogOut, Monitor, Moon, Settings, ShieldCheck, Sun, Users } from "lucide-react";
 import { useState } from "react";
 import { useSubmit } from "react-router";
 import { Menu, SEPARATOR, UserAvatar } from "~/components/ui";
@@ -22,10 +22,19 @@ const isTheme = (id: string): id is Theme => THEME_ITEMS.some((t) => t.id === id
 /**
  * The header's `user` region: the signed-in user's avatar, opening their
  * account menu. The header (name, email) isn't an item, so it's never focused.
- * In simple mode (`simple`) it's reduced to Settings, "Full app" (unless
+ * In simple mode (`simple`) it's reduced to Settings, "Your care groups"
+ * (with `severalGroups`: simple mode has no group menu), "Full app" (unless
  * locked) and Sign out.
  */
-export function UserMenu({ user, simple }: { user: SessionUser; simple?: SimpleModeState | null }) {
+export function UserMenu({
+  user,
+  simple,
+  severalGroups,
+}: {
+  user: SessionUser;
+  simple?: SimpleModeState | null;
+  severalGroups?: boolean;
+}) {
   const submit = useSubmit();
   const who = user.name || user.email;
   const admin = adminLink(user.role, import.meta.env.VITE_API_ORIGIN);
@@ -57,6 +66,9 @@ export function UserMenu({ user, simple }: { user: SessionUser; simple?: SimpleM
             header: { title: user.name || undefined, subtitle: user.email },
             items: [
               settings,
+              ...(severalGroups
+                ? [{ id: "groups", label: "Your care groups", icon: Users, href: appUrls.groupList() }]
+                : []),
               ...(simple.canToggle
                 ? [{ id: "full-app", label: "Full app", icon: LayoutGrid, onAction: simple.toggle }]
                 : []),

@@ -18,6 +18,7 @@ import {
   scheduleZoneNote,
   stoppedText,
   givenAllLabel,
+  givePassText,
   medicationCountText,
   passLoggedLabel,
   passLoggedText,
@@ -349,6 +350,14 @@ describe("pass wording", () => {
     expect(passTitle({ name: null, slots: slots.slice(0, 1) })).toBe("Metformin 500 mg");
     expect(passLoggedLabel(pass)).toBe("Morning logged");
     expect(givenAllLabel(pass)).toBe("Given all: Morning, 8:00");
+  });
+
+  it("offers a due pass as one tap, with how many are left", () => {
+    expect(givePassText(pass)).toBe("Give morning meds (1)");
+    expect(givePassText({ ...pass, name: "Lunch Meds" })).toBe("Give lunch meds (1)");
+    expect(givePassText({ name: null, slots: slots.slice(0, 1), open: slots.slice(0, 1) })).toBe(
+      "Give Metformin 500 mg (1)",
+    );
   });
 
   it("says a pass's state, and what's left while it's partly done", () => {

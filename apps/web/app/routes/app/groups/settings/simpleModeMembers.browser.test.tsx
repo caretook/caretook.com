@@ -22,8 +22,8 @@ const MEMBERS = `/app/groups/${TEST_GROUP.id}/settings/members`;
 
 const SAM_ID = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f6a02";
 const SAM_MEMBERSHIP = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f6b02";
-const samMembership = (simpleMode: number) =>
-  fx.member({ id: SAM_MEMBERSHIP, userId: SAM_ID, role: "caretaker", simpleMode });
+const samMembership = (simpleMode: number, simpleModeLocked = 0) =>
+  fx.member({ id: SAM_MEMBERSHIP, userId: SAM_ID, role: "caretaker", simpleMode, simpleModeLocked });
 const SAM = [fx.user({ id: SAM_ID, name: "Sam Okafor" }), samMembership(0)];
 const OLGA = fx.person({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f6a03", name: "Olga Moreno", role: "owner" });
 
@@ -47,6 +47,8 @@ const open = (role: GroupRole, api?: Record<string, (input: unknown) => unknown>
 const ready = () => expect.poll(() => document.querySelectorAll("main li[data-member]").length).toBe(3);
 const samSwitch = () => page.getByRole("checkbox", { name: "Simple mode for Sam Okafor" });
 const switches = () => [...document.querySelectorAll<HTMLInputElement>("[data-simple-mode-switch]")];
+const samLock = () => page.getByRole("checkbox", { name: "Lock Sam Okafor in simple mode" });
+const locks = () => [...document.querySelectorAll<HTMLInputElement>("[data-simple-lock-switch]")];
 
 describe("the Simple mode switch on Members", () => {
   test("an owner turns it on for a caretaker: it's sent, shows at once, and the synced change stays", async () => {
@@ -96,5 +98,80 @@ describe("the Simple mode switch on Members", () => {
     await open("owner");
     await ready();
     expect(switches()).toHaveLength(0);
+  });
+});
+
+describe("the Locked switch on Members", () => {
+  test("an owner locks a caretaker in: it's sent, and simple mode shows on with it; never on their own row", async () => {
+    const calls = apiCalls();
+    const device = await open("owner", calls.record({ "careGroup.setMemberMode": () => null }));
+    await ready();
+    // Sam's and the other owner's rows; not their own.
+    expect(locks()).toHaveLength(2);
+    expect(document.querySelector(`li[data-member="${OLGA.id}"] [data-simple-lock-switch]`)).not.toBeNull();
+    await expect.element(samLock()).not.toBeChecked();
+
+    await userEvent.click(samLock());
+    await expect
+      .poll(() => calls.of("careGroup.setMemberMode"))
+      .toEqual([{ groupId: TEST_GROUP.id, userId: SAM_ID, locked: true }]);
+    await expect.element(samLock()).toBeChecked();
+    await expect.element(samSwitch()).toBeChecked();
+    await device.sync(samMembership(1, 1));
+    await expect.element(samLock()).toBeChecked();
+
+    // Turning simple mode off unlocks too.
+    await userEvent.click(samSwitch());
+    await expect
+      .poll(() => calls.of("careGroup.setMemberMode").at(-1))
+      .toEqual({ groupId: TEST_GROUP.id, userId: SAM_ID, simpleMode: false });
+    await expect.element(samLock()).not.toBeChecked();
+  });
+
+  test("the lock syncing back after simple mode was already turned off doesn't turn it back on", async () => {
+    const calls = apiCalls();
+    const device = await open("owner", calls.record({ "careGroup.setMemberMode": () => null }));
+    await ready();
+    await userEvent.click(samLock());
+    await expect.poll(() => calls.of("careGroup.setMemberMode").length).toBe(1);
+    await userEvent.click(samSwitch());
+    await expect.poll(() => calls.of("careGroup.setMemberMode").length).toBe(2);
+    await expect.element(samLock()).not.toBeChecked();
+    // The lock's own echo arrives late, then the unlock's.
+    await device.sync(samMembership(1, 1));
+    await expect
+      .poll(() => device.query("SELECT 1 FROM care_group_member WHERE simple_mode_locked = 1"))
+      .toHaveLength(1);
+    // Give the live query time to show it (an assertion that nothing changes).
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await expect.element(samLock()).not.toBeChecked();
+    await expect.element(samSwitch()).not.toBeChecked();
+    await device.sync(samMembership(0, 0));
+    await expect.element(samLock()).not.toBeChecked();
+  });
+
+  test("a refusal shows the server's reason and the lock goes back", async () => {
+    await open("owner", { "careGroup.setMemberMode": () => refusal("careGroupMemberService:ownLock") });
+    await ready();
+    await userEvent.click(samLock());
+    await expect.element(page.getByRole("alert")).toBeVisible();
+    await expect.element(samLock()).not.toBeChecked();
+    await expect.element(samSwitch()).not.toBeChecked();
+  });
+
+  test("an admin gets none on an owner's row", async () => {
+    await open("admin", {});
+    await ready();
+    expect(locks()).toHaveLength(1);
+  });
+
+  test("caretakers see a locked member's badge, and no switch", async () => {
+    const device = await open("caretaker", {});
+    await ready();
+    expect(locks()).toHaveLength(0);
+    await device.sync(samMembership(1, 1));
+    await expect
+      .poll(() => document.querySelector("[data-simple-mode-badge]")?.textContent)
+      .toBe("Simple mode, locked");
   });
 });

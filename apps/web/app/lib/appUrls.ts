@@ -101,6 +101,8 @@ export const PERIOD_PREFILL_PARAMS = {
 export type PeriodPrefill = { type?: string; startedAt?: string; dateOnly?: boolean; place?: string };
 
 const HOME = "/app";
+/** `/app?groups=1`: show the list of groups rather than going on to one. */
+export const GROUP_LIST_PARAM = "groups";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
 export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account", "contact", "devices"] as const;
@@ -292,6 +294,8 @@ export const appUrls = {
       [WHEN_PARAM]: WHEN_PICK,
       [WITH_PROVIDER_PARAM]: providerId,
     })}`,
+  /** `/app`'s list of groups, even when it would go on to one (simple mode's way to another group). */
+  groupList: () => `${HOME}${searchString({ [GROUP_LIST_PARAM]: "1" })}`,
   /** A group's tasks, with the Mine / Unassigned / Everyone chip (`?who=`) carried through. */
   tasks: (groupId: string, search?: Search) => `${groupHome(groupId)}/tasks${searchString(search)}`,
   /** One task's page. */
