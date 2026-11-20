@@ -4,6 +4,7 @@ import type { ActionResult } from "~/lib/api";
 import type { TimelineOutlet } from "./sheet";
 
 import { Outlet, PrefetchPageLinks } from "react-router";
+import { QuickEntryBox } from "~/components/quick-entry";
 import { appUrls } from "~/lib/appUrls";
 import { formString } from "~/lib/form";
 import { getGroup, useGroup } from "~/lib/group";
@@ -131,8 +132,9 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
       <MedicationStrip groupId={groupId} canWrite={canWrite} />
       {canWrite && (
-        <div className={COLUMN_CAP}>
+        <div className={`${COLUMN_CAP} space-y-3`}>
           <QuickAddBar groupId={groupId} />
+          <QuickEntryBox groupId={groupId} units={units} />
         </div>
       )}
       <div className={COLUMN_CAP}>

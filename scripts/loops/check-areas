@@ -401,3 +401,11 @@ apps/web/app/lib/upcomingDays.ts         upcoming
 apps/web/app/lib/upcomingDoses.ts        upcoming
 apps/web/app/lib/timelineSheet.ts        roundtrip medications upcoming
 apps/web/app/lib/sync/useLiveRows.ts     phase2 upcoming
+# Quick entry (assistant slice 1): the box and its cards are component tests
+# (timeline/timelineQuickEntry.browser.test.tsx), and so is the runner, whose
+# rows are the ones roundtrip already uploads. The parser and actions are
+# packages/data (unit tests); the Edit drafts are unit-tested in
+# components/quick-entry/quickEntryCards.test.ts.
+apps/web/app/components/quick-entry/*    -
+apps/web/app/lib/sync/quickEntry.ts      -
+apps/web/app/lib/quickEntryDraft.ts      -
