@@ -42,12 +42,17 @@ export function leanCeiling(text) {
   return Number(seconds);
 }
 
+/** The most the lean set may take, in seconds. The ceiling can go down, never above this. */
+export const LEAN_LIMIT = 300;
+
 /**
  * The lean set's budget: the e2e checks' usual seconds against the ceiling.
  * Throws when the total is over it, saying by how much.
  */
 export function leanBudget(text) {
   const ceiling = leanCeiling(text);
+  if (ceiling > LEAN_LIMIT)
+    throw new Error(`checks: lean-ceiling ${ceiling} is over the hard limit of ${LEAN_LIMIT} s`);
   const lean = parseManifest(text).filter((c) => c.e2e);
   const total = lean.reduce((sum, c) => sum + c.usual, 0);
   if (total > ceiling)
