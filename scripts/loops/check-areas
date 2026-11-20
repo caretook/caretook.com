@@ -182,9 +182,9 @@ apps/web/app/lib/redirect.ts             sign-in session-end
 apps/web/app/lib/firstSync.ts            first-sync
 apps/web/app/lib/auth-client.ts          sign-in signout-wipe
 apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe session-end
-apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell providers
+apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell
 apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
-apps/web/app/lib/sync/schema.ts          roundtrip live-notes providers phase2
+apps/web/app/lib/sync/schema.ts          roundtrip live-notes phase2
 packages/auth/src/*                      sign-in first-sync signout-wipe invites
 apps/web/app/components/shell/*          first-sync
 
@@ -278,32 +278,33 @@ apps/web/app/lib/form.ts                 roundtrip
 # The entry page and live notes.
 # The entry page's care period suggestion is component tests
 # (entry/entryPeriodSuggestion.browser.test.tsx): entry/* below.
-apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx providers
-# The With row and the place: providers.mjs. What the page writes (and so uploads): live-notes.
-apps/web/app/routes/app/groups/entry/EntryWithRow.tsx providers
-apps/web/app/routes/app/groups/entry/withProviders.ts providers
-apps/web/app/routes/app/groups/entry/EntryPlaceRow.tsx providers
+# The header, the With row, suggestions and the place: component tests
+# (entry/entryWithRow and entry/entry browser tests), under entry/* below.
+# What the page writes (and so uploads): live-notes.
 apps/web/app/routes/app/groups/entry/useLiveEntry.ts live-notes
 # The rest of the entry page is component tests (entry/entry.browser.test.tsx).
 apps/web/app/routes/app/groups/entry/*   -
-apps/web/app/components/notes/*          live-notes providers
-apps/web/app/lib/sync/notes.ts           live-notes providers
+apps/web/app/components/notes/*          live-notes
+apps/web/app/lib/sync/notes.ts           live-notes
 apps/web/app/lib/sync/liveEntry.ts       live-notes
 apps/web/app/lib/sync/editors.ts         live-notes
 apps/web/app/lib/sync/titleSuggestions.ts live-notes
 
-# Providers.
-apps/web/app/routes/app/groups/provider/ProviderMedications.tsx providers medications
+# Providers: the directory, its sheets and a provider's page are component
+# tests (providers/providers, providers/providerSheets and provider/provider
+# browser tests; providerWorld.tsx is their world). A provider and a link
+# reaching another device is roundtrip's sync matrix (6b).
+apps/web/app/routes/app/groups/provider/ProviderMedications.tsx medications
 # Visit prep's button on a provider's page (assistant slice 4): component tests.
 apps/web/app/routes/app/groups/provider/ProviderVisitPrep.tsx -
-apps/web/app/routes/app/groups/provider/*  providers
-apps/web/app/routes/app/groups/providers/* providers
-apps/web/app/components/providers/*      providers
+apps/web/app/routes/app/groups/provider/*  -
+apps/web/app/routes/app/groups/providers/* -
+apps/web/app/components/providers/*      -
 # Phone fields shared by the provider sheet and your contact details (profiles slice 4).
 # Contact links shared by the Members page and the recipient's profile (profiles slice 3).
 apps/web/app/components/contact/ContactLines.tsx profiles-contacts profiles
-apps/web/app/components/contact/*        providers profiles-contacts
-apps/web/app/lib/sync/providers.ts       providers
+apps/web/app/components/contact/*        profiles-contacts
+apps/web/app/lib/sync/providers.ts       roundtrip
 # The medication list: the device module, the list and a medication's page
 # (its live notes run live-notes too).
 apps/web/app/lib/sync/medications.ts     medications
@@ -334,7 +335,7 @@ apps/web/app/components/schedule/*       -
 # (components/visitPrep/visitPrep.browser.test.tsx).
 apps/web/app/components/visitPrep/*      -
 apps/web/app/lib/sync/visitPrep.ts       -
-apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
+apps/web/app/lib/sync/providerSuggestions.ts -
 # Care periods: the periods page and its sheets, a period's page, the group
 # menu's period and the suggestion are component tests (periods/, period/,
 # layout/groupMenuPeriod, entry/entryPeriodSuggestion). What the device module
@@ -366,7 +367,7 @@ apps/web/app/routes/marketing/*          marketing
 apps/web/public/*                        marketing
 
 # Server code the device reaches. The upload switch carries every synced write.
-packages/api/src/sync.ts                 roundtrip live-notes providers
+packages/api/src/sync.ts                 roundtrip live-notes
 packages/api/src/invites.ts              invites
 packages/api/src/joinRequests.ts         invites
 packages/api/src/publicForms.ts          marketing
@@ -378,11 +379,11 @@ apps/web/app/routes/rpc.ts               sign-in
 # Shared schemas and seeds: the screens that read them.
 packages/data/src/db/schema/timelineEntry.ts phase2 roundtrip live-notes
 packages/data/src/db/schema/vitals.ts    phase2 roundtrip
-packages/data/src/db/schema/noteDocument.ts live-notes providers
+packages/data/src/db/schema/noteDocument.ts live-notes
 packages/data/src/db/schema/noteYjs.ts   live-notes
 packages/data/src/db/schema/noteEditors.ts live-notes
-packages/data/src/db/schema/provider.ts  providers
-packages/data/src/db/schema/entryProvider.ts providers
+packages/data/src/db/schema/provider.ts  roundtrip
+packages/data/src/db/schema/entryProvider.ts roundtrip
 packages/data/src/db/schema/medication.ts medications
 packages/data/src/db/schema/carePeriod*.ts roundtrip
 packages/data/src/db/schema/medicationPass.ts medications
@@ -401,7 +402,7 @@ packages/data/src/db/schema/contactMessage.ts marketing
 packages/data/src/db/schema/search.ts    -
 packages/data/src/db/schema/searchDocument.ts -
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
-packages/data/src/db/seeds/providers.ts  providers
+packages/data/src/db/seeds/providers.ts  roundtrip
 packages/data/src/db/seeds/invites.ts    invites app-shell
 packages/data/src/db/seeds/medications.ts medications
 # Validated by seeds/carePeriods.test.ts; no screen check reads them.

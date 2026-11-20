@@ -347,6 +347,39 @@ describe("sync.upload: timeline_entry_provider", () => {
       code: "permissions:unauthorized",
     });
   });
+
+  it("makes one link when two members' devices link the same pair (one offline): the first upload's", async () => {
+    const owner = await createUser("owner");
+    const caretaker = await createUser("caretaker");
+    const { group } = await createGroup(owner, [{ user: caretaker.user, role: "caretaker" }]);
+    const ownerApi = clientFor(owner.ctx.authUser);
+    const caretakerApi = clientFor(caretaker.ctx.authUser);
+    const entry = ok(
+      await timelineEntryService.create(owner.ctx, {
+        groupId: group.id,
+        kind: "event",
+        title: "Clinic visit",
+        occurredAt: "2026-11-17T12:00:00.000Z",
+        timeZone: "America/Los_Angeles",
+      }),
+    );
+    const provider = ok(
+      await providerService.create(owner.ctx, { groupId: group.id, type: "practice", name: "Clinic" }),
+    );
+    // Each device derives the same id from the pair; the offline one uploads second.
+    const linkOp = {
+      op: "PUT" as const,
+      table: "timeline_entry_provider",
+      id: entryProviderId(entry!.id, provider!.id),
+      data: { group_id: group.id, entry_id: entry!.id, provider_id: provider!.id },
+    };
+    expect((await ownerApi.sync.upload({ ops: [linkOp] })).results[0]?.status).toBe("applied");
+    expect((await caretakerApi.sync.upload({ ops: [linkOp] })).results[0]?.status).toBe("applied");
+    const links = ok(await entryProviderService.listForEntry(owner.ctx, entry!.id));
+    expect(links.data).toEqual([
+      expect.objectContaining({ id: linkOp.id, providerId: provider!.id, createdBy: owner.user.id }),
+    ]);
+  });
 });
 
 describe("sync.upload: provider notes", () => {
