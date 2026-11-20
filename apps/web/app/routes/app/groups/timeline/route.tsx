@@ -30,6 +30,7 @@ import { usePeriodSearch } from "./usePeriodSearch";
 import { settledSearchIndexStatus, useSearchIndexStatus } from "./useSearchIndexStatus";
 import { useTimelineData } from "./useTimelineData";
 import { useTimelineView } from "./useTimelineView";
+import { useDaySummaryMode } from "./useDaySummaryMode";
 import { useSimpleMode } from "~/lib/useSimpleMode";
 import { SimpleModeToggle } from "./SimpleModeToggle";
 import { SimpleTimeline } from "./SimpleTimeline";
@@ -127,6 +128,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const filters = { kind, author, vital, match: search.match };
   const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
   const [view, setView] = useTimelineView(userId, loaderData.timelineView);
+  const [summaryMode, setSummaryMode] = useDaySummaryMode(userId, loaderData.daySummary);
 
   const sheets = (
     <>
@@ -140,14 +142,20 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   );
   if (mode.simple)
     return (
-      <SimpleTimeline data={data} units={units} mode={mode}>
+      <SimpleTimeline data={data} units={units} mode={mode} summaryMode={summaryMode}>
         {sheets}
       </SimpleTimeline>
     );
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
-      <TimelineHeader view={view} onViewChange={setView} simpleToggle={<SimpleModeToggle mode={mode} />} />
+      <TimelineHeader
+        view={view}
+        onViewChange={setView}
+        summaryMode={summaryMode}
+        onSummaryModeChange={setSummaryMode}
+        simpleToggle={<SimpleModeToggle mode={mode} />}
+      />
       <InviteSomeoneCard />
       <LatestVitals vitals={data.latestVitals} units={units} />
       <NextStrip next={data.next} now={data.now} groupId={groupId} showing={upcoming} />
@@ -172,6 +180,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <TimelineEntryList
         data={data}
         view={view}
+        summaryMode={summaryMode}
         units={units}
         groupId={groupId}
         canWrite={canWrite}
