@@ -8,11 +8,11 @@ import { givePassText, medicationCountText, passTitle } from "~/lib/medications/
 import { useDueDoses } from "~/lib/medications/dueDoses.sync";
 import { STALE } from "./layout";
 
-/** Where the Now block's Undo is shown (`PassUndoStatus`'s `place`). */
+/** Where the Upcoming block's Undo is shown (`PassUndoStatus`'s `place`). */
 export const SIMPLE_NOW_UNDO = "simpleNow";
 
 /**
- * Simple mode's Now block (assistant PRD): what needs doing. Each pass due
+ * Simple mode's Upcoming block (assistant PRD): what needs doing. Each pass due
  * now (named or a time of its own) as one big Given all button ("Give
  * evening meds (4)"), with Undo for about 10 s, as on the medication strip;
  * then `next` (the next appointment, given by the caller). Viewers get the
@@ -45,9 +45,9 @@ export function SimpleNow({
   if (ready && !dueNow.length && !next && !canWrite) return null;
   const stale = fresh ? "" : STALE;
   return (
-    <section aria-label="Now" className={`space-y-3 ${className}`} data-simple-now="">
-      {(dueNow.length > 0 || next || !ready) && <h2 className="text-2xl font-semibold">Now</h2>}
-      {!ready && <div className="skeleton rounded-box h-14" aria-hidden="true" data-simple-skeleton="now" />}
+    <section aria-label="Upcoming" className={`space-y-3 ${className}`} data-simple-now="">
+      {(dueNow.length > 0 || next || !ready) && <h2 className="text-lg font-semibold">Upcoming</h2>}
+      {!ready && <div className="skeleton rounded-box h-16" aria-hidden="true" data-simple-skeleton="now" />}
       {dueNow.length > 0 &&
         (canWrite ? (
           <ul className={`space-y-2 ${stale}`} aria-label="Due now" data-stale={fresh ? undefined : ""}>

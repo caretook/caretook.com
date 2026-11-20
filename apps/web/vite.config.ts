@@ -37,6 +37,11 @@ export default defineConfig({
   // VITE_* as usual, plus APP_ENV (staging | production): it's public, and
   // prerendered pages and every page's noindex read it at build (lib/marketing/noindex.ts).
   envPrefix: ["VITE_", "APP_ENV"],
+  // The build target (web | native), for client code: only web builds register the service worker.
+  // (build-target.ts's rule, read here directly: Vite's native config loader can't import it.)
+  define: {
+    "import.meta.env.BUILD_TARGET": JSON.stringify(process.env.BUILD_TARGET === "native" ? "native" : "web"),
+  },
   // Component tests (Vitest's `web:components` project) load this config for
   // `~/`, Tailwind, daisyUI and the dedupes, but render routes in React
   // Router's test stub: the framework plugin isn't for tests.

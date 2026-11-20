@@ -42,7 +42,7 @@ export function SimpleTasks({ className = "" }: { className?: string }) {
       data-simple-tasks=""
       data-stale={fresh ? undefined : ""}
     >
-      <h2 className="text-2xl font-semibold">My tasks</h2>
+      <h2 className="text-lg font-semibold">My tasks</h2>
       {tasks.length > 0 && (
         <ul className="space-y-1" aria-label="My open tasks">
           {tasks.map((task) => {

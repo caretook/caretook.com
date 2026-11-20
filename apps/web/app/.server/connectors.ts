@@ -64,9 +64,13 @@ const failed = (event: string, error: Parameters<typeof logError>[1]) => {
 
 const searchOf = (request: Request) => new URL(request.url).search.replace(/^\?/, "");
 
-/** The signed-in member, or a redirect to sign in and come back here. */
+/**
+ * The signed-in member, or a redirect to sign in and come back here. Read live,
+ * not from the 3-minute cookie cache (B-140): consent mints 30-day tokens, so a
+ * session ended elsewhere must not still grant one.
+ */
 const requireMember = async (request: Request) => {
-  const authUser = await getAuthUser(request.headers);
+  const authUser = await getAuthUser(request.headers, { live: true });
   if (isError(authUser)) throw failed("connect: session lookup failed", authUser);
   if (!authUser) throw redirect(signInUrl(request));
   return authUser;

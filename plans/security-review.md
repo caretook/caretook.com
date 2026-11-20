@@ -134,6 +134,10 @@ Severity is the harm if it's exploited and how easily, for this app's data. **Fi
 
 - The compliance rules say AI vendors must not retain or train on our data. The `assistant` PRD should also set: zero-retention terms in writing, the least data per request, no health data in prompts' logs, a per-group opt-in by an owner, and which features run on-device instead.
 
+### S-13 · Revoked sessions keep working on /rpc for up to 3 minutes (accepted, B-140)
+
+- Better Auth's session cookie cache (`maxAge: 180`) lets ordinary `/rpc` calls skip the session table, so a session revoked elsewhere still authorizes them for up to 3 minutes. Account state, memberships and sync uploads stay live, and staff procedures, `/admin`, `/api/auth/token` and the app's own session check read the live session. Reconsider before launch and whenever the threat model changes. Details: [`docs/domain/auth.md`](../docs/domain/auth.md), _The session cookie cache_.
+
 ### Checked and fine
 
 - **Tokens:** invite tokens are SHA-256 hashed, link tokens sealed with AES-256-GCM (`INVITE_LINK_KEY`; production refuses to create a link without it), magic links and email codes hashed by Better Auth, and every token-carrying email (`magicLink`, `signInCode`, `resetPassword`, `verifyEmail`, `groupInvite`, `ownerInvite`) marked `sensitive` and blanked in the outbox once delivered or failed. Access codes are stored plain by design (sign-up tickets, not data). Rotating `INVITE_LINK_KEY` would break active links; write the rotation down with S-4.

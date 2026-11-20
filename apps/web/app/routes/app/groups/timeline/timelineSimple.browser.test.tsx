@@ -1,7 +1,7 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as entry from "~/routes/app/groups/entry/route";
 import * as settingsLayout from "~/routes/app/settings/layout/route";
@@ -94,8 +94,30 @@ const rows = () => [...document.querySelectorAll("[data-simple-list] ol > li")];
 const menuItems = () =>
   [...document.querySelectorAll('[role="menu"] [role^="menuitem"]')].map((el) => el.textContent?.trim());
 
+describe("the mic tip", () => {
+  test("shows only where canDictate says so", async () => {
+    // A phone: a coarse pointer and an Android user agent.
+    const media = window.matchMedia.bind(window);
+    const matchSpy = vi
+      .spyOn(window, "matchMedia")
+      .mockImplementation((q) => (q.includes("pointer: coarse") ? { ...media(q), matches: true } : media(q)));
+    const uaSpy = vi
+      .spyOn(navigator, "userAgent", "get")
+      .mockReturnValue("Mozilla/5.0 (Linux; Android 14; Pixel 8)");
+    try {
+      await open({ simpleMode: 1 });
+      await waitUntil(isSimple, 4000, "the simple view");
+      await expect.element(page.getByText(DICTATION_HINT)).toBeVisible();
+      expect(document.querySelectorAll("[data-dictation-hint]")).toHaveLength(1);
+    } finally {
+      matchSpy.mockRestore();
+      uaSpy.mockRestore();
+    }
+  });
+});
+
 describe("the simple view", () => {
-  test("a member whose owner chose simple mode: their name and today, the big box with a dictation hint and no tips, bigger rows without menus or filters, and a reduced header", async () => {
+  test("a member whose owner chose simple mode: their name and today, the box at the normal size directly before the rows, bigger rows without menus or filters, and a reduced header", async () => {
     await open({ simpleMode: 1 });
     await waitUntil(isSimple, 4000, "the simple view");
 
@@ -104,18 +126,25 @@ describe("the simple view", () => {
       .element(page.getByRole("heading", { level: 1, name: TEST_RECIPIENT.preferredName }))
       .toBeVisible();
     expect(simpleView()!.textContent).toContain("Today · ");
-    // The box in large type, labelled, with the hint to dictate.
+    // The box at the normal size, directly before the rows; no dictation tip on a desktop.
     const box = page.getByRole("textbox", { name: "What happened?" });
     await expect.element(box).toBeVisible();
-    expect(box.element().className).toContain("text-xl");
-    await expect.element(page.getByText(DICTATION_HINT)).toBeVisible();
-    // Only that hint: no typing tips under the empty box.
-    await waitUntil(() => !!document.querySelector("[data-quick-suggestions]"), 4000, "the suggestions");
-    expect(document.querySelector("[data-quick-tips]")).toBeNull();
+    expect(box.element().className).not.toContain("text-xl");
+    const section = document.querySelector("[data-quick-entry]")!;
+    const list = document.querySelector("[data-simple-list]")!;
+    expect(section.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(section.parentElement!.nextElementSibling).toBe(list);
+    expect(document.querySelector("[data-dictation-hint]")).toBeNull();
+    // No text-2xl heading anywhere in simple mode.
+    expect(simpleView()!.querySelector(".text-2xl")).toBeNull();
 
     // The rows, larger, with nothing to change or filter.
     await waitUntil(() => rows().length === 2, 4000, "the rows");
-    expect(getComputedStyle(document.querySelector("[data-simple-list]")!).zoom).toBe("1.25");
+    // At the full timeline's scale: no zoom on the list or its day summaries.
+    expect(getComputedStyle(document.querySelector("[data-simple-list]")!).zoom).toBe("1");
+    expect(
+      document.querySelector("[data-simple-list] [style*='zoom'], [data-simple-list] [class*='zoom']"),
+    ).toBeNull();
     expect(document.querySelectorAll("[data-simple-list] [data-simple]").length).toBe(2);
     expect(page.getByRole("button", { name: /^Actions for/ }).elements()).toHaveLength(0);
     expect(page.getByRole("link", { name: /^Show only/ }).elements()).toHaveLength(0);
