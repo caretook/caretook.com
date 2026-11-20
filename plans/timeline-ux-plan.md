@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State        | Merge into `prd/timeline-ux` (slice commits) |
-| ----- | ---- | ------------ | -------------------------------------------- |
-| 1     | 1    | landed       | 9e3a3ad (28991ac, 940af0a)                   |
-| 2     | 1    | landed       | de5ccf9 (67f6e34)                            |
-| 3     | 1    | landed       | 448be6e (11efa88)                            |
-| 4     | 2    | landed       | ddf36b0 (2110676)                            |
-| 5     | 2    | landed       | fd9b79f4 (174eb84)                           |
-| 6     | 2    | landed       | 127670af (8c4450e)                           |
-| 7     | 3    | started      |                                              |
-| 8     | 3    | merged       | 3f342072 (5aa523ac)                          |
-| 9     | 3    | started      |                                              |
-| 10    | 4    | blocked by 1 |                                              |
+| Slice | Wave | State                 | Merge into `prd/timeline-ux` (slice commits) |
+| ----- | ---- | --------------------- | -------------------------------------------- |
+| 1     | 1    | landed                | 9e3a3ad (28991ac, 940af0a)                   |
+| 2     | 1    | landed                | de5ccf9 (67f6e34)                            |
+| 3     | 1    | landed                | 448be6e (11efa88)                            |
+| 4     | 2    | landed                | ddf36b0 (2110676)                            |
+| 5     | 2    | landed                | fd9b79f4 (174eb84)                           |
+| 6     | 2    | landed                | 127670af (8c4450e)                           |
+| 7     | 3    | started               |                                              |
+| 8     | 3    | merged                | 3f342072 (5aa523ac)                          |
+| 9     | 3    | handed off (b838735e) |                                              |
+| 10    | 4    | blocked by 1          |                                              |
 
 **Start condition:** `code-layout` in `dev` (it moves `apps/web/app/lib/`, `routes.ts` and `appUrls`). Check `pnpm backlog show B-150` says landed. Every path below that names `lib/…` means its new home after code-layout: find it with `git grep` and don't recreate the old file.
 
@@ -45,6 +45,8 @@
 - Slice 8 handed off (5aa523ac): order, "Upcoming", one-row tiles, no zoom, `canDictate` + `DICTATION_HINT` under the box in `SimpleTimeline`; box now `size="md"`, which turns on a due-pass chip that duplicates Given all: asked slice 9 to add a prop that hides it in simple mode (pass it in `SimpleTimeline` at merge). Fold-ins: timeline.md simple-view lines; assistant.md (the box size, dictation hint, pass chip).
 - **Wave 2 landed in dev as 60260949** (quick check on 2ce46450, then a docs-only dev sync). Told connectors-4a B-164/B-165 landed.
 - Slice 8 merged (3f342072; took slice 8's side of the `timelineSimpleTasks` test conflict, which already had the tiles wait), B-162 done, worktree removed. Slices 7 and 9 running.
+- Slice 9 handed off (b838735e). At merge: pass `passChips={false}` from `SimpleTimeline`. Its `--changed` named `session-end` (recentLines → sign-out wipe) and failed for lack of a stack: covered by the wave 3 lean set, or run it by name at landing. Undo after a lone note/event is effectively gone (the page opens). Fold-ins for assistant.md: no tips line, rotating placeholder + sr-only rules, open-after-save, reduced recent lines (`recentLineFor`, filtered on read), `passChips`.
+- Slice 7: gate passed (the server's /app document, cached with its headers, boots any /app/* under the CSP); told it not to run the lean set (the user's yes, once at landing).
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
