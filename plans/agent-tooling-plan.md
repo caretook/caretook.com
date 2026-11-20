@@ -21,7 +21,7 @@
 
 **Wave 1:** landed in `dev` as cff4d2f (2026-11-20), full check on 5e08bbc (4167 tests); its decisions folded into AGENTS.md (commands table, backlog multi-id line) and docs/loops.md (the land guard). Told code-layout and check-migration to sync.
 
-**Now: waiting on slice 4's gate.** code-layout's wave 3 (its final landing, a few hours out) folds heavily into AGENTS.md, docs/loops.md and docs/layout.md; check-migration's wave 6 landed (fdb07b2); its next slice (18) touches no docs, and it folds into the new layout after the split. code-layout-d2 will message at its wave 2 and wave 3 landings; a background check also watches `dev` for their landing merges. Start slice 4 (opus: a judgement-heavy rewrite) after code-layout's final landing.
+**Now: waiting on slice 4's gate.** code-layout's wave 3 (its final landing, a few hours out) folds heavily into AGENTS.md, docs/loops.md and docs/layout.md; check-migration's wave 6 landed (fdb07b2); its next slice (18) touches no docs, and it folds into the new layout after the split. code-layout's wave 2 landed (446359c, no doc folds); its wave 3 (slice 5) is running and code-layout-d2 will message at that final landing; a background check also watches `dev` for their landing merges. Start slice 4 (opus: a judgement-heavy rewrite) after code-layout's final landing.
 
 **Land guard (user's choice, 2026-11-20):** AGENTS.md and docs/loops.md are `landExempt` (warn only) until slice 4, which removes the flags.
 
