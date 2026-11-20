@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { closeSync, openSync, watchLiveQuery } from "./index";
+import { closeSync, openSync, syncUserId, watchLiveQuery } from "./index";
+import { recall, remember } from "./remembered";
 
 // The database is faked: watchLiveQuery only needs `powersync.watch`.
 const watch = vi.fn();
@@ -47,5 +48,27 @@ describe("watchLiveQuery", () => {
     expect(watch).not.toHaveBeenCalled();
     expect(stop).not.toThrow();
     expect(onRows).not.toHaveBeenCalled();
+  });
+});
+
+describe("sign-out", () => {
+  beforeEach(() => vi.stubGlobal("window", {}));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("forgets the tiles' remembered answers with the local copy", async () => {
+    await openSync("u1");
+    expect(syncUserId()).toBe("u1");
+    remember("u1", { groupId: "g1", name: "dueTasks" }, [{ id: "t1" }]);
+    await closeSync();
+    expect(syncUserId()).toBeNull();
+    expect(recall("u1", { groupId: "g1", name: "dueTasks" })).toBeUndefined();
+  });
+
+  it("forgets them when another user's database opens on this tab", async () => {
+    await openSync("u1");
+    remember("u1", { groupId: "g1", name: "dueTasks" }, [{ id: "t1" }]);
+    await openSync("u2");
+    expect(recall("u1", { groupId: "g1", name: "dueTasks" })).toBeUndefined();
+    await closeSync();
   });
 });

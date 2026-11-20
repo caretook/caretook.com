@@ -6,11 +6,13 @@ import { useDueDoses } from "~/lib/medications/dueDoses.sync";
 /**
  * The medication strip's data: the pass it shows (`medicationStrip` over
  * today's passes), live and re-evaluated on a timer, and the recipient's
- * zone. Null until the device's rows are read (so nothing flashes as due),
- * and for a group without scheduled medications.
+ * zone. `ready` is false until the device's rows are known (remembered from
+ * earlier this session or read; the strip shows a skeleton), and `fresh`
+ * once they're read live (until then the strip is dimmed). `strip` is null
+ * before `ready` and for a group without scheduled medications.
  */
 export function useMedicationStrip(groupId: string) {
-  const { due, ready, timeZone, passes } = useDueDoses(groupId);
+  const { due, ready, fresh, timeZone, passes } = useDueDoses(groupId);
   const strip = useMemo(() => (ready ? medicationStrip(duePasses(due, passes)) : null), [due, ready, passes]);
-  return { strip, timeZone };
+  return { strip, ready, fresh, timeZone };
 }

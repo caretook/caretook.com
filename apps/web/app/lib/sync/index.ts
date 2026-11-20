@@ -3,6 +3,7 @@ import type { SyncDb } from "./client";
 import type * as SearchModuleNs from "../search/search.sync";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { clearRemembered } from "./remembered";
 
 export type { SyncDb };
 
@@ -78,6 +79,8 @@ export const installTestDatabase = async (
   const search = searchIndex;
   searchIndex = null;
   await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
+  // A new device remembers nothing (as after a sign-out).
+  clearRemembered();
   current = db ? Promise.resolve(db) : null;
   ready = db;
   testFirstSyncDone = db ? (options.firstSyncDone ?? true) : null;
@@ -96,11 +99,19 @@ export const getSync = (): SyncDb => {
   return ready;
 };
 
-/** Sign-out: stop syncing and wipe the device's copy. Safe to call when nothing is open. */
+/** Whose database is open (null: none), for device state kept per user, such as the tile cache. */
+export const syncUserId = (): string | null => ready?.userId ?? null;
+
+/**
+ * Sign-out: stop syncing and wipe the device's copy, and forget the tiles'
+ * remembered answers (`remembered.ts`). Safe to call when nothing is open.
+ */
 export const closeSync = async () => {
   const db = ready ?? (current ? await current.catch(() => null) : null);
   current = null;
   ready = null;
+  // The tile cache goes with the local copy.
+  clearRemembered();
   const search = searchIndex;
   searchIndex = null;
   await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
