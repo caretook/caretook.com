@@ -716,6 +716,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - owner:
 - commit:
 
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+
 ### B-166 · change · Using back to timeline from timeline live-note entry (or any browse action) takes you back to the…
 
 - status: triaged
