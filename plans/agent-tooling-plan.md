@@ -19,7 +19,7 @@
 
 **Slice 2 note:** its `pnpm check` had 1–3 failures in medicationList/passSheet component tests at load ~40; medicationList passed 6/6 on the base alone, and the slice touches no app code: load flakes.
 
-**Wave 1:** all three merged; next: `pnpm prd sync`, full `pnpm prd check` (package.json changed), land. Slice 3's `pnpm check` also had 2 component flakes (medicationList, providerSheets), both passed alone.
+**Wave 1:** all three merged; synced, full `pnpm prd check` passed on 5e08bbc (4167 tests), decisions folded into AGENTS.md and docs/loops.md; landing. Slice 3's `pnpm check` also had 2 component flakes (medicationList, providerSheets), both passed alone.
 
 **Land guard (user's choice, 2026-11-20):** AGENTS.md and docs/loops.md are `landExempt` (warn only) until slice 4, which removes the flags.
 
