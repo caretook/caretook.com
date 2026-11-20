@@ -79,7 +79,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-134 | bug | landed | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 | B-135 | change | landed | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
-| B-136 | change | triaged | timeline-ux |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
+| B-136 | change | in-progress | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
 | B-137 | change | triaged | timeline-ux |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
 | B-138 | change | triaged | timeline-ux |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | triaged | timeline-ux |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
@@ -95,8 +95,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-150 | chore | landed | code-layout | prd/code-layout | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-154 | chore | landed | agent-tooling | prd/agent-tooling | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
-| B-155 | chore | triaged | timeline-ux |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
-| B-156 | chore | triaged | timeline-ux |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
+| B-155 | chore | in-progress | timeline-ux | prd/timeline-ux | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
+| B-156 | chore | in-progress | timeline-ux | prd/timeline-ux | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 | B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
 | B-158 | change | landed | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
 | B-159 | change | landed | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
@@ -106,13 +106,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-163 | change | triaged | timeline-ux |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
 | B-164 | change | triaged | timeline-ux |  | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
 | B-165 | change | triaged | timeline-ux |  | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
-| B-166 | change | triaged | timeline-ux |  | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
+| B-166 | change | in-progress | timeline-ux | prd/timeline-ux | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
 | B-167 | change | triaged | timeline-ux |  | Make day summary part of sticky header so it is always visible when scrolling up the timeline. |
 | B-168 | change | triaged | timeline-ux |  | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
 | B-169 | change | triaged | timeline-ux |  | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
 | B-170 | change | triaged | timeline-ux |  | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
 | B-171 | change | triaged | timeline-ux |  | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
-| B-172 | bug | in-progress | check-migration | prd/check-migration | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
+| B-172 | bug | ready | check-migration | prd/check-migration | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
 
 ## Items
 
@@ -440,9 +440,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux
-- owner:
+- owner: prd/timeline-ux
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Stop blocking every /app navigation on a session request: use the session confirmed in the last few minutes and recheck in the background. / `requireSession` (apps/web/app/lib/session.ts) awaits `get-session` on each navigation, with no timeout, so every tap waits a round trip and can hang on a weak connection. / Add a timeout of about 3 s that counts as "no answer". The server still checks every upload and sync token.
@@ -628,9 +628,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-155 · chore · Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux
-- owner:
+- owner: prd/timeline-ux
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first chunk.
@@ -642,9 +642,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-156 · chore · Check whether `loadSettings` in the timeline loader waits on the network before using its cache.
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux
-- owner:
+- owner: prd/timeline-ux
 - commit:
 
 - 2026-11-20 (backlog agent): Triage: app-speed. An investigation first (does loadSettings wait on the network before using its cache?); a fix only if it does.
@@ -748,9 +748,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-166 · change · Using back to timeline from timeline live-note entry (or any browse action) takes you back to the…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux
-- owner:
+- owner: prd/timeline-ux
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Using back to timeline from timeline live-note entry (or any browse action) takes you back to the timeline, causes all lazy loaded header elements to reload. Can we cache their state with a visual indicator (maybe greyed out) and load in the background so that it doesn't cause page shift? Maybe keep a placeholder in the header so that it doesn't cause a flash on load any time?
@@ -815,10 +815,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-172 · bug · app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 86aac2e
 
 - 2026-11-20 (prd/check-migration): Found by slice 16 (2026-11-20). Proposed for check-migration: count in node with M.evaluate, as slice 16's member-share fold does; Playwright's port (slice 21/22) can fix it too. Grep other checks for waitFor(`${...}.then(` too. -- check-migration orchestrator
 - 2026-11-20 (prd/check-migration): User approved for check-migration (2026-11-20): slice 18 fixes it. -- check-migration orchestrator
