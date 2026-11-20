@@ -12,7 +12,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
 | `orchestration` | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done**, all 9 slices in `dev` (`94e6b80`); follow-ups are `check-migration` and `loop-recovery` | (none) | none now |
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done**, all 10 slices in `dev` | (none) | none now |
-| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–43 in `dev`; new fixes append as slice 44 on. Nothing triaged and waiting |  (none) | varies by slice; none now |
+| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–43 in `dev`; new fixes append as slice 44 on. **Next in the freed slot** (the user, 2026-11-20, after `tasks` is removed): B-135 (the + add-entry menu, a regression against B-98) and B-134 (the month step from the 31st in visit prep), as slices 44 and 45 |  (none) | varies by slice; none now |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | none now |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done**, all 7 slices in `dev` | `live-notes-ux`, `app-shell`, `routing`, `components` (all done) | none now |
 | `search` | [PRD](search-prd.md), [plan](search-plan.md): **done**, all 6 slices in `dev` (`a5f3d4d`) | (none) | none now |
@@ -38,6 +38,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `check-migration` | [PRD](check-migration-prd.md), [plan](check-migration-plan.md): 23 slices, 10 waves of ≤ 3: steady component tests and a lean-budget ratchet (356 s → ≤ 300), a sync matrix and refused uploads, then each area check moved to component tests (flows folded into lean checks only for a new mechanism), then the lean set ported to Playwright Test and the CDP harness deleted (B-113–B-129, B-131) | `orchestration` (done); slices 11–17 wait for named `assistant` slices in `dev` | `scripts/loops/checks` and `check-areas` (additive), `scripts/browser-checks/`, `browser.sh`, `apps/web/test/` (the test device), test files beside screens, root `package.json` (`@playwright/test`, slice 19) |
 | `loop-recovery` | [PRD](loop-recovery-prd.md), [plan](loop-recovery-plan.md): 5 slices, all stackless, waves (1, 2, 3) → 4 → 5: the inventory and `recover --dry-run`, the disk guard and `reclaim`, resume prompts and _Status_ at every step, `down` and `recover`, then the recovery agent with iTerm2 tabs (B-132) | `orchestration` (done): **done**, all 5 slices in `dev` (`503e900`) | none now |
 | `hosting` | [PRD](hosting-prd.md), [plan](hosting-plan.md): 7 slices, all stackless, waves (1, 2, 3) → (4, 5) → 6 → 7: Vercel build and env check, database roles and personal access, shared rate limits, bounces and suppression, deploy Actions and smoke, the `ops/` docs, then going live with the user (B-33, B-68). Vercel Pro `cle1`, Neon `aws-us-east-2`, PowerSync Cloud US; staging and production | (none): **ready to start**; `documents` needs it for file storage (not in this PRD) | `vercel.json`, the React Router config, `packages/auth` (rate-limit storage), `packages/api/src/rateLimit.ts` and its callers, `notify` and the `resend` sender, one migration, `routes.ts` (webhook route), `ADMIN_SECTIONS`, `AUDIT_ACTIONS`, `scripts/loops/check-areas` (additive), new `.github/`, `ops/`, `scripts/deploy/` |
+| `app-speed` | to write (B-136–B-140, B-144, B-155, B-156): navigation that doesn't wait on a session request, prefetched and instantly highlighted section tabs, `content-visibility` on timeline rows, cheaper auth on `/rpc`, a service worker with a precached shell, a bundle-size budget | `hosting` wave 1 in `dev` for B-140 (same files as its slice 3); the rest none | `lib/session.ts`, `routes/app/layout/SectionNav.tsx`, timeline rows, `packages/auth/src/authUser.ts`, `routes/rpc.ts`, the CSP (a worker), the Vite config, the build check |
+| `agent-tooling` | to write (B-147, B-148, B-152–B-154): AGENTS.md and `docs/loops.md` split by reader, domain docs trimmed to contracts, a `permissions` block, scripts that pick Node 24 themselves, batched backlog commits. All stackless | (none); best when few PRDs are landing (every landing edits AGENTS.md and `docs/`) | AGENTS.md, `docs/loops.md`, `docs/domain/*`, `.claude/settings.json`, `scripts/backlog/`, `scripts/loops/` |
+| `code-layout` | to write (B-149, B-150): shared registries split by area behind thin indexes, `apps/web/app/lib/` grouped by domain | `tasks` and `hosting` wave 1 in `dev` first; nothing else touching `lib/` or the registries while it runs | `scripts/loops/check-areas`, `routes.ts`, `appUrls.ts`, `errors/constants.ts`, `db/schema/index.ts`, `permissions.ts`, `router.ts`, all of `apps/web/app/lib/` and its importers |
 
 ## Summary
 
@@ -55,7 +58,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
-| B-55 | feature | in-progress | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
+| B-55 | feature | ready | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-58 | plan | landed | assistant | prd/assistant | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
@@ -78,26 +81,49 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-112 | change | landed | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
-| B-114 | chore | ready | check-migration | prd/check-migration | Move routing.mjs to component tests |
-| B-115 | chore | ready | check-migration | prd/check-migration | Move settings-layout.mjs to component tests |
+| B-114 | chore | landed | check-migration | prd/check-migration | Move routing.mjs to component tests |
+| B-115 | chore | landed | check-migration | prd/check-migration | Move settings-layout.mjs to component tests |
 | B-116 | chore | triaged | check-migration |  | Move providers.mjs to component tests |
 | B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
 | B-118 | chore | triaged | check-migration |  | Move medications.mjs to component tests |
 | B-119 | chore | triaged | check-migration |  | Move upcoming.mjs to component tests |
-| B-120 | chore | ready | check-migration | prd/check-migration | Move search.mjs to component tests |
+| B-120 | chore | landed | check-migration | prd/check-migration | Move search.mjs to component tests |
 | B-121 | chore | triaged | check-migration |  | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
-| B-123 | chore | triaged | check-migration |  | Move care-periods.mjs to component tests |
-| B-124 | chore | triaged | check-migration |  | Move devices.mjs to component tests |
-| B-125 | chore | triaged | check-migration |  | Move admin.mjs to component tests |
+| B-123 | chore | ready | check-migration | prd/check-migration | Move care-periods.mjs to component tests |
+| B-124 | chore | ready | check-migration | prd/check-migration | Move devices.mjs to component tests |
+| B-125 | chore | ready | check-migration | prd/check-migration | Move admin.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
-| B-128 | chore | ready | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
+| B-128 | chore | landed | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
-| B-131 | bug | ready | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
+| B-131 | bug | landed | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | landed | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
-| B-133 | bug | inbox |  |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
+| B-133 | bug | landed | quick-fixes |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
+| B-134 | bug | triaged | quick-fixes |  | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
+| B-135 | bug | triaged | quick-fixes |  | simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a… |
+| B-136 | change | triaged | app-speed |  | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
+| B-137 | change | triaged | app-speed |  | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
+| B-138 | change | triaged | app-speed |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
+| B-139 | change | triaged | app-speed |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
+| B-140 | change | triaged | app-speed |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
+| B-141 | change | triaged | hosting |  | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
+| B-142 | change | triaged | hosting |  | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
+| B-143 | change | triaged | hosting |  | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
+| B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
+| B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
+| B-146 | question | dropped | check-migration |  | Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for… |
+| B-147 | chore | triaged | agent-tooling |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
+| B-148 | chore | triaged | agent-tooling |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
+| B-149 | chore | triaged | code-layout |  | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
+| B-150 | chore | triaged | code-layout |  | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
+| B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
+| B-152 | chore | triaged | agent-tooling |  | Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`… |
+| B-153 | chore | triaged | agent-tooling |  | Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent… |
+| B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
+| B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
+| B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 
 ## Items
 
@@ -209,10 +235,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-55 · feature · Todos list with assignment to group members, due dates, and completion status.
 
-- status: in-progress
+- status: ready
 - prd: tasks
 - owner: prd/tasks
-- commit:
+- commit: 5a5eadf
 
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'tasks' (to write): a todo list per group with assignees, due dates and done state, as a group section. Due dates could show with appointments (B-47); reminders would go through notifications.
 - 2026-11-19 (plan/tasks): PRD and plan written (plans/tasks-prd.md, tasks-plan.md): 8 slices, waves 1 → (2, 4, 8) → (3, 5, 6) → 7. One assignee (member, a typed name, or none); viewers complete their own; links to a provider, appointment and medication; Upcoming, strip, search, simple card, quick entry addTask. Slices 3, 4, 6, 7 wait for assistant in dev; 8 for check-migration slice 2.
@@ -453,10 +479,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/orchestration/7): slice 7 (orchestration): app-shell 6g's stall is a harness race that also shows an app wart. The check signed viewer@ in again on the same page that had just signed out (same x-forwarded-for, after a run of session checks), so Better Auth's limiter could answer the first get-session after sign-in with a 429. requireSession treats 429 as 'unknown'; sign-out wiped the cached user, so with no cached user it returns 'signedOut' and redirects to /sign-in with no message (lib/session.ts resolveUser). Harness fixed in slice 7 (fresh page per sign-in). App: a rate-limited session check right after a successful sign-in silently bounces to /sign-in; worth a message or a retry (not changed in slice 7).
 - 2026-11-19 (prd/orchestration): orchestration wave 3 landed. app-shell.mjs (now 13 assertions, 8 s) passed on the new suite at low load; every sign-in is on a fresh page, which removes the step 6g repeat sign-in. Probable app cause (unconfirmed, log gone): a 429 on the first get-session after sign-in counts as unknown, and with no cached user requireSession treats it as signed out and redirects to /sign-in silently (apps/web/app/lib/session.ts resolveUser). providers.mjs and admin.mjs weren't rerun here.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slices 7 (admin) and 14 (providers); app-shell was rechecked by orchestration wave 3 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/7): check-migration slice 7: admin.mjs is deleted (B-125). Its server flows folded into app-shell.mjs step 6 (member@ 404 on /admin, admin@'s audited announcement on /admin/audit, the banner in member@'s /app), every sign-in on a fresh page: app-shell passed 18/18 first run (24 s, load 30-56), no 429. The 429-after-sign-in app wart is handled by B-130 (sign-in.browser.test.tsx: a rate-limited session check goes to sign-in with a message). Admin part closed; providers part waits for slice 14.
 
 ### B-114 · chore · Move routing.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 7e632ee
@@ -468,7 +495,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-115 · chore · Move settings-layout.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 7e632ee
@@ -519,7 +546,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-120 · chore · Move search.mjs to component tests
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 7bfa916
@@ -550,33 +577,36 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-123 · chore · Move care-periods.mjs to component tests
 
-- status: triaged
+- status: ready
 - prd: check-migration
-- owner:
-- commit:
+- owner: prd/check-migration
+- commit: 2cdba7f
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the periods list, sheets, period page, timeline line and markers, group menu and suggestions to component tests; keep a second device, offline then upload, and ties. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 8, wave 3 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/8): slice 8: care-periods.mjs deleted (55676bf); screens in component tests (c6d0b95), no fold, lean set unchanged
 
 ### B-124 · chore · Move devices.mjs to component tests
 
-- status: triaged
+- status: ready
 - prd: check-migration
-- owner:
-- commit:
+- owner: prd/check-migration
+- commit: 17f91aa
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the Devices page's list, labels and offline notice to component tests; keep signing another device out (its next session check goes to sign-in) as a lean flow, possibly folded into session-end.mjs. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 6, wave 3 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/6): slice 6: devices.mjs deleted; screen steps in settings/devices/devices.browser.test.tsx, sign-out elsewhere folded into session-end; ceiling 297
 
 ### B-125 · chore · Move admin.mjs to component tests
 
-- status: triaged
+- status: ready
 - prd: check-migration
-- owner:
-- commit:
+- owner: prd/check-migration
+- commit: 3c0418e
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. admin pages are web-only server loaders, so component tests need loader data: move what renders from data (users, groups, audit, settings, the banner) there; keep staff-only access, the audit log written by real actions and the announcement reaching /app. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 7, wave 3 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/7): slice 7: admin.mjs moved to component tests (routes/admin/*.browser.test.tsx from loaderData; routes/app/layout/staff.browser.test.tsx), an auditAdmin integration test, and app-shell step 6. Check, manifest line and check-areas rules deleted.
 
 ### B-126 · chore · Move roundtrip.mjs's sheet steps to component tests
 
@@ -600,7 +630,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-128 · chore · Add a lean end-to-end step for an upload refused by permissions
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 9c0b2bf
@@ -633,7 +663,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-131 · bug · Component tests (web:components) can fail under pnpm check's load
 
-- status: ready
+- status: landed
 - prd: check-migration
 - owner: prd/check-migration
 - commit: 9c0b2bf
@@ -656,10 +686,244 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-133 · bug · Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test)
 
-- status: inbox
-- prd:
+- status: landed
+- prd: quick-fixes
 - owner:
-- commit:
+- commit: b6c4187
 
 - 2026-11-19 (prd/check-migration): Found by check-migration slice 1: useHistoryCutoff changes the history query key at the minute turn, useLiveRows goes not-fresh, pageWindow sets limit = requested − 30, so the last page unmounts and later rows remount. Fails ~1 in 6 isolated runs under CPU load. Product quirk, not a test race; not in check-migration's scope.
 - 2026-11-19 (prd/check-migration): check-migration: timelineScroll's 'three pages down' test now has { retry: 2 } (commit on prd/check-migration); remove it when this is fixed.
+- 2026-11-20 (Robert Bo Davis): Triage: a contained fix in the timeline's history paging (useHistoryCutoff / pageWindow keep the last page mounted across the minute turn), so a quick-fixes slice, not its own PRD. Run it after tasks lands (tasks edits timeline/route.tsx), then remove check-migration's retry: 2 on timelineScroll.
+- 2026-11-20 (Robert Bo Davis): Fixed on dev (uncommitted, awaiting the user): pageWindow takes the settled window (the limit the rows on screen were fetched for), so a refetch of the same window at the minute's turn no longer shrinks the list. paging.test.ts covers it; timelineScroll passes. Once committed, check-migration can drop the retry: 2 on 'three pages down'.
+
+### B-134 · bug · visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent)
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (slice/check-migration/6): Fails on prd/check-migration HEAD 7ddfbb2 without slice 6's changes, alone and in pnpm check: 'timed out waiting for the longer window'. Its last visit is 20 days ago (2026-10-31) and ArrowDown on the month field should take the start before the Cough 25 days ago; probably the 31st not existing in September. Found by check-migration slice 6.
+- 2026-11-20 (prd/check-migration): check-migration orchestrator: the test now steps the year back instead of the month (commit on prd/check-migration, lands with wave 3). The app question remains for triage: should a month step back from the 31st clamp to the 30th? React Aria's month segment gave no change in the preview.
+- 2026-11-20 (backlog agent): Triage: the test is already fixed on prd/check-migration (1384054). What is left is small: decide whether stepping the month back from the 31st should clamp to the 30th in the visit prep start field. One quick-fixes slice, or drop it if React Aria's behaviour is acceptable.
+
+### B-135 · bug · simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a regression that may block B-98.
+- 2026-11-20 (backlog agent): Triage: a regression against B-98 (the + in the timeline header). One quick-fixes slice: find whether the + menu went missing in the normal view or only where the quick entry box shows, and restore it. Touches the timeline header, which tasks slice 4 also changed, so start it after tasks lands.
+
+### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
+
+- status: triaged
+- prd: app-speed
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Stop blocking every /app navigation on a session request: use the session confirmed in the last few minutes and recheck in the background. / `requireSession` (apps/web/app/lib/session.ts) awaits `get-session` on each navigation, with no timeout, so every tap waits a round trip and can hang on a weak connection. / Add a timeout of about 3 s that counts as "no answer". The server still checks every upload and sync token.
+- 2026-11-20 (backlog agent): Triage: new PRD app-speed (navigation and load speed). This one needs a design decision (how long a confirmed session is trusted, what a timeout means offline), so it is PRD work, not a quick fix. Hot file: lib/session.ts.
+
+### B-137 · change · Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk…
+
+- status: triaged
+- prd: app-speed
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk (and works offline). / The links in routes/app/layout/SectionNav.tsx (SectionNav and TabBar) have no `prefetch`; sheets already use `prefetch="render"`.
+- 2026-11-20 (backlog agent): Triage: app-speed. Small (prefetch on SectionNav and TabBar links), grouped with B-136 and B-138 because all three change the same navigation path.
+
+### B-138 · change · Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only…
+
+- status: triaged
+- prd: app-speed
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only after the loaders finish.
+- 2026-11-20 (backlog agent): Triage: app-speed. Small (useNavigation in SectionNav), same file as B-137.
+
+### B-139 · change · Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no…
+
+- status: triaged
+- prd: app-speed
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no virtualization.
+- 2026-11-20 (backlog agent): Triage: app-speed. Small CSS change on timeline rows; needs a check that scroll restore and the paging sentinel still work.
+
+### B-140 · change · Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every…
+
+- status: triaged
+- prd: app-speed
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every call, public procedures included. / A short cookie cache, or skipping the lookup for public procedures (packages/auth/src/authUser.ts, routes/rpc.ts).
+- 2026-11-20 (backlog agent): Triage: app-speed. Touches packages/auth/src/authUser.ts and routes/rpc.ts, which hosting slice 3 also changes (rate limits): run it after hosting wave 1 is in dev.
+
+### B-141 · change · Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts).
+
+- status: triaged
+- prd: hosting
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Both are in memory per serverless instance, which matters with 6-digit sign-in codes.
+- 2026-11-20 (backlog agent): Triage: already planned as hosting slice 3 (Shared rate limits: Better Auth's database storage and our limiter on a Postgres table, B-68, security review S-7). Hosting's orchestrator can mark this done with slice 3; no new slice needed.
+
+### B-142 · change · Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until…
+
+- status: triaged
+- prd: hosting
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until the native app ships, and define them once. / They are hard-coded as trusted, with credentials, in routes/rpc.ts and packages/auth/src/auth.ts.
+- 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice together with B-143 (origin and client-IP hardening before going live). Same files as slice 3 (routes/rpc.ts, packages/auth/src/auth.ts), so it follows wave 1. Hosting's orchestrator decides at its wave boundary.
+
+### B-143 · change · Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts…
+
+- status: triaged
+- prd: hosting
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side).
+- 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice with B-142. Slice 3 owns the limiter; this changes what key it gets (the host's own client-IP header, not the first x-forwarded-for entry).
+
+### B-144 · feature · Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload…
+
+- status: triaged
+- prd: app-speed
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload works offline (docs/domain/sync.md already notes the gap).
+- 2026-11-20 (backlog agent): Triage: app-speed, its largest slice (a precached shell for the web target only; update flow, CSP worker-src, how it meets PowerSync's own workers). Needs the PRD interview. Likely a new dependency question (hand-written worker or a Vite plugin).
+
+### B-145 · question · Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for…
+
+- status: triaged
+- prd: encryption
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for up to 3 days offline. / Decide for Capacitor (SQLCipher, secure storage) against the "encryption at rest" commitment.
+- 2026-11-20 (backlog agent): Triage: a decision for the encryption review (plans/security-review.md, option A for launch), not a build item yet. It only becomes work with Capacitor (SQLCipher, secure storage); on the web the browser profile is the boundary. Needs the user's answer; no PRD to start.
+
+### B-146 · question · Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for…
+
+- status: dropped
+- prd: check-migration
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for component tests; it would replace the hand-rolled CDP harness (`cdp.mjs`) and its gotchas. Related to B-107.
+- 2026-11-20 (backlog agent): Triage: already decided and planned: check-migration's last slices port the lean end-to-end set to Playwright Test and delete the CDP harness (B-129). Proposed: drop this as a duplicate of B-129.
+- 2026-11-20 (backlog agent): Dropped as a duplicate of B-129 (the user, 2026-11-20): check-migration's last slices port the lean set to Playwright Test and delete the CDP harness.
+
+### B-147 · chore · Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and…
+
+- status: triaged
+- prd: agent-tooling
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and docs/loops.md (52 KB, bullets up to 3.4 KB) by reader (loop agent, orchestrator, user), and keep the core to rules only.
+- 2026-11-20 (backlog agent): Triage: new PRD agent-tooling (what agents load and how the tooling runs). Docs only, but AGENTS.md and docs/loops.md are edited by every landing, so run it when few PRDs are landing.
+
+### B-148 · chore · Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and…
+
+- status: triaged
+- prd: agent-tooling
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and carry slice and backlog history that git already holds.
+- 2026-11-20 (backlog agent): Triage: agent-tooling. Docs only; timeline.md and medications.md first. Tasks folds into timeline.md at its landing, so trim after tasks lands.
+
+### B-149 · chore · Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop…
+
+- status: triaged
+- prd: code-layout
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop conflicting on them. / The most-edited files in 30 days: scripts/loops/check-areas (69 commits), routes.ts (46), appUrls.ts (32), errors/constants.ts (28), db/schema/index.ts (26), permissions.ts, router.ts.
+- 2026-11-20 (backlog agent): Triage: new PRD code-layout (structure refactors). Every running PRD adds to these registries (tasks and hosting both do now), so this must run alone on those files: after tasks and hosting wave 1 land, and before the next feature PRD starts. Replaces the 'additive edits' rule in AGENTS.md.
+
+### B-150 · chore · Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,…
+
+- status: triaged
+- prd: code-layout
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`, `quickEntry*`). Folders let an agent read one area, and check-areas use one rule per folder.
+- 2026-11-20 (backlog agent): Triage: code-layout. Moves about 140 files, so it conflicts with any PRD touching lib/: same window as B-149, and check-areas rules change with it (check-migration edits check-areas additively).
+
+### B-151 · chore · Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373.
+
+- status: triaged
+- prd: check-migration
+- owner:
+- commit:
+
+- 2026-11-20 (backlog agent): Triage: check-migration is moving each area check to component tests (medications.mjs is B-118), which removes most of those lines; what stays is the lean set, ported to Playwright Test (B-129). Proposed: fold into that work, re-measure after it lands, and drop if nothing large remains.
+
+### B-152 · chore · Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`…
+
+- status: triaged
+- prd: agent-tooling
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog` and read-only git; deny reads of `.env` files and of packages/data/src/db/migrations/meta/** (22 snapshots that pollute searches); deny pushes and setting `CARETOOK_ALLOW_PROTECTED`.
+- 2026-11-20 (backlog agent): Triage: agent-tooling, but small enough to be a direct change on dev if the user asks (one settings file, no app code).
+- 2026-11-20 (backlog agent): Done as a direct change in the main checkout (2026-11-20), not committed yet: a permissions block in .claude/settings.json. Allows pnpm check, pnpm prd, pnpm backlog and read-only git; denies reading .env and .env.local files and migrations/meta, git push, and any command setting CARETOOK_ALLOW_PROTECTED. .env.example and .env.test stay readable.
+
+### B-153 · chore · Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent…
+
+- status: triaged
+- prd: agent-tooling
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent shell.
+- 2026-11-20 (backlog agent): Triage: agent-tooling. Small (scripts pick Node 24 from .nvmrc themselves); could also be a direct change on dev.
+- 2026-11-20 (backlog agent): Done as a direct change in the main checkout (2026-11-20), not committed yet: use_node (scripts/loops/lib.sh) puts .nvmrc's Node and its pnpm first on PATH itself and no longer relies on nvm use taking; pnpm prd calls it for every command, and new.sh and browser.sh use it. Raw pnpm check and pnpm test in an agent shell still need Node 24 on PATH. scripts:unit passes (195 tests). Running worktrees get it at their next sync.
+
+### B-154 · chore · Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the…
+
+- status: triaged
+- prd: agent-tooling
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the history agents read.
+- 2026-11-20 (backlog agent): Triage: agent-tooling. Changes scripts/backlog (one commit per command batch, or several ids and a note in one write). Stackless.
+
+### B-155 · chore · Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first…
+
+- status: triaged
+- prd: app-speed
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first chunk.
+- 2026-11-20 (backlog agent): Triage: app-speed. A budget in the build check that keeps the editor and PowerSync out of the first chunk; it guards the gains of the other slices.
+
+### B-156 · chore · Check whether `loadSettings` in the timeline loader waits on the network before using its cache.
+
+- status: triaged
+- prd: app-speed
+- owner:
+- commit:
+
+- 2026-11-20 (backlog agent): Triage: app-speed. An investigation first (does loadSettings wait on the network before using its cache?); a fix only if it does.
