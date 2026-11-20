@@ -88,7 +88,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-118 | chore | in-progress | check-migration | prd/check-migration | Move medications.mjs to component tests |
 | B-119 | chore | triaged | check-migration |  | Move upcoming.mjs to component tests |
 | B-120 | chore | landed | check-migration | prd/check-migration | Move search.mjs to component tests |
-| B-121 | chore | triaged | check-migration |  | Move profiles.mjs to component tests |
+| B-121 | chore | in-progress | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-123 | chore | landed | check-migration | prd/check-migration | Move care-periods.mjs to component tests |
 | B-124 | chore | landed | check-migration | prd/check-migration | Move devices.mjs to component tests |
@@ -560,9 +560,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-121 · chore · Move profiles.mjs to component tests
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the profile page, its sheets by role, offline states and the print sheet's layout to component tests (oRPC through the test device's api); keep a save syncing back, demotion losing the writers' details on the next sync. Then e2e yes.
