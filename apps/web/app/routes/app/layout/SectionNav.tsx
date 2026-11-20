@@ -1,21 +1,33 @@
 // A group's sections (Timeline and Providers now; Medications and Assistant
 // later), from the `GROUP_SECTIONS` registry, rendered twice by the /app frame.
 
-import { Link } from "react-router";
+import { Link, useNavigation } from "react-router";
 import { GROUP_SECTIONS, isTabBarHidden, sectionCurrent } from "~/lib/app-shell/groupSections";
+
+/**
+ * The pathname the sections should show as current: the one being navigated
+ * to while a navigation is pending (so a tap responds at once, even when the
+ * target's loader is slow), else the current one. A cancelled or failed
+ * navigation leaves `navigation.location` unset, so it falls back by itself.
+ */
+function useTargetPathname(pathname: string): string {
+  return useNavigation().location?.pathname ?? pathname;
+}
 
 /** The header's `sections` region on wide screens: links to the group's sections. */
 export function SectionNav({ groupId, pathname }: { groupId: string; pathname: string }) {
+  const target = useTargetPathname(pathname);
   return (
     <nav aria-label="Group sections">
       <ul className="flex items-center gap-1">
         {GROUP_SECTIONS.map((section) => {
-          const current = sectionCurrent(section, pathname, groupId);
+          const current = sectionCurrent(section, target, groupId);
           const Icon = section.icon;
           return (
             <li key={section.id}>
               <Link
                 to={section.path(groupId)}
+                prefetch="render"
                 aria-current={current}
                 className={`btn btn-ghost btn-sm gap-1.5 ${current ? "btn-active" : ""}`}
               >
@@ -38,18 +50,20 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
  * (`z-40`; `Sheet`'s overlay is `z-50`), so a bottom sheet covers it.
  */
 export function TabBar({ groupId, pathname }: { groupId: string; pathname: string }) {
+  const target = useTargetPathname(pathname);
   if (isTabBarHidden(pathname, groupId)) return null;
   return (
     <>
       <div aria-hidden="true" data-tab-bar-spacer className="h-(--tab-bar-height) sm:hidden print:hidden" />
       <nav aria-label="Group sections" className="dock z-40 h-(--tab-bar-height) sm:hidden print:hidden">
         {GROUP_SECTIONS.map((section) => {
-          const current = sectionCurrent(section, pathname, groupId);
+          const current = sectionCurrent(section, target, groupId);
           const Icon = section.icon;
           return (
             <Link
               key={section.id}
               to={section.path(groupId)}
+              prefetch="render"
               aria-current={current}
               className={current ? "text-primary" : undefined}
             >
