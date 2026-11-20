@@ -826,6 +826,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for component tests; it would replace the hand-rolled CDP harness (`cdp.mjs`) and its gotchas. Related to B-107.
 - 2026-11-20 (backlog agent): Triage: already decided and planned: check-migration's last slices port the lean end-to-end set to Playwright Test and delete the CDP harness (B-129). Proposed: drop this as a duplicate of B-129.
+- 2026-11-20 (backlog agent): Dropped as a duplicate of B-129 (the user, 2026-11-20): check-migration's last slices port the lean set to Playwright Test and delete the CDP harness.
 
 ### B-147 · chore · Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and…
 
