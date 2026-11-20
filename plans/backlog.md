@@ -468,6 +468,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the directory (list, search, filters), the sheets, the provider page, the entry page's With row and suggestions to component tests on the test device; keep two-browser notes, offline add and edit then upload, and the viewer's refused writes. Then e2e yes. B-113 asks for a recheck of it too.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 14, wave 6 (after assistant slice 4) (plans/check-migration-plan.md).
 
 ### B-117 · chore · Move groups.mjs to component tests
 
