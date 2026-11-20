@@ -888,6 +888,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (backlog agent): Triage: check-migration is moving each area check to component tests (medications.mjs is B-118), which removes most of those lines; what stays is the lean set, ported to Playwright Test (B-129). Proposed: fold into that work, re-measure after it lands, and drop if nothing large remains.
+- 2026-11-20 (prd/check-migration): check-migration orchestrator: agreed, no slice of its own; re-measure the browser-check lines after slice 23 (the CDP harness deleted) and close or drop it then.
 
 ### B-152 · chore · Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`…
 
