@@ -72,7 +72,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-118 | chore | landed | check-migration | prd/check-migration | Move medications.mjs to component tests |
 | B-119 | chore | landed | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-121 | chore | landed | check-migration | prd/check-migration | Move profiles.mjs to component tests |
-| B-122 | chore | in-progress | check-migration | prd/check-migration | Move profiles-contacts.mjs to component tests |
+| B-122 | chore | ready | check-migration | prd/check-migration | Move profiles-contacts.mjs to component tests |
 | B-126 | chore | ready | check-migration | prd/check-migration | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | in-progress | check-migration | prd/check-migration | Move invites.mjs's screen steps to component tests |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
@@ -374,10 +374,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-122 · chore · Move profiles-contacts.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: d487b30
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move account Contact details and the Members page's sharing form to component tests; keep a share reaching a co-member's device. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 16, wave 6 (plans/check-migration-plan.md).
