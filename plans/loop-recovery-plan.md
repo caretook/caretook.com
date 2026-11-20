@@ -4,13 +4,13 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/loop-recovery` (slice commits) |
-| ----- | ---- | --------------- | ---------------------------------------------- |
-| 1     | 1    | merged          | 6e18d83 (d1383c0)                                  |
-| 2     | 1    | in progress     |                                                |
+| Slice | Wave | State                         | Merge into `prd/loop-recovery` (slice commits) |
+| ----- | ---- | ----------------------------- | ---------------------------------------------- |
+| 1     | 1    | merged                        | 6e18d83 (d1383c0)                              |
+| 2     | 1    | in progress                   |                                                |
 | 3     | 1    | handed off (ec3a08e, a27285a) |                                                |
-| 4     | 2    | in progress     |                                                |
-| 5     | 3    | blocked by 3, 4 |                                                |
+| 4     | 2    | in progress                   |                                                |
+| 5     | 3    | blocked by 3, 4               |                                                |
 
 **Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue loop-recovery`): start every ready slice, land each green wave without asking, clean up. Ask only real questions.
 
