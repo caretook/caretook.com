@@ -12,10 +12,10 @@
 | 4     | 2    | landed | ddf36b0 (2110676)                            |
 | 5     | 2    | landed | fd9b79f4 (174eb84)                           |
 | 6     | 2    | landed | 127670af (8c4450e)                           |
-| 7     | 3    | merged | c3e5ca6b (b3b1e9a8, 638b5689, 88c581fa)      |
-| 8     | 3    | merged | 3f342072 (5aa523ac)                          |
-| 9     | 3    | merged | aa3d0273 (b838735e)                          |
-| 10    | 4    | merged | 75f87df2 (6cad2485)                          |
+| 7     | 3    | landed | c3e5ca6b (b3b1e9a8, 638b5689, 88c581fa)      |
+| 8     | 3    | landed | 3f342072 (5aa523ac)                          |
+| 9     | 3    | landed | aa3d0273 (b838735e)                          |
+| 10    | 4    | landed | 75f87df2 (6cad2485)                          |
 
 **Start condition:** `code-layout` in `dev` (it moves `apps/web/app/lib/`, `routes.ts` and `appUrls`). Check `pnpm backlog show B-150` says landed. Every path below that names `lib/…` means its new home after code-layout: find it with `git grep` and don't recreate the old file.
 
@@ -51,6 +51,7 @@
 - Wave 3 full check passed on 293c64a7; the user chose to land wave 3 on the check alone (no `--suite`). Landing refused (dev moved): synced check-migration wave 8 (Playwright harness, test-race fixes, package.json/lockfile); one conflict in `timelineSimpleTasks` (kept our order plus dev's wait for all regions). Rerunning the full check.
 - Wave 4 started: timeline-ux-10 (stack, slot 3), opus; B-140 claimed. Told connectors-4a; they asked for an exact `ctx.path === "/token"` match (their plugin adds `/oauth2/token`): passed to the slice. Message connectors-4a before wave 4 lands.
 - Wave 3 rerun: only `scripts/loops/browser.test.mjs` failed (load 49; identical to dev's; 3/3 alone). Slice 10 handed off and merged (75f87df2), B-140 done, worktree removed; it also set `jwt({ disableSettingJwtHeader: true })` inside `plugins` (flag for connectors). Its app-shell member-share step flaked (B-179). Folded into auth.md (⚠ section), api.md, sync.md and security-review S-13. Waves 3 and 4 land together after one full check; the user chose to land on the check alone (no `--suite`). Full check passed on b8560895; landing.
+- **Waves 3 and 4 landed in dev as 8b3179ab. The PRD is done.** Told connectors-4a. Follow-ups filed: B-174 (pages lost on Back), B-175 (dead place query), B-178 (medicationList flake), B-179 (app-shell member-share flake); on staging, confirm `/sw.js` returns 200. `pnpm prd rm timeline-ux` next.
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
