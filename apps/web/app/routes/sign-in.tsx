@@ -85,7 +85,7 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
 
 const METHODS: { method: SignInMethod; label: string }[] = [
   { method: "password", label: "Password" },
-  { method: "email", label: "Email link" },
+  { method: "email", label: "Email" },
 ];
 
 export default function SignIn({ loaderData, actionData }: Route.ComponentProps) {
@@ -152,14 +152,10 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
           <input type="hidden" name="intent" value="send-email" />
           <input type="hidden" name="redirectTo" value={redirectTo} />
           {linkExpired && !result && <ErrorMessage>{authMessages.linkExpired}</ErrorMessage>}
-          <p className="text-base-content/70 text-sm">
-            We'll email you a link that signs you in, no password needed, and a code to type here if you open
-            the email on another device.
-          </p>
           <EmailField />
           {result?.error && <ErrorMessage>{result.error}</ErrorMessage>}
           <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
-            {busy ? "Sending…" : "Email me a sign-in link"}
+            {busy ? "Sending…" : "Send email"}
           </button>
         </Form>
       )}
