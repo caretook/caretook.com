@@ -657,6 +657,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (prd/hosting): Found by hosting slice 6; for now rotating means recreating staging's database (runbook). Proposed for hosting, low priority: the seed could update the seeded accounts' password on staging.
+- 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
 
 ### B-161 · bug · sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…')
 
