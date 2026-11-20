@@ -691,6 +691,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/check-migration): check-migration wave 4 suite, 2026-11-20 08:54, load 51→88; passed on the automatic retry (.loops/.browser-flakes.log). The redirect outran the assertion under load; slice 19's Playwright port may make the wait robust.
 - 2026-11-20 (prd/check-migration): Proposed for check-migration: sign-in is a lean session check that slice 20 ports to Playwright; fix the flaky redirect assertion there. -- check-migration orchestrator
+- 2026-11-20 (prd/check-migration): User approved for check-migration (2026-11-20): slice 19 fixes it while porting sign-in. -- check-migration orchestrator
 
 ### B-162 · change · In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the…
 
@@ -798,3 +799,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (prd/check-migration): Found by slice 16 (2026-11-20). Proposed for check-migration: count in node with M.evaluate, as slice 16's member-share fold does; Playwright's port (slice 21/22) can fix it too. Grep other checks for waitFor(`${...}.then(` too. -- check-migration orchestrator
+- 2026-11-20 (prd/check-migration): User approved for check-migration (2026-11-20): slice 18 fixes it. -- check-migration orchestrator
