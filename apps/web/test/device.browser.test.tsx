@@ -167,9 +167,10 @@ describe("settle", () => {
       details: { name: "Sore knee", severity: 2 },
     });
     // The race B-131 saw: the live query hasn't rerun yet (it's throttled).
-    expect(device.screen.getByText(/Sore knee/).query()).toBeNull();
+    // The timeline shows a symptom in more than one place (the row, the day summary), so count them.
+    expect(device.screen.getByText(/Sore knee/).elements()).toHaveLength(0);
     await device.settle();
-    expect(device.screen.getByText(/Sore knee/).query()).not.toBeNull();
+    expect(device.screen.getByText(/Sore knee/).elements().length).toBeGreaterThan(0);
   });
 
   test("after sync() and unsync(): every live query on the screen has caught up, not just the first", async () => {
