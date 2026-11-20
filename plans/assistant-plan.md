@@ -4,21 +4,21 @@
 
 ## Status
 
-| Slice | State                                              | Merge into `prd/assistant` (slice commits) |
-| ----- | -------------------------------------------------- | ------------------------------------------ |
-| 1     | not started                                        |                                            |
-| 2     | blocked by 1                                       |                                            |
-| 3     | not started                                        |                                            |
-| 4     | not started                                        |                                            |
-| 5     | blocked by 1                                       |                                            |
-| 6     | blocked by 5                                       |                                            |
-| 7     | blocked by 1, 2, 4, 6 and `medications-2` in `dev` |                                            |
+| Slice | State                                               | Merge into `prd/assistant` (slice commits) |
+| ----- | --------------------------------------------------- | ------------------------------------------ |
+| 1     | not started                                         |                                            |
+| 2     | blocked by 1                                        |                                            |
+| 3     | not started                                         |                                            |
+| 4     | not started                                         |                                            |
+| 5     | blocked by 1                                        |                                            |
+| 6     | blocked by 5                                        |                                            |
+| 7     | blocked by 1, 2, 4, 6 (`medications-2` is in `dev`) |                                            |
 
 **Landing:** land each wave as soon as it's green. The user said (2026-11-19) there's no real data, so it doesn't matter when the migration (slice 5) lands; it doesn't force one landing at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued.
 
 Backlog: B-12, B-49, B-58 and B-87 are `triaged`. Claim B-12 when slice 1 starts, B-49 with slice 3, B-58 with slice 4, B-87 with slice 5. Mark each `done` after its last slice merges: B-49 after 3, B-58 after 7 (missed doses), B-87 after 7 (the Now block), B-12 after 7.
 
-Fold into AGENTS.md at each landing: the actions and the parser (a new _Assistant_ section), the timeline's quick-entry box and day summaries (_Timeline screen_), visit prep and Print (_Live notes_ / _Appointments_), simple mode (the frame, the members columns and the permissions table, `simpleTiles`, the preference).
+Fold into the area docs at each landing (AGENTS.md, _Area index_; only rules and pointers into AGENTS.md itself): the actions and the parser in a new `docs/domain/assistant.md` (and its _Area index_ row), the quick-entry box and day summaries in `timeline.md`, visit prep and Print in `live-notes.md` and `appointments.md`, simple mode in `app-shell.md` (the frame) and `care-groups.md` (the members columns, the permissions table, `simpleTiles`), the preference in `sync.md`'s settings cache.
 
 ## Architectural decisions
 
@@ -43,15 +43,22 @@ Durable decisions every slice follows:
 - **Wave 1: slices 1, 3 and 4 in parallel.** 1 owns the actions, the parser, the runner and the box above the timeline's entries; 3 owns the day sections' summary line inside `TimelineEntryList`; 4 owns the entry page, the provider page, Upcoming rows' actions and `entryActionItems` (Print). 1 and 3 both touch the timeline route folder: keep 1 to the region above the entries and 3 to the day sections.
 - **Wave 2: slices 2 and 5.** 2 owns the box's suggestions; 5 owns the migration, settings and the simple view. Both touch `components/quick-entry/`: 2 adds below the field, 5 renders the box larger.
 - **Wave 3: slice 6.**
-- **Wave 4: slice 7**, only once `medications-2` has landed in `dev` (passes, `duePasses`, Given all, the shared Undo hook). Ask `medications-2`'s orchestrator to message you when it lands; sync `dev` first.
-- **B-98 and B-99** (`quick-fixes`: the + menu and no Latest vitals on phones) reshape the same header. If either has landed in `dev`, sync before starting slice 1 or 5 and follow it.
-- Merge in number order within a wave. Per AGENTS.md's _Browser check budget_, loops run `pnpm prd browser --changed` before hand-off and the orchestrator runs the suite once per UI landing. Run `pnpm datastore:reset` and `docker compose restart powersync` after slice 5, and after any sync that brings a migration.
-- Every slice ends with `pnpm check`, `pnpm build:native`, its browser checks and a hand-off (AGENTS.md, _Loop rules_).
-- Browser checks go in a new `assistant.mjs` (tagged rows, cleaned up at the end, smoke blocks for each slice's core path), plus `phase2.mjs` for day summaries and `live-notes.mjs` for Print. Each slice adds `check-areas` rules for its new folders and modules.
+- **Wave 4: slice 7.** `medications-2` (passes, `duePasses`, Given all, the shared Undo hook) is already in `dev`.
+- **B-98, B-99 and B-105** (`quick-fixes`: the + menu, no Latest vitals on phones, the care period in the sticky date header) reshape the same header. If any has landed in `dev`, sync before starting slice 1, 3 or 5 and follow it.
+- Merge in number order within a wave, with no checks between merges. Run `pnpm datastore:reset` and `docker compose restart powersync` after slice 5, and after any sync that brings a migration.
+- **Tests follow docs/loops.md, _Browser check budget_** (it overrides anything older in this plan or the PRD):
+  - **Screens get component tests** (`*.browser.test.tsx` beside the screen, on the test device: docs/domain/components.md, _Component tests_). That covers everything one device decides: the box and its cards, alternatives, Edit, Save and the status line, suggestions, day summaries, the simple view, tiles, the lock, viewers, the visit prep sheet and the Print item. The test device's local writes, `queued()` and `sync()` cover the runner (one transaction, a refused batch leaves nothing, the created ids), offline saves and another device's change arriving. **There is no new `assistant.mjs`**, and no new steps in `phase2.mjs` or `live-notes.mjs`.
+  - **Pure modules get unit tests**; server rules (`setMemberMode`, the permissions) get integration tests.
+  - **End-to-end steps only for flows across the server and sync**, in the lean checks that own them: one `app-shell` step in slice 5 (an owner turns on simple mode for caretaker@ from Members; caretaker@'s device switches without a reload). The runner's uploads go through the existing local writes, which `roundtrip` already covers; the new columns get the lean set at landing (a migration maps to it).
+  - **While building:** `pnpm test:components --changed prd/assistant`, plus `pnpm prd browser app-shell` in slice 5 only. **Before hand-off:** `pnpm check`, `pnpm build:native`, then `pnpm prd browser --changed` once (a stackless slice whose diff names a check adds one with `pnpm prd stack up`). **At landing:** the orchestrator runs `pnpm prd browser --suite` once for a wave that changes screens, plus any `e2e no` check `--changed --base dev --list` names.
+  - **`check-areas`:** each slice adds rules for its new folders and modules: `components/quick-entry/` and the simple view map to none (component tests); pure modules with sibling unit tests need none.
+- Every slice ends with its hand-off (AGENTS.md, _Loop rules_), with the ■ lines and table from `pnpm prd browser --changed`.
 
 ---
 
 ## Slice 1: Quick entry on the timeline
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/timeline.md, docs/domain/sync.md, docs/domain/medications.md, docs/domain/appointments.md, docs/domain/providers.md · Tests: unit, component
 
 **User stories:** US 1–11, 14–27, 30, 31. **Blocked by:** none. **Blocks:** 2, 5, 7.
 
@@ -63,16 +70,18 @@ The runner, carrying out a batch in one local transaction. The quick-entry box a
 
 ### Acceptance criteria
 
-- [ ] A line with a vital, a dose and a symptom saves as three entries in one transaction, offline, and they appear on the timeline and on a second device.
+- [ ] A line with a vital, a dose and a symptom saves as three entries in one transaction, offline, appears on the timeline and is queued for upload (component test: `queued()`).
 - [ ] Alternatives switch a card's kind; remove drops one card; Edit opens the right sheet or page filled in.
 - [ ] A hard-limit value or a future time on a past-only kind blocks that card's Save with its message; an unusual value warns but saves.
 - [ ] The user's units are used and an explicit unit wins.
 - [ ] Viewers get no box; the box and cards are named and announced for screen readers.
-- [ ] A table-driven parser test (every rule above, misspellings, garbage) and action Zod and preview tests; `assistant.mjs` steps for the box, including the runner through `window.caretookModules()`.
+- [ ] A table-driven parser test (every rule above, misspellings, garbage) and action Zod and preview tests; component tests for the box, the cards and the runner (a refused action leaves nothing).
 
 ---
 
 ## Slice 2: Suggestions in the box
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/timeline.md · Tests: unit, component
 
 **User stories:** US 28, 29, 33–36. **Blocked by:** 1. **Blocks:** 7.
 
@@ -86,11 +95,13 @@ Name autocomplete for medications and providers while typing (the existing sugge
 - [ ] A saved line appears in recent lines on the next visit, on this device only, and is gone after sign-out.
 - [ ] Seeded morning blood pressures produce a `bp` chip around their hour; tapping it never saves on its own.
 - [ ] Everything works offline.
-- [ ] Unit tests for `usualAtHour` (fixed days, DST) and the recent-lines store (storage that throws); `assistant.mjs` steps.
+- [ ] Unit tests for `usualAtHour` (fixed days, DST) and the recent-lines store (storage that throws); component tests for the chips and autocomplete.
 
 ---
 
 ## Slice 3: Day summaries
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/timeline.md · Tests: unit, component
 
 **User stories:** US 59–67. **Blocked by:** none. **Blocks:** none.
 
@@ -104,11 +115,13 @@ Name autocomplete for medications and providers while typing (the existing sugge
 - [ ] A new entry today updates the summary live.
 - [ ] Any kind, author or search filter hides every summary; clearing it brings them back.
 - [ ] The line expands and collapses by tap and keyboard, and is read as text.
-- [ ] Unit tests for `daySummary` (empty day, a type absent from the baseline, cancelled events, DST); `phase2.mjs` steps.
+- [ ] Unit tests for `daySummary` (empty day, a type absent from the baseline, cancelled events, DST); component tests for the line, live updates and filters hiding it (in the timeline's shared `timelineWorld`).
 
 ---
 
 ## Slice 4: Visit prep and printing notes
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/live-notes.md, docs/domain/appointments.md, docs/domain/providers.md, docs/domain/medications.md, docs/domain/care-periods.md · Tests: unit, component
 
 **User stories:** US 68–75, 76 (not missed doses), 77–83. **Blocked by:** none. **Blocks:** 7.
 
@@ -123,15 +136,17 @@ Print in the ⋯ menu of every note and event, for everyone: the title, time, pl
 ### Acceptance criteria
 
 - [ ] Prepare on a seeded appointment inserts a section covering the time since the last visit with that provider; sections with nothing are left out.
-- [ ] Running it again prepends a newer dated section; text typed by anyone is unchanged, including when a second browser types at the same time.
+- [ ] Running it again prepends a newer dated section; text typed by anyone is unchanged, including when another device types at the same time (the `prependNoteSection` unit test with two docs; a component test with `sync()`).
 - [ ] The three entry points work; from a provider with no upcoming appointment it offers to create one.
 - [ ] Offline, prep inserts and syncs on reconnect.
-- [ ] Print renders a note and an event legibly at 420 and 1280 in print media.
-- [ ] Unit tests for `visitWindow`, `visitPrepSection` and `prependNoteSection` (two docs converge); `assistant.mjs` and `live-notes.mjs` steps.
+- [ ] Print is in the ⋯ menu for everyone and the print view holds the title, time, place, With providers and text (component test); the look in print media is a by-hand check at landing.
+- [ ] Unit tests for `visitWindow`, `visitPrepSection` and `prependNoteSection` (two docs converge); component tests for the three entry points, the sheet and offline Insert.
 
 ---
 
 ## Slice 5: Simple mode basics
+
+Stack: yes · Reads: docs/domain/data-layer.md, docs/domain/sync.md, docs/domain/api.md, docs/domain/care-groups.md, docs/domain/app-shell.md, docs/domain/components.md, docs/domain/timeline.md · Tests: unit, integration, component, e2e:app-shell
 
 **User stories:** US 37–39, 46, 47, 49–53, 57, 58. **Blocked by:** 1. **Blocks:** 6.
 
@@ -145,14 +160,16 @@ The simple view of the timeline: the recipient and "Today", the quick-entry box 
 
 - [ ] The migration adds the three columns; they sync to every member's device.
 - [ ] An owner turns on simple mode for caretaker@ from Members; caretaker@'s device switches without a reload.
-- [ ] Own setting and toggle follow the precedence (toggle, own, owner default), on two devices.
+- [ ] Own setting and toggle follow the precedence (toggle, own, owner default): `resolveSimpleMode` unit tests and a component test with `sync()` for a setting from another device.
 - [ ] Only owners change an owner's row; nobody changes their own lock; the server refuses otherwise.
 - [ ] The simple view hides everything the PRD lists and still saves through the box.
-- [ ] Integration tests for `setMemberMode` and the permissions; unit tests for `resolveSimpleMode`; `assistant.mjs` and `app-shell.mjs` steps.
+- [ ] Integration tests for `setMemberMode` and the permissions; unit tests for `resolveSimpleMode`; component tests for the simple view, the toggle, the account setting and the Members switch; one `app-shell` step for the owner's switch reaching the member's device.
 
 ---
 
 ## Slice 6: Simple mode complete
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/app-shell.md, docs/domain/care-groups.md, docs/domain/timeline.md · Tests: unit, component
 
 **User stories:** US 42–45, 48, 54–56. **Blocked by:** 5. **Blocks:** 7.
 
@@ -168,13 +185,15 @@ The lock: the Locked switch on Members; a locked member has no toggle or Full ap
 - [ ] A locked member can't reach the full app or other group routes, but can reach account settings and sign out.
 - [ ] Viewers in simple mode get no inputs.
 - [ ] Remove my last entry deletes only your own entries from the last 30 minutes.
-- [ ] Unit tests for `learnedTiles` and tile labels; `assistant.mjs` steps for tiles, the lock and viewers.
+- [ ] Unit tests for `learnedTiles`, tile labels and the lock's route rule; component tests for tiles, the lock and viewers.
 
 ---
 
 ## Slice 7: Passes everywhere
 
-**User stories:** US 12, 13, 26, 32, 40, 41, and missed doses in 76. **Blocked by:** 1, 2, 4, 6, and `medications-2` landed in `dev`. **Blocks:** none.
+Stack: no · Reads: docs/domain/components.md, docs/domain/medications.md, docs/domain/timeline.md, docs/domain/live-notes.md · Tests: unit, component
+
+**User stories:** US 12, 13, 26, 32, 40, 41, and missed doses in 76. **Blocked by:** 1, 2, 4, 6 (`medications-2` is in `dev`). **Blocks:** none.
 
 ### What to build
 
@@ -186,4 +205,4 @@ With passes in `dev`: the `givePass` action and runner support through Given all
 - [ ] The due pass is offered as one tap in the box and in simple mode's Now block, with Undo.
 - [ ] Undo after any quick-entry Save removes the whole batch.
 - [ ] Visit prep shows the missed-dose count for its window.
-- [ ] Parser table rows for passes; unit tests for the range slot logic (DST, retimed pass); `assistant.mjs` steps.
+- [ ] Parser table rows for passes; unit tests for the range slot logic (DST, retimed pass); component tests for the chip, the Now block and Undo.

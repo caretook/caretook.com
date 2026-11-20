@@ -2,6 +2,16 @@
 
 > No PRD: each slice is one small fix with its own backlog item. New fixes are appended as new slices (the next number), and an orchestrator runs whichever the user asks for. Topic `quick-fixes`.
 
+## Writing and running new slices
+
+These rules apply to every new slice (39 on). They follow docs/loops.md, _Browser check budget_, which overrides the older slices' wording below ("the full suite", "`<check>.mjs` steps", "each passes in full mode"): those are history.
+
+- **Fields line** under each slice heading (AGENTS.md, _Slice fields_): `Stack: yes|no · Reads: <docs> · Tests: <unit | integration | component | e2e:<check>>`. `Stack: yes` only when the slice needs a dev server, database or an end-to-end check; component and integration tests run without one.
+- **Tests:** a screen fix gets a component test beside the screen (docs/domain/components.md, _Component tests_), never new CDP steps; a pure module gets a unit test; a service rule an integration test. An end-to-end step only for a flow across the server and sync (sign-in and the session, first sync, sign-out, two devices, offline then reconnect, uploads refused, invites and email, the CSP), in the lean check that owns it. A fix in an unmoved area (`e2e no`: providers, medications, search, …) updates that area's check only if it already asserts the changed behaviour.
+- **Acceptance criteria name the tests** ("component test: …"), not "`<check>` passes".
+- **Before hand-off:** `pnpm check`, then `pnpm prd browser --changed` once; its ■ lines and table go in the hand-off. Never the suite.
+- **At landing:** a wave that changes screens or flows runs `pnpm prd browser --suite` once, plus any `e2e no` check `pnpm prd browser --changed --base dev --list` names; any other wave runs only `pnpm prd browser --changed --base dev`. No checks between merges; never rerun a check that passed.
+
 ## Status
 
 | Slice | Item | State  | Merge into `prd/quick-fixes` (slice commits)          |
