@@ -108,7 +108,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-138 | change | triaged | app-speed |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | triaged | app-speed |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
 | B-140 | change | triaged | app-speed |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
-| B-141 | change | in-progress | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
+| B-141 | change | ready | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
 | B-142 | change | triaged | hosting |  | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
 | B-143 | change | triaged | hosting |  | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
 | B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
@@ -778,10 +778,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-141 · change · Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts).
 
-- status: in-progress
+- status: ready
 - prd: hosting
 - owner: prd/hosting
-- commit:
+- commit: 5d64d38
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Both are in memory per serverless instance, which matters with 6-digit sign-in codes.
 - 2026-11-20 (backlog agent): Triage: already planned as hosting slice 3 (Shared rate limits: Better Auth's database storage and our limiter on a Postgres table, B-68, security review S-7). Hosting's orchestrator can mark this done with slice 3; no new slice needed.
