@@ -5,7 +5,7 @@ import type { EntryRow } from "~/lib/sync/timeline";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { data } from "react-router";
-import { WHEN_PICK } from "~/lib/appUrls";
+import { startAtFrom, WHEN_PICK } from "~/lib/appUrls";
 import { KIND_META } from "~/lib/entryDisplay";
 import { localTimeZone } from "~/lib/format";
 import { isLiveEntryKind, NEW_ENTRY } from "~/lib/liveEntry";
@@ -43,7 +43,7 @@ const notFound = () => data("Not found", { status: 404 });
 /**
  * The entry, its document and pending updates, or a new draft
  * (`entryId` = `new`, `kind` from `?kind=`, `?when=pick` to ask for the
- * day first, and `?provider=` for an appointment with them). Anything not on the device, not
+ * day first, `?provider=` for an appointment with them, and `?at=` to start at that time). Anything not on the device, not
  * a note or event, or (for a draft) not allowed, is a 404.
  */
 export async function loadEntry(
@@ -54,6 +54,7 @@ export async function loadEntry(
     kind,
     when = null,
     withProvider = null,
+    at = null,
     canWrite,
   }: {
     groupId: string;
@@ -61,6 +62,8 @@ export async function loadEntry(
     kind: string | null;
     when?: string | null;
     withProvider?: string | null;
+    /** A draft's start time (`?at=<ISO>`, a past day's +); now when missing or not a time. */
+    at?: string | null;
     canWrite: boolean;
   },
 ): Promise<EntryPageData> {
@@ -82,7 +85,7 @@ export async function loadEntry(
         id: crypto.randomUUID(),
         kind,
         title: null,
-        occurredAt: new Date().toISOString(),
+        occurredAt: startAtFrom(at ? { at } : undefined) ?? new Date().toISOString(),
         timeZone: localTimeZone(),
       },
       heading: entryHeading(KIND_META[kind].label, null, true),

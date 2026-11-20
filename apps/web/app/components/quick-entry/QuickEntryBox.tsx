@@ -98,6 +98,8 @@ export function QuickEntryBox({
           // Simple mode (`lg`) has its Now block for that, right below.
           onGivePass={size === "md" ? q.givePass : undefined}
           passBusy={q.passBusy}
+          // Simple mode keeps only its dictation hint.
+          showTips={size === "md"}
         />
 
         {count > 0 && (
