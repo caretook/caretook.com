@@ -35,6 +35,5 @@ signout-wipe          5   300  yes          yes
 session-end           5   120  no           yes
 invites              72   270  no           yes
 ui                    5   120  no           yes
-groups               30   120  no           no
 profiles-contacts    20   120  no           no
 marketing            29   120  no           yes
