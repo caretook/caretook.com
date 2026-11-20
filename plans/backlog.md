@@ -56,7 +56,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
-| B-55 | feature | ready | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
+| B-55 | feature | landed | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
@@ -71,7 +71,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
 | B-118 | chore | in-progress | check-migration | prd/check-migration | Move medications.mjs to component tests |
 | B-119 | chore | ready | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
-| B-121 | chore | in-progress | check-migration | prd/check-migration | Move profiles.mjs to component tests |
+| B-121 | chore | ready | check-migration | prd/check-migration | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
@@ -186,7 +186,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-55 · feature · Todos list with assignment to group members, due dates, and completion status.
 
-- status: ready
+- status: landed
 - prd: tasks
 - owner: prd/tasks
 - commit: 5a5eadf
@@ -338,10 +338,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-121 · chore · Move profiles.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 3bb168a
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the profile page, its sheets by role, offline states and the print sheet's layout to component tests (oRPC through the test device's api); keep a save syncing back, demotion losing the writers' details on the next sync. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 10, wave 4 (plans/check-migration-plan.md).
