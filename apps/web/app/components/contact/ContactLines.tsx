@@ -1,4 +1,4 @@
-import type { MemberContactLine } from "~/lib/memberContact";
+import type { MemberContactLine } from "~/lib/profiles/memberContact";
 
 import { ACTION_ICONS, actionLinkProps } from "~/components/providers";
 

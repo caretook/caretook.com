@@ -1,11 +1,11 @@
 import type { Route } from "./+types/route";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { SettingsCard, SettingsPage } from "~/components/settings";
-import { load, toActionResult } from "~/lib/api";
-import { contactFromForm, issuesForRows } from "~/lib/contactForm";
-import { rpc } from "~/lib/rpc";
-import { sessionContext } from "~/lib/session";
+import { load, toActionResult } from "~/lib/core/api";
+import { contactFromForm, issuesForRows } from "~/lib/core/contactForm";
+import { rpc } from "~/lib/core/rpc";
+import { sessionContext } from "~/lib/auth/session";
 import { ContactForm } from "./ContactForm";
 
 // `/app/settings/contact` (profiles): your phones, a contact email and an

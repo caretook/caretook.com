@@ -1,14 +1,14 @@
 import type { Route } from "./+types/route";
 
-import type { GroupRow } from "~/lib/sync/timeline";
+import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
 import { Link, redirect } from "react-router";
 import { FirstSyncPending } from "~/components/shell";
-import { appUrls, GROUP_LIST_PARAM } from "~/lib/appUrls";
-import { rememberedGroup, resolveHomeGroup } from "~/lib/lastGroup";
-import { sessionContext } from "~/lib/session";
+import { appUrls, GROUP_LIST_PARAM } from "~/lib/app-shell/appUrls";
+import { rememberedGroup, resolveHomeGroup } from "~/lib/app-shell/lastGroup";
+import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery, waitForFirstSync } from "~/lib/sync";
-import { myGroupsQuery, readRows, toMyGroup } from "~/lib/sync/timeline";
+import { myGroupsQuery, readRows, toMyGroup } from "~/lib/timeline/timeline.sync";
 import { loadMyRequests, PendingRequests, WITHDRAW_INTENT, withdrawRequest } from "./PendingRequests";
 import { NewGroupLink } from "./NewGroupLink";
 

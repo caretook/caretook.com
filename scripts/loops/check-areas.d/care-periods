@@ -1,15 +1,14 @@
 # check-areas: care periods. The periods page and its sheets, a period's page,
 # the group menu's period, the suggestion and the timeline's markers are
 # component tests (periods/, period/, layout/groupMenuPeriod,
-# entry/entryPeriodSuggestion, timelineCarePeriods); lib/periodMarkers.ts has
+# entry/entryPeriodSuggestion, timelineCarePeriods); lib/care-periods/periodMarkers.ts has
 # unit tests. What the device module writes uploads: roundtrip's sync matrix
 # has a care_period row. The period's notes document is the live-notes pattern.
 apps/web/app/routes/app/groups/periods/* -
 apps/web/app/routes/app/groups/period/*  -
 apps/web/app/routes/app/groups/period/useCarePeriodNotes.ts live-notes
-apps/web/app/lib/sync/carePeriods.ts     roundtrip
-apps/web/app/lib/sync/periodSuggestions.ts -
-apps/web/app/lib/sync/currentPeriod.ts   -
+apps/web/app/lib/care-periods/*.sync.ts  -
+apps/web/app/lib/care-periods/carePeriods.sync.ts roundtrip
 packages/data/src/db/schema/care-periods/carePeriod*.ts roundtrip
 # Validated by seeds/carePeriods.test.ts; no screen check reads them.
 packages/data/src/db/seeds/carePeriods.ts -

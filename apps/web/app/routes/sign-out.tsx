@@ -1,11 +1,11 @@
 import type { Route } from "./+types/sign-out";
 
 import { redirect } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { authClient } from "~/lib/auth-client";
-import { formString } from "~/lib/form";
-import { safeRedirect } from "~/lib/redirect";
-import { wipeDevice } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { authClient } from "~/lib/auth/auth-client";
+import { formString } from "~/lib/core/form";
+import { safeRedirect } from "~/lib/core/redirect";
+import { wipeDevice } from "~/lib/auth/session";
 
 // POST-only (a GET link could be triggered by any page). Shared by web + native.
 // An optional `redirectTo` (a same-site path) is where to go next, e.g. back to

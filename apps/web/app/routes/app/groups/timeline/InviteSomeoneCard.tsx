@@ -1,7 +1,7 @@
 import { UserPlus } from "lucide-react";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
 
 // The prompt on a new group's timeline: while its owners and admins are the

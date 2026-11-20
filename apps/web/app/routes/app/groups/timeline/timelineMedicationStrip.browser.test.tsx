@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, medicationPass } from "../../../../../test/fixtures";
-import { clearUndo } from "~/lib/passUndo";
+import { clearUndo } from "~/lib/medications/passUndo";
 import { clockAt, clockMoment, DOSES_SQL, fixClock } from "../medications/medicationWorld";
 import * as newDose from "./new-dose/route";
 import * as timeline from "./route";

@@ -1,10 +1,10 @@
-import type { SettingsItem } from "~/lib/settingsNav";
+import type { SettingsItem } from "~/lib/app-shell/settingsNav";
 
 import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { BackLink } from "~/components/ui";
-import { isSettingsList, SETTINGS_WIDE_QUERY, settingsCurrent } from "~/lib/settingsNav";
+import { isSettingsList, SETTINGS_WIDE_QUERY, settingsCurrent } from "~/lib/app-shell/settingsNav";
 
 /**
  * A settings area: its list of subpages and the open subpage (the `Outlet`).

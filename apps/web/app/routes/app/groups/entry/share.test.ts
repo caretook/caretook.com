@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { appUrls } from "../../../../lib/appUrls";
+import { appUrls } from "../../../../lib/app-shell/appUrls";
 import { shareLink, shareUrl } from "./share";
 
 const data = { title: "Cardiology visit", url: `https://caretook.com${appUrls.entry("g", "e")}` };

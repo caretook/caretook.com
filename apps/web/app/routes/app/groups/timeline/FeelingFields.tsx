@@ -5,7 +5,7 @@ import { Angry, Annoyed, Frown, Laugh, Meh, Smile } from "lucide-react";
 import { useId } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
 import { Field } from "~/components/ui";
-import { FEELING_SYMPTOM_NAME } from "~/lib/simpleTiles";
+import { FEELING_SYMPTOM_NAME } from "~/lib/assistant/simpleTiles";
 
 /** The scale's words at each end and the middle, read with the number. */
 export const feelingWords = (n: number) =>

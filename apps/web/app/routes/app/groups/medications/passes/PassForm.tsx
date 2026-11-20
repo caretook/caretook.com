@@ -1,5 +1,5 @@
-import type { ActionResult, FieldIssue } from "~/lib/api";
-import type { LocalPass } from "~/lib/sync/medicationPasses";
+import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 
 import { MEDICATION_PASS_LIMITS } from "@caretook/data/schema";
 import { useEffect, useRef } from "react";

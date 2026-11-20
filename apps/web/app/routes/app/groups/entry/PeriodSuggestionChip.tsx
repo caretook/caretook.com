@@ -1,8 +1,8 @@
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { periodTypeMeta, suggestionText } from "~/lib/periodDisplay";
-import { PERIOD_SHEET_STATE } from "~/lib/periodSheets";
-import { usePeriodSuggestion } from "~/lib/sync/periodSuggestions";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { periodTypeMeta, suggestionText } from "~/lib/care-periods/periodDisplay";
+import { PERIOD_SHEET_STATE } from "~/lib/care-periods/periodSheets";
+import { usePeriodSuggestion } from "~/lib/care-periods/periodSuggestions.sync";
 
 /**
  * For writers on an event whose title says the recipient moved ("Admitted

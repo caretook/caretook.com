@@ -5,9 +5,9 @@ import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
-import { clearUndo } from "~/lib/passUndo";
-import { forgetRecentLines, recentLines, recordLine } from "~/lib/recentLines";
-import { addDays, dayInZone, timeInZone, zonedInstant } from "~/lib/zonedDay";
+import { clearUndo } from "~/lib/medications/passUndo";
+import { forgetRecentLines, recentLines, recordLine } from "~/lib/assistant/recentLines";
+import { addDays, dayInZone, timeInZone, zonedInstant } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
 import { rowWith, TIMELINE_URL, waitUntil } from "./timelineWorld";
 

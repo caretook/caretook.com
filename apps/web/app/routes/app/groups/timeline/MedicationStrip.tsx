@@ -1,11 +1,11 @@
-import type { StripState } from "~/lib/medicationStrip";
+import type { StripState } from "~/lib/medications/medicationStrip";
 
 import { CheckCheck, Pill } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { PassUndoStatus, usePassLog } from "~/components/medications";
-import { appUrls } from "~/lib/appUrls";
-import { givenAllLabel, scheduleZoneNote } from "~/lib/medicationDisplay";
-import { medicationStripText } from "~/lib/medicationStrip";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { givenAllLabel, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
+import { medicationStripText } from "~/lib/medications/medicationStrip";
 import { STRIP_CAP, STRIP_CLASS, STRIP_ICON } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 import { useMedicationStrip } from "./useMedicationStrip";

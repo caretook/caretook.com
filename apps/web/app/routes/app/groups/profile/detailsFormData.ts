@@ -1,8 +1,8 @@
 import type { ContactPhone, InsurancePlan, InsuranceRank } from "@caretook/data/schema";
-import type { ActionResult, FieldIssue } from "~/lib/api";
+import type { ActionResult, FieldIssue } from "~/lib/core/api";
 
 import { careRecipientDetailsUpdateZSchema, INSURANCE_RANKS } from "@caretook/data/schema";
-import { issuesForRows, phonesFromForm } from "../../../../lib/contactForm";
+import { issuesForRows, phonesFromForm } from "../../../../lib/core/contactForm";
 
 // The Contact and Insurance sheets' forms (`profile/contact`,
 // `profile/insurance`): what they post, turned into a valid change for

@@ -1,4 +1,4 @@
-import { BUILD_APP_ENV } from "~/lib/noindex";
+import { BUILD_APP_ENV } from "~/lib/marketing/noindex";
 
 import { resolveSiteUrl } from "../site/meta";
 import { robotsTxt } from "../site/seo";

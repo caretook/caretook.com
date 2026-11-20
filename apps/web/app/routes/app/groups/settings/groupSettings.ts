@@ -1,5 +1,5 @@
 import type { AuthUser } from "@caretook/data/permissions";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { hasPermission } from "@caretook/data/permissions";
 import type { SimpleTile, SimpleTiles } from "@caretook/data/schema";
@@ -9,7 +9,7 @@ import {
   careRecipientProfileZSchema,
   SIMPLE_TILE_COUNT,
 } from "@caretook/data/schema";
-import { tileFromKey, tileKey } from "../../../../lib/simpleTiles";
+import { tileFromKey, tileKey } from "../../../../lib/assistant/simpleTiles";
 
 // The pure parts of group settings (`./route.tsx`): who may
 // edit what, and turning a submitted form into a valid change or field errors.

@@ -1,6 +1,6 @@
 // When an entry may be dated, and calendar days in an entry's own zone.
 // Client-safe and pure: the content schema, the service, the device's writes
-// and the web's time rules (`lib/upcoming`) all use it.
+// and the web's time rules (`lib/appointments/upcoming`) all use it.
 
 /**
  * The kinds that may be dated in the future: a future event is an

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pastEventsWindow, upcomingWindow } from "../../../../lib/sync/timeline";
+import { pastEventsWindow, upcomingWindow } from "../../../../lib/timeline/timeline.sync";
 import { pastQueries, upcomingQueries, windowStart } from "./upcomingQueries";
 
 const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";

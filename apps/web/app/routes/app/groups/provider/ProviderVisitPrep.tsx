@@ -1,16 +1,16 @@
-import type { EntryRow } from "~/lib/sync/timeline";
+import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
 import { ClipboardList } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { ConfirmDialog } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import { useLiveQuery } from "~/lib/sync";
-import { useNow } from "~/lib/sync/editors";
-import { providerEventsQuery, toVisitEvents } from "~/lib/sync/visitPrep";
-import { nextUp } from "~/lib/upcoming";
-import { upcomingTitle, upcomingWhen } from "~/lib/upcomingLabels";
+import { useNow } from "~/lib/live-notes/editors.sync";
+import { providerEventsQuery, toVisitEvents } from "~/lib/appointments/visitPrep.sync";
+import { nextUp } from "~/lib/appointments/upcoming";
+import { upcomingTitle, upcomingWhen } from "~/lib/appointments/upcomingLabels";
 
 const NO_ROWS: (EntryRow & { link_provider_id: string })[] = [];
 const TICK_MS = 60_000;

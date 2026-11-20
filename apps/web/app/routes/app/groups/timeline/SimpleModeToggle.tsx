@@ -1,10 +1,10 @@
-import type { SimpleModeState } from "~/lib/useSimpleMode";
+import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 
 import { LayoutGrid, Type } from "lucide-react";
 
 /**
  * The timeline's switch between simple mode and the full timeline, on this
- * device (`lib/simpleModeToggle.ts`). Nothing while locked in simple mode.
+ * device (`lib/assistant/simpleModeToggle.ts`). Nothing while locked in simple mode.
  */
 export function SimpleModeToggle({ mode, large }: { mode: SimpleModeState; large?: boolean }) {
   if (!mode.canToggle) return null;

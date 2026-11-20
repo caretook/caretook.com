@@ -1,11 +1,11 @@
-import type { LocalTask } from "~/lib/sync/tasks";
+import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
 import { canCompleteTask, taskState } from "@caretook/data/schema";
 import { Link } from "react-router";
 import { TaskTick, TaskUndoStatus, useTaskTick } from "~/components/tasks";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { dueText } from "~/lib/taskDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { dueText } from "~/lib/tasks/taskDisplay";
 import { useSimpleTasks } from "./useSimpleTasks";
 
 /**

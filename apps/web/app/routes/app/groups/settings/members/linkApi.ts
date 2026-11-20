@@ -1,8 +1,8 @@
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 import type { JoinRequestRow, LinkRow } from "./linkRules";
 
-import { formString } from "~/lib/form";
-import { rpc } from "~/lib/rpc";
+import { formString } from "~/lib/core/form";
+import { rpc } from "~/lib/core/rpc";
 import { failedSave } from "../api";
 import { inviteRefusal } from "./invites";
 import { DEFAULT_INVITE_OPTIONS, linkRoles, parseLinkForm, requestRefusal } from "./linkRules";

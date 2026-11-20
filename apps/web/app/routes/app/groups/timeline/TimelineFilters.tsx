@@ -1,15 +1,15 @@
 import type { TimelineEntryKind, TimelineView, VitalType } from "@caretook/data/schema";
-import type { PeriodChoice } from "~/lib/periodSearch";
+import type { PeriodChoice } from "~/lib/care-periods/periodSearch";
 
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { CalendarRange, ChevronDown, LayoutList, List, Search, X } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ChipGroup, Field, IconButton, Menu, UserAvatar } from "~/components/ui";
-import { KIND_META } from "~/lib/entryDisplay";
-import { useGroup } from "~/lib/group";
-import { duringChipName, duringText } from "~/lib/periodSearch";
-import { recordSearch } from "~/lib/recentSearches";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { useGroup } from "~/lib/app-shell/group";
+import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
+import { recordSearch } from "~/lib/search/recentSearches";
 import {
   clearAuthor,
   clearKind,
@@ -19,7 +19,7 @@ import {
   setKind,
   setPeriod,
   setVital,
-} from "~/lib/timelineFilters";
+} from "~/lib/timeline/timelineFilters";
 import { useSearchField } from "./useSearchField";
 
 const FILTERS = [
@@ -34,7 +34,7 @@ const FILTERS = [
 /**
  * The filter row: the search magnifier, then the filter chips, links that
  * set `?kind=`, so the filter survives reloads and Back. They change only the
- * kind (see `lib/timelineFilters.ts`). With an author filter on (`author`:
+ * kind (see `lib/timeline/timelineFilters.ts`). With an author filter on (`author`:
  * that person's name and picture), a chip names them and clears it, keeping
  * the kind; with a search on (`q`), a last "Matching “…”" chip clears only
  * the search (and its period). While searching, "Within a period" narrows

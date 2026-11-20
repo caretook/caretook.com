@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { useGroup } from "~/lib/group";
-import { useDueTasks } from "~/lib/sync/tasks";
-import { taskStrip } from "~/lib/taskStrip";
+import { useGroup } from "~/lib/app-shell/group";
+import { useDueTasks } from "~/lib/tasks/tasks.sync";
+import { taskStrip } from "~/lib/tasks/taskStrip";
 
 /**
  * The task strip's data: the task it names (`taskStrip` over the group's

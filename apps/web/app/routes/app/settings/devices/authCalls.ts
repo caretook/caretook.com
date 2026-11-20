@@ -1,6 +1,6 @@
 import { redirect } from "react-router";
-import { authClient } from "~/lib/auth-client";
-import { signInUrl } from "~/lib/redirect";
+import { authClient } from "~/lib/auth/auth-client";
+import { signInUrl } from "~/lib/core/redirect";
 
 // Better Auth's session calls for the Devices page, as one shape: the data,
 // "offline" when the request never reached the server, or a redirect to

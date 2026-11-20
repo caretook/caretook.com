@@ -1,10 +1,10 @@
-import type { LocalProvider } from "~/lib/sync/providers";
+import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useCallback, useRef } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { openedOverProviders } from "~/lib/providerSheetLink";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { openedOverProviders } from "~/lib/providers/providerSheetLink";
 
 // Sheets over the directory are child routes (`providers/new`,
 // `providers/:providerId/edit`): the list stays mounted underneath, with its

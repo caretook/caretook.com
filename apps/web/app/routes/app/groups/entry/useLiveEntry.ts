@@ -1,22 +1,22 @@
 import type * as Y from "yjs";
 import type { TimelineEntryKind } from "@caretook/data/schema";
-import type { ActionResult } from "~/lib/api";
-import type { Schedule } from "~/lib/entrySchedule";
-import type { MaterializeInput } from "~/lib/sync/liveEntry";
-import type { EntryRow } from "~/lib/sync/timeline";
+import type { ActionResult } from "~/lib/core/api";
+import type { Schedule } from "~/lib/appointments/entrySchedule";
+import type { MaterializeInput } from "~/lib/live-notes/liveEntry.sync";
+import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { EntryPageData } from "./loadEntry";
 
 import { canHaveNoteDocument, noteText } from "@caretook/data/schema";
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { isLiveEntryKind, savedTitle, shouldMaterialize } from "~/lib/liveEntry";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { isLiveEntryKind, savedTitle, shouldMaterialize } from "~/lib/live-notes/liveEntry";
 import { getSync, useLiveQuery } from "~/lib/sync";
-import { cancelEvent, uncancelEvent } from "~/lib/sync/appointments";
-import { materializeLiveEntry } from "~/lib/sync/liveEntry";
-import { linkProvider } from "~/lib/sync/providers";
-import { removeEntry, toTimelineEntry, updateEntry } from "~/lib/sync/timeline";
+import { cancelEvent, uncancelEvent } from "~/lib/appointments/appointments.sync";
+import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
+import { linkProvider } from "~/lib/providers/providers.sync";
+import { removeEntry, toTimelineEntry, updateEntry } from "~/lib/timeline/timeline.sync";
 import { entrySql } from "./loadEntry";
 
 export type LiveEntry = {
@@ -67,7 +67,7 @@ export type LiveEntry = {
 
 /**
  * A live entry's state and writes: the stored entry (live), or a draft that
- * nothing is written for until its first real change (see lib/liveEntry.ts).
+ * nothing is written for until its first real change (see lib/live-notes/liveEntry.ts).
  * Then the entry and its document are saved together and the URL is
  * replaced with `/entries/:id`; the id never changes, so the page and its
  * editor stay mounted. Returns data and callbacks only.

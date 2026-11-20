@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 
 import { useState } from "react";
-import { userInitials } from "~/lib/initials";
+import { userInitials } from "~/lib/core/initials";
 
 const SIZE = {
   /** 20px: inside a chip. */

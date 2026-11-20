@@ -1,5 +1,5 @@
 import { ChipGroup } from "~/components/ui";
-import { useEventTitleSuggestions } from "~/lib/sync/titleSuggestions";
+import { useEventTitleSuggestions } from "~/lib/live-notes/titleSuggestions.sync";
 
 /**
  * One-tap names for an unnamed event: the group's recent event titles.

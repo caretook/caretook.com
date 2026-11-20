@@ -5,7 +5,7 @@ import { LogOut, Monitor, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ConfirmDialog } from "~/components/ui";
-import { formatAgo } from "~/lib/format";
+import { formatAgo } from "~/lib/core/format";
 
 const MOBILE = /\b(iPhone|iPad|Android)\b/;
 

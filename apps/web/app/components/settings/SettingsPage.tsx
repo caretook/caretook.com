@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { WifiOff } from "lucide-react";
 import { useEffect, useId } from "react";

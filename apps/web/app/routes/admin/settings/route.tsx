@@ -3,7 +3,7 @@ import type { AdminActionResult } from "../adminForms";
 
 import { APP_SETTING_KEYS, APP_SETTINGS, isAppSettingKey } from "@caretook/data/schema";
 import { requireStaff } from "~/.server/admin";
-import { formString } from "~/lib/form";
+import { formString } from "~/lib/core/form";
 import { adminFailure } from "../adminForms";
 import { SettingCard } from "./SettingCard";
 import { formIssuePath, settingFromForm } from "./settingForms";

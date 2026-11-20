@@ -1,22 +1,22 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
-import type { MedicationRow } from "~/lib/sync/medications";
+import type { ActionResult } from "~/lib/core/api";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
 
 import { Clock, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { AllergiesRegion } from "~/components/medications";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { medicationList, parseMedicationFilters } from "~/lib/medicationList";
-import { MEDICATION_SHEET_STATE, onlyMedicationSheetChanged } from "~/lib/medicationSheets";
-import { sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { medicationList, parseMedicationFilters } from "~/lib/medications/medicationList";
+import { MEDICATION_SHEET_STATE, onlyMedicationSheetChanged } from "~/lib/medications/medicationSheets";
+import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
-import { loadAllergies, useAllergies } from "~/lib/sync/allergies";
-import { loadDueDoses, useDueDoses } from "~/lib/sync/dueDoses";
-import { logDose, medicationsQuery, toMedications } from "~/lib/sync/medications";
-import { readRows } from "~/lib/sync/timeline";
+import { loadAllergies, useAllergies } from "~/lib/medications/allergies.sync";
+import { loadDueDoses, useDueDoses } from "~/lib/medications/dueDoses.sync";
+import { logDose, medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { MedicationSearch, StatusFilter } from "./MedicationFilters";
 import { MedicationList } from "./MedicationList";
 import { PrintMenu } from "./PrintMenu";
@@ -27,7 +27,7 @@ import { TodaySection } from "./TodaySection";
 // device's local copy (live, so it works offline and follows other members'
 // changes), with Today above it (what's due, logged in a tap). Search
 // (`?q=`) and the status (`?status=`) live in the URL; the list is filtered
-// and ordered on the device (`lib/medicationList.ts`).
+// and ordered on the device (`lib/medications/medicationList.ts`).
 
 export const meta = () => [{ title: "Medications · Caretook" }];
 

@@ -1,11 +1,11 @@
-import type { ActionResult, FieldIssue } from "~/lib/api";
-import type { LocalAllergy } from "~/lib/sync/allergies";
+import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { LocalAllergy } from "~/lib/medications/allergies.sync";
 
 import { ALLERGY_LIMITS, ALLERGY_SEVERITIES } from "@caretook/data/schema";
 import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
 import { ChoiceGroup, Field } from "~/components/ui";
-import { SEVERITY_LABELS } from "~/lib/allergies";
+import { SEVERITY_LABELS } from "~/lib/medications/allergies";
 import { ALLERGY_FIELD } from "./allergyActions";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;

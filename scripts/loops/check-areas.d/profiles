@@ -6,9 +6,8 @@
 # stream's own rule: a member demoted to viewer loses the writers-only details
 # row. The rows reaching a second device are roundtrip's sync matrix (6b).
 apps/web/app/routes/app/groups/profile/* -
-apps/web/app/lib/sync/profile.ts         -
-apps/web/app/lib/sync/vitalAverages.ts   -
-apps/web/app/lib/sync/recipientDetails.ts app-shell
+apps/web/app/lib/profiles/*.sync.ts      -
+apps/web/app/lib/profiles/recipientDetails.sync.ts app-shell
 packages/data/src/db/schema/profiles/careRecipientDetails.ts roundtrip app-shell
 packages/data/src/db/schema/profiles/careRecipient.ts roundtrip
 packages/data/src/db/schema/profiles/profileVisibility.ts app-shell

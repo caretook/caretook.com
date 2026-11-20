@@ -22,4 +22,6 @@ packages/data/src/db/schema/care-groups/careGroupMember.ts profiles-contacts app
 packages/data/src/db/seeds/accessCodes.ts invites
 packages/data/src/db/seeds/invites.ts    invites app-shell
 # Members on the device: the Members page, invites and contact sharing.
-apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts
+apps/web/app/lib/care-groups/*.sync.ts   app-shell invites profiles-contacts
+# Members' names on the device (Today's "who logged it"): no check of its own.
+apps/web/app/lib/care-groups/memberNames.sync.ts -

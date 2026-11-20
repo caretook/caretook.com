@@ -6,7 +6,7 @@ import { page } from "vitest/browser";
 import * as taskRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, task, TEST_GROUP } from "../../../../../test/fixtures";
-import { removeEntry } from "~/lib/sync/timeline";
+import { removeEntry } from "~/lib/timeline/timeline.sync";
 
 // The task page's link rows (tasks slice 3): the provider with its call and
 // map actions, the appointment with its time (struck through when

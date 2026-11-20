@@ -1,21 +1,21 @@
 import type { Route } from "./+types/route";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { VITALS } from "@caretook/data/schema";
 import { redirect, useLocation } from "react-router";
-import { startAtFrom } from "~/lib/appUrls";
-import { formString } from "~/lib/form";
-import { entryDraftFrom } from "~/lib/quickEntryDraft";
-import { getGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
-import { createEntry } from "~/lib/sync/timeline";
+import { startAtFrom } from "~/lib/app-shell/appUrls";
+import { formString } from "~/lib/core/form";
+import { entryDraftFrom } from "~/lib/assistant/quickEntryDraft";
+import { getGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
+import { createEntry } from "~/lib/timeline/timeline.sync";
 import { entryContentFromForm, parseUnits } from "../entryFormData";
 import { EntryForm } from "../EntryForm";
 import { Sheet } from "~/components/ui";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { newSheetGuard } from "../sheetGuard";
 import { useRecipientWords } from "../useSimpleTiles";
-import { feelLabel } from "~/lib/simpleTiles";
+import { feelLabel } from "~/lib/assistant/simpleTiles";
 
 // Shared by web + native. `timeline/new/symptom` and `timeline/new/vital`
 // (`?type=heartRate` starts with that reading): the add sheet, over the

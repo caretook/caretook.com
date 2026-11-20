@@ -1,22 +1,22 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { LocalTask, TaskRow } from "~/lib/sync/tasks";
-import type { MemberRow } from "~/lib/sync/timeline";
+import type { LocalTask, TaskRow } from "~/lib/tasks/tasks.sync";
+import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { Plus } from "lucide-react";
 import { useCallback } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { TaskUndoStatus, useTaskTick } from "~/components/tasks";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
-import { tasksQuery, toTasks } from "~/lib/sync/tasks";
-import { membersQuery, readRows } from "~/lib/sync/timeline";
-import { defaultWho, parseWho } from "~/lib/taskList";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
+import { tasksQuery, toTasks } from "~/lib/tasks/tasks.sync";
+import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
+import { defaultWho, parseWho } from "~/lib/tasks/taskList";
 import { DoneTasks } from "./DoneTasks";
 import { TaskChips } from "./TaskChips";
 import { TaskSections } from "./TaskSections";
-import { listSearch, onlyTaskSheetChanged, TASK_SHEET_STATE } from "~/lib/taskSheets";
+import { listSearch, onlyTaskSheetChanged, TASK_SHEET_STATE } from "~/lib/tasks/taskSheets";
 import { DONE_PAGE, useTaskList } from "./useTaskList";
 
 // Shared by web + native. The group's tasks, read from the device's local

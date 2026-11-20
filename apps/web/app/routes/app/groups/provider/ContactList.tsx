@@ -1,8 +1,8 @@
-import type { ContactAction } from "~/lib/contactActions";
-import type { LocalProvider } from "~/lib/sync/providers";
+import type { ContactAction } from "~/lib/providers/contactActions";
+import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { ACTION_ICONS, actionLinkProps } from "~/components/providers";
-import { allActions, callAction } from "~/lib/contactActions";
+import { allActions, callAction } from "~/lib/providers/contactActions";
 
 const CAPTIONS: Record<Exclude<ContactAction["kind"], "call">, string> = {
   text: "Text",

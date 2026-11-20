@@ -1,19 +1,19 @@
 import type { AssigneeMember } from "./assigneeOptions";
 import type { SyncDb } from "~/lib/sync";
-import type { MedicationRow } from "~/lib/sync/medications";
-import type { ProviderRow } from "~/lib/sync/providers";
-import type { EntryRow, MemberRow } from "~/lib/sync/timeline";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
+import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
-import { medicationsQuery, toMedications } from "~/lib/sync/medications";
-import { providersQuery, toProviders } from "~/lib/sync/providers";
-import { taskEventChoicesQuery } from "~/lib/sync/tasks";
-import { membersQuery, readRows, toTimelineEntries } from "~/lib/sync/timeline";
-import { listSearch, openedFromApp } from "~/lib/taskSheets";
+import { medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
+import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
+import { taskEventChoicesQuery } from "~/lib/tasks/tasks.sync";
+import { membersQuery, readRows, toTimelineEntries } from "~/lib/timeline/timeline.sync";
+import { listSearch, openedFromApp } from "~/lib/tasks/taskSheets";
 import { RECENT_EVENT_DAYS } from "./taskLinks";
 
 // Sheets over the task list are child routes (`tasks/new`,

@@ -1,10 +1,10 @@
-import type { Schedule } from "~/lib/entrySchedule";
+import type { Schedule } from "~/lib/appointments/entrySchedule";
 
 import { CalendarClock } from "lucide-react";
 import { useRef, useState } from "react";
 import { Popover } from "~/components/ui";
 import { ScheduleFields } from "~/components/schedule";
-import { endError, scheduleToSave } from "~/lib/entrySchedule";
+import { endError, scheduleToSave } from "~/lib/appointments/entrySchedule";
 import { EntryTime } from "./EntryHeader";
 
 /**

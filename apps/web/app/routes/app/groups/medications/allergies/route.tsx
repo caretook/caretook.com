@@ -1,14 +1,14 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
-import type { LocalAllergy } from "~/lib/sync/allergies";
+import type { ActionResult } from "~/lib/core/api";
+import type { LocalAllergy } from "~/lib/medications/allergies.sync";
 
 import { useCallback, useState } from "react";
 import { redirect } from "react-router";
 import { Sheet } from "~/components/ui";
-import { getGroup, useGroup } from "~/lib/group";
-import { allergiesSheetGuard } from "~/lib/medicationSheets";
-import { sessionContext } from "~/lib/session";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { allergiesSheetGuard } from "~/lib/medications/medicationSheets";
+import { sessionContext } from "~/lib/auth/session";
 import {
   addAllergy,
   loadAllergies,
@@ -16,7 +16,7 @@ import {
   setNoKnownAllergies,
   updateAllergy,
   useAllergies,
-} from "~/lib/sync/allergies";
+} from "~/lib/medications/allergies.sync";
 import { useCloseMedicationSheet } from "../medicationSheet";
 import { allergyActionFromForm } from "./allergyActions";
 import { AllergyForm } from "./AllergyForm";
@@ -26,7 +26,7 @@ import { AllergyList } from "./AllergyList";
 // in a sheet over the list (opened from the list or a medication's page, and
 // closing back there). Writers add, edit and remove allergies, and record "No
 // known allergies" while there are none; adding one clears it. Local writes
-// (lib/sync/allergies.ts), so it works offline. A viewer lands on the list.
+// (lib/medications/allergies.sync.ts), so it works offline. A viewer lands on the list.
 
 export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);

@@ -1,13 +1,13 @@
-import type { LocalTask } from "~/lib/sync/tasks";
-import type { UpcomingTask } from "~/lib/upcomingTasks";
+import type { LocalTask } from "~/lib/tasks/tasks.sync";
+import type { UpcomingTask } from "~/lib/tasks/upcomingTasks";
 
 import { canCompleteTask } from "@caretook/data/schema";
 import { ListTodo, UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { TaskTick, useTaskTick } from "~/components/tasks";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { assigneeLabel, dueText } from "~/lib/taskDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { assigneeLabel, dueText } from "~/lib/tasks/taskDisplay";
 
 /**
  * One open dated task in Upcoming: its tick (for whoever may complete it:

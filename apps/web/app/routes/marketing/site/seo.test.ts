@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isNoindex, robotsMeta, ROBOTS_NOINDEX } from "../../../lib/noindex";
+import { isNoindex, robotsMeta, ROBOTS_NOINDEX } from "../../../lib/marketing/noindex";
 import { MARKETING_PAGES, PRERENDER_PATHS } from "./pages";
 import { isDisallowed, robotsTxt, ROBOTS_DISALLOW, sitemapPaths, sitemapXml } from "./seo";
 

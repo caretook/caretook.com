@@ -1,12 +1,12 @@
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
-import { appUrls } from "~/lib/appUrls";
-import { quickActions } from "~/lib/contactActions";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { quickActions } from "~/lib/providers/contactActions";
 import { useLiveQuery } from "~/lib/sync";
-import { providerQuery, toProvider } from "~/lib/sync/providers";
+import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 
 const NO_ROWS: ProviderRow[] = [];
 

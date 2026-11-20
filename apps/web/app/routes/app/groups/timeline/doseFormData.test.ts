@@ -1,4 +1,4 @@
-import type { DoseSlot } from "../../../../lib/dueDoses";
+import type { DoseSlot } from "../../../../lib/medications/dueDoses";
 
 import { describe, expect, it } from "vitest";
 import {
