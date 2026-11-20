@@ -771,6 +771,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Both are in memory per serverless instance, which matters with 6-digit sign-in codes.
+- 2026-11-20 (backlog agent): Triage: already planned as hosting slice 3 (Shared rate limits: Better Auth's database storage and our limiter on a Postgres table, B-68, security review S-7). Hosting's orchestrator can mark this done with slice 3; no new slice needed.
 
 ### B-142 · change · Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until…
 
