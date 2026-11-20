@@ -97,7 +97,7 @@ const canSignIn = async (email: string) => {
 export type CreateSignInCode = (email: string) => Promise<string>;
 
 /**
- * "Email me a sign-in link" (B-96): one email with the magic link and a
+ * "Send email" (B-96): one email with the magic link and a
  * 6-digit code. Better Auth's magic-link plugin calls this for any address
  * (it would create the account on first use; ours has `disableSignUp`). Only
  * an existing, enabled account gets a code and an email; the check runs after the

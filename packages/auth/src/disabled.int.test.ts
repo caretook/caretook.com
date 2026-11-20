@@ -97,7 +97,7 @@ const answer = async (res: Response) => ({ status: res.status, body: (await res.
 
 const unknownEmail = () => `nobody-${randomUUID().slice(0, 8)}@example.com`;
 
-/** "Email me a sign-in link": one email with the link and a code (B-96). */
+/** "Send email": one email with the link and a code (B-96). */
 const sendSignInEmail = (email: string) =>
   api().signInMagicLink({ body: { email }, headers: new Headers(), asResponse: true });
 
