@@ -897,6 +897,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent shell.
 - 2026-11-20 (backlog agent): Triage: agent-tooling. Small (scripts pick Node 24 from .nvmrc themselves); could also be a direct change on dev.
+- 2026-11-20 (backlog agent): Done as a direct change in the main checkout (2026-11-20), not committed yet: use_node (scripts/loops/lib.sh) puts .nvmrc's Node and its pnpm first on PATH itself and no longer relies on nvm use taking; pnpm prd calls it for every command, and new.sh and browser.sh use it. Raw pnpm check and pnpm test in an agent shell still need Node 24 on PATH. scripts:unit passes (195 tests). Running worktrees get it at their next sync.
 
 ### B-154 · chore · Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the…
 
