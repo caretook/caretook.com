@@ -102,7 +102,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-160 | change | landed | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
 | B-161 | bug | triaged | check-migration |  | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
 | B-162 | change | triaged | timeline-ux |  | In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the… |
-| B-163 | change | inbox |  |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
+| B-163 | change | triaged | timeline-ux |  | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
 | B-164 | change | inbox |  |  | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
 | B-165 | change | inbox |  |  | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
 | B-166 | change | triaged | app-speed |  | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
@@ -692,8 +692,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-163 · change · "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: timeline-ux
 - owner:
 - commit:
 
