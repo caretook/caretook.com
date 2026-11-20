@@ -27,6 +27,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Both are in memory per serverless instance, which matters with 6-digit sign-in codes.
 - Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until the native app ships, and define them once. (B-142)
   They are hard-coded as trusted, with credentials, in routes/rpc.ts and packages/auth/src/auth.ts.
+- Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under the big box, and the tiles hint ("These follow what's logged most. The group's owners can choose them."). (B-157)
+  Tips: `QuickEntrySuggestions` (`data-quick-tips`) could take a `showTips` prop that `QuickEntryBox` turns off for `size="lg"`; the dictation hint stays.
+  Tiles: in `SimpleTiles.tsx`, show only the "Choose the tiles" link to those who can choose, and nothing to members. Update `timelineSimpleTiles.browser.test.tsx` (the hint text) and docs/domain/timeline.md (the first-run hint).
 - Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side). (B-143)
 
 ## Feature requests
