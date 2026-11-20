@@ -106,7 +106,9 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 ### After a restart, a crash or a usage limit
 
-Orchestrators and their slice agents stop when the machine restarts or a session dies, and sit idle after a usage limit. Each worktree keeps its work (commits and uncommitted changes), and each plan's _Status_ says where its orchestrator was, step by step. To pick a PRD up again, in a new terminal:
+Orchestrators and their slice agents stop when the machine restarts or a session dies, and sit idle after a usage limit. Each worktree keeps its work (commits and uncommitted changes), and each plan's _Status_ says where its orchestrator was, step by step. **The easy way:** before a planned restart, run `pnpm prd down` (it remembers what was running and stops it cleanly). Afterwards, run `pnpm prd recover` in a terminal: it starts Docker, clears stale locks, brings the stacks and dev servers back, then opens a recovery agent that tells every live orchestrator to carry on and reopens the rest in new iTerm2 tabs. After a usage limit, `pnpm prd recover --at 14:00` or `--wait` waits until you can work again, then does the same. `pnpm prd recover --dry-run` shows what it would do, and `pnpm prd reclaim` frees disk when new stacks are refused for low space.
+
+To pick a PRD up again by hand, in a new terminal:
 
 ```sh
 # its last conversation, if it had one

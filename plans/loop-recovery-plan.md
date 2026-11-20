@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/loop-recovery` (slice commits) |
-| ----- | ---- | ----------- | ---------------------------------------------- |
-| 1     | 1    | merged      | 6e18d83 (d1383c0)                              |
-| 2     | 1    | merged      | 4fa6242 (4e94044)                              |
-| 3     | 1    | merged      | 91a8b92 (ec3a08e, a27285a)                     |
-| 4     | 2    | merged      | 5b1d9a0 (c69133c)                              |
-| 5     | 3    | in progress |                                                |
+| Slice | Wave | State  | Merge into `prd/loop-recovery` (slice commits) |
+| ----- | ---- | ------ | ---------------------------------------------- |
+| 1     | 1    | merged | 6e18d83 (d1383c0)                              |
+| 2     | 1    | merged | 4fa6242 (4e94044)                              |
+| 3     | 1    | merged | 91a8b92 (ec3a08e, a27285a)                     |
+| 4     | 2    | merged | 5b1d9a0 (c69133c)                              |
+| 5     | 3    | merged | 0b64de0 (e00ad16)                              |
 
 **Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue loop-recovery`): start every ready slice, land each green wave without asking, clean up. Ask only real questions.
 
-**Backlog:** B-132 (claimed by `prd/loop-recovery`; `done` once slice 5 merges). Wave 1 (slices 1, 2, 3) started 2026-11-19. Slice 1 merged; slice 4 started early (only blocked by 1) and lands in its own wave. Wave 1 merged; slices 1 and 2 docs folded into docs/loops.md (command rows; disk guard, reclaim, inventory under _Isolation_). Wave 1 merged, synced with dev (assistant landed). Slice 4 merged before the first landing, so waves 1 and 2 land together; its docs are folded in. Slice 5 started. `pnpm prd check` flakes on 5 s integration timeouts under machine load (load avg 30–60; unrelated, no app code changed): rerun when calmer.
+**Backlog:** B-132, done at 0b64de0. All five slices are merged; waves 1–3 land together (slices 4 and 5 finished before wave 1's check went green). All hand-off docs folded into docs/loops.md and docs/orchestration.md, plus a pointer in AGENTS.md. Checks flake on timeouts under machine load (load avg 30–60; different tests each run, none in scripts/loops): rerun until green. After landing: `pnpm prd rm loop-recovery`.
 
 ## Architectural decisions
 
