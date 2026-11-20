@@ -4,16 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/agent-tooling` (slice commits) |
-| ----- | ---- | ----------- | ---------------------------------------------- |
-| 1     | 1    | not started |                                                |
-| 2     | 1    | not started |                                                |
-| 3     | 1    | not started |                                                |
-| 4     | 2    | not started |                                                |
-| 5     | 3    | not started |                                                |
-| 6     | 3    | not started |                                                |
+| Slice | Wave | State                                          | Merge into `prd/agent-tooling` (slice commits) |
+| ----- | ---- | ---------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | started (worktree made, agent spawned; opus)   |                                                |
+| 2     | 1    | started (worktree made, agent spawned; sonnet) |                                                |
+| 3     | 1    | started (worktree made, agent spawned; sonnet) |                                                |
+| 4     | 2    | not started                                    |                                                |
+| 5     | 3    | not started                                    |                                                |
+| 6     | 3    | not started                                    |                                                |
 
-**Landing mode:** not chosen yet (the orchestrator asks at start).
+**Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
+
+**Claimed:** B-154, B-147 (2026-11-20). B-148 is claimed at wave 3.
 
 **Backlog:**
 
