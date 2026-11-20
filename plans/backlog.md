@@ -334,6 +334,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (about 203 s). Move the section, Past, filters, adding at ?when=pick, cancel and reschedule dialogs, the Next strip and block, and due doses in Upcoming to component tests; keep reschedule's one transaction uploading and reaching another device. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 13, wave 5 (after assistant slice 4) (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/13): slice 13 (0b06086): upcoming.mjs deleted; screens in upcoming/upcoming, upcomingEvents and timeline/timelineUpcoming browser tests on a fixed clock; reschedule's transaction folded into roundtrip 6a
 
 ### B-121 · chore · Move profiles.mjs to component tests
 
