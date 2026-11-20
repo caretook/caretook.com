@@ -68,7 +68,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-116 | chore | in-progress | check-migration | prd/check-migration | Move providers.mjs to component tests |
-| B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
+| B-117 | chore | in-progress | check-migration | prd/check-migration | Move groups.mjs to component tests |
 | B-118 | chore | in-progress | check-migration | prd/check-migration | Move medications.mjs to component tests |
 | B-119 | chore | ready | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-121 | chore | ready | check-migration | prd/check-migration | Move profiles.mjs to component tests |
@@ -306,9 +306,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-117 · chore · Move groups.mjs to component tests
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the New care group sheet, the invite card and /join/:code's form states to component tests; keep the server flows (careGroup.create then the new group syncing in, /join sign-up and the refused codes, /admin's 404 for non-staff, the QR). Then e2e yes.
