@@ -4,31 +4,31 @@
 
 ## Status
 
-| Slice | State                           | Merge into `prd/check-migration` (slice commits) |
-| ----- | ------------------------------- | ------------------------------------------------ |
-| 1     | landed (wave 1)                 | 372c658 (f6cd078, e262c12)                       |
-| 2     | landed (wave 1)                 | 120db6e (df8db5a); ceiling 357 in 9c0b2bf        |
-| 3     | landed (wave 2)                 | c7ebf04 (dc3b2ec, a1f84cb, 988c4de)              |
-| 4     | landed (wave 2)                 | 7e632ee (58cfc90)                                |
-| 5     | landed (wave 2)                 | 7bfa916 (3542457, e554d48)                       |
-| 6     | landed (wave 3)                 | 17f91aa (3dfa6fd)                                |
-| 7     | landed (wave 3)                 | 3c0418e (97af38e)                                |
-| 8     | landed (wave 3)                 | 2cdba7f (c6d0b95, 55676bf)                       |
-| 9     | landed (wave 4)                 | 35dceff (cc30504, 72c7166)                       |
-| 10    | landed (wave 4)                 | 3bb168a (f9c1ef9, eef96ac)                       |
-| 11    | landed (wave 5, 74f6723) · opus | d72b0f6 (af6b87d, f274fd5)                       |
-| 12    | merged (wave 6) · sonnet        | 5cfb4ca (0277cbf)                                |
-| 13    | landed (wave 4)                 | bc5104e (0b06086)                                |
-| 14    | landed (wave 5, 74f6723) · opus | 6ebb3ec (cce2ed2)                                |
-| 15    | landed (wave 5, 74f6723) · opus | 0e0ab28 (3b2a5ad)                                |
-| 16    | merged (wave 6) · sonnet        | 222c37d (22f1f2b)                                |
-| 17    | merged (wave 6) · sonnet        | d487b30 (515b3f4)                                |
-| 18    | blocked by 3–17                 |                                                  |
-| 19    | blocked by 18                   |                                                  |
-| 20    | blocked by 19                   |                                                  |
-| 21    | blocked by 19                   |                                                  |
-| 22    | blocked by 19                   |                                                  |
-| 23    | blocked by 20, 21, 22           |                                                  |
+| Slice | State                             | Merge into `prd/check-migration` (slice commits) |
+| ----- | --------------------------------- | ------------------------------------------------ |
+| 1     | landed (wave 1)                   | 372c658 (f6cd078, e262c12)                       |
+| 2     | landed (wave 1)                   | 120db6e (df8db5a); ceiling 357 in 9c0b2bf        |
+| 3     | landed (wave 2)                   | c7ebf04 (dc3b2ec, a1f84cb, 988c4de)              |
+| 4     | landed (wave 2)                   | 7e632ee (58cfc90)                                |
+| 5     | landed (wave 2)                   | 7bfa916 (3542457, e554d48)                       |
+| 6     | landed (wave 3)                   | 17f91aa (3dfa6fd)                                |
+| 7     | landed (wave 3)                   | 3c0418e (97af38e)                                |
+| 8     | landed (wave 3)                   | 2cdba7f (c6d0b95, 55676bf)                       |
+| 9     | landed (wave 4)                   | 35dceff (cc30504, 72c7166)                       |
+| 10    | landed (wave 4)                   | 3bb168a (f9c1ef9, eef96ac)                       |
+| 11    | landed (wave 5, 74f6723) · opus   | d72b0f6 (af6b87d, f274fd5)                       |
+| 12    | landed (wave 6, fdb07b2) · sonnet | 5cfb4ca (0277cbf)                                |
+| 13    | landed (wave 4)                   | bc5104e (0b06086)                                |
+| 14    | landed (wave 5, 74f6723) · opus   | 6ebb3ec (cce2ed2)                                |
+| 15    | landed (wave 5, 74f6723) · opus   | 0e0ab28 (3b2a5ad)                                |
+| 16    | landed (wave 6, fdb07b2) · sonnet | 222c37d (22f1f2b)                                |
+| 17    | landed (wave 6, fdb07b2) · sonnet | d487b30 (515b3f4)                                |
+| 18    | blocked by 3–17                   |                                                  |
+| 19    | blocked by 18                     |                                                  |
+| 20    | blocked by 19                     |                                                  |
+| 21    | blocked by 19                     |                                                  |
+| 22    | blocked by 19                     |                                                  |
+| 23    | blocked by 20, 21, 22             |                                                  |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue check-migration`, 2026-11-19). The orchestrator starts every ready slice, lands each green wave itself with `pnpm prd land`, and cleans up; it asks the user only real questions.
 
@@ -36,7 +36,7 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19) for slice 2's sync matrix (9c0b2bf); slice 5 lowered it to 350.
 
-**Now (2026-11-20 12:30, check-migration-17):** wave 6 (12, 16, 17) is merged: 5cfb4ca, 222c37d and d487b30, with B-126, B-122 and B-127 done and the worktrees removed. The suite passed 12/12 at load 14–40; `invites` took 82 s. The manifest keeps invites at 72 and the ceiling at 286 (8708d9e): the trimmed check never ran near slice 17's estimated 62 (82 s and 87 s under load), so its saving is unmeasured, and slice 18 re-measures. Synced agent-tooling's cff4d2f (ea3b99f). Docs folded: loops.md (profiles-contacts moved; roundtrip's and invites' new scope; usual seconds are medians, never estimates) and profiles.md. care-groups.md and components.md are over their doc budget, so they're untouched. Full `pnpm prd check` passed on d8ffba3 (4228 tests). Landing; after it, message agent-tooling-29. Waves 1–5 are in dev (last 74f6723). Slice 18 (trim to 300) is next: all its moves are done. The user approved B-172 (slice 18 fixes it) and B-161 (slice 19, while porting sign-in) for this PRD.
+**Now (2026-11-20 12:30, check-migration-17):** wave 6 (12, 16, 17) is merged: 5cfb4ca, 222c37d and d487b30, with B-126, B-122 and B-127 done and the worktrees removed. The suite passed 12/12 at load 14–40; `invites` took 82 s. The manifest keeps invites at 72 and the ceiling at 286 (8708d9e): the trimmed check never ran near slice 17's estimated 62 (82 s and 87 s under load), so its saving is unmeasured, and slice 18 re-measures. Synced agent-tooling's cff4d2f (ea3b99f). Docs folded: loops.md (profiles-contacts moved; roundtrip's and invites' new scope; usual seconds are medians, never estimates) and profiles.md. care-groups.md and components.md are over their doc budget, so they're untouched. Full `pnpm prd check` passed on d8ffba3 (4228 tests). **Wave 6 landed in dev as fdb07b2**; agent-tooling-29 told. **Wave 7: slice 18 starting** (sonnet; claims B-172). Waves 1–5 are in dev (last 74f6723). Slice 18 (trim to 300) is next: all its moves are done. The user approved B-172 (slice 18 fixes it) and B-161 (slice 19, while porting sign-in) for this PRD.
 
 - **Resumed 2026-11-20 10:25 (session check-migration-17):** Status matched git (nothing in flight). Synced (dev had only backlog commits). `timelineLayout` › "the author tooltip… hover" **fails alone at low load too**: deterministic, not load. App code is unchanged since wave 4 landed (it passed then), so it's likely time-of-day dependent and on dev as well. Cause (sonnet helper): the quick-entry suggestion chips (time-of-day dependent) land after the rows and push the list down ~40 px, so the hover lands on another row's button. Test-only fix: wait for the link to stop moving before hovering (file passes 20/20 three times). Full `pnpm prd check` passed on 76a3161 (4089 tests, 371 files). Landing wave 5. After landing, message hosting-5b (it hit the same failure on prd/hosting and is waiting for the fix in dev) as well as code-layout-d2. B-161 (sign-in flake) proposed for this PRD (slice 20 ports sign-in).
 - Earlier: wave 4 (9, 10, 13) landed as 54a1880 (its suite: `roundtrip` failed twice at load 68–75 and passed alone at load 20; `sign-in` flaky at load 88, filed as B-161). Wave 3 landed as 68571c8, waves 1–2 as 2040ed3. Only `profiles-contacts` is left as an area check. Lean times are the median of the last three clean suites (waves 2, 3, 5): total and ceiling **286**.
