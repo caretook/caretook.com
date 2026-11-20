@@ -1,10 +1,10 @@
-import type { LocalProvider } from "~/lib/sync/providers";
+import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
 import { ContactDetails, ProviderTypeIcon } from "~/components/providers";
-import { appUrls } from "~/lib/appUrls";
-import { contactDetails } from "~/lib/contactActions";
-import { PROVIDER_TYPE_META } from "~/lib/providerDirectory";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { contactDetails } from "~/lib/providers/contactActions";
+import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 
 /**
  * A provider in the directory: what they are, the badges, and their numbers,

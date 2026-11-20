@@ -1,7 +1,7 @@
 import type { TimelineView } from "@caretook/data/schema";
 
 import { useState } from "react";
-import { saveSettings } from "~/lib/me";
+import { saveSettings } from "~/lib/app-shell/me";
 
 /**
  * The rows/cards layout, a per-user setting. It switches at once; offline,

@@ -1,4 +1,4 @@
-import type { ApiOutputs } from "~/lib/rpc";
+import type { ApiOutputs } from "~/lib/core/rpc";
 
 import { Link } from "react-router";
 import { AccountBadges } from "../AccountBadges";

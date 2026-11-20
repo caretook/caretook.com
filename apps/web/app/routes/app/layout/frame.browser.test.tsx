@@ -2,7 +2,7 @@ import type { DeviceRoute } from "../../../../test/device";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { THEME_KEY } from "~/lib/theme";
+import { THEME_KEY } from "~/lib/app-shell/theme";
 import * as entry from "~/routes/app/groups/entry/route";
 import * as groupSettingsIndex from "~/routes/app/groups/settings/index/route";
 import * as groupSettingsLayout from "~/routes/app/groups/settings/layout/route";

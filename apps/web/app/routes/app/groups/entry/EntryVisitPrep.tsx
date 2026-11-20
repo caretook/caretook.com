@@ -2,8 +2,8 @@ import type { LiveEntry } from "./useLiveEntry";
 
 import { ClipboardList } from "lucide-react";
 import { useVisitPrep } from "~/components/visitPrep";
-import { useNow } from "~/lib/sync/editors";
-import { isUpcoming } from "~/lib/upcoming";
+import { useNow } from "~/lib/live-notes/editors.sync";
+import { isUpcoming } from "~/lib/appointments/upcoming";
 
 /** Re-check every minute whether the appointment is still to come. */
 const TICK_MS = 60_000;

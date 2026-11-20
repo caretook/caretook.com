@@ -1,4 +1,4 @@
-import type { DeviceAnnouncement } from "~/lib/announcement";
+import type { DeviceAnnouncement } from "~/lib/admin/announcement";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -11,8 +11,8 @@ import {
   readDismissed,
   saveDismissed,
   withDismissed,
-} from "~/lib/announcement";
-import { rpc } from "~/lib/rpc";
+} from "~/lib/admin/announcement";
+import { rpc } from "~/lib/core/rpc";
 
 /** Long timers are capped (setTimeout overflows past ~24.8 days); the banner re-checks then. */
 const MAX_WAIT_MS = 86_400_000;

@@ -10,4 +10,4 @@ packages/data/src/db/schema/publicFormRules.ts marketing
 packages/data/src/db/schema/waitlistEntry.ts marketing
 packages/data/src/db/schema/contactMessage.ts marketing
 # Staging's noindex: unit-tested (marketing/site/seo.test.ts), and off in checks.
-apps/web/app/lib/noindex.ts              -
+apps/web/app/lib/marketing/noindex.ts    -

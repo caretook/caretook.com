@@ -2,11 +2,11 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { Route } from "./+types/route";
 
 import { Form, Link, useNavigation } from "react-router";
-import { accountUrls } from "~/lib/accountUrls";
-import { authClient } from "~/lib/auth-client";
-import { authMessages, requestFailure } from "~/lib/authMessages";
-import { formString } from "~/lib/form";
-import { safeRedirect } from "~/lib/redirect";
+import { accountUrls } from "~/lib/auth/accountUrls";
+import { authClient } from "~/lib/auth/auth-client";
+import { authMessages, requestFailure } from "~/lib/auth/authMessages";
+import { formString } from "~/lib/core/form";
+import { safeRedirect } from "~/lib/core/redirect";
 import { AuthCard, useSubmitOnce, EmailField, ErrorMessage, StatusMessage } from "../AuthCard";
 
 // Shared by web + native: client-only. Two ways in:
@@ -16,7 +16,7 @@ import { AuthCard, useSubmitOnce, EmailField, ErrorMessage, StatusMessage } from
 //   confirmed yet (`?email=`): Better Auth has just sent a link, and the
 //   page offers to send another.
 // An unverified account never reaches /app: Better Auth refuses its
-// password sign-in, and lib/session.ts sends any such session here.
+// password sign-in, and lib/auth/session.ts sends any such session here.
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Confirm your email · Caretook" }];

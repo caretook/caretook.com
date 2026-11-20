@@ -5,8 +5,8 @@ import { Search } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ChipGroup } from "~/components/ui";
-import { STATUS_LABELS } from "~/lib/medicationDisplay";
-import { clearStatus, setQuery, setStatus } from "~/lib/medicationList";
+import { STATUS_LABELS } from "~/lib/medications/medicationDisplay";
+import { clearStatus, setQuery, setStatus } from "~/lib/medications/medicationList";
 
 /** Navigation state that marks a URL change as the search box's own. */
 const FROM_SEARCH_BOX = { medicationSearch: true } as const;

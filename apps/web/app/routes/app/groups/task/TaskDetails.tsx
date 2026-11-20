@@ -1,4 +1,4 @@
-import type { LocalTask } from "~/lib/sync/tasks";
+import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
 import { taskState } from "@caretook/data/schema";
 import { assigneeText, doneByLine, dueLines } from "./taskPage";

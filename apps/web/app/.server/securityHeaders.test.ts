@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { THEME_SCRIPT } from "../lib/theme";
+import { THEME_SCRIPT } from "../lib/app-shell/theme";
 import {
   HOST_HEADERS,
   THEME_SCRIPT_HASH,

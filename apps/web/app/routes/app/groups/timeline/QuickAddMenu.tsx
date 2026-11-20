@@ -1,14 +1,14 @@
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { MenuEntry } from "~/components/ui";
-import type { SheetKind } from "~/lib/appUrls";
+import type { SheetKind } from "~/lib/app-shell/appUrls";
 
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { Plus } from "lucide-react";
 import { PrefetchPageLinks, useLocation, useNavigate } from "react-router";
 import { Menu } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { KIND_META } from "~/lib/entryDisplay";
-import { localTimeZone } from "~/lib/format";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { localTimeZone } from "~/lib/core/format";
 import { SHEET_LINK_STATE } from "./sheet";
 import { dayKeyIn, dayStartAt } from "./timelineDays";
 

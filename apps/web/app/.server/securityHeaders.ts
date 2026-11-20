@@ -14,8 +14,8 @@
 // Server only (node:crypto). The policy itself is pure: `contentSecurityPolicy`.
 import { createHash, randomBytes } from "node:crypto";
 
-import { BUILD_APP_ENV, isNoindex, X_ROBOTS_TAG } from "../lib/noindex";
-import { THEME_SCRIPT } from "../lib/theme";
+import { BUILD_APP_ENV, isNoindex, X_ROBOTS_TAG } from "../lib/marketing/noindex";
+import { THEME_SCRIPT } from "../lib/app-shell/theme";
 
 export type CspOptions = {
   /** This response's nonce (base64), for the inline scripts React Router and React render. */

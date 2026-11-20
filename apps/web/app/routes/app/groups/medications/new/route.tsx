@@ -1,16 +1,16 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
-import type { RecipientRow } from "~/lib/sync/medications";
+import type { ActionResult } from "~/lib/core/api";
+import type { RecipientRow } from "~/lib/medications/medications.sync";
 
 import { redirect, useLocation } from "react-router";
 import { Sheet } from "~/components/ui";
-import { getGroup } from "~/lib/group";
-import { scheduleZoneNote } from "~/lib/medicationDisplay";
-import { newMedicationGuard } from "~/lib/medicationSheets";
-import { sessionContext } from "~/lib/session";
-import { createMedication, recipientQuery } from "~/lib/sync/medications";
-import { readRows } from "~/lib/sync/timeline";
+import { getGroup } from "~/lib/app-shell/group";
+import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
+import { newMedicationGuard } from "~/lib/medications/medicationSheets";
+import { sessionContext } from "~/lib/auth/session";
+import { createMedication, recipientQuery } from "~/lib/medications/medications.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { MedicationForm } from "../MedicationForm";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";

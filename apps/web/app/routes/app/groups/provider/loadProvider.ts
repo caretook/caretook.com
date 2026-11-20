@@ -1,9 +1,9 @@
 import type { SyncDb } from "~/lib/sync";
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { data } from "react-router";
-import { providerQuery, toProvider } from "~/lib/sync/providers";
-import { readRows } from "~/lib/sync/timeline";
+import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 
 /**
  * The provider, their notes document and its pending updates. A provider

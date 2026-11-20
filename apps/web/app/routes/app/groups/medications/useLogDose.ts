@@ -1,8 +1,8 @@
 import type { TodayDose } from "./todayDose";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { useFetcher } from "react-router";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import { todayDoseFields } from "./todayDose";
 
 /**

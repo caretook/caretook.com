@@ -1,8 +1,8 @@
 import type { ContactPageContent } from "../sections/types";
 
 import { CONTACT_MESSAGE_MAX, CONTACT_TOPIC_LABELS, CONTACT_TOPICS, NAME_MAX } from "@caretook/data/schema";
-import { formString } from "~/lib/form";
-import { rpc } from "~/lib/rpc";
+import { formString } from "~/lib/core/form";
+import { rpc } from "~/lib/core/rpc";
 import {
   PublicFormFrame,
   SelectField,

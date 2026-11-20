@@ -1,13 +1,13 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { useMemo } from "react";
 import { redirect, useLocation } from "react-router";
 import { isPracticeType } from "@caretook/data/schema";
-import { getGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
-import { createProvider } from "~/lib/sync/providers";
+import { getGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
+import { createProvider } from "~/lib/providers/providers.sync";
 import { Sheet } from "~/components/ui";
 import { ProviderForm } from "../ProviderForm";
 import { issuesForRows, providerFromForm } from "../providerFormData";

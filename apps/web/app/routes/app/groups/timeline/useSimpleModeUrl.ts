@@ -1,9 +1,9 @@
-import type { TimelineFilters } from "~/lib/timelineFilters";
+import type { TimelineFilters } from "~/lib/timeline/timelineFilters";
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { hasFilters } from "~/lib/timelineFilters";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { hasFilters } from "~/lib/timeline/timelineFilters";
 
 /**
  * Simple mode has no filters, search or Upcoming block: a timeline URL that

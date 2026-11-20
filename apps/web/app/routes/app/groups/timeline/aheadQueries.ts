@@ -1,8 +1,8 @@
-import type { EntryFilters, LocalQuery } from "../../../../lib/sync/timeline";
+import type { EntryFilters, LocalQuery } from "../../../../lib/timeline/timeline.sync";
 
 import { FUTURE_KINDS } from "@caretook/data/schema";
-import { windowLinksQuery } from "../../../../lib/sync/providers";
-import { upcomingQuery, upcomingWindow } from "../../../../lib/sync/timeline";
+import { windowLinksQuery } from "../../../../lib/providers/providers.sync";
+import { upcomingQuery, upcomingWindow } from "../../../../lib/timeline/timeline.sync";
 
 // What's ahead of the timeline's history: the Next strip's and the Upcoming
 // block's local queries, built on `upcomingWindow` at the history's cutoff,

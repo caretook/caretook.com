@@ -1,23 +1,23 @@
-import type { RecipientDetailsRow } from "~/lib/recipientDetails";
-import type { AllergyRows } from "~/lib/sync/allergies";
-import type { PassRow } from "~/lib/sync/medicationPasses";
+import type { RecipientDetailsRow } from "~/lib/profiles/recipientDetails";
+import type { AllergyRows } from "~/lib/medications/allergies.sync";
+import type { PassRow } from "~/lib/medications/medicationPasses.sync";
 import type { SyncDb } from "~/lib/sync";
-import type { MedicationRow } from "~/lib/sync/medications";
-import type { MemberDetailRow } from "~/lib/sync/members";
-import type { RecipientProfileRow } from "~/lib/sync/profile";
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
+import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
+import type { RecipientProfileRow } from "~/lib/profiles/profile.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { useMemo, useState } from "react";
-import { toRecipientDetails } from "~/lib/recipientDetails";
+import { toRecipientDetails } from "~/lib/profiles/recipientDetails";
 import { useLiveQuery } from "~/lib/sync";
-import { loadAllergies, useAllergies } from "~/lib/sync/allergies";
-import { loadSchedulePasses, useSchedulePasses } from "~/lib/sync/medicationPasses";
-import { medicationsQuery, toMedications } from "~/lib/sync/medications";
-import { loadMemberDetailRows, memberDetailsQuery } from "~/lib/sync/members";
-import { recipientProfileQuery, toRecipientProfile } from "~/lib/sync/profile";
-import { providersQuery, toProviders } from "~/lib/sync/providers";
-import { recipientDetailsQuery } from "~/lib/sync/recipientDetails";
-import { readRows } from "~/lib/sync/timeline";
+import { loadAllergies, useAllergies } from "~/lib/medications/allergies.sync";
+import { loadSchedulePasses, useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
+import { loadMemberDetailRows, memberDetailsQuery } from "~/lib/care-groups/members.sync";
+import { recipientProfileQuery, toRecipientProfile } from "~/lib/profiles/profile.sync";
+import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
+import { recipientDetailsQuery } from "~/lib/profiles/recipientDetails.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { emergencySheet } from "./emergencyPrintSheet";
 
 // What the emergency sheet is made from, all from the device's copy (so it

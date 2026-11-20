@@ -11,7 +11,7 @@ import { TIMELINE_ROUTES, TIMELINE_URL, waitUntil } from "./timelineWorld";
 
 // The task strip above the timeline (tasks slice 4): shown while the group
 // has open tasks overdue or due today, red or amber, naming mine first, and
-// linking to the Tasks list. Which task and the words are lib/taskStrip.ts's
+// linking to the Tasks list. Which task and the words are lib/tasks/taskStrip.ts's
 // unit tests; this is what's on the screen.
 
 const today = localDate(new Date(), TEST_TIME_ZONE);

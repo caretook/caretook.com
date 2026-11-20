@@ -4,10 +4,7 @@
 apps/web/app/routes/app/groups/entry/*   -
 apps/web/app/routes/app/groups/entry/useLiveEntry.ts live-notes
 apps/web/app/components/notes/*          live-notes
-apps/web/app/lib/sync/notes.ts           live-notes
-apps/web/app/lib/sync/liveEntry.ts       live-notes
-apps/web/app/lib/sync/editors.ts         live-notes
-apps/web/app/lib/sync/titleSuggestions.ts live-notes
+apps/web/app/lib/live-notes/*.sync.ts    live-notes
 packages/data/src/db/schema/noteDocument.ts live-notes
 packages/data/src/db/schema/noteYjs.ts   live-notes
 packages/data/src/db/schema/noteEditors.ts live-notes

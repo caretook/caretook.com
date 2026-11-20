@@ -1,18 +1,18 @@
 import type { QuickEntryReading, UnitChoices } from "@caretook/data/schema";
 import type { QuickEntryCard } from "./quickEntryCards";
-import type { DuePass } from "~/lib/duePasses";
+import type { DuePass } from "~/lib/medications/duePasses";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { parseQuickEntry } from "@caretook/data/schema";
 import { usePassLog } from "~/components/medications";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { offerUndo } from "~/lib/passUndo";
-import { actionPreview } from "~/lib/quickEntryPreview";
-import { recordLine } from "~/lib/recentLines";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { offerUndo } from "~/lib/medications/passUndo";
+import { actionPreview } from "~/lib/assistant/quickEntryPreview";
+import { recordLine } from "~/lib/assistant/recentLines";
 import { getSync } from "~/lib/sync";
-import { runActions } from "~/lib/sync/quickEntry";
+import { runActions } from "~/lib/assistant/quickEntry.sync";
 import {
   buildCards,
   canSaveCards,

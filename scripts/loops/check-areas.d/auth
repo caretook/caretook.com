@@ -3,10 +3,10 @@ apps/web/app/routes/sign-in.tsx          sign-in first-sync invites session-end
 apps/web/app/routes/account/*            invites sign-in
 apps/web/app/routes/sign-out.tsx         signout-wipe sign-in invites session-end
 apps/web/app/routes/api/*                sign-in first-sync
-apps/web/app/lib/session.ts              sign-in first-sync signout-wipe session-end
-apps/web/app/lib/sessionRules.ts         sign-in session-end
-apps/web/app/lib/redirect.ts             sign-in session-end
-apps/web/app/lib/auth-client.ts          sign-in signout-wipe
+apps/web/app/lib/auth/session.ts         sign-in first-sync signout-wipe session-end
+apps/web/app/lib/auth/sessionRules.ts    sign-in session-end
+apps/web/app/lib/core/redirect.ts        sign-in session-end
+apps/web/app/lib/auth/auth-client.ts     sign-in signout-wipe
 # Trusted origins and the client IP (hosting slice 8): Better Auth's sign-in
 # and limits, and the public forms' limit on /rpc.
 packages/auth/src/host.ts                sign-in marketing

@@ -1,8 +1,8 @@
 import type { LinkChoices } from "./taskSheet";
 
 import { useCallback } from "react";
-import { medicationTitle } from "~/lib/medicationDisplay";
-import { upcomingTitle } from "~/lib/upcomingLabels";
+import { medicationTitle } from "~/lib/medications/medicationDisplay";
+import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { LinkPickerField } from "./LinkPickerField";
 import { FIELD } from "./taskFormData";
 import {

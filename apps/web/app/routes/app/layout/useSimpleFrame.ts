@@ -1,15 +1,15 @@
-import type { GroupContext } from "~/lib/groupContext";
-import type { SimpleMembership, SimpleModeState } from "~/lib/useSimpleMode";
+import type { GroupContext } from "~/lib/app-shell/groupContext";
+import type { SimpleMembership, SimpleModeState } from "~/lib/assistant/useSimpleMode";
 
-import type { GroupRow } from "~/lib/sync/timeline";
+import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
 import { useMemo } from "react";
 import { useRouteLoaderData } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { cachedSettings } from "~/lib/me";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { cachedSettings } from "~/lib/app-shell/me";
 import { useLiveQuery } from "~/lib/sync";
-import { myGroupsQuery } from "~/lib/sync/timeline";
-import { useLiveMembership, useSimpleMode } from "~/lib/useSimpleMode";
+import { myGroupsQuery } from "~/lib/timeline/timeline.sync";
+import { useLiveMembership, useSimpleMode } from "~/lib/assistant/useSimpleMode";
 
 const NO_MEMBERSHIP: SimpleMembership = { role: null, simpleMode: { ownerDefault: false, locked: false } };
 
@@ -17,7 +17,7 @@ const NO_MEMBERSHIP: SimpleMembership = { role: null, simpleMode: { ownerDefault
  * Whether the /app header is simple mode's reduced one: on a group's
  * timeline (its sheets included) while the timeline shows its simple view,
  * and on every page of a group you're locked into it in (the lock keeps you
- * to the timeline and your notes' and events' pages: `lib/simpleModeLock.ts`).
+ * to the timeline and your notes' and events' pages: `lib/assistant/simpleModeLock.ts`).
  * The same inputs as the timeline's (`useSimpleMode`): the membership live
  * from the device (the group route's loader data until the watch answers),
  * your own setting as this device last loaded it, and the device's toggle.

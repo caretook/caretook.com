@@ -1,18 +1,18 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 import type { TimelineOutlet } from "./sheet";
 
 import { Outlet, PrefetchPageLinks } from "react-router";
 import { QuickEntryBox } from "~/components/quick-entry";
-import { appUrls } from "~/lib/appUrls";
-import { formString } from "~/lib/form";
-import { getGroup, useGroup } from "~/lib/group";
-import { loadSettings } from "~/lib/me";
-import { sessionContext } from "~/lib/session";
-import { loadSearchPeriods, searchPeriodRange } from "~/lib/sync/periodSearch";
-import { removeEntry } from "~/lib/sync/timeline";
-import { parseFilters } from "~/lib/timelineFilters";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { formString } from "~/lib/core/form";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { loadSettings } from "~/lib/app-shell/me";
+import { sessionContext } from "~/lib/auth/session";
+import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
+import { removeEntry } from "~/lib/timeline/timeline.sync";
+import { parseFilters } from "~/lib/timeline/timelineFilters";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
@@ -31,7 +31,7 @@ import { settledSearchIndexStatus, useSearchIndexStatus } from "./useSearchIndex
 import { useTimelineData } from "./useTimelineData";
 import { useTimelineView } from "./useTimelineView";
 import { useDaySummaryMode } from "./useDaySummaryMode";
-import { useSimpleMode } from "~/lib/useSimpleMode";
+import { useSimpleMode } from "~/lib/assistant/useSimpleMode";
 import { SimpleModeToggle } from "./SimpleModeToggle";
 import { SimpleTimeline } from "./SimpleTimeline";
 import { useSimpleModeUrl } from "./useSimpleModeUrl";

@@ -6,14 +6,14 @@ import { ATTESTATION_TEXT, CONSENT_TEXT, SHARED_WITH_MEMBERS } from "@caretook/d
 import { ORPCError } from "@orpc/client";
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { Field } from "~/components/ui/plain";
-import { accountUrls } from "~/lib/accountUrls";
-import { appUrls } from "~/lib/appUrls";
-import { authClient } from "~/lib/auth-client";
-import { authMessages, newPasswordProblem, requestFailure } from "~/lib/authMessages";
-import { formString } from "~/lib/form";
-import { rpc } from "~/lib/rpc";
-import { requireSession } from "~/lib/session";
-import { waitForMembership } from "~/lib/sync/members";
+import { accountUrls } from "~/lib/auth/accountUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { authClient } from "~/lib/auth/auth-client";
+import { authMessages, newPasswordProblem, requestFailure } from "~/lib/auth/authMessages";
+import { formString } from "~/lib/core/form";
+import { rpc } from "~/lib/core/rpc";
+import { requireSession } from "~/lib/auth/session";
+import { waitForMembership } from "~/lib/care-groups/members.sync";
 import { AuthCard, ErrorMessage, StatusMessage, useSubmitOnce } from "../AuthCard";
 import {
   invitedLine,

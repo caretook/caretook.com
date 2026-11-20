@@ -1,4 +1,4 @@
-import type { TimelineEntry } from "~/lib/rpc";
+import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { lazy, Suspense, useEffect, useState } from "react";
 

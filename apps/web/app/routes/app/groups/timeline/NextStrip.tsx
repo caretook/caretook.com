@@ -2,9 +2,9 @@ import type { TimelineData } from "./useTimelineData";
 
 import { CalendarClock } from "lucide-react";
 import { Link, useLocation } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { clearUpcoming, setUpcoming } from "~/lib/timelineFilters";
-import { nextStripText, upcomingTitle } from "~/lib/upcomingLabels";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { clearUpcoming, setUpcoming } from "~/lib/timeline/timelineFilters";
+import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { STRIP_ACTION, STRIP_CLASS, STRIP_ICON } from "./layout";
 
 /**

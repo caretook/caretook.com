@@ -1,12 +1,12 @@
 import type { DoseDetails } from "@caretook/data/schema";
-import type { DoseChoice } from "~/lib/sync/medicationTimeline";
+import type { DoseChoice } from "~/lib/medications/medicationTimeline.sync";
 
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { MEDICATION_LIMITS } from "@caretook/data/schema";
 import { ChoiceGroup, ConfirmDialog, Field } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
-import { medicationLabel } from "~/lib/medicationEntries";
+import { medicationLabel } from "~/lib/medications/medicationEntries";
 import { DOSE_STATUS_OPTIONS } from "../doseFormData";
 import { issueFor } from "../formIssues";
 import { useEntryFormSave } from "../useEntryFormSave";

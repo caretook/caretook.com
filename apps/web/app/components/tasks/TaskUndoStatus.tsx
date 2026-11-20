@@ -1,12 +1,12 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { clearTaskUndo, subscribeTaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/taskUndo";
+import { clearTaskUndo, subscribeTaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/tasks/taskUndo";
 import { undoTaskTick } from "./useTaskTick";
 
 const noOffer = () => null;
 
 /**
  * The Undo after a tick: "Done: Call the pharmacy · Undo" in one polite
- * status line for about 10 s (`lib/taskUndo.ts`), for this group's last
+ * status line for about 10 s (`lib/tasks/taskUndo.ts`), for this group's last
  * tick. Undo reopens the task. The live region is always rendered (empty
  * when there's nothing to undo), so the announcement isn't lost.
  */

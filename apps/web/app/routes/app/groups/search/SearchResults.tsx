@@ -1,14 +1,14 @@
 import type { SearchPageData } from "./loadSearch";
 import type { UnitChoices } from "@caretook/data/schema";
-import type { ResultSection } from "~/lib/searchResults";
+import type { ResultSection } from "~/lib/search/searchResults";
 
 import { parseSearch } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { resultCountText } from "~/lib/searchResults";
-import { useSchedulePasses } from "~/lib/sync/medicationPasses";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { resultCountText } from "~/lib/search/searchResults";
+import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { EntryResultItem, MedicationResultItem, ProviderResultItem, TaskResultItem } from "./ResultItems";
 
 /**

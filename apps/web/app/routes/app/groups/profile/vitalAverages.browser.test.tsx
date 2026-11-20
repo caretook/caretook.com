@@ -10,7 +10,7 @@ import { fx, hoursAgo, TEST_GROUP } from "../../../../../test/fixtures";
 // each window's average and count from the device's readings (deleted entries
 // and old readings left out), "—" for a window without readings, and no
 // region at all with nothing in 30 days. The arithmetic is unit-tested in
-// `lib/vitalAverages.test.ts`; offline, the units are the defaults (°F, lb).
+// `lib/profiles/vitalAverages.test.ts`; offline, the units are the defaults (°F, lb).
 
 const URL = `/app/groups/${TEST_GROUP.id}/profile`;
 const DAY = 24;

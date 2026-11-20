@@ -2,8 +2,8 @@ import type { Route } from "./+types/route";
 
 import { redirect } from "react-router";
 import { isWideSettings } from "~/components/settings";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup } from "~/lib/group";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup } from "~/lib/app-shell/group";
 import { groupSettingsPages } from "../layout/settingsPages";
 
 // `…/settings` itself: the list on phones (the layout renders it). Wide

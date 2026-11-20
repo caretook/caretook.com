@@ -1,8 +1,8 @@
-import type { SchedulePass } from "~/lib/medicationDisplay";
+import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { EntryResult, ProviderResult } from "./loadSearch";
 import type { ParsedSearch, Snippet, UnitChoices } from "@caretook/data/schema";
-import type { LocalMedication } from "~/lib/sync/medications";
-import type { LocalTask } from "~/lib/sync/tasks";
+import type { LocalMedication } from "~/lib/medications/medications.sync";
+import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
 import { highlightRanges, notesSnippet } from "@caretook/data/schema";
 import { CircleCheck, ListTodo, Pill } from "lucide-react";
@@ -10,13 +10,13 @@ import { Link } from "react-router";
 import { EntryBody, KindIcon } from "~/components/entry";
 import { ProviderTypeIcon } from "~/components/providers";
 import { Highlight } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { KIND_META } from "~/lib/entryDisplay";
-import { entryOpen, SHEET_LINK_STATE } from "~/lib/entryOpen";
-import { dayLabel, formatTime, localTimeZone } from "~/lib/format";
-import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "~/lib/medicationDisplay";
-import { PROVIDER_TYPE_META } from "~/lib/providerDirectory";
-import { dueText } from "~/lib/taskDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { entryOpen, SHEET_LINK_STATE } from "~/lib/timeline/entryOpen";
+import { dayLabel, formatTime, localTimeZone } from "~/lib/core/format";
+import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
+import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
+import { dueText } from "~/lib/tasks/taskDisplay";
 
 /** A link stretched over its row, so a tap anywhere opens the result (the row is `relative isolate`). */
 const STRETCHED =

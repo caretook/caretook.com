@@ -3,9 +3,9 @@ import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration }
 import type { Route } from "./+types/root";
 
 import stylesheet from "./app.css?url";
-import { useDocumentCsp } from "./lib/csp";
-import { BUILD_APP_ENV, robotsMeta } from "./lib/noindex";
-import { THEME_SCRIPT } from "./lib/theme";
+import { useDocumentCsp } from "./lib/security-headers/csp";
+import { BUILD_APP_ENV, robotsMeta } from "./lib/marketing/noindex";
+import { THEME_SCRIPT } from "./lib/app-shell/theme";
 
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },

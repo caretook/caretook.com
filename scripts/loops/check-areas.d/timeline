@@ -2,11 +2,11 @@
 # is component tests (timeline/timeline*.browser.test.tsx): its care periods,
 # doses and the medication strip, the Next strip and Upcoming block, search,
 # quick entry, simple mode and tasks. phase2.mjs keeps sync arriving, server
-# links and offline, through lib/sync/.
+# links and offline, through the device queries.
 apps/web/app/routes/app/groups/timeline/* -
-apps/web/app/lib/sync/timeline.ts        phase2 roundtrip
-apps/web/app/lib/entryDisplay.ts         -
-apps/web/app/lib/form.ts                 roundtrip
+apps/web/app/lib/timeline/*.sync.ts     phase2 roundtrip
+apps/web/app/lib/timeline/entryDisplay.ts -
+apps/web/app/lib/core/form.ts            roundtrip
 apps/web/app/components/entry/*          roundtrip
 # The add and edit sheets: roundtrip.mjs (not yet component tests).
 apps/web/app/routes/app/groups/timeline/new/* roundtrip
@@ -23,7 +23,7 @@ apps/web/app/routes/app/groups/timeline/route.tsx roundtrip
 # Each day heading's + menu: every add flow starts there.
 apps/web/app/routes/app/groups/timeline/QuickAddMenu.tsx roundtrip
 # The sheet-link state Upcoming's due doses open the Dose sheet with.
-apps/web/app/lib/timelineSheet.ts        roundtrip
+apps/web/app/lib/timeline/timelineSheet.ts roundtrip
 packages/data/src/db/schema/timelineEntry.ts phase2 roundtrip live-notes
 packages/data/src/db/schema/vitals.ts    phase2 roundtrip
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
