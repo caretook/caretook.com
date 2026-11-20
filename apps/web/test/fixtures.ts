@@ -10,7 +10,7 @@ import type {
 import { encodeNoteDoc, entryProviderId, noteDocFromText } from "@caretook/data/schema";
 import { getTableColumns, getTableName } from "drizzle-orm";
 import { drizzleSchema } from "~/lib/sync/schema";
-import { toLocalTimestamp } from "~/lib/sync/timeline";
+import { toLocalTimestamp } from "~/lib/timeline/timeline.sync";
 
 // Fixture builders for the test device: rows as the device holds them after
 // a sync (the device schema's columns, PowerSync's timestamp text, JSON as

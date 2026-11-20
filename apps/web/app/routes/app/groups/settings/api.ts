@@ -1,8 +1,8 @@
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
-import { load, toActionResult } from "~/lib/api";
-import { rpc } from "~/lib/rpc";
+import { load, toActionResult } from "~/lib/core/api";
+import { rpc } from "~/lib/core/rpc";
 import { NEEDS_CONNECTION } from "./groupSettings";
 
 // How the group's settings subpages (`details`, `members`) talk to the

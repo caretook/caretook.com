@@ -1,7 +1,7 @@
 import type { AllergySeverity } from "@caretook/data/schema";
 
 import { ALLERGY_SEVERITIES } from "@caretook/data/schema";
-import { formString } from "../../../../../lib/form";
+import { formString } from "../../../../../lib/core/form";
 
 // The allergies sheet's posts, read from the form: add, edit, remove, and
 // "No known allergies" on or off. Pure; web:unit tests it.

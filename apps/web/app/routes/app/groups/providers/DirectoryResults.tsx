@@ -1,9 +1,9 @@
 import type { ProviderType } from "@caretook/data/schema";
-import type { DirectoryList } from "~/lib/providerDirectory";
-import type { LocalProvider } from "~/lib/sync/providers";
+import type { DirectoryList } from "~/lib/providers/providerDirectory";
+import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link, useLocation } from "react-router";
-import { PROVIDER_TYPE_META, setPast } from "~/lib/providerDirectory";
+import { PROVIDER_TYPE_META, setPast } from "~/lib/providers/providerDirectory";
 import { ProviderListItem } from "./ProviderListItem";
 
 const countLabel = (n: number) => `${n} ${n === 1 ? "provider" : "providers"}`;

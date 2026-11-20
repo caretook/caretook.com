@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { createRoutesStub } from "react-router";
 import * as appLayout from "./app/layout/route";
@@ -81,5 +81,30 @@ describe("the email tab", () => {
     await expect.element(page.getByRole("button", { name: "Send email" })).toBeVisible();
     const form = page.getByRole("button", { name: "Send email" }).element().closest("form")!;
     expect(form.querySelector("p")).toBeNull();
+  });
+});
+
+describe("the ways to sign in", () => {
+  test("two tabs, Password and Email, with the current one marked; Email opens its form", async () => {
+    sessionAnswers(() => Response.json(null));
+    await open("/sign-in");
+    const nav = page.getByRole("navigation", { name: "Ways to sign in" });
+    await expect.element(nav.getByRole("link", { name: "Password" })).toHaveAttribute("aria-current", "page");
+    await expect
+      .element(nav.getByRole("link", { name: "Email", exact: true }))
+      .not.toHaveAttribute("aria-current");
+    await userEvent.click(nav.getByRole("link", { name: "Email", exact: true }));
+    await expect.element(page.getByRole("button", { name: "Send email" })).toBeVisible();
+    await expect
+      .element(nav.getByRole("link", { name: "Email", exact: true }))
+      .toHaveAttribute("aria-current", "page");
+  });
+
+  test("the password form links to Forgot password?", async () => {
+    sessionAnswers(() => Response.json(null));
+    await open("/sign-in");
+    await expect
+      .element(page.getByRole("link", { name: "Forgot password?" }))
+      .toHaveAttribute("href", "/reset-password");
   });
 });

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, medicationPass } from "../../../../../test/fixtures";
-import { clearUndo } from "~/lib/passUndo";
+import { clearUndo } from "~/lib/medications/passUndo";
 import {
   $,
   clockAt,

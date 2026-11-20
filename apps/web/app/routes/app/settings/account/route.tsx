@@ -3,7 +3,7 @@ import type { Route } from "./+types/route";
 import { LogOut } from "lucide-react";
 import { Form } from "react-router";
 import { SettingsCard, SettingsPage } from "~/components/settings";
-import { sessionContext } from "~/lib/session";
+import { sessionContext } from "~/lib/auth/session";
 
 // `/app/settings/account`: who's signed in (read-only for now), and Sign out
 // (POST to /sign-out, as the account menu does). Shared by web + native.

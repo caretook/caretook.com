@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
-import type { ContactAction } from "~/lib/contactActions";
+import type { ContactAction } from "~/lib/providers/contactActions";
 
 import { Globe, Mail, MapPin, MessageSquare, Phone } from "lucide-react";
 
-// A provider's contact actions (`lib/contactActions.ts`) as links: the
+// A provider's contact actions (`lib/providers/contactActions.ts`) as links: the
 // directory's icon buttons and the provider page's labelled list.
 
 export const ACTION_ICONS: Record<ContactAction["kind"], LucideIcon> = {

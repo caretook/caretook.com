@@ -1,9 +1,9 @@
-import type { MemberRow } from "~/lib/sync/timeline";
+import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
-import { listNames } from "~/lib/liveNow";
-import { useRecentEditors } from "~/lib/sync/editors";
+import { listNames } from "~/lib/live-notes/liveNow";
+import { useRecentEditors } from "~/lib/live-notes/editors.sync";
 import { useLiveQuery } from "~/lib/sync";
-import { membersQuery } from "~/lib/sync/timeline";
+import { membersQuery } from "~/lib/timeline/timeline.sync";
 import { AvatarStack } from "~/components/ui";
 
 const NO_MEMBERS: MemberRow[] = [];

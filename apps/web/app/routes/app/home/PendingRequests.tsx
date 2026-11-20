@@ -1,12 +1,12 @@
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { ORPCError } from "@orpc/client";
 import { Clock, CircleX } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useFetcher } from "react-router";
 import { ConfirmDialog } from "~/components/ui";
-import { toActionResult } from "~/lib/api";
-import { rpc } from "~/lib/rpc";
+import { toActionResult } from "~/lib/core/api";
+import { rpc } from "~/lib/core/rpc";
 
 // `/app` home's "Waiting for approval: <group>" (invites slice 4): the
 // requests to join this person made through invite links, from the API

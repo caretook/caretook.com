@@ -3,12 +3,12 @@ import type { RescheduleTarget } from "~/components/entry";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Sheet } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { endError, sameSchedule } from "~/lib/entrySchedule";
-import { keepOldByDefault, scheduleOf, withMovedStart } from "~/lib/eventReschedule";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { endError, sameSchedule } from "~/lib/appointments/entrySchedule";
+import { keepOldByDefault, scheduleOf, withMovedStart } from "~/lib/appointments/eventReschedule";
 import { getSync } from "~/lib/sync";
-import { rescheduleEvent } from "~/lib/sync/appointments";
-import { upcomingTitle } from "~/lib/upcomingLabels";
+import { rescheduleEvent } from "~/lib/appointments/appointments.sync";
+import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { ScheduleFields } from "./ScheduleFields";
 
 /**

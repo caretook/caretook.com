@@ -1,15 +1,16 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 import type { SyncDb } from "~/lib/sync";
-import type { NoteDocParts } from "~/lib/sync/notes";
-import type { EntryRow } from "~/lib/sync/timeline";
+import type { NoteDocParts } from "~/lib/live-notes/notes.sync";
+import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { data } from "react-router";
-import { startAtFrom, WHEN_PICK } from "~/lib/appUrls";
-import { KIND_META } from "~/lib/entryDisplay";
-import { localTimeZone } from "~/lib/format";
-import { isLiveEntryKind, NEW_ENTRY } from "~/lib/liveEntry";
-import { readRows, toTimelineEntry } from "~/lib/sync/timeline";
+import { startAtFrom } from "~/lib/timeline/urls";
+import { WHEN_PICK } from "~/lib/live-notes/urls";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { localTimeZone } from "~/lib/core/format";
+import { isLiveEntryKind, NEW_ENTRY } from "~/lib/live-notes/liveEntry";
+import { readRows, toTimelineEntry } from "~/lib/timeline/timeline.sync";
 import { entryHeading } from "./entryPage";
 
 /** The stored entry: live, in its group, not deleted. */

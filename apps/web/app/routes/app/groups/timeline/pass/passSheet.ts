@@ -1,10 +1,11 @@
 import type { DoseStatus } from "@caretook/data/schema";
-import type { DosePatch } from "../../../../../lib/sync/medications";
-import type { PassLogJoin } from "../../../../../lib/sync/passLogs";
+import type { DosePatch } from "../../../../../lib/medications/medications.sync";
+import type { PassLogJoin } from "../../../../../lib/medications/passLogs.sync";
 import type { SheetDecision } from "../sheetGuard";
 
-import { appUrls, withoutSheetParams } from "../../../../../lib/appUrls";
-import { formString } from "../../../../../lib/form";
+import { appUrls } from "../../../../../lib/app-shell/appUrls";
+import { withoutSheetParams } from "../../../../../lib/timeline/urls";
+import { formString } from "../../../../../lib/core/form";
 import { parseOccurredAt } from "../entryFormData";
 
 // The pass sheet (`timeline/pass/:passLogId/edit`): who may open it, what

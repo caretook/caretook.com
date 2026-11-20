@@ -2,9 +2,10 @@ import type { UnitChoices } from "@caretook/data/schema";
 
 import { useCallback, useRef } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router";
-import { appUrls, withoutSheetParams } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { openedOverTimeline } from "~/lib/timelineSheet";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { withoutSheetParams } from "~/lib/timeline/urls";
+import { useGroup } from "~/lib/app-shell/group";
+import { openedOverTimeline } from "~/lib/timeline/timelineSheet";
 
 // Sheets over the timeline are child routes (`timeline/new/:kind`,
 // `timeline/:entryId/edit`): the timeline stays mounted underneath, with its
@@ -20,7 +21,7 @@ export type TimelineOutlet = { units: UnitChoices; simple?: boolean };
 
 export const useTimelineOutlet = () => useOutletContext<TimelineOutlet>();
 
-export { SHEET_LINK_STATE } from "~/lib/timelineSheet";
+export { SHEET_LINK_STATE } from "~/lib/timeline/timelineSheet";
 
 /**
  * Close the sheet by leaving its route; Back, Escape, Cancel and a save all

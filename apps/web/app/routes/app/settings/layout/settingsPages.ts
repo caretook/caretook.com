@@ -1,8 +1,8 @@
-import type { SettingsItem } from "~/lib/settingsNav";
-import type { AccountSettingsPage } from "~/lib/appUrls";
+import type { SettingsItem } from "~/lib/app-shell/settingsNav";
+import type { AccountSettingsPage } from "~/lib/app-shell/urls";
 
 import { LayoutList, MonitorSmartphone, Phone, Ruler, UserRound } from "lucide-react";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 
 /**
  * The account's settings subpages, in list order: the first is what a wide

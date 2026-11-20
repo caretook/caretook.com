@@ -1,0 +1,94 @@
+import { describe, expect, it } from "vitest";
+import { router } from "./router";
+
+// The router's procedure paths are the API's contract with the client
+// (`/rpc/<path>`). Splitting the router by area must not change them: this is
+// the list taken before the split. Add a procedure's path here when you add it.
+const FROZEN_PATHS = [
+  "accessCode.preview",
+  "accessCode.signUp",
+  "admin.accessCode.create",
+  "admin.accessCode.get",
+  "admin.accessCode.list",
+  "admin.accessCode.revoke",
+  "admin.audit.list",
+  "admin.careGroup.createWithOwnerInvite",
+  "admin.groups.changeRole",
+  "admin.groups.get",
+  "admin.groups.inviteOwner",
+  "admin.groups.promoteOwner",
+  "admin.groups.removeMember",
+  "admin.groups.search",
+  "admin.settings.list",
+  "admin.settings.set",
+  "admin.suppressions.clear",
+  "admin.suppressions.list",
+  "admin.users.disable",
+  "admin.users.enable",
+  "admin.users.get",
+  "admin.users.resendVerification",
+  "admin.users.revokeAllSessions",
+  "admin.users.revokeSession",
+  "admin.users.search",
+  "admin.users.sendReset",
+  "admin.users.setRole",
+  "admin.waitlist.export",
+  "admin.waitlist.list",
+  "careGroup.changeRole",
+  "careGroup.create",
+  "careGroup.listMine",
+  "careGroup.members",
+  "careGroup.recipient",
+  "careGroup.recipientDetails",
+  "careGroup.removeMember",
+  "careGroup.setEmergencyContacts",
+  "careGroup.setMemberMode",
+  "careGroup.setPrimaryContact",
+  "careGroup.update",
+  "careGroup.updateMySharing",
+  "careGroup.updateOutsideContacts",
+  "careGroup.updateRecipient",
+  "careGroup.updateRecipientDetails",
+  "invite.accept",
+  "invite.copyLink",
+  "invite.createEmail",
+  "invite.createLink",
+  "invite.decline",
+  "invite.listForGroup",
+  "invite.listLinks",
+  "invite.options",
+  "invite.preview",
+  "invite.resend",
+  "invite.revoke",
+  "invite.signUp",
+  "joinRequest.approve",
+  "joinRequest.decline",
+  "joinRequest.list",
+  "joinRequest.mine",
+  "joinRequest.withdraw",
+  "me.contact",
+  "me.get",
+  "me.updateContact",
+  "me.updatePreferences",
+  "public.announcement",
+  "public.contact.send",
+  "public.waitlist.join",
+  "search.query",
+  "sync.upload",
+  "timeline.create",
+  "timeline.latestVitals",
+  "timeline.list",
+  "timeline.remove",
+  "timeline.update",
+];
+
+const flatten = (node: unknown, prefix: string[] = []): string[] =>
+  typeof node === "function" || (node && typeof node === "object" && "~orpc" in node)
+    ? [prefix.join(".")]
+    : Object.entries(node as object).flatMap(([key, value]) => flatten(value, [...prefix, key]));
+
+describe("router paths", () => {
+  it("are the frozen list", () => {
+    expect(flatten(router).sort()).toEqual([...FROZEN_PATHS].sort());
+  });
+});

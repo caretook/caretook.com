@@ -1,4 +1,4 @@
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import {
   invitableRoles,

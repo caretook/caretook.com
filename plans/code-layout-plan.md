@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State                  | Merge into `prd/code-layout` (slice commits) |
-| ----- | ---- | ---------------------- | -------------------------------------------- |
-| 1     | 1    | merged, landing (opus) | c1954ac (1914958)                            |
-| 2     | 2    | blocked by 1           |                                              |
-| 3     | 2    | blocked by 1           |                                              |
-| 4     | 2    | blocked by 1           |                                              |
-| 5     | 3    | blocked by 4           |                                              |
+| Slice | Wave | State                                                                           | Merge into `prd/code-layout` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------------- | -------------------------------------------- |
+| 1     | 1    | landed (wave 1, 7fca12d)                                                        | c1954ac (1914958)                            |
+| 2     | 2    | landed (wave 2, 446359c); merged (sonnet)                                       | 7bad436 (fdd21a0)                            |
+| 3     | 2    | landed (wave 2, 446359c); merged (sonnet; admin rule conflict resolved)         | 821894d (9728b64, 7137146)                   |
+| 4     | 2    | landed (wave 2, 446359c); merged (opus; 6 rule conflicts with slice 2 resolved) | 9ce225a (cc4a8e3)                            |
+| 5     | 3    | landed (wave 3); merged (sonnet)                                                | 32df883 (7b0fb7e)                            |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue code-layout`, 2026-11-20). The orchestrator starts every ready slice, lands each green wave itself with `pnpm prd land`, and cleans up; it asks the user only real questions.
 
-**Now (2026-11-20):** slice 1 merged (c1954ac) and landing alone (tooling and docs only: no check needed; scripts:unit 284 passed, lint clean). Its check-areas docs were folded in at this landing (loops.md, AGENTS.md _Loop rules_, components.md), not left for the final one, since every PRD now edits `check-areas.d/`. Decision accepted: the resolver's test built-in (every `*.test.*` needs none, before the rules). After landing: message `check-migration-7b`/`check-migration-17` to resume, then start wave 2. Earlier: slice 1 started on opus after check-migration wave 5 landed (74f6723) and `dev` was synced in; B-149 claimed. Earlier: waited on the start condition. `tasks` and `hosting` wave 1 are in `dev`, but `check-migration` has unlanded `scripts/loops/check-areas` edits (`prd/check-migration`, and slices 11, 14 and 15). Messaged its orchestrator (`check-migration-7b`) to ping when they land and to hold further check-areas slices until our slice 1 lands (we tell it then; its later slices add rules to `check-areas.d/<area>`). A background loop in this session waits until no `prd/`/`slice/` branch has check-areas edits ahead of `dev`. Then: `pnpm prd sync`, claim B-149, start slice 1 (model: opus, it's the resolver design).
+**Now (2026-11-20): done, landing wave 3 (the final landing).** Lean suite once: 11/12, `app-shell`'s new member-share step (check-migration slice 16) failed once at load 20 and passed alone (33 s): filed as B-173 for check-migration. Quick check passed on f1fbfea. Docs folded (f1fbfea), each over-budget domain doc at or under its `dev` size. B-149 and B-150 done. After landing: the backlog PRD table, message `agent-tooling-29` and `check-migration-17`, `pnpm prd rm code-layout`. **Final landing:** sync, the lean `pnpm prd browser --suite` once (the user's choice), `pnpm prd check`, fold every doc listed below (each domain-doc fold trims at least as much as it adds: agent-tooling's land guard), `pnpm backlog done B-149`, land, `pnpm prd rm code-layout`. The slice hand-offs' _Docs_ notes: wave 2's are summarised in the B-149/B-150 hand-offs (lib paths widespread in the area docs; data-layer step for new tables; api.md file paths and the frozen-path test `routerPaths.test.ts`; sync.md's Device section; layout.md rows; `libLayout.test.ts`).
 
 - **check-migration agreed** (2026-11-20): it lands 11, 14 and 15 as one wave (about an hour) and messages us, then **pauses all its remaining slices** (12, 16–23 all edit check-areas) until we message it that slice 1 is in `dev`. So land slice 1 promptly and message `check-migration-7b` at once.
 - **Pass to slice 1's agent:** keep check names as plain tokens in `check-areas.d/` files, so check-migration's later deletions (`groups`, `profiles-contacts`, …) stay one-line edits; keep the resolver independent of the CDP harness, since check-migration slice 23 deletes the harness that `browser.sh --changed` drives today.

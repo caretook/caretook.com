@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import type { QuickEntryPass } from "@caretook/data/schema";
-import type { DuePass } from "~/lib/duePasses";
+import type { DuePass } from "~/lib/medications/duePasses";
 
 import { ChipGroup } from "~/components/ui";
-import { givePassText } from "~/lib/medicationDisplay";
+import { givePassText } from "~/lib/medications/medicationDisplay";
 import { useQuickEntrySuggestions } from "./useQuickEntrySuggestions";
 
 /**

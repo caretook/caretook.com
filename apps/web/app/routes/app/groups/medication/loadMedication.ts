@@ -1,19 +1,19 @@
 import type { SyncDb } from "~/lib/sync";
-import type { MedicationRow, RecipientRow } from "~/lib/sync/medications";
-import type { ProviderRow } from "~/lib/sync/providers";
-import type { EntryRow, MemberRow } from "~/lib/sync/timeline";
+import type { MedicationRow, RecipientRow } from "~/lib/medications/medications.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
+import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { data } from "react-router";
-import { loadAllergies } from "~/lib/sync/allergies";
-import { loadSchedulePasses } from "~/lib/sync/medicationPasses";
+import { loadAllergies } from "~/lib/medications/allergies.sync";
+import { loadSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import {
   medicationEntriesQuery,
   medicationQuery,
   recipientQuery,
   toMedication,
-} from "~/lib/sync/medications";
-import { providerQuery } from "~/lib/sync/providers";
-import { membersQuery, readRows } from "~/lib/sync/timeline";
+} from "~/lib/medications/medications.sync";
+import { providerQuery } from "~/lib/providers/providers.sync";
+import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 
 /**
  * The medication, its notes document and pending updates, its history (doses

@@ -1,6 +1,6 @@
-import type { AllergyState } from "~/lib/allergies";
+import type { AllergyState } from "~/lib/medications/allergies";
 
-import { allergySummary, allergyText } from "~/lib/allergies";
+import { allergySummary, allergyText } from "~/lib/medications/allergies";
 
 /**
  * The printed sheets' allergies block, at their top: each allergy on file

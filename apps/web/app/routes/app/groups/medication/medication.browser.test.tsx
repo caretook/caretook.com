@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, newId, TEST_USER } from "../../../../../test/fixtures";
-import { medicationEntriesQuery } from "~/lib/sync/medications";
+import { medicationEntriesQuery } from "~/lib/medications/medications.sync";
 import * as provider from "../provider/route";
 import {
   $,

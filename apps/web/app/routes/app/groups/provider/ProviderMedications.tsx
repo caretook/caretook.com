@@ -1,13 +1,13 @@
-import type { MedicationRow } from "~/lib/sync/medications";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
 
 import { Pill } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { medicationSummaryLine, medicationTitle } from "~/lib/medicationDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { medicationSummaryLine, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
-import { useSchedulePasses } from "~/lib/sync/medicationPasses";
-import { providerMedicationsQuery, toMedications } from "~/lib/sync/medications";
+import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { providerMedicationsQuery, toMedications } from "~/lib/medications/medications.sync";
 
 const NO_ROWS: MedicationRow[] = [];
 

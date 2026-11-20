@@ -1,13 +1,13 @@
 import type { ContactValues, SharedField } from "@caretook/data/schema";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { CONTACT_LIMITS } from "@caretook/data/schema";
 import { useId } from "react";
 import { Link, useFetcher } from "react-router";
 import { SaveRow } from "~/components/settings";
 import { Field } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { NO_CONTACT_YET, SHARING_FIELD, SHARING_HELP, sharingOptions } from "~/lib/memberContact";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { NO_CONTACT_YET, SHARING_FIELD, SHARING_HELP, sharingOptions } from "~/lib/profiles/memberContact";
 
 /**
  * On your own row: "What this group sees". A checkbox for each contact

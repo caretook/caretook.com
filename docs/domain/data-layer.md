@@ -7,7 +7,7 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
   - `/schema`, `/errors` and `/permissions` are client-safe.
   - In apps/web, server code imports through `app/.server/data.ts`.
 - **Layers, bottom up:**
-  - `errors/`: typescript-errors, with every code in `errors/constants.ts`. Errors are **returned, not thrown**; narrow with `isError()`. Wrap db calls as `dbMayFail(() => …, code)`.
+  - `errors/`: typescript-errors; each area's codes are a part, `errors/<area>.ts`, composed in `errors/constants.ts` (unique across parts: `errors.test.ts`). Errors are **returned, not thrown**; narrow with `isError()`. Wrap db calls as `dbMayFail(() => …, code)`.
   - `permissions/`: `PERMISSIONS[table][create|read|update|delete|list][role] = all | owned | none | { group: [...] }`, plus `ownerField`, field-level write restrictions and **`groupFields`**: a read reached only through a group rule returns just those fields (`user`: `PUBLIC_PROFILE_FIELDS`, id, name, image). The model enforces it in SQL (each hidden column is `CASE WHEN <the other rules> THEN col END`; filters and orders on a hidden field match whole rows only). User reads return `publicOnly`; code that needs a co-member's email reads `userModel.getWhole*`/`listWhole` as `SYSTEM_USER` (else `userModel:notWhole`).
     - Roles are `admin`, `support` and `member` (`user.role`), `system` and `unauthenticated`. `support` gets `owned` wherever members do; staff-only tables use `STAFF_PERMISSION_ENTRY`. A resolved scope is `all` or an OR of `owned`, `group` and `groupUser` rules.
     - `hasPermission()` is for UI checks.
@@ -23,8 +23,8 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
   - UUID PKs via `id()`: clients create rows offline, so `create`/`upsert` accept a caller-supplied id.
   - Every table spreads `timestamps` (timestamptz, string mode) and `audits` (`created_by`/`updated_by`, set by models, not FKs).
 - **Adding a table:**
-  1. Write `db/schema/<name>.ts` (table, types, Zod) and export it from `db/schema/index.ts`.
-  2. Add a `PERMISSIONS` entry (the type requires one).
+  1. Write `db/schema/<area>/<name>.ts` (table, types, Zod) and export it from that folder's `index.ts`; a new area adds a folder and a line in `db/schema/index.ts`. Add the new export names to the frozen list in `db/schema/index.test.ts`.
+  2. Add its `PERMISSIONS` entry to `permissions/<area>.ts` (the type requires one, and a test checks every table has one); its errors go in `errors/<area>.ts`.
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
 - **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0023 so far.

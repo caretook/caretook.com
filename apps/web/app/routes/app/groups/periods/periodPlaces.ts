@@ -6,7 +6,7 @@ import {
   matchesQuery,
   PROVIDER_TYPE_META,
   queryTokens,
-} from "../../../../lib/providerDirectory";
+} from "../../../../lib/providers/providerDirectory";
 
 // The care period form's place picker, its pure parts: which of the group's
 // providers it offers for the typed text (practices first: hospitals and

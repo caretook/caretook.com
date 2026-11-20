@@ -1,17 +1,17 @@
 import type { ProviderStatus, ProviderType } from "@caretook/data/schema";
-import type { TimedEntry } from "../../../../lib/upcoming";
+import type { TimedEntry } from "../../../../lib/appointments/upcoming";
 
-import { dayLabel } from "../../../../lib/format";
-import { medicationTitle } from "../../../../lib/medicationDisplay";
+import { dayLabel } from "../../../../lib/core/format";
+import { medicationTitle } from "../../../../lib/medications/medicationDisplay";
 import {
   compareProviders,
   fold,
   matchesQuery,
   PROVIDER_TYPE_META,
   queryTokens,
-} from "../../../../lib/providerDirectory";
-import { entryTiming, upcomingOrder } from "../../../../lib/upcoming";
-import { timeRange, upcomingTitle } from "../../../../lib/upcomingLabels";
+} from "../../../../lib/providers/providerDirectory";
+import { entryTiming, upcomingOrder } from "../../../../lib/appointments/upcoming";
+import { timeRange, upcomingTitle } from "../../../../lib/appointments/upcomingLabels";
 
 // The task form's three link pickers, their pure parts (web:unit tests it,
 // so imports stay relative): which providers, appointments and medications

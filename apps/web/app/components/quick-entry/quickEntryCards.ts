@@ -1,11 +1,11 @@
 import type { AssistantAction, QuickEntryPart, QuickEntryReading } from "@caretook/data/schema";
 
-import type { DoseDraft, EntryDraft } from "../../lib/quickEntryDraft";
+import type { DoseDraft, EntryDraft } from "../../lib/assistant/quickEntryDraft";
 
-import { appUrls } from "../../lib/appUrls";
-import { QUICK_ENTRY_DRAFT } from "../../lib/quickEntryDraft";
-import { TASK_SHEET_STATE } from "../../lib/taskSheetLink";
-import { SHEET_LINK_STATE } from "../../lib/timelineSheet";
+import { appUrls } from "../../lib/app-shell/appUrls";
+import { QUICK_ENTRY_DRAFT } from "../../lib/assistant/quickEntryDraft";
+import { TASK_SHEET_STATE } from "../../lib/tasks/taskSheetLink";
+import { SHEET_LINK_STATE } from "../../lib/timeline/timelineSheet";
 
 // The pure rules behind quick entry's cards: which reading each part shows,
 // its alternatives, what blocks Save, and where Edit goes. web:unit tests it.

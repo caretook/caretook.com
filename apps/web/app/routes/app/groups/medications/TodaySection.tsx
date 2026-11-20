@@ -1,13 +1,13 @@
-import type { DoseSlot, DueDoses } from "~/lib/dueDoses";
-import type { DuePass } from "~/lib/duePasses";
+import type { DoseSlot, DueDoses } from "~/lib/medications/dueDoses";
+import type { DuePass } from "~/lib/medications/duePasses";
 import type { Marking } from "~/components/medications";
 import type { PassLike } from "@caretook/data/schema";
 
 import { useMemo, useState } from "react";
 import { DoseSlotRow, MarkDoseDialog, PassCard, PassUndoStatus } from "~/components/medications";
-import { duePasses, isNamedPass } from "~/lib/duePasses";
-import { clockTime, missedText, scheduleZoneNote } from "~/lib/medicationDisplay";
-import { useMemberNames } from "~/lib/sync/memberNames";
+import { duePasses, isNamedPass } from "~/lib/medications/duePasses";
+import { clockTime, missedText, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
+import { useMemberNames } from "~/lib/care-groups/memberNames.sync";
 import { AsNeededRow } from "./AsNeededRow";
 
 const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;

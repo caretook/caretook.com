@@ -1,7 +1,7 @@
 import type { DaySummaryMode } from "@caretook/data/schema";
 
 import { useState } from "react";
-import { saveSettings } from "~/lib/me";
+import { saveSettings } from "~/lib/app-shell/me";
 
 /**
  * The day summaries' setting (off, highlights or full), per user. It switches

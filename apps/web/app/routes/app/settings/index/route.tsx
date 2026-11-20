@@ -1,5 +1,5 @@
 import { redirect } from "react-router";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import { isWideSettings } from "~/components/settings";
 import { ACCOUNT_SETTINGS } from "../layout/settingsPages";
 

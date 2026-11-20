@@ -1,12 +1,12 @@
-import type { RecipientProfile } from "~/lib/sync/profile";
+import type { RecipientProfile } from "~/lib/profiles/profile.sync";
 
 import { Pencil, Printer } from "lucide-react";
 import { Link } from "react-router";
 import { canEditRecipient, canReadRecipient } from "@caretook/data/schema";
 import { UserAvatar } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { ageText, birthdayText, PROFILE_NEEDS_CONNECTION } from "~/lib/recipientDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { ageText, birthdayText, PROFILE_NEEDS_CONNECTION } from "~/lib/profiles/recipientDisplay";
 import { PROFILE_SHEET_STATE, useOnline } from "./profileSheet";
 
 /**

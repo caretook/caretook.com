@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ChipGroup } from "~/components/ui";
-import { clearType, PROVIDER_TYPE_META, setQuery, setType } from "~/lib/providerDirectory";
+import { clearType, PROVIDER_TYPE_META, setQuery, setType } from "~/lib/providers/providerDirectory";
 
 /** Navigation state that marks a URL change as the search box's own. */
 const FROM_SEARCH_BOX = { providerSearch: true } as const;
@@ -65,7 +65,7 @@ export function ProviderSearch({
 
 /**
  * Type filter chips: links that set `?type=`, so the filter survives reloads.
- * They change only the type (see `lib/providerDirectory.ts`).
+ * They change only the type (see `lib/providers/providerDirectory.ts`).
  */
 export function TypeFilter({ type }: { type: ProviderType | null }) {
   const { search } = useLocation();

@@ -1,8 +1,8 @@
 import type { PrintMedicationInput, PrintRecipient } from "../printSheet";
-import type { SchedulePass } from "../../../../../../lib/medicationDisplay";
+import type { SchedulePass } from "../../../../../../lib/medications/medicationDisplay";
 
 import { slotAmount, slotTimes, sortPasses } from "@caretook/data/schema";
-import { clockTime, FORM_LABELS, medicationTitle } from "../../../../../../lib/medicationDisplay";
+import { clockTime, FORM_LABELS, medicationTitle } from "../../../../../../lib/medications/medicationDisplay";
 import { addDays, dayIn, printSheet } from "../printSheet";
 
 // The weekly bedside sheet's view model: one week in the recipient's zone, a

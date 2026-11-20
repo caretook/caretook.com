@@ -1,14 +1,14 @@
-import type { TaskLink, TaskRow } from "~/lib/sync/tasks";
-import type { MemberRow } from "~/lib/sync/timeline";
+import type { TaskLink, TaskRow } from "~/lib/tasks/tasks.sync";
+import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { taskOrder } from "@caretook/data/schema";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
-import { useGroup } from "~/lib/group";
+import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
-import { useNow } from "~/lib/sync/editors";
-import { linkedTasksQuery, toTasks } from "~/lib/sync/tasks";
-import { membersQuery } from "~/lib/sync/timeline";
-import { subscribeTaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/taskUndo";
+import { useNow } from "~/lib/live-notes/editors.sync";
+import { linkedTasksQuery, toTasks } from "~/lib/tasks/tasks.sync";
+import { membersQuery } from "~/lib/timeline/timeline.sync";
+import { subscribeTaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/tasks/taskUndo";
 
 const NO_TASKS: TaskRow[] = [];
 const NO_MEMBERS: MemberRow[] = [];

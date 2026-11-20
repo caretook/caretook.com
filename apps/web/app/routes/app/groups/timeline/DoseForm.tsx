@@ -1,15 +1,15 @@
 import type { DoseDetails, DoseStatus } from "@caretook/data/schema";
 import type { FormEvent } from "react";
-import type { PlannedDose } from "~/lib/dueDoses";
-import type { DoseDraft } from "~/lib/quickEntryDraft";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { PlannedDose } from "~/lib/medications/dueDoses";
+import type { DoseDraft } from "~/lib/assistant/quickEntryDraft";
+import type { TimelineEntry } from "~/lib/core/rpc";
 import type { DoseOption } from "./doseFormData";
 
 import { useState } from "react";
 import { isDoseDetails, MEDICATION_LIMITS } from "@caretook/data/schema";
 import { ChoiceGroup, Field } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
-import { formString } from "~/lib/form";
+import { formString } from "~/lib/core/form";
 import { DOSE_STATUS_OPTIONS, parseDoseOption } from "./doseFormData";
 import { parseOccurredAt } from "./entryFormData";
 import { issueFor } from "./formIssues";

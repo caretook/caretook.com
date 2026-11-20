@@ -1,11 +1,11 @@
 import type { ListChip } from "~/components/ui";
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChipGroup, ChipList, ComboBox } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { chipLabel } from "~/lib/entryProviders";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { chipLabel } from "~/lib/providers/entryProviders";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import {
   createAndLinkProvider,
@@ -14,8 +14,8 @@ import {
   providersQuery,
   toProviders,
   unlinkProvider,
-} from "~/lib/sync/providers";
-import { useProviderSuggestions } from "~/lib/sync/providerSuggestions";
+} from "~/lib/providers/providers.sync";
+import { useProviderSuggestions } from "~/lib/providers/providerSuggestions.sync";
 import { canAddNamed, pickerOptions } from "./withProviders";
 
 const NO_ROWS: ProviderRow[] = [];

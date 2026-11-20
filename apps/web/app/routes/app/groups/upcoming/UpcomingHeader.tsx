@@ -3,9 +3,9 @@ import type { UpcomingKind } from "./upcomingFilters";
 import { CalendarPlus, NotebookPen, X } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { ChipGroup, UserAvatar } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { clearAuthor, clearKind, setKind } from "~/lib/timelineFilters";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { clearAuthor, clearKind, setKind } from "~/lib/timeline/timelineFilters";
 import { tabSearch, UPCOMING_KIND_LABELS, UPCOMING_KINDS } from "./upcomingFilters";
 
 const TAB = "border-b-2 px-1 pb-2 text-sm font-medium";

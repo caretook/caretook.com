@@ -1,4 +1,4 @@
-import type { ApiOutputs } from "~/lib/rpc";
+import type { ApiOutputs } from "~/lib/core/rpc";
 import type { LoaderArgs } from "../../../../test/device";
 
 import { describe, expect, test } from "vitest";

@@ -29,6 +29,14 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side). (B-143)
 - In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the full layout. Replace "Now" heading with "Upcoming". Reduce size of quick action buttons so that they are one row with smaller buttons so they are one row."Tap the microphone on your keyboard to say it instead of typing." should only appear on devices that support voice input via keyboard (ios/andriod?). All text is too large and should be reduced in size. Assume users that can't see well will have there devices set to larger text, or zoom their browsers. (B-162)
 - "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas separate entries; start with “n:” for a note." should be a tooltip. (B-163)
+- "day/date" heder for full timeline is too small compared to the + button. Make text larger. (B-164)
+- Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. (B-165)
+- Using back to timeline from timeline live-note entry (or any browse action) takes you back to the timeline, causes all lazy loaded header elements to reload. Can we cache their state with a visual indicator (maybe greyed out) and load in the background so that it doesn't cause page shift? Maybe keep a placeholder in the header so that it doesn't cause a flash on load any time? (B-166)
+- Make day summary part of sticky header so it is always visible when scrolling up the timeline. (B-167)
+- timeline group titles that are too long wrap to multiple lines on small screens. Truncate the provider on small screens. (B-168)
+- vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is collapsible. They should all have a right side link to the full view that is formatted similarly. (B-169)
+- When creating a new timeline entry for a note or event, we should navigate to edit page on save so the user can add more info to the live document immediately without an extra tap. (B-170)
+- your recent lines should exclude notes and events. vitals should only show the vital key, not the value so that the user can log those quickly without deleting the value. (B-171)
 
 ## Feature requests
 

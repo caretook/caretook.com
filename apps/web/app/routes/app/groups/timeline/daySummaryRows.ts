@@ -1,7 +1,7 @@
-import type { EntryFilters, LocalQuery } from "~/lib/sync/timeline";
+import type { EntryFilters, LocalQuery } from "~/lib/timeline/timeline.sync";
 
 import { FUTURE_KINDS } from "@caretook/data/schema";
-import { SHOWN_KINDS_SQL, toLocalTimestamp } from "~/lib/sync/timeline";
+import { SHOWN_KINDS_SQL, toLocalTimestamp } from "~/lib/timeline/timeline.sync";
 import { baselineStart } from "./daySummary";
 import { dayKeyIn } from "./timelineDays";
 

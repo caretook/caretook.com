@@ -1,9 +1,9 @@
-import type { FieldIssue } from "~/lib/api";
+import type { FieldIssue } from "~/lib/core/api";
 
 import { defaultGroupName } from "@caretook/data/schema";
 import { useState } from "react";
 import { Field } from "~/components/ui";
-import { formString } from "~/lib/form";
+import { formString } from "~/lib/core/form";
 
 // "Who do you care for?": the care recipient's name and preferred name, and
 // the group's name (empty: "<preferred or first name>'s care", shown as its

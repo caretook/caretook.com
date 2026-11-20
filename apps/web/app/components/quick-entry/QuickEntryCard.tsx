@@ -1,9 +1,9 @@
-import type { ActionPreview } from "~/lib/quickEntryPreview";
+import type { ActionPreview } from "~/lib/assistant/quickEntryPreview";
 import type { QuickEntryCard as Card } from "./quickEntryCards";
 
 import { ListTodo, X } from "lucide-react";
 import { ChipGroup, IconButton } from "~/components/ui";
-import { KIND_META } from "~/lib/entryDisplay";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
 
 /**
  * One part of the line, as it will be saved: its kind, what it says and

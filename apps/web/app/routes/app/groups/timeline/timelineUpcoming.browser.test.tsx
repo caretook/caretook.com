@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { TEST_GROUP } from "../../../../../test/fixtures";
-import { materializeLiveEntry } from "~/lib/sync/liveEntry";
+import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
 import {
   fixClock,
   ME,

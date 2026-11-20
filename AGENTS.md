@@ -89,7 +89,8 @@ Orchestrators and loops read the handbook, [`docs/loops.md`](docs/loops.md), bef
 
 - **Migrations take the next number when they land, not when they're planned.** Plans say "adds a migration", not "0008". A loop generates whatever is next on its base. When a sync brings in another PRD's migration, keep `dev`'s, regenerate yours on top (`pnpm datastore:generate`), and reread its SQL order. Keep one pending migration per PRD where you can.
 - **Seeds are append-only.** `timelineEntries.ts` ids follow position, so never insert in the middle: append at the end, or give a new feature's seeds their own file and ids.
-- **Additive edits to shared registries.** In `db/schema/index.ts`, `PERMISSIONS`, `sync-config.yaml`, the device schema, the `sync.ts` upload switch, `routes.ts` and `KIND_META`, add entries at the end of their group and never reorder or reformat, so concurrent additions merge as adjacent hunks.
+- **Registries are composed from area parts.** Add a route, URL, error, permission, table or procedure to your area's part (create it when your area has none): `routes/…/<area>/routes.ts`, `lib/<area>/urls.ts`, `errors/<area>.ts`, `permissions/<area>.ts`, `db/schema/<area>/`, `packages/api/src/<area>/`, and its check-areas rule to `scripts/loops/check-areas.d/<area>`. The top indexes change only when an area is added, and each composed result is frozen in a test that lists its entries (`routes.test.ts`, `appUrls.test.ts`, `routerPaths.test.ts`, the schema's `index.test.ts`): add yours. Areas are the `docs/domain/` names plus `core` ([layout](docs/layout.md)).
+- **Additive edits to the registries that remain shared.** In the `services/`, `models/` and `seeds/` indexes, `sync-config.yaml`, the device schema, the `sync.ts` upload switch, `KIND_META` and `GROUP_SECTIONS`, add entries at the end of their group and never reorder or reformat, so concurrent additions merge as adjacent hunks.
 - **Hot files get regions first.** When two PRDs will change one screen (the backlog's PRD table lists hot files), a small slice first splits it into regions or components that each PRD fills (as `EntryHeader` did for live notes), and lands before both.
 - **AGENTS.md and `docs/`:** loops never edit them. An orchestrator edits them at landing only, folding that wave's lasting decisions into the matching area doc (and only rules and pointers into this core), and keeps in-flight status in its plan.
 
@@ -178,7 +179,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 ### Sync: PowerSync (details: [`docs/domain/sync.md`](docs/domain/sync.md))
 
 - Postgres is the source of truth. Each device keeps a SQLite copy, and writes upload through **our** API (`sync.upload`), mapped onto services, so permissions, validation and audits all apply. Last write wins per row; live notes merge through Yjs.
-- Sync Streams (`powersync/sync-config.yaml`) list their columns explicitly; restart PowerSync after editing it. Device code is `apps/web/app/lib/sync/`; its client loads lazily, never statically.
+- Sync Streams (`powersync/sync-config.yaml`) list their columns explicitly; restart PowerSync after editing it. `apps/web/app/lib/sync/` is the plumbing (client, schema, `useLiveRows`…); each area's device queries are `lib/<area>/<name>.sync.ts`. The client loads lazily, never statically.
 - Screens read the local database (`useLiveQuery`); anything server-side goes through oRPC ([`docs/domain/api.md`](docs/domain/api.md)).
 
 ### Hosting

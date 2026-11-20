@@ -1,7 +1,7 @@
-import type { ApiOutputs } from "~/lib/rpc";
+import type { ApiOutputs } from "~/lib/core/rpc";
 
 import { describe, expect, test } from "vitest";
-import { formString } from "~/lib/form";
+import { formString } from "~/lib/core/form";
 import { page, userEvent } from "vitest/browser";
 import { ADMIN_STAFF, adminFx } from "../../../../test/adminFixtures";
 import { openAdmin, postedForms } from "../adminWorld";

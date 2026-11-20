@@ -1,13 +1,13 @@
-import type { AllergyRows } from "~/lib/sync/allergies";
-import type { MedicationNameRow } from "~/lib/sync/medications";
+import type { AllergyRows } from "~/lib/medications/allergies.sync";
+import type { MedicationNameRow } from "~/lib/medications/medications.sync";
 
 import { useMemo, useRef, useState } from "react";
 import { MEDICATION_LIMITS } from "@caretook/data/schema";
 import { ChipGroup, Field } from "~/components/ui";
-import { allergyMatches, allergyWarning } from "~/lib/allergies";
-import { useGroup } from "~/lib/group";
-import { useAllergies } from "~/lib/sync/allergies";
-import { suggestMedicationNames } from "~/lib/medicationNames";
+import { allergyMatches, allergyWarning } from "~/lib/medications/allergies";
+import { useGroup } from "~/lib/app-shell/group";
+import { useAllergies } from "~/lib/medications/allergies.sync";
+import { suggestMedicationNames } from "~/lib/medications/medicationNames";
 import { FIELD } from "./medicationFormData";
 
 // The allergies before the live query's first answer (a module constant: see `useLiveQuery`).

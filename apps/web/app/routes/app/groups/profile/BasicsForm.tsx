@@ -1,12 +1,16 @@
-import type { ActionResult } from "~/lib/api";
-import type { RecipientProfile } from "~/lib/sync/profile";
+import type { ActionResult } from "~/lib/core/api";
+import type { RecipientProfile } from "~/lib/profiles/profile.sync";
 import type { BasicsField } from "./basicsFormData";
 
 import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
 import { BLOOD_TYPES, CODE_STATUSES, RECIPIENT_LIMITS } from "@caretook/data/schema";
 import { ChoiceGroup, Field } from "~/components/ui";
-import { bloodTypeLabel, CODE_STATUS_LABELS, PROFILE_NEEDS_CONNECTION } from "~/lib/recipientDisplay";
+import {
+  bloodTypeLabel,
+  CODE_STATUS_LABELS,
+  PROFILE_NEEDS_CONNECTION,
+} from "~/lib/profiles/recipientDisplay";
 import { useOnline } from "./profileSheet";
 
 const NOT_SET = "Not set";

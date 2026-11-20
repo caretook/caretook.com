@@ -1,11 +1,11 @@
-import type { UpcomingDose } from "~/lib/upcomingDoses";
+import type { UpcomingDose } from "~/lib/appointments/upcomingDoses";
 
 import { Link } from "react-router";
 import { KindIcon } from "~/components/entry";
-import { appUrls } from "~/lib/appUrls";
-import { SHEET_LINK_STATE } from "~/lib/timelineSheet";
-import { doseItemText, doseLinkLabel, doseStateLabel } from "~/lib/upcomingDoses";
-import { timeRange } from "~/lib/upcomingLabels";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { SHEET_LINK_STATE } from "~/lib/timeline/timelineSheet";
+import { doseItemText, doseLinkLabel, doseStateLabel } from "~/lib/appointments/upcomingDoses";
+import { timeRange } from "~/lib/appointments/upcomingLabels";
 
 /**
  * One of today's open passes in Upcoming, one row each: the dose icon, its

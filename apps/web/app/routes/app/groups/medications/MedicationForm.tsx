@@ -1,15 +1,15 @@
-import type { ActionResult, FieldIssue } from "~/lib/api";
-import type { LocalPass } from "~/lib/sync/medicationPasses";
-import type { LocalMedication, MedicationNameRow } from "~/lib/sync/medications";
-import type { LocalProvider } from "~/lib/sync/providers";
+import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
+import type { LocalMedication, MedicationNameRow } from "~/lib/medications/medications.sync";
+import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { MEDICATION_FORMS, MEDICATION_LIMITS } from "@caretook/data/schema";
 import { Field } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { FORM_LABELS } from "~/lib/medicationDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { FORM_LABELS } from "~/lib/medications/medicationDisplay";
 import { FIELD, isFieldIssue } from "./medicationFormData";
 import { NameField } from "./NameField";
 import { ProviderPickerField } from "./ProviderPickerField";

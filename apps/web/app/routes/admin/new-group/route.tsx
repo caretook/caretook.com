@@ -5,7 +5,7 @@ import { ATTESTATION_TEXT } from "@caretook/data/schema";
 import { Form, useNavigation } from "react-router";
 import { requireStaff } from "~/.server/admin";
 import { Field } from "~/components/ui";
-import { formString } from "~/lib/form";
+import { formString } from "~/lib/core/form";
 import { adminFailure, issueFor } from "../adminForms";
 
 // /admin/new-group: staff set up a care group for a family by hand. The

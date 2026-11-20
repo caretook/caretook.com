@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { TimelineView } from "@caretook/data/schema";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineData } from "./useTimelineData";
 
 import { ArrowRight, CalendarClock } from "lucide-react";

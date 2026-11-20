@@ -5,7 +5,7 @@ import {
   matchesQuery,
   PROVIDER_TYPE_META,
   queryTokens,
-} from "../../../../lib/providerDirectory";
+} from "../../../../lib/providers/providerDirectory";
 
 // The entry page's With row, its pure parts: what the picker offers for the
 // typed text, and what each linked provider's chip says. No React or

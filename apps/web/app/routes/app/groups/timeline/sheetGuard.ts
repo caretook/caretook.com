@@ -1,8 +1,8 @@
-import type { SheetKind } from "../../../../lib/appUrls";
+import type { SheetKind } from "../../../../lib/timeline/urls";
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
+import { appUrls } from "../../../../lib/app-shell/appUrls";
 import {
-  appUrls,
   DOSE_MEDICATION_PARAM,
   DOSE_SLOT_PARAM,
   DOSE_PASS_PARAM,
@@ -10,9 +10,9 @@ import {
   isVitalType,
   VITAL_TYPE_PARAM,
   withoutSheetParams,
-} from "../../../../lib/appUrls";
+} from "../../../../lib/timeline/urls";
 import { canHaveNoteDocument, isSystemWrittenKind, scheduleTimeZSchema } from "@caretook/data/schema";
-import { parseFilters } from "../../../../lib/timelineFilters";
+import { parseFilters } from "../../../../lib/timeline/timelineFilters";
 
 // The timeline's sheet routes (`timeline/new/:kind`, `timeline/new/dose`, `timeline/:entryId/edit`): which sheet a URL
 // opens, or where it goes instead. Pure, so web:unit tests it; the routes'

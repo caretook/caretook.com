@@ -1,17 +1,17 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
-import type { TaskRow } from "~/lib/sync/tasks";
+import type { ActionResult } from "~/lib/core/api";
+import type { TaskRow } from "~/lib/tasks/tasks.sync";
 
 import { useEffect } from "react";
 import { redirect } from "react-router";
 import { Sheet } from "~/components/ui";
-import { getGroup, useGroup } from "~/lib/group";
-import { scheduleZoneNote } from "~/lib/medicationDisplay";
-import { sessionContext } from "~/lib/session";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
+import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
-import { taskQuery, toTask, updateTask } from "~/lib/sync/tasks";
-import { readRows } from "~/lib/sync/timeline";
+import { taskQuery, toTask, updateTask } from "~/lib/tasks/tasks.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { TaskForm } from "../TaskForm";
 import { taskFromForm } from "../taskFormData";
 import {
@@ -21,7 +21,7 @@ import {
   useCloseTaskSheet,
   useLinkChoices,
 } from "../taskSheet";
-import { editTaskGuard } from "~/lib/taskSheets";
+import { editTaskGuard } from "~/lib/tasks/taskSheets";
 
 const NO_ROWS: TaskRow[] = [];
 

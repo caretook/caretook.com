@@ -1,6 +1,6 @@
 import type { UnitChoices } from "@caretook/data/schema";
 import type { ReactNode } from "react";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { TimelineEntry } from "~/lib/core/rpc";
 import type { LinkedContact } from "./upcomingContact";
 import type { RescheduledTarget } from "./useUpcomingData";
 
@@ -8,10 +8,16 @@ import { MapPin } from "lucide-react";
 import { Link } from "react-router";
 import { AuthorFilterLink, EntryBody, KindFilterLink } from "~/components/entry";
 import { ContactActions } from "~/components/providers";
-import { appUrls } from "~/lib/appUrls";
-import { initials } from "~/lib/entryDisplay";
-import { entryTiming } from "~/lib/upcoming";
-import { cancelledLabel, nowLabel, rescheduledLabel, timeRange, upcomingTitle } from "~/lib/upcomingLabels";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { initials } from "~/lib/timeline/entryDisplay";
+import { entryTiming } from "~/lib/appointments/upcoming";
+import {
+  cancelledLabel,
+  nowLabel,
+  rescheduledLabel,
+  timeRange,
+  upcomingTitle,
+} from "~/lib/appointments/upcomingLabels";
 import { placeLine, placeOf, upcomingActions } from "./upcomingContact";
 
 /** Breaks a range after its dash ("10:30 AM–" / "11:15 AM") when the column is narrow. */

@@ -1,8 +1,8 @@
 import type { OutsideContact } from "@caretook/data/schema";
-import type { EmergencyMemberRow } from "~/lib/emergencyList";
+import type { EmergencyMemberRow } from "~/lib/profiles/emergencyList";
 
 import { ContactLines } from "~/components/contact";
-import { droppedNotes, emergencyEntries, emergencyPhoneLines } from "~/lib/emergencyList";
+import { droppedNotes, emergencyEntries, emergencyPhoneLines } from "~/lib/profiles/emergencyList";
 import { EditSheetLink } from "./DetailsCards";
 import { ProfileCard } from "./ProfileCards";
 

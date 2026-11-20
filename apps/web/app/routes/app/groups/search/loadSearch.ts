@@ -1,36 +1,36 @@
 import type { SearchItemType } from "@caretook/data/schema";
-import type { LinkedProviderName } from "~/lib/entryProviders";
-import type { WithMedication } from "~/lib/medicationEntries";
-import type { TimelineEntry } from "~/lib/rpc";
-import type { ResultSection, SearchPageQuery } from "~/lib/searchResults";
+import type { LinkedProviderName } from "~/lib/providers/entryProviders";
+import type { WithMedication } from "~/lib/medications/medicationEntries";
+import type { TimelineEntry } from "~/lib/core/rpc";
+import type { ResultSection, SearchPageQuery } from "~/lib/search/searchResults";
 import type { SyncDb } from "~/lib/sync";
-import type { NoteDocRow } from "~/lib/sync/notes";
-import type { SearchIndexStatus } from "~/lib/sync/search";
-import type { EntryMedicationRow } from "~/lib/sync/medicationTimeline";
-import type { LocalMedication, MedicationRow } from "~/lib/sync/medications";
-import type { LocalProvider, ProviderRow } from "~/lib/sync/providers";
-import type { LocalTask, TaskRow } from "~/lib/sync/tasks";
-import type { EntryRow } from "~/lib/sync/timeline";
-import type { EntryProviderLinkRow } from "~/lib/entryProviders";
+import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { SearchIndexStatus } from "~/lib/search/search.sync";
+import type { EntryMedicationRow } from "~/lib/medications/medicationTimeline.sync";
+import type { LocalMedication, MedicationRow } from "~/lib/medications/medications.sync";
+import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync";
+import type { LocalTask, TaskRow } from "~/lib/tasks/tasks.sync";
+import type { EntryRow } from "~/lib/timeline/timeline.sync";
+import type { EntryProviderLinkRow } from "~/lib/providers/entryProviders";
 
 import { isEmptySearch } from "@caretook/data/schema";
-import { groupLinksByEntry } from "~/lib/entryProviders";
-import { isLiveEntryKind } from "~/lib/liveEntry";
-import { medicationIdOf, withMedication } from "~/lib/medicationEntries";
-import { searchSections, sectionLimits } from "~/lib/searchResults";
-import { loadSchedulePasses, toPasses } from "~/lib/sync/medicationPasses";
-import { toEntryMedication } from "~/lib/sync/medicationTimeline";
-import { toMedication } from "~/lib/sync/medications";
-import { previewText } from "~/lib/sync/notes";
-import { toProvider, windowLinksQuery } from "~/lib/sync/providers";
-import { toTask } from "~/lib/sync/tasks";
-import { rangeUntilNow } from "~/lib/periodSearch";
-import { loadSearchPeriods, searchPeriodRange } from "~/lib/sync/periodSearch";
-import { parseSearch, searchGroup, searchIndexStatus } from "~/lib/sync/search";
-import { fromLocalTimestamp, toTimelineEntry } from "~/lib/sync/timeline";
+import { groupLinksByEntry } from "~/lib/providers/entryProviders";
+import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
+import { medicationIdOf, withMedication } from "~/lib/medications/medicationEntries";
+import { searchSections, sectionLimits } from "~/lib/search/searchResults";
+import { loadSchedulePasses, toPasses } from "~/lib/medications/medicationPasses.sync";
+import { toEntryMedication } from "~/lib/medications/medicationTimeline.sync";
+import { toMedication } from "~/lib/medications/medications.sync";
+import { previewText } from "~/lib/live-notes/notes.sync";
+import { toProvider, windowLinksQuery } from "~/lib/providers/providers.sync";
+import { toTask } from "~/lib/tasks/tasks.sync";
+import { rangeUntilNow } from "~/lib/care-periods/periodSearch";
+import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
+import { parseSearch, searchGroup, searchIndexStatus } from "~/lib/search/search.sync";
+import { fromLocalTimestamp, toTimelineEntry } from "~/lib/timeline/timeline.sync";
 
 // The search page's reads: the index's matches for one group, arranged into
-// sections (`lib/searchResults`), then the rows they show, read locally in
+// sections (`lib/search/searchResults`), then the rows they show, read locally in
 // one query per type (never one per result). Used by the loader (so Back
 // shows the same results at once) and by `useSearchPage` (as the text and
 // the index change).

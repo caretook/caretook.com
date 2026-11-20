@@ -1,9 +1,9 @@
-import type { LiveDocument } from "~/lib/liveNow";
+import type { LiveDocument } from "~/lib/live-notes/liveNow";
 
 import { useState } from "react";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { announcementText, writingLabel } from "~/lib/liveNow";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { announcementText, writingLabel } from "~/lib/live-notes/liveNow";
 import { STRIP_CAP } from "./layout";
 import { LiveDot } from "./LiveDot";
 
