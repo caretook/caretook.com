@@ -76,7 +76,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-107 | feature | landed | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
 | B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-112 | change | in-progress | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
-| B-113 | chore | triaged | admin |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
+| B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-114 | chore | triaged | check-migration |  | Move routing.mjs to component tests |
 | B-115 | chore | triaged | check-migration |  | Move settings-layout.mjs to component tests |
 | B-116 | chore | triaged | check-migration |  | Move providers.mjs to component tests |
@@ -431,7 +431,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-113 · chore · Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands
 
 - status: triaged
-- prd: admin
+- prd: check-migration
 - owner:
 - commit:
 
