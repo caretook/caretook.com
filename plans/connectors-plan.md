@@ -38,7 +38,7 @@
 **Open for landing:**
 
 - A full clean `pnpm prd check` (load flakes so far: B-178, B-173, providers).
-- The lean set once, with the user's OK for `--suite` first. It covers what slices 3 and 5 named.
+- The lean set once: the user approved one `--suite` run at landing (2026-11-20). It covers what slices 3 and 5 named.
 - `first-sync` showed FLAKY in slice 2's run, logged in `.browser-flakes.log` and not yet filed.
 - Fold the docs: slice hand-offs list them. Write a new connectors.md.
 
