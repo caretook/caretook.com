@@ -85,6 +85,15 @@ export default defineConfig({
           setupFiles: ["./test/setup.ts"],
           // Takes the machine-wide browser lease around Chromium (see the file).
           globalSetup: ["./test/browserLease.ts"],
+          // Four test files at once (Vitest's default is cores − 1). Measured
+          // for B-131 beside a second run and two other PRDs (load 40–70 on 10
+          // cores): at 9 the slowest tests passed 15 s and timed out; at 4
+          // they take 2–4 s and the run is no slower.
+          maxWorkers: 4,
+          // Vitest runs projects with their own maxWorkers as a group of their
+          // own: this one after the rest, so `pnpm check`'s unit and
+          // integration tests aren't competing with Chromium either.
+          sequence: { groupOrder: 1 },
           browser: {
             enabled: true,
             headless: true,

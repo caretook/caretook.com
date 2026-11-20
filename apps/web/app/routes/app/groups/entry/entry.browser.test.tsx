@@ -274,7 +274,8 @@ describe("who's writing", () => {
     const editors = (e: Record<string, string>) =>
       fx.document({ ownerId: event.id, text: "Stretches", editors: JSON.stringify(e) });
     await device.sync(editors({ [SAM.id]: at() }));
-    await waitUntil(() => AVATARS().length === 1, 4000, "Sam's avatar");
+    await device.settle();
+    expect(AVATARS().length).toBe(1);
     expect(AVATARS()[0]!.textContent).toBe("SO");
     expect($('main [data-region="editors"] [role="group"]')!.getAttribute("aria-label")).toMatch(
       /is editing$/,
@@ -282,7 +283,7 @@ describe("who's writing", () => {
 
     // The signed-in user writing too: still only Sam.
     await device.sync(editors({ [SAM.id]: at(), [TEST_USER.id]: at() }));
-    await pause(300);
+    await device.settle();
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id]);
   });
 
@@ -563,11 +564,8 @@ describe("appointments", () => {
     expect(MAP()).toBeNull();
 
     await device.sync(fx.link(appt.id, clinic.id));
-    await waitUntil(
-      () => PLACE()?.placeholder === "12 Example Way, Springfield",
-      4000,
-      "the provider's address",
-    );
+    await device.settle();
+    expect(PLACE()?.placeholder).toBe("12 Example Way, Springfield");
     expect(PLACE()!.value).toBe("");
     expect(PLACE_REGION()!.textContent).toContain("from Harbor Heart Clinic");
     expect(MAP()!.href).toContain(encodeURIComponent("12 Example Way, Springfield"));
