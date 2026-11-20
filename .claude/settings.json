@@ -13,5 +13,34 @@
     "anthropic-skills:import-memory": "off",
     "anthropic-skills:deep-research": "off",
     "anthropic-skills:skill-creator": "off"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm check)",
+      "Bash(pnpm prd *)",
+      "Bash(pnpm backlog *)",
+      "Bash(git status *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git diff)",
+      "Bash(git log *)",
+      "Bash(git log)",
+      "Bash(git show *)",
+      "Bash(git rev-parse *)",
+      "Bash(git merge-base *)",
+      "Bash(git ls-files *)",
+      "Bash(git blame *)",
+      "Bash(git worktree list *)",
+      "Bash(git worktree list)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.*.local)",
+      "Read(packages/data/src/db/migrations/meta/**)",
+      "Bash(git push *)",
+      "Bash(git push)",
+      "Bash(*CARETOOK_ALLOW_PROTECTED=*)"
+    ]
   }
 }

@@ -12,7 +12,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
 | `orchestration` | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done**, all 9 slices in `dev` (`94e6b80`); follow-ups are `check-migration` and `loop-recovery` | (none) | none now |
 | `live-notes-ux`   | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done**, all 10 slices in `dev` | (none) | none now |
-| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–43 in `dev`; new fixes append as slice 44 on. Nothing triaged and waiting |  (none) | varies by slice; none now |
+| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–43 in `dev`; new fixes append as slice 44 on. **Next in the freed slot** (the user, 2026-11-20, after `tasks` is removed): B-135 (the + add-entry menu, a regression against B-98) and B-134 (the month step from the 31st in visit prep), as slices 44 and 45 |  (none) | varies by slice; none now |
 | `app-shell`       | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done**, all 7 slices in `dev` | (none) | none now |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done**, all 7 slices in `dev` | `live-notes-ux`, `app-shell`, `routing`, `components` (all done) | none now |
 | `search` | [PRD](search-prd.md), [plan](search-plan.md): **done**, all 6 slices in `dev` (`a5f3d4d`) | (none) | none now |
@@ -51,7 +51,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-12 | plan | landed | assistant | prd/assistant | Assistant: lightweight chat, with voice, for quick actions and questions about the timeline |
 | B-25 | feature | triaged | providers |  | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
-| B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
+| B-33 | plan | in-progress | hosting | prd/hosting | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-48 | feature | triaged | providers |  | Allow import of providers from other care groups that you have access to. |
 | B-49 | feature | landed | assistant | prd/assistant | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
@@ -65,7 +65,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
-| B-68 | chore | triaged | hosting |  | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
+| B-68 | chore | in-progress | hosting | prd/hosting | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-87 | plan | landed | assistant | prd/assistant | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
@@ -108,7 +108,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-138 | change | triaged | app-speed |  | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
 | B-139 | change | triaged | app-speed |  | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
 | B-140 | change | triaged | app-speed |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
-| B-141 | change | triaged | hosting |  | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
+| B-141 | change | in-progress | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
 | B-142 | change | triaged | hosting |  | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
 | B-143 | change | triaged | hosting |  | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
 | B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
@@ -119,8 +119,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-149 | chore | triaged | code-layout |  | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
 | B-150 | chore | triaged | code-layout |  | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
-| B-152 | chore | triaged | agent-tooling |  | Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`… |
-| B-153 | chore | triaged | agent-tooling |  | Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent… |
+| B-152 | chore | landed | agent-tooling |  | Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`… |
+| B-153 | chore | landed | agent-tooling |  | Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent… |
 | B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
 | B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
@@ -162,9 +162,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-33 · plan · Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment
 
-- status: triaged
+- status: in-progress
 - prd: hosting
-- owner:
+- owner: prd/hosting
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Not planned yet; the user will say when. Covers the open questions in AGENTS.md: hosted database (same region as Vercel functions, pooling), how production migrations run, PowerSync Cloud (replication role with column-limited grants, sslmode verify-full, how it reaches the JWKS), rate-limit storage, env and secrets, a real staging environment, and confirming the first Vercel deploy runs pnpm 12. Invites (B-30) and marketing (B-32) need it to go live.
@@ -304,9 +304,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
-- status: triaged
+- status: in-progress
 - prd: hosting
-- owner:
+- owner: prd/hosting
 - commit:
 
 - 2026-11-18 (prd/invites orchestrator): From the invites PRD (AGENTS.md, Notifications → Before launch): turn off Resend's open and click tracking on the sending domain (not per message); SPF, DKIM and DMARC on the sending subdomain; verified bounce webhooks (Svix); a host cron for /api/cron/outbox with CRON_SECRET; and Better Auth's rate-limit storage (in-memory per serverless instance today). Part of launch work, related to B-33.
@@ -769,9 +769,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-141 · change · Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts).
 
-- status: triaged
+- status: in-progress
 - prd: hosting
-- owner:
+- owner: prd/hosting
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Both are in memory per serverless instance, which matters with 6-digit sign-in codes.
@@ -786,6 +786,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until the native app ships, and define them once. / They are hard-coded as trusted, with credentials, in routes/rpc.ts and packages/auth/src/auth.ts.
 - 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice together with B-143 (origin and client-IP hardening before going live). Same files as slice 3 (routes/rpc.ts, packages/auth/src/auth.ts), so it follows wave 1. Hosting's orchestrator decides at its wave boundary.
+- 2026-11-20 (prd/hosting): Planned as hosting slice 8 (wave 2, after slices 1 and 3), with B-143.
 
 ### B-143 · change · Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts…
 
@@ -796,6 +797,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side).
 - 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice with B-142. Slice 3 owns the limiter; this changes what key it gets (the host's own client-IP header, not the first x-forwarded-for entry).
+- 2026-11-20 (prd/hosting): Planned as hosting slice 8 (wave 2, after slices 1 and 3), with B-142.
 
 ### B-144 · feature · Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload…
 
@@ -879,23 +881,25 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-152 · chore · Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`…
 
-- status: triaged
+- status: landed
 - prd: agent-tooling
 - owner:
-- commit:
+- commit: 75f7f04
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog` and read-only git; deny reads of `.env` files and of packages/data/src/db/migrations/meta/** (22 snapshots that pollute searches); deny pushes and setting `CARETOOK_ALLOW_PROTECTED`.
 - 2026-11-20 (backlog agent): Triage: agent-tooling, but small enough to be a direct change on dev if the user asks (one settings file, no app code).
+- 2026-11-20 (backlog agent): Done as a direct change in the main checkout (2026-11-20), not committed yet: a permissions block in .claude/settings.json. Allows pnpm check, pnpm prd, pnpm backlog and read-only git; denies reading .env and .env.local files and migrations/meta, git push, and any command setting CARETOOK_ALLOW_PROTECTED. .env.example and .env.test stay readable.
 
 ### B-153 · chore · Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent…
 
-- status: triaged
+- status: landed
 - prd: agent-tooling
 - owner:
-- commit:
+- commit: 95fdb7b
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent shell.
 - 2026-11-20 (backlog agent): Triage: agent-tooling. Small (scripts pick Node 24 from .nvmrc themselves); could also be a direct change on dev.
+- 2026-11-20 (backlog agent): Done as a direct change in the main checkout (2026-11-20), not committed yet: use_node (scripts/loops/lib.sh) puts .nvmrc's Node and its pnpm first on PATH itself and no longer relies on nvm use taking; pnpm prd calls it for every command, and new.sh and browser.sh use it. Raw pnpm check and pnpm test in an agent shell still need Node 24 on PATH. scripts:unit passes (195 tests). Running worktrees get it at their next sync.
 
 ### B-154 · chore · Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the…
 
