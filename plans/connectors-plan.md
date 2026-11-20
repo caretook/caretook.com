@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | Wave | State                                                                     | Merge into `prd/connectors` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------------- | ------------------------------------------- |
-| 1     | 1    | started (worktree `.loops/connectors-1`, sonnet agent spawned 2026-11-20) |                                             |
-| 2     | 1    | started (worktree `.loops/connectors-2`, opus agent spawned 2026-11-20)   |                                             |
-| 7     | 1    | started (worktree `.loops/connectors-7`, sonnet agent spawned 2026-11-20) |                                             |
-| 3     | 2    | not started                                                               |                                             |
-| 4     | 2    | not started                                                               |                                             |
-| 5     | 2    | not started                                                               |                                             |
-| 6     | 3    | not started                                                               |                                             |
+| Slice | Wave | State                                                                                           | Merge into `prd/connectors` (slice commits) |
+| ----- | ---- | ----------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 1     | 1    | started (worktree `.loops/connectors-1`, sonnet agent spawned 2026-11-20)                       |                                             |
+| 2     | 1    | started (worktree `.loops/connectors-2`, opus agent spawned 2026-11-20)                         |                                             |
+| 7     | 1    | handed off (210766d1; check green but a load flake; `marketing` browser check left for landing) |                                             |
+| 3     | 2    | not started                                                                                     |                                             |
+| 4     | 2    | not started                                                                                     |                                             |
+| 5     | 2    | not started                                                                                     |                                             |
+| 6     | 3    | not started                                                                                     |                                             |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue connectors`, 2026-11-20): start every ready slice, land each green wave without asking (here: one landing after slice 6, per _When to land_), clean up; ask only real questions.
 
