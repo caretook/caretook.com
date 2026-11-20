@@ -110,7 +110,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-143 | change | triaged | hosting |  | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
 | B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
-| B-146 | question | inbox |  |  | Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for… |
+| B-146 | question | triaged | check-migration |  | Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for… |
 | B-147 | chore | inbox |  |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
 | B-148 | chore | inbox |  |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
 | B-149 | chore | inbox |  |  | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
@@ -815,8 +815,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-146 · question · Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: check-migration
 - owner:
 - commit:
 
