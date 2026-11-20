@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                                                                      | Merge into `prd/connectors` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| 1     | 1    | merged, worktree removed (load flakes in untouched component tests; landing check reruns)                                                  | 5225d442 (de3bedd0)                         |
-| 2     | 1    | merged, worktree removed (check: load flakes only, B-178/B-173; lean set 11/12, app-shell flake passed alone)                              | f54a93ae (b8309a7f, fd5725ec)               |
-| 7     | 1    | merged, worktree removed (`marketing` passed in slice 2's lean run)                                                                        | 1552855d (210766d1)                         |
-| 3     | 2    | merged, worktree removed (check green but the frozen-names test; browser phase2, roundtrip, live-notes, ui for landing)                    | 9a9c1ee6 (b21582f2, 19d43db4)               |
-| 4     | 2    | merged, worktree removed (conflicts in `tools/index.ts` and `mcp.int.test.ts`, resolved: both slices' tools, slice 3's assertion)          | 0a4c9711 (90bf850c)                         |
-| 5     | 2    | merged, worktree removed (browser checks named for landing: phase2, roundtrip, live-notes, app-shell, layout-offline, first-sync, invites) | 85bc64ab (e80d2808)                         |
-| 6     | 3    | merged, worktree and stack removed (roundtrip 47/47, 29 s usual unchanged)                                                                 | 71fb43a2 (8893fd16)                         |
+| Slice | Wave | State                                                                                                                                                                                                                              | Merge into `prd/connectors` (slice commits) |
+| ----- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 1     | 1    | merged, worktree removed (load flakes in untouched component tests; landing check reruns)                                                                                                                                          | 5225d442 (de3bedd0)                         |
+| 2     | 1    | merged, worktree removed (check: load flakes only, B-178/B-173; lean set 11/12, app-shell flake passed alone)                                                                                                                      | f54a93ae (b8309a7f, fd5725ec)               |
+| 7     | 1    | merged, worktree removed (`marketing` passed in slice 2's lean run)                                                                                                                                                                | 1552855d (210766d1)                         |
+| 3     | 2    | merged, worktree removed (check green but the frozen-names test; browser phase2, roundtrip, live-notes, ui for landing)                                                                                                            | 9a9c1ee6 (b21582f2, 19d43db4)               |
+| 4     | 2    | merged, worktree removed (conflicts in `tools/index.ts` and `mcp.int.test.ts`, resolved: both slices' tools, slice 3's assertion)                                                                                                  | 0a4c9711 (90bf850c)                         |
+| 5     | 2    | merged, worktree removed (browser checks named for landing: phase2, roundtrip, live-notes, app-shell, layout-offline, first-sync, invites)                                                                                         | 85bc64ab (e80d2808)                         |
+| 6     | 3    | reopened: `pnpm prd sync` eac9a146 brought check-migration's Playwright port (B-129), which deleted the CDP `roundtrip.mjs` and the step with it; porting the step to `roundtrip.spec.mjs` (sonnet; the lean ceiling is now 255 s) | 71fb43a2 (8893fd16)                         |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue connectors`, 2026-11-20): start every ready slice, land each green wave without asking (here: one landing after slice 6, per _When to land_), clean up; ask only real questions.
 
