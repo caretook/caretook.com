@@ -78,16 +78,18 @@ apps/web/app/routes/api/cron/*           -
 apps/web/app/routes/dev/*                -
 apps/web/app/.server/notifications.ts    -
 
-# Starting care groups (invites slice 5): /join/:code, the New care group
-# sheet, the timeline's Invite someone card and /admin's access codes, new
-# group and waitlist pages.
-apps/web/app/routes/account/join/*       groups
+# Starting care groups (invites slice 5; check-migration slice 15): /join/:code,
+# the New care group sheet, the Invite someone card and /admin's access codes,
+# new group and waitlist pages are component tests beside them, and the
+# services and procedures integration tests. invites.mjs step 13 keeps /join's
+# sign-up through the emailed confirmation to the new group (and a revoked
+# code); first-sync.mjs step 2c keeps careGroup.create syncing the new group in.
+apps/web/app/routes/account/join/*       invites
 # /admin (admin PRD; check-migration slice 7): every screen is component tests
 # beside it (routes/admin/*.browser.test.tsx, from loader data), and the
 # services and procedures are integration tests. app-shell.mjs keeps what only
 # the server proves: /admin a 404 for non-staff (the door, the staff rules), a
 # real action's audit row on /admin/audit, and the banner reaching /app.
-# Access codes, new group and the waitlist are still groups.mjs's.
 apps/web/app/routes/admin/adminWorld.tsx -
 apps/web/app/routes/admin/audit/*        -
 apps/web/app/routes/admin/AuditEntryList.tsx -
@@ -104,23 +106,23 @@ apps/web/app/routes/admin/groupDisplay.ts -
 # switches' consumers (access codes, invites).
 apps/web/app/routes/admin/settings/*     -
 packages/api/src/settingsAdmin.ts        app-shell
-packages/data/src/db/schema/appSettings.ts app-shell groups invites
-packages/data/src/services/appSettingService.ts app-shell groups invites
+packages/data/src/db/schema/appSettings.ts app-shell invites
+packages/data/src/services/appSettingService.ts app-shell invites
 packages/data/src/models/appSetting/*    app-shell
 # The announcement banner: public.announcement and /app's banner.
 packages/api/src/announcement.ts         app-shell
 apps/web/app/routes/app/layout/Announcement.tsx app-shell
 apps/web/app/routes/app/layout/useAnnouncement.ts app-shell
 apps/web/app/components/shell/AnnouncementBanner.tsx app-shell first-sync
-packages/data/src/services/careGroupInviteService.ts invites groups
-apps/web/app/routes/admin/*              groups
-apps/web/app/.server/admin.ts            app-shell groups
+packages/data/src/services/careGroupInviteService.ts invites
+apps/web/app/routes/admin/*              -
+apps/web/app/.server/admin.ts            app-shell invites
 packages/api/src/auditAdmin.ts           app-shell
-packages/api/src/procedures.ts           app-shell groups
-packages/data/src/db/schema/staffRules.ts app-shell groups
+packages/api/src/procedures.ts           app-shell
+packages/data/src/db/schema/staffRules.ts app-shell
 packages/data/src/db/schema/adminAudit.ts app-shell
 packages/data/src/services/adminAuditService.ts app-shell
-packages/data/src/services/staffAccess.ts app-shell groups
+packages/data/src/services/staffAccess.ts app-shell
 packages/data/src/models/adminAuditLog/* app-shell
 packages/api/src/usersAdmin.ts           -
 packages/data/src/services/accountAdminService.ts -
@@ -131,18 +133,18 @@ packages/data/src/models/groupDirectory/* -
 packages/data/src/db/schema/groupAdminRules.ts -
 packages/api/src/groupsAdmin.ts          -
 packages/data/src/db/seeds/staff.ts      app-shell
-packages/data/src/services/accessCodeService.ts groups
-packages/data/src/services/staffGroupService.ts groups
-apps/web/app/routes/app/groups/new/*     groups
-apps/web/app/components/groups/*         groups
-apps/web/app/routes/app/home/NewGroupLink.tsx groups first-sync
-apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx groups
-packages/api/src/groups.ts               groups
-# The admin waitlist (marketing slice 5): its steps are in groups.mjs.
-packages/api/src/waitlistAdmin.ts        groups
-packages/data/src/db/schema/accessCode.ts groups
-packages/data/src/db/schema/newCareGroup.ts groups
-packages/data/src/db/seeds/accessCodes.ts groups
+packages/data/src/services/accessCodeService.ts invites
+packages/data/src/services/staffGroupService.ts -
+apps/web/app/routes/app/groups/new/*     first-sync
+apps/web/app/components/groups/*         first-sync invites
+apps/web/app/routes/app/home/NewGroupLink.tsx first-sync
+apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx -
+packages/api/src/groups.ts               first-sync invites
+# The admin waitlist (marketing slice 5): component tests and waitlistAdmin.int.test.ts.
+packages/api/src/waitlistAdmin.ts        -
+packages/data/src/db/schema/accessCode.ts invites
+packages/data/src/db/schema/newCareGroup.ts first-sync invites
+packages/data/src/db/seeds/accessCodes.ts invites
 
 # The recipient's profile, its sheets, the emergency sheet and the ways in
 # (the group menu, the timeline's recipient card, group settings Details'

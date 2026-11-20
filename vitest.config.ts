@@ -89,8 +89,9 @@ export default defineConfig({
           ],
         },
         // The account and group pages import ORPCError for their loaders: pre-bundled
-        // up front, so the first run doesn't re-optimize and reload mid-test.
-        optimizeDeps: { include: ["@orpc/server"] },
+        // up front, so the first run doesn't re-optimize and reload mid-test. The
+        // access code print test makes its QR code with `qrcode`, as the server does.
+        optimizeDeps: { include: ["@orpc/server", "qrcode"] },
         test: {
           name: "web:components",
           // The browser server listens on this port (Vitest 5 reads `test.api`).

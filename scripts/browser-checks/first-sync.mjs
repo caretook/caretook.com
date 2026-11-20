@@ -3,7 +3,8 @@
 //
 // 1. Normal sign-in (fast first sync): straight to the timeline, no syncing state.
 // 2. Reload a synced timeline: no syncing state. Then a sheet's URL loaded as a
-//    page (a deep link after a full load) opens the sheet.
+//    page (a deep link after a full load) opens the sheet. Then a new care
+//    group (careGroup.create) syncs in and its empty timeline opens.
 // 3. Slow first sync (a proxy holds PowerSync's traffic for HOLD_MS): home shows
 //    "Getting your care groups…" (never "not in a care group"), then goes
 //    straight to the timeline once the group arrives.
@@ -99,21 +100,28 @@ const RECORDER = `(() => {
   };
   tick(); return true; })()`;
 
+const psql = (sql) =>
+  execFileSync("docker", [
+    "exec",
+    process.env.PG_CONTAINER,
+    "psql",
+    "-U",
+    "caretook",
+    "-d",
+    "caretook",
+    "-tAc",
+    sql,
+  ])
+    .toString()
+    .trim();
+
 // caretaker@'s care group, for the deep link. caretaker@ has one group (member@
 // has two since app-shell slice 3, so its /app is the group list).
-const groupId = execFileSync("docker", [
-  "exec",
-  process.env.PG_CONTAINER,
-  "psql",
-  "-U",
-  "caretook",
-  "-d",
-  "caretook",
-  "-tAc",
+const groupId = psql(
   "SELECT g.id FROM care_group g JOIN care_group_member m ON m.group_id = g.id JOIN \"user\" u ON u.id = m.user_id WHERE u.email = 'caretaker@example.com' LIMIT 1",
-])
-  .toString()
-  .trim();
+);
+// Step 2c's new group, by its recipient's name.
+const NEW_GROUP_TAG = `FS${Date.now().toString(36)}`;
 
 const failures = [];
 const expect = (ok, what) => {
@@ -204,6 +212,31 @@ try {
         () => false,
       );
     expect(closed, "…and closing it lands on the timeline, filters kept");
+
+    // 2c. A new care group (groups.mjs's fold): careGroup.create on the
+    // server, then the group syncs into this device and its empty timeline
+    // opens with the Invite someone card. Deleted at once, so caretaker@
+    // keeps one group for the steps below.
+    try {
+      await p.goto("/app/groups/new");
+      await p.waitFor(`document.querySelector('[data-new-group-form] [name="recipientName"]')`, 20000);
+      await p.type(`document.querySelector('[name="recipientName"]')`, `${NEW_GROUP_TAG} Lou Example`);
+      await p.press(`document.querySelector('[data-new-group-form] button[type="submit"]')`);
+      const created = await p
+        .waitFor(
+          `/\\/timeline$/.test(location.pathname) && !location.pathname.includes(${JSON.stringify(groupId)}) && document.querySelector("[data-invite-card]")`,
+          20000,
+        )
+        .then(
+          () => true,
+          () => false,
+        );
+      expect(created, "a new care group syncs in and opens its empty timeline, with the Invite someone card");
+    } finally {
+      psql(
+        `DELETE FROM care_group WHERE id IN (SELECT group_id FROM care_recipient WHERE name LIKE '${NEW_GROUP_TAG}%')`,
+      );
+    }
     errors.push(...p.errors);
     p.close();
   }
