@@ -18,8 +18,8 @@ packages/data/src/db/schema/accessCode.ts invites
 packages/data/src/db/schema/newCareGroup.ts first-sync invites
 packages/data/src/db/schema/inviteRules.ts invites app-shell
 packages/data/src/db/schema/careGroup*.ts app-shell invites
-packages/data/src/db/schema/careGroupMember.ts profiles-contacts app-shell
+packages/data/src/db/schema/careGroupMember.ts app-shell
 packages/data/src/db/seeds/accessCodes.ts invites
 packages/data/src/db/seeds/invites.ts    invites app-shell
 # Members on the device: the Members page, invites and contact sharing.
-apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts
+apps/web/app/lib/sync/members.ts         app-shell invites
