@@ -58,7 +58,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
-| B-55 | feature | in-progress | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
+| B-55 | feature | ready | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-58 | plan | landed | assistant | prd/assistant | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-60 | feature | triaged | appointments |  | Recurring appointments (weekly PT, dialysis three times a week) |
@@ -235,10 +235,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-55 · feature · Todos list with assignment to group members, due dates, and completion status.
 
-- status: in-progress
+- status: ready
 - prd: tasks
 - owner: prd/tasks
-- commit:
+- commit: 5a5eadf
 
 - 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'tasks' (to write): a todo list per group with assignees, due dates and done state, as a group section. Due dates could show with appointments (B-47); reminders would go through notifications.
 - 2026-11-19 (plan/tasks): PRD and plan written (plans/tasks-prd.md, tasks-plan.md): 8 slices, waves 1 → (2, 4, 8) → (3, 5, 6) → 7. One assignee (member, a typed name, or none); viewers complete their own; links to a provider, appointment and medication; Upcoming, strip, search, simple card, quick entry addTask. Slices 3, 4, 6, 7 wait for assistant in dev; 8 for check-migration slice 2.
