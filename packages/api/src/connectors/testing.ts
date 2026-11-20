@@ -72,8 +72,8 @@ export const enablePasswordSignIn = async (userId: string) => {
 };
 
 /** Sign `email` in; the cookie header a browser would then send. */
-export const signInCookies = async (email: string) => {
-  const res = await getAuth().api.signInEmail({ body: { email, password: PASSWORD }, asResponse: true });
+export const signInCookies = async (email: string, password = PASSWORD) => {
+  const res = await getAuth().api.signInEmail({ body: { email, password }, asResponse: true });
   if (res.status !== 200) throw new Error(`sign-in failed: ${res.status}`);
   return new Headers({
     cookie: res.headers
@@ -150,15 +150,18 @@ export const connectAssistant = async ({
   groupId,
   scope = "readWrite",
   clientName = "Test Claude",
+  password,
 }: {
   email: string;
   groupId: string;
   scope?: ConnectorScope;
   clientName?: string;
+  /** For a seeded member, whose password isn't the fixtures' (browser checks). */
+  password?: string;
 }) => {
   const client = await registerClient(clientName);
   const { verifier, challenge } = pkce();
-  const cookies = await signInCookies(email);
+  const cookies = await signInCookies(email, password);
   const consentPage = await authorize(client.client_id, { challenge, cookies });
   const authUser = (await getAuthUser(cookies)) as AuthUser;
   const outcome = await submitConnectPage({
