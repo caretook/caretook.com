@@ -6,12 +6,12 @@
 
 | Slice | Wave | State           | Merge into `prd/timeline-ux` (slice commits) |
 | ----- | ---- | --------------- | -------------------------------------------- |
-| 1     | 1    | merged          | 9e3a3ad (28991ac, 940af0a)                     |
+| 1     | 1    | merged          | 9e3a3ad (28991ac, 940af0a)                   |
 | 2     | 1    | merged          | de5ccf9 (67f6e34)                            |
 | 3     | 1    | merged          | 448be6e (11efa88)                            |
-| 4     | 2    | not started     |                                              |
-| 5     | 2    | blocked by 2    |                                              |
-| 6     | 2    | not started     |                                              |
+| 4     | 2    | started         |                                              |
+| 5     | 2    | started         |                                              |
+| 6     | 2    | started         |                                              |
 | 7     | 3    | blocked by 1, 3 |                                              |
 | 8     | 3    | blocked by 2    |                                              |
 | 9     | 3    | not started     |                                              |
@@ -29,6 +29,8 @@
 - Slice 3 handed off (11efa88): `pnpm build:budget` (entry/root/app gzip ceilings, forbidden editor/PowerSync modules); `pnpm prd check` now also runs it. Edits `apps/web/vite.config.ts` (manifest + chunk-modules plugin), `scripts/loops/prd.sh`, `.gitignore`.
 - Slice 1 merged (9e3a3ad), B-136/B-156 done, worktree removed. Its `pnpm check` failed only `medicationList.browser.test.tsx` under load (passed alone 3/3): watch it at the landing check. Fold-ins for sync.md: freshness 15 min, recheck after 1 min, 3 s answer budget; the first check per page load and after sign-in (`sessionEpoch.ts`) always waits; cache-first settings and the `useMySettings` store. session-end usual seconds unchanged (lean set is at its 286 ceiling).
 - Slices 2 (de5ccf9) and 3 (448be6e) merged, B-166/B-155 done, worktrees removed. Slice 2 fold-ins: the tile cache (`lib/sync/remembered.ts`, `useRememberedQuery`; in memory, keyed by user/group/name; dimmed `data-stale` + `STALE`; `STRIP_SKELETON` on a first visit; cleared in `closeSync`) → sync.md and timeline.md; quick entry's passes gate on `fresh`. Slice 5 uses `ready`/`fresh`/`STALE`/`STRIP_SKELETON` from the strip hooks. Wave 1 landing next: sync, check, ask the user about `--suite`.
+- Wave 1 landing: `pnpm prd sync` merged dev (code-layout wave 3: routes and URLs by area; one common file, `check-areas.d/app-shell`, no conflicts); full `pnpm prd check` running (a big refactor came in). Lean `--suite`: the user chose to land wave 1 on the check alone (2026-11-20).
+- Wave 2 started from the synced branch: worktrees timeline-ux-4, -5, -6 (no stacks); agents spawned (4 sonnet, 5 opus, 6 opus). B-137, B-138, B-169, B-164, B-167, B-165, B-168, B-139 claimed.
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
