@@ -93,7 +93,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-149 | chore | in-progress | code-layout | prd/code-layout | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
 | B-150 | chore | in-progress | code-layout | prd/code-layout | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-151 | chore | triaged | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
-| B-154 | chore | triaged | agent-tooling |  | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
+| B-154 | chore | in-progress | agent-tooling | prd/agent-tooling | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
 | B-155 | chore | triaged | app-speed |  | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
 | B-156 | chore | triaged | app-speed |  | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 | B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
@@ -592,9 +592,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-154 · chore · Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the…
 
-- status: triaged
+- status: in-progress
 - prd: agent-tooling
-- owner:
+- owner: prd/agent-tooling
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the history agents read.
