@@ -56,3 +56,4 @@ export * from "./quickEntryTime";
 export * from "./quickEntry";
 export * from "./simpleMode";
 export * from "./rateLimit";
+export * from "./emailSuppression";

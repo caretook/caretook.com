@@ -69,7 +69,9 @@ describe("deviceLabel", () => {
 describe("mailStatusLabel", () => {
   it("reads each status", () => {
     expect(mailStatusLabel("sent")).toBe("Sent");
-    expect(mailStatusLabel("skipped")).toBe("Not sent (allowlist)");
+    expect(mailStatusLabel("skipped")).toBe("Not sent");
+    expect(mailStatusLabel("bounced")).toBe("Bounced");
+    expect(mailStatusLabel("complained")).toBe("Marked as spam");
     expect(mailStatusLabel("strange")).toBe("strange");
   });
 });

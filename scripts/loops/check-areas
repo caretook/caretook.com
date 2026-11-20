@@ -110,6 +110,10 @@ apps/web/app/routes/app/layout/Announcement.tsx admin
 apps/web/app/routes/app/layout/useAnnouncement.ts admin
 apps/web/app/components/shell/AnnouncementBanner.tsx admin first-sync
 packages/data/src/services/careGroupInviteService.ts invites groups
+# Email suppressions (hosting slice 4): the screen is component tests
+# (suppressions/suppressions.browser.test.tsx); the webhook, the service and
+# the outbox's skip are integration tests. Above the /admin catch-all.
+apps/web/app/routes/admin/suppressions/* -
 apps/web/app/routes/admin/*              admin groups
 apps/web/app/.server/admin.ts            admin groups
 packages/api/src/auditAdmin.ts           admin
@@ -172,6 +176,8 @@ apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profil
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites session-end
 apps/web/app/routes/account/*            invites sign-in
 apps/web/app/routes/sign-out.tsx         signout-wipe sign-in invites session-end
+# Resend's webhook (hosting slice 4): integration tests (packages/notifications). Above api/*.
+apps/web/app/routes/api/webhooks/*       -
 apps/web/app/routes/api/*                sign-in first-sync
 apps/web/app/lib/session.ts              sign-in first-sync signout-wipe session-end
 apps/web/app/lib/sessionRules.ts         sign-in session-end

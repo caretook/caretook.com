@@ -10,6 +10,7 @@ describe("mailErrorCode", () => {
   it("names a skip outside production without the sender's words", () => {
     expect(mailErrorCode("skipped", "Not on MAIL_ALLOWLIST (outside production)")).toBe("notAllowlisted");
     expect(mailErrorCode("skipped", "something else")).toBe("skipped");
+    expect(mailErrorCode("skipped", "suppressed")).toBe("suppressed");
   });
 
   it("keeps only a provider error's name", () => {

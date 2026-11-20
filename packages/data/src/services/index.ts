@@ -101,6 +101,9 @@ export type { GrantResult as DbAccessGrant, PersonalRole } from "./dbAccessServi
 // Not in `services`: no model behind it (shared rate limits, hosting PRD).
 import * as rateLimitService from "./rateLimitService";
 export { rateLimitService };
+// Not in `services`: no model behind it (suppressed addresses, hosting PRD).
+import * as emailSuppressionService from "./emailSuppressionService";
+export { emailSuppressionService };
 
 export type * from "./types";
 

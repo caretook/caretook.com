@@ -732,6 +732,17 @@ export const SERVICE_ERRORS = {
   "rateLimitService:store": {
     message: "Failed to read or write the rate limits",
   },
+  "emailSuppression:invalid": {
+    message: "Check the suppression's details",
+    statusCode: 400,
+  },
+  "emailSuppression:notFound": {
+    message: "That address isn't suppressed",
+    statusCode: 404,
+  },
+  "emailSuppression:query": {
+    message: "Failed to read or write the email suppressions",
+  },
 } as const;
 
 export const PERMISSION_ERRORS = {

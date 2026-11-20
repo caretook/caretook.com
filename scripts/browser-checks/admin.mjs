@@ -131,7 +131,16 @@ const accountMenu = async (p, email) => {
   return p.evaluate(menuItems);
 };
 
-const STAFF_NAV = ["Users", "Groups", "Access codes", "New group", "Waitlist", "Audit", "Settings"];
+const STAFF_NAV = [
+  "Users",
+  "Groups",
+  "Access codes",
+  "New group",
+  "Waitlist",
+  "Audit",
+  "Settings",
+  "Suppressions",
+];
 
 // --- Care groups (slice 4) ------------------------------------------------------------
 
