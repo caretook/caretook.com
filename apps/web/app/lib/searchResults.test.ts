@@ -36,6 +36,7 @@ describe("parseSearchPage", () => {
   });
 
   it("drops an unknown section, and a section without a search", () => {
+    expect(parseSearchPage("?q=knee&all=task").all).toBe("task");
     expect(parseSearchPage("?q=knee&all=bogus").all).toBeNull();
     expect(parseSearchPage("?all=entry").all).toBeNull();
     expect(parseSearchPage("?q=%20&all=entry").all).toBeNull();
@@ -58,10 +59,12 @@ describe("sectionLimits", () => {
     expect(sectionLimits(null)).toEqual({
       provider: SECTION_SIZE,
       medication: SECTION_SIZE,
+      task: SECTION_SIZE,
       entry: SECTION_SIZE,
     });
     expect(sectionLimits("medication").medication).toBe(FULL_SECTION_SIZE);
     expect(sectionLimits("medication").entry).toBe(SECTION_SIZE);
+    expect(sectionLimits("task").task).toBe(FULL_SECTION_SIZE);
   });
 });
 
@@ -98,6 +101,17 @@ describe("searchSections", () => {
     expect(sections.map((s) => s.label)).toEqual(["Medications", "Timeline entries"]);
   });
 
+  it("puts tasks after medications and before entries", () => {
+    const sections = searchSections({
+      entry: { hits: [hit("e1")], total: 1 },
+      task: { hits: [hit("t1", { type: "task" })], total: 1 },
+      medication: { hits: [hit("m1", { type: "medication" })], total: 1 },
+      provider: { hits: [hit("p1", { type: "provider" })], total: 1 },
+    });
+    expect(sections.map((s) => s.type)).toEqual(["provider", "medication", "task", "entry"]);
+    expect(sections.map((s) => s.label)).toEqual(["Providers", "Medications", "Tasks", "Timeline entries"]);
+  });
+
   it("sorts each section best first", () => {
     const [section] = searchSections({
       entry: {
@@ -132,7 +146,7 @@ describe("searchSections", () => {
 });
 
 describe("resultCountText", () => {
-  const sections = (totals: Partial<Record<"provider" | "medication" | "entry", number>>) =>
+  const sections = (totals: Partial<Record<"provider" | "medication" | "task" | "entry", number>>) =>
     searchSections(
       Object.fromEntries(Object.entries(totals).map(([type, total]) => [type, { hits: [], total }])),
     );
@@ -143,6 +157,8 @@ describe("resultCountText", () => {
       "3 providers, 1 medication and 1 entry",
     );
     expect(resultCountText(sections({ provider: 1 }), "x")).toBe("1 provider");
+    expect(resultCountText(sections({ entry: 2, task: 1 }), "x")).toBe("1 task and 2 entries");
+    expect(resultCountText(sections({ task: 3 }), "x")).toBe("3 tasks");
   });
 
   it("says when nothing matched, naming the search", () => {

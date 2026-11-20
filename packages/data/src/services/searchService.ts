@@ -1,4 +1,4 @@
-import type { SearchItemType, TimelineEntryKind } from "../db";
+import type { ServerSearchItemType, TimelineEntryKind } from "../db";
 import type { Filter } from "../models";
 import type { ServiceContext } from "./types";
 
@@ -9,7 +9,7 @@ import {
   medicationSchema,
   parseSearch,
   providerSchema,
-  SEARCH_ITEM_TYPES,
+  SERVER_SEARCH_ITEM_TYPES,
   timelineEntrySchema,
   toTsQuery,
   VITALS,
@@ -45,8 +45,8 @@ export const SEARCH_MAX_LIMIT = 50;
 export type SearchOptions = {
   groupId: string;
   q: string;
-  /** What to search (default: all three). */
-  scopes?: SearchItemType[];
+  /** What to search (default: all three; tasks are searched on the device only). */
+  scopes?: ServerSearchItemType[];
   /** Entries only: these kinds. */
   kinds?: TimelineEntryKind[];
   /** Entries only: inclusive lower bound on `occurredAt` (ISO 8601). */
@@ -66,7 +66,7 @@ export type SearchOptions = {
 
 export type SearchHit = {
   id: string;
-  type: SearchItemType;
+  type: ServerSearchItemType;
   /** An entry's kind; null for providers and medications. */
   kind: string | null;
   title: string;
@@ -147,7 +147,7 @@ type HitRow = {
   rankText: string;
 };
 
-const toHit = (type: SearchItemType, row: HitRow): SearchHit => ({
+const toHit = (type: ServerSearchItemType, row: HitRow): SearchHit => ({
   id: row.id,
   type,
   kind: row.kind,
@@ -378,7 +378,7 @@ export const search = async (ctx: ServiceContext, options: SearchOptions) => {
     Math.max(Math.trunc(options.limit ?? SEARCH_DEFAULT_LIMIT) || 1, 1),
     SEARCH_MAX_LIMIT,
   );
-  const scopes = new Set(options.scopes?.length ? options.scopes : SEARCH_ITEM_TYPES);
+  const scopes = new Set(options.scopes?.length ? options.scopes : SERVER_SEARCH_ITEM_TYPES);
 
   const result: SearchResult = { ...EMPTY };
   if (scopes.has("entry")) {

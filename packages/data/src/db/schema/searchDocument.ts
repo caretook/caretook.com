@@ -8,8 +8,16 @@ import { VITALS } from "./vitals";
 // ranks above `body` (what's written about it: text, notes, place, author).
 // Soft-deleted rows have no document, so they never match.
 
-export const SEARCH_ITEM_TYPES = ["entry", "provider", "medication"] as const;
+export const SEARCH_ITEM_TYPES = ["entry", "provider", "medication", "task"] as const;
 export type SearchItemType = (typeof SEARCH_ITEM_TYPES)[number];
+
+/** What server search (`searchService`) covers: tasks are searched on the device only. */
+export const SERVER_SEARCH_ITEM_TYPES = [
+  "entry",
+  "provider",
+  "medication",
+] as const satisfies readonly SearchItemType[];
+export type ServerSearchItemType = (typeof SERVER_SEARCH_ITEM_TYPES)[number];
 
 export type SearchDocument = {
   id: string;
@@ -57,6 +65,15 @@ export type MedicationSearchSource = {
   strength?: Text;
   reason?: Text;
   directions?: Text;
+  documentText?: Text;
+  deletedAt?: Text;
+};
+
+export type TaskSearchSource = {
+  id: string;
+  groupId: string;
+  title?: Text;
+  /** The task's live notes text, including edits not compacted yet. */
   documentText?: Text;
   deletedAt?: Text;
 };
@@ -128,5 +145,17 @@ export const medicationSearchDocument = (medication: MedicationSearchSource): Se
     groupId: medication.groupId,
     title: join([medication.name, medication.strength]),
     body: join([medication.reason, medication.directions, medication.documentText]),
+  };
+};
+
+/** A task: its title weighted, its notes as body. Done tasks are found too (the page marks them). */
+export const taskSearchDocument = (task: TaskSearchSource): SearchDocument | null => {
+  if (task.deletedAt) return null;
+  return {
+    id: task.id,
+    type: "task",
+    groupId: task.groupId,
+    title: join([task.title]),
+    body: join([task.documentText]),
   };
 };

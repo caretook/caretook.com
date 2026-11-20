@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { entrySearchDocument, medicationSearchDocument, providerSearchDocument } from "./searchDocument";
+import {
+  entrySearchDocument,
+  medicationSearchDocument,
+  providerSearchDocument,
+  taskSearchDocument,
+} from "./searchDocument";
 
 const base = { id: "e1", groupId: "g1" };
 
@@ -154,6 +159,39 @@ describe("medicationSearchDocument", () => {
   it("has no document for a deleted medication", () => {
     expect(
       medicationSearchDocument({ id: "m1", groupId: "g1", name: "X", deletedAt: "2026-11-01" }),
+    ).toBeNull();
+  });
+});
+
+describe("taskSearchDocument", () => {
+  const task = { id: "t1", groupId: "g1" };
+
+  it.each([
+    {
+      name: "the title as title, the notes as body",
+      source: { ...task, title: "Insurance form", documentText: "Fax it to Dr. Patel's office." },
+      title: "Insurance form",
+      body: "Fax it to Dr. Patel's office.",
+    },
+    {
+      name: "a task without notes has an empty body",
+      source: { ...task, title: "  Call the pharmacy ", documentText: null },
+      title: "Call the pharmacy",
+      body: "",
+    },
+    {
+      name: "multi-line notes stay on their lines",
+      source: { ...task, title: "Refill", documentText: "Ask about the generic.\nPickup Friday." },
+      title: "Refill",
+      body: "Ask about the generic.\nPickup Friday.",
+    },
+  ])("indexes $name", ({ source, title, body }) => {
+    expect(taskSearchDocument(source)).toEqual({ id: "t1", type: "task", groupId: "g1", title, body });
+  });
+
+  it("has no document for a deleted task", () => {
+    expect(
+      taskSearchDocument({ ...task, title: "Insurance form", documentText: "x", deletedAt: "2026-11-01" }),
     ).toBeNull();
   });
 });
