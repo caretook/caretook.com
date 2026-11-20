@@ -14,47 +14,55 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 
 ## Status
 
-| Slice | Item | State  | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ---- | ------ | ----------------------------------------------------- |
-| 1     | B-1  | merged | 1e00754 (5ab3b67)                                     |
-| 2     | B-17 | merged | 4629e8c (32355db)                                     |
-| 3     | B-22 | merged | b0325d0 (46ef320)                                     |
-| 4     | B-28 | merged | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29 | merged | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34 | merged | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27 | merged | 75127be (004abfe)                                     |
-| 8     | B-35 | merged | 6dcc71d (7c0725f)                                     |
-| 9     | B-36 | merged | e6fc148 (cc12901)                                     |
-| 10    | B-39 | merged | 2052075 (1870973, 9e7d83b)                            |
-| 11    | B-38 | merged | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41 | merged | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42 | merged | 94ce803 (eccbd1a)                                     |
-| 14    | B-37 | merged | 9c08e01 (cf1f804)                                     |
-| 15    | B-71 | landed | 23e1be2 (wave 7)                                      |
-| 16    | B-72 | landed | 23e1be2 (wave 7)                                      |
-| 17    | B-44 | landed | 23e1be2 (wave 7)                                      |
-| 18    | B-73 | merged | 59f380a (f6a783e)                                     |
-| 19    | B-67 | merged | 0ddaaa7 (46e8be0)                                     |
-| 20    | B-74 | merged | 679fa87 (d7a1631)                                     |
-| 21    | B-70 | merged | 27c2c74 (62a459a)                                     |
-| 22    | B-81 | merged | 376f8b7 (22470b8)                                     |
-| 23    | B-82 | merged | 5047c71 (8d6f089)                                     |
-| 24    | B-64 | merged | 290fd21 (fbbf94f)                                     |
-| 25    | B-69 | merged | 2431a55 (14da487)                                     |
-| 26    | B-78 | merged | 17a89b1 (484d825)                                     |
-| 27    | B-65 | merged | 5d8af6e (07ab7bf)                                     |
-| 28    | B-79 | merged | 6573d31 (036c039)                                     |
-| 29    | B-80 | merged | 25757d4 (e392d3c, 21941f0)                            |
-| 30    | B-92 | merged | dab620f (51f5fb8)                                     |
-| 31    | B-93 | merged | 998cc44 (938bec1)                                     |
-| 32    | B-95 | merged | 420d5e9 (280d527)                                     |
-| 33    | B-83 | merged | dac3172 (b27a1ec)                                     |
-| 34    | B-90 | merged | dd5f4f3 (d366cac)                                     |
-| 35    | B-94 | merged | 1fc9168 (81fdddf)                                     |
-| 36    | B-97 | merged | 0065420 (6273693)                                     |
-| 37    | B-96 | merged | 8b28fda (5f1d8de)                                     |
+| Slice | Item              | State   | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ----------------- | ------- | ----------------------------------------------------- |
+| 1     | B-1               | merged  | 1e00754 (5ab3b67)                                     |
+| 2     | B-17              | merged  | 4629e8c (32355db)                                     |
+| 3     | B-22              | merged  | b0325d0 (46ef320)                                     |
+| 4     | B-28              | merged  | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29              | merged  | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34              | merged  | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27              | merged  | 75127be (004abfe)                                     |
+| 8     | B-35              | merged  | 6dcc71d (7c0725f)                                     |
+| 9     | B-36              | merged  | e6fc148 (cc12901)                                     |
+| 10    | B-39              | merged  | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38              | merged  | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41              | merged  | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42              | merged  | 94ce803 (eccbd1a)                                     |
+| 14    | B-37              | merged  | 9c08e01 (cf1f804)                                     |
+| 15    | B-71              | landed  | 23e1be2 (wave 7)                                      |
+| 16    | B-72              | landed  | 23e1be2 (wave 7)                                      |
+| 17    | B-44              | landed  | 23e1be2 (wave 7)                                      |
+| 18    | B-73              | merged  | 59f380a (f6a783e)                                     |
+| 19    | B-67              | merged  | 0ddaaa7 (46e8be0)                                     |
+| 20    | B-74              | merged  | 679fa87 (d7a1631)                                     |
+| 21    | B-70              | merged  | 27c2c74 (62a459a)                                     |
+| 22    | B-81              | merged  | 376f8b7 (22470b8)                                     |
+| 23    | B-82              | merged  | 5047c71 (8d6f089)                                     |
+| 24    | B-64              | merged  | 290fd21 (fbbf94f)                                     |
+| 25    | B-69              | merged  | 2431a55 (14da487)                                     |
+| 26    | B-78              | merged  | 17a89b1 (484d825)                                     |
+| 27    | B-65              | merged  | 5d8af6e (07ab7bf)                                     |
+| 28    | B-79              | merged  | 6573d31 (036c039)                                     |
+| 29    | B-80              | merged  | 25757d4 (e392d3c, 21941f0)                            |
+| 30    | B-92              | merged  | dab620f (51f5fb8)                                     |
+| 31    | B-93              | merged  | 998cc44 (938bec1)                                     |
+| 32    | B-95              | merged  | 420d5e9 (280d527)                                     |
+| 33    | B-83              | merged  | dac3172 (b27a1ec)                                     |
+| 34    | B-90              | merged  | dd5f4f3 (d366cac)                                     |
+| 35    | B-94              | merged  | 1fc9168 (81fdddf)                                     |
+| 36    | B-97              | merged  | 0065420 (6273693)                                     |
+| 37    | B-96              | merged  | 8b28fda (5f1d8de)                                     |
+| 38    | B-79, B-90, B-97  | landed  | f2a9079 (waves 9–10)                                  |
+| 39    | B-98, B-99, B-105 | running | wave 11                                               |
+| 40    | B-106             | running | wave 11                                               |
+| 41    | B-112             | running | wave 11                                               |
+| 42    | B-100             | running | wave 11                                               |
+| 43    | B-130             | running | wave 11                                               |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+Waves 9–10 (slices 28–38) are in `dev`; `prd/quick-fixes` was level with `dev` when this orchestrator started (2026-11-19, queued again, same run-through mode). Wave 11 (slices 39–43) was written then from the seven items triaged to quick-fixes; B-100's window and types are the user's answer (7 and 30 days, a fixed core set). Slice 39 shares the timeline route folder with `assistant` (running): its orchestrator was told.
 
 Wave 9 restarted 2026-11-19 11:10 after the previous orchestrator's session and every Docker stack stopped: slice 32 was committed and is merged; loops for 28–31 were respawned to finish the uncommitted work left in their worktrees (stacks restarted). 28 and 30 merged; their stacks went to wave 10's 35 and 33, started early. AGENTS.md at landing: `session-end.mjs` in the session row; `lib/session.ts`'s 3-day offline cap and wipe on signed-out, `wipeDevice` the one sign-out path; drop "units still save online only". Slice 31 merged ahead of 29 (no shared files) to free its stack for 36; `cdp.mjs` commands now time out at 120 s (`CDP_TIMEOUT_MS`). Open from 31: seeded entry-provider links can share a millisecond `created_at`, so recency ranks can tie. Slice 35 merged: light pages import `Field`/`IconButton` from `~/components/ui/plain` (AGENTS.md _Components_ at landing; drop them from "not yet on the primitives"); `IconButton` has `size`; checks select account inputs by `name`. Docker hit 21 networks starting 37: the integration worktree's stack (loop4) was stopped to make room; restart it (`pnpm datastore:start && pnpm datastore:start:test`) before landing. Slice 29 merged (`browser.sh` suite conflict with 28 resolved: both `session-end` and `devices`); it sets Better Auth `session.freshAge: 0` so `list-sessions` works past a day (flag at landing); AGENTS.md: the Devices subpage, `devices.mjs` in the suite and table. Slice 34 started on 29's stack. Slice 33 merged: `PermissionEntry.groupFields` (user: `PUBLIC_PROFILE_FIELDS`), enforced in SQL by `CASE WHEN`; `userModel.getWhole*`/`listWhole` (as `SYSTEM_USER`) for emails; `userModel:notWhole`. AGENTS.md: close the open question, fix the permissions table's user cell. Slice 36 merged: `?vital=<type>` under `kind=vital` (`setVital`, `clearVital`), a `json_each` condition in `filterConditions`; type chips from the group's latest vitals. Slice 37 merged: one `signInEmail` (link + code; `magicLink`/`signInCode` templates gone), sign-in methods `password | email`, the send-OTP endpoint blocked. Slice 34 merged (`seeds/moreGroups.ts`: trio@, groupadmin@, viewer2@, owner2@, solo@). Its loop saw `app-shell`'s members step (viewer@ signs in, stays on `/sign-in`, no `/api/auth/token`) fail 4 of 6 runs on its base (28 and 33 included); watch it at landing. All ten slices merged; AGENTS.md folded in 57cbce6. Synced with `dev` (d2f0efb; care-periods: conflicts in `timelineFilters`, `TimelineFilters.tsx`, the timeline route, the seeds index, `browser.sh` and AGENTS.md's table, resolved by keeping both `?period=` and `?vital=`), then 29ccc10. Full suite (16/22) found a sign-in hang after sign-out (a blocked IndexedDB delete), a medication-page delete race and two check races: slice 38 fixed them (merged f2a9079). Full suite rerun before landing.
 
@@ -952,3 +960,101 @@ Both checks passed against the dev server minutes later, from the same code. So 
 - [ ] `app-shell`, `search`, `care-periods`, `roundtrip`, `medications`, `invites` each pass in full mode; `pnpm check` passes.
 
 **Blocks:** landing. **Blocked by:** none.
+
+---
+
+## Slice 39: A quieter phone timeline header (B-98, B-99, B-105)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/components.md, docs/domain/care-periods.md · Tests: component
+
+**Problem** (the user's words). "Hide add to timeline buttons behind a + icon in the timeline header." "Don't display recent vitals in the timeline header in mobile." "Care period display on timeline should be a part of the sticky header that includes date instead of part of the main timeline header."
+
+**Build** (the user, 2026-11-19: one slice for the three, after care-periods and medications-2 landed; both have).
+
+- `QuickAddBar`'s buttons go behind one `IconButton` (+, "Add to timeline") in the timeline header that opens a `ui/Menu` of the same kinds, opening the same add sheets (same URLs). Every width; the kinds, their order and their permission rules don't change.
+- `LatestVitals` is hidden below `sm` (CSS only; still shown from `sm` up).
+- `CurrentPeriodLine` moves out of the timeline header into the sticky day header (the row with the date), showing the period that covers that day; drop it from the main header.
+- Presentation only: no data, URL or query changes. Keep edits inside the timeline route folder's header and day-header components (the `assistant` PRD is changing the same folder's box above entries and day sections: keep the diff small and say which files it touches).
+
+**Acceptance criteria.**
+
+- [ ] Component test: the + button opens a menu with each add kind the role may use; picking one opens its add sheet; a viewer sees no + button.
+- [ ] Component test: at 420 px no latest-vitals strip; at 1280 px it shows.
+- [ ] Component test: a day inside a care period shows the period in its sticky day header; a day outside one doesn't; the main header no longer shows it.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once before hand-off.
+
+**Blocks:** none. **Blocked by:** none. Hot: the timeline route folder (`assistant`).
+
+---
+
+## Slice 40: Staff owner invites ignore the email-invites switch (B-106)
+
+Stack: no · Reads: docs/domain/care-groups.md, docs/domain/admin.md, docs/domain/data-layer.md · Tests: integration
+
+**Problem.** `careGroupInviteService.createEmail` refuses with `settings:signupClosed` when `signup.emailInvites` is off, and `groupAdminService.inviteOwner` and `staffGroupService.createWithOwnerInvite` go through it, so staff can't invite an owner from `/admin` while member email invites are switched off. Staff owner invites should bypass the switch.
+
+**Build.** Smallest change in `packages/data`: the switch check applies to members' invites only; the two staff paths skip it (e.g. an option on the internal create, not exposed to the API). Nothing else about the invite changes.
+
+**Acceptance criteria.**
+
+- [ ] Integration tests: with `signup.emailInvites` off, a member's email invite is still refused with `settings:signupClosed`; `inviteOwner` and `createWithOwnerInvite` succeed and send the invite.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once (likely nothing).
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 41: Allergies on the emergency sheet (B-112)
+
+Stack: yes · Reads: docs/domain/profiles.md, docs/domain/medications.md · Tests: component, e2e:profiles
+
+**Problem.** The profile's printable emergency sheet passes `allergies: null`, waiting for allergies; medications-2 built them (`lib/sync/allergies.ts`: `allergiesQuery`, `loadAllergies`; `PrintAllergies`).
+
+**Build.** The emergency sheet loads the group's allergies and shows them (reuse `PrintAllergies` or its formatting); "None recorded" (or the sheet's existing empty wording) when there are none. `profiles.mjs`'s sheet step expects them only if it already asserts that section.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the sheet lists each allergy (name and reaction as `PrintAllergies` shows them); with none, the empty wording.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once (`profiles`).
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 42: Recent vital averages on the profile page (B-100)
+
+Stack: no · Reads: docs/domain/profiles.md, docs/domain/timeline.md, docs/domain/components.md · Tests: unit, component
+
+**Problem** (the user's words). "Add 'recent vital averages' to the profile page."
+
+**Build** (the user's choice, 2026-11-19: 7 and 30 days; a fixed core set).
+
+- A read-only region on the recipient's profile page: one row per core type, in this order: blood pressure (systolic/diastolic), heart rate, temperature, weight, SpO₂, blood glucose (`VITALS` keys `bloodPressure`, `heartRate`, `temperature`, `weight`, `spo2`, `bloodGlucose`). Two columns: last 7 days and last 30 days, each the average and its reading count ("—" with no readings). Labels and units from `VITALS`, in the account's units, rounded as the timeline shows readings.
+- From the local database (`json_each` over vital entries' `details.readings`, deleted entries excluded), as a query in `lib/sync/` with the averaging in a pure function. Windows end now, in the recipient's time zone.
+- Hidden entirely when none of the six has a reading in 30 days.
+
+**Acceptance criteria.**
+
+- [ ] Unit tests: averages and counts per window, BP's two fields, unit conversion, rounding, entries outside the window and deleted ones ignored.
+- [ ] Component test: the region with seeded readings shows the six rows in order with both windows; a type with no readings shows "—"; no readings at all hides it.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+---
+
+## Slice 43: A rate-limited session check doesn't silently sign the user out (B-130)
+
+Stack: yes · Reads: docs/domain/sync.md, docs/domain/auth.md · Tests: unit, e2e:sign-in
+
+**Problem.** A 429 on the first get-session after sign-in counts as unknown, and with no cached user (sign-out wiped it) `requireSession` treats it as signed out and redirects to `/sign-in` with no message (`apps/web/app/lib/session.ts`, `resolveUser`). Suspected in `app-shell`'s step 6g (B-113); unconfirmed.
+
+**Build.** In `lib/session.ts`: on a 429, retry once after the `Retry-After` delay (capped, a second or two); if it's still 429 and there's no cached user, don't treat it as signed out: send the user to `/sign-in` with a "Too many attempts, try again in a moment" message (or keep them where they are with that message), never a silent redirect. Other statuses behave as today.
+
+**Acceptance criteria.**
+
+- [ ] Unit tests (`resolveUser` or the function it calls, with a stubbed fetch): a 429 then 200 signs in; 429 twice with no cached user gives the rate-limited outcome, not signed out; 429 with a cached user keeps the cached user; 401 is still signed out.
+- [ ] Component or page test: the rate-limited outcome shows the message on `/sign-in`.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once (`sign-in` and the session checks).
+
+**Blocks:** none. **Blocked by:** none.
