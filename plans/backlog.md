@@ -637,6 +637,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (prd/hosting): Found by hosting slice 6 (ops/runbook.md marks it a gap with an interim step). Proposed for hosting: needed before the first secret rotation, not for going live.
+- 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
 
 ### B-159 · change · Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens
 
