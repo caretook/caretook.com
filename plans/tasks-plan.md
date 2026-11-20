@@ -46,6 +46,8 @@
 
 **Slice 8 merged (5a5eadf, 2026-11-20):** the `task` matrix row and step 6d in `roundtrip` (sharing 6c's offline window): roundtrip passed 53/53 in 29 s (usual 31 left in the manifest; lean total stays 350/350). B-55 `done` at 5a5eadf; tasks-8 removed. Its `pnpm check` hit two base failures, fixed here in 52ef672: `visitPrep` › "the start can move back" (fails on `dev` too whenever the last visit is on a 31st: a month back is 9/31, which React Aria commits only on blur) and `linkedTasks` › "a note's page has none" (the entry's hidden print view repeats the text). `dev` synced again (B-133 timeline fix, check tooling). Docs folded: new `docs/domain/tasks.md` and its _Area index_ row; care-groups, sync, app-shell, data-layer, components, layout, live-notes, appointments, providers, medications, timeline, search, assistant. `docs/loops.md` unchanged (the lean set's flows didn't change).
 
+**Landing checks (a61f277, 2026-11-20):** `pnpm prd check` passed (3518 tests). `--suite` (the user approved it) all pass; first-sync flaky (failed at load 10–17, passed on the retry). By name: providers, medications, upcoming, care-periods pass. Landing.
+
 **Landing checks to run (once, on the synced tip):** the lean set (`--suite`, migration + sync-config: **ask the user first**) plus by name the `e2e no` ones the diff names: providers, medications, upcoming (search and routing are component tests now), and whatever `--changed --base dev --list` adds.
 
 **Browser checks run so far:** slice 1's `--changed` ran the whole lean set plus routing, providers, care-periods, upcoming on slice 1's tip: all pass (upcoming after its fix).
