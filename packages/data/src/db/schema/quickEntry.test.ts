@@ -252,6 +252,99 @@ describe("doses", () => {
   });
 });
 
+describe("passes", () => {
+  const MORNING = "77777777-7777-4777-8777-777777777777";
+  const EVENING = "88888888-8888-4888-8888-888888888888";
+  const BEDTIME = "99999999-9999-4999-8999-999999999999";
+  // 8:00 in Los Angeles: Morning is due.
+  const passes = [
+    { id: MORNING, name: "Morning", time: "08:00", due: true, open: 3 },
+    { id: EVENING, name: "Evening", time: "20:00", open: 4 },
+    { id: BEDTIME, name: "Late evening", time: "22:30", open: 1 },
+  ];
+  const withPasses = { passes };
+  const passOf = (r: QuickEntryReading) => (action(r) as { passId?: string }).passId;
+
+  test.each([
+    ["gave evening meds", EVENING],
+    ["gave morning meds", MORNING],
+    ["Gave Evening Medications", EVENING],
+    ["gave evening", EVENING],
+    ["evening meds given", EVENING],
+    ["evening meds", EVENING],
+    ["gave her evening pills", EVENING],
+    ["gave late evening meds", BEDTIME],
+    ["d: evening", EVENING],
+    // No name: the pass due now.
+    ["gave meds", MORNING],
+    ["gave all", MORNING],
+    ["gave all meds", MORNING],
+    ["meds given", MORNING],
+    ["gave her meds", MORNING],
+  ])("%s", (line, passId) => {
+    const r = top(line, withPasses);
+    expect(r.kind).toBe("dose");
+    expect(action(r)).toEqual({ type: "givePass", passId, occurredAt: NOW.toISOString() });
+    expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
+    expect(blocking(r)).toEqual([]);
+  });
+
+  test("'gave meds' at 8 pm means the evening pass when it's due", () => {
+    const evening = new Date("2026-11-20T04:00:00Z"); // 20:00 in Los Angeles
+    const due = passes.map((p) => ({ ...p, due: p.id === EVENING }));
+    expect(passOf(top("gave meds", { now: evening, passes: due }))).toBe(EVENING);
+    expect(passOf(top("gave all", { now: evening, passes: due }))).toBe(EVENING);
+  });
+
+  test("with no pass due, 'gave meds' is the nearest pass, less sure, with the others as alternatives", () => {
+    const afternoon = new Date("2026-11-19T22:00:00Z"); // 14:00
+    const quiet = passes.map((p) => ({ ...p, due: false }));
+    const readings = parse("gave meds", { now: afternoon, passes: quiet })[0]!.readings;
+    expect(readings.filter((r) => r.kind === "dose").map(passOf)).toEqual([MORNING, EVENING, BEDTIME]);
+    expect(readings[0]!.confidence).toBeLessThan(0.9);
+  });
+
+  test("due passes break ties; a time phrase picks the pass nearest it", () => {
+    const both = passes.map((p) => ({ ...p, due: p.id !== BEDTIME }));
+    expect(passOf(top("gave meds", { passes: both }))).toBe(MORNING);
+    const r = top("gave meds at 8pm", { now: new Date("2026-11-20T05:00:00Z"), passes: both });
+    expect(passOf(r)).toBe(EVENING);
+    expect(action(r).occurredAt).toBe(at("2026-11-20T04:00:00Z"));
+  });
+
+  test("a pass with nothing left to give can't be saved", () => {
+    const done = passes.map((p) => (p.id === EVENING ? { ...p, open: 0 } : p));
+    expect(blocking(top("gave evening meds", { passes: done }))).toEqual([
+      "Nothing is left to give in Evening today.",
+    ]);
+    // "gave meds" passes over it to one that isn't done.
+    const allDone = passes.map((p) => ({ ...p, due: p.id === EVENING, open: p.id === EVENING ? 0 : 2 }));
+    expect(passOf(top("gave meds", { passes: allDone }))).not.toBe(EVENING);
+  });
+
+  test("a name and the pass are both offered; skipping a pass, or another word, isn't Given all", () => {
+    expect(action(top("gave metformin", withPasses))).toMatchObject({ type: "logDose", medicationId: MET });
+    expect(top("skipped evening meds", withPasses).kind).toBe("note");
+    expect(top("refused morning meds", withPasses).kind).toBe("note");
+    expect(top("gave evening meds with applesauce", withPasses).kind).toBe("note");
+    expect(top("evening", withPasses).kind).toBe("note");
+    expect(top("gave meds", { passes: [] }).kind).toBe("note");
+  });
+
+  test("'and' carries Given to the next pass, and a pass carries it to a medication", () => {
+    const parts = parse("gave morning and evening meds, metformin", withPasses);
+    expect(parts.map((p) => action(p.readings[0]!))).toMatchObject([
+      { type: "givePass", passId: MORNING },
+      { type: "givePass", passId: EVENING },
+      { type: "logDose", medicationId: MET, status: "given" },
+    ]);
+  });
+
+  test("a future time blocks it", () => {
+    expect(blocking(top("gave evening meds in 2 hours", withPasses)).length).toBe(1);
+  });
+});
+
 describe("symptoms", () => {
   test.each([
     ["pain 6 left knee", "Pain", 6, "left knee"],

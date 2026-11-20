@@ -10,6 +10,7 @@ import type {
   VitalReading,
   VitalType,
 } from "@caretook/data/schema";
+import type { DueDose } from "./dueDoses";
 import type { SchedulePass } from "./medicationDisplay";
 import type { TimedEntry } from "./upcoming";
 
@@ -24,6 +25,7 @@ import {
   VITAL_TYPES,
   VITALS,
 } from "@caretook/data/schema";
+import { doseSlotsBetween, missedDoseCounts } from "./dueDoses";
 import { changeText, medicationTitle, passMovedText, scheduleText } from "./medicationDisplay";
 import { dateText, periodTitle } from "./periodDisplay";
 import { entryTiming } from "./upcoming";
@@ -102,6 +104,10 @@ export type PrepMedication = {
   status: MedicationStatus;
   schedule: MedicationSchedule;
   deletedAt: string | null;
+  /** For missed doses: no slots before it was added (ISO 8601), started, or from the day it stopped ("YYYY-MM-DD"). */
+  createdAt?: string | null;
+  startedOn?: string | null;
+  stoppedOn?: string | null;
 };
 
 export type PrepPeriod = TrackPeriod & { type: string; label: string | null; placeProviderId: string | null };
@@ -113,6 +119,8 @@ export type VisitPrepData = {
   medications: readonly PrepMedication[];
   /** Medication passes, deleted ones too, for schedules. */
   passes: readonly SchedulePass[];
+  /** The doses (not deleted) logged in the window, for missed doses. Left out: no missed-dose section. */
+  doses?: readonly DueDose[];
   /** The care period track. */
   periods: readonly PeriodSpan<PrepPeriod>[];
   /** Provider id → name, for care periods' places. */
@@ -301,6 +309,32 @@ const currentMedicationLines = (data: VisitPrepData) =>
         .join(" · "),
     );
 
+/**
+ * Missed doses in the window, per medication, most first: "Metformin 500 mg:
+ * 3 missed, 1 refused (of 28)". Missed is a scheduled slot nothing answered
+ * by the end of its day (`doseSlotsBetween`, the slot rules of what's due);
+ * skipped and refused are as logged. Today's slots still open don't count.
+ */
+const missedDoseLines = (window: VisitWindow, data: VisitPrepData) => {
+  if (!data.doses) return [];
+  const slots = doseSlotsBetween({
+    medications: data.medications,
+    passes: data.passes,
+    doses: data.doses,
+    from: window.from,
+    to: window.to,
+    timeZone: data.timeZone,
+  });
+  return missedDoseCounts(slots).map((row) => {
+    const counts = [
+      row.missed && `${row.missed} missed`,
+      row.skipped && `${row.skipped} skipped`,
+      row.refused && `${row.refused} refused`,
+    ].filter(Boolean);
+    return `${medicationTitle(row.medication)}: ${counts.join(", ")} (of ${row.slots})`;
+  });
+};
+
 const eventLines = (now: readonly PrepEntry[], data: VisitPrepData, skip: string | null) =>
   [...now]
     .sort(byTime)
@@ -341,7 +375,8 @@ export const hasVisitPrep = (text: string) =>
 /**
  * The section for `window`, as lines for `prependNoteSection`: the heading,
  * then, each under its own subheading and left out when empty, medication
- * changes, the current medications, each measured vital's range and average
+ * changes, the current medications, missed doses (with how many were
+ * skipped or refused), each measured vital's range and average
  * (with its direction against the same length of time before), symptoms
  * (how often, the worst severity, "new" when absent before), events, and
  * hospital or other stays that overlap the window. With nothing in any of
@@ -361,6 +396,7 @@ export const visitPrepSection = (
   const sections: [string, string[]][] = [
     ["Medication changes", medicationChangeLines(inWindow, data)],
     ["Current medications", currentMedicationLines(data)],
+    ["Missed doses", missedDoseLines(window, data)],
     ["Vitals", vitalLines(inWindow, before, data.units)],
     ["Symptoms", symptomLines(inWindow, before)],
     ["Events", eventLines(inWindow, data, window.lastVisit?.id ?? null)],

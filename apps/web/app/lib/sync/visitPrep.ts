@@ -19,7 +19,14 @@ import { localTimeZone } from "../format";
 import { visitWindow } from "../visitPrep";
 import { carePeriodsQuery, toPeriodSpans } from "./carePeriods";
 import { passesQuery, toPasses } from "./medicationPasses";
-import { medicationsQuery, recipientQuery, toMedications } from "./medications";
+import {
+  groupDosesQuery,
+  isDoseEntry,
+  medicationsQuery,
+  recipientQuery,
+  toMedicationEntries,
+  toMedications,
+} from "./medications";
 import { providersQuery, toProviders } from "./providers";
 import { noteDocuments, noteUpdates } from "./schema";
 import {
@@ -132,14 +139,21 @@ export const loadVisitPrepData = async (
   const from = new Date(window.from).getTime();
   const to = new Date(window.to).getTime();
   const beforeFrom = new Date(from - Math.max(0, to - from)).toISOString();
-  const [entryRows, medicationRows, passRows, periodRows, providerRows, recipientRows] = await Promise.all([
-    readRows<EntryRow>(db, prepEntriesQuery(groupId, beforeFrom, window.to)),
-    readRows<MedicationRow>(db, medicationsQuery(groupId, { includeDeleted: true })),
-    readRows<PassRow>(db, passesQuery(groupId, { includeDeleted: true })),
-    readRows<CarePeriodRow>(db, carePeriodsQuery(groupId)),
-    readRows<ProviderRow>(db, providersQuery(groupId, { includeDeleted: true })),
-    readRows<{ time_zone: string | null }>(db, recipientQuery(groupId)),
-  ]);
+  // Doses a little either side of the window, so a slot at its edge finds the dose that answers it.
+  const doseMargin = 3 * 3_600_000;
+  const [entryRows, medicationRows, passRows, periodRows, providerRows, recipientRows, doseRows] =
+    await Promise.all([
+      readRows<EntryRow>(db, prepEntriesQuery(groupId, beforeFrom, window.to)),
+      readRows<MedicationRow>(db, medicationsQuery(groupId, { includeDeleted: true })),
+      readRows<PassRow>(db, passesQuery(groupId, { includeDeleted: true })),
+      readRows<CarePeriodRow>(db, carePeriodsQuery(groupId)),
+      readRows<ProviderRow>(db, providersQuery(groupId, { includeDeleted: true })),
+      readRows<{ time_zone: string | null }>(db, recipientQuery(groupId)),
+      readRows<EntryRow>(
+        db,
+        groupDosesQuery(groupId, new Date(from - doseMargin), new Date(to + doseMargin)),
+      ),
+    ]);
   return {
     entries: toTimelineEntries(entryRows),
     medications: toMedications(medicationRows).map((m) => ({
@@ -150,7 +164,11 @@ export const loadVisitPrepData = async (
       status: m.status,
       schedule: m.schedule,
       deletedAt: m.deletedAt,
+      createdAt: m.createdAt || null,
+      startedOn: m.startedOn ?? null,
+      stoppedOn: m.stoppedOn ?? null,
     })),
+    doses: toMedicationEntries(doseRows).filter(isDoseEntry),
     passes: toPasses(passRows),
     periods: toPeriodSpans(periodRows),
     placeNames: new Map(toProviders(providerRows).map((p) => [p.id, p.name])),
