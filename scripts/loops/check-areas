@@ -143,6 +143,10 @@ packages/data/src/db/seeds/accessCodes.ts groups
 # Details' link). Above the timeline's, layout's and settings' general rules.
 # The emergency sheet (profiles slice 6): its own print media steps, and the shared print CSS's.
 apps/web/app/routes/app/groups/profile/print/* profiles
+# Recent vital averages (quick-fixes slice 42, B-100): read-only, covered by
+# vitalAverages.browser.test.tsx and lib/vitalAverages.test.ts.
+apps/web/app/routes/app/groups/profile/VitalAveragesCard.tsx -
+apps/web/app/lib/sync/vitalAverages.ts   -
 apps/web/app/routes/app/groups/profile/* profiles
 apps/web/app/lib/sync/profile.ts         profiles
 # The writers' details (profiles slice 3): Contact and Insurance and their sheets.
