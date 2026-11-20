@@ -14,18 +14,14 @@ import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodS
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { parseFilters } from "~/lib/timeline/timelineFilters";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
-import { LatestVitals } from "./LatestVitals";
 import { LiveNowBanner } from "./LiveNowBanner";
-import { MedicationStrip } from "./MedicationStrip";
-import { TaskStrip } from "./TaskStrip";
-import { NextStrip } from "./NextStrip";
-import { seeAllSearch } from "./aheadQueries";
 import { onlySheetChanged } from "./sheetGuard";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
 import { loadTimelineRows } from "./timelineRows";
 import { timelineSearch } from "./timelineSearch";
+import { TodayCard } from "./TodayCard";
 import { usePeriodSearch } from "./usePeriodSearch";
 import { settledSearchIndexStatus, useSearchIndexStatus } from "./useSearchIndexStatus";
 import { useTimelineData } from "./useTimelineData";
@@ -58,8 +54,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 /**
  * The first screenful, read locally so the page renders complete: the
- * history up to now, and what's ahead of it (the Next strip, and the
- * Upcoming block with `?upcoming=1`). `?kind=` shows one kind (`?vital=` one vital type), `?author=`
+ * history up to now, and what's next after it (the Today card's
+ * appointment). `?kind=` shows one kind (`?vital=` one vital type), `?author=`
  * one person's entries and `?q=` the entries matching a search (through the
  * device's search index; a reload waits a moment for it). The group itself comes from the group route (which
  * has already turned away a group not on the device).
@@ -118,7 +114,7 @@ export function shouldRevalidate({
 }
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { userId, kind, author, q, upcoming, vital } = loaderData;
+  const { userId, kind, author, q, vital } = loaderData;
   const { groupId } = params;
   // The loader's settings come from the cache; a background refresh publishes any change.
   const settings = useMySettings(userId, loaderData);
@@ -161,11 +157,15 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         simpleToggle={<SimpleModeToggle mode={mode} />}
       />
       <InviteSomeoneCard />
-      <LatestVitals vitals={data.latestVitals} units={units} />
-      <NextStrip next={data.next} now={data.now} groupId={groupId} showing={upcoming} />
+      <TodayCard
+        groupId={groupId}
+        canWrite={canWrite}
+        latestVitals={data.latestVitals}
+        next={data.next}
+        now={data.now}
+        units={units}
+      />
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
-      <MedicationStrip groupId={groupId} canWrite={canWrite} />
-      <TaskStrip groupId={groupId} />
       {canWrite && (
         <div className={COLUMN_CAP}>
           <QuickEntryBox groupId={groupId} units={units} />
@@ -192,11 +192,6 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         author={author}
         vital={vital}
         search={{ q, state: search.state }}
-        upcoming={
-          upcoming
-            ? { items: data.upcoming, seeAll: appUrls.upcoming(groupId, seeAllSearch({ kind, author })) }
-            : null
-        }
       />
       {sheets}
     </main>

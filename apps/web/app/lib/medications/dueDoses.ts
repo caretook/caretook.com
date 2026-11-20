@@ -39,6 +39,9 @@ export type DueDose = {
   createdBy?: string | null;
 };
 
+/** How long after its time an unanswered slot turns overdue, in minutes (it is due from its time). */
+export const OVERDUE_AFTER_MINUTES = 60;
+
 export type SlotState = "upcoming" | "due" | "overdue" | "given" | "skipped" | "refused" | "missed";
 
 /** One scheduled time of one medication on one day. */
@@ -93,7 +96,7 @@ export type DueDosesInput = {
   now: Date;
   /** The recipient's IANA zone. */
   timeZone: string;
-  /** A slot is overdue this long after its time (default 60). */
+  /** A slot is overdue this long after its time (default `OVERDUE_AFTER_MINUTES`). */
   overdueAfterMinutes?: number;
   /** A dose without `scheduledFor` answers the nearest unanswered slot this close (default 120). */
   windowMinutes?: number;
@@ -238,7 +241,7 @@ export function dueDoses({
   doses,
   now,
   timeZone,
-  overdueAfterMinutes = 60,
+  overdueAfterMinutes = OVERDUE_AFTER_MINUTES,
   windowMinutes = 120,
 }: DueDosesInput): DueDoses {
   const day = dayInZone(now, timeZone);
@@ -298,7 +301,7 @@ export function doseSlotsBetween({
   from,
   to,
   timeZone,
-  overdueAfterMinutes = 60,
+  overdueAfterMinutes = OVERDUE_AFTER_MINUTES,
   windowMinutes = 120,
 }: DoseSlotsBetweenInput): DoseSlot[] {
   const start = new Date(from);
