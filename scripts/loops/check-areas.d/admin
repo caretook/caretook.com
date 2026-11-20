@@ -21,7 +21,7 @@ packages/data/src/db/schema/appSettings.ts app-shell invites
 packages/data/src/services/appSettingService.ts app-shell invites
 packages/data/src/models/appSetting/*    app-shell
 # The announcement banner: public.announcement and /app's banner.
-packages/api/src/announcement/announcement.ts         app-shell
+packages/api/src/admin/announcement.ts         app-shell
 apps/web/app/routes/app/layout/Announcement.tsx app-shell
 apps/web/app/routes/app/layout/useAnnouncement.ts app-shell
 apps/web/app/components/shell/AnnouncementBanner.tsx app-shell first-sync

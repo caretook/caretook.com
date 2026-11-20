@@ -1,11 +1,11 @@
 import { admin } from "./admin/admin";
-import { announcement } from "./announcement/announcement";
+import { announcement } from "./admin/announcement";
 import { accessCode } from "./care-groups/groups";
 import { careGroup } from "./care-groups/careGroup";
 import { invite } from "./care-groups/invites";
 import { joinRequest } from "./care-groups/joinRequests";
-import { me } from "./me/me";
-import { publicForms } from "./public-forms/publicForms";
+import { me } from "./app-shell/me";
+import { publicForms } from "./marketing/publicForms";
 import { search } from "./search/search";
 import { sync } from "./sync";
 import { timeline } from "./timeline/timeline";

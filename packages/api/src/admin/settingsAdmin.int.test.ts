@@ -17,7 +17,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
 import { router } from "..";
-import { resetPublicFormLimits } from "../public-forms/publicForms";
+import { resetPublicFormLimits } from "../marketing/publicForms";
 
 // The app settings (admin slice 5) through the router: admin.settings.list
 // and set (admins change, support reads, each change audited), and the
