@@ -96,7 +96,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | ready | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
-| B-132 | feature | in-progress | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
+| B-132 | feature | ready | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 | B-133 | bug | inbox |  |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
 
 ## Items
@@ -642,10 +642,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-132 · feature · PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When…
 
-- status: in-progress
+- status: ready
 - prd: loop-recovery
 - owner: prd/loop-recovery
-- commit:
+- commit: 0b64de0
 
 - 2026-11-19 (Robert Bo Davis): From the inbox: PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When disk space gets low, we have to be able to restart the system and recover the state of the system.
 - 2026-11-19 (Robert Bo Davis): Triage: new topic loop-recovery (orchestration is done): resume PRDs and loops after a restart, crash or token exhaustion, with state recovery when disk runs low. Touches scripts/loops/ and scripts/backlog/; can run beside app PRDs but not beside check-migration's scripts/browser-checks edits without care.
