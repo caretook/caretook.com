@@ -93,6 +93,10 @@ import * as groupAdminService from "./groupAdminService";
 export { groupAdminService };
 import * as appSettingService from "./appSettingService";
 export { appSettingService };
+// Not in `services` below: `pnpm db:access` only (database roles, not a table).
+import * as dbAccessService from "./dbAccessService";
+export { dbAccessService };
+export type { GrantResult as DbAccessGrant, PersonalRole } from "./dbAccessService";
 
 export type * from "./types";
 
