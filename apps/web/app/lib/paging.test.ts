@@ -46,6 +46,33 @@ describe("pageWindow", () => {
   });
 });
 
+describe("pageWindow with the settled window", () => {
+  it("keeps the whole window when the same window refetches (the cutoff's minute turn)", () => {
+    // Three pages on screen; the cutoff moved, so the 90-row query is refetching.
+    expect(pageWindow({ rowCount: 91, requested: 90, fresh: false, settled: 90 })).toEqual({
+      limit: 90,
+      hasOlder: true,
+      loading: false,
+    });
+  });
+
+  it("still keeps the previous window while a larger one loads", () => {
+    expect(pageWindow({ rowCount: 61, requested: 90, fresh: false, settled: 60 })).toEqual({
+      limit: 60,
+      hasOlder: true,
+      loading: true,
+    });
+  });
+
+  it("shows one page at once when the filters start over", () => {
+    expect(pageWindow({ rowCount: 91, requested: 30, fresh: false, settled: 90 })).toEqual({
+      limit: 30,
+      hasOlder: true,
+      loading: false,
+    });
+  });
+});
+
 describe("endOfListText", () => {
   it("says it's loading while a page loads", () => {
     expect(endOfListText({ empty: false, loading: true, hasOlder: true })).toBe("Loading older…");

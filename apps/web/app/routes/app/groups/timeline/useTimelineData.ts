@@ -147,11 +147,12 @@ export function useTimelineData({
   // An item in progress is in both lists: either query has its links.
   const blockProviders = useMemo(() => groupLinksByEntry(blockLinkRows, fromLocalTimestamp), [blockLinkRows]);
   // The new page shows once both windows are in, so no "with …" line flickers.
-  const page = pageWindow({
-    rowCount: entries.rows.length,
-    requested,
-    fresh: entries.fresh && links.fresh,
-  });
+  const fresh = entries.fresh && links.fresh;
+  // The window the rows on screen were fetched for: the cutoff's minute turn
+  // refetches the same window, so it doesn't shrink the list while it does.
+  const [settled, setSettled] = useState(requested);
+  if (fresh && settled !== requested) setSettled(requested);
+  const page = pageWindow({ rowCount: entries.rows.length, requested, fresh, settled });
   // Doses and medication changes are named by their medication: one query over the same window.
   const medicationOf = useTimelineMedications(groupId, filters, requested, cutoff);
   // A schedule change names the passes it touched.
