@@ -4,13 +4,13 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                                       | Merge into `prd/code-layout` (slice commits) |
-| ----- | ---- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| 1     | 1    | landed (wave 1, 7fca12d)                                                                                    | c1954ac (1914958)                            |
-| 2     | 2    | started (sonnet, worktree code-layout-2)                                                                    |                                              |
-| 3     | 2    | handed off (9728b64); sent back: rename me/, public-forms/, announcement/ to app-shell/, marketing/, admin/ |                                              |
-| 4     | 2    | started (opus, worktree code-layout-4)                                                                      |                                              |
-| 5     | 3    | blocked by 4                                                                                                |                                              |
+| Slice | Wave | State                                                                                            | Merge into `prd/code-layout` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| 1     | 1    | landed (wave 1, 7fca12d)                                                                         | c1954ac (1914958)                            |
+| 2     | 2    | started (sonnet, worktree code-layout-2)                                                         |                                              |
+| 3     | 2    | handed off (9728b64, 7137146: folders renamed to app-shell/, marketing/, admin/); merges after 2 |                                              |
+| 4     | 2    | started (opus, worktree code-layout-4)                                                           |                                              |
+| 5     | 3    | blocked by 4                                                                                     |                                              |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue code-layout`, 2026-11-20). The orchestrator starts every ready slice, lands each green wave itself with `pnpm prd land`, and cleans up; it asks the user only real questions.
 
