@@ -422,6 +422,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (Robert Bo Davis): From the inbox: simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a regression that may block B-98.
 - 2026-11-20 (backlog agent): Triage: a regression against B-98 (the + in the timeline header). One quick-fixes slice: find whether the + menu went missing in the normal view or only where the quick entry box shows, and restore it. Touches the timeline header, which tasks slice 4 also changed, so start it after tasks lands.
 - 2026-11-20 (Robert Bo Davis): The user (2026-11-20): not a regression. The + is there, but in an awkward spot next to the view-mode switch. Move it beside the day heading in the timeline so it travels with the sticky header. Adding from a day's + sets that day's time: today gives now, any other day gives midday (12:00) that day. Still quick-fixes slice 44; it touches the timeline header and sticky day heading (tasks slice 4 changed the header), so start it after tasks lands.
+- 2026-11-20 (slice/quick-fixes/44): slice 44 built at 22bffaa: + on each day heading, ?at= start times; writer's list always has a Today heading (new behaviour, see hand-off)
 
 ### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
 
