@@ -1,6 +1,6 @@
 import type { SyncStatus } from "@powersync/web";
 import type { SyncDb } from "./client";
-import type * as SearchModuleNs from "./search";
+import type * as SearchModuleNs from "../search/search.sync";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 
@@ -36,19 +36,19 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
         const w = window as { caretookSync?: SyncDb; caretookModules?: () => Promise<unknown> };
         w.caretookSync = db;
         w.caretookModules = async () => ({
-          providers: await import("./providers"),
-          liveEntry: await import("./liveEntry"),
-          timeline: await import("./timeline"),
-          medications: await import("./medications"),
-          appointments: await import("./appointments"),
-          search: await import("./search"),
-          carePeriods: await import("./carePeriods"),
-          medicationPasses: await import("./medicationPasses"),
-          dueDoses: await import("./dueDoses"),
+          providers: await import("../providers/providers.sync"),
+          liveEntry: await import("../live-notes/liveEntry.sync"),
+          timeline: await import("../timeline/timeline.sync"),
+          medications: await import("../medications/medications.sync"),
+          appointments: await import("../appointments/appointments.sync"),
+          search: await import("../search/search.sync"),
+          carePeriods: await import("../care-periods/carePeriods.sync"),
+          medicationPasses: await import("../medications/medicationPasses.sync"),
+          dueDoses: await import("../medications/dueDoses.sync"),
         });
       }
       // The search index follows the database (built in the background).
-      searchIndex = import("./search").then((m) => {
+      searchIndex = import("../search/search.sync").then((m) => {
         void m.startSearchIndex(db);
         return m;
       });
@@ -82,7 +82,7 @@ export const installTestDatabase = async (
   ready = db;
   testFirstSyncDone = db ? (options.firstSyncDone ?? true) : null;
   if (db && options.search) {
-    searchIndex = import("./search").then((m) => {
+    searchIndex = import("../search/search.sync").then((m) => {
       void m.startSearchIndex(db);
       return m;
     });

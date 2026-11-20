@@ -1,14 +1,14 @@
 import type { PrintRecipient } from "./printSheet";
-import type { PassRow } from "~/lib/sync/medicationPasses";
-import type { MedicationRow, RecipientRow } from "~/lib/sync/medications";
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { PassRow } from "~/lib/medications/medicationPasses.sync";
+import type { MedicationRow, RecipientRow } from "~/lib/medications/medications.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { useMemo, useState } from "react";
-import { useGroup } from "~/lib/group";
+import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
-import { useSchedulePasses } from "~/lib/sync/medicationPasses";
-import { medicationsQuery, recipientQuery, toMedications } from "~/lib/sync/medications";
-import { providersQuery, toProviders } from "~/lib/sync/providers";
+import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { medicationsQuery, recipientQuery, toMedications } from "~/lib/medications/medications.sync";
+import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
 import { printSheet } from "./printSheet";
 
 /** The sheet, live from the device: other members' changes show before it's printed. */

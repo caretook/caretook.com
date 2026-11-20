@@ -1,6 +1,6 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { Sheet } from "~/components/ui";
 import { issuesForPlanRows, parseInsuranceForm, plansFromForm } from "../detailsFormData";

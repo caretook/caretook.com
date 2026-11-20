@@ -11,7 +11,7 @@ import { getMailConfig, linkBuilder } from "@caretook/notifications";
 import { createRouterClient } from "@orpc/server";
 import QRCode from "qrcode";
 import { redirect } from "react-router";
-import { signInUrl } from "~/lib/redirect";
+import { signInUrl } from "~/lib/core/redirect";
 
 const apiFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 export type AdminApi = ReturnType<typeof apiFor>;

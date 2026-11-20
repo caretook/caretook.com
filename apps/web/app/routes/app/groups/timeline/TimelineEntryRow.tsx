@@ -1,15 +1,15 @@
-import type { EntryOpen } from "~/lib/entryOpen";
+import type { EntryOpen } from "~/lib/timeline/entryOpen";
 import type { ParsedSearch, UnitChoices } from "@caretook/data/schema";
-import type { LinkedProviderName } from "~/lib/entryProviders";
+import type { LinkedProviderName } from "~/lib/providers/entryProviders";
 import type { EntryCancelActions } from "~/components/entry";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, KindIcon } from "~/components/entry";
-import { appUrls } from "~/lib/appUrls";
-import { initials } from "~/lib/entryDisplay";
-import { formatTime, formatTimeInZone } from "~/lib/format";
-import { cancelledLabel } from "~/lib/upcomingLabels";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { initials } from "~/lib/timeline/entryDisplay";
+import { formatTime, formatTimeInZone } from "~/lib/core/format";
+import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { actionsLabel } from "./entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";

@@ -1,12 +1,12 @@
 import type { ContactValues } from "@caretook/data/schema";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { CONTACT_LIMITS } from "@caretook/data/schema";
 import { useFetcher } from "react-router";
 import { PhoneFields } from "~/components/contact";
 import { SaveRow } from "~/components/settings";
 import { Field } from "~/components/ui";
-import { CONTACT_FIELD } from "~/lib/contactForm";
+import { CONTACT_FIELD } from "~/lib/core/contactForm";
 
 /**
  * Your contact details: phone numbers, a contact email (your sign-in email

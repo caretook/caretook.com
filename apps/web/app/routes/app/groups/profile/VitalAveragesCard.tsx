@@ -1,4 +1,4 @@
-import type { VitalAverageRow, WindowAverage } from "~/lib/vitalAverages";
+import type { VitalAverageRow, WindowAverage } from "~/lib/profiles/vitalAverages";
 
 import { ProfileCard } from "./ProfileCards";
 

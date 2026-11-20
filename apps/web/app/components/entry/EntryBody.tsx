@@ -1,15 +1,15 @@
 import type { HighlightRange, ParsedSearch, UnitChoices } from "@caretook/data/schema";
 import type { ReactNode } from "react";
-import type { LinkedProviderName } from "~/lib/entryProviders";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { LinkedProviderName } from "~/lib/providers/entryProviders";
+import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { highlightRanges, snippetIfHidden } from "@caretook/data/schema";
 import { useEffect, useRef, useState } from "react";
 import { Highlight } from "~/components/ui";
-import { entrySummary, KIND_META } from "~/lib/entryDisplay";
-import { isLiveEntryKind } from "~/lib/liveEntry";
-import { chipLabel, withSummary, withText } from "~/lib/entryProviders";
-import { medicationEntryText } from "~/lib/medicationEntries";
+import { entrySummary, KIND_META } from "~/lib/timeline/entryDisplay";
+import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
+import { chipLabel, withSummary, withText } from "~/lib/providers/entryProviders";
+import { medicationEntryText } from "~/lib/medications/medicationEntries";
 import { MedicationHeading } from "./MedicationEntryText";
 
 /** Readable lines on wide screens: the heading, the "with …" line and the text stop at about 75 characters. */

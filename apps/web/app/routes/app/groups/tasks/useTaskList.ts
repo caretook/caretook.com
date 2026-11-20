@@ -1,14 +1,14 @@
-import type { TaskWho } from "~/lib/taskList";
-import type { TaskRow } from "~/lib/sync/tasks";
-import type { MemberRow } from "~/lib/sync/timeline";
+import type { TaskWho } from "~/lib/tasks/taskList";
+import type { TaskRow } from "~/lib/tasks/tasks.sync";
+import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router";
-import { useGroup } from "~/lib/group";
+import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
-import { doneCountQuery, tasksQuery, toTasks } from "~/lib/sync/tasks";
-import { membersQuery } from "~/lib/sync/timeline";
-import { defaultWho, parseWho, showsTask, taskSections } from "~/lib/taskList";
+import { doneCountQuery, tasksQuery, toTasks } from "~/lib/tasks/tasks.sync";
+import { membersQuery } from "~/lib/timeline/timeline.sync";
+import { defaultWho, parseWho, showsTask, taskSections } from "~/lib/tasks/taskList";
 
 /** How many done tasks a page of the Done list shows. */
 export const DONE_PAGE = 20;

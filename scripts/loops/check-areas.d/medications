@@ -10,18 +10,11 @@ apps/web/app/routes/app/groups/medication/* -
 apps/web/app/routes/app/groups/medication/useMedicationNotes.ts live-notes
 apps/web/app/components/medications/*    -
 apps/web/app/components/entry/MedicationEntryText.tsx -
-apps/web/app/lib/sync/medications.ts     roundtrip
-apps/web/app/lib/sync/medicationPasses.ts roundtrip
-apps/web/app/lib/sync/allergies.ts       roundtrip
-apps/web/app/lib/sync/passLogs.ts        roundtrip
-apps/web/app/lib/sync/medicationTimeline.ts phase2
-apps/web/app/lib/sync/dueDoses.ts        phase2
-# Given all: passes due today, the Undo offer, members' names for "who logged it".
-apps/web/app/lib/duePasses.ts            -
-apps/web/app/lib/passUndo.ts             -
-apps/web/app/lib/sync/memberNames.ts     -
-packages/data/src/db/schema/medication.ts roundtrip
-packages/data/src/db/schema/medicationPass.ts roundtrip
-packages/data/src/db/schema/recipientAllergy.ts roundtrip
+apps/web/app/lib/medications/*.sync.ts   roundtrip
+apps/web/app/lib/medications/medicationTimeline.sync.ts phase2
+apps/web/app/lib/medications/dueDoses.sync.ts phase2
+packages/data/src/db/schema/medications/medication.ts roundtrip
+packages/data/src/db/schema/medications/medicationPass.ts roundtrip
+packages/data/src/db/schema/profiles/recipientAllergy.ts roundtrip
 packages/data/src/db/seeds/medications.ts phase2
 packages/data/src/db/seeds/medicationPasses.ts -

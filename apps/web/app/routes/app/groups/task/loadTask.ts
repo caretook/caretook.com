@@ -1,14 +1,14 @@
 import type { SyncDb } from "~/lib/sync";
-import type { MedicationRow } from "~/lib/sync/medications";
-import type { ProviderRow } from "~/lib/sync/providers";
-import type { TaskRow } from "~/lib/sync/tasks";
-import type { EntryRow, MemberRow } from "~/lib/sync/timeline";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
+import type { TaskRow } from "~/lib/tasks/tasks.sync";
+import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { data } from "react-router";
-import { medicationQuery } from "~/lib/sync/medications";
-import { providerQuery } from "~/lib/sync/providers";
-import { linkedEventQuery, taskQuery, toTask } from "~/lib/sync/tasks";
-import { membersQuery, readRows } from "~/lib/sync/timeline";
+import { medicationQuery } from "~/lib/medications/medications.sync";
+import { providerQuery } from "~/lib/providers/providers.sync";
+import { linkedEventQuery, taskQuery, toTask } from "~/lib/tasks/tasks.sync";
+import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 
 /**
  * The task, the group's members (for the assignee and who finished it), its

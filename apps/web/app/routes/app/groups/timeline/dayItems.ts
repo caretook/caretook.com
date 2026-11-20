@@ -1,7 +1,7 @@
 import type { TimelineItem as DayItem } from "./timelineDays";
-import type { Groupable, TimelineItem as PassItem } from "../../../../lib/passLogs";
+import type { Groupable, TimelineItem as PassItem } from "../../../../lib/medications/passLogs";
 
-import { groupPassLogs } from "../../../../lib/passLogs";
+import { groupPassLogs } from "../../../../lib/medications/passLogs";
 
 /** One row of a day's list: an entry, a pass log, or a care period's marker. */
 export type DayListItem<E, M> = PassItem<E> | Extract<DayItem<E, M>, { type: "marker" }>;

@@ -1,11 +1,11 @@
 import type { UnitChoices } from "@caretook/data/schema";
-import type { LatestVital } from "~/lib/rpc";
+import type { LatestVital } from "~/lib/core/rpc";
 
 import { formatReading, VITALS } from "@caretook/data/schema";
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { KIND_META } from "~/lib/entryDisplay";
-import { formatAgo } from "~/lib/format";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { formatAgo } from "~/lib/core/format";
 import { STRIP_ACTION, STRIP_CLASS, STRIP_ICON } from "./layout";
 
 /** How many readings the collapsed line holds; "All vitals" shows the rest. */

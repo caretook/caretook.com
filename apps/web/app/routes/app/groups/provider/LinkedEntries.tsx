@@ -1,13 +1,13 @@
-import type { EntryRow } from "~/lib/sync/timeline";
+import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
 import { Link } from "react-router";
 import { KindIcon } from "~/components/entry";
-import { appUrls } from "~/lib/appUrls";
-import { KIND_META } from "~/lib/entryDisplay";
-import { formatDay, formatTime } from "~/lib/format";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { formatDay, formatTime } from "~/lib/core/format";
 import { useLiveQuery } from "~/lib/sync";
-import { providerEntriesQuery } from "~/lib/sync/providers";
-import { toTimelineEntries } from "~/lib/sync/timeline";
+import { providerEntriesQuery } from "~/lib/providers/providers.sync";
+import { toTimelineEntries } from "~/lib/timeline/timeline.sync";
 
 const NO_ROWS: EntryRow[] = [];
 

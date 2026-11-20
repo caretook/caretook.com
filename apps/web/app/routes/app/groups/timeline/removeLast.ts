@@ -2,7 +2,7 @@ import type { TimelineEntryDetails } from "@caretook/data/schema";
 import type { LastEntryRow } from "./simpleRows";
 
 import { isSymptomDetails } from "@caretook/data/schema";
-import { isEntryKind, KIND_META } from "../../../../lib/entryDisplay";
+import { isEntryKind, KIND_META } from "../../../../lib/timeline/entryDisplay";
 
 // Simple mode's "Remove my last entry" (assistant PRD): after Undo has gone,
 // you can still take back the latest entry you added in the last 30 minutes,

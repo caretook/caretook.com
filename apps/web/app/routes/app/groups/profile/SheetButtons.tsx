@@ -1,6 +1,6 @@
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
-import { PROFILE_NEEDS_CONNECTION } from "~/lib/recipientDisplay";
+import { PROFILE_NEEDS_CONNECTION } from "~/lib/profiles/recipientDisplay";
 import { useOnline } from "./profileSheet";
 
 /**

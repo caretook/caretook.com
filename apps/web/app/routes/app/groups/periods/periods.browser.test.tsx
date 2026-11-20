@@ -5,7 +5,7 @@ import { useLayoutEffect } from "react";
 import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { createCarePeriod, removeCarePeriod, updateCarePeriod } from "~/lib/sync/carePeriods";
+import { createCarePeriod, removeCarePeriod, updateCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx } from "../../../../../test/fixtures";
 import * as periods from "./route";

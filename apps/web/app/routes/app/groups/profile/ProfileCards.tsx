@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import type { RecipientProfile } from "~/lib/sync/profile";
+import type { RecipientProfile } from "~/lib/profiles/profile.sync";
 
-import { basicLines } from "~/lib/recipientDisplay";
+import { basicLines } from "~/lib/profiles/recipientDisplay";
 
 // The profile's cards every member sees: the medical basics, and the note for
 // helpers. Each is a titled region (`data-section`), like the writers' cards

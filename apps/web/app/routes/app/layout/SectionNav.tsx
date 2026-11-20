@@ -2,7 +2,7 @@
 // later), from the `GROUP_SECTIONS` registry, rendered twice by the /app frame.
 
 import { Link } from "react-router";
-import { GROUP_SECTIONS, isTabBarHidden, sectionCurrent } from "~/lib/groupSections";
+import { GROUP_SECTIONS, isTabBarHidden, sectionCurrent } from "~/lib/app-shell/groupSections";
 
 /** The header's `sections` region on wide screens: links to the group's sections. */
 export function SectionNav({ groupId, pathname }: { groupId: string; pathname: string }) {

@@ -1,7 +1,7 @@
 import { History } from "lucide-react";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { recordSearch, useRecentSearches } from "~/lib/recentSearches";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { recordSearch, useRecentSearches } from "~/lib/search/recentSearches";
 
 /**
  * What the empty search page offers: this device's last few searches (one

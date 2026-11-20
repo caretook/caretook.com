@@ -11,7 +11,7 @@ import {
   linkProvider,
   removeProvider,
   updateProvider,
-} from "~/lib/sync/providers";
+} from "~/lib/providers/providers.sync";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
 import {

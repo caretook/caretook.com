@@ -1,13 +1,13 @@
-import type { LocalTask } from "~/lib/sync/tasks";
+import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
 import { canCompleteTask, taskState } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { TaskTick } from "~/components/tasks";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { assigneeLabel, doneText, dueText } from "~/lib/taskDisplay";
-import { taskPageState } from "~/lib/taskSheets";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { assigneeLabel, doneText, dueText } from "~/lib/tasks/taskDisplay";
+import { taskPageState } from "~/lib/tasks/taskSheets";
 
 const ASSIGNEE_CHIP = "badge badge-ghost badge-sm gap-1 whitespace-nowrap";
 

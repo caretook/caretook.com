@@ -1,5 +1,5 @@
 import type { InsurancePlan, InsuranceRank } from "@caretook/data/schema";
-import type { ActionResult, FieldIssue } from "~/lib/api";
+import type { ActionResult, FieldIssue } from "~/lib/core/api";
 import type { PlanField } from "./detailsFormData";
 
 import { DETAILS_LIMITS, INSURANCE_RANKS, PROVIDER_LIMITS } from "@caretook/data/schema";
@@ -7,7 +7,7 @@ import { Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { ChoiceGroup, Field, IconButton } from "~/components/ui";
-import { INSURANCE_RANK_LABELS, plansByRank } from "~/lib/recipientDetails";
+import { INSURANCE_RANK_LABELS, plansByRank } from "~/lib/profiles/recipientDetails";
 import { nextRank, PLAN_KEY, planFieldName } from "./detailsFormData";
 import { SheetButtons } from "./SheetButtons";
 

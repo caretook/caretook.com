@@ -3,7 +3,7 @@ import type { WeeklySheet } from "./weeklySheet";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { Field } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import { parseWeekStart } from "./weeklySheet";
 
 const LINK = "btn btn-ghost btn-sm gap-1";

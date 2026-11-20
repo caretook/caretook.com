@@ -5,9 +5,9 @@ import type { ChoiceOption } from "~/components/ui";
 import { useRef, useState } from "react";
 import { SettingsCard, SettingsPage } from "~/components/settings";
 import { ChoiceGroup } from "~/components/ui";
-import { loadSettings, saveSettings } from "~/lib/me";
-import { clearToggles } from "~/lib/simpleModeToggle";
-import { sessionContext } from "~/lib/session";
+import { loadSettings, saveSettings } from "~/lib/app-shell/me";
+import { clearToggles } from "~/lib/assistant/simpleModeToggle";
+import { sessionContext } from "~/lib/auth/session";
 
 // `/app/settings/timeline`. Shared by web + native: client-only data.
 

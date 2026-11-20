@@ -1,8 +1,15 @@
-import type { Schedule } from "~/lib/entrySchedule";
+import type { Schedule } from "~/lib/appointments/entrySchedule";
 
 import { useState } from "react";
 import { DateTimeField } from "~/components/ui/date";
-import { DEFAULT_START, defaultEnd, endError, withAllDay, withEnd, withStart } from "~/lib/entrySchedule";
+import {
+  DEFAULT_START,
+  defaultEnd,
+  endError,
+  withAllDay,
+  withEnd,
+  withStart,
+} from "~/lib/appointments/entrySchedule";
 
 /**
  * When a note or event is: its start (or day, all day), All day, and for

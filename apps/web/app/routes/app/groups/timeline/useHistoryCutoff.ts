@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { historyCutoff } from "~/lib/upcoming";
+import { historyCutoff } from "~/lib/appointments/upcoming";
 
 // A margin past each minute's turn, so the new cutoff is always the next one.
 const AFTER_MS = 50;

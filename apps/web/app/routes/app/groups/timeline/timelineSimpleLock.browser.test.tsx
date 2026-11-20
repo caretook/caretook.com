@@ -18,7 +18,7 @@ import { TIMELINE_URL, waitUntil } from "./timelineWorld";
 // navigation and when a lock syncs in), reaches account settings, sign-out
 // and their other groups; a viewer gets the next appointment as text and no
 // inputs; and you can remove your own entry from the last 30 minutes only.
-// The route rule itself is lib/simpleModeLock.test.ts.
+// The route rule itself is lib/assistant/simpleModeLock.test.ts.
 
 /** Stand-ins for group pages a lock closes, and the entry page it keeps. */
 const probe = (name: string) => ({ default: () => <h1>{name}</h1> });

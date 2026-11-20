@@ -1,15 +1,15 @@
 import type { CarePeriodType } from "@caretook/data/schema";
-import type { ActionResult, FieldIssue } from "~/lib/api";
-import type { PeriodPrefillValues } from "~/lib/periodSheets";
-import type { LocalCarePeriod } from "~/lib/sync/carePeriods";
-import type { LocalProvider } from "~/lib/sync/providers";
+import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { PeriodPrefillValues } from "~/lib/care-periods/periodSheets";
+import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
+import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { CARE_PERIOD_LIMITS, CARE_PERIOD_TYPES } from "@caretook/data/schema";
 import { ChoiceGroup, Field } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
-import { PERIOD_TYPE_META } from "~/lib/periodDisplay";
+import { PERIOD_TYPE_META } from "~/lib/care-periods/periodDisplay";
 import { FIELD, isFieldIssue } from "./periodFormData";
 import { PlacePickerField } from "./PlacePickerField";
 

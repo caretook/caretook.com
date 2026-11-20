@@ -7,8 +7,8 @@
 apps/web/app/routes/app/groups/tasks/*   -
 apps/web/app/routes/app/groups/task/*    -
 apps/web/app/components/tasks/*          -
-apps/web/app/lib/sync/tasks.ts           -
+apps/web/app/lib/tasks/*.sync.ts        -
 # The task sheets' link state lives in lib/ so quick entry can open them.
-apps/web/app/lib/taskSheetLink.ts        -
+apps/web/app/lib/tasks/taskSheetLink.ts  -
 # No browser check reads them; seeds/tasks.test.ts checks them.
 packages/data/src/db/seeds/tasks.ts      -

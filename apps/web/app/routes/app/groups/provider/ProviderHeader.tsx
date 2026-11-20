@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import type { LocalProvider, ProviderRow } from "~/lib/sync/providers";
+import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
 import { ProviderTypeIcon } from "~/components/providers";
-import { appUrls } from "~/lib/appUrls";
-import { PROVIDER_TYPE_META } from "~/lib/providerDirectory";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { useLiveQuery } from "~/lib/sync";
-import { providerQuery, toProvider } from "~/lib/sync/providers";
+import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 
 const NO_ROWS: ProviderRow[] = [];
 

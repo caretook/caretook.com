@@ -3,11 +3,11 @@ apps/web/app/routes/web/*                sign-in marketing invites
 apps/web/app/routes/marketing/*          marketing
 apps/web/public/*                        marketing
 apps/web/app/components/brand/*          marketing
-packages/api/src/publicForms.ts          marketing
+packages/api/src/marketing/publicForms.ts          marketing
 packages/api/src/rateLimit.ts            marketing
-packages/data/src/db/schema/publicForms.ts marketing
-packages/data/src/db/schema/publicFormRules.ts marketing
-packages/data/src/db/schema/waitlistEntry.ts marketing
-packages/data/src/db/schema/contactMessage.ts marketing
+packages/data/src/db/schema/marketing/publicForms.ts marketing
+packages/data/src/db/schema/marketing/publicFormRules.ts marketing
+packages/data/src/db/schema/marketing/waitlistEntry.ts marketing
+packages/data/src/db/schema/marketing/contactMessage.ts marketing
 # Staging's noindex: unit-tested (marketing/site/seo.test.ts), and off in checks.
-apps/web/app/lib/noindex.ts              -
+apps/web/app/lib/marketing/noindex.ts    -

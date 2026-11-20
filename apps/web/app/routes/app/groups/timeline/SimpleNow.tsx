@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 import { CheckCheck } from "lucide-react";
 import { useMemo } from "react";
 import { PassUndoStatus, usePassLog } from "~/components/medications";
-import { duePasses, isPassDueNow } from "~/lib/duePasses";
-import { givePassText, medicationCountText, passTitle } from "~/lib/medicationDisplay";
-import { useDueDoses } from "~/lib/sync/dueDoses";
+import { duePasses, isPassDueNow } from "~/lib/medications/duePasses";
+import { givePassText, medicationCountText, passTitle } from "~/lib/medications/medicationDisplay";
+import { useDueDoses } from "~/lib/medications/dueDoses.sync";
 
 /** Where the Now block's Undo is shown (`PassUndoStatus`'s `place`). */
 export const SIMPLE_NOW_UNDO = "simpleNow";

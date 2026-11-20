@@ -1,15 +1,15 @@
-import type { SessionUser } from "~/lib/session";
-import type { SimpleModeState } from "~/lib/useSimpleMode";
+import type { SessionUser } from "~/lib/auth/session";
+import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 
-import type { Theme } from "~/lib/theme";
+import type { Theme } from "~/lib/app-shell/theme";
 
 import { LayoutGrid, LogOut, Monitor, Moon, Settings, ShieldCheck, Sun, Users } from "lucide-react";
 import { useState } from "react";
 import { useSubmit } from "react-router";
 import { Menu, SEPARATOR, UserAvatar } from "~/components/ui";
-import { adminLink } from "~/lib/adminLink";
-import { appUrls } from "~/lib/appUrls";
-import { readTheme, setTheme } from "~/lib/theme";
+import { adminLink } from "~/lib/admin/adminLink";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { readTheme, setTheme } from "~/lib/app-shell/theme";
 
 const THEME_ITEMS = [
   { id: "system", label: "System", icon: Monitor },
@@ -113,7 +113,7 @@ export function UserMenu({
           ],
         },
         SEPARATOR,
-        // Theme: per device (lib/theme.ts), never sent to the server.
+        // Theme: per device (lib/app-shell/theme.ts), never sent to the server.
         {
           type: "section",
           id: "theme",

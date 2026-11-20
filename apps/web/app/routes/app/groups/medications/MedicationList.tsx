@@ -1,9 +1,9 @@
 import type { MedicationStatus } from "@caretook/data/schema";
-import type { MedicationList as Listed } from "~/lib/medicationList";
-import type { SchedulePass } from "~/lib/medicationDisplay";
-import type { LocalMedication } from "~/lib/sync/medications";
+import type { MedicationList as Listed } from "~/lib/medications/medicationList";
+import type { SchedulePass } from "~/lib/medications/medicationDisplay";
+import type { LocalMedication } from "~/lib/medications/medications.sync";
 
-import { STATUS_LABELS } from "~/lib/medicationDisplay";
+import { STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 import { MedicationListItem } from "./MedicationListItem";
 
 const countLabel = (n: number) => `${n} ${n === 1 ? "medication" : "medications"}`;

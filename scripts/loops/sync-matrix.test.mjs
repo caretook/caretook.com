@@ -44,7 +44,7 @@ describe("the sync matrix", () => {
   });
 
   it("derives a link's id as packages/data does", async () => {
-    const data = await import("../../packages/data/src/db/schema/entryProvider.ts");
+    const data = await import("../../packages/data/src/db/schema/providers/entryProvider.ts");
     expect(ENTRY_PROVIDER_NAMESPACE).toBe(data.ENTRY_PROVIDER_NAMESPACE);
     const [entry, provider] = [
       "0B6F3C1E-5D1A-4C2E-9A77-3F1D2B8C0001",

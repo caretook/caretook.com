@@ -1,8 +1,8 @@
 import type { ProviderContentInput, ProviderType } from "@caretook/data/schema";
 import { isPracticeType, PROVIDER_TYPES } from "@caretook/data/schema";
-import { PHONE_FIELD, phonesFromForm } from "../../../../lib/contactForm";
+import { PHONE_FIELD, phonesFromForm } from "../../../../lib/core/contactForm";
 
-export { issuesForRows } from "../../../../lib/contactForm";
+export { issuesForRows } from "../../../../lib/core/contactForm";
 
 // The provider sheet's form as a provider: the fields `ProviderForm` posts,
 // read into the shape the device writes (`createProvider`, `updateProvider`)

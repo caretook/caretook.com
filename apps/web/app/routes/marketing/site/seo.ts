@@ -1,4 +1,4 @@
-import { isNoindex } from "../../../lib/noindex";
+import { isNoindex } from "../../../lib/marketing/noindex";
 import { absoluteUrl } from "./meta";
 import { MARKETING_PAGES } from "./pages";
 

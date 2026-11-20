@@ -1,9 +1,9 @@
-import type { TaskStripState } from "~/lib/taskStrip";
+import type { TaskStripState } from "~/lib/tasks/taskStrip";
 
 import { ListTodo } from "lucide-react";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { taskStripText, taskStripWho } from "~/lib/taskStrip";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { taskStripText, taskStripWho } from "~/lib/tasks/taskStrip";
 import { STRIP_CAP, STRIP_CLASS, STRIP_ICON } from "./layout";
 import { useTaskStrip } from "./useTaskStrip";
 

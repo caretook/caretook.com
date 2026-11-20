@@ -2,7 +2,7 @@ import type { Route } from "./+types/route";
 
 import { useMemo } from "react";
 import { SettingsFrame } from "~/components/settings";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import { groupSettingsPages } from "./settingsPages";
 
 // `/app/groups/:groupId/settings`: the group's settings list beside (wide) or

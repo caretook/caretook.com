@@ -1,12 +1,12 @@
 import type { SimpleTile, SimpleTiles } from "@caretook/data/schema";
-import type { RecipientWords } from "~/lib/simpleTiles";
+import type { RecipientWords } from "~/lib/assistant/simpleTiles";
 import type { LearnedRow } from "./simpleRows";
 
 import { useMemo, useState } from "react";
-import { useGroup } from "~/lib/group";
-import { groupTiles, recipientWords } from "~/lib/simpleTiles";
+import { useGroup } from "~/lib/app-shell/group";
+import { groupTiles, recipientWords } from "~/lib/assistant/simpleTiles";
 import { useLiveQuery } from "~/lib/sync";
-import { useSimpleSetup } from "~/lib/sync/simpleMode";
+import { useSimpleSetup } from "~/lib/assistant/simpleMode.sync";
 import { learnedEntriesQuery, toLearnedEntry } from "./simpleRows";
 
 // One array for every render: `useLiveQuery` treats a new `initial` as new loader data.

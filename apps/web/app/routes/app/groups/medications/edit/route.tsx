@@ -1,18 +1,18 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
-import type { StatusIntent } from "~/lib/medicationStatusForm";
-import type { MedicationRow, RecipientRow } from "~/lib/sync/medications";
+import type { ActionResult } from "~/lib/core/api";
+import type { StatusIntent } from "~/lib/medications/medicationStatusForm";
+import type { MedicationRow, RecipientRow } from "~/lib/medications/medications.sync";
 
 import { useCallback, useEffect } from "react";
 import { redirect } from "react-router";
 import { MedicationStatusActions } from "~/components/medications";
 import { Sheet } from "~/components/ui";
-import { getGroup } from "~/lib/group";
-import { medicationTitle, scheduleZoneNote } from "~/lib/medicationDisplay";
-import { editMedicationGuard } from "~/lib/medicationSheets";
-import { statusRequestFromForm } from "~/lib/medicationStatusForm";
-import { sessionContext } from "~/lib/session";
+import { getGroup } from "~/lib/app-shell/group";
+import { medicationTitle, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
+import { editMedicationGuard } from "~/lib/medications/medicationSheets";
+import { statusRequestFromForm } from "~/lib/medications/medicationStatusForm";
+import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
 import {
   changeMedicationStatus,
@@ -21,8 +21,8 @@ import {
   removeMedication,
   toMedication,
   updateMedication,
-} from "~/lib/sync/medications";
-import { readRows } from "~/lib/sync/timeline";
+} from "~/lib/medications/medications.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { MedicationForm } from "../MedicationForm";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";

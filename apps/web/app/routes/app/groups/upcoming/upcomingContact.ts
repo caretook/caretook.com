@@ -1,12 +1,12 @@
-import type { ContactAction } from "../../../../lib/contactActions";
-import type { ShownPlace } from "../../../../lib/entryPlace";
-import type { LinkedProviderName } from "../../../../lib/entryProviders";
-import type { LocalQuery } from "../../../../lib/sync/timeline";
+import type { ContactAction } from "../../../../lib/providers/contactActions";
+import type { ShownPlace } from "../../../../lib/appointments/entryPlace";
+import type { LinkedProviderName } from "../../../../lib/providers/entryProviders";
+import type { LocalQuery } from "../../../../lib/timeline/timeline.sync";
 import type { ProviderPhone } from "@caretook/data/schema";
 
 import { parseProviderPhones } from "@caretook/data/schema";
-import { callAction, mapsHref } from "../../../../lib/contactActions";
-import { shownPlace } from "../../../../lib/entryPlace";
+import { callAction, mapsHref } from "../../../../lib/providers/contactActions";
+import { shownPlace } from "../../../../lib/appointments/entryPlace";
 
 // What an Upcoming row says about where and with whom, and its one-tap
 // actions: call the first linked provider, and map the place. Pure (the

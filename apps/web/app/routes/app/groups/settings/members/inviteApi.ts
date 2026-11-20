@@ -1,8 +1,8 @@
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 import type { InviteRow } from "./invites";
 
-import { formString } from "~/lib/form";
-import { rpc } from "~/lib/rpc";
+import { formString } from "~/lib/core/form";
+import { rpc } from "~/lib/core/rpc";
 import { failedSave } from "../api";
 import { emailInviteRoles, inviteRefusal, parseInviteForm } from "./invites";
 

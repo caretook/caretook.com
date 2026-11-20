@@ -3,8 +3,8 @@ import type { TimelineEntryKind } from "@caretook/data/schema";
 import { Link, useLocation } from "react-router";
 import { UserAvatar } from "~/components/ui";
 import { Tooltip } from "~/components/ui/tooltip";
-import { KIND_META } from "~/lib/entryDisplay";
-import { setAuthor, setKind } from "~/lib/timelineFilters";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { setAuthor, setKind } from "~/lib/timeline/timelineFilters";
 
 /** A round icon for an entry's kind. Decorative: the kind is also given as text. */
 export function KindIcon({

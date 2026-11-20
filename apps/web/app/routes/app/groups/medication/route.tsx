@@ -1,8 +1,8 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
-import type { StatusIntent } from "~/lib/medicationStatusForm";
-import type { MedicationRow } from "~/lib/sync/medications";
+import type { ActionResult } from "~/lib/core/api";
+import type { StatusIntent } from "~/lib/medications/medicationStatusForm";
+import type { MedicationRow } from "~/lib/medications/medications.sync";
 
 import { Pencil } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -11,21 +11,21 @@ import { AllergiesRegion, MedicationStatusActions } from "~/components/medicatio
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTasks } from "~/components/tasks";
 import { BackLink } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { medicationTitle } from "~/lib/medicationDisplay";
-import { MEDICATION_SHEET_STATE } from "~/lib/medicationSheets";
-import { statusRequestFromForm } from "~/lib/medicationStatusForm";
-import { sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { medicationTitle } from "~/lib/medications/medicationDisplay";
+import { MEDICATION_SHEET_STATE } from "~/lib/medications/medicationSheets";
+import { statusRequestFromForm } from "~/lib/medications/medicationStatusForm";
+import { sessionContext } from "~/lib/auth/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
-import { useAllergies } from "~/lib/sync/allergies";
-import { useSchedulePasses } from "~/lib/sync/medicationPasses";
+import { useAllergies } from "~/lib/medications/allergies.sync";
+import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import {
   changeMedicationStatus,
   medicationQuery,
   removeMedication,
   toMedication,
-} from "~/lib/sync/medications";
+} from "~/lib/medications/medications.sync";
 import { loadMedication } from "./loadMedication";
 import { MedicationDetails, MedicationRefills } from "./MedicationDetails";
 import { MedicationHeader } from "./MedicationHeader";

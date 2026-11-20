@@ -1,13 +1,13 @@
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { MapPin } from "lucide-react";
 import { useMemo, useState } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
 import { ContactActions } from "~/components/providers";
 import { Field } from "~/components/ui";
-import { placeMapAction, shownPlace } from "~/lib/entryPlace";
+import { placeMapAction, shownPlace } from "~/lib/appointments/entryPlace";
 import { useLiveQuery } from "~/lib/sync";
-import { entryProvidersQuery, toProviders } from "~/lib/sync/providers";
+import { entryProvidersQuery, toProviders } from "~/lib/providers/providers.sync";
 
 const NO_ROWS: ProviderRow[] = [];
 

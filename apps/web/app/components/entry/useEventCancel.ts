@@ -1,8 +1,8 @@
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { useState } from "react";
 import { getSync } from "~/lib/sync";
-import { cancelEvent, uncancelEvent } from "~/lib/sync/appointments";
+import { cancelEvent, uncancelEvent } from "~/lib/appointments/appointments.sync";
 
 /**
  * Cancelling and un-cancelling events from a list (the timeline, Upcoming):

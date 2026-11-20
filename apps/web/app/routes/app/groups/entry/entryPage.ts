@@ -1,6 +1,6 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 
-import { isLiveEntryKind, isUnnamedEvent, titleField } from "../../../../lib/liveEntry";
+import { isLiveEntryKind, isUnnamedEvent, titleField } from "../../../../lib/live-notes/liveEntry";
 
 // The entry page's pure decisions: what it's called, what the title region
 // shows, and when the title chips appear. No React or database; unit-tested

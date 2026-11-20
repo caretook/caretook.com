@@ -1,11 +1,11 @@
 import type { PeriodSpan } from "@caretook/data/schema";
-import type { PeriodWords } from "../../../../lib/periodDisplay";
+import type { PeriodWords } from "../../../../lib/care-periods/periodDisplay";
 
-import { dateText, periodName, startText } from "../../../../lib/periodDisplay";
+import { dateText, periodName, startText } from "../../../../lib/care-periods/periodDisplay";
 
 // A care period's page, its pure parts: what deleting it does to the track
 // (said in the confirm), and how the previous and next periods read. The
-// wording builds on `lib/periodDisplay`. No React or database; web:unit
+// wording builds on `lib/care-periods/periodDisplay`. No React or database; web:unit
 // tests it (so imports stay relative).
 
 type Span = PeriodSpan<{

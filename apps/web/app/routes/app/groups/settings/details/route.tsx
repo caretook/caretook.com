@@ -1,14 +1,14 @@
 import type { Route } from "./+types/route";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { SIMPLE_TILE_COUNT } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { Detail, Details, SettingsCard, SettingsPage } from "~/components/settings";
-import { appUrls } from "~/lib/appUrls";
-import { formString } from "~/lib/form";
-import { getGroup, useGroup } from "~/lib/group";
-import { rpc } from "~/lib/rpc";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { formString } from "~/lib/core/form";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { rpc } from "~/lib/core/rpc";
 import { failedSave, loadRecipientProfile } from "../api";
 import { GroupNameForm, RecipientTimeZoneForm } from "./DetailsForms";
 import { SimpleTilesCard } from "./SimpleTilesCard";
