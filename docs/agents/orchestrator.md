@@ -55,7 +55,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 `pnpm prd land` and `ready` accept a tip on one of these, and say which (`lib.sh`, `checked_ok`, `checked_how`):
 
 - **None needed:** everything `dev...<tip>` changes is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/`; later commits of only those also keep an earlier pass. Still run the tooling's own tests.
-- **Full:** `pnpm prd check` passed on the tip.
+- **Full:** `pnpm prd check` (`pnpm check`, then `pnpm build:budget`: the entry and `/app` shell chunks under their gzip ceilings in `scripts/build/budget.json`, with no editor or PowerSync modules) passed on the tip.
 - **Quick:** `pnpm prd check --quick "<why>"` passed on the tip: typecheck, lint, format and the tests related to the diff since the last full pass (`vitest run --changed`). The reason is shown at landing.
 
 Quick is enough when everything since the last full pass is a conflict-free `pnpm prd sync` whose two sides share no file, slice merges whose slices each passed `pnpm check` with no code conflicts, or a hotfix. Run the full check when a conflict was resolved in code; when the diff touches a migration, seeds, `sync-config.yaml`, the lockfile or a `package.json`; when both sides changed a shared registry or hot file; or when unsure. Quick passes keep the last full pass as their base, so they don't drift.

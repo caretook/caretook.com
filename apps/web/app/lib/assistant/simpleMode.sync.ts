@@ -3,7 +3,7 @@ import type { LocalQuery } from "../timeline/timeline.sync";
 
 import { useMemo } from "react";
 import { parseSimpleTiles } from "./simpleTiles";
-import { useLiveQuery } from "../sync/index";
+import { useRememberedQuery } from "../sync/useRememberedQuery";
 
 // Simple mode's group-wide setup on the device (assistant PRD): how the
 // group's tiles are chosen (`care_group.simple_tiles`, synced) and the
@@ -20,14 +20,22 @@ export const simpleSetupQuery = (groupId: string): LocalQuery => ({
   params: [groupId],
 });
 
-// One array for every render: `useLiveQuery` treats a new `initial` as new loader data.
-const NO_SETUP: SimpleSetupRow[] = [];
-
-/** The group's tile choice (null: nobody has chosen, so they're learned) and the recipient's pronouns, live. */
-export function useSimpleSetup(groupId: string): { setting: SimpleTiles | null; pronouns: string | null } {
+/**
+ * The group's tile choice (null: nobody has chosen, so they're learned) and
+ * the recipient's pronouns, live, through the tile cache: `ready` once
+ * they're known (remembered from earlier this session or read), `fresh`
+ * once read live.
+ */
+export function useSimpleSetup(groupId: string): {
+  setting: SimpleTiles | null;
+  pronouns: string | null;
+  ready: boolean;
+  fresh: boolean;
+} {
   const query = useMemo(() => simpleSetupQuery(groupId), [groupId]);
-  const [row] = useLiveQuery<SimpleSetupRow>(query.sql, query.params, NO_SETUP);
+  const { value, fresh } = useRememberedQuery<SimpleSetupRow>({ groupId, name: "simpleSetup" }, query);
+  const row = value?.[0];
   const json = row?.simple_tiles;
   const setting = useMemo(() => parseSimpleTiles(json), [json]);
-  return { setting, pronouns: row?.pronouns ?? null };
+  return { setting, pronouns: row?.pronouns ?? null, ready: value !== undefined, fresh };
 }

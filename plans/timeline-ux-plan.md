@@ -4,22 +4,37 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/timeline-ux` (slice commits) |
-| ----- | ---- | --------------- | -------------------------------------------- |
-| 1     | 1    | not started     |                                              |
-| 2     | 1    | not started     |                                              |
-| 3     | 1    | not started     |                                              |
-| 4     | 2    | not started     |                                              |
-| 5     | 2    | blocked by 2    |                                              |
-| 6     | 2    | not started     |                                              |
-| 7     | 3    | blocked by 1, 3 |                                              |
-| 8     | 3    | blocked by 2    |                                              |
-| 9     | 3    | not started     |                                              |
-| 10    | 4    | blocked by 1    |                                              |
+| Slice | Wave | State                | Merge into `prd/timeline-ux` (slice commits) |
+| ----- | ---- | -------------------- | -------------------------------------------- |
+| 1     | 1    | merged               | 9e3a3ad (28991ac, 940af0a)                   |
+| 2     | 1    | merged               | de5ccf9 (67f6e34)                            |
+| 3     | 1    | merged               | 448be6e (11efa88)                            |
+| 4     | 2    | handed off (2110676) |                                              |
+| 5     | 2    | started              |                                              |
+| 6     | 2    | started              |                                              |
+| 7     | 3    | blocked by 1, 3      |                                              |
+| 8     | 3    | blocked by 2         |                                              |
+| 9     | 3    | not started          |                                              |
+| 10    | 4    | blocked by 1         |                                              |
 
 **Start condition:** `code-layout` in `dev` (it moves `apps/web/app/lib/`, `routes.ts` and `appUrls`). Check `pnpm backlog show B-150` says landed. Every path below that names `lib/…` means its new home after code-layout: find it with `git grep` and don't recreate the old file.
 
-**Landing:** land each wave as soon as it's green. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here.
+**Landing mode: run everything through** (queued with `pnpm prd queue timeline-ux`; 2026-11-20). Start every ready slice, land each green wave without asking, clean up; ask only real questions. The lean-set `--suite` before landing waves 1, 3 and 4 still needs the user's yes (standing rule).
+
+**Models:** slice 1 opus, slice 2 opus, slice 3 sonnet (tooling spelled out).
+
+**Progress log:**
+
+- 2026-11-20: wave 1 started: worktrees timeline-ux-1 (stack, slot 6), -2, -3 made; agents spawned (1 opus, 2 opus, 3 sonnet). B-136, B-156, B-166, B-155 claimed.
+- Slice 3 handed off (11efa88): `pnpm build:budget` (entry/root/app gzip ceilings, forbidden editor/PowerSync modules); `pnpm prd check` now also runs it. Edits `apps/web/vite.config.ts` (manifest + chunk-modules plugin), `scripts/loops/prd.sh`, `.gitignore`.
+- Slice 1 merged (9e3a3ad), B-136/B-156 done, worktree removed. Its `pnpm check` failed only `medicationList.browser.test.tsx` under load (passed alone 3/3): watch it at the landing check. Fold-ins for sync.md: freshness 15 min, recheck after 1 min, 3 s answer budget; the first check per page load and after sign-in (`sessionEpoch.ts`) always waits; cache-first settings and the `useMySettings` store. session-end usual seconds unchanged (lean set is at its 286 ceiling).
+- Slices 2 (de5ccf9) and 3 (448be6e) merged, B-166/B-155 done, worktrees removed. Slice 2 fold-ins: the tile cache (`lib/sync/remembered.ts`, `useRememberedQuery`; in memory, keyed by user/group/name; dimmed `data-stale` + `STALE`; `STRIP_SKELETON` on a first visit; cleared in `closeSync`) → sync.md and timeline.md; quick entry's passes gate on `fresh`. Slice 5 uses `ready`/`fresh`/`STALE`/`STRIP_SKELETON` from the strip hooks. Wave 1 landing next: sync, check, ask the user about `--suite`.
+- Wave 1 landing: `pnpm prd sync` merged dev (code-layout wave 3: routes and URLs by area; one common file, `check-areas.d/app-shell`, no conflicts); full `pnpm prd check` running (a big refactor came in). Lean `--suite`: the user chose to land wave 1 on the check alone (2026-11-20).
+- Wave 2 started from the synced branch: worktrees timeline-ux-4, -5, -6 (no stacks); agents spawned (4 sonnet, 5 opus, 6 opus). B-137, B-138, B-169, B-164, B-167, B-165, B-168, B-139 claimed.
+- agent-tooling's doc split landed in dev (81529fa): the handbook is now `docs/agents/` (loop, orchestrator, backlog…), AGENTS.md an 8 KB core; the land guard enforces budgets (docs/domain 10 KB; timeline.md and app-shell.md already over, so trim at least what we fold). Sync again before landing wave 1. Told agent-tooling-29 our remaining folds into timeline.md (waves 1–3) and app-shell.md (waves 2–3) and suggested they trim first.
+- agent-tooling is trimming components, care-groups, sync, medications, timeline and app-shell to ~9 KB; fold onto whatever is in dev; message agent-tooling-29 after each landing that touches sync/timeline/app-shell/medications.
+- Wave 1 check: two load flakes (`medicationList`, `profile` component tests; both pass alone 2/2 at load 25). Synced dev again (docs/tooling only). Folded wave 1 into sync.md, timeline.md, docs/agents/orchestrator.md and AGENTS.md (no doc grew past dev's size); rerunning the full check.
+- Slice 4 handed off (2110676; its subject wrongly cites B-168: the items are B-137, B-138). Its pnpm check had 2 unnamed load flakes and the plan's Prettier warning (since fixed). Merge after wave 1 lands.
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
