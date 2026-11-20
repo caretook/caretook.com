@@ -17,11 +17,21 @@ import { BUDGETS } from "./doc-budget.config.mjs";
 
 /** The budget in bytes for a repo-relative path, or null if it has none. */
 export function budgetFor(path, budgets = BUDGETS) {
-  for (const { pattern, bytes } of budgets) {
+  return entryFor(path, budgets)?.bytes ?? null;
+}
+
+/** Whether a path's budget only warns and never blocks a landing. */
+export function isLandExempt(path, budgets = BUDGETS) {
+  return entryFor(path, budgets)?.landExempt === true;
+}
+
+function entryFor(path, budgets) {
+  for (const entry of budgets) {
+    const { pattern } = entry;
     if (pattern.endsWith("/*.md")) {
       const dir = pattern.slice(0, -4);
-      if (path.startsWith(dir) && path.endsWith(".md") && !path.slice(dir.length).includes("/")) return bytes;
-    } else if (pattern === path) return bytes;
+      if (path.startsWith(dir) && path.endsWith(".md") && !path.slice(dir.length).includes("/")) return entry;
+    } else if (pattern === path) return entry;
   }
   return null;
 }
@@ -115,7 +125,9 @@ export function run(argv, { out = console.log, err = console.error } = {}) {
       return 2;
     }
     const baseSizes = docSizes(repo, base);
-    const grown = measure(docSizes(repo, head), baseSizes).filter((r) => r.status === "grown");
+    const grown = measure(docSizes(repo, head), baseSizes).filter(
+      (r) => r.status === "grown" && !isLandExempt(r.path),
+    );
     if (!grown.length) return 0;
     err(`doc budget: this landing grows ${grown.length} doc(s) that are over budget; trim them first:`);
     for (const r of grown) err(line(r));

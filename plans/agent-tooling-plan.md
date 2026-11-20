@@ -21,6 +21,8 @@
 
 **Wave 1:** all three merged; next: `pnpm prd sync`, full `pnpm prd check` (package.json changed), land. Slice 3's `pnpm check` also had 2 component flakes (medicationList, providerSheets), both passed alone.
 
+**Land guard (user's choice, 2026-11-20):** AGENTS.md and docs/loops.md are `landExempt` (warn only) until slice 4, which removes the flags.
+
 **Claimed:** B-154, B-147 (2026-11-20). B-148 is claimed at wave 3.
 
 **Backlog:**
@@ -225,6 +227,7 @@ Stack: no · Reads: docs/loops.md, docs/orchestration.md · Tests: unit
   - Recovery reads the orchestrator doc.
 - **docs/orchestration.md:** its links point to the new docs. It isn't rewritten.
 - **Every current rule lands in exactly one place.** The hand-off lists any rule dropped as stale, with the reason.
+- **Remove the land exemptions** (`landExempt` on AGENTS.md and docs/loops.md in `scripts/loops/doc-budget.config.mjs`, added at wave 1's landing on the user's word so other PRDs' folds weren't blocked meanwhile).
 - **Before landing:** `pnpm prd sync`. Any additions a landing made meanwhile to the old AGENTS.md or docs/loops.md are moved into the new layout and listed in the hand-off.
 
 **Acceptance criteria:**

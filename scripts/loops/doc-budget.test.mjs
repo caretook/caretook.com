@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { budgetFor, measure, run } from "./doc-budget.mjs";
+import { budgetFor, isLandExempt, measure, run } from "./doc-budget.mjs";
 
 const KB = 1024;
 let repo;
@@ -96,5 +96,17 @@ describe("modes", () => {
     expect(r.err).toContain("base 11264 B");
     expect(r.err).not.toContain("big.md");
     expect(r.err).not.toContain("shrinks.md");
+  });
+});
+
+describe("land exemptions", () => {
+  it("AGENTS.md and docs/loops.md warn but don't block a landing until slice 4", () => {
+    expect(isLandExempt("AGENTS.md")).toBe(true);
+    expect(isLandExempt("docs/loops.md")).toBe(true);
+    expect(isLandExempt("docs/domain/timeline.md")).toBe(false);
+    expect(isLandExempt("docs/agents/loop.md")).toBe(false);
+    const budgets = [{ pattern: "docs/x.md", bytes: 10, landExempt: true }];
+    expect(isLandExempt("docs/x.md", budgets)).toBe(true);
+    expect(budgetFor("docs/x.md", budgets)).toBe(10);
   });
 });
