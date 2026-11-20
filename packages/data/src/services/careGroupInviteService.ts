@@ -336,9 +336,22 @@ export const revoke = async (ctx: ServiceContext, id: string) => {
 // The invitee: holding the token is what entitles them to these.
 // ---------------------------------------------------------------------------
 
-/** `settings:signupClosed` while the invite's kind (email or link) is switched off, else null. */
-const kindRefusal = (invite: { kind: string }) =>
-  signupRefusal(invite.kind === "link" ? "linkInvites" : "emailInvites");
+/**
+ * A staff owner invite (groupAdminService.inviteOwner or
+ * staffGroupService.createWithOwnerInvite): an owner email invite created by
+ * the system, which only those two paths do (members' invites are created in
+ * their own scope, so `createdBy` is the member).
+ */
+const isStaffOwnerInvite = (invite: { kind: string; role: string; createdBy: string }) =>
+  invite.kind === "email" && invite.role === "owner" && invite.createdBy === SYSTEM_USER.id;
+
+/**
+ * `settings:signupClosed` while the invite's kind (email or link) is switched
+ * off, else null. Staff owner invites aren't members' invites, so the email
+ * switch doesn't apply to them.
+ */
+const kindRefusal = async (invite: { kind: string; role: string; createdBy: string }) =>
+  isStaffOwnerInvite(invite) ? null : signupRefusal(invite.kind === "link" ? "linkInvites" : "emailInvites");
 
 /**
  * What a token's holder may know before joining: the invite's state, and
