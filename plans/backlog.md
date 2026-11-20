@@ -97,7 +97,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | landed | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | landed | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
-| B-133 | bug | triaged | quick-fixes |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
+| B-133 | bug | landed | quick-fixes |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
 | B-134 | bug | inbox |  |  | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 
 ## Items
@@ -658,10 +658,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-133 · bug · Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test)
 
-- status: triaged
+- status: landed
 - prd: quick-fixes
 - owner:
-- commit:
+- commit: b6c4187
 
 - 2026-11-19 (prd/check-migration): Found by check-migration slice 1: useHistoryCutoff changes the history query key at the minute turn, useLiveRows goes not-fresh, pageWindow sets limit = requested − 30, so the last page unmounts and later rows remount. Fails ~1 in 6 isolated runs under CPU load. Product quirk, not a test race; not in check-migration's scope.
 - 2026-11-19 (prd/check-migration): check-migration: timelineScroll's 'three pages down' test now has { retry: 2 } (commit on prd/check-migration); remove it when this is fixed.
