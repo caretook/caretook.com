@@ -78,7 +78,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-112 | change | landed | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
-| B-114 | chore | in-progress | check-migration | prd/check-migration | Move routing.mjs to component tests |
+| B-114 | chore | ready | check-migration | prd/check-migration | Move routing.mjs to component tests |
 | B-115 | chore | in-progress | check-migration | prd/check-migration | Move settings-layout.mjs to component tests |
 | B-116 | chore | triaged | check-migration |  | Move providers.mjs to component tests |
 | B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
@@ -456,10 +456,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-114 · chore · Move routing.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 7e632ee
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set (e2e no) since orchestration slice 9. Move its screen steps (appUrls links, sheet URLs open and close, settings subpages, the group route's redirects and 404s) to *.browser.test.tsx beside the routes, delete each covered step (map step -> test in the hand-off), keep only what needs a real page load (route discovery offline, a deep link after a full load); then e2e yes or delete it. Rules: docs/loops.md, Browser check budget.
 - 2026-11-19 (Robert Bo Davis): Proposed (B-114 to B-128) a new check-migration topic: one slice per check moved to component tests, plus B-128's refused-upload step; tests only, no migration, can run beside feature PRDs. Start after orchestration lands.
