@@ -698,6 +698,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (prd/hosting): From the inbox: "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas separate entries; start with “n:” for a note." should be a tooltip.
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
 
 ### B-164 · change · "day/date" heder for full timeline is too small compared to the + button. Make text larger.
 
