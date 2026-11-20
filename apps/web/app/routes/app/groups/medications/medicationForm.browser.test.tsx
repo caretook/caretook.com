@@ -134,7 +134,7 @@ describe("adding", () => {
     await userEvent.click(submit());
     await expect.poll(() => errorOf("name")).toBe("Enter a name");
     expect(TIMES_ERROR()).toBe("List each time once");
-    expect(document.activeElement).toBe(field("name"));
+    await expect.poll(() => document.activeElement).toBe(field("name"));
 
     await userEvent.fill(field("name")!, "Albuterol");
     await userEvent.click(scheduleType("asNeeded"));
