@@ -5,4 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_API_ORIGIN?: string;
   /** The deploy target (`staging` | `production`), baked in at build; unset in dev, tests and check builds. */
   readonly APP_ENV?: string;
+  /** The build target (`web` | `native`), from build-target.ts (vite.config.ts's `define`). */
+  readonly BUILD_TARGET: "web" | "native";
 }

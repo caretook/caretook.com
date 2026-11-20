@@ -11,7 +11,10 @@
 //
 // So this page lets go of PowerSync's locks itself when it goes into the
 // cache, as unloading would, and reloads if it's restored from the cache,
-// since the workers have dropped its connections by then.
+// since the workers have dropped its connections by then. On the web, an
+// /app reload works offline too: the service worker serves the shell
+// (lib/app-shell/serviceWorker.ts; B-144). Before it, Back offline showed the browser's
+// error page.
 
 /** The locks PowerSync holds in a page for as long as the page lives. */
 const PAGE_LIFETIME_LOCK = /^(tab-close-signal-|shared-connection-)/;
