@@ -90,7 +90,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-120 | chore | landed | check-migration | prd/check-migration | Move search.mjs to component tests |
 | B-121 | chore | triaged | check-migration |  | Move profiles.mjs to component tests |
 | B-122 | chore | triaged | check-migration |  | Move profiles-contacts.mjs to component tests |
-| B-123 | chore | in-progress | check-migration | prd/check-migration | Move care-periods.mjs to component tests |
+| B-123 | chore | ready | check-migration | prd/check-migration | Move care-periods.mjs to component tests |
 | B-124 | chore | ready | check-migration | prd/check-migration | Move devices.mjs to component tests |
 | B-125 | chore | ready | check-migration | prd/check-migration | Move admin.mjs to component tests |
 | B-126 | chore | triaged | check-migration |  | Move roundtrip.mjs's sheet steps to component tests |
@@ -577,10 +577,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-123 · chore · Move care-periods.mjs to component tests
 
-- status: in-progress
+- status: ready
 - prd: check-migration
 - owner: prd/check-migration
-- commit:
+- commit: 2cdba7f
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the periods list, sheets, period page, timeline line and markers, group menu and suggestions to component tests; keep a second device, offline then upload, and ties. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 8, wave 3 (plans/check-migration-plan.md).
