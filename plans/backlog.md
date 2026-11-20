@@ -93,6 +93,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | inbox |  |  | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | inbox |  |  | Component tests (web:components) can fail under pnpm check's load |
+| B-132 | feature | inbox |  |  | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 
 ## Items
 
@@ -599,3 +600,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (Robert Bo Davis): From the orchestration PRD. Slice 9's first pnpm prd check failed two component test files once (trace in apps/web/test/device.tsx; details lost), then passed on every rerun. At wave 3's landing three entry page tests raced the same way (they read the screen right after a stored write) and were fixed to wait for the screen. If it recurs, capture the log, look for DOM reads right after a database poll, and consider a lower parallelism for web:components inside pnpm check.
+
+### B-132 · feature · PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (Robert Bo Davis): From the inbox: PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When disk space gets low, we have to be able to restart the system and recover the state of the system.
