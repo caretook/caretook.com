@@ -3,12 +3,15 @@
 // check (live-notes.mjs); this one covers the sheet path: add, edit, delete,
 // validation, When's date picker (keyboard, typed, tapped, edit), an entry
 // written offline (through a switchable proxy, because CDP network emulation
-// doesn't cut PowerSync's stream), a read-only viewer,
-// and sign-out wiping the device. Every entry it writes has this run's tag,
-// so it passes run after run without a reset.
+// doesn't cut PowerSync's stream), a read-only viewer, the sync matrix (every
+// synced table's row on both devices: sync-matrix.mjs), an upload refused by
+// permissions (a member demoted while offline), and sign-out wiping the
+// device. Every row it writes has this run's tag, so it passes run after run
+// without a reset.
 import { execSync } from "node:child_process";
 import { ADD_BUTTON, launch, localCopyHolds, openPage, sleep } from "./cdp.mjs";
 import { startProxy } from "./proxy.mjs";
+import { RECIPIENT_PATCH, SYNC_MATRIX, cleanupSql, localTimestamp, matrixContext } from "./sync-matrix.mjs";
 
 const PG_CONTAINER = process.env.PG_CONTAINER ?? "caretook-postgres-1";
 const PW = process.env.SEED_USER_PASSWORD ?? "caretook-dev-password";
@@ -128,10 +131,50 @@ async function signIn(p, email) {
   await p.waitFor(`document.querySelectorAll("main ol > li").length > 0`, 30000);
 }
 
+// The device's local database (window.caretookSync on a check build): reads,
+// a write in one transaction, and the upload queue's length.
+const localRows = (p, sql, params = []) =>
+  p.evaluate(`window.caretookSync.powersync.getAll(${JSON.stringify(sql)}, ${JSON.stringify(params)})`);
+const localWrite = (p, statements) =>
+  p.evaluate(
+    `window.caretookSync.powersync.writeTransaction(async (tx) => { for (const s of ${JSON.stringify(statements)}) await tx.execute(s.sql, s.params); }).then(() => true)`,
+  );
+const queued = (p) => p.evaluate(`window.caretookSync.powersync.getUploadQueueStats().then((s) => s.count)`);
+/** Polls `test` (async, in Node) until it's truthy or `ms` pass; returns its last value. */
+async function until(test, ms = 20000) {
+  const end = Date.now() + ms;
+  let last;
+  while (Date.now() < end) {
+    last = await test().catch(() => undefined);
+    if (last) return last;
+    await sleep(250);
+  }
+  return last;
+}
+const rpc = (p, path, json) =>
+  p.evaluate(
+    `fetch("/rpc/${path}", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": "orpc" }, body: JSON.stringify({ json: ${JSON.stringify(json)} }) }).then((r) => r.status)`,
+  );
+
+const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
+const userId = (email) => psql(`SELECT id FROM "user" WHERE email = '${email}'`);
+const memberId = userId("member@example.com");
+const caretakerId = userId("caretaker@example.com");
 const tag = `RT-${Date.now().toString(36)}`;
+const matrix = matrixContext({
+  tag,
+  groupId: DEV_FAMILY,
+  recipientId: psql(`SELECT id FROM care_recipient WHERE group_id = '${DEV_FAMILY}' ORDER BY id LIMIT 1`),
+  userId: memberId,
+});
+// "No known allergies" as the run found it: the matrix toggles it and puts it back.
+const recordedAt = psql(
+  `SELECT no_known_allergies_at FROM care_recipient WHERE id = '${matrix.recipientId}'`,
+);
 const proxyA = startProxy(9321);
+const proxyB = startProxy(9322);
 const bA = await launch(9311, proxyA.args);
-const bB = await launch(9312);
+const bB = await launch(9312, proxyB.args);
 const bC = await launch(9313);
 const pages = [];
 try {
@@ -346,6 +389,114 @@ try {
     ),
   );
 
+  // 6b. The sync matrix: every synced table's row reaches the other device.
+  // care_recipient first (its one uploadable column), before the matrix's
+  // allergy clears "No known allergies" on the server.
+  const recorded = recordedAt !== "";
+  await localWrite(A, [RECIPIENT_PATCH.write(matrix, recorded)]);
+  const patched = await until(async () => {
+    const [row] = await localRows(B, RECIPIENT_PATCH.read(matrix).sql, RECIPIENT_PATCH.read(matrix).params);
+    return row && !!row.recorded !== recorded;
+  });
+  check(
+    "matrix: care_recipient (device patch) reaches the other member",
+    !!patched,
+    recorded ? "cleared No known allergies" : "recorded No known allergies",
+  );
+  const t1 = Date.now();
+  await localWrite(
+    A,
+    SYNC_MATRIX.filter((r) => r.by === "device").map((r) => r.write(matrix)),
+  );
+  const rows = SYNC_MATRIX.filter((r) => r.by !== "patch").map((r) => ({
+    ...r,
+    rowId: r.by === "device" ? r.id(matrix) : psql(r.idSql(matrix)),
+  }));
+  const holds = async (p, r) =>
+    !!r.rowId && (await localRows(p, `SELECT id FROM "${r.table}" WHERE id = ?`, [r.rowId])).length === 1;
+  const missingOn = async (p) => {
+    const missing = [];
+    for (const r of rows) if (!(await holds(p, r))) missing.push(r.table);
+    return missing;
+  };
+  let missingB = await missingOn(B);
+  await until(async () => (missingB = await missingOn(B)).length === 0);
+  const matrixMs = Date.now() - t1;
+  const missingA = await missingOn(A);
+  for (const r of rows)
+    check(
+      `matrix: ${r.table} (${r.by === "device" ? "written on a device" : "server-written"}) is on both devices`,
+      !missingB.includes(r.table) && !missingA.includes(r.table),
+      [
+        missingB.includes(r.table) && "not on the other member's device",
+        missingA.includes(r.table) && "gone from the writer's",
+        !r.rowId && "no seeded row",
+      ]
+        .filter(Boolean)
+        .join(", "),
+    );
+  console.log(
+    `  matrix: ${rows.length - missingB.length}/${rows.length} tables on the other device ${matrixMs} ms after the write`,
+  );
+
+  // 6c. A refused upload: the owner demotes the caretaker while the
+  // caretaker's device is offline, still holding writer state; its edit is
+  // refused on upload (acknowledged, not retried), and the next sync
+  // restores the server's copy.
+  const noteTitle = `${tag} matrix note`;
+  const refusedTitle = `${noteTitle}, refused`;
+  const roleOn = async (p) =>
+    (
+      await localRows(p, "SELECT role FROM care_group_member WHERE group_id = ? AND user_id = ?", [
+        DEV_FAMILY,
+        caretakerId,
+      ])
+    )[0]?.role;
+  const titleOn = async (p) =>
+    (await localRows(p, "SELECT title FROM timeline_entry WHERE id = ?", [matrix.ids.entry]))[0]?.title;
+  proxyB.setOnline(false);
+  await B.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 20000);
+  const demoted = await rpc(A, "careGroup/changeRole", {
+    groupId: DEV_FAMILY,
+    userId: caretakerId,
+    role: "viewer",
+  });
+  await localWrite(B, [
+    {
+      sql: "UPDATE timeline_entry SET title = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+      params: [refusedTitle, localTimestamp(), caretakerId, matrix.ids.entry],
+    },
+  ]);
+  const before = { role: await roleOn(B), title: await titleOn(B), queued: await queued(B) };
+  check(
+    "refused: demoted on the server while offline, the device still writes as a caretaker",
+    demoted === 200 && before.role === "caretaker" && before.title === refusedTitle && before.queued === 1,
+    `changeRole ${demoted}, local role ${before.role}, ${before.queued} queued`,
+  );
+  proxyB.setOnline(true);
+  const t2 = Date.now();
+  const after = await until(async () => {
+    const state = { role: await roleOn(B), title: await titleOn(B), queued: await queued(B) };
+    return state.role === "viewer" && state.title === noteTitle && state.queued === 0 ? state : null;
+  }, 60000);
+  const serverTitle = psql(`SELECT title FROM timeline_entry WHERE id = '${matrix.ids.entry}'`);
+  check(
+    "refused: on reconnect the upload is refused, the queue empties and the server's copy comes back",
+    !!after && serverTitle === noteTitle,
+    after
+      ? `${Date.now() - t2} ms after reconnecting`
+      : `role ${await roleOn(B)}, title ${await titleOn(B)}, ${await queued(B)} queued, server ${serverTitle}`,
+  );
+  const refusals = B.errors.filter((e) => e.includes("the server refused a change"));
+  check("refused: the device logged the server's refusal", refusals.length > 0, `${refusals.length} logged`);
+  const restored = await rpc(A, "careGroup/changeRole", {
+    groupId: DEV_FAMILY,
+    userId: caretakerId,
+    role: "caretaker",
+  });
+  const back = await until(async () => (await roleOn(B)) === "caretaker");
+  check("refused: the caretaker's role is restored", restored === 200 && !!back, `changeRole ${restored}`);
+
   // 7. Tidy up, then sign-out wipes the device.
   psql(`UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' = '${offName}'`);
   await A.waitFor(`!${rowWith(offName)}`, 15000);
@@ -367,7 +518,7 @@ try {
   // fail its first connect after a reset (a 401 while it refetches the JWKS),
   // and a full page load closes the previous page's database.
   const noise =
-    /401|Failed to load resource|ERR_INTERNET_DISCONNECTED|Failed to fetch|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|\[PowerSync\]: Sync aborted|Error loading route module/;
+    /the server refused a change|401|Failed to load resource|ERR_INTERNET_DISCONNECTED|Failed to fetch|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|\[PowerSync\]: Sync aborted|Error loading route module/;
   const errors = pages.flatMap((p) => p.errors).filter((e) => !noise.test(e));
   check("no console errors or warnings", errors.length === 0, errors.slice(0, 5).join(" | ").slice(0, 800));
 } catch (e) {
@@ -382,9 +533,14 @@ try {
 } finally {
   for (const b of [bA, bB, bC]) b.proc.kill();
   proxyA.close();
+  proxyB.close();
   try {
     psql(
       `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
+    );
+    psql(cleanupSql(matrix, recordedAt));
+    psql(
+      `UPDATE care_group_member SET role = 'caretaker' WHERE group_id = '${DEV_FAMILY}' AND user_id = '${caretakerId}' AND role <> 'caretaker'`,
     );
   } catch {
     // Best effort.

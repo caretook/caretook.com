@@ -143,6 +143,9 @@ describe("the author filter", () => {
     expect(authorChip()).toBeNull();
 
     await userEvent.click(samLink());
+    // Wait for the author to apply: under load, All's link was read before it did and dropped the author too.
+    await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom&author=${SAM.id}`);
+    await device.settle();
     await userEvent.click(chips()[0]!);
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
     expect(currentChips()).toBe("All,By Sam Okafor: clear this filter");

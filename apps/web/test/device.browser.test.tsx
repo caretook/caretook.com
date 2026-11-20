@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { describe, expect, test } from "vitest";
 import { useGroup } from "~/lib/group";
 import { parseSearch } from "@caretook/data/schema";
@@ -11,6 +12,16 @@ import { fx, TEST_GROUP } from "./fixtures";
 
 const TIMELINE = { path: "/app/groups/:groupId/timeline", module: timeline };
 const timelineUrl = `/app/groups/${TEST_GROUP.id}/timeline`;
+
+/** A screen that never settles: it changes on every frame. */
+function Ticker() {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setN(n + 1));
+    return () => cancelAnimationFrame(id);
+  }, [n]);
+  return <p>Frame {n}</p>;
+}
 
 function GroupLine() {
   const group = useGroup();
@@ -136,5 +147,56 @@ describe("the test device", () => {
     expect(document.documentElement.clientWidth).toBe(420);
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(getComputedStyle(document.body).backgroundColor).not.toBe(lightBg);
+  });
+});
+
+describe("settle", () => {
+  test("a stored write, then a read of the screen: missing straight after the write, there once settled", async () => {
+    const device = await renderWithDevice({
+      route: TIMELINE,
+      url: timelineUrl,
+      fixtures: [fx.note({ text: "Ate lunch" })],
+    });
+    await expect.element(device.screen.getByText("Ate lunch")).toBeVisible();
+    await device.settle();
+
+    await createEntry(device.db, TEST_GROUP.id, {
+      kind: "symptom",
+      occurredAt: new Date().toISOString(),
+      timeZone: "America/Los_Angeles",
+      details: { name: "Sore knee", severity: 2 },
+    });
+    // The race B-131 saw: the live query hasn't rerun yet (it's throttled).
+    // The timeline shows a symptom in more than one place (the row, the day summary), so count them.
+    expect(device.screen.getByText(/Sore knee/).elements()).toHaveLength(0);
+    await device.settle();
+    expect(device.screen.getByText(/Sore knee/).elements().length).toBeGreaterThan(0);
+  });
+
+  test("after sync() and unsync(): every live query on the screen has caught up, not just the first", async () => {
+    const sam = fx.person({ name: "Sam Okafor", role: "caretaker" });
+    const note = fx.note({ text: "Pharmacy called back", createdBy: sam.id });
+    const device = await renderWithDevice({ route: TIMELINE, url: timelineUrl });
+    await device.settle();
+
+    await device.sync([sam, note]);
+    expect(device.screen.getByText("Pharmacy called back").query()).toBeNull();
+    await device.settle();
+    expect(device.screen.getByText("Pharmacy called back").query()).not.toBeNull();
+    expect(
+      device.screen.getByRole("link", { name: "Show only Sam Okafor's entries" }).query(),
+    ).not.toBeNull();
+
+    await device.unsync([note]);
+    await device.settle();
+    expect(device.screen.getByText("Pharmacy called back").query()).toBeNull();
+  });
+
+  test("a screen that never stops changing: settle times out, saying why", async () => {
+    const device = await renderWithDevice({ element: <Ticker />, settle: false });
+    await expect.element(device.screen.getByText(/Frame \d+/)).toBeVisible();
+    await expect(device.settle({ timeout: 300 })).rejects.toThrow(
+      "settle: the screen didn't settle within 300 ms: the screen kept changing (the DOM changed in every frame).",
+    );
   });
 });
