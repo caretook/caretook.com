@@ -5,7 +5,10 @@ import { startProxy } from "./proxy.mjs";
 // A timeline layout change made offline isn't lost (quick-fixes slice 2):
 // it's kept pending on the device, survives a revisit while offline, and
 // reaches the server on the next online load. Online it saves at once, and
-// sign-out clears pending changes.
+// sign-out clears pending changes. The layout also follows the account: a
+// change made in another browser shows on this one's next load, over its own
+// cached copy (from settings-layout.mjs; the Settings <-> timeline toggle on
+// one device is settings.browser.test.tsx's).
 //
 // Units save the same way (quick-fixes slice 30): °F → °C chosen offline in
 // Settings is pending, the vitals sheet shows °C at once, and the next online
@@ -37,6 +40,11 @@ const serverView = () =>
 
 const rows = `document.querySelectorAll("ol > li").length`;
 const isCards = `(document.querySelector("ol")?.dataset.view === "cards")`;
+const setServerView = (view) =>
+  psql(
+    `UPDATE "user" SET preferences = coalesce(preferences, '{}'::jsonb) || '{"timelineView":"${view}"}'::jsonb WHERE email = '${EMAIL}'`,
+  );
+
 const pendingKeys = `Object.keys(localStorage).filter((k) => k.startsWith("caretook:settings-pending:"))`;
 const pendingView = `(() => { const k = ${pendingKeys}[0]; return k ? JSON.parse(localStorage.getItem(k)).timelineView ?? null : null; })()`;
 const serverTemp = () =>
@@ -193,19 +201,26 @@ try {
   await p.press(button("Cancel", DIALOG));
   await p.waitFor(`!${DIALOG}`, 5000).catch(() => {});
 
-  // Back online: the next load sends it.
+  // Back online: the next load sends it. Meanwhile the account's layout is
+  // changed elsewhere (another signed-in browser; here straight on the
+  // server): the load shows the account's choice over this device's copy.
   proxy.setOnline(true);
   await sleep(500);
+  setServerView("rows");
   await p.goto(timeline);
   await p.waitFor(`${rows} > 0`, 20000);
   await sleep(300);
   check("units online again: the server has °C", serverTemp() === "c", serverTemp());
   check("units online again: nothing left pending", (await p.evaluate(`${pendingKeys}.length`)) === 0);
+  check(
+    "the layout follows the account: another browser's Rows shows on the next load",
+    !(await p.evaluate(isCards)) && serverView() === "rows",
+  );
 
   // Sign-out clears pending changes (one left by an offline switch).
   proxy.setOnline(false);
   await sleep(300);
-  await setView(p, "Rows");
+  await setView(p, "Cards");
   await sleep(800);
   const before = await p.evaluate(`${pendingKeys}.length`);
   proxy.setOnline(true);

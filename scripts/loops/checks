@@ -28,7 +28,6 @@ phase2               15   120  no           yes
 roundtrip            31   120  no           yes
 live-notes           55   170  no           yes
 app-shell            10   120  no           yes
-settings-layout      15   120  no           no
 layout-offline       15   300  yes          yes
 sign-in              10   120  no           yes
 first-sync           40   150  no           yes
