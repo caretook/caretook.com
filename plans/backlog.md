@@ -86,6 +86,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-122 | chore | inbox |  |  | Move profiles-contacts.mjs to component tests |
 | B-123 | chore | inbox |  |  | Move care-periods.mjs to component tests |
 | B-124 | chore | inbox |  |  | Move devices.mjs to component tests |
+| B-125 | chore | inbox |  |  | Move admin.mjs to component tests |
 
 ## Items
 
@@ -523,3 +524,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the Devices page's list, labels and offline notice to component tests; keep signing another device out (its next session check goes to sign-in) as a lean flow, possibly folded into session-end.mjs. Then e2e yes.
+
+### B-125 · chore · Move admin.mjs to component tests
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. admin pages are web-only server loaders, so component tests need loader data: move what renders from data (users, groups, audit, settings, the banner) there; keep staff-only access, the audit log written by real actions and the announcement reaching /app. Then e2e yes.
