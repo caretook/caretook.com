@@ -146,8 +146,27 @@ const mailAbout = async (address, name, about, ms = 15_000) => {
   return found;
 };
 
-/** Long enough for a background send that was going to happen to have happened. */
-const QUIET_MS = 2500;
+/** No further mail to `address` is on its way, so what the mailbox holds now is final. */
+const mailSettled = async (address) => {
+  // Auth's emails are queued in the background, after the response, so an empty outbox can
+  // just mean "not queued yet". Settled is: nothing pending or sending, and the address's
+  // row count unchanged for QUIET_MS. That keeps "no mail" and "one email" checks honest.
+  const state = () =>
+    psql(
+      `SELECT count(*) FILTER (WHERE status IN ('pending','sending')) || '/' || count(*) FROM notification_outbox WHERE recipient = '${address}'`,
+    ).trim();
+  const deadline = Date.now() + 15_000;
+  let last = state();
+  let since = Date.now();
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 200));
+    const now = state();
+    if (now !== last) [last, since] = [now, Date.now()];
+    else if (now.startsWith("0/") && Date.now() - since >= QUIET_MS) return;
+  }
+  throw new Error(`${address}'s outbox never settled (last ${last})`);
+};
+const QUIET_MS = 1_200;
 
 /** The sign-in email's code: six digits on a line of their own (never part of the link). */
 const codeIn = (text) => text.match(/^\s*(\d{6})\s*$/m)?.[1];
@@ -184,11 +203,7 @@ const doublePress = async (locator) => {
     b.click();
     b.click();
   });
-  await locator.page().waitForTimeout(150);
 };
-
-/** Better Auth allows only a few sign-in requests per window: space them out. */
-const pause = (page) => page.waitForTimeout(4000);
 
 const rpcCall = (page, path, json) =>
   page.evaluate(
@@ -299,7 +314,7 @@ test("1. sign in with an emailed link", { tag: "@smoke" }, async ({ device }) =>
     expect(mail.text).not.toMatch(/vital|symptom|medication|note/i);
   });
   await test.step("a double press sends one email", async () => {
-    await p.waitForTimeout(QUIET_MS);
+    await mailSettled(linkUser);
     expect(await mailTo(linkUser)).toHaveLength(1);
   });
 
@@ -315,7 +330,7 @@ test("1. sign in with an emailed link", { tag: "@smoke" }, async ({ device }) =>
     await u.locator('input[name="email"]').fill(unknown);
     await submit(u, "Send email").click();
     await expect(status(u)).toHaveText(/^Check your email/, { timeout: 15_000 });
-    await u.waitForTimeout(QUIET_MS);
+    await mailSettled(unknown);
     expect(await mailTo(unknown)).toHaveLength(0);
     expect(accountCount(unknown)).toBe(0);
   });
@@ -345,7 +360,7 @@ test("2. sign in with an emailed code", async ({ device }) => {
   await test.step("the email has a 6-digit code, not in the subject, from one email", async () => {
     expect(code, mail.subject).toBeTruthy();
     expect(mail.subject).not.toContain(code);
-    await p.waitForTimeout(QUIET_MS);
+    await mailSettled(codeUser);
     expect(await mailTo(codeUser)).toHaveLength(1);
   });
 
@@ -358,7 +373,6 @@ test("2. sign in with an emailed code", async ({ device }) => {
   });
 
   await test.step("the right code signs in (every button disabled meanwhile) and lands on /app", async () => {
-    await pause(p);
     await p.locator('input[name="code"]').fill(code);
     // Hold the sign-in request, so the buttons' state can be read while it is pending.
     let release;
@@ -400,13 +414,12 @@ test("2. sign in with an emailed code", async ({ device }) => {
   });
 
   await test.step("an unknown email: the same message, and no code is sent", async () => {
-    await pause(e);
     await e.goto("/sign-in?with=email");
     await expect(submit(e, "Send email")).toBeVisible();
     await e.locator('input[name="email"]').fill(unknown);
     await submit(e, "Send email").click();
     await expect(status(e)).toHaveText(/^Check your email/, { timeout: 15_000 });
-    await e.waitForTimeout(QUIET_MS);
+    await mailSettled(unknown);
     expect(await mailTo(unknown)).toHaveLength(0);
   });
 });
@@ -427,7 +440,7 @@ test("3. reset a password by email", async ({ device }) => {
   const link = mail.links.find((l) => l.includes("/reset-password?token="));
   await test.step("the reset email links to /reset-password on APP_URL, and a double press sends one", async () => {
     expect(link?.startsWith(`${BASE}/`), link).toBe(true);
-    await p.waitForTimeout(QUIET_MS);
+    await mailSettled(resetUser);
     expect(await mailTo(resetUser)).toHaveLength(1);
   });
 
@@ -443,7 +456,6 @@ test("3. reset a password by email", async ({ device }) => {
   });
 
   await test.step("the old password stops working", async () => {
-    await pause(p);
     await p.goto("/sign-in");
     await expect(submit(p, "Sign in")).toBeVisible();
     await p.locator('input[name="email"]').fill(resetUser);
@@ -455,7 +467,6 @@ test("3. reset a password by email", async ({ device }) => {
   });
 
   await test.step("the new password signs in", async () => {
-    await pause(p);
     await signIn(p, resetUser, newPassword, { home: true });
     expect(await isOnApp(p)).toBe(true);
   });
@@ -476,7 +487,7 @@ test("3. reset a password by email", async ({ device }) => {
     await again.locator('input[name="email"]').fill(unknown);
     await submit(again, "Email me a link").click();
     await expect(status(again)).toHaveText(/^Check your email/, { timeout: 15_000 });
-    await again.waitForTimeout(QUIET_MS);
+    await mailSettled(unknown);
     expect(await mailTo(unknown)).toHaveLength(0);
   });
 });
@@ -515,7 +526,7 @@ test("4. an unverified account is held at verification", async ({ device }) => {
     await doublePress(submit(p, "Send a new link"));
     await expect(status(p)).toContainText("we've sent it a new link", { timeout: 15_000 });
     latest = await waitForMail(unverifiedUser, "verifyEmail", 2);
-    await p.waitForTimeout(QUIET_MS);
+    await mailSettled(unverifiedUser);
     expect((await mailTo(unverifiedUser)).filter((m) => m.name === "verifyEmail")).toHaveLength(2);
   });
 
