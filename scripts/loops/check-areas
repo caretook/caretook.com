@@ -435,3 +435,9 @@ apps/web/app/lib/recentLines.ts          session-end
 # switch reaching the member's device. lib/simpleMode.ts has its unit test.
 apps/web/app/lib/simpleModeToggle.ts     app-shell
 apps/web/app/lib/useSimpleMode.ts        app-shell
+# Simple mode complete (assistant slice 6): the tiles and their sheets, the
+# lock, viewers and "Remove my last entry" are component tests
+# (timeline/timelineSimpleTiles and timelineSimpleLock.browser.test.tsx), and
+# so is Details' tiles card (groups/settings/simpleTiles.browser.test.tsx).
+# lib/simpleTiles.ts and lib/simpleModeLock.ts have their unit tests.
+apps/web/app/lib/sync/simpleMode.ts      -

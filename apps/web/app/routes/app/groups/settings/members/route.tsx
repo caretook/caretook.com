@@ -85,8 +85,14 @@ export async function clientAction({
       return { ok: true };
     }
     if (intent === "setMemberMode") {
-      const simpleMode = formString(form, "simpleMode") === "on";
-      await rpc.careGroup.setMemberMode({ groupId, userId: formString(form, "userId"), simpleMode });
+      // One switch at a time: the default (`simpleMode`) or the lock (`locked`).
+      const onOff = (field: string) => (form.has(field) ? formString(form, field) === "on" : undefined);
+      await rpc.careGroup.setMemberMode({
+        groupId,
+        userId: formString(form, "userId"),
+        simpleMode: onOff("simpleMode"),
+        locked: onOff("locked"),
+      });
       return { ok: true };
     }
     if (intent === "updateSharing") {

@@ -1,6 +1,7 @@
 import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/api";
 
+import { SIMPLE_TILE_COUNT } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { Detail, Details, SettingsCard, SettingsPage } from "~/components/settings";
@@ -10,11 +11,14 @@ import { getGroup, useGroup } from "~/lib/group";
 import { rpc } from "~/lib/rpc";
 import { failedSave, loadRecipientProfile } from "../api";
 import { GroupNameForm, RecipientTimeZoneForm } from "./DetailsForms";
+import { SimpleTilesCard } from "./SimpleTilesCard";
 import {
   groupSettingsAccess,
   NEEDS_CONNECTION,
   parseGroupName,
   parseRecipientTimeZone,
+  parseSimpleTilesChoice,
+  tileFieldName,
   timeZoneLabel,
 } from "../groupSettings";
 
@@ -22,7 +26,8 @@ import {
 // recipient's time zone come from the device's local copy (live, so they work
 // offline and follow other members' changes); saving goes through the API:
 // online only. The rest of the recipient is edited on their profile
-// (`appUrls.profile`), linked from here.
+// (`appUrls.profile`), linked from here. Simple mode's tiles card is the
+// group's too (`careGroup.update`'s `simpleTiles`).
 
 export const meta = () => [{ title: "Details · Group settings · Caretook" }];
 
@@ -50,6 +55,15 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       const parsed = parseRecipientTimeZone({ timeZone: formString(form, "timeZone") });
       if (!parsed.ok) return parsed;
       await rpc.careGroup.updateRecipient({ groupId, ...parsed.data });
+      return { ok: true };
+    }
+    if (intent === "simpleTiles") {
+      const parsed = parseSimpleTilesChoice({
+        mode: formString(form, "mode"),
+        tiles: Array.from({ length: SIMPLE_TILE_COUNT }, (_, i) => formString(form, tileFieldName(i))),
+      });
+      if (!parsed.ok) return parsed;
+      await rpc.careGroup.update({ groupId, ...parsed.data });
       return { ok: true };
     }
     return { ok: false, error: "Unknown action.", issues: [] };
@@ -107,6 +121,12 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
           </>
         )}
       </SettingsCard>
+
+      <SimpleTilesCard
+        groupId={group.id}
+        displayName={group.recipient?.displayName ?? group.displayName}
+        editable={online && access.renameGroup}
+      />
     </SettingsPage>
   );
 }

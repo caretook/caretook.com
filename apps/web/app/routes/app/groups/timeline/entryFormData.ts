@@ -80,7 +80,10 @@ export const entryContentFromForm = (form: FormData, units: UnitChoices) => {
     kind: "symptom" as const,
     ...shared,
     details: {
-      name: formString(form, "symptomName"),
+      // Simple mode's feelings scale names it "Feeling" when nothing is typed.
+      name: formString(form, "symptomName").trim()
+        ? formString(form, "symptomName")
+        : formString(form, "symptomNameDefault"),
       severity: severity === "" ? null : Number(severity),
     },
   };
