@@ -1,5 +1,7 @@
 # PRD: Check migration (screens to component tests, a lean set that stays lean, Playwright Test)
 
+> **Status: done (2026-11-20).** All 24 slices are in `dev`; the plan's _Status_ has the record.
+>
 > Topic `check-migration`. Backlog items B-114 to B-129 and B-131. Follows the `orchestration` PRD (done), whose _Browser check budget_ (docs/loops.md) this finishes.
 
 ## Problem Statement

@@ -4,8 +4,7 @@
 # (checks.test.mjs) keeps the two in step.
 #
 # One check per line, in suite order:
-#   check        the check's name: its Playwright Test spec, scripts/browser-checks/<check>.spec.mjs,
-#                or, until every check is ported (B-129), a plain script, <check>.mjs
+#   check        the check's name: its Playwright Test spec, scripts/browser-checks/<check>.spec.mjs
 #   usual        its usual seconds for a full run on a quiet machine (from the logs)
 #   cap          browser.sh kills it after this many seconds, as TIMEOUT (about 3×
 #                usual, at least 120; --timeout overrides it). Unlisted checks: 600.
