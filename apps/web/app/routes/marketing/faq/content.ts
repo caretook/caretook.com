@@ -83,7 +83,7 @@ export const content = {
         {
           question: "Can I connect my own AI assistant like Claude or ChatGPT?",
           answer: [
-            "Yes, if an owner of your care group has turned it on (it's off until they do). When you connect, what you can see in that group goes to the AI vendor you chose, under that vendor's terms. Contact details are never sent, and we keep no record of what the assistant read, only that you connected and when it was last used.",
+            "Yes, if an owner of your care group has turned it on (it's off until they do). When you connect, what you can see in that group goes to the AI vendor you chose, under that vendor's terms. Members' and the care recipient's contact details are never sent, and we keep no record of what the assistant read, only that you connected and when it was last used.",
             "You can disconnect in Settings, then Devices, and an owner can switch it off for the whole group.",
           ],
         },
