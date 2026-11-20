@@ -132,15 +132,21 @@ export type InviteCreateData = {
  * Invite someone to a group by email (owners and admins; only owners invite
  * owners). Returns the invite, its raw token (for the link; it isn't stored
  * and can't be read back) and the queued email's outbox id, if `mail` was given.
+ * Refused while `signup.emailInvites` is off, unless `staffInvite` is set: the
+ * staff owner invites (groupAdminService.inviteOwner and
+ * staffGroupService.createWithOwnerInvite) aren't members' invites, so the
+ * switch doesn't apply to them. The API never sets it.
  */
 export const createEmail = (
   ctx: ServiceContext,
   data: InviteCreateData,
-  opts: { mail?: InviteMailer } = {},
+  opts: { mail?: InviteMailer; staffInvite?: boolean } = {},
 ) =>
   withTransaction(async (tx) => {
-    const closed = await signupRefusal("emailInvites");
-    if (closed) return closed;
+    if (!opts.staffInvite) {
+      const closed = await signupRefusal("emailInvites");
+      if (closed) return closed;
+    }
     if (!data.attested) return newError({ code: "careGroupInviteService:notAttested" });
     const refused = await ensureMayInviteRole(ctx, data.groupId, data.role, tx);
     if (refused) return refused;
