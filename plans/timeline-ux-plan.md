@@ -31,6 +31,7 @@
 - Slices 2 (de5ccf9) and 3 (448be6e) merged, B-166/B-155 done, worktrees removed. Slice 2 fold-ins: the tile cache (`lib/sync/remembered.ts`, `useRememberedQuery`; in memory, keyed by user/group/name; dimmed `data-stale` + `STALE`; `STRIP_SKELETON` on a first visit; cleared in `closeSync`) → sync.md and timeline.md; quick entry's passes gate on `fresh`. Slice 5 uses `ready`/`fresh`/`STALE`/`STRIP_SKELETON` from the strip hooks. Wave 1 landing next: sync, check, ask the user about `--suite`.
 - Wave 1 landing: `pnpm prd sync` merged dev (code-layout wave 3: routes and URLs by area; one common file, `check-areas.d/app-shell`, no conflicts); full `pnpm prd check` running (a big refactor came in). Lean `--suite`: the user chose to land wave 1 on the check alone (2026-11-20).
 - Wave 2 started from the synced branch: worktrees timeline-ux-4, -5, -6 (no stacks); agents spawned (4 sonnet, 5 opus, 6 opus). B-137, B-138, B-169, B-164, B-167, B-165, B-168, B-139 claimed.
+- agent-tooling's doc split landed in dev (81529fa): the handbook is now `docs/agents/` (loop, orchestrator, backlog…), AGENTS.md an 8 KB core; the land guard enforces budgets (docs/domain 10 KB; timeline.md and app-shell.md already over, so trim at least what we fold). Sync again before landing wave 1. Told agent-tooling-29 our remaining folds into timeline.md (waves 1–3) and app-shell.md (waves 2–3) and suggested they trim first.
 
 **Backlog:** claim each slice's items when it starts, and run `done` after its merge:
 
