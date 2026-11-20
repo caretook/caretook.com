@@ -93,7 +93,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | triaged | quick-fixes |  | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | triaged | check-migration |  | Component tests (web:components) can fail under pnpm check's load |
-| B-132 | feature | inbox |  |  | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
+| B-132 | feature | triaged | loop-recovery |  | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 
 ## Items
 
@@ -605,8 +605,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-132 · feature · PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: loop-recovery
 - owner:
 - commit:
 
