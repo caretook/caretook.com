@@ -4,31 +4,31 @@
 
 ## Status
 
-| Slice | State                                              | Merge into `prd/check-migration` (slice commits) |
-| ----- | -------------------------------------------------- | ------------------------------------------------ |
-| 1     | landed (wave 1)                                    | 372c658 (f6cd078, e262c12)                       |
-| 2     | landed (wave 1)                                    | 120db6e (df8db5a); ceiling 357 in 9c0b2bf        |
-| 3     | landed (wave 2)                                    | c7ebf04 (dc3b2ec, a1f84cb, 988c4de)              |
-| 4     | landed (wave 2)                                    | 7e632ee (58cfc90)                                |
-| 5     | landed (wave 2)                                    | 7bfa916 (3542457, e554d48)                       |
-| 6     | landed (wave 3)                                    | 17f91aa (3dfa6fd)                                |
-| 7     | landed (wave 3)                                    | 3c0418e (97af38e)                                |
-| 8     | landed (wave 3)                                    | 2cdba7f (c6d0b95, 55676bf)                       |
-| 9     | in progress (wave 4)                               |                                                  |
-| 10    | blocked by 1, 2                                    |                                                  |
-| 11    | blocked by 9 and `assistant` slice 7               |                                                  |
-| 12    | blocked by 1, 2 and `assistant` 1, 5               |                                                  |
-| 13    | merged (bc5104e, slice 0b06086); lands with wave 4 |
-| 14    | in progress (started early)                        |                                                  |
-| 15    | blocked by 1, 2 and `assistant` 5, 6               |                                                  |
-| 16    | blocked by 1, 2 and `assistant` 5, 6               |                                                  |
-| 17    | blocked by 1, 2 and `assistant` 5, 6               |                                                  |
-| 18    | blocked by 3–17                                    |                                                  |
-| 19    | blocked by 18                                      |                                                  |
-| 20    | blocked by 19                                      |                                                  |
-| 21    | blocked by 19                                      |                                                  |
-| 22    | blocked by 19                                      |                                                  |
-| 23    | blocked by 20, 21, 22                              |                                                  |
+| Slice | State                                | Merge into `prd/check-migration` (slice commits) |
+| ----- | ------------------------------------ | ------------------------------------------------ |
+| 1     | landed (wave 1)                      | 372c658 (f6cd078, e262c12)                       |
+| 2     | landed (wave 1)                      | 120db6e (df8db5a); ceiling 357 in 9c0b2bf        |
+| 3     | landed (wave 2)                      | c7ebf04 (dc3b2ec, a1f84cb, 988c4de)              |
+| 4     | landed (wave 2)                      | 7e632ee (58cfc90)                                |
+| 5     | landed (wave 2)                      | 7bfa916 (3542457, e554d48)                       |
+| 6     | landed (wave 3)                      | 17f91aa (3dfa6fd)                                |
+| 7     | landed (wave 3)                      | 3c0418e (97af38e)                                |
+| 8     | landed (wave 3)                      | 2cdba7f (c6d0b95, 55676bf)                       |
+| 9     | in progress (wave 4)                 |                                                  |
+| 10    | merged, lands with wave 4            | 3bb168a (f9c1ef9, eef96ac)                       |
+| 11    | blocked by 9 and `assistant` slice 7 |                                                  |
+| 12    | blocked by 1, 2 and `assistant` 1, 5 |                                                  |
+| 13    | merged, lands with wave 4            | bc5104e (0b06086)                                |
+| 14    | in progress (started early)          |                                                  |
+| 15    | in progress (started early)          |                                                  |
+| 16    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
+| 17    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
+| 18    | blocked by 3–17                      |                                                  |
+| 19    | blocked by 18                        |                                                  |
+| 20    | blocked by 19                        |                                                  |
+| 21    | blocked by 19                        |                                                  |
+| 22    | blocked by 19                        |                                                  |
+| 23    | blocked by 20, 21, 22                |                                                  |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue check-migration`, 2026-11-19). The orchestrator starts every ready slice, lands each green wave itself with `pnpm prd land`, and cleans up; it asks the user only real questions.
 
