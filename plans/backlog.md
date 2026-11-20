@@ -392,6 +392,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (Robert Bo Davis): Inbox bullet 'Browser testing without a timeout…' had been mis-tagged (B-106) by an add commit; untagged and re-filed as B-108.
 - 2026-11-19 (Robert Bo Davis): Moved from admin (done, landed) to quick-fixes: a contained service fix (staff owner invites bypass signup.emailInvites).
 - 2026-11-19 (slice/quick-fixes/40): slice 40 (adfb130): createEmail's internal staffInvite option skips signup.emailInvites for inviteOwner and createWithOwnerInvite. The invitee's preview/accept still obey the switch (kindRefusal), so such an owner invite can't be opened until email invites are back on.
+- 2026-11-19 (slice/quick-fixes/40): slice 40 (8fe09e0): preview, accept and ticketFor now skip the switch too, for staff owner invites only (kind email, role owner, createdBy = system). This replaces the earlier note's caveat: no migration was needed.
 
 ### B-107 · feature · Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests…
 
