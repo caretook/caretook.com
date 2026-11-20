@@ -711,6 +711,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a regression that may block B-98.
+- 2026-11-20 (backlog agent): Triage: a regression against B-98 (the + in the timeline header). One quick-fixes slice: find whether the + menu went missing in the normal view or only where the quick entry box shows, and restore it. Touches the timeline header, which tasks slice 4 also changed, so start it after tasks lands.
 
 ### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
 
