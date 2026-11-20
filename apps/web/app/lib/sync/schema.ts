@@ -95,7 +95,7 @@ export const timelineEntries = sqliteTable(
  * A live document on a note or event, a provider, a medication or a care
  * period. `id` is the owner's id; `subject` says which (`entry` with
  * `entry_id`, `provider` with `provider_id`, `medication` with
- * `medication_id`, or `carePeriod` with `care_period_id`, each equal to `id`). Snapshot, text and `editors` (JSON
+ * `medication_id`, `carePeriod` with `care_period_id`, or `task` with `task_id`, each equal to `id`). Snapshot, text and `editors` (JSON
  * `{ [userId]: lastEditAt }`) are the server's.
  */
 export const noteDocuments = sqliteTable(
@@ -115,6 +115,7 @@ export const noteDocuments = sqliteTable(
     providerId: text("provider_id"),
     medicationId: text("medication_id"),
     carePeriodId: text("care_period_id"),
+    taskId: text("task_id"),
   },
   (t) => [index("note_document_group").on(t.groupId)],
 );
@@ -326,6 +327,36 @@ export const carePeriods = sqliteTable(
   (t) => [index("care_period_group").on(t.groupId)],
 );
 
+/**
+ * The group's tasks (tasks PRD). `due_on` is "YYYY-MM-DD" and `due_time`
+ * "HH:MM", wall-clock in the recipient's zone. Done ⇔ `done_at` and
+ * `done_by` are set. Deletes are soft.
+ */
+export const tasks = sqliteTable(
+  "task",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    recipientId: text("recipient_id"),
+    title: text("title"),
+    assigneeId: text("assignee_id"),
+    assigneeName: text("assignee_name"),
+    dueOn: text("due_on"),
+    dueTime: text("due_time"),
+    doneAt: text("done_at"),
+    doneBy: text("done_by"),
+    providerId: text("provider_id"),
+    medicationId: text("medication_id"),
+    eventId: text("event_id"),
+    deletedAt: text("deleted_at"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("task_group").on(t.groupId)],
+);
+
 export const drizzleSchema = {
   careGroups,
   careGroupMembers,
@@ -342,4 +373,5 @@ export const drizzleSchema = {
   medicationPasses,
   recipientAllergies,
   carePeriods,
+  tasks,
 };

@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-import { CalendarClock, History, Pill, Stethoscope } from "lucide-react";
+import { CalendarClock, History, ListTodo, Pill, Stethoscope } from "lucide-react";
 import { appUrls } from "./appUrls";
 
 /**
@@ -58,6 +58,13 @@ export const GROUP_SECTIONS: readonly GroupSection[] = [
     path: (groupId) => appUrls.upcoming(groupId),
     // The Past tab is part of Upcoming.
     match: (subpath) => under(subpath, "/upcoming"),
+  },
+  {
+    id: "tasks",
+    label: "Tasks",
+    icon: ListTodo,
+    path: (groupId) => appUrls.tasks(groupId),
+    match: (subpath) => under(subpath, "/tasks"),
   },
 ];
 

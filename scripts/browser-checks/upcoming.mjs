@@ -141,7 +141,8 @@ async function sectionSteps(p) {
   const onPage = await p.evaluate(navState(BAR));
   check(
     "420: the tab bar lists Upcoming after Timeline, Providers and Medications, current on its page",
-    bar?.labels === "Timeline,Providers,Medications,Upcoming" &&
+    // Later sections (Tasks) follow Upcoming.
+    bar?.labels.startsWith("Timeline,Providers,Medications,Upcoming") &&
       bar.current === null &&
       onPage?.current === "page",
     JSON.stringify({ bar, onPage }),
@@ -151,8 +152,8 @@ async function sectionSteps(p) {
   const wide = await p.evaluate(navState(HEADER_NAV));
   await metrics(p, 420, true);
   check(
-    "1280: the header's section links end with Upcoming, current",
-    wide?.labels === "Timeline,Providers,Medications,Upcoming" && wide.current === "page",
+    "1280: the header's section links list Upcoming after Medications, current",
+    wide?.labels.startsWith("Timeline,Providers,Medications,Upcoming") && wide.current === "page",
     JSON.stringify(wide),
   );
 }

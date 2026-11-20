@@ -107,3 +107,7 @@ export type * from "./groupDirectory/types";
 import * as appSettingModel from "./appSetting";
 export { appSettingModel };
 export type * from "./appSetting/types";
+
+import * as taskModel from "./task";
+export { taskModel };
+export type * from "./task/types";

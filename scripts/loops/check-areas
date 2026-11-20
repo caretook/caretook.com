@@ -434,3 +434,11 @@ apps/web/app/lib/recentLines.ts          session-end
 # switch reaching the member's device. lib/simpleMode.ts has its unit test.
 apps/web/app/lib/simpleModeToggle.ts     app-shell
 apps/web/app/lib/useSimpleMode.ts        app-shell
+# Tasks (tasks PRD slice 1): the list and its sheets, the shared tick and
+# Undo pieces, and the device module are component tests
+# (routes/app/groups/tasks/tasks.browser.test.tsx); the pure wording, list
+# and Undo store have unit tests; the service and upload are integration
+# tests. roundtrip takes the device-to-device step in slice 8.
+apps/web/app/routes/app/groups/tasks/*   -
+apps/web/app/components/tasks/*          -
+apps/web/app/lib/sync/tasks.ts           -

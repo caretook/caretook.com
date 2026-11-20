@@ -6,6 +6,7 @@ import type {
   MedicationUpsertInput,
   ProviderUpsertInput,
   RecipientAllergyUpsertInput,
+  TaskUpsertInput,
   TimelineEntryUpsertInput,
 } from "@caretook/data";
 
@@ -21,6 +22,7 @@ import {
   noteDocumentService,
   providerService,
   recipientAllergyService,
+  taskService,
   timelineEntryService,
 } from "@caretook/data";
 import { z } from "zod";
@@ -195,7 +197,7 @@ const noteDocumentOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<
     groupId: text(op.data?.group_id) ?? "",
     // An entry's, unless the device says otherwise (older devices never do).
     subject: (text(op.data?.subject) ?? undefined) as
-      "entry" | "provider" | "medication" | "carePeriod" | undefined,
+      "entry" | "provider" | "medication" | "carePeriod" | "task" | undefined,
   });
   return isError(res) ? res : applied;
 };
@@ -574,6 +576,83 @@ const carePeriodOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Ou
 };
 
 // ---------------------------------------------------------------------------
+// task: like care_period (soft deletes; the group and recipient never
+// change). The done fields map to complete and reopen, so a viewer's
+// offline tick uploads; the server sets `done_by` to the uploader.
+// ---------------------------------------------------------------------------
+
+const TASK_COLUMNS = {
+  title: (v: unknown) => ["title", text(v)],
+  assignee_id: (v: unknown) => ["assigneeId", text(v)],
+  assignee_name: (v: unknown) => ["assigneeName", text(v)],
+  due_on: (v: unknown) => ["dueOn", text(v)],
+  due_time: (v: unknown) => ["dueTime", text(v)],
+  provider_id: (v: unknown) => ["providerId", text(v)],
+  medication_id: (v: unknown) => ["medicationId", text(v)],
+  event_id: (v: unknown) => ["eventId", text(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const taskContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = TASK_COLUMNS[column as keyof typeof TASK_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a task that's already deleted is a replay: fine. */
+const removeTask = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await taskService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "taskService:notFound") return res;
+  const task = await taskService.getById(ctx, id, { includeDeleted: true });
+  if (isError(task)) return task;
+  return task?.deletedAt ? applied : res;
+};
+
+/** `done_at` set → complete (at that time), cleared → reopen. */
+const setTaskDone = async (ctx: { authUser: AuthUser }, id: string, doneAt: unknown): Promise<Outcome> => {
+  const at = toIsoTimestamp(doneAt);
+  const res = at ? await taskService.complete(ctx, id, { doneAt: at }) : await taskService.reopen(ctx, id);
+  return isError(res) ? res : applied;
+};
+
+const taskOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...taskContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await taskService.upsert(ctx, input as unknown as TaskUpsertInput);
+    if (isError(res)) return res;
+    // Created and deleted (or ticked) before it was uploaded.
+    if (data.deleted_at) return removeTask(ctx, op.id);
+    if (data.done_at) return setTaskDone(ctx, op.id, data.done_at);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeTask(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data || "recipient_id" in data) return newError({ code: "taskService:immutable" });
+  if (data.deleted_at) return removeTask(ctx, op.id);
+  const content = taskContentFrom(data);
+  if (Object.keys(content).length > 0) {
+    const res = await taskService.update(ctx, op.id, content);
+    if (isError(res)) return res;
+    if (!res) return newError({ code: "taskService:notFound" });
+  }
+  // A done-only PATCH (a tick or a reopen) is a complete or reopen.
+  if ("done_at" in data) return setTaskDone(ctx, op.id, data.done_at);
+  return applied;
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -588,6 +667,7 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   recipient_allergy: recipientAllergyOp,
   care_recipient: careRecipientOp,
   care_period: carePeriodOp,
+  task: taskOp,
 };
 
 /**
