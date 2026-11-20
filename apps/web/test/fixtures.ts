@@ -159,7 +159,7 @@ const document = ({
   ...v
 }: Partial<Values<"noteDocuments">> & {
   ownerId: string;
-  subject?: "entry" | "provider" | "medication" | "carePeriod";
+  subject?: "entry" | "provider" | "medication" | "carePeriod" | "task";
   text?: string;
   editedBy?: string;
   editedAt?: string;
@@ -169,6 +169,7 @@ const document = ({
     provider: "providerId",
     medication: "medicationId",
     carePeriod: "carePeriodId",
+    task: "taskId",
   }[subject];
   return row("noteDocuments", {
     id: ownerId,
@@ -398,6 +399,30 @@ export const allergy = (v: Partial<Values<"recipientAllergies">> = {}) => {
     substance: "Penicillin",
     reaction: null,
     severity: "unknown",
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by tasks slice 1 ---------------------------------------------------
+
+/** A task in the default group: open, unassigned and undated unless overridden (`dueOn` "YYYY-MM-DD", `doneAt` timestamp text). */
+export const task = (v: Partial<Values<"tasks">> = {}) => {
+  const created = v.createdAt ?? hoursAgo(24 * 3);
+  return row("tasks", {
+    id: newId(),
+    groupId,
+    recipientId,
+    title: "Call the pharmacy",
+    assigneeId: null,
+    assigneeName: null,
+    dueOn: null,
+    dueTime: null,
+    doneAt: null,
+    doneBy: null,
     createdAt: created,
     updatedAt: created,
     createdBy: TEST_USER.id,

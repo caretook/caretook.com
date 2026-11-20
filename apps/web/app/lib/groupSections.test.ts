@@ -22,13 +22,26 @@ const assistant: GroupSection = {
 const withMore = [...GROUP_SECTIONS, assistant];
 
 describe("GROUP_SECTIONS", () => {
-  it("is Timeline, then Providers, then Medications, then Upcoming", () => {
-    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual(["timeline", "providers", "medications", "upcoming"]);
+  it("is Timeline, then Providers, then Medications, then Upcoming, then Tasks", () => {
+    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual([
+      "timeline",
+      "providers",
+      "medications",
+      "upcoming",
+      "tasks",
+    ]);
     expect(timeline.path(G)).toBe(appUrls.timeline(G));
     expect(providers.path(G)).toBe(appUrls.providers(G));
     expect(medications.path(G)).toBe(appUrls.medications(G));
     expect(upcoming.path(G)).toBe(appUrls.upcoming(G));
   });
+  it("claims a task's page and sheets for Tasks", () => {
+    const tasks = GROUP_SECTIONS.find((s) => s.id === "tasks")!;
+    expect(sectionCurrent(tasks, appUrls.tasks(G), G)).toBe("page");
+    expect(sectionCurrent(tasks, appUrls.task(G, "t1"), G)).toBe("true");
+    expect(sectionCurrent(tasks, appUrls.newTask(G), G)).toBe("true");
+  });
+
   it("puts the Past tab inside Upcoming", () => {
     expect(sectionCurrent(upcoming, appUrls.upcoming(G), G)).toBe("page");
     expect(sectionCurrent(upcoming, appUrls.pastEvents(G), G)).toBe("true");

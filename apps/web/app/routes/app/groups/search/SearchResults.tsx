@@ -6,9 +6,10 @@ import { parseSearch } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/appUrls";
+import { useGroup } from "~/lib/group";
 import { resultCountText } from "~/lib/searchResults";
 import { useSchedulePasses } from "~/lib/sync/medicationPasses";
-import { EntryResultItem, MedicationResultItem, ProviderResultItem } from "./ResultItems";
+import { EntryResultItem, MedicationResultItem, ProviderResultItem, TaskResultItem } from "./ResultItems";
 
 /**
  * Everything under the field: one polite status line (the count, "No
@@ -36,6 +37,8 @@ export function SearchResults({
   const search = useMemo(() => parseSearch(data.q), [data.q]);
   // Medications' schedules read by pass name.
   const passes = useSchedulePasses(groupId);
+  // Tasks' due days are the recipient's.
+  const timeZone = useGroup().recipient?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const status = unavailable
     ? "Search isn't available on this device right now."
     : preparing && !data.sections.length
@@ -83,6 +86,21 @@ export function SearchResults({
                       key={hit.id}
                       provider={provider}
                       notes={data.notes[hit.id]}
+                      search={search}
+                    />
+                  )
+                );
+              }
+              if (section.type === "task") {
+                const task = data.tasks[hit.id];
+                return (
+                  task && (
+                    <TaskResultItem
+                      key={hit.id}
+                      task={task}
+                      notes={data.notes[hit.id]}
+                      now={now}
+                      timeZone={timeZone}
                       search={search}
                     />
                   )

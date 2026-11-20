@@ -79,6 +79,13 @@ const appRoutes = [
           route(":periodId/edit", "routes/app/groups/periods/edit/route.tsx"),
         ]),
         route("periods/:periodId", "routes/app/groups/period/route.tsx"),
+        // The group's tasks (a section): the list, with its add and edit sheets as children.
+        route("tasks", "routes/app/groups/tasks/route.tsx", [
+          route("new", "routes/app/groups/tasks/new/route.tsx"),
+          route(":taskId/edit", "routes/app/groups/tasks/edit/route.tsx"),
+        ]),
+        // A task's page (its details and live notes; the edit sheet is the list's child).
+        route("tasks/:taskId", "routes/app/groups/task/route.tsx"),
       ]),
       // Start another care group (a sheet over its own page; not a group route).
       route("groups/new", "routes/app/groups/new/route.tsx"),

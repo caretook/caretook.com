@@ -91,6 +91,9 @@ describe("buildCards", () => {
 test("savedText and cardsAnnouncement", () => {
   expect(savedText(1)).toBe("Saved 1 entry");
   expect(savedText(3)).toBe("Saved 3 entries");
+  expect(savedText(1, 1)).toBe("Saved 1 task");
+  expect(savedText(3, 1)).toBe("Saved 2 entries and 1 task");
+  expect(savedText(3, 2)).toBe("Saved 1 entry and 2 tasks");
   const cards = buildCards([{ text: "hr 999", readings: [blocked] }], none, titleOf);
   expect(cardsAnnouncement(cards, titleOf)).toBe("1 card: Vital, Vital, can't be saved yet");
   expect(cardsAnnouncement([], titleOf)).toBe("");
@@ -140,6 +143,19 @@ describe("editTarget", () => {
     expect(target).toEqual({
       to: `/app/groups/${GROUP}/timeline/new/dose?pass=${PASS}`,
       state: { sheetOverTimeline: true },
+    });
+  });
+
+  test("a task opens the add-task sheet filled in, coming back on close", () => {
+    const SAM = "88888888-8888-4888-8888-888888888888";
+    const target = editTarget(
+      { type: "addTask", title: "Call pharmacy", assigneeId: SAM, dueOn: "2026-11-20", dueTime: null },
+      GROUP,
+      "?kind=vital",
+    );
+    expect(target).toEqual({
+      to: `/app/groups/${GROUP}/tasks/new?dueOn=2026-11-20&title=Call+pharmacy&assigneeId=${SAM}`,
+      state: { taskSheet: true },
     });
   });
 

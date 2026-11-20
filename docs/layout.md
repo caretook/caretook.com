@@ -29,6 +29,8 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           providerSheet, providerFormData, new/, edit/),
                           groups/provider/ (loadProvider, useProviderNotes, ProviderHeader, ContactList),
                           groups/settings/ (layout, index, details/ + DetailsForms, members/ + MembersList; api, groupSettings)
+                          groups/tasks/ (the list: TaskChips, TaskSections, DoneTasks, TaskForm, AssigneeField, link pickers,
+                          new/, edit/), groups/task/ (the task page: loadTask, useTaskPage, TaskHeader, TaskLinks, notes)
   app/routes/admin/       web only (staff: users, user, groups, group, access codes, print, new group, waitlist, audit, settings)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx; app/routes/account/ (reset-password, verify-email, invite/, AuthCard)
@@ -39,10 +41,11 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           AvatarStack, IconButton, BackLink), ui/date/ (DateTimeField), entry/ (EntryActions, KindIcon),
                           groups/ (NewGroupFields),
                           notes/ (LiveNotesEditor, EditorAvatars), providers/ (ContactActions, ProviderTypeIcon),
-                          settings/ (SettingsFrame, SettingsPage parts), shell/ (FirstSyncPending)
+                          settings/ (SettingsFrame, SettingsPage parts), shell/ (FirstSyncPending),
+                          tasks/ (TaskTick, TaskUndoStatus, LinkedTasks)
   app/lib/                session, group, groupContext, appUrls, settingsNav, me, auth-client, rpc, api, initials, entryDisplay, format,
                           redirect, form, liveEntry, firstSync, liveNow, titleSuggestions, theme, lastGroup, groupSections,
-                          timelineFilters, contactActions, providerDirectory
+                          timelineFilters, contactActions, providerDirectory, taskDisplay, taskList, taskSheets, taskSheetLink, taskUndo, taskStrip, upcomingTasks
   app/lib/sync/           schema, client (lazy), index, timeline, notes, liveEntry, editors, titleSuggestions, members, providers
 packages/auth/            @caretook/auth (emails.ts: auth emails through notify)
 packages/notifications/   @caretook/notifications: registry, templates (react-email), notify + outbox, senders, cron, dev mail

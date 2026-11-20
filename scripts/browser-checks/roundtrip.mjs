@@ -5,7 +5,8 @@
 // written offline (through a switchable proxy, because CDP network emulation
 // doesn't cut PowerSync's stream), a read-only viewer, the sync matrix (every
 // synced table's row on both devices: sync-matrix.mjs), an upload refused by
-// permissions (a member demoted while offline), and sign-out wiping the
+// permissions (a member demoted while offline), a viewer's task ticked
+// offline and their refused title change, and sign-out wiping the
 // device. Every row it writes has this run's tag, so it passes run after run
 // without a reset.
 import { execSync } from "node:child_process";
@@ -160,6 +161,15 @@ const DEV_FAMILY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const userId = (email) => psql(`SELECT id FROM "user" WHERE email = '${email}'`);
 const memberId = userId("member@example.com");
 const caretakerId = userId("caretaker@example.com");
+const viewerId = userId("viewer@example.com");
+// The viewer's seeded open task (seeds/tasks.ts): ticked offline in 6d, reopened after.
+const viewerTask = psql(
+  `SELECT id FROM task WHERE group_id = '${DEV_FAMILY}' AND title = 'Pick up groceries' AND assignee_id = '${viewerId}' AND deleted_at IS NULL`,
+);
+const VIEWER_TASK_TITLE = "Pick up groceries";
+const reopenViewerTaskSql = `UPDATE task SET done_at = NULL, done_by = NULL, title = '${VIEWER_TASK_TITLE}' WHERE id = '${viewerTask}' AND (done_at IS NOT NULL OR title <> '${VIEWER_TASK_TITLE}')`;
+// A run that died mid-step left it done: open again before anyone loads.
+if (viewerTask) psql(reopenViewerTaskSql);
 const tag = `RT-${Date.now().toString(36)}`;
 const matrix = matrixContext({
   tag,
@@ -175,7 +185,8 @@ const proxyA = startProxy(9321);
 const proxyB = startProxy(9322);
 const bA = await launch(9311, proxyA.args);
 const bB = await launch(9312, proxyB.args);
-const bC = await launch(9313);
+const proxyC = startProxy(9323);
+const bC = await launch(9313, proxyC.args);
 const pages = [];
 try {
   const A = await openPage(bA, "member");
@@ -439,6 +450,9 @@ try {
     `  matrix: ${rows.length - missingB.length}/${rows.length} tables on the other device ${matrixMs} ms after the write`,
   );
 
+  // 6c and 6d share one offline window (the caretaker's and the viewer's
+  // devices), so their reconnects overlap: one PowerSync retry, not two.
+  //
   // 6c. A refused upload: the owner demotes the caretaker while the
   // caretaker's device is offline, still holding writer state; its edit is
   // refused on upload (acknowledged, not retried), and the next sync
@@ -454,8 +468,32 @@ try {
     )[0]?.role;
   const titleOn = async (p) =>
     (await localRows(p, "SELECT title FROM timeline_entry WHERE id = ?", [matrix.ids.entry]))[0]?.title;
+  // 6d. A viewer's task: viewer@ ticks their own task offline (a tick is
+  // all a viewer may do) and forces a title change through the device; on
+  // reconnect the tick uploads and member@'s list shows it done by them,
+  // while the title change is refused and the next sync puts the server's
+  // title back. Client-side navigation through the tab bar: no new page
+  // loads or sign-ins.
+  const tasksTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/tasks"]')`;
+  const taskRow = `document.querySelector('main [data-task="${viewerTask}"]')`;
+  const doneLine = `${taskRow}?.querySelector("[data-task-due]")?.textContent.trim()`;
+  const everyone = `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Everyone")`;
+  const taskOn = async (p) =>
+    (await localRows(p, "SELECT title, done_at, done_by FROM task WHERE id = ?", [viewerTask]))[0];
+  const refusedTask = `${tag} groceries, refused`;
+  // Both task lists while online: the viewer's (Mine), and member@'s on
+  // Everyone (the viewer's task isn't Mine).
+  await C.press(tasksTab);
+  await A.press(tasksTab);
+  await C.waitFor(`${taskRow}?.querySelector("[data-task-tick]")`, 20000);
+  await A.waitFor(everyone, 20000);
+  await A.press(everyone);
+  await A.waitFor(`location.search.includes("who=everyone") && ${taskRow}`, 20000);
+
   proxyB.setOnline(false);
+  proxyC.setOnline(false);
   await B.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 20000);
+  await C.waitFor(`!window.caretookSync.powersync.currentStatus.connected`, 20000);
   const demoted = await rpc(A, "careGroup/changeRole", {
     groupId: DEV_FAMILY,
     userId: caretakerId,
@@ -473,7 +511,27 @@ try {
     demoted === 200 && before.role === "caretaker" && before.title === refusedTitle && before.queued === 1,
     `changeRole ${demoted}, local role ${before.role}, ${before.queued} queued`,
   );
+  await C.press(`${taskRow}.querySelector("[data-task-tick]")`);
+  await C.waitFor(`${taskRow}?.querySelector("[data-task-tick]")?.checked`, 10000);
+  await localWrite(C, [
+    {
+      sql: "UPDATE task SET title = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+      params: [refusedTask, localTimestamp(), viewerId, viewerTask],
+    },
+  ]);
+  const ticked = { local: await taskOn(C), queued: await queued(C) };
+  const serverDone = psql(`SELECT count(*) FROM task WHERE id = '${viewerTask}' AND done_at IS NOT NULL`);
+  check(
+    "task: offline, the viewer ticks their own task and forces a title change; both queued",
+    !!ticked.local?.done_at &&
+      ticked.local?.title === refusedTask &&
+      ticked.queued === 2 &&
+      serverDone === "0",
+    `${ticked.queued} queued, done on the server: ${serverDone}`,
+  );
+
   proxyB.setOnline(true);
+  proxyC.setOnline(true);
   const t2 = Date.now();
   const after = await until(async () => {
     const state = { role: await roleOn(B), title: await titleOn(B), queued: await queued(B) };
@@ -496,6 +554,34 @@ try {
   });
   const back = await until(async () => (await roleOn(B)) === "caretaker");
   check("refused: the caretaker's role is restored", restored === 200 && !!back, `changeRole ${restored}`);
+
+  const doneBy = await waitForSql(
+    `SELECT coalesce(done_by::text, '') FROM task WHERE id = '${viewerTask}'`,
+    (r) => r !== "",
+    60000,
+  );
+  check("task: on reconnect the tick uploads, done by the viewer", doneBy === viewerId, doneBy);
+  const shown = await A.waitFor(`${doneLine}?.startsWith("Done by Dev Viewer")`, 20000).then(
+    () => true,
+    () => false,
+  );
+  check(
+    "task: the member's list shows it done, with the done-by line",
+    shown && (await A.evaluate(`${taskRow}?.dataset.taskState`)) === "done",
+    `${await A.evaluate(doneLine)}, ${Date.now() - t2} ms after reconnecting`,
+  );
+  const titleBack = await until(async () => {
+    const row = await taskOn(C);
+    return row?.title === VIEWER_TASK_TITLE && (await queued(C)) === 0 ? row : null;
+  }, 30000);
+  const serverTaskTitle = psql(`SELECT title FROM task WHERE id = '${viewerTask}'`);
+  check(
+    "task: the viewer's title change is refused, and the next sync restores the title (still done)",
+    !!titleBack && serverTaskTitle === VIEWER_TASK_TITLE && !!titleBack.done_at,
+    titleBack
+      ? `${Date.now() - t2} ms after reconnecting`
+      : `device ${(await taskOn(C))?.title}, server ${serverTaskTitle}`,
+  );
 
   // 7. Tidy up, then sign-out wipes the device.
   psql(`UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' = '${offName}'`);
@@ -534,7 +620,9 @@ try {
   for (const b of [bA, bB, bC]) b.proc.kill();
   proxyA.close();
   proxyB.close();
+  proxyC.close();
   try {
+    if (viewerTask) psql(reopenViewerTaskSql);
     psql(
       `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
     );

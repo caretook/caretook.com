@@ -72,6 +72,23 @@ describe("givePass", () => {
   });
 });
 
+describe("addTask", () => {
+  test("a title, and optionally a member, a due day with a time, and links; no task id, no occurredAt", () => {
+    expect(ok({ type: "addTask", title: "Call pharmacy" })).toBe(true);
+    expect(
+      ok({ type: "addTask", title: "Call pharmacy", assigneeId: MED, dueOn: "2026-11-20", dueTime: "17:00" }),
+    ).toBe(true);
+    expect(ok({ type: "addTask", title: "Refill", providerId: MED, medicationId: MED, eventId: MED })).toBe(
+      true,
+    );
+    expect(issues({ type: "addTask", title: "  " })).toEqual(["title"]);
+    expect(issues({ type: "addTask", title: "Call", dueTime: "17:00" })).toEqual(["dueTime"]);
+    expect(issues({ type: "addTask", title: "Call", dueOn: "friday" })).toEqual(["dueOn"]);
+    expect(issues({ type: "addTask", title: "Call", assigneeName: "Aunt May" })).toEqual([""]);
+    expect(issues({ type: "addTask", title: "Call", id: MED })).toEqual([""]);
+  });
+});
+
 describe("addNote and addEvent", () => {
   test("a note needs text", () => {
     expect(ok({ type: "addNote", text: "Good day", occurredAt: at })).toBe(true);
@@ -105,5 +122,6 @@ test("every action names the kind it writes", () => {
     addNote: "note",
     addEvent: "event",
     givePass: "dose",
+    addTask: "task",
   });
 });

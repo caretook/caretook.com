@@ -1,7 +1,7 @@
 import type { ActionPreview } from "~/lib/quickEntryPreview";
 import type { QuickEntryCard as Card } from "./quickEntryCards";
 
-import { X } from "lucide-react";
+import { ListTodo, X } from "lucide-react";
 import { ChipGroup, IconButton } from "~/components/ui";
 import { KIND_META } from "~/lib/entryDisplay";
 
@@ -26,7 +26,9 @@ export function QuickEntryCard({
   onRemove: () => void;
 }) {
   const { kind, label } = card.reading;
-  const { Icon, iconClass } = KIND_META[kind];
+  // A task isn't a timeline entry, so it has no KIND_META: the Tasks section's icon.
+  const { Icon, iconClass } =
+    kind === "task" ? { Icon: ListTodo, iconClass: "bg-accent text-accent-content" } : KIND_META[kind];
   const blocked = card.blocking.length > 0 || !!error;
   const headingId = `quick-card-${card.key.replace(/[^\w-]/g, "_")}`;
   return (

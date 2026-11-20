@@ -3,6 +3,7 @@ import type { AssistantAction, UnitChoices } from "@caretook/data/schema";
 import { formatReading, isKnownReading } from "@caretook/data/schema";
 import { dayLabel } from "./format";
 import { doseText, listText, medicationCountText, medicationTitle } from "./medicationDisplay";
+import { dueText } from "./taskDisplay";
 
 // The wording of a quick-entry card: what an assistant action will save, in
 // the app's own words (vitals' `formatReading`, `medicationTitle` and
@@ -19,6 +20,10 @@ export type PreviewContext = {
   locale?: string;
   /** The zone times read in (the device's, by default). */
   timeZone?: string;
+  /** The group's members by id, for a task's assignee. */
+  members?: ReadonlyMap<string, { name: string }>;
+  /** The recipient's zone, which a task's due day is in (else `timeZone`). */
+  recipientTimeZone?: string;
 };
 
 export type ActionPreview = {
@@ -26,7 +31,7 @@ export type ActionPreview = {
   title: string;
   /** What else it says: a note, "Given 1 tablet", a place and providers. */
   detail: string | null;
-  /** When: "Now", "7:30 AM", "Yesterday 9:00 PM", "Tuesday, Nov 24 2:00 PM", "Friday, Nov 20 · All day". */
+  /** When: "Now", "7:30 AM", "Yesterday 9:00 PM", "Tuesday, Nov 24 2:00 PM", "Friday, Nov 20 · All day"; a task's due ("Due Fri"). */
   when: string;
 };
 
@@ -59,6 +64,16 @@ const joined = (...parts: (string | null | undefined)[]) => parts.filter(Boolean
 
 /** A card's words for one action. */
 export const actionPreview = (action: AssistantAction, context: PreviewContext): ActionPreview => {
+  if (action.type === "addTask") {
+    // "Task · Due Fri", "Call pharmacy", "Sam Rivera".
+    const zone = context.recipientTimeZone ?? context.timeZone ?? deviceZone();
+    const due = { dueOn: action.dueOn ?? null, dueTime: action.dueTime ?? null, doneAt: null };
+    return {
+      title: action.title,
+      detail: (action.assigneeId && context.members?.get(action.assigneeId)?.name) || null,
+      when: dueText(due, context.now, zone) ?? "No due date",
+    };
+  }
   const when = whenText(action.occurredAt, {
     ...context,
     allDay: action.type === "addEvent" && !!action.allDay,
