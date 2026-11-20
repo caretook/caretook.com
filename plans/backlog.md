@@ -738,6 +738,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Using back to timeline from timeline live-note entry (or any browse action) takes you back to the timeline, causes all lazy loaded header elements to reload. Can we cache their state with a visual indicator (maybe greyed out) and load in the background so that it doesn't cause page shift? Maybe keep a placeholder in the header so that it doesn't cause a flash on load any time?
 - 2026-11-20 (Robert Bo Davis): Triaged to app-speed: header elements reloading on back-navigation is a caching/navigation-speed issue, next to B-136/B-137.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
 
 ### B-167 · change · Make day summary part of sticky header so it is always visible when scrolling up the timeline.
 
