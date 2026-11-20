@@ -101,6 +101,12 @@ describe("markers", () => {
     expect(checks("scripts/browser-checks/phase2.mjs", none)).toBe("- (deleted)");
     expect(checks("scripts/browser-checks/notes.txt", present)).toBe("-");
   });
+
+  it("runs a spec as its check's name", () => {
+    const present = (p) => p === "scripts/browser-checks/sign-in.spec.mjs";
+    expect(checks("scripts/browser-checks/sign-in.spec.mjs", present)).toBe("sign-in");
+    expect(checks("scripts/browser-checks/sign-in.spec.mjs", none)).toBe("- (deleted)");
+  });
 });
 
 describe("the built-ins", () => {
