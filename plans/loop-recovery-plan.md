@@ -4,15 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/loop-recovery` (slice commits) |
-| ----- | ---- | --------------- | ---------------------------------------------- |
-| 1     | 1    | not started     |                                                |
-| 2     | 1    | not started     |                                                |
-| 3     | 1    | not started     |                                                |
-| 4     | 2    | blocked by 1    |                                                |
-| 5     | 3    | blocked by 3, 4 |                                                |
+| Slice | Wave | State  | Merge into `prd/loop-recovery` (slice commits) |
+| ----- | ---- | ------ | ---------------------------------------------- |
+| 1     | 1    | merged | 6e18d83 (d1383c0)                              |
+| 2     | 1    | merged | 4fa6242 (4e94044)                              |
+| 3     | 1    | merged | 91a8b92 (ec3a08e, a27285a)                     |
+| 4     | 2    | merged | 5b1d9a0 (c69133c)                              |
+| 5     | 3    | merged | 0b64de0 (e00ad16)                              |
 
-**Landing:** land each wave as soon as it's green. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here.
+**Landing:** land each wave as soon as it's green. **Landing mode: run everything through** (queued with `pnpm prd queue loop-recovery`): start every ready slice, land each green wave without asking, clean up. Ask only real questions.
+
+**Backlog:** B-132, done at 0b64de0. All five slices are merged; waves 1–3 land together (slices 4 and 5 finished before wave 1's check went green). All hand-off docs folded into docs/loops.md and docs/orchestration.md, plus a pointer in AGENTS.md. Checks flake on timeouts under machine load (load avg 30–60; different tests each run, none in scripts/loops): rerun until green. After landing: `pnpm prd rm loop-recovery`.
 
 ## Architectural decisions
 

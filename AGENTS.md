@@ -79,6 +79,7 @@ Orchestrators and loops read the handbook, [`docs/loops.md`](docs/loops.md), bef
 - **A wave:** `pnpm prd slice <topic> <n>` per ready slice, one background agent each (`pnpm prd prompt slice <topic> <n>`); review each hand-off, merge **in plan order** into `prd/<topic>` with no checks between merges, `pnpm backlog done`, `pnpm prd rm <topic>-<n>`.
 - **Landing:** `pnpm prd sync`, the lean end-to-end set once (`pnpm prd browser --suite`), `pnpm prd check`, show the user `pnpm prd ready`, then `pnpm prd land <topic>` **only on their word** (or the landing mode they chose).
 - **Browser checks** run only through `pnpm prd browser` (a machine-wide lease); `--changed` picks them from the diff. Never rerun one that passed.
+- **Recovery:** `pnpm prd down` before a planned restart, `pnpm prd recover` after a restart, crash or usage limit; a resumed orchestrator reconciles _Status_ with git first (`docs/loops.md`, _Isolation_ and _Starting and steering_).
 
 ### Rules across PRDs
 
