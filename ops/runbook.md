@@ -82,32 +82,48 @@ Staging only:
 
 ### 1. GitHub
 
-1. Make the repository visible to `gh` (`gh auth login`, `gh repo view` works).
+0. **The plan:** environments, environment secrets and rulesets need a **public** repository on GitHub Free, or GitHub Team for a private one. `caretook/caretook.com` is **public** (org on Free). So nothing secret is ever committed, and no workflow may run on `pull_request` or `pull_request_target` (forks could then reach the Actions); every workflow is `push` to `staging`/`main` or `workflow_dispatch`.
+1. Make the repository visible to `gh` (`gh auth login`, `gh repo view` works). If it says "not found", the token lacks the org: `gh auth refresh -h github.com -s repo,admin:org`.
 2. **Environments** (Settings → Environments): `staging` and `production`.
    - Deployment branches: `staging` only for `staging`, `main` only for `production`. This also limits the manual Actions to those branches' code.
-   - Optional for `production`: a required reviewer. It gates every production deploy and every manual Action there too.
+   - `production` has the dev keeper as **required reviewer** (self-review allowed). Each workflow has one job in the environment, so it's one Approve per production deploy and per manual Action there. `staging` has none.
 3. Every secret and variable in the tables above, in each environment.
-4. **Rulesets** (Settings → Rules) on `main` and `staging`: require a pull request, block force pushes, block deletion. `staging` takes PRs from `dev`, `main` from `staging`. The local hooks (`.githooks/`) stay as a second guard.
-5. Actions settings: default workflow permissions read-only; keep run logs short (Settings → Actions → artifact and log retention, e.g. 7 days).
+4. **Ruleset** (Settings → Rules) `main and staging: PR only`, on `main` and `staging`: require a pull request (0 approvals: one maintainer can't approve their own PR), block force pushes, block deletion, no bypass. `staging` takes PRs from `dev`, `main` from `staging`; the ruleset doesn't check the source branch, so that and the local hooks (`.githooks/`) are the guard.
+5. Actions settings: default workflow permissions read-only; artifact and log retention 7 days; fork PR workflows need approval for all outside contributors.
+   - **Run logs are public** (public repo) for those 7 days. Secrets are masked, but a manual Action's inputs print: never put health details or anyone else's address in one, and delete a run that shows a staff email (`gh run delete <id>`) until B-183 masks the inputs.
+6. Org security: **require two-factor** for members (Settings → Authentication security; the web UI only, the API ignores it).
 
 ### 2. Neon (Postgres)
 
-1. A project per environment in **AWS us-east-2**, Postgres at the same major version as local development (18; **to confirm** Neon offers it, else 17). Plan: the one that gives the restore window and compliance features below (**to confirm**).
+0. **A Neon-managed org, not a Vercel-managed one.** An org made through Vercel's Neon integration can only create projects from Vercel, which connects them to Vercel projects and injects the owner's `DATABASE_URL`, `POSTGRES_URL`, `PG*` vars there, and puts the contract through Vercel. Caretook's Neon org is a direct Neon account (console.neon.tech, billed by Neon); never connect Neon to the Vercel projects through the integration.
+1. A project per environment in **AWS us-east-2**, Postgres at the same major version as local development (18, which Neon offers). Plan: the one that gives the restore window and compliance features below (**to confirm**).
 2. **Logical replication on** (Project settings → Logical replication). It restarts the compute and can't be turned off.
 3. **The migrations role**: create `caretook_migrations` in Neon's console (console-made roles get Neon's `neon_superuser` membership, which gives `CREATEROLE` and the right to make `REPLICATION` roles; **to confirm** on the plan). Create the database (e.g. `caretook`) **owned by `caretook_migrations`**, so it owns the tables it creates and the default privileges for the app role apply.
+   - On Neon's create-project screen keep the default database name (it belongs to `neondb_owner`) and leave every other service off (object storage, functions, AI gateway, realtime, Neon's Better Auth): only Postgres. Create `caretook` afterwards, owned by `caretook_migrations`.
    - Don't create `caretook_app` or `caretook_replication` in the console: `pnpm db:roles` creates them with SQL, without `neon_superuser` and without passwords.
 4. **The other two roles (bootstrap, once):** the deploy runs `db:roles` after every migration, but the first deploy needs the roles to exist with passwords first. From a laptop, once per environment, with the migrations role's **direct** URL:
 
    ```sh
-   APP_ENV=<staging|production> MIGRATIONS_DATABASE_URL='<direct URL, caretook_migrations>' pnpm datastore:migrate
-   APP_ENV=<staging|production> MIGRATIONS_DATABASE_URL='<direct URL, caretook_migrations>' pnpm db:roles
-   psql '<direct URL, caretook_migrations>'
-   \password caretook_app
-   \password caretook_replication
+   cd <repo or worktree> && nvm use
+   read -rs 'MIGRATIONS_DATABASE_URL?Direct URL: ' && export MIGRATIONS_DATABASE_URL   # zsh; bash: read -rsp
+   export APP_ENV=<staging|production>
+   pnpm datastore:migrate
+   pnpm db:roles
+
+   read -rs 'APP_PW?caretook_app password: ' && echo && export APP_PW
+   read -rs 'REPL_PW?caretook_replication password: ' && echo && export REPL_PW
+   psql "$MIGRATIONS_DATABASE_URL&sslrootcert=system" <<'SQL'
+   \getenv app_pw APP_PW
+   \getenv repl_pw REPL_PW
+   ALTER ROLE caretook_app PASSWORD :'app_pw';
+   ALTER ROLE caretook_replication PASSWORD :'repl_pw';
+   SQL
+   unset APP_PW REPL_PW MIGRATIONS_DATABASE_URL
    ```
 
-   - `\password` sends a SCRAM verifier, so the password never sits in the server's logs or Neon's SQL editor history. Store both in the password manager.
-   - Then **reset `caretook_migrations`' password** in Neon's console, put the new direct URL in `MIGRATIONS_DATABASE_URL`, and clear the shell history. From now on only the Action holds it.
+   - The direct URL with `?sslmode=verify-full` (nothing else after `?`); `psql` also needs `sslrootcert=system` to trust the system CAs.
+   - **Neon rejects `\password`** ("Neon only supports being given plaintext passwords"): it checks strength (about 60 bits; 32 random characters), so it takes the plaintext over TLS. `read -s` and `\getenv` keep it out of shell history, `~/.psql_history`, the process list and Neon's SQL editor. Store both in the password manager.
+   - Then **reset `caretook_migrations`' password** in Neon's console and put the new direct URL in `MIGRATIONS_DATABASE_URL` (GitHub). From now on only the Action holds it.
 
 5. **URLs:** the pooled one (`-pooler` host) as `caretook_app` → `DATABASE_URL`; the direct one as `caretook_migrations` → `MIGRATIONS_DATABASE_URL`; the direct one as `caretook_replication` → PowerSync (step 3). All with `sslmode=verify-full`.
 6. **Restore window** (Neon's history retention, which is PITR): production at least 7 days (**to confirm** the plan's limit); staging the plan minimum. Record the value in `data-copies.md`.
@@ -126,13 +142,13 @@ Staging only:
    - Database connection: the **direct** Neon host, the database, `caretook_replication` and its password, SSL mode **verify-full**. The publication is `powersync`, kept by `db:roles`.
    - Client auth: JWKS URI `<APP_URL>/api/auth/jwks`; audience = the instance's own URL (the value of `POWERSYNC_URL`). Development tokens off. PowerSync fetches the keys on its first request, so this can be set before the app is up.
    - A first sync config: paste `powersync/sync-config.yaml` (the Action replaces it on every deploy).
-3. `POWERSYNC_INSTANCE_ID` (variable) and the personal access token `POWERSYNC_ADMIN_TOKEN` (secret) into the GitHub environment. **To confirm:** whether the CLI also needs the project or org id.
+3. `POWERSYNC_INSTANCE_ID` (variable) and the personal access token `POWERSYNC_ADMIN_TOKEN` (secret) into the GitHub environment. The CLI needs only the instance id (`deploy sync-config --dry-run --instance-id <id>` with `PS_ADMIN_TOKEN` set checks the token without deploying).
 4. Dashboard access: only the named people, with two-factor sign-in. The dashboard can show synced data.
 
 ### 4. Vercel (Pro)
 
 1. **A project per environment** (e.g. `caretook-staging`, `caretook-production`) on the team, linked to the repository.
-   - Root Directory `apps/web`; framework React Router; Node 24. **To confirm:** that `vercel build` run from the repo root (as the Action does) follows the Root Directory, and that the build log shows pnpm 12.21.0.
+   - Root Directory `apps/web`; framework React Router; Node 24. Confirmed on staging: `vercel build` from the repo root follows the Root Directory, and installs with the workflow's pnpm 12.21.0 (its "Using pnpm@10.x based on project creation date" line is only detection; the install runs on the `pnpm` on `PATH`).
    - Functions run in `cle1` (`vercel.json` `regions`, Pro).
    - Auto-deploy is off through `vercel.json`; also leave "Ignored build step" alone, since the Action builds itself.
 2. **Env vars** in each project's Production environment: the "Also in Vercel" rows above, plus `APP_ENV`.
@@ -141,7 +157,7 @@ Staging only:
    - staging: `staging.caretook.com`. Its noindex comes from `APP_ENV=staging` (robots.txt and the page meta) and `vercel.json`'s `X-Robots-Tag` on that host.
 4. **Off:** Web Analytics, Speed Insights and log drains (no analytics that can see health data). Don't buy longer log retention (Observability Plus). Record the runtime log retention in `data-copies.md` (**to confirm**).
 5. **Cron:** `vercel.json` runs `/api/cron/outbox` every minute; Vercel sends `CRON_SECRET` as the bearer. Crons run on production deployments only, which is what both projects deploy.
-6. **Headers:** **to confirm** whether Vercel merges `vercel.json`'s headers with the functions' own or replaces them: `curl -I` a function route (`/app`) and a static file (`/favicon.ico`) and compare with `docs/domain/security-headers.md`.
+6. **Headers:** confirmed on staging: on a function's response the function's own header wins (one `Content-Security-Policy`, the full nonce policy; `/app`, `/sign-in`); prerendered and static files (`/`, `/features/`) get `vercel.json`'s short policy plus the page's `<meta>` CSP. Both match `docs/domain/security-headers.md`.
 7. `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` and `VERCEL_TOKEN` into the GitHub environment.
 
 ### 5. Resend
@@ -156,7 +172,7 @@ Staging only:
 
 ### 6. DNS
 
-At the registrar or DNS host for `caretook.com`:
+`caretook.com`'s DNS is on **Cloudflare**. Every record below is **DNS only** (grey cloud), never proxied: a proxied record puts Cloudflare in front of Vercel, which breaks Vercel's certificate issuance and lets Cloudflare cache or rewrite responses (headers included).
 
 | Record                             | Type       | Value                                                                                      |
 | ---------------------------------- | ---------- | ------------------------------------------------------------------------------------------ |
@@ -172,7 +188,8 @@ At the registrar or DNS host for `caretook.com`:
 
 ### 7. First deploy, staff, seed
 
-1. **Deploy:** staging gets code by a PR from `dev` into `staging` on GitHub; merging it runs the deploy. Watch the run; the smoke check's table is in its last step.
+1. **Deploy:** staging gets code by a PR from `dev` into `staging` on GitHub; merging it runs the deploy. Watch the run; the smoke check's table is in its last step. `origin/dev` must hold the deploy tooling (push `dev` first if the local one is ahead): a push without `.github/workflows/deploy.yml` runs nothing.
+   - **Manual Actions need the workflows on `main`** (GitHub runs `workflow_dispatch` only for workflows on the default branch). Before production exists, merge `staging` into `main` by PR once and **cancel** the production Deploy run it starts (it waits for the required reviewer). Then run each manual Action with the branch of its environment (`gh workflow run seed-staging.yml --ref staging`). `gh run list --workflow …` also 404s until then.
 2. **Staff:** sign up the first staff account through an invite or access code (it must exist), then run **Grant staff** (`admin-grant.yml`): environment, the account's email, role `admin`. It's recorded in the audit log with the system as actor. `/admin` then opens for that account.
 3. **Staging only: Seed staging** (`seed-staging.yml`). The fictional seed, idempotent; seeded accounts use `SEED_USER_PASSWORD`. The seed refuses production.
 4. **Hand checks on staging:** sign in on two devices as seeded users and see an edit sync; send an invite to an allowlisted address and check it arrives in the inbox with SPF, DKIM and DMARC passing and no tracking; `robots.txt` disallows everything.
@@ -190,8 +207,8 @@ Rotate on a schedule you choose, when someone with access leaves, and at once on
 | `CRON_SECRET`                           | new value, both places, redeploy                                                                                                                | nothing (Vercel sends the new one); the outbox sweep pauses until the deploy is live                                                                                                                                                                                                                                                                     |
 | `RESEND_WEBHOOK_SECRET`                 | Resend → the endpoint → roll the secret; both places; redeploy                                                                                  | webhooks between the roll and the deploy get 401 and Resend retries them                                                                                                                                                                                                                                                                                 |
 | `RESEND_API_KEY`                        | create a new key, both places, redeploy, then delete the old key                                                                                | nothing if done in that order                                                                                                                                                                                                                                                                                                                            |
-| `caretook_app` password                 | `\password caretook_app` (psql as the migrations role), new `DATABASE_URL` both places, redeploy                                                | the live deploy can't connect between the two steps: do it right before the redeploy                                                                                                                                                                                                                                                                     |
-| `caretook_replication` password         | `\password caretook_replication`, then update the PowerSync dashboard's connection                                                              | sync pauses until PowerSync reconnects                                                                                                                                                                                                                                                                                                                   |
+| `caretook_app` password                 | `ALTER ROLE caretook_app` as in Neon step 4 (psql as the migrations role), new `DATABASE_URL` both places, redeploy                             | the live deploy can't connect between the two steps: do it right before the redeploy                                                                                                                                                                                                                                                                     |
+| `caretook_replication` password         | `ALTER ROLE caretook_replication` as in Neon step 4, then update the PowerSync dashboard's connection                                           | sync pauses until PowerSync reconnects                                                                                                                                                                                                                                                                                                                   |
 | `caretook_migrations` password          | Neon console → reset, new `MIGRATIONS_DATABASE_URL` in GitHub                                                                                   | nothing at runtime                                                                                                                                                                                                                                                                                                                                       |
 | `VERCEL_TOKEN`, `POWERSYNC_ADMIN_TOKEN` | make a new one, update GitHub, revoke the old                                                                                                   | nothing at runtime                                                                                                                                                                                                                                                                                                                                       |
 | `SEED_USER_PASSWORD` (staging)          | new value in GitHub, then run **Seed staging**                                                                                                  | nothing: the seed moves every seeded (`@example.com`) password account to the current value (`accounts.rotateStagingPasswords`) and changes nothing else                                                                                                                                                                                                 |
