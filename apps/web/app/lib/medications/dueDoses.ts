@@ -12,6 +12,7 @@ export type {
   SlotState,
 } from "@caretook/data/schema";
 export {
+  OVERDUE_AFTER_MINUTES,
   doseSlotsBetween,
   doseWarnings,
   dueDoses,

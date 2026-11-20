@@ -68,6 +68,12 @@ export default defineConfig(
   // Plain JS config files aren't in any tsconfig.
   { files: ["**/*.{js,mjs,cjs}"], extends: [tseslint.configs.disableTypeChecked] },
 
+  // Browser-check specs hand functions to the page (page.evaluate): Node's and the browser's globals.
+  {
+    files: ["scripts/browser-checks/*.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+
   // Last: turns off every rule that would fight Prettier's formatting.
   prettier,
 );

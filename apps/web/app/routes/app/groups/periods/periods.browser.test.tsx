@@ -168,6 +168,8 @@ describe("adding a period", () => {
       ["Back", () => Promise.resolve(back())],
     ];
     for (const [how, close] of closes) {
+      // The list (and Add) can render after open(), or after a close, on a loaded machine.
+      await waitUntil(() => !!ADD(), 4000, `Add before ${how}`);
       await userEvent.click(ADD()!);
       await waitUntil(() => !!FORM(), 4000, `the sheet before ${how}`);
       await close();

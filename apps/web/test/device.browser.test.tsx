@@ -71,7 +71,8 @@ describe("the test device", () => {
       details: { name: "Sore knee", severity: 2 },
     });
     expect(created.ok).toBe(true);
-    await expect.element(device.screen.getByText(/Sore knee/)).toBeVisible();
+    // The row, and the day's summary line once it answers: either shows the live query updated.
+    await expect.element(device.screen.getByText(/Sore knee/).first()).toBeVisible();
 
     await removeEntry(device.db, note.id);
     await expect.element(device.screen.getByText("Walked to the mailbox")).not.toBeInTheDocument();

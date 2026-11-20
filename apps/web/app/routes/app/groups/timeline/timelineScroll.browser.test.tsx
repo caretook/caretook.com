@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { userEvent } from "vitest/browser";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
 import {
   button,
@@ -199,4 +200,93 @@ describe("infinite scroll", () => {
       expect(gone.rows).toBe(before.rows);
     },
   );
+});
+
+// Off-screen rows cost little (B-139, `offscreenRows.ts`): days before the
+// newest page skip drawing their rows while off screen, every row remembers
+// its size, and nothing about paging or coming back to the list changes.
+describe("off-screen rows", () => {
+  const threePages = async () => {
+    const device = await openTimeline({ fixtures: world(130) });
+    await waitUntil(() => rows().length > 0);
+    for (let i = 0; i < 40 && rows().length < 90; i++) {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      await pause(100);
+    }
+    await waitUntil(() => status()?.textContent !== LOADING, 8000, "the third page");
+    await device.settle();
+    expect(rows().length).toBeGreaterThanOrEqual(90);
+    return device;
+  };
+  const cv = (li: Element) => getComputedStyle(li).contentVisibility;
+
+  test("rows carry content-visibility: auto, except the days holding the newest page; every row remembers its size; all stay in the DOM and the accessibility tree", async () => {
+    const device = await threePages();
+    const all = rows();
+    const lists = [
+      ...document.querySelectorAll<HTMLOListElement>('section[aria-labelledby="timeline-heading"] ol'),
+    ];
+    const skipping = lists.filter((ol) => [...ol.children].every((li) => cv(li) === "auto"));
+    const drawn = lists.filter((ol) => [...ol.children].every((li) => cv(li) === "visible"));
+    // Every day is one or the other; the settled ones come first, the newest page's days last.
+    expect(skipping.length + drawn.length).toBe(lists.length);
+    expect(skipping.length).toBeGreaterThan(0);
+    expect(lists.slice(0, skipping.length)).toEqual(skipping);
+    const drawnRows = drawn.reduce((n, ol) => n + ol.children.length, 0);
+    expect(drawnRows).toBeGreaterThanOrEqual(30);
+    expect(all.every((li) => getComputedStyle(li).containIntrinsicSize.startsWith("auto"))).toBe(true);
+    // The headers and the sentinel aren't contained.
+    for (const el of [
+      ...document.querySelectorAll("[data-day-header]"),
+      document.querySelector("[data-older-entries]")!,
+    ])
+      expect(getComputedStyle(el).contentVisibility).toBe("visible");
+    // A skipped row, far above the screen, is still there and still named.
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    await frames();
+    const far = skipping[0]!.querySelector<HTMLLIElement>(":scope > li:not([data-marker])")!;
+    expect(far.getBoundingClientRect().bottom).toBeLessThan(-innerHeight);
+    const link = far.querySelector<HTMLAnchorElement>('a[aria-label^="Show only"]:not([data-author])')!;
+    await expect
+      .element(device.screen.getByRole("link", { name: link.getAttribute("aria-label")! }).first())
+      .toBeInTheDocument();
+    expect(rows().length).toBe(all.length);
+  });
+
+  test("three pages down, a row's sheet and back: the same scroll position and pages, then the next page still loads", async () => {
+    const device = await threePages();
+    // A row of the third page, on screen.
+    window.scrollTo(0, rows()[75]!.getBoundingClientRect().top + scrollY - 300);
+    await frames();
+    const row = rows().find((li) => {
+      const r = li.getBoundingClientRect();
+      return r.top > 80 && r.bottom < innerHeight - 80 && !!li.querySelector('a[aria-label^="Edit "]');
+    })!;
+    expect(row).toBeTruthy();
+    const where = () => ({
+      y: Math.round(scrollY),
+      rows: rows().length,
+      top: Math.round(row.getBoundingClientRect().top),
+    });
+    const before = where();
+    await tapAt(row.querySelector("p")!);
+    await waitUntil(() => !!document.querySelector("[role=dialog] form"), 4000, "the edit sheet");
+    expect(device.location()).toMatch(/\/timeline\/[0-9a-f-]{36}\/edit$/);
+    const cancel = [...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button")].find(
+      (b) => b.textContent?.trim() === "Cancel",
+    )!;
+    await userEvent.click(cancel);
+    await waitUntil(() => !document.querySelector("[role=dialog]"), 4000, "the sheet to close");
+    await expect.poll(device.location).toBe(TIMELINE_URL);
+    await frames();
+    const after = where();
+    expect(row.isConnected).toBe(true);
+    expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(2);
+    expect(Math.abs(after.top - before.top)).toBeLessThanOrEqual(2);
+    expect(after.rows).toBe(before.rows);
+
+    // The next page loads as the end comes near.
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    await waitUntil(() => rows().length > before.rows, 8000, "the fourth page");
+  });
 });

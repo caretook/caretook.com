@@ -78,6 +78,8 @@ describe("the list", () => {
 
   test("search filters as it's typed (by reason too) and goes in the URL; the URL's search opens filtered", async () => {
     const device = await open();
+    // The search box can render after open() resolves on a loaded machine: wait for it.
+    await expect.poll(() => SEARCH()).toBeTruthy();
     await userEvent.fill(SEARCH(), "blood");
     await expect.poll(() => listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
     expect(listNames(STOPPED)).toEqual([]);
@@ -85,8 +87,8 @@ describe("the list", () => {
     await device.screen.unmount();
 
     await open({ url: `${LIST}?q=blood` });
-    expect(SEARCH().value).toBe("blood");
-    expect(listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
+    await expect.poll(() => SEARCH()?.value).toBe("blood");
+    await expect.poll(() => listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
   });
 
   test("the Discontinued chip shows only Oxybutynin and goes in the URL, which opens filtered; All shows everything again", async () => {
