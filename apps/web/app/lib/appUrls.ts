@@ -32,14 +32,25 @@ export const searchString = (search?: Search): string => {
   return text ? `?${text}` : "";
 };
 
-/** What `tasks/new` can start with (`appUrls.newTask`): a link and a due day. */
+/** What `tasks/new` can start with (`appUrls.newTask`): a link, a due day, and (quick entry's Edit) the rest. */
 export const TASK_PREFILL_PARAMS = {
   providerId: "providerId",
   medicationId: "medicationId",
   eventId: "eventId",
   dueOn: "dueOn",
+  title: "title",
+  assigneeId: "assigneeId",
+  dueTime: "dueTime",
 } as const;
-export type TaskPrefill = { providerId?: string; medicationId?: string; eventId?: string; dueOn?: string };
+export type TaskPrefill = {
+  providerId?: string;
+  medicationId?: string;
+  eventId?: string;
+  dueOn?: string;
+  title?: string;
+  assigneeId?: string;
+  dueTime?: string;
+};
 
 /** The kinds added in a sheet over the timeline (notes and events have a page: `newEntry`). */
 export const SHEET_KINDS = ["symptom", "vital"] as const satisfies readonly TimelineEntryKind[];
@@ -311,6 +322,9 @@ export const appUrls = {
       [TASK_PREFILL_PARAMS.medicationId]: prefill.medicationId,
       [TASK_PREFILL_PARAMS.eventId]: prefill.eventId,
       [TASK_PREFILL_PARAMS.dueOn]: prefill.dueOn,
+      [TASK_PREFILL_PARAMS.title]: prefill.title,
+      [TASK_PREFILL_PARAMS.assigneeId]: prefill.assigneeId,
+      [TASK_PREFILL_PARAMS.dueTime]: prefill.dueTime,
     })}`,
   /** The edit sheet for one task, over the task list, carrying the list's chip. */
   editTask: (groupId: string, taskId: string, search?: Search) =>

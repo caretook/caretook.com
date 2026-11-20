@@ -12,12 +12,15 @@ import { FIELD, isFieldIssue } from "./taskFormData";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 
-const choiceOf = (task: LocalTask | undefined): AssigneeChoice =>
+const choiceOf = (task: Pick<LocalTask, "assigneeId" | "assigneeName"> | undefined): AssigneeChoice =>
   task?.assigneeId
     ? { kind: "member", userId: task.assigneeId }
     : task?.assigneeName
       ? { kind: "name", name: task.assigneeName }
       : { kind: "none" };
+
+/** A new task's prefills besides its due day (quick entry's Edit): a member's id only when they're one. */
+export type TaskFormPrefill = { title?: string | null; assigneeId?: string | null; dueTime?: string | null };
 
 /**
  * Add or edit a task: the title, who does it, and an optional due day with
@@ -30,6 +33,7 @@ export function TaskForm({
   members,
   meId,
   dueOn,
+  prefill,
   zoneNote,
   onDone,
   onCancel,
@@ -40,6 +44,8 @@ export function TaskForm({
   meId: string;
   /** A new task's due day (a prefill). */
   dueOn?: string | null;
+  /** A new task's title, assignee and due time. */
+  prefill?: TaskFormPrefill;
   /** "Times are Los Angeles time", when the device is elsewhere. */
   zoneNote: string | null;
   onDone: () => void;
@@ -86,7 +92,7 @@ export function TaskForm({
             name={FIELD.title}
             className="input w-full"
             maxLength={TASK_LIMITS.title}
-            defaultValue={task?.title ?? ""}
+            defaultValue={task?.title ?? prefill?.title ?? ""}
             placeholder="e.g. Call the pharmacy"
             autoComplete="off"
             required
@@ -94,7 +100,17 @@ export function TaskForm({
         )}
       </Field>
 
-      <AssigneeField members={members} meId={meId} initial={choiceOf(task)} error={assigneeError} />
+      <AssigneeField
+        members={members}
+        meId={meId}
+        initial={choiceOf(
+          task ??
+            (prefill?.assigneeId && members.some((m) => m.userId === prefill.assigneeId)
+              ? { assigneeId: prefill.assigneeId, assigneeName: null }
+              : undefined),
+        )}
+        error={assigneeError}
+      />
 
       <div className="grid gap-x-3 sm:grid-cols-2">
         <Field label="Due (optional)" error={issueFor(issues, FIELD.dueOn)}>
@@ -116,7 +132,7 @@ export function TaskForm({
               type="time"
               name={FIELD.dueTime}
               className="input w-full"
-              defaultValue={task?.dueTime ?? ""}
+              defaultValue={task?.dueTime ?? prefill?.dueTime ?? ""}
               disabled={!day}
             />
           )}

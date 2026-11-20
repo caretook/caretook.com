@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { doseDetailsZSchema } from "./medication";
+import { doseDetailsZSchema, scheduleTimeZSchema } from "./medication";
+import { TASK_LIMITS, TIME_NEEDS_DAY_ISSUE } from "./task";
 import { symptomDetailsZSchema, TIMELINE_LIMITS } from "./timelineEntry";
 import { timeZoneZSchema } from "./timeZone";
 import { vitalDetailsZSchema } from "./vitals";
@@ -82,6 +83,28 @@ export const addEventActionZSchema = z.strictObject({
   timeZone: timeZoneZSchema,
 });
 
+/**
+ * A task: a title, at most one member to do it, and an optional due day
+ * with an optional time (wall-clock in the recipient's zone), plus optional
+ * links. Not a timeline entry, so it has no `occurredAt`. Whoever carries it
+ * out checks the assignee is a member and the links are live in the group.
+ */
+export const addTaskActionZSchema = z
+  .strictObject({
+    type: z.literal("addTask"),
+    title: z.string().trim().min(1).max(TASK_LIMITS.title),
+    assigneeId: z.uuid().nullish(),
+    dueOn: z.iso.date().nullish(),
+    dueTime: scheduleTimeZSchema.nullish(),
+    providerId: z.uuid().nullish(),
+    medicationId: z.uuid().nullish(),
+    eventId: z.uuid().nullish(),
+  })
+  .refine((a) => !a.dueTime || !!a.dueOn, {
+    path: [TIME_NEEDS_DAY_ISSUE.path],
+    message: TIME_NEEDS_DAY_ISSUE.message,
+  });
+
 /** Every action. */
 export const assistantActionZSchema = z.discriminatedUnion("type", [
   logVitalActionZSchema,
@@ -90,13 +113,14 @@ export const assistantActionZSchema = z.discriminatedUnion("type", [
   addNoteActionZSchema,
   addEventActionZSchema,
   givePassActionZSchema,
+  addTaskActionZSchema,
 ]);
 export type AssistantAction = z.output<typeof assistantActionZSchema>;
 export type AssistantActionInput = z.input<typeof assistantActionZSchema>;
 export type AssistantActionType = AssistantAction["type"];
 export type ActionOf<T extends AssistantActionType> = Extract<AssistantAction, { type: T }>;
 
-/** The timeline kind each action writes. */
+/** The kind each action writes: a timeline kind, or `task` (not an entry). */
 export const ACTION_KINDS = {
   logVital: "vital",
   logSymptom: "symptom",
@@ -104,5 +128,6 @@ export const ACTION_KINDS = {
   addNote: "note",
   addEvent: "event",
   givePass: "dose",
+  addTask: "task",
 } as const satisfies Record<AssistantActionType, string>;
 export type ActionKind = (typeof ACTION_KINDS)[AssistantActionType];

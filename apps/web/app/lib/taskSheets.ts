@@ -7,12 +7,7 @@ import { appUrls } from "./appUrls";
 // `lib/medicationSheets.ts`; it lives in lib/ because the task page opens the
 // edit sheet too.
 
-/** History state on a link that opens a task sheet. */
-export const TASK_SHEET_STATE = { taskSheet: true } as const;
-
-/** Whether a sheet was opened by one of this app's links (so closing it can go back). */
-export const openedFromApp = (state: unknown) =>
-  typeof state === "object" && state !== null && "taskSheet" in state;
+export { openedFromApp, TASK_SHEET_STATE } from "./taskSheetLink";
 
 export type TaskSheetDecision<Sheet> = { sheet: Sheet } | { redirect: string };
 

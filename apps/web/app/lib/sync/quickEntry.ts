@@ -19,7 +19,8 @@ import { dosesSinceQuery, dueMedicationsQuery, duePassesQuery, toDueDoses, yeste
 import { doseRows, medicationQuery, recipientQuery, toMedication } from "./medications";
 import { toPasses } from "./medicationPasses";
 import { providerQuery, toProvider } from "./providers";
-import { noteDocuments, noteUpdates, timelineEntries, timelineEntryProviders } from "./schema";
+import { noteDocuments, noteUpdates, tasks, timelineEntries, timelineEntryProviders } from "./schema";
+import { plannedTask } from "./tasks";
 import {
   contentColumns,
   forbidden,
@@ -39,22 +40,29 @@ import {
 // schemas, the writer role, no future time on a past-only kind, a live
 // medication or provider in the group. A pass (`givePass`) is the medication
 // strip's Given all: the doses `givenAllWrites` plans for the pass's open
-// slots on its day, as one round. A refused action refuses the batch, naming
-// the action it was.
+// slots on its day, as one round. A task (`addTask`) is checked as
+// `createTask` checks it (`plannedTask`) and written in the same transaction;
+// it isn't an entry. A refused action refuses the batch, naming the action
+// it was.
 
 export type RunActionsResult =
   | {
       ok: true;
-      /** Every entry written, in order (a pass writes one per medication): what Undo removes. */
+      /** Every entry (and task) written, in order (a pass writes one per medication): what Undo removes. */
       ids: string[];
-      /** Each action's entries, in the actions' order. */
+      /** Each action's entries (an `addTask`'s task), in the actions' order. */
       byAction: string[][];
     }
   | { ok: false; error: string; issues: FieldIssue[]; index: number | null };
 
 type EntryInsert = typeof timelineEntries.$inferInsert;
 
-type Rows = {
+type Rows =
+  | EntryRows
+  /** A task (not an entry). */
+  | { task: typeof tasks.$inferInsert };
+
+type EntryRows = {
   entry: EntryInsert;
   /** More entries the action writes with it (a pass's other doses). */
   more?: EntryInsert[];
@@ -72,7 +80,7 @@ const refuse = (error: string, index: number | null, issues: FieldIssue[] = []):
 });
 
 /** The content an action writes, before the role and group checks (a pass's doses are planned apart). */
-const contentOf = (action: Exclude<AssistantAction, { type: "givePass" }>, timeZone: string) => {
+const contentOf = (action: Exclude<AssistantAction, { type: "givePass" | "addTask" }>, timeZone: string) => {
   switch (action.type) {
     case "logVital":
       return {
@@ -162,6 +170,13 @@ export const runActions = async (
       planned.push({ entry: first!, more });
       continue;
     }
+    if (action.type === "addTask") {
+      const { type: _type, ...input } = action;
+      const task = await plannedTask(db, groupId, input);
+      if (!task.ok) return refuse(task.error, index, task.issues);
+      planned.push({ task: task.row });
+      continue;
+    }
     const content = timelineEntryContentZSchema.safeParse(contentOf(action, timeZone));
     if (!content.success) {
       const { issues } = invalid(content.error) as { issues: FieldIssue[] };
@@ -205,7 +220,12 @@ export const runActions = async (
   }
 
   await db.drizzle.transaction(async (tx) => {
-    for (const { entry, more, document, providerIds } of planned) {
+    for (const rows of planned) {
+      if ("task" in rows) {
+        await tx.insert(tasks).values(rows.task);
+        continue;
+      }
+      const { entry, more, document, providerIds } = rows;
       await tx.insert(timelineEntries).values(entry);
       for (const row of more ?? []) await tx.insert(timelineEntries).values(row);
       if (document) {
@@ -243,7 +263,9 @@ export const runActions = async (
         });
     }
   });
-  const byAction = planned.map((p) => [p.entry.id, ...(p.more ?? []).map((r) => r.id)]);
+  const byAction = planned.map((p) =>
+    "task" in p ? [p.task.id] : [p.entry.id, ...(p.more ?? []).map((r) => r.id)],
+  );
   return { ok: true, ids: byAction.flat(), byAction };
 };
 
@@ -284,19 +306,21 @@ const passDoses = async (
 };
 
 /**
- * Soft delete exactly these entries, in one local transaction (quick entry's
- * Undo: the line it just saved). Ones already gone are left alone; any in a
- * group you can't write refuses the lot.
+ * Soft delete exactly these entries (and tasks: quick entry's line can add
+ * one), in one local transaction (quick entry's Undo: the line it just
+ * saved). Ones already gone are left alone; any in a group you can't write
+ * refuses the lot.
  */
 export const removeEntries = async (db: SyncDb, ids: readonly string[]): Promise<ActionResult> => {
-  const live: { id: string; groupId: string }[] = [];
+  const live: { id: string; groupId: string; task: boolean }[] = [];
   for (const id of new Set(ids)) {
     // Any kind (doses and medication changes too), so not through `toTimelineEntry`.
-    const [row] = await readRows<{ id: string; group_id: string | null }>(db, {
-      sql: "SELECT id, group_id FROM timeline_entry WHERE id = ? AND deleted_at IS NULL",
-      params: [id],
+    const [row] = await readRows<{ id: string; group_id: string | null; task: number }>(db, {
+      sql: `SELECT id, group_id, 0 AS task FROM timeline_entry WHERE id = ? AND deleted_at IS NULL
+            UNION ALL SELECT id, group_id, 1 AS task FROM task WHERE id = ? AND deleted_at IS NULL`,
+      params: [id, id],
     });
-    if (row?.group_id) live.push({ id: row.id, groupId: row.group_id });
+    if (row?.group_id) live.push({ id: row.id, groupId: row.group_id, task: !!row.task });
   }
   for (const groupId of new Set(live.map((e) => e.groupId))) {
     const group = await groupFor(db, groupId);
@@ -306,10 +330,16 @@ export const removeEntries = async (db: SyncDb, ids: readonly string[]): Promise
   const now = nowTimestamp();
   await db.drizzle.transaction(async (tx) => {
     for (const entry of live)
-      await tx
-        .update(timelineEntries)
-        .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
-        .where(eq(timelineEntries.id, entry.id));
+      if (entry.task)
+        await tx
+          .update(tasks)
+          .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+          .where(eq(tasks.id, entry.id));
+      else
+        await tx
+          .update(timelineEntries)
+          .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+          .where(eq(timelineEntries.id, entry.id));
   });
   return { ok: true };
 };

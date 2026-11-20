@@ -355,4 +355,17 @@ describe("appUrls: tasks", () => {
     );
     expect(appUrls.newTask(G, { medicationId: "m1" })).toBe(`/app/groups/${G}/tasks/new?medicationId=m1`);
   });
+
+  it("prefills a new task's title, assignee and time (quick entry's Edit)", () => {
+    expect(
+      appUrls.newTask(G, {
+        title: "Call pharmacy & fax",
+        assigneeId: "u1",
+        dueOn: "2026-11-20",
+        dueTime: "17:00",
+      }),
+    ).toBe(
+      `/app/groups/${G}/tasks/new?dueOn=2026-11-20&title=Call+pharmacy+%26+fax&assigneeId=u1&dueTime=17%3A00`,
+    );
+  });
 });
