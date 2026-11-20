@@ -1,5 +1,7 @@
 # PRD: Orchestration 2 (faster, lighter loops)
 
+**Status: done** (2026-11-19): all nine slices landed in `dev`; see the plan's _Status_.
+
 Topic `orchestration`. Backlog: B-59, B-89, B-107, B-108, B-109, B-110, B-111. Interviewed 2026-11-19.
 
 ## Problem Statement

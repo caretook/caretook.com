@@ -337,10 +337,17 @@ try {
     n1Authors,
   );
   await step("note: the viewer's row", async () => {
-    await C.waitFor(`${rowOf(N1)}?.textContent.includes(${JSON.stringify(`${tag} first words`)})`, 20000);
+    // The text and the title sync as separate writes (the document, then the
+    // entry's rename), so wait for both, not for the text alone.
+    const both = `(${rowOf(N1)}?.textContent ?? "")`;
+    const has = (t) => `${both}.includes(${JSON.stringify(t)})`;
+    const seen = await C.waitFor(`${has(`${tag} first words`)} && ${has(N1_TITLE)}`, 20000)
+      .then(() => true)
+      .catch(() => false);
     check(
       "note: the viewer's row shows the document as its body, and the title",
-      await C.evaluate(`${rowOf(N1)}.textContent.includes(${JSON.stringify(N1_TITLE)})`),
+      seen,
+      await C.evaluate(`${both}.slice(0, 160)`),
     );
   });
 
