@@ -24,6 +24,8 @@ scripts/backlog/*                        -
 *.int.test.ts                            -
 packages/*/test/*                        -
 # Component tests and the test device (web:components runs them in pnpm check).
+# Screens that have them map to `-` below (or to the end-to-end flows they
+# reach): a screen change needs only pnpm check.
 *.browser.test.tsx                       -
 apps/web/test/*                          -
 apps/web/app/routes/app/groups/timeline/timelineWorld.tsx -
@@ -58,7 +60,7 @@ apps/web/app/.server/securityHeaders.ts  sign-in phase2 roundtrip live-notes mar
 apps/web/app/lib/csp.ts                  sign-in phase2 roundtrip live-notes marketing invites
 apps/web/app/routes/web/*                sign-in marketing invites
 apps/web/vercel.json                     sign-in marketing
-apps/web/app/app.css                     phase2 app-shell ui medications profiles
+apps/web/app/app.css                     ui medications profiles
 powersync/*                              @suite
 docker-compose*.yml                      @suite
 packages/data/src/db/migrations/*        @suite
@@ -101,15 +103,15 @@ packages/data/src/services/appSettingService.ts admin groups invites
 packages/data/src/models/appSetting/*    admin
 # The announcement banner (admin slice 6): public.announcement and /app's banner.
 packages/api/src/announcement.ts         admin
-apps/web/app/routes/app/layout/Announcement.tsx admin app-shell
-apps/web/app/routes/app/layout/useAnnouncement.ts admin app-shell
-apps/web/app/components/shell/AnnouncementBanner.tsx admin app-shell first-sync
+apps/web/app/routes/app/layout/Announcement.tsx admin
+apps/web/app/routes/app/layout/useAnnouncement.ts admin
+apps/web/app/components/shell/AnnouncementBanner.tsx admin first-sync
 packages/data/src/services/careGroupInviteService.ts invites groups
 apps/web/app/routes/admin/*              admin groups
 apps/web/app/.server/admin.ts            admin groups
 packages/api/src/auditAdmin.ts           admin
 packages/api/src/procedures.ts           admin groups
-packages/data/src/db/schema/staffRules.ts admin groups app-shell
+packages/data/src/db/schema/staffRules.ts admin groups
 packages/data/src/db/schema/adminAudit.ts admin
 packages/data/src/services/adminAuditService.ts admin
 packages/data/src/services/staffAccess.ts admin groups
@@ -125,10 +127,10 @@ packages/api/src/groupsAdmin.ts          admin
 packages/data/src/db/seeds/staff.ts      admin
 packages/data/src/services/accessCodeService.ts groups admin
 packages/data/src/services/staffGroupService.ts groups admin
-apps/web/app/routes/app/groups/new/*     groups app-shell
-apps/web/app/components/groups/*         groups app-shell
-apps/web/app/routes/app/home/NewGroupLink.tsx groups app-shell first-sync
-apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx groups phase2
+apps/web/app/routes/app/groups/new/*     groups
+apps/web/app/components/groups/*         groups
+apps/web/app/routes/app/home/NewGroupLink.tsx groups first-sync
+apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx groups
 packages/api/src/groups.ts               groups
 # The admin waitlist (marketing slice 5): its steps are in groups.mjs.
 packages/api/src/waitlistAdmin.ts        groups
@@ -142,15 +144,15 @@ packages/data/src/db/seeds/accessCodes.ts groups
 # The emergency sheet (profiles slice 6): its own print media steps, and the shared print CSS's.
 apps/web/app/routes/app/groups/profile/print/* profiles
 apps/web/app/routes/app/groups/profile/* profiles
-apps/web/app/lib/sync/profile.ts         profiles phase2
+apps/web/app/lib/sync/profile.ts         profiles
 # The writers' details (profiles slice 3): Contact and Insurance and their sheets.
 apps/web/app/lib/sync/recipientDetails.ts profiles
 packages/data/src/db/schema/careRecipientDetails.ts profiles
-apps/web/app/routes/app/groups/timeline/RecipientCard.tsx profiles phase2
-apps/web/app/routes/app/groups/timeline/TimelineHeader.tsx profiles phase2
-apps/web/app/routes/app/layout/GroupMenu.tsx app-shell ui profiles
+apps/web/app/routes/app/groups/timeline/RecipientCard.tsx profiles
+apps/web/app/routes/app/groups/timeline/TimelineHeader.tsx profiles
+apps/web/app/routes/app/layout/GroupMenu.tsx profiles care-periods
 apps/web/app/routes/app/groups/settings/details/* app-shell profiles
-packages/data/src/db/schema/careRecipient.ts profiles app-shell
+packages/data/src/db/schema/careRecipient.ts profiles
 packages/data/src/db/schema/profileVisibility.ts profiles
 packages/data/src/db/seeds/profiles.ts   profiles app-shell
 # Emergency contacts (profiles slice 5): the list on the profile, its sheet, and the Members page's badges.
@@ -180,42 +182,44 @@ apps/web/app/components/shell/*          first-sync
 apps/web/app/routes.ts                   routing
 apps/web/app/routes/app/groups/layout/*  routing app-shell
 apps/web/app/routes/app/groups/index/*   routing
-apps/web/app/lib/group.tsx               routing app-shell
-apps/web/app/lib/groupContext.ts         routing app-shell
-apps/web/app/lib/groupSections.ts        app-shell routing
+apps/web/app/lib/group.tsx               routing
+apps/web/app/lib/groupContext.ts         routing
+apps/web/app/lib/groupSections.ts        routing upcoming
 # Your contact details (profiles slice 4).
 apps/web/app/routes/app/settings/contact/* profiles-contacts settings-layout routing
 # Devices: the account's sessions and signing them out (quick-fixes slice 29).
 apps/web/app/routes/app/settings/devices/* devices routing
-apps/web/app/routes/app/settings/*       routing settings-layout layout-offline ui
+apps/web/app/routes/app/settings/*       routing settings-layout layout-offline
 apps/web/app/lib/me.ts                   settings-layout layout-offline
-apps/web/app/components/settings/*       routing settings-layout app-shell ui
+apps/web/app/components/settings/*       routing settings-layout
 
-# The /app frame, menus, theme, group settings and members.
-# The header's search magnifier (search slice 3) opens the search page.
-apps/web/app/routes/app/layout/route.tsx app-shell search
-# The group menu also shows the current care period (care-periods slice 4).
-apps/web/app/routes/app/layout/GroupMenu.tsx app-shell care-periods
+# The /app frame, menus, theme, group settings and members. The frame's screen
+# (header, menus, theme choice, last group, tab bar, section links) is component
+# tests (layout/frame.browser.test.tsx); app-shell.mjs keeps the flows: the theme
+# before first paint, sign-out from the menu, a rename and members across devices.
+# The layout route runs the session check on every /app navigation, and its
+# header's magnifier opens the search page.
+apps/web/app/routes/app/layout/route.tsx sign-in session-end search
 apps/web/app/routes/app/layout/UserMenu.tsx app-shell admin
-apps/web/app/routes/app/layout/*         app-shell
+apps/web/app/routes/app/layout/*         -
 apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
-apps/web/app/routes/app/home/*           app-shell first-sync
+apps/web/app/routes/app/home/*           first-sync
 # What each member shares, and your own choices (profiles slice 4).
-apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts app-shell
-apps/web/app/routes/app/groups/settings/members/* app-shell invites ui profiles-contacts
-apps/web/app/routes/app/groups/settings/* app-shell routing ui
+apps/web/app/routes/app/groups/settings/members/SharingForm.tsx profiles-contacts
+apps/web/app/routes/app/groups/settings/members/* app-shell invites profiles-contacts
+apps/web/app/routes/app/groups/settings/* routing
 apps/web/app/lib/sync/members.ts         app-shell invites profiles-contacts profiles
 # The date field: its own steps in ui, and the sheets, time chip and Dose sheet that type and pick with it.
-apps/web/app/components/ui/date/*        ui roundtrip live-notes medications care-periods
-apps/web/app/components/ui/*             ui app-shell
-apps/web/app/components/brand/*          app-shell marketing
+apps/web/app/components/ui/date/*        ui roundtrip medications care-periods
+apps/web/app/components/ui/*             ui
+apps/web/app/components/brand/*          marketing
 
 # The timeline's care periods (care-periods slice 3): the current-period line
 # and the boundary markers among the entries.
 apps/web/app/routes/app/groups/timeline/CurrentPeriodLine.tsx care-periods
-apps/web/app/routes/app/groups/timeline/PeriodMarkerItem.tsx phase2 care-periods
-apps/web/app/routes/app/groups/timeline/timelinePeriods.ts care-periods phase2
-apps/web/app/routes/app/groups/timeline/timelineDays.ts phase2 care-periods
+apps/web/app/routes/app/groups/timeline/PeriodMarkerItem.tsx care-periods
+apps/web/app/routes/app/groups/timeline/timelinePeriods.ts care-periods
+apps/web/app/routes/app/groups/timeline/timelineDays.ts care-periods
 apps/web/app/lib/periodMarkers.ts        care-periods
 # The timeline, its rows, filters, vitals and sheets.
 # Doses and medication changes on the timeline (medications slice 4).
@@ -223,43 +227,62 @@ apps/web/app/routes/app/groups/timeline/new-dose/* medications
 apps/web/app/routes/app/groups/timeline/DoseForm.tsx medications
 apps/web/app/routes/app/groups/timeline/doseFormData.ts medications
 # Pass logs on the timeline and the pass sheet (medications-2 slice 6).
-apps/web/app/routes/app/groups/timeline/pass/* medications phase2
-apps/web/app/routes/app/groups/timeline/PassLogItem.tsx medications phase2
+apps/web/app/routes/app/groups/timeline/pass/* medications
+apps/web/app/routes/app/groups/timeline/PassLogItem.tsx medications
 apps/web/app/lib/sync/passLogs.ts        medications
-apps/web/app/components/entry/MedicationEntryText.tsx medications phase2
+apps/web/app/components/entry/MedicationEntryText.tsx medications
 apps/web/app/lib/sync/medicationTimeline.ts medications phase2
 # Today and the Due now strip (medications slice 5).
-apps/web/app/routes/app/groups/timeline/MedicationStrip.tsx medications phase2
-apps/web/app/routes/app/groups/timeline/useMedicationStrip.ts medications phase2
+apps/web/app/routes/app/groups/timeline/MedicationStrip.tsx medications
+apps/web/app/routes/app/groups/timeline/useMedicationStrip.ts medications
 apps/web/app/lib/sync/dueDoses.ts        medications phase2 upcoming
 # The timeline's Next strip and Upcoming block, and the data they share with the history.
-apps/web/app/routes/app/groups/timeline/NextStrip.tsx phase2 upcoming
+apps/web/app/routes/app/groups/timeline/NextStrip.tsx upcoming
 apps/web/app/routes/app/groups/timeline/UpcomingBlock.tsx upcoming
-apps/web/app/routes/app/groups/timeline/aheadQueries.ts phase2 upcoming search
-apps/web/app/routes/app/groups/timeline/useHistoryCutoff.ts phase2 upcoming
-apps/web/app/routes/app/groups/timeline/useTimelineData.ts phase2 roundtrip upcoming care-periods
-apps/web/app/routes/app/groups/timeline/timelineRows.ts phase2 roundtrip upcoming care-periods
-apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx phase2 roundtrip upcoming search care-periods
+apps/web/app/routes/app/groups/timeline/aheadQueries.ts upcoming search
+apps/web/app/routes/app/groups/timeline/useHistoryCutoff.ts upcoming
+apps/web/app/routes/app/groups/timeline/useTimelineData.ts upcoming care-periods
+apps/web/app/routes/app/groups/timeline/timelineRows.ts upcoming care-periods
+apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx upcoming search care-periods
 # The timeline's search: the field, the chip and ?q= in the windows (search slice 2).
-apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx phase2 search
-apps/web/app/routes/app/groups/timeline/useSearchField.ts phase2 search
+apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx search
+apps/web/app/routes/app/groups/timeline/useSearchField.ts search
 apps/web/app/routes/app/groups/timeline/timelineSearch.ts search
 apps/web/app/routes/app/groups/timeline/useSearchIndexStatus.ts search
 # The search's care period chip (care-periods slice 6).
 apps/web/app/routes/app/groups/timeline/usePeriodSearch.ts search
-apps/web/app/routes/app/groups/timeline/route.tsx phase2 roundtrip search
-apps/web/app/routes/app/groups/timeline/* phase2 roundtrip
-apps/web/app/components/entry/*          phase2 roundtrip live-notes upcoming
+# The add and edit sheets: roundtrip.mjs (not yet component tests).
+apps/web/app/routes/app/groups/timeline/new/* roundtrip
+apps/web/app/routes/app/groups/timeline/edit/* roundtrip
+apps/web/app/routes/app/groups/timeline/EntryForm.tsx roundtrip
+apps/web/app/routes/app/groups/timeline/EntryKindPicker.tsx roundtrip
+apps/web/app/routes/app/groups/timeline/SymptomFields.tsx roundtrip
+apps/web/app/routes/app/groups/timeline/Vital*  roundtrip
+apps/web/app/routes/app/groups/timeline/useEntryFormSave.ts roundtrip
+apps/web/app/routes/app/groups/timeline/useEntryRemoval.ts roundtrip
+apps/web/app/routes/app/groups/timeline/sheet.ts roundtrip
+apps/web/app/routes/app/groups/timeline/sheetGuard.ts roundtrip
+apps/web/app/routes/app/groups/timeline/route.tsx roundtrip search
+# The rest of the timeline screen is component tests (timeline/timeline*.browser.test.tsx);
+# phase2.mjs keeps sync arriving, server links and offline, through lib/sync/.
+apps/web/app/routes/app/groups/timeline/* -
+apps/web/app/components/entry/*          roundtrip upcoming
 apps/web/app/components/forms/*          roundtrip live-notes
 apps/web/app/lib/sync/timeline.ts        phase2 roundtrip upcoming search
-apps/web/app/lib/entryDisplay.ts         phase2
+apps/web/app/lib/entryDisplay.ts         -
 apps/web/app/lib/form.ts                 roundtrip
 
 # The entry page and live notes.
 # The entry page's care period suggestion (care-periods slice 5).
-apps/web/app/routes/app/groups/entry/PeriodSuggestionChip.tsx care-periods live-notes
-apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx live-notes providers care-periods
-apps/web/app/routes/app/groups/entry/*   live-notes providers
+apps/web/app/routes/app/groups/entry/PeriodSuggestionChip.tsx care-periods
+apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx providers care-periods
+# The With row and the place: providers.mjs. What the page writes (and so uploads): live-notes.
+apps/web/app/routes/app/groups/entry/EntryWithRow.tsx providers
+apps/web/app/routes/app/groups/entry/withProviders.ts providers
+apps/web/app/routes/app/groups/entry/EntryPlaceRow.tsx providers
+apps/web/app/routes/app/groups/entry/useLiveEntry.ts live-notes
+# The rest of the entry page is component tests (entry/entry.browser.test.tsx).
+apps/web/app/routes/app/groups/entry/*   -
 apps/web/app/components/notes/*          live-notes providers
 apps/web/app/lib/sync/notes.ts           live-notes providers
 apps/web/app/lib/sync/liveEntry.ts       live-notes
@@ -273,7 +296,7 @@ apps/web/app/routes/app/groups/providers/* providers
 apps/web/app/components/providers/*      providers
 # Phone fields shared by the provider sheet and your contact details (profiles slice 4).
 # Contact links shared by the Members page and the recipient's profile (profiles slice 3).
-apps/web/app/components/contact/ContactLines.tsx profiles-contacts profiles app-shell
+apps/web/app/components/contact/ContactLines.tsx profiles-contacts profiles
 apps/web/app/components/contact/*        providers profiles-contacts
 apps/web/app/lib/sync/providers.ts       providers
 # The medication list: the device module, the list and a medication's page
@@ -286,7 +309,7 @@ apps/web/app/lib/sync/medicationPasses.ts medications
 # routes/app/groups/medications/allergies/, the region in components/medications/.
 apps/web/app/lib/sync/allergies.ts       medications
 apps/web/app/routes/app/groups/medications/* medications
-apps/web/app/routes/app/groups/medication/* medications live-notes
+apps/web/app/routes/app/groups/medication/* medications
 # The status actions (the medication page and the list's edit sheet).
 apps/web/app/components/medications/*    medications
 # Given all (medications-2): passes due today, the Undo offer, members' names for "who logged it".
@@ -296,7 +319,7 @@ apps/web/app/lib/sync/memberNames.ts     medications
 apps/web/app/lib/sync/appointments.ts    upcoming live-notes
 # The time fields and the reschedule sheet (the entry page's time chip, and
 # Reschedule from the timeline, Upcoming and the entry page).
-apps/web/app/components/schedule/*       upcoming live-notes
+apps/web/app/components/schedule/*       upcoming
 apps/web/app/lib/sync/providerSuggestions.ts live-notes providers
 # Care periods (care-periods PRD): the device module, the periods page and
 # its sheets, and a period's page.
@@ -304,7 +327,7 @@ apps/web/app/lib/sync/carePeriods.ts     care-periods
 apps/web/app/routes/app/groups/periods/* care-periods
 apps/web/app/routes/app/groups/period/*  care-periods
 apps/web/app/lib/sync/periodSuggestions.ts care-periods live-notes
-apps/web/app/lib/sync/currentPeriod.ts   care-periods app-shell
+apps/web/app/lib/sync/currentPeriod.ts   care-periods
 # Search (search PRD): the device index, its tables and triggers, and the
 # shared query language and search documents.
 apps/web/app/lib/sync/search.ts          search
@@ -347,7 +370,6 @@ packages/data/src/db/schema/recipientAllergy.ts medications
 packages/data/src/db/schema/timeZone.ts  roundtrip
 packages/data/src/db/schema/inviteRules.ts invites app-shell
 packages/data/src/db/schema/careGroup*.ts app-shell invites
-packages/data/src/db/schema/careRecipient.ts app-shell
 packages/data/src/db/schema/userPreferences.ts settings-layout
 packages/data/src/db/schema/notification.ts -
 packages/data/src/db/schema/publicForms.ts marketing
@@ -379,4 +401,3 @@ apps/web/app/lib/upcomingDays.ts         upcoming
 apps/web/app/lib/upcomingDoses.ts        upcoming
 apps/web/app/lib/timelineSheet.ts        roundtrip medications upcoming
 apps/web/app/lib/sync/useLiveRows.ts     phase2 upcoming
-apps/web/app/lib/groupSections.ts        app-shell routing upcoming

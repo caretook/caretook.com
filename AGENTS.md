@@ -77,7 +77,7 @@ Orchestrators and loops read the handbook, [`docs/loops.md`](docs/loops.md), bef
 
 - **`pnpm prd <command>`** is the one front door (`pnpm prd help`).
 - **A wave:** `pnpm prd slice <topic> <n>` per ready slice, one background agent each (`pnpm prd prompt slice <topic> <n>`); review each hand-off, merge **in plan order** into `prd/<topic>` with no checks between merges, `pnpm backlog done`, `pnpm prd rm <topic>-<n>`.
-- **Landing:** `pnpm prd sync`, the wave's browser checks once, `pnpm prd check`, show the user `pnpm prd ready`, then `pnpm prd land <topic>` **only on their word** (or the landing mode they chose).
+- **Landing:** `pnpm prd sync`, the lean end-to-end set once (`pnpm prd browser --suite`), `pnpm prd check`, show the user `pnpm prd ready`, then `pnpm prd land <topic>` **only on their word** (or the landing mode they chose).
 - **Browser checks** run only through `pnpm prd browser` (a machine-wide lease); `--changed` picks them from the diff. Never rerun one that passed.
 
 ### Rules across PRDs
@@ -92,11 +92,11 @@ Orchestrators and loops read the handbook, [`docs/loops.md`](docs/loops.md), bef
 
 - Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24; browser checks need its global `WebSocket`).
 - Your stack is your own. Run `pnpm datastore:reset`, `pnpm test`, `docker compose …` and `pnpm dev` freely from your worktree; they use your ports. Never touch the main checkout, other worktrees or other Compose projects.
-- Run the dev server with `pnpm prd serve` (background, `WEB_PORT` pins the port; `--restart` after merges). Run browser checks with `pnpm prd browser <check>` while building and `pnpm prd browser --changed` before hand-off: it sources `.env.loop` and waits its turn for one of the four machine-wide leases, and its `■ <check>: <result> … load at start …, at end …` lines and table go in the hand-off. New browser checks use `process.env.PG_CONTAINER` for `psql`, and launch Chrome and proxies through `cdp.mjs` and `proxy.mjs` (which apply the offset), never fixed container names or ports.
+- Run the dev server with `pnpm prd serve` (background, `WEB_PORT` pins the port; `--restart` after merges). New browser checks use `process.env.PG_CONTAINER` for `psql`, and launch Chrome and proxies through `cdp.mjs` and `proxy.mjs`, never fixed container names or ports.
 - After editing `powersync/sync-config.yaml`, restart your own PowerSync: `docker compose restart powersync`.
 - Follow the rules across PRDs (migrations, seeds, registries). Edits to shared files stay small and are listed in the hand-off. Read the docs your slice's `Reads` field names. Don't edit AGENTS.md or `docs/`, and change the backlog only through `pnpm backlog note`.
 - No new dependencies. All data stays fictional.
-- Browser checks follow the _Browser check budget_ (`docs/loops.md`): while building, only the check for what you're changing; before hand-off, `pnpm prd browser --changed` once. Never the full suite; the orchestrator runs that at landing. A new screen or check adds its rule to `scripts/loops/check-areas`.
+- **Screens get component tests; cross-cutting flows get end-to-end checks** (`docs/loops.md`, _Browser check budget_). While building, `pnpm test:components --changed <base>`, plus `pnpm prd browser <check>` only for a flow you touch; before hand-off, `pnpm check` and `pnpm prd browser --changed` once (its ■ lines and table go in the hand-off). Never the suite; the orchestrator runs it at landing. A new screen, check or shared module adds its rule to `scripts/loops/check-areas`.
 - When `pnpm check` and the slice's browser checks pass, **commit on your `slice/<topic>/<n>` branch** (coherent Conventional Commits scoped to the topic, ending with the attribution line). Don't merge, rebase or push any other branch, and never set `CARETOOK_ALLOW_PROTECTED`.
 - **Hand-off** (the final message): what was built, grouped by area, with every shared-file edit called out; each acceptance criterion marked met or not met, with evidence; the `pnpm check` and browser-check output; anything skipped or surprising that later slices need; and the commit SHAs.
 
