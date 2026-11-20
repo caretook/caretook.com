@@ -3,7 +3,7 @@ apps/web/app/routes/web/*                sign-in marketing invites
 apps/web/app/routes/marketing/*          marketing
 apps/web/public/*                        marketing
 apps/web/app/components/brand/*          marketing
-packages/api/src/publicForms.ts          marketing
+packages/api/src/marketing/publicForms.ts          marketing
 packages/api/src/rateLimit.ts            marketing
 packages/data/src/db/schema/marketing/publicForms.ts marketing
 packages/data/src/db/schema/marketing/publicFormRules.ts marketing

@@ -9,9 +9,9 @@ apps/web/app/routes/account/join/*       invites
 apps/web/app/routes/app/groups/new/*     first-sync
 apps/web/app/components/groups/*         first-sync invites
 apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
-packages/api/src/groups.ts               first-sync invites
-packages/api/src/invites.ts              invites
-packages/api/src/joinRequests.ts         invites
+packages/api/src/care-groups/groups.ts               first-sync invites
+packages/api/src/care-groups/invites.ts              invites
+packages/api/src/care-groups/joinRequests.ts         invites
 packages/data/src/services/careGroupInviteService.ts invites
 packages/data/src/services/accessCodeService.ts invites
 packages/data/src/db/schema/care-groups/accessCode.ts invites
