@@ -47,17 +47,62 @@ export const retryDelay = (header: string | null | undefined): number => {
   return Math.min(seconds * 1000, RETRY_CAP_MS);
 };
 
+/** How long any one network answer may hold up a screen (a session check, a settings read). */
+export const NETWORK_ANSWER_MS = 3000;
+
+/** A session the server confirmed this recently lets navigation go ahead without waiting. */
+export const FRESH_MS = 15 * 60 * 1000;
+
+/** A fresh session is rechecked in the background once its confirmation is older than this. */
+export const RECHECK_MS = 60 * 1000;
+
+/**
+ * - `fresh`: confirmed within `FRESH_MS` (the edge included): navigation goes
+ *   ahead at once, and a background recheck keeps it fresh.
+ * - `stale`: confirmed longer ago: navigation waits for a check (under
+ *   `NETWORK_ANSWER_MS`); the offline limit still applies to its answer.
+ * - `none`: never confirmed on this device, or storage unavailable.
+ * A clock that moved back counts as no time passed.
+ */
+export type SessionFreshness = "fresh" | "stale" | "none";
+
+export const sessionFreshness = (lastConfirmed: number | null, now: number): SessionFreshness => {
+  if (lastConfirmed === null || !Number.isFinite(lastConfirmed)) return "none";
+  return Math.max(0, now - lastConfirmed) <= FRESH_MS ? "fresh" : "stale";
+};
+
+/** Whether a fresh session is due a background recheck: confirmed over `RECHECK_MS` ago (or never). */
+export const shouldRecheck = (lastConfirmed: number | null, now: number): boolean =>
+  lastConfirmed === null || !Number.isFinite(lastConfirmed) || now - lastConfirmed > RECHECK_MS;
+
+/**
+ * `promise`'s answer, or `onTimeout()`'s once `ms` pass without one. A late
+ * answer (or failure) is ignored. A failure before then still rejects.
+ */
+export const withTimeout = <T, U>(promise: Promise<T>, ms: number, onTimeout: () => U): Promise<T | U> =>
+  new Promise<T | U>((resolve, reject) => {
+    const timer = setTimeout(() => resolve(onTimeout()), ms);
+    promise.then(resolve, reject).finally(() => clearTimeout(timer));
+  });
+
 /** One session request: the answer, and the retry-after header if the server sent one. */
 export type SessionAsk<T> = () => Promise<SessionAnswer<T> & { retryAfter?: string | null }>;
 
 /**
  * Ask the server for the session, once more after a 429 (waiting as long as
  * `retryDelay` says). A network failure (fetch's `TypeError`) is `unknown`.
+ * The whole exchange, retry included, has `budgetMs` (`NETWORK_ANSWER_MS`):
+ * no answer by then is `unknown`, or `rateLimited` after a first 429, and a
+ * retry that couldn't finish within the budget isn't made.
  */
 export const askSession = async <T>(
   ask: SessionAsk<T>,
   wait: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  budgetMs: number = NETWORK_ANSWER_MS,
+  clock: () => number = Date.now,
 ): Promise<SessionOutcome<T>> => {
+  const start = clock();
+  let soFar: SessionOutcome<T> = { kind: "unknown" };
   const once = async () => {
     try {
       const answer = await ask();
@@ -67,10 +112,16 @@ export const askSession = async <T>(
       return { outcome: { kind: "unknown" } as const, retryAfter: null };
     }
   };
-  const first = await once();
-  if (first.outcome.kind !== "rateLimited") return first.outcome;
-  await wait(retryDelay(first.retryAfter));
-  return (await once()).outcome;
+  const exchange = async (): Promise<SessionOutcome<T>> => {
+    const first = await once();
+    soFar = first.outcome;
+    if (first.outcome.kind !== "rateLimited") return first.outcome;
+    const delay = retryDelay(first.retryAfter);
+    if (clock() - start + delay >= budgetMs) return first.outcome;
+    await wait(delay);
+    return (await once()).outcome;
+  };
+  return withTimeout(exchange(), budgetMs, () => soFar);
 };
 
 /**

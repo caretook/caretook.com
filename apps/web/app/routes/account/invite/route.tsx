@@ -9,6 +9,7 @@ import { Field } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { authClient } from "~/lib/auth/auth-client";
+import { sessionChanged } from "~/lib/auth/sessionEpoch";
 import { authMessages, newPasswordProblem, requestFailure } from "~/lib/auth/authMessages";
 import { formString } from "~/lib/core/form";
 import { rpc } from "~/lib/core/rpc";
@@ -111,6 +112,7 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
     // An email invite's account is verified already, so this signs straight in.
     const { error } = await authClient.signIn.email({ email, password });
     if (error) return { intent, error: requestFailure(error) ?? authMessages.failed };
+    sessionChanged();
     throw redirect(accountUrls.invite(token));
   }
 

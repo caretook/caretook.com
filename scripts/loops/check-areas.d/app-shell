@@ -25,6 +25,8 @@ apps/web/app/lib/app-shell/group.tsx     first-sync
 # Account settings, and group settings and members.
 apps/web/app/routes/app/settings/*       layout-offline
 apps/web/app/lib/app-shell/me.ts         layout-offline
+# The settings plan is unit-tested (settingsPlan.test.ts).
+apps/web/app/lib/app-shell/settingsPlan.ts -
 apps/web/app/components/settings/*       -
 packages/data/src/db/schema/app-shell/userPreferences.ts layout-offline
 apps/web/app/routes/app/groups/settings/members/* app-shell invites

@@ -1,11 +1,11 @@
 import { ORPCError } from "@orpc/client";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { appUrls } from "./appUrls";
 
 const api = vi.hoisted(() => ({ get: vi.fn(), updatePreferences: vi.fn() }));
 vi.mock("../core/rpc", () => ({ rpc: { me: api } }));
 
-const { forgetSettings, loadSettings, saveSettings } = await import("./me");
+const { forgetSettings, loadSettings, saveSettings, subscribeSettings } = await import("./me");
 
 const USER = "u1";
 const request = new Request(`http://localhost${appUrls.timeline("g")}`);
@@ -43,6 +43,7 @@ const cached = () =>
   JSON.parse(store.get(`caretook:settings:${USER}`) ?? "null") as { timelineView?: string };
 
 beforeEach(() => {
+  forgetSettings();
   store.clear();
   api.get.mockReset();
   api.updatePreferences.mockReset();
@@ -107,11 +108,12 @@ describe("loadSettings", () => {
     api.updatePreferences.mockResolvedValue({});
     api.get.mockResolvedValue(serverSettings("cards"));
     expect((await loadSettings(request, USER)).timelineView).toBe("cards");
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalled());
     expect(api.updatePreferences).toHaveBeenLastCalledWith({ timelineView: "cards" });
     expect(api.updatePreferences.mock.invocationCallOrder[1]).toBeLessThan(
       api.get.mock.invocationCallOrder[0] ?? 0,
     );
-    expect(pending()).toBeNull();
+    await vi.waitFor(() => expect(pending()).toBeNull());
   });
 
   it("drops a pending change the server refuses, and uses the server's copy", async () => {
@@ -132,6 +134,70 @@ describe("loadSettings", () => {
     api.updatePreferences.mockRejectedValue(new ORPCError("UNAUTHORIZED"));
     await expect(loadSettings(request, USER)).rejects.toBeInstanceOf(Response);
     expect(pending()).toEqual({ timelineView: "cards" });
+  });
+});
+
+describe("loadSettings, cache first", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("answers from the cache at once, without waiting for the server", async () => {
+    store.set(`caretook:settings:${USER}`, JSON.stringify(serverSettings("cards")));
+    api.get.mockReturnValue(new Promise(() => undefined));
+    expect((await loadSettings(request, USER)).timelineView).toBe("cards");
+    expect(api.get).toHaveBeenCalledTimes(1);
+  });
+
+  it("publishes what a background refresh brings, and caches it", async () => {
+    store.set(`caretook:settings:${USER}`, JSON.stringify(serverSettings("rows")));
+    let answer!: (value: unknown) => void;
+    api.get.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    const heard = vi.fn();
+    const stop = subscribeSettings(heard);
+    expect((await loadSettings(request, USER)).timelineView).toBe("rows");
+    heard.mockClear();
+    answer(serverSettings("cards"));
+    await vi.waitFor(() => expect(heard).toHaveBeenCalled());
+    expect(cached()?.timelineView).toBe("cards");
+    stop();
+  });
+
+  it("doesn't publish when the server's copy is the same", async () => {
+    store.set(`caretook:settings:${USER}`, JSON.stringify(serverSettings("rows")));
+    api.get.mockResolvedValue(serverSettings("rows"));
+    const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
+    await loadSettings(request, USER);
+    await settled();
+    const heard = vi.fn();
+    const stop = subscribeSettings(heard);
+    await loadSettings(request, USER);
+    await settled();
+    expect(api.get).toHaveBeenCalledTimes(2);
+    expect(heard).not.toHaveBeenCalled();
+    stop();
+  });
+
+  it("ignores a lost session in the background: the session check handles it", async () => {
+    store.set(`caretook:settings:${USER}`, JSON.stringify(serverSettings("rows")));
+    api.get.mockRejectedValue(new ORPCError("UNAUTHORIZED"));
+    expect((await loadSettings(request, USER)).timelineView).toBe("rows");
+  });
+
+  it("with no cache, gives up after 3 s and uses the defaults", async () => {
+    vi.useFakeTimers();
+    api.get.mockReturnValue(new Promise(() => undefined));
+    let result: { timelineView: string } | undefined;
+    void loadSettings(request, USER).then((r) => (result = r));
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(result).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(result?.timelineView).toBe("rows");
+  });
+
+  it("shares one refresh between loaders on the same navigation", async () => {
+    store.set(`caretook:settings:${USER}`, JSON.stringify(serverSettings("rows")));
+    api.get.mockReturnValue(new Promise(() => undefined));
+    await Promise.all([loadSettings(request, USER), loadSettings(request, USER)]);
+    expect(api.get).toHaveBeenCalledTimes(1);
   });
 });
 
