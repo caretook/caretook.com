@@ -10,7 +10,7 @@
 | 2     | 2    | merged                                              | 897bc7d (b46f601, bc19797)             |
 | 3     | 3    | running (tasks-3, stackless; agent spawned)         |                                        |
 | 4     | 2    | merged (conflict in `lib/sync/tasks.ts`, both kept) | 80018b2 (d859ea0)                      |
-| 5     | 3    | running (tasks-5, stackless; agent spawned)         |                                        |
+| 5     | 3    | handed off (56b8721); merge after 3                 |                                        |
 | 6     | 2    | merged                                              | e7d622a (4708991)                      |
 | 7     | 2    | merged (fixed `lib/taskSheets.ts` re-export path)   | 38a3c7a (b3da051)                      |
 | 8     | 2    | blocked by `check-migration` slice 2 in `dev`       |                                        |
@@ -35,6 +35,8 @@
 **Slice 7's hand-off:** `addTask` in `assistantActionZSchema` (no id, **no `occurredAt`**, kind `task`), parser prefixes `t:`/`task:`/`todo:`/`to-do:`, `context.members` matching, due read forward; runner via `plannedTask` (split out of `createTask`), `removeEntries` removes tasks; "Saved N entries and M tasks"; Edit → `tasks/new` with prefills `title`/`assigneeId`/`dueTime` (`TaskForm` `prefill`); `lib/taskSheetLink.ts` holds `TASK_SHEET_STATE`/`openedFromApp`. `--changed --list`: none. Docs: `assistant.md` (all of that, fix the "every action has occurredAt" line); `tasks.md` (`plannedTask`, prefills, taskSheetLink, quick entry as a way in).
 **Fixed (48c7f9a):** `entry.browser.test.tsx` › "who's writing" failed every run on `dev` too (reproduced at 8dd6ead and dev's tip, so time-dependent): the avatar drew before the members query resolved the name. The test now waits for the name. Told the assistant and check-migration orchestrators.
 **Checks needed at landing so far:** routing, upcoming, roundtrip, search (by name / from `--changed --base dev`), plus the lean set (migration) — ask the user before `--suite`.
+
+**Slice 5's hand-off (56b8721):** `taskSearchDocument` in `searchDocument.ts`, `task` appended to `SEARCH_ITEM_TYPES`, new `SERVER_SEARCH_ITEM_TYPES` (server search and `search.query` scopes exclude tasks; edits in `searchService.ts` and `packages/api/src/search.ts`); device triggers via `searchTables.ts`, `readTasks`, `SEARCH_INDEX_VERSION` 2; search page Tasks section after medications (`TaskResultItem`, Done badge, notes snippet, `?all=task`), placeholder mentions tasks. `--changed --list`: **sign-in, signout-wipe, search**. Docs: `search.md` (all the above; server search doesn't cover tasks); `tasks.md` a pointer to search.md.
 
 **Browser checks run so far:** slice 1's `--changed` ran the whole lean set plus routing, providers, care-periods, upcoming on slice 1's tip: all pass (upcoming after its fix).
 
