@@ -29,6 +29,7 @@
 | 21    | wave 9: running · sonnet          |                                                  |
 | 22    | wave 9: running · sonnet          |                                                  |
 | 23    | blocked by 20, 21, 22             |                                                  |
+| 24    | wave 9: starting · sonnet         |                                                  |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue check-migration`, 2026-11-19). The orchestrator starts every ready slice, lands each green wave itself with `pnpm prd land`, and cleans up; it asks the user only real questions.
 
@@ -470,3 +471,21 @@ Delete `cdp.mjs`, `proxy.mjs`, `smoke.mjs` and every remaining `.mjs` check, alo
 - [ ] No file imports `cdp.mjs` or `proxy.mjs`; `pnpm check` passes.
 - [ ] `marketing-screenshots` runs by hand against a check build (one run, the output listed, no images committed).
 - [ ] Every manifest line is a spec; `pnpm prd browser --suite` runs only specs.
+
+---
+
+## Slice 24: Sweep the read-before-render races (B-176, B-178)
+
+Stack: no · Reads: docs/agents/loop.md, docs/domain/components.md · Tests: component
+
+**Blocked by:** none (the user chose to run it alongside wave 9, 2026-11-20). **Blocks:** none.
+
+### What to build
+
+Component tests that read the DOM synchronously right after a render, a write or a close, and then click, fill, hover or assert on it. The pattern is `userEvent.click(X()!)`, `X()!.…` or `expect(X()…)`, straight after `open()`, `renderWithDevice`, `sync()` or a sheet closing. Under load the element isn't there yet. 24 files match `grep -rlE 'await userEvent\.(click|fill|hover)\([A-Z_]+\(\)!' apps/web/app --include='*.browser.test.tsx'`; also look for synchronous `expect(...)` reads of live-query output after a render. Add one small waiting helper beside the settle helper in `apps/web/test/` (for example, one that waits for a selector or a query function to return an element, with a clear timeout message), unless web-first locators (`page.getByRole`, `expect.element`) already fit. Convert every match. Change no app code and no assertion's meaning. The fixes already made (medicationList's search, periods' Add, simple My tasks' regions, the device test's `.first()`) show the shape.
+
+### Acceptance criteria
+
+- [ ] The grep above finds nothing, and the hand-off lists every file changed and any match left, with the reason.
+- [ ] `pnpm test:components` passes 3 times in a row with another `pnpm check` running at the same time; the hand-off gives the loads.
+- [ ] A test for the new helper (it waits, and it times out with the message).
