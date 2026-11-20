@@ -325,6 +325,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (the biggest check, about 163 s). Move the list, search and status, the forms, status actions, Today, the Due now strip, the Dose sheet's states, passes, allergies and the print sheet's layout to component tests; keep a second device seeing a dose, offline then upload, and the service-written change entries. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slices 9 (wave 4) and 11 (wave 5, after assistant slice 7) (plans/check-migration-plan.md).
 - 2026-11-20 (slice/check-migration/9): slice 9 (part A): list, page, notes, forms, status actions, allergies, print sheets, provider region and the device module moved to component tests (medicationWorld.tsx); offline batch upload as an integration test; medications.mjs keeps Today, timeline doses, passes, Given all, strip, pass logs for slice 11.
+- 2026-11-20 (prd/check-migration): part A merged into prd/check-migration (35dceff, slice 9); part B is slice 11
 
 ### B-119 · chore · Move upcoming.mjs to component tests
 
