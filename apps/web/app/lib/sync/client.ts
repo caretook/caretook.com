@@ -2,14 +2,20 @@ import type { AbstractPowerSyncDatabase, PowerSyncBackendConnector } from "@powe
 
 import { DrizzleAppSchema, wrapPowerSyncWithDrizzle } from "@powersync/drizzle-driver";
 import { PowerSyncDatabase } from "@powersync/web";
-import { authClient } from "../auth-client";
-import { rpc } from "../rpc";
+import { authClient } from "../auth/auth-client";
+import { rpc } from "../core/rpc";
+import { releaseSyncLocksWhenCached } from "./pageCache";
+import { dropSearchTables } from "../search/searchTables.sync";
 import { drizzleSchema } from "./schema";
 
 // The PowerSync database and its connection. Browser only: load it through
 // `openSync()` in ./index.ts, never import it statically (it starts workers).
 
 const AppSchema = new DrizzleAppSchema(drizzleSchema);
+
+// A page frozen in the back/forward cache must let go of the database, or the
+// next page's never opens (see ./pageCache). Before PowerSync takes any lock.
+if (navigator.locks) releaseSyncLocksWhenCached(navigator.locks, window);
 
 /** Ops per upload request. Matches SYNC_BATCH_LIMIT in packages/api/src/sync.ts. */
 const UPLOAD_BATCH = 100;
@@ -96,6 +102,8 @@ export const open = async (userId: string): Promise<SyncDb> => {
   const powersync = createDatabase();
   await powersync.init();
   if (readOwner() !== userId) {
+    // The search index holds the same text, outside PowerSync's tables.
+    await dropSearchTables(powersync);
     await powersync.disconnectAndClear();
     writeOwner(userId);
   }
@@ -105,30 +113,30 @@ export const open = async (userId: string): Promise<SyncDb> => {
 };
 
 /**
- * Delete the database's storage itself. Clearing tables isn't enough:
- * SQLite keeps freed pages, so deleted rows could still be read off the disk.
- * The file lives in IndexedDB, or in OPFS when PowerSync picks that VFS.
+ * Clearing tables isn't enough: SQLite keeps freed pages, so deleted rows
+ * could still be read off the disk. VACUUM rewrites the file without them
+ * (IndexedDB's blocks past the new end are deleted). The file itself stays:
+ * deleting the IndexedDB database is blocked while PowerSync's shared worker
+ * still holds it, and a blocked delete stays queued, so the next sign-in's
+ * open waited behind it for good (app-shell 6g, quick-fixes slice 38).
  */
-const deleteFiles = async () => {
-  const idb = new Promise<void>((resolve) => {
-    const req = indexedDB.deleteDatabase(DB_FILENAME);
-    req.onsuccess = req.onerror = () => resolve();
-    // PowerSync's shared worker (or another tab) still has it open. The rows
-    // are already cleared; the file goes once the worker exits (next reload).
-    req.onblocked = () => resolve();
-  });
-  const opfs = navigator.storage
+const purgeFreedPages = (powersync: AbstractPowerSyncDatabase) =>
+  powersync.execute("VACUUM").catch((e: unknown) => console.warn("Couldn't vacuum the local database", e));
+
+/** OPFS, when PowerSync picks that VFS: removing a file still in use fails, and never waits. */
+const deleteOpfsFile = () =>
+  navigator.storage
     ?.getDirectory?.()
     .then((dir) => dir.removeEntry(DB_FILENAME, { recursive: true }))
     .catch(() => undefined);
-  await Promise.all([idb, opfs]);
-};
 
 /** Stop syncing and delete everything stored locally (sign-out). */
 export const clear = async (db: SyncDb | null) => {
   const powersync = db?.powersync ?? createDatabase();
+  await dropSearchTables(powersync).catch((e: unknown) => console.warn("Couldn't drop the search index", e));
   await powersync.disconnectAndClear();
+  await purgeFreedPages(powersync);
   await powersync.close();
   writeOwner(null);
-  await deleteFiles();
+  await deleteOpfsFile();
 };

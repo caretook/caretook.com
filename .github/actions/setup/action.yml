@@ -1,0 +1,22 @@
+# Every workflow's setup (hosting slice 5), after actions/checkout: pnpm (the
+# version in package.json's packageManager), Node from .nvmrc, the frozen
+# install, and the pinned CLI versions (.github/cli-versions.env) in the
+# job's environment. Third-party actions are pinned to a commit.
+name: Set up
+description: pnpm, Node from .nvmrc, a frozen install and the pinned CLI versions.
+runs:
+  using: composite
+  steps:
+    - name: pnpm
+      uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+    - name: Node
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+    - name: Install
+      shell: bash
+      run: pnpm install --frozen-lockfile
+    - name: Pinned CLI versions
+      shell: bash
+      run: grep -E '^[A-Z_]+=' .github/cli-versions.env >> "$GITHUB_ENV"

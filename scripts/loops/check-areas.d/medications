@@ -1,0 +1,20 @@
+# check-areas: medications. The list, a medication's page, the add and edit
+# sheets, the status actions, allergies, the printable sheets, Today, the pass
+# schedule and the Passes screen (check-migration slices 9 and 11) are
+# component tests beside them, on medicationWorld.tsx's world; so are doses
+# and medication changes on the timeline, the Dose sheet, pass logs, the pass
+# sheet and the medication strip. The page's notes document is live-notes'.
+# The device modules' writes reaching another device are roundtrip's sync matrix.
+apps/web/app/routes/app/groups/medications/* -
+apps/web/app/routes/app/groups/medication/* -
+apps/web/app/routes/app/groups/medication/useMedicationNotes.ts live-notes
+apps/web/app/components/medications/*    -
+apps/web/app/components/entry/MedicationEntryText.tsx -
+apps/web/app/lib/medications/*.sync.ts   roundtrip
+apps/web/app/lib/medications/medicationTimeline.sync.ts phase2
+apps/web/app/lib/medications/dueDoses.sync.ts phase2
+packages/data/src/db/schema/medications/medication.ts roundtrip
+packages/data/src/db/schema/medications/medicationPass.ts roundtrip
+packages/data/src/db/schema/profiles/recipientAllergy.ts roundtrip
+packages/data/src/db/seeds/medications.ts phase2
+packages/data/src/db/seeds/medicationPasses.ts -

@@ -1,0 +1,150 @@
+import type { ReactNode } from "react";
+import type { TimelineEntry } from "~/lib/core/rpc";
+import type { UpcomingListData } from "./useUpcomingData";
+
+import { resolveUnits } from "@caretook/data/schema";
+import { useState } from "react";
+import { CancelEventDialog, EntryActions, useEventCancel, useEventReschedule } from "~/components/entry";
+import { ConfirmDialog } from "~/components/ui";
+import { useVisitPrep } from "~/components/visitPrep";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { canReschedule } from "~/lib/appointments/eventReschedule";
+import { useGroup } from "~/lib/app-shell/group";
+import { getSync } from "~/lib/sync";
+import { removeEntry } from "~/lib/timeline/timeline.sync";
+import { isUpcoming } from "~/lib/appointments/upcoming";
+import { isUpcomingDose } from "~/lib/appointments/upcomingDoses";
+import { isUpcomingTask } from "~/lib/tasks/upcomingTasks";
+import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { UpcomingDoseRow } from "./UpcomingDoseRow";
+import { UpcomingRow } from "./UpcomingRow";
+import { UpcomingTaskRow } from "./UpcomingTaskRow";
+
+// Upcoming lists notes and events only, which show no vital readings: the default units do.
+const UNITS = resolveUnits(null);
+
+const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border";
+
+/**
+ * Upcoming's (or the Past tab's) items, a section per day under a sticky
+ * heading ("Now", "Today", "Tomorrow", "Friday, Nov 27"), with `empty`
+ * when there are none. `children` comes after the last section (the Past
+ * tab's paging). Each item has a ⋯ menu: for writers, Prepare for an
+ * upcoming appointment, Reschedule, then Cancel or Undo cancel for events,
+ * Print, then Delete, with one Cancel and one Delete confirm for the list;
+ * for viewers, Print.
+ * Upcoming's sections can also hold today's open dose slots (`UpcomingDoseRow`)
+ * and open dated tasks (`UpcomingTaskRow`).
+ */
+export function UpcomingList({
+  data,
+  groupId,
+  label,
+  empty,
+  children,
+}: {
+  data: UpcomingListData;
+  groupId: string;
+  /** The list's name for screen readers ("Upcoming", "Past events"). */
+  label: string;
+  empty: string;
+  children?: ReactNode;
+}) {
+  const { canWrite, userId } = useGroup();
+  const taskNameOf = (id: string) => (id === userId ? "you" : data.nameOf(id));
+  const cancelling = useEventCancel();
+  const rescheduling = useEventReschedule(groupId, canWrite);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const prep = useVisitPrep(groupId, canWrite, { openAfter: true });
+  const preparable = (entry: TimelineEntry) =>
+    entry.kind === "event" && !entry.cancelledAt && !entry.rescheduledTo && isUpcoming(entry, data.now);
+  const menuOf = (entry: TimelineEntry) => (
+    <EntryActions
+      kind={entry.kind}
+      label={`Actions for ${upcomingTitle(entry)}`}
+      onPrepare={canWrite && preparable(entry) ? () => prep.ask(entry) : undefined}
+      printHref={appUrls.printEntry(groupId, entry.id)}
+      cancel={
+        canWrite && entry.kind === "event"
+          ? {
+              cancelled: !!entry.cancelledAt,
+              onCancel: () => cancelling.ask(entry.id),
+              onUncancel: () => cancelling.undo(entry.id),
+              onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
+            }
+          : undefined
+      }
+      onDelete={canWrite ? () => setDeleting(entry.id) : undefined}
+    />
+  );
+
+  return (
+    <section aria-labelledby="upcoming-list-heading" className="space-y-4" data-upcoming-list>
+      <h2 id="upcoming-list-heading" className="sr-only">
+        {label}
+      </h2>
+      {cancelling.error && (
+        <p role="alert" className="text-error text-sm">
+          {cancelling.error}
+        </p>
+      )}
+      {data.sections.length === 0 && (
+        <p className="text-base-content/70" data-empty>
+          {empty}
+        </p>
+      )}
+      {data.sections.map((section) => (
+        <section key={section.key} aria-labelledby={`day-${section.key}`} data-day={section.key}>
+          <h3
+            id={`day-${section.key}`}
+            className="bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 px-1 py-2 text-base font-semibold backdrop-blur lg:text-lg"
+          >
+            {section.label}
+          </h3>
+          <ol className={LIST_CLASS}>
+            {section.items.map((entry) =>
+              isUpcomingTask(entry) ? (
+                <UpcomingTaskRow
+                  key={entry.key}
+                  item={entry}
+                  nameOf={taskNameOf}
+                  timeZone={data.taskZone ?? "UTC"}
+                  now={data.now}
+                />
+              ) : isUpcomingDose(entry) ? (
+                <UpcomingDoseRow key={entry.key} dose={entry} groupId={groupId} canWrite={canWrite} />
+              ) : (
+                <UpcomingRow
+                  key={entry.id}
+                  entry={entry}
+                  groupId={groupId}
+                  now={data.now}
+                  units={UNITS}
+                  authorName={data.nameOf(entry.createdBy)}
+                  authorImage={data.imageOf(entry.createdBy)}
+                  contacts={data.contactsOf(entry.id)}
+                  rescheduledTo={data.rescheduledOf(entry)}
+                  menu={menuOf(entry)}
+                />
+              ),
+            )}
+          </ol>
+        </section>
+      ))}
+      {children}
+      <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
+      {rescheduling.sheet}
+      {prep.sheet}
+      <ConfirmDialog
+        open={!!deleting}
+        title="Delete this entry?"
+        confirmLabel="Delete"
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          if (deleting) void removeEntry(getSync(), deleting);
+          setDeleting(null);
+        }}
+      />
+    </section>
+  );
+}

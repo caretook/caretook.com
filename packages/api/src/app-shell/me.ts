@@ -1,0 +1,57 @@
+import { ORPCError } from "@orpc/server";
+import {
+  resolveDaySummaryMode,
+  resolveSimpleModeSetting,
+  resolveTimelineView,
+  resolveUnits,
+  userPreferencesZSchema,
+  userService,
+} from "@caretook/data";
+import { unwrap } from "../errors";
+import { authedProcedure } from "../procedures";
+import { profileMe } from "../profiles/profiles";
+
+export const me = {
+  /** The signed-in user and their role in each care group. */
+  get: authedProcedure.handler(async ({ context }) => {
+    const user = unwrap(await userService.getWholeById(context, context.authUser.id));
+    // The account was deleted after the session was issued.
+    if (!user) throw new ORPCError("UNAUTHORIZED");
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image,
+      groupRoles: context.authUser.groupRoles ?? {},
+      preferences: user.preferences,
+      /** Display units with defaults filled in: what screens should use. */
+      units: resolveUnits(user.preferences),
+      timelineView: resolveTimelineView(user.preferences),
+      simpleMode: resolveSimpleModeSetting(user.preferences),
+      daySummary: resolveDaySummaryMode(user.preferences),
+    };
+  }),
+
+  /** Change your own settings. Fields left out keep their current value. */
+  updatePreferences: authedProcedure.input(userPreferencesZSchema).handler(async ({ context, input }) => {
+    const self = { id: { type: "eq" as const, value: context.authUser.id } };
+    const user = unwrap(await userService.getWholeById(context, context.authUser.id));
+    if (!user) throw new ORPCError("UNAUTHORIZED");
+    const preferences = {
+      ...user.preferences,
+      ...input,
+      units: { ...user.preferences.units, ...input.units },
+    };
+    unwrap(await userService.update(context, { filter: self, data: { preferences } }));
+    return {
+      preferences,
+      units: resolveUnits(preferences),
+      timelineView: resolveTimelineView(preferences),
+      simpleMode: resolveSimpleModeSetting(preferences),
+      daySummary: resolveDaySummaryMode(preferences),
+    };
+  }),
+
+  /** Your own contact details (profiles/profiles.ts). */
+  ...profileMe,
+};

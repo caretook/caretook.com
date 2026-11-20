@@ -1,7 +1,8 @@
-import type { AuthUser } from "@caretook/data";
+import type { AuthUserLookup } from "./procedures";
 
 import { RPCHandler } from "@orpc/server/fetch";
 import { CORSPlugin, SimpleCsrfProtectionHandlerPlugin } from "@orpc/server/plugins";
+import { lazyAuthUser } from "./procedures";
 import { router } from "./router";
 
 export type RpcHandlerOptions = {
@@ -13,7 +14,9 @@ export type RpcHandlerOptions = {
 
 /**
  * An HTTP handler for the router, independent of any framework. The caller
- * resolves the session and passes `authUser`; the handler never reads cookies.
+ * passes its session lookup, which runs only when a procedure needs the
+ * caller (B-140: public procedures never look up a session), at most once
+ * per mode per request; the handler never reads cookies.
  *
  * - CSRF: every call must carry `x-csrf-token: orpc` (the client link adds
  *   it). A cross-site form or <img> can't set custom headers, and setting
@@ -32,8 +35,16 @@ export const createRpcHandler = ({ prefix, allowedOrigins = [] }: RpcHandlerOpti
     ],
   });
 
-  return async (request: Request, authUser: AuthUser | null) => {
-    const { matched, response } = await handler.handle(request, { prefix, context: { authUser } });
+  /** `clientIp` is the caller's address as the mount point trusts it (only for rate limits; never stored). */
+  return async (
+    request: Request,
+    lookup: AuthUserLookup,
+    { clientIp }: { clientIp?: string | null } = {},
+  ) => {
+    const { matched, response } = await handler.handle(request, {
+      prefix,
+      context: { getAuthUser: lazyAuthUser(lookup), clientIp },
+    });
     return matched ? response : new Response("Not found", { status: 404 });
   };
 };

@@ -3,16 +3,21 @@
 //
 // Naming: tables are `<name>Schema` (the key used by db.query.<name>Schema
 // and by the permissions map); Zod schemas are `<name><Select|Insert|Update>ZSchema`.
-export * from "./columns";
-export * from "./user";
-export * from "./careGroup";
-export * from "./careGroupMember";
-export * from "./careRecipient";
-export * from "./careGroupInvite";
-export * from "./vitals";
-export * from "./userPreferences";
-export * from "./timelineEntry";
-export * from "./noteYjs";
-export * from "./noteEditors";
-export * from "./noteDocument";
+// One folder per area (a new table goes in its area's folder and index), and `core/` for
+// the shared column helpers.
+export * from "./admin";
+export * from "./app-shell";
+export * from "./assistant";
 export * from "./auth";
+export * from "./care-groups";
+export * from "./care-periods";
+export * from "./core";
+export * from "./live-notes";
+export * from "./marketing";
+export * from "./medications";
+export * from "./notifications";
+export * from "./profiles";
+export * from "./providers";
+export * from "./search";
+export * from "./tasks";
+export * from "./timeline";

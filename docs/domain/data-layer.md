@@ -1,0 +1,45 @@
+# Data layer: `packages/data` (`@caretook/data`)
+
+The data layer area's rules and decisions, moved out of AGENTS.md (whose core rules still apply). An orchestrator folds a landing's lasting decisions for this area in here.
+
+- **Entry points:**
+  - `@caretook/data` is **server only**: never import the root from client code.
+  - `/schema`, `/errors` and `/permissions` are client-safe.
+  - In apps/web, server code imports through `app/.server/data.ts`.
+- **Layers, bottom up:**
+  - `errors/`: typescript-errors; each area's codes are a part, `errors/<area>.ts`, composed in `errors/constants.ts` (unique across parts: `errors.test.ts`). Errors are **returned, not thrown**; narrow with `isError()`. Wrap db calls as `dbMayFail(() => …, code)`.
+  - `permissions/`: `PERMISSIONS[table][create|read|update|delete|list][role] = all | owned | none | { group: [...] }`, plus `ownerField`, field-level write restrictions and **`groupFields`**: a read reached only through a group rule returns just those fields (`user`: `PUBLIC_PROFILE_FIELDS`, id, name, image). The model enforces it in SQL (each hidden column is `CASE WHEN <the other rules> THEN col END`; filters and orders on a hidden field match whole rows only). User reads return `publicOnly`; code that needs a co-member's email reads `userModel.getWhole*`/`listWhole` as `SYSTEM_USER` (else `userModel:notWhole`).
+    - Roles are `admin`, `support` and `member` (`user.role`), `system` and `unauthenticated`. `support` gets `owned` wherever members do; staff-only tables use `STAFF_PERMISSION_ENTRY`. A resolved scope is `all` or an OR of `owned`, `group` and `groupUser` rules.
+    - `hasPermission()` is for UI checks.
+  - `models/`: `baseModel.getFunctions(...)` gives `create/get/getById/list/update/remove/upsert`, with **RBAC enforced in SQL**.
+    - Every query is ANDed with the actor's scope; group rules become subqueries on `care_group_member`.
+    - Writes must land inside the scope.
+    - Update and remove refuse an empty filter.
+    - Filters are serializable (`{ field: { type: "eq", value } }`) and checked against the table's columns.
+  - `services/`: `getService(model)` with `ServiceContext = { authUser, tx? }`. Business rules, side effects and transactions go here. Services never read requests; use `SYSTEM_USER` for internal work.
+- **`withTransaction(fn)` rolls back when `fn` returns an AppError.** A returned error would otherwise commit.
+- **Arg types use `WithoutProtected<T>`:** a generic `Omit<DbInsert<K>, …>` silently drops optional columns such as `id`.
+- **Table conventions:**
+  - UUID PKs via `id()`: clients create rows offline, so `create`/`upsert` accept a caller-supplied id.
+  - Every table spreads `timestamps` (timestamptz, string mode) and `audits` (`created_by`/`updated_by`, set by models, not FKs).
+- **Adding a table:**
+  1. Write `db/schema/<area>/<name>.ts` (table, types, Zod) and export it from that folder's `index.ts`; a new area adds a folder and a line in `db/schema/index.ts`. Add the new export names to the frozen list in `db/schema/index.test.ts`.
+  2. Add its `PERMISSIONS` entry to `permissions/<area>.ts` (the type requires one, and a test checks every table has one); its errors go in `errors/<area>.ts`.
+  3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
+  4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
+- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0023 so far.
+  - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
+  - Until the first deploy it's fine to delete and regenerate migrations.
+- **DB client:** the pool is created lazily (importing never needs `DATABASE_URL`). Only the **pool** survives HMR (`utils/remember.ts`); the drizzle wrapper is rebuilt, so new tables work without a restart.
+- **Env:** `loadEnv.ts` loads `.env.<NODE_ENV>`, then `.env`, from `packages/data` (Node's `process.loadEnvFile`). Real env vars win. `.env.test` is committed; `.env` isn't (copy `.env.example`).
+- **Local Postgres:** Docker `postgres:18.7-alpine` with `wal_level=logical`, dev on :5434 and test on :5435, data in `.postgres/`.
+  - Integration tests: the main checkout uses its test database on :5435; a `.loops` worktree uses its own `caretook_test_<worktree>` database on the shared test Postgres (:5436, [loops](../loops.md)). The guard, `src/db/testDatabase.ts` (pure, tested), refuses a non-local host, a port other than `PG_TEST_PORT` and, on the shared server, any other database name.
+  - `datastore:clear` refuses a non-localhost database, and drops the publication.
+  - `datastore:seed` uses `@example.com` accounts only, behind `seedRefusal(env)` (`seeds/guard.ts`): `APP_ENV=production` is refused (`db:seed:production`), staging needs a set, non-default `SEED_USER_PASSWORD` (`db:seed:password`), an unknown `APP_ENV` is refused, and with no `APP_ENV` so are `NODE_ENV=production` and any non-localhost database (`db:seed:notLocal`). On staging the seed then moves every `@example.com` password account whose hash doesn't match the current `SEED_USER_PASSWORD` to it (`rotateStagingPasswords`, `seeds/accounts.ts`; nothing else changes, and a rerun changes nothing), so rotating the password is: change the secret, rerun the seed. Dev leaves existing accounts alone.
+- ✅ **The hosted database** (Neon, `aws-us-east-2`, beside Vercel's `cle1`; set up by [`ops/runbook.md`](../../ops/runbook.md)) has three roles, made idempotently by `pnpm db:roles` (`db/roles/`, `rolesSql`) without passwords (Neon sets them):
+  - `caretook_migrations` owns the schema (DDL); migrations and `db:roles` use its direct URL, `MIGRATIONS_DATABASE_URL`, held only in GitHub. `datastore:migrate` refuses a deployed `APP_ENV` without it (`migrationsDatabaseUrl`).
+  - `caretook_app` (Neon's pooled `DATABASE_URL`): read and write on every table, no `CREATE`; default privileges cover tables the migrations role adds later.
+  - `caretook_replication`: see [sync](sync.md), _Production_.
+  - `db:roles` runs after every migration (it narrows the publication migrations widen). Integration tests that create roles use unique names and drop them.
+- **Personal access** (`pnpm db:access grant <email> --hours N | revoke <email> | list`, `dbAccessService`): a `staff_<slug>` LOGIN role, read-only (`default_transaction_read_only`), with SELECT on every table **except the secrets** (`PERSONAL_ACCESS_EXCLUDED` in `db/roles/personalAccess.ts`: Better Auth's `account`, `session`, `verification` and `jwks`, the rate-limit tables, and column grants that leave out invite token hashes and ciphertext, `access_code.code` and email bodies; a unit test fails on a new column or table matching `token|secret|hash|password|private` that isn't listed or allowed; `grant` starts with `REVOKE ALL`, so a re-grant narrows an older role, and `revoke` removes the column grants too), `VALID UNTIL` at most 24 h, the password sent only as a SCRAM verifier and printed once. Staff accounts only. Audited `db.accessGranted` / `db.accessRevoked` (system actor, the staff member as target). `revoke` ends its sessions and is safe twice. `VALID UNTIL` stops new sign-ins only. The procedure is [`ops/break-glass.md`](../../ops/break-glass.md).
+- **System-only tables written directly** (no model, no audits): `rate_limit_hit` and Better Auth's `rate_limit` (`rateLimitService`, Better Auth), and `email_suppression` (`emailSuppressionService`).

@@ -39,3 +39,75 @@ export type * from "./noteDocument/types";
 import * as noteUpdateModel from "./noteUpdate";
 export { noteUpdateModel };
 export type * from "./noteUpdate/types";
+
+import * as providerModel from "./provider";
+export { providerModel };
+export type * from "./provider/types";
+
+import * as timelineEntryProviderModel from "./timelineEntryProvider";
+export { timelineEntryProviderModel };
+export type * from "./timelineEntryProvider/types";
+
+import * as careGroupConsentModel from "./careGroupConsent";
+export { careGroupConsentModel };
+export type * from "./careGroupConsent/types";
+
+import * as careGroupJoinRequestModel from "./careGroupJoinRequest";
+export { careGroupJoinRequestModel };
+export type * from "./careGroupJoinRequest/types";
+import * as accessCodeModel from "./accessCode";
+export { accessCodeModel };
+export type * from "./accessCode/types";
+
+import * as accessCodeRedemptionModel from "./accessCodeRedemption";
+export { accessCodeRedemptionModel };
+export type * from "./accessCodeRedemption/types";
+import * as medicationModel from "./medication";
+export { medicationModel };
+export type * from "./medication/types";
+
+import * as waitlistEntryModel from "./waitlistEntry";
+export { waitlistEntryModel };
+export type * from "./waitlistEntry/types";
+
+import * as contactMessageModel from "./contactMessage";
+export { contactMessageModel };
+export type * from "./contactMessage/types";
+
+import * as careRecipientDetailsModel from "./careRecipientDetails";
+export { careRecipientDetailsModel };
+export type * from "./careRecipientDetails/types";
+
+import * as userContactModel from "./userContact";
+export { userContactModel };
+export type * from "./userContact/types";
+
+import * as memberContactShareModel from "./memberContactShare";
+export { memberContactShareModel };
+export type * from "./memberContactShare/types";
+
+import * as carePeriodModel from "./carePeriod";
+export { carePeriodModel };
+export type * from "./carePeriod/types";
+import * as medicationPassModel from "./medicationPass";
+export { medicationPassModel };
+export type * from "./medicationPass/types";
+
+import * as recipientAllergyModel from "./recipientAllergy";
+export { recipientAllergyModel };
+export type * from "./recipientAllergy/types";
+
+import * as adminAuditLogModel from "./adminAuditLog";
+export { adminAuditLogModel };
+export type * from "./adminAuditLog/types";
+
+import * as groupDirectoryModel from "./groupDirectory";
+export { groupDirectoryModel };
+export type * from "./groupDirectory/types";
+import * as appSettingModel from "./appSetting";
+export { appSettingModel };
+export type * from "./appSetting/types";
+
+import * as taskModel from "./task";
+export { taskModel };
+export type * from "./task/types";

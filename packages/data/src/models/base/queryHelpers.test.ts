@@ -2,12 +2,15 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 import { isError } from "../../errors";
 import {
+  applyLimits,
   filterToSql,
   generateOrderBy,
   generateQueryWhere,
   isFilterEmpty,
+  limitedSelection,
   paginate,
   scopeToSql,
+  WHOLE_ROW_KEY,
 } from "./queryHelpers";
 
 const dialect = new PgDialect();
@@ -110,5 +113,50 @@ describe("isFilterEmpty", () => {
     expect(isFilterEmpty()).toBe(true);
     expect(isFilterEmpty({ id: undefined })).toBe(true);
     expect(isFilterEmpty({ id: { type: "eq", value: "x" } })).toBe(false);
+  });
+});
+
+describe("field-limited reads", () => {
+  const member = { id: "u-member", roleNames: ["member"] } as const;
+
+  it("selects hidden user columns only for whole rows", () => {
+    const limited = limitedSelection("userSchema", "read", member);
+    expect(limited && [...limited.visible].sort()).toEqual(["id", "image", "name"]);
+    expect(limited?.columns).toMatchObject({ email: false, role: false, preferences: false });
+    expect(limited?.columns).not.toHaveProperty("name");
+    expect(Object.keys(limited?.extras ?? {})).toContain(WHOLE_ROW_KEY);
+  });
+
+  it("limits nothing for staff or the system", () => {
+    expect(limitedSelection("userSchema", "read", { id: "s", roleNames: ["admin"] })).toBeUndefined();
+    expect(limitedSelection("careGroupSchema", "read", member)).toBeUndefined();
+  });
+
+  it("matches a filter on a hidden field against whole rows only", () => {
+    const where = generateQueryWhere("userSchema", "read", {
+      authUser: member,
+      filter: { email: { type: "eq", value: "a@example.com" } },
+    });
+    const byName = generateQueryWhere("userSchema", "read", {
+      authUser: member,
+      filter: { name: { type: "eq", value: "Pat" } },
+    });
+    if (isError(where) || !where || isError(byName) || !byName) throw new Error("no where");
+    // The owned rule appears twice: once in the scope, once as the whole-row condition.
+    expect(render(where).sql.match(/"id" = \$/g)?.length).toBe(2);
+    expect(render(byName).sql.match(/"id" = \$/g)?.length).toBe(1);
+  });
+
+  it("keeps a limited row's visible fields only", () => {
+    const visible = new Set(["id", "name"]);
+    expect(applyLimits({ id: "1", name: "A", email: null, [WHOLE_ROW_KEY]: false }, visible)).toEqual({
+      id: "1",
+      name: "A",
+    });
+    expect(applyLimits({ id: "1", name: "A", email: "a@x", [WHOLE_ROW_KEY]: true }, visible)).toEqual({
+      id: "1",
+      name: "A",
+      email: "a@x",
+    });
   });
 });

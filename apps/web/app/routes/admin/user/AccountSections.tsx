@@ -1,0 +1,191 @@
+import type { ApiOutputs } from "~/lib/core/rpc";
+
+import { Link } from "react-router";
+import { AccountBadges } from "../AccountBadges";
+import {
+  adminDay,
+  adminTime,
+  deviceLabel,
+  groupRoleLabel,
+  mailStatusLabel,
+  staffRoleLabel,
+} from "../accountDisplay";
+import { adminUrls } from "../adminUrls";
+import { HelpAction } from "./HelpAction";
+
+// The regions of an account's page: the account and how it signs in, its
+// sessions, its groups and the mail sent to it. Help controls only for
+// staff with `users.help`. Nothing here is a group's care data.
+
+type AccountPage = ApiOutputs["admin"]["users"]["get"];
+
+const person = (p: { name: string | null; email: string | null }) =>
+  p.name ? `${p.name} (${p.email ?? "no email"})` : (p.email ?? "Deleted account");
+
+function Card({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return (
+    <section className="card bg-base-100 shadow-sm" aria-labelledby={id} data-user-section={id}>
+      <div className="card-body gap-3">
+        <h2 id={id} className="card-title text-base">
+          {title}
+        </h2>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+export function AccountSection({ page, canHelp }: { page: AccountPage; canHelp: boolean }) {
+  const { account, signIn } = page;
+  const methods = [signIn.password && "Password", signIn.emailed && "Emailed link or code"].filter(Boolean);
+  return (
+    <section className="card bg-base-100 shadow-sm" aria-labelledby="account" data-user-section="account">
+      <div className="card-body gap-3">
+        <h1 id="account" className="card-title break-all">
+          {account.name || account.email}
+        </h1>
+        <AccountBadges account={{ ...account, disabled: account.disabledAt !== null }} />
+        <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[max-content_1fr]">
+          <dt className="text-base-content/70">Email</dt>
+          <dd className="break-all" data-account-email="">
+            {account.email}
+          </dd>
+          <dt className="text-base-content/70">Role</dt>
+          <dd>{staffRoleLabel(account.role) ?? "Member"}</dd>
+          <dt className="text-base-content/70">Created</dt>
+          <dd>{adminDay(account.createdAt)}</dd>
+          <dt className="text-base-content/70">Signs in with</dt>
+          <dd>{methods.join(", ")}</dd>
+          <dt className="text-base-content/70">Last sign-in</dt>
+          <dd>{signIn.lastSignInAt ? adminTime(signIn.lastSignInAt) : "No active session"}</dd>
+          {account.disabledAt && (
+            <>
+              <dt className="text-base-content/70">Disabled</dt>
+              <dd>
+                {adminTime(account.disabledAt)}
+                {account.disabledBy && ` by ${person(account.disabledBy)}`}
+                {account.disabledReason && `: ${account.disabledReason}`}
+              </dd>
+            </>
+          )}
+        </dl>
+        {/* A disabled account gets no email (slice 3): re-enable it first. */}
+        {canHelp && !account.disabledAt && (
+          <div className="flex flex-wrap gap-2" data-help-actions="">
+            {!account.emailVerified && <HelpAction intent="resendVerification" />}
+            <HelpAction intent="sendReset" />
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export function SessionsSection({ page, canHelp }: { page: AccountPage; canHelp: boolean }) {
+  return (
+    <Card id="sessions" title="Sessions">
+      {page.sessions.length === 0 ? (
+        <p className="text-sm">Not signed in anywhere.</p>
+      ) : (
+        <>
+          <ul className="divide-base-300 divide-y" data-sessions="">
+            {page.sessions.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-start justify-between gap-2 py-2"
+                data-session={s.id}
+              >
+                <div className="text-sm">
+                  <p className="font-medium" title={s.userAgent ?? undefined}>
+                    {deviceLabel(s.userAgent)}
+                  </p>
+                  <p className="text-base-content/70 text-xs">
+                    Signed in {adminTime(s.createdAt)} · last active {adminTime(s.lastActiveAt)}
+                    {s.ipAddress && ` · ${s.ipAddress}`}
+                  </p>
+                </div>
+                {canHelp && (
+                  <HelpAction
+                    intent="revokeSession"
+                    sessionId={s.id}
+                    label={`Sign out ${deviceLabel(s.userAgent)}, signed in ${adminTime(s.createdAt)}`}
+                    className="btn btn-sm btn-ghost"
+                  />
+                )}
+              </li>
+            ))}
+          </ul>
+          {canHelp && <HelpAction intent="revokeAllSessions" />}
+        </>
+      )}
+    </Card>
+  );
+}
+
+export function GroupsSection({ page }: { page: AccountPage }) {
+  return (
+    <Card id="groups" title="Care groups">
+      {page.groups.length === 0 ? (
+        <p className="text-sm">Not in any care group.</p>
+      ) : (
+        <ul className="divide-base-300 divide-y" data-groups="">
+          {page.groups.map((g) => (
+            <li key={g.groupId} className="py-2 text-sm" data-group={g.groupId}>
+              <Link to={adminUrls.group(g.groupId)} className="link font-medium">
+                {g.displayName}
+              </Link>
+              {g.displayName !== g.groupName && (
+                <span className="text-base-content/70"> · {g.groupName}</span>
+              )}
+              <p className="text-base-content/70 text-xs">
+                {groupRoleLabel(g.role)} · joined {adminDay(g.joinedAt)}
+                {g.invitedBy && ` · invited by ${person(g.invitedBy)}`}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+export function MailSection({ page }: { page: AccountPage }) {
+  return (
+    <Card id="mail" title="Recent mail">
+      <p className="text-base-content/70 text-xs">
+        The latest 20 emails to this address. Never their content.
+      </p>
+      {page.mail.length === 0 ? (
+        <p className="text-sm">No email sent to this address.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="table-sm table" data-mail="">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Queued</th>
+                <th>Sent</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              {page.mail.map((m) => (
+                <tr key={m.id} data-mail-row={m.template} data-status={m.status}>
+                  <td className="font-mono">{m.template}</td>
+                  <td>
+                    {mailStatusLabel(m.status)}
+                    {m.attempts > 1 && ` (${m.attempts} tries)`}
+                  </td>
+                  <td className="whitespace-nowrap">{adminTime(m.queuedAt)}</td>
+                  <td className="whitespace-nowrap">{adminTime(m.sentAt)}</td>
+                  <td className="font-mono">{m.errorCode ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+}

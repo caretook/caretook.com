@@ -1,5 +1,6 @@
 node_modules/
 build/
+!scripts/build/
 dist/
 .react-router/
 .vercel/
@@ -15,6 +16,9 @@ dist/
 # Parallel loop worktrees (scripts/loops/)
 .loops/
 .claude/worktrees/
+# pnpm prd serve: which server a worktree runs, and when it was last built
+.serve-mode
+.serve-built
 
 # Browser check screenshots (debug output)
 scripts/browser-checks/*.png

@@ -1,24 +1,21 @@
 import type { Route } from "./+types/rpc";
 
-import { createRpcHandler, getAuthConfig, getAuthUser, isError } from "~/.server/api";
+import { allowedOrigins, clientIpOf, createRpcHandler, getAuthUser } from "~/.server/api";
 
 // The oRPC API at /rpc/*. Web only; the native app calls the deployed web
-// server's copy (Capacitor's origins are allowed cross-origin).
-const NATIVE_ORIGINS = ["capacitor://localhost", "https://localhost"];
+// server's copy, cross-origin, once NATIVE_APP_ORIGINS=1 lets it (host.ts in
+// @caretook/auth: the origins and the client IP, shared with Better Auth).
+// The session is looked up only by procedures that need the caller
+// (B-140); a lookup error is a 500, logged with the procedure.
 
 let handle: ReturnType<typeof createRpcHandler> | undefined;
 
-const serve = async (request: Request) => {
-  handle ??= createRpcHandler({
-    prefix: "/rpc",
-    allowedOrigins: [...NATIVE_ORIGINS, ...getAuthConfig().trustedOrigins],
+const serve = (request: Request) => {
+  handle ??= createRpcHandler({ prefix: "/rpc", allowedOrigins: allowedOrigins() });
+  // The client IP is for the public forms' rate limit only (never stored).
+  return handle(request, ({ live }) => getAuthUser(request.headers, { live }), {
+    clientIp: clientIpOf(request.headers),
   });
-  const authUser = await getAuthUser(request.headers);
-  if (isError(authUser)) {
-    console.error(authUser);
-    return new Response("Something went wrong", { status: 500 });
-  }
-  return handle(request, authUser);
 };
 
 export const loader = ({ request }: Route.LoaderArgs) => serve(request);

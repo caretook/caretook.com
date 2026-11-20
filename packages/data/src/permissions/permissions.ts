@@ -1,9 +1,7 @@
 import type { DbSchemaName } from "../db/types";
 import type { AppError } from "../errors";
-import type { GroupRoleName } from "../constants/roles";
 import type {
   AuthUser,
-  PermissionEntry,
   PermissionRoleName,
   PermissionScope,
   Permissions,
@@ -12,206 +10,50 @@ import type {
   ScopeRule,
 } from "./types";
 
-import { GROUP_MANAGER_ROLES, GROUP_ROLE_NAMES, USER_ROLE_NAMES } from "../constants/roles";
+import { USER_ROLE_NAMES } from "../constants/roles";
 import { isError, newError } from "../errors";
+import { ADMIN_PERMISSIONS } from "./admin";
+import { AUTH_PERMISSIONS } from "./auth";
+import { CARE_GROUPS_PERMISSIONS } from "./care-groups";
+import { CARE_PERIODS_PERMISSIONS } from "./care-periods";
+import { CORE_PERMISSIONS } from "./core";
+import { LIVE_NOTES_PERMISSIONS } from "./live-notes";
+import { MARKETING_PERMISSIONS } from "./marketing";
+import { MEDICATIONS_PERMISSIONS } from "./medications";
+import { NOTIFICATIONS_PERMISSIONS } from "./notifications";
+import { PROFILES_PERMISSIONS } from "./profiles";
+import { PROVIDERS_PERMISSIONS } from "./providers";
+import { TASKS_PERMISSIONS } from "./tasks";
+import { TIMELINE_PERMISSIONS } from "./timeline";
 
-// ---------------------------------------------------------------------------
-// Building blocks
-// ---------------------------------------------------------------------------
+// The building blocks live in blocks.ts, and the tables' permissions in one part per
+// area (`./<area>.ts`). A new table's entry goes in its area's part.
 
-const NO_ACCESS = {
-  admin: ["none"],
-  member: ["none"],
-  system: ["none"],
-  unauthenticated: ["none"],
-} as const satisfies PermissionEntry<DbSchemaName>;
-
-/** Admins and the system can touch every row; members only their own. */
-export const DEFAULT_PERMISSION_ENTRY = {
-  ...NO_ACCESS,
-  admin: ["all"],
-  member: ["owned"],
-  system: ["all"],
-} as const satisfies PermissionEntry<DbSchemaName>;
-
-/** Only admins and the system. */
-export const ADMIN_ONLY_PERMISSION_ENTRY = {
-  ...NO_ACCESS,
-  admin: ["all"],
-  system: ["all"],
-} as const satisfies PermissionEntry<DbSchemaName>;
-
-/** Any signed-in user, plus the system. */
-const SIGNED_IN_PERMISSION_ENTRY = {
-  ...NO_ACCESS,
-  admin: ["all"],
-  member: ["all"],
-  system: ["all"],
-} as const satisfies PermissionEntry<DbSchemaName>;
-
-/**
- * Members of the row's care group with one of `roles`, plus the system.
- * Global roles add nothing: staff only see care data in groups they belong to.
- */
-const groupEntry = (roles: readonly GroupRoleName[]) =>
-  ({ ...NO_ACCESS, system: ["all"], group: roles }) as const satisfies PermissionEntry<DbSchemaName>;
-
-const STAFF_ONLY: readonly PermissionRoleName[] = ["admin", "system"];
-/** Set by services running as SYSTEM_USER, or not at all. */
-const SYSTEM_ONLY: readonly PermissionRoleName[] = ["system"];
-
-const ANY_GROUP_ROLE = GROUP_ROLE_NAMES;
-const MANAGERS = GROUP_MANAGER_ROLES;
-const OWNERS: readonly GroupRoleName[] = ["owner"];
-const WRITERS: readonly GroupRoleName[] = ["owner", "admin", "caretaker"];
-
-const SYSTEM_ONLY_ENTRY = { ...NO_ACCESS, system: ["all"] } as const satisfies PermissionEntry<DbSchemaName>;
-
-const SYSTEM_ONLY_SCHEMA = {
-  create: SYSTEM_ONLY_ENTRY,
-  read: SYSTEM_ONLY_ENTRY,
-  list: SYSTEM_ONLY_ENTRY,
-  update: SYSTEM_ONLY_ENTRY,
-  delete: SYSTEM_ONLY_ENTRY,
-} as const;
+export {
+  ADMIN_ONLY_PERMISSION_ENTRY,
+  DEFAULT_PERMISSION_ENTRY,
+  PUBLIC_PROFILE_FIELDS,
+  STAFF_PERMISSION_ENTRY,
+} from "./blocks";
 
 // ---------------------------------------------------------------------------
 // The permission map. Every table must have an entry (enforced by the type).
 // ---------------------------------------------------------------------------
 
 export const PERMISSIONS: Permissions = {
-  userSchema: {
-    ownerField: "id",
-    // Co-members of a care group can read each other (name, image, email).
-    groupUserField: "id",
-    // Accounts are created by the auth flow (running as SYSTEM_USER) or by staff.
-    create: ADMIN_ONLY_PERMISSION_ENTRY,
-    read: { ...DEFAULT_PERMISSION_ENTRY, group: ANY_GROUP_ROLE },
-    list: { ...DEFAULT_PERMISSION_ENTRY, group: ANY_GROUP_ROLE },
-    update: {
-      ...DEFAULT_PERMISSION_ENTRY,
-      // Members can edit their profile but not escalate their role, and
-      // email changes go through the auth provider's verification flow.
-      fields: {
-        role: STAFF_ONLY,
-        email: STAFF_ONLY,
-        emailVerified: STAFF_ONLY,
-      },
-    },
-    // Members can delete their own account (a consumer-health-data requirement).
-    delete: DEFAULT_PERMISSION_ENTRY,
-  },
-
-  careGroupSchema: {
-    groupField: "id",
-    // Anyone signed in can start a group. Use careGroupService.create, which
-    // makes the creator its first owner in the same transaction.
-    create: SIGNED_IN_PERMISSION_ENTRY,
-    read: groupEntry(ANY_GROUP_ROLE),
-    list: groupEntry(ANY_GROUP_ROLE),
-    update: groupEntry(MANAGERS),
-    delete: groupEntry(OWNERS),
-  },
-
-  // Role rules the map can't express (only owners touch owners, a group
-  // always keeps an owner) live in careGroupMemberService. Write through it.
-  careGroupMemberSchema: {
-    ownerField: "userId",
-    groupField: "groupId",
-    read: groupEntry(ANY_GROUP_ROLE),
-    list: groupEntry(ANY_GROUP_ROLE),
-    create: groupEntry(MANAGERS),
-    update: {
-      ...groupEntry(MANAGERS),
-      // A membership can change role, never group or user.
-      fields: { groupId: SYSTEM_ONLY, userId: SYSTEM_ONLY },
-    },
-    // Managers remove members; anyone can remove themselves (leave).
-    delete: { ...groupEntry(MANAGERS), admin: ["owned"], member: ["owned"] },
-  },
-
-  careRecipientSchema: {
-    groupField: "groupId",
-    read: groupEntry(ANY_GROUP_ROLE),
-    list: groupEntry(ANY_GROUP_ROLE),
-    create: groupEntry(MANAGERS),
-    update: { ...groupEntry(WRITERS), fields: { groupId: SYSTEM_ONLY } },
-    delete: groupEntry(MANAGERS),
-  },
-
-  // Invites carry the invitee's email, so only managers see them. The
-  // invitee reads theirs by token through the service (as SYSTEM_USER).
-  careGroupInviteSchema: {
-    groupField: "groupId",
-    read: groupEntry(MANAGERS),
-    list: groupEntry(MANAGERS),
-    create: {
-      ...groupEntry(MANAGERS),
-      fields: { status: SYSTEM_ONLY, acceptedBy: SYSTEM_ONLY, respondedAt: SYSTEM_ONLY },
-    },
-    update: {
-      ...groupEntry(MANAGERS),
-      // Managers may only revoke (status); everything else is fixed.
-      fields: {
-        groupId: SYSTEM_ONLY,
-        email: SYSTEM_ONLY,
-        role: SYSTEM_ONLY,
-        tokenHash: SYSTEM_ONLY,
-        expiresAt: SYSTEM_ONLY,
-        acceptedBy: SYSTEM_ONLY,
-        respondedAt: SYSTEM_ONLY,
-      },
-    },
-    delete: groupEntry(MANAGERS),
-  },
-
-  // Better Auth's tables: it uses them through its own adapter, never our
-  // models, so only the system may touch them here.
-  sessionSchema: SYSTEM_ONLY_SCHEMA,
-  accountSchema: SYSTEM_ONLY_SCHEMA,
-  verificationSchema: SYSTEM_ONLY_SCHEMA,
-  jwksSchema: SYSTEM_ONLY_SCHEMA,
-
-  // Any writer may edit or delete any entry (not just their own). Deletes
-  // are soft (timelineEntryModel.remove sets deletedAt under this delete
-  // permission); hard deletes are system-only (purge).
-  timelineEntrySchema: {
-    groupField: "groupId",
-    read: groupEntry(ANY_GROUP_ROLE),
-    list: groupEntry(ANY_GROUP_ROLE),
-    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
-    update: {
-      ...groupEntry(WRITERS),
-      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, kind: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
-    },
-    delete: groupEntry(WRITERS),
-  },
-
-  // Live documents on note and event entries. Writers add one (through
-  // noteDocumentService, which checks the entry); the snapshot, text and editors are
-  // written by compaction, as the system. Removing the entry hides it.
-  noteDocumentSchema: {
-    groupField: "groupId",
-    read: groupEntry(ANY_GROUP_ROLE),
-    list: groupEntry(ANY_GROUP_ROLE),
-    create: {
-      ...groupEntry(WRITERS),
-      fields: { snapshot: SYSTEM_ONLY, text: SYSTEM_ONLY, editors: SYSTEM_ONLY },
-    },
-    update: SYSTEM_ONLY_ENTRY,
-    delete: SYSTEM_ONLY_ENTRY,
-  },
-
-  // Append-only edits: writers add them, everyone in the group reads them
-  // (viewers watch live). Only compaction (the system) deletes them.
-  noteUpdateSchema: {
-    groupField: "groupId",
-    read: groupEntry(ANY_GROUP_ROLE),
-    list: groupEntry(ANY_GROUP_ROLE),
-    create: groupEntry(WRITERS),
-    update: SYSTEM_ONLY_ENTRY,
-    delete: SYSTEM_ONLY_ENTRY,
-  },
+  ...ADMIN_PERMISSIONS,
+  ...AUTH_PERMISSIONS,
+  ...CARE_GROUPS_PERMISSIONS,
+  ...CARE_PERIODS_PERMISSIONS,
+  ...CORE_PERMISSIONS,
+  ...LIVE_NOTES_PERMISSIONS,
+  ...MARKETING_PERMISSIONS,
+  ...MEDICATIONS_PERMISSIONS,
+  ...NOTIFICATIONS_PERMISSIONS,
+  ...PROFILES_PERMISSIONS,
+  ...PROVIDERS_PERMISSIONS,
+  ...TASKS_PERMISSIONS,
+  ...TIMELINE_PERMISSIONS,
 };
 
 // ---------------------------------------------------------------------------
@@ -282,14 +124,17 @@ export const getPermissionScope = (
   }
 
   const groupRoles = schemaEntry[permission].group;
+  const groupFields = schemaEntry[permission].groupFields as readonly string[] | undefined;
+  const limit = groupFields ? { fields: groupFields } : {};
   if (groupRoles?.length && isSignedInUser(authUser)) {
     // A misconfigured entry must fail loudly, never silently widen or drop access.
     if (!groupField && !groupUserField) {
       throw new Error(`${schemaName}.${permission} has group roles but no groupField or groupUserField`);
     }
-    if (groupField) rules.push({ type: "group", field: groupField, userId: authUser.id, groupRoles });
+    if (groupField)
+      rules.push({ type: "group", field: groupField, userId: authUser.id, groupRoles, ...limit });
     if (groupUserField) {
-      rules.push({ type: "groupUser", field: groupUserField, userId: authUser.id, groupRoles });
+      rules.push({ type: "groupUser", field: groupUserField, userId: authUser.id, groupRoles, ...limit });
     }
   }
 

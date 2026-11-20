@@ -1,0 +1,144 @@
+import type { Route } from "./+types/route";
+import type { ShouldRevalidateFunctionArgs } from "react-router";
+
+import { Outlet } from "react-router";
+import type { RecipientDetailsRow } from "~/lib/profiles/recipientDetails";
+import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
+
+import { canEditRecipient, canManageEmergencyContacts, canReadRecipient } from "@caretook/data/schema";
+import { useMemo } from "react";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { loadSettings } from "~/lib/app-shell/me";
+import { VIEWER_DETAILS_LINE } from "~/lib/profiles/recipientDisplay";
+import { sessionContext } from "~/lib/auth/session";
+import { useLiveQuery } from "~/lib/sync";
+import { loadMemberDetailRows, memberDetailsQuery } from "~/lib/care-groups/members.sync";
+import { loadRecipientProfileRows, useRecipientProfile } from "~/lib/profiles/profile.sync";
+import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/profiles/recipientDetails.sync";
+import { loadRecentReadingRows, useVitalAverages } from "~/lib/profiles/vitalAverages.sync";
+import { ContactCard, InsuranceCard } from "./DetailsCards";
+import { EmergencyCard } from "./EmergencyCard";
+import { BasicsCard, NoteCard } from "./ProfileCards";
+import { ProfileHeader } from "./ProfileHeader";
+import { VitalAveragesCard } from "./VitalAveragesCard";
+
+// Shared by web + native. `…/profile`: the care recipient's profile, for
+// every member. Read from the device's copy (live, so it works offline and
+// follows other members' edits). Writers edit it in sheets over the page
+// (`profile/basics`, `profile/contact`, `profile/insurance`), online only.
+// Writers also see the recipient's Contact and Insurance (slice 3) and the
+// emergency list (slice 5; owners and admins edit it in `profile/emergency`).
+
+export function meta({ loaderData }: Route.MetaArgs) {
+  return [{ title: loaderData?.title ? `${loaderData.title} · Profile · Caretook` : "Profile · Caretook" }];
+}
+
+export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
+  const group = getGroup(context);
+  const { db } = context.get(sessionContext);
+  const [rows, { units }] = await Promise.all([
+    loadRecipientProfileRows(db, params.groupId),
+    loadSettings(request, db.userId),
+  ]);
+  // Recent vital averages: the windows are days in the recipient's zone.
+  const readingRows = await loadRecentReadingRows(db, params.groupId, rows[0]?.time_zone ?? null);
+  // Writers' details: only owners', admins' and caretakers' devices have them.
+  const detailsRows = canReadRecipient(group.role, "details")
+    ? await loadRecipientDetailsRows(db, params.groupId)
+    : NO_DETAILS;
+  // Members' emergency places and shared phones, for the emergency list.
+  const memberRows = canReadRecipient(group.role, "details")
+    ? await loadMemberDetailRows(db, params.groupId)
+    : NO_MEMBERS;
+  return {
+    rows,
+    readingRows,
+    units,
+    detailsRows,
+    memberRows,
+    title: group.recipient?.displayName ?? group.displayName,
+  };
+}
+
+/** A viewer's details rows: none (a module constant, so the live query's `initial` keeps its identity). */
+const NO_DETAILS: RecipientDetailsRow[] = [];
+const NO_MEMBERS: MemberDetailRow[] = [];
+
+/**
+ * The live query follows every change, so opening or closing a sheet over
+ * the page, or a save in one, doesn't load it again.
+ */
+export function shouldRevalidate({
+  formMethod,
+  currentUrl,
+  nextUrl,
+  nextParams,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (formMethod) return false;
+  const base = nextParams.groupId ? appUrls.profile(nextParams.groupId) : null;
+  const under = (path: string) => !!base && (path === base || path.startsWith(`${base}/`));
+  if (under(currentUrl.pathname) && under(nextUrl.pathname)) return false;
+  return defaultShouldRevalidate;
+}
+
+export default function Profile({ loaderData, params }: Route.ComponentProps) {
+  const group = useGroup();
+  const profile = useRecipientProfile(params.groupId, loaderData.rows);
+  const details = useRecipientDetails(params.groupId, loaderData.detailsRows);
+  // Live: a member demoted to viewer loses the writers' cards as the role syncs.
+  const readsDetails = canReadRecipient(group.role, "details");
+  const editsDetails = canEditRecipient(group.role, "details");
+  const membersQuery = useMemo(() => memberDetailsQuery(params.groupId), [params.groupId]);
+  const members = useLiveQuery<MemberDetailRow>(membersQuery.sql, membersQuery.params, loaderData.memberRows);
+  const averages = useVitalAverages(
+    params.groupId,
+    profile?.timeZone ?? null,
+    loaderData.units,
+    loaderData.readingRows,
+  );
+
+  return (
+    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-profile="">
+      {!profile ? (
+        <>
+          <h1 className="text-lg font-semibold">{group.displayName}</h1>
+          <p className="text-base-content/70 text-sm">This care group has no care recipient yet.</p>
+        </>
+      ) : (
+        <>
+          <ProfileHeader profile={profile} />
+          <BasicsCard profile={profile} />
+          <NoteCard profile={profile} canEdit={group.canWrite} />
+          {averages && <VitalAveragesCard rows={averages} />}
+          {readsDetails && (
+            <>
+              <ContactCard
+                groupId={group.id}
+                name={profile.displayName}
+                details={details}
+                canEdit={editsDetails}
+              />
+              <InsuranceCard groupId={group.id} details={details} canEdit={editsDetails} />
+              <EmergencyCard
+                groupId={group.id}
+                members={members}
+                outside={details.outsideContacts}
+                canManage={canManageEmergencyContacts(group.role)}
+              />
+            </>
+          )}
+          {!readsDetails && (
+            <p className="text-base-content/70 text-sm" data-viewer-more="">
+              {VIEWER_DETAILS_LINE}
+            </p>
+          )}
+        </>
+      )}
+
+      {/* The edit sheets render here, over the profile. */}
+      <Outlet />
+    </main>
+  );
+}

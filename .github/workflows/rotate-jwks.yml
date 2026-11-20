@@ -1,0 +1,51 @@
+# Rotate JWT keys (hosting slice 9): retire the JWT signing key, so the app
+# makes a new one (encrypted with its current secret) on the next token;
+# recorded in the audit log with the system as actor. Tokens the old key
+# signed verify until they expire (15 minutes): its public key stays in the
+# JWKS for an hour. ops/runbook.md, Rotation, says when (after rotating
+# BETTER_AUTH_SECRET, and on any suspicion about the key).
+#
+# Secrets (GitHub environment secrets):
+#   DATABASE_URL (the app role: the rotation is an ordinary write; no auth secret)
+name: Rotate JWT keys
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Where
+        type: choice
+        options:
+          - staging
+          - production
+      reason:
+        description: Why (recorded in the audit log)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - id: rotate
+        name: Rotate the signing key
+        env:
+          APP_ENV: ${{ inputs.environment }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REASON: ${{ inputs.reason }}
+        run: pnpm auth:rotate-jwks --reason "$REASON"

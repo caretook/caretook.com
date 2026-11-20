@@ -1,0 +1,231 @@
+import type { Route } from "./+types/route";
+import type { DeviceRoute } from "../../../../../test/device";
+
+import { useLayoutEffect } from "react";
+import { useNavigate } from "react-router";
+import { describe, expect, test } from "vitest";
+import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
+import { renderWithDevice } from "../../../../../test/device";
+import { at, fx, TEST_USER } from "../../../../../test/fixtures";
+import {
+  $,
+  $$,
+  ALVAREZ,
+  contactLinks,
+  CORNERSTONE,
+  directory,
+  entryUrl,
+  FORM,
+  formButton,
+  LINDQVIST,
+  NOTES,
+  pageHeader,
+  PICKUP,
+  PICKUP_2,
+  PROVIDER_ROUTES,
+  providerUrl,
+  SECOND_GROUP,
+  secondGroup,
+  SHEET,
+  waitUntil,
+  WESTSIDE,
+} from "../providers/providerWorld";
+import * as providerRoute from "./route";
+
+// A provider's page on the test device (providers.mjs's page steps): the
+// header's badges and details, every contact action, the shared notes
+// (writable for writers, read-only for viewers), a clinician's practice as
+// a link, Edit opening the directory's sheet and Cancel coming back, the
+// notes' document made on the first keystroke, who else is writing (as
+// another device's edits arrive by sync), the linked entries newest first,
+// and the 404s (deleted, another group's, a non-member). Two browsers
+// typing into one document and merging offline edits is live-notes.mjs's.
+
+/** Back (history −1), as the browser's button does: proves Cancel went back, not forward. */
+let back = () => {};
+function BackProbe() {
+  const navigate = useNavigate();
+  useLayoutEffect(() => {
+    back = () => void navigate(-1);
+  }, [navigate]);
+  return null;
+}
+function ProviderWithBack(props: Route.ComponentProps) {
+  const Provider = providerRoute.default;
+  return (
+    <>
+      <BackProbe />
+      <Provider {...props} />
+    </>
+  );
+}
+const ROUTES: DeviceRoute[] = PROVIDER_ROUTES.map((r) =>
+  r.module === providerRoute ? { ...r, module: { ...providerRoute, default: ProviderWithBack } } : r,
+);
+
+const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
+
+const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
+  renderWithDevice({ route: ROUTES, url, fixtures: [directory(), SAM, secondGroup()], ...options });
+
+const notFound = () => page.getByRole("heading", { level: 1, name: "Not found" });
+const mainText = () => $("main")?.innerText ?? "";
+
+describe("the page", () => {
+  test("a practice: its Primary badge, type and specialty, every contact action (each number with its label, the address in maps, the website), and its notes, writable", async () => {
+    await open(providerUrl(WESTSIDE.id), { role: "caretaker" });
+    await waitUntil(() => !!NOTES()?.textContent?.includes("level 2"), 4000, "the notes");
+    expect(pageHeader()).toMatchObject({
+      h1: "Westside Family Medicine",
+      badges: ["Primary"],
+      details: "Practice · Primary care",
+      practice: null,
+    });
+    expect(contactLinks()).toEqual([
+      ["call", "tel:5550102200"],
+      ["call", "tel:5550102201"],
+      ["call", "tel:5550102210"],
+      [
+        "map",
+        "https://www.google.com/maps/search/?api=1&query=1200%20Westside%20Ave%2C%20Suite%20300%2C%20Springfield%2C%20CA%2090000",
+      ],
+      ["website", "https://westsidefamily.example/"],
+    ]);
+    const names = $$("main [data-contact-list] a").map((a) => a.textContent.trim());
+    expect(names[0]).toContain("Call Westside Family Medicine, front desk");
+    expect(names[1]).toContain("Fax");
+    expect(NOTES()!.getAttribute("contenteditable")).toBe("true");
+    expect($('main [role=toolbar][aria-label="Formatting"]')).not.toBeNull();
+    expect($("main header a[data-edit-provider]")).not.toBeNull();
+  });
+
+  test("a clinician: both numbers and the email, her practice as a link that opens its page", async () => {
+    const device = await open(providerUrl(ALVAREZ.id));
+    await waitUntil(() => !!$("main header a[data-practice]"), 4000, "the practice link");
+    const header = pageHeader();
+    expect(header.details).toMatch(/^Clinician · Internal medicine · Westside Family Medicine/);
+    expect(header.practice).toBe(providerUrl(WESTSIDE.id));
+    expect(contactLinks()).toEqual([
+      ["call", "tel:5550102200,214"],
+      ["call", "tel:5550102299"],
+      ["email", "mailto:e.alvarez@westsidefamily.example"],
+    ]);
+    expect(NOTES()!.textContent).toContain("through the portal");
+
+    await userEvent.click($("main header a[data-practice]")!);
+    await expect.poll(() => device.location()).toBe(providerUrl(WESTSIDE.id));
+    await expect
+      .element(page.getByRole("heading", { level: 1, name: "Westside Family Medicine" }))
+      .toBeVisible();
+  });
+
+  test("Edit opens the directory's sheet, filled in; Cancel goes back to the page", async () => {
+    const device = await open(providerUrl(WESTSIDE.id));
+    await userEvent.click($("main header a[data-edit-provider]")!);
+    await waitUntil(() => !!FORM(), 4000, "the edit sheet");
+    expect(device.location()).toBe(`${providerUrl(WESTSIDE.id)}/edit`);
+    expect(FORM()!.querySelector<HTMLInputElement>('[name="name"]')!.value).toBe("Westside Family Medicine");
+    await userEvent.click(formButton("Cancel")!);
+    await expect.poll(() => !SHEET() && device.location()).toBe(providerUrl(WESTSIDE.id));
+    await expect
+      .element(page.getByRole("heading", { level: 1, name: "Westside Family Medicine" }))
+      .toBeVisible();
+    // Cancel went back: the page before it is the start.
+    back();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(device.location()).toBe(providerUrl(WESTSIDE.id));
+  });
+
+  test("the linked entries, newest first; a tap opens the entry", async () => {
+    const device = await open(providerUrl(CORNERSTONE.id));
+    const links = () =>
+      $$<HTMLAnchorElement>("main [data-linked-entries] a[data-entry-id]").map((a) => a.dataset.entryId);
+    await waitUntil(() => links().length === 2, 4000, "the linked entries");
+    expect(links()).toEqual([PICKUP.id, PICKUP_2.id]);
+    await userEvent.click($(`main [data-linked-entries] a[data-entry-id="${PICKUP.id}"]`)!);
+    await expect.poll(() => device.location()).toBe(entryUrl(PICKUP.id));
+  });
+
+  test("with no links: says how to link one", async () => {
+    await open(providerUrl(ALVAREZ.id));
+    expect($("main [data-linked-entries]")?.textContent).toContain("Link this provider from a note or event");
+  });
+});
+
+describe("the notes", () => {
+  test("a provider with no notes opens an empty editor and no document; the first keystroke makes the provider's document (subject provider), queued to upload", async () => {
+    const LANG = fx.provider({ name: "Dr. Ivo Lang", specialty: "Neurology" });
+    const device = await open(providerUrl(LANG.id), { fixtures: [directory(), LANG] });
+    await waitUntil(() => !!NOTES(), 4000, "the editor");
+    expect(NOTES()!.textContent).toBe("");
+    expect(await device.query("SELECT id FROM note_document WHERE id = ?", [LANG.id])).toEqual([]);
+
+    await userEvent.click(await found(NOTES));
+    await userEvent.keyboard("Park on level 3");
+    await expect
+      .poll(() =>
+        device.query<{ subject: string; provider_id: string; entry_id: string | null }>(
+          "SELECT subject, provider_id, entry_id FROM note_document WHERE id = ?",
+          [LANG.id],
+        ),
+      )
+      .toEqual([{ subject: "provider", provider_id: LANG.id, entry_id: null }]);
+    await expect
+      .poll(async () => (await device.queued()).map((w) => w.type))
+      .toEqual(expect.arrayContaining(["note_document", "note_update"]));
+  });
+
+  test("others writing (synced from their devices) show as avatars, never yourself", async () => {
+    const device = await open(providerUrl(WESTSIDE.id));
+    const avatars = () =>
+      $$('main header [data-region="editors"] [data-person]').map((el) => el.dataset.person);
+    await waitUntil(() => !!NOTES()?.textContent?.includes("level 2"));
+    expect(avatars()).toEqual([]);
+    await device.sync(
+      fx.document({
+        ownerId: WESTSIDE.id,
+        subject: "provider",
+        text: "Park on level 2 of the garage; ask for Rosa at the front desk.",
+        editors: JSON.stringify({ [SAM.id]: at(), [TEST_USER.id]: at() }),
+      }),
+    );
+    await device.settle();
+    expect(avatars()).toEqual([SAM.id]);
+  });
+
+  test("a viewer reads them, read-only: not editable, no toolbar, and no Edit", async () => {
+    await open(providerUrl(WESTSIDE.id), { role: "viewer" });
+    await waitUntil(() => !!NOTES()?.textContent?.includes("level 2"));
+    expect(NOTES()!.getAttribute("contenteditable")).toBe("false");
+    expect(NOTES()!.getAttribute("aria-readonly")).toBe("true");
+    expect($('main [role=toolbar][aria-label="Formatting"]')).toBeNull();
+    expect($("main header a[data-edit-provider]")).toBeNull();
+    expect(mainText()).toContain("You can view these notes.");
+  });
+});
+
+describe("Not found", () => {
+  test("a deleted provider's URL is the 404, naming no one", async () => {
+    const GONE = fx.provider({ name: "Dr. Gone Away", deletedAt: at() });
+    await open(providerUrl(GONE.id), { fixtures: [directory(), GONE] });
+    await expect.element(notFound()).toBeVisible();
+    expect(mainText()).not.toContain("Gone Away");
+  });
+
+  test("another group's provider under this group's URL is the 404 with no names; under its own group it opens", async () => {
+    const device = await open(providerUrl(LINDQVIST.id));
+    await expect.element(notFound()).toBeVisible();
+    expect(/Lindqvist|Audiology/.test(mainText())).toBe(false);
+    await device.screen.unmount();
+
+    await open(providerUrl(LINDQVIST.id, SECOND_GROUP.id));
+    await expect.element(page.getByRole("heading", { level: 1, name: "Dr. Grace Lindqvist" })).toBeVisible();
+  });
+
+  test("a non-member's provider URL is the 404, with no names or notes", async () => {
+    await open(providerUrl(WESTSIDE.id), { role: null, fixtures: [directory()] });
+    await expect.element(notFound()).toBeVisible();
+    expect(/Moreno|Westside|level 2/.test(mainText())).toBe(false);
+  });
+});

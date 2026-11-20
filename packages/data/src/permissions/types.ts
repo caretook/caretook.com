@@ -47,6 +47,14 @@ export type PermissionEntry<K extends DbSchemaName> = Readonly<
    * (global admins included, but only through their own memberships).
    */
   group?: readonly GroupRoleName[];
+  /**
+   * With `group`, on reads: the only columns a group-granted read returns.
+   * A row the actor reaches only through `group` comes back with just these
+   * fields; a row they also own, or reach through `all`, comes back whole.
+   * The model enforces it in SQL (the other columns are never selected for
+   * those rows, and a filter or order on them only matches whole rows).
+   */
+  groupFields?: readonly DbFieldKey<K>[];
 };
 
 export type SchemaEntry<K extends DbSchemaName> = Readonly<Record<SchemaPermission, PermissionEntry<K>>> & {
@@ -67,9 +75,25 @@ export type Permissions = { readonly [K in DbSchemaName]: SchemaEntry<K> };
 export type ScopeRule =
   | { type: "owned"; field: string; userId: string }
   /** `field` is a group the actor belongs to with one of `groupRoles`. */
-  | { type: "group"; field: string; userId: string; groupRoles: readonly GroupRoleName[] }
+  | {
+      type: "group";
+      field: string;
+      userId: string;
+      groupRoles: readonly GroupRoleName[];
+      /** Rows matched only by this rule show just these fields (`groupFields`). */
+      fields?: readonly string[];
+    }
   /** `field` is a user who shares a group the actor belongs to with one of `groupRoles`. */
-  | { type: "groupUser"; field: string; userId: string; groupRoles: readonly GroupRoleName[] };
+  | {
+      type: "groupUser";
+      field: string;
+      userId: string;
+      groupRoles: readonly GroupRoleName[];
+      fields?: readonly string[];
+    };
 
 /** The resolved scope for one request: what the WHERE clause must enforce. */
 export type PermissionScope = { type: "all" } | { type: "rules"; rules: readonly ScopeRule[] };
+
+/** One area's part of the permission map: some of the tables, each fully described. */
+export type PartialPermissions = { readonly [K in DbSchemaName]?: SchemaEntry<K> };
