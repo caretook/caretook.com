@@ -28,6 +28,8 @@ export type EntryPageData = {
   isNew: boolean;
   /** A draft opened as `?when=pick` (Add appointment, Add reminder): the time chip opens first. */
   pickDay: boolean;
+  /** A new appointment's provider (`?provider=`, from their page), linked once it's saved; null for none. */
+  withProvider: string | null;
   entry: EntryDraft;
   heading: string;
   hasDocument: boolean;
@@ -40,8 +42,8 @@ const notFound = () => data("Not found", { status: 404 });
 
 /**
  * The entry, its document and pending updates, or a new draft
- * (`entryId` = `new`, `kind` from `?kind=`, and `?when=pick` to ask for the
- * day first). Anything not on the device, not
+ * (`entryId` = `new`, `kind` from `?kind=`, `?when=pick` to ask for the
+ * day first, and `?provider=` for an appointment with them). Anything not on the device, not
  * a note or event, or (for a draft) not allowed, is a 404.
  */
 export async function loadEntry(
@@ -51,14 +53,31 @@ export async function loadEntry(
     entryId,
     kind,
     when = null,
+    withProvider = null,
     canWrite,
-  }: { groupId: string; entryId: string; kind: string | null; when?: string | null; canWrite: boolean },
+  }: {
+    groupId: string;
+    entryId: string;
+    kind: string | null;
+    when?: string | null;
+    withProvider?: string | null;
+    canWrite: boolean;
+  },
 ): Promise<EntryPageData> {
   if (entryId === NEW_ENTRY) {
     if (!isLiveEntryKind(kind) || !canWrite) throw notFound();
+    // Only a live provider in this group; anything else is dropped.
+    const [provider] =
+      kind === "event" && withProvider
+        ? await readRows<{ id: string }>(db, {
+            sql: "SELECT id FROM provider WHERE id = ? AND group_id = ? AND deleted_at IS NULL",
+            params: [withProvider, groupId],
+          })
+        : [];
     return {
       isNew: true,
       pickDay: when === WHEN_PICK,
+      withProvider: provider?.id ?? null,
       entry: {
         id: crypto.randomUUID(),
         kind,
@@ -92,6 +111,7 @@ export async function loadEntry(
   return {
     isNew: false,
     pickDay: false,
+    withProvider: null,
     entry: { id, kind: entry.kind, title, occurredAt, timeZone },
     heading: entryHeading(KIND_META[entry.kind].label, title, false),
     hasDocument: !!doc,

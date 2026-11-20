@@ -65,6 +65,10 @@ export const PROVIDER_TYPE_PARAM = "type";
 /** A new entry that opens the time picker first: `entries/new?kind=event&when=pick`. */
 export const WHEN_PARAM = "when";
 export const WHEN_PICK = "pick";
+/** A new appointment's provider, linked once it's saved: `entries/new?kind=event&when=pick&provider=<id>`. */
+export const WITH_PROVIDER_PARAM = "provider";
+/** An entry page opened to print it (`entries/<id>?print=1`): it prints once, then drops the parameter. */
+export const PRINT_PARAM = "print";
 
 /** The recipient's profile's edit sheets, in the order the page shows them (`…/profile/<sheet>`). */
 export const PROFILE_SHEETS = ["basics", "contact", "insurance", "emergency"] as const;
@@ -269,4 +273,14 @@ export const appUrls = {
   /** The pass sheet over a group's timeline: one pass log's doses, carrying the timeline's filters. */
   passSheet: (groupId: string, passLogId: string, { search }: { search?: Search } = {}) =>
     `${groupHome(groupId)}/timeline/pass/${segment(passLogId)}/edit${searchString(withoutSheetParams(search))}`,
+  /** A note's or event's page, opened to print it (the ⋯ menu's Print on a row). */
+  printEntry: (groupId: string, entryId: string) =>
+    `${groupHome(groupId)}/entries/${segment(entryId)}${searchString({ [PRINT_PARAM]: "1" })}`,
+  /** A new appointment with a provider (the time picker first, like `newUpcomingEntry`): linked once it's saved. */
+  newAppointmentWith: (groupId: string, providerId: string) =>
+    `${groupHome(groupId)}/entries/${NEW_ENTRY}${searchString({
+      kind: "event",
+      [WHEN_PARAM]: WHEN_PICK,
+      [WITH_PROVIDER_PARAM]: providerId,
+    })}`,
 } as const;

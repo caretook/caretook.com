@@ -235,7 +235,7 @@ describe.each([
     await menu(() => page.getByRole("button", { name: /switch care group$/ }).element() as HTMLElement, {
       name: "Care groups",
     });
-    await menu(rowActions("note"), { name: /^Actions for note at /, items: "Delete" });
+    await menu(rowActions("note"), { name: /^Actions for note at /, items: "Print,Delete" });
     await menu(rowActions("symptom"), { name: /^Actions for symptom at /, items: "Edit,Delete" });
     await menu(addButton, { name: "Add to timeline", count: 14 });
     expect(device.location()).toBe(TIMELINE);
@@ -328,7 +328,7 @@ describe.each([
     await expect
       .poll(() => q('main header [data-region="actions"] button[aria-label^="Actions for this"]'))
       .not.toBeNull();
-    await menu(pageActions, { name: "Actions for this note", items: "Delete" });
+    await menu(pageActions, { name: "Actions for this note", items: "Print,Delete" });
     await overlay(TIME_CHIP, { name: "When it happened" });
     await userEvent.click(TIME_CHIP());
     await expect.poll(() => q('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
@@ -344,7 +344,7 @@ describe.each([
       .not.toBeNull();
     await menu(() => must('main header [data-region="actions"] button[aria-label^="Actions for this"]'), {
       name: "Actions for this event",
-      items: "Reschedule,Cancel event,Delete",
+      items: "Reschedule,Cancel event,Print,Delete",
     });
   });
 

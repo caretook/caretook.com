@@ -92,6 +92,8 @@ try {
     `DELETE FROM session WHERE id = (SELECT s.id FROM session s JOIN "user" u ON u.id = s.user_id WHERE u.email = '${EMAIL}' ORDER BY s.created_at DESC LIMIT 1) RETURNING id`,
   );
   check("the session row is deleted", deleted.length > 0);
+  // Quick entry's recent lines go with the rest.
+  await p.evaluate(`localStorage.setItem("caretook:recentLines:x:y", JSON.stringify(["bp 120/80"]))`);
   // A reload (not a new navigation, which can leave the old page and its
   // database connection in the back/forward cache).
   await p.send("Page.reload");
@@ -99,8 +101,10 @@ try {
   await sleep(1500);
   const wipedKeys = await p.evaluate(`JSON.stringify(${keys})`);
   check(
-    "signed out: the cached user, owner, confirmation and last group are gone",
-    !/session-user|sync-owner|session-confirmed|lastGroup|settings|recentSearches/.test(wipedKeys),
+    "signed out: the cached user, owner, confirmation, last group and recent lines are gone",
+    !/session-user|sync-owner|session-confirmed|lastGroup|settings|recentSearches|recentLines/.test(
+      wipedKeys,
+    ),
     wipedKeys,
   );
   check("signed out: no message about being offline", !(await p.evaluate(statusText)).includes("offline"));
