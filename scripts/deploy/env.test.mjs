@@ -28,6 +28,7 @@ const STAGING = {
   RESEND_WEBHOOK_SECRET: `whsec_${"w".repeat(32)}`,
   MAIL_ALLOWLIST: "@caretook.com",
   SEED_USER_PASSWORD: "a-long-fictional-staging-password",
+  CLIENT_IP_HEADER: "x-vercel-forwarded-for",
 };
 
 describe("pnpm deploy:env", () => {

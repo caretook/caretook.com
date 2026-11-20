@@ -7,6 +7,8 @@ import { deviceCommands } from "./apps/web/test/commands.ts";
 //   data:unit    pure functions, no database (packages/data *.test.ts)
 //   web:unit     pure apps/web logic (apps/web/app *.test.ts)
 //   notifications:unit  templates, links and the allowlist (packages/notifications *.test.ts)
+//   server:unit  packages/auth and packages/api's pure parts (*.test.ts): origins,
+//                the client IP, /rpc's CORS answer; no database
 //   scripts:unit repo tooling (scripts/**/*.test.mjs): the backlog and git
 //                hooks, against throwaway git repos in the OS temp dir
 //   integration  real Postgres, every package (*.int.test.ts): the test
@@ -61,6 +63,15 @@ export default defineConfig({
           root: "./packages/notifications",
           include: ["src/**/*.test.ts"],
           exclude: ["src/**/*.int.test.ts"],
+        },
+      },
+      {
+        // @caretook/auth and @caretook/api without a database: what imports
+        // no db call (host.ts, the /rpc handler's CORS answer).
+        test: {
+          name: "server:unit",
+          include: ["packages/auth/src/**/*.test.ts", "packages/api/src/**/*.test.ts"],
+          exclude: ["**/*.int.test.ts"],
         },
       },
       {

@@ -182,6 +182,9 @@ apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe session
 apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell providers
 apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
 apps/web/app/lib/sync/schema.ts          roundtrip live-notes providers phase2
+# Trusted origins and the client IP (hosting slice 8): Better Auth's sign-in
+# and limits, and the public forms' limit on /rpc.
+packages/auth/src/host.ts                sign-in marketing
 packages/auth/src/*                      sign-in first-sync signout-wipe invites
 apps/web/app/components/shell/*          first-sync
 

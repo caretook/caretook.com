@@ -18,9 +18,7 @@ import {
 import { getAuthConfig } from "./config";
 import { isDisabledEmail, isDisabledUser, noSession, wrongCode, wrongPassword } from "./disabled";
 import { sendResetPassword, sendSignInEmail, sendVerificationEmail, sendVerificationOTP } from "./emails";
-
-// Capacitor's WebView origins. The native app talks to the web server's /api/auth.
-const NATIVE_ORIGINS = ["capacitor://localhost", "https://localhost"];
+import { allowedOrigins, clientIpHeader } from "./host";
 
 // The email-OTP plugin's endpoints we don't use: a code only signs in.
 // Resets go through the emailed link, and verification through its own link.
@@ -61,10 +59,15 @@ const refuseDisabledSignIn = createAuthMiddleware(async (ctx) => {
 /**
  * A new Better Auth instance. The app uses `getAuth()`'s one; tests make
  * more (two instances stand for two serverless instances), and
- * `rateLimitEnabled` turns the limits on outside production.
+ * `rateLimitEnabled` turns the limits on outside production. `originCheck`
+ * turns on the Origin check Better Auth skips under `NODE_ENV=test`.
  */
-export const createAuth = ({ rateLimitEnabled }: { rateLimitEnabled?: boolean } = {}) => {
-  const { secret, baseURL, trustedOrigins, powersyncURL } = getAuthConfig();
+export const createAuth = ({
+  rateLimitEnabled,
+  originCheck,
+}: { rateLimitEnabled?: boolean; originCheck?: boolean } = {}) => {
+  const { secret, baseURL, powersyncURL } = getAuthConfig();
+  const ipHeader = clientIpHeader();
   if (!secret) throw new Error("BETTER_AUTH_SECRET is not set");
 
   // Set once the instance exists: the email's code comes from its own
@@ -75,7 +78,8 @@ export const createAuth = ({ rateLimitEnabled }: { rateLimitEnabled?: boolean } 
     appName: "Caretook",
     secret,
     baseURL,
-    trustedOrigins: [...NATIVE_ORIGINS, ...trustedOrigins],
+    // The native app (its WebView talks to /api/auth) only with NATIVE_APP_ORIGINS=1.
+    trustedOrigins: allowedOrigins(),
     database: drizzleAdapter(getDb(), {
       provider: "pg",
       schema: {
@@ -98,6 +102,10 @@ export const createAuth = ({ rateLimitEnabled }: { rateLimitEnabled?: boolean } 
     advanced: {
       // Our tables use uuid ids with gen_random_uuid() defaults.
       database: { generateId: "uuid" },
+      // The limits key on the host's client-IP header (CLIENT_IP_HEADER), as
+      // /rpc's do (host.ts); unset, Better Auth's default, x-forwarded-for.
+      ...(ipHeader ? { ipAddress: { ipAddressHeaders: [ipHeader] } } : {}),
+      ...(originCheck === undefined ? {} : { disableOriginCheck: !originCheck }),
     },
     disabledPaths: UNUSED_OTP_PATHS,
     hooks: { before: refuseDisabledSignIn },

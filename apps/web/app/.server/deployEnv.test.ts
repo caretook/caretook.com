@@ -34,6 +34,7 @@ const base = (target: DeployTarget) => {
     CRON_SECRET: SECRET,
     INVITE_LINK_KEY: SECRET,
     RESEND_WEBHOOK_SECRET: `whsec_${"w".repeat(32)}`,
+    CLIENT_IP_HEADER: "x-vercel-forwarded-for",
   } as Record<string, string | undefined>;
 };
 const valid = {
@@ -74,6 +75,7 @@ describe("checkDeployEnv", () => {
       "CRON_SECRET",
       "INVITE_LINK_KEY",
       "RESEND_WEBHOOK_SECRET",
+      "CLIENT_IP_HEADER",
       ...(target === "staging" ? ["MAIL_ALLOWLIST", "SEED_USER_PASSWORD"] : []),
     ];
     for (const name of required) {
@@ -89,6 +91,21 @@ describe("checkDeployEnv", () => {
 
   it("knows every variable it checks", () => {
     for (const name of Object.keys(valid.staging)) expect(DEPLOY_ENV_VARIABLES).toContain(name);
+    expect(DEPLOY_ENV_VARIABLES).toContain("NATIVE_APP_ORIGINS");
+  });
+
+  it.each(TARGETS)("needs CLIENT_IP_HEADER to be one header name (%s)", (target) => {
+    expect(variables(target, { CLIENT_IP_HEADER: "X-Vercel-Forwarded-For" })).toEqual([]);
+    for (const bad of ["x-vercel-forwarded-for, x-forwarded-for", "x vercel", "x-real-ip:"])
+      expect(variables(target, { CLIENT_IP_HEADER: bad }), bad).toEqual(["CLIENT_IP_HEADER"]);
+  });
+
+  it.each(TARGETS)("takes NATIVE_APP_ORIGINS unset or 1, nothing else (%s)", (target) => {
+    expect(variables(target, { NATIVE_APP_ORIGINS: undefined })).toEqual([]);
+    expect(variables(target, { NATIVE_APP_ORIGINS: "" })).toEqual([]);
+    expect(variables(target, { NATIVE_APP_ORIGINS: "1" })).toEqual([]);
+    for (const bad of ["0", "true", "yes", "capacitor://localhost"])
+      expect(variables(target, { NATIVE_APP_ORIGINS: bad }), bad).toEqual(["NATIVE_APP_ORIGINS"]);
   });
 
   it.each(TARGETS)("needs APP_ENV to name the target (%s)", (target) => {

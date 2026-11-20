@@ -55,6 +55,7 @@ const REQUIRED = [
   "CRON_SECRET",
   "INVITE_LINK_KEY",
   "RESEND_WEBHOOK_SECRET",
+  "CLIENT_IP_HEADER",
 ] as const;
 
 /**
@@ -70,6 +71,7 @@ export const DEPLOY_ENV_VARIABLES: readonly string[] = [
   ...REQUIRED_STAGING,
   ...REQUIRED_STAGING_DEPLOY,
   "MIGRATIONS_DATABASE_URL",
+  "NATIVE_APP_ORIGINS",
 ];
 
 export const isDeployTarget = (value: string | undefined): value is DeployTarget =>
@@ -197,6 +199,15 @@ export function checkDeployEnv(
         problem("DATABASE_URL", "must not be the migrations role");
     }
   }
+
+  // The client IP (hosting slice 8): the host's own header, which a client
+  // can't set (x-vercel-forwarded-for on Vercel). One header name.
+  if (has("CLIENT_IP_HEADER") && !/^[a-z0-9-]+$/i.test(value(env, "CLIENT_IP_HEADER")))
+    problem("CLIENT_IP_HEADER", "must be one header name");
+
+  // The native app's origins: off (unset) until the app ships, or exactly 1.
+  if (has("NATIVE_APP_ORIGINS") && value(env, "NATIVE_APP_ORIGINS") !== "1")
+    problem("NATIVE_APP_ORIGINS", 'must be unset or "1"');
 
   // The seed's accounts on a public staging need a secret password.
   if (target === "staging" && has("SEED_USER_PASSWORD")) {
