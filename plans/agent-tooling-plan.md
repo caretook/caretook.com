@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State                                          | Merge into `prd/agent-tooling` (slice commits)        |
-| ----- | ---- | ---------------------------------------------- | ----------------------------------------------------- |
-| 1     | 1    | landed (wave 1, cff4d2f) (opus)                | 8d10f6b (9faf638)                                     |
-| 2     | 1    | landed (wave 1, cff4d2f) (sonnet)              | a23e77c (52a8503)                                     |
-| 3     | 1    | landed (wave 1, cff4d2f) (sonnet)              | 5ba5669 (bc6bd87)                                     |
-| 4     | 2    | landed (wave 2; opus)                          | 84809ac (931f2dd, d1a324c)                            |
-| 5     | 3    | merged (sonnet)                                | df24172 (47950e2, ed9359a, b9c24f2, 727e640, 1225d8c) |
-| 6     | 3    | started (worktree made, agent spawned; sonnet) |                                                       |
+| Slice | Wave | State                             | Merge into `prd/agent-tooling` (slice commits)        |
+| ----- | ---- | --------------------------------- | ----------------------------------------------------- |
+| 1     | 1    | landed (wave 1, cff4d2f) (opus)   | 8d10f6b (9faf638)                                     |
+| 2     | 1    | landed (wave 1, cff4d2f) (sonnet) | a23e77c (52a8503)                                     |
+| 3     | 1    | landed (wave 1, cff4d2f) (sonnet) | 5ba5669 (bc6bd87)                                     |
+| 4     | 2    | landed (wave 2; opus)             | 84809ac (931f2dd, d1a324c)                            |
+| 5     | 3    | merged (sonnet)                   | df24172 (47950e2, ed9359a, b9c24f2, 727e640, 1225d8c) |
+| 6     | 3    | merged (sonnet)                   | 564f46b (16f706b, 57b5b80)                            |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
 
