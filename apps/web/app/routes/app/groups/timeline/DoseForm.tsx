@@ -28,6 +28,8 @@ type Props = {
       warningsFor?: (planned: PlannedDose) => string[];
       /** What to fill it in with (quick entry's Edit). */
       draft?: DoseDraft | null;
+      /** When it starts at (an ISO time, a past day's +), unless the draft has a time; now when left out. */
+      initialAt?: string | null;
       entry?: never;
       medicationName?: never;
     }
@@ -40,6 +42,7 @@ type Props = {
       initialOption?: never;
       warningsFor?: never;
       draft?: never;
+      initialAt?: never;
     }
 );
 
@@ -141,7 +144,7 @@ export function DoseForm(props: Props) {
       <DateTimeField
         name="occurredAt"
         label="When"
-        defaultValue={entry?.occurredAt ?? draft?.occurredAt}
+        defaultValue={entry?.occurredAt ?? draft?.occurredAt ?? props.initialAt ?? undefined}
         error={issueFor(issues, "occurredAt")}
       />
 

@@ -8,11 +8,13 @@ import { useGroup } from "~/lib/group";
 import { currentLineText, periodTypeMeta } from "~/lib/periodDisplay";
 import { PERIOD_SHEET_STATE } from "~/lib/periodSheets";
 import { useNow } from "~/lib/sync/editors";
+import { QuickAddMenu } from "./QuickAddMenu";
 import { dayKeyIn } from "./timelineDays";
 
 /**
  * A day section's sticky header: the day's heading ("Today", "Monday, Nov
- * 16") and, beside it, the care period that covers the day (`DayPeriod`).
+ * 16") with, for writers, its + menu (`QuickAddMenu`: adds start on that
+ * day), and beside them the care period that covers the day (`DayPeriod`).
  * The heading names the section (`day-<key>`); the period isn't part of it.
  * Simple mode shows the heading only.
  */
@@ -33,15 +35,19 @@ export function DayHeader({
   periods: TimelinePeriods;
   simple?: boolean;
 }) {
+  const { canWrite } = useGroup();
   const today = dayKey === dayKeyIn(new Date().toISOString(), localTimeZone());
   return (
     <div
       className="bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-x-3 px-1 py-2 backdrop-blur"
       data-day-header=""
     >
-      <h3 id={`day-${dayKey}`} className="text-base font-semibold lg:text-lg">
-        {label}
-      </h3>
+      <div className="flex items-center gap-2">
+        <h3 id={`day-${dayKey}`} className="text-base font-semibold lg:text-lg">
+          {label}
+        </h3>
+        {canWrite && !simple && <QuickAddMenu groupId={groupId} dayKey={dayKey} label={label} />}
+      </div>
       {simple ? null : today ? (
         <TodayPeriod groupId={groupId} periods={periods} />
       ) : (

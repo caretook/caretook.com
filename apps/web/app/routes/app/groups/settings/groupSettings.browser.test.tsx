@@ -423,13 +423,13 @@ describe("Members", () => {
       role: "caretaker",
       fixtures: [fx.symptom({ name: "Sore knee" })],
     });
-    await expect.element(page.getByRole("button", { name: "Add to timeline" })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "Add to Today" })).toBeVisible();
     const [mine] = await device.query<{ id: string }>("SELECT id FROM care_group_member WHERE user_id = ?", [
       TEST_USER.id,
     ]);
     await device.sync(fx.member({ id: mine!.id, userId: TEST_USER.id, role: "viewer" }));
     await device.settle();
-    await expect.element(page.getByRole("button", { name: "Add to timeline" })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: /^Add to / })).not.toBeInTheDocument();
     expect(
       document.querySelectorAll('main ol button[aria-label^="Actions"], main ol [aria-label^="Edit "]'),
     ).toHaveLength(0);
