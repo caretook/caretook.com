@@ -10,7 +10,7 @@
 | ----- | ---- | ------------------------- | ---------------------------------------- |
 | 1     | 1    | started (worktree, agent) |                                          |
 | 2     | 1    | started (worktree, agent) |                                          |
-| 3     | 1    | started (worktree, agent) |                                          |
+| 3     | 1    | handed off                | (6179cd8)                                |
 | 4     | 2    | blocked by 3              |                                          |
 | 5     | 2    | blocked by 1, 2           |                                          |
 | 8     | 2    | blocked by 1, 3           |                                          |
