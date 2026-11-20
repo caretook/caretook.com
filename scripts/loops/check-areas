@@ -461,3 +461,8 @@ apps/web/app/lib/sync/tasks.ts           -
 # The task page (slice 2): component tests (routes/app/groups/task/task.browser.test.tsx);
 # its wording has unit tests, task documents are integration tests.
 apps/web/app/routes/app/groups/task/*    -
+# My tasks in simple mode (tasks PRD slice 6): the card (timeline/SimpleTasks.tsx
+# and useSimpleTasks.ts, under timeline/*) is a component test
+# (timeline/timelineSimpleTasks.browser.test.tsx).
+apps/web/app/routes/app/groups/timeline/SimpleTasks.tsx -
+apps/web/app/routes/app/groups/timeline/useSimpleTasks.ts -
