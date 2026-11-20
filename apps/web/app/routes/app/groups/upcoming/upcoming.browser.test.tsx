@@ -59,10 +59,12 @@ afterEach(() => {
 });
 
 describe("the section", () => {
-  test("at 420 the tab bar's Upcoming is current on its page; at 1280 the header's links end with it, current; on Past the section is still Upcoming", async () => {
+  // Later sections (Tasks) follow Upcoming, so find it by name.
+  const upcomingLink = (nav: string) => sectionLinks(nav).find(([name]) => name === "Upcoming");
+  test("at 420 the tab bar lists Upcoming after Medications, current on its page; at 1280 the header's link is current; on Past the section is still Upcoming", async () => {
     await openUpcoming({ frame: true });
     await expect
-      .poll(() => sectionLinks(TAB_BAR))
+      .poll(() => sectionLinks(TAB_BAR).slice(0, 4))
       .toEqual([
         ["Timeline", null],
         ["Providers", null],
@@ -70,12 +72,12 @@ describe("the section", () => {
         ["Upcoming", "page"],
       ]);
     await page.viewport(1280, 900);
-    await expect.poll(() => sectionLinks(HEADER_NAV).at(-1)).toEqual(["Upcoming", "page"]);
+    await expect.poll(() => upcomingLink(HEADER_NAV)).toEqual(["Upcoming", "page"]);
     await page.viewport(420, 900);
 
     await userEvent.click(tab("Past"));
     await expect.element(page.getByText("Hearing test")).toBeInTheDocument();
-    expect(sectionLinks(TAB_BAR).at(-1)).toEqual(["Upcoming", "true"]);
+    expect(upcomingLink(TAB_BAR)).toEqual(["Upcoming", "true"]);
   });
 });
 
