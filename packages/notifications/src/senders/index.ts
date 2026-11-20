@@ -29,7 +29,7 @@ export const createSender = (config: MailConfig): Sender => {
     case "resend": {
       // getMailConfig refuses resend without a key.
       const resend = createResendSender({ apiKey: config.resendApiKey ?? "" });
-      return config.production ? resend : withAllowlist(resend, settingsAllowlist(config.allowlist));
+      return config.allowlisted ? withAllowlist(resend, settingsAllowlist(config.allowlist)) : resend;
     }
   }
 };

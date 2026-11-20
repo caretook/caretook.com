@@ -17,6 +17,15 @@ export const DB_ERRORS = {
   "db:seed:production": {
     message: "Refusing to seed a production database",
   },
+  "db:seed:notLocal": {
+    message: "Refusing to seed a database that isn't on localhost (set APP_ENV=staging for staging)",
+  },
+  "db:seed:password": {
+    message: "Refusing to seed staging without a secret SEED_USER_PASSWORD (not the dev default)",
+  },
+  "db:seed:appEnv": {
+    message: 'Refusing to seed: APP_ENV must be "staging" or unset',
+  },
   "db:clear": {
     message: "Failed to clear the database",
   },

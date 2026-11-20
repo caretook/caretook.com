@@ -366,6 +366,8 @@ packages/api/src/joinRequests.ts         invites
 packages/api/src/publicForms.ts          marketing
 packages/api/src/rateLimit.ts            marketing
 packages/api/src/*                       -
+# The deploy env check (hosting slice 1): unit tests; checks run with APP_ENV unset.
+apps/web/app/.server/deployEnv.ts        -
 apps/web/app/.server/*                   sign-in
 apps/web/app/routes/rpc.ts               sign-in
 
@@ -400,6 +402,8 @@ packages/data/src/db/seeds/invites.ts    invites app-shell
 packages/data/src/db/seeds/medications.ts medications
 packages/data/src/db/seeds/carePeriods.ts care-periods
 packages/data/src/db/seeds/medicationPasses.ts medications
+# The seed guard (hosting slice 1): unit and integration tests.
+packages/data/src/db/seeds/guard.ts      -
 packages/data/src/db/seeds/*             app-shell
 
 # The rest of the data layer (services, models, permissions, errors) has
@@ -450,3 +454,9 @@ apps/web/app/lib/sync/simpleMode.ts      -
 # in visit prep are lib/dueDoses.ts and lib/visitPrep.ts's unit tests. The
 # shared Undo and Given all (components/medications/*, lib/passUndo.ts,
 # lib/sync/medications.ts) keep their medications rules above.
+# Hosting (hosting slice 1): the deploy scripts have their own tests; staging's
+# noindex is unit-tested (marketing/site/seo.test.ts) and off in checks; env.d.ts
+# is types only.
+scripts/deploy/*                         -
+apps/web/app/lib/noindex.ts              -
+apps/web/app/env.d.ts                    -
