@@ -27,3 +27,6 @@ apps/web/app/lib/timeline/timelineSheet.ts roundtrip
 packages/data/src/db/schema/timeline/timelineEntry.ts phase2 roundtrip live-notes
 packages/data/src/db/schema/timeline/vitals.ts    phase2 roundtrip
 packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
+# Re-exports of the pure day helpers that moved to @caretook/data/schema (unit-tested there).
+apps/web/app/lib/core/format.ts -
+apps/web/app/lib/core/zonedDay.ts -

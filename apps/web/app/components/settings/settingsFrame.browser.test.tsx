@@ -151,7 +151,7 @@ describe("account settings", () => {
 describe("group settings", () => {
   const SETTINGS = `/app/groups/${TEST_GROUP.id}/settings`;
 
-  test("at 420: the list of Details and Members, named Group settings; Members opens alone under a back link, which returns to the list", async () => {
+  test("at 420: the list of Details, Members and Assistants, named Group settings; Members opens alone under a back link, which returns to the list", async () => {
     const device = await renderWithDevice({
       route: GROUP_ROUTES,
       url: SETTINGS,
@@ -159,7 +159,7 @@ describe("group settings", () => {
     });
     expect(headings()).toEqual(["Group settings"]);
     expect(nav().getAttribute("aria-label")).toBe("Group settings");
-    expect(items()).toEqual(["Details", "Members"]);
+    expect(items()).toEqual(["Details", "Members", "Assistants"]);
     expect(shown(backLink(SETTINGS, "Group settings"))).toBe(false);
 
     await userEvent.click(nav().querySelector('[data-settings-item="members"]')!);

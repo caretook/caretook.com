@@ -7,6 +7,7 @@ describe("careGroupUrls", () => {
   it("builds a group's settings subpages, and drops an unknown one", () => {
     expect(appUrls.groupSettings(G, "details")).toBe(`/app/groups/${G}/settings/details`);
     expect(appUrls.groupSettings(G, "members")).toBe(`/app/groups/${G}/settings/members`);
+    expect(appUrls.groupSettings(G, "assistants")).toBe(`/app/groups/${G}/settings/assistants`);
     // @ts-expect-error: only the listed subpages exist.
     expect(appUrls.groupSettings(G, "bogus")).toBe(`/app/groups/${G}/settings`);
   });

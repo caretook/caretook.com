@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayLabel } from "./format";
+import { dayLabel } from "./dayLabel";
 
 const LA = "America/Los_Angeles";
 /** Every case passes its own `now`; nothing here reads the clock. */

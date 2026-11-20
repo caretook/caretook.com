@@ -228,6 +228,8 @@ export type TimelineListOptions = IncludeDeleted & {
   from?: string;
   /** Exclusive upper bound on occurredAt (ISO 8601). */
   to?: string;
+  /** Only entries this member wrote (`created_by`). */
+  authorId?: string;
   cursor?: string | null;
   limit?: number;
 };
@@ -239,7 +241,7 @@ export type TimelineListOptions = IncludeDeleted & {
  */
 export const list = async (
   ctx: ServiceContext,
-  { groupId, kinds, from, to, ...opts }: TimelineListOptions,
+  { groupId, kinds, from, to, authorId, ...opts }: TimelineListOptions,
 ) => {
   const range = [
     ...(from ? [{ type: "gte" as const, value: from }] : []),
@@ -248,6 +250,7 @@ export const list = async (
   const filter: Filter<K> = {
     groupId: { type: "eq", value: groupId },
     ...(kinds?.length ? { kind: { type: "inArray", value: kinds } } : {}),
+    ...(authorId ? { createdBy: { type: "eq", value: authorId } } : {}),
     ...(range.length ? { occurredAt: { type: "and", value: range } } : {}),
   };
   const page = await timelineEntryModel.listPage({ ...ctx, ...opts, filter });
@@ -264,8 +267,15 @@ export const latestVitals = (ctx: ServiceContext, { groupId }: { groupId: string
 // Writes
 // ---------------------------------------------------------------------------
 
+/**
+ * Server-only write options, never from a device: `via` is the assistant an
+ * entry was written through ("Claude"; connectors PRD), set only by
+ * `assistantActionService.run`.
+ */
+export type EntryWriteOptions = { via?: string | null };
+
 /** Add an entry. Content is validated per kind; `id` may come from an offline client. */
-export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput) =>
+export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opts: EntryWriteOptions = {}) =>
   withTransaction(async (tx) => {
     const parsed = timelineEntryCreateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -295,6 +305,7 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput) =>
         cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
         recipientId: resolved,
         details: details ?? null,
+        ...(opts.via ? { via: opts.via } : {}),
       },
     });
   }, ctx);

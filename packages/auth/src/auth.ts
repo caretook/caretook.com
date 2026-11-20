@@ -17,6 +17,12 @@ import {
   verificationSchema,
 } from "@caretook/data";
 import { getAuthConfig } from "./config";
+import {
+  CONNECTOR_DISABLED_PATHS,
+  connectorAuthSchema,
+  connectorOAuthProvider,
+  connectorTokens,
+} from "./connectors";
 import { isDisabledEmail, isDisabledUser, noSession, wrongCode, wrongPassword } from "./disabled";
 import { sendResetPassword, sendSignInEmail, sendVerificationEmail, sendVerificationOTP } from "./emails";
 import { allowedOrigins, clientIpHeader } from "./host";
@@ -114,6 +120,7 @@ export const createAuth = ({
         verification: verificationSchema,
         jwks: jwksSchema,
         rateLimit: rateLimitSchema,
+        ...connectorAuthSchema,
       },
     }),
     // Better Auth's limits (on only with NODE_ENV=production, check builds
@@ -132,7 +139,7 @@ export const createAuth = ({
       ...(ipHeader ? { ipAddress: { ipAddressHeaders: [ipHeader] } } : {}),
       ...(originCheck === undefined ? {} : { disableOriginCheck: !originCheck }),
     },
-    disabledPaths: UNUSED_OTP_PATHS,
+    disabledPaths: [...UNUSED_OTP_PATHS, ...CONNECTOR_DISABLED_PATHS],
     hooks: { before: beforeHooks },
     // A disabled account never gets a session, by any path (password, link,
     // code, verification's auto sign-in): the answer is a wrong password's.
@@ -230,6 +237,9 @@ export const createAuth = ({
           },
         },
       }),
+      // Members' own AI assistants (connectors PRD): OAuth 2.1 for /mcp.
+      connectorOAuthProvider(baseURL ?? "http://localhost:5173"),
+      connectorTokens(baseURL ?? "http://localhost:5173"),
     ],
   });
   createSignInCode = (email) => instance.api.createVerificationOTP({ body: { email, type: "sign-in" } });

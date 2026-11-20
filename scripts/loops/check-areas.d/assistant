@@ -17,3 +17,4 @@ apps/web/app/lib/assistant/useSimpleMode.ts app-shell
 # one note_update like typing): component tests
 # (components/visitPrep/visitPrep.browser.test.tsx).
 apps/web/app/components/visitPrep/*      -
+apps/web/app/lib/assistant/quickEntryPreview.ts -

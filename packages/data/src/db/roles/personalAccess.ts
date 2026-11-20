@@ -32,16 +32,29 @@ export const PERSONAL_ACCESS_EXCLUDED = [
   "notification_outbox.text",
   "dev_mail.html",
   "dev_mail.text",
+  // The OAuth provider plugin (connectors): access and refresh tokens (hashed,
+  // plus a rotated refresh token's replayable response), and client secrets.
+  "oauth_access_token",
+  "oauth_refresh_token",
+  "oauth_client.client_secret",
 ] as const;
 
 /** A table or column name that looks like it holds a secret. */
 export const SECRET_LOOKING = /token|secret|hash|password|private/i;
 
 /**
- * Secret-looking names that are deliberately readable, with why. Empty for
- * now: add `table.column` here only when the name misleads.
+ * Secret-looking names that are deliberately readable, with why: add
+ * `table.column` here only when the name misleads.
  */
-export const PERSONAL_ACCESS_ALLOWED: readonly string[] = [];
+export const PERSONAL_ACCESS_ALLOWED: readonly string[] = [
+  // The OAuth plugin's settings, not tokens: how a client authenticates,
+  // whether tokens are sender-bound, and token lifetimes.
+  "oauth_client.token_endpoint_auth_method",
+  "oauth_client.dpop_bound_access_tokens",
+  "oauth_resource.access_token_ttl",
+  "oauth_resource.refresh_token_ttl",
+  "oauth_resource.dpop_bound_access_tokens_required",
+];
 
 const excludedTables = () => new Set<string>(PERSONAL_ACCESS_EXCLUDED.filter((e) => !e.includes(".")));
 const excludedColumns = () => new Set<string>(PERSONAL_ACCESS_EXCLUDED.filter((e) => e.includes(".")));

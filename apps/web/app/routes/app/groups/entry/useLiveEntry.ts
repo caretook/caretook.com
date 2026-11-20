@@ -36,6 +36,8 @@ export type LiveEntry = {
     cancelReason: string | null;
     /** A cancelled event's new one, after a reschedule that kept it. */
     rescheduledTo: string | null;
+    /** The member's AI assistant it was added through ("Claude"), or null. */
+    via: string | null;
   };
   /** Whether the entry is stored (false while it's a draft). */
   stored: boolean;
@@ -214,6 +216,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       cancelledBy: live?.cancelledBy ?? null,
       cancelReason: live?.cancelReason ?? null,
       rescheduledTo: live?.rescheduledTo ?? null,
+      via: live?.via ?? null,
     },
     stored: !!live,
     isNew,

@@ -154,10 +154,17 @@ export const list = (ctx: ServiceContext, { groupId, ...opts }: IncludeDeleted &
 // ---------------------------------------------------------------------------
 
 /**
+ * Server-only write options, never from a device: `via` is the assistant a
+ * task was added through ("Claude"; connectors PRD), set only by
+ * `assistantActionService.run`.
+ */
+export type TaskWriteOptions = { via?: string | null };
+
+/**
  * Add a task. `id` may come from an offline device; creating one that
  * exists returns it (a replay). Writers only.
  */
-export const create = (ctx: ServiceContext, input: TaskCreateInput) =>
+export const create = (ctx: ServiceContext, input: TaskCreateInput, opts: TaskWriteOptions = {}) =>
   withTransaction(async (tx) => {
     const parsed = taskCreateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -186,7 +193,11 @@ export const create = (ctx: ServiceContext, input: TaskCreateInput) =>
     const links = await checkLinks(ctx, tx, data.groupId, data);
     if (links) return links;
 
-    return taskModel.create({ ...ctx, tx, data: { ...data, recipientId: recipient.id } });
+    return taskModel.create({
+      ...ctx,
+      tx,
+      data: { ...data, recipientId: recipient.id, ...(opts.via ? { via: opts.via } : {}) },
+    });
   }, ctx);
 
 /**

@@ -9,7 +9,9 @@ import { OFFLINE_DEVICES } from "./devices";
 
 // Account settings → Devices (devices.mjs's screen steps, B-124): the list,
 // Sign out on one device and everywhere else, and the offline notice, against
-// a stand-in for Better Auth's session calls. That a signed-out device's next
+// a stand-in for Better Auth's session calls. Then the connected assistants
+// (connectors slice 5), against a stand-in for `connector.listMine` and
+// `connector.revoke`. That a signed-out device's next
 // session check goes to sign-in, on a real server, is session-end.mjs's.
 
 const URL = "/app/settings/devices";
@@ -29,6 +31,17 @@ const WINDOWS =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0";
 
 type Session = { id: string; token: string; userAgent: string; createdAt: string; updatedAt: string };
+type Connection = {
+  id: string;
+  userId: string;
+  groupId: string;
+  groupName: string | null;
+  clientName: string;
+  redirectHost: string;
+  scope: "read" | "readWrite";
+  consentedAt: string;
+  lastUsedAt: string | null;
+};
 
 const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
 const session = (id: string, userAgent: string, minutesAgo: number): Session => ({
@@ -39,10 +52,12 @@ const session = (id: string, userAgent: string, minutesAgo: number): Session => 
   updatedAt: ago(minutesAgo),
 });
 
-/** Better Auth's session calls, as far as the page uses them, over a list of sessions. */
-const authServer = (sessions: Session[], currentId: string) => {
+/** Better Auth's session calls, as far as the page uses them, over a list of sessions (and the member's connections). */
+const authServer = (sessions: Session[], currentId: string, connections: Connection[] = []) => {
   const server = {
     sessions,
+    connections,
+    disconnected: [] as string[],
     online: true,
     revoked: [] as string[],
     othersRevoked: 0,
@@ -71,6 +86,15 @@ const authServer = (sessions: Session[], currentId: string) => {
       server.othersRevoked++;
       server.sessions = server.sessions.filter((s) => s.id === currentId);
       return { status: true };
+    },
+    "connector.listMine": () => (up(), server.connections),
+    "connector.revoke": (input) => {
+      up();
+      const { grantId } = input as { grantId: string };
+      const gone = server.connections.find((c) => c.id === grantId);
+      server.disconnected.push(grantId);
+      server.connections = server.connections.filter((c) => c.id !== grantId);
+      return gone;
     },
   };
   return server;
@@ -204,5 +228,93 @@ describe("the Devices page", () => {
     window.dispatchEvent(new Event("online"));
     await expect.poll(() => rows().map((r) => r.id)).toEqual(["this", "phone"]);
     expect(document.querySelector("[data-needs-connection]")).toBeNull();
+  });
+});
+
+const connection = (
+  id: string,
+  clientName: string,
+  groupName: string,
+  v: Partial<Connection> = {},
+): Connection => ({
+  id,
+  userId: "u",
+  groupId: `group-${groupName}`,
+  groupName,
+  clientName,
+  redirectHost: "assistant.example.com",
+  scope: "readWrite",
+  consentedAt: ago(3 * 24 * 60),
+  lastUsedAt: ago(30),
+  ...v,
+});
+
+const CLAUDE = connection("c1", "Claude", "Grandma June");
+const CHATGPT = connection("c2", "ChatGPT", "Uncle Ray", { scope: "read", lastUsedAt: null });
+
+const assistants = () => page.getByRole("region", { name: "Connected assistants" });
+const connectionRows = () =>
+  [...document.querySelectorAll<HTMLElement>("li[data-connection]")].map((li) => li.textContent.trim());
+// The connections' own confirm (the sessions' comes first in the page).
+const aDialog = () =>
+  document.querySelector<HTMLDialogElement>('section[data-section="connected-assistants"] dialog');
+const aDialogButton = (name: string) =>
+  [...(aDialog()?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === name)!;
+const assistantsStatus = () =>
+  document
+    .querySelector('section[data-section="connected-assistants"] [role="status"]')
+    ?.textContent.trim() ?? "";
+
+describe("the Devices page's connected assistants", () => {
+  test("come after the sessions: client, group, scope, connected and last used", async () => {
+    const server = authServer([THIS], THIS.id, [CLAUDE, CHATGPT]);
+    await open(server);
+    await expect.poll(connectionRows).toHaveLength(2);
+    const [claude, chatgpt] = connectionRows();
+    expect(claude).toMatch(/^Claude · Grandma June/);
+    expect(claude).toMatch(/Read and add entries · Connected .+ · Last used /);
+    expect(chatgpt).toMatch(/^ChatGPT · Uncle Ray/);
+    expect(chatgpt).toMatch(/Read only · Connected .+ · Not used yet/);
+    // After the sessions' card.
+    const devicesList = document.querySelector("ul[data-devices]")!;
+    const card = assistants().element();
+    expect(devicesList.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test("none yet says so", async () => {
+    await open(authServer([THIS], THIS.id));
+    await expect
+      .element(assistants().getByText("You haven't connected an AI assistant to a care group."))
+      .toBeVisible();
+  });
+
+  test("Disconnect asks first; Cancel keeps it, confirming removes it and says so", async () => {
+    const server = authServer([THIS], THIS.id, [CLAUDE, CHATGPT]);
+    await open(server);
+    await expect.poll(connectionRows).toHaveLength(2);
+
+    await userEvent.click(page.getByRole("button", { name: "Disconnect Claude from Grandma June" }));
+    await expect.poll(() => aDialog()?.open).toBe(true);
+    expect(aDialog()!.querySelector("h2")!.textContent.trim()).toBe("Disconnect Claude?");
+    expect(aDialog()!.textContent).toMatch(/stops reaching Grandma June at once/);
+    await userEvent.click(aDialogButton("Cancel"));
+    await expect.poll(() => aDialog()?.open).toBe(false);
+    expect(server.disconnected).toEqual([]);
+
+    await userEvent.click(page.getByRole("button", { name: "Disconnect Claude from Grandma June" }));
+    await expect.poll(() => aDialog()?.open).toBe(true);
+    await userEvent.click(aDialogButton("Disconnect"));
+    await expect.poll(assistantsStatus).toBe("Disconnected Claude from Grandma June.");
+    expect(server.disconnected).toEqual([CLAUDE.id]);
+    await expect.poll(connectionRows).toHaveLength(1);
+    expect(connectionRows()[0]).toMatch(/^ChatGPT/);
+  });
+
+  test("offline: neither list, only the notice", async () => {
+    const server = authServer([THIS], THIS.id, [CLAUDE]);
+    server.online = false;
+    await open(server);
+    await expect.element(page.getByText(OFFLINE_DEVICES)).toBeVisible();
+    expect(document.querySelector('section[data-section="connected-assistants"]')).toBeNull();
   });
 });

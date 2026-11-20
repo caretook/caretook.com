@@ -1,6 +1,6 @@
 # Connectors PRD (B-104)
 
-Status: planned (2026-11-20). Plan: [`connectors-plan.md`](connectors-plan.md).
+Status: done (2026-11-20): all seven slices landed in `dev`; decisions in [`docs/domain/connectors.md`](../docs/domain/connectors.md). Plan: [`connectors-plan.md`](connectors-plan.md).
 
 ## Problem Statement
 

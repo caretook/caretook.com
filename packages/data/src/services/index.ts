@@ -113,6 +113,23 @@ export type * from "./types";
 import * as taskService from "./taskService";
 export { taskService };
 
+import * as connectorGrantService from "./connectorGrantService";
+export { connectorGrantService };
+export type {
+  ConnectorGrantView,
+  ValidateToken,
+  ValidatedToken,
+  VerifiedConnector,
+} from "./connectorGrantService";
+
+// Not in `services`: no model of its own (assistant actions through connectors).
+import * as assistantActionService from "./assistantActionService";
+export { assistantActionService };
+export type {
+  RunOptions as AssistantRunOptions,
+  RunResult as AssistantRunResult,
+} from "./assistantActionService";
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -142,6 +159,7 @@ export const services = {
   groupAdmin: groupAdminService,
   appSetting: appSettingService,
   task: taskService,
+  connectorGrant: connectorGrantService,
 };
 
 export type ServiceTypeMap = typeof services;

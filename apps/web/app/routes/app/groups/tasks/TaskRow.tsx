@@ -4,6 +4,7 @@ import { canCompleteTask, taskState } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { TaskTick } from "~/components/tasks";
+import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { assigneeLabel, doneText, dueText } from "~/lib/tasks/taskDisplay";
@@ -70,6 +71,7 @@ export function TaskRow({
             {assignee.type === "name" && <UserRound className="size-3" aria-hidden="true" />}
             {assignee.label}
           </span>
+          <ViaTag via={task.via} />
         </p>
       </div>
     </li>

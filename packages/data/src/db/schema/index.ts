@@ -11,6 +11,7 @@ export * from "./assistant";
 export * from "./auth";
 export * from "./care-groups";
 export * from "./care-periods";
+export * from "./connectors";
 export * from "./core";
 export * from "./live-notes";
 export * from "./marketing";

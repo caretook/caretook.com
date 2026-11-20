@@ -14,7 +14,7 @@ export const content = {
       "What consumer health data Caretook collects, why, who it's shared with, and how to use your rights under Washington's My Health My Data Act.",
   },
   heading: "Consumer health data privacy notice",
-  lastUpdated: "2026-11-18",
+  lastUpdated: "2026-11-20",
   draft: true,
   intro: [
     "Caretook is built to hold health information about someone you care for. Washington's My Health My Data Act, and similar laws in other states, give people specific rights over that kind of information. This notice explains how those rights work at Caretook.",
@@ -92,6 +92,16 @@ export const content = {
           ],
         },
         "We do not have affiliates that receive consumer health data. [Review: confirm.] We do not sell consumer health data, and we do not use geofencing around health care facilities.",
+      ],
+    },
+    {
+      id: "own-assistant",
+      heading: "Connecting your own AI assistant",
+      summary:
+        "If you connect an AI assistant you already use, the health data you can see in that care group goes to the vendor you chose, under its terms. Personal contact details (members', the care recipient's, emergency contacts') are left out. It's off until a group owner turns it on, and you can disconnect in Settings, Devices.",
+      formal: [
+        "A care group member can choose to connect an AI assistant (for example Claude or ChatGPT) to one care group, but only if an owner of the group has turned this on; it is off by default. When connected, the assistant can read the consumer health data in that group that the member can see, and, if the member allows it, add entries and tasks. We do not send personal contact details: members', the care recipient's or emergency contacts' (a provider's business phone, address and website can be sent). The data goes to the AI vendor the member chose, under that vendor's terms, not ours. Before connecting, the member agrees to this in a separate statement, and we keep a record of that consent, the connection, and when it was last used. We do not keep a record of what the assistant read.",
+        "You can withdraw consent by disconnecting the assistant in Settings, Devices; a group's owners and admins can disconnect any member's assistant, and an owner can turn the feature off for the whole group. This stops further access but does not delete what the vendor already received: use the vendor's own controls for that. See [Consent](#consent) and our [Privacy policy](/privacy#own-assistant).",
       ],
     },
     {
