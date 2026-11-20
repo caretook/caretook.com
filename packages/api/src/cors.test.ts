@@ -11,7 +11,7 @@ const preflight = (env: Record<string, string | undefined>, origin: string) =>
       method: "OPTIONS",
       headers: { origin, "access-control-request-method": "POST" },
     }),
-    null,
+    () => Promise.resolve(null),
   );
 
 describe("/rpc CORS for the native app", () => {

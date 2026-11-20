@@ -4,7 +4,7 @@ The components area's rules and decisions. An orchestrator folds a landing's las
 
 ## Layout
 
-- **`ui/`** holds primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `Sheet`, `Popover`, `ConfirmDialog`, `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`. **Only `ui/` imports `react-aria-components`.**
+- **`ui/`** holds primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `Sheet`, `Popover`, `ConfirmDialog`, `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast` (`role="status"`, above the tab bar). **Only `ui/` imports `react-aria-components`.**
   - `ui/tooltip/` and `ui/date/` (`DateTimeField`, which clamps a month or year step onto a shorter month to its last day) have their own indexes, so the date picker (~42 KB) and tooltip stay off pages that don't use them.
   - `ui/plain` is the light entry for pages that must not load React Aria (below).
   - `ComboBox` takes data in (`options`, a controlled `inputValue`, `onSelect`, an optional `onCreate` last option); the caller filters.

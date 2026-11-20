@@ -29,11 +29,68 @@ const parse = (raw: string | null): string[] => {
   }
 };
 
+/** The words before a number are a vital's key ("bp", "blood sugar"); a unit or time word after one isn't. */
+const GLUE = /^(mmhg|bpm|lbs?|kg|f|c|°f|°c|%|mg\/dl|mmol\/l|at|am|pm|ago)$/i;
+const NUMBER = /^[<>~]?\d/;
+
+/** A vital part's keys only: "bp 130/85 hr 72" → "bp hr". Empty when it names none. */
+const vitalKeys = (text: string): string => {
+  const keys: string[] = [];
+  let pending: string[] = [];
+  for (const word of text.replace(/^\s*v:\s*/i, "").split(/\s+/)) {
+    if (NUMBER.test(word)) {
+      if (pending.length) keys.push(pending.join(" "));
+      pending = [];
+    } else if (word && !GLUE.test(word)) pending.push(word);
+  }
+  return keys.join(" ");
+};
+
+type ParsedPart = { text: string; readings: readonly { kind: string }[] };
+
+/**
+ * What to remember of a saved line, given its parts as read (the reading
+ * shown for each first). Nothing for a note or an event; a vital's keys only
+ * ("bp hr ", with a trailing space, which both leaves the cursor ready for the
+ * numbers and marks the line as reduced already); anything else as typed. A mixed line keeps its other parts and
+ * the vitals' keys, and loses its notes and events. Pure.
+ */
+export const recentLineFor = (line: string, parsed: readonly ParsedPart[]): string => {
+  const kinds = parsed.map((p) => p.readings[0]?.kind);
+  if (!kinds.some((k) => k === "vital" || k === "note" || k === "event")) return normalizeLine(line);
+  const pieces = parsed.flatMap((part, i) => {
+    const kind = kinds[i];
+    if (kind === "note" || kind === "event") return [];
+    if (kind === "vital") {
+      const keys = vitalKeys(part.text);
+      return keys ? [{ text: keys, vital: true }] : [];
+    }
+    const text = normalizeLine(part.text);
+    return text ? [{ text, vital: false }] : [];
+  });
+  if (!pieces.length) return "";
+  return pieces.map((p) => p.text).join(", ") + (pieces.some((p) => p.vital) ? " " : "");
+};
+
+/** Stored lines as they're offered: each reduced by `recentLineFor` (so old notes and full vitals shrink or go), repeats merged. */
+export const reduceRecentLines = (
+  lines: readonly string[],
+  parse: (line: string) => readonly ParsedPart[],
+): string[] =>
+  lines
+    .reduceRight<string[]>((acc, line) => {
+      // A trailing space marks a line reduced already (it has vital keys): keep it.
+      const reduced = /\S\s$/.test(line) ? line : recentLineFor(line, parse(line));
+      return reduced ? withRecentLine(acc, reduced) : acc;
+    }, [])
+    .slice(0, RECENT_LINES_MAX);
+
 /** `line` first, then the earlier ones without it (case and spacing ignored), at most eight. Pure. */
 export const withRecentLine = (recent: readonly string[], line: string): string[] => {
-  const kept = normalizeLine(line);
-  if (!kept) return [...recent];
-  const key = kept.toLowerCase();
+  // A trailing space marks a keys-only line ("bp hr "); the rest is trimmed.
+  const kept = normalizeLine(line) + (/\S\s$/.test(line) ? " " : "");
+  if (!kept.trim()) return [...recent];
+  const key = normalizeLine(kept).toLowerCase();
   return [kept, ...recent.filter((r) => normalizeLine(r).toLowerCase() !== key)].slice(0, RECENT_LINES_MAX);
 };
 

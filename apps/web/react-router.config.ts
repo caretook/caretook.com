@@ -1,3 +1,6 @@
+import { spawnSync } from "node:child_process";
+import { join } from "node:path";
+
 import type { Config } from "@react-router/dev/config";
 import { vercelPreset } from "@vercel/react-router/vite";
 
@@ -10,6 +13,17 @@ import { isNative } from "./build-target";
 // builds keep build/web/server/index.js for react-router-serve; native has no server.
 const onVercel = !isNative && Boolean(process.env.VERCEL);
 
+// The service worker (B-144), web builds only: after the build, write
+// client/sw.js with its precache list (scripts/build/service-worker.mjs).
+// Vercel's preset has a buildEnd too; React Router runs both.
+const writeServiceWorker: NonNullable<Config["buildEnd"]> = ({
+  reactRouterConfig: { appDirectory, buildDirectory },
+}) => {
+  const script = join(appDirectory, "../../../scripts/build/service-worker.mjs");
+  const run = spawnSync(process.execPath, [script, join(buildDirectory, "client")], { stdio: "inherit" });
+  if (run.status !== 0) throw new Error("writing the service worker (sw.js) failed");
+};
+
 export default {
   ssr: !isNative,
   buildDirectory: isNative ? "build/native" : "build/web",
@@ -21,4 +35,5 @@ export default {
   // prerendered to files in the web build. Native has no marketing routes.
   ...(!isNative && { prerender: PRERENDER_PATHS }),
   ...(onVercel && { presets: [vercelPreset()] }),
+  ...(!isNative && { buildEnd: writeServiceWorker }),
 } satisfies Config;
