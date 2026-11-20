@@ -1,6 +1,7 @@
 import type { MedicationChangeDetails } from "@caretook/data/schema";
 import type { DeviceRoute } from "../../../../../test/device";
 
+import { vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { at, fx, medicationPass, TEST_GROUP } from "../../../../../test/fixtures";
 import * as medicationPage from "../medication/route";
@@ -329,3 +330,36 @@ export const MEDICATION_SQL =
 /** A medication's change entries on the device, oldest first: their `change`, and before → after. */
 export const CHANGES_SQL =
   "SELECT json_extract(details, '$.change') AS change, details FROM timeline_entry WHERE kind = 'medicationChange' AND deleted_at IS NULL AND json_extract(details, '$.medicationId') = ? ORDER BY occurred_at, created_at";
+
+// --- A fixed clock (Today, the Dose sheet, the strip, Upcoming's passes) ------
+
+/** Wednesday Nov 18 2026, 10:00 in Los Angeles (the test browser's zone and the recipient's). */
+export const CLOCK = new Date(2026, 10, 18, 10, 0);
+/** Fake `Date` and timers at `now`, still advancing (restore with `vi.useRealTimers()`). */
+export const fixClock = (now = CLOCK) =>
+  vi.useFakeTimers({
+    toFake: ["Date", "setInterval", "clearInterval", "setTimeout", "clearTimeout"],
+    shouldAdvanceTime: true,
+    now,
+  });
+/** `HH:MM` on the fixed clock's day, `minutes` from 10:00 (negative is earlier). */
+export const clockAt = (minutes: number) => {
+  const m = 10 * 60 + minutes;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
+/** A moment on the fixed clock's day, `minutes` from 10:00, as a stored timestamp. */
+export const clockMoment = (minutes: number) => at(new Date(CLOCK.getTime() + minutes * 60_000));
+/** The doses on the device, oldest first, with their details' fields. */
+export const DOSES_SQL =
+  "SELECT id, json_extract(details, '$.medicationId') AS medicationId, json_extract(details, '$.status') AS status, json_extract(details, '$.amount') AS amount, json_extract(details, '$.scheduledFor') AS scheduledFor, json_extract(details, '$.passId') AS passId, json_extract(details, '$.passLogId') AS passLogId, json_extract(details, '$.note') AS note, occurred_at AS occurredAt FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL ORDER BY occurred_at, created_at";
+export type DoseRow = {
+  id: string;
+  medicationId: string;
+  status: string;
+  amount: string | null;
+  scheduledFor: string | null;
+  passId: string | null;
+  passLogId: string | null;
+  note: string | null;
+  occurredAt: string;
+};
