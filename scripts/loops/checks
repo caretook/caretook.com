@@ -10,30 +10,36 @@
 #                usual, at least 120; --timeout overrides it). Unlisted checks: 600.
 #   never-exits  yes: it never exits on its own, and is stopped 2 s after its
 #                last line ("N/M passed", or signout-wipe's "errors:")
-#   e2e          yes: in the suite (--suite, and --changed's @suite)
+#   e2e          yes: in the lean end-to-end set, the suite (--suite, and
+#                --changed's @suite): flows that need the server, sync or a real
+#                build (sign-in and session, first sync, sign-out wipe, devices
+#                converging, offline then reconnect, invites and email, the CSP
+#                and the check build). no: still runnable, by name or through
+#                --changed, but out of the suite until its screens move to
+#                component tests (one backlog item per check).
 #
 # check            usual  cap  never-exits  e2e
 phase2               15   120  no           yes
 roundtrip            30   120  no           yes
 live-notes           55   170  no           yes
 app-shell            10   120  no           yes
-routing              40   150  no           yes
-settings-layout      15   120  no           yes
+routing              40   150  no           no
+settings-layout      15   120  no           no
 layout-offline       15   300  yes          yes
 sign-in              10   120  no           yes
 first-sync           40   150  no           yes
 signout-wipe         15   300  yes          yes
 session-end          60   180  no           yes
-providers            90   270  no           yes
+providers            90   270  no           no
 invites              90   270  no           yes
 ui                    6   120  no           yes
-groups               30   120  no           yes
-medications         163   490  no           yes
-upcoming            203   610  no           yes
-search               70   210  no           yes
-profiles             55   180  no           yes
-profiles-contacts    20   120  no           yes
-care-periods         75   230  no           yes
-devices              40   150  no           yes
-admin                75   230  no           yes
+groups               30   120  no           no
+medications         163   490  no           no
+upcoming            203   610  no           no
+search               70   210  no           no
+profiles             55   180  no           no
+profiles-contacts    20   120  no           no
+care-periods         75   230  no           no
+devices              40   150  no           no
+admin                75   230  no           no
 marketing            10   120  no           yes
