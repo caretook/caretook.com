@@ -67,15 +67,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-87 | plan | in-progress | assistant | prd/assistant | "simple mode" for the timeline page. We need a way for less tech savvy users to easily add items to… |
 | B-89 | feature | landed | orchestration | prd/orchestration | PRD tooling streamlining. We are using way too many resources for full docker stacks and browser… |
 | B-91 | feature | landed | admin | prd/admin | Need an Admin panel for caretook global administrators to manage users, care groups, and settings. |
-| B-98 | change | ready | quick-fixes | prd/quick-fixes | Hide add to timeline buttons behind a + icon in the timeline header. |
-| B-99 | change | ready | quick-fixes | prd/quick-fixes | Don't display recent vitals in the timeline header in mobile, |
-| B-100 | change | ready | quick-fixes | prd/quick-fixes | Add "recent vita averages" to the profile page. |
+| B-98 | change | landed | quick-fixes | prd/quick-fixes | Hide add to timeline buttons behind a + icon in the timeline header. |
+| B-99 | change | landed | quick-fixes | prd/quick-fixes | Don't display recent vitals in the timeline header in mobile, |
+| B-100 | change | landed | quick-fixes | prd/quick-fixes | Add "recent vita averages" to the profile page. |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
-| B-105 | change | ready | quick-fixes | prd/quick-fixes | Care period display on timeline should be a part of the sticky header that includes date instead of… |
-| B-106 | bug | ready | quick-fixes | prd/quick-fixes | Turning email invites off also blocks staff owner invites from /admin |
+| B-105 | change | landed | quick-fixes | prd/quick-fixes | Care period display on timeline should be a part of the sticky header that includes date instead of… |
+| B-106 | bug | landed | quick-fixes | prd/quick-fixes | Turning email invites off also blocks staff owner invites from /admin |
 | B-107 | feature | landed | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
 | B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
-| B-112 | change | ready | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
+| B-112 | change | landed | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-114 | chore | triaged | check-migration |  | Move routing.mjs to component tests |
 | B-115 | chore | triaged | check-migration |  | Move settings-layout.mjs to component tests |
@@ -93,7 +93,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-127 | chore | triaged | check-migration |  | Move invites.mjs's screen steps to component tests |
 | B-128 | chore | triaged | check-migration |  | Add a lean end-to-end step for an upload refused by permissions |
 | B-129 | chore | triaged | check-migration |  | Port the lean end-to-end set to Playwright Test |
-| B-130 | bug | ready | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
+| B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | triaged | check-migration |  | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | triaged | loop-recovery |  | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 
@@ -335,7 +335,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-98 · change · Hide add to timeline buttons behind a + icon in the timeline header.
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 5070e43
@@ -345,7 +345,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-99 · change · Don't display recent vitals in the timeline header in mobile,
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 5070e43
@@ -355,7 +355,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-100 · change · Add "recent vita averages" to the profile page.
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: b8d516e
@@ -374,7 +374,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-105 · change · Care period display on timeline should be a part of the sticky header that includes date instead of…
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 5070e43
@@ -384,7 +384,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-106 · bug · Turning email invites off also blocks staff owner invites from /admin
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: b8d516e
@@ -423,7 +423,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-112 · change · Show the recipient's allergies on the profile's printable emergency sheet
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: b8d516e
@@ -608,7 +608,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-130 · bug · A rate-limited session check right after sign-in sends the user back to /sign-in with no message
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: b8d516e
