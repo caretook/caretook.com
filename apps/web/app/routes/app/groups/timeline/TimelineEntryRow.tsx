@@ -6,6 +6,7 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, KindIcon } from "~/components/entry";
+import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { initials } from "~/lib/timeline/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
@@ -89,6 +90,11 @@ export function TimelineEntryRow({
           <>
             {elsewhere && <p className="text-base-content/60 text-xs">{elsewhere}</p>}
             {cancelled && <CancelledBadge label={cancelled} />}
+            {entry.via && (
+              <p className="inline-block">
+                <ViaTag via={entry.via} />
+              </p>
+            )}
           </>
         }
       />
