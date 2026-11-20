@@ -7,14 +7,14 @@ import { TaskTick } from "~/components/tasks";
 import { appUrls } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
 import { assigneeLabel, doneText, dueText } from "~/lib/taskDisplay";
-import { listSearch, TASK_SHEET_STATE } from "./taskSheets";
+import { taskPageState } from "~/lib/taskSheets";
 
 const ASSIGNEE_CHIP = "badge badge-ghost badge-sm gap-1 whitespace-nowrap";
 
 /**
  * One task: its tick (for whoever may complete it), the title (opening the
- * edit sheet for writers; plain text for viewers), the due line (red when
- * overdue) or the done line, and the assignee chip.
+ * task's page, for everyone), the due line (red when overdue) or the done
+ * line, and the assignee chip.
  */
 export function TaskRow({
   task,
@@ -51,24 +51,15 @@ export function TaskRow({
         <span className="w-6 shrink-0" aria-hidden="true" />
       )}
       <div className="min-w-0 flex-1">
-        {group.canWrite ? (
-          <Link
-            to={appUrls.editTask(group.id, task.id, listSearch(search))}
-            state={TASK_SHEET_STATE}
-            preventScrollReset
-            className={`link-hover block font-medium break-words ${task.doneAt ? "text-base-content/60 line-through" : ""}`}
-            data-task-title
-          >
-            {task.title}
-          </Link>
-        ) : (
-          <p
-            className={`font-medium break-words ${task.doneAt ? "text-base-content/60 line-through" : ""}`}
-            data-task-title
-          >
-            {task.title}
-          </p>
-        )}
+        <Link
+          to={appUrls.task(group.id, task.id)}
+          // The page's way back keeps the list's chip.
+          state={taskPageState(search)}
+          className={`link-hover block font-medium break-words ${task.doneAt ? "text-base-content/60 line-through" : ""}`}
+          data-task-title
+        >
+          {task.title}
+        </Link>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           {line && (
             <span className={state === "overdue" ? "text-error" : "text-base-content/70"} data-task-due>

@@ -455,3 +455,6 @@ apps/web/app/lib/sync/simpleMode.ts      -
 apps/web/app/routes/app/groups/tasks/*   -
 apps/web/app/components/tasks/*          -
 apps/web/app/lib/sync/tasks.ts           -
+# The task page (slice 2): component tests (routes/app/groups/task/task.browser.test.tsx);
+# its wording has unit tests, task documents are integration tests.
+apps/web/app/routes/app/groups/task/*    -

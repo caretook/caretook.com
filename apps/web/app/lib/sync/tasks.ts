@@ -14,7 +14,7 @@ import {
   taskUpdateZSchema,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
-import { tasks } from "./schema";
+import { noteDocuments, tasks } from "./schema";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "./timeline";
 
 // Tasks on this device: local queries for `useLiveQuery` and loaders, and
@@ -360,5 +360,44 @@ export const removeTask = async (db: SyncDb, id: string): Promise<ActionResult> 
     .update(tasks)
     .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
     .where(eq(tasks.id, id));
+  return { ok: true };
+};
+
+// ---------------------------------------------------------------------------
+// Notes (tasks slice 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Make a task's notes document (writers), on the first real change: its id
+ * is the task's. Idempotent; it syncs like the medication page's
+ * (`noteDocumentService.create` checks the task is live and in the group).
+ */
+export const createTaskDocument = async (db: SyncDb, taskId: string): Promise<ActionResult> => {
+  const task = await liveTask(db, taskId);
+  if (!task) return taskMissing;
+  const group = await groupFor(db, task.groupId);
+  if (!isTaskWriter(group?.role)) return forbidden;
+  const existing = await readRows<{ id: string }>(db, {
+    sql: "SELECT id FROM note_document WHERE id = ?",
+    params: [taskId],
+  });
+  if (existing.length) return { ok: true };
+  const now = nowTimestamp();
+  await db.drizzle.insert(noteDocuments).values({
+    id: taskId,
+    groupId: task.groupId,
+    subject: "task",
+    entryId: null,
+    providerId: null,
+    medicationId: null,
+    carePeriodId: null,
+    taskId,
+    snapshot: null,
+    text: "",
+    createdAt: now,
+    updatedAt: now,
+    createdBy: db.userId,
+    updatedBy: db.userId,
+  });
   return { ok: true };
 };

@@ -1,9 +1,11 @@
-import { appUrls } from "../../../../lib/appUrls";
+import { appUrls } from "./appUrls";
 
 // The task list's sheet routes (`tasks/new`, `tasks/:taskId/edit`): which
 // sheet a URL opens, or where it goes instead, and the history state that
-// lets a sheet go back to where it was opened from. Pure, so web:unit tests
-// it; the routes apply it. Like `lib/medicationSheets.ts`.
+// lets a sheet go back to where it was opened from (the list, or a task's
+// page). Pure, so web:unit tests it; the routes apply it. Like
+// `lib/medicationSheets.ts`; it lives in lib/ because the task page opens the
+// edit sheet too.
 
 /** History state on a link that opens a task sheet. */
 export const TASK_SHEET_STATE = { taskSheet: true } as const;
@@ -58,4 +60,14 @@ export const onlyTaskSheetChanged = (groupId: string, current: URL, next: URL) =
   const isListOrSheet = (pathname: string) =>
     pathname === base || pathname === `${base}/new` || /\/tasks\/[^/]+\/edit$/.test(pathname);
   return isListOrSheet(current.pathname) && isListOrSheet(next.pathname) && current.pathname.startsWith(base);
+};
+
+/** History state on a list row's link to a task's page: the list's chip, for the page's way back. */
+export const taskPageState = (search: string) => ({ taskListSearch: listSearch(search) });
+
+/** The list's chip a task's page was opened with (`taskPageState`), or "" (the list's default). */
+export const listSearchFromState = (state: unknown) => {
+  if (typeof state !== "object" || state === null || !("taskListSearch" in state)) return "";
+  const search = state.taskListSearch;
+  return typeof search === "string" ? listSearch(search) : "";
 };

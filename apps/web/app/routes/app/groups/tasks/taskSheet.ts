@@ -8,7 +8,7 @@ import { appUrls } from "~/lib/appUrls";
 import { useGroup } from "~/lib/group";
 import { useLiveQuery } from "~/lib/sync";
 import { membersQuery, readRows } from "~/lib/sync/timeline";
-import { listSearch, openedFromApp } from "./taskSheets";
+import { listSearch, openedFromApp } from "~/lib/taskSheets";
 
 // Sheets over the task list are child routes (`tasks/new`,
 // `tasks/:taskId/edit`): the list stays mounted underneath, with its chip
