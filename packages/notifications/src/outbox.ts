@@ -4,13 +4,16 @@ import type { NotificationData } from "./render";
 import type { Sender } from "./senders";
 
 import {
+  SUPPRESSED_ERROR,
   SYSTEM_USER,
   dbMayFail,
+  emailSuppressionService,
   getDb,
   isError,
   logError,
   newError,
   notificationOutboxSchema as outbox,
+  rateLimitService,
   txOrDb,
 } from "@caretook/data";
 import { and, eq, inArray, lt, lte, or, sql } from "drizzle-orm";
@@ -29,6 +32,17 @@ export const PURGE_AFTER_DAYS = 30;
 /** A row left `sending` this long (a crashed sweep) is claimed again. */
 export const STALE_CLAIM_MINUTES = 10;
 
+/**
+ * Sign-in and account mail, sent even to a suppressed address (hosting PRD)
+ * so nobody is locked out of their account. Every other notification to a
+ * suppressed address is skipped with `last_error` = `suppressed`.
+ */
+export const SUPPRESSION_EXEMPT: readonly NotificationName[] = [
+  "signInEmail",
+  "resetPassword",
+  "verifyEmail",
+];
+
 const BACKOFF_BASE_MS = 60_000;
 const BACKOFF_MAX_MS = 6 * 60 * 60_000;
 
@@ -40,21 +54,26 @@ export const retryDelayMs = (attempts: number) =>
 // Running delivery after the response
 // ---------------------------------------------------------------------------
 
-type BackgroundRunner = (work: Promise<unknown>) => void;
+export type BackgroundRunner = (work: Promise<unknown>) => void;
 
-const fireAndForget: BackgroundRunner = (work) => {
-  work.catch((error: unknown) => logError("mail: background delivery failed", error));
+/** The default (dev and Node servers): nothing keeps the work alive, and nothing needs to. */
+const fireAndForget: BackgroundRunner = () => {};
+
+let runner: BackgroundRunner = fireAndForget;
+
+/** Hands `work` to the runner already caught: a failure is logged, never unhandled. */
+const runInBackground = (work: Promise<unknown>) => {
+  runner(work.catch((error: unknown) => logError("mail: background delivery failed", error)));
 };
-
-let runInBackground: BackgroundRunner = fireAndForget;
 
 /**
  * How work after a response is kept alive. The default is fire-and-forget
- * (dev and Node servers). On Vercel, register `waitUntil` so the function
- * isn't frozen mid-send. Either way the cron sweep picks up anything missed.
+ * (dev and Node servers). On Vercel, entry.server.tsx registers `waitUntil`
+ * so the function isn't frozen mid-send. Either way the cron sweep picks up
+ * anything missed. The runner gets a promise that never rejects.
  */
-export const setBackgroundRunner = (runner: BackgroundRunner | null) => {
-  runInBackground = runner ?? fireAndForget;
+export const setBackgroundRunner = (next: BackgroundRunner | null) => {
+  runner = next ?? fireAndForget;
 };
 
 /**
@@ -173,6 +192,17 @@ const redactedBody = (name: string) =>
     ? { html: REDACTED_BODY, text: REDACTED_BODY }
     : {};
 
+/** What the sender gets for an outbox row. */
+const messageOf = (row: typeof outbox.$inferSelect, from: string) => ({
+  name: row.name,
+  to: row.recipient,
+  from,
+  subject: row.subject,
+  html: row.html,
+  text: row.text,
+  idempotencyKey: row.idempotencyKey,
+});
+
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 2000);
 
 /**
@@ -212,7 +242,8 @@ const claim = (limit: number, ids?: readonly string[]) => {
 /**
  * Send what's due: up to `limit` rows (or just `ids`), each once. A failure
  * goes back to pending with exponential backoff, and is marked failed after
- * MAX_ATTEMPTS.
+ * MAX_ATTEMPTS. A row to a suppressed address is skipped (`suppressed`)
+ * unless its notification is in SUPPRESSION_EXEMPT.
  */
 export const deliverDue = async ({
   limit = BATCH_LIMIT,
@@ -232,18 +263,26 @@ export const deliverDue = async ({
   const db = getDb();
   const mine = (id: string) => and(eq(outbox.id, id), eq(outbox.status, "sending"));
 
+  // Suppressed addresses (a hard bounce or a complaint), checked once for the batch.
+  const exempt = (name: string) => SUPPRESSION_EXEMPT.some((n) => n === name);
+  const suppressed = await emailSuppressionService.suppressedAmong(
+    claimed.filter((row) => !exempt(row.name)).map((row) => row.recipient),
+  );
+  if (isError(suppressed)) logError("mail: couldn't read the suppressions", suppressed);
+
   for (const row of claimed) {
     let result: Awaited<ReturnType<Sender["send"]>>;
     try {
-      result = await via.send({
-        name: row.name,
-        to: row.recipient,
-        from: config.from,
-        subject: row.subject,
-        html: row.html,
-        text: row.text,
-        idempotencyKey: row.idempotencyKey,
-      });
+      if (exempt(row.name)) {
+        result = await via.send(messageOf(row, config.from));
+      } else if (isError(suppressed)) {
+        // Unknown whether it's suppressed: try again later rather than risk it.
+        result = { status: "error", error: "Couldn't read the email suppressions" };
+      } else if (suppressed.has(row.recipient.trim().toLowerCase())) {
+        result = { status: "skipped", reason: SUPPRESSED_ERROR };
+      } else {
+        result = await via.send(messageOf(row, config.from));
+      }
     } catch (error) {
       result = { status: "error", error: errorText(error) };
     }
@@ -298,7 +337,7 @@ export const deliverDue = async ({
   return summary;
 };
 
-/** Delete sent and skipped rows older than `olderThanDays`. Returns how many. */
+/** Delete sent, skipped, bounced and complained rows older than `olderThanDays`. Returns how many. */
 export const purgeSent = async ({ olderThanDays = PURGE_AFTER_DAYS } = {}) => {
   const removed = await dbMayFail(
     () =>
@@ -306,7 +345,7 @@ export const purgeSent = async ({ olderThanDays = PURGE_AFTER_DAYS } = {}) => {
         .delete(outbox)
         .where(
           and(
-            inArray(outbox.status, ["sent", "skipped"]),
+            inArray(outbox.status, ["sent", "skipped", "bounced", "complained"]),
             lt(outbox.sentAt, sql`now() - make_interval(days => ${olderThanDays})`),
           ),
         )
@@ -316,11 +355,16 @@ export const purgeSent = async ({ olderThanDays = PURGE_AFTER_DAYS } = {}) => {
   return isError(removed) ? removed : removed.length;
 };
 
-/** One cron run: deliver what's due, then purge old sent rows. */
+/**
+ * One cron run: deliver what's due, then purge old sent rows and old
+ * rate-limit rows (ours and Better Auth's; hosting PRD).
+ */
 export const sweepOutbox = async (opts: { sender?: Sender; limit?: number } = {}) => {
   const delivered = await deliverDue(opts);
   if (isError(delivered)) return delivered;
   const purged = await purgeSent();
   if (isError(purged)) return purged;
-  return { ...delivered, purged };
+  const rateLimits = await rateLimitService.purge();
+  if (isError(rateLimits)) return rateLimits;
+  return { ...delivered, purged, rateLimitsPurged: rateLimits.hits + rateLimits.authCounters };
 };

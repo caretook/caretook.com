@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { isNoindex, robotsMeta, ROBOTS_NOINDEX } from "../../../lib/noindex";
 import { MARKETING_PAGES, PRERENDER_PATHS } from "./pages";
-import { isDisallowed, robotsTxt, ROBOTS_DISALLOW, sitemapXml } from "./seo";
+import { isDisallowed, robotsTxt, ROBOTS_DISALLOW, sitemapPaths, sitemapXml } from "./seo";
 
 const PRIVATE = [
   "/app",
@@ -77,5 +78,44 @@ describe("PRERENDER_PATHS", () => {
   it("is every marketing page plus the sitemap and robots, once each", () => {
     expect(PRERENDER_PATHS).toEqual([...MARKETING_PAGES.map((p) => p.path), "/sitemap.xml", "/robots.txt"]);
     expect(new Set(PRERENDER_PATHS).size).toBe(PRERENDER_PATHS.length);
+  });
+});
+
+// Staging is public but never indexed (hosting slice 1): APP_ENV=staging,
+// baked in at build. Production and unset (dev, tests, check builds) are unchanged.
+describe("noindex on staging", () => {
+  it("disallows everything in robots.txt, with no sitemap", () => {
+    expect(robotsTxt("https://staging.caretook.com", "staging")).toBe("User-agent: *\nDisallow: /\n");
+  });
+
+  it("keeps production's and dev's robots.txt as they were", () => {
+    for (const appEnv of ["production", undefined, ""]) {
+      expect(robotsTxt("https://caretook.com", appEnv)).toBe(robotsTxt("https://caretook.com"));
+    }
+    expect(robotsTxt("https://caretook.com", "production")).toContain("Allow: /");
+  });
+
+  it("lists nothing in the sitemap", () => {
+    expect(sitemapPaths("staging")).toEqual([]);
+    const xml = sitemapXml("https://staging.caretook.com", sitemapPaths("staging"));
+    expect(xml).not.toContain("<url>");
+    expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
+  });
+
+  it("keeps every page in production's and dev's sitemap", () => {
+    for (const appEnv of ["production", undefined]) {
+      expect(sitemapPaths(appEnv)).toEqual(MARKETING_PAGES.map((p) => p.path));
+      expect(sitemapXml("https://caretook.com", sitemapPaths(appEnv))).toBe(
+        sitemapXml("https://caretook.com"),
+      );
+    }
+  });
+
+  it("gives every page a robots meta tag on staging only", () => {
+    expect(robotsMeta("staging")).toEqual({ name: "robots", content: "noindex, nofollow" });
+    expect(ROBOTS_NOINDEX).toBe("noindex, nofollow");
+    for (const appEnv of ["production", undefined, "", "Staging-ish"])
+      expect(robotsMeta(appEnv)).toBeUndefined();
+    expect(isNoindex(" staging ")).toBe(true);
   });
 });

@@ -12,9 +12,19 @@ const timestampColumn = (name: string) =>
   timestamp(name, { precision: 3, mode: "string", withTimezone: true });
 
 // pending → sending → sent | skipped (not on MAIL_ALLOWLIST outside
-// production), or back to pending with a later next_attempt_at after a failed
-// send, and failed after the last attempt.
-export const OUTBOX_STATUSES = ["pending", "sending", "sent", "skipped", "failed"] as const;
+// production, or a suppressed address), or back to pending with a later
+// next_attempt_at after a failed send, and failed after the last attempt. A
+// sent row becomes bounced (a hard bounce) or complained (marked as spam)
+// when Resend's webhook reports it (hosting PRD).
+export const OUTBOX_STATUSES = [
+  "pending",
+  "sending",
+  "sent",
+  "skipped",
+  "failed",
+  "bounced",
+  "complained",
+] as const;
 export type OutboxStatus = (typeof OUTBOX_STATUSES)[number];
 
 // One email to send. Written by notify() in the caller's transaction, so the
@@ -48,6 +58,8 @@ export const notificationOutboxSchema = pgTable(
   (t) => [
     index("notification_outbox_due_idx").on(t.status, t.nextAttemptAt),
     index("notification_outbox_sent_at_idx").on(t.sentAt),
+    // Resend's webhook finds a message's row by its id (hosting PRD).
+    index("notification_outbox_provider_message_id_idx").on(t.providerMessageId),
     enumCheck("notification_outbox_status_check", t.status, OUTBOX_STATUSES),
     check("notification_outbox_attempts_check", sql`${t.attempts} >= 0`),
   ],

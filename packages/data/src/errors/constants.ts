@@ -17,11 +17,23 @@ export const DB_ERRORS = {
   "db:seed:production": {
     message: "Refusing to seed a production database",
   },
+  "db:seed:notLocal": {
+    message: "Refusing to seed a database that isn't on localhost (set APP_ENV=staging for staging)",
+  },
+  "db:seed:password": {
+    message: "Refusing to seed staging without a secret SEED_USER_PASSWORD (not the dev default)",
+  },
+  "db:seed:appEnv": {
+    message: 'Refusing to seed: APP_ENV must be "staging" or unset',
+  },
   "db:clear": {
     message: "Failed to clear the database",
   },
   "db:clear:notLocal": {
     message: "Refusing to clear a database that isn't on localhost",
+  },
+  "db:roles": {
+    message: "Failed to apply the database roles",
   },
 } as const;
 
@@ -740,6 +752,35 @@ export const SERVICE_ERRORS = {
   "recipientAllergyService:invalidNoKnown": {
     message: "No known allergies needs a time, or none to clear it",
     statusCode: 400,
+  },
+  "dbAccess:unknownAddress": {
+    message: "No account has that email address",
+    statusCode: 404,
+  },
+  "dbAccess:notStaff": {
+    message: "Only an enabled staff account can get database access",
+    statusCode: 403,
+  },
+  "dbAccess:invalidHours": {
+    message: "Database access lasts 1 to 24 hours",
+    statusCode: 400,
+  },
+  "dbAccess:failed": {
+    message: "Failed to change database access",
+  },
+  "rateLimitService:store": {
+    message: "Failed to read or write the rate limits",
+  },
+  "emailSuppression:invalid": {
+    message: "Check the suppression's details",
+    statusCode: 400,
+  },
+  "emailSuppression:notFound": {
+    message: "That address isn't suppressed",
+    statusCode: 404,
+  },
+  "emailSuppression:query": {
+    message: "Failed to read or write the email suppressions",
   },
 } as const;
 

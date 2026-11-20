@@ -251,16 +251,16 @@ describe("public.contact.send", () => {
 });
 
 describe("createRateLimiter", () => {
-  it("allows `limit` hits per window per key, sliding", () => {
+  it("allows `limit` hits per window per key, sliding", async () => {
     const limiter = createRateLimiter({ limit: 2, windowMs: 1000 });
-    expect(limiter.hit("a", 0)).toBe(true);
-    expect(limiter.hit("a", 100)).toBe(true);
-    expect(limiter.hit("a", 200)).toBe(false);
-    expect(limiter.hit("b", 200)).toBe(true);
+    expect(await limiter.hit("a", 0)).toBe(true);
+    expect(await limiter.hit("a", 100)).toBe(true);
+    expect(await limiter.hit("a", 200)).toBe(false);
+    expect(await limiter.hit("b", 200)).toBe(true);
     // The first hit leaves the window; refused hits weren't counted.
-    expect(limiter.hit("a", 1001)).toBe(true);
-    expect(limiter.hit("a", 1050)).toBe(false);
-    limiter.reset();
-    expect(limiter.hit("a", 1050)).toBe(true);
+    expect(await limiter.hit("a", 1001)).toBe(true);
+    expect(await limiter.hit("a", 1050)).toBe(false);
+    await limiter.reset();
+    expect(await limiter.hit("a", 1050)).toBe(true);
   });
 });
