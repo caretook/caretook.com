@@ -21,7 +21,9 @@
 
 **Wave 1:** landed in `dev` as cff4d2f (2026-11-20), full check on 5e08bbc (4167 tests); its decisions folded into AGENTS.md (commands table, backlog multi-id line) and docs/loops.md (the land guard). Told code-layout and check-migration to sync.
 
-**Wave 2:** slice 4 merged (84809ac) with the backlog timeout fix (2c3ee0f); docs and tooling only, so no check (the gate's "none needed"); landing. AGENTS.md 7678 B; docs/agents/ has loop, orchestrator, backlog, planner, hotfix and recovery; docs/loops.md is a stub; `landExempt` removed. Next: wave 3 (slices 5 and 6), gated on no running PRD folding into their docs; slice 6 also on `tasks` landed.
+**Wave 2:** landed in `dev` as 81529fa (2026-11-20; docs and tooling only, no check needed), with the backlog timeout fix. Layout: AGENTS.md core (7678 B); docs/agents/ loop, orchestrator, backlog, planner, hotfix, recovery; docs/loops.md stub; `landExempt` removed. check-migration and timeline-ux told to sync.
+
+**Now: wave 3 gate.** `tasks` landed (B-55). Asked check-migration-17 and timeline-ux-dd which of the six docs they still fold into; trim what they're done with, hold the rest until they message.
 
 **Backlog hang (code-layout's report):** `pnpm backlog commit` hung once on hash-object at 1d650af; not reproducible on a fresh clone. Guard added: backlog git calls time out after 2 minutes (2c3ee0f, lands with wave 2).
 
