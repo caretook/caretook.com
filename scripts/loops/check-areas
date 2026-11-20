@@ -191,12 +191,12 @@ apps/web/app/lib/group.tsx               routing
 apps/web/app/lib/groupContext.ts         routing
 apps/web/app/lib/groupSections.ts        routing upcoming
 # Your contact details (profiles slice 4).
-apps/web/app/routes/app/settings/contact/* profiles-contacts settings-layout routing
+apps/web/app/routes/app/settings/contact/* profiles-contacts routing
 # Devices: the account's sessions and signing them out (quick-fixes slice 29).
 apps/web/app/routes/app/settings/devices/* devices routing
-apps/web/app/routes/app/settings/*       routing settings-layout layout-offline
-apps/web/app/lib/me.ts                   settings-layout layout-offline
-apps/web/app/components/settings/*       routing settings-layout
+apps/web/app/routes/app/settings/*       routing layout-offline
+apps/web/app/lib/me.ts                   layout-offline
+apps/web/app/components/settings/*       routing
 
 # The /app frame, menus, theme, group settings and members. The frame's screen
 # (header, menus, theme choice, last group, tab bar, section links) is component
@@ -384,7 +384,7 @@ packages/data/src/db/schema/recipientAllergy.ts medications
 packages/data/src/db/schema/timeZone.ts  roundtrip
 packages/data/src/db/schema/inviteRules.ts invites app-shell
 packages/data/src/db/schema/careGroup*.ts app-shell invites
-packages/data/src/db/schema/userPreferences.ts settings-layout
+packages/data/src/db/schema/userPreferences.ts layout-offline
 packages/data/src/db/schema/notification.ts -
 packages/data/src/db/schema/publicForms.ts marketing
 packages/data/src/db/schema/publicFormRules.ts marketing
