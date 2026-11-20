@@ -85,7 +85,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-140 | change | triaged | app-speed |  | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
 | B-141 | change | ready | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
 | B-142 | change | ready | hosting | prd/hosting | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
-| B-143 | change | in-progress | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
+| B-143 | change | ready | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
 | B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-147 | chore | triaged | agent-tooling |  | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
@@ -492,10 +492,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-143 · change · Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts…
 
-- status: in-progress
+- status: ready
 - prd: hosting
 - owner: prd/hosting
-- commit:
+- commit: 05b709f
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side).
 - 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice with B-142. Slice 3 owns the limiter; this changes what key it gets (the host's own client-IP header, not the first x-forwarded-for entry).
