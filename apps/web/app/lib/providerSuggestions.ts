@@ -1,5 +1,6 @@
 import type { ProviderStatus, ProviderType } from "@caretook/data/schema";
 
+import { HONORIFICS } from "@caretook/data/schema";
 import { DEFAULT_EVENT_TITLE } from "./liveEntry";
 import { fold } from "./providerDirectory";
 
@@ -16,31 +17,8 @@ export const PROVIDER_SUGGESTION_HALF_LIFE_MS = 14 * 24 * 60 * 60 * 1000;
 /** Shorter words never match a name ("Dr", "Li", "of"). */
 export const MIN_WORD_LENGTH = 3;
 
-/** Titles and credentials around a name, never matched on their own. */
-export const HONORIFICS: ReadonlySet<string> = new Set([
-  "dr",
-  "doctor",
-  "mr",
-  "mrs",
-  "ms",
-  "mx",
-  "miss",
-  "prof",
-  "professor",
-  "md",
-  "do",
-  "np",
-  "pa",
-  "rn",
-  "lpn",
-  "phd",
-  "dds",
-  "dmd",
-  "dpm",
-  "pharmd",
-  "jr",
-  "sr",
-]);
+/** Titles and credentials around a name, never matched on their own (one list, shared with quick entry). */
+export { HONORIFICS };
 
 export type SuggestibleProvider = {
   id: string;
