@@ -460,6 +460,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (Robert Bo Davis): From the inbox: Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk (and works offline). / The links in routes/app/layout/SectionNav.tsx (SectionNav and TabBar) have no `prefetch`; sheets already use `prefetch="render"`.
 - 2026-11-20 (backlog agent): Triage: app-speed. Small (prefetch on SectionNav and TabBar links), grouped with B-136 and B-138 because all three change the same navigation path.
 - 2026-11-20 (plan/app-speed): Planned: app-speed slice 2 (plans/app-speed-plan.md). prefetch=render on SectionNav and TabBar.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
 
 ### B-138 · change · Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only…
 
