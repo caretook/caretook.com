@@ -25,7 +25,7 @@ pnpm prd ready <topic>   # is it ready to land? what's in it?
 
 Not everything needs a PRD. For a small change (a docs or tooling tweak, a config change, a contained fix), open an agent in the main checkout, ask for it, and have it commit straight onto `dev`. Use a PRD when the work needs its own database and dev server, runs in parallel with other work, or adds a migration. An agent that can't tell which a request is will ask you.
 
-To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `pnpm prd hotfix <name>` makes a stackless worktree on `hotfix/<name>`, the agent works there and asks you before each long test, commit and sync, and you land it with `pnpm prd land hotfix/<name>` when you're happy (_Hotfixes_ in [loops](loops.md)). Either tell an agent in the main checkout it's a hotfix agent (it makes the worktree and moves there), or start one in a new terminal with the command `pnpm prd hotfix <name>` prints (`prompt.sh hotfix <name> "<the fix>"`).
+To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `pnpm prd hotfix <name>` makes a stackless worktree on `hotfix/<name>`, the agent works there and asks you before each long test, commit and sync, and you land it with `pnpm prd land hotfix/<name>` when you're happy (_Hotfixes_ in [loops](loops.md)). Either tell an agent in the main checkout it's a hotfix agent (it makes the worktree and moves there), or start one in a new terminal with `pnpm prd hotfix <name> --open "<the fix>"` (without `--open` it prints the command instead).
 
 ## Branches
 
@@ -204,6 +204,6 @@ chore(app-shell): merge dev into prd/app-shell
 - **"backlog is locked"**: another session is writing the backlog. Try again in a moment. A lock left by a crashed run clears itself after 30 seconds.
 - **"the main checkout is on …, not dev"**: the backlog tool only writes while your main checkout is on `dev`. Switch back with `git switch dev`.
 - **"the commit subject isn't a Conventional Commit"**: reword it as `type(scope): description` (see [Commit messages](#commit-messages)).
-- **"dev has moved since prd/… last synced"** when landing: another PRD landed first. Ask the orchestrator to sync and check again (`pnpm prd sync`, `pnpm prd check`).
-- **"pnpm check hasn't passed on …'s tip"**: something was committed after the last check. Ask the orchestrator to run `pnpm prd check`.
+- **"dev has moved since prd/… last synced"** when landing: another PRD landed first. Ask the orchestrator to sync and check again (`pnpm prd sync`, then `pnpm prd check`, or `--quick "<why>"` for a clean sync with no files in common: _The check gate_ in [loops](loops.md)).
+- **"pnpm check hasn't passed on …'s tip"**: something was committed after the last check. Ask the orchestrator to run `pnpm prd check` (or `--quick "<why>"`). Docs and tooling-only commits never trip this.
 - **A stale slot** in `pnpm prd status` output: a worktree was deleted by hand. Remove the lease directory it names.
