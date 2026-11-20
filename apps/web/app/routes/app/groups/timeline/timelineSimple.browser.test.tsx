@@ -95,7 +95,7 @@ const menuItems = () =>
   [...document.querySelectorAll('[role="menu"] [role^="menuitem"]')].map((el) => el.textContent?.trim());
 
 describe("the simple view", () => {
-  test("a member whose owner chose simple mode: their name and today, the big box with a dictation hint, bigger rows without menus or filters, and a reduced header", async () => {
+  test("a member whose owner chose simple mode: their name and today, the big box with a dictation hint and no tips, bigger rows without menus or filters, and a reduced header", async () => {
     await open({ simpleMode: 1 });
     await waitUntil(isSimple, 4000, "the simple view");
 
@@ -109,6 +109,9 @@ describe("the simple view", () => {
     await expect.element(box).toBeVisible();
     expect(box.element().className).toContain("text-xl");
     await expect.element(page.getByText(DICTATION_HINT)).toBeVisible();
+    // Only that hint: no typing tips under the empty box.
+    await waitUntil(() => !!document.querySelector("[data-quick-suggestions]"), 4000, "the suggestions");
+    expect(document.querySelector("[data-quick-tips]")).toBeNull();
 
     // The rows, larger, with nothing to change or filter.
     await waitUntil(() => rows().length === 2, 4000, "the rows");
