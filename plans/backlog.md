@@ -62,7 +62,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-61 | feature | triaged | appointments |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments |  | Google Calendar sync of a care group's appointments |
-| B-68 | chore | in-progress | hosting | prd/hosting | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
+| B-68 | chore | ready | hosting | prd/hosting | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | triaged | connectors |  | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
@@ -244,10 +244,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
 
-- status: in-progress
+- status: ready
 - prd: hosting
 - owner: prd/hosting
-- commit:
+- commit: 05b709f
 
 - 2026-11-18 (prd/invites orchestrator): From the invites PRD (AGENTS.md, Notifications → Before launch): turn off Resend's open and click tracking on the sending domain (not per message); SPF, DKIM and DMARC on the sending subdomain; verified bounce webhooks (Svix); a host cron for /api/cron/outbox with CRON_SECRET; and Better Auth's rate-limit storage (in-memory per serverless instance today). Part of launch work, related to B-33.
 - 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-7: shared rate-limit storage is a launch blocker (Better Auth and packages/api/src/rateLimit.ts are per instance).
