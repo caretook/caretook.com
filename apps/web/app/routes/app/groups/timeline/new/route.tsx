@@ -3,7 +3,7 @@ import type { ActionResult } from "~/lib/core/api";
 
 import { VITALS } from "@caretook/data/schema";
 import { redirect, useLocation } from "react-router";
-import { startAtFrom } from "~/lib/app-shell/appUrls";
+import { startAtFrom } from "~/lib/timeline/urls";
 import { formString } from "~/lib/core/form";
 import { entryDraftFrom } from "~/lib/assistant/quickEntryDraft";
 import { getGroup } from "~/lib/app-shell/group";

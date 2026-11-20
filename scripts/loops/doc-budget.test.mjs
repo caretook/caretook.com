@@ -100,9 +100,9 @@ describe("modes", () => {
 });
 
 describe("land exemptions", () => {
-  it("AGENTS.md and docs/loops.md warn but don't block a landing until slice 4", () => {
-    expect(isLandExempt("AGENTS.md")).toBe(true);
-    expect(isLandExempt("docs/loops.md")).toBe(true);
+  it("no configured doc is exempt; a custom entry can be", () => {
+    expect(isLandExempt("AGENTS.md")).toBe(false);
+    expect(isLandExempt("docs/loops.md")).toBe(false);
     expect(isLandExempt("docs/domain/timeline.md")).toBe(false);
     expect(isLandExempt("docs/agents/loop.md")).toBe(false);
     const budgets = [{ pattern: "docs/x.md", bytes: 10, landExempt: true }];

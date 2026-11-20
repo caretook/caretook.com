@@ -1,4 +1,4 @@
-import type { GroupSettingsPage } from "~/lib/app-shell/appUrls";
+import type { GroupSettingsPage } from "~/lib/care-groups/urls";
 import type { SettingsItem } from "~/lib/app-shell/settingsNav";
 
 import { Info, Users } from "lucide-react";
