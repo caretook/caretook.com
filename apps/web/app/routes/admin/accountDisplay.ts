@@ -71,6 +71,8 @@ export const mailStatusLabel = (status: string) =>
     pending: "Waiting",
     sending: "Sending",
     sent: "Sent",
-    skipped: "Not sent (allowlist)",
+    skipped: "Not sent",
     failed: "Failed",
+    bounced: "Bounced",
+    complained: "Marked as spam",
   })[status] ?? status;

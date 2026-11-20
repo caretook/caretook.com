@@ -10,7 +10,8 @@ The api area's rules and decisions, moved out of AGENTS.md (whose core rules sti
 - **Public profiles only:** `careGroup.members` returns name, image and role, never email. Keep it that way for new procedures.
 - **HTTP:** `createRpcHandler({ prefix, allowedOrigins })`:
   - CSRF through `SimpleCsrfProtection` (the client link sends `x-csrf-token`).
-  - CORS for Capacitor's origins and `AUTH_TRUSTED_ORIGINS` only.
+  - CORS for `allowedOrigins()` only (`packages/auth/src/host.ts`, shared with Better Auth): `AUTH_TRUSTED_ORIGINS`, plus Capacitor's origins only with `NATIVE_APP_ORIGINS=1` (off in dev, tests, checks and deploys until the native app ships). The list is defined once, in `host.ts`.
+  - `clientIp` is `clientIpOf(headers)` from `host.ts`: the configured `CLIENT_IP_HEADER`'s first entry (`x-vercel-forwarded-for` on Vercel; a spoofed `x-forwarded-for` is ignored), else the first `x-forwarded-for` entry, then `x-real-ip` (what browser checks rely on). Better Auth keys its limits on the same header (`ipAddressHeaders`).
   - GET is refused.
 - **Mounting:** apps/web mounts it at `/rpc/*` through `app/.server/api.ts`. The browser client (`app/lib/rpc.ts`) uses a type-only router import and sends cookies.
 - **Procedures:**
@@ -23,8 +24,14 @@ The api area's rules and decisions, moved out of AGENTS.md (whose core rules sti
   - `careGroup.changeRole` and `careGroup.removeMember` (removing yourself is leaving), thin over `careGroupMemberService`, returning public profiles only. The `removed()` helper maps `baseModel:remove:nothingRemoved` to a 403, as `updated()` does;
   - `timeline.list`, `create`, `update`, `remove` and `latestVitals`;
   - `search.query` (`packages/api/src/search.ts`, over `searchService`; see _Search_);
-  - `sync.upload`.
+  - `sync.upload`;
+  - `admin.suppressions.list` (`users.read`) and `admin.suppressions.clear` (`users.help`; see [admin](admin.md)).
 
   No screen calls the timeline or careGroup reads now (screens read local data); they stay for API, AI and worker use.
 
 - **Notes' and events' text:** `timelineEntryService.getById`/`list` (and so `timeline.list` and `timeline.update`) fill a note's or event's `body` from its document's **compacted** `text` (`withDocumentText`, one query in the actor's scope). No document or empty text → the stored body (null). Deleted entries never get their text. Pending updates are only in `noteDocumentService.currentText`.
+- **Deploy environment** (hosting PRD):
+  - `APP_ENV` (`staging` | `production`; unset in dev, tests and check builds) names the deploy target, since both run with `NODE_ENV=production`. Builds bake it in (`vite.config.ts` `envPrefix`), so prerendered pages read it at build time.
+  - `checkDeployEnv(target, env, { scope })` (`apps/web/app/.server/deployEnv.ts`, pure, no imports) returns `{ variable, problem }[]`: required variables per target, `APP_URL` https on the target's host (`TARGET_HOSTS`), `BETTER_AUTH_URL === APP_URL`, `POWERSYNC_URL === VITE_POWERSYNC_URL`, Resend with a `mail.` sender, secret lengths, a pooled `DATABASE_URL` that isn't the migrations role, `CLIENT_IP_HEADER` (one header name, both targets), `NATIVE_APP_ORIGINS` unset or `1`, the allowlist set on staging and empty in production, and staging's `SEED_USER_PASSWORD` (`scope: "server"` skips it: only the Action holds it). `DEPLOY_ENV_VARIABLES` lists every name it knows. `pnpm deploy:env <target>` prints names only and exits 1.
+  - **The server refuses until it's right:** with `APP_ENV` set, `deployEnvRefusal(request)` (entry.server's document and data handlers, and the `web` layout middleware) answers 503 with a generic body and logs the variable names once per process, never values. Prerender requests are exempt (React Router's `IS_RR_BUILD_REQUEST` plus the `X-React-Router-Prerender` header); if an upgrade renames that, staging builds fail at prerender.
+  - `pnpm deploy:smoke <target>` (`scripts/deploy/smoke-checks.mjs`, a pure `smoke()` over an injected fetch): `home` (200 with HSTS, CSP, X-Frame-Options), `jwks`, `rpc-unauthenticated` (401), `cron-locked` (401), `powersync` (`/probes/liveness`), and `noindex` on staging. The deploy Action is in [`ops/runbook.md`](../../ops/runbook.md).

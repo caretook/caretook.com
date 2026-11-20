@@ -62,6 +62,8 @@ apps/web/app/lib/csp.ts                  sign-in phase2 roundtrip live-notes mar
 apps/web/app/routes/web/*                sign-in marketing invites
 apps/web/vercel.json                     sign-in marketing
 apps/web/app/app.css                     ui medications profiles
+# The production PowerSync settings, for the runbook (hosting slice 2): nothing loads it.
+powersync/service.production.example.yaml -
 powersync/*                              @suite
 docker-compose*.yml                      @suite
 packages/data/src/db/migrations/*        @suite
@@ -113,6 +115,10 @@ apps/web/app/routes/app/layout/Announcement.tsx app-shell
 apps/web/app/routes/app/layout/useAnnouncement.ts app-shell
 apps/web/app/components/shell/AnnouncementBanner.tsx app-shell first-sync
 packages/data/src/services/careGroupInviteService.ts invites groups
+# Email suppressions (hosting slice 4): the screen is component tests
+# (suppressions/suppressions.browser.test.tsx); the webhook, the service and
+# the outbox's skip are integration tests. Above the /admin catch-all.
+apps/web/app/routes/admin/suppressions/* -
 apps/web/app/routes/admin/*              groups
 apps/web/app/.server/admin.ts            app-shell groups
 packages/api/src/auditAdmin.ts           app-shell
@@ -175,6 +181,8 @@ apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell profil
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites session-end
 apps/web/app/routes/account/*            invites sign-in
 apps/web/app/routes/sign-out.tsx         signout-wipe sign-in invites session-end
+# Resend's webhook (hosting slice 4): integration tests (packages/notifications). Above api/*.
+apps/web/app/routes/api/webhooks/*       -
 apps/web/app/routes/api/*                sign-in first-sync
 apps/web/app/lib/session.ts              sign-in first-sync signout-wipe session-end
 apps/web/app/lib/sessionRules.ts         sign-in session-end
@@ -185,6 +193,9 @@ apps/web/app/lib/sync/client.ts          sign-in first-sync signout-wipe session
 apps/web/app/lib/sync/pageCache.ts       sign-in signout-wipe app-shell providers
 apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
 apps/web/app/lib/sync/schema.ts          roundtrip live-notes providers phase2
+# Trusted origins and the client IP (hosting slice 8): Better Auth's sign-in
+# and limits, and the public forms' limit on /rpc.
+packages/auth/src/host.ts                sign-in marketing
 packages/auth/src/*                      sign-in first-sync signout-wipe invites
 apps/web/app/components/shell/*          first-sync
 
@@ -373,6 +384,8 @@ packages/api/src/joinRequests.ts         invites
 packages/api/src/publicForms.ts          marketing
 packages/api/src/rateLimit.ts            marketing
 packages/api/src/*                       -
+# The deploy env check (hosting slice 1): unit tests; checks run with APP_ENV unset.
+apps/web/app/.server/deployEnv.ts        -
 apps/web/app/.server/*                   sign-in
 apps/web/app/routes/rpc.ts               sign-in
 
@@ -397,6 +410,10 @@ packages/data/src/db/schema/publicForms.ts marketing
 packages/data/src/db/schema/publicFormRules.ts marketing
 packages/data/src/db/schema/waitlistEntry.ts marketing
 packages/data/src/db/schema/contactMessage.ts marketing
+# Shared rate limits (hosting): check builds (NODE_ENV=production) count
+# Better Auth's and the public forms' limits in Postgres.
+packages/data/src/db/schema/rateLimit.ts sign-in marketing
+packages/data/src/services/rateLimitService.ts sign-in marketing
 # The query language and search documents: unit tests (packages/data), and the
 # component tests above on the device.
 packages/data/src/db/schema/search.ts    -
@@ -412,6 +429,8 @@ packages/data/src/db/seeds/medicationPasses.ts medications
 # them; seeds/tasks.test.ts checks them. Appointments' seeds feed Upcoming.
 packages/data/src/db/seeds/tasks.ts      -
 packages/data/src/db/seeds/appointments.ts upcoming
+# The seed guard (hosting slice 1): unit and integration tests.
+packages/data/src/db/seeds/guard.ts      -
 packages/data/src/db/seeds/*             app-shell
 
 # The rest of the data layer (services, models, permissions, errors) has
@@ -493,3 +512,13 @@ apps/web/app/lib/taskSheetLink.ts        -
 # task/taskLinks.browser.test.tsx, components/tasks/linkedTasks.browser.test.tsx);
 # the pickers' choices are unit tests (tasks/taskLinks.test.ts). Covered by the
 # rules above (tasks/*, task/*, components/tasks/*).
+# Hosting (hosting slice 1): the deploy scripts have their own tests; staging's
+# noindex is unit-tested (marketing/site/seo.test.ts) and off in checks; env.d.ts
+# is types only.
+scripts/deploy/*                         -
+apps/web/app/lib/noindex.ts              -
+apps/web/app/env.d.ts                    -
+# Deploy Actions (hosting slice 5): the workflows, their setup action and the
+# pinned CLI versions are unit-tested (scripts/deploy/workflows.test.mjs);
+# they run only on GitHub.
+.github/*                                -

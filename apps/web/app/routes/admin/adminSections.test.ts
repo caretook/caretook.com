@@ -15,6 +15,7 @@ describe("adminSections", () => {
       "Waitlist",
       "Audit",
       "Settings",
+      "Suppressions",
     ]);
   });
 

@@ -14,6 +14,7 @@
 // Server only (node:crypto). The policy itself is pure: `contentSecurityPolicy`.
 import { createHash, randomBytes } from "node:crypto";
 
+import { BUILD_APP_ENV, isNoindex, X_ROBOTS_TAG } from "../lib/noindex";
 import { THEME_SCRIPT } from "../lib/theme";
 
 export type CspOptions = {
@@ -106,11 +107,13 @@ export const HOST_HEADERS = {
 export type HeaderOptions = CspOptions & {
   /** HTTPS only: production (a check build too; browsers ignore it over http). */
   hsts?: boolean;
+  /** Staging: `X-Robots-Tag: noindex` on every response (hosting slice 1). */
+  noindex?: boolean;
 };
 
 /** The full set for a response the app makes. */
 export function securityHeaders(options: HeaderOptions = {}): Record<string, string> {
-  const { hsts, ...csp } = options;
+  const { hsts, noindex, ...csp } = options;
   return {
     "Content-Security-Policy": contentSecurityPolicy({ ...csp, meta: false }),
     ...(hsts && { "Strict-Transport-Security": HSTS }),
@@ -118,6 +121,7 @@ export function securityHeaders(options: HeaderOptions = {}): Record<string, str
     "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
     "Permissions-Policy": PERMISSIONS_POLICY,
+    ...(noindex && { "X-Robots-Tag": X_ROBOTS_TAG }),
   };
 }
 
@@ -127,6 +131,8 @@ export const envOptions = (env: NodeJS.ProcessEnv = process.env): HeaderOptions 
   apiOrigin: import.meta.env.VITE_API_ORIGIN,
   dev: import.meta.env.DEV,
   hsts: env.NODE_ENV === "production",
+  // Staging, at run time or as built (they agree: each environment builds itself).
+  noindex: isNoindex(env.APP_ENV) || isNoindex(BUILD_APP_ENV),
 });
 
 /**

@@ -138,9 +138,12 @@ const webRoutes = [
     route("admin/groups", "routes/admin/groups/route.tsx"),
     route("admin/groups/:groupId", "routes/admin/group/route.tsx"),
     route("admin/settings", "routes/admin/settings/route.tsx"),
+    route("admin/suppressions", "routes/admin/suppressions/route.tsx"),
   ]),
   route("admin/access-codes/:id/print", "routes/admin/access-codes-print/route.tsx"),
   route("admin/waitlist/export", "routes/admin/waitlist-export/route.ts"),
+  // Resend's bounce and complaint webhook (Svix-signed; hosting PRD).
+  route("api/webhooks/resend", "routes/api/webhooks/resend.ts"),
 ];
 
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.
