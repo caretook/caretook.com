@@ -6,7 +6,7 @@ Where things live. Moved out of AGENTS.md.
 docker-compose.yml        dev Postgres :5434, PowerSync :8080 + storage; docker-compose.test.yml → :5435
 powersync/                service.yaml, sync-config.yaml (Sync Streams)
 docs/                     orchestration.md: the human guide to branches, the inbox and running PRDs (README.md links it)
-                          loops.md (the agents' loop handbook), layout.md (this file), domain/<area>.md (AGENTS.md's area index)
+                          agents/ (the agents' role handbooks; loops.md is a stub), layout.md (this file), domain/<area>.md (AGENTS.md's area index)
 plans/                    inbox.md (the user's list) and backlog.md (the tracker), both only on dev; PRDs and slice plans
 scripts/browser-checks/   headless Chrome checks
 scripts/loops/            check-areas.d/<area> + check-areas.mjs: which browser checks a changed file needs
