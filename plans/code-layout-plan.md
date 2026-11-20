@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State                     | Merge into `prd/code-layout` (slice commits) |
-| ----- | ---- | ------------------------- | -------------------------------------------- |
-| 1     | 1    | waiting (start condition) |                                              |
-| 2     | 2    | blocked by 1              |                                              |
-| 3     | 2    | blocked by 1              |                                              |
-| 4     | 2    | blocked by 1              |                                              |
-| 5     | 3    | blocked by 4              |                                              |
+| Slice | Wave | State                                  | Merge into `prd/code-layout` (slice commits) |
+| ----- | ---- | -------------------------------------- | -------------------------------------------- |
+| 1     | 1    | started (opus, worktree code-layout-1) |                                              |
+| 2     | 2    | blocked by 1                           |                                              |
+| 3     | 2    | blocked by 1                           |                                              |
+| 4     | 2    | blocked by 1                           |                                              |
+| 5     | 3    | blocked by 4                           |                                              |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue code-layout`, 2026-11-20). The orchestrator starts every ready slice, lands each green wave itself with `pnpm prd land`, and cleans up; it asks the user only real questions.
 
-**Now (2026-11-20):** waiting on the start condition. `tasks` and `hosting` wave 1 are in `dev`, but `check-migration` has unlanded `scripts/loops/check-areas` edits (`prd/check-migration`, and slices 11, 14 and 15). Messaged its orchestrator (`check-migration-7b`) to ping when they land and to hold further check-areas slices until our slice 1 lands (we tell it then; its later slices add rules to `check-areas.d/<area>`). A background loop in this session waits until no `prd/`/`slice/` branch has check-areas edits ahead of `dev`. Then: `pnpm prd sync`, claim B-149, start slice 1 (model: opus, it's the resolver design).
+**Now (2026-11-20):** slice 1 started on opus after check-migration wave 5 landed (74f6723) and `dev` was synced in; B-149 claimed. Earlier: waited on the start condition. `tasks` and `hosting` wave 1 are in `dev`, but `check-migration` has unlanded `scripts/loops/check-areas` edits (`prd/check-migration`, and slices 11, 14 and 15). Messaged its orchestrator (`check-migration-7b`) to ping when they land and to hold further check-areas slices until our slice 1 lands (we tell it then; its later slices add rules to `check-areas.d/<area>`). A background loop in this session waits until no `prd/`/`slice/` branch has check-areas edits ahead of `dev`. Then: `pnpm prd sync`, claim B-149, start slice 1 (model: opus, it's the resolver design).
 
 - **check-migration agreed** (2026-11-20): it lands 11, 14 and 15 as one wave (about an hour) and messages us, then **pauses all its remaining slices** (12, 16–23 all edit check-areas) until we message it that slice 1 is in `dev`. So land slice 1 promptly and message `check-migration-7b` at once.
 - **Pass to slice 1's agent:** keep check names as plain tokens in `check-areas.d/` files, so check-migration's later deletions (`groups`, `profiles-contacts`, …) stay one-line edits; keep the resolver independent of the CDP harness, since check-migration slice 23 deletes the harness that `browser.sh --changed` drives today.
