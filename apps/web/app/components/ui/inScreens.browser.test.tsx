@@ -201,8 +201,8 @@ async function overlay(trigger: () => HTMLElement, want: { name: string | RegExp
 }
 
 const rowActions = (kind: string) => () => must(`main ol > li button[aria-label^="Actions for ${kind} at"]`);
-const addButton = () => must('main header button[aria-label="Add to timeline"]');
-/** Pick `label` from the header's + menu. */
+const addButton = () => must('main [data-day-header] button[aria-label="Add to Today"]');
+/** Pick `label` from today's + menu. */
 const quickAdd = async (label: string) => {
   await userEvent.click(addButton());
   await expect.poll(() => q(MENU)).not.toBeNull();
@@ -237,7 +237,7 @@ describe.each([
     });
     await menu(rowActions("note"), { name: /^Actions for note at /, items: "Print,Delete" });
     await menu(rowActions("symptom"), { name: /^Actions for symptom at /, items: "Edit,Delete" });
-    await menu(addButton, { name: "Add to timeline", count: 14 });
+    await menu(addButton, { name: "Add to Today", count: 14 });
     expect(device.location()).toBe(TIMELINE);
   });
 

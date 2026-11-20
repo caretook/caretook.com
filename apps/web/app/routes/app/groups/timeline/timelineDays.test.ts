@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayKeyIn, groupByDay, withMarkers } from "./timelineDays";
+import { dayKeyIn, dayStartAt, groupByDay, withMarkers } from "./timelineDays";
 
 const LA = "America/Los_Angeles";
 // Wednesday, Nov 18 2026, 10:00 in Los Angeles.
@@ -11,6 +11,33 @@ describe("dayKeyIn", () => {
     // 02:00 UTC on the 18th is still the 17th in Los Angeles.
     expect(dayKeyIn("2026-11-18T02:00:00Z", LA)).toBe("2026-11-17");
     expect(dayKeyIn("2026-11-18T02:00:00Z", "UTC")).toBe("2026-11-18");
+  });
+});
+
+describe("dayStartAt", () => {
+  it("is now for today, in the zone", () => {
+    expect(dayStartAt("2026-11-18", LA, NOW)).toBe(NOW.toISOString());
+    // Late on the 17th in LA is already the 18th in UTC: today there is the 18th.
+    const late = new Date("2026-11-18T06:30:00Z");
+    expect(dayStartAt("2026-11-17", LA, late)).toBe(late.toISOString());
+    expect(dayStartAt("2026-11-18", "UTC", late)).toBe(late.toISOString());
+  });
+
+  it("is 12:00 that day in the zone for any other day", () => {
+    expect(dayStartAt("2026-11-16", LA, NOW)).toBe("2026-11-16T20:00:00.000Z");
+    expect(dayStartAt("2026-11-16", "UTC", NOW)).toBe("2026-11-16T12:00:00.000Z");
+    expect(dayStartAt("2026-11-16", "Asia/Kolkata", NOW)).toBe("2026-11-16T06:30:00.000Z");
+  });
+
+  it("holds across a DST change", () => {
+    // LA moved back to PST (UTC-8) on Nov 1 2026, and forward to PDT (UTC-7) on Mar 8 2026.
+    expect(dayStartAt("2026-11-01", LA, NOW)).toBe("2026-11-01T20:00:00.000Z");
+    expect(dayStartAt("2026-10-31", LA, NOW)).toBe("2026-10-31T19:00:00.000Z");
+    expect(dayStartAt("2026-03-08", LA, NOW)).toBe("2026-03-08T19:00:00.000Z");
+    expect(dayStartAt("2026-03-07", LA, NOW)).toBe("2026-03-07T20:00:00.000Z");
+    // London moved back on Oct 25 2026.
+    expect(dayStartAt("2026-10-25", "Europe/London", NOW)).toBe("2026-10-25T12:00:00.000Z");
+    expect(dayStartAt("2026-10-24", "Europe/London", NOW)).toBe("2026-10-24T11:00:00.000Z");
   });
 });
 

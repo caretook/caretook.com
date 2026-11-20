@@ -269,7 +269,7 @@ apps/web/app/routes/app/groups/timeline/useEntryRemoval.ts roundtrip
 apps/web/app/routes/app/groups/timeline/sheet.ts roundtrip
 apps/web/app/routes/app/groups/timeline/sheetGuard.ts roundtrip
 apps/web/app/routes/app/groups/timeline/route.tsx roundtrip
-# The header's + menu: every add flow starts there.
+# Each day heading's + menu: every add flow starts there.
 apps/web/app/routes/app/groups/timeline/QuickAddMenu.tsx roundtrip
 # The rest of the timeline screen is component tests (timeline/timeline*.browser.test.tsx);
 # phase2.mjs keeps sync arriving, server links and offline, through lib/sync/.
