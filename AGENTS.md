@@ -180,7 +180,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 
 ### Hosting
 
-- ✅ **Built (hosting PRD):** Vercel `cle1`, Neon `aws-us-east-2`, PowerSync Cloud US; two environments (`APP_ENV` staging and production), deployed only by `.github/workflows/deploy.yml` (env check → migrate → roles → sync config → Vercel → smoke). Details: [api](docs/domain/api.md) (deploy env), [data-layer](docs/domain/data-layer.md) (roles), [sync](docs/domain/sync.md) (_Production_). Migrations stay additive (expand, then contract in a later deploy) so instant rollback is safe.
+- ✅ **Built (hosting PRD):** Vercel `cle1`, Neon `aws-us-east-2`, PowerSync Cloud US; two environments (`APP_ENV` staging and production), deployed only by `.github/workflows/deploy.yml` (env check → migrate → roles → sync config → Vercel → smoke). Setup, rotation, rollback, the data-copy register and break-glass: [`ops/`](ops/runbook.md). Details: [api](docs/domain/api.md) (deploy env), [data-layer](docs/domain/data-layer.md) (roles), [sync](docs/domain/sync.md) (_Production_). Migrations stay additive (expand, then contract in a later deploy) so instant rollback is safe.
 - 🟡 **Vercel** for request/response work (CRUD, auth, uploads, calendar cron and webhooks). **AWS** for long-running work (AI jobs on SQS with Lambda or ECS, and the sync service if self-hosted).
 - Live appointment audio would go from the client straight to the AI provider, with a short-lived token.
 - Costs of the split: JWT auth that works everywhere, CORS, Postgres pooling, and functions in the database's region.
@@ -197,7 +197,7 @@ Caretook (caretook.com) is a mobile-responsive set of tools that help caretakers
 ## Open questions
 
 - ❓ Account deletion by a group's last owner currently leaves the group ownerless. Block it, delete the group, or auto-promote?
-- ❓ Hosted database, PowerSync production setup, rate-limit storage, native token storage (see the sections above).
+- ❓ Native token storage (see the sections above). Hosting's open answers (header merge, PowerSync's snapshot and region, pgaudit) are recorded at going live in [`ops/`](ops/runbook.md).
 
 ## Dev workflow
 
@@ -251,10 +251,11 @@ Read a doc when your work touches its area. A slice's `Reads` field names the on
 | [admin](docs/domain/admin.md)                       | staff roles and capabilities, `/admin`, the audit log, app settings, the banner |
 | [assistant](docs/domain/assistant.md)               | quick entry: the actions, the parser, the runner, the box and its suggestions   |
 | [tasks](docs/domain/tasks.md)                       | the task table and rules, the Tasks section, the task page, links               |
+| [ops](ops/runbook.md)                               | deploys, secrets, rotation, rollback, the data-copy register, break-glass       |
 
 ## Next steps
 
 1. **The backlog** (`pnpm backlog list`): write the PRDs its table marks "to write" (`pnpm prd plan <topic>`, one `write-a-prd` interview each), then run them, at most three at once.
 2. **Tests:** cover every role against every table (the integration tests are independent now: each builds its own fixtures).
-3. **Hosting:** choose the hosted database and how production migrations run. Set up PowerSync Cloud.
+3. **Hosting:** go live by working through [`ops/runbook.md`](ops/runbook.md) with the user (hosting slice 7), staging first.
 4. **After invites:** the launch work in `docs/domain/notifications.md`. Then Capacitor (bearer storage, `VITE_API_ORIGIN`).
