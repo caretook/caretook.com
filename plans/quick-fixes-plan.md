@@ -14,58 +14,58 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 
 ## Status
 
-| Slice | Item              | State   | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ----------------- | ------- | ----------------------------------------------------- |
-| 1     | B-1               | merged  | 1e00754 (5ab3b67)                                     |
-| 2     | B-17              | merged  | 4629e8c (32355db)                                     |
-| 3     | B-22              | merged  | b0325d0 (46ef320)                                     |
-| 4     | B-28              | merged  | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29              | merged  | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34              | merged  | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27              | merged  | 75127be (004abfe)                                     |
-| 8     | B-35              | merged  | 6dcc71d (7c0725f)                                     |
-| 9     | B-36              | merged  | e6fc148 (cc12901)                                     |
-| 10    | B-39              | merged  | 2052075 (1870973, 9e7d83b)                            |
-| 11    | B-38              | merged  | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41              | merged  | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42              | merged  | 94ce803 (eccbd1a)                                     |
-| 14    | B-37              | merged  | 9c08e01 (cf1f804)                                     |
-| 15    | B-71              | landed  | 23e1be2 (wave 7)                                      |
-| 16    | B-72              | landed  | 23e1be2 (wave 7)                                      |
-| 17    | B-44              | landed  | 23e1be2 (wave 7)                                      |
-| 18    | B-73              | merged  | 59f380a (f6a783e)                                     |
-| 19    | B-67              | merged  | 0ddaaa7 (46e8be0)                                     |
-| 20    | B-74              | merged  | 679fa87 (d7a1631)                                     |
-| 21    | B-70              | merged  | 27c2c74 (62a459a)                                     |
-| 22    | B-81              | merged  | 376f8b7 (22470b8)                                     |
-| 23    | B-82              | merged  | 5047c71 (8d6f089)                                     |
-| 24    | B-64              | merged  | 290fd21 (fbbf94f)                                     |
-| 25    | B-69              | merged  | 2431a55 (14da487)                                     |
-| 26    | B-78              | merged  | 17a89b1 (484d825)                                     |
-| 27    | B-65              | merged  | 5d8af6e (07ab7bf)                                     |
-| 28    | B-79              | merged  | 6573d31 (036c039)                                     |
-| 29    | B-80              | merged  | 25757d4 (e392d3c, 21941f0)                            |
-| 30    | B-92              | merged  | dab620f (51f5fb8)                                     |
-| 31    | B-93              | merged  | 998cc44 (938bec1)                                     |
-| 32    | B-95              | merged  | 420d5e9 (280d527)                                     |
-| 33    | B-83              | merged  | dac3172 (b27a1ec)                                     |
-| 34    | B-90              | merged  | dd5f4f3 (d366cac)                                     |
-| 35    | B-94              | merged  | 1fc9168 (81fdddf)                                     |
-| 36    | B-97              | merged  | 0065420 (6273693)                                     |
-| 37    | B-96              | merged  | 8b28fda (5f1d8de)                                     |
-| 38    | B-79, B-90, B-97  | landed  | f2a9079 (waves 9–10)                                  |
-| 39    | B-98, B-99, B-105 | landed  | 5070e43 (0bbf0b9, b87450f)                            |
-| 40    | B-106             | landed  | 29ebc9f (adfb130, 8fe09e0)                            |
-| 41    | B-112             | landed  | 5116a8f (67b943d)                                     |
-| 42    | B-100             | landed  | c85575d (5e87b1f, d030837)                            |
-| 43    | B-130             | landed  | b8d516e (9fc492c)                                     |
-| 44    | B-135             | started | (wave 12)                                             |
-| 45    | B-134             | handed off | (f068feb)                                          |
-| 46    | B-157             | handed off | (bec9a23)                                          |
+| Slice | Item              | State  | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ----------------- | ------ | ----------------------------------------------------- |
+| 1     | B-1               | merged | 1e00754 (5ab3b67)                                     |
+| 2     | B-17              | merged | 4629e8c (32355db)                                     |
+| 3     | B-22              | merged | b0325d0 (46ef320)                                     |
+| 4     | B-28              | merged | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29              | merged | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34              | merged | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27              | merged | 75127be (004abfe)                                     |
+| 8     | B-35              | merged | 6dcc71d (7c0725f)                                     |
+| 9     | B-36              | merged | e6fc148 (cc12901)                                     |
+| 10    | B-39              | merged | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38              | merged | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41              | merged | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42              | merged | 94ce803 (eccbd1a)                                     |
+| 14    | B-37              | merged | 9c08e01 (cf1f804)                                     |
+| 15    | B-71              | landed | 23e1be2 (wave 7)                                      |
+| 16    | B-72              | landed | 23e1be2 (wave 7)                                      |
+| 17    | B-44              | landed | 23e1be2 (wave 7)                                      |
+| 18    | B-73              | merged | 59f380a (f6a783e)                                     |
+| 19    | B-67              | merged | 0ddaaa7 (46e8be0)                                     |
+| 20    | B-74              | merged | 679fa87 (d7a1631)                                     |
+| 21    | B-70              | merged | 27c2c74 (62a459a)                                     |
+| 22    | B-81              | merged | 376f8b7 (22470b8)                                     |
+| 23    | B-82              | merged | 5047c71 (8d6f089)                                     |
+| 24    | B-64              | merged | 290fd21 (fbbf94f)                                     |
+| 25    | B-69              | merged | 2431a55 (14da487)                                     |
+| 26    | B-78              | merged | 17a89b1 (484d825)                                     |
+| 27    | B-65              | merged | 5d8af6e (07ab7bf)                                     |
+| 28    | B-79              | merged | 6573d31 (036c039)                                     |
+| 29    | B-80              | merged | 25757d4 (e392d3c, 21941f0)                            |
+| 30    | B-92              | merged | dab620f (51f5fb8)                                     |
+| 31    | B-93              | merged | 998cc44 (938bec1)                                     |
+| 32    | B-95              | merged | 420d5e9 (280d527)                                     |
+| 33    | B-83              | merged | dac3172 (b27a1ec)                                     |
+| 34    | B-90              | merged | dd5f4f3 (d366cac)                                     |
+| 35    | B-94              | merged | 1fc9168 (81fdddf)                                     |
+| 36    | B-97              | merged | 0065420 (6273693)                                     |
+| 37    | B-96              | merged | 8b28fda (5f1d8de)                                     |
+| 38    | B-79, B-90, B-97  | landed | f2a9079 (waves 9–10)                                  |
+| 39    | B-98, B-99, B-105 | landed | 5070e43 (0bbf0b9, b87450f)                            |
+| 40    | B-106             | landed | 29ebc9f (adfb130, 8fe09e0)                            |
+| 41    | B-112             | landed | 5116a8f (67b943d)                                     |
+| 42    | B-100             | landed | c85575d (5e87b1f, d030837)                            |
+| 43    | B-130             | landed | b8d516e (9fc492c)                                     |
+| 44    | B-135             | merged | df9e3df (22bffaa)                                     |
+| 45    | B-134             | merged | ee62ed9 (f068feb)                                     |
+| 46    | B-157             | merged | 03dfa05 (bec9a23)                                     |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
-**Wave 12 (slices 44–46), 2026-11-20:** wave 11 landed in `dev` as 8728000; `prd/quick-fixes` level with `dev`. Queued again, same run-through mode. Slices 44–46 written from B-135, B-134 and B-157 (tasks has landed, so none waits). All three stackless; worktrees made and loops spawned (2026-11-20). Slice 45 handed off (f068feb): the clamp is in `ui/date/DateTimeField.tsx` (React Aria's month/year cycle doesn't clamp the day), tests in `primitives.browser.test.tsx` and visit prep's test on a fixed clock; `pnpm check` green; its `--changed` set (roundtrip, ui, medications) was **not run** (its stack-up clashed on slot 6 with 44): run it at landing. Slice 46 handed off (bec9a23): `QuickEntrySuggestions` `showTips` (off for the `lg` box), the tiles hint is only the "Choose the tiles" link for those who can choose; `pnpm check` green, `--changed` needed no checks. At landing: timeline.md's Tiles bullet and assistant.md's Suggestions bullet. Slice 45's rule (a month step onto a shorter month clamps to its last day) is the orchestrator's default, not a user answer.
+**Wave 12 (slices 44–46), 2026-11-20:** wave 11 landed in `dev` as 8728000; `prd/quick-fixes` level with `dev`. Queued again, same run-through mode. Slices 44–46 written from B-135, B-134 and B-157 (tasks has landed, so none waits). All three stackless; worktrees made and loops spawned (2026-11-20). Slice 45 handed off (f068feb): the clamp is in `ui/date/DateTimeField.tsx` (React Aria's month/year cycle doesn't clamp the day), tests in `primitives.browser.test.tsx` and visit prep's test on a fixed clock; `pnpm check` green; its `--changed` set (roundtrip, ui, medications) was **not run** (its stack-up clashed on slot 6 with 44): run it at landing. Slice 46 handed off (bec9a23): `QuickEntrySuggestions` `showTips` (off for the `lg` box), the tiles hint is only the "Choose the tiles" link for those who can choose; `pnpm check` green, `--changed` needed no checks. At landing: timeline.md's Tiles bullet and assistant.md's Suggestions bullet. Slice 44 handed off (22bffaa): `QuickAddMenu` on each `DayHeader` ("Add to <day>"), `dayStartAt` in `timelineDays.ts`, `?at=` (`START_AT_PARAM`, `startAtFrom`) on `newSheet`/`newDose`/`newEntry`, dropped by `withoutSheetParams`; its own call: a writer's list always opens with a Today heading (empty if nothing today) so Today's + exists; `cdp.mjs` `ADD_BUTTON` is "Add to Today"; its `--changed` (sign-in, roundtrip, medications, upcoming, profiles) passed. All three merged 2026-11-20, items done, worktrees removed. Next: fold docs, sync, check, `ui` browser check (45's set less what 44 ran), land. Slice 45's rule (a month step onto a shorter month clamps to its last day) is the orchestrator's default, not a user answer.
 
 Waves 9–10 (slices 28–38) are in `dev`; `prd/quick-fixes` was level with `dev` when this orchestrator started (2026-11-19, queued again, same run-through mode). Wave 11 (slices 39–43) was written then from the seven items triaged to quick-fixes; B-100's window and types are the user's answer (7 and 30 days, a fixed core set). Slice 39 shares the timeline route folder with `assistant` (running): its orchestrator was told. and asked to be messaged when 39 lands in `dev`. All five merged (40–43 ahead of 39: no shared files) and synced with `dev`. Landing checks: the loops' `--changed` runs (39: 12 checks, three passing after fixes; 40: invites, groups, admin; 41 and 42: profiles; 43: sign-in, first-sync, signout-wipe, session-end, invites), plus `profiles` once on the merged branch (41 and 42 both edited it); no `--suite` (the user's standing rule). Decisions: 39 dropped the timeline's "Where is <name> now? / Add care period" prompt (periods are added from the Care periods page) and a day with no rows shows no period; 40 tells a staff owner invite by `createdBy = SYSTEM_USER`; 43's `packages/auth` client takes `customFetchImpl` (per-request `fetch`), and reproduced the get-session limiter (100 per 10 s per IP) behind B-113. Docs folded: timeline, care-periods, layout, profiles, admin, sync, auth.
 
