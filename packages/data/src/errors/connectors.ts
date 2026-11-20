@@ -35,6 +35,35 @@ export const CONNECTORS_ERRORS = {
     message: "Only an owner can turn assistants on or off",
     statusCode: 403,
   },
+  // assistantActionService.run: an action the batch can't carry out. `meta.index` names it.
+  "assistantActionService:invalid": {
+    message: "This action can't be saved as it is",
+    statusCode: 400,
+  },
+  "assistantActionService:medicationGone": {
+    message: "That medication is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "assistantActionService:medicationStopped": {
+    message: "That medication isn't current. Restart it in the app to log doses of it.",
+    statusCode: 409,
+  },
+  "assistantActionService:providerGone": {
+    message: "That provider is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "assistantActionService:passGone": {
+    message: "That pass is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "assistantActionService:passEmpty": {
+    message: "That pass has no medications.",
+    statusCode: 409,
+  },
+  "assistantActionService:nothingLeft": {
+    message: "Nothing is left to give in that pass today.",
+    statusCode: 409,
+  },
   // The grant model's own queries (database failures).
   "connectorGrantModel:revoke": { message: "Failed to revoke the connection" },
   "connectorGrantModel:revokeAll": { message: "Failed to revoke connections" },

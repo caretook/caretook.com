@@ -87,6 +87,8 @@ export const timelineEntries = sqliteTable(
     cancelledBy: text("cancelled_by"),
     cancelReason: text("cancel_reason"),
     rescheduledTo: text("rescheduled_to"),
+    // Written through a member's AI assistant ("via Claude"; connectors). Only the server sets it.
+    via: text("via"),
   },
   (t) => [index("timeline_entry_group_occurred").on(t.groupId, t.occurredAt)],
 );
@@ -353,6 +355,8 @@ export const tasks = sqliteTable(
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),
     updatedBy: text("updated_by"),
+    // Added through a member's AI assistant (connectors). Only the server sets it.
+    via: text("via"),
   },
   (t) => [index("task_group").on(t.groupId)],
 );

@@ -122,6 +122,14 @@ export type {
   VerifiedConnector,
 } from "./connectorGrantService";
 
+// Not in `services`: no model of its own (assistant actions through connectors).
+import * as assistantActionService from "./assistantActionService";
+export { assistantActionService };
+export type {
+  RunOptions as AssistantRunOptions,
+  RunResult as AssistantRunResult,
+} from "./assistantActionService";
+
 export const services = {
   user: userService,
   careGroup: careGroupService,

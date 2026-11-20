@@ -13,7 +13,13 @@ export const TIMELINE_PERMISSIONS = {
     create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
     update: {
       ...groupEntry(WRITERS),
-      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, kind: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+      fields: {
+        groupId: SYSTEM_ONLY,
+        recipientId: SYSTEM_ONLY,
+        kind: SYSTEM_ONLY,
+        deletedAt: SYSTEM_ONLY,
+        via: SYSTEM_ONLY,
+      },
     },
     delete: groupEntry(WRITERS),
   },

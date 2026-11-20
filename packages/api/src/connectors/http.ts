@@ -36,6 +36,8 @@ export type McpHandlerOptions = {
   limiter?: RateLimiter;
   tools?: readonly Tool[];
   now?: () => Date;
+  /** Our public origin, for links in tool answers: the resource metadata's, unless given. */
+  appOrigin?: string;
 };
 
 const json = (body: unknown, status: number, headers: Record<string, string> = {}) =>
@@ -69,6 +71,7 @@ export const createMcpHandler = ({
   }),
   tools = CONNECTOR_TOOLS,
   now = () => new Date(),
+  appOrigin = new URL(resourceMetadataUrl).origin,
 }: McpHandlerOptions) => {
   const challenge = (extra = "") =>
     `Bearer ${extra}resource_metadata="${resourceMetadataUrl}", scope="${OAUTH_SCOPES.join(" ")}"`;
@@ -112,7 +115,7 @@ export const createMcpHandler = ({
     }
 
     try {
-      const reply = await handleMcp(message, { ...verified, now: now() }, tools);
+      const reply = await handleMcp(message, { ...verified, now: now(), origin: appOrigin }, tools);
       if (reply.kind === "accepted") return new Response(null, { status: 202 });
       if (reply.kind === "insufficientScope") {
         return json(reply.body, 403, { "www-authenticate": challenge('error="insufficient_scope", ') });

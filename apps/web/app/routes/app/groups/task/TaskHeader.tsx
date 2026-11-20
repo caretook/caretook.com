@@ -2,13 +2,15 @@ import type { TaskState } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 
 import { ListTodo } from "lucide-react";
+import { ViaTag } from "~/components/ui";
 import { taskBadge } from "./taskPage";
 
 /**
  * The task's header, in regions like `MedicationHeader`'s:
  *
- *   [icon] [title, Done or Overdue badge] [editors] [actions]
+ *   [icon] [title, Done or Overdue badge, via] [editors] [actions]
  *
+ * - `via`: the member's AI assistant it was added through ("via Claude"), when it was.
  * - `editors`: who is editing the notes now (avatars).
  * - `actions`: Edit (the edit sheet) and ⋯ with Reopen and Delete, for writers.
  *
@@ -19,9 +21,11 @@ export function TaskHeader({
   state,
   editors,
   actions,
+  via,
 }: {
   title: string;
   state: TaskState;
+  via?: string | null;
   editors?: ReactNode;
   actions?: ReactNode;
 }) {
@@ -46,6 +50,7 @@ export function TaskHeader({
             {badge.label}
           </span>
         )}
+        <ViaTag via={via} />
       </div>
       {editors && (
         <div data-region="editors" className="flex shrink-0 items-center -space-x-1.5 pt-1">

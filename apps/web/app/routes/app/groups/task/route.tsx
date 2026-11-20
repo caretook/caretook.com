@@ -93,6 +93,7 @@ function TaskPage({ loaderData, params }: Route.ComponentProps) {
       <TaskHeader
         title={task.title}
         state={page.state}
+        via={task.via}
         editors={!deleted && <EditorAvatars documentId={taskId} groupId={groupId} viewerId={db.userId} />}
         actions={
           group.canWrite &&

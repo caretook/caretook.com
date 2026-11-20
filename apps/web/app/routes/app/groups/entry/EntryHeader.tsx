@@ -12,13 +12,14 @@ import { Field } from "~/components/ui";
  * own:
  *
  *   [icon] [title ............] [editors] [actions]
- *          [time]
+ *          [time] [via]
  *          [with ...........]
  *          [suggestion .....]
  *          [place ..........]
  *
  * - `title`: `EntryTitle` (editable for writers) or plain text.
  * - `time`: when it happened (`EntryTimeChip` for writers, `EntryTime` otherwise).
+ * - `via`: the member's AI assistant it was added through (`ViaTag`), after the time.
  * - `editors`: who is typing now (avatars).
  * - `actions`: Share, the ⋯ menu.
  * - `with`: the providers it was with (notes and events).
@@ -36,10 +37,12 @@ export function EntryHeader({
   with: withRegion,
   suggestion,
   place,
+  via,
 }: {
   kind: TimelineEntryKind;
   title: ReactNode;
   time: ReactNode;
+  via?: ReactNode;
   editors?: ReactNode;
   actions?: ReactNode;
   with?: ReactNode;
@@ -53,6 +56,11 @@ export function EntryHeader({
         <div data-region="title">{title}</div>
         <div data-region="time" className="text-base-content/70 text-sm">
           {time}
+          {via && (
+            <span data-region="via" className="ml-2">
+              {via}
+            </span>
+          )}
         </div>
         {withRegion && (
           <div data-region="with" className="pt-1.5 empty:hidden">

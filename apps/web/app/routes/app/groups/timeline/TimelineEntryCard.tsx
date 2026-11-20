@@ -2,6 +2,7 @@ import type { EntryViewProps } from "./TimelineEntryRow";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
+import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
@@ -52,6 +53,7 @@ export function TimelineEntryCard({
             {cancelled && <CancelledBadge label={cancelled} />}
             <p className="text-base-content/60 inline-block w-full text-xs">
               <AuthorFilterLink userId={entry.createdBy} name={authorName} />
+              <ViaTag via={entry.via} className="ml-1.5" />
               {elsewhere && ` · ${elsewhere}`}
             </p>
           </>

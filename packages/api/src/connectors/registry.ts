@@ -17,6 +17,8 @@ export type ToolContext = {
   clientName: string;
   /** The server's clock, for defaults such as "the last 90 days". */
   now: Date;
+  /** Our public origin ("https://caretook.com"), for links to what a write made. */
+  origin?: string;
 };
 
 /** A tool's answer: a short text rendering for the model, and the same as data. */

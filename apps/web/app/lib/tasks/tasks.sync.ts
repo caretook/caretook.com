@@ -46,6 +46,8 @@ export type TaskRow = {
   updated_at: string | null;
   created_by: string | null;
   updated_by: string | null;
+  // Added through a member's AI assistant (connectors; optional: rows from before it synced).
+  via?: string | null;
 };
 
 export type LocalTask = {
@@ -68,6 +70,8 @@ export type LocalTask = {
   updatedAt: string;
   createdBy: string;
   updatedBy: string;
+  /** The assistant it was added through ("Claude"), or null. */
+  via: string | null;
 };
 
 /** A local row as a task, or null for a half-synced one. */
@@ -92,6 +96,7 @@ export const toTask = (row: TaskRow): LocalTask | null => {
     updatedAt: row.updated_at ? fromLocalTimestamp(row.updated_at) : "",
     createdBy: row.created_by ?? "",
     updatedBy: row.updated_by ?? "",
+    via: row.via ?? null,
   };
 };
 
