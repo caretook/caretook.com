@@ -4,9 +4,9 @@ The components area's rules and decisions. An orchestrator folds a landing's las
 
 ## Layout
 
-- **`ui/`** holds primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `Sheet`, `Popover`, `ConfirmDialog`, `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast` (`role="status"`, above the tab bar). **Only `ui/` imports `react-aria-components`.**
+- **`ui/`** holds primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `Sheet`, `Popover`, `ConfirmDialog`, `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast` (`role="status"`, above the tab bar), `ViaTag` ("via X", `data-via`; nothing when empty). **Only `ui/` imports `react-aria-components`.**
   - `ui/tooltip/` and `ui/date/` (`DateTimeField`, which clamps a month or year step onto a shorter month to its last day) have their own indexes, so the date picker (~42 KB) and tooltip stay off pages that don't use them.
-  - `ui/plain` is the light entry for pages that must not load React Aria (below).
+  - `ui/plain` is the light entry for pages that must not load React Aria (below); it exports `ChoiceGroup` (`/connect`).
   - `ComboBox` takes data in (`options`, a controlled `inputValue`, `onSelect`, an optional `onCreate` last option); the caller filters.
 - **Feature folders:** `brand/`, `contact/`, `entry/` (shared by the timeline and Upcoming), `groups/`, `medications/`, `notes/` (the Tiptap editor, kept apart so it never reaches the timeline through an index), `providers/`, `quick-entry/`, `schedule/`, `settings/`, `shell/`, `tasks/`, `visitPrep/`.
 - **Import through each folder's `index.ts`**, never a file inside it, and a route never imports another route's folder. An index brings its folder's whole chunk, so keep heavy pieces (the editor, the date picker) out of indexes that light routes use.

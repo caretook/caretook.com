@@ -8,6 +8,7 @@ The api area's rules and decisions, moved out of AGENTS.md (whose core rules sti
 - **Logging** (`logError(event, error, fields?)` from `@caretook/data`, server only; in apps/web through `~/.server/data` or `~/.server/api`): server logs carry an error's code (an `AppError`'s `code`, or a constant-looking code and class name otherwise), stack frames without the message, and only the fields `procedure`, `actorId`, `groupId`, `recordId`, `notification`, `attempts`. Never messages, `meta`, `issues`, bodies or values. `publicProcedure`'s first middleware (`logFailures`) logs every 5xx and unexpected throw once; 4xx aren't logged. **Never `console.error(error)` in server code.**
 - **DTOs:** `dto.ts` turns timestamps into ISO 8601. Inputs reuse the client-safe Zod schemas from `@caretook/data/schema`.
 - **Public profiles only:** `careGroup.members` returns name, image and role, never email. Keep it that way for new procedures.
+- **`/mcp`** (`src/connectors/`) is JSON-RPC, not oRPC, behind its web route; `connector.*` is composed in `router.ts`. See [connectors](connectors.md).
 - **HTTP:** `createRpcHandler({ prefix, allowedOrigins })`:
   - CSRF through `SimpleCsrfProtection` (the client link sends `x-csrf-token`).
   - CORS for `allowedOrigins()` only (`packages/auth/src/host.ts`, shared with Better Auth): `AUTH_TRUSTED_ORIGINS`, plus Capacitor's origins only with `NATIVE_APP_ORIGINS=1` (off in dev, tests, checks and deploys until the native app ships). The list is defined once, in `host.ts`.

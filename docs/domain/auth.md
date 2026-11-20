@@ -8,7 +8,7 @@ The auth area's rules and decisions, moved out of AGENTS.md (whose core rules st
   - `system`-only permissions.
 - **Ids and extra fields:** ids come from `generateId: "uuid"` (the Postgres default). `role`, `createdBy` and `updatedBy` are `additionalFields` with `input: false`, defaulting to `SYSTEM_USER`.
 - **Settings:** `emailAndPassword` with `disableSignUp: true` and a 12-character minimum; telemetry off; `trustedOrigins` = `allowedOrigins()` (`packages/auth/src/host.ts`: `AUTH_TRUSTED_ORIGINS`, plus Capacitor's origins only with `NATIVE_APP_ORIGINS=1`); `advanced.ipAddress.ipAddressHeaders` = `[CLIENT_IP_HEADER]` when it's set, else Better Auth's default (`x-forwarded-for`).
-- **Plugins:** `bearer()` (native), and `jwt()`: 15-minute EdDSA tokens with `sub` and `role`, JWKS at `/api/auth/jwks`, and `aud` = `POWERSYNC_URL`.
+- **Plugins:** `bearer()` (native), and `jwt()`: 15-minute EdDSA tokens with `sub` and `role`, JWKS at `/api/auth/jwks`, and `aud` = `POWERSYNC_URL`. `oauthProvider` serves connectors' OAuth with opaque tokens ([connectors](connectors.md)).
 - **Secrets and key rotation** (hosting slice 9; the procedure is _Rotating `BETTER_AUTH_SECRET`_ in [`ops/runbook.md`](../../ops/runbook.md)):
   - The jwt plugin stores each key's private half in `jwks`, encrypted with the current secret; it signs with the newest unexpired key and makes one when none is left.
   - `BETTER_AUTH_SECRETS` (`<version>:<secret>,…`, current first; `parseAuthSecrets`, checked by `checkDeployEnv`) is Better Auth's versioned list: every listed version still decrypts, and `BETTER_AUTH_SECRET` stays as the legacy secret for data from before the list. Once the list is in use, keep it set.
