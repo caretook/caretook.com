@@ -87,7 +87,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-141 | change | landed | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
 | B-142 | change | landed | hosting | prd/hosting | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
 | B-143 | change | landed | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
-| B-144 | feature | triaged | app-speed |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
+| B-144 | feature | triaged | timeline-ux |  | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-147 | chore | in-progress | agent-tooling | prd/agent-tooling | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
 | B-148 | chore | triaged | agent-tooling |  | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
@@ -534,7 +534,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-144 · feature · Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload…
 
 - status: triaged
-- prd: app-speed
+- prd: timeline-ux
 - owner:
 - commit:
 
