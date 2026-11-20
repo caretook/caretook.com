@@ -160,6 +160,8 @@ const seedAge = () => {
 };
 
 const PROFILE = `/app/groups/${DEV_FAMILY}/profile`;
+/** The profile's cards for a writer, in order; recent vital averages (B-100) only while there are recent vitals. */
+const WRITER_SECTIONS = /^basics,note(,vital-averages)?,contact,insurance,emergency$/;
 const BASICS = `${PROFILE}/basics`;
 const TIMELINE = `/app/groups/${DEV_FAMILY}/timeline`;
 const DETAILS = `/app/groups/${DEV_FAMILY}/settings/details`;
@@ -307,8 +309,9 @@ try {
         page.basics.primaryLanguage === "English" &&
         page.basics.pronouns === "she/her" &&
         page.note === SEED.notes &&
-        // Slice 3 adds the writers' Contact and Insurance after the note, slice 5 the emergency list.
-        page.sections === "basics,note,contact,insurance,emergency",
+        // Slice 3 adds the writers' Contact and Insurance after the note, slice 5 the emergency list;
+        // recent vital averages (B-100) sit after the note while the seed's vitals are recent.
+        WRITER_SECTIONS.test(page.sections),
       JSON.stringify(page),
     );
     const editShown = await A.waitFor(EDIT_LINK, 15000)
@@ -634,7 +637,7 @@ try {
     const state = await detailsState(A);
     check(
       "owner: Contact and Insurance after the note (then slice 5's emergency list)",
-      state.sections === "basics,note,contact,insurance,emergency" && state.viewerLine === null,
+      WRITER_SECTIONS.test(state.sections) && state.viewerLine === null,
       state.sections,
     );
     check(
