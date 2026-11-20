@@ -4,6 +4,9 @@
 # packages/data/src/services/connectorGrant.int.test.ts). No browser check
 # owns a connector flow yet.
 apps/web/app/routes/connectors/*         -
+# Group settings → Assistants (slice 5): component tests (assistants.browser.test.tsx);
+# its switch reads care_group through lib/care-groups/assistantsSwitch.sync.ts.
+apps/web/app/routes/app/groups/settings/assistants/* -
 apps/web/app/.server/connectors.ts       -
 # The OAuth plugin's hooks run on every sign-in.
 packages/auth/src/connectors.ts          sign-in
