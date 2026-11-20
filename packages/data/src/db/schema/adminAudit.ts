@@ -37,6 +37,8 @@ export const AUDIT_ACTIONS = [
   "group.changeRole",
   "group.removeMember",
   "setting.set",
+  "db.accessGranted",
+  "db.accessRevoked",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -61,6 +63,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "group.changeRole": "Changed a member's role",
   "group.removeMember": "Removed a member",
   "setting.set": "Changed a setting",
+  "db.accessGranted": "Granted personal database access",
+  "db.accessRevoked": "Revoked personal database access",
 };
 
 /** A JSON value as `changes` stores it. */

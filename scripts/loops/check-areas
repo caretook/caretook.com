@@ -62,6 +62,8 @@ apps/web/app/lib/csp.ts                  sign-in phase2 roundtrip live-notes mar
 apps/web/app/routes/web/*                sign-in marketing invites
 apps/web/vercel.json                     sign-in marketing
 apps/web/app/app.css                     ui medications profiles
+# The production PowerSync settings, for the runbook (hosting slice 2): nothing loads it.
+powersync/service.production.example.yaml -
 powersync/*                              @suite
 docker-compose*.yml                      @suite
 packages/data/src/db/migrations/*        @suite

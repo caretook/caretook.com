@@ -32,6 +32,9 @@ export const DB_ERRORS = {
   "db:clear:notLocal": {
     message: "Refusing to clear a database that isn't on localhost",
   },
+  "db:roles": {
+    message: "Failed to apply the database roles",
+  },
 } as const;
 
 export const MODEL_ERRORS = {
@@ -710,6 +713,21 @@ export const SERVICE_ERRORS = {
   "recipientAllergyService:invalidNoKnown": {
     message: "No known allergies needs a time, or none to clear it",
     statusCode: 400,
+  },
+  "dbAccess:unknownAddress": {
+    message: "No account has that email address",
+    statusCode: 404,
+  },
+  "dbAccess:notStaff": {
+    message: "Only an enabled staff account can get database access",
+    statusCode: 403,
+  },
+  "dbAccess:invalidHours": {
+    message: "Database access lasts 1 to 24 hours",
+    statusCode: 400,
+  },
+  "dbAccess:failed": {
+    message: "Failed to change database access",
   },
 } as const;
 
