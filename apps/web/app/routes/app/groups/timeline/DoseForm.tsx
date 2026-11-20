@@ -1,15 +1,15 @@
 import type { DoseDetails, DoseStatus } from "@caretook/data/schema";
 import type { FormEvent } from "react";
-import type { PlannedDose } from "~/lib/dueDoses";
-import type { DoseDraft } from "~/lib/quickEntryDraft";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { PlannedDose } from "~/lib/medications/dueDoses";
+import type { DoseDraft } from "~/lib/assistant/quickEntryDraft";
+import type { TimelineEntry } from "~/lib/core/rpc";
 import type { DoseOption } from "./doseFormData";
 
 import { useState } from "react";
 import { isDoseDetails, MEDICATION_LIMITS } from "@caretook/data/schema";
 import { ChoiceGroup, Field } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
-import { formString } from "~/lib/form";
+import { formString } from "~/lib/core/form";
 import { DOSE_STATUS_OPTIONS, parseDoseOption } from "./doseFormData";
 import { parseOccurredAt } from "./entryFormData";
 import { issueFor } from "./formIssues";
@@ -28,6 +28,8 @@ type Props = {
       warningsFor?: (planned: PlannedDose) => string[];
       /** What to fill it in with (quick entry's Edit). */
       draft?: DoseDraft | null;
+      /** When it starts at (an ISO time, a past day's +), unless the draft has a time; now when left out. */
+      initialAt?: string | null;
       entry?: never;
       medicationName?: never;
     }
@@ -40,6 +42,7 @@ type Props = {
       initialOption?: never;
       warningsFor?: never;
       draft?: never;
+      initialAt?: never;
     }
 );
 
@@ -141,7 +144,7 @@ export function DoseForm(props: Props) {
       <DateTimeField
         name="occurredAt"
         label="When"
-        defaultValue={entry?.occurredAt ?? draft?.occurredAt}
+        defaultValue={entry?.occurredAt ?? draft?.occurredAt ?? props.initialAt ?? undefined}
         error={issueFor(issues, "occurredAt")}
       />
 

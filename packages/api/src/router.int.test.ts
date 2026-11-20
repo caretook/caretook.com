@@ -71,6 +71,7 @@ describe("auth", () => {
       units: DEFAULT_UNITS,
       timelineView: DEFAULT_TIMELINE_VIEW,
       simpleMode: "group",
+      daySummary: "highlights",
     });
   });
 });
@@ -83,6 +84,7 @@ describe("me.updatePreferences", () => {
       units: { ...DEFAULT_UNITS, temperature: "c" },
       timelineView: DEFAULT_TIMELINE_VIEW,
       simpleMode: "group",
+      daySummary: "highlights",
     });
     await owner.api.me.updatePreferences({ units: { weight: "kg" } });
     expect((await owner.api.me.get()).units).toEqual({ ...DEFAULT_UNITS, temperature: "c", weight: "kg" });
@@ -99,6 +101,14 @@ describe("me.updatePreferences", () => {
     expect(me.units.temperature).toBe("c");
   });
 
+  it("saves the day summaries setting", async () => {
+    const { owner } = await setup();
+    await owner.api.me.updatePreferences({ daySummary: "off" });
+    const me = await owner.api.me.get();
+    expect(me.daySummary).toBe("off");
+    expect(me.timelineView).toBe(DEFAULT_TIMELINE_VIEW);
+  });
+
   it("rejects unknown units and unknown settings", async () => {
     const { owner } = await setup();
     const bad = [
@@ -106,6 +116,7 @@ describe("me.updatePreferences", () => {
       { theme: "dark" },
       { timelineView: "grid" },
       { simpleMode: "sometimes" },
+      { daySummary: "some" },
     ] as never[];
     for (const input of bad) {
       expect((await rejection(owner.api.me.updatePreferences(input))).code).toBe("BAD_REQUEST");
@@ -1052,7 +1063,9 @@ describe("sync.upload", () => {
 });
 
 describe("HTTP handler", () => {
-  const handle = createRpcHandler({ prefix: "/rpc", allowedOrigins: ["capacitor://localhost"] });
+  const rpc = createRpcHandler({ prefix: "/rpc", allowedOrigins: ["capacitor://localhost"] });
+  const handle = (request: Request, authUser: AuthUser | null) =>
+    rpc(request, () => Promise.resolve(authUser));
 
   const call = (path: string, init: RequestInit = {}) =>
     new Request(`http://localhost/rpc/${path}`, {

@@ -12,7 +12,7 @@ import { at, fx, task, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../..
 // Tasks in Upcoming (tasks slice 4): open dated tasks under their day
 // (overdue first under Today), a tick for whoever may complete them, a link
 // to the task, and none under a kind or author filter. Placement and order
-// are lib/upcomingTasks.ts's unit tests; this is what's on the screen.
+// are lib/tasks/upcomingTasks.ts's unit tests; this is what's on the screen.
 
 const UPCOMING = `/app/groups/${TEST_GROUP.id}/upcoming`;
 

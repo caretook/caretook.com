@@ -10,7 +10,7 @@ import type {
 import { encodeNoteDoc, entryProviderId, noteDocFromText } from "@caretook/data/schema";
 import { getTableColumns, getTableName } from "drizzle-orm";
 import { drizzleSchema } from "~/lib/sync/schema";
-import { toLocalTimestamp } from "~/lib/sync/timeline";
+import { toLocalTimestamp } from "~/lib/timeline/timeline.sync";
 
 // Fixture builders for the test device: rows as the device holds them after
 // a sync (the device schema's columns, PowerSync's timestamp text, JSON as
@@ -406,6 +406,55 @@ export const allergy = (v: Partial<Values<"recipientAllergies">> = {}) => {
     ...v,
   });
 };
+
+// --- Added by check-migration slice 10 (the recipient's profile) -------------
+
+type Phone = { label: string; number: string };
+
+/**
+ * The recipient's writers-only details (only writers' devices have the row):
+ * phones, email, address, insurance plans and outside contacts, as JSON text.
+ */
+export const recipientDetails = ({
+  phones = [],
+  insurance = [],
+  outsideContacts = [],
+  ...v
+}: Partial<Omit<Values<"careRecipientDetails">, "phones" | "insurance" | "outsideContacts">> & {
+  phones?: Phone[];
+  insurance?: Record<string, unknown>[];
+  outsideContacts?: Record<string, unknown>[];
+} = {}) =>
+  row("careRecipientDetails", {
+    id: recipientId,
+    groupId,
+    recipientId,
+    phones: JSON.stringify(phones),
+    insurance: JSON.stringify(insurance),
+    outsideContacts: JSON.stringify(outsideContacts),
+    updatedAt: hoursAgo(24),
+    ...v,
+  });
+
+/** What a member shares with the group (`member_contact_share`; its id is the membership's). */
+export const contactShare = ({
+  memberId,
+  userId,
+  phones = [],
+  ...v
+}: Partial<Omit<Values<"memberContactShares">, "phones">> & {
+  memberId: string;
+  userId: string;
+  phones?: Phone[];
+}) =>
+  row("memberContactShares", {
+    id: memberId,
+    groupId,
+    userId,
+    phones: JSON.stringify(phones),
+    updatedAt: hoursAgo(24),
+    ...v,
+  });
 
 // --- Added by tasks slice 1 ---------------------------------------------------
 

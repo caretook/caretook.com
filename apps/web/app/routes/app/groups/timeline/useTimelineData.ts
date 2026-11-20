@@ -1,28 +1,27 @@
-import type { EntryProviderLinkRow, LinkedProviderName } from "~/lib/entryProviders";
-import type { LiveDocument } from "~/lib/liveNow";
-import type { LatestVital, TimelineEntry } from "~/lib/rpc";
-import type { NoteDocRow } from "~/lib/sync/notes";
-import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
+import type { EntryProviderLinkRow, LinkedProviderName } from "~/lib/providers/entryProviders";
+import type { LiveDocument } from "~/lib/live-notes/liveNow";
+import type { LatestVital, TimelineEntry } from "~/lib/core/rpc";
+import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
 import type { TimelineRows } from "./timelineRows";
 import type { TimelineDay } from "./timelineDays";
-import type { UpcomingSection } from "~/lib/upcomingDays";
-import type { PeriodMarker } from "~/lib/periodMarkers";
-import type { LocalCarePeriod } from "~/lib/sync/carePeriods";
+import type { PeriodMarker } from "~/lib/care-periods/periodMarkers";
+import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import type { TimelinePeriods } from "./timelinePeriods";
 
 import { useMemo, useState } from "react";
-import { isEntryKind, KIND_META } from "~/lib/entryDisplay";
-import { groupLinksByEntry } from "~/lib/entryProviders";
-import { localTimeZone } from "~/lib/format";
-import { isLiveEntryKind } from "~/lib/liveEntry";
-import { liveDotLabel } from "~/lib/liveNow";
-import { withMedication } from "~/lib/medicationEntries";
+import { isEntryKind, KIND_META } from "~/lib/timeline/entryDisplay";
+import { groupLinksByEntry } from "~/lib/providers/entryProviders";
+import { localTimeZone } from "~/lib/core/format";
+import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
+import { liveDotLabel } from "~/lib/live-notes/liveNow";
+import { withMedication } from "~/lib/medications/medicationEntries";
 import { useLiveQuery } from "~/lib/sync";
-import { useLiveDocuments } from "~/lib/sync/editors";
-import { useSchedulePasses } from "~/lib/sync/medicationPasses";
-import { useTimelineMedications } from "~/lib/sync/medicationTimeline";
-import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
-import { timelineLinksQuery } from "~/lib/sync/providers";
+import { useLiveDocuments } from "~/lib/live-notes/editors.sync";
+import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { useTimelineMedications } from "~/lib/medications/medicationTimeline.sync";
+import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
+import { timelineLinksQuery } from "~/lib/providers/providers.sync";
 import {
   fromLocalTimestamp,
   historyQuery,
@@ -31,14 +30,13 @@ import {
   toLatestVitals,
   toMember,
   toTimelineEntries,
-} from "~/lib/sync/timeline";
+} from "~/lib/timeline/timeline.sync";
 import { groupByDay } from "./timelineDays";
-import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/paging";
+import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/core/paging";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
-import { rowPassLogId, wholeLogsPage } from "~/lib/passLogs";
-import { nextUp } from "~/lib/upcoming";
-import { firstItems, UPCOMING_BLOCK_LIMIT, upcomingSections } from "~/lib/upcomingDays";
-import { periodMarkers } from "~/lib/periodMarkers";
+import { rowPassLogId, wholeLogsPage } from "~/lib/medications/passLogs";
+import { nextUp } from "~/lib/appointments/upcoming";
+import { periodMarkers } from "~/lib/care-periods/periodMarkers";
 import { aheadQueries } from "./aheadQueries";
 import { useTimelinePeriods } from "./timelinePeriods";
 import { useHistoryCutoff } from "./useHistoryCutoff";
@@ -73,10 +71,8 @@ export type TimelineData = {
   passNameOf: (passId: string | null) => string | null;
   /** Where the history ends (`historyCutoff`); what's ahead is worked out at this moment. */
   now: Date;
-  /** The Next strip: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the kind and author filters, not the search. */
+  /** The Today card's appointment: the group's first live item ahead (cancelled ones skipped), and how many more. Ignores the kind and author filters, not the search. */
   next: { next: TimelineEntry | null; more: number };
-  /** The Upcoming block (`?upcoming=1`): its first items under the filters, by day, and how many there are in all. */
-  upcoming: { sections: UpcomingSection<TimelineEntry>[]; total: number };
   /** The care periods' track and their places' names (the current-period line). Ignores the filters. */
   periods: TimelinePeriods;
   /** The boundary markers in the loaded window, newest first (all older ones once the beginning is loaded). Ignore the filters. */
@@ -118,7 +114,7 @@ export function useTimelineData({
   const requested = paging.filterKey === filterKey ? paging.limit : PAGE_SIZE;
 
   // The history ends at a cutoff that moves on once a minute, so items cross
-  // from the Upcoming block and the Next strip into it without new rows.
+  // from the Today card's appointment into it without new rows.
   const cutoff = useHistoryCutoff(initial.cutoff);
   const entriesSql = historyQuery(groupId, filters, requested, cutoff);
   const entries = useLiveRows<EntryRow>(entriesSql.sql, entriesSql.params, initial.entryRows);
@@ -134,18 +130,10 @@ export function useTimelineData({
   const linksSql = timelineLinksQuery(groupId, filters, requested, cutoff);
   const links = useLiveRows<EntryProviderLinkRow>(linksSql.sql, linksSql.params, initial.linkRows);
   const linkRows = links.rows;
-  // What's ahead of the history: the Next strip's rows and the Upcoming block's, with its links.
+  // What's ahead of the history: the Today card's appointment.
   const ahead = aheadQueries(groupId, filters, cutoff);
   const nextRows = useLiveQuery<EntryRow>(ahead.next.sql, ahead.next.params, initial.nextRows);
-  const blockRows = useLiveQuery<EntryRow>(ahead.block.sql, ahead.block.params, initial.blockRows);
-  const blockLinkRows = useLiveQuery<EntryProviderLinkRow>(
-    ahead.blockLinks.sql,
-    ahead.blockLinks.params,
-    initial.blockLinkRows,
-  );
   const providersByEntry = useMemo(() => groupLinksByEntry(linkRows, fromLocalTimestamp), [linkRows]);
-  // An item in progress is in both lists: either query has its links.
-  const blockProviders = useMemo(() => groupLinksByEntry(blockLinkRows, fromLocalTimestamp), [blockLinkRows]);
   // The new page shows once both windows are in, so no "with …" line flickers.
   const fresh = entries.fresh && links.fresh;
   // The window the rows on screen were fetched for: the cutoff's minute turn
@@ -207,11 +195,10 @@ export function useTimelineData({
     liveLabelOf: (id) => liveLabels.get(id),
     nameOf,
     imageOf: (id) => members.find((m) => m.userId === id)?.image ?? null,
-    providersOf: (id) => providersByEntry.get(id) ?? blockProviders.get(id),
+    providersOf: (id) => providersByEntry.get(id),
     passNameOf: (id) => (id ? (passes.find((p) => p.id === id)?.name ?? null) : null),
     now,
     next: nextUp(toTimelineEntries(nextRows), now),
-    upcoming: firstItems(upcomingSections(withPreview(blockRows), now, zone), UPCOMING_BLOCK_LIMIT),
     periods,
     markers,
     summaryEntries: summariesHidden ? null : toTimelineEntries(summaryRows),

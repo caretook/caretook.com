@@ -1,7 +1,8 @@
 import type { ProviderType } from "@caretook/data/schema";
 
 import { PROVIDER_TYPES } from "@caretook/data/schema";
-import { appUrls, PROVIDER_TYPE_PARAM } from "../../../../lib/appUrls";
+import { appUrls } from "../../../../lib/app-shell/appUrls";
+import { PROVIDER_TYPE_PARAM } from "../../../../lib/providers/urls";
 
 // The directory's sheet routes (`providers/new`, `providers/:providerId/edit`):
 // which sheet a URL opens, or where it goes instead. Pure, so web:unit tests

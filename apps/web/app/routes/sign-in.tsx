@@ -1,13 +1,20 @@
-import type { SignInMethod } from "~/lib/accountUrls";
+import type { SignInMethod } from "~/lib/auth/accountUrls";
 import type { Route } from "./+types/sign-in";
 
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { Field } from "~/components/ui/plain";
-import { accountUrls, parseSignInMethod } from "~/lib/accountUrls";
-import { authClient } from "~/lib/auth-client";
-import { authMessages, isCodeShaped, isUnverified, normalizeCode, requestFailure } from "~/lib/authMessages";
-import { formString } from "~/lib/form";
-import { safeRedirect } from "~/lib/redirect";
+import { accountUrls, parseSignInMethod } from "~/lib/auth/accountUrls";
+import { authClient } from "~/lib/auth/auth-client";
+import { sessionChanged } from "~/lib/auth/sessionEpoch";
+import {
+  authMessages,
+  isCodeShaped,
+  isUnverified,
+  normalizeCode,
+  requestFailure,
+} from "~/lib/auth/authMessages";
+import { formString } from "~/lib/core/form";
+import { safeRedirect } from "~/lib/core/redirect";
 import { AuthCard, useSubmitOnce, EmailField, ErrorMessage, StatusMessage } from "./account/AuthCard";
 
 // Shared by web + native: client-only, like every /app route.
@@ -15,7 +22,7 @@ import { AuthCard, useSubmitOnce, EmailField, ErrorMessage, StatusMessage } from
 // Two ways in, chosen by `?with=`: a password (the default), or `email`: one
 // email with a sign-in link and a 6-digit code (B-96), so the code works when
 // the email is opened on another device. Every message about an
-// address is the same whether or not it has an account (lib/authMessages).
+// address is the same whether or not it has an account (lib/auth/authMessages).
 // Each submit button stays disabled while any navigation is busy, so nothing
 // can be sent twice (B-1).
 
@@ -34,9 +41,9 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
     method: parseSignInMethod(params.get("with")),
     // Better Auth sends an expired or used magic link back here.
     linkExpired: params.has("expired") || params.has("error"),
-    // The /app check sends a device offline for 3 days here (lib/session).
+    // The /app check sends a device offline for 3 days here (lib/auth/session).
     offlineTooLong: params.get("reason") === "offline",
-    // A session check rate-limited twice, with nobody cached (lib/session, B-130).
+    // A session check rate-limited twice, with nobody cached (lib/auth/session, B-130).
     rateLimited: params.get("reason") === "rate-limited",
   };
 }
@@ -66,6 +73,7 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
     if (!isCodeShaped(code)) return failed(authMessages.wrongCode);
     const { error } = await authClient.signIn.emailOtp({ email, otp: code });
     if (error) return failed(requestFailure(error) ?? authMessages.wrongCode);
+    sessionChanged();
     throw redirect(redirectTo);
   }
 
@@ -80,6 +88,7 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
   if (isUnverified(error)) throw redirect(accountUrls.verifyEmail(email, redirectTo));
   // One message for every other failure: don't reveal which emails have accounts.
   if (error) return { intent: "password", error: requestFailure(error) ?? authMessages.wrongPassword };
+  sessionChanged();
   throw redirect(redirectTo);
 }
 

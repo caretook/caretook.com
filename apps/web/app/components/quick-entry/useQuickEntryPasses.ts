@@ -1,10 +1,10 @@
 import type { QuickEntryPass } from "@caretook/data/schema";
-import type { DuePass } from "~/lib/duePasses";
+import type { DuePass } from "~/lib/medications/duePasses";
 
 import { useMemo } from "react";
 import { sortPasses } from "@caretook/data/schema";
-import { duePasses, isNamedPass, isPassDueNow } from "~/lib/duePasses";
-import { useDueDoses } from "~/lib/sync/dueDoses";
+import { duePasses, isNamedPass, isPassDueNow } from "~/lib/medications/duePasses";
+import { useDueDoses } from "~/lib/medications/dueDoses.sync";
 
 const NONE: never[] = [];
 
@@ -14,15 +14,16 @@ const NONE: never[] = [];
  * whether it's due now and how many of its medications are still open
  * today (the parser's `passes`), and today's named passes due now (the
  * one-tap chip, simple mode's Now block). Nothing until the device's rows
- * are read, so "gave meds" never means a pass that only looks due.
+ * are read live (`fresh`: never the tile cache's remembered rows), so "gave
+ * meds" never means a pass that only looks due.
  */
 export function useQuickEntryPasses(groupId: string): {
   passes: readonly QuickEntryPass[];
   dueNow: readonly (DuePass & { passId: string; name: string })[];
 } {
-  const { due, ready, passes } = useDueDoses(groupId);
+  const { due, fresh, passes } = useDueDoses(groupId);
   return useMemo(() => {
-    if (!ready) return { passes: NONE, dueNow: NONE };
+    if (!fresh) return { passes: NONE, dueNow: NONE };
     const today = duePasses(due, passes).filter(isNamedPass);
     const quick = sortPasses(passes.filter((p) => !p.deletedAt)).map((pass): QuickEntryPass => {
       const day = today.find((d) => d.passId === pass.id);
@@ -35,5 +36,5 @@ export function useQuickEntryPasses(groupId: string): {
       };
     });
     return { passes: quick, dueNow: today.filter(isPassDueNow) };
-  }, [due, ready, passes]);
+  }, [due, fresh, passes]);
 }

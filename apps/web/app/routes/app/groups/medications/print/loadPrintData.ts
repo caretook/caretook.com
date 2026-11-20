@@ -1,11 +1,11 @@
 import type { SyncDb } from "~/lib/sync";
-import type { MedicationRow, RecipientRow } from "~/lib/sync/medications";
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { MedicationRow, RecipientRow } from "~/lib/medications/medications.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
-import { loadSchedulePasses } from "~/lib/sync/medicationPasses";
-import { medicationsQuery, recipientQuery } from "~/lib/sync/medications";
-import { providersQuery } from "~/lib/sync/providers";
-import { readRows } from "~/lib/sync/timeline";
+import { loadSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { medicationsQuery, recipientQuery } from "~/lib/medications/medications.sync";
+import { providersQuery } from "~/lib/providers/providers.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 
 /**
  * What the sheet is made from, as the page opens: the group's medications

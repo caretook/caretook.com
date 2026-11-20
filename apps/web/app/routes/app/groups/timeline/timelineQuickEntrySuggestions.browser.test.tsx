@@ -1,20 +1,21 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { Fixture } from "../../../../../test/fixtures";
 
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
-import { clearUndo } from "~/lib/passUndo";
-import { forgetRecentLines, recentLines, recordLine } from "~/lib/recentLines";
-import { addDays, dayInZone, timeInZone, zonedInstant } from "~/lib/zonedDay";
+import { clearUndo } from "~/lib/medications/passUndo";
+import { PLACEHOLDER_MS } from "~/components/quick-entry/useRotatingPlaceholder";
+import { forgetRecentLines, recentLines, recordLine } from "~/lib/assistant/recentLines";
+import { addDays, dayInZone, timeInZone, zonedInstant } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
 import { rowWith, TIMELINE_URL, waitUntil } from "./timelineWorld";
 
 // Quick entry's suggestions on the timeline, on the test device (offline
 // throughout, so they all work offline): name autocomplete while typing,
-// your recent lines, what the group usually logs around now, and the tips
-// under the empty box. Every chip only fills the box; Save is still yours.
+// your recent lines, what the group usually logs around now, and the rotating
+// placeholder. Every chip only fills the box; Save is still yours.
 
 const METFORMIN = fx.medication({ name: "Metformin", strength: "500 mg", dose: "1 tablet" });
 const METOPROLOL = fx.medication({ name: "Metoprolol", strength: "25 mg", dose: "1 tablet" });
@@ -49,7 +50,6 @@ const recent = () => page.getByRole("list", { name: "Your recent lines" });
 const usual = () => page.getByRole("list", { name: "Usual around now" });
 const chipLabels = (list: ReturnType<typeof names>) =>
   [...(list.query()?.querySelectorAll("button") ?? [])].map((b) => b.textContent);
-const tips = () => document.querySelector("[data-quick-tips]");
 const cardKinds = () =>
   [...document.querySelectorAll<HTMLElement>("[data-quick-card]")].map((c) => c.dataset.quickCard);
 /** What the box says: "Saved 3 entries" (on its Undo line) or a refusal. */
@@ -64,17 +64,52 @@ afterEach(() => {
   clearUndo();
 });
 
-describe("the tips line", () => {
-  test("shows under the empty box with examples, and goes while typing", async () => {
+describe("the placeholder", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+  const placeholder = () => field().placeholder;
+
+  test("there's no tips paragraph, and the description holds the rules", async () => {
     await open();
     await expect.element(box()).toBeVisible();
-    await waitUntil(() => !!tips(), 4000, "the tips");
-    expect(tips()!.textContent).toContain("gave metformin");
-    expect(tips()!.textContent).toContain("“n:” for a note");
-    await userEvent.fill(box(), "pain 4");
-    await waitUntil(() => !tips(), 4000, "the tips to go");
-    await userEvent.fill(box(), "");
-    await waitUntil(() => !!tips(), 4000, "the tips again");
+    expect(document.querySelector("[data-quick-tips]")).toBeNull();
+    const described = field()
+      .getAttribute("aria-describedby")!
+      .split(" ")
+      .map((id) => document.getElementById(id)?.textContent ?? "")
+      .join(" ");
+    expect(described).toContain("Commas separate entries");
+    expect(described).toContain("“n:”");
+  });
+
+  test("it rotates through the examples while the box is empty and unfocused", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    await open();
+    await expect.element(box()).toBeVisible();
+    expect(placeholder()).toBe("bp 130/85 hr 72");
+    await vi.advanceTimersByTimeAsync(PLACEHOLDER_MS);
+    await expect.poll(placeholder).toBe("gave metformin");
+    await vi.advanceTimersByTimeAsync(PLACEHOLDER_MS);
+    await expect.poll(placeholder).toBe("pain 4 left knee");
+
+    // Focus stops it.
+    field().focus();
+    await vi.advanceTimersByTimeAsync(PLACEHOLDER_MS * 3);
+    await expect.poll(placeholder).toBe("bp 130/85 hr 72");
+  });
+
+  test("under reduced motion it shows the first example and stays", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const real = window.matchMedia.bind(window);
+    vi.spyOn(window, "matchMedia").mockImplementation((q) =>
+      q.includes("prefers-reduced-motion") ? { ...real(q), matches: true } : real(q),
+    );
+    await open();
+    await expect.element(box()).toBeVisible();
+    await vi.advanceTimersByTimeAsync(PLACEHOLDER_MS * 3);
+    expect(placeholder()).toBe("bp 130/85 hr 72");
   });
 });
 
@@ -132,21 +167,52 @@ describe("recent lines", () => {
   });
 
   test("on the next visit they're chips, newest first, that fill the box and never save", async () => {
-    recordLine(TEST_USER.id, TEST_GROUP.id, "gave morning meds");
-    recordLine(TEST_USER.id, TEST_GROUP.id, "bp 120/80");
+    recordLine(TEST_USER.id, TEST_GROUP.id, "gave metformin");
+    recordLine(TEST_USER.id, TEST_GROUP.id, "pain 4 left knee");
     recordLine("someone-else", TEST_GROUP.id, "not mine");
     const device = await open();
     await expect.element(recent()).toBeVisible();
-    expect(chipLabels(recent())).toEqual(["bp 120/80", "gave morning meds"]);
+    // Lines are read against the group's medications, which load a moment after the box.
+    await waitUntil(() => chipLabels(recent()).length === 2, 4000, "both chips");
+    expect(chipLabels(recent())).toEqual(["pain 4 left knee", "gave metformin"]);
     const before = await entryCount(device);
 
-    await userEvent.click(recent().getByRole("button", { name: "gave morning meds" }));
-    await expect.element(box()).toHaveValue("gave morning meds");
+    await userEvent.click(recent().getByRole("button", { name: "gave metformin" }));
+    await expect.element(box()).toHaveValue("gave metformin");
     await waitUntil(() => document.activeElement === field(), 2000, "focus in the box");
     await waitUntil(() => cardKinds().length > 0, 4000, "the cards");
     expect(recent().query()).toBeNull();
     expect(status()).toBe("");
     expect(await entryCount(device)).toBe(before);
+  });
+
+  test("a saved vital is remembered by its keys; a chip fills them with the cursor after, and notes never appear", async () => {
+    await open();
+    await userEvent.fill(box(), "bp 130/85 hr 72");
+    await waitUntil(() => cardKinds().join() === "vital", 4000, "the card");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(recentLines(TEST_USER.id, TEST_GROUP.id)).toEqual(["bp hr "]);
+
+    await userEvent.fill(box(), "bp 120/80, n: slept well");
+    await waitUntil(() => cardKinds().join() === "vital,note", 4000, "the cards");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(status).toBe("Saved 2 entries");
+    expect(recentLines(TEST_USER.id, TEST_GROUP.id)).toEqual(["bp ", "bp hr "]);
+
+    await userEvent.click(recent().getByRole("button", { name: "bp" }));
+    await expect.element(box()).toHaveValue("bp ");
+    await waitUntil(() => document.activeElement === field(), 2000, "focus in the box");
+    expect(field().selectionStart).toBe(3);
+  });
+
+  test("notes and full vital values stored earlier are reduced as they're read", async () => {
+    recordLine(TEST_USER.id, TEST_GROUP.id, "n: slept well");
+    recordLine(TEST_USER.id, TEST_GROUP.id, "pain 4 left knee");
+    recordLine(TEST_USER.id, TEST_GROUP.id, "bp 120/80");
+    await open();
+    await expect.element(recent()).toBeVisible();
+    expect(chipLabels(recent())).toEqual(["bp ", "pain 4 left knee"]);
   });
 
   test("gone once forgotten (sign-out's wipe)", async () => {

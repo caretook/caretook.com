@@ -1,8 +1,8 @@
 # How work gets done
 
-A guide for the **dev keeper** (you): how ideas become shipped work, and how several pieces of work run in parallel without stepping on each other. Agents follow the detailed rules in [AGENTS.md](../AGENTS.md) (_PRDs and parallel loops_); this page is the human view of the same system.
+A guide for the **dev keeper** (you): how ideas become shipped work, and how several pieces of work run in parallel without stepping on each other. Agents follow the detailed rules in [AGENTS.md](../AGENTS.md) and the role docs in [`agents/`](agents/); this page is the human view of the same system.
 
-**Where agents read the rules.** AGENTS.md is a short core (working rules, branches, the backlog, the loop rules, the stack and architecture rules, and an _Area index_) that every session loads. The rest lives in docs it points to: [loops.md](loops.md) is the agents' handbook for running PRDs and browser checks, and [`domain/`](domain/) has one doc per area (timeline, medications, sync, …). Each slice in a plan says which docs its agent reads (`Reads`), whether it needs a Docker stack (`Stack`) and what it tests (`Tests`), so a medications slice reads the medications doc and nothing else. When a wave lands, its orchestrator folds what it decided into the matching doc.
+**Where agents read the rules.** AGENTS.md is a short core (working rules, branches, the stack and architecture rules, and an _Area index_) that every session loads. The rest lives in docs it points to: [`agents/`](agents/) has a handbook per role ([loop](agents/loop.md), [orchestrator](agents/orchestrator.md), [planner](agents/planner.md), [backlog](agents/backlog.md), [hotfix](agents/hotfix.md)), which each agent's prompt names, and [`domain/`](domain/) has one doc per area (timeline, medications, sync, …). Each slice in a plan says which docs its agent reads (`Reads`), whether it needs a Docker stack (`Stack`) and what it tests (`Tests`), so a medications slice reads the medications doc and nothing else. When a wave lands, its orchestrator folds what it decided into the matching doc.
 
 ## The short version
 
@@ -25,7 +25,7 @@ pnpm prd ready <topic>   # is it ready to land? what's in it?
 
 Not everything needs a PRD. For a small change (a docs or tooling tweak, a config change, a contained fix), open an agent in the main checkout, ask for it, and have it commit straight onto `dev`. Use a PRD when the work needs its own database and dev server, runs in parallel with other work, or adds a migration. An agent that can't tell which a request is will ask you.
 
-To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `pnpm prd hotfix <name>` makes a stackless worktree on `hotfix/<name>`, the agent works there and asks you before each long test, commit and sync, and you land it with `pnpm prd land hotfix/<name>` when you're happy (_Hotfixes_ in [loops](loops.md)).
+To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `pnpm prd hotfix <name>` makes a stackless worktree on `hotfix/<name>`, the agent works there and asks you before each long test, commit and sync, and you land it with `pnpm prd land hotfix/<name>` when you're happy ([hotfix](agents/hotfix.md)). Either tell an agent in the main checkout it's a hotfix agent (it makes the worktree and moves there), or start one in a new terminal with `pnpm prd hotfix <name> --open "<the fix>"` (without `--open` it prints the command instead).
 
 ## Branches
 
@@ -204,6 +204,6 @@ chore(app-shell): merge dev into prd/app-shell
 - **"backlog is locked"**: another session is writing the backlog. Try again in a moment. A lock left by a crashed run clears itself after 30 seconds.
 - **"the main checkout is on …, not dev"**: the backlog tool only writes while your main checkout is on `dev`. Switch back with `git switch dev`.
 - **"the commit subject isn't a Conventional Commit"**: reword it as `type(scope): description` (see [Commit messages](#commit-messages)).
-- **"dev has moved since prd/… last synced"** when landing: another PRD landed first. Ask the orchestrator to sync and check again (`pnpm prd sync`, `pnpm prd check`).
-- **"pnpm check hasn't passed on …'s tip"**: something was committed after the last check. Ask the orchestrator to run `pnpm prd check`.
+- **"dev has moved since prd/… last synced"** when landing: another PRD landed first. Ask the orchestrator to sync and check again (`pnpm prd sync`, then `pnpm prd check`, or `--quick "<why>"` for a clean sync with no files in common: _The check gate_ in [orchestrator](agents/orchestrator.md#the-check-gate)).
+- **"pnpm check hasn't passed on …'s tip"**: something was committed after the last check. Ask the orchestrator to run `pnpm prd check` (or `--quick "<why>"`). Docs and tooling-only commits never trip this.
 - **A stale slot** in `pnpm prd status` output: a worktree was deleted by hand. Remove the lease directory it names.

@@ -97,8 +97,8 @@ describe("orchestrator", () => {
     expect(out).toContain(RESUME);
     expect(out).toContain("**Git wins over a stale line**, so correct _Status_ first");
     expect(out).toContain(`git -C ${loops}/T-<n> status --short`);
-    expect(out).toContain("git log --oneline prd/T..slice/T/<n>");
-    expect(out).toContain("git log --merges --oneline dev..prd/T");
+    expect(out).toContain("pnpm log --oneline prd/T..slice/T/<n>");
+    expect(out).toContain("pnpm log --merges --oneline dev..prd/T");
     expect(out).toContain("ListAgents");
     expect(out).toContain("`pnpm prd prompt slice T <n> --continue`");
     expect(out).toContain("**A slice handed off but not merged**");
@@ -150,7 +150,7 @@ describe("slice", () => {
     expect(out.startsWith(plain)).toBe(true);
     expect(out).toContain("  - Stack: yes\n  - Reads: none\n  - Tests: e2e:invites\n");
     expect(out).toContain("**You're continuing slice 2, not starting it.**");
-    expect(out).toContain("`git log --oneline prd/T..HEAD`, `git status`, `git diff prd/T...HEAD`");
+    expect(out).toContain("`pnpm log --oneline prd/T..HEAD`, `git status`, `git diff prd/T...HEAD`");
     expect(out).toContain("`git diff` (what isn't)");
     expect(out).toContain("Don't start over, and don't redo committed work.");
     expect(out).toContain("If everything is committed and `pnpm check` passes, don't rebuild");
@@ -193,5 +193,24 @@ describe("recover", () => {
 
   it("takes no topic", () => {
     expect(ok("recover", "ignored")).toMatch(/^You are the recovery agent\./);
+  });
+});
+
+describe("hotfix", () => {
+  it("is the hotfix agent: its worktree, ask before long steps, background agents, document the pattern", () => {
+    const text = ok("hotfix", "trim", "Trim the day summary");
+    expect(text).toMatch(/^You are the hotfix agent for "trim"/);
+    expect(text).toContain(`Your worktree is ${loops}/hotfix-trim, on branch hotfix/trim (from dev)`);
+    expect(text).toContain("**Ask the user before every step that takes time or changes shared state**");
+    expect(text).toContain("Background agents are allowed");
+    expect(text).toContain("docs/agents/hotfix.md");
+    expect(text).toContain('`pnpm prd land hotfix/trim -m "fix(<area>): …"`');
+    expect(text).toContain("The fix: Trim the day summary");
+    expect(text).not.toContain(RESUME);
+  });
+
+  it("leaves the fix out when none is given, and needs a name", () => {
+    expect(ok("hotfix", "trim")).not.toContain("The fix:");
+    expect(prompt("hotfix").code).not.toBe(0);
   });
 });

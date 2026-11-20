@@ -2,8 +2,8 @@ import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
 import { VITALS } from "@caretook/data/schema";
 
-import { KIND_META } from "../../../../lib/entryDisplay";
-import { formatTime } from "../../../../lib/format";
+import { KIND_META } from "../../../../lib/timeline/entryDisplay";
+import { formatTime } from "../../../../lib/core/format";
 
 // The timeline's words for entries: link and menu names, and the empty list.
 // Pure, so web:unit tests it.

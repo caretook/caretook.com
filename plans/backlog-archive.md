@@ -54,6 +54,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-49 | feature | landed | assistant | prd/assistant | Once we have agentic integration, Add ai generated summary to each day on the timeline and the… |
 | B-50 | feature | landed | care-periods | prd/care-periods | Add ability to add timeline groupings, like "at home - start date-end date", "in hospital - start… |
 | B-51 | feature | landed | medications-2 | prd/medications-2 | printable medication schedule sheet that can be printed to be checked off with a pen at patient's… |
+| B-55 | feature | landed | tasks | prd/tasks | Todos list with assignment to group members, due dates, and completion status. |
 | B-57 | plan | landed | encryption | plan/encryption | Discuss options for end to end encryption of data in transit and at rest where owner of the data is… |
 | B-58 | plan | landed | assistant | prd/assistant | Add ability to use AI to review timeline, explain concerns, and generate a cheat sheet of questions… |
 | B-59 | chore | landed | orchestration | prd/orchestration | Clean up/truncate this file and the backlog periodically. |
@@ -61,6 +62,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-65 | change | landed | quick-fixes | prd/quick-fixes | A screen to change the care recipient's time zone |
 | B-66 | question | dropped |  |  | Access codes are stored as plain text: keep that, or hash them? |
 | B-67 | change | landed | quick-fixes | prd/quick-fixes | Access-code sign-up says when an address already has an account |
+| B-68 | chore | landed | hosting | prd/hosting | Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage |
 | B-69 | chore | landed | quick-fixes | prd/quick-fixes | Move the New care group link state into components/groups |
 | B-70 | bug | landed | quick-fixes | prd/quick-fixes | ui.mjs flake: the provider add sheet at 1280 dark, Escape then focus check |
 | B-71 | bug | landed | quick-fixes | prd/quick-fixes | date picker entry box mobile-friendly. it expands outside of elements on small screens. |
@@ -102,20 +104,43 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-110 | bug | landed | orchestration | prd/orchestration | Fix the flakiest browser-check steps from .browser-flakes.log (app-shell, phase2, ui, live-notes) |
 | B-111 | bug | landed | orchestration | prd/orchestration | Backlog writes can commit a half-typed inbox bullet and tag it with another item's id |
 | B-112 | change | landed | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
+| B-113 | chore | landed | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-114 | chore | landed | check-migration | prd/check-migration | Move routing.mjs to component tests |
 | B-115 | chore | landed | check-migration | prd/check-migration | Move settings-layout.mjs to component tests |
+| B-116 | chore | landed | check-migration | prd/check-migration | Move providers.mjs to component tests |
+| B-117 | chore | landed | check-migration | prd/check-migration | Move groups.mjs to component tests |
+| B-118 | chore | landed | check-migration | prd/check-migration | Move medications.mjs to component tests |
+| B-119 | chore | landed | check-migration | prd/check-migration | Move upcoming.mjs to component tests |
 | B-120 | chore | landed | check-migration | prd/check-migration | Move search.mjs to component tests |
+| B-121 | chore | landed | check-migration | prd/check-migration | Move profiles.mjs to component tests |
+| B-122 | chore | landed | check-migration | prd/check-migration | Move profiles-contacts.mjs to component tests |
 | B-123 | chore | landed | check-migration | prd/check-migration | Move care-periods.mjs to component tests |
 | B-124 | chore | landed | check-migration | prd/check-migration | Move devices.mjs to component tests |
 | B-125 | chore | landed | check-migration | prd/check-migration | Move admin.mjs to component tests |
+| B-126 | chore | landed | check-migration | prd/check-migration | Move roundtrip.mjs's sheet steps to component tests |
+| B-127 | chore | landed | check-migration | prd/check-migration | Move invites.mjs's screen steps to component tests |
 | B-128 | chore | landed | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | landed | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | landed | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 | B-133 | bug | landed | quick-fixes |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
+| B-134 | bug | landed | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
+| B-135 | change | landed | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
+| B-141 | change | landed | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
+| B-142 | change | landed | hosting | prd/hosting | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
+| B-143 | change | landed | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
 | B-146 | question | dropped | check-migration |  | Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for… |
+| B-147 | chore | landed | agent-tooling | prd/agent-tooling | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
+| B-149 | chore | landed | code-layout | prd/code-layout | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
+| B-150 | chore | landed | code-layout | prd/code-layout | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
 | B-152 | chore | landed | agent-tooling |  | Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`… |
 | B-153 | chore | landed | agent-tooling |  | Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent… |
+| B-154 | chore | landed | agent-tooling | prd/agent-tooling | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
+| B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
+| B-158 | change | landed | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
+| B-159 | change | landed | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
+| B-160 | change | landed | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
+| B-172 | bug | landed | check-migration | prd/check-migration | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
 
 ## Items
 
@@ -701,6 +726,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-18 (prd/medications): medications orchestrator: a new slice after 6 (it reuses slice 6's print route, print CSS and the schedule from slice 1; a grid of today's or this week's scheduled slots with check boxes). Proposed as slice 7 in a later wave.
 - 2026-11-19 (plan/medications-2): In the medications-2 PRD (plans/medications-2-prd.md on plan/medications-2), interviewed 2026-11-19.
 
+### B-55 · feature · Todos list with assignment to group members, due dates, and completion status.
+
+- status: landed
+- prd: tasks
+- owner: prd/tasks
+- commit: 5a5eadf
+
+- 2026-11-18 (Robert Bo Davis): Proposed for a new PRD 'tasks' (to write): a todo list per group with assignees, due dates and done state, as a group section. Due dates could show with appointments (B-47); reminders would go through notifications.
+- 2026-11-19 (plan/tasks): PRD and plan written (plans/tasks-prd.md, tasks-plan.md): 8 slices, waves 1 → (2, 4, 8) → (3, 5, 6) → 7. One assignee (member, a typed name, or none); viewers complete their own; links to a provider, appointment and medication; Upcoming, strip, search, simple card, quick entry addTask. Slices 3, 4, 6, 7 wait for assistant in dev; 8 for check-migration slice 2.
+
 ### B-57 · plan · Discuss options for end to end encryption of data in transit and at rest where owner of the data is…
 
 - status: landed
@@ -778,6 +813,19 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-18 (prd/invites orchestrator): From invites slice 5: /join/:code answers ticket:accountExists ('An account with this email already exists. Sign in instead.'), so anyone holding a code can check whether an address is registered. Link-invite sign-up (slice 4) gives the same answer either way; email invites lock the address. Option: answer the same as link sign-up and send the existing user a sign-in email instead.
 - 2026-11-19 (Robert Bo Davis): Decided (user, 2026-11-19): fix it as a quick-fixes slice, low priority, before launch. /join/:code answers the same 'Check your email' for every address. For an address that already has an account: create nothing, leave the code's use count alone, and queue a new email through notify (outbox, not awaited, like the auth emails): 'Someone tried to start a care group with your address; if it was you, sign in and choose New care group'. No health details. Both paths queue their email without waiting, so the response takes about the same time either way. Tests: an integration test for accessCode.signUp with an existing address, and groups.mjs steps (same screen, the mail in /dev/mail.json, no account or redemption created).
 - 2026-11-19 (slice/quick-fixes/19): Slice 19 built (46e8be0 on slice/quick-fixes/19): existing address on /join/:code gets the same 'Confirm your email' screen, nothing created, use count unchanged, new accessCodeExistingAccount email (outbox, background). accessCode.signUp now returns only { email }; confirmation link opens /app (goes to the only group). ticket:accountExists kept: email invites still use it.
+
+### B-68 · chore · Email sending setup before launch: domain tracking off, SPF/DKIM/DMARC, bounce webhooks, cron schedule, rate-limit storage
+
+- status: landed
+- prd: hosting
+- owner: prd/hosting
+- commit: 05b709f
+
+- 2026-11-18 (prd/invites orchestrator): From the invites PRD (AGENTS.md, Notifications → Before launch): turn off Resend's open and click tracking on the sending domain (not per message); SPF, DKIM and DMARC on the sending subdomain; verified bounce webhooks (Svix); a host cron for /api/cron/outbox with CRON_SECRET; and Better Auth's rate-limit storage (in-memory per serverless instance today). Part of launch work, related to B-33.
+- 2026-11-19 (plan/encryption): Security review (plans/security-review.md), S-7: shared rate-limit storage is a launch blocker (Better Auth and packages/api/src/rateLimit.ts are per instance).
+- 2026-11-19 (Robert Bo Davis): Triaged to hosting with B-33: email domain setup, bounce webhooks, the outbox cron and shared rate-limit storage are part of the same deploy work.
+- 2026-11-19 (Robert Bo Davis): In the hosting plan: Postgres rate-limit storage (slice 3), Resend bounce/complaint webhook with suppression (slice 4), the per-minute cron and waitUntil (slice 1), DNS and tracking off in the runbook (slices 6-7).
+- 2026-11-20 (slice/hosting/4): Slice 4 committed on slice/hosting/4 (7d0be1d): Svix-verified /api/webhooks/resend, email_suppression (in migration 0022_rate_limits_suppression), notify skips suppressed except sign-in/reset/verify, /admin/suppressions.
 
 ### B-69 · chore · Move the New care group link state into components/groups
 
@@ -1223,6 +1271,21 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-19 (prd/medications-2): The emergency sheet (profiles) passes allergies: null, waiting for B-26. medications-2 built allergies (lib/sync/allergies.ts: allergiesQuery, loadAllergies; PrintAllergies), so the sheet can show them now. profiles.mjs's sheet step would need to expect them.
 - 2026-11-19 (Robert Bo Davis): Proposed for quick-fixes: one small change to the emergency sheet (pass loadAllergies instead of null) plus profiles.mjs's sheet expectation; medications-2 has landed, so nothing blocks it.
 
+### B-113 · chore · Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands
+
+- status: landed
+- prd: check-migration
+- owner:
+- commit: 0e0ab28
+
+- 2026-11-19 (prd/admin): Admin landed with two suite failures treated as flaky (the user's call): app-shell.mjs failed twice at low load in step 6g (viewer@'s sign-in on a page that signed out stays on /sign-in, no alert, 60 s timeout; slice 3 changed sign-in hooks, so rule that out); providers.mjs failed once at '1280: every suggestion shows' (chip count 1 at 420 vs 5 at 1280, likely a race). Logs: .git/worktrees/admin/caretook-browser/app-shell-20261119-172829.log and providers-20261119-173206.log. Run both on the new suite; if app-shell still fails there, it's a real bug from admin slice 3.
+- 2026-11-19 (prd/orchestration): orchestration wave 2 landed (07bc4eb). app-shell.mjs is being shrunk by orchestration slice 7 (wave 3), which was asked to investigate step 6g (sign-in after sign-out on one page); results noted here when wave 3 lands.
+- 2026-11-19 (slice/orchestration/7): slice 7 (orchestration): app-shell 6g's stall is a harness race that also shows an app wart. The check signed viewer@ in again on the same page that had just signed out (same x-forwarded-for, after a run of session checks), so Better Auth's limiter could answer the first get-session after sign-in with a 429. requireSession treats 429 as 'unknown'; sign-out wiped the cached user, so with no cached user it returns 'signedOut' and redirects to /sign-in with no message (lib/session.ts resolveUser). Harness fixed in slice 7 (fresh page per sign-in). App: a rate-limited session check right after a successful sign-in silently bounces to /sign-in; worth a message or a retry (not changed in slice 7).
+- 2026-11-19 (prd/orchestration): orchestration wave 3 landed. app-shell.mjs (now 13 assertions, 8 s) passed on the new suite at low load; every sign-in is on a fresh page, which removes the step 6g repeat sign-in. Probable app cause (unconfirmed, log gone): a 429 on the first get-session after sign-in counts as unknown, and with no cached user requireSession treats it as signed out and redirects to /sign-in silently (apps/web/app/lib/session.ts resolveUser). providers.mjs and admin.mjs weren't rerun here.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slices 7 (admin) and 14 (providers); app-shell was rechecked by orchestration wave 3 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/7): check-migration slice 7: admin.mjs is deleted (B-125). Its server flows folded into app-shell.mjs step 6 (member@ 404 on /admin, admin@'s audited announcement on /admin/audit, the banner in member@'s /app), every sign-in on a fresh page: app-shell passed 18/18 first run (24 s, load 30-56), no 429. The 429-after-sign-in app wart is handled by B-130 (sign-in.browser.test.tsx: a rate-limited session check goes to sign-in with a message). Admin part closed; providers part waits for slice 14.
+- 2026-11-20 (slice/check-migration/14): check-migration slice 14 (cce2ed2): providers.mjs is deleted (B-116). How each check ended: admin.mjs deleted in slice 7 (its server flows folded into app-shell step 6; no 429); app-shell.mjs kept and passing (18/18 in slice 7, every sign-in on a fresh page, the 429 bounce covered by B-130's sign-in.browser.test); providers.mjs deleted here. Its '1280: every suggestion shows' race (1 chip at 420 vs 5 at 1280) is now a component test on fixed fixtures with five chips (entry/entryWithRow.browser.test.tsx), passing. Nothing left open: B-113 can close.
+
 ### B-114 · chore · Move routing.mjs to component tests
 
 - status: landed
@@ -1246,6 +1309,52 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 4, wave 2 (plans/check-migration-plan.md).
 - 2026-11-19 (slice/check-migration/4): Slice 4 handed off on slice/check-migration/4 (58cfc90): settings-layout.mjs deleted; toggle and second-browser steps in settings.browser.test.tsx; account-follow fold in layout-offline (22/22, 17 s). pnpm check green.
 
+### B-116 · chore · Move providers.mjs to component tests
+
+- status: landed
+- prd: check-migration
+- owner: prd/check-migration
+- commit: 0e0ab28
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the directory (list, search, filters), the sheets, the provider page, the entry page's With row and suggestions to component tests on the test device; keep two-browser notes, offline add and edit then upload, and the viewer's refused writes. Then e2e yes. B-113 asks for a recheck of it too.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 14, wave 6 (after assistant slice 4) (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/14): slice 14 (cce2ed2): providers.mjs moved to 43 component tests (providers/, provider/, entry/entryWithRow) on providerWorld.tsx, plus one integration test (two members' devices linking the same pair: one link). No fold; check, manifest line and check-areas rules gone.
+
+### B-117 · chore · Move groups.mjs to component tests
+
+- status: landed
+- prd: check-migration
+- owner: prd/check-migration
+- commit: 0e0ab28
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the New care group sheet, the invite card and /join/:code's form states to component tests; keep the server flows (careGroup.create then the new group syncing in, /join sign-up and the refused codes, /admin's 404 for non-staff, the QR). Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 15, wave 6 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/15): slice 15 (3b2a5ad): groups.mjs deleted; screens are component tests (join, new group sheet, invite card, admin access codes/print/new group/waitlist); /join sign-up folded into invites step 13, careGroup.create syncing in into first-sync step 2c.
+
+### B-118 · chore · Move medications.mjs to component tests
+
+- status: landed
+- prd: check-migration
+- owner: prd/check-migration
+- commit: 0e0ab28
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (the biggest check, about 163 s). Move the list, search and status, the forms, status actions, Today, the Due now strip, the Dose sheet's states, passes, allergies and the print sheet's layout to component tests; keep a second device seeing a dose, offline then upload, and the service-written change entries. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slices 9 (wave 4) and 11 (wave 5, after assistant slice 7) (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/9): slice 9 (part A): list, page, notes, forms, status actions, allergies, print sheets, provider region and the device module moved to component tests (medicationWorld.tsx); offline batch upload as an integration test; medications.mjs keeps Today, timeline doses, passes, Given all, strip, pass logs for slice 11.
+- 2026-11-20 (prd/check-migration): part A merged into prd/check-migration (35dceff, slice 9); part B is slice 11
+- 2026-11-20 (slice/check-migration/11): slice 11: medications.mjs deleted; Today, Dose sheet, strip, passes, pass logs are component tests (af6b87d, f274fd5); no roundtrip fold (6a covers a multi-row upload)
+
+### B-119 · chore · Move upcoming.mjs to component tests
+
+- status: landed
+- prd: check-migration
+- owner: prd/check-migration
+- commit: bc5104e
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9 (about 203 s). Move the section, Past, filters, adding at ?when=pick, cancel and reschedule dialogs, the Next strip and block, and due doses in Upcoming to component tests; keep reschedule's one transaction uploading and reaching another device. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 13, wave 5 (after assistant slice 4) (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/13): slice 13 (0b06086): upcoming.mjs deleted; screens in upcoming/upcoming, upcomingEvents and timeline/timelineUpcoming browser tests on a fixed clock; reschedule's transaction folded into roundtrip 6a
+
 ### B-120 · chore · Move search.mjs to component tests
 
 - status: landed
@@ -1256,6 +1365,27 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the timeline's search field and chip, the search page, highlights, snippets and recent searches to component tests (the FTS index runs on the test device's SQLite); keep the index dropped at sign-out and server search if a screen ever calls it. Then e2e yes or delete it.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 5, wave 2 (plans/check-migration-plan.md).
 - 2026-11-19 (slice/check-migration/5): slice 5: search.mjs moved to component tests (lib/sync/search, search page, timelineSearch); sign-out drop of the index and recent searches folded into signout-wipe; commits 3542457, e554d48
+
+### B-121 · chore · Move profiles.mjs to component tests
+
+- status: landed
+- prd: check-migration
+- owner: prd/check-migration
+- commit: 3bb168a
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move the profile page, its sheets by role, offline states and the print sheet's layout to component tests (oRPC through the test device's api); keep a save syncing back, demotion losing the writers' details on the next sync. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 10, wave 4 (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/10): slice 10: profiles.mjs moved to component tests (profile/*.browser.test.tsx, profileWorld.tsx); demotion losing the details row folded into app-shell step 4; check deleted (f9c1ef9, eef96ac)
+
+### B-122 · chore · Move profiles-contacts.mjs to component tests
+
+- status: landed
+- prd: check-migration
+- owner: prd/check-migration
+- commit: d487b30
+
+- 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. Move account Contact details and the Members page's sharing form to component tests; keep a share reaching a co-member's device. Then e2e yes.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 16, wave 6 (plans/check-migration-plan.md).
 
 ### B-123 · chore · Move care-periods.mjs to component tests
 
@@ -1289,6 +1419,26 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. admin pages are web-only server loaders, so component tests need loader data: move what renders from data (users, groups, audit, settings, the banner) there; keep staff-only access, the audit log written by real actions and the announcement reaching /app. Then e2e yes.
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 7, wave 3 (plans/check-migration-plan.md).
 - 2026-11-20 (slice/check-migration/7): slice 7: admin.mjs moved to component tests (routes/admin/*.browser.test.tsx from loaderData; routes/app/layout/staff.browser.test.tsx), an auditAdmin integration test, and app-shell step 6. Check, manifest line and check-areas rules deleted.
+
+### B-126 · chore · Move roundtrip.mjs's sheet steps to component tests
+
+- status: landed
+- prd: check-migration
+- owner: prd/check-migration
+- commit: d487b30
+
+- 2026-11-19 (slice/orchestration/9): roundtrip.mjs stays in the lean set (devices converging, offline then reconnect, the viewer, the sign-out wipe), but its add and edit sheet steps (validation, When's date picker, edit and delete) are screen behaviour: move them to component tests for the timeline's sheets (new/, edit/, EntryForm) and delete each covered step.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 12, wave 5 (after assistant slices 1 and 5) (plans/check-migration-plan.md).
+
+### B-127 · chore · Move invites.mjs's screen steps to component tests
+
+- status: landed
+- prd: check-migration
+- owner: prd/check-migration
+- commit: d487b30
+
+- 2026-11-19 (slice/orchestration/9): invites.mjs stays in the lean set (emails through /dev/mail.json, sign-up, consent, join, links and requests). Move its form states (the invite page's views, the wrong-account view, sign-in tabs, the invite sheet and pending list) to component tests and delete each covered step.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slice 17, wave 7 (plans/check-migration-plan.md).
 
 ### B-128 · chore · Add a lean end-to-end step for an upload refused by permissions
 
@@ -1347,6 +1497,63 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (Robert Bo Davis): Triage: a contained fix in the timeline's history paging (useHistoryCutoff / pageWindow keep the last page mounted across the minute turn), so a quick-fixes slice, not its own PRD. Run it after tasks lands (tasks edits timeline/route.tsx), then remove check-migration's retry: 2 on timelineScroll.
 - 2026-11-20 (Robert Bo Davis): Fixed on dev (uncommitted, awaiting the user): pageWindow takes the settled window (the limit the rows on screen were fetched for), so a refetch of the same window at the minute's turn no longer shrinks the list. paging.test.ts covers it; timelineScroll passes. Once committed, check-migration can drop the retry: 2 on 'three pages down'.
 
+### B-134 · bug · visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent)
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 03dfa05
+
+- 2026-11-20 (slice/check-migration/6): Fails on prd/check-migration HEAD 7ddfbb2 without slice 6's changes, alone and in pnpm check: 'timed out waiting for the longer window'. Its last visit is 20 days ago (2026-10-31) and ArrowDown on the month field should take the start before the Cough 25 days ago; probably the 31st not existing in September. Found by check-migration slice 6.
+- 2026-11-20 (prd/check-migration): check-migration orchestrator: the test now steps the year back instead of the month (commit on prd/check-migration, lands with wave 3). The app question remains for triage: should a month step back from the 31st clamp to the 30th? React Aria's month segment gave no change in the preview.
+- 2026-11-20 (backlog agent): Triage: the test is already fixed on prd/check-migration (1384054). What is left is small: decide whether stepping the month back from the 31st should clamp to the 30th in the visit prep start field. One quick-fixes slice, or drop it if React Aria's behaviour is acceptable.
+- 2026-11-20 (slice/quick-fixes/45): slice 45 (f068feb): fixed in ui/date/DateTimeField (React Aria held 31 Sep invalid until blur); month/year steps now clamp the day. Visit prep test steps the month on a fixed clock.
+
+### B-135 · change · Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days)
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 03dfa05
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: simple entry box on timeline seems to have replaced the old add entry icons entirely. This is a regression that may block B-98.
+- 2026-11-20 (backlog agent): Triage: a regression against B-98 (the + in the timeline header). One quick-fixes slice: find whether the + menu went missing in the normal view or only where the quick entry box shows, and restore it. Touches the timeline header, which tasks slice 4 also changed, so start it after tasks lands.
+- 2026-11-20 (Robert Bo Davis): The user (2026-11-20): not a regression. The + is there, but in an awkward spot next to the view-mode switch. Move it beside the day heading in the timeline so it travels with the sticky header. Adding from a day's + sets that day's time: today gives now, any other day gives midday (12:00) that day. Still quick-fixes slice 44; it touches the timeline header and sticky day heading (tasks slice 4 changed the header), so start it after tasks lands.
+- 2026-11-20 (slice/quick-fixes/44): slice 44 built at 22bffaa: + on each day heading, ?at= start times; writer's list always has a Today heading (new behaviour, see hand-off)
+
+### B-141 · change · Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts).
+
+- status: landed
+- prd: hosting
+- owner: prd/hosting
+- commit: 5d64d38
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Both are in memory per serverless instance, which matters with 6-digit sign-in codes.
+- 2026-11-20 (backlog agent): Triage: already planned as hosting slice 3 (Shared rate limits: Better Auth's database storage and our limiter on a Postgres table, B-68, security review S-7). Hosting's orchestrator can mark this done with slice 3; no new slice needed.
+- 2026-11-20 (slice/hosting/3): slice 3 (6179cd8): limiter on rate_limit_hit (sliding, advisory lock), Better Auth storage=database, purge in sweepOutbox; migration 0022_rate_limits
+
+### B-142 · change · Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until…
+
+- status: landed
+- prd: hosting
+- owner: prd/hosting
+- commit: 05b709f
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until the native app ships, and define them once. / They are hard-coded as trusted, with credentials, in routes/rpc.ts and packages/auth/src/auth.ts.
+- 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice together with B-143 (origin and client-IP hardening before going live). Same files as slice 3 (routes/rpc.ts, packages/auth/src/auth.ts), so it follows wave 1. Hosting's orchestrator decides at its wave boundary.
+- 2026-11-20 (prd/hosting): Planned as hosting slice 8 (wave 2, after slices 1 and 3), with B-143.
+
+### B-143 · change · Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts…
+
+- status: landed
+- prd: hosting
+- owner: prd/hosting
+- commit: 05b709f
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts the first `x-forwarded-for` entry, which is spoofable off Vercel (the planned AWS side).
+- 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice with B-142. Slice 3 owns the limiter; this changes what key it gets (the host's own client-IP header, not the first x-forwarded-for entry).
+- 2026-11-20 (prd/hosting): Planned as hosting slice 8 (wave 2, after slices 1 and 3), with B-142.
+
 ### B-146 · question · Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for…
 
 - status: dropped
@@ -1357,6 +1564,40 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (Robert Bo Davis): From the inbox: Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for component tests; it would replace the hand-rolled CDP harness (`cdp.mjs`) and its gotchas. Related to B-107.
 - 2026-11-20 (backlog agent): Triage: already decided and planned: check-migration's last slices port the lean end-to-end set to Playwright Test and delete the CDP harness (B-129). Proposed: drop this as a duplicate of B-129.
 - 2026-11-20 (backlog agent): Dropped as a duplicate of B-129 (the user, 2026-11-20): check-migration's last slices port the lean set to Playwright Test and delete the CDP harness.
+
+### B-147 · chore · Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and…
+
+- status: landed
+- prd: agent-tooling
+- owner: prd/agent-tooling
+- commit: 0b54435
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and docs/loops.md (52 KB, bullets up to 3.4 KB) by reader (loop agent, orchestrator, user), and keep the core to rules only.
+- 2026-11-20 (backlog agent): Triage: new PRD agent-tooling (what agents load and how the tooling runs). Docs only, but AGENTS.md and docs/loops.md are edited by every landing, so run it when few PRDs are landing.
+- 2026-11-20 (plan/agent-tooling): Planned: agent-tooling slices 3 (doc budget) and 4 (core plus docs/agents/ role docs; gated on no imminent landing).
+
+### B-149 · chore · Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop…
+
+- status: landed
+- prd: code-layout
+- owner: prd/code-layout
+- commit: f1fbfea
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop conflicting on them. / The most-edited files in 30 days: scripts/loops/check-areas (69 commits), routes.ts (46), appUrls.ts (32), errors/constants.ts (28), db/schema/index.ts (26), permissions.ts, router.ts.
+- 2026-11-20 (backlog agent): Triage: new PRD code-layout (structure refactors). Every running PRD adds to these registries (tasks and hosting both do now), so this must run alone on those files: after tasks and hosting wave 1 land, and before the next feature PRD starts. Replaces the 'additive edits' rule in AGENTS.md.
+- 2026-11-20 (plan/code-layout): Planned (plan/code-layout): slices 1 (check-areas.d, most specific wins), 2 (errors, permissions, schema by area), 3 (API router by area), 5 (routes and appUrls by area). Pure refactor; one lean --suite at the last landing.
+
+### B-150 · chore · Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,…
+
+- status: landed
+- prd: code-layout
+- owner: prd/code-layout
+- commit: 9ce225a
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`, `quickEntry*`). Folders let an agent read one area, and check-areas use one rule per folder.
+- 2026-11-20 (backlog agent): Triage: code-layout. Moves about 140 files, so it conflicts with any PRD touching lib/: same window as B-149, and check-areas rules change with it (check-migration edits check-areas additively).
+- 2026-11-20 (plan/code-layout): Planned (plan/code-layout): slice 4 groups lib/ into area folders + core/, device queries move in as <name>.sync.ts, lib/sync/ keeps plumbing only; direct imports, codemod, no shims; a layout guard test.
+- 2026-11-20 (slice/code-layout/4): slice 4 built (cc4a8e3): lib/ by area, .sync.ts device queries, layout guard. Component tests flaky under load (medicationList also flakes on the prd/code-layout base, 2/4 runs alone).
 
 ### B-152 · chore · Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`…
 
@@ -1379,3 +1620,64 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (Robert Bo Davis): From the inbox: Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent shell.
 - 2026-11-20 (backlog agent): Triage: agent-tooling. Small (scripts pick Node 24 from .nvmrc themselves); could also be a direct change on dev.
 - 2026-11-20 (backlog agent): Done as a direct change in the main checkout (2026-11-20), not committed yet: use_node (scripts/loops/lib.sh) puts .nvmrc's Node and its pnpm first on PATH itself and no longer relies on nvm use taking; pnpm prd calls it for every command, and new.sh and browser.sh use it. Raw pnpm check and pnpm test in an agent shell still need Node 24 on PATH. scripts:unit passes (195 tests). Running worktrees get it at their next sync.
+
+### B-154 · chore · Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the…
+
+- status: landed
+- prd: agent-tooling
+- owner: prd/agent-tooling
+- commit: a23e77c
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the history agents read.
+- 2026-11-20 (backlog agent): Triage: agent-tooling. Changes scripts/backlog (one commit per command batch, or several ids and a note in one write). Stackless.
+- 2026-11-20 (plan/agent-tooling): Planned: agent-tooling slices 1 (multi-id writes, guarded amend) and 2 (pnpm log).
+
+### B-157 · change · Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under…
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 03dfa05
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under the big box, and the tiles hint ("These follow what's logged most. The group's owners can choose them."). / Tips: `QuickEntrySuggestions` (`data-quick-tips`) could take a `showTips` prop that `QuickEntryBox` turns off for `size="lg"`; the dictation hint stays. / Tiles: in `SimpleTiles.tsx`, show only the "Choose the tiles" link to those who can choose, and nothing to members. Update `timelineSimpleTiles.browser.test.tsx` (the hint text) and docs/domain/timeline.md (the first-run hint).
+- 2026-11-20 (Robert Bo Davis): Triage (backlog agent): small copy and prop change in simple mode (QuickEntrySuggestions showTips, SimpleTiles hint), one component test and a timeline.md line. One quick-fixes slice, next to B-135 and B-134 (slice 46). Touches the simple view, which tasks slice 6 changed, so start it after tasks lands.
+
+### B-158 · change · Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS
+
+- status: landed
+- prd: hosting
+- owner: prd/hosting
+- commit: 5a67e22
+
+- 2026-11-20 (prd/hosting): Found by hosting slice 6 (ops/runbook.md marks it a gap with an interim step). Proposed for hosting: needed before the first secret rotation, not for going live.
+- 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
+
+### B-159 · change · Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens
+
+- status: landed
+- prd: hosting
+- owner: prd/hosting
+- commit: 5a67e22
+
+- 2026-11-20 (prd/hosting): Found by hosting slice 6; break-glass forbids querying them, but the grant allows it. Proposed for hosting: a small rolesSql/dbAccessService change (exclude the auth tables) before production access is used.
+- 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
+
+### B-160 · change · Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail)
+
+- status: landed
+- prd: hosting
+- owner: prd/hosting
+- commit: 5a67e22
+
+- 2026-11-20 (prd/hosting): Found by hosting slice 6; for now rotating means recreating staging's database (runbook). Proposed for hosting, low priority: the seed could update the seeded accounts' password on staging.
+- 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
+
+### B-172 · bug · app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy
+
+- status: landed
+- prd: check-migration
+- owner: prd/check-migration
+- commit: 86aac2e
+
+- 2026-11-20 (prd/check-migration): Found by slice 16 (2026-11-20). Proposed for check-migration: count in node with M.evaluate, as slice 16's member-share fold does; Playwright's port (slice 21/22) can fix it too. Grep other checks for waitFor(`${...}.then(` too. -- check-migration orchestrator
+- 2026-11-20 (prd/check-migration): User approved for check-migration (2026-11-20): slice 18 fixes it. -- check-migration orchestrator

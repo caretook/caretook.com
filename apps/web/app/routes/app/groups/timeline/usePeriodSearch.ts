@@ -1,8 +1,8 @@
-import type { SearchPeriodRow } from "~/lib/sync/periodSearch";
+import type { SearchPeriodRow } from "~/lib/care-periods/periodSearch.sync";
 
-import { useGroup } from "~/lib/group";
-import { findPeriodChoice } from "~/lib/periodSearch";
-import { useSearchPeriods } from "~/lib/sync/periodSearch";
+import { useGroup } from "~/lib/app-shell/group";
+import { findPeriodChoice } from "~/lib/care-periods/periodSearch";
+import { useSearchPeriods } from "~/lib/care-periods/periodSearch.sync";
 
 /**
  * The timeline search's care period (`?period=`, only while searching): the

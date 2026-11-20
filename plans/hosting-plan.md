@@ -4,19 +4,35 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/hosting` (slice commits) |
-| ----- | ---- | --------------- | ---------------------------------------- |
-| 1     | 1    | not started     |                                          |
-| 2     | 1    | not started     |                                          |
-| 3     | 1    | not started     |                                          |
-| 4     | 2    | blocked by 3    |                                          |
-| 5     | 2    | blocked by 1, 2 |                                          |
-| 6     | 3    | blocked by 1–5  |                                          |
-| 7     | 4    | blocked by 6    |                                          |
+**Landing mode: run everything through** (queued with `pnpm prd queue hosting`, 2026-11-20): start every ready slice, land each green wave without asking, clean up; ask only real questions. Slice 7 is still done with the user.
 
-**Landing:** land each wave as soon as it's green. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here. Slice 7 is done with the user, not by a loop.
+| Slice | Wave | State        | Merge into `prd/hosting` (slice commits)     |
+| ----- | ---- | ------------ | -------------------------------------------- |
+| 1     | 1    | merged       | 7ce4336 (e459365, ec506bd, 7ada5b5)          |
+| 2     | 1    | merged       | 738b731 (3f0ca96, 53adf98)                   |
+| 3     | 1    | merged       | 5d64d38 (6179cd8)                            |
+| 4     | 2    | merged       | d01cb41 (7d0be1d)                            |
+| 5     | 2    | merged       | b1d13f5 (d9aa875)                            |
+| 8     | 2    | merged       | afda535 (734907d); fix 05b709f               |
+| 6     | 3    | merged       | 4a9cd0f (24a3f02)                            |
+| 9     | 4    | merged       | 5a67e22 (2a40ae3, 4003267, 9d70d9f, 818cdc1) |
+| 7     | 5    | blocked by 9 |                                              |
 
-Backlog: claim B-68 when slice 3 starts (`done` after slice 4) and B-33 when slice 1 starts (`done` after slice 7).
+- **Synced dev (3bb86e0, clean; brings check-migration wave 5 with the tooltip fix 76a3161; no migration, seed or sync-config change).** `pnpm prd check` passed on cc33fec (4116 tests); browser checks by name all passed: sign-in, first-sync, signout-wipe, invites, app-shell (the lean set's others aren't touched; `--changed` named them only for `package.json` script lines). **Wave 4 landed** (run-through). Next: slice 7 with the user (`ops/runbook.md`, staging first).
+- **Slice 9 merged (5a67e22)**; B-158–B-160 `done`; docs folded (data-layer, auth). Not landed yet: dev's `timelineLayout.browser.test.tsx` author-tooltip test fails on dev itself (chips shift the list; not ours). check-migration owns the fix (76a3161 on prd/check-migration) and will message when it lands in dev; a background watch waits for it too. Then: `pnpm prd sync`, `pnpm prd check` (full: slice 9 changes `package.json`), land wave 4, then slice 7 with the user. Hand-off findings for slice 7: confirm PowerSync refetches the JWKS after `pnpm auth:rotate-jwks`; the rotate command wasn't run by hand (tests cover it). Browser checks `--changed` names the lean set only because of `package.json` script lines; by file: sign-in, first-sync, signout-wipe, invites, app-shell.
+- **Resumed (2026-11-20, new orchestrator):** reconciled with git: slice 9's branch had no commits and a clean worktree, no live agent. Respawned it with `--continue` on opus, with the hand-off's notes. B-161 (sign-in.mjs flake) is not hosting's; left for its owner.
+- **Hand-off (2026-11-20):** the user stopped this orchestrator to save context. Next orchestrator: slice 9's worktree `.loops/hosting-9` is kept with its agent stopped mid-work; respawn it (model opus) with `pnpm prd prompt slice hosting 9 --continue`, plus the orchestrator notes from this session: Node 24 PATH setup, B-158 research Better Auth 1.7.25's jwt plugin first, `deploy.yml`'s env step must equal `DEPLOY_ENV_VARIABLES`, generous timeouts on role tests, list but don't run browser checks. Then merge, fold docs (Slice 9 line), land (run-through), then slice 7 with the user (ops/runbook.md, staging first). B-158–B-160 are claimed by prd/hosting.
+- 2026-11-20: synced `dev` in; claimed B-33, B-68 and B-141 (B-141 is slice 3's work, `done` with it). Added slice 8 for B-142 and B-143 (triaged to hosting by the backlog agent), in wave 2 after 1 and 3.
+- B-134 (visitPrep test) was fixed in `dev` and came in with the sync.
+- Done (05b709f): `deploy.yml`'s env step gets `NATIVE_APP_ORIGINS` and `CLIENT_IP_HEADER`. B-68, B-141, B-142 and B-143 are `done`; B-33 waits for slice 7.
+- Slice 6 (docs only) merged into this landing. Its gaps are filed as B-158 (rotating `BETTER_AUTH_SECRET` breaks sync), B-159 (narrow `staff_` roles: no auth tables) and B-160 (staging seed password rotation), proposed for hosting. Open for the user: break-glass tells owners "within 3 days of the revoke" (slice 6's proposal).
+- **Waves 1–3 landed in `dev` as a187dc2** (2026-11-20; `pnpm check` passed on f1fef23 after syncing dev's hotfixes). Then the user chose (2026-11-20) to fix B-158, B-159 and B-160 first: slice 9, wave 4; slice 7 becomes wave 5. Break-glass's owner notice stays "within 3 days of the revoke" (user confirmed). Adopted the check gate and models rules (ab204ec). Earlier notes: synced `dev` (c8432ca; the tasks PRD's `0022_tasks` kept, ours regenerated as `0023_rate_limits_suppression`, SQL identical; `admin.mjs` deleted in dev, so slice 4's nav line went with it). B-134's test fix came in from dev. Folded the area docs and AGENTS.md. Lean set + `groups`: 13/13 passed (8m03s, on 4a9cd0f's code; later commits are docs). `pnpm prd check`: failed once on dev's admin nav test (fixed, 22eb94d), once on load timeouts (passed alone; roles tests given 20 s, b781fea), then passed on b781fea. Synced dev's sign-in hotfix (clean); final `pnpm prd check`, then land.
+- Landing: wave 1 is not landed on its own. Slice 4 regenerates slice 3's migration so the PRD lands one migration, and the user prefers one suite at the end for migration PRDs. So waves 1 and 2 land together once 4, 5 and 8 are merged, with the lean set run once (the user chose this, 2026-11-20).
+- Decided (user, 2026-11-20): PowerSync's snapshot runs `SELECT *`, so column-only replication grants fail on 7 partly-synced tables. The six whose unsynced columns are only timestamps and audits get them added to their streams; `user` gets a table-level SELECT for the replication role (emails reach PowerSync's storage, not devices; the publication keeps its column list). Ask PowerSync Cloud at slice 7 whether it snapshots with `SELECT *`. Done in slice 2 (53adf98): `REPLICATION_WHOLE_TABLES` is `user`, `note_document` and `timeline_entry` (the last two for the hand-written `search_vector` column, derived from synced text); a snapshot test fails on any synced table the role can't `SELECT *`.
+
+**Landing:** land each wave as soon as it's green. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here. Slice 7 is done with the user, not by a loop. Slice 9's model: opus (security design); slice 7 has no agent.
+
+Backlog: claim B-68 when slice 3 starts (`done` after slice 4) and B-33 when slice 1 starts (`done` after slice 7). B-141 is `done` with slice 3; B-142 and B-143 are claimed when slice 8 starts and `done` with it. B-158, B-159 and B-160 are claimed when slice 9 starts and `done` with it.
 
 Fold into the area docs at each landing:
 
@@ -24,6 +40,8 @@ Fold into the area docs at each landing:
 - **Slice 2:** roles and grants go in `docs/domain/data-layer.md` and `docs/domain/sync.md`, closing the "Production" ❓.
 - **Slice 3:** rate-limit storage goes in `docs/domain/auth.md`, closing its ❓.
 - **Slice 4:** suppression and the webhook go in `docs/domain/notifications.md`, and the suppressions screen in `docs/domain/admin.md`.
+- **Slice 8:** the native-origins flag and the client-IP header go in `docs/domain/api.md` and `docs/domain/auth.md`.
+- **Slice 9:** personal access exclusions in `docs/domain/data-layer.md`; JWKS rotation (and any versioned secrets) in `docs/domain/auth.md`; the staging seed's password update in `docs/domain/data-layer.md`.
 - **Slice 6:** a pointer to `ops/` goes in AGENTS.md (_Hosting_, the _Area index_, _Open questions_, _Next steps_, and the Stack's "check that Vercel runs pnpm 12" line once slice 7 confirms it).
 
 ## Architectural decisions
@@ -60,7 +78,7 @@ Durable decisions every slice follows:
   - 2 owns the roles generator and the access scripts (`packages/data/scripts/`).
   - 3 owns the limiter and Better Auth's rate-limit config.
   - 1 and 3 both touch `packages/auth` lightly: 1 only reads env, 3 changes `rateLimit`. Merge in number order.
-- **Wave 2: slices 4 and 5.** 4 extends 3's migration; 5 adds `.github/` and `scripts/deploy/`.
+- **Wave 2: slices 4, 5 and 8.** 4 extends 3's migration; 5 adds `.github/` and `scripts/deploy/`; 8 changes `routes/rpc.ts`, `packages/auth` and `checkDeployEnv` lightly. Merge in the order 4, 5, 8.
 - **Wave 3: slice 6** (the `ops/` docs, written from what 1–5 built).
 - **Wave 4: slice 7**, run by the orchestrator with the user. It's not a loop: the user creates the accounts, DNS and secrets following the runbook. The orchestrator fixes the runbook where reality differs (on `prd/hosting`, committed as `docs(hosting): …`), and records the answers (pgaudit, PowerSync region, header merge).
 - Merge in number order within a wave, with no checks between merges.
@@ -120,7 +138,7 @@ Stack: no · Reads: docs/domain/notifications.md, docs/domain/security-headers.m
 - [ ] The hand-off says whether `vercel build` ran locally, and what it showed about function headers versus `vercel.json`'s.
 - [ ] `pnpm check` passes.
 
-**Blocked by:** none. **Blocks:** 5, 6.
+**Blocked by:** none. **Blocks:** 5, 6, 8.
 
 ---
 
@@ -194,7 +212,7 @@ Stack: no · Reads: docs/domain/auth.md, docs/domain/api.md, docs/domain/data-la
 - [ ] The migration is generated on the current base and its SQL order is reread.
 - [ ] `pnpm check` passes.
 
-**Blocked by:** none. **Blocks:** 4, 6.
+**Blocked by:** none. **Blocks:** 4, 6, 8.
 
 ---
 
@@ -336,7 +354,7 @@ Stack: no · Reads: docs/domain/data-layer.md, docs/domain/sync.md, docs/domain/
 - [ ] The break-glass procedure names the scripts and audit actions exactly as slice 2 built them.
 - [ ] `pnpm format:check` passes on `ops/`.
 
-**Blocked by:** 1, 2, 3, 4, 5. **Blocks:** 7.
+**Blocked by:** 1, 2, 3, 4, 5, 8. **Blocks:** 7.
 
 ---
 
@@ -367,4 +385,62 @@ Stack: no · Reads: docs/loops.md · Tests: none (the live smoke check)
 - [ ] The runbook and register are updated with what was learned.
 - [ ] B-33 and B-68 are `done`.
 
-**Blocked by:** 6. **Blocks:** none.
+**Blocked by:** 6, 9. **Blocks:** none.
+
+---
+
+## Slice 8: Native origins behind a flag, and the client IP from the host
+
+Stack: no · Reads: docs/domain/api.md, docs/domain/auth.md, docs/domain/security-headers.md · Tests: unit, integration
+
+**Backlog:** B-142, B-143. Added by the orchestrator on 2026-11-20 from the backlog agent's triage.
+
+**What to build:**
+
+- **Native origins, defined once and off by default (B-142).**
+  - Today `capacitor://localhost` and `https://localhost` are hard-coded as trusted origins, with credentials, in `apps/web/app/routes/rpc.ts` and `packages/auth/src/auth.ts`. Define the list once (a small client-unsafe module in `packages/auth`, imported by both) and trust it only when `NATIVE_APP_ORIGINS=1` (env, read lazily like the rest of config).
+  - Unset, neither CORS on `/rpc` nor Better Auth's `trustedOrigins` includes them. Dev, tests and checks run unset.
+  - `checkDeployEnv` (slice 1) accepts it unset or `1` and rejects anything else; `.env.example` gains it with a comment.
+- **The client IP from the host's own header (B-143).**
+  - `clientIpOf` (`routes/rpc.ts`) and Better Auth's `advanced.ipAddress.ipAddressHeaders` both take one configured header, `CLIENT_IP_HEADER` (default: today's behaviour, the first `x-forwarded-for` entry, which the browser checks rely on through `cdp.mjs`'s per-page header).
+  - On Vercel the deploy env sets `CLIENT_IP_HEADER=x-vercel-forwarded-for`; `checkDeployEnv` requires it on both targets. The value is a single header name, lower-cased; the first comma-separated entry is taken.
+  - Define the header choice once and use it from both callers, so the limiter (slice 3) and Better Auth key on the same IP.
+
+**Acceptance criteria:**
+
+- [ ] Unit tests: the origin list is empty unless the flag is `1`; `clientIpOf` with the default, with `CLIENT_IP_HEADER` set (a spoofed `x-forwarded-for` is ignored), and with the header missing (null).
+- [ ] An integration test through `getAuth().handler(new Request(…))`: with the flag unset, a sign-in POST from `Origin: capacitor://localhost` is refused; with it set, accepted.
+- [ ] The `/rpc` CORS answer for `capacitor://localhost` is unit-tested both ways.
+- [ ] `checkDeployEnv` tests cover both new variables.
+- [ ] Nothing else still hard-codes the native origins (`grep`).
+- [ ] `pnpm check` passes.
+
+**Blocked by:** 1, 3. **Blocks:** 6.
+
+---
+
+## Slice 9: Secret rotation and narrower personal access
+
+Stack: no · Reads: docs/domain/auth.md, docs/domain/data-layer.md, docs/domain/sync.md, docs/domain/admin.md · Tests: unit, integration
+
+**Backlog:** B-158, B-159, B-160 (gaps slice 6 found). Added by the orchestrator on 2026-11-20 at the user's choice, before going live.
+
+**What to build:**
+
+- **Personal access without the auth secrets (B-159).** `pnpm db:access grant` gives `staff_` roles SELECT on every table **except** the secrets: Better Auth's `account`, `session`, `verification` and `jwks`, the rate-limit tables, and any column holding a token, hash or sealed value elsewhere (e.g. the invite tables' sealed or hashed tokens). Keep one explicit, commented list (`PERSONAL_ACCESS_EXCLUDED`: tables, and `table.column` entries that become column grants), and a test that fails when a new table or column looks secret (a name matching `token|secret|hash|password|private`) and isn't listed or deliberately allowed. `revoke` revokes exactly what `grant` gave, including column grants.
+- **Rotating `BETTER_AUTH_SECRET` without breaking sync (B-158).** Find out from the installed Better Auth (1.7.25, in `node_modules`) how its `jwt()` plugin stores the JWKS private key and whether it supports a versioned secret list (`BETTER_AUTH_SECRETS` or similar) for gradual rotation. Then:
+  - if it does, support it in `packages/auth` config and `checkDeployEnv`, and document the two-step rotation;
+  - either way, add `pnpm auth:rotate-jwks` (`packages/auth` or `packages/data/scripts/`): it marks or deletes the current key so Better Auth makes a new one, and records an audit entry with the system actor (append an `AUDIT_ACTIONS` entry, e.g. `auth.jwksRotated`). Say what happens to devices holding a token signed by the old key (15-minute tokens; does PowerSync refetch the JWKS?).
+- **Staging's seed password rotation (B-160).** With `APP_ENV=staging`, the seed updates the seeded `@example.com` accounts' password hash to the current `SEED_USER_PASSWORD` (idempotent; no other change to existing rows). Dev keeps today's behaviour.
+- **The runbook** (`ops/runbook.md`, `ops/break-glass.md`): replace the gaps' interim steps with the new commands, and add `pnpm auth:rotate-jwks` to the `db-access`-style manual Actions only if it can run safely from one (else the runbook says to run it from a laptop with the migrations URL).
+
+**Acceptance criteria:**
+
+- [ ] Integration: a granted `staff_` role reads a care table but is refused `account.password`, `session.token`, `jwks` and the invite token columns; `revoke` leaves no grants (`information_schema.column_privileges` / `role_table_grants` empty for the role).
+- [ ] Unit: the secret-looking-column test runs over the Drizzle schema and passes on the current schema.
+- [ ] Integration: after `auth:rotate-jwks`, `/api/auth/jwks` serves a new key and a token signed by it verifies; the audit entry is written.
+- [ ] If a versioned secret list exists: a test that sessions made under the old secret still work after adding a new one first.
+- [ ] Integration: the staging seed with a new `SEED_USER_PASSWORD` lets a seeded user sign in with it, and dev's seed is unchanged.
+- [ ] `pnpm check` passes.
+
+**Blocked by:** 6. **Blocks:** 7.

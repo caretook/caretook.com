@@ -150,10 +150,8 @@ try {
     await m.waitFor(ROWS, 30000);
     await shoot(m, "timeline-rows", theme);
 
-    await m.press(
-      `[...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "All vitals")`,
-    );
-    await m.waitFor(`document.querySelector('main button[aria-expanded="true"]')`, 5000);
+    // The Today card's vitals row (the old "All vitals" expander went with its strip).
+    await m.waitFor(`document.querySelector('main [data-today-row="vitals"]')`, 5000);
     await shoot(m, "vitals", theme);
 
     setView("cards");

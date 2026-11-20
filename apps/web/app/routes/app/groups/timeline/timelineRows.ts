@@ -1,20 +1,26 @@
 import type { SyncDb } from "~/lib/sync";
-import type { EntryProviderLinkRow } from "~/lib/entryProviders";
-import type { NoteDocRow } from "~/lib/sync/notes";
-import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/sync/timeline";
-import type { CarePeriodRow } from "~/lib/sync/carePeriods";
+import type { EntryProviderLinkRow } from "~/lib/providers/entryProviders";
+import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
+import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
 import type { PlaceNameRow } from "./timelinePeriods";
 
-import { groupDocumentsQuery } from "~/lib/sync/notes";
-import { timelineLinksQuery } from "~/lib/sync/providers";
-import { fromLocalTimestamp, historyQuery, membersQuery, readingsQuery, readRows } from "~/lib/sync/timeline";
-import { PAGE_SIZE } from "~/lib/paging";
-import { historyCutoff } from "~/lib/upcoming";
-import { carePeriodsQuery } from "~/lib/sync/carePeriods";
+import { groupDocumentsQuery } from "~/lib/live-notes/notes.sync";
+import { timelineLinksQuery } from "~/lib/providers/providers.sync";
+import {
+  fromLocalTimestamp,
+  historyQuery,
+  membersQuery,
+  readingsQuery,
+  readRows,
+} from "~/lib/timeline/timeline.sync";
+import { PAGE_SIZE } from "~/lib/core/paging";
+import { historyCutoff } from "~/lib/appointments/upcoming";
+import { carePeriodsQuery } from "~/lib/care-periods/carePeriods.sync";
 import { aheadQueries } from "./aheadQueries";
 import { placeNamesQuery } from "./timelinePeriods";
 import { daySummaryQuery, summariesOff, summarySince } from "./daySummaryRows";
-import { localTimeZone } from "~/lib/format";
+import { localTimeZone } from "~/lib/core/format";
 
 // The timeline's first screenful, read from the device's local copy
 // (PowerSync) by the route's loader; `useTimelineData` takes over from there
@@ -29,30 +35,18 @@ export const loadTimelineRows = async (
   cutoff = historyCutoff(new Date()),
 ) => {
   const ahead = aheadQueries(groupId, filters, cutoff);
-  const [
-    entryRows,
-    memberRows,
-    readingRows,
-    documentRows,
-    linkRows,
-    nextRows,
-    blockRows,
-    blockLinkRows,
-    periodRows,
-    placeRows,
-  ] = await Promise.all([
-    readRows<EntryRow>(db, historyQuery(groupId, filters, PAGE_SIZE, cutoff)),
-    readRows<MemberRow>(db, membersQuery(groupId)),
-    readRows<ReadingRow>(db, readingsQuery(groupId)),
-    readRows<NoteDocRow>(db, groupDocumentsQuery(groupId)),
-    readRows<EntryProviderLinkRow>(db, timelineLinksQuery(groupId, filters, PAGE_SIZE, cutoff)),
-    readRows<EntryRow>(db, ahead.next),
-    readRows<EntryRow>(db, ahead.block),
-    readRows<EntryProviderLinkRow>(db, ahead.blockLinks),
-    // The care periods' track and its places (the current-period line and the markers).
-    readRows<CarePeriodRow>(db, carePeriodsQuery(groupId)),
-    readRows<PlaceNameRow>(db, placeNamesQuery(groupId)),
-  ]);
+  const [entryRows, memberRows, readingRows, documentRows, linkRows, nextRows, periodRows, placeRows] =
+    await Promise.all([
+      readRows<EntryRow>(db, historyQuery(groupId, filters, PAGE_SIZE, cutoff)),
+      readRows<MemberRow>(db, membersQuery(groupId)),
+      readRows<ReadingRow>(db, readingsQuery(groupId)),
+      readRows<NoteDocRow>(db, groupDocumentsQuery(groupId)),
+      readRows<EntryProviderLinkRow>(db, timelineLinksQuery(groupId, filters, PAGE_SIZE, cutoff)),
+      readRows<EntryRow>(db, ahead.next),
+      // The care periods' track and its places (the current-period line and the markers).
+      readRows<CarePeriodRow>(db, carePeriodsQuery(groupId)),
+      readRows<PlaceNameRow>(db, placeNamesQuery(groupId)),
+    ]);
   const oldest = entryRows.at(-1)?.occurred_at;
   // The day summaries: whole days from the oldest loaded one's baseline (none while filtered).
   const since = summarySince(oldest ? fromLocalTimestamp(oldest) : null, cutoff, localTimeZone());
@@ -68,8 +62,6 @@ export const loadTimelineRows = async (
     documentRows,
     linkRows,
     nextRows,
-    blockRows,
-    blockLinkRows,
     periodRows,
     placeRows,
     summaryRows,

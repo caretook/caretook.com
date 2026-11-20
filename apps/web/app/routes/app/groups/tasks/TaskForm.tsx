@@ -1,8 +1,8 @@
 import type { AssigneeChoice } from "./AssigneeField";
 import type { AssigneeMember } from "./assigneeOptions";
 import type { LinkChoices } from "./taskSheet";
-import type { ActionResult, FieldIssue } from "~/lib/api";
-import type { LocalTask } from "~/lib/sync/tasks";
+import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
 import { TASK_LIMITS } from "@caretook/data/schema";
 import { useEffect, useRef, useState } from "react";

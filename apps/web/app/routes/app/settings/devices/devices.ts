@@ -1,4 +1,4 @@
-import { deviceLabel } from "../../../../lib/deviceLabel";
+import { deviceLabel } from "../../../../lib/auth/deviceLabel";
 
 // The Devices page's pure parts: Better Auth's sessions as the rows it shows
 // (never their tokens), and its wording.

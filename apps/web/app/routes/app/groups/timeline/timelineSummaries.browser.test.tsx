@@ -1,11 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
-import { openTimeline, rows, SAM, setView, TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { frames, openTimeline, rows, SAM, setView, TIMELINE_URL, waitUntil } from "./timelineWorld";
 
-// The day summaries on the test device: the line under each day's heading,
+// The day summaries on the test device: the line in each day's sticky header,
 // what it says (arrows in words), expanding by tap and keyboard, live updates
-// (a local add and another device's entry), and every filter hiding it.
+// (a local add and another device's entry), every filter hiding it, and the
+// header's Highlights / Full / Off switch.
 
 const minutesAgo = (m: number) => at(new Date(Date.now() - m * 60_000));
 const daysAgo = (d: number, hour = 10) => {
@@ -33,23 +34,56 @@ const YESTERDAY = [
 ];
 const fixtures = [SAM, ...TODAY, ...YESTERDAY];
 
-const TODAY_TEXT = "BP 150/90 ↑ · Nausea 5 (new) · Cough 2 · Fell in bathroom · 2 notes · Alex, Sam";
+/** The default line: highlights only (Cough 2 is old and mild; notes and authors aren't highlights). */
+const TODAY_TEXT = "BP 150/90 ↑ · Nausea 5 (new) · Fell in bathroom";
+const TODAY_FULL = "BP 150/90 ↑ · Nausea 5 (new) · Cough 2 · Fell in bathroom · Alex, Sam";
 
 const summaries = () => [...document.querySelectorAll<HTMLElement>("[data-day-summary]")];
 const summaryButton = (i = 0) => summaries()[i]?.querySelector("button");
 const lineOf = (i = 0) => summaryButton(i)?.querySelector(".truncate")?.textContent ?? "";
 
 describe("the day summary", () => {
-  test("sits under each day's heading (not in it), and says how the day went", async () => {
+  test("sits inside each day's sticky header, under the date, and says how the day went", async () => {
     await openTimeline({ fixtures });
     await waitUntil(() => summaries().length === 2, 4000, "two summaries");
     const [today, yesterday] = summaries();
-    // Right after the sticky heading, outside it.
-    expect(today!.previousElementSibling?.hasAttribute("data-day-header")).toBe(true);
-    expect(today!.closest("[data-day-header]")).toBeNull();
+    // In the sticky header, after the date's row.
+    const header = today!.closest("[data-day-header]")!;
+    expect(header).toBeTruthy();
+    expect(header.querySelector("h3")!.compareDocumentPosition(today!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(yesterday!.closest("[data-day-header]")).toBeTruthy();
     expect(lineOf(0)).toBe(TODAY_TEXT);
-    expect(lineOf(1)).toBe("BP 120/80 · Cough 3 (new) · Alex");
+    expect(lineOf(1)).toBe("Cough 3 (new)");
     expect(yesterday).toBeTruthy();
+  });
+
+  test("stays pinned with its date while the test scrolls through that day", async () => {
+    // A long yesterday: its summary line, then twenty notes (not in it) to scroll through.
+    const long = Array.from({ length: 20 }, (_, i) =>
+      fx.note({ occurredAt: daysAgo(1, 23 - i), text: `Checked in, round ${i + 1}.` }),
+    );
+    await openTimeline({ fixtures: [...fixtures, ...long] });
+    await waitUntil(() => summaries().length === 2, 4000, "two summaries");
+    const yesterday = summaries()[1]!;
+    const day = yesterday.closest("section")!;
+    const dayTop = day.getBoundingClientRect().top + scrollY;
+    const seen: { top: number; inside: boolean; text: string }[] = [];
+    for (const into of [200, 500, 800]) {
+      window.scrollTo(0, dayTop + into);
+      await frames();
+      const r = yesterday.getBoundingClientRect();
+      const h = yesterday.closest("[data-day-header]")!.getBoundingClientRect();
+      // The day is still on screen below the header.
+      expect(day.getBoundingClientRect().bottom).toBeGreaterThan(h.bottom + 50);
+      seen.push({
+        top: Math.round(h.top),
+        inside: r.top >= 0 && r.bottom <= h.bottom && r.height > 0,
+        text: lineOf(1),
+      });
+    }
+    expect(seen).toEqual(Array(3).fill({ top: 0, inside: true, text: "Cough 3 (new)" }));
   });
 
   test("is read as text, with the arrow in words", async () => {
@@ -59,7 +93,7 @@ describe("the day summary", () => {
     await expect
       .element(button)
       .toHaveAccessibleName(
-        "Day summary: BP 150/90, higher than last week; Nausea 5 (new); Cough 2; Fell in bathroom; 2 notes; Alex, Sam",
+        "Day summary: BP 150/90, higher than last week; Nausea 5 (new); Fell in bathroom",
       );
   });
 
@@ -78,7 +112,6 @@ describe("the day summary", () => {
       "Vitals: BP 150/90 ↑(higher than last week)",
       "Symptoms: Nausea 5 (new), Cough 2",
       "Events: Fell in bathroom",
-      "Notes: 2 notes",
       "Logged by: Alex, Sam",
     ]);
     await userEvent.click(button);
@@ -126,6 +159,36 @@ describe("the day summary", () => {
     await userEvent.click(device.screen.getByRole("link", { name: clear }));
     await expect.poll(() => device.location()).toBe(TIMELINE_URL);
     await waitUntil(() => summaries().length === 2, 4000, "summaries back");
+  });
+
+  test("the header's menu switches to the full line, and off", async () => {
+    const device = await openTimeline({ fixtures });
+    await waitUntil(() => summaries().length === 2);
+    const choose = async (mode: string) => {
+      await userEvent.click(device.screen.getByRole("button", { name: "Day summaries" }));
+      await userEvent.click(device.screen.getByRole("menuitemradio", { name: new RegExp(`^${mode}`) }));
+    };
+
+    await choose("Full");
+    await waitUntil(() => lineOf(0) === TODAY_FULL, 4000, "the full line");
+    expect(lineOf(1)).toBe("BP 120/80 · Cough 3 (new) · Alex");
+
+    await choose("Off");
+    await waitUntil(() => summaries().length === 0, 4000, "no summaries");
+
+    await choose("Highlights");
+    await waitUntil(() => lineOf(0) === TODAY_TEXT, 4000, "highlights back");
+  });
+
+  test("a day with nothing that stands out has no line in highlights", async () => {
+    await openTimeline({
+      fixtures: [
+        fx.symptom({ occurredAt: minutesAgo(30), name: "Cough", severity: 2 }),
+        fx.symptom({ occurredAt: daysAgo(2), name: "Cough", severity: 2 }),
+      ],
+    });
+    await waitUntil(() => summaries().length === 1, 4000, "only the older day's line");
+    expect(lineOf(0)).toBe("Cough 2 (new)");
   });
 
   test("a day with only doses has no summary", async () => {

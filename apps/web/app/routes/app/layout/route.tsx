@@ -5,13 +5,14 @@ import { Search } from "lucide-react";
 import { Wordmark } from "~/components/brand";
 import { FirstSyncPending } from "~/components/shell";
 import { IconButton } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { isFirstSyncPending } from "~/lib/firstSync";
-import { requireSession, sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { isFirstSyncPending } from "~/lib/sync/firstSync";
+import { requireSession, sessionContext } from "~/lib/auth/session";
 import { Announcement } from "./Announcement";
 import { GroupMenu } from "./GroupMenu";
 import { SectionNav, TabBar } from "./SectionNav";
 import { SyncIndicator } from "./SyncIndicator";
+import { UpdateNotice } from "./UpdateNotice";
 import { useSeveralGroups, useSimpleFrame } from "./useSimpleFrame";
 import { UserMenu } from "./UserMenu";
 
@@ -44,7 +45,8 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  * - header `user`: `UserMenu`;
  * - `announcement`: staff's banner (`Announcement`), when there is one;
  * - the outlet;
- * - `TabBar` (phones) under the outlet, on group routes.
+ * - `TabBar` (phones) under the outlet, on group routes;
+ * - `update`: "A new version is ready" (`UpdateNotice`), when a new service worker waits.
  *
  * Screens outside a group (`/app`, `/app/settings`) get the header without a
  * group menu, sections or tab bar. So does a timeline in simple mode
@@ -87,6 +89,9 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
       </div>
       <Outlet />
       {groupFrame && <TabBar groupId={groupFrame} pathname={pathname} />}
+      <div data-region="update">
+        <UpdateNotice />
+      </div>
     </>
   );
 }
@@ -94,7 +99,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
 // Errors inside /app (a missing group, a failed load) render here, so the
 // page keeps its frame and a way back.
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  // A new device that hasn't got the group yet (lib/firstSync.ts).
+  // A new device that hasn't got the group yet (lib/sync/firstSync.ts).
   if (isFirstSyncPending(error)) return <FirstSyncPending />;
   const notFound = isRouteErrorResponse(error) && error.status === 404;
   if (!notFound) console.error(error);

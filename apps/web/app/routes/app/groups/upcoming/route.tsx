@@ -2,8 +2,8 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { TaskUndoStatus } from "~/components/tasks";
-import { getGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
+import { getGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
 import { loadUpcoming } from "./loadUpcoming";
 import { UpcomingFilterChips, UpcomingHeader } from "./UpcomingHeader";
 import { emptyUpcomingText, parseUpcomingFilters } from "./upcomingFilters";
@@ -13,7 +13,7 @@ import { useUpcomingData } from "./useUpcomingData";
 // Shared by web + native. The group's Upcoming section: appointments
 // (future events) and reminders (future notes), read from the device's local
 // copy (live, so it works offline and follows other members' changes). What
-// counts as upcoming is worked out from the clock (`lib/upcoming`), never
+// counts as upcoming is worked out from the clock (`lib/appointments/upcoming`), never
 // stored. `?kind=` (event or note) and `?author=` filter it, as on the timeline.
 
 export const meta = () => [{ title: "Upcoming · Caretook" }];

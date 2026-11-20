@@ -4,6 +4,10 @@
 // responses get the same headers here; web-only resource routes get them from
 // the `web` layout route's middleware (routes/web/route.ts). All of it comes
 // from .server/securityHeaders.ts.
+//
+// Hosting slice 1: with APP_ENV set, every request first passes the deploy
+// env check (.server/deployEnv.ts), answering 503 until it's fixed; and on
+// Vercel, background email runs under `waitUntil`.
 import { PassThrough } from "node:stream";
 
 import type { EntryContext, HandleDataRequestFunction, RouterContextProvider } from "react-router";
@@ -12,11 +16,19 @@ import { ServerRouter } from "react-router";
 import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
+import { waitUntil } from "@vercel/functions";
 
+import { deployEnvRefusal } from "./.server/deployEnv";
+import { setBackgroundRunner } from "./.server/notifications";
 import { applySecurityHeaders, contentSecurityPolicy, envOptions, newNonce } from "./.server/securityHeaders";
-import { CspContext } from "./lib/csp";
+import { CspContext } from "./lib/security-headers/csp";
 
 export const streamTimeout = 5_000;
+
+// Once, at server start. Vercel freezes a function when its response is sent:
+// `waitUntil` keeps a background send (sign-in email) alive until it's done.
+// Elsewhere (dev, check builds, Node) the default fire-and-forget runner stays.
+if (process.env.VERCEL) setBackgroundRunner((work) => waitUntil(work));
 
 export default function handleRequest(
   request: Request,
@@ -25,6 +37,13 @@ export default function handleRequest(
   routerContext: EntryContext,
   _loadContext: RouterContextProvider,
 ) {
+  // Not while the native SPA's shell is prerendered at build: that's no deploy.
+  const refusal = routerContext.isSpaMode ? null : deployEnvRefusal(request);
+  if (refusal) {
+    applySecurityHeaders(refusal.headers);
+    return refusal;
+  }
+
   const options = envOptions();
   const nonce = newNonce();
   responseHeaders.delete("Content-Security-Policy");
@@ -88,7 +107,12 @@ export default function handleRequest(
   });
 }
 
-export const handleDataRequest: HandleDataRequestFunction = (response) => {
+export const handleDataRequest: HandleDataRequestFunction = (response, { request }) => {
+  const refusal = deployEnvRefusal(request);
+  if (refusal) {
+    applySecurityHeaders(refusal.headers);
+    return refusal;
+  }
   applySecurityHeaders(response.headers);
   return response;
 };

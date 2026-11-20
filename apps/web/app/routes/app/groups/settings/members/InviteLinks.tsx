@@ -6,8 +6,8 @@ import { Copy, Link2, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 import { ConfirmDialog, Field, Sheet } from "~/components/ui";
-import { accountUrls } from "~/lib/accountUrls";
-import { rpc } from "~/lib/rpc";
+import { accountUrls } from "~/lib/auth/accountUrls";
+import { rpc } from "~/lib/core/rpc";
 import { roleLabel } from "../groupSettings";
 import {
   copyLinkText,

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { endOfListText } from "~/lib/paging";
+import { endOfListText } from "~/lib/core/paging";
 
 /**
  * The end of a growing list (the timeline, Upcoming's Past tab): a sentinel that loads the next page when it comes

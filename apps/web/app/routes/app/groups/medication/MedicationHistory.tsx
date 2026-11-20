@@ -1,14 +1,14 @@
-import type { SchedulePass } from "~/lib/medicationDisplay";
-import type { MedicationEntry } from "~/lib/sync/medications";
-import type { EntryRow, MemberRow } from "~/lib/sync/timeline";
+import type { SchedulePass } from "~/lib/medications/medicationDisplay";
+import type { MedicationEntry } from "~/lib/medications/medications.sync";
+import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { KindIcon } from "~/components/entry";
-import { KIND_META } from "~/lib/entryDisplay";
-import { formatDay, formatTime } from "~/lib/format";
-import { changeText, doseSlotText, doseText } from "~/lib/medicationDisplay";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { formatDay, formatTime } from "~/lib/core/format";
+import { changeText, doseSlotText, doseText } from "~/lib/medications/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
-import { medicationEntriesQuery, toMedicationEntries } from "~/lib/sync/medications";
-import { membersQuery, toMember } from "~/lib/sync/timeline";
+import { medicationEntriesQuery, toMedicationEntries } from "~/lib/medications/medications.sync";
+import { membersQuery, toMember } from "~/lib/timeline/timeline.sync";
 
 /** What an entry says, and the line under it (the slot and note, or the stop note). */
 const entryLines = (

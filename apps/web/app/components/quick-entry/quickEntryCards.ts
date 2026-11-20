@@ -1,11 +1,11 @@
 import type { AssistantAction, QuickEntryPart, QuickEntryReading } from "@caretook/data/schema";
 
-import type { DoseDraft, EntryDraft } from "../../lib/quickEntryDraft";
+import type { DoseDraft, EntryDraft } from "../../lib/assistant/quickEntryDraft";
 
-import { appUrls } from "../../lib/appUrls";
-import { QUICK_ENTRY_DRAFT } from "../../lib/quickEntryDraft";
-import { TASK_SHEET_STATE } from "../../lib/taskSheetLink";
-import { SHEET_LINK_STATE } from "../../lib/timelineSheet";
+import { appUrls } from "../../lib/app-shell/appUrls";
+import { QUICK_ENTRY_DRAFT } from "../../lib/assistant/quickEntryDraft";
+import { TASK_SHEET_STATE } from "../../lib/tasks/taskSheetLink";
+import { SHEET_LINK_STATE } from "../../lib/timeline/timelineSheet";
 
 // The pure rules behind quick entry's cards: which reading each part shows,
 // its alternatives, what blocks Save, and where Edit goes. web:unit tests it.
@@ -166,4 +166,19 @@ export const editTarget = (
     case "addEvent":
       return "saveAndOpen";
   }
+};
+
+/**
+ * The entry to open after a line saved: its id when the whole line wrote
+ * exactly one thing and it's a note or an event (their pages hold the live
+ * document); nothing otherwise (several entries, a vital, a dose, a task).
+ * `saved` is each action's type with the ids it wrote, in order. Pure.
+ */
+export const openAfterSave = (
+  saved: readonly { type: AssistantAction["type"]; ids: readonly string[] }[],
+): string | null => {
+  const written = saved.filter((s) => s.ids.length > 0);
+  const only = written.length === 1 ? written[0]! : null;
+  if (!only || only.ids.length !== 1) return null;
+  return only.type === "addNote" || only.type === "addEvent" ? only.ids[0]! : null;
 };

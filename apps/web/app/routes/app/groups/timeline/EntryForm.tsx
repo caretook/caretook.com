@@ -1,6 +1,6 @@
 import type { TimelineEntryKind, UnitChoices, VitalType } from "@caretook/data/schema";
-import type { EntryDraft } from "~/lib/quickEntryDraft";
-import type { TimelineEntry } from "~/lib/rpc";
+import type { EntryDraft } from "~/lib/assistant/quickEntryDraft";
+import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { useState } from "react";
 import {
@@ -41,6 +41,7 @@ export function EntryForm({
   units,
   initialKind = "symptom",
   initialVitalType,
+  initialAt,
   draft,
   simple,
   onDone,
@@ -52,6 +53,8 @@ export function EntryForm({
   /** For a new entry: the kind to start with, and for vitals the first reading. */
   initialKind?: TimelineEntryKind;
   initialVitalType?: VitalType;
+  /** For a new entry: when it starts at (an ISO time, a past day's +), unless the draft has a time; now when left out. */
+  initialAt?: string | null;
   /** For a new entry: what to fill it in with (quick entry's Edit). */
   draft?: EntryDraft | null;
   /** Simple mode's variant, with the feelings scale's question ("How she feels"). */
@@ -138,7 +141,7 @@ export function EntryForm({
       <DateTimeField
         name="occurredAt"
         label="When"
-        defaultValue={filled?.occurredAt}
+        defaultValue={filled?.occurredAt ?? initialAt ?? undefined}
         max={latest}
         error={issueFor(issues, "occurredAt")}
       />

@@ -2,9 +2,9 @@ import type { Route } from "./+types/route";
 
 import { useEffect } from "react";
 import { Outlet, redirect, useLocation, useNavigate } from "react-router";
-import { getGroup, GroupProvider, setGroup, useGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
-import { lockedRedirect } from "~/lib/simpleModeLock";
+import { getGroup, GroupProvider, setGroup, useGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
+import { lockedRedirect } from "~/lib/assistant/simpleModeLock";
 
 // Shared by web + native. `/app/groups/:groupId`: every screen about one
 // care group (the timeline, an entry, group settings, later sections) is a
@@ -15,10 +15,10 @@ import { lockedRedirect } from "~/lib/simpleModeLock";
 // with `getGroup(context)`, and their components with `useGroup()` (live). A
 // group that isn't on the device is `notOnDevice` (the /app error boundary's
 // 404, or "Getting your care groups…" on a new device), thrown by
-// `getGroup` from the loaders (see lib/group.tsx for why not the middleware).
+// `getGroup` from the loaders (see lib/app-shell/group.tsx for why not the middleware).
 //
 // A member locked in simple mode is sent to the timeline from every other
-// group route but their notes' and events' pages (`lib/simpleModeLock.ts`):
+// group route but their notes' and events' pages (`lib/assistant/simpleModeLock.ts`):
 // by the middleware on each navigation, and by `LockedRedirect` when a lock
 // arrives by sync while they're on one.
 

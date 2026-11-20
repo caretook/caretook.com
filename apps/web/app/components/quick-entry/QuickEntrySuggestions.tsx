@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import type { QuickEntryPass } from "@caretook/data/schema";
-import type { DuePass } from "~/lib/duePasses";
+import type { DuePass } from "~/lib/medications/duePasses";
 
 import { ChipGroup } from "~/components/ui";
-import { givePassText } from "~/lib/medicationDisplay";
+import { givePassText } from "~/lib/medications/medicationDisplay";
 import { useQuickEntrySuggestions } from "./useQuickEntrySuggestions";
 
 /**
@@ -12,7 +12,7 @@ import { useQuickEntrySuggestions } from "./useQuickEntrySuggestions";
  * the box empty: first the passes due now as one tap each ("Give evening
  * meds (4)": Given all, with Undo), then what the group usually logs around
  * now and your recent lines, as chips that only fill the box (Save is still
- * yours), then the tips.
+ * yours). The typing tips live in the box's placeholder and description.
  */
 export function QuickEntrySuggestions({
   groupId,
@@ -83,10 +83,6 @@ export function QuickEntrySuggestions({
           />
         </Row>
       )}
-      <p className="text-base-content/70 text-sm" data-quick-tips>
-        Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas
-        separate entries; start with “n:” for a note.
-      </p>
     </div>
   );
 }

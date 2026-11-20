@@ -4,31 +4,32 @@
 
 ## Status
 
-| Slice | State                                | Merge into `prd/check-migration` (slice commits) |
-| ----- | ------------------------------------ | ------------------------------------------------ |
-| 1     | landed (wave 1)                      | 372c658 (f6cd078, e262c12)                       |
-| 2     | landed (wave 1)                      | 120db6e (df8db5a); ceiling 357 in 9c0b2bf        |
-| 3     | landed (wave 2)                      | c7ebf04 (dc3b2ec, a1f84cb, 988c4de)              |
-| 4     | landed (wave 2)                      | 7e632ee (58cfc90)                                |
-| 5     | landed (wave 2)                      | 7bfa916 (3542457, e554d48)                       |
-| 6     | landed (wave 3)                      | 17f91aa (3dfa6fd)                                |
-| 7     | landed (wave 3)                      | 3c0418e (97af38e)                                |
-| 8     | landed (wave 3)                      | 2cdba7f (c6d0b95, 55676bf)                       |
-| 9     | in progress (wave 4)                 |                                                  |
-| 10    | blocked by 1, 2                      |                                                  |
-| 11    | blocked by 9 and `assistant` slice 7 |                                                  |
-| 12    | blocked by 1, 2 and `assistant` 1, 5 |                                                  |
-| 13    | blocked by 1, 2 and `assistant` 4    |                                                  |
-| 14    | blocked by 1, 2 and `assistant` 4    |                                                  |
-| 15    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
-| 16    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
-| 17    | blocked by 1, 2 and `assistant` 5, 6 |                                                  |
-| 18    | blocked by 3–17                      |                                                  |
-| 19    | blocked by 18                        |                                                  |
-| 20    | blocked by 19                        |                                                  |
-| 21    | blocked by 19                        |                                                  |
-| 22    | blocked by 19                        |                                                  |
-| 23    | blocked by 20, 21, 22                |                                                  |
+| Slice | State                             | Merge into `prd/check-migration` (slice commits) |
+| ----- | --------------------------------- | ------------------------------------------------ |
+| 1     | landed (wave 1)                   | 372c658 (f6cd078, e262c12)                       |
+| 2     | landed (wave 1)                   | 120db6e (df8db5a); ceiling 357 in 9c0b2bf        |
+| 3     | landed (wave 2)                   | c7ebf04 (dc3b2ec, a1f84cb, 988c4de)              |
+| 4     | landed (wave 2)                   | 7e632ee (58cfc90)                                |
+| 5     | landed (wave 2)                   | 7bfa916 (3542457, e554d48)                       |
+| 6     | landed (wave 3)                   | 17f91aa (3dfa6fd)                                |
+| 7     | landed (wave 3)                   | 3c0418e (97af38e)                                |
+| 8     | landed (wave 3)                   | 2cdba7f (c6d0b95, 55676bf)                       |
+| 9     | landed (wave 4)                   | 35dceff (cc30504, 72c7166)                       |
+| 10    | landed (wave 4)                   | 3bb168a (f9c1ef9, eef96ac)                       |
+| 11    | landed (wave 5, 74f6723) · opus   | d72b0f6 (af6b87d, f274fd5)                       |
+| 12    | landed (wave 6, fdb07b2) · sonnet | 5cfb4ca (0277cbf)                                |
+| 13    | landed (wave 4)                   | bc5104e (0b06086)                                |
+| 14    | landed (wave 5, 74f6723) · opus   | 6ebb3ec (cce2ed2)                                |
+| 15    | landed (wave 5, 74f6723) · opus   | 0e0ab28 (3b2a5ad)                                |
+| 16    | landed (wave 6, fdb07b2) · sonnet | 222c37d (22f1f2b)                                |
+| 17    | landed (wave 6, fdb07b2) · sonnet | d487b30 (515b3f4)                                |
+| 18    | landed (wave 7, c4d97d5) · sonnet | 86aac2e (34953a6)                                |
+| 19    | landed (wave 8, e640ba50) · opus  | d0c4496 (8a41037, 5f6b956)                       |
+| 20    | merged (wave 9) · sonnet          | 3c3d4aff (2092b249)                              |
+| 21    | merged (wave 9) · sonnet          | c3a716ab (df0a1236)                              |
+| 22    | merged (wave 9) · sonnet          | 15f82ce6 (0e5b3c67, 02cd96b1)                    |
+| 23    | blocked by 20, 21, 22             |                                                  |
+| 24    | merged (wave 9) · sonnet          | a8043f42 (acf48af3)                              |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue check-migration`, 2026-11-19). The orchestrator starts every ready slice, lands each green wave itself with `pnpm prd land`, and cleans up; it asks the user only real questions.
 
@@ -36,16 +37,23 @@
 
 **Ceiling:** the user raised it to 357 (2026-11-19) for slice 2's sync matrix (9c0b2bf); slice 5 lowered it to 350.
 
-**Now:** wave 3 (6, 7, 8) landed 2026-11-20: suite 12/12 in 5m07s, `pnpm prd check` 3380/3380. Waves 1–2 landed as 2040ed3 on 2026-11-19. Next: wave 4 (9, 10).
+**Now (2026-11-20 16:35, check-migration-17):** wave 9 (20, 21, 22, 24) is merged, with the invites trim (f3817386). Its suite passed 12/12 at load 8–14. Syncing dev brought timeline-ux's final landing (74 files: service worker, simple mode, quick entry), and its edit to the deleted layout-offline.mjs was ported into the spec (aeba7020: the service worker, then an offline reload of a provider page and the timeline; 15–16 s, 3 runs). **Lean set measured at 255 s** (that suite, with layout-offline from its 3 runs), so usual seconds and `lean-ceiling 255` are set from it; it's one quiet suite, so take medians with the next ones. Docs folded (780950db): loop.md's check-writing is spec-only now, and found() is in components.md. **Now:** full `pnpm prd check` (5-min load < 16), then land. Then **wave 10: slice 23** (delete cdp.mjs and proxy.mjs, their rules, and smoke.mjs and marketing-screenshots.mjs if they use them; done B-129). Open for the user: B-180 (synchronous expect reads after render, proposed) and B-177 (hosting's).
+
+- **Resumed 2026-11-20 10:25 (session check-migration-17):** Status matched git (nothing in flight). Synced (dev had only backlog commits). `timelineLayout` › "the author tooltip… hover" **fails alone at low load too**: deterministic, not load. App code is unchanged since wave 4 landed (it passed then), so it's likely time-of-day dependent and on dev as well. Cause (sonnet helper): the quick-entry suggestion chips (time-of-day dependent) land after the rows and push the list down ~40 px, so the hover lands on another row's button. Test-only fix: wait for the link to stop moving before hovering (file passes 20/20 three times). Full `pnpm prd check` passed on 76a3161 (4089 tests, 371 files). Landing wave 5. After landing, message hosting-5b (it hit the same failure on prd/hosting and is waiting for the fix in dev) as well as code-layout-d2. B-161 (sign-in flake) proposed for this PRD (slice 20 ports sign-in).
+- Earlier: wave 4 (9, 10, 13) landed as 54a1880 (its suite: `roundtrip` failed twice at load 68–75 and passed alone at load 20; `sign-in` flaky at load 88, filed as B-161). Wave 3 landed as 68571c8, waves 1–2 as 2040ed3. Only `profiles-contacts` is left as an area check. Lean times are the median of the last three clean suites (waves 2, 3, 5): total and ceiling **286**.
+- Running agents: none. Worktrees: only `.loops/check-migration` (slot 4).
+- **Paused for code-layout:** its slice 1 rewrites `scripts/loops/check-areas` into `check-areas.d/`. Agreed with its orchestrator (code-layout-d2) not to start a slice that edits check-areas (12, 16, 17, 18, 19–23: all of them) until that lands; it messages on landing, then sync and add rules to the matching `check-areas.d/<area>` file.
+- **Loop rules from ab204ec:** the check gate (none / quick / full, docs/loops.md _The check gate_) and models (_Models_): move slices are mechanical, so sonnet from now on; slices 1–15 ran on opus (the session's model). Tell each slice agent to read both sections.
+- Component test polls now wait 5 s (`expect.poll.timeout` in vitest.config.ts, B-131), after load flakes at landing.
 
 - **Ceiling 295** (2026-11-20). Slice 6 cut `session-end` from 60 to 7 (it runs in 5–6 s), which took the ceiling to 297. Then the orchestrator set every lean check's usual seconds to the median of the three suite runs so far (the listed values had drifted: `marketing` 10 vs 29 measured, `app-shell` 10 vs 18, `layout-offline` 15 vs 27, `sign-in` 10 vs 5), which made the total 295. The lean set is already under slice 18's 300; slice 18 still makes 300 the hard limit and trims what it can.
 - Orchestrator fixes on this branch so far: f6a4db8 (settle test), the timelineFilters race (B-131), `retry: 2` on timelineScroll's B-133 flake (remove when B-133 is fixed), 1384054 (visit prep steps the year, not the month: B-134, date-dependent on dev).
 - Filed for the user's triage (not this PRD): B-133 (timeline minute-turn remount), B-134 (a month step back from the 31st in visit prep).
 - Stale comments for later slices: `groups.mjs:296` names admin.mjs (slice 15); `profiles.mjs:338` says care periods' own check covers it (slice 10).
 
-Backlog: claim each slice's items when it starts: 1 B-131; 2 B-128; 3 B-114; 4 B-115; 5 B-120; 6 B-124; 7 B-125 (and B-113's admin part); 9 and 11 B-118 (done after 11); 10 B-121; 12 B-126; 13 B-119; 14 B-116 (and B-113's providers part; B-113 done after 14); 15 B-117; 16 B-122; 17 B-127; 19 to 23 B-129 (done after 23).
+Backlog: claim each slice's items when it starts: 1 B-131; 2 B-128; 3 B-114; 4 B-115; 5 B-120; 6 B-124; 7 B-125 (and B-113's admin part); 9 and 11 B-118 (done after 11); 10 B-121; 12 B-126; 13 B-119; 14 B-116 (and B-113's providers part; B-113 done after 14); 15 B-117; 16 B-122; 17 B-127; 19 to 23 B-129 (done after 23).; 18 also B-172; 19 also B-161 (user approved both 2026-11-20)
 
-Fold into the area docs at each landing: the settle helper, parallelism and `loaderData` in `docs/domain/components.md` (_Component tests_); the lean rule, the ceiling, the sync matrix and each deleted check in `docs/loops.md` (_Browser check budget_, the area table, the manifest's list); the Playwright harness in `docs/loops.md` (_Browser checks_) and AGENTS.md's _Loop rules_ (`cdp.mjs` and `proxy.mjs` are named there).
+Fold into the area docs at each landing: the settle helper, parallelism and `loaderData` in `docs/domain/components.md` (_Component tests_); the lean rule, the ceiling, the sync matrix and each deleted check in `docs/loops.md` (_Browser check budget_, the area table, the manifest's list); the Playwright harness in `docs/agents/loop.md` (browser checks; `cdp.mjs` and `proxy.mjs` are named there and in AGENTS.md's core, if still), trimming what it replaces.
 
 ## Architectural decisions
 
@@ -373,7 +381,7 @@ Stack: yes · Reads: docs/loops.md · Tests: unit, e2e:session-end, e2e:live-not
 
 ### What to build
 
-Measure every lean check in full mode on a quiet machine. Cut fixed waits, repeated sign-ins and steps another lean check already covers (session-end, live-notes and first-sync first), until the total is ≤ 300 s. Set the ceiling to the total, and make `checks.test.mjs` also fail if the ceiling exceeds 300.
+Measure every lean check in full mode on a quiet machine. Cut fixed waits, repeated sign-ins and steps another lean check already covers (session-end, live-notes and first-sync first), until the total is ≤ 300 s. Set the ceiling to the total, and make `checks.test.mjs` also fail if the ceiling exceeds 300. Also fix B-172: `app-shell`'s `detailsGone` and `detailsBack` always pass, because a `waitFor` on a `promise.then(...)` expression is always truthy. Count in node (`M.evaluate`), as slice 16's member-share fold does, and grep every check for the same pattern and fix it too, so slice 22 ports assertions that can fail.
 
 ### Acceptance criteria
 
@@ -391,7 +399,7 @@ Stack: yes · Reads: docs/loops.md · Tests: unit, e2e:sign-in, e2e:ui, e2e:mark
 
 ### What to build
 
-Add `@playwright/test` 1.65.1, pinned exactly. A shared fixture module replaces `cdp.mjs` and `proxy.mjs`: pages with their own `x-forwarded-for`, sign-in helpers, two-device contexts, offline through the context, the PowerSync teardown filter, and `PG_CONTAINER`. `browser.sh` runs a spec per check, with one worker, and keeps the lease, the three limits, the retry and FLAKY log, trimmed output, smoke mode and the check build. Either `.mjs` or a spec can sit on a manifest line during the port. Port `sign-in`, `ui` and `marketing`.
+Add `@playwright/test` 1.65.1, pinned exactly. A shared fixture module replaces `cdp.mjs` and `proxy.mjs`: pages with their own `x-forwarded-for`, sign-in helpers, two-device contexts, offline through the context, the PowerSync teardown filter, and `PG_CONTAINER`. `browser.sh` runs a spec per check, with one worker, and keeps the lease, the three limits, the retry and FLAKY log, trimmed output, smoke mode and the check build. Either `.mjs` or a spec can sit on a manifest line during the port. Port `sign-in`, `ui` and `marketing`. While porting `sign-in`, fix B-161: "during the redirect the button is disabled and shows Signing in…" flaked at load 88, because the page had already reached /app ("Getting your care groups…"). Assert the pending state without racing the redirect, for example by holding the redirect the way the check already holds `/api/auth/token`.
 
 ### Acceptance criteria
 
@@ -440,7 +448,7 @@ Stack: yes · Reads: docs/loops.md, docs/domain/care-groups.md, docs/domain/app-
 
 ### What to build
 
-Port `app-shell` and `invites` (emails through `/dev/mail.json`) as specs, with step-for-step parity.
+Port `app-shell` and `invites` (emails through `/dev/mail.json`) as specs, with step-for-step parity. (B-173, the member-share step's flake, was fixed in wave 8: 6502603.)
 
 ### Acceptance criteria
 
@@ -463,3 +471,21 @@ Delete `cdp.mjs`, `proxy.mjs`, `smoke.mjs` and every remaining `.mjs` check, alo
 - [ ] No file imports `cdp.mjs` or `proxy.mjs`; `pnpm check` passes.
 - [ ] `marketing-screenshots` runs by hand against a check build (one run, the output listed, no images committed).
 - [ ] Every manifest line is a spec; `pnpm prd browser --suite` runs only specs.
+
+---
+
+## Slice 24: Sweep the read-before-render races (B-176, B-178)
+
+Stack: no · Reads: docs/agents/loop.md, docs/domain/components.md · Tests: component
+
+**Blocked by:** none (the user chose to run it alongside wave 9, 2026-11-20). **Blocks:** none.
+
+### What to build
+
+Component tests that read the DOM synchronously right after a render, a write or a close, and then click, fill, hover or assert on it. The pattern is `userEvent.click(X()!)`, `X()!.…` or `expect(X()…)`, straight after `open()`, `renderWithDevice`, `sync()` or a sheet closing. Under load the element isn't there yet. 24 files match `grep -rlE 'await userEvent\.(click|fill|hover)\([A-Z_]+\(\)!' apps/web/app --include='*.browser.test.tsx'`; also look for synchronous `expect(...)` reads of live-query output after a render. Add one small waiting helper beside the settle helper in `apps/web/test/` (for example, one that waits for a selector or a query function to return an element, with a clear timeout message), unless web-first locators (`page.getByRole`, `expect.element`) already fit. Convert every match. Change no app code and no assertion's meaning. The fixes already made (medicationList's search, periods' Add, simple My tasks' regions, the device test's `.first()`) show the shape.
+
+### Acceptance criteria
+
+- [ ] The grep above finds nothing, and the hand-off lists every file changed and any match left, with the reason.
+- [ ] `pnpm test:components` passes 3 times in a row with another `pnpm check` running at the same time; the hand-off gives the loads.
+- [ ] A test for the new helper (it waits, and it times out with the message).

@@ -4,8 +4,8 @@ import { Ellipsis, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useFetcher } from "react-router";
 import { ConfirmDialog, Menu } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { TASK_SHEET_STATE } from "~/lib/taskSheets";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { TASK_SHEET_STATE } from "~/lib/tasks/taskSheets";
 
 /** The page's delete intent, posted to its clientAction. */
 export const DELETE_INTENT = "delete";

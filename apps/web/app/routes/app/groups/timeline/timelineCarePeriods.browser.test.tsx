@@ -2,11 +2,13 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
-import { TEST_USER } from "../../../../../test/fixtures";
+import { at, fx, TEST_USER } from "../../../../../test/fixtures";
 import {
   ER,
   field,
+  RIVERSIDE,
   FORM,
   HOME_FIRST,
   HOME_NOW,
@@ -76,7 +78,7 @@ describe("today's line", () => {
     );
     expect(CHANGE()).not.toBeNull();
 
-    await userEvent.click(CHANGE()!);
+    await userEvent.click(await found(CHANGE));
     await waitUntil(() => !!FORM(), 4000, "the add sheet");
     expect(device.location()).toMatch(/\/periods\/new$/);
     await userEvent.click(typeRadio("Rehab or skilled nursing")!);
@@ -102,7 +104,7 @@ describe("today's line", () => {
   test("the line opens its period", async () => {
     const device = await open();
     await ready();
-    await userEvent.click(document.querySelector("main [data-period-current]")!);
+    await userEvent.click(await found(() => document.querySelector("main [data-period-current]")));
     await expect.poll(device.location).toBe(periodUrl(HOME_NOW.id));
     await waitUntil(() => !!document.querySelector("main[data-period-page]"), 4000, "the period page");
   });
@@ -145,6 +147,32 @@ describe("the markers", () => {
   });
 });
 
+describe("places", () => {
+  test("a period at a place: neither its day line nor its marker names the place or the room (its page does)", async () => {
+    const stay = fx.period({
+      type: "hospital",
+      placeProviderId: RIVERSIDE.id,
+      placeDetail: "Room 412, bed B",
+      startedAt: at(new Date(Date.now() - 60 * 60_000)),
+    });
+    await open("", { fixtures: [...world(10), RIVERSIDE, stay] });
+    await ready();
+    await waitUntil(() => !!markerLi(stay.id), 4000, "the marker");
+    const line = document.querySelector<HTMLElement>(
+      `main [data-day-header] [data-period-line="${stay.id}"]`,
+    )!;
+    const marker = markerLi(stay.id)!;
+    expect(line.querySelector("[data-period-current]")!.textContent?.trim()).toBe("In hospital · day 1");
+    expect(marker.textContent?.trim()).toMatch(/^Started: Hospital · \d\d:\d\d$/);
+    for (const text of [
+      line.textContent,
+      marker.textContent,
+      marker.querySelector("a")!.getAttribute("aria-label"),
+    ])
+      expect(text).not.toMatch(/Riverside|412|bed/i);
+  });
+});
+
 describe("a group with no periods", () => {
   test.each(["caretaker", "viewer"] as const)("a %s sees no period line and no markers", async (role) => {
     const device = await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: world(), role });
@@ -160,7 +188,7 @@ describe("scrolling back", () => {
   const LOADING = "Loading older…";
   const status = () => document.querySelector("[data-older-entries] [role=status]")?.textContent ?? "";
 
-  test('the first page shows only markers at or after its oldest entry; scrolling back never shows one out of place; at the beginning every one shows, the first "Started: Home", the hospital\'s with its place and room', async () => {
+  test('the first page shows only markers at or after its oldest entry; scrolling back never shows one out of place; at the beginning every one shows, the first "Started: Home", the hospital\'s with its label but no place or room', async () => {
     // Twenty days of entries: the first page ends inside the rehab stay.
     await open("", { fixtures: [...world(120), ...track()] });
     await ready();
@@ -196,7 +224,7 @@ describe("scrolling back", () => {
     expect(all.map((r) => r.marker)).toEqual([HOME_NOW.id, REHAB.id, HOSPITAL.id, ER.id, HOME_FIRST.id]);
     expect(all.at(-1)!.text).toBe("Started: Home");
     expect(all.find((r) => r.marker === HOSPITAL.id)!.text).toBe(
-      "Emergency room → Hospital · Riverside General Hospital, room 412, bed B · 03:15",
+      "Emergency room → Hospital · Cardiac unit (4 West) · 03:15",
     );
     expect(inOrder(listOrder())).toBe(true);
     await expect.element(page.getByText(END)).toBeVisible();

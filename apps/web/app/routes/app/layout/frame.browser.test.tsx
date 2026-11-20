@@ -2,7 +2,7 @@ import type { DeviceRoute } from "../../../../test/device";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { THEME_KEY } from "~/lib/theme";
+import { THEME_KEY } from "~/lib/app-shell/theme";
 import * as entry from "~/routes/app/groups/entry/route";
 import * as groupSettingsIndex from "~/routes/app/groups/settings/index/route";
 import * as groupSettingsLayout from "~/routes/app/groups/settings/layout/route";
@@ -336,7 +336,7 @@ describe("the sections", () => {
     expect(Math.abs(bar.getBoundingClientRect().bottom - innerHeight)).toBeLessThan(2);
     expect(shown(document.querySelector(HEADER_NAV))).toBe(false);
 
-    const quick = page.getByRole("button", { name: "Add to timeline" }).element().getBoundingClientRect();
+    const quick = page.getByRole("button", { name: "Add to Today" }).element().getBoundingClientRect();
     expect(quick.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().top);
 
     const end = () => document.querySelector("[data-older-entries] [role=status]");
@@ -353,7 +353,7 @@ describe("the sections", () => {
 
   test("at 420: an open add sheet is over the tab bar, its Save button not hidden", async () => {
     await open();
-    await userEvent.click(page.getByRole("button", { name: "Add to timeline" }));
+    await userEvent.click(page.getByRole("button", { name: "Add to Today" }));
     await userEvent.click(page.getByRole("menuitem", { name: "Symptom" }));
     const dialog = page.getByRole("dialog");
     await expect.element(dialog).toBeVisible();

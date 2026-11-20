@@ -1,12 +1,12 @@
 import type { DoseStatus } from "@caretook/data/schema";
-import type { DoseSlot, SlotState } from "~/lib/dueDoses";
+import type { DoseSlot, SlotState } from "~/lib/medications/dueDoses";
 
 import { Check, Ellipsis } from "lucide-react";
 import { Link } from "react-router";
 import { Menu } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { isOpen } from "~/lib/dueDoses";
-import { medicationTitle, slotStateText } from "~/lib/medicationDisplay";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { isOpen } from "~/lib/medications/dueDoses";
+import { medicationTitle, slotStateText } from "~/lib/medications/medicationDisplay";
 import { usePassLog } from "./usePassLog";
 
 const BADGE: Record<SlotState, string> = {

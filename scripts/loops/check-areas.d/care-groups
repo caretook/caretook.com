@@ -1,0 +1,27 @@
+# check-areas: starting care groups, invites, join requests and access codes
+# (invites slice 5; check-migration slice 15). /join/:code, the New care group
+# sheet, the Invite someone card and /admin's access codes, new group and
+# waitlist pages are component tests beside them, and the services and
+# procedures integration tests. invites.spec.mjs step 13 keeps /join's sign-up
+# through the emailed confirmation to the new group (and a revoked code);
+# first-sync.mjs step 2c keeps careGroup.create syncing the new group in.
+apps/web/app/routes/account/join/*       invites
+apps/web/app/routes/app/groups/new/*     first-sync
+apps/web/app/components/groups/*         first-sync invites
+apps/web/app/routes/app/home/PendingRequests.tsx invites first-sync
+packages/api/src/care-groups/groups.ts               first-sync invites
+packages/api/src/care-groups/invites.ts              invites
+packages/api/src/care-groups/joinRequests.ts         invites
+packages/data/src/services/careGroupInviteService.ts invites
+packages/data/src/services/accessCodeService.ts invites
+packages/data/src/db/schema/care-groups/accessCode.ts invites
+packages/data/src/db/schema/care-groups/newCareGroup.ts first-sync invites
+packages/data/src/db/schema/care-groups/inviteRules.ts invites app-shell
+packages/data/src/db/schema/care-groups/careGroup*.ts app-shell invites
+packages/data/src/db/schema/care-groups/careGroupMember.ts app-shell
+packages/data/src/db/seeds/accessCodes.ts invites
+packages/data/src/db/seeds/invites.ts    invites app-shell
+# Members on the device: the Members page, invites and contact sharing.
+apps/web/app/lib/care-groups/*.sync.ts   app-shell invites
+# Members' names on the device (Today's "who logged it"): no check of its own.
+apps/web/app/lib/care-groups/memberNames.sync.ts -

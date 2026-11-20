@@ -1,9 +1,9 @@
-import type { EntryFilters, LocalQuery } from "../../../../lib/sync/timeline";
+import type { EntryFilters, LocalQuery } from "../../../../lib/timeline/timeline.sync";
 
-import { pastEventsWindow, upcomingWindow } from "../../../../lib/sync/timeline";
+import { pastEventsWindow, upcomingWindow } from "../../../../lib/timeline/timeline.sync";
 import { contactsQuery } from "./upcomingContact";
 
-// Upcoming's and the Past tab's local queries, built on `lib/sync/timeline`'s
+// Upcoming's and the Past tab's local queries, built on `lib/timeline/timeline.sync`'s
 // windows (which share the timeline's filter conditions). Pure, so web:unit
 // tests them.
 

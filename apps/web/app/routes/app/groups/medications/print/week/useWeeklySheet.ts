@@ -1,12 +1,12 @@
 import type { PrintRecipient } from "../printSheet";
 import type { loadWeeklyData } from "./loadWeeklyData";
-import type { MedicationRow, RecipientRow } from "~/lib/sync/medications";
+import type { MedicationRow, RecipientRow } from "~/lib/medications/medications.sync";
 
 import { useMemo, useState } from "react";
-import { useGroup } from "~/lib/group";
+import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
-import { useSchedulePasses } from "~/lib/sync/medicationPasses";
-import { medicationsQuery, recipientQuery, toMedications } from "~/lib/sync/medications";
+import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { medicationsQuery, recipientQuery, toMedications } from "~/lib/medications/medications.sync";
 import { weeklySheet } from "./weeklySheet";
 
 /** The weekly sheet from `start` ("YYYY-MM-DD"; null is this week), live from the device. */

@@ -1,12 +1,12 @@
-import type { AllergyState } from "~/lib/allergies";
-import type { ActionResult } from "~/lib/api";
-import type { LocalAllergy } from "~/lib/sync/allergies";
+import type { AllergyState } from "~/lib/medications/allergies";
+import type { ActionResult } from "~/lib/core/api";
+import type { LocalAllergy } from "~/lib/medications/allergies.sync";
 
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ConfirmDialog, IconButton } from "~/components/ui";
-import { allergyText, NO_KNOWN_ALLERGIES } from "~/lib/allergies";
+import { allergyText, NO_KNOWN_ALLERGIES } from "~/lib/medications/allergies";
 import { ALLERGY_FIELD } from "./allergyActions";
 
 /**

@@ -2,13 +2,13 @@ import type { SearchPageData } from "./loadSearch";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useLocation } from "react-router";
-import { parseSearchPage } from "~/lib/searchResults";
+import { parseSearchPage } from "~/lib/search/searchResults";
 import { getSync } from "~/lib/sync";
 import {
   searchIndexStatus,
   subscribeSearchIndexChanges,
   subscribeSearchIndexStatus,
-} from "~/lib/sync/search";
+} from "~/lib/search/search.sync";
 import { loadSearch } from "./loadSearch";
 
 const serverStatus = () => "preparing" as const;

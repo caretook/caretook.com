@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import type { RenderResult } from "vitest-browser-react";
-import type { SessionUser } from "~/lib/session";
+import type { SessionUser } from "~/lib/auth/session";
 import type { SyncDb } from "~/lib/sync";
 import type { Fixture, Fixtures, GroupRole } from "./fixtures";
 
@@ -8,12 +8,12 @@ import { useLayoutEffect } from "react";
 import { createRoutesStub, Outlet, RouterContextProvider, useLocation } from "react-router";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { sessionContext } from "~/lib/session";
+import { sessionContext } from "~/lib/auth/session";
 import { installTestDatabase } from "~/lib/sync";
-import { searchIndexSettled } from "~/lib/sync/search";
+import { searchIndexSettled } from "~/lib/search/search.sync";
 import * as appLayout from "~/routes/app/layout/route";
 import * as groupLayout from "~/routes/app/groups/layout/route";
-import { openTestDatabase, queuedWrites, settle, syncDown, syncRemove } from "./database";
+import { openTestDatabase, queuedWrites, setConnected, settle, syncDown, syncRemove } from "./database";
 import { flattenFixtures, fx, TEST_GROUP, TEST_USER } from "./fixtures";
 
 // The test device: a screen rendered as it runs on a phone, with the real
@@ -138,6 +138,12 @@ export type DeviceOptions = {
    * returns as soon as React has rendered, for a test of what shows first.
    */
   settle?: boolean;
+  /**
+   * Whether PowerSync counts as connected (default false: the device never
+   * connects). Screens with online-only controls (the profile's Edit) read
+   * this; `api` is what answers their calls. `device.connect()` changes it.
+   */
+  connected?: boolean;
 };
 
 export type Device = {
@@ -164,6 +170,8 @@ export type Device = {
    * (default 5000), naming what was still moving.
    */
   settle: (options?: { timeout?: number }) => Promise<void>;
+  /** PowerSync's connection coming back (true) or dropping (false), as its status listeners hear it. */
+  connect: (connected: boolean) => void;
 };
 
 const GROUP_PREFIX = "/app/groups/:groupId";
@@ -299,6 +307,7 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
   open.add(db);
   await syncDown(db, flattenFixtures([deviceBasics(user, role, !!options.bareDevice), options.fixtures]));
   await installTestDatabase(db, { firstSyncDone: options.firstSyncDone ?? true, search: options.search });
+  if (options.connected) setConnected(db, true);
 
   await page.viewport(options.width ?? 420, options.height ?? 900);
   if (options.theme) document.documentElement.dataset.theme = options.theme;
@@ -372,6 +381,7 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
     queued: () => queuedWrites(db),
     query: (sql, params = []) => db.powersync.getAll(sql, params),
     settle: settled,
+    connect: (connected) => setConnected(db, connected),
   };
 };
 

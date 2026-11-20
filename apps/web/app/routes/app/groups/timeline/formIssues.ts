@@ -1,4 +1,4 @@
-import type { FieldIssue } from "../../../../lib/api";
+import type { FieldIssue } from "../../../../lib/core/api";
 import type { UnitChoices, VitalFieldSpec } from "@caretook/data/schema";
 
 import { BP_ORDER_MESSAGE, fieldRange, fieldUnitLabel } from "@caretook/data/schema";

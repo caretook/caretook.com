@@ -1,31 +1,32 @@
 import type { Route } from "./+types/route";
 import type { Marking } from "~/components/medications";
-import type { ActionResult } from "~/lib/api";
-import type { PlannedDose } from "~/lib/dueDoses";
-import type { DoseChoiceRow } from "~/lib/sync/medicationTimeline";
+import type { ActionResult } from "~/lib/core/api";
+import type { PlannedDose } from "~/lib/medications/dueDoses";
+import type { DoseChoiceRow } from "~/lib/medications/medicationTimeline.sync";
 
 import { useCallback, useMemo, useState } from "react";
 import { redirect, useLocation } from "react-router";
+import { startAtFrom } from "~/lib/timeline/urls";
 import { MarkDoseDialog, PassCard, PassUndoStatus } from "~/components/medications";
 import { Sheet } from "~/components/ui";
-import { doseWarnings } from "~/lib/dueDoses";
-import { duePasses, isNamedPass, isPassDueNow } from "~/lib/duePasses";
-import { getGroup, useGroup } from "~/lib/group";
-import { doseWarningText } from "~/lib/medicationDisplay";
-import { doseDraftFrom } from "~/lib/quickEntryDraft";
-import { sessionContext } from "~/lib/session";
-import { loadDueDoses, useDueDoses } from "~/lib/sync/dueDoses";
-import { logDose } from "~/lib/sync/medications";
-import { doseChoicesQuery, toDoseChoices } from "~/lib/sync/medicationTimeline";
-import { useMemberNames } from "~/lib/sync/memberNames";
-import { readRows } from "~/lib/sync/timeline";
+import { doseWarnings } from "~/lib/medications/dueDoses";
+import { duePasses, isNamedPass, isPassDueNow } from "~/lib/medications/duePasses";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { doseWarningText } from "~/lib/medications/medicationDisplay";
+import { doseDraftFrom } from "~/lib/assistant/quickEntryDraft";
+import { sessionContext } from "~/lib/auth/session";
+import { loadDueDoses, useDueDoses } from "~/lib/medications/dueDoses.sync";
+import { logDose } from "~/lib/medications/medications.sync";
+import { doseChoicesQuery, toDoseChoices } from "~/lib/medications/medicationTimeline.sync";
+import { useMemberNames } from "~/lib/care-groups/memberNames.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { doseFromForm, doseSheetOptions } from "../doseFormData";
 import { DoseForm } from "../DoseForm";
 import { useCloseSheet } from "../sheet";
 import { newDoseGuard } from "../sheetGuard";
 
 // Shared by web + native. `timeline/new/dose` (`?medication=<id>&slot=08:00`
-// starts on that medication, for that slot): the Dose sheet, over the
+// starts on that medication, for that slot; `?at=<ISO>` at that time): the Dose sheet, over the
 // timeline. It shows the passes due now first (`?pass=<id>` puts that one of
 // today's passes first, whatever its state), each with Given all and each
 // medication's Given, Skipped and Refused; then the form, offering the other
@@ -64,7 +65,8 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
   const close = useCloseSheet();
   const group = useGroup();
   // Opened from quick entry's Edit: the card's status, amount, note and time, filled in.
-  const draft = doseDraftFrom(useLocation().state);
+  const location = useLocation();
+  const draft = doseDraftFrom(location.state);
   const nameOf = useMemberNames(params.groupId, group.userId);
   const [marking, setMarking] = useState<Marking | null>(null);
   const { due, timeZone, passes } = useDueDoses(params.groupId, loaderData.due);
@@ -111,12 +113,13 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
         </div>
       ) : (
         <DoseForm
-          // A new URL is a new form (the medication, the slot, "When" set to now).
+          // A new URL is a new form (the medication, the slot, "When" set to now or `?at=`).
           key={`${medicationId}-${slot}`}
           options={options}
           initialOption={initial}
           warningsFor={warningsFor}
           draft={draft}
+          initialAt={startAtFrom(location.search)}
           onDone={close}
           onCancel={close}
         />

@@ -1,15 +1,15 @@
 import type { Measure } from "@caretook/data/schema";
 import type { Route } from "./+types/route";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { UNIT_LABEL, UNIT_OPTIONS, unitChoicesZSchema } from "@caretook/data/schema";
 import { useFetcher } from "react-router";
 import { SaveRow, SettingsCard, SettingsPage } from "~/components/settings";
 import { ChoiceGroup } from "~/components/ui";
-import { toActionResult } from "~/lib/api";
-import { formString } from "~/lib/form";
-import { loadSettings, saveSettings } from "~/lib/me";
-import { sessionContext } from "~/lib/session";
+import { toActionResult } from "~/lib/core/api";
+import { formString } from "~/lib/core/form";
+import { loadSettings, saveSettings, useMySettings } from "~/lib/app-shell/me";
+import { sessionContext } from "~/lib/auth/session";
 
 // `/app/settings/units`. Shared by web + native: client-only data
 // (clientLoader/clientAction). Units save through `saveSettings`, like the
@@ -20,8 +20,7 @@ export const meta = () => [{ title: "Units · Settings · Caretook" }];
 
 export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
   const { user } = context.get(sessionContext);
-  const { units } = await loadSettings(request, user.id);
-  return { units };
+  return { userId: user.id, ...(await loadSettings(request, user.id)) };
 }
 
 const MEASURES: { measure: Measure; label: string }[] = [
@@ -51,14 +50,16 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
 const PENDING_TEXT = "Saved on this device. It'll sync when you're back online.";
 
 export default function UnitsSettings({ loaderData }: Route.ComponentProps) {
-  const { units } = loaderData;
+  // The settings store's units: a background refresh bringing another
+  // device's change resets the form to them (`key`).
+  const { units } = useMySettings(loaderData.userId, loaderData);
   const fetcher = useFetcher<UnitsResult>();
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
 
   return (
     <SettingsPage title="Units">
       <SettingsCard>
-        <fetcher.Form method="post" className="space-y-1">
+        <fetcher.Form key={JSON.stringify(units)} method="post" className="space-y-1">
           <p className="text-base-content/70 text-sm">
             How vitals show for you. Everyone in your care groups can pick their own.
           </p>

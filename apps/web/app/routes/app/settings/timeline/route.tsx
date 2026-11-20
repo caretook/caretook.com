@@ -5,9 +5,9 @@ import type { ChoiceOption } from "~/components/ui";
 import { useRef, useState } from "react";
 import { SettingsCard, SettingsPage } from "~/components/settings";
 import { ChoiceGroup } from "~/components/ui";
-import { loadSettings, saveSettings } from "~/lib/me";
-import { clearToggles } from "~/lib/simpleModeToggle";
-import { sessionContext } from "~/lib/session";
+import { loadSettings, saveSettings, useMySettings } from "~/lib/app-shell/me";
+import { clearToggles } from "~/lib/assistant/simpleModeToggle";
+import { sessionContext } from "~/lib/auth/session";
 
 // `/app/settings/timeline`. Shared by web + native: client-only data.
 
@@ -17,8 +17,7 @@ export async function clientLoader({ request, context }: Route.ClientLoaderArgs)
   const { user } = context.get(sessionContext);
   // The device-side read the timeline uses: it sends a layout change that's
   // still pending first, so this page never shows an older choice.
-  const { timelineView, simpleMode } = await loadSettings(request, user.id);
-  return { userId: user.id, timelineView, simpleMode };
+  return { userId: user.id, ...(await loadSettings(request, user.id)) };
 }
 
 const TIMELINE_VIEW_OPTIONS: ChoiceOption<TimelineView>[] = [
@@ -38,16 +37,18 @@ const SIMPLE_HEADING = "simple-mode-heading";
 
 type SaveStatus = "saving" | "saved" | "pending" | "failed";
 
-/** A setting saved as soon as it's chosen (`saveSettings`), and how that went. */
-function useSavedChoice<T>(initial: T, save: (next: T) => Promise<"saved" | "pending">) {
-  const [value, setValue] = useState<T>(initial);
+/**
+ * A setting saved as soon as it's chosen (`saveSettings`), and how that went.
+ * `value` is the settings store's (`useMySettings`), which the save publishes
+ * to at once, as does a background refresh bringing another device's change.
+ */
+function useSavedChoice<T>(value: T, save: (next: T) => Promise<"saved" | "pending">) {
   const [status, setStatus] = useState<SaveStatus | null>(null);
   // Only the latest choice reports its outcome.
   const latest = useRef(0);
   const choose = (next: T) => {
     if (next === value) return;
     const mine = ++latest.current;
-    setValue(next);
     setStatus("saving");
     save(next).then(
       (outcome) => mine === latest.current && setStatus(outcome),
@@ -83,10 +84,11 @@ function SaveStatusLine({ status }: { status: SaveStatus | null }) {
  */
 export default function TimelineLayoutSettings({ loaderData }: Route.ComponentProps) {
   const { userId } = loaderData;
-  const layout = useSavedChoice(loaderData.timelineView, (timelineView) =>
+  const settings = useMySettings(userId, loaderData);
+  const layout = useSavedChoice(settings.timelineView, (timelineView) =>
     saveSettings(userId, { timelineView }),
   );
-  const simple = useSavedChoice(loaderData.simpleMode, (simpleMode) => {
+  const simple = useSavedChoice(settings.simpleMode, (simpleMode) => {
     clearToggles(userId);
     return saveSettings(userId, { simpleMode });
   });

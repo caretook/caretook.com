@@ -4,15 +4,22 @@
 
 ## Status
 
-| Slice | Wave | State        | Merge into `prd/code-layout` (slice commits) |
-| ----- | ---- | ------------ | -------------------------------------------- |
-| 1     | 1    | not started  |                                              |
-| 2     | 2    | blocked by 1 |                                              |
-| 3     | 2    | blocked by 1 |                                              |
-| 4     | 2    | blocked by 1 |                                              |
-| 5     | 3    | blocked by 4 |                                              |
+| Slice | Wave | State                                                                           | Merge into `prd/code-layout` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------------- | -------------------------------------------- |
+| 1     | 1    | landed (wave 1, 7fca12d)                                                        | c1954ac (1914958)                            |
+| 2     | 2    | landed (wave 2, 446359c); merged (sonnet)                                       | 7bad436 (fdd21a0)                            |
+| 3     | 2    | landed (wave 2, 446359c); merged (sonnet; admin rule conflict resolved)         | 821894d (9728b64, 7137146)                   |
+| 4     | 2    | landed (wave 2, 446359c); merged (opus; 6 rule conflicts with slice 2 resolved) | 9ce225a (cc4a8e3)                            |
+| 5     | 3    | landed (wave 3); merged (sonnet)                                                | 32df883 (7b0fb7e)                            |
 
-**Landing:** the landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here. The lean browser set runs **once, before the PRD's last landing** (the user's choice, 2026-11-20). Earlier waves land on `pnpm prd check` alone.
+**Landing mode: run everything through** (queued with `pnpm prd queue code-layout`, 2026-11-20). The orchestrator starts every ready slice, lands each green wave itself with `pnpm prd land`, and cleans up; it asks the user only real questions.
+
+**Now (2026-11-20): done, landing wave 3 (the final landing).** Lean suite once: 11/12, `app-shell`'s new member-share step (check-migration slice 16) failed once at load 20 and passed alone (33 s): filed as B-173 for check-migration. Quick check passed on f1fbfea. Docs folded (f1fbfea), each over-budget domain doc at or under its `dev` size. B-149 and B-150 done. After landing: the backlog PRD table, message `agent-tooling-29` and `check-migration-17`, `pnpm prd rm code-layout`. **Final landing:** sync, the lean `pnpm prd browser --suite` once (the user's choice), `pnpm prd check`, fold every doc listed below (each domain-doc fold trims at least as much as it adds: agent-tooling's land guard), `pnpm backlog done B-149`, land, `pnpm prd rm code-layout`. The slice hand-offs' _Docs_ notes: wave 2's are summarised in the B-149/B-150 hand-offs (lib paths widespread in the area docs; data-layer step for new tables; api.md file paths and the frozen-path test `routerPaths.test.ts`; sync.md's Device section; layout.md rows; `libLayout.test.ts`).
+
+- **check-migration agreed** (2026-11-20): it lands 11, 14 and 15 as one wave (about an hour) and messages us, then **pauses all its remaining slices** (12, 16–23 all edit check-areas) until we message it that slice 1 is in `dev`. So land slice 1 promptly and message `check-migration-7b` at once.
+- **Pass to slice 1's agent:** keep check names as plain tokens in `check-areas.d/` files, so check-migration's later deletions (`groups`, `profiles-contacts`, …) stay one-line edits; keep the resolver independent of the CDP harness, since check-migration slice 23 deletes the harness that `browser.sh --changed` drives today.
+
+**Landing (plan's note):** the landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued. Record it here. The lean browser set runs **once, before the PRD's last landing** (the user's choice, 2026-11-20). Earlier waves land on `pnpm prd check` alone.
 
 **Start condition:** `tasks` and `hosting` wave 1 in `dev`, and no running PRD with unmerged `scripts/loops/check-areas` edits (check `pnpm prd status`; `check-migration` adds rules there). While this PRD runs, no other PRD starts work that touches `apps/web/app/lib/` or the seven registries.
 

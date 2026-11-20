@@ -1,0 +1,8 @@
+# check-areas: the server code the device reaches, and the web's API client.
+# Procedures have integration tests; area files name the ones a check covers.
+packages/api/src/*                       -
+apps/web/app/.server/*                   sign-in
+apps/web/app/routes/rpc.ts               sign-in
+# The typed oRPC client and its error mapping: every /app route calls them.
+apps/web/app/lib/core/api.ts             sign-in phase2 roundtrip
+apps/web/app/lib/core/rpc.ts             sign-in phase2 roundtrip

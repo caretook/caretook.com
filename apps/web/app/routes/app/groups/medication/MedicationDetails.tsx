@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import type { SchedulePass } from "~/lib/medicationDisplay";
-import type { LocalMedication } from "~/lib/sync/medications";
+import type { SchedulePass } from "~/lib/medications/medicationDisplay";
+import type { LocalMedication } from "~/lib/medications/medications.sync";
 
-import { localTimeZone } from "~/lib/format";
-import { formatDate, scheduleText, scheduleZoneNote, stoppedText } from "~/lib/medicationDisplay";
+import { localTimeZone } from "~/lib/core/format";
+import { formatDate, scheduleText, scheduleZoneNote, stoppedText } from "~/lib/medications/medicationDisplay";
 
 function Row({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (

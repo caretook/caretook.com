@@ -1,22 +1,22 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ActionResult } from "~/lib/api";
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { ActionResult } from "~/lib/core/api";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { useEffect, useMemo, useState } from "react";
 import { redirect, useFetcher } from "react-router";
 import { isPracticeType } from "@caretook/data/schema";
-import { formString } from "~/lib/form";
-import { getGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
+import { formString } from "~/lib/core/form";
+import { getGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
 import {
   deleteBlockedNote,
   providerQuery,
   removeProvider,
   toProvider,
   updateProvider,
-} from "~/lib/sync/providers";
-import { readRows } from "~/lib/sync/timeline";
+} from "~/lib/providers/providers.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { ConfirmDialog, Sheet } from "~/components/ui";
 import { ProviderForm } from "../ProviderForm";
 import { issuesForRows, providerFromForm } from "../providerFormData";

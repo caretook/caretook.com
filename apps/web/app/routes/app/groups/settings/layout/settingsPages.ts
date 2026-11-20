@@ -1,8 +1,8 @@
-import type { GroupSettingsPage } from "~/lib/appUrls";
-import type { SettingsItem } from "~/lib/settingsNav";
+import type { GroupSettingsPage } from "~/lib/care-groups/urls";
+import type { SettingsItem } from "~/lib/app-shell/settingsNav";
 
 import { Info, Users } from "lucide-react";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 
 /**
  * A group's settings subpages, in list order: the first is what a wide

@@ -1,10 +1,10 @@
-import type { FieldIssue } from "~/lib/api";
+import type { FieldIssue } from "~/lib/core/api";
 
 import { PROVIDER_LIMITS } from "@caretook/data/schema";
 import { Plus, X } from "lucide-react";
 import { useId, useState } from "react";
 import { IconButton } from "~/components/ui";
-import { PHONE_FIELD } from "~/lib/contactForm";
+import { PHONE_FIELD } from "~/lib/core/contactForm";
 
 type PhoneRow = { key: number; label: string; number: string };
 

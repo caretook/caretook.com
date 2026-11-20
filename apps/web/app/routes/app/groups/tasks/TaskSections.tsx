@@ -1,5 +1,5 @@
-import type { LocalTask } from "~/lib/sync/tasks";
-import type { TaskSection } from "~/lib/taskList";
+import type { LocalTask } from "~/lib/tasks/tasks.sync";
+import type { TaskSection } from "~/lib/tasks/taskList";
 
 import { TaskRow } from "./TaskRow";
 

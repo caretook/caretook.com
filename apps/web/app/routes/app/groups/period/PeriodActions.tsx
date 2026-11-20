@@ -1,11 +1,11 @@
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useFetcher } from "react-router";
 import { ConfirmDialog, Menu } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { PERIOD_SHEET_STATE } from "~/lib/periodSheets";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { PERIOD_SHEET_STATE } from "~/lib/care-periods/periodSheets";
 
 /** The page's delete intent, posted to its clientAction. */
 export const DELETE_INTENT = "delete";

@@ -7,7 +7,9 @@ import { bearer, emailOTP, jwt, magicLink } from "better-auth/plugins";
 import {
   accountSchema,
   getDb,
+  JWKS_GRACE_SECONDS,
   jwksSchema,
+  rateLimitSchema,
   sessionSchema,
   SYSTEM_USER,
   USER_ROLE_NAMES,
@@ -17,9 +19,8 @@ import {
 import { getAuthConfig } from "./config";
 import { isDisabledEmail, isDisabledUser, noSession, wrongCode, wrongPassword } from "./disabled";
 import { sendResetPassword, sendSignInEmail, sendVerificationEmail, sendVerificationOTP } from "./emails";
-
-// Capacitor's WebView origins. The native app talks to the web server's /api/auth.
-const NATIVE_ORIGINS = ["capacitor://localhost", "https://localhost"];
+import { allowedOrigins, clientIpHeader } from "./host";
+import { readsLiveSession } from "./liveSession";
 
 // The email-OTP plugin's endpoints we don't use: a code only signs in.
 // Resets go through the emailed link, and verification through its own link.
@@ -47,19 +48,45 @@ const bodyEmail = (body: unknown) =>
  * hashed anyway, as Better Auth does for an unknown address, so the answer
  * takes as long. The session hook below is the backstop for every path.
  */
-const refuseDisabledSignIn = createAuthMiddleware(async (ctx) => {
-  if (ctx.path !== "/sign-in/email" && ctx.path !== "/sign-in/email-otp") return;
-  const email = bodyEmail(ctx.body);
+const refuseDisabledSignIn = async (
+  path: string,
+  body: unknown,
+  hash: (password: string) => Promise<unknown>,
+) => {
+  if (path !== "/sign-in/email" && path !== "/sign-in/email-otp") return;
+  const email = bodyEmail(body);
   if (!email || !(await isDisabledEmail(email))) return;
-  if (ctx.path === "/sign-in/email-otp") throw wrongCode();
-  const password = (ctx.body as { password?: unknown }).password;
-  if (typeof password === "string") await ctx.context.password.hash(password);
+  if (path === "/sign-in/email-otp") throw wrongCode();
+  const password = (body as { password?: unknown }).password;
+  if (typeof password === "string") await hash(password);
   throw wrongPassword();
+};
+
+/**
+ * Before every endpoint. PowerSync's token (`/token`, the jwt plugin)
+ * always reads the live session, never the cookie cache, whatever the
+ * request's query says (B-140): a revoked session can't open a new sync
+ * connection. The path is matched exactly (liveSession.ts). Sign-in
+ * refuses a disabled account (above).
+ */
+const beforeHooks = createAuthMiddleware(async (ctx) => {
+  if (readsLiveSession(ctx.path)) return { context: { query: { ...ctx.query, disableCookieCache: true } } };
+  await refuseDisabledSignIn(ctx.path, ctx.body, (password) => ctx.context.password.hash(password));
 });
 
-const createAuth = () => {
-  const { secret, baseURL, trustedOrigins, powersyncURL } = getAuthConfig();
-  if (!secret) throw new Error("BETTER_AUTH_SECRET is not set");
+/**
+ * A new Better Auth instance. The app uses `getAuth()`'s one; tests make
+ * more (two instances stand for two serverless instances), and
+ * `rateLimitEnabled` turns the limits on outside production. `originCheck`
+ * turns on the Origin check Better Auth skips under `NODE_ENV=test`.
+ */
+export const createAuth = ({
+  rateLimitEnabled,
+  originCheck,
+}: { rateLimitEnabled?: boolean; originCheck?: boolean } = {}) => {
+  const { secret, secrets, baseURL, powersyncURL } = getAuthConfig();
+  const ipHeader = clientIpHeader();
+  if (!secret && !secrets) throw new Error("BETTER_AUTH_SECRET is not set");
 
   // Set once the instance exists: the email's code comes from its own
   // email-OTP plugin (typed here, so the instance's type doesn't loop).
@@ -67,9 +94,17 @@ const createAuth = () => {
 
   const instance = betterAuth({
     appName: "Caretook",
-    secret,
+    // With a list (BETTER_AUTH_SECRETS), its first entry is current: it signs
+    // session cookies and bearer tokens (checked against it alone, so making
+    // a new one current signs everyone out) and encrypts new data, which
+    // records its version; every listed version, and the legacy `secret` for
+    // data from before the list, still decrypt (the JWKS private key). See
+    // ops/runbook.md, _Rotation_.
+    ...(secret ? { secret } : {}),
+    ...(secrets ? { secrets } : {}),
     baseURL,
-    trustedOrigins: [...NATIVE_ORIGINS, ...trustedOrigins],
+    // The native app (its WebView talks to /api/auth) only with NATIVE_APP_ORIGINS=1.
+    trustedOrigins: allowedOrigins(),
     database: drizzleAdapter(getDb(), {
       provider: "pg",
       schema: {
@@ -78,14 +113,27 @@ const createAuth = () => {
         account: accountSchema,
         verification: verificationSchema,
         jwks: jwksSchema,
+        rateLimit: rateLimitSchema,
       },
     }),
+    // Better Auth's limits (on only with NODE_ENV=production, check builds
+    // included; get-session 100 per 10 s per client IP, sign-in 3 per 10 s),
+    // counted in Postgres (`rate_limit`) so every serverless instance shares
+    // them. Old rows go in the outbox cron's sweep (rateLimitService.purge).
+    rateLimit: {
+      storage: "database",
+      ...(rateLimitEnabled === undefined ? {} : { enabled: rateLimitEnabled }),
+    },
     advanced: {
       // Our tables use uuid ids with gen_random_uuid() defaults.
       database: { generateId: "uuid" },
+      // The limits key on the host's client-IP header (CLIENT_IP_HEADER), as
+      // /rpc's do (host.ts); unset, Better Auth's default, x-forwarded-for.
+      ...(ipHeader ? { ipAddress: { ipAddressHeaders: [ipHeader] } } : {}),
+      ...(originCheck === undefined ? {} : { disableOriginCheck: !originCheck }),
     },
     disabledPaths: UNUSED_OTP_PATHS,
-    hooks: { before: refuseDisabledSignIn },
+    hooks: { before: beforeHooks },
     // A disabled account never gets a session, by any path (password, link,
     // code, verification's auto sign-in): the answer is a wrong password's.
     databaseHooks: {
@@ -101,7 +149,17 @@ const createAuth = () => {
     // Auth's list-sessions refuses a session older than `freshAge` (a day by
     // default), which would hide the list from anyone signed in for longer.
     // Nothing else we use checks freshness (deleteUser and unlink-account are off).
-    session: { freshAge: 0 },
+    //
+    // ⚠ The cookie cache (B-140): a signed copy of the session in a cookie
+    // stands in for the session table for up to 3 minutes, so ordinary /rpc
+    // calls skip that read. The tradeoff: for up to 3 minutes after a session
+    // is revoked (signed out elsewhere, removed on the Devices page, a
+    // password reset), ordinary /rpc calls carrying its cookie still succeed.
+    // Staff procedures, /token (above) and the app's own session check read
+    // the live session; the account (disabled, role) and its memberships are
+    // read live on every call. See docs/domain/auth.md and
+    // plans/security-review.md; reconsider before launch.
+    session: { freshAge: 0, cookieCache: { enabled: true, maxAge: 180 } },
     // Accounts come only from invitations (invites slices 3–5), never from
     // public sign-up. An unverified account can't sign in with a password:
     // it gets a fresh verification email and EMAIL_NOT_VERIFIED instead.
@@ -152,6 +210,14 @@ const createAuth = () => {
       }),
       // Short-lived JWTs (and a JWKS endpoint) for PowerSync and workers.
       jwt({
+        // No `set-auth-jwt` header on every get-session (nothing reads it):
+        // /token mints them. Signing one cost each /rpc lookup a key read
+        // and a disabled-account check, and failed it for a disabled one (B-140).
+        disableSettingJwtHeader: true,
+        // `pnpm auth:rotate-jwks` expires the signing key; the next token
+        // makes a new one. The old public key stays in the JWKS for an hour,
+        // so tokens it signed (15 minutes at most) verify until they expire.
+        jwks: { gracePeriod: JWKS_GRACE_SECONDS },
         jwt: {
           // PowerSync only accepts tokens addressed to it (its instance URL on Cloud).
           ...(powersyncURL ? { audience: powersyncURL } : {}),

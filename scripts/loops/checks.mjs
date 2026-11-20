@@ -1,6 +1,6 @@
 // Parsers for the browser-check manifest (scripts/loops/checks) and the file →
-// check map (scripts/loops/check-areas). browser.sh reads both with awk; these
-// are for tests that keep them in step.
+// check map (scripts/loops/check-areas.d/). browser.sh reads the manifest with awk
+// and the map through check-areas.mjs; these are for tests that keep them in step.
 
 const lines = (text) =>
   text
@@ -42,12 +42,17 @@ export function leanCeiling(text) {
   return Number(seconds);
 }
 
+/** The most the lean set may take, in seconds. The ceiling can go down, never above this. */
+export const LEAN_LIMIT = 300;
+
 /**
  * The lean set's budget: the e2e checks' usual seconds against the ceiling.
  * Throws when the total is over it, saying by how much.
  */
 export function leanBudget(text) {
   const ceiling = leanCeiling(text);
+  if (ceiling > LEAN_LIMIT)
+    throw new Error(`checks: lean-ceiling ${ceiling} is over the hard limit of ${LEAN_LIMIT} s`);
   const lean = parseManifest(text).filter((c) => c.e2e);
   const total = lean.reduce((sum, c) => sum + c.usual, 0);
   if (total > ceiling)
@@ -58,7 +63,7 @@ export function leanBudget(text) {
   return { total, ceiling };
 }
 
-/** Every check named by a rule in check-areas (not `-`, `@suite` or `@self`). */
+/** Every check named by a rule in check-areas.d/ text (not `-`, `@suite` or `@self`). */
 export function areaChecks(text) {
   const names = new Set();
   for (const line of lines(text)) {

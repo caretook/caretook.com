@@ -1,5 +1,5 @@
 import type { UnitChoices, VitalFieldSpec, VitalReading, VitalType } from "@caretook/data/schema";
-import type { TimelineEntry } from "../../../../lib/rpc";
+import type { TimelineEntry } from "../../../../lib/core/rpc";
 
 import {
   fieldUnitLabel,
@@ -30,21 +30,27 @@ export type DaySummaryContext = {
 
 export type SummaryDirection = "up" | "down";
 
-/** One piece of the line: "BP 128–141/80–88" with ↑, "Pain 6 (new)", "Fell in bathroom", "3 notes", "Ann, Sam". */
+/** One piece of the line: "BP 128–141/80–88" with ↑, "Pain 6 (new)", "Fell in bathroom", "Ann, Sam". */
 export type SummaryPart = {
-  kind: "vital" | "symptom" | "event" | "notes" | "authors";
+  kind: "vital" | "symptom" | "event" | "authors";
   /** The visible text, without the arrow. */
   text: string;
   /** A vital's arrow, when it's above or below the last 7 days, or in the unusual band. */
   direction?: SummaryDirection;
   /** The arrow in words, for screen readers ("higher than last week"). */
   directionLabel?: string;
+  /** Stands out, so the highlights line shows it: a vital with an arrow, a new or severe symptom, an event. */
+  highlight?: true;
 };
 
 /** One line of the expanded summary: "Vitals: BP …, HR …". */
 export type SummaryLine = { label: string; parts: SummaryPart[] };
 
-export type DaySummary = { parts: SummaryPart[]; lines: SummaryLine[] };
+/**
+ * `parts` is the full line, `highlights` the parts that stand out (the
+ * default line), `lines` the expanded breakdown.
+ */
+export type DaySummary = { parts: SummaryPart[]; highlights: SummaryPart[]; lines: SummaryLine[] };
 
 export const ARROW: Record<SummaryDirection, string> = { up: "↑", down: "↓" };
 
@@ -56,7 +62,10 @@ const DIRECTION_LABEL = {
 /** Types summarised by a count rather than a trend (no typical range, values often blank). */
 const COUNTED: readonly VitalType[] = ["bowelMovement", "urineOutput"];
 
-const EMPTY: DaySummary = { parts: [], lines: [] };
+const EMPTY: DaySummary = { parts: [], highlights: [], lines: [] };
+
+/** A symptom this severe (0–10) or worse is a highlight even when it isn't new. */
+export const SEVERE_SYMPTOM = 5;
 
 const fold = (name: string) => name.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
 
@@ -176,7 +185,8 @@ const vitalPart = (
     const field = spec.fields[0]!;
     text = `${spec.short} ${withUnit(rangeText(field, day.get(field.key)!, units), fieldUnitLabel(field, units))}`;
   }
-  return { kind: "vital", text, ...directionOf(type, day, spansOf(type, baseline)) };
+  const direction = directionOf(type, day, spansOf(type, baseline));
+  return { kind: "vital", text, ...direction, ...(direction.direction && { highlight: true as const }) };
 };
 
 const byType = (entries: SummaryEntry[]) => {
@@ -202,9 +212,11 @@ const oldestFirst = (entries: SummaryEntry[]) =>
  * vital type's range, with an arrow when it's in the unusual band or above or
  * below the baseline's range; the symptoms with their highest severity,
  * "(new)" when not logged in the baseline; the events' titles (not cancelled
- * ones); the note count; and who logged (doses count as logging, but aren't
- * summarised: the medication strip and pass rows cover them). Nothing for a
- * day with no vitals, symptoms, events or notes.
+ * ones); and who logged (notes and doses count as logging, but aren't
+ * summarised: their rows, the medication strip and pass rows cover them).
+ * Highlights: vitals with an arrow, new symptoms or those of severity
+ * `SEVERE_SYMPTOM` or more, and events. Nothing for a day with no vitals,
+ * symptoms or events.
  */
 export const daySummary = (
   dayEntries: SummaryEntry[],
@@ -236,21 +248,20 @@ export const daySummary = (
   }
   const symptomParts: SummaryPart[] = [...symptoms]
     .sort(([, a], [, b]) => (b.severity ?? -1) - (a.severity ?? -1))
-    .map(([key, s]) => ({
-      kind: "symptom",
-      text: `${s.name}${s.severity == null ? "" : ` ${s.severity}`}${seenBefore.has(key) ? "" : " (new)"}`,
-    }));
+    .map(([key, s]): SummaryPart => {
+      const isNew = !seenBefore.has(key);
+      return {
+        kind: "symptom",
+        text: `${s.name}${s.severity == null ? "" : ` ${s.severity}`}${isNew ? " (new)" : ""}`,
+        ...((isNew || (s.severity ?? 0) >= SEVERE_SYMPTOM) && { highlight: true as const }),
+      };
+    });
 
   const events: SummaryPart[] = entries
     .filter((e) => e.kind === "event" && !e.cancelledAt)
-    .map((e) => ({ kind: "event", text: e.title?.trim() || "Event" }));
+    .map((e) => ({ kind: "event", text: e.title?.trim() || "Event", highlight: true as const }));
 
-  const noteCount = entries.filter((e) => e.kind === "note").length;
-  const notes: SummaryPart[] = noteCount
-    ? [{ kind: "notes", text: `${noteCount} ${noteCount === 1 ? "note" : "notes"}` }]
-    : [];
-
-  if (!vitals.length && !symptomParts.length && !events.length && !notes.length) return EMPTY;
+  if (!vitals.length && !symptomParts.length && !events.length) return EMPTY;
 
   const authorIds = [...new Set(entries.map((e) => e.createdBy).filter(Boolean))];
   const authors: SummaryPart[] = authorIds.length
@@ -261,10 +272,10 @@ export const daySummary = (
     { label: "Vitals", parts: vitals },
     { label: "Symptoms", parts: symptomParts },
     { label: "Events", parts: events },
-    { label: "Notes", parts: notes },
     { label: "Logged by", parts: authors },
   ].filter((line) => line.parts.length);
-  return { parts: lines.flatMap((l) => l.parts), lines };
+  const parts = lines.flatMap((l) => l.parts);
+  return { parts, highlights: parts.filter((p) => p.highlight), lines };
 };
 
 const DAY_MS = 86_400_000;

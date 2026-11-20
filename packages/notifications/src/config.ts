@@ -10,6 +10,11 @@ export type MailConfig = {
   resendApiKey: string | undefined;
   /** Outside production, the only addresses (or `@domain`s) Resend may mail. */
   allowlist: readonly string[];
+  /**
+   * Whether Resend mails only the allowlist: outside production, and on
+   * staging (`APP_ENV=staging`), which runs as production otherwise.
+   */
+  allowlisted: boolean;
 };
 
 const DEFAULT_APP_URL = "http://localhost:5173";
@@ -80,6 +85,7 @@ export const getMailConfig = (env: NodeJS.ProcessEnv = process.env): MailConfig 
     from: env.MAIL_FROM?.trim() || DEFAULT_FROM,
     resendApiKey,
     allowlist: parseAllowlist(env.MAIL_ALLOWLIST),
+    allowlisted: !production || env.APP_ENV?.trim() === "staging",
   };
 };
 

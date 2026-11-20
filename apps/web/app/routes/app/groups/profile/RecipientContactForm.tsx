@@ -1,5 +1,5 @@
-import type { ActionResult } from "~/lib/api";
-import type { RecipientDetails } from "~/lib/recipientDetails";
+import type { ActionResult } from "~/lib/core/api";
+import type { RecipientDetails } from "~/lib/profiles/recipientDetails";
 
 import { CONTACT_LIMITS } from "@caretook/data/schema";
 import { useEffect, useRef } from "react";

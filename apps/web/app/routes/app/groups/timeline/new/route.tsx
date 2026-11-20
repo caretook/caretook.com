@@ -1,24 +1,25 @@
 import type { Route } from "./+types/route";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { VITALS } from "@caretook/data/schema";
 import { redirect, useLocation } from "react-router";
-import { formString } from "~/lib/form";
-import { entryDraftFrom } from "~/lib/quickEntryDraft";
-import { getGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
-import { createEntry } from "~/lib/sync/timeline";
+import { startAtFrom } from "~/lib/timeline/urls";
+import { formString } from "~/lib/core/form";
+import { entryDraftFrom } from "~/lib/assistant/quickEntryDraft";
+import { getGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
+import { createEntry } from "~/lib/timeline/timeline.sync";
 import { entryContentFromForm, parseUnits } from "../entryFormData";
 import { EntryForm } from "../EntryForm";
 import { Sheet } from "~/components/ui";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { newSheetGuard } from "../sheetGuard";
 import { useRecipientWords } from "../useSimpleTiles";
-import { feelLabel } from "~/lib/simpleTiles";
+import { feelLabel } from "~/lib/assistant/simpleTiles";
 
 // Shared by web + native. `timeline/new/symptom` and `timeline/new/vital`
 // (`?type=heartRate` starts with that reading): the add sheet, over the
-// timeline. Notes and events have a page instead (`entries/new?kind=`), so
+// timeline (`?at=<ISO>` starts it at that time: a past day's +). Notes and events have a page instead (`entries/new?kind=`), so
 // any other kind, or a viewer, lands on the timeline. In simple mode (the
 // tiles) it's the simple variant: the feelings scale, or one vital type's
 // fields, titled in plain words ("How she feels", "Blood pressure").
@@ -69,6 +70,7 @@ export default function NewEntrySheet({ loaderData, params }: Route.ComponentPro
         units={units}
         initialKind={loaderData.kind}
         initialVitalType={loaderData.vitalType ?? undefined}
+        initialAt={startAtFrom(search)}
         draft={draft?.kind === loaderData.kind ? draft : null}
         simple={simple ? { feelLabel: feel } : null}
         onDone={close}

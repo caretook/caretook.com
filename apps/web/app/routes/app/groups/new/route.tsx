@@ -1,16 +1,16 @@
 import type { Route } from "./+types/route";
-import type { ActionResult } from "~/lib/api";
+import type { ActionResult } from "~/lib/core/api";
 
 import { newCareGroupZSchema } from "@caretook/data/schema";
 import { redirect, useFetcher, useLocation, useNavigate } from "react-router";
 import { NewGroupFields, newGroupFromForm } from "~/components/groups";
 import { Sheet } from "~/components/ui";
-import { toActionResult } from "~/lib/api";
-import { appUrls } from "~/lib/appUrls";
-import { rpc } from "~/lib/rpc";
-import { sessionContext } from "~/lib/session";
-import { waitForMembership } from "~/lib/sync/members";
-import { openedNewGroupFromApp } from "~/lib/newGroupLink";
+import { toActionResult } from "~/lib/core/api";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { rpc } from "~/lib/core/rpc";
+import { sessionContext } from "~/lib/auth/session";
+import { waitForMembership } from "~/lib/care-groups/members.sync";
+import { openedNewGroupFromApp } from "~/lib/care-groups/newGroupLink";
 
 // Shared by web + native. `/app/groups/new`: start another care group. The
 // sheet asks who you care for; the API creates the group, its recipient and

@@ -1,19 +1,21 @@
 import type { ReactNode } from "react";
-import type { UnitChoices } from "@caretook/data/schema";
-import type { SimpleModeState } from "~/lib/useSimpleMode";
+import type { DaySummaryMode, UnitChoices } from "@caretook/data/schema";
+import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 import type { TimelineData } from "./useTimelineData";
 
 import { Link } from "react-router";
 import { QuickEntryBox } from "~/components/quick-entry";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { nextStripText, upcomingTitle } from "~/lib/upcomingLabels";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { RemoveLastEntry } from "./RemoveLastEntry";
 import { SimpleNow } from "./SimpleNow";
 import { SimpleTasks } from "./SimpleTasks";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { SimpleModeToggle } from "./SimpleModeToggle";
-import { SimpleTiles } from "./SimpleTiles";
+import { SimpleTiles, SimpleTilesSkeleton } from "./SimpleTiles";
+import { DICTATION_HINT } from "~/components/quick-entry/QuickEntryBox";
+import { useCanDictate } from "~/lib/assistant/canDictate";
 import { useSimpleTiles } from "./useSimpleTiles";
 
 /** "Thursday, November 19": today, under the recipient's name. */
@@ -21,13 +23,12 @@ export const simpleTodayText = (now: Date, locale?: string) =>
   now.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" });
 
 /**
- * Simple mode's timeline (assistant PRD): one large-type column with the
- * recipient's name and today; for writers the quick-entry box in large type
- * with a hint to dictate; the Now block (due passes with Given all, the next
- * appointment; for viewers as text); "My tasks" (mine, with big ticks;
- * viewers too); for writers the four tiles and "Remove
- * my last entry"; then the timeline's rows, bigger
- * and read-only (`TimelineEntryList`'s `simple`). No strips, filters,
+ * Simple mode's timeline (assistant PRD): one column at the full timeline's type scale with the
+ * recipient's name and today; the Upcoming block (due passes with Given all,
+ * the next appointment; for viewers as text); "My tasks" (mine, with big ticks;
+ * viewers too); for writers the four tiles in one row and "Remove my last
+ * entry", then the quick-entry box (normal size, with a hint to dictate on
+ * phones and tablets) directly above the timeline's rows, read-only (`TimelineEntryList`'s `simple`). No strips, filters,
  * search, add menu or layout switch; the /app header is reduced to match
  * (`useSimpleFrame`).
  */
@@ -35,31 +36,30 @@ export function SimpleTimeline({
   data,
   units,
   mode,
+  summaryMode,
   children,
 }: {
   data: TimelineData;
   units: UnitChoices;
   mode: SimpleModeState;
+  /** The viewer's day summaries setting (set from the full view's header). */
+  summaryMode?: DaySummaryMode;
   /** The sheets over the timeline (its `Outlet`), so a card's Edit opens. */
   children?: ReactNode;
 }) {
   const group = useGroup();
+  const dictate = useCanDictate();
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-6" data-simple-timeline="">
       <header className={`flex items-start justify-between gap-3 ${COLUMN_CAP}`}>
         <div className="min-w-0">
-          <h1 className="text-3xl font-semibold break-words">{group.displayName}</h1>
-          <p className="text-base-content/80 text-xl">
+          <h1 className="text-xl font-semibold break-words">{group.displayName}</h1>
+          <p className="text-base-content/80 text-base">
             Today · <span data-simple-today>{simpleTodayText(new Date())}</span>
           </p>
         </div>
         <SimpleModeToggle mode={mode} large />
       </header>
-      {mode.inputs && (
-        <div className={COLUMN_CAP}>
-          <QuickEntryBox groupId={group.id} units={units} size="lg" />
-        </div>
-      )}
       <SimpleNow
         groupId={group.id}
         canWrite={mode.inputs}
@@ -73,6 +73,16 @@ export function SimpleTimeline({
           <RemoveLastEntry groupId={group.id} userId={group.userId} now={data.now} />
         </div>
       )}
+      {mode.inputs && (
+        <div className={`space-y-2 ${COLUMN_CAP}`}>
+          <QuickEntryBox groupId={group.id} units={units} size="md" passChips={false} />
+          {dictate && (
+            <p className="text-base-content/70 text-sm" data-dictation-hint="">
+              {DICTATION_HINT}
+            </p>
+          )}
+        </div>
+      )}
       <TimelineEntryList
         data={data}
         view="rows"
@@ -82,6 +92,7 @@ export function SimpleTimeline({
         kind={null}
         author={null}
         simple
+        summaryMode={summaryMode}
       />
       {children}
     </main>
@@ -91,15 +102,23 @@ export function SimpleTimeline({
 /** The tiles: writers only (viewers have none to tap), so only they read the tiles' data. */
 function WriterTiles({ canChoose }: { canChoose: boolean }) {
   const group = useGroup();
-  const { tiles, setting, words } = useSimpleTiles(group.id);
+  const { tiles, setting, words, ready, fresh } = useSimpleTiles(group.id);
+  if (!ready) return <SimpleTilesSkeleton />;
   return (
-    <SimpleTiles groupId={group.id} tiles={tiles} setting={setting} words={words} canChoose={canChoose} />
+    <SimpleTiles
+      groupId={group.id}
+      tiles={tiles}
+      setting={setting}
+      words={words}
+      canChoose={canChoose}
+      fresh={fresh}
+    />
   );
 }
 
 const hasNext = (next: TimelineData["next"], now: Date) => !!next.next && !!nextStripText(next, now);
 
-/** The next appointment or reminder, as a line of text that opens it (the Now block's). Nothing when none is ahead. */
+/** The next appointment or reminder, as a line of text that opens it (the Upcoming block's). Nothing when none is ahead. */
 function NextText({ next, now }: { next: TimelineData["next"]; now: Date }) {
   const group = useGroup();
   const text = nextStripText(next, now);

@@ -1,16 +1,17 @@
 import type { QuickEntryPass } from "@caretook/data/schema";
-import type { CompletionName } from "~/lib/quickEntryCompletion";
-import type { PredictionRow } from "~/lib/sync/quickEntrySuggestions";
+import type { CompletionName } from "~/lib/assistant/quickEntryCompletion";
+import type { PredictionRow } from "~/lib/assistant/quickEntrySuggestions.sync";
 
 import { useMemo } from "react";
-import { useGroup } from "~/lib/group";
-import { completeName } from "~/lib/quickEntryCompletion";
-import { USUAL_DAYS, usualAtHour } from "~/lib/quickEntryPredictions";
-import { useRecentLines } from "~/lib/recentLines";
+import { DEFAULT_UNITS, parseQuickEntry } from "@caretook/data/schema";
+import { useGroup } from "~/lib/app-shell/group";
+import { completeName } from "~/lib/assistant/quickEntryCompletion";
+import { USUAL_DAYS, usualAtHour } from "~/lib/assistant/quickEntryPredictions";
+import { reduceRecentLines, useRecentLines } from "~/lib/assistant/recentLines";
 import { useLiveQuery } from "~/lib/sync";
-import { useNow } from "~/lib/sync/editors";
-import { predictionEntriesQuery, toPredictionEntries } from "~/lib/sync/quickEntrySuggestions";
-import { addDays, dayInZone, startOfDay } from "~/lib/zonedDay";
+import { useNow } from "~/lib/live-notes/editors.sync";
+import { predictionEntriesQuery, toPredictionEntries } from "~/lib/assistant/quickEntrySuggestions.sync";
+import { addDays, dayInZone, startOfDay } from "~/lib/core/zonedDay";
 import { useQuickEntryData } from "./useQuickEntryData";
 
 /** "Around now" moves on with the clock: recheck every few minutes. */
@@ -52,9 +53,26 @@ export function useQuickEntrySuggestions({
     [rows, now, timeZone],
   );
 
-  const recent = useRecentLines(group.userId, groupId);
+  const stored = useRecentLines(group.userId, groupId);
 
   const { medications, providers } = useQuickEntryData(groupId);
+  // Lines stored before notes and vital values were left out are reduced as they're read.
+  const recent = useMemo(
+    () =>
+      reduceRecentLines(
+        stored,
+        (line) =>
+          parseQuickEntry(line, {
+            now: new Date(),
+            timeZone,
+            units: DEFAULT_UNITS,
+            medications,
+            providers,
+            passes,
+          }).parts,
+      ),
+    [stored, timeZone, medications, providers, passes],
+  );
   const names = useMemo<CompletionName[]>(
     () => [
       ...medications.map((m) => ({ id: m.id, name: m.name, kind: "medication" as const })),

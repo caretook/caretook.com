@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEV_SUPPORT_EMAIL, getMailConfig, getSupportEmail, isCheckBuild, parseAllowlist } from "./config";
 import { contactSubject, PRIVACY_SUBJECT_FLAG } from "./templates/contactMessage";
 import { extractLinks } from "./devMail";
 import { linkBuilder } from "./links";
-import { retryDelayMs } from "./outbox";
+import { inBackground, retryDelayMs, setBackgroundRunner } from "./outbox";
 import { NOTIFICATIONS } from "./registry";
 import { renderNotification } from "./render";
 import { createMemorySender, isAllowlisted, withAllowlist } from "./senders";
@@ -230,10 +230,38 @@ describe("getMailConfig", () => {
     ).toBe(false);
   });
 
+  it("allowlists outside production and on staging, which runs as production (hosting slice 1)", () => {
+    const resend = { NODE_ENV: "production", APP_URL, RESEND_API_KEY: "re_x" } as const;
+    expect(getMailConfig(resend).allowlisted).toBe(false);
+    expect(getMailConfig({ ...resend, APP_ENV: "production" }).allowlisted).toBe(false);
+    expect(getMailConfig({ ...resend, APP_ENV: "staging" }).allowlisted).toBe(true);
+    expect(getMailConfig({ NODE_ENV: "development" }).allowlisted).toBe(true);
+    expect(getMailConfig({ NODE_ENV: "test" }).allowlisted).toBe(true);
+  });
+
   it("trims a trailing slash from APP_URL", () => {
     expect(getMailConfig({ NODE_ENV: "test", APP_URL: "http://localhost:6873/" }).appUrl).toBe(
       "http://localhost:6873",
     );
+  });
+});
+
+describe("setBackgroundRunner", () => {
+  afterEach(() => {
+    setBackgroundRunner(null);
+    vi.restoreAllMocks();
+  });
+
+  // Vercel's waitUntil (hosting slice 1) gets each piece of work, already caught.
+  it("hands the runner work that never rejects", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const seen: Promise<unknown>[] = [];
+    setBackgroundRunner((work) => void seen.push(work));
+    inBackground(() => Promise.reject(new Error("fictional failure")));
+    inBackground(() => Promise.resolve("sent"));
+    expect(seen).toHaveLength(2);
+    await expect(seen[0]).resolves.toBeUndefined();
+    await expect(seen[1]).resolves.toBe("sent");
   });
 });
 

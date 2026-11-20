@@ -1,35 +1,35 @@
-import type { TimelineEntry } from "~/lib/rpc";
-import type { NoteDocRow } from "~/lib/sync/notes";
-import type { EntryFilters, EntryRow, MemberRow } from "~/lib/sync/timeline";
+import type { TimelineEntry } from "~/lib/core/rpc";
+import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
+import type { EntryFilters, EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 import type { ContactRow, LinkedContact } from "./upcomingContact";
-import type { UpcomingSection } from "~/lib/upcomingDays";
-import type { WithDoses } from "~/lib/upcomingDoses";
-import type { WithTasks } from "~/lib/upcomingTasks";
-import type { LocalTask } from "~/lib/sync/tasks";
+import type { UpcomingSection } from "~/lib/appointments/upcomingDays";
+import type { WithDoses } from "~/lib/appointments/upcomingDoses";
+import type { WithTasks } from "~/lib/tasks/upcomingTasks";
+import type { LocalTask } from "~/lib/tasks/tasks.sync";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
 import type { RescheduledTargetRow } from "./upcomingQueries";
 
 import { useMemo, useState } from "react";
-import { localTimeZone } from "~/lib/format";
-import { isLiveEntryKind } from "~/lib/liveEntry";
-import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/paging";
+import { localTimeZone } from "~/lib/core/format";
+import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
+import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/core/paging";
 import { useLiveQuery } from "~/lib/sync";
-import { useDueDoses } from "~/lib/sync/dueDoses";
-import { useNow } from "~/lib/sync/editors";
-import { useDueTasks } from "~/lib/sync/tasks";
-import { groupDocumentsQuery, toPreviews } from "~/lib/sync/notes";
+import { useDueDoses } from "~/lib/medications/dueDoses.sync";
+import { useNow } from "~/lib/live-notes/editors.sync";
+import { useDueTasks } from "~/lib/tasks/tasks.sync";
+import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
 import {
   fromLocalTimestamp,
   membersQuery,
   toMember,
   toTimelineEntries,
   UPCOMING_HORIZON_DAYS,
-} from "~/lib/sync/timeline";
+} from "~/lib/timeline/timeline.sync";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { contactsByEntry } from "./upcomingContact";
-import { pastSections, upcomingSections } from "~/lib/upcomingDays";
-import { showsDoses, upcomingDoses, withDueDoses } from "~/lib/upcomingDoses";
-import { showsTasks, upcomingTasks, withDueTasks } from "~/lib/upcomingTasks";
+import { pastSections, upcomingSections } from "~/lib/appointments/upcomingDays";
+import { showsDoses, upcomingDoses, withDueDoses } from "~/lib/appointments/upcomingDoses";
+import { showsTasks, upcomingTasks, withDueTasks } from "~/lib/tasks/upcomingTasks";
 import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
 
 // Upcoming's and the Past tab's data, live: the loaders read the first

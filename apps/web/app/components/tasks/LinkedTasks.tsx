@@ -1,13 +1,13 @@
-import type { LocalTask, TaskLink } from "~/lib/sync/tasks";
+import type { LocalTask, TaskLink } from "~/lib/tasks/tasks.sync";
 
 import { canCompleteTask, taskState } from "@caretook/data/schema";
 import { Plus, UserRound } from "lucide-react";
 import { Link } from "react-router";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { linkOf } from "~/lib/sync/tasks";
-import { assigneeLabel, dueText } from "~/lib/taskDisplay";
-import { TASK_SHEET_STATE } from "~/lib/taskSheetLink";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { linkOf } from "~/lib/tasks/tasks.sync";
+import { assigneeLabel, dueText } from "~/lib/tasks/taskDisplay";
+import { TASK_SHEET_STATE } from "~/lib/tasks/taskSheetLink";
 import { TaskTick } from "./TaskTick";
 import { TaskUndoStatus } from "./TaskUndoStatus";
 import { useLinkedTasks } from "./useLinkedTasks";

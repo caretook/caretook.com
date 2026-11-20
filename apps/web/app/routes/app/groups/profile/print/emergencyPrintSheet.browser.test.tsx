@@ -9,8 +9,8 @@ import { allergy, fx, TEST_GROUP } from "../../../../../../test/fixtures";
 // The emergency sheet's allergies (quick-fixes slice 41, B-112): each one on
 // file, worded as the printed medication sheets word them, or what the
 // recipient's record says when there are none. The wording rules are unit
-// tested (emergencyPrintSheet.test.ts, allergies.test.ts); profiles.mjs keeps
-// the sheet's flow and print media.
+// tested (emergencyPrintSheet.test.ts, allergies.test.ts); the sheet's flow
+// and print media are in emergencySheetPage.browser.test.tsx.
 
 const PRINT = `/app/groups/${TEST_GROUP.id}/profile/print`;
 const ROUTE = { path: "/app/groups/:groupId/profile/print", module: print };

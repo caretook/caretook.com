@@ -1,13 +1,13 @@
 import type { UnitChoices } from "@caretook/data/schema";
 
-import { useRef } from "react";
+import { useId, useRef, useState } from "react";
 import { PassUndoStatus } from "~/components/medications";
 import { Field } from "~/components/ui";
 import { QuickEntryCard } from "./QuickEntryCard";
 import { QuickEntrySuggestions } from "./QuickEntrySuggestions";
 import { QUICK_ENTRY_UNDO, useQuickEntry } from "./useQuickEntry";
+import { QUICK_ENTRY_RULES, useRotatingPlaceholder } from "./useRotatingPlaceholder";
 
-const EXAMPLE = "bp 130/85 hr 72, gave metformin, pain 4 left knee";
 /** Simple mode's hint under its large box: talking is the easy way in. */
 export const DICTATION_HINT = "Tap the microphone on your keyboard to say it instead of typing.";
 
@@ -31,14 +31,20 @@ export function QuickEntryBox({
   groupId,
   units,
   size = "md",
+  passChips = size === "md",
 }: {
   groupId: string;
   units: UnitChoices;
   size?: QuickEntrySize;
+  /** Offer the due passes as one-tap chips ("Give evening meds"). Simple mode turns them off: its Upcoming block has Given all. */
+  passChips?: boolean;
 }) {
   const q = useQuickEntry({ groupId, units });
   const count = q.cards.length;
   const field = useRef<HTMLTextAreaElement>(null);
+  const [focused, setFocused] = useState(false);
+  const placeholder = useRotatingPlaceholder(!focused && q.text === "");
+  const rulesId = useId();
   /** A suggestion fills the box and waits there, the cursor at the end (it never saves). */
   const fill = (value: string) => {
     q.setText(value);
@@ -70,11 +76,14 @@ export function QuickEntryBox({
           {(control) => (
             <textarea
               {...control}
+              aria-describedby={[control["aria-describedby"], rulesId].filter(Boolean).join(" ")}
               ref={field}
               name="quickEntry"
               rows={1}
               className={`textarea field-sizing-content max-h-48 w-full resize-none ${TEXTAREA_CLASS[size]}`}
-              placeholder={EXAMPLE}
+              placeholder={placeholder}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
               autoComplete="off"
               enterKeyHint="done"
               value={q.text}
@@ -89,14 +98,16 @@ export function QuickEntryBox({
             />
           )}
         </Field>
+        <p id={rulesId} className="sr-only">
+          {QUICK_ENTRY_RULES}
+        </p>
         <QuickEntrySuggestions
           groupId={groupId}
           text={q.text}
           onFill={fill}
           passes={q.passes}
           duePasses={q.dueNow}
-          // Simple mode (`lg`) has its Now block for that, right below.
-          onGivePass={size === "md" ? q.givePass : undefined}
+          onGivePass={passChips ? q.givePass : undefined}
           passBusy={q.passBusy}
         />
 

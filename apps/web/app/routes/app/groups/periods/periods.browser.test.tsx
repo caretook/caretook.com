@@ -5,7 +5,8 @@ import { useLayoutEffect } from "react";
 import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { createCarePeriod, removeCarePeriod, updateCarePeriod } from "~/lib/sync/carePeriods";
+import { found } from "../../../../../test/found";
+import { createCarePeriod, removeCarePeriod, updateCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx } from "../../../../../test/fixtures";
 import * as periods from "./route";
@@ -79,6 +80,7 @@ const dayOf = (d: Date) =>
 describe("the periods page", () => {
   test("lists the track newest first: only the latest is Now; the hospital shows its place and room, until its end; a date-only start has no time", async () => {
     await open();
+    await expect.poll(() => listRows().length).toBe(5);
     const rows = listRows();
     expect(rows.map((r) => r.title)).toEqual([
       "Home",
@@ -111,7 +113,7 @@ describe("the periods page", () => {
 describe("adding a period", () => {
   test("Add period opens the sheet over the list; Other needs a label; a new place from the picker; saving lists it first as Now with its place and room, ends the one before, and writes the place with it in one transaction", async () => {
     const device = await open();
-    await userEvent.click(ADD()!);
+    await userEvent.click(await found(ADD));
     await waitUntil(() => !!FORM(), 4000, "the add sheet");
     expect(device.location()).toBe(`${PERIODS_URL}/new`);
     expect(document.querySelector("main [data-period-list]")).not.toBeNull();
@@ -167,7 +169,9 @@ describe("adding a period", () => {
       ["Back", () => Promise.resolve(back())],
     ];
     for (const [how, close] of closes) {
-      await userEvent.click(ADD()!);
+      // The list (and Add) can render after open(), or after a close, on a loaded machine.
+      await waitUntil(() => !!ADD(), 4000, `Add before ${how}`);
+      await userEvent.click(await found(ADD));
       await waitUntil(() => !!FORM(), 4000, `the sheet before ${how}`);
       await close();
       await expect.poll(() => !SHEET() && device.location(), { message: how }).toBe(PERIODS_URL);

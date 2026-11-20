@@ -3,12 +3,13 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { THEME_SCRIPT } from "../lib/theme";
+import { THEME_SCRIPT } from "../lib/app-shell/theme";
 import {
   HOST_HEADERS,
   THEME_SCRIPT_HASH,
   applySecurityHeaders,
   contentSecurityPolicy,
+  envOptions,
   newNonce,
   securityHeaders,
 } from "./securityHeaders";
@@ -86,6 +87,14 @@ describe("securityHeaders", () => {
     });
   });
 
+  it("asks search engines to stay away on staging only (hosting slice 1)", () => {
+    expect(securityHeaders({ noindex: true })["X-Robots-Tag"]).toBe("noindex");
+    expect(securityHeaders()).not.toHaveProperty("X-Robots-Tag");
+    expect(envOptions({ APP_ENV: "staging" }).noindex).toBe(true);
+    expect(envOptions({ APP_ENV: "production" }).noindex).toBe(false);
+    expect(envOptions({}).noindex).toBe(false);
+  });
+
   it("keeps headers a response already has", () => {
     const headers = new Headers({ "Content-Security-Policy": "default-src 'none'" });
     applySecurityHeaders(headers, {});
@@ -102,10 +111,37 @@ describe("securityHeaders", () => {
 describe("HOST_HEADERS", () => {
   it("is what apps/web/vercel.json sends for every path", () => {
     const config = JSON.parse(readFileSync(new URL("../../vercel.json", import.meta.url), "utf8")) as {
-      headers: { source: string; headers: { key: string; value: string }[] }[];
+      headers: {
+        source: string;
+        has?: { type: string; value: string }[];
+        headers: { key: string; value: string }[];
+      }[];
     };
-    const all = config.headers.find((h) => h.source === "/(.*)")!;
+    const all = config.headers.find((h) => h.source === "/(.*)" && !h.has)!;
     expect(Object.fromEntries(all.headers.map((h) => [h.key, h.value]))).toEqual(HOST_HEADERS);
+  });
+
+  it("adds X-Robots-Tag on the staging host only (hosting slice 1)", () => {
+    const config = JSON.parse(readFileSync(new URL("../../vercel.json", import.meta.url), "utf8")) as {
+      headers: {
+        source: string;
+        has?: { type: string; value: string }[];
+        headers: { key: string; value: string }[];
+      }[];
+      regions: string[];
+      crons: { path: string; schedule: string }[];
+    };
+    const conditional = config.headers.filter((h) => h.has);
+    expect(conditional).toEqual([
+      {
+        source: "/(.*)",
+        has: [{ type: "host", value: "staging.caretook.com" }],
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
+    ]);
+    // The functions sit beside Neon (aws-us-east-2), and the outbox sweeps every minute.
+    expect(config.regions).toEqual(["cle1"]);
+    expect(config.crons).toEqual([{ path: "/api/cron/outbox", schedule: "* * * * *" }]);
   });
 
   it("matches the app's own headers apart from the CSP", () => {

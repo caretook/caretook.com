@@ -2,8 +2,8 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { OlderEntries } from "~/components/entry";
-import { getGroup } from "~/lib/group";
-import { sessionContext } from "~/lib/session";
+import { getGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
 import { loadPast } from "../loadUpcoming";
 import { UpcomingFilterChips, UpcomingHeader } from "../UpcomingHeader";
 import { emptyPastText, PAST_END_TEXT, parsePastFilters } from "../upcomingFilters";

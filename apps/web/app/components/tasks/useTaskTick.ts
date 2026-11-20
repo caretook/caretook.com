@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
-import { completedText } from "~/lib/taskDisplay";
-import { clearTaskUndo, offerTaskUndo } from "~/lib/taskUndo";
+import { completedText } from "~/lib/tasks/taskDisplay";
+import { clearTaskUndo, offerTaskUndo } from "~/lib/tasks/taskUndo";
 import { getSync } from "~/lib/sync";
-import { completeTask, reopenTask } from "~/lib/sync/tasks";
+import { completeTask, reopenTask } from "~/lib/tasks/tasks.sync";
 
 /**
  * Ticking tasks done and reopening them: the one path for every task tick

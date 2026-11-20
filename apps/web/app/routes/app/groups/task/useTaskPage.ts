@@ -1,15 +1,15 @@
-import type { MemberRow } from "~/lib/sync/timeline";
-import type { TaskRow } from "~/lib/sync/tasks";
+import type { MemberRow } from "~/lib/timeline/timeline.sync";
+import type { TaskRow } from "~/lib/tasks/tasks.sync";
 import type { loadTask } from "./loadTask";
 
 import { taskState } from "@caretook/data/schema";
 import { useCallback, useMemo } from "react";
-import { useGroup } from "~/lib/group";
-import { scheduleZoneNote } from "~/lib/medicationDisplay";
+import { useGroup } from "~/lib/app-shell/group";
+import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
-import { useNow } from "~/lib/sync/editors";
-import { taskQuery, toTask } from "~/lib/sync/tasks";
-import { membersQuery } from "~/lib/sync/timeline";
+import { useNow } from "~/lib/live-notes/editors.sync";
+import { taskQuery, toTask } from "~/lib/tasks/tasks.sync";
+import { membersQuery } from "~/lib/timeline/timeline.sync";
 
 /**
  * The task page's data, live: the task (other members' edits, ticks and

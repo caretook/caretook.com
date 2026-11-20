@@ -1,12 +1,12 @@
-import type { RecipientProfileRow } from "~/lib/sync/profile";
+import type { RecipientProfileRow } from "~/lib/profiles/profile.sync";
 
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router";
 import { UserAvatar } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { useGroup } from "~/lib/group";
-import { ageText, codeStatusLabel } from "~/lib/recipientDisplay";
-import { useRecipientProfile } from "~/lib/sync/profile";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { ageText, codeStatusLabel } from "~/lib/profiles/recipientDisplay";
+import { useRecipientProfile } from "~/lib/profiles/profile.sync";
 
 // One array for every render: `useLiveQuery` treats a new `initial` as new loader data.
 const NO_ROWS: RecipientProfileRow[] = [];

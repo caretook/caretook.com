@@ -93,6 +93,20 @@ import * as groupAdminService from "./groupAdminService";
 export { groupAdminService };
 import * as appSettingService from "./appSettingService";
 export { appSettingService };
+// Not in `services` below: `pnpm db:access` only (database roles, not a table).
+import * as dbAccessService from "./dbAccessService";
+export { dbAccessService };
+export type { GrantResult as DbAccessGrant, PersonalRole } from "./dbAccessService";
+// Not in `services`: `pnpm auth:rotate-jwks` only (Better Auth's jwks table).
+import * as authKeysService from "./authKeysService";
+export { authKeysService };
+
+// Not in `services`: no model behind it (shared rate limits, hosting PRD).
+import * as rateLimitService from "./rateLimitService";
+export { rateLimitService };
+// Not in `services`: no model behind it (suppressed addresses, hosting PRD).
+import * as emailSuppressionService from "./emailSuppressionService";
+export { emailSuppressionService };
 
 export type * from "./types";
 

@@ -1,8 +1,9 @@
 import type { SyncStatus } from "@powersync/web";
 import type { SyncDb } from "./client";
-import type * as SearchModuleNs from "./search";
+import type * as SearchModuleNs from "../search/search.sync";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { clearRemembered } from "./remembered";
 
 export type { SyncDb };
 
@@ -36,19 +37,19 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
         const w = window as { caretookSync?: SyncDb; caretookModules?: () => Promise<unknown> };
         w.caretookSync = db;
         w.caretookModules = async () => ({
-          providers: await import("./providers"),
-          liveEntry: await import("./liveEntry"),
-          timeline: await import("./timeline"),
-          medications: await import("./medications"),
-          appointments: await import("./appointments"),
-          search: await import("./search"),
-          carePeriods: await import("./carePeriods"),
-          medicationPasses: await import("./medicationPasses"),
-          dueDoses: await import("./dueDoses"),
+          providers: await import("../providers/providers.sync"),
+          liveEntry: await import("../live-notes/liveEntry.sync"),
+          timeline: await import("../timeline/timeline.sync"),
+          medications: await import("../medications/medications.sync"),
+          appointments: await import("../appointments/appointments.sync"),
+          search: await import("../search/search.sync"),
+          carePeriods: await import("../care-periods/carePeriods.sync"),
+          medicationPasses: await import("../medications/medicationPasses.sync"),
+          dueDoses: await import("../medications/dueDoses.sync"),
         });
       }
       // The search index follows the database (built in the background).
-      searchIndex = import("./search").then((m) => {
+      searchIndex = import("../search/search.sync").then((m) => {
         void m.startSearchIndex(db);
         return m;
       });
@@ -78,11 +79,13 @@ export const installTestDatabase = async (
   const search = searchIndex;
   searchIndex = null;
   await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
+  // A new device remembers nothing (as after a sign-out).
+  clearRemembered();
   current = db ? Promise.resolve(db) : null;
   ready = db;
   testFirstSyncDone = db ? (options.firstSyncDone ?? true) : null;
   if (db && options.search) {
-    searchIndex = import("./search").then((m) => {
+    searchIndex = import("../search/search.sync").then((m) => {
       void m.startSearchIndex(db);
       return m;
     });
@@ -96,11 +99,19 @@ export const getSync = (): SyncDb => {
   return ready;
 };
 
-/** Sign-out: stop syncing and wipe the device's copy. Safe to call when nothing is open. */
+/** Whose database is open (null: none), for device state kept per user, such as the tile cache. */
+export const syncUserId = (): string | null => ready?.userId ?? null;
+
+/**
+ * Sign-out: stop syncing and wipe the device's copy, and forget the tiles'
+ * remembered answers (`remembered.ts`). Safe to call when nothing is open.
+ */
 export const closeSync = async () => {
   const db = ready ?? (current ? await current.catch(() => null) : null);
   current = null;
   ready = null;
+  // The tile cache goes with the local copy.
+  clearRemembered();
   const search = searchIndex;
   searchIndex = null;
   await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);

@@ -2,7 +2,7 @@ import { CalendarDays, List, Printer } from "lucide-react";
 import { useMemo } from "react";
 import { PrefetchPageLinks } from "react-router";
 import { Menu } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
+import { appUrls } from "~/lib/app-shell/appUrls";
 
 /**
  * The list's Print menu: the medication list, or the weekly bedside chart.

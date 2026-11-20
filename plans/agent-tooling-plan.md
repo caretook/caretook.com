@@ -4,16 +4,34 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/agent-tooling` (slice commits) |
-| ----- | ---- | ----------- | ---------------------------------------------- |
-| 1     | 1    | not started |                                                |
-| 2     | 1    | not started |                                                |
-| 3     | 1    | not started |                                                |
-| 4     | 2    | not started |                                                |
-| 5     | 3    | not started |                                                |
-| 6     | 3    | not started |                                                |
+| Slice | Wave | State                             | Merge into `prd/agent-tooling` (slice commits)        |
+| ----- | ---- | --------------------------------- | ----------------------------------------------------- |
+| 1     | 1    | landed (wave 1, cff4d2f) (opus)   | 8d10f6b (9faf638)                                     |
+| 2     | 1    | landed (wave 1, cff4d2f) (sonnet) | a23e77c (52a8503)                                     |
+| 3     | 1    | landed (wave 1, cff4d2f) (sonnet) | 5ba5669 (bc6bd87)                                     |
+| 4     | 2    | landed (wave 2; opus)             | 84809ac (931f2dd, d1a324c)                            |
+| 5     | 3    | landed (wave 3) (sonnet)          | df24172 (47950e2, ed9359a, b9c24f2, 727e640, 1225d8c) |
+| 6     | 3    | landed (wave 3) (sonnet)          | 564f46b (16f706b, 57b5b80)                            |
 
-**Landing mode:** not chosen yet (the orchestrator asks at start).
+**Landing mode:** run everything through (queued with `pnpm prd queue agent-tooling`): start every ready slice, land each green wave, clean up, ask only real questions. Resume with `--auto`.
+
+**2026-11-20:** all three wave 1 agents stopped at a usage limit with work uncommitted in their worktrees; resumed by message after the reset (not respawned).
+
+**Slice 2 note:** its `pnpm check` had 1–3 failures in medicationList/passSheet component tests at load ~40; medicationList passed 6/6 on the base alone, and the slice touches no app code: load flakes.
+
+**Wave 1:** landed in `dev` as cff4d2f (2026-11-20), full check on 5e08bbc (4167 tests); its decisions folded into AGENTS.md (commands table, backlog multi-id line) and docs/loops.md (the land guard). Told code-layout and check-migration to sync.
+
+**Wave 2:** landed in `dev` as 81529fa (2026-11-20; docs and tooling only, no check needed), with the backlog timeout fix. Layout: AGENTS.md core (7678 B); docs/agents/ loop, orchestrator, backlog, planner, hotfix, recovery; docs/loops.md stub; `landExempt` removed. check-migration and timeline-ux told to sync.
+
+**Wave 3:** slices 5 and 6 merged (df24172, 564f46b); every budgeted doc within budget (each trimmed doc about 9.2–9.7 KB). Docs only, so no check needed. Landing it is the PRD's last landing; then `pnpm prd rm agent-tooling`, and message check-migration and timeline-ux.
+
+**PRD done** once wave 3 is in `dev`.
+
+**Backlog hang (code-layout's report):** `pnpm backlog commit` hung once on hash-object at 1d650af; not reproducible on a fresh clone. Guard added: backlog git calls time out after 2 minutes (2c3ee0f, lands with wave 2).
+
+**Land guard (user's choice, 2026-11-20):** AGENTS.md and docs/loops.md were `landExempt` until slice 4, which removed the flags.
+
+**Claimed:** B-154, B-147 (2026-11-20). B-148 is claimed at wave 3.
 
 **Backlog:**
 
@@ -217,6 +235,7 @@ Stack: no · Reads: docs/loops.md, docs/orchestration.md · Tests: unit
   - Recovery reads the orchestrator doc.
 - **docs/orchestration.md:** its links point to the new docs. It isn't rewritten.
 - **Every current rule lands in exactly one place.** The hand-off lists any rule dropped as stale, with the reason.
+- **Remove the land exemptions** (`landExempt` on AGENTS.md and docs/loops.md in `scripts/loops/doc-budget.config.mjs`, added at wave 1's landing on the user's word so other PRDs' folds weren't blocked meanwhile).
 - **Before landing:** `pnpm prd sync`. Any additions a landing made meanwhile to the old AGENTS.md or docs/loops.md are moved into the new layout and listed in the hand-off.
 
 **Acceptance criteria:**

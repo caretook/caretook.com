@@ -1,6 +1,6 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import type { ProviderRow } from "~/lib/sync/providers";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { Pencil } from "lucide-react";
 import { useState } from "react";
@@ -8,12 +8,12 @@ import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTasks } from "~/components/tasks";
 import { BackLink } from "~/components/ui";
-import { appUrls } from "~/lib/appUrls";
-import { getGroup, useGroup } from "~/lib/group";
-import { PROVIDER_SHEET_STATE } from "~/lib/providerSheetLink";
-import { sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
+import { sessionContext } from "~/lib/auth/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
-import { providerQuery, toProvider } from "~/lib/sync/providers";
+import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 import { ContactList } from "./ContactList";
 import { LinkedEntries } from "./LinkedEntries";
 import { loadProvider } from "./loadProvider";

@@ -11,7 +11,7 @@ import { getMailConfig, linkBuilder } from "@caretook/notifications";
 import { createRouterClient } from "@orpc/server";
 import QRCode from "qrcode";
 import { redirect } from "react-router";
-import { signInUrl } from "~/lib/redirect";
+import { signInUrl } from "~/lib/core/redirect";
 
 const apiFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 export type AdminApi = ReturnType<typeof apiFor>;
@@ -21,10 +21,11 @@ export type AdminApi = ReturnType<typeof apiFor>;
  * them, and their capabilities (so pages render only what they may use).
  * Signed out → sign-in; anyone else, a group's owner included, gets a plain
  * 404, so the pages don't announce themselves. With `capability`, staff
- * without it get the same 404.
+ * without it get the same 404. The session is read live, never from the
+ * cookie cache (B-140), as staff procedures read it.
  */
 export const requireStaff = async (request: Request, capability?: StaffCapability) => {
-  const authUser = await getAuthUser(request.headers);
+  const authUser = await getAuthUser(request.headers, { live: true });
   if (isError(authUser)) {
     logError("admin: session lookup failed", authUser);
     throw new Response("Something went wrong", { status: 500 });

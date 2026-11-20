@@ -7,11 +7,13 @@ import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTasks } from "~/components/tasks";
 import { BackLink } from "~/components/ui";
-import { appUrls, WHEN_PARAM, WITH_PROVIDER_PARAM } from "~/lib/appUrls";
-import { KIND_META } from "~/lib/entryDisplay";
-import { getGroup } from "~/lib/group";
-import { NEW_ENTRY } from "~/lib/liveEntry";
-import { sessionContext } from "~/lib/session";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { START_AT_PARAM } from "~/lib/timeline/urls";
+import { WHEN_PARAM, WITH_PROVIDER_PARAM } from "~/lib/live-notes/urls";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { getGroup } from "~/lib/app-shell/group";
+import { NEW_ENTRY } from "~/lib/live-notes/liveEntry";
+import { sessionContext } from "~/lib/auth/session";
 import { getSync } from "~/lib/sync";
 import { EntryCancelledBanner } from "./EntryCancelledBanner";
 import { EntryPageHeader } from "./EntryPageHeader";
@@ -42,6 +44,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     kind: search.get("kind"),
     when: search.get(WHEN_PARAM),
     withProvider: search.get(WITH_PROVIDER_PARAM),
+    at: search.get(START_AT_PARAM),
     canWrite,
   });
 }

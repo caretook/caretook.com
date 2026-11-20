@@ -1,13 +1,13 @@
 import type { DoseStatus } from "@caretook/data/schema";
-import type { DoseSlot, DueDoses } from "../../../../lib/dueDoses";
-import type { DoseChoice } from "../../../../lib/sync/medicationTimeline";
-import type { DoseInput, DosePatch } from "../../../../lib/sync/medications";
+import type { DoseSlot, DueDoses } from "../../../../lib/medications/dueDoses";
+import type { DoseChoice } from "../../../../lib/medications/medicationTimeline.sync";
+import type { DoseInput, DosePatch } from "../../../../lib/medications/medications.sync";
 
 import { DOSE_STATUSES } from "@caretook/data/schema";
-import { isDueNow } from "../../../../lib/dueDoses";
-import { formString } from "../../../../lib/form";
-import { dueSlotLabel } from "../../../../lib/medicationDisplay";
-import { medicationLabel } from "../../../../lib/medicationEntries";
+import { isDueNow } from "../../../../lib/medications/dueDoses";
+import { formString } from "../../../../lib/core/form";
+import { dueSlotLabel } from "../../../../lib/medications/medicationDisplay";
+import { medicationLabel } from "../../../../lib/medications/medicationEntries";
 import { parseOccurredAt } from "./entryFormData";
 
 // What the Dose sheet posts, as the medications module's writes take it.

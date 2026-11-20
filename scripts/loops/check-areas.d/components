@@ -1,0 +1,6 @@
+# check-areas: the ui/ primitives and the app's CSS: ui (the built CSS under
+# the CSP). The date field: its own steps in ui, and the sheets and time chip
+# that type and pick with it.
+apps/web/app/components/ui/date/*        ui roundtrip
+apps/web/app/components/ui/*             ui
+apps/web/app/app.css                     ui

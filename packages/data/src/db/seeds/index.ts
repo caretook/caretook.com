@@ -1,3 +1,4 @@
+import { getDbConfig } from "../../config";
 import { newError } from "../../errors";
 import { dbMayFail } from "../client";
 import * as accessCodes from "./accessCodes";
@@ -5,6 +6,7 @@ import * as accounts from "./accounts";
 import * as appointments from "./appointments";
 import * as careGroups from "./careGroups";
 import * as carePeriods from "./carePeriods";
+import { seedRefusal } from "./guard";
 import * as invites from "./invites";
 import * as medicationPasses from "./medicationPasses";
 import * as medications from "./medications";
@@ -21,9 +23,15 @@ import * as users from "./users";
  * Insert development data. Each seed must be idempotent (safe to re-run).
  * Seeds write straight to the tables (no models), so they also work before
  * any users exist. Order matters once tables reference each other.
+ *
+ * Refuses production, a non-local database (unless `APP_ENV=staging`), and
+ * staging without a secret `SEED_USER_PASSWORD` (`seedRefusal`, guard.ts).
+ * On staging it also moves seeded accounts to the current
+ * `SEED_USER_PASSWORD` (`accounts.rotateStagingPasswords`).
  */
 export const seed = async () => {
-  if (process.env.NODE_ENV === "production") return newError({ code: "db:seed:production" });
+  const refusal = seedRefusal({ ...process.env, DATABASE_URL: getDbConfig().url });
+  if (refusal) return newError({ code: refusal });
 
   return dbMayFail(async () => {
     await users.seed();
@@ -42,5 +50,8 @@ export const seed = async () => {
     await moreGroups.seed();
     await staff.seed();
     await tasks.seed();
+    // Last, once every seed has made its accounts.
+    const { updated } = await accounts.rotateStagingPasswords();
+    if (updated) console.log(`Set ${updated} seeded account(s) to the current SEED_USER_PASSWORD`);
   }, "db:seed");
 };

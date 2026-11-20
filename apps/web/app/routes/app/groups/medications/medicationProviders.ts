@@ -7,7 +7,7 @@ import {
   matchesQuery,
   PROVIDER_TYPE_META,
   queryTokens,
-} from "../../../../lib/providerDirectory";
+} from "../../../../lib/providers/providerDirectory";
 
 // The medication form's prescriber and pharmacy pickers, their pure parts:
 // which of the group's providers each offers for the typed text, and when to

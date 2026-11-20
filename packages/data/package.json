@@ -17,7 +17,10 @@
     "datastore:clear": "tsx scripts/clear.ts",
     "datastore:powersync": "tsx scripts/powersync.ts",
     "datastore:studio": "drizzle-kit studio",
-    "admin:grant": "tsx scripts/adminGrant.ts"
+    "admin:grant": "tsx scripts/adminGrant.ts",
+    "db:roles": "tsx scripts/dbRoles.ts",
+    "db:access": "tsx scripts/dbAccess.ts",
+    "auth:rotate-jwks": "tsx scripts/authRotateJwks.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",

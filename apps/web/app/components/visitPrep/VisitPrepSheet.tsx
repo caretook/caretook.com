@@ -5,9 +5,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Sheet } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
-import { appUrls } from "~/lib/appUrls";
-import { dateText } from "~/lib/periodDisplay";
-import { upcomingTitle } from "~/lib/upcomingLabels";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { dateText } from "~/lib/care-periods/periodDisplay";
+import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { useVisitPrepPreview } from "./useVisitPrepPreview";
 
 /**
