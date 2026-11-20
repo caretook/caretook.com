@@ -1,0 +1,134 @@
+# Deploy (hosting slice 5): a push to `staging` deploys staging, a push to
+# `main` deploys production. Vercel's own Git deploys are off
+# (apps/web/vercel.json), so this is the only way code goes live. In order:
+# env check → migrate → roles SQL → PowerSync sync config → Vercel
+# (pull, build, deploy --prod) → smoke. A failed step stops the run, and the
+# previous deploy stays live; GitHub emails the pusher.
+#
+# Secrets (GitHub environment secrets, set in both `staging` and `production`):
+#   APP_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, DATABASE_URL, POWERSYNC_URL,
+#   VITE_POWERSYNC_URL, MAIL_SENDER, RESEND_API_KEY, MAIL_FROM, SUPPORT_EMAIL,
+#   CRON_SECRET, INVITE_LINK_KEY, RESEND_WEBHOOK_SECRET,
+#   CLIENT_IP_HEADER (x-vercel-forwarded-for)
+#   NATIVE_APP_ORIGINS (optional: unset until the native app ships, then 1)
+#   MAIL_ALLOWLIST, SEED_USER_PASSWORD (staging only)
+#   MIGRATIONS_DATABASE_URL (the migrations role's direct URL; only here)
+#   VERCEL_TOKEN, POWERSYNC_ADMIN_TOKEN (CI only)
+# Variables (GitHub environment variables, not secret):
+#   VERCEL_ORG_ID, VERCEL_PROJECT_ID (each environment's own Vercel project),
+#   POWERSYNC_INSTANCE_ID
+name: Deploy
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+
+permissions:
+  contents: read
+
+# One deploy per environment at a time; a newer push waits, never cancels.
+concurrency:
+  group: deploy-${{ github.ref_name == 'main' && 'production' || 'staging' }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    env:
+      DEPLOY_TARGET: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: setup
+        uses: ./.github/actions/setup
+
+      - id: env
+        name: Check the environment
+        env:
+          APP_ENV: ${{ env.DEPLOY_TARGET }}
+          APP_URL: ${{ secrets.APP_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MIGRATIONS_DATABASE_URL: ${{ secrets.MIGRATIONS_DATABASE_URL }}
+          POWERSYNC_URL: ${{ secrets.POWERSYNC_URL }}
+          VITE_POWERSYNC_URL: ${{ secrets.VITE_POWERSYNC_URL }}
+          MAIL_SENDER: ${{ secrets.MAIL_SENDER }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_ALLOWLIST: ${{ secrets.MAIL_ALLOWLIST }}
+          SUPPORT_EMAIL: ${{ secrets.SUPPORT_EMAIL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          INVITE_LINK_KEY: ${{ secrets.INVITE_LINK_KEY }}
+          RESEND_WEBHOOK_SECRET: ${{ secrets.RESEND_WEBHOOK_SECRET }}
+          SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
+          CLIENT_IP_HEADER: ${{ secrets.CLIENT_IP_HEADER }}
+          NATIVE_APP_ORIGINS: ${{ secrets.NATIVE_APP_ORIGINS }}
+        run: pnpm deploy:env "$DEPLOY_TARGET"
+
+      - id: migrate
+        name: Migrate (the migrations role)
+        env:
+          APP_ENV: ${{ env.DEPLOY_TARGET }}
+          MIGRATIONS_DATABASE_URL: ${{ secrets.MIGRATIONS_DATABASE_URL }}
+        run: pnpm datastore:migrate
+
+      - id: roles
+        name: Database roles and the publication
+        env:
+          APP_ENV: ${{ env.DEPLOY_TARGET }}
+          MIGRATIONS_DATABASE_URL: ${{ secrets.MIGRATIONS_DATABASE_URL }}
+        run: pnpm db:roles
+
+      # The CLI reads a config directory; powersync/ also holds the local
+      # (self-hosted) service.yaml, so the sync config goes in one of its own.
+      # The instance's connection and auth are set in PowerSync's dashboard.
+      - id: powersync
+        name: Deploy the sync config to PowerSync
+        env:
+          PS_ADMIN_TOKEN: ${{ secrets.POWERSYNC_ADMIN_TOKEN }}
+          POWERSYNC_INSTANCE_ID: ${{ vars.POWERSYNC_INSTANCE_ID }}
+        run: |
+          dir="$RUNNER_TEMP/powersync"
+          mkdir -p "$dir"
+          cp powersync/sync-config.yaml "$dir/"
+          pnpm dlx "$POWERSYNC_CLI" deploy sync-config --directory "$dir" --instance-id "$POWERSYNC_INSTANCE_ID"
+
+      # Each environment is its own Vercel project, so both deploy --prod.
+      - id: vercel-pull
+        name: Vercel pull
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: pnpm dlx "$VERCEL_CLI" pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - id: vercel-build
+        name: Vercel build
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: pnpm dlx "$VERCEL_CLI" build --prod --token="$VERCEL_TOKEN"
+
+      - id: vercel-deploy
+        name: Vercel deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: pnpm dlx "$VERCEL_CLI" deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - id: smoke
+        name: Smoke check
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          POWERSYNC_URL: ${{ secrets.POWERSYNC_URL }}
+        run: pnpm deploy:smoke "$DEPLOY_TARGET"

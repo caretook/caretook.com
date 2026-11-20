@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://unpkg.com/@powersync/service-schema@latest/json-schema/powersync-config.json
+#
+# What each PowerSync Cloud instance (staging, production) is set to, for
+# the runbook. Cloud reads its dashboard, not this file; nothing loads it.
+# It's written in the self-hosted format so it doubles as the starting point
+# if we self-host in us-east-2 later. No secrets here: `!env` names where
+# each value comes from. Local development uses service.yaml.
+
+_type: self-hosted
+
+telemetry:
+  disable_telemetry_sharing: true
+
+replication:
+  connections:
+    - type: postgresql
+      # Neon's DIRECT (not pooled) URL, as the replication role that
+      # `pnpm db:roles` creates (caretook_replication: REPLICATION, and SELECT
+      # on exactly the columns sync-config.yaml reads). Never the app or
+      # migrations role.
+      uri: !env PS_DATA_SOURCE_URI
+      # Verify the server's certificate and host name, so replication can't
+      # be intercepted. Neon's certificates chain to a public CA.
+      sslmode: verify-full
+      # PowerSync replicates the publication named `powersync` (the name is
+      # fixed in the service), which `pnpm db:roles` keeps in step with
+      # sync-config.yaml: the same tables and column lists as the grants.
+
+# Cloud manages bucket storage (its region is in ops/data-copies.md).
+# Self-hosted, it would be its own Postgres, never the app's database:
+storage:
+  type: postgresql
+  uri: !env PS_STORAGE_URI
+  sslmode: verify-full
+
+port: 8080
+
+sync_config:
+  # Pushed by the deploy with the PowerSync CLI, after the migration and
+  # `pnpm db:roles`, before the app.
+  path: sync-config.yaml
+
+client_auth:
+  # Better Auth's JWKS on the environment's own origin:
+  #   production  https://caretook.com/api/auth/jwks
+  #   staging     https://staging.caretook.com/api/auth/jwks
+  # i.e. <APP_URL>/api/auth/jwks. It must be reachable from the internet.
+  jwks_uri: !env PS_JWKS_URL
+  # Better Auth signs device tokens with POWERSYNC_URL as the audience: the
+  # instance's own URL (the same value as the app's POWERSYNC_URL and
+  # VITE_POWERSYNC_URL).
+  audience: [!env PS_AUDIENCE]
+
+# No admin API token: the deploy talks to Cloud with the CLI's own token,
+# and nothing else needs the admin API in production.
+# api:
+#   tokens: []
+
+system:
+  logging:
+    level: info
+    format: json

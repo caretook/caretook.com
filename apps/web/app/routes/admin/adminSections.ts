@@ -65,6 +65,13 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     capability: "settings.read",
     built: true,
   },
+  {
+    id: "suppressions",
+    label: "Suppressions",
+    path: () => adminUrls.suppressions(),
+    capability: "users.read",
+    built: true,
+  },
 ];
 
 /** The sections a staff member with `capabilities` sees, in nav order. */

@@ -9,12 +9,12 @@ export type AuthConfig = {
 };
 
 // Read lazily so importing never requires env vars (typecheck, builds).
-export const getAuthConfig = (): AuthConfig => ({
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
-  trustedOrigins: (process.env.AUTH_TRUSTED_ORIGINS ?? "")
+export const getAuthConfig = (env: Record<string, string | undefined> = process.env): AuthConfig => ({
+  secret: env.BETTER_AUTH_SECRET,
+  baseURL: env.BETTER_AUTH_URL,
+  trustedOrigins: (env.AUTH_TRUSTED_ORIGINS ?? "")
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean),
-  powersyncURL: process.env.POWERSYNC_URL || undefined,
+  powersyncURL: env.POWERSYNC_URL || undefined,
 });

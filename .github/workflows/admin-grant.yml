@@ -1,0 +1,57 @@
+# Grant staff (hosting slice 5): make an existing account Caretook staff,
+# recorded in the audit log with the system as actor. Dispatched by hand, so
+# bootstrapping /admin needs no production credentials on a laptop. The
+# account must exist first (sign up through an invite or access code).
+#
+# Secrets (GitHub environment secrets):
+#   DATABASE_URL (the app role: the grant is an ordinary write)
+name: Grant staff
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Where
+        type: choice
+        options:
+          - staging
+          - production
+      email:
+        description: The account's email address
+        type: string
+        required: true
+      role:
+        description: The staff role
+        type: choice
+        default: admin
+        options:
+          - admin
+          - support
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  grant:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - id: grant
+        name: Grant the staff role
+        env:
+          APP_ENV: ${{ inputs.environment }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          EMAIL: ${{ inputs.email }}
+          ROLE: ${{ inputs.role }}
+        run: pnpm admin:grant "$EMAIL" --role "$ROLE"

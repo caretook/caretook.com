@@ -11,6 +11,11 @@
 # - Soft-deleted timeline entries are synced, so deletes reach other devices.
 #   A deleted entry's live document still syncs; screens hide it with the entry.
 #
+# - The replication role can read only the columns listed here (`pnpm db:roles`
+#   generates its grants), and PowerSync's first snapshot reads every column
+#   (`SELECT *`): a synced table lists all its columns, timestamps and audits
+#   included, except the few rolesSql grants whole (REPLICATION_WHOLE_TABLES).
+#
 # The service reads this only at startup: `pnpm powersync:restart` after a change.
 
 config:
@@ -24,7 +29,7 @@ streams:
       my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
     queries:
       # `simple_tiles`: how simple mode picks its four tiles (assistant).
-      - SELECT id, name, simple_tiles FROM care_group WHERE id IN my_groups
+      - SELECT id, name, simple_tiles, created_at, updated_at, created_by, updated_by FROM care_group WHERE id IN my_groups
       # `invited_by` and `created_at`: who invited each member and when they joined (the Members page).
       # `relationship` and `shared_fields`: the member's own sharing choices;
       # `emergency_rank` and `is_primary_contact`: the emergency list's badges;
@@ -33,7 +38,7 @@ streams:
       - >-
         SELECT id, group_id, user_id, role, invited_by, created_at,
         relationship, shared_fields, emergency_rank, is_primary_contact, emergency_dropped_at,
-        simple_mode, simple_mode_locked
+        simple_mode, simple_mode_locked, updated_at, created_by, updated_by
         FROM care_group_member WHERE group_id IN my_groups
       # `time_zone`: a medication's schedule times are in the recipient's zone.
       # `date_of_birth`: the printable medication sheet works offline.
@@ -41,7 +46,8 @@ streams:
       # `no_known_allergies_at`: "No known allergies" was recorded (medications-2).
       - >-
         SELECT id, group_id, name, preferred_name, time_zone, date_of_birth,
-        code_status, blood_type, primary_language, pronouns, notes, no_known_allergies_at
+        code_status, blood_type, primary_language, pronouns, notes, no_known_allergies_at,
+        created_at, updated_at, created_by, updated_by
         FROM care_recipient WHERE group_id IN my_groups
       # `ends_at`, `all_day`, `place`, the cancel fields and `rescheduled_to`:
       # appointments and reminders (future events and notes).
@@ -61,7 +67,7 @@ streams:
         subject, entry_id, provider_id, medication_id, care_period_id, task_id
         FROM note_document WHERE group_id IN my_groups
       - >-
-        SELECT id, group_id, document_id, data, created_at, created_by
+        SELECT id, group_id, document_id, data, created_at, created_by, updated_at, updated_by
         FROM note_update WHERE group_id IN my_groups
       # The provider directory, soft-deleted ones included (so deletes reach
       # devices, and linked entries can still show the name).
@@ -84,7 +90,7 @@ streams:
       # What each member shares with the group: only the values they chose
       # (a projection the services keep in step). Never user_contact itself.
       - >-
-        SELECT id, group_id, user_id, phones, email, address, updated_at
+        SELECT id, group_id, user_id, phones, email, address, updated_at, created_at, created_by, updated_by
         FROM member_contact_share WHERE group_id IN my_groups
       # Care periods (where care happens, over time), soft-deleted ones
       # included, so deletes reach devices and the track closes the gap.
@@ -123,7 +129,8 @@ streams:
         WHERE user_id = auth.user_id() AND role != 'viewer'
     queries:
       - >-
-        SELECT id, group_id, recipient_id, phones, email, address, insurance, outside_contacts, updated_at
+        SELECT id, group_id, recipient_id, phones, email, address, insurance, outside_contacts, updated_at,
+        created_at, created_by, updated_by
         FROM care_recipient_details WHERE group_id IN writer_groups
 
   # Co-members' public profiles (name and picture) for author names.
