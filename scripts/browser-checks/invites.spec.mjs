@@ -360,14 +360,24 @@ test("2. sign in with an emailed code", async ({ device }) => {
   await test.step("the right code signs in (every button disabled meanwhile) and lands on /app", async () => {
     await pause(p);
     await p.locator('input[name="code"]').fill(code);
-    // Pressed and read in one go: the buttons are disabled from the press until /app renders.
-    expect(
-      await submit(p, "Sign in").evaluate(async (b) => {
-        b.click();
-        await new Promise((r) => requestAnimationFrame(r));
-        return [...document.querySelectorAll('main button[type="submit"]')].every((x) => x.disabled);
-      }),
-    ).toBe(true);
+    // Hold the sign-in request, so the buttons' state can be read while it is pending.
+    let release;
+    const released = new Promise((r) => (release = r));
+    await p.route("**/api/auth/sign-in/email-otp", async (route) => {
+      await released;
+      await route.continue().catch(() => {});
+    });
+    await submit(p, "Sign in").click();
+    await expect
+      .poll(
+        () =>
+          p.evaluate(() =>
+            [...document.querySelectorAll('main button[type="submit"]')].every((x) => x.disabled),
+          ),
+        { timeout: 5000, message: "every button is disabled while the code signs in" },
+      )
+      .toBe(true);
+    release();
     await expectOnApp(p);
   });
 
