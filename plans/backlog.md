@@ -79,7 +79,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-112 | change | landed | quick-fixes | prd/quick-fixes | Show the recipient's allergies on the profile's printable emergency sheet |
 | B-113 | chore | triaged | check-migration |  | Recheck admin.mjs, app-shell.mjs and providers.mjs on the new check suite after the orchestration PRD lands |
 | B-114 | chore | in-progress | check-migration | prd/check-migration | Move routing.mjs to component tests |
-| B-115 | chore | triaged | check-migration |  | Move settings-layout.mjs to component tests |
+| B-115 | chore | in-progress | check-migration | prd/check-migration | Move settings-layout.mjs to component tests |
 | B-116 | chore | triaged | check-migration |  | Move providers.mjs to component tests |
 | B-117 | chore | triaged | check-migration |  | Move groups.mjs to component tests |
 | B-118 | chore | triaged | check-migration |  | Move medications.mjs to component tests |
@@ -467,9 +467,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-115 · chore · Move settings-layout.mjs to component tests
 
-- status: triaged
+- status: in-progress
 - prd: check-migration
-- owner:
+- owner: prd/check-migration
 - commit:
 
 - 2026-11-19 (slice/orchestration/9): Out of the lean set since orchestration slice 9. The Settings <-> timeline toggle on one device is a component test (settings.browser.test.tsx); keep only the choice following the account to a second browser, ideally folded into layout-offline.mjs; then delete settings-layout or set it e2e yes.
