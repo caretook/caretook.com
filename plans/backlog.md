@@ -918,3 +918,5 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - prd: app-speed
 - owner:
 - commit:
+
+- 2026-11-20 (backlog agent): Triage: app-speed. An investigation first (does loadSettings wait on the network before using its cache?); a fix only if it does.
