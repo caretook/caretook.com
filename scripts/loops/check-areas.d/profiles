@@ -19,3 +19,9 @@ apps/web/app/routes/app/settings/contact/* -
 apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell
 apps/web/app/routes/app/groups/settings/members/SharingForm.tsx -
 apps/web/app/components/contact/*        -
+# The recipient's conditions (conditions slice 1): the card and its sheets are
+# component tests (profile/conditions.browser.test.tsx); the suggestion list
+# is data, unit-tested with conditionSuggestions. A condition reaching a
+# second device is roundtrip's sync matrix (6b).
+apps/web/app/lib/profiles/conditionNames.ts -
+packages/data/src/db/schema/profiles/recipientCondition.ts roundtrip

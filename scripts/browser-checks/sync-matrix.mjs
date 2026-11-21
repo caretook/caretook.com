@@ -62,6 +62,7 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
       period: randomUUID(),
       update: randomUUID(),
       task: randomUUID(),
+      condition: randomUUID(),
     },
   };
 };
@@ -246,6 +247,25 @@ export const SYNC_MATRIX = [
         ...audit(ctx),
       }),
   ),
+  // A resolved one, so the profile's active list doesn't change.
+  device(
+    "recipient_condition",
+    (ctx) => ctx.ids.condition,
+    (ctx) =>
+      insert("recipient_condition", {
+        id: ctx.ids.condition,
+        group_id: ctx.groupId,
+        recipient_id: ctx.recipientId,
+        name: `${ctx.tag} matrix condition`,
+        status: "resolved",
+        since_year: 2001,
+        since_month: null,
+        note: null,
+        diagnosed_by_id: null,
+        deleted_at: null,
+        ...audit(ctx),
+      }),
+  ),
   // Patched, not inserted: see RECIPIENT_PATCH.
   { table: "care_recipient", by: "patch" },
   server("care_group", (ctx) => `SELECT '${ctx.groupId}'`),
@@ -299,5 +319,6 @@ export const cleanupSql = (ctx, recordedAt) =>
       (t) =>
         `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.task}')`,
     ),
+    `UPDATE recipient_condition SET deleted_at = now() WHERE deleted_at IS NULL AND id = '${ctx.ids.condition}'`,
     `UPDATE care_recipient SET no_known_allergies_at = ${recordedAt ? `'${recordedAt}'` : "NULL"} WHERE id = '${ctx.recipientId}' AND no_known_allergies_at IS DISTINCT FROM ${recordedAt ? `'${recordedAt}'::timestamptz` : "NULL"}`,
   ].join(";\n");

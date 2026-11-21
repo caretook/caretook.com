@@ -7,6 +7,10 @@ export const profileRoutes: RouteConfigEntry[] = [
     route("contact", "routes/app/groups/profile/contact/route.tsx"),
     route("insurance", "routes/app/groups/profile/insurance/route.tsx"),
     route("emergency", "routes/app/groups/profile/emergency/route.tsx"),
+    // The recipient's conditions (conditions).
+    route("conditions/new", "routes/app/groups/profile/conditions/new/route.tsx"),
+    route("conditions/:conditionId", "routes/app/groups/profile/conditions/view/route.tsx"),
+    route("conditions/:conditionId/edit", "routes/app/groups/profile/conditions/edit/route.tsx"),
   ]),
   // The printable emergency sheet: a page of its own, not a sheet over the profile.
   route("profile/print", "routes/app/groups/profile/print/route.tsx"),

@@ -115,3 +115,7 @@ export type * from "./task/types";
 import * as connectorGrantModel from "./connectorGrant";
 export { connectorGrantModel };
 export type * from "./connectorGrant/types";
+
+import * as recipientConditionModel from "./recipientCondition";
+export { recipientConditionModel };
+export type * from "./recipientCondition/types";

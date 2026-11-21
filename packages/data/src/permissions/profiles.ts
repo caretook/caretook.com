@@ -79,4 +79,17 @@ export const PROFILES_PERMISSIONS = {
     },
     delete: groupEntry(WRITERS),
   },
+
+  // The recipient's conditions (conditions): like allergies (soft deletes, writers write).
+  recipientConditionSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+    },
+    delete: groupEntry(WRITERS),
+  },
 } as const satisfies PartialPermissions;
