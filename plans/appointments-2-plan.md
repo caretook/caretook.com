@@ -39,6 +39,8 @@ Slice 6 merged (4d8f9364; registry conflicts with slice 5 resolved by keeping bo
 
 Slice 7 merged (ca95085a; 12 additive conflicts with 5 and 6 resolved, incl. `linkToken.ts` = seal.ts + `createHmac` for `linkSubkey`, cron test expects [reminders, googlePush, seriesTopUp], routes.test.ts re-sorted). Wave 3 done. Slice 9 started. Slice 10 handed off; held for plan order (worktree `.loops/appointments-2-10` with a stack).
 
+**Pending sync:** quick-fixes wave 14 in dev (fa9ad005): fixes B-205/B-206 (mcpWrites) and the stale `timelineSimpleTiles` test; touches DayHeader, SimpleNow/SimpleTimeline, useTimelineData. Sync after wave 4 merges, before the landing check.
+
 **Question for the user at landing:** the lean budget. Slice 10's series step adds ~0.9–1.4 s to `roundtrip`; the lean set already sums to exactly the 255 s ceiling, so it'd be 256–257 s. `roundtrip` stays 28 in `scripts/loops/checks` until the landing suite's median; raising the ceiling is the user's call.
 
 **Carried from slice 10's hand-off:** the step is in `roundtrip.spec.mjs`, inside step 5's offline window; drives `series.createSeries` and `series.applySeriesEdit` (scope later on the 3rd visit); logs `series: its steps added N ms`. `apps/web/app/lib/sync/index.ts` gains `series` in `caretookModules` (check builds only). Browser checks it ran: roundtrip, live-notes, first-sync pass. Load flakes seen: `entryRepeat.browser.test.tsx` offline series, `medicationList.browser.test.tsx` Discontinued chip (3/3 alone). Docs: appointments.md tests line (roundtrip covers series); loop.md (roundtrip gains "a series and its split"); wherever `caretookModules` is documented.
