@@ -17,10 +17,13 @@ export type TodayRow =
   | { kind: "vitals"; latestAt: string }
   /** The next appointment or reminder. */
   | { kind: "appointment"; entry: TimedEntry }
-  /** The pass the row shows: its moment today, or null when it's tomorrow's (nothing left today). */
-  | { kind: "medications"; dueAt: string | null }
-  /** The task the row names, and whether it's overdue (else it's due today). */
-  | { kind: "tasks"; overdue: boolean };
+  /**
+   * The pass the row shows: its moment today, or null when it's tomorrow's
+   * (nothing left today); `id` names it for `attentionKey`.
+   */
+  | { kind: "medications"; dueAt: string | null; id?: string }
+  /** The task the row names (`id`), and whether it's overdue (else it's due today). */
+  | { kind: "tasks"; overdue: boolean; id?: string };
 
 const HOUR = 3_600_000;
 const MINUTE = 60_000;
@@ -71,6 +74,57 @@ export function todayStatus(
     }
   }
 }
+
+/** A dose this close (or due, or overdue) needs attention: the same 2 h as an appointment. */
+export const DOSE_SOON_MS = APPOINTMENT_SOON_MS;
+
+/**
+ * What needs attention at `now` (B-185), one id per row that does, joined:
+ * empty when nothing does. A dose due or overdue, or due within 2 hours; an
+ * overdue task; an appointment in progress or starting within 2 hours. Not
+ * stale vitals, a task only due today, an appointment later today, or an
+ * all-day item (it has no start to be near). A dose keys by its moment too,
+ * so tomorrow's same pass is new. The card opens by default while this isn't
+ * empty, and a stored collapse holds only while it stays the same (a new
+ * item opens the card again).
+ */
+export function attentionKey(rows: readonly TodayRow[], now: Date | number): string {
+  const at = typeof now === "number" ? now : now.getTime();
+  const keys: string[] = [];
+  for (const row of rows) {
+    switch (row.kind) {
+      case "vitals":
+        break;
+      case "medications":
+        if (row.dueAt && new Date(row.dueAt).getTime() - at <= DOSE_SOON_MS)
+          keys.push(`dose:${row.id ?? ""}@${row.dueAt}`);
+        break;
+      case "tasks":
+        if (row.overdue) keys.push(`task:${row.id ?? ""}`);
+        break;
+      case "appointment": {
+        const { entry } = row;
+        const timing = entryTiming(entry, new Date(at));
+        if (
+          timing === "now" ||
+          (timing === "upcoming" &&
+            !entry.allDay &&
+            new Date(entry.occurredAt).getTime() - at <= APPOINTMENT_SOON_MS)
+        )
+          keys.push(`appointment:${entry.id}`);
+        break;
+      }
+    }
+  }
+  return keys.join(" ");
+}
+
+/**
+ * True when something on the card needs attention at `now` (`attentionKey`
+ * isn't empty). No time zone: every rule is a distance from `now`.
+ */
+export const needsAttention = (rows: readonly TodayRow[], now: Date | number) =>
+  attentionKey(rows, now) !== "";
 
 /** What the collapsed card sums up, from the rows it would show (a missing part is a hidden row). */
 export type TodaySummaryParts = {

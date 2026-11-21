@@ -1,6 +1,12 @@
 import type { AuthUser } from "@caretook/data";
 
-import { connectorAuthServerMetadata, getAuthUser } from "@caretook/auth";
+import {
+  CONNECTOR_LINK_INVALID_TEXT,
+  connectorAuthServerMetadata,
+  getAuth,
+  getAuthUser,
+  withConnectorAuthorizePage,
+} from "@caretook/auth";
 import { careGroupService, connectorGrantService } from "@caretook/data";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
@@ -267,5 +273,88 @@ describe("the OAuth dance", () => {
       });
       expect(res.status, path).toBe(404);
     }
+  });
+});
+
+// B-188: claude.ai's browser window, sent to authorize. The shape is the MCP
+// client's (scope from our metadata, offline_access with prompt=consent, the
+// resource, PKCE), loaded as a page from another site, through the same
+// wrapper as /api/auth.
+describe("an assistant's browser at authorize", () => {
+  const CLAUDE_CALLBACK = "https://claude.ai/api/mcp/auth_callback";
+  const handle = withConnectorAuthorizePage((request) => getAuth().handler(request));
+  const NAVIGATION = {
+    accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-dest": "document",
+    "sec-fetch-site": "cross-site",
+  };
+
+  const authorizeParams = (clientId: string, redirectUri = CLAUDE_CALLBACK) =>
+    new URLSearchParams({
+      response_type: "code",
+      client_id: clientId,
+      code_challenge: pkce().challenge,
+      code_challenge_method: "S256",
+      redirect_uri: redirectUri,
+      state: "claude-state",
+      scope: "group:read group:write offline_access",
+      prompt: "consent",
+      resource: `${TEST_ORIGIN}/mcp`,
+    });
+
+  const visit = (params: URLSearchParams, headers: Record<string, string> = NAVIGATION, cookies?: Headers) =>
+    handle(
+      new Request(`${TEST_ORIGIN}/api/auth/oauth2/authorize?${params}`, {
+        headers: { ...headers, ...(cookies ? { cookie: cookies.get("cookie") ?? "" } : {}) },
+      }),
+    );
+
+  const expectConnectPage = (res: Response, clientId: string) => {
+    expect(res.status).toBe(302);
+    const page = new URL(res.headers.get("location") ?? "", TEST_ORIGIN);
+    expect(page.pathname).toBe("/connect");
+    expect(page.searchParams.get("client_id")).toBe(clientId);
+    expect(page.searchParams.get("redirect_uri")).toBe(CLAUDE_CALLBACK);
+    expect(page.searchParams.get("sig")).toBeTruthy();
+  };
+
+  it("goes to /connect, signed out and signed in", async () => {
+    const m = await member("claude-nav");
+    const client = await registerClient("Claude", CLAUDE_CALLBACK);
+    expectConnectPage(await visit(authorizeParams(client.client_id)), client.client_id);
+    const cookies = await signInCookies(m.email);
+    expectConnectPage(await visit(authorizeParams(client.client_id), NAVIGATION, cookies), client.client_id);
+  });
+
+  it("shows a page for a client it doesn't know; JSON still answers JSON", async () => {
+    const params = authorizeParams("a-client-from-before-a-reset");
+    const res = await visit(params);
+    expect(res.status).toBe(400);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    expect(await res.text()).toContain(CONNECTOR_LINK_INVALID_TEXT);
+
+    const json = await visit(params, { accept: "application/json" });
+    expect(json.headers.get("content-type")).toContain("application/json");
+    const body = (await json.json()) as { url: string };
+    expect(new URL(body.url).searchParams.get("error")).toBe("invalid_client");
+  });
+
+  it("shows the page for a redirect the client never registered", async () => {
+    const client = await registerClient("Claude", CLAUDE_CALLBACK);
+    const res = await visit(authorizeParams(client.client_id, "https://claude.ai/somewhere-else"));
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain(CONNECTOR_LINK_INVALID_TEXT);
+  });
+
+  it("leaves errors it can return to the client alone", async () => {
+    const client = await registerClient("Claude", CLAUDE_CALLBACK);
+    const params = authorizeParams(client.client_id);
+    params.set("scope", "openid");
+    const res = await visit(params);
+    expect(res.status).toBe(302);
+    const back = new URL(res.headers.get("location") ?? "");
+    expect(back.origin + back.pathname).toBe(CLAUDE_CALLBACK);
+    expect(back.searchParams.get("error")).toBe("invalid_scope");
   });
 });

@@ -1,7 +1,22 @@
-import type { TimelineEntryModel } from "@caretook/data";
+import type {
+  DoseDetails,
+  MedicationChangeEntryDetails,
+  SchedulePass,
+  TimelineEntryModel,
+} from "@caretook/data";
 import type { ToolContext } from "../registry";
 
-import { isError, TIMELINE_ENTRY_KINDS, timelineEntryService } from "@caretook/data";
+import {
+  changeText,
+  doseText,
+  isError,
+  medicationPassService,
+  medicationService,
+  medicationTitle,
+  passMovedText,
+  TIMELINE_ENTRY_KINDS,
+  timelineEntryService,
+} from "@caretook/data";
 import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso, zonedIsoOrNull } from "../time";
@@ -13,8 +28,6 @@ export const TIMELINE_PAGE_MAX = 50;
 export const TIMELINE_DEFAULT_DAYS = 90;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** How much of a note's text the text rendering shows (the data has all of it). */
-const TEXT_PREVIEW = 280;
 
 const instant = z.iso.datetime({ offset: true });
 
@@ -68,10 +81,41 @@ const toEntry = (entry: TimelineEntryModel, timeZone: string, authors: Map<strin
   via: entry.via,
 });
 
-const line = (entry: ReturnType<typeof toEntry>) => {
-  const text =
-    entry.text && entry.text.length > TEXT_PREVIEW ? `${entry.text.slice(0, TEXT_PREVIEW)}…` : entry.text;
-  const what = [entry.title, text].filter(Boolean).join(": ");
+type Passes = readonly SchedulePass[];
+
+/**
+ * What a medication change says, in the medications area's own words: what
+ * changed with before → after values, a stop's reason and note, a pass's
+ * move. Null for an entry whose details aren't one.
+ */
+const changeLine = (
+  details: MedicationChangeEntryDetails,
+  medications: Map<string, string>,
+  passes: Passes,
+) => {
+  if (details.change === "passMoved") return passMovedText(details);
+  const name = medications.get(details.medicationId) ?? details.after?.name ?? details.before?.name;
+  const what = changeText(details, passes);
+  const note =
+    details.change === "stopped" && details.stopNote?.trim() ? `; note: ${details.stopNote.trim()}` : "";
+  return `${name ? `${name}: ` : ""}${what}${note}`;
+};
+
+/** A dose's line: the medication, what was logged ("Given 1 tablet") and the dose note, whole. */
+const doseLine = (details: DoseDetails, medications: Map<string, string>) => {
+  const name = medications.get(details.medicationId);
+  const note = details.note?.trim() ? `; note: ${details.note.trim()}` : "";
+  return `${name ? `${name}: ` : ""}${doseText(details)}${note}`;
+};
+
+const line = (entry: ReturnType<typeof toEntry>, medications: Map<string, string>, passes: Passes) => {
+  const change =
+    entry.kind === "medicationChange" && entry.details
+      ? changeLine(entry.details as MedicationChangeEntryDetails, medications, passes)
+      : null;
+  const dose =
+    entry.kind === "dose" && entry.details ? doseLine(entry.details as DoseDetails, medications) : null;
+  const what = [entry.title, change ?? dose, entry.text].filter(Boolean).join(": ");
   const by = entry.author.name ? ` (${entry.author.name})` : "";
   return `- ${entry.occurredAt} ${entry.kind}${what ? ` ${what}` : ""}${by}`;
 };
@@ -114,10 +158,27 @@ export const listTimeline = defineTool({
     if (isError(page)) return page;
 
     const entries = page.data.map((entry) => toEntry(entry, loaded.timeZone, authors));
+    // Only medication changes and doses need the medications and passes (deleted ones too, for their names).
+    const medications = new Map<string, string>();
+    let passes: Passes = [];
+    if (entries.some((e) => e.kind === "medicationChange" || e.kind === "dose")) {
+      const meds = await medicationService.list(asMember(ctx), {
+        groupId: ctx.groupId,
+        includeDeleted: true,
+      });
+      if (isError(meds)) return meds;
+      for (const m of meds.data) medications.set(m.id, medicationTitle(m));
+      const found = await medicationPassService.list(asMember(ctx), {
+        groupId: ctx.groupId,
+        includeDeleted: true,
+      });
+      if (isError(found)) return found;
+      passes = found.data;
+    }
     const text = entries.length
       ? [
           `${entries.length} entr${entries.length === 1 ? "y" : "ies"}, newest first (${loaded.timeZone}):`,
-          ...entries.map(line),
+          ...entries.map((e) => line(e, medications, passes)),
           ...(page.nextCursor ? ["More: call again with nextCursor."] : []),
         ].join("\n")
       : "No entries in that range.";

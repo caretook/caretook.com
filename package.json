@@ -22,7 +22,7 @@
     "test:components": "vitest run --project web:components",
     "test:components:install": "playwright install chromium",
     "build:budget": "node scripts/build/check.mjs",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm docs:budget",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm docs:budget",
     "hooks:install": "git config core.hooksPath .githooks",
     "backlog": "node scripts/backlog/backlog.mjs",
     "prd": "bash scripts/loops/prd.sh",

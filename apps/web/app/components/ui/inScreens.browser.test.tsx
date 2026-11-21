@@ -241,8 +241,11 @@ describe.each([
     expect(device.location()).toBe(TIMELINE);
   });
 
-  test("the timeline's chips and toggles: the kind filter a nav with All current, a tap filters; the layout buttons named, one pressed", async () => {
+  test("the timeline's chips and toggles: Filter opens a sheet whose kind filter is a nav with All current, a tap filters; Done returns focus; the layout buttons named, one pressed", async () => {
     const device = await open(TIMELINE, layout);
+    const filter = page.getByRole("button", { name: "Filter", exact: true });
+    await userEvent.click(filter);
+    await expect.element(page.getByRole("dialog", { name: "Filter entries" })).toBeVisible();
     const nav = page.getByRole("navigation", { name: "Show entries" });
     await expect
       .element(nav.getByRole("link", { name: "All", exact: true }))
@@ -251,6 +254,8 @@ describe.each([
     await userEvent.click(nav.getByRole("link", { name: "Symptoms" }));
     await expect.poll(device.location).toBe(`${TIMELINE}?kind=symptom`);
     await expect.element(nav.getByRole("link", { name: "Symptoms" })).toHaveAttribute("aria-current", "true");
+    await userEvent.click(page.getByRole("button", { name: "Done" }));
+    await expect.poll(() => document.activeElement?.textContent?.trim()).toBe("Filter · 1");
     const toggles = page.getByRole("group", { name: "Layout" }).getByRole("button").elements();
     expect(toggles.map((b) => b.getAttribute("aria-label"))).toEqual(["Rows", "Cards"]);
     expect(toggles.filter((b) => b.getAttribute("aria-pressed") === "true")).toHaveLength(1);
