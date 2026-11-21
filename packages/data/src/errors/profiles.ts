@@ -67,4 +67,27 @@ export const PROFILES_ERRORS = {
     message: "No known allergies needs a time, or none to clear it",
     statusCode: 400,
   },
+  "recipientConditionService:invalid": {
+    message: "The condition is invalid",
+    statusCode: 400,
+  },
+  "recipientConditionService:notFound": {
+    message: "Condition not found",
+    statusCode: 404,
+  },
+  "recipientConditionService:immutable": {
+    message: "A condition's group and recipient can't change",
+    statusCode: 400,
+  },
+  "recipientConditionService:hasConditions": {
+    message: "Remove the conditions on file before recording No known conditions",
+    statusCode: 409,
+  },
+  "recipientConditionService:invalidNoKnown": {
+    message: "No known conditions needs a time, or none to clear it",
+    statusCode: 400,
+  },
+  "recipientConditionModel:remove": {
+    message: "Failed to delete the condition",
+  },
 } as const;

@@ -4,4 +4,5 @@ export * from "./emergencyContacts";
 export * from "./memberContactShare";
 export * from "./profileVisibility";
 export * from "./recipientAllergy";
+export * from "./recipientCondition";
 export * from "./userContact";

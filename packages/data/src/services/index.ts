@@ -130,6 +130,9 @@ export type {
   RunResult as AssistantRunResult,
 } from "./assistantActionService";
 
+import * as recipientConditionService from "./recipientConditionService";
+export { recipientConditionService };
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -160,6 +163,7 @@ export const services = {
   appSetting: appSettingService,
   task: taskService,
   connectorGrant: connectorGrantService,
+  recipientCondition: recipientConditionService,
 };
 
 export type ServiceTypeMap = typeof services;

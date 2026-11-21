@@ -6,6 +6,7 @@ import type {
   MedicationUpsertInput,
   ProviderUpsertInput,
   RecipientAllergyUpsertInput,
+  RecipientConditionUpsertInput,
   TaskUpsertInput,
   TimelineEntryUpsertInput,
 } from "@caretook/data";
@@ -22,6 +23,7 @@ import {
   noteDocumentService,
   providerService,
   recipientAllergyService,
+  recipientConditionService,
   taskService,
   timelineEntryService,
 } from "@caretook/data";
@@ -495,16 +497,25 @@ const recipientAllergyOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Prom
 };
 
 // ---------------------------------------------------------------------------
-// care_recipient: read-only, except "No known allergies". A PATCH touching only
-// `no_known_allergies_at` sets or clears it (care_recipient's update rule);
+// care_recipient: read-only, except "No known allergies" and "No known
+// conditions". A PATCH touching only `no_known_allergies_at` or only
+// `no_known_conditions_at` sets or clears it (care_recipient's update rule);
 // anything else is refused as before.
 // ---------------------------------------------------------------------------
 
 const careRecipientOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
   const data = op.data ?? {};
   const columns = Object.keys(data);
-  if (op.op !== "PATCH" || columns.length !== 1 || columns[0] !== "no_known_allergies_at")
-    return readOnly(op.table, op.op);
+  if (op.op !== "PATCH" || columns.length !== 1) return readOnly(op.table, op.op);
+  if (columns[0] === "no_known_conditions_at") {
+    const res = await recipientConditionService.setNoKnownConditions(
+      ctx,
+      op.id,
+      toIsoTimestamp(data.no_known_conditions_at),
+    );
+    return isError(res) ? res : applied;
+  }
+  if (columns[0] !== "no_known_allergies_at") return readOnly(op.table, op.op);
   const res = await recipientAllergyService.setNoKnownAllergies(
     ctx,
     op.id,
@@ -653,6 +664,70 @@ const taskOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome>
 };
 
 // ---------------------------------------------------------------------------
+// recipient_condition: like recipient_allergy. Soft deletes; the group and
+// recipient never change. A status PATCH (resolve, reactivate) is an update.
+// `diagnosed_by_id` isn't mapped yet (conditions slice 3).
+// ---------------------------------------------------------------------------
+
+const CONDITION_COLUMNS = {
+  name: (v: unknown) => ["name", text(v)],
+  status: (v: unknown) => ["status", text(v)],
+  since_year: (v: unknown) => ["sinceYear", int(v)],
+  since_month: (v: unknown) => ["sinceMonth", int(v)],
+  note: (v: unknown) => ["note", text(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const conditionContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = CONDITION_COLUMNS[column as keyof typeof CONDITION_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a condition that's already deleted is a replay: fine. */
+const removeCondition = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await recipientConditionService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "recipientConditionService:notFound") return res;
+  const condition = await recipientConditionService.getById(ctx, id, { includeDeleted: true });
+  if (isError(condition)) return condition;
+  return condition?.deletedAt ? applied : res;
+};
+
+const recipientConditionOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...conditionContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await recipientConditionService.upsert(
+      ctx,
+      input as unknown as RecipientConditionUpsertInput,
+    );
+    if (isError(res)) return res;
+    if (data.deleted_at) return removeCondition(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeCondition(ctx, op.id);
+
+  if ("group_id" in data || "recipient_id" in data)
+    return newError({ code: "recipientConditionService:immutable" });
+  if (data.deleted_at) return removeCondition(ctx, op.id);
+  const content = conditionContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await recipientConditionService.update(ctx, op.id, content);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "recipientConditionService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -668,6 +743,7 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   care_recipient: careRecipientOp,
   care_period: carePeriodOp,
   task: taskOp,
+  recipient_condition: recipientConditionOp,
 };
 
 /**

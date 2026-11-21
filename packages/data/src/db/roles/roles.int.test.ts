@@ -112,6 +112,14 @@ describe("applyRoles", { timeout: 20_000 }, () => {
     const replication = await connectAs(names.replication);
     expect(await failsWith(replication, `SELECT id, name, image FROM "user"`)).toBeNull();
     expect(await failsWith(replication, `SELECT id, group_id, title FROM timeline_entry`)).toBeNull();
+    // Conditions (conditions slice 1): the table and the recipient's flag.
+    expect(
+      await failsWith(
+        replication,
+        `SELECT id, group_id, name, status, since_year, since_month, note, diagnosed_by_id, deleted_at FROM recipient_condition`,
+      ),
+    ).toBeNull();
+    expect(await failsWith(replication, `SELECT no_known_conditions_at FROM care_recipient`)).toBeNull();
     expect(await failsWith(replication, `SELECT password FROM account`)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(await failsWith(replication, `SELECT id FROM session`)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(await failsWith(replication, `SELECT id FROM admin_audit_log`)).toBe(INSUFFICIENT_PRIVILEGE);
