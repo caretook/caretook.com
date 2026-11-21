@@ -3,6 +3,7 @@ import type { Auth } from "@caretook/auth";
 
 import { getAuth, isSignedConnectQuery } from "@caretook/auth";
 import {
+  assistantRequestService,
   careGroupService,
   careRecipientService,
   CONNECTOR_OAUTH_SCOPES,
@@ -31,12 +32,38 @@ export type ConnectGroup = {
   scopes: readonly ConnectorScope[];
 };
 
+/**
+ * A group of the member's whose switch is off (connectors-2), for the "no
+ * group allows assistants" state: a member who isn't an owner asks its
+ * owners from there. `askedAt` is their last request (null: never, or an owner).
+ */
+export type OffGroup = {
+  id: string;
+  name: string;
+  recipientName: string | null;
+  role: GroupRoleName;
+  askedAt: string | null;
+};
+
 export type ConnectPage =
   | { state: "invalid" }
-  | { state: "consent"; client: { name: string; redirectHost: string }; groups: ConnectGroup[] };
+  | {
+      state: "consent";
+      client: { name: string; redirectHost: string };
+      groups: ConnectGroup[];
+      /** Filled only when `groups` is empty. */
+      offGroups: OffGroup[];
+    };
 
-/** Connect's outcome: where to send the member (the client, with a code or access denied), or what to fix. */
-export type ConnectOutcome = { redirect: string } | { error: string };
+/** Who was connected where, for the success step (connectors-2 PRD). */
+export type ConnectedTo = { groupName: string; clientName: string };
+
+/**
+ * Connect's outcome: where to send the member (the client, with a code or
+ * access denied), or what to fix. A connection also says what was connected,
+ * so the page shows the success step before it returns.
+ */
+export type ConnectOutcome = { redirect: string; connected?: ConnectedTo } | { error: string };
 
 const hostOf = (uri: string) => {
   try {
@@ -68,18 +95,18 @@ export const acceptedOAuthScopes = (scope: ConnectorScope, requested: readonly s
   return requested.filter((s) => wanted.includes(s));
 };
 
-const eligibleGroups = async (authUser: AuthUser, requested: readonly string[]) => {
+/** The member's groups, each with its role and the recipient's name. */
+const memberGroups = async (authUser: AuthUser) => {
   const groups = await careGroupService.list({ authUser }, { paginate: { page: 1, limit: 100 } });
   if (isError(groups)) return groups;
-  const enabled = groups.data.filter((g) => g.connectorsEnabled);
-  const recipients = enabled.length
+  const recipients = groups.data.length
     ? await careRecipientService.list(
         { authUser },
-        { filter: { groupId: { type: "inArray", value: enabled.map((g) => g.id) } } },
+        { filter: { groupId: { type: "inArray", value: groups.data.map((g) => g.id) } } },
       )
     : { data: [] };
   if (isError(recipients)) return recipients;
-  return enabled.flatMap((group): ConnectGroup[] => {
+  return groups.data.flatMap((group) => {
     const role = authUser.groupRoles?.[group.id];
     if (!role) return [];
     const recipient = recipients.data.find((r) => r.groupId === group.id);
@@ -89,10 +116,36 @@ const eligibleGroups = async (authUser: AuthUser, requested: readonly string[]) 
         name: group.name,
         recipientName: recipient ? recipient.preferredName || recipient.name : null,
         role,
-        scopes: scopesForRole(role).filter((s) => s === "read" || asksToWrite(requested)),
+        enabled: group.connectorsEnabled,
       },
     ];
   });
+};
+
+type MemberGroup = Exclude<Awaited<ReturnType<typeof memberGroups>>, AppError>[number];
+
+const eligibleGroups = (groups: MemberGroup[], requested: readonly string[]) =>
+  groups
+    .filter((g) => g.enabled)
+    .map(({ enabled: _enabled, ...group }): ConnectGroup => ({
+      ...group,
+      scopes: scopesForRole(group.role).filter((s) => s === "read" || asksToWrite(requested)),
+    }));
+
+/** The groups with the switch off, with the member's last request to each one's owners. */
+const offGroups = async (authUser: AuthUser, groups: MemberGroup[]) => {
+  const off: OffGroup[] = [];
+  for (const { enabled, ...group } of groups) {
+    if (enabled) continue;
+    let askedAt: string | null = null;
+    if (group.role !== "owner") {
+      const last = await assistantRequestService.latest({ authUser }, group.id);
+      if (isError(last)) return last;
+      askedAt = last ? new Date(last.requestedAt).toISOString() : null;
+    }
+    off.push({ ...group, askedAt });
+  }
+  return off;
 };
 
 /** The consent page for a signed-in member; `invalid` for a query the plugin didn't sign, or an expired one. */
@@ -107,9 +160,12 @@ export const loadConnectPage = async (
   if (isError(client)) return client;
   const host = hostOf(signed.redirectUri);
   if (!client || !host) return { state: "invalid" };
-  const groups = await eligibleGroups(authUser, signed.scopes);
-  if (isError(groups)) return groups;
-  return { state: "consent", client: { name: client.name, redirectHost: host }, groups };
+  const mine = await memberGroups(authUser);
+  if (isError(mine)) return mine;
+  const groups = eligibleGroups(mine, signed.scopes);
+  const off = groups.length ? [] : await offGroups(authUser, mine);
+  if (isError(off)) return off;
+  return { state: "consent", client: { name: client.name, redirectHost: host }, groups, offGroups: off };
 };
 
 const field = (form: FormData, name: string) => {
@@ -161,11 +217,18 @@ export const submitConnectPage = async (
     return granted;
   }
 
+  let redirect: string;
   try {
-    return { redirect: (await consent({ accept: true, scope: accepted.join(" ") })).url };
+    redirect = (await consent({ accept: true, scope: accepted.join(" ") })).url;
   } catch (error) {
     // The plugin refused: nothing reaches the group without its tokens, but take the grant back.
     await connectorGrantService.revoke({ authUser }, granted.id);
     throw error;
   }
+  const group = await careGroupService.getById({ authUser }, groupId);
+  if (isError(group)) return group;
+  return {
+    redirect,
+    connected: { groupName: group?.name ?? "your care group", clientName: granted.clientName },
+  };
 };

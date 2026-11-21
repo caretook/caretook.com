@@ -75,7 +75,7 @@ const bodyOf = async (message: unknown, scope?: ToolContext["scope"]) => {
   return reply.body as {
     id: unknown;
     result?: Record<string, unknown>;
-    error?: { code: number; message: string };
+    error?: { code: number; message: string; data?: unknown };
   };
 };
 
@@ -86,11 +86,12 @@ describe("handleMcp", () => {
       id: 1,
       result: {
         protocolVersion: "2025-03-26",
-        capabilities: { tools: { listChanged: false } },
+        capabilities: { tools: { listChanged: false }, prompts: { listChanged: false } },
         serverInfo: { name: "caretook" },
       },
     });
-    expect(Object.keys(body.result!.capabilities as object)).toEqual(["tools"]);
+    expect(Object.keys(body.result!.capabilities as object)).toEqual(["tools", "prompts"]);
+    expect(body.result?.instructions).toMatch(/prompts/);
   });
 
   it("answers an unknown version with our newest", async () => {
@@ -204,5 +205,101 @@ describe("handleMcp", () => {
     ]) {
       expect((await bodyOf(message)).error?.code).toBe(JSON_RPC.invalidRequest);
     }
+  });
+});
+
+describe("handleMcp's prompts (the real ones)", () => {
+  type PromptReply = {
+    description: string;
+    messages: { role: string; content: { type: string; text: string } }[];
+  };
+  const get = async (name: string, args?: Record<string, unknown>, scope?: ToolContext["scope"]) =>
+    bodyOf(request(9, "prompts/get", { name, ...(args ? { arguments: args } : {}) }), scope);
+  const textOf = async (name: string, args?: Record<string, unknown>) => {
+    const body = await get(name, args);
+    const reply = body.result as PromptReply;
+    expect(reply.messages).toHaveLength(1);
+    expect(reply.messages[0]).toMatchObject({ role: "user", content: { type: "text" } });
+    return reply.messages[0]!.content.text;
+  };
+
+  it("lists the four for a read-and-write grant, with MCP arguments", async () => {
+    const body = await bodyOf(request(2, "prompts/list"));
+    const prompts = body.result?.prompts as {
+      name: string;
+      title: string;
+      arguments: { name: string; description?: string; required: boolean }[];
+    }[];
+    expect(prompts.map((p) => p.name)).toEqual([
+      "catch_me_up",
+      "prepare_for_appointment",
+      "weekly_summary",
+      "log_what_happened",
+    ]);
+    expect(prompts[0]).toMatchObject({
+      title: "Catch me up",
+      arguments: [{ name: "since", required: false }],
+    });
+    expect(prompts[0]?.arguments[0]?.description).toMatch(/start of today/);
+    expect(prompts[1]?.arguments).toMatchObject([{ name: "appointment", required: false }]);
+    expect(prompts[2]?.arguments).toEqual([]);
+    expect(prompts[3]?.arguments).toMatchObject([{ name: "account", required: true }]);
+  });
+
+  it("leaves logging out of a read-only grant's list, and won't get it", async () => {
+    const body = await bodyOf(request(2, "prompts/list"), "read");
+    expect((body.result?.prompts as { name: string }[]).map((p) => p.name)).toEqual([
+      "catch_me_up",
+      "prepare_for_appointment",
+      "weekly_summary",
+    ]);
+    const refused = await get("log_what_happened", { account: "Slept well" }, "read");
+    expect(refused.error?.code).toBe(JSON_RPC.invalidParams);
+  });
+
+  it("catch_me_up: since the start of today by default, or the time given; names the tools", async () => {
+    const plain = await textOf("catch_me_up");
+    expect(plain).toContain("since the start of today");
+    for (const tool of ["group_overview", "list_timeline", "todays_doses", "upcoming"])
+      expect(plain).toContain(tool);
+    expect(await textOf("catch_me_up", { since: "yesterday at 6pm" })).toContain('since "yesterday at 6pm"');
+    expect(await textOf("catch_me_up", { since: "  " })).toContain("since the start of today");
+  });
+
+  it("prepare_for_appointment: the next one by default, or the one named", async () => {
+    const next = await textOf("prepare_for_appointment");
+    expect(next).toContain("the next appointment");
+    for (const tool of ["upcoming", "list_timeline", "latest_vitals", "list_medications"])
+      expect(next).toContain(tool);
+    expect(await textOf("prepare_for_appointment", { appointment: "Dr. Lark on Tuesday" })).toContain(
+      'the appointment "Dr. Lark on Tuesday"',
+    );
+  });
+
+  it("weekly_summary: the last 7 days, no arguments needed", async () => {
+    const text = await textOf("weekly_summary");
+    expect(text).toContain("last 7 days");
+    expect(text).toContain("list_timeline");
+  });
+
+  it("log_what_happened: the account, the write tools, and one call per entry to confirm", async () => {
+    const text = await textOf("log_what_happened", { account: "BP 128/82 at 9am, gave her morning pills." });
+    expect(text).toContain("BP 128/82 at 9am, gave her morning pills.");
+    for (const tool of ["log_vitals", "log_dose", "log_symptom", "add_note"]) expect(text).toContain(tool);
+    expect(text).toMatch(/confirm each/);
+  });
+
+  it("answers a missing or invalid argument, an unknown prompt and bad params as invalid params", async () => {
+    for (const args of [undefined, {}, { account: "" }, { account: 42 }, { account: "x".repeat(5001) }]) {
+      expect((await get("log_what_happened", args)).error?.code).toBe(JSON_RPC.invalidParams);
+    }
+    const missing = await get("log_what_happened");
+    expect(missing.error).toMatchObject({ data: { issues: [{ path: "account" }] } });
+    expect((await get("catch_me_up", { since: "x".repeat(101) })).error?.code).toBe(JSON_RPC.invalidParams);
+    expect((await get("nope")).error?.code).toBe(JSON_RPC.invalidParams);
+    expect((await bodyOf(request(9, "prompts/get", {}))).error?.code).toBe(JSON_RPC.invalidParams);
+    expect(
+      (await bodyOf(request(9, "prompts/get", { name: "weekly_summary", arguments: "all" }))).error?.code,
+    ).toBe(JSON_RPC.invalidParams);
   });
 });

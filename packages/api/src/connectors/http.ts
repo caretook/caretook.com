@@ -1,10 +1,12 @@
 import type { ValidateToken } from "@caretook/data";
 import type { RateLimiter } from "../rateLimit";
+import type { Prompt } from "./prompts";
 import type { Tool } from "./registry";
 
 import { connectorGrantService, isError, logError } from "@caretook/data";
 import { OAUTH_SCOPES } from "@caretook/data/schema";
 import { createRateLimiter, defaultStore } from "../rateLimit";
+import { CONNECTOR_PROMPTS } from "./prompts";
 import { handleMcp, JSON_RPC } from "./protocol";
 import { CONNECTOR_TOOLS } from "./tools";
 
@@ -35,6 +37,7 @@ export type McpHandlerOptions = {
   allowedOrigins?: readonly string[];
   limiter?: RateLimiter;
   tools?: readonly Tool[];
+  prompts?: readonly Prompt[];
   now?: () => Date;
   /** Our public origin, for links in tool answers: the resource metadata's, unless given. */
   appOrigin?: string;
@@ -70,6 +73,7 @@ export const createMcpHandler = ({
     store: defaultStore("connector"),
   }),
   tools = CONNECTOR_TOOLS,
+  prompts = CONNECTOR_PROMPTS,
   now = () => new Date(),
   appOrigin = new URL(resourceMetadataUrl).origin,
 }: McpHandlerOptions) => {
@@ -115,7 +119,7 @@ export const createMcpHandler = ({
     }
 
     try {
-      const reply = await handleMcp(message, { ...verified, now: now(), origin: appOrigin }, tools);
+      const reply = await handleMcp(message, { ...verified, now: now(), origin: appOrigin }, tools, prompts);
       if (reply.kind === "accepted") return new Response(null, { status: 202 });
       if (reply.kind === "insufficientScope") {
         return json(reply.body, 403, { "www-authenticate": challenge('error="insufficient_scope", ') });

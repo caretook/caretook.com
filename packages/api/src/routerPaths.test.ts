@@ -61,6 +61,8 @@ const FROZEN_PATHS = [
   "careGroup.updateRecipientDetails",
   "connector.listForGroup",
   "connector.listMine",
+  "connector.myRequest",
+  "connector.requestEnable",
   "connector.revoke",
   "invite.accept",
   "invite.copyLink",

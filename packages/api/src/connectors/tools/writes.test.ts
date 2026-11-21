@@ -1,11 +1,37 @@
 import { describe, expect, it } from "vitest";
 import { describeTool } from "../registry";
-import { addEvent, addNote, addTask, givePass, logDose, logSymptom, logVitals } from "./writes";
+import {
+  addCondition,
+  addEvent,
+  addNote,
+  addTask,
+  appendToEntry,
+  givePass,
+  logDose,
+  logSymptom,
+  logVitals,
+  resolveCondition,
+  updateCondition,
+  updateEntry,
+} from "./writes";
 
 // The write tools as tools/list sends them: each action's own fields minus
 // `type`, writes marked so Claude and ChatGPT ask first.
 
-const WRITES = [logVitals, logSymptom, logDose, givePass, addNote, addEvent, addTask];
+const WRITES = [
+  logVitals,
+  logSymptom,
+  logDose,
+  givePass,
+  addNote,
+  addEvent,
+  addTask,
+  appendToEntry,
+  updateEntry,
+  addCondition,
+  updateCondition,
+  resolveCondition,
+];
 
 const propertiesOf = (tool: (typeof WRITES)[number]) => {
   const schema = describeTool(tool).inputSchema as {
@@ -47,6 +73,40 @@ describe("the write tools", () => {
       names: ["title", "dueOn", "dueTime", "providerId", "medicationId", "eventId", "assignee"],
       required: ["title"],
     });
+    // The edits name their entry: lines to add, or a new title or time.
+    expect(propertiesOf(appendToEntry)).toEqual({
+      names: ["entryId", "lines"],
+      required: ["entryId", "lines"],
+    });
+    expect(propertiesOf(updateEntry)).toEqual({
+      names: ["entryId", "title", "occurredAt"],
+      required: ["entryId"],
+    });
+    // Conditions: the content fields, and an id for the two that name one.
+    expect(propertiesOf(addCondition)).toEqual({
+      names: ["name", "sinceYear", "sinceMonth", "note", "diagnosedById"],
+      required: ["name"],
+    });
+    expect(propertiesOf(updateCondition)).toEqual({
+      names: ["conditionId", "name", "status", "sinceYear", "sinceMonth", "note", "diagnosedById"],
+      required: ["conditionId"],
+    });
+    expect(propertiesOf(resolveCondition)).toEqual({
+      names: ["conditionId"],
+      required: ["conditionId"],
+    });
+  });
+
+  it("limit an append to 50 lines, each a paragraph or a bullet", () => {
+    const schema = describeTool(appendToEntry).inputSchema as { properties: Record<string, unknown> };
+    const lines = schema.properties.lines;
+    expect(lines).toMatchObject({
+      type: "array",
+      minItems: 1,
+      maxItems: 50,
+      items: { properties: { style: { enum: ["paragraph", "bullet"] } }, required: ["text"] },
+    });
+    expect(appendToEntry.description).toMatch(/5,000 characters/);
   });
 
   it("say which units vitals take", () => {

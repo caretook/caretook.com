@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../test/fixtures";
+import { buildNoteDoc } from "../db/schema";
+import { createGroup, createUser, ok, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
   FUTURE_DATE_MESSAGE,
   noteDocumentSchema,
+  noteUpdateSchema,
   taskSchema,
   timelineEntryProviderSchema,
   timelineEntrySchema,
@@ -15,6 +17,7 @@ import {
   assistantActionService,
   medicationPassService,
   medicationService,
+  noteDocumentService,
   providerService,
   taskService,
   timelineEntryService,
@@ -302,5 +305,218 @@ describe("assistantActionService.run", () => {
     ok(await taskService.update(u.caretaker.ctx, taskId, { title: "Book a taxi" }));
     const task = ok(await taskService.getById(u.viewer.ctx, taskId));
     expect(task).toMatchObject({ title: "Book a taxi", via: VIA, groupId: group.id });
+  });
+});
+
+describe("assistantActionService.run: edits (connectors-2)", () => {
+  // A fixed clock (the series of B-205/B-206): edits never depend on the time of day.
+  const NOW = new Date("2026-11-18T19:00:00.000Z");
+  const at = (iso: string) => new Date(iso).toISOString();
+
+  const editSetup = async () => {
+    const s = await setup();
+    const runAt = (who: keyof typeof s.u, actions: unknown[]) =>
+      assistantActionService.run(s.u[who].ctx, s.group.id, actions, { via: VIA, now: NOW });
+    const make = async (action: Record<string, unknown>) => {
+      const [[id]] = ok(await runAt("owner", [action])).byAction as [[string]];
+      return id;
+    };
+    const pendingOf = async (id: string) =>
+      getDb().select().from(noteUpdateSchema).where(eq(noteUpdateSchema.documentId, id));
+    const docOf = async (id: string) =>
+      (await getDb().select().from(noteDocumentSchema).where(eq(noteDocumentSchema.id, id)))[0];
+    return { ...s, runAt, make, pendingOf, docOf };
+  };
+
+  it("appends lines at the end of a note, merging pending updates, the member in editors", async () => {
+    const { u, group, runAt, make, pendingOf, docOf } = await editSetup();
+    const noteId = await make({
+      type: "addNote",
+      title: "Visit prep",
+      text: "Bring the pill box",
+      occurredAt: at("2026-11-18T17:00:00Z"),
+    });
+    // The owner's device has typed a line that isn't compacted yet.
+    const ydoc = ok(await noteDocumentService.currentDoc(u.owner.ctx, noteId));
+    ok(
+      await noteDocumentService.appendUpdate(u.owner.ctx, {
+        id: randomUUID(),
+        groupId: group.id,
+        documentId: noteId,
+        data: typeParagraph(ydoc, "Ask about the cough"),
+      }),
+    );
+    ydoc.destroy();
+    expect(await pendingOf(noteId)).toHaveLength(1);
+
+    const res = ok(
+      await runAt("caretaker", [
+        {
+          type: "appendToEntry",
+          entryId: noteId,
+          lines: [
+            { text: "Questions for Dr. Lee" },
+            { text: "Can the evening dose move earlier?", style: "bullet" },
+            { text: "Is the dizziness from the new tablet?", style: "bullet" },
+          ],
+        },
+      ]),
+    );
+    expect(res.byAction).toEqual([[noteId]]);
+
+    // Compacted at once: both updates folded into the text, in order, nothing pending.
+    expect(await pendingOf(noteId)).toEqual([]);
+    const doc = (await docOf(noteId))!;
+    expect(doc.text).toBe(
+      [
+        "Bring the pill box",
+        "Ask about the cough",
+        "Questions for Dr. Lee",
+        "• Can the evening dose move earlier?",
+        "• Is the dizziness from the new tablet?",
+      ].join("\n"),
+    );
+    expect(Object.keys(doc.editors as Record<string, string>)).toEqual(
+      expect.arrayContaining([u.owner.user.id, u.caretaker.user.id]),
+    );
+    expect(ok(await timelineEntryService.getById(u.viewer.ctx, noteId))?.body).toBe(doc.text);
+    // The entry stays the owner's: an edit changes only its text.
+    expect(ok(await timelineEntryService.getById(u.viewer.ctx, noteId))).toMatchObject({
+      title: "Visit prep",
+      createdBy: u.owner.user.id,
+    });
+  });
+
+  it("makes an event's document when it has none", async () => {
+    const { u, group, runAt, docOf } = await editSetup();
+    // An event made in the app without notes yet: no document.
+    const event = ok(
+      await timelineEntryService.create(u.owner.ctx, {
+        groupId: group.id,
+        kind: "event",
+        title: "Cardiology follow-up",
+        occurredAt: at("2026-11-24T18:00:00Z"),
+        timeZone: "America/Los_Angeles",
+      }),
+    )!;
+    expect(await docOf(event.id)).toBeUndefined();
+
+    ok(
+      await runAt("caretaker", [
+        { type: "appendToEntry", entryId: event.id, lines: [{ text: "Bring the list" }] },
+      ]),
+    );
+    const doc = (await docOf(event.id))!;
+    expect(doc).toMatchObject({ subject: "entry", entryId: event.id, text: "Bring the list" });
+    expect(Object.keys(doc.editors as Record<string, string>)).toEqual([u.caretaker.user.id]);
+    expect(buildNoteDoc(doc.snapshot).getXmlFragment("default").length).toBe(1);
+  });
+
+  it("changes a title and a time, moving an event's end with its start", async () => {
+    const { u, group, runAt, make } = await editSetup();
+    const noteId = await make({
+      type: "addNote",
+      text: "Slept well",
+      occurredAt: at("2026-11-18T15:00:00Z"),
+    });
+    const event = ok(
+      await timelineEntryService.create(u.owner.ctx, {
+        groupId: group.id,
+        kind: "event",
+        title: "Dentist",
+        occurredAt: at("2026-11-25T17:00:00Z"),
+        endsAt: at("2026-11-25T18:00:00Z"),
+        timeZone: "America/Los_Angeles",
+      }),
+    )!;
+
+    const res = ok(
+      await runAt("caretaker", [
+        { type: "updateEntry", entryId: noteId, title: "Night" },
+        {
+          type: "updateEntry",
+          entryId: event.id,
+          title: "Dentist: cleaning",
+          occurredAt: "2026-11-26T10:30:00-08:00",
+        },
+      ]),
+    );
+    expect(res.byAction).toEqual([[noteId], [event.id]]);
+    expect(ok(await timelineEntryService.getById(u.viewer.ctx, noteId))).toMatchObject({
+      title: "Night",
+      body: "Slept well",
+      updatedBy: u.caretaker.user.id,
+    });
+    const moved = ok(await timelineEntryService.getById(u.viewer.ctx, event.id))!;
+    expect(moved.title).toBe("Dentist: cleaning");
+    expect(new Date(moved.occurredAt).toISOString()).toBe("2026-11-26T18:30:00.000Z");
+    expect(new Date(moved.endsAt!).toISOString()).toBe("2026-11-26T19:30:00.000Z");
+    expect(moved.via).toBeNull();
+  });
+
+  it("refuses too much text, viewers, deleted entries, symptoms and other groups' ids", async () => {
+    const { u, runAt, make, entriesOf, docOf } = await editSetup();
+    const noteId = await make({ type: "addNote", text: "Original", occurredAt: at("2026-11-18T15:00:00Z") });
+    const symptomId = await make({
+      type: "logSymptom",
+      name: "Headache",
+      occurredAt: at("2026-11-18T15:00:00Z"),
+    });
+    const goneId = await make({ type: "addNote", text: "Gone", occurredAt: at("2026-11-18T15:00:00Z") });
+    ok(await timelineEntryService.remove(u.owner.ctx, goneId));
+    const elsewhere = await createUser("elsewhere");
+    const { group: other } = await createGroup(elsewhere);
+    const [[otherNote]] = ok(
+      await assistantActionService.run(
+        elsewhere.ctx,
+        other.id,
+        [{ type: "addNote", text: "Not yours", occurredAt: at("2026-11-18T15:00:00Z") }],
+        { via: VIA, now: NOW },
+      ),
+    ).byAction as [[string]];
+    const before = await entriesOf();
+    const append = (entryId: string, lines: unknown[] = [{ text: "More" }]) => ({
+      type: "appendToEntry",
+      entryId,
+      lines,
+    });
+
+    const cases: [unknown, string, unknown?][] = [
+      [
+        append(
+          noteId,
+          Array.from({ length: 51 }, (_, i) => ({ text: `Line ${i}` })),
+        ),
+        "assistantActionService:invalid",
+        [expect.objectContaining({ path: "lines" })],
+      ],
+      [
+        append(noteId, [{ text: "x".repeat(3_000) }, { text: "y".repeat(2_500) }]),
+        "assistantActionService:invalid",
+        [{ path: "lines", message: "At most 5,000 characters at a time" }],
+      ],
+      [{ type: "updateEntry", entryId: noteId }, "assistantActionService:invalid"],
+      [append(goneId), "assistantActionService:entryDeleted"],
+      [{ type: "updateEntry", entryId: goneId, title: "Back" }, "assistantActionService:entryDeleted"],
+      [append(symptomId), "assistantActionService:notEditable"],
+      [{ type: "updateEntry", entryId: symptomId, title: "Migraine" }, "assistantActionService:notEditable"],
+      [append(otherNote), "assistantActionService:entryNotFound"],
+      [{ type: "updateEntry", entryId: otherNote, title: "Mine" }, "assistantActionService:entryNotFound"],
+      [append(randomUUID()), "assistantActionService:entryNotFound"],
+    ];
+    for (const [bad, code, issues] of cases) {
+      const res = refusal(await runAt("caretaker", [append(noteId, [{ text: "Fine" }]), bad]));
+      expect(res, JSON.stringify(bad).slice(0, 200)).toMatchObject({ code, index: 1 });
+      if (issues) expect(res.issues).toEqual(issues);
+    }
+    expect(refusal(await runAt("viewer", [append(noteId)]))).toMatchObject({
+      code: "permissions:unauthorized",
+      index: null,
+    });
+
+    // Nothing written: the note's text and every entry as they were.
+    expect((await docOf(noteId))?.text).toBe("Original");
+    expect(await entriesOf()).toEqual(before);
+    expect((await docOf(otherNote))?.text).toBe("Not yours");
   });
 });

@@ -1,13 +1,26 @@
-import type { AppError, AssistantAction, PreviewContext } from "@caretook/data";
+import type {
+  ActionPreview,
+  AppError,
+  AssistantAction,
+  ConditionAction,
+  PreviewContext,
+  RecipientCondition,
+  TimelineEntry,
+} from "@caretook/data";
 import type { ToolContext, ToolOutput } from "../registry";
 
 import {
   actionPreview,
+  addConditionActionZSchema,
   addEventActionZSchema,
   addNoteActionZSchema,
   addTaskActionZSchema,
+  appendLineZSchema,
+  CONDITION_STATUSES,
+  conditionSinceWords,
   assistantActionService,
   DOSE_STATUSES,
+  ENTRY_APPEND_LIMITS,
   givePassActionZSchema,
   isDoseDetails,
   isError,
@@ -18,13 +31,18 @@ import {
   medicationService,
   newError,
   providerService,
+  recipientConditionService,
+  resolveConditionActionZSchema,
   resolveUnits,
   SYSTEM_USER,
   timelineEntryService,
+  updateConditionActionZSchema,
+  updateEntryActionZSchema,
   userModel,
+  whenText,
 } from "@caretook/data";
 import { z } from "zod";
-import { entryPath, linkTo, passLogPath, taskPath } from "../links";
+import { entryPath, linkTo, passLogPath, profilePath, taskPath } from "../links";
 import { defineTool, WRITE_ANNOTATIONS } from "../registry";
 import { loadGroup, loadMembers } from "./shared";
 
@@ -33,8 +51,9 @@ import { loadGroup, loadMembers } from "./shared";
 // `via` set to the connection's client name. Inputs are the actions' own
 // shapes minus `type` (a time defaults to now; an event's zone, and a task's
 // assignee by name, are filled in here). Each answers with quick entry's
-// preview wording and a link to what it made. Nothing edits, deletes or
-// completes: people do that in the app.
+// preview wording and a link to what it made. Nothing deletes or completes:
+// people do that in the app. The edits (connectors-2) only add to a note's
+// or event's text, or change its title or time, and don't set `via`.
 
 const when = z.iso
   .datetime({ offset: true })
@@ -305,4 +324,207 @@ export const addTask = defineTool({
       }),
     );
   },
+});
+
+// ---------------------------------------------------------------------------
+// Edits (connectors-2)
+// ---------------------------------------------------------------------------
+
+const entryIdInput = z.uuid().describe("The note's or event's id, from list_timeline, search or upcoming.");
+
+/** What an entry is called in an answer: its title, else its first line, else its kind. */
+const entryName = (entry: Pick<TimelineEntry, "kind" | "title" | "body">) => {
+  const first = entry.body
+    ?.split("\n")
+    .find((line) => line.trim())
+    ?.trim();
+  const fallback = entry.kind === "event" ? "Event" : "Note";
+  const name = entry.title?.trim() || first || fallback;
+  return name.length > 80 ? `${name.slice(0, 79)}…` : name;
+};
+
+type Loaded = Exclude<Awaited<ReturnType<typeof loadGroup>>, AppError>;
+const entryWhen = (entry: Pick<TimelineEntry, "occurredAt" | "allDay">, ctx: ToolContext, loaded: Loaded) =>
+  whenText(new Date(entry.occurredAt).toISOString(), {
+    now: ctx.now,
+    locale: "en-US",
+    timeZone: loaded.timeZone,
+    allDay: !!entry.allDay,
+  });
+
+/** Run one edit, then answer with what changed (`detail`) and a link to the entry. */
+const carryOutEdit = async (
+  ctx: ToolContext,
+  action: { type: "appendToEntry" | "updateEntry"; entryId: string } & Record<string, unknown>,
+  what: string,
+  detail: (before: TimelineEntry | null, after: TimelineEntry, loaded: Loaded) => string | null,
+): Promise<ToolOutput | AppError> => {
+  const loaded = await loadGroup(ctx);
+  if (isError(loaded)) return loaded;
+  const before = await timelineEntryService.getById({ authUser: ctx.authUser }, action.entryId);
+  const res = await assistantActionService.run({ authUser: ctx.authUser }, ctx.groupId, [action], {
+    via: ctx.clientName,
+    now: ctx.now,
+  });
+  if (isError(res)) return res;
+  const after = await timelineEntryService.getById({ authUser: ctx.authUser }, action.entryId);
+  if (isError(after)) return after;
+  if (!after) return newError({ code: "assistantActionService:entryNotFound" });
+
+  const preview: ActionPreview = {
+    title: entryName(after),
+    detail: detail(isError(before) ? null : before, after, loaded),
+    when: entryWhen(after, ctx, loaded),
+  };
+  const url = linkTo(ctx.origin, entryPath(ctx.groupId, after));
+  const line = [preview.title, preview.detail, preview.when].filter(Boolean).join(" · ");
+  return {
+    text: [`${what}: ${line}`, url].join("\n"),
+    structured: { preview, entryIds: [after.id], url },
+  };
+};
+
+export const appendToEntry = defineTool({
+  name: "append_to_entry",
+  title: "Add to a note or event",
+  description: `Add lines at the end of an existing note's or event's text (say, questions for an upcoming visit), leaving what's there as it is. Each line is a paragraph or a bullet; runs of bullets make one list. At most ${ENTRY_APPEND_LIMITS.lines} lines and ${ENTRY_APPEND_LIMITS.characters.toLocaleString("en-US")} characters. Anyone with the note open sees the lines arrive. Ask the member before calling.`,
+  scope: "readWrite",
+  input: z.object({
+    entryId: entryIdInput,
+    lines: appendLineZSchema
+      .array()
+      .min(1)
+      .max(ENTRY_APPEND_LIMITS.lines)
+      .describe("The lines to add, in order."),
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: ({ entryId, lines }, ctx) =>
+    carryOutEdit(ctx, { type: "appendToEntry", entryId, lines }, "Added to", () =>
+      lines.length === 1 ? "1 line" : `${lines.length} lines`,
+    ),
+});
+
+export const updateEntry = defineTool({
+  name: "update_entry",
+  title: "Change a note's or event's title or time",
+  description:
+    "Change an existing note's or event's title, its time, or both (an event's end moves with its start). Its text is left alone: use append_to_entry to add to it. Ask the member before calling.",
+  scope: "readWrite",
+  input: z.object({
+    entryId: entryIdInput,
+    title: updateEntryActionZSchema.shape.title.describe("The new title."),
+    occurredAt: updateEntryActionZSchema.shape.occurredAt.describe(
+      "The new time (ISO 8601 with an offset, best in the recipient's time zone). All day: the start of that day.",
+    ),
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: (input, ctx) =>
+    carryOutEdit(ctx, { type: "updateEntry", ...input }, "Updated", (before, after, loaded) => {
+      if (!before) return null;
+      const changes = [
+        before.title !== after.title ? `renamed from ${entryName(before)}` : null,
+        new Date(before.occurredAt).getTime() !== new Date(after.occurredAt).getTime()
+          ? `moved from ${entryWhen(before, ctx, loaded)}`
+          : null,
+      ].filter(Boolean);
+      const text = changes.join(", ");
+      return text ? text.charAt(0).toUpperCase() + text.slice(1) : null;
+    }),
+});
+
+// ---------------------------------------------------------------------------
+// Conditions (connectors-2)
+// ---------------------------------------------------------------------------
+
+const conditionIdInput = z.uuid().describe("The condition's id, from recipient_profile.");
+
+/** A condition as an answer says it: its name, and what else it has (resolved, since, note, diagnosed by). */
+const conditionPreview = async (ctx: ToolContext, c: RecipientCondition): Promise<ActionPreview> => {
+  let diagnosedBy: string | null = null;
+  if (c.diagnosedById) {
+    const provider = await providerService.getById({ authUser: ctx.authUser }, c.diagnosedById);
+    if (!isError(provider)) diagnosedBy = provider?.name ?? null;
+  }
+  const bits = [
+    c.status === "resolved" ? "Resolved" : "Active",
+    conditionSinceWords(c.sinceYear, c.sinceMonth) &&
+      `since ${conditionSinceWords(c.sinceYear, c.sinceMonth)}`,
+    c.note?.trim() || null,
+    diagnosedBy && `diagnosed by ${diagnosedBy}`,
+  ].filter(Boolean);
+  return { title: c.name, detail: bits.join(", "), when: "Now" };
+};
+
+/** Run one condition action, then answer with the condition as it now stands and a link to the profile. */
+const carryOutCondition = async (
+  ctx: ToolContext,
+  action: ConditionAction,
+  what: string,
+): Promise<ToolOutput | AppError> => {
+  const res = await assistantActionService.run({ authUser: ctx.authUser }, ctx.groupId, [action], {
+    via: ctx.clientName,
+    now: ctx.now,
+  });
+  if (isError(res)) return res;
+  const id = res.byAction[0]?.[0];
+  const condition = id ? await recipientConditionService.getById({ authUser: ctx.authUser }, id) : null;
+  if (isError(condition)) return condition;
+  if (!condition) return newError({ code: "assistantActionService:conditionNotFound" });
+
+  const preview = await conditionPreview(ctx, condition);
+  const url = linkTo(ctx.origin, profilePath(ctx.groupId));
+  const line = [preview.title, preview.detail].filter(Boolean).join(" · ");
+  return {
+    text: [`${what}: ${line}`, url, `Its change shows on the timeline as "via ${ctx.clientName}".`].join(
+      "\n",
+    ),
+    structured: { preview, conditionId: condition.id, url, via: ctx.clientName },
+  };
+};
+
+export const addCondition = defineTool({
+  name: "add_condition",
+  title: "Add a condition",
+  description:
+    'Add an active condition to the care recipient\'s profile: a name ("Type 2 diabetes"), optionally since which year (and month), a short note and the provider who diagnosed it (an id from the provider directory). It also clears "no known conditions" and adds a line to the timeline. Check recipient_profile first so you don\'t add one that\'s already there. Ask the member before calling.',
+  scope: "readWrite",
+  input: z.object({
+    ...shapeOf(addConditionActionZSchema),
+    name: addConditionActionZSchema.shape.name.describe("The condition, in plain words."),
+    sinceYear: addConditionActionZSchema.shape.sinceYear.describe("The year it started, such as 2015."),
+    sinceMonth: addConditionActionZSchema.shape.sinceMonth.describe(
+      "The month it started (1-12); needs a year.",
+    ),
+    diagnosedById: addConditionActionZSchema.shape.diagnosedById.describe("The diagnosing provider's id."),
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: (input, ctx) => carryOutCondition(ctx, { type: "addCondition", ...input }, "Added condition"),
+});
+
+export const updateCondition = defineTool({
+  name: "update_condition",
+  title: "Change a condition",
+  description: `Change an existing condition's name, status (${CONDITION_STATUSES.join(" or ")}: "active" brings a resolved one back), since, note or diagnosing provider. What you leave out stays; null clears an optional one. Use a condition's id from recipient_profile. To mark one over, resolve_condition is simpler. Ask the member before calling.`,
+  scope: "readWrite",
+  input: z.object({
+    ...shapeOf(updateConditionActionZSchema),
+    conditionId: conditionIdInput,
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: (input, ctx) => carryOutCondition(ctx, { type: "updateCondition", ...input }, "Updated condition"),
+});
+
+export const resolveCondition = defineTool({
+  name: "resolve_condition",
+  title: "Resolve a condition",
+  description:
+    "Mark a condition resolved: it moves to Past on the profile, with a line on the timeline. Use a condition's id from recipient_profile. Ask the member before calling.",
+  scope: "readWrite",
+  input: z.object({
+    ...shapeOf(resolveConditionActionZSchema),
+    conditionId: conditionIdInput,
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: (input, ctx) =>
+    carryOutCondition(ctx, { type: "resolveCondition", ...input }, "Resolved condition"),
 });

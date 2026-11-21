@@ -4,15 +4,39 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/connectors-2` (slice commits) |
-| ----- | ---- | --------------- | --------------------------------------------- |
-| 1     | 1    | not started     |                                               |
-| 2     | 2    | blocked by 1, 3 |                                               |
-| 3     | 1    | not started     |                                               |
-| 4     | 1    | not started     |                                               |
-| 5     | 2    | blocked by 4    |                                               |
+| Slice | Wave | State          | Merge into `prd/connectors-2` (slice commits) |
+| ----- | ---- | -------------- | --------------------------------------------- |
+| 1     | 1    | merged (opus)  | c691be06 (3a8100d7)                           |
+| 2     | 2    | started (opus) |                                               |
+| 3     | 1    | merged (opus)  | 0b8c30f7 (9a92a2ba, cf033821)                 |
+| 4     | 1    | started (opus) |                                               |
+| 5     | 2    | blocked by 4   |                                               |
 
-**Start conditions:** none for wave 1. Slice 5 waits for `conditions` landed in `dev` (`recipientConditionService` and its schema); `pnpm prd sync` before it.
+**Landing mode: run everything through** (queued with `pnpm prd queue connectors-2`): start every ready slice, land each green wave, clean up, ask only real questions.
+
+**Wave 1** (2026-11-21): worktrees `.loops/connectors-2-{1,3,4}` made, agents spawned on opus; B-193, B-195, B-204 claimed. To keep the merges conflict-free, slice 1 creates the wording module at `apps/web/app/lib/connectors/connectGuide.ts` and slice 3 puts its success-step examples in its own `apps/web/app/lib/connectors/connectSuccess.ts` (instead of appending to `connectGuide`).
+
+**Slice 1 hand-off notes:** the vendor steps and help links in `connectGuide.ts` are unverified (the runbook's hand check before launch). `check-areas.d/connectors` maps `assistantsSwitch.sync.ts` to no browser check (only Assistants and Devices read it). The off and viewer notes carry `data-guide-note="off|viewer"` for slice 2's ask button. Docs to fold: the guide's placement and wording module (`connectors.md`, _Managing connections_), how the notes are chosen (Devices uses every group on the device), and the new `components/connectors/` folder (`components.md`).
+
+**Slice 3 hand-off notes:** `/connect`'s action data is now `{ error } | { connected }` (Connect returns the redirect as data; Cancel still redirects). Its `pnpm check` had one load timeout in `scripts/loops/browser.test.mjs` ("kills a spec at its cap…"), passing alone. Docs to fold (`connectors.md`): _`/mcp`_ gets `prompts.ts` (`definePrompt`, `CONNECTOR_PROMPTS`), the four prompts, scope filtering, `prompts/get`'s -32602 cases, the instructions' sentence; _Consent_ gets the success step (`connectSuccess.ts`, 5 s auto-return through `window.location`, clear of CSP `form-action`) and `shouldRevalidate`.
+
+**Slice 4 hand-off notes:** `pnpm prd browser --changed` names `live-notes` (`noteYjs.ts`); the slice was stackless, so run it at landing. Edit kinds are server-only (`runnableActionZSchema` in `assistantActionService.ts`, outside `assistantActionZSchema`). Docs to fold: `appendNoteSection` and `noteDocumentService.currentDoc` (`live-notes.md`); `connectors.md` _Tools_ gets `append_to_entry`/`update_entry` and limits, an event's end moving with its start, a series visit detaching, the refusal codes (`entryNotFound` for other groups), edits never set `via`, and drop "Nothing edits" from _Writes_.
+
+**Wave 2:** slice 2 started after slice 3's merge (worktree `.loops/connectors-2-2` with a stack, opus; B-194 claimed). Slice 5 started after slice 4's merge (worktree `.loops/connectors-2-5`, no stack, sonnet: it follows slice 4's pattern; B-197 claimed).
+
+**Slice 5 hand-off notes:** 111d1e14, `pnpm check` passed, `--changed` names nothing. `recipient_profile` now returns condition ids; `recipientConditionService`'s write options gain a server-only `via` (stored on the change entry). Docs to fold: `connectors.md` _Tools_ (the three tools and action kinds, `conditionNotFound`/`conditionDeleted`, service refusals pass through, provider links not editable, `via` on change entries, condition ids); `profiles.md` (the server-only `via`).
+
+**Slice 2 hand-off notes:** adds migration `0030_groovy_robbie_robertson` (regenerate if `dev` gains one first). Its `pnpm check` had one load flake (`timelineSimpleNow.browser.test.tsx` "nothing due and nothing ahead", passed alone 3x); its `pnpm prd browser --changed` ran the whole lean set on its branch: 12/12 pass (before slices 4 and 5 merged). Docs to fold: `connectors.md` (`assistant_request`, the service's rules, the membership lock, the outbox key `assistantsRequested:<requestId>:<ownerUserId>`, the two procedures, `/connect`'s `offGroups` with an owner link, `components/connectors/ask/` light index); `notifications.md` (`assistantsRequested`); `care-groups.md` (the table's permissions, cascades from the membership); `components.md` (the `ask` sub-index).
+
+**Landing (in progress):** every slice merged (2026-11-21); items B-193, B-194, B-195, B-197, B-204 done. Next: sync, full check (a migration), serve, browser checks (`live-notes` by name, since slice 2's lean set ran before slice 4), ready, land, fold docs, `pnpm prd rm connectors-2`.
+
+**Syncs before landing:** medications-3 landed with migration 0030 (`medication_types`); ours was regenerated on top as `0031_assistant_requests` (same SQL, only `assistant_request`) in fbc1a861. providers-2 (df4d0c05) synced after it (new Tiptap deps, `pnpm install`). An earlier full check passed on fe049520 before these syncs; `live-notes` passed there too.
+
+**Docs folded** (before landing): `connectors.md` (guide, asking owners, prompts, success step, edit and condition tools; trimmed to stay under 10 KB), `live-notes.md` (`appendNoteSection`, `currentDoc`), `notifications.md` (`assistantsRequested`). `components.md`, `profiles.md` and `care-groups.md` are at their budgets, so the `components/connectors/` folder, the conditions `via` and the table's permissions live in `connectors.md`.
+
+**Full check (3:18 a.m.):** 3 timeline/print component tests fail between midnight and ~5 a.m. (they put entries hours before now); filed as B-225 (quick-fixes). The check reruns after 6 a.m.
+
+**Start conditions:** none for wave 1. Slice 5 waited for `conditions`: landed in `dev` (B-181, a95acb73) and already in `prd/connectors-2`, so slice 5 is ready once slice 4 merges.
 
 **Landing:** slice 2 adds a migration, so hold landing until every slice is merged, then run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
 

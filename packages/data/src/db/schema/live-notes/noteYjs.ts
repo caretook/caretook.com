@@ -152,17 +152,14 @@ export type NoteSectionLine = { text: string; style?: "heading" | "subheading" |
 const HEADING_LEVEL = { heading: 2, subheading: 3 } as const;
 
 /**
- * Put `lines` at the very start of the document, as one Yjs transaction,
- * the way the editor would if someone typed them there. Nothing already in
- * the document is changed or moved, so text others type at the same time
- * (here or on another device) is kept when the updates merge. Returns the
- * update it made, to store as a `note_update`.
+ * Put `lines` into the document's top level from `at` on (the start, or the
+ * end), as one Yjs transaction. Returns the update it made.
  */
-export const prependNoteSection = (doc: Y.Doc, lines: readonly NoteSectionLine[]) => {
+const putSection = (doc: Y.Doc, lines: readonly NoteSectionLine[], at: "start" | "end") => {
   const before = Y.encodeStateVector(doc);
   doc.transact(() => {
     const fragment = doc.getXmlFragment(NOTE_FRAGMENT);
-    let index = 0;
+    let index = at === "start" ? 0 : fragment.length;
     let list: Y.XmlElement | null = null;
     for (const line of lines) {
       if (line.style === "bullet") {
@@ -191,3 +188,23 @@ export const prependNoteSection = (doc: Y.Doc, lines: readonly NoteSectionLine[]
   });
   return Y.encodeStateAsUpdate(doc, before);
 };
+
+/**
+ * Put `lines` at the very start of the document, as one Yjs transaction,
+ * the way the editor would if someone typed them there. Nothing already in
+ * the document is changed or moved, so text others type at the same time
+ * (here or on another device) is kept when the updates merge. Returns the
+ * update it made, to store as a `note_update`.
+ */
+export const prependNoteSection = (doc: Y.Doc, lines: readonly NoteSectionLine[]) =>
+  putSection(doc, lines, "start");
+
+/**
+ * Put `lines` at the very end of the document (after its last block), as
+ * one Yjs transaction: a connected assistant adding to a note (connectors-2).
+ * As with `prependNoteSection`, nothing already there changes, and bullets
+ * start a list of their own. Returns the update it made, to store as a
+ * `note_update`.
+ */
+export const appendNoteSection = (doc: Y.Doc, lines: readonly NoteSectionLine[]) =>
+  putSection(doc, lines, "end");

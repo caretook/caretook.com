@@ -783,6 +783,7 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(result.recipient.noKnownConditions).toBe(false);
     expect(result.recipient.conditions).toEqual([
       {
+        id: expect.any(String) as string,
         name: "Type 2 diabetes",
         status: "active",
         since: "2015",
@@ -790,8 +791,17 @@ describe("read tools", { timeout: 60_000 }, () => {
         diagnosedBy: null,
         managedBy: ["Dr. Lee"],
       },
-      { name: "Asthma", status: "active", since: "2001", note: null, diagnosedBy: null, managedBy: [] },
       {
+        id: expect.any(String) as string,
+        name: "Asthma",
+        status: "active",
+        since: "2001",
+        note: null,
+        diagnosedBy: null,
+        managedBy: [],
+      },
+      {
+        id: expect.any(String) as string,
         name: "Hip fracture",
         status: "resolved",
         since: "March 2019",
