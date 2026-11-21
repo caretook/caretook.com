@@ -94,7 +94,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-205 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
 | B-206 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
 | B-207 | bug | triaged | quick-fixes |  | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
-| B-208 | change | triaged | simple-mode |  | you should be able to edit all entries, search, and filter in simple mode. |
+| B-208 | change | landed | simple-mode |  | you should be able to edit all entries, search, and filter in simple mode. |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 
 ## Items
@@ -507,13 +507,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-208 · change · you should be able to edit all entries, search, and filter in simple mode.
 
-- status: triaged
+- status: landed
 - prd: simple-mode
 - owner:
-- commit:
+- commit: 4e5e0187
 
 - 2026-11-20 (Robert Bo Davis): Triage: a new small PRD (simple-mode), not a quick fix: simple mode drops the row ⋯ menus, search and filters on purpose, and the lock limits locked members to the timeline and entries/*, so it needs decisions (which edits, whether search/filter are a simple variant or the full ones, whether the lock still allows /search). Hot files: SimpleTimeline.tsx, TimelineEntryList, simpleModeLock.ts.
 - 2026-11-20 (plan/simple-mode): Decision (user, 2026-11-20): simple mode reuses the full timeline's controls for now: the row ⋯ menus and edit sheets as on the full timeline, its magnifier/search, Filter button and chips (kind icons and authors as links). No simple variants yet. Done as hotfix/simple-mode, not a PRD.
+- 2026-11-20 (hotfix/simple-mode): Landed as hotfix/simple-mode (4e5e0187): simple mode has the full ⋯ menus and sheets (locked too), FilterChips, kept filtered URLs; header search in simple mode unless locked (lock still blocks /search); row kind icons and initials stay plain (user's call).
 
 ### B-209 · feature · react-i18next or some other internationalization library to support multiple languages for all text…
 
