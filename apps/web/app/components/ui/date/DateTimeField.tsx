@@ -21,8 +21,12 @@ import {
   Label,
 } from "react-aria-components";
 import { localTimeZone } from "~/lib/core/format";
+import { buttonClass } from "../buttonClass";
 import { PopoverPanel } from "../Popover";
 import { FIELD_ERROR, FIELD_LABEL } from "../styles";
+
+/** The field's and the calendar's icon-only buttons. */
+const ICON_BUTTON = buttonClass({ variant: "ghost", size: "sm", shape: "square" });
 
 /** A segment's step keys, as React Aria's spin buttons read them: one, or a page (5 years, 2 months). */
 const SEGMENT_STEPS: Record<string, { sign: 1 | -1; page: boolean }> = {
@@ -152,7 +156,7 @@ export function DateTimeField({
         {/* 32 px to look at, at least 44 px to tap (the after: box, kept inside the field on the right). */}
         <Button
           aria-label="Pick a date"
-          className="btn btn-ghost btn-sm btn-square relative shrink-0 outline-offset-2 after:absolute after:-inset-y-2 after:-right-1 after:-left-2 after:z-10 data-[focus-visible]:outline-2"
+          className={`${ICON_BUTTON} relative shrink-0 outline-offset-2 after:absolute after:-inset-y-2 after:-right-1 after:-left-2 after:z-10 data-[focus-visible]:outline-2`}
         >
           <CalendarIcon className="size-4" aria-hidden="true" />
         </Button>
@@ -161,11 +165,11 @@ export function DateTimeField({
       <PopoverPanel placement="bottom end">
         <Calendar className="w-72 max-w-full">
           <header className="mb-2 flex items-center gap-1">
-            <Button slot="previous" aria-label="Previous month" className="btn btn-ghost btn-sm btn-square">
+            <Button slot="previous" aria-label="Previous month" className={ICON_BUTTON}>
               <ChevronLeft className="size-4" aria-hidden="true" />
             </Button>
             <Heading className="flex-1 text-center font-semibold" />
-            <Button slot="next" aria-label="Next month" className="btn btn-ghost btn-sm btn-square">
+            <Button slot="next" aria-label="Next month" className={ICON_BUTTON}>
               <ChevronRight className="size-4" aria-hidden="true" />
             </Button>
           </header>
@@ -183,8 +187,10 @@ export function DateTimeField({
                   date={date}
                   className={({ isSelected, isToday, isOutsideMonth }) =>
                     [
-                      "btn btn-sm w-full px-0 tabular-nums font-normal outline-offset-1 data-[focus-visible]:outline-2",
-                      isSelected ? "btn-primary" : isToday ? "btn-outline" : "btn-ghost",
+                      buttonClass({ variant: isSelected ? "primary" : "ghost", size: "sm" }),
+                      "w-full px-0 tabular-nums font-normal outline-offset-1 data-[focus-visible]:outline-2",
+                      // Today, when not picked: outlined in the text colour.
+                      isToday && !isSelected ? "border-current" : "",
                       isOutsideMonth && !isSelected ? "text-base-content/40" : "",
                     ].join(" ")
                   }

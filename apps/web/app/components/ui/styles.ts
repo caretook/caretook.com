@@ -1,6 +1,8 @@
 // Class strings the primitives share, so menus, popovers and sheets look alike.
 // Internal to ui/: callers never pass class strings.
 
+import { buttonClass } from "./buttonClass";
+
 /** A floating surface: menus and popovers (exported for quick entry's matching names). */
 export const SURFACE = "rounded-box border-base-300 bg-base-100 border shadow-lg";
 
@@ -12,7 +14,7 @@ export const FIELD_WARNING = "text-warning text-sm";
 
 /** A chip: a small rounded button or link; the current one is filled. */
 export const chipClass = (current: boolean) =>
-  `btn btn-sm rounded-full px-3 ${current ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100"}`;
+  `${buttonClass({ variant: current ? "default" : "ghost", size: "sm" })} rounded-full px-3 ${current ? "btn-neutral" : "border-base-300 bg-base-100"}`;
 
 /**
  * The list tools' one control shape: an outlined, icon-only circle (the
@@ -21,4 +23,4 @@ export const chipClass = (current: boolean) =>
  * `TOOL_CIRCLE` the whole of it, for a control that isn't one (a menu's trigger).
  */
 export const CIRCLE = "border-base-300 bg-base-100 shrink-0 rounded-full";
-export const TOOL_CIRCLE = `btn btn-sm btn-square btn-ghost ${CIRCLE}`;
+export const TOOL_CIRCLE = `${buttonClass({ variant: "ghost", size: "sm", shape: "square" })} ${CIRCLE}`;

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { useId, useRef } from "react";
+import { Button } from "./Button";
 import { useShowModal } from "./useShowModal";
 
 /**
@@ -24,7 +25,7 @@ export function ConfirmDialog({
   message,
   confirmDisabled = false,
   cancelLabel = "Cancel",
-  confirmClassName = "btn-error",
+  confirmVariant = "danger",
   children,
   onConfirm,
   onClose,
@@ -35,8 +36,8 @@ export function ConfirmDialog({
   message?: string | null;
   confirmDisabled?: boolean;
   cancelLabel?: string;
-  /** The confirm button's daisyUI colour: red by default, for deletes; pass "btn-primary" for a plain action. */
-  confirmClassName?: string;
+  /** The confirm button's look: solid red by default, for deletes; "primary" for a plain action. */
+  confirmVariant?: "danger" | "primary";
   children?: ReactNode;
   onConfirm: () => void;
   onClose: () => void;
@@ -67,17 +68,10 @@ export function ConfirmDialog({
         )}
         {children && <div className="mt-3">{children}</div>}
         <div className="modal-action">
-          <button type="button" className="btn" onClick={onClose}>
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            className={`btn ${confirmClassName}`}
-            disabled={confirmDisabled}
-            onClick={onConfirm}
-          >
+          <Button onClick={onClose}>{cancelLabel}</Button>
+          <Button variant={confirmVariant} disabled={confirmDisabled} onClick={onConfirm}>
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </dialog>
