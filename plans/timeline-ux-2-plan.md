@@ -29,6 +29,7 @@
 - Full check #1 on eed9341f failed 14 tests (`timelineSummaries`, `entryPrint`, `timelineCarePeriods`, `timelineSimple` period header): run at 00:20 America/Los_Angeles, the tests' zone, where `minutesAgo(40)` fixtures fall on yesterday. Clock-window failures, not this wave. Rerunning after 01:05 LA.
 - connectors-2 landed in dev (017a9b29, migration 0031, no pending migration here): sync before the 01:05 rerun, then `pnpm datastore:reset`.
 - tasks-2 (`tasks-2-20`) waits on wave 1 (PageHeader, the Upcoming and Tasks headers): message it at each landing.
+- Wave 1 landing (user, 2026-11-21): `--force` on the full run whose only failures were the 14 midnight-window tests (B-227, quick-fixes). Synced connectors-2; typecheck, lint, format clean; browser `layout-offline` and `app-shell` pass (the user chose only the edited specs).
 - Open issues: clock-dependent component tests fail in the first ~40 min after midnight LA (outside this PRD; tell the user).
 
 ## Backlog map
