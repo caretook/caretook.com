@@ -15,6 +15,7 @@ import { isError, newError } from "../errors";
 import { ADMIN_PERMISSIONS } from "./admin";
 import { APPOINTMENTS_PERMISSIONS } from "./appointments";
 import { AUTH_PERMISSIONS } from "./auth";
+import { CALENDARS_PERMISSIONS } from "./calendars";
 import { CARE_GROUPS_PERMISSIONS } from "./care-groups";
 import { CARE_PERIODS_PERMISSIONS } from "./care-periods";
 import { CONNECTORS_PERMISSIONS } from "./connectors";
@@ -46,6 +47,7 @@ export const PERMISSIONS: Permissions = {
   ...ADMIN_PERMISSIONS,
   ...APPOINTMENTS_PERMISSIONS,
   ...AUTH_PERMISSIONS,
+  ...CALENDARS_PERMISSIONS,
   ...CARE_GROUPS_PERMISSIONS,
   ...CARE_PERIODS_PERMISSIONS,
   ...CONNECTORS_PERMISSIONS,

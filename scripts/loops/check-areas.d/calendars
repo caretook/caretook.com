@@ -1,0 +1,11 @@
+# check-areas: calendars (appointments-2): calendar items, sharing settings,
+# and later the feed, reminders and Google. The pure projection and wording
+# (db/schema/calendars/) are unit tests; the settings service and procedures
+# integration tests (packages/api/src/calendars/). The Calendar & reminders
+# page and the owners' switch on group settings → Details are component
+# tests (settings/calendar.browser.test.tsx). No browser check owns a flow yet.
+apps/web/app/routes/app/groups/settings/calendar/* -
+# Its modules, the device's copy of the owners' switch (detailsAllowed.sync.ts) included: component tests.
+apps/web/app/lib/calendars/*             -
+# Settings are forgotten at sign-out (lib/auth/session.ts names signout-wipe).
+apps/web/app/lib/calendars/calendarSettings.ts signout-wipe

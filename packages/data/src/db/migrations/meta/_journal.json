@@ -183,6 +183,13 @@
       "when": 1795220606030,
       "tag": "0025_appointment_series",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795224100954,
+      "tag": "0026_calendar_settings",
+      "breakpoints": true
     }
   ]
 }

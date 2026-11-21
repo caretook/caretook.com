@@ -134,6 +134,10 @@ import * as appointmentSeriesService from "./appointmentSeriesService";
 export { appointmentSeriesService };
 export type { SeriesWriteOptions } from "./appointmentSeriesService";
 
+import * as calendarSettingService from "./calendarSettingService";
+export { calendarSettingService };
+export type { CalendarSettingsView } from "./calendarSettingService";
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -165,6 +169,7 @@ export const services = {
   task: taskService,
   connectorGrant: connectorGrantService,
   appointmentSeries: appointmentSeriesService,
+  calendarSetting: calendarSettingService,
 };
 
 export type ServiceTypeMap = typeof services;

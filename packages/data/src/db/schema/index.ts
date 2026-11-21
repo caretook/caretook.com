@@ -10,6 +10,7 @@ export * from "./app-shell";
 export * from "./appointments";
 export * from "./assistant";
 export * from "./auth";
+export * from "./calendars";
 export * from "./care-groups";
 export * from "./care-periods";
 export * from "./connectors";
