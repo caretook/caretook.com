@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { testDatabase } from "../src/db/testDatabase";
+import { testDatabase, workerDatabase } from "../src/db/testDatabase";
 import { loadEnv } from "../src/utils/loadEnv";
 
 const PACKAGE_DIR = fileURLToPath(new URL("..", import.meta.url));
@@ -15,5 +15,18 @@ export const loadTestEnv = () => {
 
   const db = testDatabase(process.env);
   if (!db.ok) throw new Error(db.reason);
+  return db;
+};
+
+/**
+ * In a test worker: load the test env, then point DATABASE_URL at this worker's
+ * own database (`<name>_w<VITEST_POOL_ID>`, made by the global setup), before
+ * anything connects. Real env vars win over the env files, so later loads keep it.
+ */
+export const loadWorkerEnv = () => {
+  loadTestEnv();
+  const db = workerDatabase(process.env);
+  if (!db.ok) throw new Error(db.reason);
+  process.env.DATABASE_URL = db.url.toString();
   return db;
 };
