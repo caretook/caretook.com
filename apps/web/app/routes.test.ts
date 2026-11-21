@@ -37,6 +37,7 @@ const WEB = [
   "/admin/waitlist|routes/admin/waitlist/route.tsx|",
   "/admin|routes/admin/index/route.tsx|",
   "/api/auth/*|routes/api/auth.ts|",
+  "/api/calendar/:file|routes/api/calendar/feed.ts|",
   "/api/cron/calendar|routes/api/cron/calendar.ts|",
   "/api/cron/outbox|routes/api/cron/outbox.ts|",
   "/api/webhooks/resend|routes/api/webhooks/resend.ts|",

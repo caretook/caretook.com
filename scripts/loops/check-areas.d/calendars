@@ -9,3 +9,7 @@ apps/web/app/routes/app/groups/settings/calendar/* -
 apps/web/app/lib/calendars/*             -
 # Settings are forgotten at sign-out (lib/auth/session.ts names signout-wipe).
 apps/web/app/lib/calendars/calendarSettings.ts signout-wipe
+# The feed (slice 5) is server only: its route and door have no screen; the
+# service, handler and procedures are integration tests (packages/api/src/calendars/).
+apps/web/app/routes/api/calendar/*       -
+apps/web/app/.server/calendarFeed.ts     -

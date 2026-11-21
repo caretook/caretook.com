@@ -17,6 +17,14 @@ export const CALENDARS_ERRORS = {
     message: "Only an owner can change whether details may leave Caretook",
     statusCode: 403,
   },
+  "calendarFeedService:notMember": {
+    message: "Care group not found",
+    statusCode: 404,
+  },
+  "calendarFeedService:exists": {
+    message: "You already have a calendar feed for this group. Regenerate it to get a new link",
+    statusCode: 409,
+  },
   "memberCalendarSettingModel:removeForMember": {
     message: "Failed to delete the member's calendar settings",
   },

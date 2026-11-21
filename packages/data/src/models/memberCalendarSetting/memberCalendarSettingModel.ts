@@ -1,5 +1,6 @@
 import type { MemberCalendarSetting, Tx } from "../../db";
 
+import { createHash } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { dbMayFail, txOrDb } from "../../db";
 import { memberCalendarSettingSchema, reminderOverrideSchema } from "../../db/schema";
@@ -7,6 +8,9 @@ import { isError } from "../../errors";
 import * as baseModel from "../base";
 
 export const schemaName = "memberCalendarSettingSchema";
+
+/** A feed token's stored form: its SHA-256 (hex). The token itself is never stored. */
+export const hashFeedToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
 export const dbToModel = (row: MemberCalendarSetting) => row;
 
