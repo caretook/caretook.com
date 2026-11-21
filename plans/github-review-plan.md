@@ -4,11 +4,11 @@
 
 ## Status
 
-| Slice | Wave | State                                      | Merge into `prd/github-review` (slice commits)                       |
-| ----- | ---- | ------------------------------------------ | -------------------------------------------------------------------- |
-| 1     | 1    | merged; worktree removed                   | 46b76b00 (a8bc173b, 719012d1); opus; throwaway PR #7 closed unmerged |
-| 2     | 2    | started (opus; `.loops/github-review-2`)   |                                                                      |
-| 3     | 2    | started (sonnet; `.loops/github-review-3`) |                                                                      |
+| Slice | Wave | State                                                                                  | Merge into `prd/github-review` (slice commits)                       |
+| ----- | ---- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 1     | 1    | merged; worktree removed                                                               | 46b76b00 (a8bc173b, 719012d1); opus; throwaway PR #7 closed unmerged |
+| 2     | 2    | started (opus; `.loops/github-review-2`)                                               |                                                                      |
+| 3     | 2    | handed off (76641328; throwaway PR #8 closed), waits on slice 2 to merge in plan order |                                                                      |
 
 **Overnight (2026-11-20), the user's word:** don't prompt and **don't land**. Finish wave 2's slices, merge them into `prd/github-review`, don't open the real PR or push `dev`/`prd/` to origin, then `pnpm prd rm github-review` (the unmerged branch stays) to free the PRD slot for the queue. Resume with `pnpm prd start github-review`.
 
