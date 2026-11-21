@@ -53,10 +53,12 @@ streams:
       # `ends_at`, `all_day`, `place`, the cancel fields and `rescheduled_to`:
       # appointments and reminders (future events and notes).
       # `via`: written through a member's AI assistant ("via Claude"; connectors).
+      # `series_id`, `series_day`, `series_detached`: a repeating series' visit (appointments-2).
       - >-
         SELECT id, group_id, recipient_id, kind, occurred_at, time_zone, title, body, details,
         deleted_at, created_at, updated_at, created_by, updated_by,
-        ends_at, all_day, place, cancelled_at, cancelled_by, cancel_reason, rescheduled_to, via
+        ends_at, all_day, place, cancelled_at, cancelled_by, cancel_reason, rescheduled_to, via,
+        series_id, series_day, series_detached
         FROM timeline_entry WHERE group_id IN my_groups
       # Live documents: the compacted snapshot and every pending Yjs update,
       # so any document opens and edits offline. Viewers get them too (read-only).
@@ -118,6 +120,12 @@ streams:
         done_at, done_by, provider_id, medication_id, event_id,
         deleted_at, created_at, updated_at, created_by, updated_by, via
         FROM task WHERE group_id IN my_groups
+      # Repeating appointments and reminders (appointments-2), soft-deleted ones included.
+      - >-
+        SELECT id, group_id, recipient_id, kind, rule, starts_on, start_time, all_day, time_zone,
+        title, duration_minutes, place, provider_ids, topped_up_through,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM appointment_series WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,
   # outside contacts) for owners, admins and caretakers only: viewers' devices

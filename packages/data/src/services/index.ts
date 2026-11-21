@@ -130,6 +130,10 @@ export type {
   RunResult as AssistantRunResult,
 } from "./assistantActionService";
 
+import * as appointmentSeriesService from "./appointmentSeriesService";
+export { appointmentSeriesService };
+export type { SeriesWriteOptions } from "./appointmentSeriesService";
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -160,6 +164,7 @@ export const services = {
   appSetting: appSettingService,
   task: taskService,
   connectorGrant: connectorGrantService,
+  appointmentSeries: appointmentSeriesService,
 };
 
 export type ServiceTypeMap = typeof services;

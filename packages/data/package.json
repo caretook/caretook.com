@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./schema": "./src/db/schema/index.ts",
     "./errors": "./src/errors/index.ts",
-    "./permissions": "./src/permissions/index.ts"
+    "./permissions": "./src/permissions/index.ts",
+    "./series": "./src/db/schema/appointments/seriesVisits.ts"
   },
   "scripts": {
     "typecheck": "tsc",
@@ -26,6 +27,7 @@
     "drizzle-orm": "^0.45.4",
     "drizzle-zod": "^0.8.3",
     "pg": "^8.23.1",
+    "rrule": "2.8.1",
     "typescript-errors": "^1.1.1",
     "yjs": "13.6.33",
     "zod": "^4.6.7"

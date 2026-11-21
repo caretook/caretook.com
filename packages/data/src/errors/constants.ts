@@ -1,4 +1,5 @@
 import { ADMIN_ERRORS } from "./admin";
+import { APPOINTMENTS_ERRORS } from "./appointments";
 import { AUTH_ERRORS } from "./auth";
 import { CARE_GROUPS_ERRORS } from "./care-groups";
 import { CARE_PERIODS_ERRORS } from "./care-periods";
@@ -195,6 +196,9 @@ export const MODEL_ERRORS = {
   "carePeriodModel:remove": {
     message: "Failed to delete the care period",
   },
+  "appointmentSeriesModel:remove": {
+    message: "Failed to delete the repeating series",
+  },
   "taskModel:remove": {
     message: "Failed to delete the task",
   },
@@ -237,6 +241,7 @@ export const MODEL_ERRORS = {
 // area's part. Codes must be unique across parts (errors.test.ts).
 export const SERVICE_ERRORS = {
   ...ADMIN_ERRORS,
+  ...APPOINTMENTS_ERRORS,
   ...AUTH_ERRORS,
   ...CARE_GROUPS_ERRORS,
   ...CARE_PERIODS_ERRORS,

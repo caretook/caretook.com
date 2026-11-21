@@ -13,6 +13,7 @@ import type {
 import { USER_ROLE_NAMES } from "../constants/roles";
 import { isError, newError } from "../errors";
 import { ADMIN_PERMISSIONS } from "./admin";
+import { APPOINTMENTS_PERMISSIONS } from "./appointments";
 import { AUTH_PERMISSIONS } from "./auth";
 import { CARE_GROUPS_PERMISSIONS } from "./care-groups";
 import { CARE_PERIODS_PERMISSIONS } from "./care-periods";
@@ -43,6 +44,7 @@ export {
 
 export const PERMISSIONS: Permissions = {
   ...ADMIN_PERMISSIONS,
+  ...APPOINTMENTS_PERMISSIONS,
   ...AUTH_PERMISSIONS,
   ...CARE_GROUPS_PERMISSIONS,
   ...CARE_PERIODS_PERMISSIONS,
