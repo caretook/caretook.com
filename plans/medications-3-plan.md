@@ -4,12 +4,12 @@
 
 ## Status
 
-| Slice | Wave | State        | Merge into `prd/medications-3` (slice commits) |
-| ----- | ---- | ------------ | ---------------------------------------------- |
-| 1     | 1    | merged (opus) | `995796c8` (`e0ced8b3`) |
-| 2     | 2    | in progress (sonnet) |                                                |
-| 3     | 2    | in progress (sonnet) |                                                |
-| 4     | 2    | in progress (opus) |                                                |
+| Slice | Wave | State                                                                 | Merge into `prd/medications-3` (slice commits) |
+| ----- | ---- | --------------------------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus)                                                         | `995796c8` (`e0ced8b3`)                        |
+| 2     | 2    | in progress (sonnet)                                                  |                                                |
+| 3     | 2    | handed off (`4e3778b2`); `signout-wipe` to run at landing (stackless) |                                                |
+| 4     | 2    | in progress (opus)                                                    |                                                |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue medications-3`): start every ready slice, land each green wave, clean up; ask only real questions.
 
