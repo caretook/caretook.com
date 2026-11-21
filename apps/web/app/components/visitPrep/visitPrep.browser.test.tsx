@@ -9,11 +9,11 @@ import { renderWithDevice } from "../../../test/device";
 import { at, fx, hoursAgo, newId, TEST_GROUP, TEST_USER } from "../../../test/fixtures";
 import * as entryRoute from "../../routes/app/groups/entry/route";
 import * as providerRoute from "../../routes/app/groups/provider/route";
-import * as upcomingRoute from "../../routes/app/groups/upcoming/route";
+import * as plannerRoute from "../../routes/app/groups/planner/route";
 
 // Visit prep on the test device: "Prepare for this visit" on an upcoming
 // appointment's page, "Prepare for a visit" on a provider's page (their next
-// appointment, or an offer to add one), and Prepare in Upcoming's ⋯; the
+// appointment, or an offer to add one), and Prepare in the Planner's ⋯; the
 // sheet (the window since the last visit, an editable start, the preview,
 // empty sections left out), Insert offline (queued for upload), a rerun
 // above the first, and another device typing at the same time. The section's
@@ -24,7 +24,7 @@ const entryPath = (id: string) => `/app/groups/${GROUP}/entries/${id}`;
 const ROUTES = [
   { path: "/app/groups/:groupId/entries/:entryId", module: entryRoute },
   { path: "/app/groups/:groupId/providers/:providerId", module: providerRoute },
-  { path: "/app/groups/:groupId/upcoming", module: upcomingRoute },
+  { path: "/app/groups/:groupId/planner", module: plannerRoute },
 ];
 
 const DAY_H = 24;
@@ -336,9 +336,9 @@ describe("on a provider's page", () => {
   });
 });
 
-describe("in Upcoming", () => {
+describe("in the Planner", () => {
   test("an appointment's ⋯ has Prepare, which opens the sheet, then the appointment", async () => {
-    const device = await open(`/app/groups/${GROUP}/upcoming`, { role: "caretaker" });
+    const device = await open(`/app/groups/${GROUP}/planner`, { role: "caretaker" });
     const actions = () =>
       $<HTMLButtonElement>(`[data-upcoming-item="${APPT.id}"] button[aria-label^="Actions for"]`);
     await userEvent.click((await waitFor(actions))!);
@@ -358,7 +358,7 @@ describe("in Upcoming", () => {
   });
 
   test("a viewer's ⋯ is Remind me and Print", async () => {
-    await open(`/app/groups/${GROUP}/upcoming`, { role: "viewer" });
+    await open(`/app/groups/${GROUP}/planner`, { role: "viewer" });
     const actions = () =>
       $<HTMLButtonElement>(`[data-upcoming-item="${APPT.id}"] button[aria-label^="Actions for"]`);
     await userEvent.click((await waitFor(actions))!);

@@ -1,6 +1,6 @@
 import type { AuthUser } from "@caretook/data";
 
-import { assistantActionService, taskService, timelineEntryService } from "@caretook/data";
+import { assistantActionService, todoService, timelineEntryService } from "@caretook/data";
 import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
@@ -32,7 +32,7 @@ const setup = async () => {
     deleted_at: null,
     ...overrides,
   });
-  const taskRow = (overrides: Record<string, unknown> = {}) => ({
+  const todoRow = (overrides: Record<string, unknown> = {}) => ({
     group_id: group.id,
     recipient_id: recipient.id,
     title: "Call the pharmacy",
@@ -42,27 +42,27 @@ const setup = async () => {
     deleted_at: null,
     ...overrides,
   });
-  return { owner, group, entryRow, taskRow, api: clientFor(owner.ctx.authUser) };
+  return { owner, group, entryRow, todoRow, api: clientFor(owner.ctx.authUser) };
 };
 
 describe("sync.upload: via", () => {
   it("never sets via from a device's PUT", async () => {
-    const { owner, entryRow, taskRow, api } = await setup();
+    const { owner, entryRow, todoRow, api } = await setup();
     const entryId = randomUUID();
-    const taskId = randomUUID();
+    const todoId = randomUUID();
     const res = await api.sync.upload({
       ops: [
         { op: "PUT", table: "timeline_entry", id: entryId, data: entryRow({ via: "Forged" }) },
-        { op: "PUT", table: "task", id: taskId, data: taskRow({ via: "Forged" }) },
+        { op: "PUT", table: "todo", id: todoId, data: todoRow({ via: "Forged" }) },
       ],
     });
     expect(res.results.map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(ok(await timelineEntryService.getById(owner.ctx, entryId))).toMatchObject({ via: null });
-    expect(ok(await taskService.getById(owner.ctx, taskId))).toMatchObject({ via: null });
+    expect(ok(await todoService.getById(owner.ctx, todoId))).toMatchObject({ via: null });
   });
 
   it("keeps an assistant's via through a device's PUT replay and PATCH", async () => {
-    const { owner, group, entryRow, taskRow, api } = await setup();
+    const { owner, group, entryRow, todoRow, api } = await setup();
     const { byAction } = ok(
       await assistantActionService.run(
         owner.ctx,
@@ -74,19 +74,19 @@ describe("sync.upload: via", () => {
             severity: 2,
             occurredAt: new Date(Date.now() - 60_000).toISOString(),
           },
-          { type: "addTask", title: "Call the pharmacy" },
+          { type: "addTodo", title: "Call the pharmacy" },
         ],
         { via: "Test Claude" },
       ),
     );
-    const [[entryId], [taskId]] = byAction as [[string], [string]];
+    const [[entryId], [todoId]] = byAction as [[string], [string]];
     const res = await api.sync.upload({
       ops: [
         { op: "PUT", table: "timeline_entry", id: entryId, data: entryRow({ via: "Forged" }) },
         { op: "PATCH", table: "timeline_entry", id: entryId, data: { via: null, body: "Worse at night" } },
         { op: "PATCH", table: "timeline_entry", id: entryId, data: { via: "Forged" } },
-        { op: "PUT", table: "task", id: taskId, data: taskRow({ via: null }) },
-        { op: "PATCH", table: "task", id: taskId, data: { via: "Forged", title: "Call Corner Pharmacy" } },
+        { op: "PUT", table: "todo", id: todoId, data: todoRow({ via: null }) },
+        { op: "PATCH", table: "todo", id: todoId, data: { via: "Forged", title: "Call Corner Pharmacy" } },
       ],
     });
     expect(res.results.map((r) => r.status)).toEqual(["applied", "applied", "applied", "applied", "applied"]);
@@ -94,7 +94,7 @@ describe("sync.upload: via", () => {
       body: "Worse at night",
       via: "Test Claude",
     });
-    expect(ok(await taskService.getById(owner.ctx, taskId))).toMatchObject({
+    expect(ok(await todoService.getById(owner.ctx, todoId))).toMatchObject({
       title: "Call Corner Pharmacy",
       via: "Test Claude",
     });

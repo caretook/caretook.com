@@ -33,8 +33,8 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           providerSheet, providerFormData, new/, edit/),
                           groups/provider/ (loadProvider, useProviderNotes, ProviderHeader, ContactList),
                           groups/settings/ (layout, index, details/ + DetailsForms, members/ + MembersList; api, groupSettings)
-                          groups/tasks/ (the list: TaskChips, TaskSections, DoneTasks, TaskForm, AssigneeField, link pickers,
-                          new/, edit/), groups/task/ (the task page: loadTask, useTaskPage, TaskHeader, TaskLinks, notes)
+                          groups/todos/ (the Planner's Todos tab: TodoChips, TodoSections, DoneTodos, TodoForm, AssigneeField, link pickers,
+                          new/, edit/), groups/todo/ (the todo page: loadTodo, useTodoPage, TodoHeader, TodoLinks, notes)
   app/routes/admin/       web only (staff: users, user, groups, group, access codes, print, new group, waitlist, audit, settings)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx; app/routes/account/ (reset-password, verify-email, invite/, AuthCard)
@@ -47,10 +47,10 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           groups/ (NewGroupFields),
                           notes/ (LiveNotesEditor, EditorAvatars), providers/ (ContactActions, ProviderTypeIcon),
                           settings/ (SettingsFrame, SettingsPage parts), shell/ (FirstSyncPending),
-                          tasks/ (TaskTick, TaskUndoStatus, LinkedTasks)
+                          todos/ (TodoTick, TodoUndoStatus, LinkedTodos)
   app/lib/<area>/         every lib module, in a folder named after its docs/domain/ area (admin, app-shell, appointments, assistant,
                           auth, care-groups, care-periods, live-notes, marketing, medications, profiles, providers, search,
-                          security-headers, tasks, timeline) or core/ (api, rpc, form, contactForm, format, initials, paging,
+                          security-headers, timeline, todos) or core/ (api, rpc, form, contactForm, format, initials, paging,
                           redirect, zonedDay, urls); tests beside their modules; no index files: import the file
                           <name>.sync.ts: an area's device queries (its tests .sync.test.ts, .sync.browser.test.tsx)
                           <area>/urls.ts: that area's URL builders and params; app-shell/appUrls.ts composes appUrls from them

@@ -27,7 +27,7 @@ describe("lockedRedirect", () => {
       `${base}/providers`,
       `${base}/providers/p1`,
       `${base}/medications`,
-      `${base}/upcoming`,
+      `${base}/planner`,
       `${base}/search`,
       `${base}/profile`,
       `${base}/periods`,

@@ -20,7 +20,7 @@ import {
 import { and, eq, isNull } from "drizzle-orm";
 import { isEntryKind } from "./entryDisplay";
 import { TIMELINE_KINDS } from "./timelineFilters";
-import { tasks, timelineEntries } from "../sync/schema";
+import { timelineEntries, todos } from "../sync/schema";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
 // `useLiveQuery`; rows map to the same shapes the oRPC API returns, so the
@@ -277,7 +277,7 @@ export const upcomingWindow = (
 };
 
 /**
- * Past events under the filters (the Upcoming section's Past tab): events
+ * Past events under the filters (the Planner's Past tab): events
  * that have started by `cutoff`, as in the history, cancelled ones included.
  * Newest first, one row more than `limit`.
  */
@@ -555,7 +555,7 @@ export const updateEntry = async (
 /**
  * Soft delete, so the deletion syncs to everyone's devices. Deleting an
  * event that others were rescheduled to leaves them cancelled, with no
- * link, and its linked tasks without their link (in the same local
+ * link, and its linked todos without their link (in the same local
  * transaction).
  */
 export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult> => {
@@ -581,11 +581,11 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
             isNull(timelineEntries.deletedAt),
           ),
         );
-      // Tasks linked to it lose the link quietly (tasks slice 3; the server does the same).
+      // Todos linked to it lose the link quietly (todos slice 3; the server does the same).
       await tx
-        .update(tasks)
+        .update(todos)
         .set({ eventId: null, updatedAt: now, updatedBy: db.userId })
-        .where(and(eq(tasks.groupId, entry.groupId), eq(tasks.eventId, id), isNull(tasks.deletedAt)));
+        .where(and(eq(todos.groupId, entry.groupId), eq(todos.eventId, id), isNull(todos.deletedAt)));
     }
   });
   return { ok: true };

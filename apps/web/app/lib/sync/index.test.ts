@@ -58,17 +58,17 @@ describe("sign-out", () => {
   it("forgets the tiles' remembered answers with the local copy", async () => {
     await openSync("u1");
     expect(syncUserId()).toBe("u1");
-    remember("u1", { groupId: "g1", name: "dueTasks" }, [{ id: "t1" }]);
+    remember("u1", { groupId: "g1", name: "dueTodos" }, [{ id: "t1" }]);
     await closeSync();
     expect(syncUserId()).toBeNull();
-    expect(recall("u1", { groupId: "g1", name: "dueTasks" })).toBeUndefined();
+    expect(recall("u1", { groupId: "g1", name: "dueTodos" })).toBeUndefined();
   });
 
   it("forgets them when another user's database opens on this tab", async () => {
     await openSync("u1");
-    remember("u1", { groupId: "g1", name: "dueTasks" }, [{ id: "t1" }]);
+    remember("u1", { groupId: "g1", name: "dueTodos" }, [{ id: "t1" }]);
     await openSync("u2");
-    expect(recall("u1", { groupId: "g1", name: "dueTasks" })).toBeUndefined();
+    expect(recall("u1", { groupId: "g1", name: "dueTodos" })).toBeUndefined();
     await closeSync();
   });
 });

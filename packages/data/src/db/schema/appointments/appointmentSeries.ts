@@ -34,7 +34,7 @@ import { parseRule, SERIES_LIMITS } from "./repeatRule";
 // `time_zone` (the recipient's at creation) with the zoned-day helpers, so
 // "6:00" stays 6:00 across DST (seriesVisits.ts).
 //
-// Shaped for PowerSync like task: `group_id` on the row, ids made on the
+// Shaped for PowerSync like todo: `group_id` on the row, ids made on the
 // device, soft deletes.
 
 const timestampColumn = (name: string) =>
@@ -77,7 +77,7 @@ export const appointmentSeriesSchema = pgTable(
   (t) => [
     // Target of the visits' composite FK (timeline_entry.series_id).
     unique("appointment_series_group_id_id_unique").on(t.groupId, t.id),
-    // The recipient must belong to the series' group (NO ACTION, like task).
+    // The recipient must belong to the series' group (NO ACTION, like todo).
     foreignKey({
       name: "appointment_series_recipient_fk",
       columns: [t.groupId, t.recipientId],

@@ -10,7 +10,7 @@ import { at, condition, conditionChangeEntry, fx, TEST_GROUP } from "../../../..
 
 // The recipient's conditions on the search page (conditions slice 2): a
 // condition is found by its name and its note, sits after medications and
-// before tasks and entries, is marked when resolved, opens its sheet over
+// before todos and entries, is marked when resolved, opens its sheet over
 // the profile (closing it comes back here), and drops out once deleted; its
 // changes on the timeline are found by its name. What a document holds is
 // `conditionSearchDocument`'s unit test.

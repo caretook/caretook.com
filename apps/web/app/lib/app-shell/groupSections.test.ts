@@ -9,7 +9,7 @@ const base = appUrls.groupHome(G);
 const timeline = GROUP_SECTIONS.find((s) => s.id === "timeline")!;
 const providers = GROUP_SECTIONS.find((s) => s.id === "providers")!;
 const medications = GROUP_SECTIONS.find((s) => s.id === "medications")!;
-const upcoming = GROUP_SECTIONS.find((s) => s.id === "upcoming")!;
+const planner = GROUP_SECTIONS.find((s) => s.id === "planner")!;
 
 // A throwaway extra section, as a later PRD would append it.
 const assistant: GroupSection = {
@@ -22,30 +22,37 @@ const assistant: GroupSection = {
 const withMore = [...GROUP_SECTIONS, assistant];
 
 describe("GROUP_SECTIONS", () => {
-  it("is Timeline, then Providers, then Medications, then Upcoming, then Tasks", () => {
-    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual([
-      "timeline",
-      "providers",
-      "medications",
-      "upcoming",
-      "tasks",
-    ]);
+  it("is Timeline, then Providers, then Medications, then Planner", () => {
+    expect(GROUP_SECTIONS.map((s) => s.id)).toEqual(["timeline", "providers", "medications", "planner"]);
+    expect(GROUP_SECTIONS.map((s) => s.label)).toEqual(["Timeline", "Providers", "Medications", "Planner"]);
     expect(timeline.path(G)).toBe(appUrls.timeline(G));
     expect(providers.path(G)).toBe(appUrls.providers(G));
     expect(medications.path(G)).toBe(appUrls.medications(G));
-    expect(upcoming.path(G)).toBe(appUrls.upcoming(G));
-  });
-  it("claims a task's page and sheets for Tasks", () => {
-    const tasks = GROUP_SECTIONS.find((s) => s.id === "tasks")!;
-    expect(sectionCurrent(tasks, appUrls.tasks(G), G)).toBe("page");
-    expect(sectionCurrent(tasks, appUrls.task(G, "t1"), G)).toBe("true");
-    expect(sectionCurrent(tasks, appUrls.newTask(G), G)).toBe("true");
+    expect(planner.path(G)).toBe(appUrls.planner(G));
   });
 
-  it("puts the Past tab inside Upcoming", () => {
-    expect(sectionCurrent(upcoming, appUrls.upcoming(G), G)).toBe("page");
-    expect(sectionCurrent(upcoming, appUrls.pastEvents(G), G)).toBe("true");
-    expect(sectionCurrent(timeline, appUrls.pastEvents(G), G)).toBeUndefined();
+  it("puts the Past tab, the Todos tab, and a todo's page and sheets in Planner", () => {
+    for (const path of [
+      appUrls.planner(G),
+      appUrls.plannerPast(G),
+      appUrls.todos(G),
+      appUrls.newTodo(G),
+      appUrls.todo(G, "t1"),
+      appUrls.editTodo(G, "t1"),
+    ])
+      expect(activeSection(path, G)?.section.id, path).toBe("planner");
+    expect(sectionCurrent(planner, appUrls.planner(G), G)).toBe("page");
+    expect(sectionCurrent(planner, appUrls.plannerPast(G), G)).toBe("true");
+    expect(sectionCurrent(planner, appUrls.todos(G), G)).toBe("true");
+    expect(sectionCurrent(planner, appUrls.todo(G, "t1"), G)).toBe("true");
+    expect(sectionCurrent(timeline, appUrls.plannerPast(G), G)).toBeUndefined();
+  });
+
+  it("has nothing for the old Upcoming and Tasks paths", () => {
+    for (const sub of ["/upcoming", "/upcoming/past", "/tasks", "/tasks/new", "/tasks/t1"])
+      expect(activeSection(`${base}${sub}`, G), sub).toBeNull();
+    expect(activeSection(`${base}/plannerx`, G)).toBeNull();
+    expect(activeSection(`${base}/todosx`, G)).toBeNull();
   });
   it("has unique ids", () => {
     expect(new Set(GROUP_SECTIONS.map((s) => s.id)).size).toBe(GROUP_SECTIONS.length);

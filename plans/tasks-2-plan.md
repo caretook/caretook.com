@@ -4,14 +4,30 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/tasks-2` (slice commits) |
-| ----- | ---- | ----- | ---------------------------------------- |
-| 1     | 1    | —     |                                          |
-| 2     | 2    | —     |                                          |
-| 3     | 3    | —     |                                          |
-| 4     | 3    | —     |                                          |
+| Slice | Wave | State                             | Merge into `prd/tasks-2` (slice commits) |
+| ----- | ---- | --------------------------------- | ---------------------------------------- |
+| 1     | 1    | merged (opus); worktree removed   | 2bb1c667 (fcec2345)                      |
+| 2     | 2    | merged (sonnet); worktree removed | d378d00e (d5e2c45c)                      |
+| 3     | 3    | merged (opus); worktree removed   | 088189a3 (40959990)                      |
+| 4     | 3    | merged (sonnet); worktree removed | 1b08a7fe (d9152b98)                      |
+
+**Landing mode: run everything through** (queued with `pnpm prd queue tasks-2`): start every ready slice, land each green wave, clean up; ask only real questions. B-222 claimed.
+
+**Start-condition note:** timeline-ux-2 wasn't in `dev` at start (B-214, B-217 in progress). Its diff touches only `apps/web` UI and docs, none of slice 1's files, so slice 1 started; slice 2 waits for timeline-ux-2 **wave 1** to land (its orchestrator says wave 1 has PageHeader and the Upcoming/Tasks headers, and wave 2 touches only timeline files; it messages us at each landing; a background check also watches `dev` for a `feat(timeline-ux-2)` commit), then `pnpm prd sync`. **Wave 1 landed in `dev` as f1fc883e** (no migration/seed/dependency): sync after slice 1 merges (the wave boundary), then start slice 2.
 
 **Start conditions:** **`timeline-ux-2`** in `dev` (its `PageHeader` and the Upcoming and Tasks headers; last item B-224). `connectors-2` (the tools, `assistantActionService`, the MCP prompts) is already in `dev` (017a9b29). Run `pnpm prd sync` before slice 1 if `dev` moved.
+
+**Synced** `dev` after slice 1 (57bdf86c, conflict-free; timeline-ux-2 wave 1 in).
+
+**Slice 1 notes:** migration `0032_todos` (renames, a `DO` block for Postgres 18's named NOT NULL constraints; rewrites subject, reason, `google_event_link.item_uid`, the reminder outbox idempotency keys and `taskDue` → `todoDue` names); `SEARCH_INDEX_VERSION` 5. `pnpm check` had one failure, `entryPrint`, the post-midnight clock flake B-225 (quick-fixes slice 61 fixes it). Lean browser set 12/12 passed in the slice. **Open:** the connector consent text in `connectorRules.ts` says "tasks": handed to slice 4 (report, don't bump the consent version without asking).
+
+**Slice 2 notes:** component tests 1117/1118 (the one failure `entryPrint`, B-225); browser `--changed` 9/9 passed. `libLayout.test.ts` needed `docs/domain/todos.md`, so the orchestrator moved `tasks.md` → `todos.md` and its links early (the content folds at landing). Slice 2 touched slice 4's `writes.ts` and `mcpWrites.int.test.ts` only for `todoPath`; `add_task`, `list_tasks`, `addTask*`, `prompts.ts`, the `taskId` response key and "Added task" stay for slice 4. Slice 3 renames `UpcomingTodo`, `isUpcomingTodo`, `data-upcoming-todo` with the folder.
+
+**Slice 4 notes:** `add_todo`, `list_todos`, action kind `addTodo` (also renamed in quick entry's apps/web files: `useQuickEntry`, `quickEntryCards`, `quickEntry.sync.ts`); keys `todoId`, `todos`; browser `--changed` named nothing. `pnpm check`: 3 component failures at ~4:50 a.m., one confirmed as `entryPrint` (B-225), two unidentified: recheck at landing. **Open question for the user:** slice 2 changed `CONNECTOR_CONSENT_TEXT` to "todos" without bumping `CONNECTOR_CONSENT_VERSION` ("2026-11-20"); the file's rule is text and version change together.
+
+**All slices merged; landing.** 1495e01a fixes slice 2's sweep in `todoRename.int.test.ts` and `syncTodos.int.test.ts` (restored from fcec2345) and bumps `CONNECTOR_CONSENT_VERSION` to 2026-11-21 (the user chose the bump). B-222 done. Synced `dev` (timeline-ux-2 done, conflict-free); typecheck clean. Docs folded (a6e073d8). Synced quick-fixes wave 15 (c64f562f: three conflicts, quick-fixes' polling kept with the todo names; `openUpcoming` alias dropped). `datastore:reset`; browser `--changed --base dev` ran the lean set: **12/12 passed**. Full `pnpm prd check` passed on 44591a6f. **Landed in `dev`** (run-through mode); PRD done, docs folded. Tell quick-entry-e3 when it lands. Slice 3 note: the Menu's Todo item has no `prefetch="render"`.
+
+**Overlaps:** quick-fixes slices 59 and 61 edit `task.browser.test.tsx`, `upcomingEvents`/`upcomingSeries.browser.test.tsx` and `timelineSimpleTasks.browser.test.tsx`, which slices 2 and 3 rename (`git mv`, so the renames should carry their edits). quick-entry (B-220) waits for tasks-2 in `dev`.
 
 **Landing:** one migration (slice 1); no new dependencies. Land when every slice is merged; run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
 
@@ -148,7 +164,7 @@ Stack: no · Reads: docs/domain/tasks.md, docs/domain/components.md, docs/domain
 
 ## Slice 3: The Planner section
 
-Stack: no · Reads: docs/domain/app-shell.md, docs/domain/appointments.md, docs/domain/tasks.md, docs/domain/components.md · Tests: unit, component
+Stack: no · Reads: docs/domain/app-shell.md, docs/domain/appointments.md, docs/domain/todos.md, docs/domain/components.md · Tests: unit, component
 
 **User stories:** 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 23.
 

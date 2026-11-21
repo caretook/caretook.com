@@ -1,4 +1,4 @@
-import type { CalendarEntryInput, CalendarTaskInput, ReminderLead, ReminderOverrideRule } from "../db/schema";
+import type { CalendarEntryInput, CalendarTodoInput, ReminderLead, ReminderOverrideRule } from "../db/schema";
 import type { Tx } from "../db";
 
 import { and, eq, gte, inArray, isNull, lt, sql } from "drizzle-orm";
@@ -10,7 +10,7 @@ import {
   memberCalendarSettingSchema,
   providerSchema,
   reminderOverrideSchema,
-  taskSchema,
+  todoSchema,
   timelineEntryProviderSchema,
   timelineEntrySchema,
   userSchema,
@@ -23,7 +23,7 @@ export const serviceName = "calendarReminder";
 // What the reminder sweep reads (appointments-2 slice 6), as the system: for
 // every group where a current member has reminders on, its recipient, those
 // members (address, leads, consent), the appointments, reminders and their
-// assignees' open tasks starting in a window, and those members' overrides.
+// assignees' open todos starting in a window, and those members' overrides.
 // Not a model service: one sweep reads across groups with direct queries,
 // like the outbox's. The sweep itself (planning, notify) is
 // @caretook/notifications' `sweepReminders`.
@@ -41,7 +41,7 @@ export type ReminderRecipientMember = {
   detailsConsent: boolean;
 };
 
-export type ReminderTaskInput = CalendarTaskInput & { assigneeId: string | null; createdAt: string };
+export type ReminderTodoInput = CalendarTodoInput & { assigneeId: string | null; createdAt: string };
 
 export type ReminderGroupInputs = {
   groupId: string;
@@ -49,7 +49,7 @@ export type ReminderGroupInputs = {
   groupAllowsDetails: boolean;
   members: ReminderRecipientMember[];
   entries: CalendarEntryInput[];
-  tasks: ReminderTaskInput[];
+  todos: ReminderTodoInput[];
   overrides: ReminderOverrideRule[];
 };
 
@@ -73,7 +73,7 @@ const DAY_MS = 86_400_000;
 
 /**
  * Every group with a member who has reminders on, and what its reminders
- * need, for items starting in `[from, to)` (all-day ones and tasks by
+ * need, for items starting in `[from, to)` (all-day ones and todos by
  * their day, a day either side). Disabled accounts and former members are
  * left out (a member's settings also go when they leave).
  */
@@ -162,21 +162,21 @@ export const reminderInputs = async ({ from, to, tx }: { from: Date; to: Date; t
     : [];
   if (isError(providers)) return providers;
 
-  const tasks = await query(() =>
+  const todos = await query(() =>
     db
       .select()
-      .from(taskSchema)
+      .from(todoSchema)
       .where(
         and(
-          inArray(taskSchema.groupId, groupIds),
-          inArray(taskSchema.assigneeId, userIds),
-          isNull(taskSchema.deletedAt),
-          isNull(taskSchema.doneAt),
-          sql`${taskSchema.dueOn} BETWEEN ${fromDay} AND ${toDay}`,
+          inArray(todoSchema.groupId, groupIds),
+          inArray(todoSchema.assigneeId, userIds),
+          isNull(todoSchema.deletedAt),
+          isNull(todoSchema.doneAt),
+          sql`${todoSchema.dueOn} BETWEEN ${fromDay} AND ${toDay}`,
         ),
       ),
   );
-  if (isError(tasks)) return tasks;
+  if (isError(todos)) return todos;
 
   const overrides = await query(() =>
     db
@@ -204,7 +204,7 @@ export const reminderInputs = async ({ from, to, tx }: { from: Date; to: Date; t
     entries: entries
       .filter((e) => e.groupId === g.groupId)
       .map((e) => ({ ...e, providers: namesOf.get(e.id) ?? [] })),
-    tasks: tasks.filter((t) => t.groupId === g.groupId),
+    todos: todos.filter((t) => t.groupId === g.groupId),
     overrides: overrides
       .filter((o) => o.groupId === g.groupId)
       .map((o) => ({ userId: o.userId, entryId: o.entryId, mode: o.mode, leads: o.leads })),

@@ -4,7 +4,7 @@ import {
   recipientConditionUpdateZSchema,
 } from "../profiles/recipientCondition";
 import { doseDetailsZSchema, scheduleTimeZSchema } from "../medications/medication";
-import { TASK_LIMITS, TIME_NEEDS_DAY_ISSUE } from "../tasks/task";
+import { TODO_LIMITS, TIME_NEEDS_DAY_ISSUE } from "../todos/todo";
 import { symptomDetailsZSchema, TIMELINE_LIMITS } from "../timeline/timelineEntry";
 import { timeZoneZSchema } from "../core/timeZone";
 import { vitalDetailsZSchema } from "../timeline/vitals";
@@ -88,15 +88,15 @@ export const addEventActionZSchema = z.strictObject({
 });
 
 /**
- * A task: a title, at most one member to do it, and an optional due day
+ * A todo: a title, at most one member to do it, and an optional due day
  * with an optional time (wall-clock in the recipient's zone), plus optional
  * links. Not a timeline entry, so it has no `occurredAt`. Whoever carries it
  * out checks the assignee is a member and the links are live in the group.
  */
-export const addTaskActionZSchema = z
+export const addTodoActionZSchema = z
   .strictObject({
-    type: z.literal("addTask"),
-    title: z.string().trim().min(1).max(TASK_LIMITS.title),
+    type: z.literal("addTodo"),
+    title: z.string().trim().min(1).max(TODO_LIMITS.title),
     assigneeId: z.uuid().nullish(),
     dueOn: z.iso.date().nullish(),
     dueTime: scheduleTimeZSchema.nullish(),
@@ -117,14 +117,14 @@ export const assistantActionZSchema = z.discriminatedUnion("type", [
   addNoteActionZSchema,
   addEventActionZSchema,
   givePassActionZSchema,
-  addTaskActionZSchema,
+  addTodoActionZSchema,
 ]);
 export type AssistantAction = z.output<typeof assistantActionZSchema>;
 export type AssistantActionInput = z.input<typeof assistantActionZSchema>;
 export type AssistantActionType = AssistantAction["type"];
 export type ActionOf<T extends AssistantActionType> = Extract<AssistantAction, { type: T }>;
 
-/** The kind each action writes: a timeline kind, or `task` (not an entry). */
+/** The kind each action writes: a timeline kind, or `todo` (not an entry). */
 export const ACTION_KINDS = {
   logVital: "vital",
   logSymptom: "symptom",
@@ -132,7 +132,7 @@ export const ACTION_KINDS = {
   addNote: "note",
   addEvent: "event",
   givePass: "dose",
-  addTask: "task",
+  addTodo: "todo",
 } as const satisfies Record<AssistantActionType, string>;
 export type ActionKind = (typeof ACTION_KINDS)[AssistantActionType];
 

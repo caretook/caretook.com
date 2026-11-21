@@ -23,7 +23,7 @@ import * as calendarSettingService from "./calendarSettingService";
 import * as calendarSyncService from "./calendarSyncService";
 import * as careGroupMemberService from "./careGroupMemberService";
 import * as googleConnectionService from "./googleConnectionService";
-import * as taskService from "./taskService";
+import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
 
 // Google Calendar, connect and push (appointments-2 slice 7), against the
@@ -83,14 +83,14 @@ const setup = async () => {
       details: null,
     }),
   )!;
-  const task = ok(
-    await taskService.create(owner.ctx, {
+  const todo = ok(
+    await todoService.create(owner.ctx, {
       groupId: group.id,
       title: "Pick up the walker",
       dueOn: inDays(2).slice(0, 10),
     }),
   )!;
-  return { owner, caretaker, viewer, group, recipient, appointment, task };
+  return { owner, caretaker, viewer, group, recipient, appointment, todo };
 };
 
 /** Connect `who` through the whole flow (start, consent at the fake, complete). */
@@ -115,7 +115,7 @@ const summaries = (calendarId: string) => google.events(calendarId).map((e) => e
 
 describe("connecting", () => {
   it("makes the member's own Caretook calendar and pushes the window, generic by default", async () => {
-    const { owner, group, appointment, task } = await setup();
+    const { owner, group, appointment, todo } = await setup();
     const conn = await connect(owner, group.id);
     expect(google.calendars()).toEqual([
       { id: conn.calendarId, summary: "Caretook: Pat Example", timeZone: "America/Los_Angeles" },
@@ -123,7 +123,7 @@ describe("connecting", () => {
     const events = google.events(conn.calendarId);
     expect(events.map((e) => [e.privateProperties[UID_PROPERTY], e.summary])).toEqual([
       [`entry:${appointment.id}`, "Appointment for Pat Example"],
-      [`task:${task.id}`, "Task for Pat Example"],
+      [`todo:${todo.id}`, "Todo for Pat Example"],
     ]);
     expect(JSON.stringify(events)).not.toMatch(/Dialysis|Riverside|walker/);
     expect(conn.lastPushedAt).not.toBeNull();
@@ -214,7 +214,7 @@ describe("pushing", () => {
   });
 
   it("queues one job for many changes in one transaction", async () => {
-    const { owner, group, appointment, task } = await setup();
+    const { owner, group, appointment, todo } = await setup();
     await connect(owner, group.id);
     // Google off for a moment, so nothing runs the job before it's looked at.
     setGoogleCalendarClient(null);
@@ -226,7 +226,7 @@ describe("pushing", () => {
               title: "Dialysis, chair 4",
             }),
           );
-          ok(await taskService.update({ ...owner.ctx, tx }, task.id, { title: "Pick up the walker today" }));
+          ok(await todoService.update({ ...owner.ctx, tx }, todo.id, { title: "Pick up the walker today" }));
           return true;
         }),
       );
@@ -241,13 +241,13 @@ describe("pushing", () => {
     ok(await calendarSyncService.runDue());
   });
 
-  it("marks a cancelled appointment cancelled, and removes a deleted task", async () => {
-    const { owner, group, appointment, task } = await setup();
+  it("marks a cancelled appointment cancelled, and removes a deleted todo", async () => {
+    const { owner, group, appointment, todo } = await setup();
     const conn = await connect(owner, group.id);
     ok(
       await timelineEntryService.update(owner.ctx, appointment.id, { cancelledAt: new Date().toISOString() }),
     );
-    ok(await taskService.remove(owner.ctx, task.id));
+    ok(await todoService.remove(owner.ctx, todo.id));
     await settled();
     const [event, ...rest] = google.events(conn.calendarId);
     expect(rest).toEqual([]);
@@ -269,13 +269,13 @@ describe("pushing", () => {
     await settled();
     expect(summaries(conn.calendarId)).toEqual([
       "Appointment for Pat Example: Dialysis",
-      "Task for Pat Example: Pick up the walker",
+      "Todo for Pat Example: Pick up the walker",
     ]);
     expect(google.events(conn.calendarId)[0]!.location).toBe("Riverside Clinic");
 
     ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: false }));
     await settled();
-    expect(summaries(conn.calendarId)).toEqual(["Appointment for Pat Example", "Task for Pat Example"]);
+    expect(summaries(conn.calendarId)).toEqual(["Appointment for Pat Example", "Todo for Pat Example"]);
     expect(JSON.stringify(google.events(conn.calendarId))).not.toMatch(/Dialysis|Riverside|walker/);
   });
 
@@ -286,7 +286,7 @@ describe("pushing", () => {
     await settled();
     ok(await calendarSettingService.setDetailsAllowed(owner.ctx, group.id, false));
     await settled();
-    expect(summaries(conn.calendarId)).toEqual(["Appointment for Pat Example", "Task for Pat Example"]);
+    expect(summaries(conn.calendarId)).toEqual(["Appointment for Pat Example", "Todo for Pat Example"]);
   });
 
   it("keeps a viewer's calendar current too", async () => {
@@ -294,7 +294,7 @@ describe("pushing", () => {
     const conn = await connect(viewer, group.id);
     ok(await timelineEntryService.remove(owner.ctx, appointment.id));
     await settled();
-    expect(summaries(conn.calendarId)).toEqual(["Task for Pat Example"]);
+    expect(summaries(conn.calendarId)).toEqual(["Todo for Pat Example"]);
   });
 
   it("records a refused token (Reconnect Google) and stops pushing until reconnected", async () => {

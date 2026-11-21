@@ -121,7 +121,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   const remove = (card: QuickEntryCard) => setRemoved((s) => new Set(s).add(card.key));
 
-  /** Write these cards together: what they wrote (and how many are tasks), or null when refused. */
+  /** Write these cards together: what they wrote (and how many are todos), or null when refused. */
   const write = async (which: readonly QuickEntryCard[]) => {
     const planned = cardActions(which);
     const result = await runActions(
@@ -130,12 +130,12 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       planned.map((p) => p.action),
     );
     if (result.ok) {
-      const tasks = planned.reduce(
-        (n, p, i) => n + (p.action.type === "addTask" ? (result.byAction[i]?.length ?? 0) : 0),
+      const todos = planned.reduce(
+        (n, p, i) => n + (p.action.type === "addTodo" ? (result.byAction[i]?.length ?? 0) : 0),
         0,
       );
       const typed = planned.map((p, i) => ({ type: p.action.type, ids: result.byAction[i] ?? [] }));
-      return { ids: result.ids, tasks, typed };
+      return { ids: result.ids, todos, typed };
     }
     const key = result.index !== null ? planned[result.index]?.key : undefined;
     const message = result.issues[0]?.message ?? result.error;
@@ -160,10 +160,10 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
         );
         const open = openAfterSave(saved.typed);
         reset();
-        // "Saved 3 entries · Undo": Undo removes the whole line (its tasks too).
+        // "Saved 3 entries · Undo": Undo removes the whole line (its todos too).
         offerUndo({
           groupId,
-          label: savedText(saved.ids.length, saved.tasks),
+          label: savedText(saved.ids.length, saved.todos),
           doseIds: [],
           entryIds: saved.ids,
           place: QUICK_ENTRY_UNDO,

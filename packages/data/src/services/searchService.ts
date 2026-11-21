@@ -45,7 +45,7 @@ export const SEARCH_MAX_LIMIT = 50;
 export type SearchOptions = {
   groupId: string;
   q: string;
-  /** What to search (default: all three; tasks are searched on the device only). */
+  /** What to search (default: all three; todos are searched on the device only). */
   scopes?: ServerSearchItemType[];
   /** Entries only: these kinds. */
   kinds?: TimelineEntryKind[];

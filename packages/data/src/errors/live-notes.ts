@@ -31,8 +31,8 @@ export const LIVE_NOTES_ERRORS = {
     message: "That care period is gone. It may have been deleted.",
     statusCode: 404,
   },
-  "noteDocumentService:taskNotFound": {
-    message: "That task is gone. It may have been deleted.",
+  "noteDocumentService:todoNotFound": {
+    message: "That todo is gone. It may have been deleted.",
     statusCode: 404,
   },
 } as const;
