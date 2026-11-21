@@ -26,7 +26,7 @@ Ask only when a wrong guess is costly to undo or the choice is the user's alone,
 - **A new dependency or paid service.**
 - **Product direction:** removing or renaming something users know, or two designs that give users a different product, where you can't pick with confidence.
 
-Never ask about module layout, naming, the slice breakdown, test choices or UI details the [components](../domain/components.md) doc settles. Ask in **one** AskUserQuestion round (at most four questions, your recommendation first, never numbered lists) after exploring; with nothing to ask, say so and carry on. A skipped question is no answer: take your recommendation and record it as assumed.
+Never ask about module layout, naming, the slice breakdown, test choices or UI details the [components](../domain/components.md) doc settles. Ask in **one** AskUserQuestion round (at most four questions, your recommendation first, never numbered lists) after exploring; with nothing to ask, say so and carry on. **Notify first:** the user is often away, so send a PushNotification naming the topic and the decision just before you ask (it reaches their phone through Remote Control), and again when you report. A skipped question is no answer: take your recommendation and record it as assumed.
 
 ## The Decisions table
 
@@ -50,6 +50,8 @@ Before landing, spawn one fresh agent (the session's own model) that reads the P
 - A _Status_ table (slice, wave, state, merge SHAs), which the orchestrator keeps current; the durable architectural decisions every slice follows; _How to run this plan_ (waves, gates, what each slice owns).
 - Each slice: its fields line, user stories, what to build, acceptance criteria, and what it's **Blocked by** and **Blocks**, so independent slices can run at once.
 - Follow the [rules across PRDs](orchestrator.md#rules-across-prds): say "adds a migration", never a number; plan a regions slice first when two PRDs share a hot file.
+- **Keep a PRD small: about six slices at most.** Cut a bigger one into follow-on topics (`<topic>-2`) that each land something usable, so the next planner or the user can reorder fixes between them. Say in the report what you cut and where it went.
+- **Small fixes land by category.** Every `quick-fixes` item's triage note names one: `ui` (UI and UX), `tooling`, `perf` (optimizations), `bug` or `nit`. Each category lands separately, never mixed in one wave; their order of priority isn't decided yet, so don't invent one. Until the plan is split (B-395), the orchestrator groups a wave by category.
 - **`quick-fixes`** has a plan and no PRD (`plans/quick-fixes-plan.md`): small standalone fixes, one slice and one backlog item each, appended as the next slice. `prompt.sh` treats the plan as the whole spec.
 
 ## Slice fields
