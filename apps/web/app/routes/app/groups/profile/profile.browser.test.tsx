@@ -53,32 +53,16 @@ const plans = () =>
   }));
 
 describe("the ways in", () => {
-  test("the timeline's recipient card is the heading, with the group, age and code status, and opens the profile", async () => {
-    const device = await openProfile({ url: TIMELINE_URL });
-    const link = page.getByRole("link", { name: "Grandma June's profile" });
-    await expect.element(link).toBeVisible();
-    expect($("main h1")?.textContent?.trim()).toBe("Grandma June");
-    // The card's profile query can report after the first settle under load.
-    await expect
-      .poll(() => $("main [data-recipient-card] p")?.textContent?.trim())
-      .toBe(`${TEST_GROUP.name} · ${juneAge()} · DNR`);
-    await userEvent.click(link);
-    await expect.poll(device.location).toBe(PROFILE_URL);
-    await expect.poll(h1).toBe("Grandma June");
-  });
-
   test.each([420, 1280])(
-    "at %i, the card and the group menu's profile item open the profile",
+    "at %i, the group menu's profile item opens the profile; the timeline has no profile link (timeline-ux-2)",
     async (width) => {
       const device = await openProfile({ url: TIMELINE_URL, frame: true, width });
+      await expect.element(page.getByRole("heading", { level: 1, name: "Timeline" })).toBeVisible();
+      expect(page.getByRole("main").getByRole("link", { name: "Grandma June's profile" }).query()).toBeNull();
       await userEvent.click(page.getByRole("button", { name: /switch care group$/ }));
       await userEvent.click(page.getByRole("menuitem", { name: "Grandma June's profile" }));
       await expect.poll(device.location).toBe(PROFILE_URL);
       await expect.poll(h1).toBe("Grandma June");
-      await userEvent.click(page.getByRole("link", { name: "Timeline" }).first());
-      await expect.poll(device.location).toBe(TIMELINE_URL);
-      await userEvent.click(page.getByRole("link", { name: "Grandma June's profile" }));
-      await expect.poll(device.location).toBe(PROFILE_URL);
     },
   );
 });

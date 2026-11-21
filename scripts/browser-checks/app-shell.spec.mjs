@@ -184,7 +184,12 @@ test("group settings: a rename reaches the server and syncs back", async ({ devi
     await stay(page);
     await bar(page).locator("a").first().click();
     await page.waitForURL((u) => u.pathname === DEV_FAMILY_TIMELINE, { timeout: 20_000 });
-    await expect(page.locator("main header p").first()).toContainText(renamed, { timeout: 20_000 });
+    // The timeline's header names no group (timeline-ux-2): the group menu's current group does.
+    await page.getByRole("button", { name: /switch care group$/ }).click();
+    await expect(page.locator('[role="menu"] [aria-checked="true"]')).toContainText(renamed, {
+      timeout: 20_000,
+    });
+    await page.keyboard.press("Escape");
     expect(await stayed(page)).toBe(1);
   });
 

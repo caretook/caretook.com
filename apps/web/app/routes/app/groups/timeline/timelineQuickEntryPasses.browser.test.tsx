@@ -15,7 +15,8 @@ import { TIMELINE_URL, waitUntil } from "./timelineWorld";
 
 // Passes in quick entry, on the test device (offline throughout): "gave
 // evening meds" and "gave meds" carried out as Given all (one round, the
-// pass's open medications only), the due pass as one tap in the box, and
+// pass's open medications only), the due pass as one tap in the box's
+// suggestions popover, and
 // Undo after any Save removing the whole line. Times are relative to now in
 // the recipient's zone, so the pass is due whatever the clock.
 
@@ -74,6 +75,11 @@ const undoLabel = () =>
 const undoButton = () =>
   document.querySelector<HTMLButtonElement>("[data-quick-entry] [data-pass-undo-button]");
 const dueChips = () => [...document.querySelectorAll<HTMLButtonElement>('[data-quick-row="due"] button')];
+const PASS_DUE = "Suggestions, a pass is due";
+const suggestButton = () => page.getByRole("button", { name: /^Suggestions/ });
+/** The empty box's Suggestions button, named for a due pass. */
+const passDueButton = () => page.getByRole("button", { name: PASS_DUE, exact: true });
+const suggestions = () => page.getByRole("dialog", { name: "Suggestions" });
 
 type DoseRow = { id: string; details: string; deleted_at: string | null; kind: string };
 const entries = (device: Awaited<ReturnType<typeof open>>) =>
@@ -130,8 +136,8 @@ describe("passes in the box", () => {
     await expect.poll(async () => (await live(device)).length).toBe(0);
     expect((await entries(device)).filter((r) => r.deleted_at)).toHaveLength(4);
     await expect.poll(undoLabel).toBe("");
-    // The pass is due again: its chip is back.
-    await waitUntil(() => dueChips().length === 1, 4000, "the due pass's chip");
+    // The pass is due again: the button says so.
+    await expect.element(passDueButton()).toBeVisible();
   });
 
   test("Undo is offered for about 10 s only in the box, not on the Today card's medications row", async () => {
@@ -148,30 +154,36 @@ describe("passes in the box", () => {
 });
 
 describe("the due pass as one tap", () => {
-  test("first among the chips with the box empty; one tap is Given all, with Undo in the box", async () => {
+  test("the button says a pass is due; Due now is the popover's first row, and one tap is Given all, with Undo in the box", async () => {
     const device = await open();
-    await waitUntil(() => dueChips().length === 1, 4000, "the due pass's chip");
+    await expect.element(passDueButton()).toBeVisible();
+    expect(passDueButton().element().querySelector("[data-quick-due-dot]")).not.toBeNull();
+    await userEvent.click(passDueButton());
+    await expect.element(suggestions()).toBeVisible();
+    expect(dueChips()).toHaveLength(1);
     expect(dueChips()[0]!.textContent).toBe("Give evening meds (2)");
     // First: before the other rows of chips.
-    const first = document.querySelector("[data-quick-suggestions] [data-quick-row]");
+    const first = suggestions().element().querySelector("[data-quick-row]");
     expect(first?.getAttribute("data-quick-row")).toBe("due");
 
     await userEvent.click(dueChips()[0]!);
+    await expect.element(suggestions()).not.toBeInTheDocument();
     await expect.poll(undoLabel).toBe("Evening logged");
+    expect(document.querySelector("[data-quick-entry] [data-pass-undo]")).not.toBeNull();
     await expect.poll(async () => (await live(device)).length).toBe(2);
-    // Nothing left in it: the chip goes.
-    await waitUntil(() => dueChips().length === 0, 4000, "the chip to go");
+    // Nothing left in it, and nothing else to suggest: the button goes.
+    await waitUntil(() => !suggestButton().query(), 4000, "the button to go");
 
     await userEvent.click(undoButton()!);
     await expect.poll(async () => (await live(device)).length).toBe(0);
-    await waitUntil(() => dueChips().length === 1, 4000, "the chip to come back");
+    await expect.element(passDueButton()).toBeVisible();
   });
 
   test("not while typing", async () => {
     await open();
-    await waitUntil(() => dueChips().length === 1, 4000, "the due pass's chip");
+    await expect.element(passDueButton()).toBeVisible();
     await userEvent.fill(box(), "bp");
-    await waitUntil(() => dueChips().length === 0, 4000, "the chip to hide");
+    await waitUntil(() => !suggestButton().query(), 4000, "the button to hide");
   });
 
   test("pass names are completed while typing", async () => {
@@ -204,7 +216,7 @@ describe("the runner", () => {
 });
 
 describe("the due-pass chip", () => {
-  test("a box with passChips off (simple mode, whose Upcoming block has Given all) shows none; the default box does", async () => {
+  test("a box with passChips off (simple mode, whose Upcoming block has Given all) offers none; the default box does", async () => {
     function Boxes() {
       return (
         <>
@@ -222,9 +234,11 @@ describe("the due-pass chip", () => {
       url: TIMELINE_URL,
       fixtures: [EVENING, NOON, LISINOPRIL, METFORMIN, METOPROLOL],
     });
-    const inBox = (which: string) =>
-      document.querySelectorAll(`[data-boxes="${which}"] [data-quick-row="due"] button`);
-    await waitUntil(() => inBox("full").length === 1, 4000, "the due chip in the default box");
-    expect(inBox("plain")).toHaveLength(0);
+    const button = (which: string) =>
+      document.querySelector(`[data-boxes="${which}"] [data-quick-entry] button[aria-label^="Suggestions"]`);
+    await waitUntil(() => !!button("full"), 4000, "the Suggestions button in the default box");
+    expect(button("full")!.getAttribute("aria-label")).toBe(PASS_DUE);
+    // Nothing else to suggest, and the due pass isn't offered: no button.
+    expect(button("plain")).toBeNull();
   });
 });
