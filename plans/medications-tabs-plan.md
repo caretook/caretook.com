@@ -6,12 +6,14 @@
 
 | Slice | Wave | State                                                                     | Merge into `prd/medications-tabs` (slice commits) |
 | ----- | ---- | ------------------------------------------------------------------------- | ------------------------------------------------- |
-| 1     | 1    | started (worktree `.loops/medications-tabs-1`, agent on opus, 2026-11-21) |                                                   |
-| 2     | 2    | planned                                                                   |                                                   |
+| 1     | 1    | merged (opus)                                                             | 412e3bbe (a7cb2735)                               |
+| 2     | 2    | started (worktree `.loops/medications-tabs-2`, agent on opus, 2026-11-21) |                                                   |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue`; land each green wave without asking, clean up, ask only real questions).
 
 **timeline-ux-2 is in `dev`** (f1fc883e, f34eeeec) and in this branch, so slice 2 waits only for slice 1. B-226 claimed 2026-11-21.
+
+**Slice 1 notes:** its `pnpm check` never passed in one run under load up to 35 (integration, tooling and `timelineSheetUrls` tests timed out; each passed alone); the landing check covers it. `TabNav`'s default claims the tab's path and below; `match` replaces it, so the list tab's `match` must claim `/list…` and `/medications/:medicationId`.
 
 **Overlap seen before slice 2 (2026-11-21):** tasks-2 replaces the Upcoming and Tasks `GROUP_SECTIONS` entries with Planner (next to, not on, the Medications entry; a merge may need both kept). quick-fixes adds `expect.poll` to lines in `today`, `medicationForm` and `allergies` browser tests; whichever lands second resolves at sync.
 
