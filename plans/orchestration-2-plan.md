@@ -1,6 +1,6 @@
 # Plan: Orchestration 2
 
-> Source PRD: [`plans/orchestration-2-prd.md`](orchestration-2-prd.md). User-story numbers (US) refer to it. Backlog items B-389, B-390, B-391, B-395, B-403 (slice 7, added at the wave 1 boundary). Topic `orchestration-2`. The dispatcher (B-392) is the follow-on topic `orchestration-3`.
+> Source PRD: [`plans/orchestration-2-prd.md`](orchestration-2-prd.md). User-story numbers (US) refer to it. Backlog items B-389, B-390, B-391, B-395, B-403 (slice 7, added at the wave 1 boundary), B-409 and B-410 (slices 8 and 9, added after waves 2 and 3). Topic `orchestration-2`. The dispatcher (B-392) is the follow-on topic `orchestration-3`.
 
 ## Status
 
@@ -38,7 +38,7 @@
 
 ## How to run this plan
 
-- **Waves:** (1, 2, 3) → 4 → 5 → 6 → 7. Slices 4, 5 and 6 each edit `prompt.sh`, its tests and `prd.sh`, so they run one after another, each from a branch that has the one before. Land after wave 1, after slice 5 (waves 2 and 3 together), after slice 6 and after slice 7. Slice 7 edits `prd.sh` and `prompt.sh` too, so it runs after 6.
+- **Waves:** (1, 2, 3) → 4 → 5 → 6 → 7 → 8 → 9. Slices 4, 5 and 6 each edit `prompt.sh`, its tests and `prd.sh`, so they run one after another, each from a branch that has the one before. Land after wave 1, after slice 5 (waves 2 and 3 together), after slice 6, and after slice 9 (7, 8 and 9 together). Slices 7, 8 and 9 each edit `prd.sh`, `prompt.sh` or `land.sh`, so they run one after another.
 - **Gates:** every slice is tooling, so the check gate needs no app check: run the tooling tests (`pnpm test:tooling`) and prettier on the changed files. No browser checks.
 - **Shared files in wave 1:** slice 1 owns `scripts/backlog/`; slice 2 `session.sh`, `open-session.*`, `queue.sh`, `rm.sh` and `prd.sh`'s `start`, `open`, `plan` and `end` commands; slice 3 the asks files and a new "asks" group in `prd.sh`'s usage with its own `case` lines. Slices 2 and 3 each add lines to `prd.sh`: the orchestrator resolves that conflict at the merge (both sides are kept).
 - **Migrating the table (the orchestrator, once, after wave 1 lands):** the backlog tool writes `dev` in the main checkout, so no slice can do it.
@@ -224,3 +224,41 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tes
 - [ ] The prompt test: `prompt.sh tidy` names `pnpm prd tidy --yes`, SendMessage and `/loop`, and says never to close sessions or delete unmerged work.
 
 **Blocked by:** 2, 3, 6 (`prd.sh`, `prompt.sh`). **Blocks:** nothing.
+
+## Slice 8: Docs-only landings skip the Codex wait
+
+Stack: no · Reads: docs/agents/orchestrator.md · Tests: unit
+
+**Backlog:** B-409. **User stories:** 22.
+
+**What to build**
+
+- In `lib.sh`, a narrower test beside the check gate's: `docs_only <base> <tip>`, true when everything `base...tip` changes is Markdown (`*.md` anywhere: `plans/`, `docs/`, AGENTS.md). Tooling scripts are code and keep the review.
+- `land.sh`: on the PR path, a docs-only diff needs no Codex verdict. It prints that it skipped the verdict and why, and still needs the PR open with the local tip as its head. **Assumed (the orchestrator, 2026-11-21):** a docs-only `prd/` landing still goes through its PR; only the verdict is skipped. `plan/` branches are unchanged.
+- `prompt.sh`: the orchestrator prompt (every variant) says that when the wave's diff is docs only, don't run or wait for `pnpm prd review`: open the PR and land.
+
+**Acceptance criteria**
+
+- [ ] Tooling tests: `docs_only` for a Markdown-only diff, a diff with one `.mjs` or `.sh` file, and an empty diff; `land.sh` lands a docs-only PR with no verdict (stubbed `gh`) and still refuses a code PR without one.
+- [ ] A prompt test for the docs-only line.
+
+**Blocked by:** 7 (`prd.sh`, `prompt.sh`). **Blocks:** 9.
+
+## Slice 9: A `to-test/` file for each landing
+
+Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/machinery.md · Tests: unit
+
+**Backlog:** B-410 (its notes hold the user's answers). **User stories:** 23.
+
+**What to build**
+
+- `land.sh`, after a successful merge of a PRD, hotfix or fix-topic landing whose diff isn't docs only (slice 8's `docs_only`): writes `to-test/<date>-<time>-<topic>.md` in the main checkout, itself, so it exists even if the session dies after merging. Its content comes from what `pnpm prd ready` reports: the topic's and wave's plain titles, the items with ids and titles, the `dev` commit and PR link, what to try and where (screens, steps, the dev URL), what wasn't checked (`--quick`, skipped browser checks, `--no-review`), follow-ups filed. Agents only add files there, never edit or delete them.
+- `to-test/` goes in `.gitignore`.
+- The push still fires: `prompt.sh`'s run-through landing report (`pnpm prd ask --report`) names the topic, what landed and the `to-test/` file, and stands alone (tapping it may open a session that has ended or rotated: verify what it opens and say so in the hand-off).
+
+**Acceptance criteria**
+
+- [ ] Tooling tests: `land.sh` (stubbed `gh`, a temporary main checkout) writes one file with those parts after a code landing, none after a docs-only one, and none when the merge fails.
+- [ ] `.gitignore` has `to-test/`; a prompt test for the report line.
+
+**Blocked by:** 8 (`land.sh`). **Blocks:** nothing.

@@ -64,6 +64,8 @@ The project is five days old and has 3,042 commits on `dev`. The flow that produ
 19. As a triaging session, I want one rule for which category a fix belongs to, so that I don't guess.
 20. As the dev keeper, I want a fixes topic to run only while it has waiting items and never be marked done, so that it is always there for the next fix.
 21. As the dev keeper, I want a cleanup run every few hours that removes what is plainly finished (landed worktrees, dead tickets, stale refs) and sends me one report of the rest (sessions that look done, unmerged branches), so that leftovers don't pile up (B-403).
+22. As the dev keeper, I want a docs-only landing not to wait on Codex, which skips docs anyway (B-409).
+23. As the dev keeper, I want each code landing to leave a file in `to-test/` saying what landed and what to try, and a push that stands alone, so that I can catch up while away (B-410).
 
 ## Implementation Decisions
 
