@@ -53,6 +53,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `i18n` | to write (B-209: translations for all text; needs a dependency approved) | best after the feature PRDs settle; runs alone | every user-facing string: routes, `ui/`, emails, MCP text, date formatting |
 | `timeline-ux-2` | [PRD](timeline-ux-2-prd.md), [plan](timeline-ux-2-plan.md): 7 slices, waves (1, 3, 4, 5, 7) → (2, 6): a `PageHeader` primitive, and Providers, Medications, Upcoming and Tasks without the recipient's name or viewer notes (print keeps it); a plain "Timeline" heading instead of the recipient card; one toolbar (search, Filter, View options at the right end, all icon circles, Filter's count badge); the day summary's chevron on the left; the group menu reordered (no period line, New care group under the groups, Group settings last); quick entry's suggestions (Due now, Usual, recent) in a popover behind a Sparkles icon inside the box (a dot when a pass is due; simple mode too), the help ? dropped, Matching names floating over the page; an empty Today's "Nothing logged today yet." and "Add an entry"; Vitals as an inline expandable group in the + menu (`ui/Menu` groups) (B-214, B-218, B-223, B-215, B-216, B-219, B-217, B-224). UI only: no migration, no deps, stackless. **Ready to start**; `quick-entry` (B-220) waits for it | (none) | `components/ui/` (`PageHeader`, `Menu` and `menuModel.ts` groups), the Providers, Medications, Upcoming (`UpcomingHeader`) and Tasks headers, `TimelineHeader`, `RecipientCard` (deleted), `FilterChips` (`TimelineFilters.tsx`), `TimelineViewMenu`, `DaySummaryLine`, `GroupMenu`, `components/quick-entry/` (`QuickEntryBox`, `QuickEntrySuggestions`, `QuickEntryHelp` deleted), `TimelineEntryList` and the timeline route, `QuickAddMenu` |
 | `quick-entry` | [PRD](quick-entry-prd.md), [plan](quick-entry-plan.md): 4 slices, waves 1 → (2, 3, 4): one vocabulary table of kind-picking words (falls, seizures and the like are symptoms; 911, ER and urgent care are notes; visit verbs make events, contact verbs make notes), provider lines as events (titles, places), "the 25th" and month dates, forward for events and back for past-only kinds; notes that @-mention named providers (`addNote.providerIds`, both runners, the connector's `add_note`); a provider event's Save opens a prefilled new-event draft (mixed lines save the rest with Undo); kind chips on the cards (B-220). No migration, no deps, stackless. **Ready to start** once `timeline-ux-2` and `tasks-2` are in `dev` | `timeline-ux-2` in `dev` (last item B-224); `tasks-2` in `dev` (the to-do rename in actions, `actionPreview`, connector tools; last item B-222) | `packages/data` assistant schema (`quickEntry.ts`, `quickEntryTime.ts`, the new `quickEntryVocabulary.ts`, `assistantActions.ts`, `quickEntryPreview.ts`), `noteYjs.ts` (`noteDocFromText`), `assistantActionService`, the connector's `add_note`, `lib/assistant/` (`quickEntry.sync.ts`, `quickEntryDraft.ts`, `openAfterSave`), `components/quick-entry/` (`useQuickEntry`, `quickEntryCards.ts`, the card), the entry page's new-event draft |
+| `planner-2` | to write (B-248: remove reminders, notes become past-only, todos take their place; no data migration; B-245 attach a todo to a note is the later follow-up) | `quick-entry` in `dev` (the same date rules; last item B-220) | the note time rules on the device and server (`timelineEntryService`), the Planner (+ menu, rows, `upcomingFilters`), the Today card and `SimpleNext`, `calendarItems` and `calendarText` (the reminder kind: feed, Google push and pull, `reminderPlan`, Remind me), quick entry (`quickEntryTime`, the note action), the connector's `upcoming` and `add_note`, seeds |
 | `simple-mode` | to write (B-221: locked simple mode, a new member type or a nit pass) | (none) | `@caretook/data/permissions`, `careGroupMemberService`, group settings Members, `SimpleTimeline`, the `/app` layout |
 | `tasks-2` | [PRD](tasks-2-prd.md), [plan](tasks-2-plan.md): 4 slices, waves 1 → 2 → (3, 4): tasks become **todos** all the way down (table `todo`, `note_document.todo_id`, `todo:` calendar uids rewritten in place, `PERMISSIONS.todo`, `todoService`, sync and upload `todo` only: a one-step rename, the user's exception to the additive rule since production isn't live), every label says Todo (quick entry keeps `t:`/`task:`/`todo:`), then Upcoming and Tasks merge into **Planner** (`CalendarCheck`; tabs Planner, Todos, Past; `/planner`, `/planner/past`, `/todos`, `/todos/:todoId`; no redirects; one + menu: Appointment, Reminder, Todo), and the connector's `add_todo`, `list_todos` (B-222). One migration, no deps; slice 1 has a stack. **Ready to start** once `timeline-ux-2` is in `dev` | `timeline-ux-2` in `dev` (its `PageHeader`, the Upcoming and Tasks headers; last item B-224) | the `task` table and every todo file (`packages/data` schema, model, service, seeds, search, calendars, notifications), `sync-config.yaml`, the device schema, the upload switch, the sync matrix, `lib/tasks/`, `components/tasks/`, the tasks, task and upcoming routes, `appUrls`, `GROUP_SECTIONS`, the Today card and `SimpleTasks`, quick entry's preview, `actionPreview`, connector tools and prompts, `roundtrip`, `phase2`, `live-notes` |
 
@@ -138,6 +139,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-243 | bug | landed | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
 | B-244 | chore | triaged | github-review |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | inbox |  |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
+| B-246 | change | triaged | quick-fixes |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
+| B-247 | change | triaged | quick-fixes |  | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
+| B-248 | change | triaged | planner-2 |  | Remove reminders: notes can no longer be dated in the future; use todos instead |
 
 ## Items
 
@@ -946,3 +950,32 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the backlog session, 2026-11-21, at the user's request: the future replacement for reminders (future-dated notes), which are to be removed from the Planner. Not triaged; no PRD yet.
+- 2026-11-21 (Robert Bo Davis): Follows planner-2 (B-248 remove reminders).
+
+### B-246 · change · Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab)
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, agreed with the user: the Planner is for appointments and todos. Drop withDueDoses, UpcomingDoseRow and the pass rows from the Planner (lib/appointments/upcomingDoses.ts, plannerPasses tests); check whether the connector's upcoming tool lists doses and say so before changing it. UI only.
+
+### B-247 · change · Planner: Past becomes an 'Upcoming | Past' toggle inside the Planner tab instead of its own tab
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, agreed with the user: keep the /planner/past route and URL (Back, deep links, sheets closing back), drop Past from PlannerHeader's tab nav, add a two-option control of links in the filter row with the Planner tab active on both; Past stays events only (done todos stay under Todos). UI only.
+- 2026-11-21 (Robert Bo Davis): Also, at the user's request (2026-11-21): the Planner tab's filter chips become All, Events, Todos (today All, Appointments, Reminders, with todos hidden under any chip). Events is ?kind=event; Todos is a new todos-only filter (not a timeline kind: upcomingFilters, showsTodos in lib/todos/plannerTodos.ts, useUpcomingData, PlannerFilterChips, the empty text). The Reminders chip goes; until B-248 removes reminders they show only under All. Rework the filter row once, with the Upcoming | Past control.
+
+### B-248 · change · Remove reminders: notes can no longer be dated in the future; use todos instead
+
+- status: triaged
+- prd: planner-2
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, the user's decision: a reminder (a future-dated note) goes away in favour of todos. Notes become past-only on the device and the server; remove Reminder from the Planner's + menu, the Planner rows and kind filter, the Today card and simple mode's next, the calendar projection's reminder kind (feed, Google push and pull, reminder emails, Remind me), quick entry's future-note reading and the connector's upcoming and add_note. No data migration (nothing live): seeds change, existing future notes are not converted. Starts after quick-entry (B-220) is in dev: it rewrites the same date rules. B-245 (attach a todo to a note) is the later follow-up.
