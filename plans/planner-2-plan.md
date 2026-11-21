@@ -14,7 +14,7 @@
 | 6     | 2    | not started                                                          |                                            |
 | 7     | 2    | not started                                                          |                                            |
 
-**Landing mode: run everything through** (queued with `pnpm prd queue planner-2`): start every ready slice, land each green wave through the PR + Codex, clean up; ask only real questions. B-248 claimed by prd/planner-2 (2026-11-21). At the wave 1 boundary: `quick-entry` (B-220) is in `dev`; B-247 is still `triaged` (slice 3 waits).
+**Landing mode: run everything through** (queued with `pnpm prd queue planner-2`): start every ready slice, land each green wave through the PR + Codex, clean up; ask only real questions. B-248 claimed by prd/planner-2 (2026-11-21). At the wave 1 boundary: `quick-entry` (B-220) is in `dev`; B-247 is still `triaged` (slice 3 waits): the quick-fixes orchestrator says the user held B-247 and B-246 back and no slice is written; it will message planner-2 if it's scheduled and when it lands. A background check watches `dev` for it. Open: ask the user whether to schedule B-247, or land wave 2 without slice 3.
 
 **Start conditions:** slices 1 and 2 can start at once. **Slice 5 waits for `quick-entry` (B-220, the smarter quick entry box) in `dev`**; **slice 3 waits for B-247 in `dev`** (Planner: Past becomes an Upcoming | Past toggle, with the All / Events / Todos chips; a `quick-fixes` item). `pnpm prd sync` before each.
 
