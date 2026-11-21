@@ -4,14 +4,16 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Nothing blocks it.
+**Where it stands:** wave 1 running (2026-11-21). Nothing blocks it.
 
-| Slice | Wave | State       | Merge into `prd/check-speed` (slice commits) |
-| ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 1    | not started |                                              |
-| 3     | 2    | not started |                                              |
-| 4     | 2    | not started |                                              |
+**Landing mode: run everything through** (queued with `pnpm prd queue check-speed`): start every ready slice, land each green wave through its PR, clean up; ask only real questions.
+
+| Slice | Wave | State                                  | Merge into `prd/check-speed` (slice commits) |
+| ----- | ---- | -------------------------------------- | -------------------------------------------- |
+| 1     | 1    | started: worktree made, agent (sonnet) |                                              |
+| 2     | 1    | started: worktree made, agent (sonnet) |                                              |
+| 3     | 2    | not started                            |                                              |
+| 4     | 2    | not started                            |                                              |
 
 **Backlog:** B-271 closes with slice 1, B-273 with slice 2, B-272 with slice 3, B-278 with slice 4 (`pnpm backlog done` when each merges).
 
