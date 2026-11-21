@@ -143,7 +143,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-246 | change | triaged | quick-fixes |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
 | B-247 | change | triaged | quick-fixes |  | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
 | B-248 | change | triaged | planner-2 |  | Remove reminders: notes can no longer be dated in the future; use todos instead |
-| B-249 | change | triaged | list-filters |  | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
+| B-249 | change | in-progress | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
+| B-250 | bug | triaged | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
+| B-251 | bug | triaged | quick-fixes |  | convert planner tabs to TabNav component. |
 
 ## Items
 
@@ -986,9 +988,28 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-249 · change · Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner
 
-- status: triaged
+- status: in-progress
 - prd: list-filters
-- owner:
+- owner: prd/list-filters
 - commit:
 
 - 2026-11-21 (backlog agent): Backlog session 2026-11-21, the user's request while planning B-213: the medications list's status and type chips collapse under a Filter icon styled like the timeline's round controls; a shared ui/ component; also the providers directory, todos and the Planner (its slice waits for B-247). The search boxes stay visible; the timeline keeps its Filter sheet.
+
+### B-250 · bug · lint tests seem to be failing regularly because types haven't been generated. Maybe regression…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: lint tests seem to be failing regularly because types haven't been generated. Maybe regression introduced by reordering the steps in check?
+- 2026-11-21 (Robert Bo Davis): Triage: tooling bug in the check pipeline (lint needs React Router's generated types; suspect the reordered steps in pnpm check). Small and self-contained, so quick-fixes next wave; if it blocks checks now, a hotfix on dev is the faster path.
+
+### B-251 · bug · convert planner tabs to TabNav component.
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Triage: small UI change next to the other Planner tab items (B-246, B-247) in quick-fixes; do it with or after B-247, which changes the same tabs.
