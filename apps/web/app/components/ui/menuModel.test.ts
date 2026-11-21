@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MenuSection } from "./menuModel";
+import type { MenuGroup, MenuSection } from "./menuModel";
 
 import { chosenKey, linkOptions, normalizeMenu, SEPARATOR, sectionName } from "./menuModel";
 
@@ -38,6 +38,27 @@ describe("normalizeMenu", () => {
     expect(shape([SEPARATOR, a, SEPARATOR, SEPARATOR, b, SEPARATOR])).toBe("a|b");
     expect(shape([a, SEPARATOR, empty, SEPARATOR, false])).toBe("a");
     expect(shape([a, SEPARATOR, empty, SEPARATOR, b])).toBe("a|b");
+  });
+
+  it("keeps a group with its shown items, and drops an empty one", () => {
+    const group: MenuGroup = { type: "group", id: "g", label: "Vitals", items: [a, false, b] };
+    const empty: MenuGroup = { type: "group", id: "e", label: "Empty", items: [false, null] };
+    expect(normalizeMenu([group, empty])).toEqual([
+      { type: "group", id: "g", label: "Vitals", items: [a, b] },
+    ]);
+  });
+
+  it("places separators around a group as around one item", () => {
+    const group: MenuGroup = { type: "group", id: "g", label: "G", items: [{ id: "c", label: "C" }] };
+    const empty: MenuGroup = { type: "group", id: "e", label: "E", items: [] };
+    const shape = (entries: Parameters<typeof normalizeMenu>[0]) =>
+      normalizeMenu(entries)
+        .map((e) => (e.type === "separator" ? "|" : e.id))
+        .join("");
+    expect(shape([a, SEPARATOR, group, SEPARATOR, b])).toBe("a|g|b");
+    expect(shape([SEPARATOR, group, SEPARATOR])).toBe("g");
+    expect(shape([a, SEPARATOR, empty, SEPARATOR, b])).toBe("a|b");
+    expect(shape([a, SEPARATOR, empty])).toBe("a");
   });
 
   it("gives separators unique ids", () => {

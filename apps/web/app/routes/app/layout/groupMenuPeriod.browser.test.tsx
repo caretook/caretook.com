@@ -5,20 +5,12 @@ import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../test/found";
 import { renderWithDevice } from "../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
-import {
-  HOME_NOW,
-  HOSPITAL,
-  PERIOD_ROUTES,
-  PERIODS_URL,
-  periodUrl,
-  track,
-  waitUntil,
-} from "../groups/periods/periodWorld";
+import { HOSPITAL, PERIOD_ROUTES, PERIODS_URL, track, waitUntil } from "../groups/periods/periodWorld";
 
 // The group menu's care period (care-periods.mjs's group menu steps): the
 // current period's icon after the recipient's name on the group's screens at
 // 420 and 1280, its name in the button's accessible name and as the icon's
-// hover hint; the open menu's "Now: … · day N" and "Care periods"; and
+// hover hint; the open menu's order (no "Now" line); and
 // switching to a group without periods, a period arriving there, and back.
 // The real /app frame (`frame: true`) around the periods pages and a
 // stand-in timeline. The rest of the menu is frame.browser.test.tsx's.
@@ -108,22 +100,21 @@ describe("the group menu's care period", () => {
     },
   );
 
-  test('the open menu has "Now: … · day N" first after the groups, then the profile, Group settings and Care periods; Now opens the current period', async () => {
-    const device = await open();
+  test("the open menu lists the groups, New care group, then the profile, Care periods and Group settings last, with no Now item", async () => {
+    await open();
     await waitUntil(() => menuState().type !== null, 4000, "the icon");
     await openMenu();
-    const list = items();
-    const i = list.findIndex((t) => t.startsWith("Now: "));
-    expect(list[i]).toMatch(/^Now: At home · day \d+$/);
-    expect(list.slice(i + 1, i + 4)).toEqual(["Grandma June's profile", "Group settings", "Care periods"]);
-    // Only the groups come before it.
-    expect(i).toBe(2);
-    await userEvent.click(page.getByRole("menuitem", { name: /^Now: / }));
-    await expect.poll(device.location).toBe(periodUrl(HOME_NOW.id));
-    await waitUntil(() => !!document.querySelector("main[data-period-page]"), 4000, "the period page");
+    expect(items()).toEqual([
+      "Grandma JuneMoreno Family",
+      "Grandpa LouMoreno Family 2",
+      "New care group",
+      "Grandma June's profile",
+      "Care periods",
+      "Group settings",
+    ]);
   });
 
-  test("a group without periods has no icon and no Now item (Care periods stays); a period arriving there shows without a reload; switching back shows the first group's own", async () => {
+  test("a group without periods has no icon (Care periods stays); a period arriving there shows without a reload; switching back shows the first group's own", async () => {
     const device = await open();
     await waitUntil(() => menuState().type !== null, 4000, "the icon");
     await openMenu();
@@ -133,7 +124,6 @@ describe("the group menu's care period", () => {
     await device.settle();
     expect(menuState()).toMatchObject({ label: "Grandpa Lou: switch care group", type: null });
     await openMenu();
-    expect(items().some((t) => t.startsWith("Now: "))).toBe(false);
     expect(items()).toContain("Care periods");
     await userEvent.keyboard("{Escape}");
 
@@ -149,8 +139,6 @@ describe("the group menu's care period", () => {
     await device.settle();
     expect(menuState()).toMatchObject({ label: "Grandpa Lou, Rehab: switch care group", type: "rehab" });
     await openMenu();
-    expect(items()).toContain("Now: In rehab · day 1");
-
     await userEvent.click(page.getByRole("menuitemradio", { name: /Grandma June/ }));
     await expect.poll(device.location).toBe(timelineUrl(TEST_GROUP.id));
     await waitUntil(() => menuState().type === "home", 4000, "the first group's icon");

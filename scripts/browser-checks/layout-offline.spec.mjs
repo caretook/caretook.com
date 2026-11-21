@@ -191,7 +191,7 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
     // Back to the timeline (still offline), then the vitals sheet's temperature.
     await page.evaluate(() => history.go(-2));
     await rowsShown(page, timeline);
-    await addToTimeline(page, "Temperature");
+    await addToTimeline(page, "Temperature", { group: "Vitals" });
     await expect(dialog.locator('input[name="vital.0.type"]')).toHaveValue("temperature", {
       timeout: 10_000,
     });
