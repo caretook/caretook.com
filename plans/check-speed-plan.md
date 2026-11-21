@@ -4,16 +4,16 @@
 
 ## Status
 
-**Where it stands:** wave 1 running (2026-11-21). Nothing blocks it.
+**Where it stands:** wave 1 merged (2026-11-21); docs folded (loop.md, orchestrator.md, the core's _Checks_); next: sync, full `pnpm prd check` + `pnpm test:tooling`, PR, Codex, land. The merge of slice 2 moved `check-times.test.mjs` into `scripts:unit` (a pure-module test, per the PRD).
 
 **Landing mode: run everything through** (queued with `pnpm prd queue check-speed`): start every ready slice, land each green wave through its PR, clean up; ask only real questions.
 
-| Slice | Wave | State                                  | Merge into `prd/check-speed` (slice commits) |
-| ----- | ---- | -------------------------------------- | -------------------------------------------- |
-| 1     | 1    | merged (sonnet)                        | 4d4a760f (571cc9f6)                          |
-| 2     | 1    | started: worktree made, agent (sonnet) |                                              |
-| 3     | 2    | not started                            |                                              |
-| 4     | 2    | not started                            |                                              |
+| Slice | Wave | State           | Merge into `prd/check-speed` (slice commits) |
+| ----- | ---- | --------------- | -------------------------------------------- |
+| 1     | 1    | merged (sonnet) | 4d4a760f (571cc9f6)                          |
+| 2     | 1    | merged (sonnet) | 4bb31f7f (8b68de30)                          |
+| 3     | 2    | not started     |                                              |
+| 4     | 2    | not started     |                                              |
 
 **Backlog:** B-271 closes with slice 1, B-273 with slice 2, B-272 with slice 3, B-278 with slice 4 (`pnpm backlog done` when each merges).
 
