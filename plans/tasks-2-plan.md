@@ -4,18 +4,24 @@
 
 ## Status
 
-| Slice | Wave | State                                                                   | Merge into `prd/tasks-2` (slice commits) |
-| ----- | ---- | ----------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | 1    | started 2026-11-21 (worktree `tasks-2-1`, slot 3, stack; agent on opus) |                                          |
-| 2     | 2    | waiting on timeline-ux-2 in `dev`                                       |                                          |
-| 3     | 3    | —                                                                       |                                          |
-| 4     | 3    | —                                                                       |                                          |
+| Slice | Wave | State                                                                 | Merge into `prd/tasks-2` (slice commits) |
+| ----- | ---- | --------------------------------------------------------------------- | ---------------------------------------- |
+| 1     | 1    | merged (opus); worktree removed                                       | 2bb1c667 (fcec2345)                      |
+| 2     | 2    | started 2026-11-21 (worktree `tasks-2-2`, stackless; agent on sonnet) |                                          |
+| 3     | 3    | —                                                                     |                                          |
+| 4     | 3    | —                                                                     |                                          |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue tasks-2`): start every ready slice, land each green wave, clean up; ask only real questions. B-222 claimed.
 
 **Start-condition note:** timeline-ux-2 wasn't in `dev` at start (B-214, B-217 in progress). Its diff touches only `apps/web` UI and docs, none of slice 1's files, so slice 1 started; slice 2 waits for timeline-ux-2 **wave 1** to land (its orchestrator says wave 1 has PageHeader and the Upcoming/Tasks headers, and wave 2 touches only timeline files; it messages us at each landing; a background check also watches `dev` for a `feat(timeline-ux-2)` commit), then `pnpm prd sync`. **Wave 1 landed in `dev` as f1fc883e** (no migration/seed/dependency): sync after slice 1 merges (the wave boundary), then start slice 2.
 
 **Start conditions:** **`timeline-ux-2`** in `dev` (its `PageHeader` and the Upcoming and Tasks headers; last item B-224). `connectors-2` (the tools, `assistantActionService`, the MCP prompts) is already in `dev` (017a9b29). Run `pnpm prd sync` before slice 1 if `dev` moved.
+
+**Synced** `dev` after slice 1 (57bdf86c, conflict-free; timeline-ux-2 wave 1 in).
+
+**Slice 1 notes:** migration `0032_todos` (renames, a `DO` block for Postgres 18's named NOT NULL constraints; rewrites subject, reason, `google_event_link.item_uid`, the reminder outbox idempotency keys and `taskDue` → `todoDue` names); `SEARCH_INDEX_VERSION` 5. `pnpm check` had one failure, `entryPrint`, the post-midnight clock flake B-225 (quick-fixes slice 61 fixes it). Lean browser set 12/12 passed in the slice. **Open:** the connector consent text in `connectorRules.ts` says "tasks": handed to slice 4 (report, don't bump the consent version without asking).
+
+**Overlaps:** quick-fixes slices 59 and 61 edit `task.browser.test.tsx`, `upcomingEvents`/`upcomingSeries.browser.test.tsx` and `timelineSimpleTasks.browser.test.tsx`, which slices 2 and 3 rename (`git mv`, so the renames should carry their edits). quick-entry (B-220) waits for tasks-2 in `dev`.
 
 **Landing:** one migration (slice 1); no new dependencies. Land when every slice is merged; run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
 
