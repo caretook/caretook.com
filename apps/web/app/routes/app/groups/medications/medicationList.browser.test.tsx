@@ -192,6 +192,24 @@ describe("the list", () => {
     expect($("main [data-add-medication]")).toBeNull();
   });
 
+  test("the header's actions run + Add medication, labeled Passes, then a printer-only Print; Add opens the sheet and Print its menu", async () => {
+    const device = await open();
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    const actions = $$("main header a, main header button");
+    expect(actions.map((a) => a.getAttribute("aria-label") ?? a.textContent?.trim())).toEqual([
+      "Add medication",
+      "Passes",
+      "Print",
+    ]);
+    expect(actions[0]?.textContent?.trim()).toBe("");
+    expect(actions[2]?.textContent?.trim()).toBe("");
+    await userEvent.click(page.getByRole("button", { name: "Print" }));
+    await expect.element(page.getByRole("menuitem", { name: /Weekly chart/ })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(actions[0]!);
+    await expect.poll(device.location).toContain("/medications/new");
+  });
+
   test("a medication stopped on another device moves below the current ones", async () => {
     const device = await open();
     // Another device discontinued it: the row arrives changed.

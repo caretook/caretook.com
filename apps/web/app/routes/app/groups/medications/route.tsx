@@ -101,6 +101,21 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          {group.canWrite && (
+            <Link
+              to={appUrls.newMedication(params.groupId, search)}
+              state={MEDICATION_SHEET_STATE}
+              // Loaded ahead, so the sheet opens offline too.
+              prefetch="render"
+              preventScrollReset
+              aria-label="Add medication"
+              title="Add medication"
+              className="btn btn-primary btn-sm btn-square"
+              data-add-medication
+            >
+              <Plus className="size-4" aria-hidden="true" />
+            </Link>
+          )}
           <Link
             to={appUrls.medicationPasses(params.groupId)}
             prefetch="render"
@@ -111,20 +126,6 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
             Passes
           </Link>
           <PrintMenu groupId={params.groupId} />
-          {group.canWrite && (
-            <Link
-              to={appUrls.newMedication(params.groupId, search)}
-              state={MEDICATION_SHEET_STATE}
-              // Loaded ahead, so the sheet opens offline too.
-              prefetch="render"
-              preventScrollReset
-              className="btn btn-primary btn-sm"
-              data-add-medication
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              Add medication
-            </Link>
-          )}
         </div>
       </header>
 

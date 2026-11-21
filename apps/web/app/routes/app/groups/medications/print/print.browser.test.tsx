@@ -32,7 +32,10 @@ const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[
     ...options,
   });
 
-const PRINT_MENU = () => $$<HTMLButtonElement>("main button").find((b) => b.textContent?.trim() === "Print");
+const PRINT_MENU = () =>
+  $$<HTMLButtonElement>("main button").find(
+    (b) => (b.getAttribute("aria-label") ?? b.textContent?.trim()) === "Print",
+  );
 /** A Print menu item, by the start of its text (its description follows). */
 const printItem = (label: string) =>
   $$("[role=menuitem]").find((m) => m.textContent?.trim().startsWith(label));
