@@ -41,8 +41,9 @@ const ITEMS: CalendarItem[] = [
     end: "2026-11-20T19:00:00.000Z",
   }),
   item({
-    uid: "entry:a3",
-    kind: "reminder",
+    uid: "todo:t2",
+    source: { type: "todo", id: "t2" },
+    kind: "todo",
     allDay: true,
     start: "2026-11-21",
     end: "2026-11-22",

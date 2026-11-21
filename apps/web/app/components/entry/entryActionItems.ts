@@ -16,7 +16,7 @@ export type EntryAction =
  * already rescheduled to another isn't offered: follow its link instead).
  * Prepare (visit prep) comes after Edit for an upcoming event the caller can
  * prepare, Remind me (the member's own reminder for this one; any role)
- * before Print for an upcoming note or event, and Print before Delete for every note and event the caller can
+ * before Print for an upcoming event, and Print before Delete for every note and event the caller can
  * print, viewers included: with `canDelete` false (a viewer) Print is the
  * only item. A visit of a repeating series (`canEditSeries`) gets Edit
  * first, for notes and events too: it asks Only this visit or This and
@@ -52,7 +52,7 @@ export function entryActionItems(
   if (canPrepare && kind === "event") items.push("prepare");
   if (canReschedule && kind === "event") items.push("reschedule");
   if (canCancel && kind === "event") items.push(cancelled ? "uncancel" : "cancel");
-  if (canRemind && canHaveNoteDocument(kind)) items.push("remind");
+  if (canRemind && kind === "event") items.push("remind");
   if (canPrint && canHaveNoteDocument(kind)) items.push("print");
   if (canDelete) items.push("delete");
   return items;

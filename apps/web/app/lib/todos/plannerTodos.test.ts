@@ -1,9 +1,7 @@
 import type { TodoRuleFields } from "@caretook/data/schema";
-import type { UpcomingDose } from "../appointments/upcomingDoses";
 
 import { describe, expect, it } from "vitest";
 import { upcomingSections } from "../appointments/upcomingDays";
-import { withDueDoses } from "../appointments/upcomingDoses";
 import { isPlannerTodo, showsTodos, plannerTodos, withDueTodos } from "./plannerTodos";
 
 const LA = "America/Los_Angeles";
@@ -33,17 +31,6 @@ const entry = (id: string, occurredAt: string, extra: Partial<Item> = {}): Item 
   occurredAt,
   timeZone: LA,
   ...extra,
-});
-const dose = (key: string, at: string): UpcomingDose => ({
-  type: "dueDose",
-  key,
-  passId: null,
-  medicationId: "m",
-  title: "Metformin",
-  count: 1,
-  time: "00:00",
-  at,
-  state: "upcoming",
 });
 
 const keyOf = (i: object) => ("key" in i ? (i as { key: string }).key : (i as Item).id);
@@ -80,11 +67,11 @@ describe("withDueTodos", () => {
   const place = (
     entries: Item[],
     todos: ReturnType<typeof todo>[],
-    { doses = [] as UpcomingDose[], viewer = LA, recipient = LA, now = NOW } = {},
+    { viewer = LA, recipient = LA, now = NOW } = {},
   ) =>
     shape(
       withDueTodos(
-        withDueDoses(upcomingSections(entries, now, viewer), doses, now, viewer),
+        upcomingSections(entries, now, viewer),
         plannerTodos(todos, now, recipient),
         now,
         viewer,
@@ -131,13 +118,6 @@ describe("withDueTodos", () => {
       ),
     ).toEqual([
       ["Friday, Nov 20", ["allday", "todo:whole-day", "nine", "todo:at-ten", "noon", "todo:at-noon"]],
-    ]);
-  });
-
-  it("sits among due doses by time", () => {
-    const doses = [dose("m@12:00", "2026-11-18T20:00:00.000Z"), dose("m@20:00", "2026-11-19T04:00:00.000Z")];
-    expect(place([], [todo("five", "2026-11-18", "17:00")], { doses })).toEqual([
-      ["Today", ["m@12:00", "todo:five", "m@20:00"]],
     ]);
   });
 

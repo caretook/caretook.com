@@ -3,7 +3,7 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { ListChecks } from "lucide-react";
 import { Link } from "react-router";
-import { TodoTick, TodoUndoStatus, useTodoTick } from "~/components/todos";
+import { TodoRepeatMark, TodoTick, TodoUndoStatus, useTodoTick } from "~/components/todos";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { dueText } from "~/lib/todos/todoDisplay";
@@ -78,6 +78,7 @@ export function SimpleTodos({ className = "" }: { className?: string }) {
                     data-todo-due
                   >
                     {dueText(todo, now, timeZone)}
+                    <TodoRepeatMark todo={todo} className="ms-1.5" />
                   </p>
                 </div>
               </li>

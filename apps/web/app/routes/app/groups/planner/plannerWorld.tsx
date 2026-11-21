@@ -19,7 +19,7 @@ import * as planner from "./route";
 // The Planner's component tests share one fictional world, on a fixed clock:
 // Wednesday, November 18, 2026, 10:00 AM in Los Angeles (where the test
 // device runs). Something in progress, items later today, tomorrow and
-// Friday (one all day), cancelled and rescheduled ones, a reminder note,
+// Friday (one all day), cancelled and rescheduled ones,
 // providers to call and map, two authors, and past events for the Past tab.
 // What upcoming.mjs used to check against the seeds, against rows this file
 // controls. Only `*.browser.test.tsx` files import it.

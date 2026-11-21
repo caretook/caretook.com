@@ -7,6 +7,7 @@ import { formatReading, VITALS } from "@caretook/data/schema";
 import { CalendarClock, ChevronDown, ListTodo } from "lucide-react";
 import { Link } from "react-router";
 import { RepeatMark } from "~/components/entry";
+import { TodoRepeatMark } from "~/components/todos";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatAgo } from "~/lib/core/format";
 import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
@@ -168,6 +169,7 @@ export function TodayCard({
             >
               <span title={todo.text} data-todo={todo.strip.todo.id} data-todo-state={todo.strip.state}>
                 <span className="font-semibold">{todo.lead}:</span> {todo.title}
+                <TodoRepeatMark todo={todo.strip.todo} className="text-base-content/70 ms-1" />
                 {todo.rest && <span> · {todo.rest}</span>}
               </span>
             </TodayRow>

@@ -3,7 +3,7 @@ import type { FakeGoogleCalendar, GoogleEvent } from "../google";
 
 import { and, eq, notInArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../test/fixtures";
+import { createGroup, createUser, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
   googleCalendarConnectionSchema,
@@ -20,6 +20,7 @@ import {
   setGoogleCalendarClient,
   UID_PROPERTY,
 } from "../google";
+import { timelineEntryModel } from "../models";
 import { openGoogleToken } from "../utils/googleToken";
 import * as appointmentSeriesService from "./appointmentSeriesService";
 import * as calendarPullService from "./calendarPullService";
@@ -213,6 +214,31 @@ describe("pulling", () => {
     expect(row!.doneAt).not.toBeNull();
     expect(row!.doneBy).toBe(caretaker.user.id);
     expect(row!.deletedAt).toBeNull();
+  });
+
+  it("gives a stored future note no item: nothing is pushed for it, and its plan is ignored", async () => {
+    const { caretaker, group, appointment } = await setup();
+    const note = ok(
+      await timelineEntryModel.create({
+        ...system,
+        data: {
+          groupId: group.id,
+          recipientId: (await entryRow(appointment.id)).recipientId,
+          kind: "note",
+          title: "Call the pharmacy",
+          occurredAt: inDays(2),
+          timeZone: LA,
+        },
+      }),
+    )!;
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    const uid = `entry:${note.id}`;
+    expect(
+      (await calendarSyncService.groupItems(group.id, new Date())) as { uid: string }[],
+    ).not.toContainEqual(expect.objectContaining({ uid }));
+    expect(google.event(conn.calendarId, googleEventId(uid))).toBeNull();
+    expect(google.event(conn.calendarId, googleEventId(`entry:${appointment.id}`))).not.toBeNull();
   });
 
   it("takes a new event made in Google in as an appointment, then tags it, generic", async () => {

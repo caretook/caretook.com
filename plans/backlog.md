@@ -38,7 +38,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `care-periods` | [PRD](care-periods-prd.md), [plan](care-periods-plan.md): **done** (`f6c4e92`) | — | none now |
 | `data-rights`     | to write (B-52, B-53, B-84)                                  | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
 | `ui-kit` | to write (B-257 to B-270): shared UI primitives from the 2026-11-21 component review (Button, form footer, messages, Card, lists, empty and loading states, page frame, DetailHeader, Badge, check and toggle rows, text tokens), then the sweeps, a guard and a dev gallery | `list-filters` and `planner-2` landed first (both edit the list and Planner screens the sweeps touch); `quick-fixes` between waves | `components/ui/` (its `index.ts`, `styles.ts`, `plain/`), `app.css`, `components/settings/SettingsPage.tsx`; the sweeps touch most route folders, so one area per slice and nothing else running in that area |
-| `test-health` | [PRD](test-health-prd.md), [plan](test-health-plan.md) (B-271 to B-283): 19 slices in 7 waves, landing wave by wave. Waves 1 to 4: how checks run (the check lease and a load gate, quick check at hand-off, tooling tests in their own project, a database per worker, browser-check bookkeeping), the component harness (clock, one timeout, `getByCss`, lint rules as warnings) and the unit, server and Playwright cuts. Then it pauses; waves 5 to 7 are the component cuts, the area-by-area harness migration and the rules becoming errors | (none) for waves 1 to 4; waves 5 to 7 (slices 14 to 19) after `list-filters`, `planner-2` and `ui-kit` (they edit the same screens' tests); `quick-fixes` between waves | `vitest.config.ts`, `package.json`, `eslint.config.js`, `scripts/loops/` (`prd.sh`, `prompt.sh`, `lease.sh`, `checks`, `check-areas.mjs`, `check-areas.d/`, `test-db.sh`), `apps/web/test/` (`setup.ts`, `found.ts`), `packages/data/test/`, `scripts/browser-checks/` (the specs, `fixtures.mjs`), the frozen-list tests; from wave 5 the `*World.tsx` files and component tests in every area, one area per slice |
+| `check-speed` | [PRD](check-speed-prd.md), [plan](check-speed-plan.md) (B-271, B-272, B-273, B-278): 4 slices, waves (1, 2) → (3, 4): every check through two check leases and into a check log (`pnpm prd check --times`), tooling tests in their own Vitest project, quick check at hand-off with the full check once per landing, integration tests on three workers with a database each. No load gate. Measured 2026-11-21: a full test run takes about 11 minutes and five PRDs made 39 of them | (none) | `scripts/loops/` (`prd.sh` `check`, `prompt.sh`, `lease.sh`, `test-db.sh`, `rm.sh`), `vitest.config.ts`, `package.json`, `packages/data/test/`, `testDatabase.ts` |
+| `test-health` | [PRD](test-health-prd.md), [plan](test-health-plan.md) (B-274 to B-277, B-279 to B-283): 15 slices in 7 waves (slices 1, 2, 6 and 7 moved to `check-speed`), landing wave by wave. Waves 1 to 4: browser-check bookkeeping, the component harness (clock, one timeout, `getByCss`, lint rules as warnings) and the unit, server and Playwright cuts. Then it pauses; waves 5 to 7 are the component cuts, the area-by-area harness migration and the rules becoming errors | `check-speed` in `dev` before slice 11 (worker databases; last item B-278), and better before any of it (quick hand-off checks); otherwise (none) for waves 1 to 4; waves 5 to 7 (slices 14 to 19) after `list-filters`, `planner-2` and `ui-kit` (they edit the same screens' tests); `quick-fixes` between waves | `vitest.config.ts`, `package.json`, `eslint.config.js`, `scripts/loops/` (`prd.sh`, `prompt.sh`, `lease.sh`, `checks`, `check-areas.mjs`, `check-areas.d/`, `test-db.sh`), `apps/web/test/` (`setup.ts`, `found.ts`), `packages/data/test/`, `scripts/browser-checks/` (the specs, `fixtures.mjs`), the frozen-list tests; from wave 5 the `*World.tsx` files and component tests in every area, one area per slice |
 | `tasks` | [PRD](tasks-prd.md), [plan](tasks-plan.md): **done** (`1ee7864`) | — | none now |
 | `documents`       | to write (B-56)                                              | hosting (B-33, file storage); `profiles` (soft); `encryption` decision | file storage, its area's `routes.ts`, `urls.ts`, schema and `permissions/` parts, `GROUP_SECTIONS`              |
 | `encryption`      | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 | (none); affects `assistant` and `documents` | none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
@@ -66,6 +67,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `calendars-2` | to write (B-304 to B-309, B-377), from the 2026-11-21 code review: Google deletes of past items, events beyond 90 days, reminder expiry, deleted providers in pushes, the consent version, reminder time labels, push notifications | `planner-2` in `dev` (it changes the calendar projection's reminder kind; last item B-248) | `packages/data/src/google/`, `calendarPullService`, `calendarSyncService`, `packages/notifications` (outbox, reminders) |
 | `code-health` | to write (B-361 to B-369), from the 2026-11-21 code review: a `@caretook/data/domain` export, a soft-delete model factory and shared upsert, one role-capability table, typed device reads, dead exports, exact pins, tooling tests | the role-capability table (B-363) before or inside `simple-mode`; the rest after the running PRDs land (it touches most services and device modules) | `packages/data/src/db/schema/` exports, `models/`, `services/*Service.ts`, `lib/<area>/*.sync.ts`, `package.json`s, `scripts/loops/` |
 | `assistant-2` | to write (B-376: assistant chat with voice and questions about the timeline, the part of B-12 that never shipped) | an AI vendor that doesn't retain or train (AGENTS.md, _Compliance_); the Vercel AI SDK needs the user's approval | `lib/assistant/`, a new server route, `packages/api` |
+| `orchestration-2` | [PRD](orchestration-2-prd.md), [plan](orchestration-2-plan.md) (B-389 to B-392): 8 slices, waves (1, 2, 3) → (4, 5, 6) → 7 → 8: the PRD table as a registry (`pnpm backlog prd`, row order is the priority, states worked out), recorded sessions, an asks queue (`pnpm prd ask`), drain-then-rotate after each landing, the pick, unattended prompts, the dispatcher (`pnpm prd dispatch`), then queue, recovery and status. Tooling only | `check-speed` in `dev` (shared `prd.sh`, `prompt.sh`); before `test-health`, never beside it | `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `recover.sh`, `rm.sh`, `open-session.*`, `scripts/backlog/`, this PRD table |
 
 ## Summary
 
@@ -149,12 +151,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-243 | bug | staging | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
 | B-244 | chore | triaged | github-review |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
-| B-246 | change | in-progress | planner-2 | prd/planner-2 | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
-| B-247 | change | ready | planner-2 | prd/planner-2 | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
-| B-248 | change | in-progress | planner-2 | prd/planner-2 | Remove reminders: notes can no longer be dated in the future; use todos instead |
+| B-246 | change | landed | planner-2 | prd/planner-2 | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
+| B-247 | change | landed | planner-2 | prd/planner-2 | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
+| B-248 | change | landed | planner-2 | prd/planner-2 | Remove reminders: notes can no longer be dated in the future; use todos instead |
 | B-249 | change | landed | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
 | B-250 | bug | staging | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
-| B-251 | bug | ready | planner-2 | prd/planner-2 | convert planner tabs to TabNav component. |
+| B-251 | bug | landed | planner-2 | prd/planner-2 | convert planner tabs to TabNav component. |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
@@ -174,20 +176,20 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-268 | chore | triaged | ui-kit |  | Move SeriesScopeDialog's raw <dialog> into a ui/ choice dialog on useShowModal |
 | B-269 | chore | triaged | ui-kit |  | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
 | B-270 | feature | triaged | ui-kit |  | Dev-only component gallery (/dev/ui): every primitive and its variants in both themes |
-| B-271 | chore | triaged | test-health |  | Checks: slice loops run through the check lease (pnpm prd check, not bare pnpm check), and the lease waits while the machine load is high |
-| B-272 | chore | triaged | test-health |  | Checks: quick check at slice hand-off and the full suite only at landing, with prd.sh forcing a full run on migrations, seeds, sync config, lockfile and package.json, plus a short always-run list |
-| B-273 | chore | triaged | test-health |  | Checks: move the agent-tooling tests (scripts/loops, scripts/backlog, hooks) into their own Vitest project, run only when tooling changes |
+| B-271 | chore | ready | check-speed | prd/check-speed | Checks: slice loops run through the check lease (pnpm prd check, not bare pnpm check), and the lease waits while the machine load is high |
+| B-272 | chore | in-progress | check-speed | prd/check-speed | Checks: quick check at slice hand-off and the full suite only at landing, with prd.sh forcing a full run on migrations, seeds, sync config, lockfile and package.json, plus a short always-run list |
+| B-273 | chore | ready | check-speed | prd/check-speed | Checks: move the agent-tooling tests (scripts/loops, scripts/backlog, hooks) into their own Vitest project, run only when tooling changes |
 | B-274 | chore | triaged | test-health |  | Component tests: one test clock on a fixed base date, reset per test, with harness deadlines on performance.now(); one shared fixClock |
 | B-275 | chore | triaged | test-health |  | Component tests: one waitUntil in test/found.ts with one central timeout; no per-call milliseconds (lint rule) |
 | B-276 | chore | triaged | test-health |  | Component tests: a retrying getByCss locator and world helpers that return locators, with lint rules against non-null reads in expect and userEvent calls and against fixed sleeps |
 | B-277 | chore | triaged | test-health |  | Browser-check bookkeeping: drop the usual seconds and lean-ceiling test (keep the caps), and give check-areas directory defaults so a new file needs no rule |
-| B-278 | chore | triaged | test-health |  | Integration tests: a database per Vitest worker, so files run in parallel |
+| B-278 | chore | in-progress | check-speed | prd/check-speed | Integration tests: a database per Vitest worker, so files run in parallel |
 | B-279 | chore | triaged | test-health |  | Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants |
 | B-280 | chore | triaged | test-health |  | Unit tests: trim change detectors: URL tests that restate a template, marketing copy assertions, exact seed counts and names, label maps |
 | B-281 | chore | triaged | test-health |  | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
 | B-282 | chore | triaged | test-health |  | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
 | B-283 | chore | triaged | test-health |  | Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer |
-| B-284 | change | ready | planner-2 | prd/planner-2 | Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming \| Past toggle |
+| B-284 | change | landed | planner-2 | prd/planner-2 | Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming \| Past toggle |
 | B-285 | bug | triaged | sync-safety |  | Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-287 | bug | triaged | sync-safety |  | Offline medication and provider edits re-send unchanged JSON columns (schedule, phones), reverting a co-member's newer change |
@@ -291,6 +293,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-385 | bug | triaged | planner-2 |  | Repeating todos: nextDueDay uses nextVisits' ~5-year search horizon, so a valid long-interval rule (e.g. FREQ=MONTHLY;INTERVAL=99) reads as ended and the chain stops; search to the rule's next occurrence or cap the accepted interval |
 | B-386 | bug | triaged | planner-2 |  | Repeating todos: a successor moved back onto its source's day and ticked gets nextTodoId(repeatId, that next day) = its own id, so insertNext (and the device's planNext) sees the row as the existing next and the chain silently ends; handle ids taken by the source or a done occurrence |
 | B-387 | bug | triaged | planner-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
+| B-388 | bug | triaged | quick-fixes |  | Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it |
+| B-389 | change | triaged | orchestration-2 |  | A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority |
+| B-390 | change | triaged | orchestration-2 |  | One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing |
+| B-391 | feature | triaged | orchestration-2 |  | One asks queue: unattended sessions file questions and landed-wave reports with pnpm prd ask; the user answers in one place |
+| B-392 | feature | triaged | orchestration-2 |  | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
+| B-393 | bug | triaged | planner-2 |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
+| B-394 | bug | triaged | quick-fixes |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
+| B-395 | change | triaged | orchestration-2 |  | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
 
 ## Items
 
@@ -1111,17 +1121,17 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-246 · change · Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab)
 
-- status: in-progress
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
-- commit:
+- commit: fef8b119
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, agreed with the user: the Planner is for appointments and todos. Drop withDueDoses, UpcomingDoseRow and the pass rows from the Planner (lib/appointments/upcomingDoses.ts, plannerPasses tests); check whether the connector's upcoming tool lists doses and say so before changing it. UI only.
 - 2026-11-21 (plan/planner-tabs): Backlog session 2026-11-21, at the user's word: moved from quick-fixes into planner-2 as new wave 2 slices (B-247, B-251 and B-284 in one slice that reworks the Planner's header and filter row once, before slice 3; B-246 in its own slice), so planner-2's slice 3 no longer waits on another PRD. The planner-2 orchestrator appends the slices to its plan. Upcoming | Past is two link chips; no further design of the filter look.
 
 ### B-247 · change · Planner: Past becomes an 'Upcoming | Past' toggle inside the Planner tab instead of its own tab
 
-- status: ready
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
 - commit: 43846e09
@@ -1132,10 +1142,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-248 · change · Remove reminders: notes can no longer be dated in the future; use todos instead
 
-- status: in-progress
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
-- commit:
+- commit: aeb00ba8
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, the user's decision: a reminder (a future-dated note) goes away in favour of todos. Notes become past-only on the device and the server; remove Reminder from the Planner's + menu, the Planner rows and kind filter, the Today card and simple mode's next, the calendar projection's reminder kind (feed, Google push and pull, reminder emails, Remind me), quick entry's future-note reading and the connector's upcoming and add_note. No data migration (nothing live): seeds change, existing future notes are not converted. Starts after quick-entry (B-220) is in dev: it rewrites the same date rules. B-245 (attach a todo to a note) is the later follow-up.
 - 2026-11-21 (plan/planner-2): Planning session 2026-11-21: PRD and plan written (plans/planner-2-prd.md, planner-2-plan.md), 7 slices in 2 waves. The user's decisions: quick entry's future note becomes a todo due that day; repeating todos are added here (one open todo, the next made on tick, next rule day after today, same repeat choices as appointments, Delete asks skip or stop; form only); the connector's upcoming lists appointments and dated todos and add_note refuses a future time with a pointer to add_todo; no data migration, staging is reseeded after the deploy. Follow-ups filed: B-252 and the two repeat entry points.
@@ -1163,7 +1173,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-251 · bug · convert planner tabs to TabNav component.
 
-- status: ready
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
 - commit: 43846e09
@@ -1345,33 +1355,36 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-271 · chore · Checks: slice loops run through the check lease (pnpm prd check, not bare pnpm check), and the lease waits while the machine load is high
 
-- status: triaged
-- prd: test-health
-- owner:
-- commit:
+- status: ready
+- prd: check-speed
+- owner: prd/check-speed
+- commit: 4d4a760f
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). Loops bypass the lease (loop.md:13,37; prompt.sh:183,211); only prd.sh:212,217 takes it; Vitest runs have no load gate (browser.sh:450 gates only the retry). 38 of 53 logged browser flakes were at load above 30; a threshold near 20 is suggested.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
+- 2026-11-21 (plan/check-speed): Moved from test-health to the small check-speed PRD (2026-11-21) so the check-time fixes run first. B-271 changes: no load gate (the 5-minute load sat at 18 to 23 all afternoon, so a gate at 16 would only add waiting); two check leases and a check log instead.
 
 ### B-272 · chore · Checks: quick check at slice hand-off and the full suite only at landing, with prd.sh forcing a full run on migrations, seeds, sync config, lockfile and package.json, plus a short always-run list
 
-- status: triaged
-- prd: test-health
-- owner:
+- status: in-progress
+- prd: check-speed
+- owner: prd/check-speed
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). vitest --changed misses files read by path (SQL migrations, sync-config.yaml, sync-matrix.test.mjs, libLayout, securityHeaders, errors tests), deleted files, the check-areas lint and the budgets. A 3-slice wave runs 3 full suites plus 1 to 5 gate checks today.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
+- 2026-11-21 (plan/check-speed): Moved from test-health to the small check-speed PRD (2026-11-21) so the check-time fixes run first. B-271 changes: no load gate (the 5-minute load sat at 18 to 23 all afternoon, so a gate at 16 would only add waiting); two check leases and a check log instead.
 
 ### B-273 · chore · Checks: move the agent-tooling tests (scripts/loops, scripts/backlog, hooks) into their own Vitest project, run only when tooling changes
 
-- status: triaged
-- prd: test-health
-- owner:
-- commit:
+- status: ready
+- prd: check-speed
+- owner: prd/check-speed
+- commit: 4bb31f7f
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 240 of 306 scripts:unit tests guard agent workflow; 17 of 27 files spawn processes, lease and browser tests sleep for real. Keep in the default run: sync-matrix, check-areas, deploy/workflows, scripts/build. Also: check-gate.test.mjs rebuilds a git repo per test; prompt.test.mjs asserts prompt phrases.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
+- 2026-11-21 (plan/check-speed): Moved from test-health to the small check-speed PRD (2026-11-21) so the check-time fixes run first. B-271 changes: no load gate (the 5-minute load sat at 18 to 23 all afternoon, so a gate at 16 would only add waiting); two check leases and a check log instead.
 
 ### B-274 · chore · Component tests: one test clock on a fixed base date, reset per test, with harness deadlines on performance.now(); one shared fixClock
 
@@ -1415,13 +1428,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-278 · chore · Integration tests: a database per Vitest worker, so files run in parallel
 
-- status: triaged
-- prd: test-health
-- owner:
+- status: in-progress
+- prd: check-speed
+- owner: prd/check-speed
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 20 files touch global state (app_setting wipes, unscoped sweeps in reminders, outbox, calendarPull, rateLimit, JWKS rotation, todoRename), so parallel files on one database is fragile. Per-worker databases need no test changes (globalSetup, setup, testDatabase.ts:17, test-db.sh, rm.sh, vitest.config.ts:155); estimate 2.5 to 3x wall time with 3 workers.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
+- 2026-11-21 (plan/check-speed): Moved from test-health to the small check-speed PRD (2026-11-21) so the check-time fixes run first. B-271 changes: no load gate (the 5-minute load sat at 18 to 23 all afternoon, so a gate at 16 would only add waiting); two check leases and a check log instead.
 
 ### B-279 · chore · Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants
 
@@ -1475,7 +1489,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-284 · change · Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming | Past toggle
 
-- status: ready
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
 - commit: 43846e09
@@ -2410,3 +2424,84 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, round 2, 2026-11-21); filed as a follow-up. P2.
+
+### B-388 · bug · Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (plan/check-speed): From the check-speed review of session transcripts (planner-2, quick-fixes, quick-entry, list-filters, tasks-2). Not confirmed that the error is what failed them. Triaged to quick-fixes: one contained test fix.
+
+### B-389 · change · A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority
+
+- status: triaged
+- prd: orchestration-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slice 1
+- 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
+- 2026-11-21 (Robert Bo Davis): Correction to the hand-off note: the quick-fixes category split is B-395, not B-394.
+
+### B-390 · change · One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing
+
+- status: triaged
+- prd: orchestration-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slice 2
+- 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
+- 2026-11-21 (Robert Bo Davis): Correction to the hand-off note: the quick-fixes category split is B-395, not B-394.
+
+### B-391 · feature · One asks queue: unattended sessions file questions and landed-wave reports with pnpm prd ask; the user answers in one place
+
+- status: triaged
+- prd: orchestration-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slices 3 and 5
+- 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
+- 2026-11-21 (Robert Bo Davis): Phone notifications (the user's rule, 2026-11-21): a question must notify the user's phone. A macOS notification from a script does not. The PushNotification tool pushes to the phone when Remote Control is connected, but only a session can call it, so the asking session sends it right after pnpm prd ask (and for each report worth reading); pnpm prd ask itself can't. The planner should check whether anything a script can call reaches the phone before settling this.
+- 2026-11-21 (Robert Bo Davis): Correction to the hand-off note: the quick-fixes category split is B-395, not B-394.
+
+### B-392 · feature · A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders
+
+- status: triaged
+- prd: orchestration-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slices 4, 6 and 7
+- 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
+- 2026-11-21 (Robert Bo Davis): Correction to the hand-off note: the quick-fixes category split is B-395, not B-394.
+
+### B-393 · bug · Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both
+
+- status: triaged
+- prd: planner-2
+- owner:
+- commit:
+
+- 2026-11-21 (prd/planner-2): Codex finding on PR #23 (planner-2 wave 2, 2026-11-21); filed as a follow-up. P2. Slice 6 reported the same edge.
+
+### B-394 · bug · mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (prd/check-speed): Seen in check-speed's wave 1 full check, 2026-11-21 (only failure of 5338). The test builds a world and pages 50+ entries through /mcp; give it a longer timeout or a smaller world.
+
+### B-395 · change · Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic)
+
+- status: triaged
+- prd: orchestration-2
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): The user's rule, 2026-11-21. The order of priority between categories is NOT decided: the user will set it later, so don't invent one. Until the split, triage notes name a category (ui, tooling, perf, bug, nit) and the orchestrator groups a wave by category (docs/agents/planner.md, The plan's shape). 24 quick-fixes items were waiting on 2026-11-21 and need a category each.

@@ -3,8 +3,8 @@ import type { CalendarEntryInput, CalendarTodoInput } from "./calendarItems";
 import { describe, expect, it } from "vitest";
 import { CALENDAR_WINDOW_DAYS, calendarItems, calendarWindow } from "./calendarItems";
 
-// calendarItems (appointments-2): one group's appointments, reminders and
-// open todos as neutral items, on the appointments area's clock (Wed
+// calendarItems (appointments-2): one group's appointments and open
+// todos as neutral items, on the appointments area's clock (Wed
 // 2026-11-18 10:00 in Los Angeles). Names and data are made up.
 
 const NOW = new Date("2026-11-18T18:00:00.000Z");
@@ -82,15 +82,9 @@ describe("calendarItems", () => {
     ]);
   });
 
-  it("gives an appointment without an end an hour, and a reminder half an hour", () => {
-    const appointment = entry();
-    const reminder = entry({
-      kind: "note",
-      title: "Call the pharmacy",
-      occurredAt: "2026-11-19T16:00:00.000Z",
-    });
-    const [first, second] = items([appointment, reminder]);
-    expect(first).toMatchObject({ kind: "reminder", end: "2026-11-19T16:30:00.000Z", place: null });
+  it("gives an appointment without an end an hour, and a timed todo half an hour", () => {
+    const [first, second] = items([entry()], [todo({ dueOn: "2026-11-19", dueTime: "09:00" })]);
+    expect(first).toMatchObject({ kind: "todo", end: "2026-11-19T17:30:00.000Z" });
     expect(second).toMatchObject({ kind: "appointment", end: "2026-11-20T18:00:00.000Z" });
   });
 
@@ -102,7 +96,7 @@ describe("calendarItems", () => {
     ]);
   });
 
-  it("takes a note only when it's a reminder: written before it's due, or a series visit", () => {
+  it("gives no item for a note, past or future, planned ahead or a series visit", () => {
     const planned = entry({ kind: "note", occurredAt: "2026-11-19T16:00:00.000Z" });
     const logged = entry({
       kind: "note",
@@ -116,7 +110,6 @@ describe("calendarItems", () => {
       seriesId: "0b7a4c2e-0000-4000-8000-0000000000aa",
       seriesDay: "2026-11-01",
     });
-    // An all-day note written that morning is still that day's reminder.
     const today = entry({
       kind: "note",
       allDay: true,
@@ -124,11 +117,7 @@ describe("calendarItems", () => {
       createdAt: "2026-11-18T17:00:00.000Z",
     });
     const symptom = entry({ kind: "symptom", occurredAt: "2026-11-17T16:00:00.000Z" });
-    expect(items([planned, logged, visit, today, symptom]).map((i) => i.source.id)).toEqual([
-      visit.id,
-      today.id,
-      planned.id,
-    ]);
+    expect(items([planned, logged, visit, today, symptom])).toEqual([]);
   });
 
   it("flags series visits with their series, day and whether they were changed alone", () => {

@@ -482,13 +482,17 @@ describe("the user's lines (B-220)", () => {
     kind: string;
     title?: string;
     name?: string;
-    occurredAt: string;
+    occurredAt?: string;
     allDay?: boolean;
     place?: string | null;
     providerIds?: string[];
+    dueOn?: string | null;
+    dueTime?: string | null;
   };
   const shape = (r: QuickEntryReading): Shape => {
     const a = action(r);
+    if (a.type === "addTodo")
+      return { kind: r.kind, title: a.title, dueOn: a.dueOn ?? null, dueTime: a.dueTime ?? null };
     if (a.type === "addEvent")
       return {
         kind: r.kind,
@@ -501,6 +505,12 @@ describe("the user's lines (B-220)", () => {
     if (a.type === "logSymptom") return { kind: r.kind, name: a.name, occurredAt: a.occurredAt };
     return { kind: r.kind, occurredAt: when(r)! };
   };
+  const todo = (title: string, dueOn: string, dueTime: string | null = null) => ({
+    kind: "todo",
+    title,
+    dueOn,
+    dueTime,
+  });
   const event = (
     title: string,
     iso: string,
@@ -557,6 +567,20 @@ describe("the user's lines (B-220)", () => {
     // A past-only kind reads a bare weekday back.
     ["dizzy monday", { kind: "symptom", name: "Dizzy", occurredAt: at("2026-11-16T16:00:00Z") }],
     ["dizzy last friday", { kind: "symptom", name: "Dizzy", occurredAt: at("2026-11-13T16:00:00Z") }],
+    // A note is past-only (planner-2): a time ahead makes it a todo, due that day (and time).
+    ["call the pharmacy tomorrow", todo("Call the pharmacy", "2026-11-20")],
+    ["call the pharmacy tomorrow 3pm", todo("Call the pharmacy", "2026-11-20", "15:00")],
+    ["next friday pick up walker", todo("Pick up walker", "2026-11-20")],
+    ["pick up the walker next tue", todo("Pick up the walker", "2026-11-24")],
+    ["call the pharmacy tonight", todo("Call the pharmacy", "2026-11-19", "22:00")],
+    ["call back in 2 hours", todo("Call back", "2026-11-19", "10:00")],
+    ["dinner with Ann tomorrow 6pm", todo("Dinner with Ann", "2026-11-20", "18:00")],
+    // A note with no time ahead stays a note, now or read back like the other past-only kinds.
+    ["called the pharmacy", { kind: "note", occurredAt: NOW.toISOString() }],
+    ["called the pharmacy monday", { kind: "note", occurredAt: at("2026-11-16T16:00:00Z") }],
+    ["called the pharmacy on the 25th", { kind: "note", occurredAt: at("2026-10-25T15:00:00Z") }],
+    ["called the pharmacy at 5pm", { kind: "note", occurredAt: at("2026-11-19T01:00:00Z") }],
+    ["walked in 3 min", { kind: "note", occurredAt: at("2026-11-19T16:03:00Z") }],
   ])("%s", (line, expected) => {
     const r = top(line);
     expect(shape(r)).toEqual(expected);
@@ -767,12 +791,70 @@ describe("notes", () => {
       expect(parse(line)[0]!.readings.some((r) => r.kind === "note")).toBe(true);
   });
 
-  test("a note dated ahead is a reminder, all day", () => {
-    expect(action(top("call the pharmacy tomorrow", { providers: [] }))).toMatchObject({
-      type: "addEvent", // a future time phrase leans to an event…
+  test("a note line that says a time ahead is a todo, with the note (now, the whole line) next", () => {
+    // Changed (planner-2): it was a reminder, a note dated ahead.
+    const readings = parse("call the pharmacy tomorrow 3pm")[0]!.readings;
+    expect(readings.map((r) => r.label)).toEqual(["Todo", "Note", "Event"]);
+    expect(action(readings[0]!)).toEqual({
+      type: "addTodo",
+      title: "Call the pharmacy",
+      assigneeId: null,
+      dueOn: "2026-11-20",
+      dueTime: "15:00",
+      providerId: null,
+      medicationId: null,
+      eventId: null,
     });
-    const note = parse("call the pharmacy tomorrow")[0]!.readings.find((r) => r.kind === "note")!;
-    expect(action(note)).toMatchObject({ occurredAt: at("2026-11-20T08:00:00Z") });
+    expect(action(readings[1]!)).toEqual({
+      type: "addNote",
+      title: null,
+      text: "call the pharmacy tomorrow 3pm",
+      occurredAt: NOW.toISOString(),
+      providerIds: [],
+    });
+    for (const r of readings) {
+      expect(blocking(r)).toEqual([]);
+      expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
+    }
+  });
+
+  test("a note line ahead can name its todo's assignee", () => {
+    expect(action(top("pick up groceries tomorrow for Sam"))).toMatchObject({
+      type: "addTodo",
+      title: "Pick up groceries",
+      assigneeId: SAM,
+      dueOn: "2026-11-20",
+    });
+  });
+
+  test("a provider or an appointment word still makes an event, with the todo as an alternative", () => {
+    for (const line of ["Dr. Lee tomorrow 3pm", "appt tomorrow 2pm", "dialysis tomorrow 9:30 at Riverside"]) {
+      const kinds = parse(line)[0]!.readings.map((r) => r.kind);
+      expect(kinds[0], line).toBe("event");
+      expect(kinds, line).toContain("todo");
+    }
+  });
+
+  test("a note asked for with a time ahead is blocked, with the todo one tap away", () => {
+    const readings = parse("n: call the pharmacy tomorrow")[0]!.readings;
+    expect(readings.map((r) => r.kind)).toEqual(["note", "todo", "event"]);
+    expect(blocking(readings[0]!)).toEqual(["Can't be in the future"]);
+    expect(action(readings[1]!)).toMatchObject({ title: "Call the pharmacy", dueOn: "2026-11-20" });
+    expect(blocking(readings[1]!)).toEqual([]);
+  });
+
+  test("a note's alternatives never date it ahead", () => {
+    const lines = [
+      "bp 120/80 tomorrow",
+      "pain 5 next tuesday",
+      "gave metformin in 2 hours",
+      "appt friday 3pm",
+    ];
+    for (const line of [...lines, "todo: call pharmacy friday", "call the pharmacy tomorrow"]) {
+      const note = parse(line)[0]!.readings.find((r) => r.kind === "note")!;
+      expect(when(note), line).toBe(NOW.toISOString());
+      expect(blocking(note), line).toEqual([]);
+    }
   });
 
   test("a very long line is cut to the limits, never refused", () => {
@@ -903,7 +985,12 @@ describe("todos", () => {
   test("the alternative is a note of the same words", () => {
     const readings = parse("todo: call pharmacy friday")[0]!.readings;
     expect(readings.map((r) => r.label)).toEqual(["Todo", "Note"]);
-    expect(action(readings[1]!)).toMatchObject({ type: "addNote", text: "call pharmacy friday" });
+    // A note now, with the whole line (notes are past-only).
+    expect(action(readings[1]!)).toMatchObject({
+      type: "addNote",
+      text: "call pharmacy friday",
+      occurredAt: NOW.toISOString(),
+    });
   });
 
   test("without a prefix there's no todo", () => {

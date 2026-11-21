@@ -1,6 +1,7 @@
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
 import { addDays, localDate, todoSchema, userSchema } from "../schema";
+import { nextTodoId } from "../schema/appointments/todoRepeat";
 import { appointmentIdIn } from "./appointments";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 import { SEED_GROUPS as MEDICATION_GROUPS } from "./medications";
@@ -12,7 +13,9 @@ import { SECOND_GROUP_ID, SECOND_RECIPIENT_ID } from "./secondGroup";
 // overdue, today, later and undated; two done) and one for Dev Family 2.
 // Placed by days from today in the recipients' zone (both Los Angeles).
 // The last three link to a seeded provider, appointment and medication
-// (todos slice 3), by their seeds' keys.
+// (todos slice 3), by their seeds' keys. Then (planner-2) the todo that
+// replaced the pharmacy reminder, and a weekly repeating todo: last week's,
+// done, and the open one it made (its id is `nextTodoId` of the chain).
 //
 // Their own ids (…3f1d2be0… Dev Family's, …3f1d2be1… Dev Family 2's),
 // following list order: append only.
@@ -39,6 +42,12 @@ export type SeedTodo = {
   provider?: string;
   event?: string;
   medication?: string;
+  /**
+   * Repeats weekly on the chain's first due day's weekday (planner-2). The
+   * chain's first todo says `true`; a later one names the first's title, and
+   * takes its id from the chain (`nextTodoId`), not the list.
+   */
+  repeatsWeekly?: true | { after: string };
 };
 
 export const DEV_FAMILY_TODOS: SeedTodo[] = [
@@ -109,6 +118,34 @@ export const DEV_FAMILY_TODOS: SeedTodo[] = [
     author: "caretaker@example.com",
     medication: "latanoprost",
   },
+  // The pharmacy reminder, as a todo (planner-2).
+  {
+    title: "Call Cornerstone about the Latanoprost refill",
+    dueIn: 3,
+    dueTime: "09:00",
+    assignee: "caretaker@example.com",
+    author: "caretaker@example.com",
+    provider: "cornerstone",
+  },
+  // A weekly repeating todo (planner-2): last week's done, this week's open.
+  {
+    title: "Put the bins out",
+    dueIn: -4,
+    dueTime: "19:00",
+    assignee: "member@example.com",
+    author: "member@example.com",
+    doneDaysAgo: 4,
+    doneBy: "member@example.com",
+    repeatsWeekly: true,
+  },
+  {
+    title: "Put the bins out",
+    dueIn: 3,
+    dueTime: "19:00",
+    assignee: "member@example.com",
+    author: "member@example.com",
+    repeatsWeekly: { after: "Put the bins out" },
+  },
 ];
 
 export const SECOND_GROUP_TODOS: SeedTodo[] = [
@@ -139,27 +176,55 @@ const medicationIdIn = (groupId: string, key: string) => {
   return group.medicationId(index);
 };
 
+const RRULE_DAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+
 /** Every seeded todo as a row, with people as emails (resolved when seeding). */
 export const seedRows = (now = Date.now()) => {
   const today = localDate(now, TIME_ZONE);
-  return GROUPS.flatMap(({ groupId, recipientId, todos, id }) =>
-    todos.map((todo, index) => ({
-      id: id(index),
-      groupId,
-      recipientId,
-      title: todo.title,
-      assignee: todo.assignee ?? null,
-      assigneeName: todo.assigneeName ?? null,
-      dueOn: todo.dueIn === undefined ? null : addDays(today, todo.dueIn),
-      dueTime: todo.dueTime ?? null,
-      doneAt: todo.doneDaysAgo === undefined ? null : new Date(now - todo.doneDaysAgo * DAY).toISOString(),
-      doneBy: todo.doneBy ?? null,
-      providerId: todo.provider ? providerIdIn(groupId, todo.provider) : null,
-      medicationId: todo.medication ? medicationIdIn(groupId, todo.medication) : null,
-      eventId: todo.event ? appointmentIdIn(groupId, todo.event) : null,
-      author: todo.author,
-    })),
-  );
+  const dueOf = (todo: SeedTodo) => (todo.dueIn === undefined ? null : addDays(today, todo.dueIn));
+  return GROUPS.flatMap(({ groupId, recipientId, todos, id }) => {
+    /** A weekly todo's chain: its first todo's id, due day and rule (on that day's weekday). */
+    const chainOf = (todo: SeedTodo, index: number) => {
+      if (!todo.repeatsWeekly) return null;
+      const repeat = todo.repeatsWeekly;
+      const firstIndex =
+        repeat === true
+          ? index
+          : todos.findIndex((t) => t.repeatsWeekly === true && t.title === repeat.after);
+      const first = todos[firstIndex];
+      const startsOn = first && dueOf(first);
+      if (!startsOn) throw new Error(`Seed todo repeats with no first due day: ${todo.title}`);
+      const weekday = RRULE_DAYS[new Date(`${startsOn}T12:00:00Z`).getUTCDay()];
+      return {
+        repeatId: id(firstIndex),
+        repeatStartsOn: startsOn,
+        repeatRule: `FREQ=WEEKLY;INTERVAL=1;BYDAY=${weekday}`,
+      };
+    };
+    return todos.map((todo, index) => {
+      const chain = chainOf(todo, index);
+      const dueOn = dueOf(todo);
+      return {
+        id: chain && chain.repeatId !== id(index) && dueOn ? nextTodoId(chain.repeatId, dueOn) : id(index),
+        groupId,
+        recipientId,
+        title: todo.title,
+        assignee: todo.assignee ?? null,
+        assigneeName: todo.assigneeName ?? null,
+        dueOn,
+        dueTime: todo.dueTime ?? null,
+        doneAt: todo.doneDaysAgo === undefined ? null : new Date(now - todo.doneDaysAgo * DAY).toISOString(),
+        doneBy: todo.doneBy ?? null,
+        providerId: todo.provider ? providerIdIn(groupId, todo.provider) : null,
+        medicationId: todo.medication ? medicationIdIn(groupId, todo.medication) : null,
+        eventId: todo.event ? appointmentIdIn(groupId, todo.event) : null,
+        repeatRule: chain?.repeatRule ?? null,
+        repeatStartsOn: chain?.repeatStartsOn ?? null,
+        repeatId: chain?.repeatId ?? null,
+        author: todo.author,
+      };
+    });
+  });
 };
 
 export const seed = async () => {

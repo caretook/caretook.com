@@ -15,7 +15,6 @@ import { UID_PROPERTY } from "./client";
 // - **An appointment:** a time change updates its start, end and all-day; a
 //   delete cancels it. On a series visit the change is "Only this visit" (it
 //   detaches); a visit that has already started is never rewritten.
-// - **A reminder:** a time change moves it; a delete removes it.
 // - **A todo:** a time change moves its due day and time; a delete marks it done.
 // - **A new event without our uid** (made in Google, in the window): a new
 //   appointment with Google's summary as its title. The next push tags it,
@@ -45,7 +44,6 @@ export type GoogleChangeAction =
     }
   | { type: "updateEntry"; entryId: string; patch: EntryTimePatch }
   | { type: "cancelEntry"; entryId: string; seriesDetached: boolean }
-  | { type: "removeEntry"; entryId: string }
   | { type: "updateTodo"; todoId: string; dueOn: string; dueTime: string | null }
   | { type: "completeTodo"; todoId: string }
   | {
@@ -199,7 +197,6 @@ export const interpretGoogleChange = ({
     if (item.kind === "todo") return { type: "completeTodo", todoId: id };
     if (!writer) return { type: "overwrite", reason: "role" };
     if (item.series && started(item, now)) return { type: "overwrite", reason: "pastVisit" };
-    if (item.kind === "reminder") return { type: "removeEntry", entryId: id };
     if (item.status === "cancelled") return { type: "ignore", reason: "alreadyCancelled" };
     return { type: "cancelEntry", entryId: id, seriesDetached: !!item.series && !item.series.detached };
   }
