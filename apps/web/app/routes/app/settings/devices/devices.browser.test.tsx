@@ -1,10 +1,14 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { describe, expect, test } from "vitest";
+import type { GroupRole } from "../../../../../test/fixtures";
+
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as settingsLayout from "../layout/route";
 import * as devices from "./route";
 import { renderWithDevice } from "../../../../../test/device";
+import { fx } from "../../../../../test/fixtures";
+import { COPIED, mcpUrl, OFF_NOTE, VIEWER_NOTE } from "../../../../lib/connectors/connectGuide";
 import { OFFLINE_DEVICES } from "./devices";
 
 // Account settings → Devices (devices.mjs's screen steps, B-124): the list,
@@ -104,8 +108,17 @@ const THIS = session("this", MAC, 0);
 const PHONE = session("phone", IPHONE, 5);
 const OLD = session("old", WINDOWS, 3 * 24 * 60);
 
-const open = async (server: ReturnType<typeof authServer>) => {
-  const device = await renderWithDevice({ route: ROUTES, url: URL, api: server.api });
+const open = async (
+  server: ReturnType<typeof authServer>,
+  { role, assistantsOn = false }: { role?: GroupRole; assistantsOn?: boolean } = {},
+) => {
+  const device = await renderWithDevice({
+    route: ROUTES,
+    url: URL,
+    api: server.api,
+    role,
+    fixtures: [fx.group({ connectorsEnabled: assistantsOn ? 1 : 0 })],
+  });
   // The clientLoader calls Better Auth, which settle doesn't wait for.
   await expect.element(page.getByRole("heading", { name: "Devices", level: 1 })).toBeVisible();
   return device;
@@ -316,5 +329,57 @@ describe("the Devices page's connected assistants", () => {
     await open(server);
     await expect.element(page.getByText(OFFLINE_DEVICES)).toBeVisible();
     expect(document.querySelector('section[data-section="connected-assistants"]')).toBeNull();
+  });
+});
+
+// The connect guide (connectors-2 slice 1), after the connected assistants,
+// by the member's groups on the device.
+const MCP_URL = mcpUrl(import.meta.env.VITE_API_ORIGIN, location.origin);
+const guide = () => document.querySelector<HTMLElement>('section[data-section="connect-guide"]');
+const guideUrl = () => guide()?.querySelector<HTMLInputElement>("input[data-guide-url]") ?? null;
+const guideNote = (kind: "off" | "viewer") =>
+  guide()?.querySelector(`[data-guide-note="${kind}"]`)?.textContent.trim() ?? null;
+
+describe("the Devices page's connect guide", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  test("comes after the connected assistants: the address and both clients' steps; Copy says Copied", async () => {
+    const written: string[] = [];
+    vi.spyOn(navigator.clipboard, "writeText").mockImplementation(
+      (text) => (written.push(text), Promise.resolve()),
+    );
+    await open(authServer([THIS], THIS.id, [CLAUDE]), { assistantsOn: true });
+    await expect.poll(() => guideUrl()?.value).toBe(MCP_URL);
+    const card = assistants().element();
+    expect(card.compareDocumentPosition(guide()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect([...guide()!.querySelectorAll("[data-guide-client] h3")].map((h) => h.textContent)).toEqual([
+      "Claude",
+      "ChatGPT",
+    ]);
+    expect(guideNote("viewer")).toBeNull();
+
+    await userEvent.click(page.getByRole("button", { name: "Copy", exact: true }));
+    await expect.poll(() => guide()!.querySelector("[data-guide-status]")?.textContent).toBe(COPIED);
+    expect(written).toEqual([MCP_URL]);
+  });
+
+  test("with no group allowing assistants, the off note instead of the steps", async () => {
+    await open(authServer([THIS], THIS.id));
+    await expect.poll(() => guideNote("off")).toBe(OFF_NOTE.account);
+    expect(guideUrl()).toBeNull();
+  });
+
+  test("a viewer in the only group that allows assistants gets the read-only note", async () => {
+    await open(authServer([THIS], THIS.id), { role: "viewer", assistantsOn: true });
+    await expect.poll(() => guideNote("viewer")).toBe(VIEWER_NOTE.account);
+    expect(guideUrl()?.value).toBe(MCP_URL);
+  });
+
+  test("offline: no guide, only the notice", async () => {
+    const server = authServer([THIS], THIS.id);
+    server.online = false;
+    await open(server, { assistantsOn: true });
+    await expect.element(page.getByText(OFFLINE_DEVICES)).toBeVisible();
+    expect(guide()).toBeNull();
   });
 });
