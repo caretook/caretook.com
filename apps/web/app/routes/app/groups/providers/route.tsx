@@ -126,7 +126,7 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
       </header>
 
       <ProviderSearch value={text} urlQuery={filters.q} onChange={setText} />
-      <TypeFilter type={filters.type} />
+      <TypeFilter type={filters.type} text={text} />
 
       <DirectoryResults
         total={providers.length}

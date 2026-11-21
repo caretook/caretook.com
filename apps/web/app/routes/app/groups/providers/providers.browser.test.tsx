@@ -45,15 +45,15 @@ const params = (device: { location: () => string }) =>
 describe("the directory", () => {
   test("lists primary first, then current by name; past providers wait behind “Show past (1)”, then list below (?past=1)", async () => {
     const device = await open();
-    expect($("main h1")?.textContent).toBe("Providers");
-    expect(listNames("Current providers")).toEqual(CURRENT_NAMES);
-    expect(listNames("Past providers")).toEqual([]);
-    expect(SHOW_PAST()?.textContent.trim()).toBe("Show past (1)");
+    await expect.poll(() => $("main h1")?.textContent).toBe("Providers");
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
+    await expect.poll(() => listNames("Past providers")).toEqual([]);
+    await expect.poll(() => SHOW_PAST()?.textContent.trim()).toBe("Show past (1)");
 
     await userEvent.click(await found(SHOW_PAST));
     await expect.poll(() => listNames("Past providers")).toEqual(["Dr. Alan Whitford"]);
-    expect(params(device)).toEqual({ past: "1" });
-    expect(listNames("Current providers")).toEqual(CURRENT_NAMES);
+    await expect.poll(() => params(device)).toEqual({ past: "1" });
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
   });
 
   test("search by specialty filters as you type and goes in the URL; a reload (a fresh load of that URL) keeps the box and the list", async () => {
@@ -61,13 +61,13 @@ describe("the directory", () => {
     await userEvent.type(await found(SEARCH), "cardio");
     await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Samuel Patel"]);
     await expect.poll(() => params(device).q).toBe("cardio");
-    expect(listNames("Past providers")).toEqual([]);
+    await expect.poll(() => listNames("Past providers")).toEqual([]);
 
     const url = device.location();
     await device.screen.unmount();
     await open({ url });
-    expect(SEARCH()!.value).toBe("cardio");
-    expect(listNames("Current providers")).toEqual(["Dr. Samuel Patel"]);
+    await expect.poll(() => SEARCH()?.value).toBe("cardio");
+    await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Samuel Patel"]);
   });
 
   test("a practice's name finds its clinicians too; the Clinicians chip keeps the search (?q=westside&type=clinician), and survives a reload", async () => {
@@ -76,25 +76,37 @@ describe("the directory", () => {
     await expect
       .poll(() => listNames("Current providers"))
       .toEqual(["Dr. Elena Alvarez", "Westside Family Medicine"]);
-    await userEvent.click(typeChip("Clinicians")!);
+    await expect.poll(() => params(device).q).toBe("westside");
+    await userEvent.click(await found(() => typeChip("Clinicians")));
     await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Elena Alvarez"]);
-    expect(params(device)).toEqual({ q: "westside", type: "clinician" });
-    const current = $$('main nav[aria-label="Show providers"] a[aria-current="true"]').map((a) =>
-      a.textContent.trim(),
-    );
-    expect(current).toEqual(["Clinicians"]);
-    expect(SEARCH()!.value).toBe("westside");
+    await expect.poll(() => params(device)).toEqual({ q: "westside", type: "clinician" });
+    await expect
+      .poll(() =>
+        $$('main nav[aria-label="Show providers"] a[aria-current="true"]').map((a) => a.textContent.trim()),
+      )
+      .toEqual(["Clinicians"]);
+    await expect.poll(() => SEARCH()?.value).toBe("westside");
 
     const url = device.location();
     await device.screen.unmount();
     await open({ url });
-    expect(SEARCH()!.value).toBe("westside");
-    expect(listNames("Current providers")).toEqual(["Dr. Elena Alvarez"]);
+    await expect.poll(() => SEARCH()?.value).toBe("westside");
+    await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Elena Alvarez"]);
+  });
+
+  test("a chip tapped right after typing keeps the search, without waiting for ?q= to reach the URL", async () => {
+    const device = await open();
+    await userEvent.type(await found(SEARCH), "westside");
+    // The box writes ?q= a navigation behind the typing; the chip's link must not depend on it.
+    await userEvent.click(await found(() => typeChip("Clinicians")));
+    await expect.poll(() => params(device)).toEqual({ q: "westside", type: "clinician" });
+    await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Elena Alvarez"]);
+    await expect.poll(() => SEARCH()?.value).toBe("westside");
   });
 
   test("a search that matches nothing says so", async () => {
     await open({ url: `${PROVIDERS_URL}?q=dentist` });
-    expect($("main [data-empty]")?.textContent).toBe("No providers match “dentist”.");
+    await expect.poll(() => $("main [data-empty]")?.textContent).toBe("No providers match “dentist”.");
   });
 });
 
@@ -150,14 +162,16 @@ describe("contact details on each row (B-44)", () => {
     async (theme) => {
       await open({ theme });
       const page = document.documentElement;
-      expect(page.scrollWidth - page.clientWidth).toBeLessThanOrEqual(0);
-      expect($$("main li[data-provider-id]").filter((li) => li.scrollWidth > li.clientWidth)).toEqual([]);
+      await expect.poll(() => page.scrollWidth - page.clientWidth).toBeLessThanOrEqual(0);
+      await expect
+        .poll(() => $$("main li[data-provider-id]").filter((li) => li.scrollWidth > li.clientWidth))
+        .toEqual([]);
     },
   );
 
   test("a tap on a row (not only the name) opens the provider's page", async () => {
     const device = await open();
-    const row = $(`main li[data-provider-id="${PATEL.id}"] p.text-sm`)!;
+    const row = await found(() => $(`main li[data-provider-id="${PATEL.id}"] p.text-sm`));
     await userEvent.click(row, { force: true });
     await expect.poll(() => device.location()).toBe(`${PROVIDERS_URL}/${PATEL.id}`);
     await expect.element(page.getByRole("heading", { level: 1, name: "Dr. Samuel Patel" })).toBeVisible();
@@ -167,12 +181,12 @@ describe("contact details on each row (B-44)", () => {
 describe("who sees what", () => {
   test("a writer gets Add provider; a viewer sees the same list, marked view-only, with no Add", async () => {
     const device = await open({ role: "caretaker" });
-    expect(ADD_PROVIDER()?.textContent.trim()).toBe("Add provider");
+    await expect.poll(() => ADD_PROVIDER()?.textContent.trim()).toBe("Add provider");
     await device.screen.unmount();
 
     await open({ role: "viewer" });
-    expect(listNames("Current providers")).toEqual(CURRENT_NAMES);
-    expect($("main header p")?.textContent).toContain("You can view this directory");
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
+    await expect.poll(() => $("main header p")?.textContent).toContain("You can view this directory");
     expect(ADD_PROVIDER()).toBeNull();
   });
 
@@ -186,7 +200,7 @@ describe("who sees what", () => {
     await expect.poll(() => edit.location()).toBe(PROVIDERS_URL);
     await waitUntil(() => listNames("Current providers").length > 0);
     expect(FORM()).toBeNull();
-    expect(listNames("Current providers")).toEqual(CURRENT_NAMES);
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
   });
 
   test("a non-member's …/providers?q=cardio is Not found, naming no one", async () => {
@@ -269,15 +283,15 @@ describe("importing from another group (B-48)", () => {
 
   test("the action is for writers who belong to another group; a viewer's or a one-group writer's URL is the list", async () => {
     let device = await open({ fixtures: world(), role: "caretaker" });
-    expect(IMPORT()?.textContent.trim()).toBe("Import from another group");
+    await expect.poll(() => IMPORT()?.textContent.trim()).toBe("Import from another group");
     // Beside Add provider at 420, with no horizontal overflow.
-    expect(document.documentElement.scrollWidth - document.documentElement.clientWidth).toBeLessThanOrEqual(
-      0,
-    );
+    await expect
+      .poll(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+      .toBeLessThanOrEqual(0);
     await device.screen.unmount();
 
     device = await open();
-    expect(ADD_PROVIDER()).not.toBeNull();
+    await expect.poll(ADD_PROVIDER).not.toBeNull();
     expect(IMPORT()).toBeNull();
     await device.screen.unmount();
 
@@ -307,9 +321,9 @@ describe("importing from another group (B-48)", () => {
       { name: "Harbor Clinic", disabled: false, here: false },
       { name: "westside  family medicine", disabled: true, here: true },
     ]);
-    expect(NOTES_RULE()).toBe("Provider notes stay in Lou Lindqvist.");
-    expect(SUBMIT()?.textContent).toBe("Import 0");
-    expect(SUBMIT()?.disabled).toBe(true);
+    await expect.poll(NOTES_RULE).toBe("Provider notes stay in Lou Lindqvist.");
+    await expect.poll(() => SUBMIT()?.textContent).toBe("Import 0");
+    await expect.poll(() => SUBMIT()?.disabled).toBe(true);
 
     // The directory's search and type chips.
     const search = page.getByRole("searchbox", { name: "Search providers in Lou Lindqvist" });
@@ -322,7 +336,7 @@ describe("importing from another group (B-48)", () => {
     // A group where the user only views is a source too.
     await userEvent.click(page.getByRole("radio", { name: "Jules Moreau" }));
     await expect.poll(() => rows().map((r) => r.name)).toEqual(["Dr. Paul Moreau"]);
-    expect(NOTES_RULE()).toBe("Provider notes stay in Jules Moreau.");
+    await expect.poll(NOTES_RULE).toBe("Provider notes stay in Jules Moreau.");
   });
 
   test("importing adds copies to the list with the counts: a practice reused, another copied first, primary off, no notes", async () => {
@@ -332,27 +346,31 @@ describe("importing from another group (B-48)", () => {
     await tick("Dr. Grace Lindqvist");
     await tick("Dr. Nia Okafor");
     await tick("Dr. Ana Rivera");
-    expect(SUBMIT()?.textContent).toBe("Import 3");
+    await expect.poll(() => SUBMIT()?.textContent).toBe("Import 3");
     await userEvent.click(SUBMIT()!);
     await expect.poll(STATUS).toBe("Imported 3 providers and 1 practice.");
     await device.settle();
 
-    expect(listNames("Current providers")).toEqual(
-      expect.arrayContaining(["Dr. Grace Lindqvist", "Dr. Nia Okafor", "Dr. Ana Rivera", "Harbor Clinic"]),
-    );
-    expect(
-      rows()
-        .filter((r) => r.disabled)
-        .map((r) => r.name),
-    ).toEqual([
-      "Dr. Grace Lindqvist",
-      "Cornerstone Pharmacy",
-      "Dr. Ana Rivera",
-      "Dr. Nia Okafor",
-      "Harbor Clinic",
-      "westside  family medicine",
-    ]);
-    expect(SUBMIT()?.textContent).toBe("Import 0");
+    await expect
+      .poll(() => listNames("Current providers"))
+      .toEqual(
+        expect.arrayContaining(["Dr. Grace Lindqvist", "Dr. Nia Okafor", "Dr. Ana Rivera", "Harbor Clinic"]),
+      );
+    await expect
+      .poll(() =>
+        rows()
+          .filter((r) => r.disabled)
+          .map((r) => r.name),
+      )
+      .toEqual([
+        "Dr. Grace Lindqvist",
+        "Cornerstone Pharmacy",
+        "Dr. Ana Rivera",
+        "Dr. Nia Okafor",
+        "Harbor Clinic",
+        "westside  family medicine",
+      ]);
+    await expect.poll(() => SUBMIT()?.textContent).toBe("Import 0");
 
     type Copy = {
       id: string;
