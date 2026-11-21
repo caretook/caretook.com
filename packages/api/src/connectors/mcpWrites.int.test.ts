@@ -2,13 +2,16 @@ import { validateConnectorToken } from "@caretook/auth";
 import {
   careGroupMemberService,
   careGroupService,
+  entryProviderService,
   medicationPassService,
   medicationService,
+  noteDocumentService,
   providerService,
   recipientConditionService,
   todoService,
   timelineEntryService,
 } from "@caretook/data";
+import { fromBase64, MENTION_NODE } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import { createRateLimiter } from "../rateLimit";
@@ -233,6 +236,59 @@ describe("/mcp write tools", () => {
         error: { code: "assistantActionService:invalid", issues: [{ path: "assignee" }] },
       },
     });
+  });
+
+  it("add a note that mentions its providers and links them; another group's provider is refused", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+
+    const note = await resultOf(
+      await callTool(token, "add_note", {
+        text: "Called @Dr. Example about the refill.",
+        providerIds: [w.provider.id],
+      }),
+    );
+    expect(note.isError).toBeUndefined();
+    expect(textOf(note)).toMatch(
+      /^Logged: Called @Dr\. Example about the refill\. · with Dr\. Example · Now/,
+    );
+    const [noteId] = note.structuredContent.entryIds!;
+    // The mention sits where the text names the provider, and the link is the entry's With row.
+    expect(ok(await noteDocumentService.currentText(w.owner.ctx, noteId!))).toBe(
+      "Called @Dr. Example about the refill.",
+    );
+    // The compacted snapshot holds a mention node carrying the provider's id (Yjs stores names as UTF-8).
+    const stored = ok(await noteDocumentService.getById(w.owner.ctx, noteId!));
+    const bytes = new TextDecoder().decode(fromBase64(stored.snapshot!));
+    expect(bytes).toContain(MENTION_NODE);
+    expect(bytes).toContain(w.provider.id);
+    const links = ok(await entryProviderService.listForEntry(w.owner.ctx, noteId!)).data;
+    expect(links.map((l) => l.providerId)).toEqual([w.provider.id]);
+
+    // A provider the text doesn't name is mentioned at the end.
+    const plain = await resultOf(
+      await callTool(token, "add_note", { text: "Refill sorted.", providerIds: [w.provider.id] }),
+    );
+    expect(
+      ok(await noteDocumentService.currentText(w.owner.ctx, plain.structuredContent.entryIds![0]!)),
+    ).toBe("Refill sorted. @Dr. Example");
+
+    // Another group's provider: refused, and nothing written.
+    const elsewhere = await createUser("elsewhere");
+    const { group: other } = await createGroup(elsewhere);
+    const far = ok(
+      await providerService.create(elsewhere.ctx, { groupId: other.id, type: "clinician", name: "Dr. Far" }),
+    )!;
+    const before = (await w.groupEntries()).length;
+    const refused = await resultOf(
+      await callTool(token, "add_note", { text: "Called @Dr. Far", providerIds: [far.id] }),
+    );
+    expect(refused).toMatchObject({
+      isError: true,
+      structuredContent: { error: { code: "assistantActionService:providerGone" } },
+    });
+    expect((await w.groupEntries()).length).toBe(before);
+    expect(ok(await entryProviderService.listForProvider(elsewhere.ctx, far.id)).count).toBe(0);
   });
 
   it("answers a refusal as an isError result with the code and issues, and writes nothing", async () => {

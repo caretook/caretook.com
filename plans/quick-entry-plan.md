@@ -4,12 +4,24 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/quick-entry` (slice commits) |
-| ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | planned |                                              |
-| 2     | 2    | planned |                                              |
-| 3     | 2    | planned |                                              |
-| 4     | 2    | planned |                                              |
+| Slice | Wave | State                             | Merge into `prd/quick-entry` (slice commits) |
+| ----- | ---- | --------------------------------- | -------------------------------------------- |
+| 1     | 1    | merged, worktree removed          | 285342b7 (14374ab2)                          |
+| 2     | 2    | merged, worktree removed (opus)   | 3f5b57a1 (225f7a9c)                          |
+| 3     | 2    | merged, worktree removed (opus)   | 63ba9b70 (cc628645)                          |
+| 4     | 2    | merged, worktree removed (sonnet) | b5252045 (63cd4e7b)                          |
+
+**Landing mode (2026-11-21): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions.
+
+**Done (2026-11-21): the PRD is finished.** All four slices merged, B-220 done. Full `pnpm prd check` passed on 6e942f2c; the live-notes browser check passed; no `--suite` (the plan says ask first: the dev keeper's backstop). Landed through PR #15 (Codex clean on 7a79926). Decisions folded into assistant, live-notes and connectors.
+
+**Slice 3 docs:** assistant: Save with a draft (first provider event opens `entries/new?kind=event` with `EventDraft` in history state, `eventDraftFor`/`eventDraftFrom`, includes `timeZone`; others written first as one batch with Undo; a lone draft writes nothing, no Undo; a later provider event is written directly); `opensDraft` (`markDraft`, `draftCardOf`) and the "Opens to finish · <providers> · <when>" line; Edit on a provider event opens its draft. live-notes (entry page): `withEventDraft`; `EntryPageData.withProviders` is a list; a draft's providers show (removable) in the With row before saving and link on save; a time picked on a draft with providers saves it. "appt dr lee tomorrow 2pm" now opens a draft (its test changed).
+
+**Slice 2 docs:** assistant: `addNote.providerIds`, the parser rewrites named providers to `@Name` on notes, both runners write mentions + links and refuse providers not live (`assistantActionService:providerGone`), previews say "with X" on notes. live-notes: `noteDocFromText(text, mentions?)`, `NoteMention {id,label}`, mentions placed at `@label` (longest first) or appended; the "makes none" line is stale. connectors: `add_note` takes `providerIds` and names them. Landing: `noteYjs.ts` maps to `live-notes` in check-areas, so run what `prd browser --changed` names. Slice 2 touched `quickEntryCards.test.ts` (two `providerIds: []`): small conflict likely with slice 4.
+
+**Slice 4 docs:** assistant.md's 'alternatives as chips ("Note instead")' becomes: the card's kind is a badge, other kinds are "Make it a …" buttons (`kindChoices`), same-kind alternatives keep "<title> instead".
+
+**Slice 1 hand-off notes (for docs at landing):** the vocabulary (`quickEntryVocabulary.ts`, roles, `unlessNext` e.g. "fell asleep"; a miss is one row plus a test row; not exported from `@caretook/data/schema`, whose list is frozen); a provider is "named clearly" by a last name, title + name, a practice's full name, or its first word after at/to/from or a verb (a bare first name doesn't make an event); titles drop time, provider words, verbs and filler; place from "at …" else the provider's address; no time → all-day today; contact verbs and note incidents rank the note first (event at 0.5), symptom incidents give the canonical symptom with severity null; the reading decides the time's direction; "25th"/"the 25th"/"on the 25th" with count-word guards, months without that day skipped. Deliberate changes: "fell in bathroom last night" is now the symptom Fall; "appointment with dr lee" is all-day today with no warning. "slipped"/"tripped" dropped (plain notes now).
 
 **Start conditions:** wait for **both** `timeline-ux-2` in `dev` (its quick-entry slices: B-215, B-216, B-219 reshape `components/quick-entry/`) **and** `tasks-2` in `dev` (it renames the to-do action, `actionPreview`, the parser's to-do reading and the connector's tools; last item B-222). `pnpm prd sync` before slice 1.
 

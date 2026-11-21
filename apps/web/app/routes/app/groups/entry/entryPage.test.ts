@@ -1,5 +1,8 @@
+import type { EventDraft } from "../../../../lib/assistant/quickEntryDraft";
+import type { EntryPageData } from "./loadEntry";
+
 import { describe, expect, it } from "vitest";
-import { entryHeading, showTitleChips, titleState } from "./entryPage";
+import { entryHeading, showTitleChips, titleState, withEventDraft } from "./entryPage";
 
 describe("entryHeading", () => {
   it("is the title when there is one", () => {
@@ -78,5 +81,65 @@ describe("showTitleChips", () => {
 
   it("never shows for notes", () => {
     expect(showTitleChips({ ...unnamed, kind: "note", title: null })).toBe(false);
+  });
+});
+
+describe("withEventDraft", () => {
+  const PROVIDER = "33333333-3333-4333-8333-333333333333";
+  const OTHER = "44444444-4444-4444-8444-444444444444";
+  const page = (over: Partial<EntryPageData> = {}): EntryPageData => ({
+    isNew: true,
+    pickDay: false,
+    withProviders: [],
+    entry: {
+      id: "e1",
+      kind: "event",
+      title: null,
+      occurredAt: "2026-11-19T20:00:00.000Z",
+      timeZone: "America/New_York",
+      allDay: false,
+      place: null,
+    },
+    heading: "New event",
+    hasDocument: false,
+    initial: { snapshot: null, updates: [] },
+    entryRows: [],
+    ...over,
+  });
+  const draft: EventDraft = {
+    kind: "event",
+    title: "Dr. Elena Alvarez",
+    occurredAt: "2026-11-25T08:00:00.000Z",
+    allDay: true,
+    place: "400 Example Ave",
+    providerIds: [PROVIDER],
+    timeZone: "America/Los_Angeles",
+  };
+
+  it("fills a new event from the draft, on top of ?provider=", () => {
+    const data = page({ withProviders: [OTHER] });
+    const next = withEventDraft(data, draft);
+    expect(next.entry).toEqual({
+      id: "e1",
+      kind: "event",
+      title: "Dr. Elena Alvarez",
+      occurredAt: "2026-11-25T08:00:00.000Z",
+      timeZone: "America/Los_Angeles",
+      allDay: true,
+      place: "400 Example Ave",
+    });
+    expect(next.withProviders).toEqual([OTHER, PROVIDER]);
+    expect(next.heading).toBe("Dr. Elena Alvarez");
+    expect(next.entryRows).toBe(data.entryRows);
+    expect(withEventDraft(page({ withProviders: [PROVIDER] }), draft).withProviders).toEqual([PROVIDER]);
+  });
+
+  it("leaves anything else as it was: no draft, a stored entry, a note", () => {
+    const data = page({ withProviders: [OTHER] });
+    expect(withEventDraft(data, null)).toBe(data);
+    const stored = page({ isNew: false });
+    expect(withEventDraft(stored, draft)).toBe(stored);
+    const note = page({ entry: { ...page().entry, kind: "note" } });
+    expect(withEventDraft(note, draft)).toBe(note);
   });
 });

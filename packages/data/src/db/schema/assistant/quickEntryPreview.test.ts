@@ -98,11 +98,25 @@ describe("actionPreview", () => {
   });
 
   test("a note is its text", () => {
-    expect(actionPreview({ type: "addNote", text: "Good day", occurredAt: at }, context)).toEqual({
-      title: "Good day",
-      detail: null,
+    expect(
+      actionPreview({ type: "addNote", text: "Good day", occurredAt: at, providerIds: [] }, context),
+    ).toEqual({ title: "Good day", detail: null, when: "Now" });
+  });
+
+  test("a note names the providers it mentions", () => {
+    const note = { type: "addNote", text: "called @Dr. Sandra Lee about refill", occurredAt: at } as const;
+    expect(actionPreview({ ...note, providerIds: [LEE] }, context)).toEqual({
+      title: "called @Dr. Sandra Lee about refill",
+      detail: "with Dr. Sandra Lee",
       when: "Now",
     });
+    // With a title, the text comes first; an unknown id is left out.
+    expect(
+      actionPreview(
+        { ...note, title: "Refill", providerIds: [LEE, "99999999-9999-4999-8999-999999999999"] },
+        context,
+      ).detail,
+    ).toBe("called @Dr. Sandra Lee about refill · with Dr. Sandra Lee");
   });
 
   test("a todo is its title, its due in the recipient's zone and its assignee", () => {

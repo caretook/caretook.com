@@ -27,6 +27,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of action credits. Only staging (branch: staging) and production (branch: main) should be deployed to vercel. (B-243)
 - lint tests seem to be failing regularly because types haven't been generated. Maybe regression introduced by reordering the steps in check? (B-250)
 - convert planner tabs to TabNav component. (B-251)
+- default filter on todos should be "everyone" and then reduce the list.
 
 ## Change requests
 

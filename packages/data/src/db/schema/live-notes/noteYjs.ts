@@ -93,13 +93,54 @@ const blockLines = (node: Y.XmlFragment | Y.XmlElement, prefix = ""): string[] =
 
 const BULLET = "• ";
 
-const paragraph = (parent: Y.XmlFragment | Y.XmlElement, line: string) => {
+/** A provider mentioned in text put into a document: its id and the name it shows. */
+export type NoteMention = { id: string; label: string };
+
+/**
+ * `line` split where it says `@<label>` for one of `mentions` (longest label
+ * first): text runs and the mentions found there, in order.
+ */
+const mentionRuns = (line: string, mentions: readonly NoteMention[]) => {
+  const runs: (string | NoteMention)[] = [];
+  const byLength = [...mentions].filter((m) => m.label).sort((a, b) => b.label.length - a.label.length);
+  let rest = line;
+  while (rest) {
+    let found: { at: number; mention: NoteMention } | null = null;
+    for (const mention of byLength) {
+      const at = rest.indexOf(`@${mention.label}`);
+      if (at >= 0 && (!found || at < found.at)) found = { at, mention };
+    }
+    if (!found) {
+      runs.push(rest);
+      break;
+    }
+    if (found.at) runs.push(rest.slice(0, found.at));
+    runs.push(found.mention);
+    rest = rest.slice(found.at + found.mention.label.length + 1);
+  }
+  return runs;
+};
+
+const paragraph = (
+  parent: Y.XmlFragment | Y.XmlElement,
+  line: string,
+  mentions: readonly NoteMention[] = [],
+) => {
   const p = new Y.XmlElement("paragraph");
   parent.push([p]);
-  if (line) {
-    const t = new Y.XmlText();
-    p.push([t]);
-    t.insert(0, line);
+  for (const run of mentionRuns(line, mentions)) {
+    if (typeof run === "string") {
+      const t = new Y.XmlText();
+      p.push([t]);
+      t.insert(0, run);
+    } else {
+      // As the editor's Mention stores it.
+      const mention = new Y.XmlElement(MENTION_NODE);
+      p.push([mention]);
+      mention.setAttribute("id", run.id);
+      mention.setAttribute("label", run.label);
+      mention.setAttribute("mentionSuggestionChar", "@");
+    }
   }
 };
 
@@ -107,10 +148,22 @@ const paragraph = (parent: Y.XmlFragment | Y.XmlElement, line: string) => {
  * A document holding plain text, the inverse of `noteText`: one paragraph
  * per line, and runs of "• " lines as a bulleted list. Empty text gives an
  * empty document. For seeds, and anything else that starts from text.
+ *
+ * Each of `mentions` (a provider: its id and name) becomes a mention node
+ * where the text says `@<label>`; one the text doesn't name is added at the
+ * end of the last line (or as the only line). So `noteText` reads it back as
+ * "@Name". With no mentions the output is as before.
  */
-export const noteDocFromText = (text: string) => {
+export const noteDocFromText = (text: string, mentions: readonly NoteMention[] = []) => {
   const doc = new Y.Doc();
+  const named = mentions.filter((m, i) => m.label && mentions.findIndex((o) => o.id === m.id) === i);
   const lines = text.trim() ? text.trim().split("\n") : [];
+  const missing = named.filter((m) => !lines.some((line) => line.includes(`@${m.label}`)));
+  if (missing.length) {
+    const tail = missing.map((m) => `@${m.label}`).join(" ");
+    if (lines.length) lines[lines.length - 1] = `${lines[lines.length - 1]!.trimEnd()} ${tail}`;
+    else lines.push(tail);
+  }
   doc.transact(() => {
     const fragment = doc.getXmlFragment(NOTE_FRAGMENT);
     let list: Y.XmlElement | null = null;
@@ -122,10 +175,10 @@ export const noteDocFromText = (text: string) => {
         }
         const item = new Y.XmlElement("listItem");
         list.push([item]);
-        paragraph(item, line.slice(BULLET.length));
+        paragraph(item, line.slice(BULLET.length), named);
       } else {
         list = null;
-        paragraph(fragment, line);
+        paragraph(fragment, line, named);
       }
     }
   });
