@@ -62,14 +62,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `connectors-3` | to write (B-252: a connector tool to read the dosing schedule beyond today; B-253: `add_todo` can make a repeating todo) | B-253 after `planner-2` in `dev` (last item B-248); B-252 has none | `packages/api/src/connectors/tools/` (`todaysDoses.ts` or a new schedule tool, `writes.ts`), the server instructions |
 | `simple-mode` | [PRD](simple-mode-prd.md), [plan](simple-mode-plan.md): 5 slices, waves 1 → 2 → 3 → (4, 5): the lock becomes two member roles, Easy helper (log-only, own entries, own todos) and Easy viewer; "simple" is renamed "easy" everywhere, database included; the role decides the view; the Planner, todo pages and search open for the easy roles (B-221, B-236); the Easy mode toggle moves from the View options menu into the full timeline's page header (slice 5, stackless, B-400). Migrations in slices 1, 2 and 3; sync config changes. **Ready to start** once its start condition holds | `list-filters` (last item B-249), `planner-2` (last item B-248) and the current `quick-fixes` wave in `dev` (slice 1 renames files they touch) | slice 1: every `simple*` file (`lib/assistant/simpleMode*`, `SimpleTimeline` and its blocks, quick entry, `TodoTick`, the `/app` layout), `sync-config.yaml`, the device schema; slice 2: `constants/roles.ts`, `permissions/` (blocks, types, timeline, todos, live-notes, connectors), `todoService`, the upload switch, `groupContext.ts`, the role picker; slice 3: group settings Members, `careGroupMemberService`, `useSimpleFrame`; slice 4: the Planner and todo routes, the search route; slice 5: `TimelineHeader.tsx`, `TimelineViewMenu.tsx`, the toggle button |
 | `tasks-2` | [PRD](tasks-2-prd.md), [plan](tasks-2-plan.md): **done** (`2db975a7`) | — | none now |
-| `sync-safety` | to write (B-285 to B-296), from the 2026-11-21 code review (findings not re-verified): refused sync changes shown to the user, an upload queue that can't wedge, offline edits that don't revert a co-member's change, replayed PUTs, global client-chosen ids, the sign-out wipe and unsent writes, then the column-agreement test and one generic upload handler | (none); `test-health` shares the upload tests (B-371, B-374) | `packages/api/src/sync.ts`, `lib/sync/client.ts`, `SyncIndicator`, `session.ts`, `sign-out.tsx`, `medications.sync.ts`, `providers.sync.ts`, the services' `upsert`s |
+| `sync-safety` | to write (B-285 to B-296, B-382 to B-384, B-387: repeating-todo upload bugs Codex found, moved from `planner-2`), from the 2026-11-21 code review (findings not re-verified): refused sync changes shown to the user, an upload queue that can't wedge, offline edits that don't revert a co-member's change, replayed PUTs, global client-chosen ids, the sign-out wipe and unsent writes, then the column-agreement test and one generic upload handler | (none); `test-health` shares the upload tests (B-371, B-374) | `packages/api/src/sync.ts`, `lib/sync/client.ts`, `SyncIndicator`, `session.ts`, `sign-out.tsx`, `medications.sync.ts`, `providers.sync.ts`, the services' `upsert`s |
 | `dose-accuracy` | to write (B-297 to B-299), from the 2026-11-21 code review: a dose answers only its own day's slot, deterministic dose ids, visit prep's missed doses per schedule epoch | (none) | `db/schema/medications/dueDoses.ts`, `medications.sync.ts` (`logDoses`), `visitPrep.ts` |
 | `quick-entry-2` | to write (B-300 to B-303), from the 2026-11-21 code review: negated doses, typed counts, wrong times, the stuck card | `planner-2` in `dev` (it edits quick entry's future note; last item B-248) | `db/schema/assistant/quickEntry.ts`, `quickEntryTime.ts`, `components/quick-entry/` |
 | `calendars-2` | to write (B-304 to B-309, B-377), from the 2026-11-21 code review: Google deletes of past items, events beyond 90 days, reminder expiry, deleted providers in pushes, the consent version, reminder time labels, push notifications | `planner-2` in `dev` (it changes the calendar projection's reminder kind; last item B-248) | `packages/data/src/google/`, `calendarPullService`, `calendarSyncService`, `packages/notifications` (outbox, reminders) |
 | `code-health` | to write (B-361 to B-369), from the 2026-11-21 code review: a `@caretook/data/domain` export, a soft-delete model factory and shared upsert, one role-capability table, typed device reads, dead exports, exact pins, tooling tests | the role-capability table (B-363) before or inside `simple-mode`; the rest after the running PRDs land (it touches most services and device modules) | `packages/data/src/db/schema/` exports, `models/`, `services/*Service.ts`, `lib/<area>/*.sync.ts`, `package.json`s, `scripts/loops/` |
 | `assistant-2` | to write (B-376: assistant chat with voice and questions about the timeline, the part of B-12 that never shipped) | an AI vendor that doesn't retain or train (AGENTS.md, _Compliance_); the Vercel AI SDK needs the user's approval | `lib/assistant/`, a new server route, `packages/api` |
 | `orchestration-2` | [PRD](orchestration-2-prd.md), [plan](orchestration-2-plan.md) (B-389, B-390, B-391, B-395): 6 slices, waves (1, 2, 3) → 4 → 5 → 6: the PRD table as a registry (`pnpm backlog prd`, row order is the priority, states worked out), recorded sessions, an asks queue (`pnpm prd ask`, pushed to the phone by the asking session), drain-then-rotate after each landing (`pnpm prd rotate`), run-through prompts and status, then `quick-fixes` split into five standing topics (`fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit`, on hold until the user orders them). Tooling only. **Ready to start** once `check-speed` is in `dev` | `check-speed` in `dev` (shared `prd.sh`, `prompt.sh`, `pnpm test:tooling`); before `test-health`, never beside it | `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `rm.sh`, `open-session.*`, `scripts/backlog/`, this PRD table |
-| `orchestration-3` | to write (B-392): the dispatcher (`pnpm prd dispatch`: the pick, unattended planners, `queue` as "move to the front", recovery and status). What is settled and what is open: [orchestration-2 PRD](orchestration-2-prd.md), _Follow-on_ | `orchestration-2` in `dev` (last item B-395) | `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `recover.sh`, the registry |
+| `orchestration-3` | to write (B-392, B-404: one command to ship `dev` to staging through the Codex review): the dispatcher (`pnpm prd dispatch`: the pick, unattended planners, `queue` as "move to the front", recovery and status). What is settled and what is open: [orchestration-2 PRD](orchestration-2-prd.md), _Follow-on_ | `orchestration-2` in `dev` (last item B-395) | `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `recover.sh`, the registry |
 
 ## Summary
 
@@ -228,18 +228,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-379 | chore | triaged | quick-fixes |  | Later contract migrations nobody tracks: dropping the old columns the simple-mode and planner-2 PRDs leave behind, and medications-2's default-passes backfill |
 | B-380 | chore | triaged | quick-fixes |  | Backlog hygiene: B-205 and B-206 are the same test failure; B-208 is tagged simple-mode but landed as a hotfix; B-88 is landed with no commit; B-222's title and inbox line disagree; about 150 items read 'live' from one release merge though production hasn't started |
 | B-381 | bug | triaged | quick-fixes |  | readTools.int.test.ts 'nothing private leaves' flakes when a random user UUID contains the birth year (e.g. …072194195bed matches '1941'): assert on fields, not a substring of the whole output |
-| B-382 | bug | triaged | planner-2 |  | Repeating todos: an offline Undo's delete of the next occurrence lands unconditionally (todoOp removeTodo), deleting a successor another member edited or completed even though todoService.reopen kept it; tell an Undo's delete from an explicit one and apply it only when the server finds the successor untouched (todos.sync.ts:499) |
-| B-383 | bug | triaged | planner-2 |  | Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating |
-| B-384 | bug | triaged | planner-2 |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
-| B-385 | bug | triaged | planner-2 |  | Repeating todos: nextDueDay uses nextVisits' ~5-year search horizon, so a valid long-interval rule (e.g. FREQ=MONTHLY;INTERVAL=99) reads as ended and the chain stops; search to the rule's next occurrence or cap the accepted interval |
-| B-386 | bug | triaged | planner-2 |  | Repeating todos: a successor moved back onto its source's day and ticked gets nextTodoId(repeatId, that next day) = its own id, so insertNext (and the device's planNext) sees the row as the existing next and the chain silently ends; handle ids taken by the source or a done occurrence |
-| B-387 | bug | triaged | planner-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
+| B-382 | bug | triaged | sync-safety |  | Repeating todos: an offline Undo's delete of the next occurrence lands unconditionally (todoOp removeTodo), deleting a successor another member edited or completed even though todoService.reopen kept it; tell an Undo's delete from an explicit one and apply it only when the server finds the successor untouched (todos.sync.ts:499) |
+| B-383 | bug | triaged | sync-safety |  | Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating |
+| B-384 | bug | triaged | sync-safety |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
+| B-385 | bug | triaged | quick-fixes |  | Repeating todos: nextDueDay uses nextVisits' ~5-year search horizon, so a valid long-interval rule (e.g. FREQ=MONTHLY;INTERVAL=99) reads as ended and the chain stops; search to the rule's next occurrence or cap the accepted interval |
+| B-386 | bug | triaged | quick-fixes |  | Repeating todos: a successor moved back onto its source's day and ticked gets nextTodoId(repeatId, that next day) = its own id, so insertNext (and the device's planNext) sees the row as the existing next and the chain silently ends; handle ids taken by the source or a done occurrence |
+| B-387 | bug | triaged | sync-safety |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
 | B-388 | bug | triaged | quick-fixes |  | Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it |
-| B-389 | change | in-progress | orchestration-2 | prd/orchestration-2 | A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority |
+| B-389 | change | ready | orchestration-2 | prd/orchestration-2 | A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority |
 | B-390 | change | in-progress | orchestration-2 | prd/orchestration-2 | One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing |
 | B-391 | feature | in-progress | orchestration-2 | prd/orchestration-2 | One asks queue: unattended sessions file questions and landed-wave reports with pnpm prd ask; the user answers in one place |
 | B-392 | feature | triaged | orchestration-3 |  | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
-| B-393 | bug | triaged | planner-2 |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
+| B-393 | bug | triaged | quick-fixes |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
 | B-394 | bug | triaged | quick-fixes |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
 | B-395 | change | triaged | orchestration-2 |  | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
 | B-396 | change | triaged | ui-kit |  | Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge |
@@ -250,6 +250,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-401 | bug | ready | check-speed | prd/check-speed | check-run.sh's load reading can carry a blank line on Linux (sysctl fails under pipefail before the uptime fallback), splitting a check-times.log record across lines; normalise it to one number |
 | B-402 | bug | ready | check-speed | prd/check-speed | pnpm test:tooling runs only tooling:unit, so a tooling-only change to checks.mjs, check-areas.mjs, sync-matrix or check-times.mjs passes the docs-and-tooling gate without its own tests (they live in scripts:unit) |
 | B-403 | feature | triaged | orchestration-2 |  | A cleanup agent every few hours (pnpm prd tidy): finds finished sessions still open, finished worktrees and branches, and other leftovers; removes the safe ones and reports the rest |
+| B-404 | feature | triaged | orchestration-3 |  | One command to ship dev to staging: push dev, open the dev into staging PR, wait for Codex's review, triage its findings into the backlog (verified against the code, duplicates noted on the existing item), merge the PR when nothing is a blocker, and notify the user only when something is |
 
 ## Items
 
@@ -1680,57 +1681,67 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-382 · bug · Repeating todos: an offline Undo's delete of the next occurrence lands unconditionally (todoOp removeTodo), deleting a successor another member edited or completed even though todoService.reopen kept it; tell an Undo's delete from an explicit one and apply it only when the server finds the successor untouched (todos.sync.ts:499)
 
 - status: triaged
-- prd: planner-2
+- prd: sync-safety
 - owner:
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, 2026-11-21); filed as a follow-up. P1.
+- 2026-11-21 (Robert Bo Davis): Codex found this again on PR #25 (dev into staging, reviewed at 2427f29c, 2026-11-21): still present, verified against the code. No new item filed.
+- 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to sync-safety: an offline, replay or concurrent-upload bug in the todo upload path, the same kind as B-285 to B-296.
 
 ### B-383 · bug · Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating
 
 - status: triaged
-- prd: planner-2
+- prd: sync-safety
 - owner:
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, 2026-11-21); filed as a follow-up. P2.
+- 2026-11-21 (Robert Bo Davis): Codex found this again on PR #25 (dev into staging, reviewed at 2427f29c, 2026-11-21): still present, verified against the code. No new item filed.
+- 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to sync-safety: an offline, replay or concurrent-upload bug in the todo upload path, the same kind as B-285 to B-296.
 
 ### B-384 · bug · Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete)
 
 - status: triaged
-- prd: planner-2
+- prd: sync-safety
 - owner:
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, 2026-11-21); filed as a follow-up. P2.
+- 2026-11-21 (Robert Bo Davis): Codex found this again on PR #25 (dev into staging, reviewed at 2427f29c, 2026-11-21): still present, verified against the code. No new item filed.
+- 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to sync-safety: an offline, replay or concurrent-upload bug in the todo upload path, the same kind as B-285 to B-296.
 
 ### B-385 · bug · Repeating todos: nextDueDay uses nextVisits' ~5-year search horizon, so a valid long-interval rule (e.g. FREQ=MONTHLY;INTERVAL=99) reads as ended and the chain stops; search to the rule's next occurrence or cap the accepted interval
 
 - status: triaged
-- prd: planner-2
+- prd: quick-fixes
 - owner:
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, 2026-11-21); filed as a follow-up. P2.
 - 2026-11-21 (prd/planner-2): The repeat sheet's interval input allows up to 99 (RepeatField.tsx max={99}), so this is reachable from the app.
+- 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to quick-fixes: a contained repeat-rule fix, one slice each, no sync design needed.
 
 ### B-386 · bug · Repeating todos: a successor moved back onto its source's day and ticked gets nextTodoId(repeatId, that next day) = its own id, so insertNext (and the device's planNext) sees the row as the existing next and the chain silently ends; handle ids taken by the source or a done occurrence
 
 - status: triaged
-- prd: planner-2
+- prd: quick-fixes
 - owner:
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, round 2, 2026-11-21); filed as a follow-up. P2.
+- 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to quick-fixes: a contained repeat-rule fix, one slice each, no sync design needed.
 
 ### B-387 · bug · Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin
 
 - status: triaged
-- prd: planner-2
+- prd: sync-safety
 - owner:
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, round 2, 2026-11-21); filed as a follow-up. P2.
+- 2026-11-21 (Robert Bo Davis): Codex found this again on PR #25 (dev into staging, reviewed at 2427f29c, 2026-11-21): still present, verified against the code. No new item filed.
+- 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to sync-safety: an offline, replay or concurrent-upload bug in the todo upload path, the same kind as B-285 to B-296.
 
 ### B-388 · bug · Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it
 
@@ -1743,10 +1754,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-389 · change · A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority
 
-- status: in-progress
+- status: ready
 - prd: orchestration-2
 - owner: prd/orchestration-2
-- commit:
+- commit: 9cc81379
 
 - 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slice 1
 - 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
@@ -1793,12 +1804,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-393 · bug · Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both
 
 - status: triaged
-- prd: planner-2
+- prd: quick-fixes
 - owner:
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #23 (planner-2 wave 2, 2026-11-21); filed as a follow-up. P2. Slice 6 reported the same edge.
 - 2026-11-21 (prd/quick-fixes): (prd/quick-fixes) Likely closed by quick-fixes slice 67 (B-234, PR #20): choiceOfRule now keeps a monthly BYDAY ordinal as keptWeekday and choiceRule writes it back, and todoFormData's initialRepeat goes through both. Recheck once PR #20 lands in dev; a todo-side test would confirm.
+- 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to quick-fixes: a contained repeat-rule fix, one slice each, no sync design needed.
 
 ### B-394 · bug · mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x
 
@@ -1900,3 +1912,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Asked for by the user 2026-11-21 after a hand sweep by the backlog session. Not covered today: pnpm prd gc only lists merged slice worktrees and stacks stopped over a day, reclaim only disk; neither sees sessions, plan worktrees, branches or stale refs. What the hand sweep checked, as the task list: (1) sessions whose work is done but are still open (an orchestrator or planner whose worktree is gone or whose branch is in dev; idle backlog and stray main-checkout sessions): ask each over cross-session message whether it is done, then report it for closing (slice 2's recorded sessions give the list; closing a tab may need pnpm prd rotate's machinery); (2) worktrees left after the work landed: plan/<topic> worktrees level with dev and with no session, slice worktrees merged into their prd branch; remove with pnpm prd rm; (3) leftovers: local branches with no worktree (report unmerged ones, never delete them unasked), stale remote-tracking refs (git fetch --prune), caretook's dangling Docker volumes, lease and queue tickets whose pid is dead, test databases with no worktree, old .loops/.browser-hangs logs, finished items to archive (pnpm backlog archive) and PRD rows that are done. Rules: never touch a live worktree's build or Vite cache (reclaim --yes would, mid-check), never close a session or delete unmerged work without the user; anything not plainly safe goes to the asks queue (B-391) as one report. Found by hand that day: 4 finished sessions open (one for 5 h), 1 plan worktree, 1 unmerged 2-day-old slice branch, 7 stale remote refs, 6 dangling volumes, 61 items to archive, 4 stale PRD rows. Scheduling: a recurring run every few hours while any PRD runs; fits after slice 2 (sessions) and slice 3 (asks), or as the dispatcher's chore in orchestration-3 (B-392) if the orchestrator finds it too big for this PRD.
+- 2026-11-21 (prd/orchestration-2): orchestration-2 slice 7 (wave 5, after slice 6): pnpm prd tidy sorts leftovers into safe (removed with --yes) and ask (one report ask); prompt.sh tidy is the haiku brief, repeated with /loop; the dispatcher's tick in orchestration-3 takes the scheduling over.
+
+### B-404 · feature · One command to ship dev to staging: push dev, open the dev into staging PR, wait for Codex's review, triage its findings into the backlog (verified against the code, duplicates noted on the existing item), merge the PR when nothing is a blocker, and notify the user only when something is
+
+- status: triaged
+- prd: orchestration-3
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Asked for 2026-11-21 after doing it by hand on PR #25. Proposed for orchestration-3 (the dispatcher): same unattended tooling, and it can raise a blocker through orchestration-2's asks queue (pnpm prd ask). To settle in the PRD: what counts as a blocker (today's rule: critical and breaking only, the rest are follow-ups); staging changes only by PR and is deployed by deploy.yml; Codex signals no findings with a thumbs-up reaction and no review, so the wait reads its summary comment's state; a timeout when Codex never answers.
