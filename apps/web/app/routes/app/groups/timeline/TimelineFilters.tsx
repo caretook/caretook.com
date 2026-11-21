@@ -1,6 +1,7 @@
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { LinkChip } from "~/components/ui";
 import type { PeriodChoice } from "~/lib/care-periods/periodSearch";
+import type { ReactNode } from "react";
 
 import { VITALS } from "@caretook/data/schema";
 import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
@@ -18,9 +19,20 @@ import { useSearchField } from "./useSearchField";
 const X_ICON = <X className="size-3.5" aria-hidden="true" />;
 
 /**
- * The filter row: the search magnifier, then one Filter button with the
- * count of filters on (kind, vital type, author, period), which opens
- * `FilterSheet`. Under them, each filter on is a removable chip (a link that
+ * The row's one control shape: an outlined, icon-only circle, shared by the
+ * magnifier, Filter and the trailing control (the full timeline's View
+ * options). `IconButton` adds the `btn btn-sm btn-square btn-ghost` part.
+ */
+const CIRCLE = "border-base-300 bg-base-100 shrink-0 rounded-full";
+/** The same circle for a control that isn't an `IconButton` (a menu's trigger). */
+export const TOOL_CIRCLE = `btn btn-sm btn-square btn-ghost ${CIRCLE}`;
+
+/**
+ * The filter row: the search magnifier, then one icon-only Filter button
+ * (its badge the count of filters on: kind, vital type, author, period;
+ * named "Filter" or "Filter, N on"), which opens `FilterSheet`, then the
+ * optional `trailing` control at the row's right end (the full timeline's
+ * View options; drawn as `TOOL_CIRCLE`). All three are one size of circle. Under them, each filter on is a removable chip (a link that
  * clears only it, so the URL keeps the rest; see
  * `lib/timeline/timelineFilters.ts`): the kind, the vital type (`?vital=`),
  * "By <name>" (`author`: that person's name and picture), "Matching “…”"
@@ -28,6 +40,7 @@ const X_ICON = <X className="size-3.5" aria-hidden="true" />;
  * filters, no chip row. The magnifier opens the search field beside the
  * button; a search used there (Enter, leaving the field) is saved to the
  * recent searches the search page lists.
+ * The open field fills the room between Filter and `trailing`.
  */
 export function FilterChips({
   kind,
@@ -36,6 +49,7 @@ export function FilterChips({
   vital = null,
   vitalTypes = [],
   period,
+  trailing,
 }: {
   kind: TimelineEntryKind | null;
   author: { name: string; image: string | null } | null;
@@ -46,6 +60,8 @@ export function FilterChips({
   vitalTypes?: readonly string[];
   /** The search's care period: the group's choices, and the chosen one. */
   period: { choices: readonly PeriodChoice[]; current: PeriodChoice | null };
+  /** A control for the row's right end (`TOOL_CIRCLE`), after Filter and the open field. */
+  trailing?: ReactNode;
 }) {
   const { search } = useLocation();
   const { userId } = useGroup();
@@ -113,10 +129,30 @@ export function FilterChips({
           expanded={field.open}
           controls={field.open ? fieldId : undefined}
           onPress={field.toggle}
-          className="border-base-300 bg-base-100 shrink-0 rounded-full"
+          className={CIRCLE}
         />
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-label={count ? `Filter, ${count} on` : "Filter"}
+          title={count ? `Filter, ${count} on` : "Filter"}
+          className={`btn btn-sm btn-square btn-ghost relative ${CIRCLE}`}
+          onClick={() => setSheetOpen(true)}
+          data-filter-button
+        >
+          <SlidersHorizontal className="size-4" aria-hidden="true" />
+          {count > 0 && (
+            <span
+              aria-hidden="true"
+              className="badge badge-neutral badge-xs absolute -top-1 -right-1 min-w-4 px-1 font-semibold"
+              data-filter-count
+            >
+              {count}
+            </span>
+          )}
+        </button>
         {field.open && (
-          <div id={fieldId} className="min-w-0 flex-1 sm:w-64 sm:flex-none">
+          <div id={fieldId} className="min-w-0 flex-1">
             <Field label="Search entries" labelHidden>
               {(control) => (
                 <input
@@ -145,16 +181,7 @@ export function FilterChips({
             </Field>
           </div>
         )}
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          className={`btn btn-sm shrink-0 rounded-full px-3 ${count ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100"}`}
-          onClick={() => setSheetOpen(true)}
-          data-filter-button
-        >
-          <SlidersHorizontal className="size-4" aria-hidden="true" />
-          Filter{count > 0 && <span> · {count}</span>}
-        </button>
+        {trailing && <div className="ml-auto flex shrink-0">{trailing}</div>}
       </div>
       {active.length > 0 && <ChipGroup label="Filters on" replace preventScrollReset links={active} />}
       {sheetOpen && (

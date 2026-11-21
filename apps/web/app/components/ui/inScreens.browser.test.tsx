@@ -276,7 +276,7 @@ describe.each([
     await expect.poll(device.location).toBe(`${TIMELINE}?kind=symptom`);
     await expect.element(nav.getByRole("link", { name: "Symptoms" })).toHaveAttribute("aria-current", "true");
     await userEvent.click(page.getByRole("button", { name: "Done" }));
-    await expect.poll(() => document.activeElement?.textContent?.trim()).toBe("Filter · 1");
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Filter, 1 on");
     const viewOptions = () => page.getByRole("button", { name: "View options" }).element() as HTMLElement;
     await menu(viewOptions, { name: "View options" });
     await userEvent.click(viewOptions());
@@ -523,22 +523,30 @@ describe.each([360, 390, 420, 1280])("the date field at %i", (width) => {
 });
 
 describe.each([420, 1280])("the page header at %i", (width) => {
-  test.each([
-    { url: PROVIDERS, title: "Providers", action: "Add provider" },
-    { url: TIMELINE, title: "Timeline", action: "View options" },
-  ])("$title: the title is the h1, its action beside it on the right", async ({ url, title, action }) => {
-    await renderWithDevice({ route: ROUTES, url, fixtures: FIXTURES, width });
+  test.each([{ url: PROVIDERS, title: "Providers", action: "Add provider" }])(
+    "$title: the title is the h1, its action beside it on the right",
+    async ({ url, title, action }) => {
+      await renderWithDevice({ route: ROUTES, url, fixtures: FIXTURES, width });
+      const header = await found(() => q("main header"));
+      const h1 = header.querySelector("h1")!;
+      expect(h1.textContent).toBe(title);
+      const control = [...header.querySelectorAll<HTMLElement>("a, button")].find(
+        (el) => (el.getAttribute("aria-label") ?? el.textContent?.trim()) === action,
+      )!;
+      expect(control).toBeDefined();
+      const [a, b] = [h1.getBoundingClientRect(), control.getBoundingClientRect()];
+      // On the same row, the action at the right.
+      expect(b.left).toBeGreaterThan(a.right);
+      expect(b.top).toBeLessThan(a.bottom);
+      expect(Math.round(header.getBoundingClientRect().right - b.right)).toBeLessThanOrEqual(1);
+    },
+  );
+
+  test("Timeline: the title is the h1, with no actions (View options is in the filter row)", async () => {
+    await renderWithDevice({ route: ROUTES, url: TIMELINE, fixtures: FIXTURES, width });
     const header = await found(() => q("main header"));
-    const h1 = header.querySelector("h1")!;
-    expect(h1.textContent).toBe(title);
-    const control = [...header.querySelectorAll<HTMLElement>("a, button")].find(
-      (el) => (el.getAttribute("aria-label") ?? el.textContent?.trim()) === action,
-    )!;
-    expect(control).toBeDefined();
-    const [a, b] = [h1.getBoundingClientRect(), control.getBoundingClientRect()];
-    // On the same row, the action at the right.
-    expect(b.left).toBeGreaterThan(a.right);
-    expect(b.top).toBeLessThan(a.bottom);
-    expect(Math.round(header.getBoundingClientRect().right - b.right)).toBeLessThanOrEqual(1);
+    expect(header.querySelector("h1")!.textContent).toBe("Timeline");
+    expect(header.querySelectorAll("a, button")).toHaveLength(0);
+    await found(() => q('[data-timeline-filters] button[aria-label="View options"]'));
   });
 });
