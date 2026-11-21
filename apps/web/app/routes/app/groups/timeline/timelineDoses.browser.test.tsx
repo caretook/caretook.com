@@ -449,6 +449,19 @@ describe("the Dose sheet's + New medication", () => {
     await expect.poll(NAME).toBeNull();
   });
 
+  test("switching to a medication and back leaves the amount empty, with the dose field, not the discarded dose", async () => {
+    await open({ query: "?kind=dose" });
+    await pickNew();
+    await userEvent.fill(NEW_DOSE()!, "2 tablets");
+    await expect.poll(() => AMOUNT().value).toBe("2 tablets");
+    await userEvent.click(radio("medicationId", "Lisinopril 10 mg")!);
+    await expect.poll(NAME).toBeNull();
+    await userEvent.click(radio("medicationId", "+ New medication")!);
+    await expect.poll(NAME).toBeTruthy();
+    await expect.poll(() => NEW_DOSE()!.value).toBe("");
+    await expect.poll(() => AMOUNT().value).toBe("");
+  });
+
   test("a name matching an allergy warns, without blocking", async () => {
     await open({
       query: "?kind=dose",
