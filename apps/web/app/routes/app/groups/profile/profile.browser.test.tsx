@@ -2,6 +2,9 @@ import type { GroupRole } from "../../../../../test/fixtures";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { render } from "vitest-browser-react";
+import { MemoryRouter } from "react-router";
+import { TimeZoneLine } from "./BasicsForm";
 import { recipientDetails, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import {
   $,
@@ -271,6 +274,23 @@ describe("the Basics sheet", () => {
       ),
     ].filter((el) => !document.querySelector(`label[for="${el.id}"]`));
     expect(unlabelled).toEqual([]);
+  });
+
+  test("a time zone line links to group settings' Details for a writer; a viewer sees the zone without the link", async () => {
+    await openProfile({ role: "caretaker", url: sheetUrl("basics") });
+    await expect.poll(() => !!field("name")).toBe(true);
+    const link = $<HTMLAnchorElement>("[role=dialog] [data-time-zone-line] a");
+    expect(link?.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/settings/details`);
+    expect($("[role=dialog] [data-time-zone-line]")?.textContent).toMatch(/^Time zone: America\/Los Angeles/);
+
+    const view = await render(
+      <MemoryRouter>
+        <TimeZoneLine groupId={TEST_GROUP.id} groupRole="viewer" timeZone="America/Los_Angeles" />
+      </MemoryRouter>,
+    );
+    const line = view.container.querySelector("[data-time-zone-line]");
+    expect(line?.textContent).toBe("Time zone: America/Los Angeles");
+    expect(line?.querySelector("a")).toBeNull();
   });
 
   test("an empty name is refused on its field, which takes focus, and nothing is sent", async () => {
