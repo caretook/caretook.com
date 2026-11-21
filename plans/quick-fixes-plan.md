@@ -80,7 +80,7 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 | 62    | B-211             | merged | 33adfc0a (6eb5d949) sonnet                            |
 
 | 63 | B-228 | started | sonnet |
-| 64 | B-230 | handed off (2769bd66), rechecking after typegen | sonnet |
+| 64 | B-230 | merged | d5701923 (2769bd66) sonnet |
 | 65 | B-232 | started | sonnet |
 | 66 | B-233 | started | sonnet |
 | 67 | B-234 | started | sonnet |
