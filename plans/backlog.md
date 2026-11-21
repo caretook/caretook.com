@@ -301,6 +301,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-393 | bug | triaged | planner-2 |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
 | B-394 | bug | triaged | quick-fixes |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
 | B-395 | change | triaged | orchestration-2 |  | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
+| B-396 | change | triaged | ui-kit |  | Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge |
+| B-397 | change | triaged | ui-kit |  | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
 
 ## Items
 
@@ -2487,6 +2489,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #23 (planner-2 wave 2, 2026-11-21); filed as a follow-up. P2. Slice 6 reported the same edge.
+- 2026-11-21 (prd/quick-fixes): (prd/quick-fixes) Likely closed by quick-fixes slice 67 (B-234, PR #20): choiceOfRule now keeps a monthly BYDAY ordinal as keptWeekday and choiceRule writes it back, and todoFormData's initialRepeat goes through both. Recheck once PR #20 lands in dev; a todo-side test would confirm.
 
 ### B-394 · bug · mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x
 
@@ -2505,3 +2508,21 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): The user's rule, 2026-11-21. The order of priority between categories is NOT decided: the user will set it later, so don't invent one. Until the split, triage notes name a category (ui, tooling, perf, bug, nit) and the orchestrator groups a wave by category (docs/agents/planner.md, The plan's shape). 24 quick-fixes items were waiting on 2026-11-21 and need a category each.
+
+### B-396 · change · Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the user (2026-11-21), who dislikes the current tabs-box look and gave a reference image: one rounded-full bar on a soft shadow (base-100 on the page in light; a dark raised surface with a faint border in dark); tabs are evenly spaced medium-weight labels with no boxes or dividers; the current tab gets a primary-tinted pill fill with primary text, an optional leading icon and an optional small solid count badge; hover shows a quiet fill. Keep TabNav's contract (a nav of links, aria-current, prefetch) and check contrast in both themes and overflow on phones (scroll or full width). Triage: ui-kit, since TabNav is a ui/ primitive and the gallery (B-270) should show it.
+
+### B-397 · change · Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the user (2026-11-21): pages read as long blocks of text; split the space vertically in a sensible way. Options proposed to the user, to choose from when the PRD is written: (1) each section a titled card on the base-200 page with a fixed gap; (2) small uppercase section labels with an icon and a one-line summary; (3) a two-step spacing scale, large between sections and small inside; (4) definition rows (label left, value right) instead of paragraphs; (5) collapsible secondary sections (details/summary) showing a summary line; (6) a sticky in-page section bar on long detail pages, using the new pill TabNav; (7) two columns on wide screens (main and side cards), one on phones; (8) summary tiles at the top of detail pages. Triage: ui-kit, with Card (B-260), Page frame (B-263) and DetailHeader (B-264), which this builds on.
