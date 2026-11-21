@@ -144,13 +144,13 @@ describe("sync.upload: todo", () => {
     ]);
   });
 
-  it("refuses the old table name, todo, like any table it doesn't know", async () => {
+  it("refuses the old table name, task, like any table it doesn't know", async () => {
     const { group, recipient, owner } = await setup();
     const id = randomUUID();
     const ops = [
-      { op: "PUT" as const, table: "todo", id, data: todoRow(group.id, recipient.id) },
-      { op: "PATCH" as const, table: "todo", id, data: { done_at: AT, done_by: owner.user.id } },
-      { op: "DELETE" as const, table: "todo", id },
+      { op: "PUT" as const, table: "task", id, data: todoRow(group.id, recipient.id) },
+      { op: "PATCH" as const, table: "task", id, data: { done_at: AT, done_by: owner.user.id } },
+      { op: "DELETE" as const, table: "task", id },
     ];
     const rejected = { id, status: "rejected", code: "sync:readOnlyTable" };
     expect((await owner.api.sync.upload({ ops })).results).toEqual([rejected, rejected, rejected]);

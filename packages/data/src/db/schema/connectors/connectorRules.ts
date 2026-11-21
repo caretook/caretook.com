@@ -29,7 +29,7 @@ export const OAUTH_SCOPES = [
  * grant. Change the text and the version together: a recorded version must
  * always mean the words that person saw.
  */
-export const CONNECTOR_CONSENT_VERSION = "2026-11-20";
+export const CONNECTOR_CONSENT_VERSION = "2026-11-21";
 export const CONNECTOR_CONSENT_TEXT =
   "I understand that connecting sends this care group's information that I can see (its timeline, notes, vitals, medications, appointments, todos, providers and the care recipient's medical profile, including allergies and conditions, but no one's contact details) to the AI assistant I chose, under that company's terms. I can disconnect it at any time.";
 

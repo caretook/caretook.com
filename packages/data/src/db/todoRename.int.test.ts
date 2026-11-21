@@ -6,7 +6,7 @@ import { createGroup, createUser, ok } from "../../test/fixtures";
 import { timelineEntryService, todoService } from "../services";
 import { MIGRATIONS_FOLDER } from "./migrate";
 
-// Migration 0032_todos (todos-2): todos become todos in one step. The test
+// Migration 0032_todos (tasks-2): tasks become todos in one step. The test
 // database is already migrated, so inside one transaction (rolled back) this
 // puts it back the way 0031 left it, writes rows in that shape, runs 0032's
 // statements, and checks what they left. DDL is transactional in Postgres,
@@ -17,7 +17,7 @@ const statements = readFileSync(join(MIGRATIONS_FOLDER, "0032_todos.sql"), "utf8
   .map((s) => s.replace(/^--.*$/gm, "").trim())
   .filter(Boolean);
 
-const TABLE_RENAME = 'ALTER TABLE "todo" RENAME TO "todo";';
+const TABLE_RENAME = 'ALTER TABLE "task" RENAME TO "todo";';
 // A column, constraint or index rename: ALTER TABLE "t" RENAME COLUMN "a" TO "b", ALTER INDEX "a" RENAME TO "b".
 const RENAME =
   /^(ALTER TABLE "[^"]+" RENAME (?:COLUMN|CONSTRAINT) |ALTER INDEX )"([^"]+)" (RENAME )?TO "([^"]+)";$/;
@@ -29,7 +29,7 @@ const NOT_NULL_BACK = `DO $$
 DECLARE c record;
 BEGIN
   FOR c IN SELECT conname FROM pg_constraint WHERE conrelid = '"todo"'::regclass AND contype = 'n' LOOP
-    EXECUTE format('ALTER TABLE "todo" RENAME CONSTRAINT %I TO %I', c.conname, 'todo' || substr(c.conname, 5));
+    EXECUTE format('ALTER TABLE "todo" RENAME CONSTRAINT %I TO %I', c.conname, 'task' || substr(c.conname, 5));
   END LOOP;
 END $$;`;
 
@@ -48,13 +48,13 @@ const undo = [
       return `${head}"${to}" ${index ?? ""}TO "${from}";`;
     }),
   NOT_NULL_BACK,
-  'ALTER TABLE "todo" RENAME TO "todo";',
+  'ALTER TABLE "todo" RENAME TO "task";',
   // Other test files' rows are in the new shape: back to the old one, so the old checks hold.
-  `UPDATE "note_document" SET "subject" = 'todo' WHERE "subject" = 'todo'`,
-  `UPDATE "calendar_sync_job" SET "reason" = 'todo' WHERE "reason" = 'todo'`,
+  `UPDATE "note_document" SET "subject" = 'task' WHERE "subject" = 'todo'`,
+  `UPDATE "calendar_sync_job" SET "reason" = 'task' WHERE "reason" = 'todo'`,
   ...statements
     .filter((s) => CHECK_ADD.test(s))
-    .map((s) => s.replaceAll("'todo'", "'todo'").replaceAll('"todo_id"', '"todo_id"')),
+    .map((s) => s.replaceAll("'todo'", "'task'").replaceAll('"todo_id"', '"task_id"')),
 ];
 
 const AT = "2026-11-19T17:00:00.000Z";
@@ -105,12 +105,12 @@ describe("migration 0032_todos", () => {
     try {
       for (const s of undo) await client.query(s);
       // Rows as they stood before 0032.
-      expect(await one("SELECT title FROM todo WHERE id = $1", [todo.id])).toEqual({
+      expect(await one("SELECT title FROM task WHERE id = $1", [todo.id])).toEqual({
         title: "Bring the BP log",
       });
       await client.query(
-        `INSERT INTO note_document (id, group_id, subject, todo_id, created_by, updated_by)
-         VALUES ($1, $2, 'todo', $1, $3, $3)`,
+        `INSERT INTO note_document (id, group_id, subject, task_id, created_by, updated_by)
+         VALUES ($1, $2, 'task', $1, $3, $3)`,
         [todo.id, group.id, userId],
       );
       const { id: connectionId } = await one<{ id: string }>(
@@ -121,17 +121,17 @@ describe("migration 0032_todos", () => {
       await client.query(
         `INSERT INTO google_event_link (connection_id, item_uid, google_event_id, pushed_hash, created_by, updated_by)
          VALUES ($1, $2, 'ev1', 'h1', $3, $3), ($1, $4, 'ev2', 'h2', $3, $3)`,
-        [connectionId, `todo:${todo.id}`, userId, `entry:${event.id}`],
+        [connectionId, `task:${todo.id}`, userId, `entry:${event.id}`],
       );
       await client.query(
-        `INSERT INTO calendar_sync_job (group_id, reason, created_by, updated_by) VALUES ($1, 'todo', $2, $2)`,
+        `INSERT INTO calendar_sync_job (group_id, reason, created_by, updated_by) VALUES ($1, 'task', $2, $2)`,
         [group.id, userId],
       );
       await client.query(
         `INSERT INTO notification_outbox (name, recipient, subject, html, text, idempotency_key, created_by, updated_by)
-         VALUES ('todoDue', 'owner@example.com', 'Todo for Pat', '', '', $1, $3, $3),
+         VALUES ('taskDue', 'owner@example.com', 'Task for Pat', '', '', $1, $3, $3),
                 ('appointmentReminder', 'owner@example.com', 'Appointment for Pat', '', '', $2, $3, $3)`,
-        [reminderKey(`todo:${todo.id}`), entryKey, userId],
+        [reminderKey(`task:${todo.id}`), entryKey, userId],
       );
 
       for (const s of statements) await client.query(s);
@@ -140,7 +140,7 @@ describe("migration 0032_todos", () => {
         title: "Bring the BP log",
         event_id: event.id,
       });
-      expect(await one("SELECT to_regclass('todo') AS old")).toEqual({ old: null });
+      expect(await one("SELECT to_regclass('task') AS old")).toEqual({ old: null });
       expect(await one("SELECT subject, todo_id FROM note_document WHERE id = $1", [todo.id])).toEqual({
         subject: "todo",
         todo_id: todo.id,
@@ -172,7 +172,7 @@ describe("migration 0032_todos", () => {
       await client.query("SAVEPOINT refused");
       await expect(
         client.query(
-          `INSERT INTO calendar_sync_job (group_id, reason, created_by, updated_by) VALUES ($1, 'todo', $2, $2)`,
+          `INSERT INTO calendar_sync_job (group_id, reason, created_by, updated_by) VALUES ($1, 'task', $2, $2)`,
           [group.id, userId],
         ),
       ).rejects.toThrow(/calendar_sync_job_reason_check/);
@@ -210,7 +210,7 @@ describe("migration 0032_todos", () => {
     } finally {
       await client.query("ROLLBACK");
     }
-    expect(await one("SELECT to_regclass('todo') AS now, to_regclass('todo') AS old")).toEqual({
+    expect(await one("SELECT to_regclass('todo') AS now, to_regclass('task') AS old")).toEqual({
       now: "todo",
       old: null,
     });
