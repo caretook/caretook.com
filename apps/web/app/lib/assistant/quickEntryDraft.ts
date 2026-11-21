@@ -1,4 +1,4 @@
-import type { DoseStatus, SymptomDetails, VitalDetails } from "@caretook/data/schema";
+import type { ActionOf, DoseStatus, SymptomDetails, VitalDetails } from "@caretook/data/schema";
 
 // What quick entry's Edit hands the usual sheets: a draft in history state
 // (never in the URL), which the add sheet and the Dose sheet start from.
@@ -38,4 +38,53 @@ export const entryDraftFrom = (state: unknown) => {
 export const doseDraftFrom = (state: unknown) => {
   const draft = draftOf<DoseDraft>(state);
   return draft && typeof draft.status === "string" ? draft : null;
+};
+
+/**
+ * A provider event quick entry opens on the new-event page instead of
+ * writing it (`entries/new?kind=event`): what that page starts from. Nothing
+ * is written until the page's own save.
+ */
+export type EventDraft = {
+  kind: "event";
+  title: string;
+  occurredAt: string;
+  allDay: boolean;
+  place: string | null;
+  providerIds: string[];
+  /** The zone its day and time are in (the recipient's): an all-day event starts at its midnight. */
+  timeZone: string;
+};
+
+/** The draft for a quick entry event (an `addEvent` action). */
+export const eventDraftFor = (action: ActionOf<"addEvent">): EventDraft => ({
+  kind: "event",
+  title: action.title,
+  occurredAt: action.occurredAt,
+  allDay: !!action.allDay,
+  place: action.place ?? null,
+  providerIds: [...action.providerIds],
+  timeZone: action.timeZone,
+});
+
+const isStrings = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((v) => typeof v === "string");
+
+/** The new-event page's draft from its history state, if quick entry opened it (anything malformed is dropped). */
+export const eventDraftFrom = (state: unknown): EventDraft | null => {
+  const draft = draftOf<Partial<Record<keyof EventDraft, unknown>>>(state);
+  if (!draft || typeof draft !== "object" || draft.kind !== "event") return null;
+  const { title, occurredAt, allDay, place, providerIds, timeZone } = draft;
+  if (typeof title !== "string" || typeof occurredAt !== "string" || Number.isNaN(Date.parse(occurredAt)))
+    return null;
+  if (typeof timeZone !== "string" || !isStrings(providerIds)) return null;
+  return {
+    kind: "event",
+    title,
+    occurredAt,
+    allDay: allDay === true,
+    place: typeof place === "string" && place.trim() ? place : null,
+    providerIds: [...providerIds],
+    timeZone,
+  };
 };

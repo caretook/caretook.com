@@ -25,6 +25,10 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - on timeline page, header and Today section should be in same column width as the rest of the timeline on large screens. (B-229)
 - "Nothing logged today yet." message should be in a border box like a timeline entry box to match the rest of the page. (B-231)
 - don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of action credits. Only staging (branch: staging) and production (branch: main) should be deployed to vercel. (B-243)
+- lint tests seem to be failing regularly because types haven't been generated. Maybe regression introduced by reordering the steps in check? (B-250)
+- convert planner tabs to TabNav component. (B-251)
+- default filter on todos should be "everyone" and then reduce the list. (B-255)
+- call and directions icons on planner schedule should be below the time, not beside the title/description to free up space on mobile. (B-256)
 
 ## Change requests
 

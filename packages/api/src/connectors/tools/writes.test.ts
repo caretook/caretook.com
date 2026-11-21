@@ -63,7 +63,10 @@ describe("the write tools", () => {
       required: ["medicationId", "status"],
     });
     expect(propertiesOf(givePass)).toEqual({ names: ["passId", "occurredAt"], required: ["passId"] });
-    expect(propertiesOf(addNote)).toEqual({ names: ["title", "text", "occurredAt"], required: ["text"] });
+    expect(propertiesOf(addNote)).toEqual({
+      names: ["title", "text", "occurredAt", "providerIds"],
+      required: ["text"],
+    });
     expect(propertiesOf(addEvent)).toEqual({
       names: ["title", "occurredAt", "endsAt", "allDay", "place", "providerIds", "timeZone"],
       required: ["title", "occurredAt"],

@@ -83,7 +83,7 @@ describe("quick entry adds todos", () => {
     expect(
       page
         .getByRole("list", { name: 'Other ways to save "call pharmacy tomorrow 5pm for Sam"' })
-        .getByRole("button", { name: "Note instead" })
+        .getByRole("button", { name: "Make it a note" })
         .query(),
     ).toBeTruthy();
 
@@ -130,7 +130,7 @@ describe("quick entry adds todos", () => {
   test("Note instead saves the same words as a note", async () => {
     const device = await open();
     await type("todo: ask about the ramp", ["todo"]);
-    await userEvent.click(page.getByRole("button", { name: "Note instead" }));
+    await userEvent.click(page.getByRole("button", { name: "Make it a note" }));
     await waitUntil(() => cardKinds().join() === "note");
     await userEvent.click(saveButton()!);
     // A lone note opens on its page.
