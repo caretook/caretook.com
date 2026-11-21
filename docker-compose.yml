@@ -20,7 +20,7 @@ services:
       # Postgres 18+ images keep data in a versioned subdirectory of /var/lib/postgresql.
       - ./.postgres/data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U caretook -d caretook"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U caretook -d caretook"]
       interval: 2s
       timeout: 5s
       retries: 15
@@ -61,7 +61,7 @@ services:
     volumes:
       - ./.postgres/powersync-storage:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U powersync -d powersync"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U powersync -d powersync"]
       interval: 2s
       timeout: 5s
       retries: 15

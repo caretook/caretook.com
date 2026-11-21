@@ -27,7 +27,15 @@ export type NotificationDefinition<Name extends string, Data extends z.ZodType> 
    * symptom, reading, note or medication never is.
    */
   email: (data: z.output<Data>, ctx: EmailContext) => EmailContent;
+  /**
+   * Extra mail headers, worked out at send time from the outbox row's
+   * idempotency key (the outbox keeps no headers): `List-Unsubscribe` on
+   * optional mail. Null or nothing for none.
+   */
+  headers?: (message: { idempotencyKey: string }, ctx: Pick<EmailContext, "link">) => MailHeaders | null;
 };
+
+export type MailHeaders = Record<string, string>;
 
 /** One notification for `NOTIFICATIONS`. The identity function, for inference. */
 export const defineNotification = <const Name extends string, Data extends z.ZodType>(

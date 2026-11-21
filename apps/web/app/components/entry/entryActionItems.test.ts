@@ -83,4 +83,38 @@ describe("entryActionItems", () => {
     expect(entryActionItems("note", { canEdit: false, canPrint: true, canDelete: false })).toEqual(["print"]);
     expect(entryActionItems("symptom", { canEdit: false, canDelete: false })).toEqual([]);
   });
+
+  it("gives a series visit Edit first (notes and events only)", () => {
+    expect(
+      entryActionItems("event", {
+        canEdit: false,
+        canEditSeries: true,
+        canCancel: true,
+        canReschedule: true,
+      }),
+    ).toEqual(["editSeries", "reschedule", "cancel", "delete"]);
+    expect(entryActionItems("note", { canEdit: false, canEditSeries: true })).toEqual([
+      "editSeries",
+      "delete",
+    ]);
+    expect(entryActionItems("symptom", { canEdit: true, canEditSeries: true })).toEqual(["edit", "delete"]);
+  });
+});
+
+describe("entryActionItems, Remind me", () => {
+  it("comes before Print, for a note or event, viewers included", () => {
+    expect(entryActionItems("event", { canEdit: false, canRemind: true, canPrint: true })).toEqual([
+      "remind",
+      "print",
+      "delete",
+    ]);
+    expect(
+      entryActionItems("note", { canEdit: false, canRemind: true, canPrint: true, canDelete: false }),
+    ).toEqual(["remind", "print"]);
+  });
+
+  it("is never offered for other kinds or unless asked", () => {
+    expect(entryActionItems("symptom", { canEdit: true, canRemind: true })).not.toContain("remind");
+    expect(entryActionItems("event", { canEdit: false, canPrint: true })).not.toContain("remind");
+  });
 });

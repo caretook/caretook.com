@@ -12,7 +12,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
 | `orchestration` | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done** (`94e6b80`) | — | none now |
 | `live-notes-ux` | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done** | — | none now |
-| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–46 in `dev` (44–46: B-135, B-134, B-157 in `2d57e70`); wave 13 (slices 47–51: B-184 to B-190) in `dev` (`bf0891df`); wave 14 (slices 52–57: B-192, B-198, B-201, B-191, B-174, B-175) planned, to run; new fixes append as slice 58 on |  (none) | varies by slice; none now |
+| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–46 in `dev` (44–46: B-135, B-134, B-157 in `2d57e70`); wave 13 (slices 47–51: B-184 to B-190) in `dev` (`bf0891df`); wave 14 (slices 52–57: B-192, B-198, B-201, B-191, B-174, B-175) in `dev`; waiting for wave 15: B-180, B-182, B-211 (B-207 as a hotfix); new fixes append as slice 58 on |  (none) | varies by slice; none now |
 | `app-shell` | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done** | — | none now |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done** | — | none now |
 | `search` | [PRD](search-prd.md), [plan](search-plan.md): **done** (`a5f3d4d`) | — | none now |
@@ -56,44 +56,44 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-25 | feature | triaged | providers-2 |  | @-mentions of providers inside live notes and events |
+| B-25 | feature | in-progress | providers-2 | prd/providers-2 | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-48 | feature | triaged | providers-2 |  | Allow import of providers from other care groups that you have access to. |
+| B-48 | feature | in-progress | providers-2 | prd/providers-2 | Allow import of providers from other care groups that you have access to. |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-60 | feature | ready | appointments-2 | prd/appointments-2 | Recurring appointments (weekly PT, dialysis three times a week) |
-| B-61 | feature | ready | appointments-2 | prd/appointments-2 | Appointment reminders by email and push before the appointment |
-| B-62 | feature | ready | appointments-2 | prd/appointments-2 | iCal feed of a care group's upcoming appointments |
-| B-63 | feature | ready | appointments-2 | prd/appointments-2 | Google Calendar sync of a care group's appointments |
+| B-60 | feature | landed | appointments-2 | prd/appointments-2 | Recurring appointments (weekly PT, dialysis three times a week) |
+| B-61 | feature | landed | appointments-2 | prd/appointments-2 | Appointment reminders by email and push before the appointment |
+| B-62 | feature | landed | appointments-2 | prd/appointments-2 | iCal feed of a care group's upcoming appointments |
+| B-63 | feature | landed | appointments-2 | prd/appointments-2 | Google Calendar sync of a care group's appointments |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-174 | bug | landed | quick-fixes | prd/quick-fixes | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
 | B-175 | chore | landed | quick-fixes | prd/quick-fixes | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
 | B-180 | bug | triaged | quick-fixes |  | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
-| B-181 | feature | ready | conditions | prd/conditions | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
+| B-181 | feature | landed | conditions | prd/conditions | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
 | B-182 | bug | triaged | quick-fixes |  | providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out |
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-191 | bug | landed | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
 | B-192 | bug | landed | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
-| B-193 | feature | triaged | connectors-2 |  | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
+| B-193 | feature | in-progress | connectors-2 | prd/connectors-2 | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
 | B-194 | feature | triaged | connectors-2 |  | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
-| B-195 | feature | triaged | connectors-2 |  | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
+| B-195 | feature | in-progress | connectors-2 | prd/connectors-2 | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-197 | feature | triaged | connectors-2 |  | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | landed | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
 | B-199 | bug | triaged | medications-3 |  | ability to add a medication quickly from the log a dose screen. |
-| B-200 | bug | triaged | medications-3 |  | medications need a type field: rx, otc, supplement, etc. |
+| B-200 | bug | in-progress | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
-| B-204 | feature | triaged | connectors-2 |  | connector should be able to edit notes and events so it can help you draft questions or add… |
+| B-204 | feature | in-progress | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
 | B-206 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
-| B-207 | bug | triaged | quick-fixes |  | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
+| B-207 | bug | landed | quick-fixes | hotfix/stack-healthcheck | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
 | B-208 | change | landed | simple-mode |  | you should be able to edit all entries, search, and filter in simple mode. |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
@@ -103,9 +103,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
-- status: triaged
+- status: in-progress
 - prd: providers-2
-- owner:
+- owner: prd/providers-2
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Later, after providers' linking lands. Typing @ in a note's or event's text suggests providers; a mention links the provider like the With row. Needs @tiptap/extension-mention and @tiptap/suggestion (new dependencies: the user's approval). Out of scope for the providers PRD.
@@ -156,9 +156,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
-- status: triaged
+- status: in-progress
 - prd: providers-2
-- owner:
+- owner: prd/providers-2
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): Proposed as a providers follow-up (the PRD is done, like B-25): copy a provider from another group you belong to into this one (a copy, not a shared row, since providers are per group and synced per group). Needs a small PRD addendum or a quick-fixes slice once scoped.
@@ -207,7 +207,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
 
-- status: ready
+- status: landed
 - prd: appointments-2
 - owner: prd/appointments-2
 - commit: f1cc1dbc
@@ -218,7 +218,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-61 · feature · Appointment reminders by email and push before the appointment
 
-- status: ready
+- status: landed
 - prd: appointments-2
 - owner: prd/appointments-2
 - commit: edfcedf0
@@ -229,7 +229,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-62 · feature · iCal feed of a care group's upcoming appointments
 
-- status: ready
+- status: landed
 - prd: appointments-2
 - owner: prd/appointments-2
 - commit: 6e343bd8
@@ -240,7 +240,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-63 · feature · Google Calendar sync of a care group's appointments
 
-- status: ready
+- status: landed
 - prd: appointments-2
 - owner: prd/appointments-2
 - commit: f1cc1dbc
@@ -315,7 +315,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-181 · feature · A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them
 
-- status: ready
+- status: landed
 - prd: conditions
 - owner: prd/conditions
 - commit: bd045d7d
@@ -368,9 +368,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-193 · feature · In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states
 
-- status: triaged
+- status: in-progress
 - prd: connectors-2
-- owner:
+- owner: prd/connectors-2
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): today nothing in the app tells a member the URL or where to add it; connectors-2 PRD, to write
@@ -388,9 +388,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-195 · feature · Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state
 
-- status: triaged
+- status: in-progress
 - prd: connectors-2
-- owner:
+- owner: prd/connectors-2
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): MCP prompts were out of scope in connectors; connectors-2 PRD, to write
@@ -440,9 +440,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-200 · bug · medications need a type field: rx, otc, supplement, etc.
 
-- status: triaged
+- status: in-progress
 - prd: medications-3
-- owner:
+- owner: prd/medications-3
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Triage: medications-3 (to write). A new synced column (migration, sync rules, form, list filter, connector list_medications) with open choices (the type list, required or not, prescriber link); conditions is running and touches medications, so plan it to start after conditions lands.
@@ -471,9 +471,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-204 · feature · connector should be able to edit notes and events so it can help you draft questions or add…
 
-- status: triaged
+- status: in-progress
 - prd: connectors-2
-- owner:
+- owner: prd/connectors-2
 - commit:
 
 - 2026-11-20 (prd/appointments-2): From the inbox: connector should be able to edit notes and events so it can help you draft questions or add information to the entries.
@@ -503,13 +503,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-207 · bug · pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern)
 
-- status: triaged
+- status: landed
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: hotfix/stack-healthcheck
+- commit: fc373a34
 
 - 2026-11-20 (prd/quick-fixes): Found by quick-fixes slice 56 (failed 4x at low load; -h 127.0.0.1 locally fixed it). Proposed for a later quick-fixes wave.
 - 2026-11-20 (hotfix/pg-healthcheck): Hotfix started and dropped (user's call); back to quick-fixes. Same socket-only race in docker-compose.shared-test.yml:41 (tmpfs, re-inits on every start) and scripts/loops/recover.sh wait_for_pg (docker exec pg_isready, no -h); docker-compose.test.yml inherits via extends. recover.test.mjs:458 matches only the prefix, so adding -h keeps it green.
+- 2026-11-20 (prd/medications-3): medications-3 slice 1 (2026-11-20): `pnpm prd slice` failed at the stack's migrate in packages/data; `pnpm prd stack up` succeeded on retry.
+- 2026-11-21 (hotfix/stack-healthcheck): Landed via hotfix/stack-healthcheck as fc373a34 (--force, no check, user's call): -h 127.0.0.1 on both docker-compose.yml healthchecks, docker-compose.shared-test.yml and recover.sh wait_for_pg.
 
 ### B-208 · change · you should be able to edit all entries, search, and filter in simple mode.
 

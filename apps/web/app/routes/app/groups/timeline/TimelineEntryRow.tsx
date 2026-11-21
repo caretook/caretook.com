@@ -5,7 +5,14 @@ import type { EntryCancelActions } from "~/components/entry";
 import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
-import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, KindIcon } from "~/components/entry";
+import {
+  AuthorFilterLink,
+  EntryActions,
+  EntryBody,
+  KindFilterLink,
+  KindIcon,
+  RepeatMark,
+} from "~/components/entry";
 import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { initials } from "~/lib/timeline/entryDisplay";
@@ -33,6 +40,8 @@ export type EntryViewProps = {
   onDelete?: () => void;
   /** An event's Cancel or Undo cancel in the ⋯ menu (writers). */
   cancel?: EntryCancelActions;
+  /** Opens "Remind me" for an upcoming note or event (any role). */
+  onRemind?: () => void;
   /** Others are writing in its document now: the live dot's label ("Being written now by Maria"). */
   liveLabel?: string;
   /** A note's or event's linked providers: the "with …" line. */
@@ -58,6 +67,7 @@ export function TimelineEntryRow({
   onEdit,
   onDelete,
   cancel,
+  onRemind,
   liveLabel,
   providers,
   search,
@@ -78,6 +88,8 @@ export function TimelineEntryRow({
         className="text-base-content/70 w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
       >
         {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
+        {/* A series visit: the mark under its time, so the text column stays aligned. */}
+        {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
       </time>
       <EntryBody
         entry={entry}
@@ -107,6 +119,7 @@ export function TimelineEntryRow({
             label={actionsLabel(entry)}
             onEdit={onEdit}
             cancel={cancel}
+            onRemind={onRemind}
             printHref={
               canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
             }

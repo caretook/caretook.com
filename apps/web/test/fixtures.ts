@@ -584,3 +584,37 @@ export const conditionManager = (
     ...v,
   });
 };
+
+// --- Added by appointments-2 slice 1 -------------------------------------------
+
+/**
+ * A repeating series in the default group (an appointment series unless
+ * overridden): weekly on Mon, Wed and Fri at 6:00 for 4 h, from Wed
+ * 2026-11-18, in Los Angeles. Its visits are ordinary events or notes with
+ * `seriesId` and `seriesDay`.
+ */
+export const series = (v: Partial<Values<"appointmentSeries">> = {}) => {
+  const created = v.createdAt ?? hoursAgo(24 * 3);
+  return row("appointmentSeries", {
+    id: newId(),
+    groupId,
+    recipientId,
+    kind: "event",
+    rule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR",
+    startsOn: "2026-11-18",
+    startTime: "06:00",
+    allDay: 0,
+    timeZone: TEST_TIME_ZONE,
+    title: "Dialysis",
+    durationMinutes: 240,
+    place: null,
+    providerIds: "[]",
+    toppedUpThrough: "2027-02-16",
+    deletedAt: null,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};

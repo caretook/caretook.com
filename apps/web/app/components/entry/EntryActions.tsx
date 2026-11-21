@@ -30,6 +30,7 @@ export function EntryActions({
   onEdit,
   cancel,
   onPrepare,
+  onRemind,
   onPrint,
   printHref,
   onDelete,
@@ -37,12 +38,17 @@ export function EntryActions({
   kind: TimelineEntryKind;
   /** Names the entry for screen readers, e.g. "Actions for note at 2:27 PM". */
   label: string;
-  /** Opens the edit sheet (symptoms and vitals only; ignored for notes and events). */
+  /**
+   * Opens the edit sheet (symptoms and vitals). For a note or event, only a
+   * series visit's: Edit asks Only this visit or This and later visits.
+   */
   onEdit?: () => void;
   /** An event's Reschedule, and Cancel or Undo cancel (ignored for other kinds). */
   cancel?: EntryCancelActions;
   /** Opens visit prep for an upcoming event (Prepare). */
   onPrepare?: () => void;
+  /** Opens the "Remind me" sheet for an upcoming note or event (any role). */
+  onRemind?: () => void;
   /** Prints a note or event here (the entry page)… */
   onPrint?: () => void;
   /** …or opens its page to print it (rows elsewhere). */
@@ -54,6 +60,8 @@ export function EntryActions({
     switch (action) {
       case "edit":
         return { id: "edit", label: "Edit", onAction: onEdit };
+      case "editSeries":
+        return { id: "edit", label: "Edit", onAction: onEdit };
       case "reschedule":
         return { id: "reschedule", label: "Reschedule", onAction: cancel?.onReschedule };
       case "cancel":
@@ -62,6 +70,8 @@ export function EntryActions({
         return { id: "uncancel", label: "Undo cancel", onAction: cancel?.onUncancel };
       case "prepare":
         return { id: "prepare", label: "Prepare for this visit", onAction: onPrepare };
+      case "remind":
+        return { id: "remind", label: "Remind me", onAction: onRemind };
       case "print":
         return printHref
           ? { id: "print", label: "Print", href: printHref }
@@ -72,10 +82,12 @@ export function EntryActions({
   };
   const items = entryActionItems(kind, {
     canEdit: !!onEdit,
+    canEditSeries: !!onEdit,
     canCancel: !!cancel,
     cancelled: cancel?.cancelled,
     canReschedule: !!cancel?.onReschedule,
     canPrepare: !!onPrepare,
+    canRemind: !!onRemind,
     canPrint: !!(onPrint || printHref),
     canDelete: !!onDelete,
   }).map(item);

@@ -21,6 +21,7 @@ const healthy = {
   [`${APP}/rpc/me/get`]: () =>
     Response.json({ json: { defined: false, code: "UNAUTHORIZED", status: 401 } }, { status: 401 }),
   [`${APP}/api/cron/outbox`]: () => new Response("Unauthorized", { status: 401 }),
+  [`${APP}/api/cron/calendar`]: () => new Response("Unauthorized", { status: 401 }),
   [`${APP}/mcp`]: () =>
     new Response("", {
       status: 401,
@@ -87,6 +88,7 @@ describe("smoke", () => {
     ["cron-locked", `${APP}/api/cron/outbox`, () => Response.json({ delivered: 0 })],
     // CRON_SECRET unset: the route answers 503, which isn't locked.
     ["cron-locked", `${APP}/api/cron/outbox`, () => new Response("", { status: 503 })],
+    ["cron-locked", `${APP}/api/cron/calendar`, () => Response.json({ steps: [] })],
     ["mcp-unauthenticated", `${APP}/mcp`, () => new Response("", { status: 404 })],
     ["mcp-unauthenticated", `${APP}/mcp`, () => new Response("", { status: 401 })],
     ["powersync", `${POWERSYNC}${POWERSYNC_HEALTH_PATH}`, () => new Response("", { status: 503 })],

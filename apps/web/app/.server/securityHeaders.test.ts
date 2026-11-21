@@ -141,7 +141,10 @@ describe("HOST_HEADERS", () => {
     ]);
     // The functions sit beside Neon (aws-us-east-2), and the outbox sweeps every minute.
     expect(config.regions).toEqual(["cle1"]);
-    expect(config.crons).toEqual([{ path: "/api/cron/outbox", schedule: "* * * * *" }]);
+    expect(config.crons).toEqual([
+      { path: "/api/cron/outbox", schedule: "* * * * *" },
+      { path: "/api/cron/calendar", schedule: "* * * * *" },
+    ]);
   });
 
   it("matches the app's own headers apart from the CSP", () => {

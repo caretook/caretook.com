@@ -4,7 +4,8 @@
 // member: add, edit, delete (the sheets' validation, When's date picker and
 // their screens are component tests: timelineSheets.browser.test.tsx), an entry
 // written offline (through a switchable proxy, because Playwright's offline
-// doesn't cut PowerSync's stream), a read-only viewer, a reschedule's one
+// doesn't cut PowerSync's stream), a weekly series made offline and its "this
+// and later" split reaching the other member, a read-only viewer, a reschedule's one
 // transaction uploading and reaching the other member, the sync matrix (every
 // synced table's row on both devices: sync-matrix.mjs), an upload refused by
 // permissions (a member demoted while offline), a viewer's task ticked
@@ -296,10 +297,43 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await addSymptom(A, offName);
     await wf(A, rowWith(offName));
     await check("offline: the entry shows on this device", true);
+    // 5a. A weekly series made offline (appointments-2): the device writes it
+    // and its 90 days of visits in one transaction (series.sync.ts). Its
+    // sheet and RepeatField are component tests (upcoming/upcomingSeries…).
+    const seriesTitle = `${tag} series PT`;
+    // The time the series steps add to the run (logged, for the lean budget).
+    let seriesMs = 0;
+    let tSeries = Date.now();
+    const made = await A.evaluate(`(async () => {
+      const { series } = await window.caretookModules();
+      const tz = "America/Los_Angeles";
+      const startsOn = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" })
+        .format(new Date(Date.now() + 86400000));
+      const byDay = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][new Date(startsOn + "T12:00:00Z").getUTCDay()];
+      return series.createSeries(window.caretookSync, { groupId: ${JSON.stringify(DEV_FAMILY)}, kind: "event",
+        rule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=" + byDay, startsOn, startTime: "10:00", allDay: false, timeZone: tz,
+        title: ${JSON.stringify(seriesTitle)}, durationMinutes: 60, place: null, providerIds: [] });
+    })()`);
+    const visitIds = made.ok
+      ? (
+          await localRows(A, "SELECT id FROM timeline_entry WHERE series_id = ? ORDER BY series_day", [
+            made.seriesId,
+          ])
+        ).map((r) => r.id)
+      : [];
+    seriesMs += Date.now() - tSeries;
     await sleep(3000);
     await check(
       "offline: not on the server yet",
       psql(`SELECT count(*) FROM timeline_entry WHERE details->>'name' = '${offName}'`) === "0",
+    );
+    await check(
+      "series: made offline (a weekly series and its visits), not on the server yet",
+      made.ok &&
+        visitIds.length === made.visits &&
+        made.visits >= 12 &&
+        psql(`SELECT count(*) FROM appointment_series WHERE id = '${made.seriesId}'`) === "0",
+      JSON.stringify(made),
     );
     await check(
       "offline: the other member doesn't have it yet",
@@ -329,6 +363,57 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
           `!document.querySelector('main ol button[aria-label^="Actions"]:not([aria-label^="Actions for note"]):not([aria-label^="Actions for event"])') && !document.querySelector('main ol [aria-label^="Edit "]')`,
         )),
     );
+
+    // 6-series. The series 5a made offline, checked once the viewer is in
+    // (it uploads meanwhile): the server holds it and every visit, and the
+    // other member's Upcoming shows the visits with the repeat mark
+    // (client-side, through the tab bar).
+    tSeries = Date.now();
+    const idList = visitIds.map((id) => `'${id}'`).join(", ") || "NULL";
+    const seriesServer = await waitForSql(
+      `SELECT (SELECT count(*) FROM appointment_series WHERE id = '${made.seriesId}') || '|' ||
+        (SELECT count(*) FROM timeline_entry WHERE series_id = '${made.seriesId}' AND id IN (${idList}) AND deleted_at IS NULL)`,
+      (r) => r === `1|${visitIds.length}`,
+      30_000,
+    );
+    await check(
+      "series: on reconnect the server holds the series and its visits (the device's ids)",
+      seriesServer === `1|${visitIds.length}`,
+      seriesServer,
+    );
+    const visitsOn = async (page, seriesId) =>
+      (
+        await localRows(
+          page,
+          `SELECT id FROM timeline_entry WHERE series_id = ? AND deleted_at IS NULL ORDER BY series_day`,
+          [seriesId],
+        )
+      ).map((r) => r.id);
+    const onB = await until(async () => (await visitsOn(B, made.seriesId)).length === visitIds.length);
+    const upcomingTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/upcoming"]')`;
+    const upcomingRow = (id) => `document.querySelector('main [data-upcoming-item="${id}"]')`;
+    await press(B, upcomingTab);
+    const marked = `${JSON.stringify(visitIds)}.filter((id) => document.querySelector('main [data-upcoming-item="' + id + '"] [data-repeat-mark]')).length`;
+    // Upcoming is 90 days ahead, the visits through today + 90: all but possibly the last.
+    const shownOnB = await waits(B, `${marked} >= ${visitIds.length - 1}`, 20_000);
+    await check(
+      "series: the other member's Upcoming shows the visits with the repeat mark",
+      !!onB && shownOnB,
+      `${await B.evaluate(marked)}/${visitIds.length} marked rows`,
+    );
+
+    // Then "this and later" from the third visit (two weeks ahead), a new
+    // time and length: the old series ends before it, and its later visits
+    // move onto a new series, keeping their ids. One local transaction on A;
+    // it uploads during 6a, and the step after 6a checks it on B and the server.
+    const splitId = visitIds[2];
+    const split = await A.evaluate(`(async () => {
+      const { series } = await window.caretookModules();
+      return series.applySeriesEdit(window.caretookSync, { visitId: ${JSON.stringify(splitId)}, scope: "later",
+        change: { action: "edit", startTime: "14:30", durationMinutes: 45 } });
+    })()`);
+    const tSplit = Date.now();
+    seriesMs += tSplit - tSeries;
 
     // 6a. A reschedule is one local transaction: a new event with the old
     // one's provider link, document and notes, then the old one cancelled and
@@ -399,6 +484,51 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         ? `${Date.now() - t0r} ms; server ${reschedServer}`
         : `${JSON.stringify(resched)}; B ${JSON.stringify(await reschedOn(B))}; server ${reschedServer}`,
     );
+
+    // 6a-series. The split reaches the other member and the server: the old series
+    // ended (UNTIL), the first two visits still on it, the later ones moved
+    // onto the new series at 14:30 with their ids, and B's Upcoming row retimed.
+    tSeries = Date.now();
+    const kept = visitIds.slice(0, 2);
+    const moved = visitIds.slice(2);
+    const splitState = (rows) => {
+      const by = Object.fromEntries(rows.map((r) => [r.id, r]));
+      return {
+        ended: /UNTIL=/.test(by.old?.rule ?? ""),
+        fresh: by.fresh?.start_time === "14:30",
+        kept: kept.filter((id) => by[id]?.series_id === made.seriesId).length,
+        moved: moved.filter((id) => by[id]?.series_id === split.seriesId).length,
+      };
+    };
+    const splitDone = (s) => s.ended && s.fresh && s.kept === kept.length && s.moved === moved.length;
+    const splitSql = `SELECT 'old' AS id, rule, NULL AS start_time, NULL AS series_id FROM appointment_series WHERE id = ?
+      UNION ALL SELECT 'fresh', rule, start_time, NULL FROM appointment_series WHERE id = ?
+      UNION ALL SELECT id, NULL, NULL, series_id FROM timeline_entry WHERE deleted_at IS NULL AND id IN (${visitIds.map(() => "?").join(", ")})`;
+    const splitOn = async (page) =>
+      splitState(await localRows(page, splitSql, [made.seriesId, split.seriesId, ...visitIds]));
+    const splitB = await until(async () => {
+      const s = await splitOn(B);
+      return splitDone(s) ? s : null;
+    }, 30_000);
+    const retimed = await waits(
+      B,
+      `${upcomingRow(splitId)}?.querySelector("[data-when]")?.textContent.includes("2:30")`,
+    );
+    const serverRows = psql(
+      `SELECT json_agg(r) FROM (SELECT 'old' AS id, rule, NULL AS start_time, NULL::uuid AS series_id FROM appointment_series WHERE id = '${made.seriesId}'
+        UNION ALL SELECT 'fresh', rule, start_time, NULL FROM appointment_series WHERE id = '${split.seriesId}'
+        UNION ALL SELECT id::text, NULL, NULL, series_id FROM timeline_entry WHERE deleted_at IS NULL AND id IN (${idList})) r`,
+    );
+    const splitServer = splitState(JSON.parse(serverRows || "[]"));
+    await check(
+      `series: "this and later" reaches the other member as the split (old series ended, ${moved.length} later visits moved, ids kept)`,
+      !!split.ok && !!splitB && retimed && splitDone(splitServer),
+      splitB
+        ? `${Date.now() - tSplit} ms after the edit`
+        : `${JSON.stringify(split)}; B ${JSON.stringify(await splitOn(B))}; server ${JSON.stringify(splitServer)}; retimed ${retimed}`,
+    );
+    seriesMs += Date.now() - tSeries;
+    console.log(`  series: its steps added ${seriesMs} ms to the run`);
 
     // 6b. The sync matrix: every synced table's row reaches the other device.
     // care_recipient first (its one uploadable column), before the matrix's
@@ -624,6 +754,11 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       psql(cleanupSql(matrix, recordedAt));
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} resched%' AND deleted_at IS NULL`,
+      );
+      // The series and its visits (both halves of the split).
+      psql(
+        `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} series%' AND deleted_at IS NULL;
+         UPDATE appointment_series SET deleted_at = now() WHERE title LIKE '${tag} series%' AND deleted_at IS NULL`,
       );
       psql(
         `UPDATE care_group_member SET role = 'caretaker' WHERE group_id = '${DEV_FAMILY}' AND user_id = '${caretakerId}' AND role <> 'caretaker'`,

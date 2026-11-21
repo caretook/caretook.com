@@ -8,6 +8,7 @@ describe("careGroupUrls", () => {
     expect(appUrls.groupSettings(G, "details")).toBe(`/app/groups/${G}/settings/details`);
     expect(appUrls.groupSettings(G, "members")).toBe(`/app/groups/${G}/settings/members`);
     expect(appUrls.groupSettings(G, "assistants")).toBe(`/app/groups/${G}/settings/assistants`);
+    expect(appUrls.groupSettings(G, "calendar")).toBe(`/app/groups/${G}/settings/calendar`);
     // @ts-expect-error: only the listed subpages exist.
     expect(appUrls.groupSettings(G, "bogus")).toBe(`/app/groups/${G}/settings`);
   });
