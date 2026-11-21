@@ -23,6 +23,8 @@
 
 Slice 1 merged as a589f8fa; worktree removed. Wave 2 (slices 2, 3, 4) worktrees made, agents spawned.
 
+**Pending sync:** quick-fixes wave 13 landed in dev (bf0891df): rewrites TimelineFilters, the Today card (TodayCard/TodayRow/todayStatus/useTodayCard*) and phase2.spec.mjs; no migration. `pnpm prd sync` after wave 2 merges; expect a conflict on slice 1's RepeatMark in the Today card (keep it as one added element).
+
 **Carried from slice 1's hand-off:**
 - Migration `0025_appointment_series.sql` has two hand edits to keep on regenerate: FK `ON DELETE SET NULL ("series_id")`, and `ALTER PUBLICATION powersync ADD TABLE appointment_series` at the end.
 - rrule lives only in `packages/data/src/db/schema/appointments/seriesVisits.ts`, exported as `@caretook/data/series` (not the schema index); `budget.json` forbids rrule in first load.
