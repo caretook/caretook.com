@@ -1,3 +1,4 @@
+import { repeatText } from "../appointments/repeatRule";
 import { localDate } from "../core/entryTiming";
 
 // The todos' pure rules (client-safe): the one place that says what state a
@@ -156,6 +157,9 @@ const NON_DONE_FIELDS = [
   "medicationId",
   "eventId",
   "deletedAt",
+  "repeatRule",
+  "repeatStartsOn",
+  "repeatId",
 ] as const;
 
 const normalize = (value: unknown) => (value === undefined || value === "" ? null : value);
@@ -170,3 +174,47 @@ export const completionOnly = (before: object, after: object) => {
   const a = after as Record<string, unknown>;
   return NON_DONE_FIELDS.every((field) => !(field in a) || normalize(a[field]) === normalize(b[field]));
 };
+
+// ---------------------------------------------------------------------------
+// Repeats (planner-2). Making the next occurrence needs rrule, so it lives in
+// `@caretook/data/series` (todoRepeat.ts); these don't.
+// ---------------------------------------------------------------------------
+
+/** A todo's repeat columns: all set (a repeating todo) or all null. */
+export type TodoRepeatColumns = {
+  repeatRule: string | null;
+  repeatStartsOn: string | null;
+  repeatId: string | null;
+};
+
+/**
+ * The repeat columns a todo gets when it's written with `after`'s rule and
+ * due day. No rule (or no day): none. A new repeat starts a chain on this
+ * todo (its id) anchored on the due day. A changed rule or due day keeps the
+ * chain and moves the anchor to the due day; otherwise nothing changes. The
+ * device and the server both use this, so they agree.
+ */
+export const repeatColumnsFor = (
+  id: string,
+  before: (Partial<TodoRepeatColumns> & { dueOn: string | null }) | null,
+  after: { repeatRule: string | null; dueOn: string | null },
+): TodoRepeatColumns => {
+  if (!after.repeatRule || !after.dueOn) return { repeatRule: null, repeatStartsOn: null, repeatId: null };
+  if (!before?.repeatRule || !before.repeatId || !before.repeatStartsOn)
+    return { repeatRule: after.repeatRule, repeatStartsOn: after.dueOn, repeatId: id };
+  if (before.repeatRule !== after.repeatRule || before.dueOn !== after.dueOn)
+    return { repeatRule: after.repeatRule, repeatStartsOn: after.dueOn, repeatId: before.repeatId };
+  return { repeatRule: before.repeatRule, repeatStartsOn: before.repeatStartsOn, repeatId: before.repeatId };
+};
+
+/** A repeating todo's rule in words ("Every Mon at 9:00"), or null when it doesn't repeat. */
+export const todoRepeatText = (
+  todo: Pick<TodoRuleFields, "dueTime"> & Partial<Pick<TodoRepeatColumns, "repeatRule" | "repeatStartsOn">>,
+) =>
+  todo.repeatRule
+    ? repeatText({
+        rule: todo.repeatRule,
+        startTime: todo.dueTime,
+        startsOn: todo.repeatStartsOn ?? undefined,
+      })
+    : null;

@@ -154,6 +154,9 @@ describe("slice", () => {
     const out = ok("slice", "T", "1");
     expect(out).toContain('You are the agent for slice 1 of the "T" PRD.');
     expect(out).toContain("  - Stack: no\n  - Reads: docs/loops.md\n  - Tests: unit\n");
+    expect(out).toContain("Check with `pnpm prd check`");
+    expect(out).toContain("never a bare `pnpm check`");
+    expect(out).not.toContain("`pnpm check` still runs everything");
     expect(out).not.toContain(CONTINUE);
     expect(out.trimEnd()).toMatch(/your orchestrator does that\.$/);
   });
@@ -167,7 +170,7 @@ describe("slice", () => {
     expect(out).toContain("`pnpm log --oneline prd/T..HEAD`, `git status`, `git diff prd/T...HEAD`");
     expect(out).toContain("`git diff` (what isn't)");
     expect(out).toContain("Don't start over, and don't redo committed work.");
-    expect(out).toContain("If everything is committed and `pnpm check` passes, don't rebuild");
+    expect(out).toContain("If everything is committed and `pnpm prd check` passes, don't rebuild");
     expect(out).toContain("write the hand-off");
   });
 
@@ -183,6 +186,8 @@ describe("plan and backlog", () => {
     const plan = ok("plan", "T", "B-1", "B-2");
     expect(plan).toContain('You are the planning agent for "T".');
     expect(plan).toContain("(B-1 B-2)");
+    expect(plan).toContain("**Decide, then report: no interview.**");
+    expect(plan).not.toContain("begin the interview");
     expect(plan).not.toContain(RESUME);
     expect(ok("backlog")).toContain("You are the new backlog/inbox planning agent.");
   });

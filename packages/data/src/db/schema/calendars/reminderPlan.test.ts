@@ -1,6 +1,7 @@
 import type { ReminderItem, ReminderMember, PlanRemindersArgs } from "./reminderPlan";
 
 import { describe, expect, it } from "vitest";
+import { calendarItems } from "./calendarItems";
 import {
   REMINDER_CATCH_UP_MS,
   planReminders,
@@ -130,6 +131,36 @@ describe("reminderSendAt", () => {
 });
 
 describe("planReminders", () => {
+  it("sends nothing for a note, even a stored future one (it gives no calendar item)", () => {
+    const note = {
+      id: "0b7a4c2e-0000-4000-8000-0000000000c1",
+      groupId: GROUP,
+      kind: "note" as const,
+      occurredAt: "2026-11-19T17:00:00.000Z",
+      timeZone: LA,
+      endsAt: null,
+      allDay: false,
+      title: "Call the pharmacy",
+      place: null,
+      cancelledAt: null,
+      deletedAt: null,
+      createdAt: MADE,
+      seriesId: null,
+      seriesDay: null,
+      seriesDetached: false,
+    };
+    const items = calendarItems({
+      entries: [note],
+      todos: [],
+      recipient: { displayName: "Pat", timeZone: LA },
+      from: new Date("2026-11-01T00:00:00.000Z"),
+      to: new Date("2026-12-31T00:00:00.000Z"),
+      appUrl: "https://caretook.example",
+    }).map((i) => ({ ...i, createdAt: MADE }));
+    expect(items).toEqual([]);
+    expect(plan({ items, at: "2026-11-19T16:00:00.000Z" })).toEqual([]);
+  });
+
   it("sends each of a member's leads once its time has come, in their zone", () => {
     const visit = item();
     const at18 = plan({ items: [visit], at: "2026-11-19T02:00:00.000Z" });

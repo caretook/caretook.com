@@ -88,6 +88,10 @@ export function DoseForm(props: Props) {
   const choose = (value: string) => {
     setChoice(value);
     setWarnings([]);
+    // Leaving "+ New medication" unmounts its fields, which start empty on return like the other
+    // drafts here (each choice's own), so its typed dose goes with them.
+    const leaving = choice === NEW_MEDICATION_OPTION && value !== NEW_MEDICATION_OPTION;
+    if (leaving) setNewDose("");
     if (!amount.typed) setAmount({ value: doseOf(value), typed: false });
   };
   const typeNewDose = (value: string) => {

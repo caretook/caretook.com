@@ -135,7 +135,8 @@ describe("sync.upload: appointment_series", () => {
     expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
       "appointmentSeriesService:immutable",
       "appointmentSeriesService:immutable",
-      "appointmentSeriesService:immutable",
+      // A note series is refused outright: series are events only.
+      "appointmentSeriesService:invalid",
       "appointmentSeriesService:immutable",
       "appointmentSeriesService:invalid",
     ]);

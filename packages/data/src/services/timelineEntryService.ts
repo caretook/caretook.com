@@ -25,6 +25,7 @@ import {
   timelineEntryUpdateZSchema,
   timelineEntryUpsertZSchema,
 } from "../db/schema";
+import { isPastVisit } from "../db/schema/appointments/seriesEdit";
 import { isError, newError } from "../errors";
 import {
   appointmentSeriesModel,
@@ -92,7 +93,7 @@ const toIso = (value: string) => new Date(value).toISOString();
 const toIsoOrNull = (value: string | null | undefined) => (value ? toIso(value) : null);
 
 /**
- * Only notes and events may be dated in the future. The server allows an
+ * Only events may be dated in the future. The server allows an
  * hour of clock skew (a device allows five minutes): a refused upload is
  * dropped, so a device whose clock runs fast must not lose a real vital.
  */
@@ -445,7 +446,11 @@ export const update = (
       existing.seriesId &&
       content.seriesId &&
       content.seriesId !== existing.seriesId &&
-      new Date(existing.occurredAt).getTime() < (opts.now ?? new Date()).getTime()
+      isPastVisit(
+        { occurredAt: toIso(existing.occurredAt), allDay: existing.allDay },
+        existing.timeZone,
+        opts.now ?? new Date(),
+      )
     )
       return newError({
         code: "timelineEntryService:pastVisit",

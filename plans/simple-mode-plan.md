@@ -1,6 +1,6 @@
 # Plan: Easy roles
 
-> Source PRD: [`plans/simple-mode-prd.md`](simple-mode-prd.md). User-story numbers (US) refer to it. Backlog items B-221 (locked simple mode becomes member roles) and B-236 (dead links in locked simple mode). Topic `simple-mode`.
+> Source PRD: [`plans/simple-mode-prd.md`](simple-mode-prd.md). User-story numbers (US) refer to it. Backlog items B-221 (locked simple mode becomes member roles) B-236 (dead links in locked simple mode) and B-400 (the Easy mode toggle moves into the timeline's header). Topic `simple-mode`.
 
 ## Status
 
@@ -10,12 +10,13 @@
 | 2     | 2    | to do |                                              |
 | 3     | 3    | to do |                                              |
 | 4     | 4    | to do |                                              |
+| 5     | 4    | to do |                                              |
 
 **Start conditions:** slice 1 renames files across the timeline, quick entry, todos and the app shell, which `list-filters` (the shared Filter dropdown, B-249), `planner-2` (remove reminders, repeating todos, B-248) and the current `quick-fixes` wave also touch. Start once those three are in `dev` (check `pnpm prd status`), and `pnpm prd sync` first. If the user starts it earlier, slice 1 syncs `dev` again right before its merge and redoes the rename over whatever arrived.
 
 **Landing:** this PRD adds migrations (slices 1, 2 and 3) and changes the sync config, so hold landing until every slice is merged, then check once at the end (`pnpm prd check --quick` unless a full check is needed). Never `--suite` without asking. The landing mode is the orchestrator's first question unless the PRD was queued; record it here.
 
-**Backlog:** claim B-221 and B-236 when slice 1 starts; `done B-236` after slice 4 merges, `done B-221` after slice 4 too (the roles aren't usable end to end before it).
+**Backlog:** claim B-221 and B-236 when slice 1 starts; `done B-236` after slice 4 merges, `done B-221` after slice 4 too (the roles aren't usable end to end before it). Claim B-400 when slice 5 starts and `done B-400` after it merges.
 
 **New dependencies:** none.
 
@@ -25,6 +26,7 @@ Fold into the area docs at each landing:
 - **Slice 2:** the two roles, `LOGGERS`, `EASY_ROLES` and the own-rows scope in `care-groups.md` and `data-layer.md`; the writers stream and upload rules in `sync.md`; the refusal in `connectors.md`; completion-only in `todos.md`; the own-rows rule for notes in `live-notes.md` and entries in `timeline.md`.
 - **Slice 3:** `resolveEasyMode`, `canLog`, `easyRole`, the Members page and the picker in `app-shell.md` and `care-groups.md`; row menus by ownership in `timeline.md`.
 - **Slice 4:** the allow-list in `app-shell.md`; the read-only Planner and todo page in `todos.md`; the read-only sheets in `search.md`.
+- **Slice 5:** the toggle's place in `timeline.md` (the full view's header, the View options menu) and `app-shell.md` (Easy mode).
 
 ## Architectural decisions
 
@@ -35,6 +37,7 @@ Fold into the area docs at each landing:
 - **Gates on the device:** `canWrite` (setup, `WRITERS`), `canLog` (`LOGGERS`), `easyRole` from the group context. Local `*.sync.ts` writes check the same sets before writing, so a refused upload is never queued.
 - **Migrations stay additive:** new column and key in slice 1, the role check in slice 2, the conversion in slice 3. Old columns and the old key are left unread for a later contract migration. Say "adds a migration", never a number; a slice merging second regenerates on top.
 - **No manager switch:** `setMemberMode` and `setMode` are deleted in slice 3, not deprecated.
+- **One toggle, one place:** `EasyModeToggle` is the only control that flips this device's toggle on a timeline, on the right of the page header in both views ("Easy mode" on the full timeline, "Full app" on the easy one), and renders nothing when the member can't toggle.
 - **Seeds:** Dev Family gains one Easy helper and one Easy viewer (fictional, own ids, appended last) in slice 2.
 
 ## How to run this plan
@@ -44,7 +47,9 @@ Fold into the area docs at each landing:
 - **Wave 3: slice 3** (the role decides the view). It owns `easyMode.ts`, the group context, the frame, the Members page and the conversion migration.
 - **Wave 4: slice 4** (pages). It owns the allow-list, the Planner's and todo page's easy variants and the search sheets.
 
-One slice per wave: each needs the one before it merged into `prd/simple-mode`.
+- **Wave 4 also: slice 5** (the toggle in the header), beside slice 4. It owns `TimelineHeader.tsx`, `TimelineViewMenu.tsx`, `EasyModeToggle.tsx`, the timeline route's wiring of the two and `timelineHeader.browser.test.tsx`; in the easy timeline's tests it changes only the lines that switch views. Slice 4 stays out of those files.
+
+One slice per wave until wave 4: each of slices 2, 3 and 4 needs the one before it merged into `prd/simple-mode`; slices 4 and 5 both need slice 3 and run at once.
 
 ## Slice 1: Simple becomes easy
 
@@ -123,7 +128,7 @@ Stack: yes · Reads: docs/domain/app-shell.md, docs/domain/timeline.md, docs/dom
 - [ ] The sync matrix passes without the two columns.
 - [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
 
-**Blocked by:** 2. **Blocks:** 4.
+**Blocked by:** 2. **Blocks:** 4, 5.
 
 ## Slice 4: Pages for the easy roles
 
@@ -146,5 +151,29 @@ Stack: yes · Reads: docs/domain/app-shell.md, docs/domain/todos.md, docs/domain
 - [ ] `e2e:app-shell`: an Easy helper signs in, logs an entry, opens "See all" and search, and is redirected from Medications.
 - [ ] No link an easy role can tap leads to a redirect.
 - [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocked by:** 3. **Blocks:** none.
+
+## Slice 5: Easy mode in the timeline's header
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/app-shell.md, docs/domain/components.md · Tests: component
+
+**User stories:** 35 (and 28, 29).
+
+**Build.**
+
+- The full timeline's header (`TimelineHeader`) takes the easy-mode state and passes `EasyModeToggle` as `PageHeader`'s `actions`: a ghost button, icon and the label "Easy mode", on the right of "Timeline" at every width (B-400).
+- `EasyModeToggle` says "Easy mode" on the full timeline (it said "Easy view" after slice 1's rename) and "Full app" on the easy one, with the same size and data attribute in both, and still renders nothing when the member can't toggle.
+- `TimelineViewMenu` loses its `easyMode` prop, the item and the separator; its doc comment and `chooseViewOption`'s follow.
+- The tests' way into the easy view becomes the header button (a `timelineWorld` helper) instead of the View options item.
+- Unchanged: the top app bar, the user menu's "Full app", the Timeline layout page's setting, and what the toggle stores.
+
+**Acceptance criteria.**
+
+- [ ] Component tests (`timelineHeader.browser.test.tsx`): a caretaker's full timeline shows "Easy mode" in the header beside "Timeline"; pressing it shows the easy view, whose "Full app" brings the full timeline back; the choice survives a reload on this device.
+- [ ] Component tests: the View options menu has Layout and Day summaries and no view-switch item; a viewer gets the button too; a member who can't toggle (an Easy helper) gets no button in either view.
+- [ ] Component test: at phone width the title and the button stay on one row with a 44 px target.
+- [ ] The easy timeline's existing tests pass, switching views through the header button.
+- [ ] `pnpm check` passes (no browser check changes: none selects the old menu item).
 
 **Blocked by:** 3. **Blocks:** none.

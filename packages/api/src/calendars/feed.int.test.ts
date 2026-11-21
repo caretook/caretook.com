@@ -9,10 +9,11 @@ import {
   providerService,
   SYSTEM_USER,
   todoService,
+  timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../../data/test/fixtures";
+import { createGroup, createUser, ok, system } from "../../../data/test/fixtures";
 import { router } from "..";
 import { createRateLimiter, memoryStore } from "../rateLimit";
 import { createFeedHandler, FEED_MAX_AGE } from "./feed";
@@ -244,18 +245,11 @@ describe("GET /api/calendar/<token>.ics", () => {
     expect(ics).toContain("SUMMARY:Appointment for Pat Example");
   });
 
-  it("holds appointments, reminders and dated open todos from 90 days back to 90 ahead", async () => {
+  it("holds appointments and dated open todos from 90 days back to 90 ahead", async () => {
     const s = await setup();
     const inside = await s.entry({ occurredAt: daysFrom(-60), endsAt: null });
     const early = await s.entry({ occurredAt: daysFrom(-120), endsAt: null });
     const far = await s.entry({ occurredAt: daysFrom(120), endsAt: null });
-    const reminder = await s.entry({
-      kind: "note",
-      title: "Order refills",
-      place: null,
-      endsAt: null,
-      occurredAt: daysFrom(5),
-    });
     const logged = await s.entry({
       kind: "note",
       title: "Slept well",
@@ -263,6 +257,20 @@ describe("GET /api/calendar/<token>.ics", () => {
       endsAt: null,
       occurredAt: daysFrom(-1),
     });
+    // A stored future note (left from before notes were past-only) is no item either.
+    const planned = ok(
+      await timelineEntryModel.create({
+        ...system,
+        data: {
+          groupId: s.group.id,
+          recipientId: s.recipient.id,
+          kind: "note",
+          title: "Call the pharmacy",
+          occurredAt: daysFrom(2),
+          timeZone: "America/Los_Angeles",
+        },
+      }),
+    )!;
     const cancelled = await s.entry({ occurredAt: daysFrom(3), endsAt: null });
     ok(
       await timelineEntryService.update(s.ctx("caretaker"), cancelled.id, { cancelledAt: NOW.toISOString() }),
@@ -293,10 +301,9 @@ describe("GET /api/calendar/<token>.ics", () => {
     const uids = [...ics.matchAll(/^UID:(.+)$/gm)].map((m) => m[1]);
     const has = (uid: string) => uids.includes(`${uid}@app.caretook.test`);
     expect(has(`entry:${inside.id}`)).toBe(true);
-    expect(has(`entry:${reminder.id}`)).toBe(true);
     expect(has(`entry:${cancelled.id}`)).toBe(true);
     expect(has(`todo:${due.id}`)).toBe(true);
-    for (const left of [early, far, logged, deleted]) expect(has(`entry:${left.id}`)).toBe(false);
+    for (const left of [early, far, logged, planned, deleted]) expect(has(`entry:${left.id}`)).toBe(false);
     for (const left of [undated, done]) expect(has(`todo:${left.id}`)).toBe(false);
     // Only the cancelled appointment is marked cancelled.
     expect(ics.match(/STATUS:CANCELLED/g)).toHaveLength(1);

@@ -388,7 +388,7 @@ export const topUp = async (
   for (let page = 1; page <= 100; page++) {
     const res = await appointmentSeriesModel.list({
       ...ctx,
-      filter: { toppedUpThrough: { type: "lte", value: horizon } },
+      filter: { toppedUpThrough: { type: "lte", value: horizon }, kind: { type: "eq", value: "event" } },
       orderBy: [
         { field: "toppedUpThrough", direction: "asc" },
         { field: "id", direction: "asc" },

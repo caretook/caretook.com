@@ -117,4 +117,16 @@ describe("the write tools", () => {
     expect(logVitals.description).toMatch(/kg/);
     expect(logVitals.description).toMatch(/mg\/dL/);
   });
+
+  it("say notes are for what has happened, and that a todo is for later", () => {
+    for (const tool of [addNote, appendToEntry, updateEntry])
+      expect(tool.description).toMatch(/has happened/);
+    expect(addNote.description).toMatch(/add_todo/);
+    for (const tool of WRITES) expect(describeTool(tool).description).not.toMatch(/reminder/i);
+  });
+
+  it("add_todo takes no repeat", () => {
+    expect(propertiesOf(addTodo).names).not.toContain("repeatRule");
+    expect(propertiesOf(addTodo).names).not.toContain("repeat");
+  });
 });

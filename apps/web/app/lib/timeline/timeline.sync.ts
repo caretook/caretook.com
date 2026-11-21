@@ -173,7 +173,12 @@ export const SHOWN_KINDS_SQL = `kind IN (${TIMELINE_KINDS.map((k) => `'${k}'`).j
 const VITAL_TYPE_SQL =
   "EXISTS (SELECT 1 FROM json_each(details, '$.readings') r WHERE json_extract(r.value, '$.type') = ?)";
 
-const FUTURE_KINDS_SQL = `kind IN (${FUTURE_KINDS.map((k) => `'${k}'`).join(", ")})`;
+/**
+ * The kinds the history holds back until they've started: the future kinds
+ * (events) and notes, so a note stored ahead before notes became past-only
+ * stays out of the timeline until its time comes.
+ */
+export const HISTORY_ENDS_SQL = `kind IN (${[...new Set(["note", ...FUTURE_KINDS])].map((k) => `'${k}'`).join(", ")})`;
 
 /** The conditions every window shares: one group, live entries, the kind, author and vital-type filters, the search. */
 const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonly string[] | null) => {
@@ -223,7 +228,7 @@ export const entryWindow = (groupId: string, filters: EntryFilters, limit: numbe
 /**
  * The timeline's history: `entryWindow` ending at `cutoff` (`historyCutoff`
  * in `lib/appointments/upcoming`, from a once-a-minute clock). Notes and events count
- * once they've started; other kinds always do (they can't be in the future
+ * once they've started (a stored future note waits for its time); other kinds always do (they can't be in the future
  * beyond a few minutes of skew, and a vital saved "now" must show at once).
  * Newest first, one row more than `limit`, so paging counts past items only.
  */
@@ -234,7 +239,7 @@ export const historyWindow = (
   cutoff: string,
 ): LocalQuery => {
   const { conditions, params } = filterConditions(groupId, filters, null);
-  conditions.push(`(NOT ${FUTURE_KINDS_SQL} OR occurred_at <= ?)`);
+  conditions.push(`(NOT ${HISTORY_ENDS_SQL} OR occurred_at <= ?)`);
   params.push(toLocalTimestamp(cutoff));
   return {
     sql: `FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at DESC, id DESC LIMIT ?`,

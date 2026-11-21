@@ -28,6 +28,7 @@ import {
   todoSchema,
   timelineEntryProviderSchema,
   timelineEntrySchema,
+  userSchema,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import { appOrigin, getGoogleCalendarClient, inCalendarBackground, planPush } from "../google";
@@ -99,9 +100,9 @@ const enqueueStatement = (target: SyncTarget, reason: CalendarSyncReason) => {
     return sql`${insert("group_id")} SELECT ${target.groupId}::uuid, ${audit}
       WHERE ${liveConnectionIn(sql`${target.groupId}::uuid`)} ON CONFLICT DO NOTHING`;
   if ("entryId" in target)
-    // Only appointments and notes (reminders) reach a calendar.
+    // Only appointments reach a calendar (a note never does).
     return sql`${insert("group_id")} SELECT ${timelineEntrySchema.groupId}, ${audit} FROM ${timelineEntrySchema}
-      WHERE ${timelineEntrySchema.id} = ${target.entryId} AND ${timelineEntrySchema.kind} IN ('event', 'note')
+      WHERE ${timelineEntrySchema.id} = ${target.entryId} AND ${timelineEntrySchema.kind} = 'event'
       AND ${liveConnectionIn(timelineEntrySchema.groupId)} ON CONFLICT DO NOTHING`;
   return sql`${insert("group_id")} SELECT ${todoSchema.groupId}, ${audit} FROM ${todoSchema}
     WHERE ${todoSchema.id} = ${target.todoId} AND ${liveConnectionIn(todoSchema.groupId)} ON CONFLICT DO NOTHING`;
@@ -190,7 +191,7 @@ export const groupItems = async (groupId: string, now: Date): Promise<CalendarIt
       .where(
         and(
           eq(timelineEntrySchema.groupId, groupId),
-          inArray(timelineEntrySchema.kind, ["event", "note"]),
+          eq(timelineEntrySchema.kind, "event"),
           isNull(timelineEntrySchema.deletedAt),
           gte(timelineEntrySchema.occurredAt, after),
           lt(timelineEntrySchema.occurredAt, before),
@@ -349,21 +350,24 @@ const claim = (limit: number) => {
     .returning();
 };
 
-/** The live, syncing connections a job covers. */
+/** The live, syncing connections a job covers, for members whose account is enabled (a disabled member's connection is kept, and resumes on re-enable). */
 const connectionsFor = (claimed: CalendarSyncJob) =>
   dbFails(() =>
     getDb()
-      .select()
+      .select({ connection })
       .from(connection)
+      .innerJoin(userSchema, eq(userSchema.id, connection.userId))
       .where(
         and(
+          isNull(userSchema.disabledAt),
           claimed.connectionId
             ? eq(connection.id, claimed.connectionId)
             : eq(connection.groupId, claimed.groupId ?? ""),
           isNull(connection.disconnectedAt),
           isNull(connection.lastError),
         ),
-      ),
+      )
+      .then((rows) => rows.map((r) => r.connection)),
   );
 
 /** A failed job goes back in line with backoff, unless a newer one for the same target is already waiting. */
@@ -452,7 +456,8 @@ export const sweep = async ({
   const daily = await dbFails(() =>
     getDb().execute(sql`INSERT INTO ${job} (connection_id, reason, created_by, updated_by)
       SELECT ${connection.id}, 'daily', ${SYSTEM}::uuid, ${SYSTEM}::uuid FROM ${connection}
-      WHERE ${connection.disconnectedAt} IS NULL AND ${connection.lastError} IS NULL
+      INNER JOIN ${userSchema} ON ${userSchema.id} = ${connection.userId}
+      WHERE ${userSchema.disabledAt} IS NULL AND ${connection.disconnectedAt} IS NULL AND ${connection.lastError} IS NULL
         AND (${connection.lastPushedAt} IS NULL OR ${connection.lastPushedAt} < ${new Date(now.getTime() - DAILY_PUSH_HOURS * 3_600_000).toISOString()})
       ORDER BY ${connection.lastPushedAt} NULLS FIRST LIMIT ${SYNC_BATCH_LIMIT}
       ON CONFLICT DO NOTHING`),

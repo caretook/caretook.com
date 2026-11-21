@@ -3,7 +3,7 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
-import { TodoTick } from "~/components/todos";
+import { TodoRepeatMark, TodoTick } from "~/components/todos";
 import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
@@ -15,7 +15,7 @@ const ASSIGNEE_CHIP = "badge badge-ghost badge-sm gap-1 whitespace-nowrap";
 /**
  * One todo: its tick (for whoever may complete it), the title (opening the
  * todo's page, for everyone), the due line (red when overdue) or the done
- * line, and the assignee chip.
+ * line, the repeat mark when it repeats, and the assignee chip.
  */
 export function TodoRow({
   todo,
@@ -67,6 +67,7 @@ export function TodoRow({
               {line}
             </span>
           )}
+          <TodoRepeatMark todo={todo} className="text-base-content/70" />
           <span className={ASSIGNEE_CHIP} data-todo-assignee={assignee.type}>
             {assignee.type === "name" && <UserRound className="size-3" aria-hidden="true" />}
             {assignee.label}

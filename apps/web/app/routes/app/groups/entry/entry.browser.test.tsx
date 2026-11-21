@@ -227,7 +227,7 @@ describe("an event in one tap, and title chips", () => {
     const before = await counts(device);
     await addFrom("Event");
     await waitUntil(() => device.location().endsWith("?kind=event") && editorFocused(), 4000, "the draft");
-    expect(TITLE()!.placeholder).toBe("Title");
+    await expect.poll(() => TITLE()?.placeholder).toBe("Title");
     await waitUntil(() => CHIPS().length > 0, 4000, "the chips");
     expect(CHIPS().map((b) => b.textContent?.trim())).toContain("Physical therapy");
     await pause(300);
@@ -329,7 +329,7 @@ describe("who's writing", () => {
     // The viewer is the signed-in user here, so only Sam shows.
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id]);
     await expect.poll(() => HEADER()?.textContent).toContain("Event");
-    expect(EDITOR()!.getAttribute("contenteditable")).toBe("false");
+    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
     expect([!!TITLE(), !!$('[aria-label="Suggested titles"]'), !!TOOLBAR(), !!TIME_CHIP()]).toEqual([
       false,
       false,
@@ -415,6 +415,40 @@ describe("the header: time and Delete", () => {
     await userEvent.click(button("Done")!);
     await waitUntil(() => !DAY());
     await expect.poll(async () => Date.parse((await stored(device, note.id))!.occurred_at)).toBe(moved);
+  });
+
+  test("a note's time can't go past now: the day can't be picked, a typed later day shows the message and Done stays open", async () => {
+    const note = fx.note({ text: "An hour ago", occurredAt: hoursAgo(1) });
+    const device = await open(entryPath(note.id), { fixtures: [base(), note] });
+    await waitUntil(() => !!TIME_CHIP());
+    const was = Date.parse(note.row.occurred_at as string);
+    await userEvent.click(await found(TIME_CHIP));
+    await waitUntil(() => !!PICK_DATE());
+
+    // The calendar leaves every later day disabled.
+    await userEvent.click(await found(PICK_DATE));
+    await waitUntil(() => !!GRID(), 4000, "the calendar");
+    const tomorrow = new Date(Date.now() + DAY_MS);
+    const cell = [...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find(
+      (c) => c.textContent?.trim() === String(tomorrow.getDate()) && !c.hasAttribute("data-outside-month"),
+    );
+    if (cell)
+      expect(cell.hasAttribute("data-disabled") || cell.getAttribute("aria-disabled") === "true").toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !GRID(), 3000, "the calendar to close");
+
+    // Typing a later day marks it and keeps the chip open.
+    seg("day")!.focus();
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+    await waitUntil(
+      () => !!CHIP_DIALOG()?.textContent.includes("Can't be in the future"),
+      4000,
+      "the message",
+    );
+    await userEvent.click(button("Done")!);
+    await pause(300);
+    expect(CHIP_DIALOG()).toBeTruthy();
+    expect(Date.parse((await stored(device, note.id))!.occurred_at)).toBe(was);
   });
 
   test("Delete asks first; Cancel keeps it; Delete goes back to the timeline, soft-deleted, without its row", async () => {
@@ -601,13 +635,13 @@ describe("appointments", () => {
     const clinic = fx.provider({ name: "Harbor Heart Clinic", address: "12 Example Way, Springfield" });
     const device = await open(entryPath(appt.id), { fixtures: [base(), appt, clinic] });
     await waitUntil(() => !!PLACE());
-    expect(PLACE()!.placeholder).toBe("Add a place");
+    await expect.poll(() => PLACE()?.placeholder).toBe("Add a place");
     expect(MAP()).toBeNull();
 
     await device.sync(fx.link(appt.id, clinic.id));
     await device.settle();
     expect(PLACE()?.placeholder).toBe("12 Example Way, Springfield");
-    expect(PLACE()!.value).toBe("");
+    await expect.poll(() => PLACE()?.value).toBe("");
     expect(PLACE_REGION()!.textContent).toContain("from Harbor Heart Clinic");
     expect(MAP()!.href).toContain(encodeURIComponent("12 Example Way, Springfield"));
 

@@ -6,7 +6,8 @@ import type { RescheduledTargetRow } from "./upcomingQueries";
 import type { TodoRow } from "~/lib/todos/todos.sync";
 
 import { PAGE_SIZE } from "~/lib/core/paging";
-import { loadDueDoses } from "~/lib/medications/dueDoses.sync";
+import { recipientQuery } from "~/lib/medications/medications.sync";
+import type { RecipientRow } from "~/lib/medications/medications.sync";
 import { groupDocumentsQuery } from "~/lib/live-notes/notes.sync";
 import { dueTodosQuery, dueTodosThrough } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows, UPCOMING_HORIZON_DAYS } from "~/lib/timeline/timeline.sync";
@@ -24,20 +25,20 @@ const shared = (db: SyncDb, groupId: string) =>
     readRows<RescheduledTargetRow>(db, rescheduledTargetsQuery(groupId)),
   ]);
 
-/** The Planner tab's rows at `now`, with what today's due doses and the due todos are worked out from. */
+/** The Planner tab's rows at `now`, with the recipient (whose zone the due todos are worked out in). */
 export const loadUpcoming = async (db: SyncDb, groupId: string, filters: EntryFilters, now = new Date()) => {
   const queries = upcomingQueries(groupId, filters, now);
-  const [entryRows, contactRows, [memberRows, documentRows, targetRows], dueRows] = await Promise.all([
+  const [entryRows, contactRows, [memberRows, documentRows, targetRows], recipientRows] = await Promise.all([
     readRows<EntryRow>(db, queries.entries),
     readRows<ContactRow>(db, queries.contacts),
     shared(db, groupId),
-    loadDueDoses(db, groupId),
+    readRows<RecipientRow>(db, recipientQuery(groupId)),
   ]);
   // Open dated todos through Upcoming's last day, in the recipient's zone (`useDueTodos`'s first rows).
-  const zone = dueRows.recipient[0]?.time_zone || "UTC";
+  const zone = recipientRows[0]?.time_zone || "UTC";
   const through = dueTodosThrough(now, zone, UPCOMING_HORIZON_DAYS);
   const todoRows = await readRows<TodoRow>(db, dueTodosQuery(groupId, null, through));
-  return { entryRows, contactRows, memberRows, documentRows, targetRows, dueRows, todoRows };
+  return { entryRows, contactRows, memberRows, documentRows, targetRows, recipientRows, todoRows };
 };
 
 export type UpcomingRows = Awaited<ReturnType<typeof loadUpcoming>>;

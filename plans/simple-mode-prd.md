@@ -1,4 +1,4 @@
-# Easy roles PRD (B-221, B-236)
+# Easy roles PRD (B-221, B-236, B-400)
 
 Status: to run. Plan: [`simple-mode-plan.md`](simple-mode-plan.md). Topic `simple-mode` (the slug keeps the old word; everything it builds says "easy"). Builds on the [assistant PRD](assistant-prd.md) (simple mode and its lock) and the `hotfix/simple-mode` decisions (B-208).
 
@@ -21,6 +21,7 @@ Replace the lock with **two new member roles**, picked like any other role when 
 - The easy roles can open the timeline, entries, the **Planner** (read-only), **todo pages** and **search**, all in the reduced frame. Nothing they can tap bounces back.
 - The role picker groups the two under **"Easier to use"** and tells the manager, and only the manager, who they're for: someone who isn't comfortable with apps or who has memory or thinking difficulties. The role's name never says so.
 - Everything a person reads, the docs, the code and the database say **easy** where they said simple.
+- The way into the easy view becomes a visible **"Easy mode"** button in the full timeline's page header, where the easy view has its "Full app" button, instead of the last item of the View options (eye) menu (B-400).
 
 ## User Stories
 
@@ -58,6 +59,7 @@ Replace the lock with **two new member roles**, picked like any other role when 
 32. As a member who chose simple mode for themselves, I want my setting carried over to Easy mode, so that my view doesn't change.
 33. As a developer, I want code, docs and the database to use "easy" for this feature, so that there's one vocabulary.
 34. As an owner, I want an easy-role member unable to be the group's only owner or to manage members, so that roles stay exclusive: a member has exactly one role.
+35. As a caretaker, viewer, admin or owner on the full timeline, I want an "Easy mode" button on the right of the "Timeline" heading, so that switching views is one visible tap in the same place as "Full app" on the other side.
 
 ## Implementation Decisions
 
@@ -77,6 +79,7 @@ Replace the lock with **two new member roles**, picked like any other role when 
 
 - `resolveEasyMode({ role, ownSetting, deviceToggle })`: an easy role is always easy and can't toggle; otherwise this device's toggle, then the user's own setting (`easy | full`, default full). The owner default and the lock are gone; the setting value `group` ("follow the group") goes away and reads as full.
 - `inputs` (the box, tiles, Given all) follow `LOGGERS`. Row ⋯ menus and edit sheets: writers on every row; an Easy helper on rows they created; nobody else.
+- **The toggle's place (B-400):** one `EasyModeToggle` button serves both views, in the same spot: the right of the page header. The easy view's says "Full app" (as now); the full timeline's says "Easy mode" and sits in `PageHeader`'s `actions` beside "Timeline", at every width. The View options menu loses its item and separator and keeps Layout and Day summaries. Nothing is shown to a member who can't toggle (the easy roles). The button stays this device's toggle; the user's own setting is still on the Timeline layout page. The top app bar and the user menu don't change.
 - The group context exposes `canWrite` (setup: `WRITERS`), **`canLog`** (`LOGGERS`) and **`easyRole`**. Screens gate on these, never on role names.
 - The Members page loses the Simple mode and Locked switches; `careGroup.setMemberMode` and `careGroupMemberService.setMode` are removed. The role picker (invite, Members, join approval) shows two groups, the four regular roles and "Easier to use", with descriptions from `GROUP_ROLES`.
 - **Conversion (adds a migration):** `simple_mode_locked` caretakers become `easy_helper`, locked viewers `easy_viewer`; locked owners and admins keep their role. Both member columns stop being read, written and synced; a later contract migration drops them.
@@ -100,7 +103,7 @@ Replace the lock with **two new member roles**, picked like any other role when 
 - Tests check behaviour through public interfaces: what a service returns and stores, what an upload does, what a screen shows and allows.
 - **Unit:** `resolveEasyMode` (each role, setting and toggle), the route allow-list (each allowed and refused path, by role), the role sets, role-picker grouping and descriptions.
 - **Integration:** the role matrix: each role against each table (the standing "every role against every table" priority), with the own-rows scope (an Easy helper edits and deletes their own entry, is refused on another's; SQL-level, not just service-level); todo completion: any todo for a viewer, only their own for both easy roles (another member's and an unassigned todo refused); uploads of each allowed and refused op as an easy role (prior art `syncPasses.int.test.ts`); the writers stream excluding both roles (the sync matrix and `roles.int.test.ts`); connector authorisation and tool calls refused; the conversion migration (locked caretaker, locked viewer, locked admin); the rename migration (tiles and preference copied).
-- **Component:** the role picker (groups, descriptions) on invite and Members; the Members page without switches; the easy timeline as Easy helper (inputs, menus only on own rows) and Easy viewer (no inputs; a tick on their own todos only); the Planner and a todo page in the reduced frame; search with read-only sheets; a regular role choosing Easy mode keeps "Full app".
+- **Component:** the role picker (groups, descriptions) on invite and Members; the Members page without switches; the easy timeline as Easy helper (inputs, menus only on own rows) and Easy viewer (no inputs; a tick on their own todos only); the Planner and a todo page in the reduced frame; search with read-only sheets; a regular role choosing Easy mode keeps "Full app"; the full timeline's header shows "Easy mode", it switches the view and "Full app" switches back, the View options menu has no such item, and an easy role sees neither.
 - **End to end:** the existing lean check that owns the app shell gains one step: an Easy helper signs in, logs an entry, opens "See all", and can't reach Medications. No new check.
 
 ## Out of Scope

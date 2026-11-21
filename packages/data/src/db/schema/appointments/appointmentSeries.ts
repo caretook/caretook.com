@@ -40,7 +40,7 @@ import { parseRule, SERIES_LIMITS } from "./repeatRule";
 const timestampColumn = (name: string) =>
   timestamp(name, { precision: 3, mode: "string", withTimezone: true });
 
-/** A series makes appointments (future events) or reminders (future notes). */
+/** The kinds the column stores. New and edited series are events only (`kind` below); a stored note series is left alone. */
 export const SERIES_KINDS = ["event", "note"] as const;
 export type SeriesKind = (typeof SERIES_KINDS)[number];
 
@@ -138,7 +138,7 @@ const seriesFields = {
 };
 
 type CrossFields = {
-  kind: SeriesKind;
+  kind: string;
   rule: string;
   startsOn: string;
   startTime: string | null;
@@ -162,11 +162,6 @@ export const seriesCrossFieldIssues = (value: CrossFields) => {
   if (value.allDay && value.durationMinutes)
     issues.push({ path: "durationMinutes", message: "An all-day item has no end time" });
   if (value.kind === "event" && !value.title) issues.push({ path: "title", message: "Enter a title" });
-  if (value.kind === "note") {
-    if (value.durationMinutes)
-      issues.push({ path: "durationMinutes", message: "Only appointments have an end" });
-    if (value.place) issues.push({ path: "place", message: "Only appointments have a place" });
-  }
   const parsed = parseRule(value.rule);
   if (parsed.ok && parsed.rule.end.type === "on" && parsed.rule.end.until < value.startsOn)
     issues.push({ path: "rule", message: "The end date is before the first day" });
@@ -178,7 +173,8 @@ const crossFields = (value: CrossFields, ctx: z.RefinementCtx) => {
     ctx.addIssue({ code: "custom", path: [issue.path], message: issue.message });
 };
 
-const kind = z.enum(SERIES_KINDS, { error: "A series makes appointments or reminders" });
+// Series are events only: a note is past-only, and a reminder is a todo.
+const kind = z.literal("event", { error: "A series makes appointments" });
 
 /** A series' content (everything but its group and recipient). On create, and on update against the merged row. */
 export const appointmentSeriesContentZSchema = z.object({ kind, ...seriesFields }).superRefine(crossFields);
@@ -219,7 +215,8 @@ export type AppointmentSeriesUpdateInput = z.input<typeof appointmentSeriesUpdat
 
 /** A stored series' content, ready to merge a patch over and re-validate. */
 export const appointmentSeriesContentOf = (series: AppointmentSeries): AppointmentSeriesContentInput => ({
-  kind: series.kind,
+  // A stored note series carries its kind, so an edit of it is refused.
+  kind: series.kind as "event",
   rule: series.rule,
   startsOn: series.startsOn,
   startTime: series.startTime,

@@ -10,8 +10,10 @@ import { deviceCommands } from "./apps/web/test/commands.ts";
 //   notifications:unit  templates, links and the allowlist (packages/notifications *.test.ts)
 //   server:unit  packages/auth and packages/api's pure parts (*.test.ts): origins,
 //                the client IP, /rpc's CORS answer; no database
-//   scripts:unit repo tooling (scripts/**/*.test.mjs): the backlog and git
-//                hooks, against throwaway git repos in the OS temp dir
+//   scripts:unit the tooling tests `pnpm test` keeps (sync-matrix, check-areas,
+//                checks, check-times, deploy, build)
+//   tooling:unit the other tooling tests (scripts/loops, backlog, hooks), against
+//                throwaway git repos in the OS temp dir; `pnpm test:tooling`
 //   integration  real Postgres, every package (*.int.test.ts): the test
 //                database on port 5435. Start it with `pnpm datastore:up:test`;
 //                each run clears and migrates it first. One project (not one
@@ -76,13 +78,38 @@ export default defineConfig({
         },
       },
       {
+        // The tooling tests the default run keeps: the ones that guard the
+        // check manifest and areas, the deploy and the build.
         test: {
           name: "scripts:unit",
           root: "./scripts",
-          include: ["**/*.test.mjs"],
-          exclude: ["browser-checks/**"],
-          // Each test runs dozens of git commands (3–3.5 s alone), so the
-          // 5 s default fails them whenever the rest of `pnpm check` runs beside them.
+          include: [
+            "loops/sync-matrix.test.mjs",
+            "loops/check-areas.test.mjs",
+            "loops/checks.test.mjs",
+            "loops/check-times.test.mjs",
+            "deploy/**/*.test.mjs",
+            "build/**/*.test.mjs",
+          ],
+          testTimeout: 20_000,
+        },
+      },
+      {
+        // The rest of the tooling tests (loops, backlog, hooks). Each runs dozens
+        // of git commands (3–3.5 s alone), so the 5 s default fails them whenever
+        // the rest of `pnpm check` runs beside them. `pnpm test` leaves this
+        // project out; `pnpm test:tooling` runs it.
+        test: {
+          name: "tooling:unit",
+          root: "./scripts",
+          include: ["loops/**/*.test.mjs", "backlog/**/*.test.mjs", "hooks.test.mjs"],
+          exclude: [
+            "browser-checks/**",
+            "loops/sync-matrix.test.mjs",
+            "loops/check-areas.test.mjs",
+            "loops/checks.test.mjs",
+            "loops/check-times.test.mjs",
+          ],
           testTimeout: 20_000,
         },
       },

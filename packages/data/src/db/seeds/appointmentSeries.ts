@@ -24,7 +24,7 @@ import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
 // Fictional repeating series for Grandma Pat (Dev Family; appointments-2):
 // dialysis Mon, Wed and Fri at 6:00 with no end (started a week ago, so the
 // timeline has a few), twelve weekly physical therapy visits with one moved
-// on its own, and a monthly "Order refills" reminder on the 2nd Tuesday.
+// on its own.
 // Placed by days from today in Los Angeles, with visits through today + 90,
 // as a device that made them would write them.
 //
@@ -75,19 +75,6 @@ export const DEV_FAMILY_SERIES: SeedSeries[] = [
     with: ["westside"],
     // The third visit moved to the Wednesday after, at 14:00.
     moved: { visit: 2, days: 1, time: "14:00" },
-  },
-  {
-    key: "refills",
-    startsIn: 0,
-    content: {
-      kind: "note",
-      rule: "FREQ=MONTHLY;INTERVAL=1;BYDAY=2TU",
-      startTime: null,
-      allDay: true,
-      title: "Order refills",
-      durationMinutes: null,
-      place: null,
-    },
   },
 ];
 

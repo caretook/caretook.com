@@ -1,6 +1,6 @@
 # PRD: Test health (faster checks, a steadier harness, fewer tests that only detect change)
 
-> Topic `test-health`. Backlog: B-271 to B-283. Plan: [`plans/test-health-plan.md`](test-health-plan.md).
+> Topic `test-health`. Backlog: B-274 to B-277, B-279 to B-283. **How checks run (B-271, B-272, B-273, B-278: the lease, quick at hand-off, the tooling project, worker databases; user stories 1 to 20) moved to [`check-speed`](check-speed-prd.md) on 2026-11-21**, where the load gate was dropped; those parts below are kept for the record. Plan: [`plans/test-health-plan.md`](test-health-plan.md).
 
 ## Problem Statement
 

@@ -4,7 +4,7 @@ import type { PlannerTodo } from "~/lib/todos/plannerTodos";
 import { canCompleteTodo } from "@caretook/data/schema";
 import { ListTodo, UserRound } from "lucide-react";
 import { Link } from "react-router";
-import { TodoTick, useTodoTick } from "~/components/todos";
+import { TodoRepeatMark, TodoTick, useTodoTick } from "~/components/todos";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { assigneeLabel, dueText } from "~/lib/todos/todoDisplay";
@@ -80,6 +80,7 @@ export function PlannerTodoRow({
               {due}
             </span>
           )}
+          <TodoRepeatMark todo={todo} className="text-base-content/70" />
           <span
             className="badge badge-ghost badge-sm gap-1 whitespace-nowrap"
             data-todo-assignee={assignee.type}

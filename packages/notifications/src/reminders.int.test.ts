@@ -12,13 +12,14 @@ import {
   notificationOutboxSchema as outbox,
   providerService,
   todoService,
+  timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
-import { addDays, dayInZone, zonedInstant } from "@caretook/data/schema";
+import { addDays, dayInZone, memberCalendarSettingSchema, zonedInstant } from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../data/test/fixtures";
+import { createGroup, createUser, ok, system } from "../../data/test/fixtures";
 import { deliverDue } from "./outbox";
 import { handleReminderUnsubscribe, sweepReminders } from "./reminders";
 import { createMemorySender } from "./senders";
@@ -42,15 +43,22 @@ const plus = (d: Date, minutes: number) => new Date(d.getTime() + minutes * MINU
 const resetLastRun = () =>
   getDb().delete(appSettingSchema).where(eq(appSettingSchema.key, calendarReminderService.LAST_RUN_KEY));
 
+// The sweep is global: it reads every group with reminders on and keeps one
+// shared last-run time. So each test starts with no other group's reminders
+// (earlier tests', other files') and no last run, and can't depend on a
+// neighbour. A sweep does many sequential round trips, so under a loaded full
+// check the 5 s default is too tight (a timed-out test keeps running and
+// moves the shared last run under the next one): 30 s.
 beforeEach(async () => {
+  await getDb().delete(memberCalendarSettingSchema);
   await resetLastRun();
-});
+}, 30_000);
 
 const setup = async () => {
   const ana = await createUser("ana");
   const ben = await createUser("ben");
   const cy = await createUser("cy");
-  const { group } = await createGroup(ana, [
+  const { group, recipient } = await createGroup(ana, [
     { user: ben.user, role: "caretaker" },
     { user: cy.user, role: "viewer" },
   ]);
@@ -72,7 +80,7 @@ const setup = async () => {
     if (!entry) throw new Error("entry not readable");
     return entry;
   };
-  return { ana, ben, cy, group, remindersOn, addAppointment };
+  return { ana, ben, cy, group, recipient, remindersOn, addAppointment };
 };
 
 /** Run the sweep at `now` and deliver what it queued to a fresh memory sender. */
@@ -89,7 +97,7 @@ const sweep = async (now: Date) => {
 
 const to = (sent: OutgoingMessage[], email: string) => sent.filter((m) => m.to === email);
 
-describe("sweepReminders", () => {
+describe("sweepReminders", { timeout: 30_000 }, () => {
   it("sends each reminder once, however often or late the cron runs", async () => {
     const { ana, remindersOn, addAppointment } = await setup();
     await remindersOn(ana);
@@ -184,6 +192,27 @@ describe("sweepReminders", () => {
     expect(forbidden?.subject).not.toContain("Dialysis");
   });
 
+  it("sends nothing for a stored future note", async () => {
+    const { ana, group, recipient, remindersOn } = await setup();
+    await remindersOn(ana, { reminderLeads: [60] });
+    ok(
+      await timelineEntryModel.create({
+        ...system,
+        data: {
+          groupId: group.id,
+          recipientId: recipient.id,
+          kind: "note",
+          title: "Call the pharmacy",
+          occurredAt: NINE.toISOString(),
+          timeZone: LA,
+        },
+      }),
+    );
+    const { ids, sent } = await sweep(HOUR_BEFORE);
+    expect(ids).toEqual([]);
+    expect(to(sent, ana.user.email)).toEqual([]);
+  });
+
   it("reminds a todo's assignee, and skips a suppressed address", async () => {
     const { ana, ben, cy, group, remindersOn, addAppointment } = await setup();
     await remindersOn(ana, { reminderLeads: [60] });
@@ -224,6 +253,7 @@ describe("sweepReminders", () => {
     await remindersOn(ana);
     await addAppointment();
     const [message] = to((await sweep(EVENING_BEFORE)).sent, ana.user.email);
+    expect(message).toBeDefined();
     const header = message?.headers?.["List-Unsubscribe"] ?? "";
     const url = new URL(header.slice(1, -1));
     expect(message!.text).toContain(url.toString());

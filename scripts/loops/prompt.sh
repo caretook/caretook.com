@@ -26,7 +26,8 @@ You are the new backlog/inbox planning agent. Do the standing work below, then a
 - AGENTS.md is already in your context (CLAUDE.md loads it), so don't Read it again; follow it. Read docs/agents/backlog.md (the backlog, triage, and _Deciding what's next_). Then \`pnpm backlog ingest\`, \`pnpm backlog list\`, \`pnpm prd status\` (what's running) and the queue: \`ls $loops/.queue\` (one ticket per topic waiting in \`pnpm prd queue\`, named \`<time>-<pid>-<topic>\`, oldest first; empty or missing means nothing is queued). Name what's queued in your report, and never propose starting or queueing a topic that is already queued.
 - Triage new items (\`set B-<n> prd=<topic> status=triaged\` with a \`note\`; several ids in one write); the user reviews.
 - Hand bulk reading (the full backlog, long plans and PRDs) and backlog chores to a haiku helper that returns a short summary (docs/agents/orchestrator.md, _Models_); keep the proposals and the talk with the user yourself.
-- Then report the state in a few lines and ask **one** AskUserQuestion, multi-select, and nothing else: what is this session for? Its three options: **Write a PRD** from the backlog; **Decide what to run next** from the queue; **Triage a new issue or idea** now.
+- Then, **always, before the first question**, print an overview from what you've already collected (no new commands for it), as three short parts. **Backlog:** nothing new or what ingest filed; the item counts by status; the topics with the most waiting items; the PRDs written but not run and those still to write. **Orchestrators:** each running PRD by what it does, how far ahead of dev it is and its slices in flight; planning worktrees; the slots used of three; what's queued; the load if it's high. **To triage:** each item you triaged just now with the topic you proposed and why, any item still untriaged, and anything waiting on the user's review; say "nothing" when there is nothing.
+- After the overview ask **one** AskUserQuestion, multi-select, and nothing else: what is this session for? Its three options: **Write a PRD** from the backlog; **Decide what to run next** from the queue; **Triage a new issue or idea** now.
 - The next question follows only from what they picked. A PRD: which topic (your recommendation first), then terminal or inline (below). What to run: start, queue or wait for each ready PRD. A new issue: ask them to describe it, then file and triage it. Never ask about a task they didn't pick, and don't add unrelated questions (tracker chores, untriaged items) to a poll: do routine chores and say so.
 - Ask with AskUserQuestion, never numbered question lists.
 - The user doesn't read ids: wherever you name an item, in a question, its options or the text before it, give its short plain title with the id (B-52 export all data). Name a PRD topic by what it does, not only its slug.
@@ -150,11 +151,14 @@ You are the planning agent for "$topic".
 
 - Your worktree is $loops/plan-$topic, on branch plan/$topic (from dev), with no Docker stack. Work only there; never in the main checkout ($main).
 - AGENTS.md is already in your context (CLAUDE.md loads it), so don't Read it again; follow it. Read your handbook, docs/agents/planner.md, and docs/agents/backlog.md, then the area docs the topic touches (_Area index_). Then \`pnpm backlog list\` and \`pnpm backlog show B-<n>\` for the items behind "$topic"${items:+ ($items)}.
-- Write the PRD with the \`write-a-prd\` skill, saved as plans/$topic-prd.md: explore the code, then interview the user with AskUserQuestion (a few questions at a time, never numbered lists), and check the module sketch and test choices with them. Then cut it into slices with \`prd-to-plan\`, saved as plans/$topic-plan.md, in the handbook's _The plan's shape_, with each slice's fields line (_Slice fields_) and acceptance criteria that name the tests (_The test budget_). Ask the user to approve the slice breakdown before writing it.
+- **Decide, then report: no interview.** Read docs/agents/preferences.md and explore the code. Ask the user only what the handbook's _What to ask_ names (scope, who can see or change what, existing data, compliance, a new dependency, product direction you can't pick with confidence: what the product does, never how it looks), in one AskUserQuestion round of at most four questions, your recommendation first, with a PushNotification just before it so the question reaches the user's phone; with nothing to ask, say so and carry on. Decide everything else yourself: the module sketch, the test choices and the slice breakdown need no approval. **Never ask about a UX or UI detail** (layout, where a control sits, icons or text, wording, colours, defaults, empty states): pick the smallest version that fits the item's words and the existing screens, and record it as assumed in the _Decisions_ table, where the user vetoes.
+- Write the PRD as plans/$topic-prd.md, opening with the handbook's _Decisions_ table and following _The PRD's shape_. Then cut it into tracer-bullet slices, saved as plans/$topic-plan.md, in the handbook's _The plan's shape_ (about six slices at most: cut a bigger one into follow-on topics), with each slice's fields line (_Slice fields_) and acceptance criteria that name the tests (_The test budget_).
+- **Don't load the \`write-a-prd\`, \`prd-to-plan\` or \`grill-me\` skills:** they make you interview the user and wait for approval. The handbook has their templates.
+- Run the handbook's _The skeptic pass_ with one fresh agent before landing, and act on what it finds.
 - Don't file GitHub issues.
-- Commit both files on plan/$topic (\`docs($topic): …\`), triage the items and update the PRD table (\`pnpm backlog commit\` after editing it in the main checkout), then land it yourself as the handbook's _Landing a plan branch_ says: \`pnpm prd land plan/$topic --force -m "docs($topic): PRD and plan for … (B-<n>, …)"\`, \`pnpm prd rm plan-$topic\`, and tell the user how to start it.
+- Commit both files on plan/$topic (\`docs($topic): …\`), triage the items and update the PRD table (\`pnpm backlog commit\` after editing it in the main checkout), then land it yourself as the handbook's _Landing a plan branch_ says: \`pnpm prd land plan/$topic --force -m "docs($topic): PRD and plan for … (B-<n>, …)"\`, \`pnpm prd rm plan-$topic\`, then report the decisions you assumed (the costliest to change first) and how to start it.
 
-Start by summarising what the backlog says about "$topic", then begin the interview.
+Start by summarising what the backlog says about "$topic", then explore.
 EOF
     ;;
   slice)
@@ -180,7 +184,7 @@ EOF
     if [[ $stack == yes ]]; then
       stack_line="- Your stack's slot and ports are in \`.env.loop\` and \`apps/web/.env\` (\`WEB_PORT\`). \`pnpm prd serve\` runs your dev server in the background."
     else
-      stack_line="- Your worktree has no Docker stack. \`pnpm check\` still runs everything: integration tests use your own database on the shared test Postgres (created on first use). The dev server and browser checks need a stack: \`pnpm prd stack up\` adds one and \`pnpm prd stack down\` removes it when you're done (tell your orchestrator)."
+      stack_line="- Your worktree has no Docker stack. \`pnpm prd check\` (the full check, through the check lease; never a bare \`pnpm check\`) still runs everything: integration tests use your own database on the shared test Postgres (created on first use). The dev server and browser checks need a stack: \`pnpm prd stack up\` adds one and \`pnpm prd stack down\` removes it when you're done (tell your orchestrator)."
     fi
     cat <<EOF
 You are the agent for slice $n of the "$topic" PRD.
@@ -199,6 +203,7 @@ EOF
 - Build only slice $n. Leave other slices' regions and files alone.
 - Read your handbook, docs/agents/loop.md, and follow it exactly: its _Loop rules_, the rules across PRDs it points to, and the _Hand-off_ format for your final message.
 $stack_line Delete any scratch scripts before you commit.
+- Check with \`pnpm prd check\` (it takes a check lease and needs a clean tree, so commit first), never a bare \`pnpm check\`.
 - Commit subjects are Conventional Commits with the topic as scope: \`feat($topic): …\`, \`fix($topic): …\`, \`test($topic): …\`. The commit-msg hook refuses anything else.
 - You may update your backlog items' notes (\`pnpm backlog note B-<n> "..."\`). Don't claim, land or reassign items; your orchestrator does that.
 EOF
@@ -208,7 +213,7 @@ EOF
 **You're continuing slice $n, not starting it.** An earlier agent worked in this worktree and was interrupted (a restart, a crash or a usage limit), and its hand-off was lost. Before writing any code:
 - Read what it did: \`pnpm log --oneline prd/$topic..HEAD\`, \`git status\`, \`git diff prd/$topic...HEAD\` (what's committed) and \`git diff\` (what isn't). Uncommitted changes are its work too: keep them unless they're broken.
 - Check that against the slice's acceptance criteria and finish what's missing from there. Don't start over, and don't redo committed work.
-- If everything is committed and \`pnpm check\` passes, don't rebuild: run whatever the slice's checks still need, and write the hand-off from the branch (its commits are the record).
+- If everything is committed and \`pnpm prd check\` passes, don't rebuild: run whatever the slice's checks still need, and write the hand-off from the branch (its commits are the record).
 EOF
     fi
     ;;

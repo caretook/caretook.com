@@ -188,7 +188,7 @@ describe("Pending invitations", () => {
     await expect
       .poll(() => row()?.textContent)
       .toMatch(/Caretaker · Sent by Sam Okafor · Expires Nov 27, 2026/);
-    expect(row()!.dataset.inviteStatus).toBe("usable");
+    await expect.poll(() => row()?.dataset.inviteStatus).toBe("usable");
     await expect.poll(() => row()?.querySelectorAll("button")).toHaveLength(2);
   });
 

@@ -1,4 +1,12 @@
-import { assigneeOf, doneOrder, isError, todoOrder, todoService, todoState } from "@caretook/data";
+import {
+  assigneeOf,
+  doneOrder,
+  isError,
+  todoOrder,
+  todoRepeatText,
+  todoService,
+  todoState,
+} from "@caretook/data";
 import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso, zonedIsoOrNull } from "../time";
@@ -20,7 +28,7 @@ const input = z.object({
 export const listTodos = defineTool({
   name: "list_todos",
   title: "List todos",
-  description: `The care group's to-do list. Open todos by default, overdue first, then by due day and time, undated last; done ones from the last ${DEFAULT_DAYS_BACK} days with status done or all. Each has its assignee, due day and time (in the care recipient's zone), state (overdue, today, upcoming, undated, done) and who finished it. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
+  description: `The care group's to-do list. Open todos by default, overdue first, then by due day and time, undated last; done ones from the last ${DEFAULT_DAYS_BACK} days with status done or all. Each has its assignee, due day and time (in the care recipient's zone), repeats (the rule in words, or null), state (overdue, today, upcoming, undated, done) and who finished it. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
@@ -61,6 +69,7 @@ export const listTodos = defineTool({
               : null,
         dueOn: t.dueOn,
         dueTime: t.dueTime,
+        repeats: todoRepeatText(t),
         state: todoState(t, ctx.now, timeZone),
         doneAt: zonedIsoOrNull(t.doneAt, timeZone),
         doneBy: t.doneBy ? (who.get(t.doneBy) ?? null) : null,
