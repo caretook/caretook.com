@@ -26,8 +26,10 @@ import {
 // of the group's providers that narrows as you type; arrows and Enter (or a
 // tap) put a chip in the text, which links the provider to the entry as
 // the With row does (a draft is saved first). A provider already linked
-// stays one link; deleting the mention keeps the link. Viewers get chips
-// that open the provider's page, and no popup. The options' matching and
+// stays one link; deleting the mention keeps the link. Writers' last row
+// adds the typed name as a clinician and links it. Viewers get chips that
+// open the provider's page, and no popup. Chips follow renames, and grey
+// once a provider is deleted (or unknown here). The options' matching and
 // order are mentionOptions.test.ts's; a mention reaching another device is
 // live-notes's.
 
@@ -39,7 +41,12 @@ const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[
 type Device = Awaited<ReturnType<typeof open>>;
 
 const POPUP = () => $("[data-mention-popup]");
-const shown = () => $$('[data-mention-popup] [role="option"]').map((o) => o.firstElementChild!.textContent);
+const rows = () => $$('[data-mention-popup] [role="option"]').map((o) => o.firstElementChild!.textContent);
+/** The providers offered (the add row left out). */
+const shown = () =>
+  $$('[data-mention-popup] [role="option"]:not([data-mention-add])').map(
+    (o) => o.firstElementChild!.textContent,
+  );
 const highlighted = () =>
   $('[data-mention-popup] [role="option"][aria-selected="true"]')?.firstElementChild?.textContent ?? null;
 const mentionChips = () =>
@@ -48,6 +55,7 @@ const mentionChips = () =>
     text: m.textContent.trim(),
     href: m.querySelector("a")?.getAttribute("href") ?? null,
   }));
+const addRow = () => $('[data-mention-popup] [role="option"][data-mention-add]');
 const linkedIds = async (device: Device, entryId: string) =>
   (
     await device.query<{ provider_id: string }>(
@@ -98,7 +106,9 @@ describe("mentions on the entry page", () => {
     expect(shown()).toEqual(["Dr. Samuel Patel"]);
     await userEvent.keyboard("zz");
     await waitUntil(() => !!POPUP()?.querySelector('[role="status"]'), 4000, "no match");
-    expect(POPUP()!.textContent).toBe("No providers match");
+    expect(POPUP()!.querySelector('[role="status"]')!.textContent).toBe("No providers match");
+    // A writer's only option is then adding the typed name.
+    expect(rows()).toEqual(['Add "cardzz" as a provider']);
 
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !POPUP(), 4000, "the popup closed");
@@ -130,9 +140,11 @@ describe("mentions on the entry page", () => {
     await userEvent.keyboard("{ArrowDown}");
     await expect.poll(highlighted).toBe("Westside Family Medicine");
     await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toBe('Add "westside" as a provider');
+    await userEvent.keyboard("{ArrowDown}");
     await expect.poll(highlighted).toBe("Dr. Elena Alvarez");
     await userEvent.keyboard("{ArrowUp}");
-    await expect.poll(highlighted).toBe("Westside Family Medicine");
+    await expect.poll(highlighted).toBe('Add "westside" as a provider');
 
     const option = $$('[data-mention-popup] [role="option"]').find(
       (o) => o.firstElementChild?.textContent === "Dr. Elena Alvarez",
@@ -214,5 +226,84 @@ describe("mentions on the entry page", () => {
 
     await userEvent.click($(".ProseMirror [data-mention] a")!);
     await expect.poll(() => device.location()).toBe(providerUrl(WESTSIDE.id));
+  });
+
+  test("the add row: last, for a name nobody has; Enter adds a clinician, links it and puts in its chip", async () => {
+    const device = await open(entryUrl(VISIT.id));
+    await typeInNotes("Saw @Dr. Sam");
+    // Spaces are part of the name; a partial match stays above the add row.
+    await waitUntil(() => rows().length === 2, 4000, "the match and the add row");
+    expect(rows()).toEqual(["Dr. Samuel Patel", 'Add "Dr. Sam" as a provider']);
+    await userEvent.keyboard("{Backspace}{Backspace}{Backspace}Chen");
+    await waitUntil(() => rows().length === 1, 4000, "only the add row");
+    expect(rows()).toEqual(['Add "Dr. Chen" as a provider']);
+    expect(highlighted()).toBe('Add "Dr. Chen" as a provider');
+    expect(addRow()).not.toBeNull();
+    await userEvent.keyboard("{Enter}");
+
+    await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
+    const [made] = await device.query<{ id: string; type: string; group_id: string }>(
+      "SELECT id, type, group_id FROM provider WHERE name = ?",
+      ["Dr. Chen"],
+    );
+    expect(made).toMatchObject({ type: "clinician", group_id: GROUP });
+    await expect
+      .poll(mentionChips)
+      .toEqual([{ id: made!.id, text: "Dr. Chen", href: providerUrl(made!.id) }]);
+    await waitUntil(() => chips().length === 1, 4000, "the With chip");
+    expect(chips()[0]).toMatchObject({ id: made!.id, text: "Dr. Chen" });
+    expect(await linkedIds(device, VISIT.id)).toEqual([made!.id]);
+    // One transaction: the provider uploads before its link.
+    const queued = (await device.queued()).map((w) => w.type);
+    expect(queued.indexOf("provider")).toBeGreaterThanOrEqual(0);
+    expect(queued.indexOf("provider")).toBeLessThan(queued.indexOf("timeline_entry_provider"));
+    expect(POPUP()).toBeNull();
+  });
+
+  test("no add row for a name already in the group (case ignored); the popup closes once the text reads on", async () => {
+    await open(entryUrl(VISIT.id));
+    await typeInNotes("@maria reyes");
+    await waitUntil(() => shown().length === 1, 4000, "the match");
+    expect(shown()).toEqual(["Maria Reyes"]);
+    expect(addRow()).toBeNull();
+    // "Mom" matches nobody: two words could be a new name, a third is just text.
+    await userEvent.keyboard("{Escape} and @Mom");
+    await waitUntil(() => rows().length === 1, 4000, "the add row");
+    expect(rows()).toEqual(['Add "Mom" as a provider']);
+    await userEvent.keyboard(" said");
+    await waitUntil(() => rows()[0] === 'Add "Mom said" as a provider', 4000, "two words");
+    await userEvent.keyboard(" to");
+    await waitUntil(() => !POPUP(), 4000, "the popup closed");
+  });
+
+  test("a renamed provider's chip shows the new name as it syncs in", async () => {
+    const device = await open(entryUrl(VISIT.id), {
+      fixtures: [directory(), VISIT, withMention(VISIT.id, PATEL, "Dr. Samuel Patel")],
+    });
+    await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
+    expect(mentionChips()[0]!.text).toBe("Dr. Samuel Patel");
+    await device.sync({ ...PATEL, row: { ...PATEL.row, name: "Dr. Sam Patel-Okoro" } });
+    await expect.poll(() => mentionChips()[0]?.text).toBe("Dr. Sam Patel-Okoro");
+    expect(mentionChips()[0]!.href).toBe(providerUrl(PATEL.id));
+  });
+
+  test("a provider deleted (as it syncs in) greys its chip: the name as text, not a link", async () => {
+    const device = await open(entryUrl(VISIT.id), {
+      fixtures: [directory(), VISIT, withMention(VISIT.id, PATEL, "Dr. Samuel Patel")],
+    });
+    await waitUntil(() => mentionChips()[0]?.href === providerUrl(PATEL.id), 4000, "the linked chip");
+    await device.sync({ ...PATEL, row: { ...PATEL.row, deleted_at: hoursAgo(1) } });
+    await expect.poll(() => mentionChips()[0]?.href).toBeNull();
+    expect(mentionChips()).toEqual([{ id: PATEL.id, text: "Dr. Samuel Patel", href: null }]);
+    expect($(".ProseMirror [data-mention] span")!.className).toContain("text-base-content/50");
+  });
+
+  test("a provider this device doesn't have: the name it was typed with, greyed, not a link", async () => {
+    const STRANGER = { id: "0b6f3c1e-9d2a-4e7b-8c15-3a4d5e6f7a80" };
+    await open(entryUrl(VISIT.id), {
+      fixtures: [directory(), VISIT, withMention(VISIT.id, STRANGER, "Dr. Nobody Here")],
+    });
+    await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
+    expect(mentionChips()).toEqual([{ id: STRANGER.id, text: "Dr. Nobody Here", href: null }]);
   });
 });

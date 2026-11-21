@@ -2,6 +2,7 @@ import type { Editor } from "@tiptap/react";
 import type { Ref } from "react";
 import type { BindNoteDocOptions, NoteDocParts } from "~/lib/live-notes/notes.sync";
 import type { MentionProvider } from "~/lib/providers/mentionOptions";
+import type { MentionAddResult } from "./useMentionPopup";
 
 import { NOTE_FRAGMENT } from "@caretook/data/schema";
 import Collaboration from "@tiptap/extension-collaboration";
@@ -10,6 +11,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Bold, Heading2, Italic, List, ListOrdered } from "lucide-react";
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { bindNoteDoc, createNoteDoc } from "~/lib/live-notes/notes.sync";
+import { createProvider } from "~/lib/providers/providers.sync";
 import { MentionTargets } from "./MentionChip";
 import { MentionPopup, mentionOptionId } from "./MentionPopup";
 import { ProviderMention, useMentionPopup } from "./useMentionPopup";
@@ -32,7 +34,10 @@ export type LiveNotesEditorHandle = {
  * name, linking to their page). With `providers` (the group's, deleted ones
  * included so their chips grey), writers get an `@` popup over them; a pick
  * inserts the mention and calls `onMention` (the entry page links the
- * provider to the entry). Deleting a mention calls nothing.
+ * provider to the entry). Deleting a mention calls nothing. The popup's
+ * last row adds the typed name as a provider (a clinician), then mentions
+ * it: through `onAdd` when given (the entry page creates and links), else
+ * `createProvider` in this group.
  */
 export function LiveNotesEditor({
   label,
@@ -41,6 +46,7 @@ export function LiveNotesEditor({
   ref,
   providers,
   onMention,
+  onAdd,
   ...options
 }: BindNoteDocOptions & {
   label: string;
@@ -49,6 +55,8 @@ export function LiveNotesEditor({
   providers?: readonly MentionProvider[];
   /** Called with a provider's id when a writer picks one in the `@` popup. */
   onMention?: (providerId: string) => void;
+  /** Adds the popup's typed name as a provider (and does any linking). Defaults to a clinician in this group. */
+  onAdd?: (name: string) => Promise<MentionAddResult>;
   /** Put the cursor in the document on open (a writer starting a new entry). */
   autofocus?: boolean;
   ref?: Ref<LiveNotesEditorHandle>;
@@ -79,6 +87,7 @@ export function LiveNotesEditor({
     providers: providers ?? NO_PROVIDERS,
     enabled: canWrite && !!providers,
     onMention,
+    onAdd: onAdd ?? ((name) => createProvider(db, groupId, { type: "clinician", name })),
   });
   const targets = useMemo(
     () => ({ groupId, providers: new Map((providers ?? NO_PROVIDERS).map((p) => [p.id, p])) }),
@@ -136,6 +145,11 @@ export function LiveNotesEditor({
         <EditorContent editor={editor} />
       </MentionTargets>
       <MentionPopup popup={mentions.popup} />
+      {mentions.error && (
+        <p role="alert" className="text-error border-base-300 border-t px-4 py-2 text-sm">
+          {mentions.error}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,7 +1,13 @@
 import type { MentionProvider } from "./mentionOptions";
 
 import { describe, expect, it } from "vitest";
-import { MENTION_LIMIT, mentionOptions } from "./mentionOptions";
+import {
+  MENTION_LIMIT,
+  mentionAddRow,
+  mentionChoices,
+  mentionOptions,
+  mentionQueryOpen,
+} from "./mentionOptions";
 
 const p = (id: string, name: string, extra: Partial<MentionProvider> = {}): MentionProvider => ({
   id,
@@ -57,5 +63,67 @@ describe("mentionOptions", () => {
     const many = Array.from({ length: 30 }, (_, i) => p(`m${String(i).padStart(2, "0")}`, `Dr. Many ${i}`));
     expect(mentionOptions(many, "")).toHaveLength(MENTION_LIMIT);
     expect(mentionOptions(all, "", 2).map((o) => o.id)).toEqual(["a", "d"]);
+  });
+});
+
+describe("the add row", () => {
+  const add = (name: string) => ({ kind: "add", name, label: `Add "${name}" as a provider` });
+
+  it("ends the list for writers when no provider has exactly the typed name", () => {
+    const rows = mentionChoices(all, "Dr. Chen", { canAdd: true });
+    expect(rows).toEqual([add("Dr. Chen")]);
+    // Partial matches stay above it: "Dr. Sam" isn't anyone's name.
+    const sam = mentionChoices(all, "Dr. Sam", { canAdd: true });
+    expect(sam.map((r) => (r.kind === "add" ? "add" : r.id))).toEqual(["b", "add"]);
+    expect(sam.at(-1)).toEqual(add("Dr. Sam"));
+  });
+
+  it("is left out when a live provider has the name, case, accents and spacing ignored", () => {
+    expect(mentionAddRow(all, "dr. samuel patel")).toBeNull();
+    expect(mentionAddRow(all, "  Jose   NUNEZ ")).toBeNull();
+    expect(mentionAddRow(all, "Cornerstone pharmacy")).toBeNull();
+    // A deleted provider's name can be added again.
+    expect(mentionAddRow(all, "Dr. Gone")).toEqual(add("Dr. Gone"));
+  });
+
+  it("takes the typed name trimmed, with single spaces", () => {
+    expect(mentionAddRow(all, "  Dr.   Chen ")).toEqual(add("Dr. Chen"));
+  });
+
+  it("needs typed text", () => {
+    expect(mentionAddRow(all, "")).toBeNull();
+    expect(mentionAddRow(all, "   ")).toBeNull();
+    expect(mentionChoices(all, "", { canAdd: true }).every((r) => r.kind === "provider")).toBe(true);
+  });
+
+  it("is for writers only", () => {
+    expect(mentionChoices(all, "Dr. Chen", { canAdd: false })).toEqual([]);
+    expect(mentionChoices(all, "cardio", { canAdd: false })).toEqual([
+      { kind: "provider", id: "b", label: "Dr. Samuel Patel", description: "Cardiology" },
+    ]);
+  });
+
+  it("comes after the full list of matches, whatever the limit", () => {
+    const many = Array.from({ length: 30 }, (_, i) => p(`m${String(i).padStart(2, "0")}`, `Dr. Many ${i}`));
+    const rows = mentionChoices(many, "Dr. Many", { canAdd: true });
+    expect(rows).toHaveLength(MENTION_LIMIT + 1);
+    expect(rows.at(-1)).toEqual(add("Dr. Many"));
+  });
+});
+
+describe("mentionQueryOpen: spaces in what's typed after the @", () => {
+  it("stays open for two words, or while the words before the last space match someone", () => {
+    expect(mentionQueryOpen(all, "")).toBe(true);
+    expect(mentionQueryOpen(all, "Mom")).toBe(true);
+    expect(mentionQueryOpen(all, "Rosa Lind")).toBe(true);
+    expect(mentionQueryOpen(all, "Dr. Chen")).toBe(true);
+    expect(mentionQueryOpen(all, "dr samuel pat")).toBe(true);
+  });
+
+  it("closes once a third word starts after words that match nobody, or on a leading space", () => {
+    expect(mentionQueryOpen(all, "Mom said ")).toBe(false);
+    expect(mentionQueryOpen(all, "Mom said to")).toBe(false);
+    expect(mentionQueryOpen(all, "Rosa Lind said")).toBe(false);
+    expect(mentionQueryOpen(all, " 5pm")).toBe(false);
   });
 });

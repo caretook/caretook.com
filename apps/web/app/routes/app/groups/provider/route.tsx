@@ -14,6 +14,7 @@ import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
+import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { ContactList } from "./ContactList";
 import { LinkedEntries } from "./LinkedEntries";
 import { loadProvider } from "./loadProvider";
@@ -66,6 +67,8 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const deleted = !live || !!live.deletedAt || live.groupId !== groupId;
 
   const { ensureSaved, saveError } = useProviderNotes(providerId, loaderData.hasDocument);
+  // The group's providers, for mentions in the notes (chips only: nothing links here).
+  const mentionProviders = useMentionProviders(groupId);
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
@@ -134,6 +137,7 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
               canWrite={canWrite}
               initial={loaderData.initial}
               ensureSaved={ensureSaved}
+              providers={mentionProviders}
             />
           </section>
 
