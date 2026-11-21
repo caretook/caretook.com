@@ -168,7 +168,7 @@ export function RepeatField({
             { value: "weekday", label: monthly.weekday },
           ]}
           value={choice.monthlyBy}
-          onChange={(monthlyBy) => set({ monthlyBy })}
+          onChange={(monthlyBy) => set({ monthlyBy, keptWeekday: undefined })}
         />
       )}
 

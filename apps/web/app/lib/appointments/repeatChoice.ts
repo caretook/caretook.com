@@ -46,6 +46,8 @@ export type RepeatChoice = {
   weekdays: Weekday[];
   /** Monthly: on the start's date (the 18th), or its weekday in the month (the 3rd Wednesday). */
   monthlyBy: "date" | "weekday";
+  /** A stored rule's ordinal and weekday (the last Friday), kept until the monthly choice changes. */
+  keptWeekday?: { nth: MonthWeek; weekday: Weekday };
   end: RepeatEndChoice;
   /** "YYYY-MM-DD", for `end: "on"`. */
   until: string;
@@ -102,7 +104,11 @@ export const choiceRule = (choice: RepeatChoice, startsOn: string): RepeatRule |
         ? null
         : choice.monthlyBy === "date"
           ? { by: "date", day: Number(startsOn.slice(8, 10)) }
-          : { by: "weekday", nth: monthWeekOf(startsOn), weekday: weekdayOf(startsOn) },
+          : {
+              by: "weekday",
+              nth: choice.keptWeekday?.nth ?? monthWeekOf(startsOn),
+              weekday: choice.keptWeekday?.weekday ?? weekdayOf(startsOn),
+            },
     end:
       choice.end === "on"
         ? { type: "on", until: choice.until }
@@ -129,6 +135,7 @@ export const choiceOfRule = (rule: string, startsOn: string): RepeatChoice => {
     unit: freq,
     weekdays: freq === "weekly" ? weekdays : base.weekdays,
     monthlyBy: monthly?.by ?? "date",
+    ...(monthly?.by === "weekday" ? { keptWeekday: { nth: monthly.nth, weekday: monthly.weekday } } : {}),
     end: end.type,
     until: end.type === "on" ? end.until : base.until,
     count: end.type === "after" ? end.count : base.count,
