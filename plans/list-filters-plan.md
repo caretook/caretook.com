@@ -7,7 +7,7 @@
 | Slice | Wave | State                          | Merge into `prd/list-filters` (slice commits) |
 | ----- | ---- | ------------------------------ | --------------------------------------------- |
 | 1     | 1    | merged (opus)                  | 69676563 (61b69c42, 898efdcc)                 |     |
-| 2     | 2    | started (sonnet, 2026-11-21)   |                                               |
+| 2     | 2    | merged (sonnet)                |                                               |
 | 3     | 2    | handed off (opus; takes B-255) |                                               |
 | 4     | 3    | not started                    |                                               |
 
@@ -15,7 +15,7 @@
 
 **Wave 1: landed** in `dev` through PR #18 (f48c0f5, Codex clean on 493312c, check `--quick` on 80d0b207, browser `ui` passed); docs folded (components, medications); quick-fixes and planner-2 told to sync.
 
-**Wave 2:** slice 3 handed off (83fae255; `pnpm check` and browser `roundtrip` passed; touches `planner.browser.test.tsx` and `roundtrip.spec.mjs`), waiting to merge after slice 2 (plan order). **Message planner-2 (planner-2-b7) when wave 2 lands**: its slice 6 (repeating-todo screens) changes the Todos tab and rows; if it lands first, sync before merging ours. Its docs fold for todos.md is in its hand-off: the Todos tab's Filter menu, Everyone by default (`DEFAULT_WHO`, `whoOf`, `clearWho`).
+**Wave 2:** slices 2 (bf68e368, sonnet; its own `pnpm check` didn't finish clean: a load flake in timelineQuickEntry, its fixes rerun alone) and 3 (6471195a, opus; B-255) merged; worktrees removed; B-255 done. Docs folded (providers, todos). Landing: sync, then the **full** `pnpm prd check` (slice 2 had no clean full pass), browser `--changed`, PR. **Message planner-2 (planner-2-b7) when wave 2 lands** (its slice 6 changes the Todos tab and rows).
 
 **Open:** B-247 isn't scheduled: the quick-fixes orchestrator says the user held it (and B-246) back for a later wave; it will message us if it's scheduled and when it lands. A background check watches `dev` too. Once slices 1–3 are merged, ask the user: wait for it, or land the three and file slice 4 as a `quick-fixes` item.
 
