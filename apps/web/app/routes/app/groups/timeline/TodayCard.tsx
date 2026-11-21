@@ -13,7 +13,7 @@ import { formatAgo } from "~/lib/core/format";
 import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { todoStripText, todoStripWho } from "~/lib/todos/todoStrip";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
-import { STRIP_CAP } from "./layout";
+import { COLUMN_CAP } from "./layout";
 import { TodayMedicationsRow } from "./TodayMedicationsRow";
 import { TodayRow, TodayRowSkeleton } from "./TodayRow";
 import { useTodayCard } from "./useTodayCard";
@@ -86,7 +86,7 @@ export function TodayCard({
       aria-labelledby="today-card-heading"
       data-today-card
       data-collapsed={collapsed ? "" : undefined}
-      className={`rounded-box border-base-300 bg-base-100 overflow-hidden border ${STRIP_CAP}`}
+      className={`rounded-box border-base-300 bg-base-100 overflow-hidden border ${COLUMN_CAP}`}
     >
       <h2 id="today-card-heading" className="text-sm">
         <button
