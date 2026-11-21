@@ -248,7 +248,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-392 | feature | triaged | orchestration-3 |  | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
 | B-393 | bug | triaged | fixes-bug |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
 | B-394 | bug | triaged | fixes-tooling |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
-| B-395 | change | ready | orchestration-2 | prd/orchestration-2 | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
+| B-395 | change | landed | orchestration-2 | prd/orchestration-2 | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
 | B-396 | change | in-progress | ui-kit | prd/ui-kit | Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge |
 | B-397 | change | triaged | ui-kit |  | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
 | B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
@@ -262,8 +262,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-406 | feature | triaged | orchestration-3 |  | Set priority in the inbox, not the backlog: the user orders a short 'Next up' list in plans/inbox.md (plain lines, no ids or fields) and the dispatcher reads it as the order to plan and run, keeping the PRD table's row order in step; the user opens the backlog only when an agent asks |
 | B-407 | feature | triaged | orchestration-3 |  | Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it |
 | B-408 | feature | triaged | orchestration-3 |  | Stuck workers handled by the orchestrator: it tracks how long its commands and slice agents have run against their usual time, stops and restarts a stuck one on its own judgement (once), and for a judgement call asks a fresh skeptic agent first and the user through the asks queue only if that doesn't settle it |
-| B-409 | change | in-progress | orchestration-2 | prd/orchestration-2 | Docs-only changes don't wait on Codex: when everything a PR changes is Markdown (plans/, docs/, AGENTS.md), pnpm prd land merges without a verdict and the orchestrator doesn't run or wait for pnpm prd review |
-| B-410 | feature | triaged | orchestration-2 |  | A to-test folder of landing reports: every landing writes one file to to-test/ in the main checkout (gitignored) saying what landed and what to try; the user reads and deletes them by hand to catch up on what happened while away |
+| B-409 | change | ready | orchestration-2 | prd/orchestration-2 | Docs-only changes don't wait on Codex: when everything a PR changes is Markdown (plans/, docs/, AGENTS.md), pnpm prd land merges without a verdict and the orchestrator doesn't run or wait for pnpm prd review |
+| B-410 | feature | in-progress | orchestration-2 | prd/orchestration-2 | A to-test folder of landing reports: every landing writes one file to to-test/ in the main checkout (gitignored) saying what landed and what to try; the user reads and deletes them by hand to catch up on what happened while away |
 | B-411 | bug | triaged | orchestration-2 |  | A session opened again under the same name while the first still runs gets marked ended when the first exits: session.sh writes ended and exit without checking the record is still its own |
 | B-412 | bug | triaged | fixes-ui |  | plus button on timeline day header should be on far right so all actions are on right. Care period… |
 | B-413 | bug | triaged | fixes-ui |  | don't collapse past providers on list providers page, it breaks search and isn't needed. This list… |
@@ -272,6 +272,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-416 | bug | triaged | fixes-ui |  | owner pill on planner/planner list should be below time/date field. Too busy under title. |
 | B-417 | feature | triaged | marketing |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-418 | bug | triaged | test-health |  | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
+| B-419 | bug | inbox |  |  | on providers page, import from another group is too wordy. Import icon is fine. It is for power… |
+| B-420 | bug | inbox |  |  | planner add button can just be a plus icon. Maybe wait on button component. every main page header… |
+| B-421 | bug | inbox |  |  | type pill on medication list items should float right. |
+| B-422 | feature | inbox |  |  | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
+| B-423 | feature | inbox |  |  | Standardize on single Button design component. Can have options like primary, secondary, danger,… |
+| B-424 | feature | inbox |  |  | medications page should have passes as a tab, not in header. + button should be a dropdown with add… |
 
 ## Items
 
@@ -1881,7 +1887,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-395 · change · Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic)
 
-- status: ready
+- status: landed
 - prd: orchestration-2
 - owner: prd/orchestration-2
 - commit: db507fe2
@@ -2021,19 +2027,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-409 · change · Docs-only changes don't wait on Codex: when everything a PR changes is Markdown (plans/, docs/, AGENTS.md), pnpm prd land merges without a verdict and the orchestrator doesn't run or wait for pnpm prd review
 
-- status: in-progress
+- status: ready
 - prd: orchestration-2
 - owner: prd/orchestration-2
-- commit:
+- commit: ec7ffb26
 
 - 2026-11-21 (Robert Bo Davis): Asked for by the user 2026-11-21. Category: tooling. Triaged to orchestration-2 (running, later waves still to start; it owns scripts/loops/prompt.sh and prd.sh, and took B-403 the same way); if its orchestrator finds its waves full, orchestration-3. Today land.sh refuses the PR path without a clean verdict unless --no-review on the user's word, and the orchestrator prompt always runs pnpm prd review --wait; the review guidelines already tell Codex to skip plans/ and docs prose, so the wait buys nothing. Shape: land.sh works out docs-only from dev...<tip> (lib.sh already has the docs-and-tooling test for the check gate; this one is narrower: Markdown only, since tooling scripts are code and keep the review), prints that it skipped the verdict and why, and prompt.sh tells orchestrators and planners not to request or wait for a review then. The same rule should apply to B-404 (ship dev to staging) when dev...staging is docs only. To settle: whether a docs-only prd/ landing still needs a PR at all or can land locally like a plan/ branch.
 - 2026-11-21 (prd/orchestration-2): orchestration-2 slice 8 (after 7). Assumed: a docs-only prd/ landing keeps its PR; only the Codex verdict is skipped.
 
 ### B-410 · feature · A to-test folder of landing reports: every landing writes one file to to-test/ in the main checkout (gitignored) saying what landed and what to try; the user reads and deletes them by hand to catch up on what happened while away
 
-- status: triaged
+- status: in-progress
 - prd: orchestration-2
-- owner:
+- owner: prd/orchestration-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Asked for by the user 2026-11-21: a quick review of what happened while not watching; they manage the folder by hand (agents only add files, never edit or delete them). Category: tooling. Triaged to orchestration-2 (running; its landed-wave reports go through pnpm prd ask --report, B-391, and this is the same text kept as a file); if its waves are full, orchestration-3. Shape: pnpm prd land (PRD, hotfix and fix-topic landings; a plan/ landing only if the user wants docs listed) writes to-test/<date>-<time>-<topic>.md in the main checkout from what pnpm prd ready already reports: the plain title of the topic and wave, the items with titles and ids, the dev commit and PR link, what to try and where (screens, steps, the dev URL), what was not checked (skipped browser checks, --quick, --no-review), and follow-ups filed. to-test/ goes in .gitignore; land.sh writes the file itself so it exists even if the session dies after merging. Open: whether the ask --report still fires as well (a push to the phone) or only links the file, and whether the staging ship (B-404) writes one too.
@@ -2118,3 +2124,55 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Seen 2026-11-21 about 17:20 PT in a full pnpm test:tooling run on dev (1 of 495 failed) with load averages 19 to 30; the file alone passed 3 of 3 (22 tests each). The assertion output was not captured. Likely a timing or wall-clock dependence (the case compares against the current time); reproduce under load, then fix the race rather than rerun. Proposed for test-health, which holds the flaky-test work.
+
+### B-419 · bug · on providers page, import from another group is too wordy. Import icon is fine. It is for power…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: on providers page, import from another group is too wordy. Import icon is fine. It is for power users anyway. Move the add button (just a + icon) and import icons to the right side of the header. Add is primary, import is secondary. and they should be similarly sized/styled.
+
+### B-420 · bug · planner add button can just be a plus icon. Maybe wait on button component. every main page header…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: planner add button can just be a plus icon. Maybe wait on button component. every main page header can have a + icon button in the top right of header to add a new item. other secondary buttons should be to left of the + button.
+
+### B-421 · bug · type pill on medication list items should float right.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-422 · feature · In providers list page, contact links in rows make it too hard to know what to click. Make those…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: In providers list page, contact links in rows make it too hard to know what to click. Make those clickable in the details sheet and remove the information from the rows. Most of the time we want notes open during contact anyway.
+
+### B-423 · feature · Standardize on single Button design component. Can have options like primary, secondary, danger,…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: Standardize on single Button design component. Can have options like primary, secondary, danger, etc. Can have sizes like small, medium, large. Can have variants like icon, text, etc. Can have shape like pill, square, round, etc. use it for every interactive link icon or text button in the app other than header and footer, expand actions, and hamburgers. Ask me if there should be other exceptions.
+
+### B-424 · feature · medications page should have passes as a tab, not in header. + button should be a dropdown with add…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: medications page should have passes as a tab, not in header. + button should be a dropdown with add selection like other pages. Should probably wait on button component and standardized header add button.
