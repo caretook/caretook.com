@@ -17,6 +17,8 @@
 
 **Models:** slice 1 opus (schema, sync, new UX).
 
+**Open:** quick-fixes wave 13 landed in `dev` as `bf0891df` (B-187 filter sheet, B-189/190 connector text): `pnpm prd sync` after slice 1 merges, before wave 2; slices 2 and 6 then need no follow-up.
+
 **Start conditions:** none for slice 1. Slice 2 waits for quick-fixes slice 51 (the timeline's Filter sheet, B-187) to be in `dev`, and slice 6 for quick-fixes slice 48 (the connector's timeline text, B-189 and B-190). Check with `pnpm backlog show B-187` / `B-189` that they've landed, and `pnpm prd sync` before starting either slice. If quick-fixes hasn't landed them, the slice may start and leave its filter or text line to a short follow-up once they do (say so in the hand-off).
 
 **Landing:** this PRD adds migrations (slices 1, 2, 3 and 4) and synced tables, so hold landing until every slice is merged, then run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
