@@ -65,10 +65,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-60 | feature | ready | appointments-2 | prd/appointments-2 | Recurring appointments (weekly PT, dialysis three times a week) |
-| B-61 | feature | ready | appointments-2 | prd/appointments-2 | Appointment reminders by email and push before the appointment |
-| B-62 | feature | ready | appointments-2 | prd/appointments-2 | iCal feed of a care group's upcoming appointments |
-| B-63 | feature | ready | appointments-2 | prd/appointments-2 | Google Calendar sync of a care group's appointments |
+| B-60 | feature | landed | appointments-2 | prd/appointments-2 | Recurring appointments (weekly PT, dialysis three times a week) |
+| B-61 | feature | landed | appointments-2 | prd/appointments-2 | Appointment reminders by email and push before the appointment |
+| B-62 | feature | landed | appointments-2 | prd/appointments-2 | iCal feed of a care group's upcoming appointments |
+| B-63 | feature | landed | appointments-2 | prd/appointments-2 | Google Calendar sync of a care group's appointments |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
@@ -80,9 +80,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-191 | bug | landed | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
 | B-192 | bug | landed | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
-| B-193 | feature | triaged | connectors-2 |  | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
+| B-193 | feature | in-progress | connectors-2 | prd/connectors-2 | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
 | B-194 | feature | triaged | connectors-2 |  | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
-| B-195 | feature | triaged | connectors-2 |  | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
+| B-195 | feature | in-progress | connectors-2 | prd/connectors-2 | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-197 | feature | triaged | connectors-2 |  | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | landed | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
@@ -90,7 +90,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-200 | bug | in-progress | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
-| B-204 | feature | triaged | connectors-2 |  | connector should be able to edit notes and events so it can help you draft questions or add… |
+| B-204 | feature | in-progress | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
 | B-206 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
 | B-207 | bug | landed | quick-fixes | hotfix/stack-healthcheck | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
@@ -207,7 +207,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
 
-- status: ready
+- status: landed
 - prd: appointments-2
 - owner: prd/appointments-2
 - commit: f1cc1dbc
@@ -218,7 +218,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-61 · feature · Appointment reminders by email and push before the appointment
 
-- status: ready
+- status: landed
 - prd: appointments-2
 - owner: prd/appointments-2
 - commit: edfcedf0
@@ -229,7 +229,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-62 · feature · iCal feed of a care group's upcoming appointments
 
-- status: ready
+- status: landed
 - prd: appointments-2
 - owner: prd/appointments-2
 - commit: 6e343bd8
@@ -240,7 +240,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-63 · feature · Google Calendar sync of a care group's appointments
 
-- status: ready
+- status: landed
 - prd: appointments-2
 - owner: prd/appointments-2
 - commit: f1cc1dbc
@@ -368,9 +368,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-193 · feature · In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states
 
-- status: triaged
+- status: in-progress
 - prd: connectors-2
-- owner:
+- owner: prd/connectors-2
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): today nothing in the app tells a member the URL or where to add it; connectors-2 PRD, to write
@@ -388,9 +388,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-195 · feature · Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state
 
-- status: triaged
+- status: in-progress
 - prd: connectors-2
-- owner:
+- owner: prd/connectors-2
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): MCP prompts were out of scope in connectors; connectors-2 PRD, to write
@@ -471,9 +471,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-204 · feature · connector should be able to edit notes and events so it can help you draft questions or add…
 
-- status: triaged
+- status: in-progress
 - prd: connectors-2
-- owner:
+- owner: prd/connectors-2
 - commit:
 
 - 2026-11-20 (prd/appointments-2): From the inbox: connector should be able to edit notes and events so it can help you draft questions or add information to the entries.
