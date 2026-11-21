@@ -306,6 +306,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-396 | change | triaged | ui-kit |  | Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge |
 | B-397 | change | triaged | ui-kit |  | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
 | B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
+| B-399 | bug | triaged | ui-kit |  | Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg… |
+| B-400 | change | triaged | simple-mode |  | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
 
 ## Items
 
@@ -2563,3 +2565,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-21 (plan/ui-kit): From the ui-kit plan (2026-11-21): ui-kit builds the primitives and adopts them in settings, sign-in and the five detail pages; this is the rest (about 200 files: btn, alert, card, list, badge, checkbox and toggle class strings, Field control classes, the text opacities and link styles from B-267). Ends with the guard (B-269) so it stays swept.
 - 2026-11-21 (plan/ui-kit): Also left for this sweep: the remaining 'No … yet.' lines and MedicationSheet's local Empty, the timeline's four skeleton files, the 15 Cancel and Save footers in sheets, section h2/h3 headings outside the detail pages, home's h1, the timeline and entry pages' containers, and icon sizes. /admin keeps its own heading sizes (a deliberate narrowing of B-263).
+
+### B-399 · bug · Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg…
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg color than the rest of the page and we can probably move to pure icon buttons instead of text buttons with aria tips
+- 2026-11-21 (Robert Bo Davis): Triage: proposed ui-kit. A navigation redesign like B-396 (TabNav as a pill bar): the mobile bottom menu (SectionNav) floating, its own background, icon-only buttons with accessible names. The ui-kit plan is being written now (plan/ui-kit), so its planner takes it or leaves it for ui-kit-2. For the user's review.
+
+### B-400 · change · Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the…
+
+- status: triaged
+- prd: simple-mode
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the header on the full app header to match simple mode.
+- 2026-11-21 (Robert Bo Davis): Triage: proposed simple-mode. The Easy Mode toggle moves from the timeline's view (eyeball) menu into the full app header, matching the easy view's header. simple-mode slice 1 renames every simple* file and the role decides the view, so this goes inside or right after that PRD, not beside it. The PRD is written and not run: add it as a slice before starting. For the user's review.
