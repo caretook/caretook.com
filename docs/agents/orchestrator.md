@@ -20,7 +20,7 @@ For a PRD orchestrator: a top-level session (spawned agents can't spawn more), o
 - **Waiting on another PRD:** ask its orchestrator (ListAgents, SendMessage) to message you when the work lands in `dev`, and set a background check that exits when `pnpm log dev` or `pnpm backlog list` shows it; then sync and carry on.
 - **Keep your context small.** Work from _Status_, the backlog, hand-offs, `git diff --stat` and check output. Don't read whole diffs or debug inside a loop: send the problem back to its agent with SendMessage. Start a fresh session (the same command) when it gets slow or confused.
 - **Update _Status_ at every step:** a slice started (worktree made, agent spawned), handed off, merged (with the SHA), a wave landed; plus what's ready, open issues and the landing mode. Write it as you go, and commit it with your merges and before `pnpm prd check`, so a fresh orchestrator loses nothing.
-- **Capacity:** the limits are CPU and attention (a stack idles at about 250 MB); three PRDs with two or three slices each is about 12 slots. Every check, loops' included, is `pnpm prd check` and takes one of two check leases, so loops finishing together queue. Each run appends a line to `.loops/.check-times.log` (mode, reason, seconds, load at start and end, exit code); `pnpm prd check --times [--since <date>]` summarises it by mode and PRD. No load gate: the log is the evidence for one. Under heavy load tests and sign-ins time out: rerun once it drops before debugging.
+- **Capacity:** the limits are CPU and attention (a stack idles at about 250 MB); three PRDs with two or three slices each is about 12 slots. Every check is `pnpm prd check`, in one of two check leases. Each run appends a line to `.loops/.check-times.log` (mode, reason, seconds, load, exit, test files); `pnpm prd check --times [--since <date>]` summarises it. No load gate: the log is the evidence for one. Under heavy load tests and sign-ins time out: rerun once it drops before debugging.
 
 ## Models
 
@@ -58,9 +58,11 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 
 - **None needed:** everything `dev...<tip>` changes is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/`; later commits of only those also keep an earlier pass. Still run `pnpm test:tooling`.
 - **Full:** `pnpm prd check` (`pnpm check`, then `pnpm build:budget`: the entry and `/app` shell chunk ceilings in `scripts/build/budget.json`) passed on the tip.
-- **Quick:** `pnpm prd check --quick "<why>"` passed on the tip: typecheck, lint, format and the tests related to the diff since the last full pass (`vitest run --changed`). The reason is shown at landing.
+- **Quick:** `pnpm prd check --quick "<why>"` passed on the tip: typecheck, lint, format, the tests related to the diff since the last full pass, the always-run list (tests that read files by path), the check-areas lint and the docs budget; it prints how many test files it ran and warns above half. The reason is shown at landing.
 
-Quick is enough when everything since the last full pass is a conflict-free `pnpm prd sync` whose two sides share no file, slice merges whose slices each passed `pnpm check` with no code conflicts, or a hotfix. Run the full check when a conflict was resolved in code; when the diff touches a migration, seeds, `sync-config.yaml`, the lockfile or a `package.json`; when both sides changed a shared registry or hot file; or when unsure. Quick passes keep the last full pass as their base, so they don't drift.
+The plan is `check-plan.mjs` (pure, tested): a quick check on a diff touching a migration, seeds, `sync-config.yaml`, the lockfile, a `package.json` or `vitest.config.ts` runs full and records `full`; `pnpm test:tooling` joins either when the diff touches the tooling. Loops hand off on quick; **wave gates are quick, and the full check runs once per landing**, on the wave's tip before its PR.
+
+Quick is enough on top of a full pass for a conflict-free `pnpm prd sync` whose sides share no file, or a hotfix. Run full when a conflict was resolved in code, when both sides changed a shared registry or hot file, or when unsure. Quick passes keep the last full pass as their base.
 
 ### Docs at landing
 
