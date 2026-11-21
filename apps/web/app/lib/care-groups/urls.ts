@@ -1,7 +1,7 @@
 import { groupHome, HOME } from "../core/urls";
 
 /** A group's settings subpages, in list order (`…/settings/<page>`). */
-export const GROUP_SETTINGS_PAGES = ["details", "members", "assistants"] as const;
+export const GROUP_SETTINGS_PAGES = ["details", "members", "assistants", "calendar"] as const;
 export type GroupSettingsPage = (typeof GROUP_SETTINGS_PAGES)[number];
 const isGroupSettingsPage = (page: unknown): page is GroupSettingsPage =>
   (GROUP_SETTINGS_PAGES as readonly unknown[]).includes(page);

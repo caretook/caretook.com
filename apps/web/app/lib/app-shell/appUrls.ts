@@ -1,4 +1,5 @@
 import { appointmentUrls } from "../appointments/urls";
+import { calendarUrls } from "../calendars/urls";
 import { carePeriodUrls } from "../care-periods/urls";
 import { careGroupUrls } from "../care-groups/urls";
 import { groupHome } from "../core/urls";
@@ -38,4 +39,5 @@ export const appUrls = {
   ...searchUrls,
   ...carePeriodUrls,
   ...taskUrls,
+  ...calendarUrls,
 } as const;

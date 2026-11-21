@@ -38,7 +38,7 @@ services:
     tmpfs:
       - /var/lib/postgresql:size=4g
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U caretook -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U caretook -d postgres"]
       interval: 1s
       timeout: 5s
       retries: 30

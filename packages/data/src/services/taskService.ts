@@ -29,6 +29,7 @@ import {
   userModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
+import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 
 // Tasks: the group's shared todo list. Write through here, not the model:
 // this is where content is validated, the assignee and links are checked,
@@ -134,7 +135,9 @@ const write = async (ctx: ServiceContext, tx: Tx, id: string, data: Partial<Task
   if (isError(updated) && updated.code === "baseModel:update:nothingUpdated")
     return rejectError(ctx.authUser);
   if (isError(updated)) return updated;
-  return updated[0] ?? null;
+  // Tasks with a due day reach members' Google calendars (appointments-2).
+  const queued = await enqueueCalendarPush(tx, { taskId: id }, "task");
+  return queued ?? updated[0] ?? null;
 };
 
 // ---------------------------------------------------------------------------
@@ -193,11 +196,14 @@ export const create = (ctx: ServiceContext, input: TaskCreateInput, opts: TaskWr
     const links = await checkLinks(ctx, tx, data.groupId, data);
     if (links) return links;
 
-    return taskModel.create({
+    const created = await taskModel.create({
       ...ctx,
       tx,
       data: { ...data, recipientId: recipient.id, ...(opts.via ? { via: opts.via } : {}) },
     });
+    if (isError(created) || !created) return created;
+    const queued = await enqueueCalendarPush(tx, { taskId: created.id }, "task");
+    return queued ?? created;
   }, ctx);
 
 /**
@@ -319,7 +325,8 @@ export const upsert = (ctx: ServiceContext, input: TaskUpsertInput) =>
 export const remove = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
     const res = await taskModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
-    if (!isError(res) || res.code !== "baseModel:remove:nothingRemoved") return res;
+    if (!isError(res)) return (await enqueueCalendarPush(tx, { taskId: id }, "task")) ?? res;
+    if (res.code !== "baseModel:remove:nothingRemoved") return res;
     // Visible but not removable: a viewer. Otherwise gone, or never theirs.
     const visible = await taskModel.getById(id, { ...ctx, tx });
     if (isError(visible)) return visible;

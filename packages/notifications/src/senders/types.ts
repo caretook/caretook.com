@@ -8,6 +8,8 @@ export type OutgoingMessage = {
   text: string;
   /** The outbox row's key: Resend drops a second send with the same key. */
   idempotencyKey: string;
+  /** Extra headers (`List-Unsubscribe`), from the notification's `headers`. */
+  headers?: Record<string, string>;
 };
 
 export type SendResult =

@@ -4,8 +4,10 @@ import type { DoseDetails, MedicationChangeDetails, PassMovedDetails } from "../
 import type { ConditionChangeDetails } from "../profiles/conditionChange";
 import type { VitalDetails } from "./vitals";
 
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   foreignKey,
   index,
   jsonb,
@@ -13,10 +15,12 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+import { appointmentSeriesSchema } from "../appointments/appointmentSeries";
 import { careGroupSchema } from "../care-groups/careGroup";
 import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
@@ -128,6 +132,14 @@ export const timelineEntrySchema = pgTable(
     // name at write time ("Claude"), kept after a disconnect. Only the
     // server's assistant runner sets it.
     via: text("via"),
+    // A series visit (appointments-2): notes and events only. `series_day` is
+    // the local day the rule produced it for; `series_detached` is set when
+    // this visit was changed on its own ("Only this visit"), so later series
+    // edits leave it as it is. The FK is ON DELETE SET NULL ("series_id") in
+    // the migration, edited by hand (Drizzle 0.45 can't express it).
+    seriesId: uuid("series_id"),
+    seriesDay: date("series_day", { mode: "string" }),
+    seriesDetached: boolean("series_detached").notNull().default(false),
     ...timestamps,
     ...audits,
   },
@@ -154,6 +166,18 @@ export const timelineEntrySchema = pgTable(
       columns: [t.groupId, t.rescheduledTo],
       foreignColumns: [t.groupId, t.id],
     }),
+    // A visit's series, in the same group. Hand-edited to ON DELETE SET NULL
+    // ("series_id") in the migration: hard-deleting a series keeps its visits.
+    foreignKey({
+      name: "timeline_entry_series_fk",
+      columns: [t.groupId, t.seriesId],
+      foreignColumns: [appointmentSeriesSchema.groupId, appointmentSeriesSchema.id],
+    }),
+    // One live visit per series day: a device and the server writing the same
+    // visit converge on one row (their ids are the same, seriesVisitId).
+    uniqueIndex("timeline_entry_series_day_unique")
+      .on(t.seriesId, t.seriesDay)
+      .where(sql`${t.deletedAt} IS NULL AND ${t.seriesId} IS NOT NULL`),
   ],
 );
 
@@ -198,6 +222,7 @@ const noDetails = z.null().optional();
 
 const timestampText = z.iso.datetime({ offset: true });
 const onlyEvents = z.null({ error: "Only events have this" }).optional();
+const onlyRepeating = z.null({ error: "Only notes and events repeat" }).optional();
 
 /** Kinds other than notes and events: never all-day, and none of an event's appointment fields. */
 const notScheduled = {
@@ -207,10 +232,20 @@ const notScheduled = {
   cancelledAt: onlyEvents,
   cancelReason: onlyEvents,
   rescheduledTo: onlyEvents,
+  seriesId: onlyRepeating,
+  seriesDay: onlyRepeating,
+  seriesDetached: z.literal(false, { error: "Only notes and events repeat" }).optional(),
+};
+
+/** A visit of a series (appointments-2): notes and events. */
+const seriesVisitFields = {
+  seriesId: z.uuid().nullish(),
+  seriesDay: z.iso.date().nullish(),
+  seriesDetached: z.boolean().optional(),
 };
 
 /** A note: it may be all day (a reminder for a day), nothing else an event has. */
-const noteScheduling = { ...notScheduled, allDay: z.boolean().optional() };
+const noteScheduling = { ...notScheduled, ...seriesVisitFields, allDay: z.boolean().optional() };
 
 /** An event's appointment fields: an end, all day, a place, and being cancelled or moved. */
 const eventScheduling = {
@@ -220,6 +255,7 @@ const eventScheduling = {
   cancelledAt: timestampText.nullish(),
   cancelReason: optionalText(TIMELINE_LIMITS.cancelReason),
   rescheduledTo: z.uuid().nullish(),
+  ...seriesVisitFields,
 };
 
 type Scheduled = {
@@ -230,6 +266,8 @@ type Scheduled = {
   cancelledAt?: string | null;
   cancelReason?: string | null;
   rescheduledTo?: string | null;
+  seriesId?: string | null;
+  seriesDay?: string | null;
 };
 
 /**
@@ -250,6 +288,8 @@ const checkScheduling = (value: Scheduled, ctx: z.core.$RefinementCtx) => {
     if (value.cancelReason) issue("cancelReason", "Only a cancelled event has a reason");
     if (value.rescheduledTo) issue("rescheduledTo", "Only a cancelled event can be rescheduled");
   }
+  if (!!value.seriesId !== !!value.seriesDay)
+    issue("seriesDay", "A series visit needs its series and its day");
 };
 
 /** A note's or event's text is its live document (note_document), never `body`. */
@@ -343,6 +383,10 @@ export const timelineEntryUpdateZSchema = z.strictObject({
   cancelledAt: timestampText.nullish(),
   cancelReason: optionalText(TIMELINE_LIMITS.cancelReason),
   rescheduledTo: z.uuid().nullish(),
+  // Series fields, also checked against the kind once merged.
+  seriesId: z.uuid().nullish(),
+  seriesDay: z.iso.date().nullish(),
+  seriesDetached: z.boolean().optional(),
 });
 export type TimelineEntryUpdateInput = z.input<typeof timelineEntryUpdateZSchema>;
 

@@ -46,6 +46,7 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
           carePeriods: await import("../care-periods/carePeriods.sync"),
           medicationPasses: await import("../medications/medicationPasses.sync"),
           dueDoses: await import("../medications/dueDoses.sync"),
+          series: await import("../appointments/series.sync"),
         });
       }
       // The search index follows the database (built in the background).
