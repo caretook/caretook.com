@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { found } from "../../../../../test/found";
+import { pageHeader } from "../../../../../test/pageHeader";
 import { fx } from "../../../../../test/fixtures";
 import {
   $,
@@ -185,16 +186,17 @@ describe("the list", () => {
     );
   });
 
-  test("a viewer sees the list, told it's view-only, with no Add medication", async () => {
+  test("a viewer sees the list with no Add medication; the header is just “Medications”, as a writer's is", async () => {
     await open({ role: "viewer" });
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
-    expect($("main header p")?.textContent).toContain("You can view this list");
+    expect(pageHeader()).toEqual({ h1: "Medications", namesRecipient: false, viewerNote: false });
     expect($("main [data-add-medication]")).toBeNull();
   });
 
   test("the header's actions run + Add medication, labeled Passes, then a printer-only Print; Add opens the sheet and Print its menu", async () => {
     const device = await open();
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    expect(pageHeader()).toEqual({ h1: "Medications", namesRecipient: false, viewerNote: false });
     const actions = $$("main header a, main header button");
     expect(actions.map((a) => a.getAttribute("aria-label") ?? a.textContent?.trim())).toEqual([
       "Add medication",

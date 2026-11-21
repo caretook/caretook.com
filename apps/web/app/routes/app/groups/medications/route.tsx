@@ -7,6 +7,7 @@ import { Clock, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { AllergiesRegion } from "~/components/medications";
+import { PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { medicationList, parseMedicationFilters } from "~/lib/medications/medicationList";
@@ -92,42 +93,38 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold">Medications</h1>
-          <p className="text-base-content/70 text-sm">
-            {group.displayName}
-            {!group.canWrite && " · You can view this list"}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-          {group.canWrite && (
+      <PageHeader
+        title="Medications"
+        actions={
+          <>
+            {group.canWrite && (
+              <Link
+                to={appUrls.newMedication(params.groupId, search)}
+                state={MEDICATION_SHEET_STATE}
+                // Loaded ahead, so the sheet opens offline too.
+                prefetch="render"
+                preventScrollReset
+                aria-label="Add medication"
+                title="Add medication"
+                className="btn btn-primary btn-sm btn-square"
+                data-add-medication
+              >
+                <Plus className="size-4" aria-hidden="true" />
+              </Link>
+            )}
             <Link
-              to={appUrls.newMedication(params.groupId, search)}
-              state={MEDICATION_SHEET_STATE}
-              // Loaded ahead, so the sheet opens offline too.
+              to={appUrls.medicationPasses(params.groupId)}
               prefetch="render"
-              preventScrollReset
-              aria-label="Add medication"
-              title="Add medication"
-              className="btn btn-primary btn-sm btn-square"
-              data-add-medication
+              className="btn btn-ghost btn-sm gap-1.5"
+              data-passes-link
             >
-              <Plus className="size-4" aria-hidden="true" />
+              <Clock className="size-4" aria-hidden="true" />
+              Passes
             </Link>
-          )}
-          <Link
-            to={appUrls.medicationPasses(params.groupId)}
-            prefetch="render"
-            className="btn btn-ghost btn-sm gap-1.5"
-            data-passes-link
-          >
-            <Clock className="size-4" aria-hidden="true" />
-            Passes
-          </Link>
-          <PrintMenu groupId={params.groupId} />
-        </div>
-      </header>
+            <PrintMenu groupId={params.groupId} />
+          </>
+        }
+      />
 
       <AllergiesRegion groupId={params.groupId} state={allergies} canWrite={group.canWrite} />
 
