@@ -20,7 +20,7 @@ import {
 
 // The Medications page's two tabs (B-226): one header (the title, Add for
 // writers, Print; Passes on Schedule only) over Schedule (Today) and the list
-// (the allergies, search, chips and the list), each tab its own URL, the add
+// (the allergies, search, Filter and the list), each tab its own URL, the add
 // sheet opening over either and closing back to it, the list's search kept.
 // On the fixed clock (10:00), so a medication a few minutes back is due. What
 // each tab does is today.browser.test.tsx's and medicationList.browser.test.tsx's;
@@ -50,7 +50,7 @@ const parts = () => ({
   today: !!$("main [data-today]"),
   allergies: !!$("main [data-allergies]"),
   search: !!$('main input[type="search"]'),
-  chips: !!$('main nav[aria-label="Show medications"]'),
+  filter: !!$("main [data-filter-button]"),
   list: !!$('main ul[aria-label="Current medications"]'),
   passes: !!$("main [data-passes-link]"),
 });
@@ -70,7 +70,7 @@ afterEach(() => {
 });
 
 describe("the tabs", () => {
-  test("Schedule shows Today and Passes, not the allergies, search, chips or list, under the header", async () => {
+  test("Schedule shows Today and Passes, not the allergies, search, Filter or list, under the header", async () => {
     await open(SCHEDULE);
     await expect.poll(() => doseButtons()).toBeGreaterThan(0);
     expect(currentTab()).toEqual(["Schedule"]);
@@ -78,14 +78,14 @@ describe("the tabs", () => {
       today: true,
       allergies: false,
       search: false,
-      chips: false,
+      filter: false,
       list: false,
       passes: true,
     });
     expect(header()).toEqual({ h1: "Medications", add: true, print: true });
   });
 
-  test("the list tab shows the allergies, search, chips and list, not Today or Passes, under the same header", async () => {
+  test("the list tab shows the allergies, search, Filter and list, not Today or Passes, under the same header", async () => {
     await open(LIST);
     await expect.poll(() => listNames("Current medications")).toContain("Donepezil 5 mg");
     expect(currentTab()).toEqual(["Medications"]);
@@ -93,7 +93,7 @@ describe("the tabs", () => {
       today: false,
       allergies: true,
       search: true,
-      chips: true,
+      filter: true,
       list: true,
       passes: false,
     });
