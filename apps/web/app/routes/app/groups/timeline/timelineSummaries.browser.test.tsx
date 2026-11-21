@@ -8,7 +8,8 @@ import { frames, openTimeline, rows, SAM, setView, TIMELINE_URL, waitUntil } fro
 // (a local add and another device's entry), every filter hiding it, and the
 // header's Highlights / Full / Off switch.
 
-const minutesAgo = (m: number) => at(new Date(Date.now() - m * 60_000));
+// Tens of seconds, not minutes: the entries stay on today for a run just after midnight (B-225, B-227).
+const minutesAgo = (m: number) => at(new Date(Date.now() - m * 10_000));
 const daysAgo = (d: number, hour = 10) => {
   const t = new Date();
   t.setDate(t.getDate() - d);

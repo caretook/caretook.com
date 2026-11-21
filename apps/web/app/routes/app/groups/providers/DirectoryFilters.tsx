@@ -67,8 +67,10 @@ export function ProviderSearch({
  * Type filter chips: links that set `?type=`, so the filter survives reloads.
  * They change only the type (see `lib/providers/providerDirectory.ts`).
  */
-export function TypeFilter({ type }: { type: ProviderType | null }) {
-  const { search } = useLocation();
+export function TypeFilter({ type, text }: { type: ProviderType | null; text: string }) {
+  // The links carry the box's live text, not the URL's `?q=` (a navigation behind the typing): a tap
+  // right after typing keeps the search.
+  const search = setQuery(useLocation().search, text);
   return (
     <ChipGroup
       label="Show providers"

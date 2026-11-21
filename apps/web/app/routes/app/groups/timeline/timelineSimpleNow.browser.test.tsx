@@ -99,7 +99,9 @@ describe("the Upcoming block", () => {
     await expect.element(block).toBeVisible();
     await expect.element(block.getByRole("heading", { name: "Upcoming" })).toBeVisible();
     expect(give()[0]!.textContent).toBe("Give evening meds (2)");
-    expect(now()!.querySelector("[data-simple-next]")?.textContent).toMatch(/^Next: Visit with Dr\. Lark · /);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-next]")?.textContent)
+      .toMatch(/^Next: Visit with Dr\. Lark · /);
     // It comes before the quick-entry box.
     const box = document.querySelector("[data-quick-entry]")!;
     expect(now()!.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -109,7 +111,9 @@ describe("the Upcoming block", () => {
     await userEvent.click(give()[0]!);
     await expect.poll(async () => (await doses(device)).length).toBe(2);
     await waitUntil(() => !!undo(), 4000, "Undo");
-    expect(now()!.querySelector("[data-pass-undo-label]")?.textContent).toBe("Evening logged");
+    await expect
+      .poll(() => now()?.querySelector("[data-pass-undo-label]")?.textContent)
+      .toBe("Evening logged");
     await waitUntil(() => give().length === 0, 4000, "the pass to be done");
 
     await userEvent.click(undo()!);
@@ -120,10 +124,12 @@ describe("the Upcoming block", () => {
   test("a viewer: the due pass and the next appointment as text, no Given all", async () => {
     await open("viewer");
     await waitUntil(() => !!now()?.querySelector("[data-simple-due]"), 4000, "the due pass");
-    expect(now()!.querySelector("[data-simple-due]")!.textContent).toMatch(
-      /^(Due now|Overdue): Evening · 2 medications$/,
-    );
-    expect(now()!.querySelector("[data-simple-next]")?.textContent).toMatch(/^Next: Visit with Dr\. Lark/);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-due]")?.textContent)
+      .toMatch(/^(Due now|Overdue): Evening · 2 medications$/);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-next]")?.textContent)
+      .toMatch(/^Next: Visit with Dr\. Lark/);
     // No Given all: the one button is the next appointment's, which opens the list (B-191).
     expect([...now()!.querySelectorAll("button")].map((b) => b.getAttribute("aria-expanded"))).toEqual([
       "false",
@@ -131,8 +137,9 @@ describe("the Upcoming block", () => {
   });
 
   test("nothing due and nothing ahead: no Upcoming heading", async () => {
-    await open("caretaker", []);
+    const device = await open("caretaker", []);
     await waitUntil(() => !!document.querySelector("[data-simple-timeline]"), 4000, "the simple view");
+    await device.settle();
     expect(now()?.querySelector("h2") ?? null).toBeNull();
     expect(give()).toHaveLength(0);
   });
@@ -223,6 +230,6 @@ describe("the next appointment opens the next five upcoming items", () => {
     await userEvent.click(toggle());
     await waitUntil(() => items().length > 0, 4000, "the list");
     expect(titles()).toEqual(["Visit with Dr. Lark"]);
-    expect(list()!.querySelector("[data-simple-upcoming-all]")?.textContent).toBe("See all");
+    await expect.poll(() => list()?.querySelector("[data-simple-upcoming-all]")?.textContent).toBe("See all");
   });
 });

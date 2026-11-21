@@ -116,7 +116,7 @@ describe("the page", () => {
       ["call", "tel:5550102299"],
       ["email", "mailto:e.alvarez@westsidefamily.example"],
     ]);
-    expect(NOTES()!.textContent).toContain("through the portal");
+    await expect.poll(() => NOTES()?.textContent).toContain("through the portal");
 
     await userEvent.click($("main header a[data-practice]")!);
     await expect.poll(() => device.location()).toBe(providerUrl(WESTSIDE.id));
@@ -130,7 +130,9 @@ describe("the page", () => {
     await userEvent.click($("main header a[data-edit-provider]")!);
     await waitUntil(() => !!FORM(), 4000, "the edit sheet");
     expect(device.location()).toBe(`${providerUrl(WESTSIDE.id)}/edit`);
-    expect(FORM()!.querySelector<HTMLInputElement>('[name="name"]')!.value).toBe("Westside Family Medicine");
+    await expect
+      .poll(() => FORM()?.querySelector<HTMLInputElement>('[name="name"]')?.value)
+      .toBe("Westside Family Medicine");
     await userEvent.click(formButton("Cancel")!);
     await expect.poll(() => !SHEET() && device.location()).toBe(providerUrl(WESTSIDE.id));
     await expect
@@ -163,7 +165,7 @@ describe("the notes", () => {
     const LANG = fx.provider({ name: "Dr. Ivo Lang", specialty: "Neurology" });
     const device = await open(providerUrl(LANG.id), { fixtures: [directory(), LANG] });
     await waitUntil(() => !!NOTES(), 4000, "the editor");
-    expect(NOTES()!.textContent).toBe("");
+    await expect.poll(() => NOTES()?.textContent).toBe("");
     expect(await device.query("SELECT id FROM note_document WHERE id = ?", [LANG.id])).toEqual([]);
 
     await userEvent.click(await found(NOTES));
@@ -281,8 +283,8 @@ describe("Copy to another group", () => {
     await waitUntil(() => !!COPY(), 4000, "the Copy action");
     await userEvent.click(COPY()!);
     await waitUntil(() => !!DIALOG(), 4000, "the dialog");
-    expect(DIALOG()!.textContent).toContain("Copy Dr. Elena Alvarez");
-    expect(DIALOG()!.textContent).toContain("Provider notes stay in Grandma June.");
+    await expect.poll(() => DIALOG()?.textContent).toContain("Copy Dr. Elena Alvarez");
+    await expect.poll(() => DIALOG()?.textContent).toContain("Provider notes stay in Grandma June.");
     // One target: it's named and chosen.
     expect(page.getByRole("radio", { name: "Lou Lindqvist" })).toBeTruthy();
     await userEvent.click(dialogButton("Copy")!);

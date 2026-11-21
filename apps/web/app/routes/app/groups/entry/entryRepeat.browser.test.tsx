@@ -153,7 +153,7 @@ describe("saving a series", () => {
     // A repeat alone saves nothing, like a picked time.
     expect(await seriesRows(device)).toEqual([]);
 
-    TITLE()!.focus();
+    (await found(TITLE)).focus();
     await userEvent.keyboard("Dialysis{Enter}");
     await expect.poll(() => device.location(), { timeout: 5000 }).toMatch(ON_ENTRY);
     const entryId = ON_ENTRY.exec(device.location())![1]!;
@@ -225,7 +225,7 @@ describe("saving a series", () => {
     expect(PREVIEW_NEXT()).toEqual(["Wed, Nov 18", "Wed, Dec 16", "Wed, Jan 20"]);
     await userEvent.click(sheetButton("Done")!);
 
-    TITLE()!.focus();
+    (await found(TITLE)).focus();
     await userEvent.keyboard("Order refills{Enter}");
     await expect.poll(async () => (await seriesRows(device)).length, { timeout: 5000 }).toBe(1);
     const [stored] = (await seriesRows(device)) as Record<string, unknown>[];

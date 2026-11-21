@@ -4,6 +4,7 @@ import type { GroupRole } from "../../../../../test/fixtures";
 import { addDays, localDate } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import * as todoRoute from "./route";
 import * as editSheet from "../todos/edit/route";
 import * as todosRoute from "../todos/route";
@@ -122,7 +123,7 @@ describe("the todo page", () => {
     await expect.element(heading("Fax the form")).toBeInTheDocument();
     await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("true");
     expect(await device.query("SELECT id FROM note_document WHERE id = ?", [SAMS.id])).toEqual([]);
-    EDITOR()!.focus();
+    (await found(EDITOR)).focus();
     await userEvent.keyboard("Pharmacy said Friday");
     await expect
       .poll(() =>

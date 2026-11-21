@@ -185,7 +185,7 @@ describe("on the appointment's page", () => {
     const lines = editorLines();
     expect(lines).toContain("Symptoms");
     expect(lines.at(-1)).toBe("Bring the pill box");
-    expect(EDITOR()!.querySelector("h2")!.textContent).toMatch(/^Since your last visit · /);
+    await expect.poll(() => EDITOR()?.querySelector("h2")?.textContent).toMatch(/^Since your last visit · /);
     // Offline: it waits in the upload queue, like typing.
     const queued = await device.queued();
     expect(queued.filter((w) => w.type === "note_update" && w.data?.document_id === APPT.id).length).toBe(1);

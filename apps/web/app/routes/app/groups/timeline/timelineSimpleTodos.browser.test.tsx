@@ -79,7 +79,7 @@ describe("My todos in simple mode", () => {
       (li) => li.dataset.todoState,
     );
     expect(states).toEqual(["overdue", "overdue", "today", "upcoming", "upcoming"]);
-    expect(card()!.querySelector("[data-todo-due]")?.textContent).toBe("Overdue · 2 days");
+    await expect.poll(() => card()?.querySelector("[data-todo-due]")?.textContent).toBe("Overdue · 2 days");
     expect(seeAll()?.textContent).toBe("See all 7 todos");
     expect(seeAll()?.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/todos?who=mine`);
     // Big ticks, one per todo.

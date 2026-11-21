@@ -21,7 +21,7 @@ import {
   menuItems,
   dialogButton,
   NOW,
-  openUpcoming,
+  openPlanner,
   rowOf,
   SAM,
   TIMELINE_URL,
@@ -118,7 +118,7 @@ afterEach(() => {
 
 describe("cancel and undo", () => {
   test("from Upcoming's ⋯ with a reason: struck through and labelled at once, stored with the reason, one PATCH queued", async () => {
-    const device = await openUpcoming({ role: "caretaker" });
+    const device = await openPlanner({ role: "caretaker" });
     const items = await openMenu(itemEl(CARDIOLOGY.id)!.querySelector(ACTIONS));
     expect(items).toEqual([
       "Prepare for this visit",
@@ -142,7 +142,7 @@ describe("cancel and undo", () => {
   });
 
   test("a past event from a timeline row's ⋯, without a reason: struck through and labelled", async () => {
-    const device = await openUpcoming({ url: TIMELINE_URL });
+    const device = await openPlanner({ url: TIMELINE_URL });
     await expect.poll(() => !!timelineRow(BLOOD_DRAW.id)).toBe(true);
     await openMenu(timelineRow(BLOOD_DRAW.id)!.querySelector(ACTIONS));
     await confirmCancel();
@@ -154,7 +154,7 @@ describe("cancel and undo", () => {
   });
 
   test("Undo cancel from a row's ⋯: the label and the line go", async () => {
-    const device = await openUpcoming({ url: TIMELINE_URL });
+    const device = await openPlanner({ url: TIMELINE_URL });
     await expect.poll(() => cancelledState(timelineRow(HEARING.id))).toEqual(CANCELLED);
     await openMenu(timelineRow(HEARING.id)!.querySelector(ACTIONS));
     await userEvent.click(menuItem("Undo cancel")!);
@@ -166,14 +166,14 @@ describe("cancel and undo", () => {
   });
 
   test("a viewer sees cancelled ones labelled on Upcoming and the timeline, and their device refuses a cancel or an undo", async () => {
-    const device = await openUpcoming({ role: "viewer" });
+    const device = await openPlanner({ role: "viewer" });
     expect(rowOf(DENTIST.id)).toMatchObject({ cancelled: true, struck: true });
     expect((await uncancelEvent(device.db, DENTIST.id)).ok).toBe(false);
     expect((await cancelEvent(device.db, CARDIOLOGY.id, "no")).ok).toBe(false);
     expect(await device.queued()).toEqual([]);
     await device.screen.unmount();
 
-    await openUpcoming({ url: TIMELINE_URL, role: "viewer" });
+    await openPlanner({ url: TIMELINE_URL, role: "viewer" });
     await expect.poll(() => cancelledState(timelineRow(HEARING.id))).toEqual(CANCELLED);
   });
 
@@ -187,7 +187,7 @@ describe("cancel and undo", () => {
     });
 
     test("the reason, who and when, for everyone; Undo for the writer, not the viewer", async () => {
-      const viewer = await openUpcoming({
+      const viewer = await openPlanner({
         url: entryUrl(CALLED_OFF.id),
         extra: [CALLED_OFF],
         role: "viewer",
@@ -195,18 +195,18 @@ describe("cancel and undo", () => {
       await expect
         .poll(() => BANNER()?.querySelector("[data-cancelled-by]")?.textContent)
         .toBe("Cancelled by Sam Okafor · Today, 9:30 AM");
-      expect(BANNER()!.querySelector("[data-cancel-reason]")?.textContent).toBe(
-        "Office called, doctor out sick",
-      );
+      await expect
+        .poll(() => BANNER()?.querySelector("[data-cancel-reason]")?.textContent)
+        .toBe("Office called, doctor out sick");
       expect(page.getByRole("button", { name: "Undo cancel" }).query()).toBeNull();
       await viewer.screen.unmount();
 
-      await openUpcoming({ url: entryUrl(CALLED_OFF.id), extra: [CALLED_OFF], role: "caretaker" });
+      await openPlanner({ url: entryUrl(CALLED_OFF.id), extra: [CALLED_OFF], role: "caretaker" });
       await expect.element(page.getByRole("button", { name: "Undo cancel" })).toBeVisible();
     });
 
     test("Undo cancel restores it: the banner goes, stored and queued", async () => {
-      const device = await openUpcoming({ url: entryUrl(CALLED_OFF.id), extra: [CALLED_OFF] });
+      const device = await openPlanner({ url: entryUrl(CALLED_OFF.id), extra: [CALLED_OFF] });
       await userEvent.click(page.getByRole("button", { name: "Undo cancel" }));
       await device.settle();
       await expect.poll(BANNER).toBeNull();
@@ -218,7 +218,7 @@ describe("cancel and undo", () => {
     });
 
     test("Cancel from the page's ⋯ (offline): the banner at once, queued for upload", async () => {
-      const device = await openUpcoming({ url: entryUrl(CARDIOLOGY.id) });
+      const device = await openPlanner({ url: entryUrl(CARDIOLOGY.id) });
       await expect.poll(() => !!document.querySelector(ENTRY_MENU)).toBe(true);
       const items = await openMenu(document.querySelector(ENTRY_MENU));
       expect(items).toEqual(["Reschedule", "Cancel event", "Remind me", "Print", "Delete"]);
@@ -249,7 +249,7 @@ describe("reschedule", () => {
   });
 
   test("an upcoming event's sheet starts with Keep on; keeping the old one opens the new event 3 days later, as long, with its title, provider and notes; the old one cancelled, linking to it; one transaction queued", async () => {
-    const device = await openUpcoming({ extra: [NEURO, fx.link(NEURO.id, TRAN.id)] });
+    const device = await openPlanner({ extra: [NEURO, fx.link(NEURO.id, TRAN.id)] });
     await openMenu(itemEl(NEURO.id)!.querySelector(ACTIONS));
     await openSheet();
     expect(KEEP()!.checked).toBe(true);
@@ -284,7 +284,7 @@ describe("reschedule", () => {
   });
 
   test("the old one's page: Rescheduled to its day, linking to the new one, its notes read-only as earlier notes; Upcoming's ⋯ for it offers no Reschedule", async () => {
-    const device = await openUpcoming({ url: entryUrl(EYES_OLD.id), extra: [NOTED_OLD] });
+    const device = await openPlanner({ url: entryUrl(EYES_OLD.id), extra: [NOTED_OLD] });
     const link = () => BANNER()?.querySelector<HTMLAnchorElement>(`[data-rescheduled-to="${EYES_NEW.id}"] a`);
     await expect.poll(() => link()?.textContent).toBe("Rescheduled to Tue, Nov 24");
     expect(link()!.getAttribute("href")).toBe(entryUrl(EYES_NEW.id));
@@ -293,7 +293,7 @@ describe("reschedule", () => {
     expect(document.querySelector("[data-earlier-notes]")).not.toBeNull();
     await device.screen.unmount();
 
-    await openUpcoming({ extra: [NOTED_OLD] });
+    await openPlanner({ extra: [NOTED_OLD] });
     expect(await openMenu(itemEl(EYES_OLD.id)!.querySelector(ACTIONS))).toEqual([
       "Undo cancel",
       "Print",
@@ -303,7 +303,7 @@ describe("reschedule", () => {
   });
 
   test("deleting the new event leaves the old one cancelled, with no link", async () => {
-    const device = await openUpcoming();
+    const device = await openPlanner();
     await openMenu(itemEl(EYES_NEW.id)!.querySelector(ACTIONS));
     await userEvent.click(menuItem("Delete")!);
     await expect.poll(() => dialogButton("Delete")).toBeTruthy();
@@ -319,7 +319,7 @@ describe("reschedule", () => {
   });
 
   test("just move, from the entry page: the same event a day later, its link kept, not cancelled, no new event; the sheet closes there", async () => {
-    const device = await openUpcoming({ url: entryUrl(CARDIOLOGY.id) });
+    const device = await openPlanner({ url: entryUrl(CARDIOLOGY.id) });
     const before = await device.query<{ n: number }>("SELECT count(*) AS n FROM timeline_entry");
     await expect.poll(() => !!document.querySelector(ENTRY_MENU)).toBe(true);
     await openMenu(document.querySelector(ENTRY_MENU));
@@ -339,7 +339,7 @@ describe("reschedule", () => {
   });
 
   test("a past event's sheet, from a timeline row, starts with Keep off", async () => {
-    await openUpcoming({ url: TIMELINE_URL });
+    await openPlanner({ url: TIMELINE_URL });
     await expect.poll(() => !!timelineRow(BLOOD_DRAW.id)).toBe(true);
     await openMenu(timelineRow(BLOOD_DRAW.id)!.querySelector(ACTIONS));
     await openSheet();
@@ -349,7 +349,7 @@ describe("reschedule", () => {
   });
 
   test("a viewer's device refuses a reschedule", async () => {
-    const device = await openUpcoming({ role: "viewer" });
+    const device = await openPlanner({ role: "viewer" });
     const res = await rescheduleEvent(device.db, CARDIOLOGY.id, {
       occurredAt: new Date(NOW.getTime() + 9 * DAY).toISOString(),
       endsAt: null,
@@ -361,7 +361,7 @@ describe("reschedule", () => {
   });
 
   test("one local transaction: a failure inside it leaves no new rows, nothing queued, and the old event as it was", async () => {
-    const device = await openUpcoming({ extra: [NEURO, fx.link(NEURO.id, TRAN.id)] });
+    const device = await openPlanner({ extra: [NEURO, fx.link(NEURO.id, TRAN.id)] });
     const db = device.db;
     const count = async () =>
       (

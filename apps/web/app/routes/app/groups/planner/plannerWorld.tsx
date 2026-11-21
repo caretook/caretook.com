@@ -198,11 +198,6 @@ export const openPlanner = async ({
   await device.settle();
   return device;
 };
-/**
- * The name the events and series tests still use (the quick-fixes PRD has
- * open slices editing those two files; rename it once they land).
- */
-export const openUpcoming = openPlanner;
 
 // --- DOM helpers (the old upcoming.mjs's selectors) ----------------------------------
 

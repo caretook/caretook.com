@@ -12,7 +12,7 @@ import {
   laTime,
   menuItem,
   menuItems,
-  openUpcoming,
+  openPlanner,
   TIMELINE_URL,
 } from "./plannerWorld";
 
@@ -99,7 +99,7 @@ afterEach(() => vi.useRealTimers());
 
 describe("the scope dialog in Upcoming", () => {
   test("a series visit's ⋯ starts with Edit; a viewer's has neither Edit nor a dialog", async () => {
-    const device = await openUpcoming({ extra: SERIES });
+    const device = await openPlanner({ extra: SERIES });
     expect(await rowMenu(FRI_20.id)).toEqual([
       "Edit",
       "Prepare for this visit",
@@ -112,13 +112,13 @@ describe("the scope dialog in Upcoming", () => {
     await userEvent.keyboard("{Escape}");
     await device.screen.unmount();
 
-    await openUpcoming({ extra: SERIES, role: "viewer" });
+    await openPlanner({ extra: SERIES, role: "viewer" });
     expect(await rowMenu(FRI_20.id)).toEqual(["Remind me", "Print"]);
     expect(SCOPE()).toBeNull();
   });
 
   test("Cancel in the dialog changes nothing", async () => {
-    const device = await openUpcoming({ extra: SERIES });
+    const device = await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await pick("Delete", "Cancel");
     expect((await entry(device, FRI_20.id)).deleted_at).toBeNull();
@@ -126,7 +126,7 @@ describe("the scope dialog in Upcoming", () => {
   });
 
   test("Delete, only this visit: that visit goes at once (the dialog was the confirm), the rest stay", async () => {
-    const device = await openUpcoming({ extra: SERIES });
+    const device = await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await pick("Delete", "Only this visit");
     await device.settle();
@@ -137,7 +137,7 @@ describe("the scope dialog in Upcoming", () => {
   });
 
   test("Delete, this and later: the series ends the day before, and this and later visits go", async () => {
-    const device = await openUpcoming({ extra: SERIES });
+    const device = await openPlanner({ extra: SERIES });
     await rowMenu(MON_23.id);
     await pick("Delete", "This and later visits");
     await device.settle();
@@ -151,7 +151,7 @@ describe("the scope dialog in Upcoming", () => {
   });
 
   test("Cancel, only this visit: the reason, then that visit cancelled and detached", async () => {
-    const device = await openUpcoming({ extra: SERIES });
+    const device = await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await pick("Cancel event", "Only this visit");
     await confirmReason("Clinic closed");
@@ -165,7 +165,7 @@ describe("the scope dialog in Upcoming", () => {
   });
 
   test("Cancel, this and later: this visit cancelled, later ones gone, the series ended", async () => {
-    const device = await openUpcoming({ extra: SERIES });
+    const device = await openPlanner({ extra: SERIES });
     await rowMenu(WED_25.id);
     await pick("Cancel event", "This and later visits");
     await confirmReason("PT finished");
@@ -182,7 +182,7 @@ describe("the scope dialog in Upcoming", () => {
   });
 
   test("Reschedule: only this visit opens the reschedule sheet, this and later the series sheet", async () => {
-    await openUpcoming({ extra: SERIES });
+    await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await pick("Reschedule", "Only this visit");
     await expect
@@ -197,7 +197,7 @@ describe("the scope dialog in Upcoming", () => {
   });
 
   test("Reschedule, only this visit, just moving it: that visit moves a day and is detached; the rest stay", async () => {
-    const device = await openUpcoming({ extra: SERIES });
+    const device = await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await pick("Reschedule", "Only this visit");
     const sheet = await found(() => document.querySelector<HTMLFormElement>("[data-reschedule-sheet]"), {
@@ -217,7 +217,7 @@ describe("the scope dialog in Upcoming", () => {
   });
 
   test("Edit, this and later: the sheet prefilled; a new time moves this and later visits onto a new series", async () => {
-    const device = await openUpcoming({ extra: SERIES });
+    const device = await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await pick("Edit", "This and later visits");
     const sheet = await found(SHEET);
@@ -255,7 +255,7 @@ describe("the scope dialog in Upcoming", () => {
 
 describe("on the timeline", () => {
   test("an upcoming visit's ⋯ asks; one that has started doesn't (the plain confirm)", async () => {
-    await openUpcoming({ url: TIMELINE_URL, extra: SERIES });
+    await openPlanner({ url: TIMELINE_URL, extra: SERIES });
     const rowOf = (id: string) =>
       [...document.querySelectorAll<HTMLElement>("main li")].find((li) =>
         li.querySelector(`a[href$="/entries/${id}"]`),
@@ -272,12 +272,12 @@ describe("on the timeline", () => {
 
 describe("on a visit's page", () => {
   test("renaming asks: Cancel puts the title back, only this visit renames it alone and detaches it", async () => {
-    const device = await openUpcoming({ url: entryUrl(FRI_20.id), extra: SERIES });
+    const device = await openPlanner({ url: entryUrl(FRI_20.id), extra: SERIES });
     const title = await found(TITLE);
     await userEvent.fill(title, "Dialysis, chair 4");
     await userEvent.keyboard("{Enter}");
     await found(SCOPE);
-    expect(SCOPE()!.textContent).toContain("Change a repeating appointment");
+    await expect.poll(() => SCOPE()?.textContent).toContain("Change a repeating appointment");
     await userEvent.click(dialogButton("Cancel")!);
     await expect.poll(() => TITLE()?.value).toBe("Dialysis");
     expect(await device.queued()).toEqual([]);
@@ -300,7 +300,7 @@ describe("on a visit's page", () => {
   });
 
   test("renaming, this and later: later visits take the new title, earlier ones keep theirs", async () => {
-    const device = await openUpcoming({ url: entryUrl(MON_23.id), extra: SERIES });
+    const device = await openPlanner({ url: entryUrl(MON_23.id), extra: SERIES });
     await userEvent.fill(await found(TITLE), "Dialysis, chair 4");
     await userEvent.keyboard("{Enter}");
     await found(SCOPE);
@@ -312,7 +312,7 @@ describe("on a visit's page", () => {
   });
 
   test("Edit, only this visit from a row: the page opens and its edits don't ask", async () => {
-    const device = await openUpcoming({ extra: SERIES });
+    const device = await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await pick("Edit", "Only this visit");
     await expect.poll(() => device.location()).toBe(entryUrl(FRI_20.id));
@@ -325,7 +325,7 @@ describe("on a visit's page", () => {
   });
 
   test("the page's ⋯: Delete, this and later ends the series and goes back to the timeline", async () => {
-    const device = await openUpcoming({ url: entryUrl(WED_25.id), extra: SERIES });
+    const device = await openPlanner({ url: entryUrl(WED_25.id), extra: SERIES });
     await openMenu(await found(() => document.querySelector(ENTRY_MENU)));
     await pick("Delete", "This and later visits");
     await expect.poll(() => device.location(), { timeout: 5000 }).toBe(TIMELINE_URL);
@@ -336,7 +336,7 @@ describe("on a visit's page", () => {
   });
 
   test("a viewer's page asks nothing and offers no Edit", async () => {
-    await openUpcoming({ url: entryUrl(FRI_20.id), extra: SERIES, role: "viewer" });
+    await openPlanner({ url: entryUrl(FRI_20.id), extra: SERIES, role: "viewer" });
     expect(await openMenu(await found(() => document.querySelector(ENTRY_MENU)))).toEqual([
       "Remind me",
       "Print",

@@ -118,9 +118,13 @@ describe("adding", () => {
       li.querySelector("label")?.textContent?.trim(),
     );
     expect(passes).toEqual(["Morning 8:00", "Evening 20:00"]);
-    expect(FORM()!.querySelectorAll('[data-pass-slot] input[type="checkbox"]:checked')).toHaveLength(0);
+    await expect
+      .poll(() => FORM()?.querySelectorAll('[data-pass-slot] input[type="checkbox"]:checked'))
+      .toHaveLength(0);
     expect(times()).toHaveLength(0);
-    expect(FORM()!.querySelector("[data-manage-passes]")?.getAttribute("href")).toBe(`${LIST}/passes`);
+    await expect
+      .poll(() => FORM()?.querySelector("[data-manage-passes]")?.getAttribute("href"))
+      .toBe(`${LIST}/passes`);
     expect(suggestions()).toEqual([]);
   });
 

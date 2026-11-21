@@ -153,9 +153,9 @@ describe("group settings → Assistants", () => {
 
     await userEvent.click(toggle());
     await expect.poll(() => dialog()?.open).toBe(true);
-    expect(dialog()!.querySelector("h2")!.textContent.trim()).toBe("Turn off assistants?");
-    expect(dialog()!.textContent).toMatch(/Disconnects 2 assistants\./);
-    expect(dialog()!.textContent).toMatch(/reconnects no one/);
+    await expect.poll(() => dialog()?.querySelector("h2")?.textContent.trim()).toBe("Turn off assistants?");
+    await expect.poll(() => dialog()?.textContent).toMatch(/Disconnects 2 assistants\./);
+    await expect.poll(() => dialog()?.textContent).toMatch(/reconnects no one/);
     await userEvent.click(dialogButton("Cancel"));
     await expect.poll(() => dialog()?.open).toBe(false);
     expect(server.calls.of("careGroup.update")).toEqual([]);
@@ -199,7 +199,9 @@ describe("group settings → Assistants", () => {
 
     await userEvent.click(page.getByRole("button", { name: "Disconnect Ann Lee's Claude" }));
     await expect.poll(() => dialog()?.open).toBe(true);
-    expect(dialog()!.querySelector("h2")!.textContent.trim()).toBe("Disconnect Ann Lee's Claude?");
+    await expect
+      .poll(() => dialog()?.querySelector("h2")?.textContent.trim())
+      .toBe("Disconnect Ann Lee's Claude?");
     await userEvent.click(dialogButton("Disconnect"));
     await expect.poll(() => server.calls.of("connector.revoke")).toEqual([{ grantId: ANN.id }]);
     await expect.poll(rows).toHaveLength(1);
@@ -288,7 +290,7 @@ describe("group settings → Assistants' connect guide", () => {
     await open({ api: groupServer([]).api });
     await expect.poll(() => guideNote("off")).toBe(OFF_NOTE.owner);
     expect(guideUrl()).toBeNull();
-    expect(guide()!.querySelector("[data-guide-client]")).toBeNull();
+    await expect.poll(() => guide()?.querySelector("[data-guide-client]")).toBeNull();
   });
 
   test("with the switch off, a caretaker gets the off note; when an owner turns it on, the steps", async () => {
@@ -377,7 +379,7 @@ describe("group settings → Assistants' ask button", () => {
     await open({ api: { ...groupServer([]).api, ...server.api } });
     await expect.poll(() => guideNote("off")).toBe(OFF_NOTE.owner);
     expect(askButton().elements()).toHaveLength(0);
-    expect(guide()!.querySelector("[data-ask-owners]")).toBeNull();
+    await expect.poll(() => guide()?.querySelector("[data-ask-owners]")).toBeNull();
     expect(server.calls.calls).toEqual([]);
   });
 

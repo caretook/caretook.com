@@ -172,9 +172,10 @@ describe("the todo list", () => {
     await userEvent.click(page.getByRole("button", { name: "Undo Call the pharmacy" }));
     await expect.poll(() => titles("overdue")).toEqual(["Call the pharmacy"]);
     await expect.poll(lines).toEqual(["Done: Pick up the walker"]);
-    expect(titles("today")).toEqual([]);
-    expect(titles("done")).toContain("Pick up the walker");
-    expect(titles("done")).not.toContain("Call the pharmacy");
+    // Each list is its own query, so the done list can still be catching up.
+    await expect.poll(() => titles("today")).toEqual([]);
+    await expect.poll(() => titles("done")).toContain("Pick up the walker");
+    await expect.poll(() => titles("done")).not.toContain("Call the pharmacy");
     const rows = await device.query<{ title: string; done: number }>(
       "SELECT title, done_at IS NOT NULL AS done FROM todo WHERE title IN ('Call the pharmacy', 'Pick up the walker') ORDER BY title",
     );

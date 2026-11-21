@@ -334,7 +334,7 @@ describe("within a care period", () => {
     await expect.poll(names).toBe("inrehab");
     await closeFilters();
     expect(params(device.location()).get("period")).toBe(rehab.id);
-    expect(during()!.textContent).toBe("During Rehab at Oak Hills Rehab");
+    await expect.poll(() => during()?.textContent).toBe("During Rehab at Oak Hills Rehab");
     expect(during()!.getAttribute("aria-label")).toMatch(/: search every date$/);
 
     // Away (a match's edit sheet) and Back.

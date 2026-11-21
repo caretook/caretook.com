@@ -96,13 +96,13 @@ describe("the Google Calendar card", () => {
     const connect = page.getByRole("link", { name: "Connect Google Calendar" });
     await expect.element(connect).toBeVisible();
     expect(connect.element().getAttribute("href")).toBe(`/api/google/connect?groupId=${TEST_GROUP.id}`);
-    expect(card()!.textContent).toContain("Your other calendars are never read or changed.");
+    await expect.poll(() => card()?.textContent).toContain("Your other calendars are never read or changed.");
   });
 
   test("says when Google isn't set up here", async () => {
     await open({ api: googleServer("caretaker", { connected: false, configured: false }).api });
     await expect.element(page.getByText("Google Calendar isn't set up here yet.")).toBeVisible();
-    expect(card()!.querySelector("a")).toBeNull();
+    await expect.poll(() => card()?.querySelector("a")).toBeNull();
   });
 
   test("shows the connected calendar and when it last synced, to a viewer too", async () => {
@@ -110,7 +110,7 @@ describe("the Google Calendar card", () => {
     await expect.element(page.getByText("Caretook: Grandma June")).toBeVisible();
     await expect.element(page.getByText("Last synced 18 Nov, 9:05.")).toBeVisible();
     await expect.element(disconnectButton()).toBeVisible();
-    expect(card()!.querySelector("[data-google-error]")).toBeNull();
+    await expect.poll(() => card()?.querySelector("[data-google-error]")).toBeNull();
   });
 
   test("after a refused token, says so and offers Reconnect Google", async () => {
@@ -163,6 +163,6 @@ describe("the Google Calendar card", () => {
     server.online = false;
     await open({ api: server.api });
     await expect.element(page.getByText("Needs a connection to show Google Calendar.")).toBeVisible();
-    expect(card()!.querySelector("button, a")).toBeNull();
+    await expect.poll(() => card()?.querySelector("button, a")).toBeNull();
   });
 });
