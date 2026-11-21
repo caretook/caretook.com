@@ -123,6 +123,12 @@ const conditionFields = {
   sinceYear,
   sinceMonth,
   note: optionalText(CONDITION_LIMITS.note),
+  // Who diagnosed it: a live provider in the group (the service checks it
+  // when it's set or changed; one deleted later stays, greyed).
+  diagnosedById: z
+    .uuid({ error: "Choose a provider in this care group" })
+    .nullish()
+    .transform((v) => v ?? null),
 };
 
 /** A month needs a year ("March" alone isn't a since). */
@@ -164,5 +170,6 @@ export const recipientConditionUpdateZSchema = z.strictObject({
   sinceYear: z.int().nullish(),
   sinceMonth: z.int().nullish(),
   note: z.string().nullish(),
+  diagnosedById: z.uuid({ error: "Choose a provider in this care group" }).nullish(),
 });
 export type RecipientConditionUpdateInput = z.input<typeof recipientConditionUpdateZSchema>;

@@ -22,6 +22,7 @@ export function ConditionDetails({
   busy,
   refusal,
   medications,
+  providers,
   onAction,
   onClose,
 }: {
@@ -29,6 +30,8 @@ export function ConditionDetails({
   condition: LocalCondition;
   /** Its current medications, under the details (conditions slice 4). */
   medications?: ReactNode;
+  /** Who diagnosed it and who manages it, under the details (conditions slice 3). */
+  providers?: ReactNode;
   canWrite: boolean;
   busy: boolean;
   refusal: string | null;
@@ -57,6 +60,7 @@ export function ConditionDetails({
           </div>
         )}
       </dl>
+      {providers}
       {medications}
       {refusal && (
         <p className="text-error text-sm" role="alert">

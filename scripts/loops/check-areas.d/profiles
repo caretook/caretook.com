@@ -31,3 +31,8 @@ packages/data/src/db/schema/profiles/recipientCondition.ts roundtrip
 # second device is roundtrip's sync matrix (6b).
 packages/data/src/db/schema/profiles/medicationCondition.ts roundtrip
 apps/web/app/lib/profiles/profileSheetLink.ts -
+# Who diagnosed and who manages a condition (conditions slice 3): the sheets'
+# pickers and lines are component tests (profile/conditionProviders and
+# provider/providerConditions .browser.test.tsx); a link reaching a second
+# device is roundtrip's sync matrix (6b).
+packages/data/src/db/schema/profiles/conditionManager.ts roundtrip

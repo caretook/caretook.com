@@ -1,4 +1,7 @@
 import type {
+  ConditionChangeSource,
+  ConditionManagerLinkInput,
+  ConditionProviderRef,
   ConditionStatus,
   RecipientCondition,
   RecipientConditionCreateInput,
@@ -14,16 +17,27 @@ import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   conditionChange,
+  conditionChangeDetailsZSchema,
   conditionChangeId,
+  conditionManagerId,
+  conditionManagerLinkZSchema,
+  managerNames,
   recipientConditionContentZSchema,
   recipientConditionCreateZSchema,
   recipientConditionUpdateZSchema,
   recipientConditionUpsertZSchema,
   timelineEntryContentZSchema,
   toChangeTime,
+  withManagersChange,
 } from "../db/schema";
 import { isError, newError } from "../errors";
-import { careRecipientModel, recipientConditionModel, timelineEntryModel } from "../models";
+import {
+  careRecipientModel,
+  conditionManagerModel,
+  providerModel,
+  recipientConditionModel,
+  timelineEntryModel,
+} from "../models";
 import { rejectError } from "../permissions";
 import { resolveRecipient } from "./medicationService";
 
@@ -33,6 +47,12 @@ import { resolveRecipient } from "./medicationService";
 // transaction. Every write runs in one transaction that has the condition
 // before and after, so what a change also writes (its timeline entry, its
 // links) goes in beside it.
+//
+// Who diagnosed it (`diagnosed_by_id`) and who manages it (`condition_manager`
+// links, slice 3) must be live providers in the condition's group when set;
+// one deleted later stays, and screens grey it "(removed)". Each manager link
+// or unlink folds into the change entry of its save's time, so one save's
+// links (however many) are one entry with "Managed by: before → after".
 
 export const serviceName = "recipientCondition";
 export const schemaName = recipientConditionModel.schemaName;
@@ -44,6 +64,55 @@ const invalid = (error: z.ZodError) =>
   });
 
 const notFound = () => newError({ code: "recipientConditionService:notFound" });
+
+const providerIssue = (code: "badProvider" | "providerNotFound", path: string, message: string) =>
+  newError({ code: `recipientConditionService:${code}`, meta: { issues: [{ path, message }] } });
+const badProvider = (path: string) =>
+  providerIssue("badProvider", path, "Choose a provider in this care group");
+const providerGone = (path: string) =>
+  providerIssue("providerNotFound", path, "That provider is gone. It may have been deleted.");
+
+/**
+ * A live provider in `groupId`, or the refusal (on `path`): `unauthorized`
+ * for one in a group the actor can't see, `providerNotFound` for a deleted
+ * one, `badProvider` for one in another of their groups or none at all.
+ */
+const checkProvider = async (ctx: ServiceContext, tx: Tx, groupId: string, id: string, path: string) => {
+  const live = await providerModel.getById(id, { ...ctx, tx });
+  if (isError(live)) return live;
+  if (live) return live.groupId === groupId ? live : badProvider(path);
+  const visible = await providerModel.getById(id, { ...ctx, tx, includeDeleted: true });
+  if (isError(visible)) return visible;
+  if (visible) return visible.groupId === groupId ? providerGone(path) : badProvider(path);
+  const any = await providerModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+  if (isError(any)) return any;
+  return any ? rejectError(ctx.authUser) : badProvider(path);
+};
+
+/** A live condition the actor can see, or `unauthorized` (another group's) or `notFound` (none, or deleted). */
+const visibleCondition = async (ctx: ServiceContext, tx: Tx, id: string) => {
+  const condition = await recipientConditionModel.getById(id, { ...ctx, tx });
+  if (isError(condition) || condition) return condition;
+  const visible = await recipientConditionModel.getById(id, { ...ctx, tx, includeDeleted: true });
+  if (isError(visible)) return visible;
+  if (visible) return notFound();
+  const any = await recipientConditionModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+  if (isError(any)) return any;
+  return any ? rejectError(ctx.authUser) : notFound();
+};
+
+/** A provider's id and name (deleted ones too: a change entry records names). As the system. */
+const providerRef = async (tx: Tx, id: string | null): Promise<ConditionProviderRef | null> => {
+  if (!id) return null;
+  const provider = await providerModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+  return provider && !isError(provider) ? { id: provider.id, name: provider.name } : null;
+};
+
+/** A condition as a change source: its content and who diagnosed it, by name. */
+const sourceOf = async (tx: Tx, row: RecipientCondition): Promise<ConditionChangeSource> => ({
+  ...row,
+  diagnosedBy: await providerRef(tx, row.diagnosedById),
+});
 
 /**
  * When a save happened, for its change entry (as `MedicationWriteOptions`):
@@ -58,7 +127,7 @@ const changeTimeOf = (opts: ConditionWriteOptions) =>
 /**
  * Record what a save did on the timeline, as the actor: one
  * `conditionChange` entry for a new condition, a resolve or reactivate, or
- * an edit to a tracked field (name, since, note); none for a save that
+ * an edit to a tracked field (name, since, note, diagnosed by); none for a save that
  * changed none of them. Its id comes from the condition and `changedAt`, so
  * a replay (or the device's own copy of the entry, uploaded next) lands on
  * the same row and changes nothing. In the recipient's time zone.
@@ -67,12 +136,20 @@ const writeChange = async (
   ctx: ServiceContext,
   tx: Tx,
   {
+    condition: after,
     before,
-    after,
+    source,
     changedAt,
-  }: { before: Parameters<typeof conditionChange>[0]; after: RecipientCondition; changedAt: string },
+  }: {
+    /** The condition after the save. */
+    condition: RecipientCondition;
+    before: ConditionChangeSource | null;
+    /** The condition after the save, as a change source (default: its row). */
+    source?: ConditionChangeSource;
+    changedAt: string;
+  },
 ) => {
-  const change = conditionChange(before, after);
+  const change = conditionChange(before, source ?? (await sourceOf(tx, after)));
   if (!change) return null;
 
   const id = conditionChangeId(after.id, changedAt);
@@ -152,6 +229,10 @@ export const create = (
 
     const recipient = await resolveRecipient(ctx, tx, data.groupId, recipientId);
     if (isError(recipient)) return recipient;
+    if (data.diagnosedById) {
+      const provider = await checkProvider(ctx, tx, data.groupId, data.diagnosedById, "diagnosedById");
+      if (isError(provider)) return provider;
+    }
 
     const created = await recipientConditionModel.create({
       ...ctx,
@@ -162,8 +243,8 @@ export const create = (
     const cleared = await clearNoKnownConditions(tx, recipient.id);
     if (cleared) return cleared;
     const change = await writeChange(ctx, tx, {
+      condition: created,
       before: null,
-      after: created,
       changedAt: changeTimeOf(opts),
     });
     if (isError(change)) return change;
@@ -171,7 +252,7 @@ export const create = (
   }, ctx);
 
 /**
- * Edit a condition's name, status, since or note (writers). What's left out
+ * Edit a condition's name, status, since, note or who diagnosed it (writers). What's left out
  * keeps its value; the merged condition must be valid. An edit that changes
  * nothing still succeeds (and records nothing); one that does records its
  * `conditionChange` entry (see `writeChange`).
@@ -193,6 +274,12 @@ export const update = (
 
     const merged = recipientConditionContentZSchema.safeParse({ ...before, ...patch });
     if (!merged.success) return invalid(merged.error);
+    // Checked when set or changed: one deleted since stays (greyed).
+    const diagnosedById = merged.data.diagnosedById;
+    if (diagnosedById && diagnosedById.toLowerCase() !== before.diagnosedById?.toLowerCase()) {
+      const provider = await checkProvider(ctx, tx, before.groupId, diagnosedById, "diagnosedById");
+      if (isError(provider)) return provider;
+    }
 
     const updated = await recipientConditionModel.update({
       ...ctx,
@@ -207,8 +294,8 @@ export const update = (
     if (!after) return null;
 
     const change = await writeChange(ctx, tx, {
-      before,
-      after,
+      condition: after,
+      before: await sourceOf(tx, before),
       changedAt: changeTimeOf(opts),
     });
     if (isError(change)) return change;
@@ -316,4 +403,191 @@ export const setNoKnownConditions = (ctx: ServiceContext, recipientId: string, a
       return rejectError(ctx.authUser);
     if (isError(updated)) return updated;
     return updated[0] ?? null;
+  }, ctx);
+
+// ---------------------------------------------------------------------------
+// Who manages it (`condition_manager`, slice 3)
+// ---------------------------------------------------------------------------
+
+/** A condition's managers now, by id and name (deleted providers too). As the system. */
+const managerRefs = async (tx: Tx, conditionId: string) => {
+  const links = await conditionManagerModel.list({
+    authUser: SYSTEM_USER,
+    tx,
+    filter: { conditionId: { type: "eq", value: conditionId } },
+  });
+  if (isError(links)) return links;
+  if (!links.data.length) return [] as ConditionProviderRef[];
+  const providers = await providerModel.list({
+    authUser: SYSTEM_USER,
+    tx,
+    includeDeleted: true,
+    filter: { id: { type: "inArray", value: links.data.map((l) => l.providerId) } },
+  });
+  if (isError(providers)) return providers;
+  return providers.data.map((p): ConditionProviderRef => ({ id: p.id, name: p.name }));
+};
+
+/**
+ * Record a change to who manages a condition, as the actor: folded into the
+ * change entry of `changedAt` when the save already wrote one (its edits, or
+ * an earlier link of the same save), else a new `changed` entry.
+ */
+const recordManagers = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  condition: RecipientCondition,
+  before: readonly ConditionProviderRef[],
+  after: readonly ConditionProviderRef[],
+  changedAt: string,
+) => {
+  const id = conditionChangeId(condition.id, changedAt);
+  const existing = await timelineEntryModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+  if (isError(existing)) return existing;
+  if (!existing) {
+    const source = await sourceOf(tx, condition);
+    return writeChange(ctx, tx, {
+      condition,
+      before: { ...source, managedBy: before },
+      source: { ...source, managedBy: after },
+      changedAt,
+    });
+  }
+  if (existing.kind !== "conditionChange" || existing.deletedAt) return null;
+  const details = conditionChangeDetailsZSchema.safeParse(existing.details);
+  if (!details.success) return null;
+  const next = withManagersChange(details.data, managerNames(before), managerNames(after));
+  if (!next) return null;
+  const updated = await timelineEntryModel.update({
+    ...ctx,
+    tx,
+    filter: { id: { type: "eq", value: id } },
+    data: { details: next },
+  });
+  return isError(updated) ? updated : (updated[0] ?? null);
+};
+
+/** A condition's manager links, oldest first. Deleted providers' links are included (screens grey them). */
+export const listManagers = (ctx: ServiceContext, conditionId: string) =>
+  conditionManagerModel.list({
+    ...ctx,
+    filter: { conditionId: { type: "eq", value: conditionId } },
+    orderBy: [{ field: "createdAt", direction: "asc" }],
+  });
+
+/**
+ * Say a provider manages a condition (writers). Both must be live and in
+ * `groupId`. Linking a pair that's already linked returns the existing link
+ * (a replay) and records nothing.
+ */
+export const linkManager = (
+  ctx: ServiceContext,
+  input: ConditionManagerLinkInput,
+  opts: ConditionWriteOptions = {},
+) =>
+  withTransaction(async (tx) => {
+    const parsed = conditionManagerLinkZSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const { groupId, conditionId, providerId } = parsed.data;
+    const id = conditionManagerId(conditionId, providerId);
+
+    const condition = await visibleCondition(ctx, tx, conditionId);
+    if (isError(condition)) return condition;
+    if (condition.groupId !== groupId)
+      return newError({ code: "recipientConditionService:managerNotInGroup" });
+    const provider = await checkProvider(ctx, tx, groupId, providerId, "managedBy");
+    if (isError(provider)) return provider;
+
+    const existing = await conditionManagerModel.getById(id, { ...ctx, tx });
+    if (isError(existing)) return existing;
+    if (existing) return existing;
+
+    const before = await managerRefs(tx, conditionId);
+    if (isError(before)) return before;
+    const created = await conditionManagerModel.create({
+      ...ctx,
+      tx,
+      data: { id, groupId, conditionId, providerId },
+    });
+    if (isError(created) || !created) return created;
+    const after = [...before, { id: provider.id, name: provider.name }];
+    const change = await recordManagers(ctx, tx, condition, before, after, changeTimeOf(opts));
+    if (isError(change)) return change;
+    return created;
+  }, ctx);
+
+/**
+ * Remove a manager link (a hard delete; writers). Removing one that's
+ * already gone is fine (a replay); one the actor can see but not remove is
+ * refused.
+ */
+export const unlinkManager = (ctx: ServiceContext, id: string, opts: ConditionWriteOptions = {}) =>
+  withTransaction(async (tx) => {
+    const link = await conditionManagerModel.getById(id, { ...ctx, tx });
+    if (isError(link)) return link;
+    if (!link) {
+      const any = await conditionManagerModel.getById(id, { authUser: SYSTEM_USER, tx });
+      if (isError(any)) return any;
+      return any ? rejectError(ctx.authUser) : { ids: [] as string[] };
+    }
+    const before = await managerRefs(tx, link.conditionId);
+    if (isError(before)) return before;
+    const res = await conditionManagerModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
+    if (isError(res)) return res.code === "baseModel:remove:nothingRemoved" ? rejectError(ctx.authUser) : res;
+
+    const condition = await recipientConditionModel.getById(link.conditionId, { ...ctx, tx });
+    if (isError(condition)) return condition;
+    if (condition) {
+      const after = before.filter((r) => r.id.toLowerCase() !== link.providerId.toLowerCase());
+      const change = await recordManagers(ctx, tx, condition, before, after, changeTimeOf(opts));
+      if (isError(change)) return change;
+    }
+    return res;
+  }, ctx);
+
+const setManagersZSchema = z.strictObject({
+  conditionId: z.uuid(),
+  providerIds: z.array(z.uuid()).max(50),
+});
+export type SetConditionManagersInput = z.input<typeof setManagersZSchema>;
+
+/**
+ * Make a condition's managers exactly `providerIds` (writers): unlinks the
+ * rest and links the new ones, in one transaction, recorded as one change
+ * entry. Each new one must be a live provider in the condition's group; a
+ * deleted provider already linked may stay. Safe to replay. Returns the links.
+ */
+export const setManagers = (
+  ctx: ServiceContext,
+  input: SetConditionManagersInput,
+  opts: ConditionWriteOptions = {},
+) =>
+  withTransaction(async (tx) => {
+    const parsed = setManagersZSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const { conditionId } = parsed.data;
+    const wanted = new Set(parsed.data.providerIds.map((id) => id.toLowerCase()));
+    // One time for every link, so they all land in one entry.
+    const once = { changedAt: changeTimeOf(opts) };
+
+    const condition = await visibleCondition(ctx, tx, conditionId);
+    if (isError(condition)) return condition;
+    const current = await listManagers({ ...ctx, tx }, conditionId);
+    if (isError(current)) return current;
+    for (const l of current.data) {
+      if (wanted.has(l.providerId.toLowerCase())) continue;
+      const res = await unlinkManager({ ...ctx, tx }, l.id, once);
+      if (isError(res)) return res;
+    }
+    const have = new Set(current.data.map((l) => l.providerId.toLowerCase()));
+    for (const providerId of wanted) {
+      if (have.has(providerId)) continue;
+      const res = await linkManager(
+        { ...ctx, tx },
+        { groupId: condition.groupId, conditionId, providerId },
+        once,
+      );
+      if (isError(res)) return res;
+    }
+    return listManagers({ ...ctx, tx }, conditionId);
   }, ctx);

@@ -27,6 +27,8 @@ describe("conditionActionFromForm", () => {
       sinceMonth: 3,
       note: "",
       status: "resolved",
+      diagnosedById: null,
+      providers: { newManagers: [] },
     });
   });
 
@@ -47,6 +49,8 @@ describe("conditionActionFromForm", () => {
       sinceYear: null,
       sinceMonth: null,
       note: "",
+      diagnosedById: null,
+      providers: { newManagers: [] },
     });
     for (const intent of ["resolve", "reactivate", "remove"])
       expect(conditionActionFromForm(form({ intent, conditionId: "c1" }))).toEqual({
@@ -59,6 +63,30 @@ describe("conditionActionFromForm", () => {
     });
     expect(conditionActionFromForm(form({ intent: "noKnownConditions", on: "0" }))).toMatchObject({
       on: false,
+    });
+  });
+
+  it("reads who diagnosed it and who manages it: ids, and names to add", () => {
+    const data = form({
+      intent: "update",
+      conditionId: "c1",
+      name: "Gout",
+      diagnosedById: "p1",
+      managers: "1",
+    });
+    for (const id of ["p2", "p3"]) data.append("managerId", id);
+    data.append("newManager", " Dr. Ada Moss ");
+    data.append("newManager", "");
+    expect(conditionActionFromForm(data)).toMatchObject({
+      diagnosedById: "p1",
+      providers: { managerIds: ["p2", "p3"], newManagers: ["Dr. Ada Moss"] },
+    });
+    const none = conditionActionFromForm(
+      form({ intent: "create", name: "Gout", newDiagnosedBy: " Dr. Lee ", managers: "1" }),
+    );
+    expect(none).toMatchObject({
+      diagnosedById: null,
+      providers: { managerIds: [], newDiagnosedBy: "Dr. Lee", newManagers: [] },
     });
   });
 

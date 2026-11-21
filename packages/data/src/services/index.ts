@@ -136,6 +136,7 @@ export { recipientConditionService };
 import * as medicationConditionService from "./medicationConditionService";
 export { medicationConditionService };
 export type { SetMedicationConditionsInput } from "./medicationConditionService";
+export type { SetConditionManagersInput } from "./recipientConditionService";
 
 export const services = {
   user: userService,

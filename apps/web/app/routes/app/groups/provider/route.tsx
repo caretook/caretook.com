@@ -17,6 +17,7 @@ import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 import { ContactList } from "./ContactList";
 import { LinkedEntries } from "./LinkedEntries";
 import { loadProvider } from "./loadProvider";
+import { ProviderConditions } from "./ProviderConditions";
 import { ProviderHeader } from "./ProviderHeader";
 import { ProviderMedications } from "./ProviderMedications";
 import { ProviderVisitPrep } from "./ProviderVisitPrep";
@@ -139,6 +140,8 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
           <LinkedEntries groupId={groupId} providerId={providerId} />
 
           <ProviderMedications groupId={groupId} providerId={providerId} />
+
+          <ProviderConditions groupId={groupId} providerId={providerId} />
         </>
       )}
     </main>

@@ -10,6 +10,7 @@ import type {
 } from "@caretook/data/schema";
 
 import {
+  conditionManagerId,
   encodeNoteDoc,
   entryProviderId,
   medicationConditionId,
@@ -552,6 +553,28 @@ export const medicationCondition = (
     groupId,
     medicationId,
     conditionId,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by conditions slice 3 ---------------------------------------------
+
+/** A provider who manages a condition (who diagnosed it is the condition's `diagnosedById`). */
+export const conditionManager = (
+  conditionId: string,
+  providerId: string,
+  v: Partial<Values<"conditionManagers">> = {},
+) => {
+  const created = hoursAgo(24);
+  return row("conditionManagers", {
+    id: conditionManagerId(conditionId, providerId),
+    groupId,
+    conditionId,
+    providerId,
     createdAt: created,
     updatedAt: created,
     createdBy: TEST_USER.id,

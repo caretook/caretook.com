@@ -670,7 +670,6 @@ const taskOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome>
 // Each write records its `conditionChange` entry (id from the condition and
 // the device's `updated_at`, like a medication's change), so the device's own
 // copy, uploaded next, changes nothing.
-// `diagnosed_by_id` isn't mapped yet (conditions slice 3).
 // ---------------------------------------------------------------------------
 
 const CONDITION_COLUMNS = {
@@ -679,6 +678,7 @@ const CONDITION_COLUMNS = {
   since_year: (v: unknown) => ["sinceYear", int(v)],
   since_month: (v: unknown) => ["sinceMonth", int(v)],
   note: (v: unknown) => ["note", text(v)],
+  diagnosed_by_id: (v: unknown) => ["diagnosedById", text(v)],
 } as const satisfies Record<string, (v: unknown) => [string, unknown]>;
 
 const conditionContentFrom = (data: Record<string, unknown>) =>
@@ -755,6 +755,45 @@ const medicationConditionOp = async (ctx: { authUser: AuthUser }, op: CrudOp): P
 };
 
 // ---------------------------------------------------------------------------
+// condition_manager: who manages a condition (conditions slice 3). Links are
+// added (PUT) and removed, never changed. Each link and unlink is recorded in
+// the change entry of its save's time (the device's `updated_at`), so one
+// save's links are one entry. A DELETE carries no data, so the device first
+// PATCHes the link's `updated_at` to the save's time: that PATCH is the
+// unlink, and the DELETE after it a replay.
+// ---------------------------------------------------------------------------
+
+const UNLINK_STAMP_COLUMNS = new Set(["updated_at", "updated_by"]);
+
+const conditionManagerOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  if (op.op === "PATCH") {
+    const columns = Object.keys(data);
+    if (!columns.includes("updated_at") || !columns.every((c) => UNLINK_STAMP_COLUMNS.has(c)))
+      return readOnly("condition_manager", op.op);
+    const res = await recipientConditionService.unlinkManager(ctx, op.id, {
+      changedAt: text(data.updated_at),
+    });
+    return isError(res) ? res : applied;
+  }
+  if (op.op === "DELETE") {
+    const res = await recipientConditionService.unlinkManager(ctx, op.id);
+    return isError(res) ? res : applied;
+  }
+  const res = await recipientConditionService.linkManager(
+    ctx,
+    {
+      id: op.id,
+      groupId: text(data.group_id) ?? "",
+      conditionId: text(data.condition_id) ?? "",
+      providerId: text(data.provider_id) ?? "",
+    },
+    { changedAt: text(data.updated_at) ?? text(data.created_at) },
+  );
+  return isError(res) ? res : applied;
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -772,6 +811,7 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   task: taskOp,
   recipient_condition: recipientConditionOp,
   medication_condition: medicationConditionOp,
+  condition_manager: conditionManagerOp,
 };
 
 /**

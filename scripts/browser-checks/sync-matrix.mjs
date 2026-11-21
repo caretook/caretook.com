@@ -40,6 +40,11 @@ export const MEDICATION_CONDITION_NAMESPACE = "3d6b8f1e-2c47-4a9d-b5e0-8f7a1c2d9
 export const medicationConditionId = (medicationId, conditionId) =>
   uuidV5(`${medicationId.toLowerCase()}:${conditionId.toLowerCase()}`, MEDICATION_CONDITION_NAMESPACE);
 
+/** packages/data's CONDITION_MANAGER_NAMESPACE: a link's id comes from its condition and provider. */
+export const CONDITION_MANAGER_NAMESPACE = "8a2e4c71-5b9d-4f06-a3c8-1e7d9b4f2a65";
+export const conditionManagerId = (conditionId, providerId) =>
+  uuidV5(`${conditionId.toLowerCase()}:${providerId.toLowerCase()}`, CONDITION_MANAGER_NAMESPACE);
+
 /** An empty Yjs update (base64): the smallest valid `note_update`. */
 const EMPTY_YJS_UPDATE = "AAA=";
 
@@ -71,6 +76,7 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
       task: randomUUID(),
       condition,
       medicationCondition: medicationConditionId(medication, condition),
+      conditionManager: conditionManagerId(condition, provider),
     },
   };
 };
@@ -287,6 +293,19 @@ export const SYNC_MATRIX = [
         ...audit(ctx),
       }),
   ),
+  // The matrix provider manages the matrix condition (both written above).
+  device(
+    "condition_manager",
+    (ctx) => ctx.ids.conditionManager,
+    (ctx) =>
+      insert("condition_manager", {
+        id: ctx.ids.conditionManager,
+        group_id: ctx.groupId,
+        condition_id: ctx.ids.condition,
+        provider_id: ctx.ids.provider,
+        ...audit(ctx),
+      }),
+  ),
   // Patched, not inserted: see RECIPIENT_PATCH.
   { table: "care_recipient", by: "patch" },
   server("care_group", (ctx) => `SELECT '${ctx.groupId}'`),
@@ -333,10 +352,11 @@ export const cleanupSql = (ctx, recordedAt) =>
   [
     `DELETE FROM timeline_entry_provider WHERE id = '${ctx.ids.link}'`,
     `DELETE FROM medication_condition WHERE id = '${ctx.ids.medicationCondition}'`,
+    `DELETE FROM condition_manager WHERE id = '${ctx.ids.conditionManager}'`,
     `DELETE FROM note_update WHERE document_id = '${ctx.ids.provider}'`,
     `DELETE FROM note_document WHERE id = '${ctx.ids.provider}'`,
     // The note, and the medication's "started" entry the service wrote with it.
-    `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND (id = '${ctx.ids.entry}' OR details->>'medicationId' = '${ctx.ids.medication}')`,
+    `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND (id = '${ctx.ids.entry}' OR details->>'medicationId' = '${ctx.ids.medication}' OR details->>'conditionId' = '${ctx.ids.condition}')`,
     ...["provider", "medication", "medication_pass", "recipient_allergy", "care_period", "task"].map(
       (t) =>
         `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.task}')`,

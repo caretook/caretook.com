@@ -105,4 +105,17 @@ export const PROFILES_PERMISSIONS = {
     update: SYSTEM_ONLY_ENTRY,
     delete: groupEntry(WRITERS),
   },
+
+  // Who manages a condition (conditions slice 3): links between a condition
+  // and the group's providers. Like medication_condition: writers link and
+  // unlink (a hard delete), a link never changes. Write through
+  // recipientConditionService, which checks both ends and records the change.
+  conditionManagerSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: groupEntry(WRITERS),
+    update: SYSTEM_ONLY_ENTRY,
+    delete: groupEntry(WRITERS),
+  },
 } as const satisfies PartialPermissions;
