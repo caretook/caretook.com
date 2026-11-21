@@ -243,6 +243,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
 - 2026-11-20 (Robert Bo Davis): Moved from appointments (done) to a new appointments-2 PRD, to plan now (the user, 2026-11-20). Touches timeline-ux's Today card, so start it after timeline-ux wave 2; B-61's push needs a decision in the interview. -- backlog agent
 - 2026-11-20 (plan/appointments-2): Planned 2026-11-20: plans/appointments-2-prd.md and -plan.md, 10 slices in 4 waves. B-60 slices 1,2,3,10; B-62 slice 5; B-61 slices 6,8 (email only, push later); B-63 slices 7,9 (two-way Google sync, polling). New deps approved: rrule 2.8.1, ical-generator 11.1.4, @googleapis/calendar 20.2.0, google-auth-library 11.3.4. -- plan/appointments-2
+- 2026-11-20 (slice/appointments-2/9): Slice 9 (pull + smoke) handed off: calendarPullService (googlePull cron step, 5-min pacing), interpretGoogleChange in google/pullPlan.ts, pnpm calendar:google-smoke (manual; not run against Google).
 
 ### B-84 · feature · Deleting an entry, provider or medication scrubs its content everywhere
 
