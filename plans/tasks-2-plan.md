@@ -4,12 +4,12 @@
 
 ## Status
 
-| Slice | Wave | State                                                               | Merge into `prd/tasks-2` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | 1    | merged (opus); worktree removed                                     | 2bb1c667 (fcec2345)                      |
-| 2     | 2    | merged (sonnet); worktree removed                                   | d378d00e (d5e2c45c)                      |
-| 3     | 3    | started 2026-11-21 (worktree `tasks-2-3`, stackless; agent on opus) |                                          |
-| 4     | 3    | handed off (d9152b98), waiting to merge after slice 3 (plan order)  |                                          |
+| Slice | Wave | State                             | Merge into `prd/tasks-2` (slice commits) |
+| ----- | ---- | --------------------------------- | ---------------------------------------- |
+| 1     | 1    | merged (opus); worktree removed   | 2bb1c667 (fcec2345)                      |
+| 2     | 2    | merged (sonnet); worktree removed | d378d00e (d5e2c45c)                      |
+| 3     | 3    | merged (opus); worktree removed   | 088189a3 (40959990)                      |
+| 4     | 3    | merged (sonnet); worktree removed | 1b08a7fe (d9152b98)                      |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue tasks-2`): start every ready slice, land each green wave, clean up; ask only real questions. B-222 claimed.
 
@@ -24,6 +24,8 @@
 **Slice 2 notes:** component tests 1117/1118 (the one failure `entryPrint`, B-225); browser `--changed` 9/9 passed. `libLayout.test.ts` needed `docs/domain/todos.md`, so the orchestrator moved `tasks.md` → `todos.md` and its links early (the content folds at landing). Slice 2 touched slice 4's `writes.ts` and `mcpWrites.int.test.ts` only for `todoPath`; `add_task`, `list_tasks`, `addTask*`, `prompts.ts`, the `taskId` response key and "Added task" stay for slice 4. Slice 3 renames `UpcomingTodo`, `isUpcomingTodo`, `data-upcoming-todo` with the folder.
 
 **Slice 4 notes:** `add_todo`, `list_todos`, action kind `addTodo` (also renamed in quick entry's apps/web files: `useQuickEntry`, `quickEntryCards`, `quickEntry.sync.ts`); keys `todoId`, `todos`; browser `--changed` named nothing. `pnpm check`: 3 component failures at ~4:50 a.m., one confirmed as `entryPrint` (B-225), two unidentified: recheck at landing. **Open question for the user:** slice 2 changed `CONNECTOR_CONSENT_TEXT` to "todos" without bumping `CONNECTOR_CONSENT_VERSION` ("2026-11-20"); the file's rule is text and version change together.
+
+**All slices merged; landing.** 1495e01a fixes slice 2's sweep in `todoRename.int.test.ts` and `syncTodos.int.test.ts` (restored from fcec2345) and bumps `CONNECTOR_CONSENT_VERSION` to 2026-11-21 (the user chose the bump). B-222 done. Synced `dev` (timeline-ux-2 done, conflict-free); typecheck clean. Next: docs folded (a sonnet helper), `datastore:reset`, browser `--changed --base dev` (slice 3 couldn't run phase2, roundtrip, layout-offline, sign-in, first-sync), full `pnpm prd check` (a migration and sync config), land. Slice 3 notes: `openUpcoming` alias left in `plannerWorld.tsx` until quick-fixes' slices 59/61 land; the Menu's Todo item has no `prefetch="render"`.
 
 **Overlaps:** quick-fixes slices 59 and 61 edit `task.browser.test.tsx`, `upcomingEvents`/`upcomingSeries.browser.test.tsx` and `timelineSimpleTasks.browser.test.tsx`, which slices 2 and 3 rename (`git mv`, so the renames should carry their edits). quick-entry (B-220) waits for tasks-2 in `dev`.
 
