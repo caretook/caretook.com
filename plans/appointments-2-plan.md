@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State                                            | Merge into `prd/appointments-2` (slice commits) |
-| ----- | ---- | ------------------------------------------------ | ----------------------------------------------- |
-| 1     | 1    | merged (opus)                                    | a589f8fa (716e20cd, 2b37171b)                   |
-| 2     | 2    | merged (opus)                                    | 20b816d5 (0b254449, 3990c7ec)                   |
-| 3     | 2    | merged (sonnet)                                  | 8b41d9c8 (da53f874, 160c7ee3)                   |
-| 4     | 2    | merged (opus)                                    | 9f79243e (f2073aaa, 537c6236)                   |
-| 5     | 3    | merged (sonnet)                                  | 6e343bd8 (6c228c9c)                             |
-| 6     | 3    | merged (opus)                                    | 4d8f9364 (24b03329)                             |
-| 7     | 3    | merged (opus)                                    | ca95085a (b5ea3fef, 91cdc5f2)                   |
-| 8     | 4    | merged (sonnet)                                  | edfcedf0 (0f814ca5)                             |
-| 9     | 4    | started (opus)                                   |                                                 |
-| 10    | 4    | handed off, merge after 8 and 9 (opus; 4bdf82e8) |                                                 |
+| Slice | Wave | State           | Merge into `prd/appointments-2` (slice commits) |
+| ----- | ---- | --------------- | ----------------------------------------------- |
+| 1     | 1    | merged (opus)   | a589f8fa (716e20cd, 2b37171b)                   |
+| 2     | 2    | merged (opus)   | 20b816d5 (0b254449, 3990c7ec)                   |
+| 3     | 2    | merged (sonnet) | 8b41d9c8 (da53f874, 160c7ee3)                   |
+| 4     | 2    | merged (opus)   | 9f79243e (f2073aaa, 537c6236)                   |
+| 5     | 3    | merged (sonnet) | 6e343bd8 (6c228c9c)                             |
+| 6     | 3    | merged (opus)   | 4d8f9364 (24b03329)                             |
+| 7     | 3    | merged (opus)   | ca95085a (b5ea3fef, 91cdc5f2)                   |
+| 8     | 4    | merged (sonnet) | edfcedf0 (0f814ca5)                             |
+| 9     | 4    | merged (opus)   | 1cf45362 (7284a2d4, db846edf)                   |
+| 10    | 4    | merged (opus)   | f1cc1dbc (4bdf82e8)                             |
 
 **Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per this plan's _Landing_, landing waits until every slice is merged.
 
@@ -38,6 +38,10 @@ Slice 5 merged (6e343bd8); B-62 done (ready).
 Slice 6 merged (4d8f9364; registry conflicts with slice 5 resolved by keeping both, frozen-list tests pass). Slice 8 now waits only on itself: start it.
 
 Slice 7 merged (ca95085a; 12 additive conflicts with 5 and 6 resolved, incl. `linkToken.ts` = seal.ts + `createHmac` for `linkSubkey`, cron test expects [reminders, googlePush, seriesTopUp], routes.test.ts re-sorted). Wave 3 done. Slice 9 started. Slice 10 handed off; held for plan order (worktree `.loops/appointments-2-10` with a stack).
+
+**All 10 slices merged** (9: 1cf45362, 10: f1cc1dbc); worktrees removed; B-60, B-61, B-62, B-63 done (ready). Next: sync dev, datastore reset, full `pnpm prd check`, serve, browser checks (whole lean set: ask the user before `--suite`), ready, land, fold docs, `pnpm prd rm appointments-2`.
+
+**Carried from slice 9's hand-off:** `interpretGoogleChange` in `packages/data/src/google/pullPlan.ts` takes `now` and `timeZone` too; only times come back from Google (title, place, description ignored); viewers get `overwrite` (a viewer's new event is removed by the next push via a `google:<eventId>` placeholder link); a started series visit gets `overwrite` (`pastVisit`). `calendarPullService` (`pullConnection`, `pullDue` with SKIP LOCKED; `lastPulledAt` now means "last pull started"); overwrite clears `pushedHash` and queues `enqueue(..., "daily")`; a passing failure keeps the sync token; cancel reason "Deleted in Google Calendar". Cron order `[reminders, googlePush, googlePull, seriesTopUp]`. Smoke script `packages/data/scripts/googleSmoke.ts` (`pnpm calendar:google-smoke`, `--keep`, `--disconnect`), not run against Google. Runbook 5a.5, 5a.6 and the Vercel cron sentence done. Docs: calendars.md (pull, rules, overwrite, token, smoke); notifications.md (`googlePull`); layout.md (`packages/data/scripts/googleSmoke.ts`).
 
 **Pending sync:** quick-fixes wave 14 in dev (fa9ad005): fixes B-205/B-206 (mcpWrites) and the stale `timelineSimpleTiles` test; touches DayHeader, SimpleNow/SimpleTimeline, useTimelineData. Sync after wave 4 merges, before the landing check.
 
