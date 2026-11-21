@@ -4,12 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/list-filters` (slice commits) |
-| ----- | ---- | ----------- | --------------------------------------------- |
-| 1     | 1    | not started |                                               |
-| 2     | 2    | not started |                                               |
-| 3     | 2    | not started |                                               |
-| 4     | 3    | not started |                                               |
+| Slice | Wave | State                                                                      | Merge into `prd/list-filters` (slice commits) |
+| ----- | ---- | -------------------------------------------------------------------------- | --------------------------------------------- |
+| 1     | 1    | started (opus; worktree `.loops/list-filters-1`, agent spawned 2026-11-21) |                                               |
+| 2     | 2    | not started                                                                |                                               |
+| 3     | 2    | not started                                                                |                                               |
+| 4     | 3    | not started                                                                |                                               |
+
+**Landing mode: run everything through** (queued with `pnpm prd queue list-filters`): start every ready slice, land each green wave through the Codex-reviewed PR, clean up; ask only real questions. B-249 claimed 2026-11-21.
 
 **Start conditions:** slices 1 to 3 can start at once (no dependency). **Slice 4 waits for B-247 in `dev`** (Planner: Past becomes an Upcoming | Past toggle, with the All / Events / Todos filter row; a `quick-fixes` item); `pnpm prd sync` before it.
 
