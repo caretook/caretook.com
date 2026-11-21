@@ -108,7 +108,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-214 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
 | B-215 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
 | B-216 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
-| B-217 | bug | triaged | timeline-ux-2 |  | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
+| B-217 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
 | B-218 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
 | B-219 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
 | B-220 | change | triaged | quick-entry |  | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
@@ -635,9 +635,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-217 · bug · If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page looks goofy without it.
