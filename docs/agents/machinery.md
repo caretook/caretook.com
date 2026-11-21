@@ -19,6 +19,13 @@ The scripts behind `pnpm prd` (`scripts/loops/`) that every session leans on: wo
 - **`pnpm prd end [<name>]`** ends a session (TERM, KILL after `CARETOOK_END_WAIT`, 10 s): the named record, or with no name the caller's own, so it works after `pnpm prd rm`. With neither a record nor an ancestor it refuses.
 - **The opener** (`open-session.sh`) writes `cd <dir> && exec …` to the tab it made, so the tab closes with the session. It carries a record's `auto` over and opens fresh, never `--continue`, after a `rotating` record. `--background` doesn't bring iTerm2 forward and reselects the earlier tab; `--command <line> --title <t>` opens any line.
 
+## Rotation
+
+- **`pnpm prd rotate [<topic>] [--mid-wave] [--reason <text>]`** (`rotate.sh`) finds the session to end (the live `prd-<topic>` record, else the calling shell's ancestor `claude` from that worktree) and opens `rotate-into.sh` in a background tab, then returns. It refuses with uncommitted plan changes, with slice worktrees left (unless `--mid-wave`), or with no session found. Without iTerm2 it prints the command and ends nothing.
+- `rotate-into.sh <name> <pid>` sets `rotating`, ends the pid (TERM, KILL after `CARETOOK_ROTATE_WAIT`, 20 s), waits for its wrapper to record the end, then execs `session.sh` with `prompt.sh orchestrator <topic> --resume` (`--auto` from the record or _Status_): fresh, the same name.
+- `rm.sh`, removing a merged `prd/` worktree whose _Status_ has no slice left, sets the registry's `done` flag (dropping `hold`), except for a `standing` topic.
+- `pnpm prd status` adds the recorded sessions (live, rotating or ended, age, run-through; ended over a day ago left out) and the open asks (count, the oldest).
+
 ## The asks queue
 
 - One place for the user to answer: `.loops/.asks/<id>.json` in the main checkout (`CARETOOK_ASKS_DIR`), ids `a1`, `a2`…, created exclusively. A question stays open until answered or dismissed; a report until dismissed.
