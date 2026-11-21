@@ -4,10 +4,11 @@ import { assigneeOf, localDate, todoOrder, todoState } from "@caretook/data/sche
 import { dayHeading } from "./todoDisplay";
 
 // The todo list's shape (pure; web:unit tests it): which todos the
-// Mine / Unassigned / Everyone chip shows, its default, and the sections
+// Everyone / Mine / Unassigned filter shows, its default, and the sections
 // (Overdue, Today, a day per later day, No due date) in list order.
 
-export const TODO_WHO = ["mine", "unassigned", "everyone"] as const;
+/** The "Assigned to" filter's choices, in menu order (Everyone first: the default). */
+export const TODO_WHO = ["everyone", "mine", "unassigned"] as const;
 export type TodoWho = (typeof TODO_WHO)[number];
 
 export const WHO_LABELS: Record<TodoWho, string> = {
@@ -16,7 +17,7 @@ export const WHO_LABELS: Record<TodoWho, string> = {
   everyone: "Everyone",
 };
 
-/** The chip's URL param. */
+/** The filter's URL param. */
 export const WHO_PARAM = "who";
 
 /** `?who=` from a search string, or null (none, or unknown). */
@@ -25,21 +26,31 @@ export const parseWho = (search: string): TodoWho | null => {
   return (TODO_WHO as readonly (string | null)[]).includes(value) ? (value as TodoWho) : null;
 };
 
-/** `search` with the chip set to `who`. */
+/** `search` with the filter set to `who`. */
 export const setWho = (search: string, who: TodoWho) => {
   const params = new URLSearchParams(search);
   params.set(WHO_PARAM, who);
   return `?${params.toString()}`;
 };
 
+/** `search` without `?who=` (the list's default, Everyone). */
+export const clearWho = (search: string) => {
+  const params = new URLSearchParams(search);
+  params.delete(WHO_PARAM);
+  const rest = params.toString();
+  return rest ? `?${rest}` : "";
+};
+
+/** The filter with no `?who=`: Everyone, always (Mine and Unassigned narrow it). */
+export const DEFAULT_WHO: TodoWho = "everyone";
+
+/** The filter in effect: `?who=`, else Everyone. */
+export const whoOf = (search: string): TodoWho => parseWho(search) ?? DEFAULT_WHO;
+
 type Assigned = Pick<TodoRuleFields, "assigneeId" | "assigneeName" | "doneAt">;
 
-/** The chip with no `?who=`: Mine when I have open todos, else Everyone. */
-export const defaultWho = (todos: readonly Assigned[], userId: string): TodoWho =>
-  todos.some((t) => !t.doneAt && t.assigneeId === userId) ? "mine" : "everyone";
-
 /**
- * Whether the chip shows a todo. Mine: assigned to me. Unassigned: nobody
+ * Whether the filter shows a todo. Mine: assigned to me. Unassigned: nobody
  * (a typed-in name's todo isn't up for grabs, so it's under Everyone only).
  */
 export const showsTodo = (who: TodoWho, todo: Assigned, userId: string) => {
