@@ -4,15 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/ui-kit` (slice commits) |
-| ----- | ---- | ----- | --------------------------------------- |
-| 1     | 1    |       |                                         |
-| 2     | 2    |       |                                         |
-| 3     | 2    |       |                                         |
-| 4     | 2    |       |                                         |
-| 5     | 3    |       |                                         |
-| 6     | 3    |       |                                         |
-| 7     | 4    |       |                                         |
+| Slice | Wave | State                                                                | Merge into `prd/ui-kit` (slice commits) |
+| ----- | ---- | -------------------------------------------------------------------- | --------------------------------------- |
+| 1     | 1    | started 2026-11-21 (worktree ui-kit-1, agent on opus); items claimed |                                         |
+| 2     | 2    |                                                                      |                                         |
+| 3     | 2    |                                                                      |                                         |
+| 4     | 2    |                                                                      |                                         |
+| 5     | 3    |                                                                      |                                         |
+| 6     | 3    |                                                                      |                                         |
+| 7     | 4    |                                                                      |                                         |
+
+**Landing mode (recorded 2026-11-21): run everything through.** Queued with `pnpm prd queue ui-kit`: start every ready slice, land each green wave through its PR (Codex-reviewed, never `--force`), clean up; ask only real questions.
+
+**Now:** wave 1 running (slice 1). Models: slice 1 opus (design-heavy). Open issues: none.
 
 **Start conditions:** none outstanding (`list-filters` and `planner-2` are in `dev`). Never beside `i18n` (it runs alone). `quick-fixes` and `simple-mode` may run beside it; sync between waves.
 
