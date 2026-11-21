@@ -113,7 +113,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-189 | bug | landed | quick-fixes | prd/quick-fixes | mcp connector for medication change records on the timeline, it isn't providing information about… |
 | B-190 | bug | landed | quick-fixes | prd/quick-fixes | mcp connector returning truncated notes on doses, and maybe other things |
 | B-191 | bug | in-progress | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
-| B-192 | bug | in-progress | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
+| B-192 | bug | ready | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
 | B-193 | feature | triaged | connectors-2 |  | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
 | B-194 | feature | triaged | connectors-2 |  | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
 | B-195 | feature | triaged | connectors-2 |  | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
@@ -772,10 +772,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-192 · bug · undo when checking off a todo should list all the todos that were checked off, not just the last…
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: f9109cad
 
 - 2026-11-20 (prd/quick-fixes): From the inbox: undo when checking off a todo should list all the todos that were checked off, not just the last one that was checked off.
 - 2026-11-20 (prd/quick-fixes): Proposed for quick-fixes (orchestrator, 2026-11-20): a small tasks fix (the undo after checking off names every task checked off since, not just the last). A slice in a later wave; the user reviews.
