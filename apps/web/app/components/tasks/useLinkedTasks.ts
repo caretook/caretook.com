@@ -8,11 +8,12 @@ import { useLiveQuery } from "~/lib/sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { linkedTasksQuery, toTasks } from "~/lib/tasks/tasks.sync";
 import { membersQuery } from "~/lib/timeline/timeline.sync";
-import { subscribeTaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/tasks/taskUndo";
+import { subscribeTaskUndo, type TaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/tasks/taskUndo";
 
 const NO_TASKS: TaskRow[] = [];
 const NO_MEMBERS: MemberRow[] = [];
-const noOffer = () => null;
+const NO_OFFERS: readonly TaskUndo[] = [];
+const noOffers = () => NO_OFFERS;
 
 /**
  * The open tasks linked to one provider, medication or event, in list order
@@ -38,10 +39,10 @@ export function useLinkedTasks(link: TaskLink) {
     [members, group.userId],
   );
 
-  // The last task ticked here: only its Undo keeps the region up.
-  const [tickedHere, ticked] = useState<string | null>(null);
-  const offer = useSyncExternalStore(subscribeTaskUndo, taskUndoSnapshot, noOffer);
-  const undo = offer ? taskUndoFor(group.id) : null;
-  const undoing = !!undo && undo.taskId === tickedHere;
+  // The tasks ticked here: only their Undo keeps the region up.
+  const [tickedHere, setTickedHere] = useState<ReadonlySet<string>>(() => new Set());
+  const ticked = useCallback((taskId: string) => setTickedHere((ids) => new Set(ids).add(taskId)), []);
+  const offers = useSyncExternalStore(subscribeTaskUndo, taskUndoSnapshot, noOffers);
+  const undoing = offers.length > 0 && taskUndoFor(group.id).some((o) => tickedHere.has(o.taskId));
   return { tasks, nameOf, now, timeZone, ticked, shown: tasks.length > 0 || undoing };
 }

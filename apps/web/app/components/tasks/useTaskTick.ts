@@ -6,9 +6,9 @@ import { completeTask, reopenTask } from "~/lib/tasks/tasks.sync";
 
 /**
  * Ticking tasks done and reopening them: the one path for every task tick
- * (the list now; Upcoming, the strip and the simple card later). Local
- * writes, so they work offline; a tick offers Undo for about 10 s
- * (`TaskUndoStatus` shows it). Each control has its own, so `busy` and
+ * (the list, the page, Upcoming, the simple card, `LinkedTasks`). Local
+ * writes, so they work offline; each tick offers its own Undo for about
+ * 10 s (`TaskUndoStatus` shows them). Each control has its own, so `busy` and
  * `error` are its own.
  */
 export function useTaskTick(groupId: string) {
@@ -31,7 +31,8 @@ export function useTaskTick(groupId: string) {
     (task: { id: string; title: string }) =>
       run(async () => {
         const result = await completeTask(getSync(), task.id);
-        if (result.ok) offerTaskUndo({ groupId, taskId: task.id, label: completedText(task.title) });
+        if (result.ok)
+          offerTaskUndo({ groupId, taskId: task.id, title: task.title, label: completedText(task.title) });
         return result;
       }),
     [groupId, run],
@@ -49,7 +50,7 @@ export function useTaskTick(groupId: string) {
   return { complete, reopen, busy, error };
 }
 
-/** Undo a tick: reopens the task. */
+/** Undo one tick: reopens just that task, and drops only its offer. */
 export async function undoTaskTick(key: string, taskId: string) {
   const result = await reopenTask(getSync(), taskId);
   if (result.ok) clearTaskUndo(key);

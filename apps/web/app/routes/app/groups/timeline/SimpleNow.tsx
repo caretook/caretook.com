@@ -15,8 +15,8 @@ export const SIMPLE_NOW_UNDO = "simpleNow";
  * Simple mode's Upcoming block (assistant PRD): what needs doing. Each pass due
  * now (named or a time of its own) as one big Given all button ("Give
  * evening meds (4)"), with Undo for about 10 s, as on the medication strip;
- * then `next` (the next appointment, given by the caller). Viewers get the
- * due passes as text and no buttons. Nothing at all when nothing is due and
+ * then `next` (the next appointment, given by the caller: `SimpleNext`, which
+ * opens the next five). Viewers get the due passes as text and no Given all. Nothing at all when nothing is due and
  * there's no `next`. Local data, so it works offline.
  *
  * It never pops in (the tile cache): passes remembered from earlier this

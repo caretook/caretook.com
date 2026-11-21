@@ -1,5 +1,5 @@
 import type { DeviceRoute } from "../../../../../test/device";
-import type { GroupRole } from "../../../../../test/fixtures";
+import type { Fixtures, GroupRole } from "../../../../../test/fixtures";
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
@@ -13,6 +13,7 @@ import { at, fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../../../../../te
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
+import { daysAgo } from "../periods/periodWorld";
 import { chooseViewOption, waitUntil } from "./timelineWorld";
 
 // Simple mode on the timeline (assistant slice 5), in the real /app frame on
@@ -59,19 +60,21 @@ const open = ({
   locked = 0,
   url = TIMELINE_URL,
   api,
+  extra = [],
 }: {
   role?: GroupRole;
   simpleMode?: number;
   locked?: number;
   url?: string;
   api?: Record<string, (input: unknown) => unknown>;
+  extra?: Fixtures[];
 } = {}) =>
   renderWithDevice({
     route: ROUTES,
     url,
     role: null,
     frame: true,
-    fixtures: [membership(role, simpleMode, locked), ...ENTRIES],
+    fixtures: [membership(role, simpleMode, locked), ...ENTRIES, ...extra],
     api,
   });
 
@@ -152,11 +155,10 @@ describe("the simple view", () => {
     expect(document.querySelectorAll("[data-simple-list] a[href*='/entries/']")).toHaveLength(1);
     expect(document.querySelectorAll("[data-simple-list] a[href*='/edit']")).toHaveLength(0);
 
-    // Hidden: the + menu, View options (layout, summaries), filter chips, strips and the period line.
+    // Hidden: the + menu, View options (layout, summaries), filter chips and strips.
     expect(page.getByRole("button", { name: /^Add to / }).elements()).toHaveLength(0);
     expect(page.getByRole("button", { name: "View options" }).elements()).toHaveLength(0);
     expect(page.getByRole("navigation", { name: "Show entries" }).elements()).toHaveLength(0);
-    expect(document.querySelector("[data-period-line]")).toBeNull();
 
     // The header: the mark, the sync status and the user menu only; no tab bar.
     expect(header().querySelector('[data-region="search"]')).toBeNull();
@@ -166,6 +168,34 @@ describe("the simple view", () => {
     await userEvent.click(userButton());
     await expect.poll(menuItems).toEqual(["Settings", "Full app", "Sign out"]);
     await userEvent.keyboard("{Escape}");
+  });
+
+  test("a day header names the care period: today's, a past day's, and none outside any period", async () => {
+    const stay = fx.period({
+      type: "hospital",
+      startedAt: at(daysAgo(10, 9)),
+    });
+    const home = fx.period({ type: "home", startedAt: at(daysAgo(4, 9)) });
+    await open({
+      simpleMode: 1,
+      extra: [
+        stay,
+        home,
+        fx.note({ occurredAt: at(daysAgo(7, 12)), text: "In the ward" }),
+        fx.note({ occurredAt: at(daysAgo(15, 12)), text: "Before any period" }),
+      ],
+    });
+    await waitUntil(() => isSimple() && rows().length === 4, 4000, "the rows");
+    const lines = () =>
+      [...document.querySelectorAll("[data-simple-list] [data-day-header]")].map(
+        (h) => h.querySelector<HTMLElement>("[data-period-line]")?.textContent?.trim() ?? null,
+      );
+    await waitUntil(() => lines().length === 3, 4000, "the day headers");
+    expect(lines()).toEqual([expect.stringMatching(/^At home · day 5$/), "In hospital · day 4", null]);
+    // Today's line links to its period; no Change, no + menu in simple mode.
+    const link = document.querySelector<HTMLAnchorElement>("[data-simple-list] [data-period-current]")!;
+    expect(link.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/periods/${home.id}`);
+    expect(document.querySelector("[data-period-change]")).toBeNull();
   });
 
   test("still saves through the box, on the device", async () => {

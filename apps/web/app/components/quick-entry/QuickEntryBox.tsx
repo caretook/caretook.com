@@ -1,12 +1,13 @@
 import type { UnitChoices } from "@caretook/data/schema";
 
-import { useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import { PassUndoStatus } from "~/components/medications";
 import { Field } from "~/components/ui";
 import { QuickEntryCard } from "./QuickEntryCard";
 import { QuickEntrySuggestions } from "./QuickEntrySuggestions";
 import { QUICK_ENTRY_UNDO, useQuickEntry } from "./useQuickEntry";
-import { QUICK_ENTRY_RULES, useRotatingPlaceholder } from "./useRotatingPlaceholder";
+import { QuickEntryHelp } from "./QuickEntryHelp";
+import { QUICK_ENTRY_PLACEHOLDER, QUICK_ENTRY_RULES } from "./quickEntryCopy";
 
 /** Simple mode's hint under its large box: talking is the easy way in. */
 export const DICTATION_HINT = "Tap the microphone on your keyboard to say it instead of typing.";
@@ -42,8 +43,6 @@ export function QuickEntryBox({
   const q = useQuickEntry({ groupId, units });
   const count = q.cards.length;
   const field = useRef<HTMLTextAreaElement>(null);
-  const [focused, setFocused] = useState(false);
-  const placeholder = useRotatingPlaceholder(!focused && q.text === "");
   const rulesId = useId();
   /** A suggestion fills the box and waits there, the cursor at the end (it never saves). */
   const fill = (value: string) => {
@@ -74,28 +73,29 @@ export function QuickEntryBox({
           className={size === "lg" ? "[&>label]:text-xl [&>label]:font-semibold [&>p]:text-base" : ""}
         >
           {(control) => (
-            <textarea
-              {...control}
-              aria-describedby={[control["aria-describedby"], rulesId].filter(Boolean).join(" ")}
-              ref={field}
-              name="quickEntry"
-              rows={1}
-              className={`textarea field-sizing-content max-h-48 w-full resize-none ${TEXTAREA_CLASS[size]}`}
-              placeholder={placeholder}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              autoComplete="off"
-              enterKeyHint="done"
-              value={q.text}
-              onChange={(e) => q.setText(e.target.value)}
-              onKeyDown={(e) => {
-                // Enter saves; Shift+Enter is a new line.
-                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  void q.save();
-                }
-              }}
-            />
+            <div className="flex items-start gap-1">
+              <textarea
+                {...control}
+                aria-describedby={[control["aria-describedby"], rulesId].filter(Boolean).join(" ")}
+                ref={field}
+                name="quickEntry"
+                rows={1}
+                className={`textarea field-sizing-content max-h-48 min-w-0 flex-1 resize-none ${TEXTAREA_CLASS[size]}`}
+                placeholder={QUICK_ENTRY_PLACEHOLDER}
+                autoComplete="off"
+                enterKeyHint="done"
+                value={q.text}
+                onChange={(e) => q.setText(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter saves; Shift+Enter is a new line.
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    void q.save();
+                  }
+                }}
+              />
+              <QuickEntryHelp />
+            </div>
           )}
         </Field>
         <p id={rulesId} className="sr-only">
