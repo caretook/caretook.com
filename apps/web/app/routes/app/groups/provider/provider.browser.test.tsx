@@ -100,7 +100,7 @@ describe("the page", () => {
     const names = $$("main [data-contact-list] a").map((a) => a.textContent.trim());
     expect(names[0]).toContain("Call Westside Family Medicine, front desk");
     expect(names[1]).toContain("Fax");
-    expect(NOTES()!.getAttribute("contenteditable")).toBe("true");
+    await expect.poll(() => NOTES()?.getAttribute("contenteditable")).toBe("true");
     expect($('main [role=toolbar][aria-label="Formatting"]')).not.toBeNull();
     expect($("main header a[data-edit-provider]")).not.toBeNull();
   });
@@ -204,8 +204,8 @@ describe("the notes", () => {
   test("a viewer reads them, read-only: not editable, no toolbar, and no Edit", async () => {
     await open(providerUrl(WESTSIDE.id), { role: "viewer" });
     await waitUntil(() => !!NOTES()?.textContent?.includes("level 2"));
-    expect(NOTES()!.getAttribute("contenteditable")).toBe("false");
-    expect(NOTES()!.getAttribute("aria-readonly")).toBe("true");
+    await expect.poll(() => NOTES()?.getAttribute("contenteditable")).toBe("false");
+    await expect.poll(() => NOTES()?.getAttribute("aria-readonly")).toBe("true");
     expect($('main [role=toolbar][aria-label="Formatting"]')).toBeNull();
     expect($("main header a[data-edit-provider]")).toBeNull();
     expect(mainText()).toContain("You can view these notes.");

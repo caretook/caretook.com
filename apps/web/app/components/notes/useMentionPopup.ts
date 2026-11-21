@@ -1,3 +1,4 @@
+import type { Editor, Range } from "@tiptap/core";
 import type { MentionOptions } from "@tiptap/extension-mention";
 import type { SuggestionProps } from "@tiptap/suggestion";
 import type { OtherGroupProviders } from "~/lib/providers/fromGroups";
@@ -31,6 +32,44 @@ type Open = {
   query: string;
   insert: (attrs: MentionAttrs) => void;
   mount: SuggestionProps["mount"];
+  /** The editor, and where the `@` text is: for an insert that lands later (`insertLater`). */
+  editor: Editor;
+  range: Range;
+};
+
+/**
+ * Follows an `@` text (`range`) through the edits after a pick, local and
+ * other devices' (Tiptap's mappable positions, which read Yjs's relative
+ * ones under Collaboration), so a pick that's written later (an add or an
+ * import) lands on that `@` and nowhere else. The returned function inserts
+ * the mention over it, as Mention's command does, if the text is still
+ * there; if it's gone (deleted or retyped), it inserts nothing. Either way
+ * it stops following.
+ */
+const insertLater = (editor: Editor, range: Range) => {
+  const text = editor.state.doc.textBetween(range.from, range.to);
+  let at = editor.utils.createMappablePosition(range.from);
+  const follow = ({ transaction }: { transaction: Parameters<Editor["utils"]["getUpdatedPosition"]>[1] }) => {
+    at = editor.utils.getUpdatedPosition(at, transaction).position;
+  };
+  editor.on("transaction", follow);
+  return (attrs: MentionAttrs | null) => {
+    editor.off("transaction", follow);
+    if (!attrs || editor.isDestroyed) return;
+    const { doc, schema } = editor.state;
+    const from = at.position;
+    const to = from + text.length;
+    if (to > doc.content.size || doc.textBetween(from, to) !== text) return;
+    const type = schema.nodes[ProviderMention.name];
+    if (!type) return;
+    // A space after the `@` text is reused (Mention's rule). The caret maps through, so it stays where it was.
+    const end = to < doc.content.size && doc.textBetween(to, to + 1) === " " ? to + 1 : to;
+    const tr = editor.state.tr.replaceWith(from, end, [
+      type.create({ ...attrs, mentionSuggestionChar: "@" }),
+      schema.text(" "),
+    ]);
+    editor.view.dispatch(tr);
+  };
 };
 
 export type MentionPopupState = {
@@ -51,8 +90,9 @@ export type MentionPopupState = {
  * state. The popup only opens while `enabled` (a writer, with the group's
  * providers given). A pick inserts the mention, then calls `onMention` with
  * the provider's id. The add row runs `onAdd` with the typed name and
- * inserts the new provider's mention once it's written (`onAdd` does any
- * linking, so `onMention` isn't called); a refusal is `error`. With
+ * inserts the new provider's mention once it's written, over the `@` text
+ * that started it (none if that text is gone; the provider stays). `onAdd`
+ * does any linking, so `onMention` isn't called; a refusal is `error`. With
  * `others` (the user's other groups' providers) and `onImport`, typed text
  * also lists "From <group>" sections; a pick there runs `onImport` (which
  * copies the provider here, and does any linking) and inserts the copy's
@@ -126,12 +166,19 @@ export function useMentionPopup({
     if (!write || adding.current) return;
     const label = option.kind === "add" ? option.name : option.label;
     adding.current = true;
+    // Insert at the `@` that started it, wherever edits since have moved it (never another popup's).
+    const insert = insertLater(current.editor, current.range);
     void write()
-      .then((res) => {
-        setError(res.ok ? null : res.error);
-        // Insert over the `@` text as it is now (the popup may have moved on), else where it was.
-        if (res.ok) (live.current.open ?? current).insert({ id: res.id, label });
-      })
+      .then(
+        (res) => {
+          setError(res.ok ? null : res.error);
+          insert(res.ok ? { id: res.id, label } : null);
+        },
+        (err: unknown) => {
+          insert(null);
+          throw err;
+        },
+      )
       .finally(() => (adding.current = false));
   };
   const pickRef = useRef(pick);
@@ -154,12 +201,24 @@ export function useMentionPopup({
     floatingUi: { strategy: "fixed" },
     render: () => ({
       onStart: (props) => {
-        setOpen({ query: props.query, insert: props.command, mount: props.mount });
+        setOpen({
+          query: props.query,
+          insert: props.command,
+          mount: props.mount,
+          editor: props.editor,
+          range: props.range,
+        });
         setActive(0);
       },
       // The first mount keeps following the caret (it reads the live decoration), so it stays.
       onUpdate: (props) => {
-        setOpen((was) => ({ query: props.query, insert: props.command, mount: was?.mount ?? props.mount }));
+        setOpen((was) => ({
+          query: props.query,
+          insert: props.command,
+          mount: was?.mount ?? props.mount,
+          editor: props.editor,
+          range: props.range,
+        }));
         if (props.query !== live.current.open?.query) setActive(0);
       },
       onExit: () => setOpen(null),

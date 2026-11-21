@@ -67,7 +67,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `calendars-2` | to write (B-304 to B-309, B-377), from the 2026-11-21 code review: Google deletes of past items, events beyond 90 days, reminder expiry, deleted providers in pushes, the consent version, reminder time labels, push notifications | `planner-2` in `dev` (it changes the calendar projection's reminder kind; last item B-248) | `packages/data/src/google/`, `calendarPullService`, `calendarSyncService`, `packages/notifications` (outbox, reminders) |
 | `code-health` | to write (B-361 to B-369), from the 2026-11-21 code review: a `@caretook/data/domain` export, a soft-delete model factory and shared upsert, one role-capability table, typed device reads, dead exports, exact pins, tooling tests | the role-capability table (B-363) before or inside `simple-mode`; the rest after the running PRDs land (it touches most services and device modules) | `packages/data/src/db/schema/` exports, `models/`, `services/*Service.ts`, `lib/<area>/*.sync.ts`, `package.json`s, `scripts/loops/` |
 | `assistant-2` | to write (B-376: assistant chat with voice and questions about the timeline, the part of B-12 that never shipped) | an AI vendor that doesn't retain or train (AGENTS.md, _Compliance_); the Vercel AI SDK needs the user's approval | `lib/assistant/`, a new server route, `packages/api` |
-| `orchestration-2` | [PRD](orchestration-2-prd.md), [plan](orchestration-2-plan.md) (B-389 to B-392): 8 slices, waves (1, 2, 3) → (4, 5, 6) → 7 → 8: the PRD table as a registry (`pnpm backlog prd`, row order is the priority, states worked out), recorded sessions, an asks queue (`pnpm prd ask`), drain-then-rotate after each landing, the pick, unattended prompts, the dispatcher (`pnpm prd dispatch`), then queue, recovery and status. Tooling only | `check-speed` in `dev` (shared `prd.sh`, `prompt.sh`); before `test-health`, never beside it | `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `recover.sh`, `rm.sh`, `open-session.*`, `scripts/backlog/`, this PRD table |
+| `orchestration-2` | [PRD](orchestration-2-prd.md), [plan](orchestration-2-plan.md) (B-389, B-390, B-391, B-395): 6 slices, waves (1, 2, 3) → 4 → 5 → 6: the PRD table as a registry (`pnpm backlog prd`, row order is the priority, states worked out), recorded sessions, an asks queue (`pnpm prd ask`, pushed to the phone by the asking session), drain-then-rotate after each landing (`pnpm prd rotate`), run-through prompts and status, then `quick-fixes` split into five standing topics (`fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit`, on hold until the user orders them). Tooling only. **Ready to start** once `check-speed` is in `dev` | `check-speed` in `dev` (shared `prd.sh`, `prompt.sh`, `pnpm test:tooling`); before `test-health`, never beside it | `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `rm.sh`, `open-session.*`, `scripts/backlog/`, this PRD table |
+| `orchestration-3` | to write (B-392): the dispatcher (`pnpm prd dispatch`: the pick, unattended planners, `queue` as "move to the front", recovery and status). What is settled and what is open: [orchestration-2 PRD](orchestration-2-prd.md), _Follow-on_ | `orchestration-2` in `dev` (last item B-395) | `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `recover.sh`, the registry |
 
 ## Summary
 
@@ -133,17 +134,17 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-225 | bug | staging | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
 | B-226 | change | staging | medications-tabs | prd/medications-tabs | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | dropped | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
-| B-228 | bug | ready | quick-fixes | prd/quick-fixes | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
+| B-228 | bug | landed | quick-fixes | prd/quick-fixes | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
 | B-229 | bug | triaged | quick-fixes |  | on timeline page, header and Today section should be in same column width as the rest of the… |
-| B-230 | bug | ready | quick-fixes | prd/quick-fixes | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
+| B-230 | bug | landed | quick-fixes | prd/quick-fixes | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
 | B-231 | bug | triaged | quick-fixes |  | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
-| B-232 | bug | ready | quick-fixes | prd/quick-fixes | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
-| B-233 | bug | ready | quick-fixes | prd/quick-fixes | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
-| B-234 | bug | ready | quick-fixes | prd/quick-fixes | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
-| B-235 | bug | ready | quick-fixes | prd/quick-fixes | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
+| B-232 | bug | landed | quick-fixes | prd/quick-fixes | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
+| B-233 | bug | landed | quick-fixes | prd/quick-fixes | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
+| B-234 | bug | landed | quick-fixes | prd/quick-fixes | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
+| B-235 | bug | landed | quick-fixes | prd/quick-fixes | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
 | B-236 | bug | triaged | simple-mode |  | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
-| B-237 | bug | ready | quick-fixes | prd/quick-fixes | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
-| B-238 | bug | ready | quick-fixes | prd/quick-fixes | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
+| B-237 | bug | landed | quick-fixes | prd/quick-fixes | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
+| B-238 | bug | landed | quick-fixes | prd/quick-fixes | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
 | B-239 | bug | triaged | github-review |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | github-review |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | github-review |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
@@ -297,12 +298,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-389 | change | triaged | orchestration-2 |  | A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority |
 | B-390 | change | triaged | orchestration-2 |  | One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing |
 | B-391 | feature | triaged | orchestration-2 |  | One asks queue: unattended sessions file questions and landed-wave reports with pnpm prd ask; the user answers in one place |
-| B-392 | feature | triaged | orchestration-2 |  | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
+| B-392 | feature | triaged | orchestration-3 |  | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
 | B-393 | bug | triaged | planner-2 |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
 | B-394 | bug | triaged | quick-fixes |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
 | B-395 | change | triaged | orchestration-2 |  | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
 | B-396 | change | triaged | ui-kit |  | Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge |
 | B-397 | change | triaged | ui-kit |  | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
+| B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 
 ## Items
 
@@ -949,7 +951,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-228 · bug · Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute|value|dataset|checked|placeholder|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 76ad3e78
@@ -969,7 +971,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-230 · bug · reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: d5701923
@@ -988,7 +990,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-232 · bug · Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 9f47380b
@@ -998,7 +1000,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-233 · bug · A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: c29f863a
@@ -1007,7 +1009,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-234 · bug · Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR)
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: f4c84585
@@ -1016,7 +1018,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-235 · bug · After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 08633433
@@ -1035,7 +1037,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-237 · bug · An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 7f84efb1
@@ -1044,7 +1046,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-238 · bug · Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets')
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 8fd57267
@@ -2446,6 +2448,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slice 1
 - 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
 - 2026-11-21 (Robert Bo Davis): Correction to the hand-off note: the quick-fixes category split is B-395, not B-394.
+- 2026-11-21 (plan/orchestration-2): Re-planned on plan/orchestration-2 (2026-11-21) as six slices: B-389 slice 1 (registry; the migration is mechanical and keeps row order), B-390 slices 2 and 4 (recorded sessions; rotation runs in the new tab), B-391 slices 3 and 5 (asks; the asking session sends the PushNotification, no push service), B-395 slice 6 (five standing topics fixes-ui, fixes-tooling, fixes-perf, fixes-bug, fixes-nit, added on hold with no order; the split and each item's category are in the plan). The dispatcher (B-392) is orchestration-3.
 
 ### B-390 · change · One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing
 
@@ -2457,6 +2460,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slice 2
 - 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
 - 2026-11-21 (Robert Bo Davis): Correction to the hand-off note: the quick-fixes category split is B-395, not B-394.
+- 2026-11-21 (plan/orchestration-2): Re-planned on plan/orchestration-2 (2026-11-21) as six slices: B-389 slice 1 (registry; the migration is mechanical and keeps row order), B-390 slices 2 and 4 (recorded sessions; rotation runs in the new tab), B-391 slices 3 and 5 (asks; the asking session sends the PushNotification, no push service), B-395 slice 6 (five standing topics fixes-ui, fixes-tooling, fixes-perf, fixes-bug, fixes-nit, added on hold with no order; the split and each item's category are in the plan). The dispatcher (B-392) is orchestration-3.
 
 ### B-391 · feature · One asks queue: unattended sessions file questions and landed-wave reports with pnpm prd ask; the user answers in one place
 
@@ -2469,17 +2473,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
 - 2026-11-21 (Robert Bo Davis): Phone notifications (the user's rule, 2026-11-21): a question must notify the user's phone. A macOS notification from a script does not. The PushNotification tool pushes to the phone when Remote Control is connected, but only a session can call it, so the asking session sends it right after pnpm prd ask (and for each report worth reading); pnpm prd ask itself can't. The planner should check whether anything a script can call reaches the phone before settling this.
 - 2026-11-21 (Robert Bo Davis): Correction to the hand-off note: the quick-fixes category split is B-395, not B-394.
+- 2026-11-21 (plan/orchestration-2): Re-planned on plan/orchestration-2 (2026-11-21) as six slices: B-389 slice 1 (registry; the migration is mechanical and keeps row order), B-390 slices 2 and 4 (recorded sessions; rotation runs in the new tab), B-391 slices 3 and 5 (asks; the asking session sends the PushNotification, no push service), B-395 slice 6 (five standing topics fixes-ui, fixes-tooling, fixes-perf, fixes-bug, fixes-nit, added on hold with no order; the split and each item's category are in the plan). The dispatcher (B-392) is orchestration-3.
 
 ### B-392 · feature · A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders
 
 - status: triaged
-- prd: orchestration-2
+- prd: orchestration-3
 - owner:
 - commit:
 
 - 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slices 4, 6 and 7
 - 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
 - 2026-11-21 (Robert Bo Davis): Correction to the hand-off note: the quick-fixes category split is B-395, not B-394.
+- 2026-11-21 (plan/orchestration-2): Re-plan (plan/orchestration-2, 2026-11-21): the dispatcher moved to the follow-on topic orchestration-3 so orchestration-2 stays at six slices (the user's rule). Its settled decisions and open questions are in plans/orchestration-2-prd.md, Follow-on; the earlier design is in git show da6db5db:plans/orchestration-2-plan.md (slices 5, 7, 8 and the planner half of 6). Plan it once orchestration-2 is in dev.
 
 ### B-393 · bug · Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both
 
@@ -2508,6 +2514,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): The user's rule, 2026-11-21. The order of priority between categories is NOT decided: the user will set it later, so don't invent one. Until the split, triage notes name a category (ui, tooling, perf, bug, nit) and the orchestrator groups a wave by category (docs/agents/planner.md, The plan's shape). 24 quick-fixes items were waiting on 2026-11-21 and need a category each.
+- 2026-11-21 (plan/orchestration-2): Re-planned on plan/orchestration-2 (2026-11-21) as six slices: B-389 slice 1 (registry; the migration is mechanical and keeps row order), B-390 slices 2 and 4 (recorded sessions; rotation runs in the new tab), B-391 slices 3 and 5 (asks; the asking session sends the PushNotification, no push service), B-395 slice 6 (five standing topics fixes-ui, fixes-tooling, fixes-perf, fixes-bug, fixes-nit, added on hold with no order; the split and each item's category are in the plan). The dispatcher (B-392) is orchestration-3.
 
 ### B-396 · change · Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge
 
@@ -2517,6 +2524,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the user (2026-11-21), who dislikes the current tabs-box look and gave a reference image: one rounded-full bar on a soft shadow (base-100 on the page in light; a dark raised surface with a faint border in dark); tabs are evenly spaced medium-weight labels with no boxes or dividers; the current tab gets a primary-tinted pill fill with primary text, an optional leading icon and an optional small solid count badge; hover shows a quiet fill. Keep TabNav's contract (a nav of links, aria-current, prefetch) and check contrast in both themes and overflow on phones (scroll or full width). Triage: ui-kit, since TabNav is a ui/ primitive and the gallery (B-270) should show it.
+- 2026-11-21 (Robert Bo Davis): User (2026-11-21): the login box should also use this tab component. Sign-in is a light page, so the pill bar must be importable from ui/plain without React Aria, and if the login box switches by state instead of by link the component needs a button form as well as the link form.
 
 ### B-397 · change · Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages
 
@@ -2526,3 +2534,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the user (2026-11-21): pages read as long blocks of text; split the space vertically in a sensible way. Options proposed to the user, to choose from when the PRD is written: (1) each section a titled card on the base-200 page with a fixed gap; (2) small uppercase section labels with an icon and a one-line summary; (3) a two-step spacing scale, large between sections and small inside; (4) definition rows (label left, value right) instead of paragraphs; (5) collapsible secondary sections (details/summary) showing a summary line; (6) a sticky in-page section bar on long detail pages, using the new pill TabNav; (7) two columns on wide screens (main and side cards), one on phones; (8) summary tiles at the top of detail pages. Triage: ui-kit, with Card (B-260), Page frame (B-263) and DetailHeader (B-264), which this builds on.
+- 2026-11-21 (Robert Bo Davis): User's direction (2026-11-21): full page-width background blocks for sections, i.e. each section is a band across the whole page width with its own background (alternating surfaces), content held to the column inside it; this replaces the titled-card base I recommended. The user gave no preference on the extras for long detail pages (collapsible sections, sticky section bar, two columns, summary tiles): undecided, ask again when the PRD is written.
+
+### B-398 · change · Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame
+
+- status: triaged
+- prd: ui-kit-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/ui-kit): From the ui-kit plan (2026-11-21): ui-kit builds the primitives and adopts them in settings, sign-in and the five detail pages; this is the rest (about 200 files: btn, alert, card, list, badge, checkbox and toggle class strings, Field control classes, the text opacities and link styles from B-267). Ends with the guard (B-269) so it stays swept.
