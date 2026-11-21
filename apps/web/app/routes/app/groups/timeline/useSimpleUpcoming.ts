@@ -1,6 +1,6 @@
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
-import type { UpcomingTodo } from "~/lib/todos/plannerTodos";
+import type { PlannerTodo } from "~/lib/todos/plannerTodos";
 import type { EntryFilters, EntryRow } from "~/lib/timeline/timeline.sync";
 
 import { useMemo } from "react";
@@ -17,7 +17,7 @@ import { toTimelineEntries, UPCOMING_HORIZON_DAYS, upcomingQuery } from "~/lib/t
 export const SIMPLE_UPCOMING_CAP = 5;
 
 /** An appointment or reminder, or an open dated todo. */
-export type SimpleUpcomingItem = TimelineEntry | UpcomingTodo<LocalTodo>;
+export type SimpleUpcomingItem = TimelineEntry | PlannerTodo<LocalTodo>;
 
 const TICK_MS = 30_000;
 const MINUTE_MS = 60_000;

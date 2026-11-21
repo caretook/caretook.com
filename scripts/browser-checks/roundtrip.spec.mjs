@@ -366,7 +366,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
 
     // 6-series. The series 5a made offline, checked once the viewer is in
     // (it uploads meanwhile): the server holds it and every visit, and the
-    // other member's Upcoming shows the visits with the repeat mark
+    // other member's Planner shows the visits with the repeat mark
     // (client-side, through the tab bar).
     tSeries = Date.now();
     const idList = visitIds.map((id) => `'${id}'`).join(", ") || "NULL";
@@ -390,14 +390,14 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         )
       ).map((r) => r.id);
     const onB = await until(async () => (await visitsOn(B, made.seriesId)).length === visitIds.length);
-    const upcomingTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/upcoming"]')`;
+    const upcomingTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
     const upcomingRow = (id) => `document.querySelector('main [data-upcoming-item="${id}"]')`;
     await press(B, upcomingTab);
     const marked = `${JSON.stringify(visitIds)}.filter((id) => document.querySelector('main [data-upcoming-item="' + id + '"] [data-repeat-mark]')).length`;
-    // Upcoming is 90 days ahead, the visits through today + 90: all but possibly the last.
+    // The Planner is 90 days ahead, the visits through today + 90: all but possibly the last.
     const shownOnB = await waits(B, `${marked} >= ${visitIds.length - 1}`, 20_000);
     await check(
-      "series: the other member's Upcoming shows the visits with the repeat mark",
+      "series: the other member's Planner shows the visits with the repeat mark",
       !!onB && shownOnB,
       `${await B.evaluate(marked)}/${visitIds.length} marked rows`,
     );
@@ -603,9 +603,15 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     // all a viewer may do) and forces a title change through the device; on
     // reconnect the tick uploads and member@'s list shows it done by them,
     // while the title change is refused and the next sync puts the server's
-    // title back. Client-side navigation through the tab bar: no new page
-    // loads or sign-ins.
-    const todosTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/todos"]')`;
+    // title back. Client-side navigation through the tab bar's Planner and
+    // its Todos tab: no new page loads or sign-ins.
+    const plannerTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
+    const todosTab = `document.querySelector('main nav[aria-label="Planner, todos or past"] a[href="/app/groups/${DEV_FAMILY}/todos"]')`;
+    const openTodos = async (page) => {
+      await press(page, plannerTab);
+      await wf(page, todosTab, 20_000);
+      await press(page, todosTab);
+    };
     const todoRow = `document.querySelector('main [data-todo="${viewerTodo}"]')`;
     const doneLine = `${todoRow}?.querySelector("[data-todo-due]")?.textContent.trim()`;
     const everyone = `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Everyone")`;
@@ -614,8 +620,8 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     const refusedTodo = `${tag} groceries, refused`;
     // Both todo lists while online: the viewer's (Mine), and member@'s on
     // Everyone (the viewer's todo isn't Mine).
-    await press(C, todosTab);
-    await press(A, todosTab);
+    await openTodos(C);
+    await openTodos(A);
     await wf(C, `${todoRow}?.querySelector("[data-todo-tick]")`, 20_000);
     await wf(A, everyone, 20_000);
     await press(A, everyone);

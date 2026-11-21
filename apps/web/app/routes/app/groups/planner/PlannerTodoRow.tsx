@@ -1,5 +1,5 @@
 import type { LocalTodo } from "~/lib/todos/todos.sync";
-import type { UpcomingTodo } from "~/lib/todos/plannerTodos";
+import type { PlannerTodo } from "~/lib/todos/plannerTodos";
 
 import { canCompleteTodo } from "@caretook/data/schema";
 import { ListTodo, UserRound } from "lucide-react";
@@ -10,20 +10,20 @@ import { useGroup } from "~/lib/app-shell/group";
 import { assigneeLabel, dueText } from "~/lib/todos/todoDisplay";
 
 /**
- * One open dated todo in Upcoming: its tick (for whoever may complete it:
+ * One open dated todo on the Planner tab: its tick (for whoever may complete it:
  * writers, or the viewer it's assigned to; a todo icon otherwise), its time
  * (the due time, wall-clock in the recipient's zone, "All day", or
  * "Overdue"), the title, the due line when it's overdue, and the assignee.
  * The row opens the todo's page. Ticking completes it (Undo in the list's
  * `TodoUndoStatus`), and it drops out. It's never an entry.
  */
-export function UpcomingTodoRow({
+export function PlannerTodoRow({
   item,
   nameOf,
   timeZone,
   now,
 }: {
-  item: UpcomingTodo<LocalTodo>;
+  item: PlannerTodo<LocalTodo>;
   /** A member's name ("you" for me). */
   nameOf: (userId: string) => string;
   /** The recipient's zone. */
@@ -43,14 +43,14 @@ export function UpcomingTodoRow({
   return (
     <li
       className="relative isolate flex items-start gap-2.5 px-3 py-2"
-      data-upcoming-todo={todo.id}
+      data-planner-todo={todo.id}
       data-todo-state={state}
     >
       <Link
         to={appUrls.todo(group.id, todo.id)}
         className="hover:bg-base-content/5 focus-visible:outline-primary absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:-outline-offset-2 focus-visible:outline-2"
         aria-label={`Open todo ${title}, ${due}`}
-        data-upcoming-todo-open
+        data-planner-todo-open
       />
       {mayTick ? (
         <span className="relative z-10 flex size-6 shrink-0 items-center justify-center">

@@ -277,7 +277,7 @@ export const upcomingWindow = (
 };
 
 /**
- * Past events under the filters (the Upcoming section's Past tab): events
+ * Past events under the filters (the Planner's Past tab): events
  * that have started by `cutoff`, as in the history, cancelled ones included.
  * Newest first, one row more than `limit`.
  */

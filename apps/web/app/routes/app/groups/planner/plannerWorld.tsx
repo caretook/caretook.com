@@ -9,10 +9,14 @@ import * as editSheet from "../timeline/edit/route";
 import * as newDose from "../timeline/new-dose/route";
 import * as newSheet from "../timeline/new/route";
 import * as timeline from "../timeline/route";
+import * as todoPage from "../todo/route";
+import * as editTodo from "../todos/edit/route";
+import * as newTodo from "../todos/new/route";
+import * as todos from "../todos/route";
 import * as past from "./past/route";
-import * as upcoming from "./route";
+import * as planner from "./route";
 
-// Upcoming's component tests share one fictional world, on a fixed clock:
+// The Planner's component tests share one fictional world, on a fixed clock:
 // Wednesday, November 18, 2026, 10:00 AM in Los Angeles (where the test
 // device runs). Something in progress, items later today, tomorrow and
 // Friday (one all day), cancelled and rescheduled ones, a reminder note,
@@ -96,7 +100,7 @@ export const EYES_OLD = fx.event({
   cancelledAt: fromNow(-2 * DAY),
   rescheduledTo: EYES_NEW.id,
 });
-/** Live (not cancelled) upcoming items, soonest first, as Upcoming lists them. */
+/** Live (not cancelled) upcoming items, soonest first, as the Planner tab lists them. */
 export const UPCOMING_LIVE = [NURSE, THERAPY, CARDIOLOGY, REFILL, HOSPICE, RIDE, EYES_NEW];
 
 // The past: events (two cancelled), and a note the Past tab leaves out.
@@ -142,15 +146,29 @@ export const world = (): Fixture[] => [
 ];
 
 export const GROUP = TEST_GROUP.id;
-export const UPCOMING_URL = `/app/groups/${GROUP}/upcoming`;
-export const PAST_URL = `${UPCOMING_URL}/past`;
+export const PLANNER_URL = `/app/groups/${GROUP}/planner`;
+export const PAST_URL = `${PLANNER_URL}/past`;
+export const TODOS_URL = `/app/groups/${GROUP}/todos`;
 export const TIMELINE_URL = `/app/groups/${GROUP}/timeline`;
 export const entryUrl = (id: string) => `/app/groups/${GROUP}/entries/${id}`;
 
-/** Upcoming and its Past tab, the timeline with its sheets (the Dose sheet too), and the entry page. */
-export const UPCOMING_ROUTES: DeviceRoute[] = [
-  { path: "/app/groups/:groupId/upcoming", module: upcoming },
-  { path: "/app/groups/:groupId/upcoming/past", module: past },
+/**
+ * The Planner's three tabs (Planner, Past, and Todos with its sheets), a
+ * todo's page, the timeline with its sheets (the Dose sheet too), and the
+ * entry page.
+ */
+export const PLANNER_ROUTES: DeviceRoute[] = [
+  { path: "/app/groups/:groupId/planner", module: planner },
+  { path: "/app/groups/:groupId/planner/past", module: past },
+  {
+    path: "/app/groups/:groupId/todos",
+    module: todos,
+    children: [
+      { path: "/app/groups/:groupId/todos/new", module: newTodo },
+      { path: "/app/groups/:groupId/todos/:todoId/edit", module: editTodo },
+    ],
+  },
+  { path: "/app/groups/:groupId/todos/:todoId", module: todoPage },
   {
     path: "/app/groups/:groupId/timeline",
     module: timeline,
@@ -163,14 +181,14 @@ export const UPCOMING_ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/entries/:entryId", module: entryRoute },
 ];
 
-/** Open the test device at `url` (Upcoming by default) on the world plus `extra` rows. Fix the clock first. */
-export const openUpcoming = async ({
-  url = UPCOMING_URL,
+/** Open the test device at `url` (the Planner tab by default) on the world plus `extra` rows. Fix the clock first. */
+export const openPlanner = async ({
+  url = PLANNER_URL,
   extra = [],
   ...options
 }: Partial<DeviceOptions> & { extra?: Fixture[] } = {}) => {
   const device = await renderWithDevice({
-    route: UPCOMING_ROUTES,
+    route: PLANNER_ROUTES,
     url,
     fixtures: [world(), extra],
     ...options,
@@ -180,8 +198,13 @@ export const openUpcoming = async ({
   await device.settle();
   return device;
 };
+/**
+ * The name the events and series tests still use (the quick-fixes PRD has
+ * open slices editing those two files; rename it once they land).
+ */
+export const openUpcoming = openPlanner;
 
-// --- DOM helpers (upcoming.mjs's selectors) ----------------------------------
+// --- DOM helpers (the old upcoming.mjs's selectors) ----------------------------------
 
 export type ListedRow = {
   day: string;

@@ -3,28 +3,27 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
-import { Plus } from "lucide-react";
 import { useCallback } from "react";
-import { Link, Outlet, useLocation } from "react-router";
+import { Outlet } from "react-router";
 import { TodoUndoStatus, useTodoTick } from "~/components/todos";
-import { PageHeader } from "~/components/ui";
-import { appUrls } from "~/lib/app-shell/appUrls";
-import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { todosQuery, toTodos } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 import { defaultWho, parseWho } from "~/lib/todos/todoList";
+import { PlannerHeader } from "../planner/PlannerHeader";
 import { DoneTodos } from "./DoneTodos";
 import { TodoChips } from "./TodoChips";
 import { TodoSections } from "./TodoSections";
-import { listSearch, onlyTodoSheetChanged, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
+import { onlyTodoSheetChanged } from "~/lib/todos/todoSheets";
 import { DONE_PAGE, useTodoList } from "./useTodoList";
 
-// Shared by web + native. The group's todos, read from the device's local
-// copy (live, so it works offline and follows other members' changes):
-// the open ones the Mine / Unassigned / Everyone chip shows (`?who=`), in
-// sections by due, then Done. A tick completes a todo on the device, with
-// Undo. The add and edit sheets render over it.
+// Shared by web + native. The Planner section's Todos tab: the group's
+// todos, read from the device's local copy (live, so it works offline and
+// follows other members' changes): the open ones the Mine / Unassigned /
+// Everyone chip shows (`?who=`), in sections by due, then Done. A tick
+// completes a todo on the device, with Undo. The add and edit sheets render
+// over it (the header's Add menu opens the add sheet).
 
 export const meta = () => [{ title: "Todos · Caretook" }];
 
@@ -68,8 +67,6 @@ export function shouldRevalidate({
 }
 
 export default function Todos({ loaderData, params }: Route.ComponentProps) {
-  const group = useGroup();
-  const { search } = useLocation();
   const list = useTodoList(params.groupId, loaderData);
   const { complete, reopen, busy, error } = useTodoTick(params.groupId);
   const onTick = useCallback(
@@ -80,25 +77,7 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <PageHeader
-        title="Todos"
-        actions={
-          group.canWrite && (
-            <Link
-              to={appUrls.newTodo(params.groupId, {}, listSearch(search))}
-              state={TODO_SHEET_STATE}
-              // Loaded ahead, so the sheet opens offline too.
-              prefetch="render"
-              preventScrollReset
-              className="btn btn-primary btn-sm shrink-0"
-              data-add-todo
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              Add todo
-            </Link>
-          )
-        }
-      />
+      <PlannerHeader tab="todos" />
 
       <TodoChips who={list.who} />
       <TodoUndoStatus groupId={params.groupId} />

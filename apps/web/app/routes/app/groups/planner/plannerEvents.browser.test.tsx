@@ -26,7 +26,7 @@ import {
   SAM,
   TIMELINE_URL,
   TRAN,
-} from "./upcomingWorld";
+} from "./plannerWorld";
 
 // Cancelling, undoing and rescheduling events on the test device (from
 // upcoming.mjs's cancel and reschedule steps): from Upcoming's ⋯, a

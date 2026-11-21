@@ -5,15 +5,15 @@ import { OlderEntries } from "~/components/entry";
 import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { loadPast } from "../loadUpcoming";
-import { UpcomingFilterChips, UpcomingHeader } from "../UpcomingHeader";
+import { PlannerFilterChips, PlannerHeader } from "../PlannerHeader";
 import { emptyPastText, PAST_END_TEXT, parsePastFilters } from "../upcomingFilters";
 import { UpcomingList } from "../UpcomingList";
 import { usePastEvents } from "../useUpcomingData";
 
-// Shared by web + native. Upcoming's Past tab: past events, newest first,
+// Shared by web + native. The Planner's Past tab: past events, newest first,
 // cancelled ones included, paged like the timeline. `?author=` filters it.
 
-export const meta = () => [{ title: "Past events · Caretook" }];
+export const meta = () => [{ title: "Past · Caretook" }];
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   getGroup(context);
@@ -36,8 +36,8 @@ export default function PastEvents({ loaderData, params }: Route.ComponentProps)
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-past-events>
-      <UpcomingHeader tab="past" />
-      <UpcomingFilterChips
+      <PlannerHeader tab="past" />
+      <PlannerFilterChips
         kind={null}
         kinds={false}
         author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}

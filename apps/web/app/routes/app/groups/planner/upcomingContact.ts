@@ -8,11 +8,11 @@ import { parseProviderPhones } from "@caretook/data/schema";
 import { callAction, mapsHref } from "../../../../lib/providers/contactActions";
 import { shownPlace } from "../../../../lib/appointments/entryPlace";
 
-// What an Upcoming row says about where and with whom, and its one-tap
+// What a Planner row says about where and with whom, and its one-tap
 // actions: call the first linked provider, and map the place. Pure (the
 // query is a `{ sql, params }` pair), so web:unit tests it.
 
-/** A linked provider as Upcoming needs it: the "with …" name, plus how to reach them. */
+/** A linked provider as the Planner needs it: the "with …" name, plus how to reach them. */
 export type LinkedContact = LinkedProviderName & { phones: ProviderPhone[]; address: string | null };
 
 export type ContactRow = {

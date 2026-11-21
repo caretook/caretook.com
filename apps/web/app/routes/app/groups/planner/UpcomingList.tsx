@@ -24,13 +24,13 @@ import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { isUpcoming } from "~/lib/appointments/upcoming";
 import { isUpcomingDose } from "~/lib/appointments/upcomingDoses";
-import { isUpcomingTodo } from "~/lib/todos/plannerTodos";
+import { isPlannerTodo } from "~/lib/todos/plannerTodos";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { UpcomingDoseRow } from "./UpcomingDoseRow";
 import { UpcomingRow } from "./UpcomingRow";
-import { UpcomingTodoRow } from "./UpcomingTodoRow";
+import { PlannerTodoRow } from "./PlannerTodoRow";
 
-// Upcoming lists notes and events only, which show no vital readings: the default units do.
+// The Planner tab lists notes and events only, which show no vital readings: the default units do.
 const UNITS = resolveUnits(null);
 
 const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border";
@@ -44,8 +44,8 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * Print, then Delete, with one Cancel and one Delete confirm for the list;
  * for viewers, Print. A series visit's Edit, Reschedule, Cancel and Delete
  * ask Only this visit or This and later visits first (`useSeriesScope`).
- * Upcoming's sections can also hold today's open dose slots (`UpcomingDoseRow`)
- * and open dated todos (`UpcomingTodoRow`).
+ * The Planner tab's sections can also hold today's open dose slots (`UpcomingDoseRow`)
+ * and open dated todos (`PlannerTodoRow`).
  */
 export function UpcomingList({
   data,
@@ -140,8 +140,8 @@ export function UpcomingList({
           </h3>
           <ol className={LIST_CLASS}>
             {section.items.map((entry) =>
-              isUpcomingTodo(entry) ? (
-                <UpcomingTodoRow
+              isPlannerTodo(entry) ? (
+                <PlannerTodoRow
                   key={entry.key}
                   item={entry}
                   nameOf={todoNameOf}

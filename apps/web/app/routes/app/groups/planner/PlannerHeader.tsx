@@ -1,48 +1,71 @@
+import type { MenuEntry } from "~/components/ui";
 import type { UpcomingKind } from "./upcomingFilters";
 
-import { CalendarPlus, NotebookPen, X } from "lucide-react";
+import { CalendarPlus, ListTodo, NotebookPen, Plus, X } from "lucide-react";
 import { Link, useLocation } from "react-router";
-import { ChipGroup, PageHeader, UserAvatar } from "~/components/ui";
+import { ChipGroup, Menu, PageHeader, UserAvatar } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { clearAuthor, clearKind, setKind } from "~/lib/timeline/timelineFilters";
+import { listSearch, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
 import { tabSearch, UPCOMING_KIND_LABELS, UPCOMING_KINDS } from "./upcomingFilters";
 
 const TAB = "border-b-2 px-1 pb-2 text-sm font-medium";
 
+export type PlannerTab = "planner" | "todos" | "past";
+
 /**
- * Upcoming's heading, its two tabs (Upcoming, Past: links that carry the
- * filters each reads), and for writers Add appointment and Add reminder,
- * which open a draft with the time picker first (`?when=pick`).
+ * The Planner section's header, the same on its three tabs: the "Planner"
+ * heading; for writers one "Add" menu (Appointment and Reminder, drafts
+ * that pick the time first, `?when=pick`; Todo, the add sheet, which closes
+ * back to the tab it was opened from); then the tabs, links that carry the
+ * filters each reads (Planner: kind and author; Past: the author; Todos:
+ * its `?who=` chip).
  */
-export function UpcomingHeader({ tab }: { tab: "upcoming" | "past" }) {
+export function PlannerHeader({ tab }: { tab: PlannerTab }) {
   const { id: groupId, canWrite } = useGroup();
   const { search } = useLocation();
   const tabs = [
-    { id: "upcoming", label: "Upcoming", to: appUrls.upcoming(groupId, tabSearch(search, "upcoming")) },
-    { id: "past", label: "Past", to: appUrls.pastEvents(groupId, tabSearch(search, "past")) },
+    { id: "planner", label: "Planner", to: appUrls.planner(groupId, tabSearch(search, "planner")) },
+    { id: "todos", label: "Todos", to: appUrls.todos(groupId, listSearch(search)) },
+    { id: "past", label: "Past", to: appUrls.plannerPast(groupId, tabSearch(search, "past")) },
   ] as const;
+  const add: MenuEntry[] = [
+    {
+      id: "appointment",
+      label: "Appointment",
+      icon: CalendarPlus,
+      href: appUrls.newPlannerEntry(groupId, "event"),
+    },
+    { id: "reminder", label: "Reminder", icon: NotebookPen, href: appUrls.newPlannerEntry(groupId, "note") },
+    {
+      id: "todo",
+      label: "Todo",
+      icon: ListTodo,
+      // On the Todos tab its chip is kept for the list under the sheet.
+      href: appUrls.newTodo(groupId, {}, listSearch(search)),
+      state: TODO_SHEET_STATE,
+    },
+  ];
 
   return (
     <div className="space-y-3">
       <PageHeader
-        title="Upcoming"
+        title="Planner"
         actions={
           canWrite && (
-            <div role="group" aria-label="Add to Upcoming" className="flex flex-wrap gap-2" data-upcoming-add>
-              <Link to={appUrls.newUpcomingEntry(groupId, "event")} className="btn btn-primary btn-sm">
-                <CalendarPlus className="size-4" aria-hidden="true" />
-                Add appointment
-              </Link>
-              <Link to={appUrls.newUpcomingEntry(groupId, "note")} className="btn btn-sm">
-                <NotebookPen className="size-4" aria-hidden="true" />
-                Add reminder
-              </Link>
-            </div>
+            <Menu label="Add" items={add} className="btn btn-primary btn-sm" width="sm">
+              <Plus className="size-4" aria-hidden="true" />
+              Add
+            </Menu>
           )
         }
       />
-      <nav aria-label="Upcoming or past" className="border-base-300 flex gap-4 border-b" data-upcoming-tabs>
+      <nav
+        aria-label="Planner, todos or past"
+        className="border-base-300 flex gap-4 border-b"
+        data-planner-tabs
+      >
         {tabs.map((t) => (
           <Link
             key={t.id}
@@ -63,7 +86,7 @@ export function UpcomingHeader({ tab }: { tab: "upcoming" | "past" }) {
  * Past tab, which lists events only), and with an author filter on, a last
  * chip that names them and clears it.
  */
-export function UpcomingFilterChips({
+export function PlannerFilterChips({
   kind,
   author,
   kinds = true,

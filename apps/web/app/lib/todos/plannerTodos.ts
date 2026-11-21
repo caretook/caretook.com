@@ -9,15 +9,15 @@ import { NOW_KEY } from "../appointments/upcomingDays";
 import { isUpcomingDose } from "../appointments/upcomingDoses";
 import { startOfDay, zonedInstant } from "../core/zonedDay";
 
-// Open todos with a due day in Upcoming, under their day among the
+// Open todos with a due day in the Planner, under their day among the
 // appointments, reminders and due doses. Worked out, never written:
 // completing a todo drops it out. Due days and times are wall-clock in the
-// recipient's zone (`todoState`); Upcoming's days are the viewer's, so a
+// recipient's zone (`todoState`); the Planner's days are the viewer's, so a
 // timed todo is placed by the moment it falls, an all-day one by its own
 // day (as all-day entries are). Pure; web:unit tests it.
 
-/** One open dated todo as an Upcoming item. */
-export type UpcomingTodo<T extends TodoRuleFields = TodoRuleFields> = {
+/** One open dated todo as a Planner item. */
+export type PlannerTodo<T extends TodoRuleFields = TodoRuleFields> = {
   type: "dueTodo";
   /** `todo:<id>`: unique in the list. */
   key: string;
@@ -27,21 +27,21 @@ export type UpcomingTodo<T extends TodoRuleFields = TodoRuleFields> = {
   at: string | null;
 };
 
-/** Anything Upcoming lists with todos merged in. */
-export type WithTodos<T, K extends TodoRuleFields = TodoRuleFields> = T | UpcomingTodo<K>;
+/** Anything the Planner lists with todos merged in. */
+export type WithTodos<T, K extends TodoRuleFields = TodoRuleFields> = T | PlannerTodo<K>;
 
-export const isUpcomingTodo = <T extends object>(item: T | UpcomingTodo): item is UpcomingTodo =>
+export const isPlannerTodo = <T extends object>(item: T | PlannerTodo): item is PlannerTodo =>
   "type" in item && item.type === "dueTodo";
 
 /**
- * Open dated todos as Upcoming items, in the order given (`todoOrder`).
+ * Open dated todos as Planner items, in the order given (`todoOrder`).
  * Done and undated todos are left out.
  */
 export const plannerTodos = <T extends TodoRuleFields>(
   todos: readonly T[],
   now: Date | number,
   timeZone: string,
-): UpcomingTodo<T>[] =>
+): PlannerTodo<T>[] =>
   todos.flatMap((todo) => {
     const state = todoState(todo, now, timeZone);
     if (state === "done" || state === "undated" || !todo.dueOn) return [];
@@ -57,7 +57,7 @@ export const plannerTodos = <T extends TodoRuleFields>(
 export const showsTodos = ({ kind, author }: { kind?: string | null; author?: string | null }) =>
   !kind && !author;
 
-type Listed = TimedEntry | UpcomingDose | UpcomingTodo;
+type Listed = TimedEntry | UpcomingDose | PlannerTodo;
 
 /**
  * Where an item sits in its day: overdue todos first, then all-day entries,
@@ -65,7 +65,7 @@ type Listed = TimedEntry | UpcomingDose | UpcomingTodo;
  * the moment they fall.
  */
 const rank = (item: Listed): { group: number; ms: number } => {
-  if (isUpcomingTodo(item)) {
+  if (isPlannerTodo(item)) {
     if (item.state === "overdue") return { group: 0, ms: 0 };
     return item.at ? { group: 3, ms: Date.parse(item.at) } : { group: 2, ms: 0 };
   }
@@ -80,7 +80,7 @@ const goesAfter = (todo: { group: number; ms: number }, item: Listed) => {
 };
 
 /**
- * Upcoming's sections (`upcomingSections`, with due doses or not) with
+ * The Planner's sections (`upcomingSections`, with due doses or not) with
  * `todos` in them. An overdue todo is listed under today, first; never under
  * "Now", which is for appointments in progress. A timed todo goes under the
  * day it falls on where the viewer is, by its time; an all-day one under its
@@ -90,13 +90,13 @@ const goesAfter = (todo: { group: number; ms: number }, item: Listed) => {
  */
 export function withDueTodos<T extends Listed, K extends TodoRuleFields>(
   sections: readonly UpcomingSection<T>[],
-  todos: readonly UpcomingTodo<K>[],
+  todos: readonly PlannerTodo<K>[],
   now: Date,
   viewerZone: string,
   todoZone: string,
   locale?: string,
-): UpcomingSection<T | UpcomingTodo<K>>[] {
-  const out: UpcomingSection<T | UpcomingTodo<K>>[] = sections.map((s) => ({ ...s, items: [...s.items] }));
+): UpcomingSection<T | PlannerTodo<K>>[] {
+  const out: UpcomingSection<T | PlannerTodo<K>>[] = sections.map((s) => ({ ...s, items: [...s.items] }));
   const today = localDate(now, viewerZone);
   const nowIso = now.toISOString();
   for (const todo of todos) {

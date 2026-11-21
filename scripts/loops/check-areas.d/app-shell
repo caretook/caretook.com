@@ -31,7 +31,7 @@ apps/web/app/routes/app/groups/search/routes.ts first-sync layout-offline
 apps/web/app/routes/app/groups/settings/routes.ts first-sync layout-offline
 apps/web/app/routes/app/groups/todos/routes.ts first-sync layout-offline
 apps/web/app/routes/app/groups/timeline/routes.ts first-sync layout-offline
-apps/web/app/routes/app/groups/upcoming/routes.ts first-sync layout-offline
+apps/web/app/routes/app/groups/planner/routes.ts first-sync layout-offline
 apps/web/app/routes/app/settings/routes.ts first-sync layout-offline
 apps/web/app/routes/dev/routes.ts        first-sync layout-offline
 apps/web/app/routes/marketing/routes.ts  first-sync layout-offline

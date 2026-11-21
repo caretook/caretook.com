@@ -3,14 +3,14 @@ import type { EntryFilters, LocalQuery } from "../../../../lib/timeline/timeline
 import { pastEventsWindow, upcomingWindow } from "../../../../lib/timeline/timeline.sync";
 import { contactsQuery } from "./upcomingContact";
 
-// Upcoming's and the Past tab's local queries, built on `lib/timeline/timeline.sync`'s
+// The Planner and Past tabs' local queries, built on `lib/timeline/timeline.sync`'s
 // windows (which share the timeline's filter conditions). Pure, so web:unit
 // tests them.
 
 const MINUTE_MS = 60_000;
 
 /**
- * The moment Upcoming's window is built from: `now` rounded down to the
+ * The moment the Planner tab's window is built from: `now` rounded down to the
  * minute, so the live query changes once a minute, not on every tick. The
  * window then holds a little more than what's upcoming at `now` (items that
  * passed within the minute), and the screen filters those out by the live
@@ -19,7 +19,7 @@ const MINUTE_MS = 60_000;
 export const windowStart = (now: Date | number) =>
   new Date(Math.floor(new Date(now).getTime() / MINUTE_MS) * MINUTE_MS);
 
-/** Upcoming's entries and their linked providers, for one window. */
+/** The Planner tab's entries and their linked providers, for one window. */
 export const upcomingQueries = (
   groupId: string,
   filters: EntryFilters,

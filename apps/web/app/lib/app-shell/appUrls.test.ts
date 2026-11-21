@@ -36,14 +36,15 @@ const KEYS = [
   "newGroup",
   "newMedication",
   "newPeriod",
+  "newPlannerEntry",
   "newProvider",
   "newSheet",
   "newTodo",
-  "newUpcomingEntry",
   "passSheet",
-  "pastEvents",
   "period",
   "periods",
+  "planner",
+  "plannerPast",
   "printEntry",
   "profile",
   "profilePrint",
@@ -54,7 +55,6 @@ const KEYS = [
   "timeline",
   "todo",
   "todos",
-  "upcoming",
 ];
 
 describe("appUrls", () => {

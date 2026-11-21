@@ -24,7 +24,7 @@ const shared = (db: SyncDb, groupId: string) =>
     readRows<RescheduledTargetRow>(db, rescheduledTargetsQuery(groupId)),
   ]);
 
-/** Upcoming's rows at `now`, with what today's due doses and the due todos are worked out from. */
+/** The Planner tab's rows at `now`, with what today's due doses and the due todos are worked out from. */
 export const loadUpcoming = async (db: SyncDb, groupId: string, filters: EntryFilters, now = new Date()) => {
   const queries = upcomingQueries(groupId, filters, now);
   const [entryRows, contactRows, [memberRows, documentRows, targetRows], dueRows] = await Promise.all([

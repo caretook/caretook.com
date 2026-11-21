@@ -13,7 +13,7 @@ import { pageHeader } from "../../../../../test/pageHeader";
 import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
 
-// The Todos section (todos slice 1): the list's chips, sections, ticks with
+// The Planner's Todos tab (todos slice 1; tasks-2 put it under the Planner header): the list's chips, sections, ticks with
 // Undo, Done with Reopen, what viewers see, and the add and edit sheets with
 // their guards. The service's own rules are integration tests.
 
@@ -77,6 +77,12 @@ const world = () => [
 const open = (role: GroupRole = "owner", url = LIST, fixtures = world()) =>
   renderWithDevice({ route: ROUTES, url, role, fixtures });
 
+/** The header's Add menu, then Todo: the add sheet. */
+const addTodo = async () => {
+  await userEvent.click(page.getByRole("button", { name: "Add", exact: true }));
+  await userEvent.click(page.getByRole("menuitem", { name: "Todo" }));
+};
+
 const titles = (section: string) =>
   [...document.querySelectorAll(`[data-todo-section="${section}"] [data-todo-title]`)].map((el) =>
     el.textContent?.trim(),
@@ -90,8 +96,13 @@ afterEach(() => clearTodoUndo());
 describe("the todo list", () => {
   test("opens on Mine when I have open todos, in sections; Everyone shows the rest, typed names too", async () => {
     const device = await open();
-    await expect.element(page.getByRole("heading", { name: "Todos", level: 1 })).toBeInTheDocument();
-    expect(pageHeader()).toEqual({ h1: "Todos", namesRecipient: false, viewerNote: false });
+    await expect.element(page.getByRole("heading", { name: "Planner", level: 1 })).toBeInTheDocument();
+    expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
+    await expect
+      .element(
+        page.getByRole("navigation", { name: "Planner, todos or past" }).getByRole("link", { name: "Todos" }),
+      )
+      .toHaveAttribute("aria-current", "page");
     await expect.element(chip("Mine")).toHaveAttribute("aria-current", "true");
     expect(titles("overdue")).toEqual(["Call the pharmacy"]);
     expect(titles("today")).toEqual(["Pick up the walker"]);
@@ -196,8 +207,8 @@ describe("the todo list", () => {
       "Mark “Pick up the walker” done",
       "Mark “Pick up groceries” done",
     ]);
-    expect(document.querySelector("[data-add-todo]")).toBeNull();
-    expect(pageHeader()).toEqual({ h1: "Todos", namesRecipient: false, viewerNote: false });
+    expect(page.getByRole("button", { name: "Add", exact: true }).query()).toBeNull();
+    expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
   });
 
   test("a row opens the todo's page, for viewers too; its way back keeps the chip", async () => {
@@ -213,7 +224,7 @@ describe("the todo list", () => {
 describe("the todo sheets", () => {
   test("adds a todo for someone outside the group, due on a day at a time", async () => {
     const device = await open("owner", `${LIST}?who=everyone`);
-    await userEvent.click(page.getByRole("link", { name: "Add todo" }));
+    await addTodo();
     const dialog = page.getByRole("dialog", { name: "Add a todo" });
     await expect.element(dialog).toBeInTheDocument();
     await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Water the plants");
@@ -234,7 +245,7 @@ describe("the todo sheets", () => {
 
   test("adds a todo for a member, due on a day without a time; a blank title is refused", async () => {
     const device = await open("owner", `${LIST}?who=everyone`);
-    await userEvent.click(page.getByRole("link", { name: "Add todo" }));
+    await addTodo();
     const dialog = page.getByRole("dialog", { name: "Add a todo" });
     await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
     await expect
