@@ -112,7 +112,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-188 | bug | landed | quick-fixes | prd/quick-fixes | when signing up mcp connector, the oauth request just returns json, not the accept flow |
 | B-189 | bug | landed | quick-fixes | prd/quick-fixes | mcp connector for medication change records on the timeline, it isn't providing information about… |
 | B-190 | bug | landed | quick-fixes | prd/quick-fixes | mcp connector returning truncated notes on doses, and maybe other things |
-| B-191 | bug | in-progress | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
+| B-191 | bug | ready | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
 | B-192 | bug | ready | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
 | B-193 | feature | triaged | connectors-2 |  | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
 | B-194 | feature | triaged | connectors-2 |  | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
@@ -762,10 +762,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-191 · bug · clicking the next entry in the upcoming section of the simple timeline should expand the section,…
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 5a7d7238
 
 - 2026-11-20 (prd/quick-fixes): From the inbox: clicking the next entry in the upcoming section of the simple timeline should expand the section, not take you to the next entry. once expanded, clicking on any item should take you to the full view of that item.
 - 2026-11-20 (prd/quick-fixes): Proposed for quick-fixes (orchestrator, 2026-11-20): a small simple-mode timeline fix (the Upcoming block's next entry expands the block; once open, each item opens its page). A slice in a later wave; the user reviews.
@@ -906,3 +906,4 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/conditions): Failed in conditions slice 4's full check (~21:20 EST 2026-11-20) and again alone on prd/conditions without slice 4 at 21:24 EST, load 31. Looks time-of-day dependent (the Evening pass vs now, or the Metformin dose logged a minute earlier covering it). Not caused by conditions.
 - 2026-11-20 (prd/quick-fixes): Taken into quick-fixes as slice 58 (wave 14) at conditions' request; blocks evening full checks.
+- 2026-11-20 (prd/conditions): Cause (conditions slice 2's agent): the test logs a Metformin dose 1 minute ago; between 20:00 and ~22:00 that dose answers the Evening (20:00) slot, so give_pass returns assistantActionService:nothingLeft ('Nothing is left to give in Evening today').
