@@ -2,8 +2,7 @@ import type { DaySummaryMode, TimelineView } from "@caretook/data/schema";
 import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 
 import { Eye, LayoutList, List, Type } from "lucide-react";
-import { Menu, SEPARATOR } from "~/components/ui";
-import { TOOL_CIRCLE } from "./TimelineFilters";
+import { Menu, SEPARATOR, TOOL_CIRCLE } from "~/components/ui";
 
 const VIEW_ITEMS: { id: TimelineView; label: string; icon: typeof List }[] = [
   { id: "rows", label: "Rows", icon: List },
