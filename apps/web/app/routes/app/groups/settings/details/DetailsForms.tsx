@@ -47,16 +47,10 @@ function TimeZoneField({ value, result }: { value: string | null; result: Action
   const error =
     result && !result.ok ? result.issues.find((issue) => issue.path === "timeZone")?.message : undefined;
   return (
-    <Field label="Time zone" help="Medication times follow this zone." error={error}>
+    <Field kind="select" label="Time zone" help="Medication times follow this zone." error={error}>
       {(control) => (
         <div className="flex flex-col items-start gap-2">
-          <select
-            {...control}
-            name="timeZone"
-            value={zone}
-            onChange={(e) => setZone(e.target.value)}
-            className={`select w-full ${error ? "select-error" : ""}`}
-          >
+          <select {...control} name="timeZone" value={zone} onChange={(e) => setZone(e.target.value)}>
             {!zone && <option value="">Not set</option>}
             {timeZoneOptions(value, device).map((option) => (
               <option key={option} value={option}>
@@ -100,7 +94,7 @@ function TextField({
   const error =
     result && !result.ok ? result.issues.find((issue) => issue.path === name)?.message : undefined;
   return (
-    <Field label={label} help={help} error={error}>
+    <Field kind="input" label={label} help={help} error={error}>
       {(control) => (
         <input
           {...control}
@@ -110,7 +104,6 @@ function TextField({
           defaultValue={value}
           maxLength={maxLength}
           autoComplete="off"
-          className={`input w-full ${error ? "input-error" : ""}`}
         />
       )}
     </Field>

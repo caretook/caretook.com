@@ -113,7 +113,7 @@ const open = ({
     api,
   });
 
-const consent = () => page.getByRole("checkbox", { name: "Include titles, places and providers" });
+const consent = () => page.getByRole("switch", { name: "Include titles, places and providers" });
 const cardHeadings = () =>
   [...document.querySelectorAll("main section.card h2")].map((h) => h.textContent.trim());
 const section = (id: string) => document.querySelector(`main [data-section="${id}"]`);
@@ -258,7 +258,7 @@ describe("Calendar & reminders", () => {
 });
 
 describe("group settings → Details: the owners' switch", () => {
-  const allowedSwitch = () => page.getByRole("checkbox", { name: "Let members include details" });
+  const allowedSwitch = () => page.getByRole("switch", { name: "Let members include details" });
 
   test("an owner keeps details private for everyone, and allows them again", async () => {
     const server = calendarServer("owner");

@@ -4,7 +4,7 @@ import { ATTESTATION_TEXT } from "@caretook/data/schema";
 import { UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { Button, Field, Message, Notice, Sheet } from "~/components/ui";
+import { Button, CheckField, Field, Message, Notice, Sheet } from "~/components/ui";
 import { roleLabel } from "../groupSettings";
 import { emailInviteRoles } from "./invites";
 import { INVITES_UNAVAILABLE } from "./linkRules";
@@ -73,21 +73,12 @@ export function InviteButton({
           <p className="text-base-content/70 text-sm">
             We'll email them a link that works for 7 days, with that address only.
           </p>
-          <Field label="Email" error={issue("email")}>
-            {(control) => (
-              <input
-                {...control}
-                className="input w-full"
-                type="email"
-                name="email"
-                autoComplete="off"
-                required
-              />
-            )}
+          <Field kind="input" label="Email" error={issue("email")}>
+            {(control) => <input {...control} type="email" name="email" autoComplete="off" required />}
           </Field>
-          <Field label="Role" error={issue("role")}>
+          <Field kind="select" label="Role" error={issue("role")}>
             {(control) => (
-              <select {...control} className="select w-full" name="role" defaultValue="caretaker">
+              <select {...control} name="role" defaultValue="caretaker">
                 {roles.map((role) => (
                   <option key={role} value={role}>
                     {roleLabel(role)}: {ROLE_HELP[role]}
@@ -96,17 +87,7 @@ export function InviteButton({
               </select>
             )}
           </Field>
-          <label className="flex items-start gap-3 py-1 text-sm">
-            <input
-              type="checkbox"
-              name="attested"
-              className="checkbox mt-0.5"
-              required
-              aria-invalid={issue("attested") ? true : undefined}
-            />
-            <span>{ATTESTATION_TEXT}</span>
-          </label>
-          {issue("attested") && <p className="text-error text-sm">{issue("attested")}</p>}
+          <CheckField label={ATTESTATION_TEXT} name="attested" required error={issue("attested")} />
           {result && !result.ok && !result.issues.length && <Message tone="error">{result.error}</Message>}
           <Button type="submit" variant="primary" block busy={busy} busyLabel="Sending…">
             Send invitation
