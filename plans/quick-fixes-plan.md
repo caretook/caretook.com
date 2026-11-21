@@ -62,8 +62,15 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 | 44    | B-135             | merged | df9e3df (22bffaa)                                     |
 | 45    | B-134             | merged | ee62ed9 (f068feb)                                     |
 | 46    | B-157             | merged | 03dfa05 (bec9a23)                                     |
+| 47    | B-188             | to do  |                                                       |
+| 48    | B-189, B-190      | to do  |                                                       |
+| 49    | B-184             | to do  |                                                       |
+| 50    | B-185, B-186      | to do  |                                                       |
+| 51    | B-187             | to do  |                                                       |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**Wave 13 (slices 47–51), written 2026-11-20** in the backlog session from B-184 to B-190. All but 47 are stackless. 47 first: it breaks connecting from claude.ai on staging (production is live too). The user's answers: B-185's "upcoming" is due within about 2 hours; B-187 is a Filter button and `ui/Sheet`, with removable chips for the active filters; B-188 came from claude.ai only (the desktop app worked), on the authorize URL itself. 50 and 51 share the timeline folder but no files.
 
 **Wave 12 (slices 44–46), 2026-11-20:** wave 11 landed in `dev` as 8728000; `prd/quick-fixes` level with `dev`. Queued again, same run-through mode. Slices 44–46 written from B-135, B-134 and B-157 (tasks has landed, so none waits). All three stackless; worktrees made and loops spawned (2026-11-20). Slice 45 handed off (f068feb): the clamp is in `ui/date/DateTimeField.tsx` (React Aria's month/year cycle doesn't clamp the day), tests in `primitives.browser.test.tsx` and visit prep's test on a fixed clock; `pnpm check` green; its `--changed` set (roundtrip, ui, medications) was **not run** (its stack-up clashed on slot 6 with 44): run it at landing. Slice 46 handed off (bec9a23): `QuickEntrySuggestions` `showTips` (off for the `lg` box), the tiles hint is only the "Choose the tiles" link for those who can choose; `pnpm check` green, `--changed` needed no checks. At landing: timeline.md's Tiles bullet and assistant.md's Suggestions bullet. Slice 44 handed off (22bffaa): `QuickAddMenu` on each `DayHeader` ("Add to <day>"), `dayStartAt` in `timelineDays.ts`, `?at=` (`START_AT_PARAM`, `startAtFrom`) on `newSheet`/`newDose`/`newEntry`, dropped by `withoutSheetParams`; its own call: a writer's list always opens with a Today heading (empty if nothing today) so Today's + exists; `cdp.mjs` `ADD_BUTTON` is "Add to Today"; its `--changed` (sign-in, roundtrip, medications, upcoming, profiles) passed. All three merged 2026-11-20, items done, worktrees removed. Docs folded (timeline, assistant, components; 8a476e0). Synced with `dev` (bde2512: conflicts with the day-summaries menu in `TimelineHeader`, `TimelineEntryList` and timeline.md, resolved by keeping both). `pnpm prd check` green on bde2512 (3634 tests). Browser checks: 44's `--changed` (sign-in, roundtrip, medications, upcoming, profiles) on its branch; on the merged branch ui, roundtrip and medications (45's set, never run against its date-field change): all pass. No `--suite` (the user's standing rule). Synced again for hosting's landing (40bb626: clean, a migration and new deps: `pnpm install`, `datastore:reset`), full `pnpm prd check` green (3837 tests). Landing. From the next wave: the new check gate (`pnpm prd check --quick` where it fits) and per-slice models (docs/loops.md, _The check gate_, _Models_); note each slice's model here. Slice 45's rule (a month step onto a shorter month clamps to its last day) is the orchestrator's default, not a user answer.
 
@@ -1123,3 +1130,106 @@ Stack: no · Reads: docs/domain/timeline.md, docs/domain/assistant.md · Tests: 
 - [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
 
 **Blocks:** none. **Blocked by:** none. Slices 44 and 46 both touch the timeline folder but not the same files (44: `DayHeader`, `TimelineHeader`, `QuickAddMenu`; 46: `SimpleTiles`, quick entry). Merge in order.
+
+## Slice 47: Connecting from claude.ai shows JSON at authorize (B-188)
+
+Stack: yes · Reads: docs/domain/connectors.md, docs/domain/auth.md · Tests: integration
+
+**Problem.** Adding the connector from claude.ai (staging, 2026-11-20) left the browser on `https://staging.caretook.com/api/auth/oauth2/authorize?response_type=…` showing JSON, not the `/connect` accept page. The Claude desktop app's flow worked. The browser navigated to authorize itself, so this is not the plugin's `{redirect, url}` answer to a fetch (`handleRedirect` returns that only for `sec-fetch-mode: cors` or `Accept: application/json`). It is most likely an OAuth error body: a `client_id` claude.ai registered earlier and still caches (staging was reseeded), a `redirect_uri` that differs from the registered one, a scope or `resource` the server refuses, or PKCE.
+
+**Build.**
+
+- Reproduce first, on the stack: register a client the way claude.ai does (dynamic registration with `https://claude.ai/api/mcp/auth_callback`), then navigate to authorize as a browser does (`Accept: text/html`, `sec-fetch-mode: navigate`), signed in and signed out, with: an unknown `client_id`, a mismatched `redirect_uri`, an unadvertised scope, a `resource` param, and no PKCE. Record which one gives JSON, and its body. If none does, compare the discovery documents with what claude.ai's MCP client expects (`/.well-known/oauth-protected-resource` for `/mcp`, `oauth-authorization-server`, `registration_endpoint`) and say in the hand-off what is still unknown. Don't guess a fix.
+- Fix the cause you find (for example, accept the parameter claude.ai sends).
+- Whatever the cause, a **browser navigation** to authorize that ends in an error the plugin can't redirect (an unknown client, a bad redirect URI) renders a plain HTML page instead of JSON: "This connection link isn't valid any more. Remove Caretook from your assistant's connectors and add it again." Keep the JSON for non-browser requests. Put it in a web-only route or `hooks.after`, with no new dependency.
+
+**Acceptance criteria.**
+
+- [ ] Integration test: the request shape claude.ai sends (as reproduced) goes to `/connect` (302), signed in and signed out.
+- [ ] Integration test: an authorize navigation with an unknown `client_id` gets HTML with the message; the same request with `Accept: application/json` still gets the JSON error.
+- [ ] Hand-off: what claude.ai sent and why it failed, so the user can retry on staging.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 48: Connector timeline text: medication changes in full, notes not cut (B-189, B-190)
+
+Stack: no · Reads: docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+**Problem.** Assistants read the tool's text content. `packages/api/src/connectors/tools/listTimeline.ts` builds each entry's text line from the kind, title or text and author only, and cuts the text at `TEXT_PREVIEW = 280` with "…". So a medication change says neither what changed (started, changed, stopped, resumed; a pass moved) nor the before and after values, and long notes and dose notes come out truncated. The structured `details` and `text` are complete, but the assistants don't use them.
+
+**Build.**
+
+- `listTimeline.ts`: drop `TEXT_PREVIEW`, so the text line carries the full text (the page cap of 50 entries still bounds the size).
+- A medication change's line names the change and the medication. For `changed`, each tracked field as `before → after`, from `fields`, `before` and `after` ("Dose: 5 mg → 10 mg"). For `stopped`, `stopStatus`, `stopReason` and `stopNote`. A `passMoved` line gives the pass name and `beforeTime → afterTime`. Reuse the medications area's own labels and summaries if they exist (`lib/medications`, `packages/data` schema helpers) rather than writing new wording.
+- Check the other tools' text lines (`search`, `upcoming`, the medication reads) for the same cut, and make the same fix where you find it. List them in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Integration test: `list_timeline` text for a started, a changed (dose and schedule), a stopped (with reason and note) and a pass-moved entry shows the change and the before and after values.
+- [ ] Integration test: a note and a dose note longer than 280 characters come back whole in the text.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 49: Member rows overflow with the simple-mode and locked switches (B-184)
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/care-groups.md · Tests: component
+
+**Problem.** On the group's Members settings, an owner sees each member's role select, Simple mode and Locked switches, and Remove in one wrapping row (`routes/app/groups/settings/members/MembersList.tsx`, `MemberItem`). At phone width the row is wider than its container.
+
+**Build.**
+
+- In `MemberItem`, put the two switches in their own block under the name and role, stacked one above the other (`flex flex-col gap-2`), each label `min-w-0` with text that wraps. Keep the `data-simple-mode-switch` and `data-simple-lock-switch` hooks. Nothing overflows the list at 320px, and desktop keeps its row with the switches stacked.
+
+**Acceptance criteria.**
+
+- [ ] Component test (beside `MembersList`): at a 320px container, no member row's `scrollWidth` exceeds its `clientWidth` with both switches shown, and the switches are stacked (the second's top is below the first's bottom).
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 50: The Today card opens only for what needs attention; vitals expand in place (B-185, B-186)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/components.md · Tests: unit, component
+
+**Problem.** The Today card (`routes/app/groups/timeline/TodayCard.tsx`) opens by default. Its collapse is a stored choice (`useTodayCardCollapsed.ts`, localStorage `caretook:todayCard:collapsed`). The user wants it collapsed unless something is overdue or upcoming (B-185). The vitals row is one truncated line whose "See all" goes to the timeline filtered to `?kind=vital`. It should open the row in place to show every vital, and show only when the vitals don't fit (B-186).
+
+**Build.**
+
+- `todayStatus.ts`: add a pure `needsAttention(rows, now, timeZone)` (unit tested). True when a dose is due or overdue, or due within 2 hours (the user's answer: "due in the next few hours", the same 2 h as `APPOINTMENT_SOON_MS`), or a task is overdue, or an appointment is in progress or starts within 2 hours. False for stale vitals, a task only due today, and an appointment later today.
+- `useTodayCardCollapsed`: with no stored choice, the card is collapsed unless `needsAttention`. A tap stores the choice with what needed attention at that moment (a key such as the overdue and soon items' ids). When that changes (a new overdue dose, a new appointment within 2 h), the default applies again, so a collapsed card opens for the new item. The server render stays open (as now), so nothing jumps for screen readers.
+- `TodayRow`: an optional `expandable` replaces `seeAll` for the vitals row. A ResizeObserver compares the line's `scrollWidth` with its `clientWidth`. When the vitals overflow, a "Show all" button (`aria-expanded`, controls the line) lifts `truncate` so the readings wrap, and it reads "Show less" when open. When they fit, there is no button. The other rows keep their See all links.
+
+**Acceptance criteria.**
+
+- [ ] Unit tests (`todayStatus.test.ts`): `needsAttention` at each boundary (a dose 2 h out and 2 h 1 min out, an overdue task, an appointment now, later today, in 90 min, stale vitals).
+- [ ] Component tests (the Today card's test): no attention means collapsed on first render; an overdue dose means open; collapsed by the user, a new item within 2 h opens it again.
+- [ ] Component test: vitals that overflow show "Show all", which expands the row in place (no navigation, `aria-expanded` true) with every reading visible; vitals that fit show no button.
+- [ ] The orchestrator updates docs/domain/timeline.md's Today card bullet at landing. List the lines in the hand-off.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none. It shares the timeline folder with 51 but no files.
+
+## Slice 51: Timeline filters behind one Filter button (B-187)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/components.md · Tests: component
+
+**Problem.** `routes/app/groups/timeline/TimelineFilters.tsx` shows the kind chips (All, note, symptom, event, vital, dose, medicationChange), the author, "Matching" and "During" chips, a second row of vital-type chips under `kind=vital`, and the "Within a period" menu while searching. On a phone it's overwhelming, the chips hide behind the search field, and on desktop the vitals sub-row is confusing.
+
+**Build** (the user's choice: a button and a sheet).
+
+- Keep the search control. Next to it, one **Filter** button showing the count of active filters ("Filter · 2"), opening `ui/Sheet` (full screen on a phone, a dialog from `sm`). Inside: Kind as a single-choice group (All or one kind), Vitals types as a multi-choice group shown only when Kind is Vitals, then Period, then the author and "Matching" filters where they apply. Clear and Done buttons.
+- Filters apply as they change (the URL params stay as now: `kind`, `vital`, `period` and the rest, so links and back still work). Done closes the sheet, and Clear removes every filter but search.
+- Under the button, the active filters as removable chips ("Vitals ×", "Blood pressure ×", "During <period> ×"). Removing one updates the URL. No chips with no filters.
+- The old chip rows and `VitalTypeChips` go. Reuse `ChipGroup` and `ui` primitives. No new dependency.
+- The quick filters a check or a test selects by (`data-…` hooks, cdp.mjs labels) keep working or are updated in this slice. List them in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Component tests (the timeline filters' test): the button shows the count; choosing Vitals then Blood pressure in the sheet sets `?kind=vital&vital=…` and shows both chips; removing a chip updates the URL and the count; Clear keeps the search; the sheet's focus returns to the button.
+- [ ] Component test: at phone width, no filter chip row renders until a filter is set.
+- [ ] The orchestrator updates docs/domain/timeline.md's filters bullets at landing. List them in the hand-off.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
