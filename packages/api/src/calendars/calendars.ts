@@ -7,6 +7,7 @@ import { unwrap } from "../errors";
 import { authedProcedure } from "../procedures";
 import { feed } from "./feedProcedures";
 import { google } from "./google";
+import { overrides } from "./overrideProcedures";
 
 // A member's calendar settings for one group (appointments-2): the
 // "Calendar & reminders" page reads and writes them, each member only their
@@ -27,6 +28,7 @@ export type CalendarSettings = ReturnType<typeof toSettings>;
 
 export const calendars = {
   feed,
+  overrides,
   settings: {
     /** The caller's own settings for a group they're in (the defaults until they change one). */
     get: authedProcedure

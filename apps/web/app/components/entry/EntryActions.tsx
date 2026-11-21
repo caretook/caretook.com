@@ -30,6 +30,7 @@ export function EntryActions({
   onEdit,
   cancel,
   onPrepare,
+  onRemind,
   onPrint,
   printHref,
   onDelete,
@@ -46,6 +47,8 @@ export function EntryActions({
   cancel?: EntryCancelActions;
   /** Opens visit prep for an upcoming event (Prepare). */
   onPrepare?: () => void;
+  /** Opens the "Remind me" sheet for an upcoming note or event (any role). */
+  onRemind?: () => void;
   /** Prints a note or event here (the entry page)… */
   onPrint?: () => void;
   /** …or opens its page to print it (rows elsewhere). */
@@ -67,6 +70,8 @@ export function EntryActions({
         return { id: "uncancel", label: "Undo cancel", onAction: cancel?.onUncancel };
       case "prepare":
         return { id: "prepare", label: "Prepare for this visit", onAction: onPrepare };
+      case "remind":
+        return { id: "remind", label: "Remind me", onAction: onRemind };
       case "print":
         return printHref
           ? { id: "print", label: "Print", href: printHref }
@@ -82,6 +87,7 @@ export function EntryActions({
     cancelled: cancel?.cancelled,
     canReschedule: !!cancel?.onReschedule,
     canPrepare: !!onPrepare,
+    canRemind: !!onRemind,
     canPrint: !!(onPrint || printHref),
     canDelete: !!onDelete,
   }).map(item);

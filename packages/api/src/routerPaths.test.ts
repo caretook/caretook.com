@@ -40,6 +40,8 @@ const FROZEN_PATHS = [
   "calendars.google.disconnect",
   "calendars.google.status",
   "calendars.group.setDetailsAllowed",
+  "calendars.overrides.get",
+  "calendars.overrides.set",
   "calendars.settings.get",
   "calendars.settings.update",
   "careGroup.changeRole",

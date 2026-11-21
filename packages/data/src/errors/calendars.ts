@@ -29,6 +29,14 @@ export const CALENDARS_ERRORS = {
     message: "This unsubscribe link isn't valid",
     statusCode: 404,
   },
+  "reminderOverrideService:notFound": {
+    message: "Appointment not found",
+    statusCode: 404,
+  },
+  "reminderOverrideService:invalid": {
+    message: "Pick one to three reminder times",
+    statusCode: 400,
+  },
   "calendarReminderService:query": {
     message: "Failed to read what reminders are due",
   },

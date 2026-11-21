@@ -21,6 +21,7 @@ export function TimelineEntryCard({
   onEdit,
   onDelete,
   cancel,
+  onRemind,
   liveLabel,
   providers,
   search,
@@ -66,6 +67,7 @@ export function TimelineEntryCard({
           label={actionsLabel(entry)}
           onEdit={onEdit}
           cancel={cancel}
+          onRemind={onRemind}
           printHref={
             canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
           }

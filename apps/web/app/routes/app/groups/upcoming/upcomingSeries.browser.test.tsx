@@ -105,6 +105,7 @@ describe("the scope dialog in Upcoming", () => {
       "Prepare for this visit",
       "Reschedule",
       "Cancel event",
+      "Remind me",
       "Print",
       "Delete",
     ]);
@@ -112,7 +113,7 @@ describe("the scope dialog in Upcoming", () => {
     await device.screen.unmount();
 
     await openUpcoming({ extra: SERIES, role: "viewer" });
-    expect(await rowMenu(FRI_20.id)).toEqual(["Print"]);
+    expect(await rowMenu(FRI_20.id)).toEqual(["Remind me", "Print"]);
     expect(SCOPE()).toBeNull();
   });
 
@@ -336,6 +337,9 @@ describe("on a visit's page", () => {
 
   test("a viewer's page asks nothing and offers no Edit", async () => {
     await openUpcoming({ url: entryUrl(FRI_20.id), extra: SERIES, role: "viewer" });
-    expect(await openMenu(await found(() => document.querySelector(ENTRY_MENU)))).toEqual(["Print"]);
+    expect(await openMenu(await found(() => document.querySelector(ENTRY_MENU)))).toEqual([
+      "Remind me",
+      "Print",
+    ]);
   });
 });

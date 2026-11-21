@@ -141,6 +141,9 @@ export type { CalendarSettingsView } from "./calendarSettingService";
 import * as calendarFeedService from "./calendarFeedService";
 export { calendarFeedService };
 export type { CalendarFeed } from "./calendarFeedService";
+import * as reminderOverrideService from "./reminderOverrideService";
+export { reminderOverrideService };
+export type { ReminderChoice } from "./reminderOverrideService";
 import * as calendarReminderService from "./calendarReminderService";
 export { calendarReminderService };
 export type { ReminderGroupInputs } from "./calendarReminderService";
@@ -184,6 +187,7 @@ export const services = {
   appointmentSeries: appointmentSeriesService,
   calendarSetting: calendarSettingService,
   calendarFeed: calendarFeedService,
+  reminderOverride: reminderOverrideService,
 };
 
 export type ServiceTypeMap = typeof services;

@@ -40,6 +40,8 @@ export type EntryViewProps = {
   onDelete?: () => void;
   /** An event's Cancel or Undo cancel in the ⋯ menu (writers). */
   cancel?: EntryCancelActions;
+  /** Opens "Remind me" for an upcoming note or event (any role). */
+  onRemind?: () => void;
   /** Others are writing in its document now: the live dot's label ("Being written now by Maria"). */
   liveLabel?: string;
   /** A note's or event's linked providers: the "with …" line. */
@@ -65,6 +67,7 @@ export function TimelineEntryRow({
   onEdit,
   onDelete,
   cancel,
+  onRemind,
   liveLabel,
   providers,
   search,
@@ -116,6 +119,7 @@ export function TimelineEntryRow({
             label={actionsLabel(entry)}
             onEdit={onEdit}
             cancel={cancel}
+            onRemind={onRemind}
             printHref={
               canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
             }
