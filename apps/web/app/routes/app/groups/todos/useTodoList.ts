@@ -1,4 +1,3 @@
-import type { TodoWho } from "~/lib/todos/todoList";
 import type { TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
@@ -8,7 +7,7 @@ import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
 import { doneCountQuery, todosQuery, toTodos } from "~/lib/todos/todos.sync";
 import { membersQuery } from "~/lib/timeline/timeline.sync";
-import { defaultWho, parseWho, showsTodo, todoSections } from "~/lib/todos/todoList";
+import { showsTodo, todoSections, whoOf } from "~/lib/todos/todoList";
 
 /** How many done todos a page of the Done list shows. */
 export const DONE_PAGE = 20;
@@ -29,10 +28,9 @@ export type TodoListRows = { openRows: TodoRow[]; doneRows: TodoRow[]; memberRow
 const NO_COUNT: { count: number }[] = [];
 
 /**
- * The todo list's data, live: the open todos the chip shows, in sections
- * (in the recipient's zone), the Done page, and members' names. The chip
- * comes from `?who=`; with none it's Mine when I had open todos as the list
- * opened, else Everyone (decided once, so ticking my last one doesn't flip it).
+ * The todo list's data, live: the open todos the filter shows, in sections
+ * (in the recipient's zone), the Done page, and members' names. The filter
+ * comes from `?who=`; with none it's Everyone.
  */
 export function useTodoList(groupId: string, initial: TodoListRows) {
   const group = useGroup();
@@ -44,8 +42,7 @@ export function useTodoList(groupId: string, initial: TodoListRows) {
   const openRows = useLiveQuery<TodoRow>(openQuery.sql, openQuery.params, initial.openRows);
   const open = useMemo(() => toTodos(openRows), [openRows]);
 
-  const [fallbackWho] = useState<TodoWho>(() => defaultWho(toTodos(initial.openRows), group.userId));
-  const who = parseWho(search) ?? fallbackWho;
+  const who = whoOf(search);
 
   const [doneLimit, setDoneLimit] = useState(DONE_PAGE);
   const doneQuery = todosQuery(groupId, { done: true, who, userId: group.userId, limit: doneLimit });
@@ -54,7 +51,8 @@ export function useTodoList(groupId: string, initial: TodoListRows) {
   const countQuery = doneCountQuery(groupId, { who, userId: group.userId });
   const [count] = useLiveQuery<{ count: number }>(countQuery.sql, countQuery.params, NO_COUNT);
   const moreDone = (count?.count ?? 0) > done.length;
-  const showMoreDone = useCallback(() => setDoneLimit((n) => n + DONE_PAGE), []);
+  // The React Compiler memoizes it.
+  const showMoreDone = () => setDoneLimit((n) => n + DONE_PAGE);
 
   const memberQuery = membersQuery(groupId);
   const members = useLiveQuery<MemberRow>(memberQuery.sql, memberQuery.params, initial.memberRows);

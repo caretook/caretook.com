@@ -391,12 +391,11 @@ describe.each([
     expect(chips.filter((c) => c.hasAttribute("aria-current") || c.hasAttribute("aria-pressed"))).toEqual([]);
   });
 
-  test("providers: the type filter a nav with All current; the add sheet; the edit sheet's Delete confirm (Escape closes only it)", async () => {
+  test("providers: the Filter menu's Type section with All checked; the add sheet; the edit sheet's Delete confirm (Escape closes only it)", async () => {
     await open(PROVIDERS, layout);
-    const nav = page.getByRole("navigation", { name: "Show providers" });
-    await expect
-      .element(nav.getByRole("link", { name: "All", exact: true }))
-      .toHaveAttribute("aria-current", "true");
+    await userEvent.click(page.getByRole("button", { name: /^Filter(, \d+ on)?$/ }));
+    await expect.element(page.getByRole("menuitemradio", { name: "All", exact: true })).toBeChecked();
+    await userEvent.keyboard("{Escape}");
     await overlay(() => must("main a[data-add-provider]"), { name: "Add a provider", sheet: true });
   });
 
