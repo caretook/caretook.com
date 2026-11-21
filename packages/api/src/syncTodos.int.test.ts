@@ -232,8 +232,8 @@ describe("sync.upload: repeating todos", () => {
     };
     expect((await owner.api.sync.upload({ ops: [put] })).results).toEqual([{ id, status: "applied" }]);
 
-    const next = twin(id, group.id, recipient.id, "2026-11-23");
-    next.data = { ...next.data, assignee_id: viewer.user.id };
+    const twinOp = twin(id, group.id, recipient.id, "2026-11-23");
+    const next = { ...twinOp, data: { ...twinOp.data, assignee_id: viewer.user.id } };
     expect((await viewer.api.sync.upload({ ops: [tick(id, MONDAY, viewer.user.id), next] })).results).toEqual(
       [
         { id, status: "applied" },
