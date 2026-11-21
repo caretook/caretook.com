@@ -1,5 +1,8 @@
 import type { ProviderStatus, ProviderType } from "@caretook/data/schema";
 
+import type { OtherGroupProviders } from "./fromGroups";
+
+import { fromGroupSections } from "./fromGroups";
 import { compareProviders, matchesQuery, PROVIDER_TYPE_META, queryTokens } from "./providerDirectory";
 
 // The `@` popup's choices in a live document, pure: what's offered for the
@@ -53,8 +56,22 @@ export const mentionOptions = (
 /** The popup's last row for writers: add the typed name as a new provider (a clinician). */
 export type MentionAdd = { kind: "add"; name: string; label: string };
 
-/** A row of the popup: one of the group's providers, or the add row. */
-export type MentionChoice = ({ kind: "provider" } & MentionOption) | MentionAdd;
+/**
+ * A row of a "From <group>" section: another group's provider (`id` is the
+ * source's), copied here when picked. Rows of one group come together, each
+ * carrying its section's `heading`.
+ */
+export type MentionFromGroup = {
+  kind: "fromGroup";
+  id: string;
+  groupId: string;
+  heading: string;
+  label: string;
+  description: string;
+};
+
+/** A row of the popup: one of the group's providers, another group's, or the add row. */
+export type MentionChoice = ({ kind: "provider" } & MentionOption) | MentionFromGroup | MentionAdd;
 
 /** What the add row says. */
 export const addProviderLabel = (name: string) => `Add "${name}" as a provider`;
@@ -77,33 +94,58 @@ export const mentionAddRow = (providers: readonly MentionProvider[], query: stri
 
 /**
  * Every row of the popup, in order: the matching providers
- * (`mentionOptions`), then, for writers (`canAdd`), the add row. The add row
- * is always the separate, final part.
+ * (`mentionOptions`), then the "From <group>" sections of the user's other
+ * groups (`others`; once something is typed, minus ones already here, up to
+ * 5 each: `fromGroupSections`), then, for writers (`canAdd`), the add row.
+ * The add row is always the separate, final part.
  */
 export const mentionChoices = (
   providers: readonly MentionProvider[],
   query: string,
-  { canAdd, limit = MENTION_LIMIT }: { canAdd: boolean; limit?: number },
+  {
+    canAdd,
+    limit = MENTION_LIMIT,
+    others = [],
+  }: { canAdd: boolean; limit?: number; others?: readonly OtherGroupProviders[] },
 ): MentionChoice[] => {
   const matches: MentionChoice[] = mentionOptions(providers, query, limit).map((o) => ({
     kind: "provider",
     ...o,
   }));
+  const fromGroups: MentionChoice[] = fromGroupSections(others, providers, query).flatMap((s) =>
+    s.options.map((o) => ({
+      kind: "fromGroup" as const,
+      id: o.sourceId,
+      groupId: o.groupId,
+      heading: s.heading,
+      label: o.label,
+      description: o.description,
+    })),
+  );
   const add = canAdd ? mentionAddRow(providers, query) : null;
-  return add ? [...matches, add] : matches;
+  return [...matches, ...fromGroups, ...(add ? [add] : [])];
 };
 
 /**
  * Whether the popup stays open for `query` (what's typed after the `@`,
  * spaces allowed so a new name like "Rosa Lind" can be typed whole). It
  * closes on a leading space, and once a third word starts while the words
- * before it match no provider: "@Mom said to" is text, not a search, while
- * "@Dr. Elena Al" still finds Dr. Elena Alvarez.
+ * before it match no provider here or in the other groups' sections
+ * (`others`): "@Mom said to" is text, not a search, while "@Dr. Elena Al"
+ * still finds Dr. Elena Alvarez.
  */
-export const mentionQueryOpen = (providers: readonly MentionProvider[], query: string) => {
+export const mentionQueryOpen = (
+  providers: readonly MentionProvider[],
+  query: string,
+  others: readonly OtherGroupProviders[] = [],
+) => {
   if (/^\s/.test(query)) return false;
   const lastSpace = query.search(/\s\S*$/);
   if (lastSpace < 0) return true;
   const before = query.slice(0, lastSpace);
-  return queryTokens(before).length < 2 || mentionOptions(providers, before, 1).length > 0;
+  return (
+    queryTokens(before).length < 2 ||
+    mentionOptions(providers, before, 1).length > 0 ||
+    fromGroupSections(others, providers, before, 1).length > 0
+  );
 };

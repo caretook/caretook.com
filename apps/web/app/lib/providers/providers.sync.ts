@@ -568,3 +568,49 @@ export const timelineLinksQuery = (
   limit: number,
   cutoff: string,
 ): LocalQuery => windowLinksQuery(historyWindow(groupId, filters, limit, cutoff));
+
+/**
+ * Import one provider from another of the user's groups (with its practice,
+ * as `importProviders` would) and link it to an event or note, in one local
+ * transaction: the pickers' "From <group>" pick on an entry. A provider
+ * that's already here (the same type and name) isn't copied; that one is
+ * linked instead. Returns the id here, for the chip or the mention.
+ */
+export const importAndLinkProvider = async (
+  db: SyncDb,
+  entryId: string,
+  sourceProviders: readonly ImportSource[],
+  sourceId: string,
+): Promise<ProviderWriteResult> => {
+  const entry = await linkableEntry(db, entryId);
+  if ("ok" in entry) return entry;
+  if (!(await canWrite(db, entry.groupId))) return forbidden as Refusal;
+  const target = toProviders(await readRows<ProviderRow>(db, providersQuery(entry.groupId)));
+  const plan = planImport(sourceProviders, target, [sourceId]);
+  const result = plan.results[0];
+  if (!result) return providerMissing;
+  const now = nowTimestamp();
+  const rows: (typeof providers.$inferInsert)[] = [];
+  for (const { id, content } of plan.rows) {
+    const parsed = providerContentZSchema.safeParse(content);
+    if (!parsed.success) return invalid(parsed.error);
+    rows.push({
+      id,
+      groupId: entry.groupId,
+      ...contentColumns(parsed.data),
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: db.userId,
+      updatedBy: db.userId,
+    });
+  }
+  const link = linkRow(entry.groupId, entryId, result.id, db);
+  const linked = await isLinked(db, link.id);
+  await db.drizzle.transaction(async (tx) => {
+    // The practice first, then the provider, then the link: the upload queue keeps that order.
+    for (const row of rows) await tx.insert(providers).values(row);
+    if (!linked) await tx.insert(timelineEntryProviders).values(link);
+  });
+  return { ok: true, id: result.id };
+};

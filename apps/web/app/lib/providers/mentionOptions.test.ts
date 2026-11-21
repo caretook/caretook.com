@@ -1,3 +1,4 @@
+import type { OtherGroupProviders } from "./fromGroups";
 import type { MentionProvider } from "./mentionOptions";
 
 import { describe, expect, it } from "vitest";
@@ -125,5 +126,51 @@ describe("mentionQueryOpen: spaces in what's typed after the @", () => {
     expect(mentionQueryOpen(all, "Mom said to")).toBe(false);
     expect(mentionQueryOpen(all, "Rosa Lind said")).toBe(false);
     expect(mentionQueryOpen(all, " 5pm")).toBe(false);
+  });
+});
+
+describe("the other groups' sections", () => {
+  const source = (id: string, name: string, extra: Partial<MentionProvider> = {}) => ({
+    ...p(id, name, extra),
+    phones: [],
+    email: null,
+    address: null,
+    website: null,
+  });
+  const lou: OtherGroupProviders = {
+    id: "lou",
+    name: "Lou Lindqvist",
+    providers: [
+      source("s1", "Dr. Grace Lindqvist", { specialty: "Audiology" }),
+      source("s2", "Dr. Samuel Patel"),
+    ],
+  };
+  const kinds = (rows: ReturnType<typeof mentionChoices>) =>
+    rows.map((r) => (r.kind === "add" ? "add" : `${r.kind}:${r.id}`));
+
+  it("come after this group's matches and before the add row, minus ones already here", () => {
+    const rows = mentionChoices(all, "samuel", { canAdd: true, others: [lou] });
+    expect(kinds(rows)).toEqual(["provider:b", "add"]);
+    const dr = mentionChoices(all, "dr", { canAdd: true, others: [lou] });
+    expect(kinds(dr).slice(-2)).toEqual(["fromGroup:s1", "add"]);
+    expect(dr.at(-2)).toEqual({
+      kind: "fromGroup",
+      id: "s1",
+      groupId: "lou",
+      heading: "From Lou Lindqvist",
+      label: "Dr. Grace Lindqvist",
+      description: "Audiology",
+    });
+  });
+
+  it("show nothing while nothing is typed", () => {
+    expect(
+      kinds(mentionChoices(all, "", { canAdd: true, others: [lou] })).some((k) => k.startsWith("from")),
+    ).toBe(false);
+  });
+
+  it("keep the popup open for a third word when the words before it match another group's", () => {
+    expect(mentionQueryOpen(all, "Dr. Grace Lind")).toBe(false);
+    expect(mentionQueryOpen(all, "Dr. Grace Lind", [lou])).toBe(true);
   });
 });

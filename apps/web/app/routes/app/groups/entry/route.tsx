@@ -152,6 +152,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
               providers={mentions.providers}
               onMention={mentions.onMention}
               onAdd={mentions.onAdd}
+              onImport={mentions.onImport}
             />
             {entry.kind === "event" && live.stored && <LinkedTasks link={{ eventId: entry.id }} />}
           </>

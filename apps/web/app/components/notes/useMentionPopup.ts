@@ -1,6 +1,8 @@
 import type { MentionOptions } from "@tiptap/extension-mention";
 import type { SuggestionProps } from "@tiptap/suggestion";
-import type { MentionChoice, MentionProvider } from "~/lib/providers/mentionOptions";
+import type { OtherGroupProviders } from "~/lib/providers/fromGroups";
+import type { ImportSource } from "~/lib/providers/providerImport";
+import type { MentionChoice, MentionFromGroup, MentionProvider } from "~/lib/providers/mentionOptions";
 
 import Mention from "@tiptap/extension-mention";
 import { ReactNodeViewRenderer } from "@tiptap/react";
@@ -9,6 +11,8 @@ import { mentionChoices, mentionQueryOpen } from "~/lib/providers/mentionOptions
 import { MentionChip } from "./MentionChip";
 
 type MentionAttrs = { id: string; label: string };
+
+const NO_OTHERS: readonly OtherGroupProviders[] = [];
 type MentionSuggestion = MentionOptions["suggestion"];
 
 /** What adding a provider from the popup returns: the new provider's id, or why not. */
@@ -48,42 +52,57 @@ export type MentionPopupState = {
  * providers given). A pick inserts the mention, then calls `onMention` with
  * the provider's id. The add row runs `onAdd` with the typed name and
  * inserts the new provider's mention once it's written (`onAdd` does any
- * linking, so `onMention` isn't called); a refusal is `error`. The editor
- * reads the options once; what they read changes through refs.
+ * linking, so `onMention` isn't called); a refusal is `error`. With
+ * `others` (the user's other groups' providers) and `onImport`, typed text
+ * also lists "From <group>" sections; a pick there runs `onImport` (which
+ * copies the provider here, and does any linking) and inserts the copy's
+ * mention, as the add row does. The editor reads the options once; what
+ * they read changes through refs.
  */
 export function useMentionPopup({
   providers,
   enabled,
   onMention,
   onAdd,
+  others = NO_OTHERS,
+  onImport,
 }: {
   providers: readonly MentionProvider[];
   enabled: boolean;
   onMention?: (providerId: string) => void;
   /** Adds the typed name as a provider (no add row without it). */
   onAdd?: (name: string) => Promise<MentionAddResult>;
+  /** The user's other groups' providers, for the "From <group>" sections. */
+  others?: readonly OtherGroupProviders[];
+  /** Copies another group's provider (`choice.id`, one of `source`, its group's) here. No sections without it. */
+  onImport?: (choice: MentionFromGroup, source: readonly ImportSource[]) => Promise<MentionAddResult>;
 }) {
   const id = useId();
   const [open, setOpen] = useState<Open | null>(null);
   const [active, setActive] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const canAdd = !!onAdd;
+  const sources = onImport ? others : NO_OTHERS;
   const options = useMemo(
-    () => (open ? mentionChoices(providers, open.query, { canAdd }) : null),
-    [open, providers, canAdd],
+    () => (open ? mentionChoices(providers, open.query, { canAdd, others: sources }) : null),
+    [open, providers, canAdd, sources],
   );
 
   // What the ProseMirror plugin reads when it runs (outside React's render).
   const enabledRef = useRef(enabled);
   const providersRef = useRef(providers);
+  const sourcesRef = useRef(sources);
   const onMentionRef = useRef(onMention);
   const onAddRef = useRef(onAdd);
+  const onImportRef = useRef(onImport);
   const live = useRef({ open, options, active });
   useEffect(() => {
     enabledRef.current = enabled;
     providersRef.current = providers;
+    sourcesRef.current = sources;
     onMentionRef.current = onMention;
     onAddRef.current = onAdd;
+    onImportRef.current = onImport;
     live.current = { open, options, active };
   });
 
@@ -99,13 +118,19 @@ export function useMentionPopup({
       return;
     }
     const add = onAddRef.current;
-    if (!add || adding.current) return;
+    const copy = onImportRef.current;
+    const source = (o: MentionFromGroup) =>
+      sourcesRef.current.find((g) => g.id === o.groupId)?.providers ?? [];
+    const write =
+      option.kind === "add" ? add && (() => add(option.name)) : copy && (() => copy(option, source(option)));
+    if (!write || adding.current) return;
+    const label = option.kind === "add" ? option.name : option.label;
     adding.current = true;
-    void add(option.name)
+    void write()
       .then((res) => {
         setError(res.ok ? null : res.error);
         // Insert over the `@` text as it is now (the popup may have moved on), else where it was.
-        if (res.ok) (live.current.open ?? current).insert({ id: res.id, label: option.name });
+        if (res.ok) (live.current.open ?? current).insert({ id: res.id, label });
       })
       .finally(() => (adding.current = false));
   };
@@ -125,7 +150,7 @@ export function useMentionPopup({
     },
     // Spaces allowed, so "Dr. Chen" can be typed whole; `mentionQueryOpen` ends it once it reads as text.
     allowSpaces: true,
-    shouldShow: ({ query }) => mentionQueryOpen(providersRef.current, query),
+    shouldShow: ({ query }) => mentionQueryOpen(providersRef.current, query, sourcesRef.current),
     floatingUi: { strategy: "fixed" },
     render: () => ({
       onStart: (props) => {

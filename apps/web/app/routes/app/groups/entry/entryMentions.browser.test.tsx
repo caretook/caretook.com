@@ -17,6 +17,8 @@ import {
   PATEL,
   pause,
   PROVIDER_ROUTES,
+  LINDQVIST,
+  secondGroup,
   providerUrl,
   waitUntil,
   WESTSIDE,
@@ -305,5 +307,68 @@ describe("mentions on the entry page", () => {
     });
     await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
     expect(mentionChips()).toEqual([{ id: STRANGER.id, text: "Dr. Nobody Here", href: null }]);
+  });
+});
+
+describe("other groups' providers in the popup", () => {
+  const headings = () => $$("[data-mention-popup] [data-mention-heading]").map((h) => h.textContent);
+  /** The rows under "From <group>": the group's `role="group"`, named by its heading. */
+  const fromRows = () =>
+    $$('[data-mention-popup] [role="group"]').map((g) => ({
+      name: document.getElementById(g.getAttribute("aria-labelledby") ?? "")?.textContent ?? null,
+      rows: [...g.querySelectorAll('[role="option"]')].map((o) => o.firstElementChild?.textContent),
+    }));
+  const copyOf = async (device: Device) =>
+    (
+      await device.query<{ id: string }>("SELECT id FROM provider WHERE group_id = ? AND name = ?", [
+        GROUP,
+        LINDQVIST.row.name,
+      ])
+    )[0];
+
+  test("on an entry: none until something is typed; then “From Lou Lindqvist” before the add row; Enter copies the provider here, links the copy and puts in its chip", async () => {
+    const device = await open(entryUrl(VISIT.id), { fixtures: [directory(), VISIT, secondGroup()] });
+    await typeInNotes("Saw @");
+    await waitUntil(() => shown().length > 0, 4000, "the popup");
+    expect(headings()).toEqual([]);
+
+    await userEvent.keyboard("lind");
+    await waitUntil(() => headings().length === 1, 4000, "the other group's section");
+    expect(fromRows()).toEqual([{ name: "From Lou Lindqvist", rows: ["Dr. Grace Lindqvist"] }]);
+    expect(rows()).toEqual(["Dr. Grace Lindqvist", 'Add "lind" as a provider']);
+    expect(POPUP()!.querySelector('[role="status"]')).toBeNull();
+    expect(highlighted()).toBe("Dr. Grace Lindqvist");
+    await userEvent.keyboard("{Enter}");
+
+    await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
+    const copy = await copyOf(device);
+    expect(copy && copy.id).not.toBe(LINDQVIST.id);
+    await expect
+      .poll(mentionChips)
+      .toEqual([{ id: copy!.id, text: "Dr. Grace Lindqvist", href: providerUrl(copy!.id) }]);
+    await waitUntil(() => chips().length === 1, 4000, "the With chip");
+    expect(chips()[0]).toMatchObject({ id: copy!.id, text: "Dr. Grace Lindqvist" });
+    expect(await linkedIds(device, VISIT.id)).toEqual([copy!.id]);
+    expect(POPUP()).toBeNull();
+  });
+
+  test("on another document (a provider's notes): the pick copies the provider here and mentions the copy, linking nothing", async () => {
+    const device = await open(providerUrl(PATEL.id), { fixtures: [directory(), VISIT, secondGroup()] });
+    await typeInNotes("Ask @audio");
+    await waitUntil(() => headings().length === 1, 4000, "the other group's section");
+    await userEvent.click(
+      $$('[data-mention-popup] [role="option"]').find(
+        (o) => o.firstElementChild?.textContent === "Dr. Grace Lindqvist",
+      )!,
+    );
+    await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
+    const copy = await copyOf(device);
+    // The chip links once the page's live list has the copy.
+    await expect
+      .poll(mentionChips)
+      .toEqual([{ id: copy!.id, text: "Dr. Grace Lindqvist", href: providerUrl(copy!.id) }]);
+    expect(
+      await device.query("SELECT id FROM timeline_entry_provider WHERE provider_id = ?", [copy!.id]),
+    ).toEqual([]);
   });
 });
