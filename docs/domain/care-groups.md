@@ -30,13 +30,13 @@ The shared space for one care recipient's caretakers. Always "care group" (never
   - `timeline_entry_provider`: read any member; create and delete writers; update `system`.
   - `care_recipient_details`: read, create and update writers (viewers none; outside contacts: owner, admin); delete `system`.
   - `user_contact`: yourself only for everything (not staff). `member_contact_share`: read any member; writes `system`.
-- ¹ `taskService` limits a viewer to ticking or unticking a task assigned to them (`taskService:viewerCompletionOnly`); see [todos](todos.md).
+- ¹ `todoService` limits a viewer to ticking or unticking a todo assigned to them (`todoService:viewerCompletionOnly`); see [todos](todos.md).
 - `system` has `all` everywhere. Ids that point at the group can't be changed except by `system`.
 - **Staff get no default access to care data.** Any support access will be an explicit, audited grant.
 - **Write memberships and invites through the services**, because they enforce what the map can't:
   - `careGroupService.create` makes the creator the first owner.
   - Only owners add, promote, demote or remove owners. A group keeps at least one owner (owner rows lock `FOR UPDATE`).
-  - Removing or leaving a membership, in the same transaction: hands that user's open tasks to a free-text assignee (their display name; `taskService.releaseAssignee`) and deletes their calendar settings, overrides and feed and disconnects their Google (`calendarSettingService.removeForMember`, `googleConnectionService`).
+  - Removing or leaving a membership, in the same transaction: hands that user's open todos to a free-text assignee (their display name; `todoService.releaseAssignee`) and deletes their calendar settings, overrides and feed and disconnects their Google (`calendarSettingService.removeForMember`, `googleConnectionService`).
   - `careGroupInviteService` (rules in the pure, client-safe `inviteRules.ts`, with the consent and attestation texts and versions):
     - `createEmail` requires the inviter's attestation, only owners invite owners, refuses current members and a second waiting invite, and replaces an expired one (7-day expiry). `resend` rotates the token and resets the expiry; `revoke` withdraws it. No procedure returns a token.
     - `preview(token)` (public; closed invites never name the group), `ticketFor(token)` (for sign-up), `accept` (the signed-in, verified email must match; one transaction as `system`: the membership with `invitedBy`, the consent row, email verified, the invite accepted; idempotent) and `decline(token)` (anyone holding the link).

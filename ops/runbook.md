@@ -251,6 +251,7 @@ Better Auth (1.7.25) encrypts the JWT signing key's private half (`jwks.private_
 - **Vercel instant rollback** (the project → Deployments → a previous one → Instant Rollback). Seconds, no rebuild.
 - It's safe because **migrations are additive**: expand in one deploy (new tables, nullable columns), contract (drop, rename, make required) in a later one, once no live or rollback-able code uses the old shape. A migration that drops or renames something waits a deploy.
 - Rolling back doesn't roll back the database or the sync config. The previous code must work with the newer schema and streams, which the additive rule guarantees.
+- **The one exception:** `0032_todos` renamed `task` to `todo` in one step, so its migration and the sync config change (`FROM todo`) must deploy together (one `deploy.yml` run does both). A device offline across that deploy loses its queued `task` uploads, which the server refuses as an unknown table (accepted: production isn't live). Rolling back past it is not supported.
 - After a rollback, fix forward with a new push; the next deploy replaces the rolled-back one.
 
 ## A failed deploy
