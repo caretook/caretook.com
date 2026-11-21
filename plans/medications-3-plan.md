@@ -10,7 +10,7 @@
 | 2     | 2    | merged (sonnet)                                   | `76004b11` (`5d3b1eab`)                        |
 | 3     | 2    | merged (sonnet); `signout-wipe` to run at landing | `26213ec5` (`4e3778b2`)                        |
 | 4     | 2    | merged (opus); `roundtrip` to run at landing      | `b44af440` (`b91918de`)                        |
-| 5     | 3    | in progress (sonnet, B-212)                       |                                                |
+| 5     | 3    | merged (sonnet)                                   | `a4308e4a` (`9e2b6750`)                        |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue medications-3`): start every ready slice, land each green wave, clean up; ask only real questions.
 
@@ -23,6 +23,8 @@
 **Docs to fold (slice 4):** medications.md (the Dose sheet's last option "+ New medication" (`new`): name, dose, type, as needed, no maximum; the pure `quickAddRows` and `logDoseOfNewMedication`, one transaction (medication, "started" entry, dose); no dose warnings for a new one; the "Added <name> · Add details" notice (`addedNotice.ts`, `AddedMedicationToast` on the timeline, ~10 s, gone on navigation); the empty state opens on the quick add; `NameField` now in `components/medications`). B-199 ready at `b44af440`; worktree removed.
 
 **Slice 5 (B-212, approved by the user 2026-11-21):** the header reorder. `timeline-ux-2` (not started) slice 1 later wraps this header in `PageHeader`; noted on B-212 so it keeps the order.
+
+**Landing in progress (2026-11-21):** every slice merged; B-200, B-199, B-212 ready. Docs folded (`c0454699`). Synced `dev` (`timeline-ux-2` plan docs only) as `d971cb60`, clean. Next: `pnpm datastore:reset`, full `pnpm prd check` (migration and deps since the last full pass), `serve --restart`, `roundtrip` and `signout-wipe` by name, `ready`, land.
 
 **Browser checks at landing (user, 2026-11-21): no `--suite`.** Run `roundtrip` (slice 4) and `signout-wipe` (slice 3) by name, plus any `e2e no` check `pnpm prd browser --changed --base dev --list` names that hasn't passed; slice 1's lean set passed 12/12 on its stack.
 
