@@ -149,7 +149,7 @@ export type CalendarFeed = { calendarName: string; level: ShareLevel; items: Cal
 const DAY_MS = 86_400_000;
 
 /**
- * The feed behind `token` at `now`: the group's appointments, reminders and
+ * The feed behind `token` at `now`: the group's appointments and
  * open todos with a due day, 90 days back to 90 days ahead (`calendarItems`),
  * read as the member. Provider names are read only at the details level.
  * Null when the token resolves to no one.
@@ -170,7 +170,7 @@ export const load = async (token: string, { now, appUrl }: { now: Date; appUrl: 
   // An all-day entry's instant is its day's start: a day either side keeps the edges.
   const filter = {
     groupId: { type: "eq" as const, value: groupId },
-    kind: { type: "inArray" as const, value: ["event", "note"] as TimelineEntryKind[] },
+    kind: { type: "inArray" as const, value: ["event"] as TimelineEntryKind[] },
     occurredAt: {
       type: "and" as const,
       value: [

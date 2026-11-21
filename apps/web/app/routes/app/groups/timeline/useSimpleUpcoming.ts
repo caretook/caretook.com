@@ -16,7 +16,7 @@ import { toTimelineEntries, UPCOMING_HORIZON_DAYS, upcomingQuery } from "~/lib/t
 /** How many items simple mode's Upcoming block lists when opened; "See all" opens the rest. */
 export const SIMPLE_UPCOMING_CAP = 5;
 
-/** An appointment or reminder, or an open dated todo. */
+/** An appointment, or an open dated todo. */
 export type SimpleUpcomingItem = TimelineEntry | PlannerTodo<LocalTodo>;
 
 const TICK_MS = 30_000;

@@ -6,9 +6,9 @@ const base = { id: "e", timeZone: "America/Los_Angeles", kind: "event" };
 const on = { remindersOn: true, reminderLeads: ["eveningBefore", 60] as const };
 
 describe("canRemind", () => {
-  it("is for upcoming events and notes only", () => {
+  it("is for upcoming events only", () => {
     expect(canRemind({ ...base, occurredAt: "2026-11-19T18:00:00.000Z" }, NOW)).toBe(true);
-    expect(canRemind({ ...base, kind: "note", occurredAt: "2026-11-19T18:00:00.000Z" }, NOW)).toBe(true);
+    expect(canRemind({ ...base, kind: "note", occurredAt: "2026-11-19T18:00:00.000Z" }, NOW)).toBe(false);
     expect(canRemind({ ...base, kind: "symptom", occurredAt: "2026-11-19T18:00:00.000Z" }, NOW)).toBe(false);
     expect(canRemind({ ...base, occurredAt: "2026-11-17T18:00:00.000Z" }, NOW)).toBe(false);
     expect(

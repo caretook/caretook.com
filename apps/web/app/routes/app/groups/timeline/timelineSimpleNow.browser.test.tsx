@@ -136,6 +136,16 @@ describe("the Upcoming block", () => {
     ]);
   });
 
+  test("a stored future note is never the next item", async () => {
+    const NOTE = fx.note({ title: "Call the pharmacy", occurredAt: hoursAhead(2), text: "Refill." });
+    const device = await open("caretaker", [NOTE, VISIT]);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-next]")?.textContent)
+      .toMatch(/^Next: Visit with Dr\. Lark/);
+    await device.settle();
+    expect(now()?.textContent).not.toContain("Call the pharmacy");
+  });
+
   test("nothing due and nothing ahead: no Upcoming heading", async () => {
     const device = await open("caretaker", []);
     await waitUntil(() => !!document.querySelector("[data-simple-timeline]"), 4000, "the simple view");

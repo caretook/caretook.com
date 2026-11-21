@@ -67,6 +67,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `calendars-2` | to write (B-304 to B-309, B-377), from the 2026-11-21 code review: Google deletes of past items, events beyond 90 days, reminder expiry, deleted providers in pushes, the consent version, reminder time labels, push notifications | `planner-2` in `dev` (it changes the calendar projection's reminder kind; last item B-248) | `packages/data/src/google/`, `calendarPullService`, `calendarSyncService`, `packages/notifications` (outbox, reminders) |
 | `code-health` | to write (B-361 to B-369), from the 2026-11-21 code review: a `@caretook/data/domain` export, a soft-delete model factory and shared upsert, one role-capability table, typed device reads, dead exports, exact pins, tooling tests | the role-capability table (B-363) before or inside `simple-mode`; the rest after the running PRDs land (it touches most services and device modules) | `packages/data/src/db/schema/` exports, `models/`, `services/*Service.ts`, `lib/<area>/*.sync.ts`, `package.json`s, `scripts/loops/` |
 | `assistant-2` | to write (B-376: assistant chat with voice and questions about the timeline, the part of B-12 that never shipped) | an AI vendor that doesn't retain or train (AGENTS.md, _Compliance_); the Vercel AI SDK needs the user's approval | `lib/assistant/`, a new server route, `packages/api` |
+| `orchestration-2` | [PRD](orchestration-2-prd.md), [plan](orchestration-2-plan.md) (B-389 to B-392): 8 slices, waves (1, 2, 3) → (4, 5, 6) → 7 → 8: the PRD table as a registry (`pnpm backlog prd`, row order is the priority, states worked out), recorded sessions, an asks queue (`pnpm prd ask`), drain-then-rotate after each landing, the pick, unattended prompts, the dispatcher (`pnpm prd dispatch`), then queue, recovery and status. Tooling only | `check-speed` in `dev` (shared `prd.sh`, `prompt.sh`); before `test-health`, never beside it | `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `recover.sh`, `rm.sh`, `open-session.*`, `scripts/backlog/`, this PRD table |
 
 ## Summary
 
@@ -150,12 +151,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-243 | bug | staging | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
 | B-244 | chore | triaged | github-review |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
-| B-246 | change | ready | planner-2 | prd/planner-2 | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
-| B-247 | change | ready | planner-2 | prd/planner-2 | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
-| B-248 | change | ready | planner-2 | prd/planner-2 | Remove reminders: notes can no longer be dated in the future; use todos instead |
+| B-246 | change | landed | planner-2 | prd/planner-2 | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
+| B-247 | change | landed | planner-2 | prd/planner-2 | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
+| B-248 | change | landed | planner-2 | prd/planner-2 | Remove reminders: notes can no longer be dated in the future; use todos instead |
 | B-249 | change | landed | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
 | B-250 | bug | staging | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
-| B-251 | bug | ready | planner-2 | prd/planner-2 | convert planner tabs to TabNav component. |
+| B-251 | bug | landed | planner-2 | prd/planner-2 | convert planner tabs to TabNav component. |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
@@ -188,7 +189,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-281 | chore | triaged | test-health |  | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
 | B-282 | chore | triaged | test-health |  | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
 | B-283 | chore | triaged | test-health |  | Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer |
-| B-284 | change | ready | planner-2 | prd/planner-2 | Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming \| Past toggle |
+| B-284 | change | landed | planner-2 | prd/planner-2 | Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming \| Past toggle |
 | B-285 | bug | triaged | sync-safety |  | Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-287 | bug | triaged | sync-safety |  | Offline medication and provider edits re-send unchanged JSON columns (schedule, phones), reverting a co-member's newer change |
@@ -293,6 +294,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-386 | bug | triaged | planner-2 |  | Repeating todos: a successor moved back onto its source's day and ticked gets nextTodoId(repeatId, that next day) = its own id, so insertNext (and the device's planNext) sees the row as the existing next and the chain silently ends; handle ids taken by the source or a done occurrence |
 | B-387 | bug | triaged | planner-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
 | B-388 | bug | triaged | quick-fixes |  | Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it |
+| B-389 | change | triaged | orchestration-2 |  | A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority |
+| B-390 | change | triaged | orchestration-2 |  | One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing |
+| B-391 | feature | triaged | orchestration-2 |  | One asks queue: unattended sessions file questions and landed-wave reports with pnpm prd ask; the user answers in one place |
+| B-392 | feature | triaged | orchestration-2 |  | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
+| B-393 | bug | triaged | planner-2 |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
+| B-394 | bug | triaged | quick-fixes |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
 
 ## Items
 
@@ -1113,7 +1120,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-246 · change · Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab)
 
-- status: ready
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
 - commit: fef8b119
@@ -1123,7 +1130,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-247 · change · Planner: Past becomes an 'Upcoming | Past' toggle inside the Planner tab instead of its own tab
 
-- status: ready
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
 - commit: 43846e09
@@ -1134,7 +1141,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-248 · change · Remove reminders: notes can no longer be dated in the future; use todos instead
 
-- status: ready
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
 - commit: aeb00ba8
@@ -1165,7 +1172,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-251 · bug · convert planner tabs to TabNav component.
 
-- status: ready
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
 - commit: 43846e09
@@ -1481,7 +1488,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-284 · change · Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming | Past toggle
 
-- status: ready
+- status: landed
 - prd: planner-2
 - owner: prd/planner-2
 - commit: 43846e09
@@ -2425,3 +2432,57 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (plan/check-speed): From the check-speed review of session transcripts (planner-2, quick-fixes, quick-entry, list-filters, tasks-2). Not confirmed that the error is what failed them. Triaged to quick-fixes: one contained test fix.
+
+### B-389 · change · A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority
+
+- status: triaged
+- prd: orchestration-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slice 1
+
+### B-390 · change · One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing
+
+- status: triaged
+- prd: orchestration-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slice 2
+
+### B-391 · feature · One asks queue: unattended sessions file questions and landed-wave reports with pnpm prd ask; the user answers in one place
+
+- status: triaged
+- prd: orchestration-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slices 3 and 5
+
+### B-392 · feature · A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders
+
+- status: triaged
+- prd: orchestration-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slices 4, 6 and 7
+
+### B-393 · bug · Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both
+
+- status: triaged
+- prd: planner-2
+- owner:
+- commit:
+
+- 2026-11-21 (prd/planner-2): Codex finding on PR #23 (planner-2 wave 2, 2026-11-21); filed as a follow-up. P2. Slice 6 reported the same edge.
+
+### B-394 · bug · mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (prd/check-speed): Seen in check-speed's wave 1 full check, 2026-11-21 (only failure of 5338). The test builds a world and pages 50+ entries through /mcp; give it a longer timeout or a smaller world.

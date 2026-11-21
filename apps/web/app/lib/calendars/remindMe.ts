@@ -16,12 +16,9 @@ export type RemindSettings = { remindersOn: boolean; reminderLeads: readonly Rem
 
 export const REMIND_OFFLINE = "Needs a connection to change your reminders for this one.";
 
-/** Events and notes that are still to come and not cancelled or moved on. */
+/** Events that are still to come and not cancelled or moved on (a note is never offered). */
 export const canRemind = (entry: TimedEntry & { kind: string; rescheduledTo?: string | null }, now: Date) =>
-  (entry.kind === "event" || entry.kind === "note") &&
-  !entry.cancelledAt &&
-  !entry.rescheduledTo &&
-  isUpcoming(entry, now);
+  entry.kind === "event" && !entry.cancelledAt && !entry.rescheduledTo && isUpcoming(entry, now);
 
 const list = (leads: readonly ReminderLead[]) => leads.map(reminderLeadLabel).join(" · ");
 
