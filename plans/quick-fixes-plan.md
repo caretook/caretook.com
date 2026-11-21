@@ -87,8 +87,13 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 | 68 | B-235 | merged | 300f1500 (72c77543) opus; landing runs roundtrip, live-notes, first-sync |
 | 69 | B-237 | merged | 7f84efb1 (fe44fe0c) opus; landing runs live-notes |
 | 70 | B-238 | merged | 8fd57267 (9ce13af9) sonnet |
+| 71 | B-229, B-231 | started | sonnet |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**Wave 16 landed in `dev` through PR #20 as 5a47c18 (2026-11-21)** on a full check (5600 tests), a clean Codex re-review and `--changed --base dev` (roundtrip, live-notes, first-sync: pass); worktree removed, then recreated for wave 17.
+
+**Wave 17 (2026-11-21, run-through mode, the user: "just pick up 229 and 231"):** worktree recreated from `dev` (slot 2). Slice 71 written (B-229, B-231), items claimed, stackless worktree made and its loop spawned (sonnet). Lands through a PR into `dev` with Codex review.
 
 **Wave 16 (2026-11-21, run-through mode, a new orchestrator):** `prd/quick-fixes` was level with `dev`. Backlog ingested (nothing new). The user picked the test flakes (B-228, B-230) and the Codex follow-ups (B-232–B-235, B-237, B-238); B-229, B-231 (timeline layout, after quick-entry lands) and B-246, B-247 (Planner) stay triaged for a later wave. Slices 63–70 written, synced with `dev`, items claimed, stackless worktrees made and all eight loops spawned (10:27; models in the table). Loops wait for load < 16 before `pnpm check` and only list `prd browser --changed`. Lands through a PR into `dev` with Codex review. **All eight merged** (63 5255bf50 + 76ad3e78 and 08633433 for four sites and a todos read it left; 64 d5701923; 65 9f47380b; 66 c29f863a; 67 f4c84585; 68 300f1500; 69 7f84efb1; 70 8fd57267), items done, worktrees removed. Synced with `dev` twice (quick-entry c2ec744, list-filters wave 1 f48c0f5; no shared files, no migration). Docs folded (8945487b): sync, calendars, appointments, live-notes. A fresh worktree needs `pnpm -C apps/web exec react-router typegen` before `pnpm check` (lint first). **Full check passed on a075bf22** (5518 tests, build budget under every ceiling). Browser checks: `--changed --base dev` names roundtrip, live-notes, first-sync (no `--suite`, the user's standing rule). Synced for B-250, full check passed on b8e3e85b, **PR #20** opened (https://github.com/caretook/caretook.com/pull/20). Codex round 1: two P2 findings, both real, fixed by a sonnet fix agent: 9b991617 (`sweep()`'s daily push skips disabled members too; thread PRRT_kwDOVx-WLM66ahOq) and 59c778a7 (`monthlyLabels(startsOn, kept?)` names the kept ordinal; thread PRRT_kwDOVx-WLM66ahOt). Synced with list-filters wave 2 (ef5574f6; conflict in `todos.browser.test.tsx`, took dev's rewrite) and planner-2 wave 1 (b799cb8a; migration 0033, seeds, sync-config; `datastore:reset` done). **Full check passed on b799cb8a** (5576 tests). **Next:** `pnpm prd pr quick-fixes` (push), `pnpm prd review quick-fixes --resolve <threadId>` for both threads, `review --again --wait`, then land (run-through mode); don't commit Status between `pr` and `land`. **Resumed 15:10 (a new orchestrator after an interruption):** no slice worktrees or agents; synced with planner-2 wave 2 as 7c669a26 (conflicts only in `appointments.md`, `calendars.md`: took dev's text, kept our three facts), `datastore:reset` done, full check running on 7c669a26 (seeds changed). B-393: `choiceOfRule` keeps `keptWeekday` and todos' `initialRepeat` uses it, so slice 67 likely closes it (noted on B-393). Then push, resolve both threads, `review --again --wait`, land. **Before the push (done above):** `dev` gained planner-2 wave 2 (5a5c2fd, PR #23: seeds appended, no new migration; Planner TabNav and Filter menu, no due-dose rows, no reminder kind in calendars, repeating todos, roundtrip step 6e), so `pnpm prd sync`, `pnpm datastore:reset`, the full check (seeds changed), then push. planner-2 notes B-393 (todos' "last Friday" → "4th Friday") shares `choiceOfRule`/`choiceRule` with B-234: check after the sync whether slice 67's `keptWeekday` closes it, and say so on B-393. **Planner items moved:** B-246, B-247, B-251 and B-284 went to planner-2's wave 2 (the user, via the backlog session); no Planner wave here, and nobody waits on quick-fixes for B-247. quick-entry (B-220) landed in `dev` as c2ec744 (PR #15; no migration, seed, sync-config or dependency change; touches `components/quick-entry/`, the entry page's `withProviders`, `addNote.providerIds`, `noteDocFromText(text, mentions?)`): `pnpm prd sync` before landing, and watch slice 69's mention change against it.
 
@@ -1596,5 +1601,29 @@ Stack: no · Reads: docs/domain/medications.md, docs/domain/timeline.md, docs/do
 
 - [ ] Component test: after switching away and back, Amount and the saved medication agree (both kept or both cleared).
 - [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 17 (written 2026-11-21 by the orchestrator, on the user's word: "just pick up 229 and 231")
+
+One small slice for both timeline layout items (same route folder, one component test file); quick-entry has landed, so nothing waits.
+
+## Slice 71: The timeline's header and Today match the entries' column; an empty Today reads as a card (B-229, B-231)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/components.md · Tests: component
+
+**Problem.** On large screens (`lg` and up) the timeline's header boxes are wider than the rest: `TodayCard` and `LiveNowBanner` use `STRIP_CAP` (`lg:max-w-6xl`, 1152 px) from `routes/app/groups/timeline/layout.ts`, while the entries, quick-entry box and chips use `COLUMN_CAP` (`max-w-5xl`). The user wants the header (`TimelineHeader`) and the Today section in the same column width as the rest of the timeline (B-229; this reverses slice 26's deliberate 64 px framing). Separately, the empty Today's "Nothing logged today yet." (`EmptyToday` in `TimelineEntryList.tsx`) is a bare muted line; it should sit in a bordered box like a timeline entry row so it matches the page (B-231).
+
+**Build.**
+
+- Put `TimelineHeader`, `TodayCard` and `LiveNowBanner` in the entries' column from `lg` (use `COLUMN_CAP`, or make `STRIP_CAP` equal it and drop it if nothing else needs it; update `layout.ts`'s comments). Below `lg` nothing changes (`max-w-2xl` page).
+- `EmptyToday`: the line and its "Add an entry" button inside the same box classes an entry row uses (reuse that row's class constant if there is one; don't copy a long class string). Keep `data-empty-today` and `EMPTY_TODAY_TEXT`.
+- Full view only; simple mode (`SimpleTimeline`) is unchanged. Keep edits to those files and their tests.
+
+**Acceptance criteria.**
+
+- [ ] Component test (at a `lg` width such as 1440 px): the header, the Today card and Live now have the same left and right edges as the entries' column.
+- [ ] Component test: the empty Today box has an entry row's border and rounding, and still offers "Add an entry" to a writer.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once, its ■ lines in the hand-off.
 
 **Blocks:** none. **Blocked by:** none.
