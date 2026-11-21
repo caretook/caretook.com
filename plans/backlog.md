@@ -52,7 +52,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `timeline-ux` | [PRD](timeline-ux-prd.md) (speed half: [app-speed PRD](app-speed-prd.md)), [plan](timeline-ux-plan.md): 10 slices, waves (1, 2, 3) → (4, 5, 6) → (7, 8, 9) → 10: navigation that doesn't wait, tiles that remember (dimmed until fresh), the bundle budget, prefetched tabs, one Today card with status hues, the day header with its summary and rows with the author under the menu and no period places, the service worker, simple mode's order and type scale, quick entry's rotating placeholder, open-after-save and lean recent lines, cheaper `/rpc` auth (B-136–B-140, B-144, B-155, B-156, B-162–B-171). **Done 2026-11-20**: all 10 slices in `dev` (8b3179ab); follow-ups B-174, B-175, B-178, B-179 | wave 1: none; wave 2 on: `code-layout` slice 5 in `dev` (`appUrls`), or coordinate with it | `lib/auth/session.ts`, `lib/auth/sessionRules.ts`, `lib/app-shell/me.ts`, `lib/sync/` (the remembering hook), `recentLines` (at code-layout's paths), `SectionNav`, the `/app` layout (update notice), the timeline route, its strips (replaced by `TodayCard`), `DayHeader`, `DaySummaryLine`, the row components, `PeriodMarkerItem`, `SimpleTimeline`, quick entry, `packages/auth`, `packages/api/src/procedures.ts`, `routes/rpc.ts`, `scripts/loops/prd.sh`, `scripts/loops/check-areas.d/`, new `scripts/build/` |
 | `i18n` | to write (B-209: translations for all text; needs a dependency approved) | best after the feature PRDs settle; runs alone | every user-facing string: routes, `ui/`, emails, MCP text, date formatting |
 | `timeline-ux-2` | [PRD](timeline-ux-2-prd.md), [plan](timeline-ux-2-plan.md): 7 slices, waves (1, 3, 4, 5, 7) → (2, 6): a `PageHeader` primitive, and Providers, Medications, Upcoming and Tasks without the recipient's name or viewer notes (print keeps it); a plain "Timeline" heading instead of the recipient card; one toolbar (search, Filter, View options at the right end, all icon circles, Filter's count badge); the day summary's chevron on the left; the group menu reordered (no period line, New care group under the groups, Group settings last); quick entry's suggestions (Due now, Usual, recent) in a popover behind a Sparkles icon inside the box (a dot when a pass is due; simple mode too), the help ? dropped, Matching names floating over the page; an empty Today's "Nothing logged today yet." and "Add an entry"; Vitals as an inline expandable group in the + menu (`ui/Menu` groups) (B-214, B-218, B-223, B-215, B-216, B-219, B-217, B-224). UI only: no migration, no deps, stackless. **Ready to start**; `quick-entry` (B-220) waits for it | (none) | `components/ui/` (`PageHeader`, `Menu` and `menuModel.ts` groups), the Providers, Medications, Upcoming (`UpcomingHeader`) and Tasks headers, `TimelineHeader`, `RecipientCard` (deleted), `FilterChips` (`TimelineFilters.tsx`), `TimelineViewMenu`, `DaySummaryLine`, `GroupMenu`, `components/quick-entry/` (`QuickEntryBox`, `QuickEntrySuggestions`, `QuickEntryHelp` deleted), `TimelineEntryList` and the timeline route, `QuickAddMenu` |
-| `quick-entry` | to write (B-220: the parser picks the kind: events, appointments from provider and date mentions) | `timeline-ux-2` in `dev` (with B-215, B-216, B-219, its quick-entry changes) | quick entry and its parser, the suggestion list, `assistant` area |
+| `quick-entry` | [PRD](quick-entry-prd.md), [plan](quick-entry-plan.md): 4 slices, waves 1 → (2, 3, 4): one vocabulary table of kind-picking words (falls, seizures and the like are symptoms; 911, ER and urgent care are notes; visit verbs make events, contact verbs make notes), provider lines as events (titles, places), "the 25th" and month dates, forward for events and back for past-only kinds; notes that @-mention named providers (`addNote.providerIds`, both runners, the connector's `add_note`); a provider event's Save opens a prefilled new-event draft (mixed lines save the rest with Undo); kind chips on the cards (B-220). No migration, no deps, stackless. **Ready to start** once `timeline-ux-2` and `tasks-2` are in `dev` | `timeline-ux-2` in `dev` (last item B-224); `tasks-2` in `dev` (the to-do rename in actions, `actionPreview`, connector tools; last item B-222) | `packages/data` assistant schema (`quickEntry.ts`, `quickEntryTime.ts`, the new `quickEntryVocabulary.ts`, `assistantActions.ts`, `quickEntryPreview.ts`), `noteYjs.ts` (`noteDocFromText`), `assistantActionService`, the connector's `add_note`, `lib/assistant/` (`quickEntry.sync.ts`, `quickEntryDraft.ts`, `openAfterSave`), `components/quick-entry/` (`useQuickEntry`, `quickEntryCards.ts`, the card), the entry page's new-event draft |
 | `simple-mode` | to write (B-221: locked simple mode, a new member type or a nit pass) | (none) | `@caretook/data/permissions`, `careGroupMemberService`, group settings Members, `SimpleTimeline`, the `/app` layout |
 | `tasks-2` | [PRD](tasks-2-prd.md), [plan](tasks-2-plan.md): 4 slices, waves 1 → 2 → (3, 4): tasks become **todos** all the way down (table `todo`, `note_document.todo_id`, `todo:` calendar uids rewritten in place, `PERMISSIONS.todo`, `todoService`, sync and upload `todo` only: a one-step rename, the user's exception to the additive rule since production isn't live), every label says Todo (quick entry keeps `t:`/`task:`/`todo:`), then Upcoming and Tasks merge into **Planner** (`CalendarCheck`; tabs Planner, Todos, Past; `/planner`, `/planner/past`, `/todos`, `/todos/:todoId`; no redirects; one + menu: Appointment, Reminder, Todo), and the connector's `add_todo`, `list_todos` (B-222). One migration, no deps; slice 1 has a stack. **Ready to start** once `timeline-ux-2` is in `dev` | `timeline-ux-2` in `dev` (its `PageHeader`, the Upcoming and Tasks headers; last item B-224) | the `task` table and every todo file (`packages/data` schema, model, service, seeds, search, calendars, notifications), `sync-config.yaml`, the device schema, the upload switch, the sync matrix, `lib/tasks/`, `components/tasks/`, the tasks, task and upcoming routes, `appUrls`, `GROUP_SECTIONS`, the Today card and `SimpleTasks`, quick entry's preview, `actionPreview`, connector tools and prompts, `roundtrip`, `phase2`, `live-notes` |
 
@@ -80,9 +80,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-174 | bug | landed | quick-fixes | prd/quick-fixes | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
 | B-175 | chore | landed | quick-fixes | prd/quick-fixes | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
-| B-180 | bug | in-progress | quick-fixes | prd/quick-fixes | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
+| B-180 | bug | ready | quick-fixes | prd/quick-fixes | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
 | B-181 | feature | landed | conditions | prd/conditions | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
-| B-182 | bug | in-progress | quick-fixes | prd/quick-fixes | providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out |
+| B-182 | bug | ready | quick-fixes | prd/quick-fixes | providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out |
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-191 | bug | landed | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
 | B-192 | bug | landed | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
@@ -103,24 +103,25 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-208 | change | landed | simple-mode |  | you should be able to edit all entries, search, and filter in simple mode. |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
-| B-211 | change | in-progress | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
+| B-211 | change | ready | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
 | B-212 | bug | landed | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
 | B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
-| B-214 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
-| B-215 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
-| B-216 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
-| B-217 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
-| B-218 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
-| B-219 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
+| B-214 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
+| B-215 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
+| B-216 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
+| B-217 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
+| B-218 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
+| B-219 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
 | B-220 | change | triaged | quick-entry |  | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
 | B-221 | feature | triaged | simple-mode |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
 | B-222 | feature | in-progress | tasks-2 | prd/tasks-2 | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
-| B-223 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
-| B-224 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
-| B-225 | bug | in-progress | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
+| B-223 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
+| B-224 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
+| B-225 | bug | ready | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
 | B-226 | change | triaged | medications-tabs |  | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | dropped | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
 | B-228 | bug | triaged | quick-fixes |  | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
+| B-229 | bug | inbox |  |  | on timeline page, header and Today section should be in same column width as the rest of the… |
 
 ## Items
 
@@ -326,10 +327,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-180 · bug · Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 33adfc0a
 
 - 2026-11-20 (prd/check-migration): Left by slice 24 (B-176's sweep covered the click/fill/hover/type/clear sites). Convert to await expect.poll(...) or found(), keeping what each assertion reads. Proposed for check-migration. -- check-migration orchestrator
 - 2026-11-20 (prd/check-migration): Also: two timelineLayout tests now inline the same 'wait until the element stops moving' loop (the author tooltip and the viewer's ⋯, both after the quick-entry chips shift the rows). A shared helper beside found() would fit. -- check-migration orchestrator
@@ -350,10 +351,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-182 · bug · providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 33adfc0a
 
 - 2026-11-20 (prd/connectors): Seen in connectors slices 1, 2 and 5 and in the connectors landing check (2026-11-20, load ~14, 410 s run); passes alone. The connectors PRD changes nothing under providers/. Line 73: expect.poll(listNames('Current providers')).toEqual(['Dr. Elena Alvarez']).
 - 2026-11-20 (Robert Bo Davis): Moved from check-migration (done, c7fd1390) to quick-fixes (the user, 2026-11-20): the next quick-fixes wave appends them as slices (B-180 is a sweep across component tests; B-182 one test). -- backlog agent
@@ -573,10 +574,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-211 · change · link to group details edit page from the edit profile screen for editing the care recipient's…
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 33adfc0a
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: link to group details edit page from the edit profile screen for editing the care recipient's timezone.
 - 2026-11-20 (Robert Bo Davis): Triage: one link on the profile edit screen to group settings' details: a quick-fixes slice.
@@ -605,10 +606,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-214 · bug · don't need patient name on the providers, medications, upcoming, or tasks page page, just need it…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
-- commit:
+- commit: f58cd4b9
 
 - 2026-11-21 (prd/medications-3): From the inbox: don't need patient name on the providers, medications, upcoming, or tasks page page, just need it in the print version where applicable. it shows in the header all the time. Can also remove entire profile section in top left of the timeline to reduce clutter. Move eyeball icon inline with search and filter icons and size them appropriately.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): timeline-ux-2, a declutter PRD to write: no recipient name in page headers (print only) and no profile corner on the timeline, the eye icon inline with search and filter, the day-summary expand icon on the left, the group dropdown reordered (no care-period line, New care group under the groups, Group settings last).
@@ -616,7 +617,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-215 · bug · move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry…
 
-- status: ready
+- status: landed
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -628,7 +629,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-216 · bug · suggestion dropdown for quick entry box should appear above elements instead of pushing elements…
 
-- status: ready
+- status: landed
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -640,10 +641,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-217 · bug · If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page…
 
-- status: in-progress
+- status: ready
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
-- commit:
+- commit: f58cd4b9
 
 - 2026-11-21 (prd/medications-3): From the inbox: If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page looks goofy without it.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): quick-entry and timeline UI nits, one quick-fixes slice each in wave 15. B-215, B-216 and B-219 touch quick entry, so they share a wave with B-220's quick-entry PRD only if their hot files are coordinated.
@@ -652,7 +653,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-218 · bug · expand icon for day summary on timeline should be at the left of the day summary, not the right.
 
-- status: ready
+- status: landed
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -662,7 +663,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-219 · bug · can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also…
 
-- status: ready
+- status: landed
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -682,6 +683,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-21 (prd/medications-3): From the inbox: Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event, providers do suggest like they should, but creates a note instead of an appointment. "Dr. Elena Alvarez on the 25th" creates a note as do most provider auto completes when it should be an event. Need to improve the logic for this.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): its own PRD to write, quick-entry: the parser picks the entry kind ("fell" makes an event, provider autocompletes and dates make appointments, not notes). It runs after quick-fixes' quick-entry slices (B-215, B-216, B-219).
 - 2026-11-21 (Robert Bo Davis): 2026-11-21: now waits for timeline-ux-2 (B-215, B-216, B-219 moved there from quick-fixes).
+- 2026-11-21 (Robert Bo Davis): Planned: plans/quick-entry-prd.md and -plan.md (4 slices, waves 1 → (2, 3, 4)); starts after timeline-ux-2 and tasks-2 are in dev.
 
 ### B-221 · feature · locked simple mode is really confusing. We may want to just add a new user type at this point for…
 
@@ -706,7 +708,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-223 · bug · in header care group drop down, we don't need to show the current care period line. New care group…
 
-- status: ready
+- status: landed
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -717,7 +719,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-224 · bug · in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for…
 
-- status: ready
+- status: landed
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -729,13 +731,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-225 · bug · Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out)
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 33adfc0a
 
 - 2026-11-21 (prd/connectors-2): Found by connectors-2's landing check at 3:18 a.m. on 2026-11-21; reproduced alone at low load. Fix: a fixed clock, or times anchored to the start of today.
 - 2026-11-21 (Robert Bo Davis): Also covers B-227 (dropped as its duplicate): timelineSummaries and the minutesAgo(40) day-summary fixtures fail the same way from 00:00 to ~02:30 LA; fix them in the same pass.
+- 2026-11-21 (slice/quick-fixes/61): slice 61: fixed 12:00 test clock in apps/web/test/setup.ts; VITE_TEST_CLOCK overrides
 
 ### B-226 · change · Medications page should be tabbed into Schedule and Medications
 
@@ -758,6 +761,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-21 (prd/timeline-ux-2): 2026-11-21 (prd/timeline-ux-2): 14 failures in timeline-ux-2's full check at 00:20 PST, e.g. 'Event · Yesterday, 10:17 PM' vs /^Event · Today, /; minutesAgo(40) day-summary fixtures. Fails every pnpm check from 00:00 to ~02:30 LA (03:00-05:30 EST). Fix: pin the clock (fixClock) or build today's fixtures after local midnight.
 - 2026-11-21 (Robert Bo Davis): Duplicate of B-225 (same tests, same midnight cause); its cases are noted on B-225. Dropped at the user's word.
+- 2026-11-21 (prd/quick-fixes): Same bug as B-225; quick-fixes slice 61 covers it (timelineSummaries added to its brief, 2026-11-21). Marked done with B-225. -- quick-fixes orchestrator
 
 ### B-228 · bug · Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute|value|dataset|checked|placeholder|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep
 
@@ -767,3 +771,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/quick-fixes): Found by quick-fixes slice 59 (B-180), 2026-11-21: same fix (await expect.poll / found()); proposed for a later quick-fixes wave. -- quick-fixes orchestrator
+
+### B-229 · bug · on timeline page, header and Today section should be in same column width as the rest of the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/tasks-2): From the inbox: on timeline page, header and Today section should be in same column width as the rest of the timeline on large screens.
