@@ -22,7 +22,8 @@ The shared space for the caretakers of one care recipient. Always say "care grou
   - `care_group_consent`, `care_group_join_request`: read owner, admin and yourself; writes `system`.
   - `access_code`: staff for everything (update: not the code or use count). `access_code_redemption`: read staff; writes `system`.
   - `user`: read self, staff and co-members (id, name, image); create staff; update self (no role or email); delete self, staff.
-  - `timeline_entry`, `provider`, `medication`, `care_period`, `medication_pass`, `recipient_allergy`: read any member; create, update and (soft) delete writers.
+  - `timeline_entry`, `provider`, `medication`, `care_period`, `medication_pass`, `recipient_allergy`, `recipient_condition`: read any member; create, update and (soft) delete writers.
+  - `medication_condition`, `condition_manager` (`medicationConditionSchema`, `conditionManagerSchema`): read any member; create and delete writers; update `system`. Written through their services, which check both ends.
   - `task`: as above, but update also for viewers ¹.
   - `note_document`: read any member; create writers (snapshot and text: `system`); update and delete `system`. `note_update`: read any member; create writers; update and delete `system`.
   - `timeline_entry_provider`: read any member; create and delete writers; update `system`.

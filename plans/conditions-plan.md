@@ -25,6 +25,8 @@
 
 **Docs to fold at landing (slice 4):** medications.md (`medication_condition`, `medicationConditionService`, the op, For field and page row, save order: check, medication, then links; seeds; tests); profiles.md (condition sheet's medications; `PROFILE_SHEET_STATE` in `lib/profiles/profileSheetLink.ts`); sync.md (stream, op: PUT/DELETE, PATCH read-only); care-groups.md (`medicationConditionSchema` row).
 
+**Docs:** slices 1–5 folded into the area docs (uncommitted → committed with this note); slice 6 still to fold into connectors.md.
+
 **Open issue:** none. `dev` (with `fa9ad005`, the B-205 and tiles fixes) synced after slice 3 merged, clean.
 
 **Browser checks at landing:** slices 1 and 4 name the whole lean set (migration, sync config): run `pnpm prd browser --suite` once at landing — ask the user first (plan: never `--suite` without asking).
