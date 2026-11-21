@@ -205,7 +205,7 @@ const GROUPS: Group[] = [
   },
 ];
 
-/** The id of a group's seed appointment by its key (tasks link to them). */
+/** The id of a group's seed appointment by its key (todos link to them). */
 export const appointmentIdIn = (groupId: string, key: string) => {
   const group = GROUPS.find((g) => g.groupId === groupId);
   const index = group?.appointments.findIndex((a) => a.key === key) ?? -1;

@@ -9,7 +9,7 @@ import {
   googleCalendarConnectionSchema,
   googleEventLinkSchema,
   noteDocumentSchema,
-  taskSchema,
+  todoSchema,
   timelineEntrySchema,
 } from "../db/schema";
 import { isError } from "../errors";
@@ -25,7 +25,7 @@ import * as appointmentSeriesService from "./appointmentSeriesService";
 import * as calendarPullService from "./calendarPullService";
 import * as calendarSyncService from "./calendarSyncService";
 import * as googleConnectionService from "./googleConnectionService";
-import * as taskService from "./taskService";
+import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
 
 // Google Calendar pull (appointments-2 slice 9), against the in-memory fake
@@ -100,14 +100,14 @@ const setup = async () => {
       details: null,
     }),
   )!;
-  const task = ok(
-    await taskService.create(owner.ctx, {
+  const todo = ok(
+    await todoService.create(owner.ctx, {
       groupId: group.id,
       title: "Pick up the walker",
       dueOn: inDays(3).slice(0, 10),
     }),
   )!;
-  return { owner, caretaker, viewer, group, appointment, reminder, task };
+  return { owner, caretaker, viewer, group, appointment, reminder, todo };
 };
 
 type Member = { ctx: { authUser: { id: string } } };
@@ -223,22 +223,22 @@ describe("pulling", () => {
     expect(google.events(conn.calendarId).map((e) => e.privateProperties[UID_PROPERTY])).not.toContain(uid);
   });
 
-  it("completes a task deleted in Google, and moves the due day of one moved there", async () => {
-    const { caretaker, group, task } = await setup();
+  it("completes a todo deleted in Google, and moves the due day of one moved there", async () => {
+    const { caretaker, group, todo } = await setup();
     const conn = await connect(caretaker, group.id);
     await pull(conn);
-    const uid = `task:${task.id}`;
+    const uid = `todo:${todo.id}`;
     const day = inDays(5).slice(0, 10);
     google.user.move(conn.calendarId, googleEventId(uid), { date: day }, { date: inDays(6).slice(0, 10) });
     await pull(conn);
-    expect(ok(await taskService.getById(caretaker.ctx as never, task.id))).toMatchObject({
+    expect(ok(await todoService.getById(caretaker.ctx as never, todo.id))).toMatchObject({
       dueOn: day,
       dueTime: null,
     });
 
     google.user.delete(conn.calendarId, googleEventId(uid));
     expect(await pull(conn)).toMatchObject({ applied: 1 });
-    const [row] = await getDb().select().from(taskSchema).where(eq(taskSchema.id, task.id));
+    const [row] = await getDb().select().from(todoSchema).where(eq(todoSchema.id, todo.id));
     expect(row!.doneAt).not.toBeNull();
     expect(row!.doneBy).toBe(caretaker.user.id);
     expect(row!.deletedAt).toBeNull();
@@ -355,10 +355,10 @@ describe("what the member can't do", () => {
     expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 0 });
   });
 
-  it("puts back a deleted task a viewer may not complete, and completes one assigned to them", async () => {
-    const { owner, viewer, group, task } = await setup();
+  it("puts back a deleted todo a viewer may not complete, and completes one assigned to them", async () => {
+    const { owner, viewer, group, todo } = await setup();
     const theirs = ok(
-      await taskService.create(owner.ctx, {
+      await todoService.create(owner.ctx, {
         groupId: group.id,
         title: "Pick up groceries",
         dueOn: inDays(3).slice(0, 10),
@@ -367,15 +367,15 @@ describe("what the member can't do", () => {
     )!;
     const conn = await connect(viewer, group.id);
     await pull(conn);
-    google.user.delete(conn.calendarId, googleEventId(`task:${task.id}`));
-    google.user.delete(conn.calendarId, googleEventId(`task:${theirs.id}`));
+    google.user.delete(conn.calendarId, googleEventId(`todo:${todo.id}`));
+    google.user.delete(conn.calendarId, googleEventId(`todo:${theirs.id}`));
     expect(await pull(conn)).toMatchObject({ applied: 1, overwritten: 1 });
 
     const done = async (id: string) =>
-      (await getDb().select().from(taskSchema).where(eq(taskSchema.id, id)))[0]!.doneBy;
-    expect(await done(task.id)).toBeNull();
+      (await getDb().select().from(todoSchema).where(eq(todoSchema.id, id)))[0]!.doneBy;
+    expect(await done(todo.id)).toBeNull();
     expect(await done(theirs.id)).toBe(viewer.user.id);
-    expect(eventOf(conn, `task:${task.id}`).status).toBe("confirmed");
+    expect(eventOf(conn, `todo:${todo.id}`).status).toBe("confirmed");
   });
 });
 

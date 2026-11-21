@@ -25,7 +25,7 @@ import {
 import { doseRows, medicationQuery, recipientQuery, toMedication } from "../medications/medications.sync";
 import { toPasses } from "../medications/medicationPasses.sync";
 import { providerQuery, toProvider } from "../providers/providers.sync";
-import { noteDocuments, noteUpdates, tasks, timelineEntries, timelineEntryProviders } from "../sync/schema";
+import { noteDocuments, noteUpdates, todos, timelineEntries, timelineEntryProviders } from "../sync/schema";
 import { plannedTask } from "../tasks/tasks.sync";
 import {
   contentColumns,
@@ -66,7 +66,7 @@ type EntryInsert = typeof timelineEntries.$inferInsert;
 type Rows =
   | EntryRows
   /** A task (not an entry). */
-  | { task: typeof tasks.$inferInsert };
+  | { task: typeof todos.$inferInsert };
 
 type EntryRows = {
   entry: EntryInsert;
@@ -228,7 +228,7 @@ export const runActions = async (
   await db.drizzle.transaction(async (tx) => {
     for (const rows of planned) {
       if ("task" in rows) {
-        await tx.insert(tasks).values(rows.task);
+        await tx.insert(todos).values(rows.task);
         continue;
       }
       const { entry, more, document, providerIds } = rows;
@@ -323,7 +323,7 @@ export const removeEntries = async (db: SyncDb, ids: readonly string[]): Promise
     // Any kind (doses and medication changes too), so not through `toTimelineEntry`.
     const [row] = await readRows<{ id: string; group_id: string | null; task: number }>(db, {
       sql: `SELECT id, group_id, 0 AS task FROM timeline_entry WHERE id = ? AND deleted_at IS NULL
-            UNION ALL SELECT id, group_id, 1 AS task FROM task WHERE id = ? AND deleted_at IS NULL`,
+            UNION ALL SELECT id, group_id, 1 AS task FROM todo WHERE id = ? AND deleted_at IS NULL`,
       params: [id, id],
     });
     if (row?.group_id) live.push({ id: row.id, groupId: row.group_id, task: !!row.task });
@@ -338,9 +338,9 @@ export const removeEntries = async (db: SyncDb, ids: readonly string[]): Promise
     for (const entry of live)
       if (entry.task)
         await tx
-          .update(tasks)
+          .update(todos)
           .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
-          .where(eq(tasks.id, entry.id));
+          .where(eq(todos.id, entry.id));
       else
         await tx
           .update(timelineEntries)

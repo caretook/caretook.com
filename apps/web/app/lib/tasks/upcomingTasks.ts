@@ -1,9 +1,9 @@
-import type { TaskRuleFields } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TimedEntry } from "../appointments/upcoming";
 import type { UpcomingSection } from "../appointments/upcomingDays";
 import type { UpcomingDose } from "../appointments/upcomingDoses";
 
-import { localDate, taskState } from "@caretook/data/schema";
+import { localDate, todoState } from "@caretook/data/schema";
 import { dayLabel } from "../core/format";
 import { NOW_KEY } from "../appointments/upcomingDays";
 import { isUpcomingDose } from "../appointments/upcomingDoses";
@@ -12,12 +12,12 @@ import { startOfDay, zonedInstant } from "../core/zonedDay";
 // Open tasks with a due day in Upcoming, under their day among the
 // appointments, reminders and due doses. Worked out, never written:
 // completing a task drops it out. Due days and times are wall-clock in the
-// recipient's zone (`taskState`); Upcoming's days are the viewer's, so a
+// recipient's zone (`todoState`); Upcoming's days are the viewer's, so a
 // timed task is placed by the moment it falls, an all-day one by its own
 // day (as all-day entries are). Pure; web:unit tests it.
 
 /** One open dated task as an Upcoming item. */
-export type UpcomingTask<T extends TaskRuleFields = TaskRuleFields> = {
+export type UpcomingTask<T extends TodoRuleFields = TodoRuleFields> = {
   type: "dueTask";
   /** `task:<id>`: unique in the list. */
   key: string;
@@ -28,22 +28,22 @@ export type UpcomingTask<T extends TaskRuleFields = TaskRuleFields> = {
 };
 
 /** Anything Upcoming lists with tasks merged in. */
-export type WithTasks<T, K extends TaskRuleFields = TaskRuleFields> = T | UpcomingTask<K>;
+export type WithTasks<T, K extends TodoRuleFields = TodoRuleFields> = T | UpcomingTask<K>;
 
 export const isUpcomingTask = <T extends object>(item: T | UpcomingTask): item is UpcomingTask =>
   "type" in item && item.type === "dueTask";
 
 /**
- * Open dated tasks as Upcoming items, in the order given (`taskOrder`).
+ * Open dated tasks as Upcoming items, in the order given (`todoOrder`).
  * Done and undated tasks are left out.
  */
-export const upcomingTasks = <T extends TaskRuleFields>(
+export const upcomingTasks = <T extends TodoRuleFields>(
   tasks: readonly T[],
   now: Date | number,
   timeZone: string,
 ): UpcomingTask<T>[] =>
   tasks.flatMap((task) => {
-    const state = taskState(task, now, timeZone);
+    const state = todoState(task, now, timeZone);
     if (state === "done" || state === "undated" || !task.dueOn) return [];
     const at = task.dueTime ? zonedInstant(task.dueOn, task.dueTime, timeZone).toISOString() : null;
     return [{ type: "dueTask" as const, key: `task:${task.id}`, task, state, at }];
@@ -86,9 +86,9 @@ const goesAfter = (task: { group: number; ms: number }, item: Listed) => {
  * day it falls on where the viewer is, by its time; an all-day one under its
  * due day (today at the earliest), after the day's all-day entries. A day
  * with only tasks gets its own section, in day order. `tasks` come in
- * `taskOrder` and keep it among themselves.
+ * `todoOrder` and keep it among themselves.
  */
-export function withDueTasks<T extends Listed, K extends TaskRuleFields>(
+export function withDueTasks<T extends Listed, K extends TodoRuleFields>(
   sections: readonly UpcomingSection<T>[],
   tasks: readonly UpcomingTask<K>[],
   now: Date,

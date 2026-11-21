@@ -1,6 +1,6 @@
 import type { TaskRow } from "~/lib/tasks/tasks.sync";
 
-import { taskOrder } from "@caretook/data/schema";
+import { todoOrder } from "@caretook/data/schema";
 import { useMemo, useSyncExternalStore } from "react";
 import { useGroup } from "~/lib/app-shell/group";
 import { useNow } from "~/lib/live-notes/editors.sync";
@@ -16,7 +16,7 @@ const NO_OFFERS: readonly TaskUndo[] = [];
 const noOffers = () => NO_OFFERS;
 
 /**
- * Simple mode's "My tasks": my open tasks in list order (`taskOrder`:
+ * Simple mode's "My tasks": my open tasks in list order (`todoOrder`:
  * overdue, then today, then later days, then undated), the first five, and
  * how many there are. `shown` is whether the card is up: when I have open
  * tasks, or while Undo is offered for a tick here (so ticking my last one
@@ -31,7 +31,7 @@ export function useSimpleTasks(groupId: string) {
   const query = tasksQuery(groupId, { who: "mine", userId: group.userId });
   const { value, fresh } = useRememberedQuery<TaskRow>({ groupId, name: "simpleTasks:mine" }, query);
   const rows = value ?? NO_ROWS;
-  const mine = useMemo(() => taskOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
+  const mine = useMemo(() => todoOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
   const offers = useSyncExternalStore(subscribeTaskUndo, taskUndoSnapshot, noOffers);
   const undoing = offers.length > 0 && taskUndoFor(groupId).length > 0;
 

@@ -163,7 +163,7 @@ describe("the task list", () => {
     expect(titles("done")).toContain("Pick up the walker");
     expect(titles("done")).not.toContain("Call the pharmacy");
     const rows = await device.query<{ title: string; done: number }>(
-      "SELECT title, done_at IS NOT NULL AS done FROM task WHERE title IN ('Call the pharmacy', 'Pick up the walker') ORDER BY title",
+      "SELECT title, done_at IS NOT NULL AS done FROM todo WHERE title IN ('Call the pharmacy', 'Pick up the walker') ORDER BY title",
     );
     expect(rows).toEqual([
       { title: "Call the pharmacy", done: 0 },
@@ -224,7 +224,7 @@ describe("the task sheets", () => {
 
     await expect.poll(() => titles(day(2))).toEqual(["Water the plants"]);
     const [row] = await device.query<{ assignee_name: string; assignee_id: string | null; due_time: string }>(
-      "SELECT assignee_name, assignee_id, due_time FROM task WHERE title = 'Water the plants'",
+      "SELECT assignee_name, assignee_id, due_time FROM todo WHERE title = 'Water the plants'",
     );
     expect(row).toEqual({ assignee_name: "Aunt May", assignee_id: null, due_time: "17:30" });
   });
@@ -246,7 +246,7 @@ describe("the task sheets", () => {
 
     await expect.poll(() => titles(day(4))).toEqual(["Renew the bus pass"]);
     const [row] = await device.query<{ assignee_id: string; due_time: string | null }>(
-      "SELECT assignee_id, due_time FROM task WHERE title = 'Renew the bus pass'",
+      "SELECT assignee_id, due_time FROM todo WHERE title = 'Renew the bus pass'",
     );
     expect(row).toEqual({ assignee_id: SAM_ID, due_time: null });
   });

@@ -20,7 +20,7 @@ import {
 import { and, eq, isNull } from "drizzle-orm";
 import { isEntryKind } from "./entryDisplay";
 import { TIMELINE_KINDS } from "./timelineFilters";
-import { tasks, timelineEntries } from "../sync/schema";
+import { timelineEntries, todos } from "../sync/schema";
 
 // Local reads and writes for the timeline screens. Reads are plain SQL for
 // `useLiveQuery`; rows map to the same shapes the oRPC API returns, so the
@@ -583,9 +583,9 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
         );
       // Tasks linked to it lose the link quietly (tasks slice 3; the server does the same).
       await tx
-        .update(tasks)
+        .update(todos)
         .set({ eventId: null, updatedAt: now, updatedBy: db.userId })
-        .where(and(eq(tasks.groupId, entry.groupId), eq(tasks.eventId, id), isNull(tasks.deletedAt)));
+        .where(and(eq(todos.groupId, entry.groupId), eq(todos.eventId, id), isNull(todos.deletedAt)));
     }
   });
   return { ok: true };

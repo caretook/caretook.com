@@ -1,6 +1,6 @@
 import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
-import { canCompleteTask, taskState } from "@caretook/data/schema";
+import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { ListChecks } from "lucide-react";
 import { Link } from "react-router";
 import { TaskTick, TaskUndoStatus, useTaskTick } from "~/components/tasks";
@@ -50,7 +50,7 @@ export function SimpleTasks({ className = "" }: { className?: string }) {
       {tasks.length > 0 && (
         <ul className="space-y-1" aria-label="My open tasks">
           {tasks.map((task) => {
-            const state = taskState(task, now, timeZone);
+            const state = todoState(task, now, timeZone);
             return (
               <li
                 key={task.id}
@@ -58,7 +58,7 @@ export function SimpleTasks({ className = "" }: { className?: string }) {
                 data-simple-task={task.id}
                 data-task-state={state}
               >
-                {canCompleteTask({ role: group.role, userId: group.userId, task }) ? (
+                {canCompleteTodo({ role: group.role, userId: group.userId, todo: task }) ? (
                   <TaskTick
                     title={task.title}
                     done={!!task.doneAt}

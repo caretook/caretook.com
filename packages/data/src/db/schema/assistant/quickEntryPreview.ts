@@ -3,7 +3,7 @@ import type { AssistantAction } from "./assistantActions";
 
 import { dayLabel } from "../core/dayLabel";
 import { doseText, listText, medicationCountText, medicationTitle } from "../medications/medicationDisplay";
-import { dueText } from "../tasks/taskDisplay";
+import { dueText } from "../todos/todoDisplay";
 import { formatReading, isKnownReading } from "../timeline/vitals";
 
 // The wording of a quick-entry card: what an assistant action will save, in

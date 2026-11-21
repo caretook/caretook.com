@@ -4,7 +4,7 @@ import {
   recipientConditionUpdateZSchema,
 } from "../profiles/recipientCondition";
 import { doseDetailsZSchema, scheduleTimeZSchema } from "../medications/medication";
-import { TASK_LIMITS, TIME_NEEDS_DAY_ISSUE } from "../tasks/task";
+import { TODO_LIMITS, TIME_NEEDS_DAY_ISSUE } from "../todos/todo";
 import { symptomDetailsZSchema, TIMELINE_LIMITS } from "../timeline/timelineEntry";
 import { timeZoneZSchema } from "../core/timeZone";
 import { vitalDetailsZSchema } from "../timeline/vitals";
@@ -96,7 +96,7 @@ export const addEventActionZSchema = z.strictObject({
 export const addTaskActionZSchema = z
   .strictObject({
     type: z.literal("addTask"),
-    title: z.string().trim().min(1).max(TASK_LIMITS.title),
+    title: z.string().trim().min(1).max(TODO_LIMITS.title),
     assigneeId: z.uuid().nullish(),
     dueOn: z.iso.date().nullish(),
     dueTime: scheduleTimeZSchema.nullish(),

@@ -1,6 +1,6 @@
-import type { TaskRuleFields } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/schema";
 
-import { taskState } from "@caretook/data/schema";
+import { todoState } from "@caretook/data/schema";
 
 // The timeline's task strip: one line, there while the group has open tasks
 // overdue or due today. Which task it names (`taskStrip`) and what it says
@@ -10,7 +10,7 @@ import { taskState } from "@caretook/data/schema";
 /** `overdue`: red, something is late; `today`: amber, due today and nothing late. */
 export type TaskStripState = "overdue" | "today";
 
-export type TaskStrip<T extends TaskRuleFields = TaskRuleFields> = {
+export type TaskStrip<T extends TodoRuleFields = TodoRuleFields> = {
   state: TaskStripState;
   /** The task the line names. */
   task: T;
@@ -23,11 +23,11 @@ export type TaskStrip<T extends TaskRuleFields = TaskRuleFields> = {
 };
 
 /**
- * The task the strip names, from the group's open tasks in `taskOrder`: the
+ * The task the strip names, from the group's open tasks in `todoOrder`: the
  * first overdue one (mine first), else the first due today (mine first).
  * Null when nothing is overdue or due today.
  */
-export function taskStrip<T extends TaskRuleFields>(
+export function taskStrip<T extends TodoRuleFields>(
   tasks: readonly T[],
   now: Date | number,
   timeZone: string,
@@ -36,7 +36,7 @@ export function taskStrip<T extends TaskRuleFields>(
   const overdue: T[] = [];
   const today: T[] = [];
   for (const task of tasks) {
-    const state = taskState(task, now, timeZone);
+    const state = todoState(task, now, timeZone);
     if (state === "overdue") overdue.push(task);
     else if (state === "today") today.push(task);
   }

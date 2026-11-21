@@ -3,7 +3,7 @@ import { TaskUndoStatus } from "~/components/tasks";
 
 /**
  * The complete or reopen button, for whoever may complete the task
- * (`canCompleteTask`: writers, or a viewer it's assigned to), with the
+ * (`canCompleteTodo`: writers, or a viewer it's assigned to), with the
  * shared Undo status after a tick and the write's error.
  */
 export function TaskCompletion({

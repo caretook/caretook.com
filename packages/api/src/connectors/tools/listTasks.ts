@@ -1,4 +1,4 @@
-import { assigneeOf, doneOrder, isError, taskOrder, taskService, taskState } from "@caretook/data";
+import { assigneeOf, doneOrder, isError, todoOrder, todoService, todoState } from "@caretook/data";
 import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso, zonedIsoOrNull } from "../time";
@@ -31,13 +31,13 @@ export const listTasks = defineTool({
     const members = await loadMembers(ctx);
     if (isError(members)) return members;
     const who = new Map(members.map((m) => [m.id, m.name]));
-    const res = await taskService.list(asMember(ctx), { groupId: ctx.groupId });
+    const res = await todoService.list(asMember(ctx), { groupId: ctx.groupId });
     if (isError(res)) return res;
 
     const status = args.status ?? "open";
     const since = daysAgo(ctx.now, DEFAULT_DAYS_BACK).getTime();
     const mineOnly = (t: (typeof res.data)[number]) => !args.mine || t.assigneeId === ctx.authUser.id;
-    const open = taskOrder(
+    const open = todoOrder(
       res.data.filter((t) => !t.doneAt && mineOnly(t)),
       ctx.now,
       timeZone,
@@ -61,7 +61,7 @@ export const listTasks = defineTool({
               : null,
         dueOn: t.dueOn,
         dueTime: t.dueTime,
-        state: taskState(t, ctx.now, timeZone),
+        state: todoState(t, ctx.now, timeZone),
         doneAt: zonedIsoOrNull(t.doneAt, timeZone),
         doneBy: t.doneBy ? (who.get(t.doneBy) ?? null) : null,
         providerId: t.providerId,

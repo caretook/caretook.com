@@ -8,7 +8,7 @@ import {
   FUTURE_DATE_MESSAGE,
   noteDocumentSchema,
   noteUpdateSchema,
-  taskSchema,
+  todoSchema,
   timelineEntryProviderSchema,
   timelineEntrySchema,
 } from "../db/schema";
@@ -19,7 +19,7 @@ import {
   medicationService,
   noteDocumentService,
   providerService,
-  taskService,
+  todoService,
   timelineEntryService,
 } from ".";
 
@@ -67,7 +67,7 @@ const setup = async () => {
     assistantActionService.run(u[who].ctx, group.id, actions, { via: VIA });
   const entriesOf = async () =>
     getDb().select().from(timelineEntrySchema).where(eq(timelineEntrySchema.groupId, group.id));
-  const tasksOf = async () => getDb().select().from(taskSchema).where(eq(taskSchema.groupId, group.id));
+  const tasksOf = async () => getDb().select().from(todoSchema).where(eq(todoSchema.groupId, group.id));
   return { u, group, recipient, morning, evening, addMedication, provider, run, entriesOf, tasksOf };
 };
 
@@ -263,7 +263,7 @@ describe("assistantActionService.run", () => {
         "assistantActionService:passGone",
       ],
       [{ type: "givePass", passId: noon.id, occurredAt: minutesAgo(1) }, "assistantActionService:passEmpty"],
-      [{ type: "addTask", title: "Call", assigneeId: u.outsider.user.id }, "taskService:assigneeNotMember"],
+      [{ type: "addTask", title: "Call", assigneeId: u.outsider.user.id }, "todoService:assigneeNotMember"],
     ];
     for (const [bad, code, issues] of cases) {
       const res = refusal(await run("caretaker", [good, task, bad]));
@@ -302,8 +302,8 @@ describe("assistantActionService.run", () => {
     const [[taskId]] = ok(await run("caretaker", [{ type: "addTask", title: "Book a ride" }])).byAction as [
       [string],
     ];
-    ok(await taskService.update(u.caretaker.ctx, taskId, { title: "Book a taxi" }));
-    const task = ok(await taskService.getById(u.viewer.ctx, taskId));
+    ok(await todoService.update(u.caretaker.ctx, taskId, { title: "Book a taxi" }));
+    const task = ok(await todoService.getById(u.viewer.ctx, taskId));
     expect(task).toMatchObject({ title: "Book a taxi", via: VIA, groupId: group.id });
   });
 });

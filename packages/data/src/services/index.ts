@@ -110,8 +110,8 @@ export { emailSuppressionService };
 
 export type * from "./types";
 
-import * as taskService from "./taskService";
-export { taskService };
+import * as todoService from "./todoService";
+export { todoService };
 
 import * as connectorGrantService from "./connectorGrantService";
 export { connectorGrantService };
@@ -202,7 +202,7 @@ export const services = {
   adminGrant: adminGrantService,
   groupAdmin: groupAdminService,
   appSetting: appSettingService,
-  task: taskService,
+  todo: todoService,
   connectorGrant: connectorGrantService,
   assistantRequest: assistantRequestService,
   recipientCondition: recipientConditionService,

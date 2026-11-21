@@ -237,7 +237,7 @@ export function TaskResultItem({
   return (
     <li
       className={`${ROW} hover:bg-base-200/50`}
-      data-result="task"
+      data-result="todo"
       data-result-id={task.id}
       data-done={done ? "" : undefined}
     >

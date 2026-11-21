@@ -11,7 +11,7 @@ import { at, fx, hoursAgo, task, TEST_GROUP, TEST_TIME_ZONE } from "../../../../
 // Tasks on the search page (tasks slice 5): a task is found by its title
 // and by its notes, sits after medications and before entries, is marked
 // when done, opens its page, and drops out once deleted. What a document
-// holds is `taskSearchDocument`'s unit test.
+// holds is `todoSearchDocument`'s unit test.
 
 const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/search", module: searchRoute },
@@ -29,7 +29,7 @@ const FORM = task({
 });
 const FORM_NOTES = fx.document({
   ownerId: FORM.id,
-  subject: "task",
+  subject: "todo",
   text: "Ask the front desk at Valley Heart Clinic for the claim number.",
 });
 const FAX = task({
@@ -57,13 +57,13 @@ const open = (url: string, fixtures = world()) =>
 const sectionOrder = () =>
   [...document.querySelectorAll<HTMLElement>("[data-section]")].map((s) => s.dataset.section);
 const taskResults = () =>
-  [...document.querySelectorAll<HTMLElement>('[data-result="task"]')].map((r) => r.dataset.resultId);
+  [...document.querySelectorAll<HTMLElement>('[data-result="todo"]')].map((r) => r.dataset.resultId);
 const result = (id: string) => document.querySelector<HTMLElement>(`[data-result-id="${id}"]`);
 
 describe("search: tasks", () => {
   test("a task matches by title, after medications and before entries", async () => {
     await open(searchUrl("insurance"));
-    await expect.poll(sectionOrder).toEqual(["medication", "task", "entry"]);
+    await expect.poll(sectionOrder).toEqual(["medication", "todo", "entry"]);
     // The deleted "Insurance card copy" has no document.
     expect(taskResults()).toEqual([FORM.id]);
     await expect.element(page.getByRole("heading", { name: /Tasks/ })).toBeVisible();

@@ -1,9 +1,9 @@
-import type { TaskRuleFields } from "./taskRules";
+import type { TodoRuleFields } from "./todoRules";
 
 import { localDate } from "../core/entryTiming";
-import { assigneeOf, taskState } from "./taskRules";
+import { assigneeOf, todoState } from "./todoRules";
 
-// How tasks are worded (pure; web:unit tests it; the one home for it): the
+// How todos are worded (pure; web:unit tests it; the one home for it): the
 // due line, the done line, the assignee chip and a link's label. Due days
 // and times are wall-clock in the recipient's zone, and so is "today". Times
 // are 24-hour, like medication slots.
@@ -60,35 +60,35 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 /**
  * The due line: "Due today", "Due today 17:00", "Due tomorrow", "Due Fri
  * 14:00", "Due Nov 28", "Overdue · 2 days", "Overdue · since 09:00", "No
- * due date". A done task has none (see `doneText`).
+ * due date". A done todo has none (see `doneText`).
  */
 export const dueText = (
-  task: Pick<TaskRuleFields, "dueOn" | "dueTime" | "doneAt">,
+  todo: Pick<TodoRuleFields, "dueOn" | "dueTime" | "doneAt">,
   now: Date | number,
   timeZone: string,
 ): string | null => {
-  const state = taskState(task, now, timeZone);
+  const state = todoState(todo, now, timeZone);
   if (state === "done") return null;
-  if (state === "undated" || !task.dueOn) return "No due date";
+  if (state === "undated" || !todo.dueOn) return "No due date";
   const today = localDate(now, timeZone);
   if (state === "overdue") {
-    const late = daysBetween(task.dueOn, today);
-    return late > 0 ? `Overdue · ${plural(late, "day")}` : `Overdue · since ${task.dueTime}`;
+    const late = daysBetween(todo.dueOn, today);
+    return late > 0 ? `Overdue · ${plural(late, "day")}` : `Overdue · since ${todo.dueTime}`;
   }
-  const day = shortDay(task.dueOn, today);
-  return `Due ${day}${task.dueTime ? ` ${task.dueTime}` : ""}`;
+  const day = shortDay(todo.dueOn, today);
+  return `Due ${day}${todo.dueTime ? ` ${todo.dueTime}` : ""}`;
 };
 
 /** "Done by Sam · Tue", "Done by you · today". `nameOf` gives a member's name ("you" for me). */
 export const doneText = (
-  task: Pick<TaskRuleFields, "doneAt"> & { doneBy: string | null },
+  todo: Pick<TodoRuleFields, "doneAt"> & { doneBy: string | null },
   nameOf: (userId: string) => string,
   now: Date | number,
   timeZone: string,
 ): string | null => {
-  if (!task.doneAt) return null;
-  const who = task.doneBy ? nameOf(task.doneBy) : "someone";
-  return `Done by ${who} · ${shortDay(localDate(task.doneAt, timeZone), localDate(now, timeZone))}`;
+  if (!todo.doneAt) return null;
+  const who = todo.doneBy ? nameOf(todo.doneBy) : "someone";
+  return `Done by ${who} · ${shortDay(localDate(todo.doneAt, timeZone), localDate(now, timeZone))}`;
 };
 
 export type AssigneeLabel =
@@ -101,10 +101,10 @@ export type AssigneeLabel =
  * with a person-outline icon and no link), or "Unassigned".
  */
 export const assigneeLabel = (
-  task: Pick<TaskRuleFields, "assigneeId" | "assigneeName">,
+  todo: Pick<TodoRuleFields, "assigneeId" | "assigneeName">,
   nameOf: (userId: string) => string,
 ): AssigneeLabel => {
-  const who = assigneeOf(task);
+  const who = assigneeOf(todo);
   if (who.type === "member") return { type: "member", userId: who.userId, label: nameOf(who.userId) };
   if (who.type === "name") return { type: "name", label: who.name };
   return { type: "none", label: "Unassigned" };

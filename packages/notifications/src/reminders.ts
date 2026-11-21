@@ -58,10 +58,10 @@ export const reminderEmailData = (
 const itemsOf = (group: ReminderGroupInputs, from: Date, to: Date): ReminderItem[] => {
   const made = new Map<string, string>();
   for (const e of group.entries) made.set(`entry:${e.id}`, e.createdAt);
-  for (const t of group.tasks) made.set(`task:${t.id}`, t.createdAt);
+  for (const t of group.todos) made.set(`todo:${t.id}`, t.createdAt);
   return calendarItems({
     entries: group.entries,
-    tasks: group.tasks,
+    todos: group.todos,
     recipient: group.recipient,
     from,
     to,
@@ -102,7 +102,7 @@ export const sweepReminders = async (
             timeZone: group.recipient.timeZone,
           })),
           overrides: group.overrides,
-          assignees: Object.fromEntries(group.tasks.map((t) => [t.id, t.assigneeId])),
+          assignees: Object.fromEntries(group.todos.map((t) => [t.id, t.assigneeId])),
           now,
           lastRun,
         });
@@ -117,7 +117,7 @@ export const sweepReminders = async (
             memberConsent: member.detailsConsent,
             groupAllowsDetails: group.groupAllowsDetails,
           });
-          const queued = await notify(send.item.kind === "task" ? "taskDue" : "appointmentReminder", {
+          const queued = await notify(send.item.kind === "todo" ? "todoDue" : "appointmentReminder", {
             to: member.email,
             data: reminderEmailData(send, level, unsubscribe),
             idempotencyKey: send.key,

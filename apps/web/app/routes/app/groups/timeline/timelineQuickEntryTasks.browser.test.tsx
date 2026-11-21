@@ -91,7 +91,7 @@ describe("quick entry adds tasks", () => {
     await expect.poll(status).toBe("Saved 1 task");
     expect(cards()).toEqual([]);
 
-    const [saved] = await device.query<TaskDbRow>("SELECT * FROM task");
+    const [saved] = await device.query<TaskDbRow>("SELECT * FROM todo");
     expect(saved).toMatchObject({
       title: "Call pharmacy",
       assignee_id: SAM_ID,
@@ -106,11 +106,11 @@ describe("quick entry adds tasks", () => {
         at(new Date(Date.now() - 60_000)),
       ]),
     ).toEqual([]);
-    expect((await device.queued()).map((w) => `${w.type} ${w.op}`)).toEqual(["task PUT"]);
+    expect((await device.queued()).map((w) => `${w.type} ${w.op}`)).toEqual(["todo PUT"]);
 
     await userEvent.click(page.getByRole("button", { name: "Undo" }));
     await expect
-      .poll(async () => (await device.query<TaskDbRow>("SELECT * FROM task"))[0]?.deleted_at)
+      .poll(async () => (await device.query<TaskDbRow>("SELECT * FROM todo"))[0]?.deleted_at)
       .toBeTruthy();
   });
 
@@ -120,7 +120,7 @@ describe("quick entry adds tasks", () => {
     expect(cards()[1]!.querySelector("p")?.textContent).toBe("Task · No due date");
     await userEvent.click(saveButton()!);
     await expect.poll(status).toBe("Saved 2 entries and 1 task");
-    const tasks = await device.query<TaskDbRow>("SELECT * FROM task");
+    const tasks = await device.query<TaskDbRow>("SELECT * FROM todo");
     expect(tasks.map((t) => [t.title, t.assignee_id, t.due_on])).toEqual([
       ["Fax the insurance form", null, null],
     ]);
@@ -135,7 +135,7 @@ describe("quick entry adds tasks", () => {
     await userEvent.click(saveButton()!);
     // A lone note opens on its page.
     await expect.poll(() => device.location()).toMatch(/\/entries\//);
-    expect(await device.query("SELECT id FROM task")).toEqual([]);
+    expect(await device.query("SELECT id FROM todo")).toEqual([]);
   });
 
   test("Edit opens the add-task sheet filled in", async () => {
@@ -149,7 +149,7 @@ describe("quick entry adds tasks", () => {
     await expect.element(dialog.getByText("Sam Okafor")).toBeVisible();
     expect(dialog.getByLabelText("Due (optional)").element()).toHaveProperty("value", tomorrow);
     expect(dialog.getByLabelText("Time (optional)").element()).toHaveProperty("value", "15:00");
-    expect(await device.query("SELECT id FROM task")).toEqual([]);
+    expect(await device.query("SELECT id FROM todo")).toEqual([]);
   });
 
   test("a viewer gets no box, and the runner refuses their task", async () => {
@@ -171,7 +171,7 @@ describe("quick entry adds tasks", () => {
       index: 1,
       issues: [{ path: "assigneeId", message: "Choose someone in this care group" }],
     });
-    expect(await device.query("SELECT id FROM task")).toEqual([]);
+    expect(await device.query("SELECT id FROM todo")).toEqual([]);
     expect(await device.queued()).toEqual([]);
   });
 });

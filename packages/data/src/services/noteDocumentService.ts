@@ -27,13 +27,13 @@ import {
   noteDocumentModel,
   noteUpdateModel,
   providerModel,
-  taskModel,
+  todoModel,
   timelineEntryModel,
 } from "../models";
 import { rejectError } from "../permissions";
 
 // Live documents (collaborative notes) on note and event entries, on
-// providers, medications, care periods and tasks. Write documents and updates through here, not the models: this
+// providers, medications, care periods and todos. Write documents and updates through here, not the models: this
 // is where the owner's kind, group and deletion are checked.
 //
 // A document's state is its snapshot plus its pending updates. Devices only
@@ -58,7 +58,7 @@ export const COMPACT_AFTER_UPDATES = 20;
 export const COMPACT_AFTER_SECONDS = 60;
 
 /**
- * The document's owner (an entry, a provider, a medication, a care period or a task), as the actor sees it.
+ * The document's owner (an entry, a provider, a medication, a care period or a todo), as the actor sees it.
  * Deleted owners are hidden, and so are their documents.
  */
 const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubject, id: string) => {
@@ -83,12 +83,12 @@ const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubje
       ? { groupId: period.groupId, kind: null }
       : newError({ code: "noteDocumentService:carePeriodNotFound" });
   }
-  if (subject === "task") {
-    const task = await taskModel.getById(id, { ...ctx, tx });
-    if (isError(task)) return task;
-    return task
-      ? { groupId: task.groupId, kind: null }
-      : newError({ code: "noteDocumentService:taskNotFound" });
+  if (subject === "todo") {
+    const todo = await todoModel.getById(id, { ...ctx, tx });
+    if (isError(todo)) return todo;
+    return todo
+      ? { groupId: todo.groupId, kind: null }
+      : newError({ code: "noteDocumentService:todoNotFound" });
   }
   const entry = await timelineEntryModel.getById(id, { ...ctx, tx });
   if (isError(entry)) return entry;
@@ -110,13 +110,13 @@ const visibleDocument = async (ctx: ServiceContext, tx: Tx, id: string) => {
 const ownerColumns = (
   subject: NoteDocumentSubject,
   id: string,
-): Pick<NoteDocument, "subject" | "entryId" | "providerId" | "medicationId" | "carePeriodId" | "taskId"> => ({
+): Pick<NoteDocument, "subject" | "entryId" | "providerId" | "medicationId" | "carePeriodId" | "todoId"> => ({
   subject,
   entryId: subject === "entry" ? id : null,
   providerId: subject === "provider" ? id : null,
   medicationId: subject === "medication" ? id : null,
   carePeriodId: subject === "carePeriod" ? id : null,
-  taskId: subject === "task" ? id : null,
+  todoId: subject === "todo" ? id : null,
 });
 
 // ---------------------------------------------------------------------------

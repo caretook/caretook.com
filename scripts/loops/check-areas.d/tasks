@@ -10,6 +10,6 @@ apps/web/app/components/tasks/*          -
 apps/web/app/lib/tasks/*.sync.ts        -
 # The task sheets' link state lives in lib/ so quick entry can open them.
 apps/web/app/lib/tasks/taskSheetLink.ts  -
-# No browser check reads them; seeds/tasks.test.ts checks them.
-packages/data/src/db/seeds/tasks.ts      -
+# No browser check reads them; seeds/todos.test.ts checks them.
+packages/data/src/db/seeds/todos.ts      -
 apps/web/app/lib/tasks/taskDisplay.ts -

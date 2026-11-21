@@ -1,6 +1,6 @@
-import type { TaskRuleFields } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/schema";
 
-import { assigneeOf, localDate, taskOrder, taskState } from "@caretook/data/schema";
+import { assigneeOf, localDate, todoOrder, todoState } from "@caretook/data/schema";
 import { dayHeading } from "./taskDisplay";
 
 // The task list's shape (pure; web:unit tests it): which tasks the
@@ -32,7 +32,7 @@ export const setWho = (search: string, who: TaskWho) => {
   return `?${params.toString()}`;
 };
 
-type Assigned = Pick<TaskRuleFields, "assigneeId" | "assigneeName" | "doneAt">;
+type Assigned = Pick<TodoRuleFields, "assigneeId" | "assigneeName" | "doneAt">;
 
 /** The chip with no `?who=`: Mine when I have open tasks, else Everyone. */
 export const defaultWho = (tasks: readonly Assigned[], userId: string): TaskWho =>
@@ -56,20 +56,20 @@ export type TaskSection<T> = {
   tasks: T[];
 };
 
-/** Open tasks in sections, in list order (`taskOrder`); empty sections are left out. */
-export const taskSections = <T extends TaskRuleFields>(
+/** Open tasks in sections, in list order (`todoOrder`); empty sections are left out. */
+export const taskSections = <T extends TodoRuleFields>(
   tasks: readonly T[],
   now: Date | number,
   timeZone: string,
 ): TaskSection<T>[] => {
   const today = localDate(now, timeZone);
   const sections: TaskSection<T>[] = [];
-  for (const task of taskOrder(
+  for (const task of todoOrder(
     tasks.filter((t) => !t.doneAt),
     now,
     timeZone,
   )) {
-    const state = taskState(task, now, timeZone);
+    const state = todoState(task, now, timeZone);
     const key = state === "upcoming" ? task.dueOn! : state;
     let section = sections.at(-1);
     if (section?.key !== key) {

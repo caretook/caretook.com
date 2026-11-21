@@ -100,7 +100,7 @@ describe("LinkedTasks", () => {
       .toBeInTheDocument();
     await userEvent.click(page.getByRole("button", { name: "Undo Ask about the stress test" }));
     await expect.poll(titles).toEqual(["Call Dr. Lark's office", "Ask about the stress test"]);
-    const [row] = await device.query<{ done_at: string | null }>("SELECT done_at FROM task WHERE id = ?", [
+    const [row] = await device.query<{ done_at: string | null }>("SELECT done_at FROM todo WHERE id = ?", [
       linked(1, {}).id,
     ]);
     expect(row?.done_at).toBeNull();

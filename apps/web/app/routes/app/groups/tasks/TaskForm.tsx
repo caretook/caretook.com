@@ -4,7 +4,7 @@ import type { LinkChoices } from "./taskSheet";
 import type { ActionResult, FieldIssue } from "~/lib/core/api";
 import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
-import { TASK_LIMITS } from "@caretook/data/schema";
+import { TODO_LIMITS } from "@caretook/data/schema";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { Field } from "~/components/ui";
@@ -108,7 +108,7 @@ export function TaskForm({
             {...control}
             name={FIELD.title}
             className="input w-full"
-            maxLength={TASK_LIMITS.title}
+            maxLength={TODO_LIMITS.title}
             defaultValue={task?.title ?? prefill?.title ?? ""}
             placeholder="e.g. Call the pharmacy"
             autoComplete="off"

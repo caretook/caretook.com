@@ -1,7 +1,7 @@
 import type { LocalTask } from "~/lib/tasks/tasks.sync";
 import type { UpcomingTask } from "~/lib/tasks/upcomingTasks";
 
-import { canCompleteTask } from "@caretook/data/schema";
+import { canCompleteTodo } from "@caretook/data/schema";
 import { ListTodo, UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { TaskTick, useTaskTick } from "~/components/tasks";
@@ -34,7 +34,7 @@ export function UpcomingTaskRow({
   const { task, state } = item;
   const { title } = task;
   const tick = useTaskTick(group.id);
-  const mayTick = canCompleteTask({ role: group.role, userId: group.userId, task });
+  const mayTick = canCompleteTodo({ role: group.role, userId: group.userId, todo: task });
   const overdue = state === "overdue";
   const when = overdue ? "Overdue" : (task.dueTime ?? "All day");
   const due = dueText(task, now, timeZone);

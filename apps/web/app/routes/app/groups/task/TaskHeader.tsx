@@ -1,4 +1,4 @@
-import type { TaskState } from "@caretook/data/schema";
+import type { TodoState } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 
 import { ListTodo } from "lucide-react";
@@ -24,7 +24,7 @@ export function TaskHeader({
   via,
 }: {
   title: string;
-  state: TaskState;
+  state: TodoState;
   via?: string | null;
   editors?: ReactNode;
   actions?: ReactNode;
