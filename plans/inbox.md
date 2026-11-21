@@ -29,6 +29,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - convert planner tabs to TabNav component. (B-251)
 - default filter on todos should be "everyone" and then reduce the list. (B-255)
 - call and directions icons on planner schedule should be below the time, not beside the title/description to free up space on mobile. (B-256)
+- Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg color than the rest of the page and we can probably move to pure icon buttons instead of text buttons with aria tips (B-399)
 
 ## Change requests
 
@@ -36,6 +37,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - link to group details edit page from the edit profile screen for editing the care recipient's timezone. (B-211)
 - Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event, providers do suggest like they should, but creates a note instead of an appointment. "Dr. Elena Alvarez on the 25th" creates a note as do most provider auto completes when it should be an event. Need to improve the logic for this. (B-220)
 - Medications page should be tabbed into Schedule and Medications (B-226)
+- Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the header on the full app header to match simple mode. (B-400)
 
 ## Feature requests
 

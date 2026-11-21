@@ -5,8 +5,8 @@ import { addDays, dayStart, localDate } from "../core/entryTiming";
 import { zonedInstant } from "../core/zonedDay";
 
 // One projection of a care group's calendar (appointments-2), shared by the
-// iCal feed, reminder emails and Google Calendar: appointments (events),
-// reminders (notes planned ahead) and open todos with a due day, as neutral
+// iCal feed, reminder emails and Google Calendar: appointments (events) and
+// open todos with a due day, as neutral
 // `CalendarItem`s. Pure and client-safe. Wording is `calendarText`'s, and how
 // much of an item may leave is `shareLevel`'s; nothing here reads a note's
 // body or live notes, so no note content can leave through it.
@@ -25,11 +25,11 @@ export const calendarWindow = (now: Date) => ({
 
 /**
  * How long an item lasts when nothing says: an appointment without an end
- * an hour, a reminder or a timed todo half an hour (calendars need an end).
+ * an hour, a timed todo half an hour (calendars need an end).
  */
-export const DEFAULT_ITEM_MINUTES = { appointment: 60, reminder: 30, todo: 30 } as const;
+export const DEFAULT_ITEM_MINUTES = { appointment: 60, todo: 30 } as const;
 
-export const CALENDAR_ITEM_KINDS = ["appointment", "reminder", "todo"] as const;
+export const CALENDAR_ITEM_KINDS = ["appointment", "todo"] as const;
 export type CalendarItemKind = (typeof CALENDAR_ITEM_KINDS)[number];
 
 export type CalendarItemStatus = "confirmed" | "cancelled";
@@ -101,24 +101,9 @@ export type CalendarItemsArgs = {
 const iso = (value: string | number | Date) => new Date(value).toISOString();
 const ms = (value: string | number | Date) => new Date(value).getTime();
 
-/**
- * Whether a note is a reminder: a series visit, or written before it was
- * due (before it starts, or for an all-day note before its day ends). A note
- * logged as it happens, or later, is a timeline note and stays out.
- */
-const isReminder = (entry: CalendarEntryInput) => {
-  if (entry.seriesId) return true;
-  const due = entry.allDay
-    ? dayStart(addDays(localDate(entry.occurredAt, entry.timeZone), 1), entry.timeZone)
-    : ms(entry.occurredAt);
-  return ms(entry.createdAt) < due;
-};
-
-const entryKind = (entry: CalendarEntryInput): CalendarItemKind | null => {
-  if (entry.kind === "event") return "appointment";
-  if (entry.kind === "note" && isReminder(entry)) return "reminder";
-  return null;
-};
+/** Only an event is an appointment: a note, past or future, never gives an item. */
+const entryKind = (entry: CalendarEntryInput): CalendarItemKind | null =>
+  entry.kind === "event" ? "appointment" : null;
 
 type Span = Pick<CalendarItem, "allDay" | "start" | "end" | "timeZone">;
 
@@ -136,13 +121,10 @@ const timedSpan = (start: string | number | Date, end: number, timeZone: string)
   timeZone,
 });
 
-const entrySpan = (entry: CalendarEntryInput, kind: CalendarItemKind): Span => {
+const entrySpan = (entry: CalendarEntryInput): Span => {
   if (entry.allDay) return daySpan(localDate(entry.occurredAt, entry.timeZone), entry.timeZone);
   const start = ms(entry.occurredAt);
-  const end =
-    kind === "appointment" && entry.endsAt
-      ? ms(entry.endsAt)
-      : start + DEFAULT_ITEM_MINUTES[kind] * MINUTE_MS;
+  const end = entry.endsAt ? ms(entry.endsAt) : start + DEFAULT_ITEM_MINUTES.appointment * MINUTE_MS;
   return timedSpan(start, end, entry.timeZone);
 };
 
@@ -162,7 +144,7 @@ const trimSlash = (url: string) => url.replace(/\/+$/, "");
 
 /**
  * A group's calendar between `from` and `to`: appointments (cancelled ones
- * kept, marked cancelled), reminders, and open todos with a due day, each
+ * kept, marked cancelled), and open todos with a due day, each
  * overlapping the window. Deleted entries and todos, done todos and undated
  * todos are left out. Soonest first.
  */
@@ -185,7 +167,7 @@ export const calendarItems = ({
     if (entry.deletedAt) continue;
     const kind = entryKind(entry);
     if (!kind) continue;
-    const span = entrySpan(entry, kind);
+    const span = entrySpan(entry);
     if (!inWindow(span)) continue;
     items.push({
       at: spanBounds(span).from,
@@ -195,10 +177,10 @@ export const calendarItems = ({
         groupId: entry.groupId,
         kind,
         ...span,
-        status: kind === "appointment" && entry.cancelledAt ? "cancelled" : "confirmed",
+        status: entry.cancelledAt ? "cancelled" : "confirmed",
         recipientName: recipient.displayName,
         title: entry.title?.trim() || null,
-        place: kind === "appointment" ? entry.place?.trim() || null : null,
+        place: entry.place?.trim() || null,
         providers: entry.providers ?? [],
         series:
           entry.seriesId && entry.seriesDay

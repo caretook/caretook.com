@@ -3,7 +3,7 @@ import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 import type { EntryFilters, EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 import type { ContactRow, LinkedContact } from "./upcomingContact";
 import type { UpcomingSection } from "~/lib/appointments/upcomingDays";
-import type { WithDoses } from "~/lib/appointments/upcomingDoses";
+import type { RecipientRow } from "~/lib/medications/medications.sync";
 import type { WithTodos } from "~/lib/todos/plannerTodos";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
@@ -14,7 +14,7 @@ import { localTimeZone } from "~/lib/core/format";
 import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
 import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/core/paging";
 import { useLiveQuery } from "~/lib/sync";
-import { useDueDoses } from "~/lib/medications/dueDoses.sync";
+import { recipientQuery } from "~/lib/medications/medications.sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { useDueTodos } from "~/lib/todos/todos.sync";
 import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
@@ -28,7 +28,6 @@ import {
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { contactsByEntry } from "./upcomingContact";
 import { pastSections, upcomingSections } from "~/lib/appointments/upcomingDays";
-import { showsDoses, upcomingDoses, withDueDoses } from "~/lib/appointments/upcomingDoses";
 import { showsTodos, plannerTodos, withDueTodos } from "~/lib/todos/plannerTodos";
 import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
 
@@ -40,8 +39,8 @@ import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomin
 /** How often the clock ticks: an item leaves Upcoming within this long of its end. */
 export const UPCOMING_TICK_MS = 30_000;
 
-/** An entry, or (in Upcoming only) one of today's open dose slots or an open dated todo. */
-export type UpcomingListItem = WithTodos<WithDoses<TimelineEntry>, LocalTodo>;
+/** An entry, or (in Upcoming only) an open dated todo. */
+export type UpcomingListItem = WithTodos<TimelineEntry, LocalTodo>;
 
 export type UpcomingListData = {
   sections: UpcomingSection<UpcomingListItem>[];
@@ -107,10 +106,13 @@ function useListSupport(
 export function useUpcomingData({
   groupId,
   filters,
+  todosOnly = false,
   initial,
 }: {
   groupId: string;
   filters: EntryFilters;
+  /** Todos only (`?show=todos`): no entries. */
+  todosOnly?: boolean;
   initial: UpcomingRows;
 }): UpcomingListData {
   const now = useNow(UPCOMING_TICK_MS);
@@ -122,27 +124,28 @@ export function useUpcomingData({
     initial.contactRows,
   );
   const support = useListSupport(groupId, initial, contactRows);
-  // Today's open dose slots, live: a logged dose answers its slot, and it drops out.
-  const dueDoses = useDueDoses(groupId, initial.dueRows);
+  // The recipient's zone, which todos' due days and times are in.
+  const recipientSql = recipientQuery(groupId);
+  const recipient = useLiveQuery<RecipientRow>(recipientSql.sql, recipientSql.params, initial.recipientRows);
+  const todoZone = recipient[0]?.time_zone || "UTC";
   const at = new Date(now);
   const zone = localTimeZone();
-  const shown = support.withPreview(toTimelineEntries(entryRows));
+  const shown = todosOnly ? [] : support.withPreview(toTimelineEntries(entryRows));
   const sections = upcomingSections(shown, at, zone);
-  const doses = showsDoses(filters) ? upcomingDoses(dueDoses.due, dueDoses.passes) : [];
   // Open dated todos through Upcoming's last day, live: completing one drops it out.
-  const dueTodos = useDueTodos(groupId, dueDoses.timeZone, {
+  const dueTodos = useDueTodos(groupId, todoZone, {
     days: UPCOMING_HORIZON_DAYS,
     initial: initial.todoRows,
   });
-  const todos = showsTodos(filters) ? plannerTodos(dueTodos.todos, at, dueDoses.timeZone) : [];
+  const todos = showsTodos(filters) ? plannerTodos(dueTodos.todos, at, todoZone) : [];
   return {
-    sections: withDueTodos(withDueDoses(sections, doses, at, zone), todos, at, zone, dueDoses.timeZone),
+    sections: withDueTodos(sections, todos, at, zone, todoZone),
     rescheduledOf: support.rescheduledOf,
     now: at,
     nameOf: support.nameOf,
     imageOf: support.imageOf,
     contactsOf: support.contactsOf,
-    todoZone: dueDoses.timeZone,
+    todoZone,
   };
 }
 

@@ -10,7 +10,8 @@ import { useFetcher } from "react-router";
 import { Field } from "~/components/ui";
 import { AssigneeField } from "./AssigneeField";
 import { TodoLinkFields } from "./TodoLinkFields";
-import { FIELD, isFieldIssue } from "./todoFormData";
+import { FIELD, initialRepeat, isFieldIssue, repeatOnDay } from "./todoFormData";
+import { TodoRepeat } from "./TodoRepeat";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 
@@ -37,7 +38,8 @@ export type TodoFormPrefill = {
 
 /**
  * Add or edit a todo: the title, who does it, an optional due day with an
- * optional time (both in the recipient's zone), and optional links to a
+ * optional time (both in the recipient's zone), how it repeats (once it
+ * has a day: planner-2), and optional links to a
  * provider, an appointment and a medication. Posts to its sheet
  * route's clientAction, which writes on the device; the shared Zod schema's
  * messages show on the fields.
@@ -74,6 +76,8 @@ export function TodoForm({
   const issues = result && !result.ok ? result.issues : [];
   const busy = fetcher.state !== "idle";
   const [day, setDay] = useState(todo?.dueOn ?? dueOn ?? "");
+  const [time, setTime] = useState(todo?.dueTime ?? prefill?.dueTime ?? "");
+  const [repeat, setRepeat] = useState(() => initialRepeat(todo));
 
   // A save closes the sheet; a refusal moves focus to the first field it's about.
   const handled = useRef<ActionResult | undefined>(undefined);
@@ -138,7 +142,11 @@ export function TodoForm({
               name={FIELD.dueOn}
               className="input w-full"
               value={day}
-              onChange={(e) => setDay(e.currentTarget.value)}
+              onChange={(e) => {
+                const next = e.currentTarget.value;
+                setDay(next);
+                setRepeat((r) => repeatOnDay(r, next));
+              }}
             />
           )}
         </Field>
@@ -149,12 +157,21 @@ export function TodoForm({
               type="time"
               name={FIELD.dueTime}
               className="input w-full"
-              defaultValue={todo?.dueTime ?? prefill?.dueTime ?? ""}
+              value={time}
+              onChange={(e) => setTime(e.currentTarget.value)}
               disabled={!day}
             />
           )}
         </Field>
       </div>
+
+      <TodoRepeat
+        day={day}
+        dueTime={time}
+        draft={repeat}
+        onChange={setRepeat}
+        error={issueFor(issues, FIELD.repeatRule)}
+      />
 
       <TodoLinkFields
         choices={links}

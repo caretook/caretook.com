@@ -10,7 +10,7 @@ import { REMINDER_LEADS } from "./calendarRules";
 // sheet can say what will be sent. The calendar cron's `sweepReminders`
 // feeds it a group's items and members' settings and notifies each send.
 //
-// - Appointments and reminders go to members with reminders on, at their
+// - Appointments go to members with reminders on, at their
 //   leads plus an override's extras, minus a mute.
 // - A todo goes to its assignee (a member with reminders on) only: the
 //   morning of its due day, or 1 h before its due time.

@@ -8,6 +8,7 @@ import type {
   ProviderUpsertInput,
   RecipientAllergyUpsertInput,
   RecipientConditionUpsertInput,
+  TodoOccurrenceInput,
   TodoUpsertInput,
   TimelineEntryUpsertInput,
 } from "@caretook/data";
@@ -609,6 +610,9 @@ const TODO_COLUMNS = {
   provider_id: (v: unknown) => ["providerId", text(v)],
   medication_id: (v: unknown) => ["medicationId", text(v)],
   event_id: (v: unknown) => ["eventId", text(v)],
+  // The anchor and chain (`repeat_starts_on`, `repeat_id`) follow the rule
+  // and due day on the server (`repeatColumnsFor`), as on the device.
+  repeat_rule: (v: unknown) => ["repeatRule", text(v)],
 } as const satisfies Record<string, (v: unknown) => [string, unknown]>;
 
 const todoContentFrom = (data: Record<string, unknown>) =>
@@ -646,6 +650,20 @@ const todoOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome>
       recipientId: text(data.recipient_id) ?? undefined,
       ...todoContentFrom(data),
     };
+    // A repeating todo's later occurrence (its chain is another todo's): the
+    // twin of the row the server makes on the tick, or a device's skip.
+    const repeatId = text(data.repeat_id);
+    if (repeatId && repeatId !== op.id) {
+      const occurrence = { ...input, repeatId, repeatStartsOn: text(data.repeat_starts_on) };
+      // Unchecked here on purpose: the service validates the whole shape.
+      const res = await todoService.upsertOccurrence(ctx, occurrence as unknown as TodoOccurrenceInput);
+      if (isError(res)) return res;
+      // A stale twin: nothing was written, and the next sync takes it away.
+      if (!res) return applied;
+      if (data.deleted_at) return removeTodo(ctx, op.id);
+      if (data.done_at) return setTodoDone(ctx, op.id, data.done_at);
+      return applied;
+    }
     // Unchecked here on purpose: the service validates the whole shape.
     const res = await todoService.upsert(ctx, input as unknown as TodoUpsertInput);
     if (isError(res)) return res;
@@ -660,7 +678,16 @@ const todoOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome>
   // PATCH: only the columns that changed.
   if ("group_id" in data || "recipient_id" in data) return newError({ code: "todoService:immutable" });
   if (data.deleted_at) return removeTodo(ctx, op.id);
-  const content = todoContentFrom(data);
+  // A repeating todo's later occurrence brought back (a tick or skip remade
+  // one an Undo took away); its content follows as an ordinary edit.
+  if ("deleted_at" in data) {
+    const res = await todoService.restoreOccurrence(ctx, op.id);
+    if (isError(res)) return res;
+  }
+  const content: Record<string, unknown> = todoContentFrom(data);
+  // A tick or reopen decides the repeat on the server (a reopen whose next
+  // was edited stops repeating there too), so a device's copy of it is ignored.
+  if ("done_at" in data) delete content.repeatRule;
   if (Object.keys(content).length > 0) {
     const res = await todoService.update(ctx, op.id, content);
     if (isError(res)) return res;

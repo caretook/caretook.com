@@ -1,6 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import * as entryRoute from "../entry/route";
 import * as providerRoute from "../provider/route";
@@ -182,10 +182,15 @@ export const listNames = (label: "Current providers" | "Past providers") =>
   $$(`main ul[aria-label="${label}"] [data-provider-name]`).map((n) => n.textContent.trim());
 export const SEARCH = () => $<HTMLInputElement>('main input[type="search"]');
 export const SHOW_PAST = () => $<HTMLAnchorElement>("main [data-show-past]");
-export const typeChip = (label: string) =>
-  $$<HTMLAnchorElement>('main nav[aria-label="Show providers"] a').find(
-    (a) => a.textContent.trim() === label,
-  );
+/** The "Filters on" chips' labels (without their ✕). */
+export const filterChips = () => $$('main nav[aria-label="Filters on"] a').map((a) => a.textContent.trim());
+/** The Filter button, by its exact name: the menu ("Filter providers") and the chips ("Filters on") are named alike. */
+export const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
+/** Opens the Filter menu and chooses an option (the menu closes). */
+export const chooseFilter = async (option: string) => {
+  await userEvent.click(filterButton());
+  await userEvent.click(page.getByRole("menuitemradio", { name: option, exact: true }));
+};
 export const ADD_PROVIDER = () => $<HTMLAnchorElement>("main [data-add-provider]");
 
 export const SHEET = () => $("[role=dialog]");

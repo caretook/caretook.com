@@ -38,7 +38,7 @@ The timeline area's rules and decisions.
   - **The quick-entry box** (writers): `components/quick-entry/`, rules in [assistant](assistant.md).
   - **Empty Today** (writer, full view, unfiltered): "Nothing logged today yet." and "Add an entry" (focuses the box, `fieldRef`).
   - **Day summaries** (`DaySummaryLine`, one truncated line in its `DayHeader`, chevron first, tap to expand; pure `daySummary.ts`): vitals (a range with an arrow), symptoms (highest severity, "(new)" against the baseline), events, who logged. **No note count and no doses**; a day with no vitals, symptoms or events gets no line. **Highlights** are vitals with an arrow, new or severe (`SEVERE_SYMPTOM`) symptoms, and events. The viewer's `daySummary` (View options) picks the collapsed line; expanded is always the full breakdown. **Any kind, author, vital or search filter hides every summary** (`summariesOff`).
-  - **The history ends at now** (`historyWindow`).
+  - **The history ends at now** (`historyWindow`, `HISTORY_ENDS_SQL`).
   - **Infinite scroll:** `OlderEntries` calls `loadOlder`; the limit grows by `PAGE_SIZE` (`lib/core/paging.ts`). The previous window shows until a larger one arrives (`useLiveRows`). Back from an entry page restores it (`timelinePaging.ts`: same `location.key` and filters). Older pages' rows get `content-visibility: auto` (`offscreenRows.ts`).
   - **The route only composes** (`route.tsx`): data from `useTimelineData`, the view from `useTimelineView`, deletes from `useEntryRemoval`.
 - **Seeds** (`seeds/timelineEntries.ts`):

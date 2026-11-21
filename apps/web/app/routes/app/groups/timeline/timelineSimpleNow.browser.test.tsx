@@ -136,6 +136,16 @@ describe("the Upcoming block", () => {
     ]);
   });
 
+  test("a stored future note is never the next item", async () => {
+    const NOTE = fx.note({ title: "Call the pharmacy", occurredAt: hoursAhead(2), text: "Refill." });
+    const device = await open("caretaker", [NOTE, VISIT]);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-next]")?.textContent)
+      .toMatch(/^Next: Visit with Dr\. Lark/);
+    await device.settle();
+    expect(now()?.textContent).not.toContain("Call the pharmacy");
+  });
+
   test("nothing due and nothing ahead: no Upcoming heading", async () => {
     const device = await open("caretaker", []);
     await waitUntil(() => !!document.querySelector("[data-simple-timeline]"), 4000, "the simple view");
@@ -150,7 +160,7 @@ describe("the next appointment opens the next five upcoming items", () => {
   // first (before today's timed items, or in today's section before
   // tomorrow's), then the rest by time; the last two are past the five.
   const FAX = todo({ title: "Fax the form", dueOn: localDate(new Date(), TEST_TIME_ZONE) });
-  const CALL = fx.note({ title: "Call about the walker", occurredAt: hoursAhead(3) });
+  const CALL = fx.event({ title: "Call about the walker", occurredAt: hoursAhead(3) });
   const THERAPY = fx.event({ title: "Physical therapy", occurredAt: hoursAhead(50) });
   const EYE = fx.event({ title: "Eye exam", occurredAt: hoursAhead(74) });
   const DENTAL = fx.event({ title: "Dental cleaning", occurredAt: hoursAhead(98) });
@@ -170,7 +180,7 @@ describe("the next appointment opens the next five upcoming items", () => {
   test("a tap opens the next five in Upcoming's order without navigating; See all; a second tap closes it", async () => {
     const device = await open("caretaker", SEVEN);
     await expect.element(toggle()).toBeVisible();
-    // The next appointment or reminder: the reminder note, the soonest timed entry.
+    // The next appointment: the soonest timed entry.
     expect(toggle().element().textContent).toMatch(/^Next: Call about the walker · .* · \+5 more$/);
     await expect.element(toggle()).toHaveAttribute("aria-expanded", "false");
     expect(list()!.hidden).toBe(true);

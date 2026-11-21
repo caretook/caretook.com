@@ -19,7 +19,7 @@ const MODES: { mode: Mode; label: string }[] = [
 type Loaded = { settings: RemindSettings; choice: RemindChoice };
 
 /**
- * "Remind me" for one appointment or reminder, from its ⋯ menu: Use my
+ * "Remind me" for one appointment, from its ⋯ menu: Use my
  * settings, No reminders for this one, or Also remind me (lead choices, up to
  * three), with a line saying what will be sent. The member's own choice, any
  * role. It lives on the server only, so offline the sheet says it needs a

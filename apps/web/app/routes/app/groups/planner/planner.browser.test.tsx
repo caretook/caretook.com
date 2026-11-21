@@ -1,6 +1,7 @@
+import { localDate } from "@caretook/data/schema";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { fx, TEST_GROUP } from "../../../../../test/fixtures";
+import { fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE, todo } from "../../../../../test/fixtures";
 import { pageHeader } from "../../../../../test/pageHeader";
 import {
   BLOOD_DRAW,
@@ -18,7 +19,6 @@ import {
   PAST_NOTE,
   PAST_URL,
   PODIATRY,
-  REFILL,
   RIDE,
   rowOf,
   SAM,
@@ -32,12 +32,12 @@ import * as pastRoute from "./past/route";
 import * as plannerRoute from "./route";
 
 // The Planner on the test device (from upcoming.mjs): the section in the
-// tab bar and the header, the shared header on its three tabs (the heading,
-// the tabs, the Add menu), the Planner tab's list (order, days, Now, all
-// day, ranges, cancelled and rescheduled, the reminder note, call and map),
+// tab bar and the header, the shared header on its two tabs (the heading,
+// the tabs, the Add menu), Upcoming | Past, the Filter menu, the Planner tab's list (order, days, Now, all
+// day, ranges, cancelled and rescheduled, call and map),
 // the kind and author filters in the URL, the Past tab (newest first,
-// cancelled ones, paging), items leaving as their time passes, today's due
-// doses, the viewer and a non-member. The device never connects, so every
+// cancelled ones, paging), items leaving as their time passes, no due doses
+// or passes, the viewer and a non-member. The device never connects, so every
 // test here is also "offline, from the device's copy". The rules themselves
 // (timing, order, labels, filters, actions) are the pure modules' unit
 // tests; this is what's on the screen.
@@ -50,11 +50,27 @@ const sectionLinks = (nav: string) =>
     a.textContent?.trim(),
     a.getAttribute("aria-current"),
   ]);
-const chip = (label: string) =>
-  [...document.querySelectorAll<HTMLAnchorElement>('main nav[aria-label="Show items"] a')].find(
-    (a) => a.textContent?.trim() === label,
+/** The Filter button, by its exact name: the menu ("Filter the Planner") and the chips ("Filters on") are named alike. */
+const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
+/** The labels of the "Filters on" chips. */
+const filterChips = () =>
+  [...document.querySelectorAll<HTMLAnchorElement>('main nav[aria-label="Filters on"] a')].map((a) =>
+    a.textContent?.trim().replace(/^[A-Z]{1,2}(?=By )/, ""),
   );
-const TABS = 'main nav[aria-label="Planner, todos or past"]';
+/** Opens the Filter menu and chooses an option (the menu closes). */
+const choose = async (option: string) => {
+  await expect.element(filterButton()).toBeVisible();
+  await userEvent.click(filterButton());
+  await userEvent.click(page.getByRole("menuitemradio", { name: option, exact: true }));
+  await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+};
+const TABS = 'main nav[aria-label="Planner or todos"]';
+const VIEWS = 'main nav[aria-label="Upcoming or past"]';
+/** The Upcoming | Past chip, by its label. */
+const view = (label: string) =>
+  [...document.querySelectorAll<HTMLAnchorElement>(`${VIEWS} a`)].find(
+    (a) => a.textContent?.trim() === label,
+  )!;
 const tab = (label: string) =>
   [...document.querySelectorAll<HTMLAnchorElement>(`${TABS} a`)].find(
     (a) => a.textContent?.trim() === label,
@@ -89,7 +105,7 @@ describe("the section", () => {
     await expect.poll(() => plannerLink(HEADER_NAV)).toEqual(["Planner", "page"]);
     await page.viewport(420, 900);
 
-    await userEvent.click(tab("Past"));
+    await userEvent.click(view("Past"));
     await expect.element(page.getByText("Hearing test")).toBeInTheDocument();
     expect(plannerLink(TAB_BAR)).toEqual(["Planner", "true"]);
     await userEvent.click(tab("Todos"));
@@ -100,13 +116,12 @@ describe("the section", () => {
 
 describe("the header", () => {
   const G = `/app/groups/${TEST_GROUP.id}`;
-  test("on each tab: the Planner heading, that tab current, and the tabs going to Planner, Todos and Past", async () => {
+  test("two tabs, Planner and Todos: each current on its own page, and Planner stays current on Past", async () => {
     const device = await openPlanner();
     const expected = (current: string) =>
       [
         ["Planner", `${G}/planner`],
         ["Todos", `${G}/todos`],
-        ["Past", `${G}/planner/past`],
       ].map(([name, href]) => [name, href, name === current ? "page" : null]);
     expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
     expect(tabs()).toEqual(expected("Planner"));
@@ -116,14 +131,12 @@ describe("the header", () => {
     await expect.poll(() => tabs()).toEqual(expected("Todos"));
     expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
 
-    await userEvent.click(tab("Past"));
-    await expect.poll(() => device.location()).toBe(PAST_URL);
-    await expect.poll(() => tabs()).toEqual(expected("Past"));
-    expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
-
     await userEvent.click(tab("Planner"));
     await expect.poll(() => device.location()).toBe(PLANNER_URL);
+    await userEvent.click(view("Past"));
+    await expect.poll(() => device.location()).toBe(PAST_URL);
     await expect.poll(() => tabs()).toEqual(expected("Planner"));
+    expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
   });
 
   test("the page titles: Planner, Todos and Past", () => {
@@ -135,15 +148,15 @@ describe("the header", () => {
     ]);
   });
 
-  test("the tabs carry what each reads: Planner the kind and author, Past the author, Todos its chip", async () => {
+  test("the tabs carry what each reads: Planner what it shows and the author, Todos its chip; Upcoming | Past carry the author", async () => {
     await openPlanner({ url: `${PLANNER_URL}?kind=event&author=${SAM.id}` });
-    expect(tab("Past").getAttribute("href")).toBe(`${PAST_URL}?author=${SAM.id}`);
+    expect(tab("Planner").getAttribute("href")).toBe(`${PLANNER_URL}?kind=event&author=${SAM.id}`);
+    expect(view("Past").getAttribute("href")).toBe(`${PAST_URL}?author=${SAM.id}`);
     expect(tab("Todos").getAttribute("href")).toBe(TODOS_URL);
     await userEvent.click(tab("Todos"));
-    await userEvent.click(
-      page.getByRole("navigation", { name: "Show todos" }).getByRole("link", { name: "Everyone" }),
-    );
-    await expect.poll(() => tab("Todos").getAttribute("href")).toBe(`${TODOS_URL}?who=everyone`);
+    await userEvent.click(page.getByRole("button", { name: /^Filter(, \d+ on)?$/ }));
+    await userEvent.click(page.getByRole("menuitemradio", { name: "Mine", exact: true }));
+    await expect.poll(() => tab("Todos").getAttribute("href")).toBe(`${TODOS_URL}?who=mine`);
     expect(tab("Planner").getAttribute("href")).toBe(PLANNER_URL);
   });
 });
@@ -155,7 +168,6 @@ describe("the list", () => {
       NURSE.id,
       THERAPY.id,
       CARDIOLOGY.id,
-      REFILL.id,
       HOSPICE.id,
       RIDE.id,
       DENTIST.id,
@@ -195,14 +207,6 @@ describe("the list", () => {
     ).toEqual(UPCOMING_LIVE.map((e) => e.id));
   });
 
-  test("the reminder note is listed with the appointments as a note, and opens its page", async () => {
-    await openPlanner();
-    const refill = rowOf(REFILL.id)!;
-    expect(refill.kindLink).toBe("Show only notes");
-    expect(refill.open).toBe(`/app/groups/${TEST_GROUP.id}/entries/${REFILL.id}`);
-    expect(rowOf(CARDIOLOGY.id)!.kindLink).toBe("Show only events");
-  });
-
   test("call and map on a row with a provider and a place; a call alone with only a phone; nothing on a row with neither", async () => {
     await openPlanner();
     const cardiology = rowOf(CARDIOLOGY.id)!.actions;
@@ -240,25 +244,19 @@ describe("adding", () => {
   const items = () =>
     [...document.querySelectorAll("[role=menu] [role=menuitem]")].map((m) => m.textContent?.trim());
 
-  test("a writer's Add menu has Appointment, Reminder and Todo; Appointment and Reminder are drafts that pick the time first", async () => {
+  test("a writer's Add menu has Appointment and Todo; Appointment is a draft that picks the time first", async () => {
     const device = await openPlanner({ role: "caretaker" });
     await userEvent.click(addButton());
-    await expect.poll(items).toEqual(["Appointment", "Reminder", "Todo"]);
+    await expect.poll(items).toEqual(["Appointment", "Todo"]);
     const base = `/app/groups/${TEST_GROUP.id}/entries/new`;
     await userEvent.click(page.getByRole("menuitem", { name: "Appointment" }));
     await expect.poll(() => device.location()).toBe(`${base}?kind=event&when=pick`);
-    await device.screen.unmount();
-
-    const again = await openPlanner({ role: "caretaker" });
-    await userEvent.click(addButton());
-    await userEvent.click(page.getByRole("menuitem", { name: "Reminder" }));
-    await expect.poll(() => again.location()).toBe(`${base}?kind=note&when=pick`);
   });
 
-  for (const [name, url] of [
-    ["Planner", () => PLANNER_URL],
-    ["Past", () => PAST_URL],
-    ["Todos", () => TODOS_URL],
+  for (const [name, tabName, url] of [
+    ["Planner", "Planner", () => PLANNER_URL],
+    ["Past", "Planner", () => PAST_URL],
+    ["Todos", "Todos", () => TODOS_URL],
   ] as const)
     test(`on ${name}: Todo opens the add sheet, and Cancel comes back to ${name}`, async () => {
       const device = await openPlanner({ role: "caretaker", url: url() });
@@ -269,7 +267,7 @@ describe("adding", () => {
       expect(device.location()).toBe(`${TODOS_URL}/new`);
       await userEvent.click(dialog.getByRole("button", { name: "Cancel" }));
       await expect.poll(() => device.location()).toBe(url());
-      await expect.poll(() => tab(name).getAttribute("aria-current")).toBe("page");
+      await expect.poll(() => tab(tabName).getAttribute("aria-current")).toBe("page");
       expect(document.querySelector('[role="dialog"]')).toBeNull();
     });
 
@@ -278,32 +276,84 @@ describe("adding", () => {
     expect(listed().map((r) => r.id)).toContain(CARDIOLOGY.id);
     expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
     expect(addButton().query()).toBeNull();
-    for (const name of ["Todos", "Past"]) {
-      await userEvent.click(tab(name));
-      await expect.poll(() => tab(name).getAttribute("aria-current")).toBe("page");
-      expect(addButton().query()).toBeNull();
-    }
+    await userEvent.click(tab("Todos"));
+    await expect.poll(() => device.location()).toBe(TODOS_URL);
+    expect(addButton().query()).toBeNull();
+    await userEvent.click(tab("Planner"));
+    await expect.poll(() => view("Past")).toBeTruthy();
+    await userEvent.click(view("Past"));
+    await expect.poll(() => device.location()).toBe(PAST_URL);
+    expect(addButton().query()).toBeNull();
     expect(device.location()).toBe(PAST_URL);
   });
 });
 describe("filters", () => {
-  test("the Appointments chip shows only events, in the URL, and survives a reload", async () => {
-    const device = await openPlanner();
-    expect(chip("All")!.getAttribute("aria-current")).toBe("true");
-    await userEvent.click(chip("Appointments")!);
-    await expect.poll(() => device.location()).toBe(`${PLANNER_URL}?kind=event`);
-    await expect.poll(() => listed().some((r) => r.id === REFILL.id)).toBe(false);
-    expect(listed().every((r) => r.kindLink === "Show only events")).toBe(true);
-    // A reload: the screen opened at that URL.
-    await device.screen.unmount();
-    await openPlanner({ url: device.location() });
-    expect(chip("Appointments")!.getAttribute("aria-current")).toBe("true");
-    const rows = listed();
-    expect(rows.length).toBeGreaterThan(0);
-    expect(rows.every((r) => r.kindLink === "Show only events")).toBe(true);
+  const TODAY_TODO = () =>
+    todo({
+      id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7c21",
+      title: "Fax the form",
+      dueOn: localDate(new Date(), TEST_TIME_ZONE),
+    });
+  const todoRows = () => document.querySelectorAll("main [data-planner-todo]").length;
+
+  test("Upcoming | Past at the left of the row (Upcoming current), the Filter button at its right end, no chip row while All", async () => {
+    await openPlanner();
+    expect(
+      [...document.querySelectorAll(`${VIEWS} a`)].map((a) => [
+        a.textContent?.trim(),
+        a.getAttribute("aria-current"),
+      ]),
+    ).toEqual([
+      ["Upcoming", "true"],
+      ["Past", null],
+    ]);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter");
+    expect(document.querySelector('main nav[aria-label="Filters on"]')).toBeNull();
+    expect(document.querySelector('main nav[aria-label="Show items"]')).toBeNull();
   });
 
-  test("an author's initials show only their items, with a chip naming them that clears it", async () => {
+  test("Events shows only events, in the URL, with its chip, Filter, 1 on, and survives a reload; its ✕ returns to All", async () => {
+    const device = await openPlanner({ extra: [TODAY_TODO()] });
+    await expect.poll(todoRows).toBe(1);
+    await choose("Events");
+    await expect.poll(() => device.location()).toBe(`${PLANNER_URL}?kind=event`);
+    expect(listed().every((r) => r.kindLink === "Show only events")).toBe(true);
+    expect(todoRows()).toBe(0);
+    expect(filterChips()).toEqual(["Events"]);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
+    // A reload: the screen opened at that URL.
+    await device.screen.unmount();
+    const again = await openPlanner({ url: device.location(), extra: [TODAY_TODO()] });
+    expect(filterChips()).toEqual(["Events"]);
+    expect(listed().length).toBeGreaterThan(0);
+    expect(todoRows()).toBe(0);
+    await userEvent.click(page.getByRole("link", { name: "Events: clear this filter" }));
+    await expect.poll(() => again.location()).toBe(PLANNER_URL);
+    await expect.poll(todoRows).toBe(1);
+    expect(listed().length).toBe(8);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter");
+  });
+
+  test("Todos shows only todos (no events), with its chip and Filter, 1 on; its ✕ returns to All", async () => {
+    const device = await openPlanner({ extra: [TODAY_TODO()] });
+    await choose("Todos");
+    await expect.poll(() => device.location()).toBe(`${PLANNER_URL}?show=todos`);
+    await expect.poll(() => listed().length).toBe(0);
+    expect(todoRows()).toBe(1);
+    expect(filterChips()).toEqual(["Todos"]);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
+    await userEvent.click(page.getByRole("link", { name: "Todos: clear this filter" }));
+    await expect.poll(() => device.location()).toBe(PLANNER_URL);
+    await expect.poll(() => listed().length).toBe(8);
+    expect(todoRows()).toBe(1);
+  });
+
+  test("an empty Todos list says what is on", async () => {
+    await openPlanner({ url: `${PLANNER_URL}?show=todos` });
+    await expect.element(page.getByText("No upcoming todos.")).toBeVisible();
+  });
+
+  test("an author's initials show only their items, with a chip naming them that clears only the author and isn't counted; it shows on Past too", async () => {
     const device = await openPlanner();
     await userEvent.click(
       document.querySelector(`[data-upcoming-item="${THERAPY.id}"] [data-author="${SAM.id}"]`)!,
@@ -312,20 +362,39 @@ describe("filters", () => {
     await expect.poll(() => listed().map((r) => r.id)).toEqual([THERAPY.id, HOSPICE.id, RIDE.id]);
     const by = page.getByRole("link", { name: "By Sam Okafor: clear this filter" });
     await expect.element(by).toHaveAttribute("aria-current", "true");
-    await userEvent.click(by);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter");
+
+    await choose("Events");
+    await expect.poll(() => device.location()).toBe(`${PLANNER_URL}?kind=event&author=${SAM.id}`);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
+    expect(filterChips()).toEqual(["Events", "By Sam Okafor"]);
+
+    // Past keeps the author, drops the rest: no Filter button, only the author chip.
+    await userEvent.click(view("Past"));
+    await expect.poll(() => device.location()).toBe(`${PAST_URL}?author=${SAM.id}`);
+    await expect.element(by).toBeVisible();
+    expect(filterChips()).toEqual(["By Sam Okafor"]);
+    expect(filterButton().query()).toBeNull();
+    // Back to Upcoming: the author stays, the show choice is reset.
+    await userEvent.click(view("Upcoming"));
+    await expect.poll(() => device.location()).toBe(`${PLANNER_URL}?author=${SAM.id}`);
+
+    await userEvent.click(page.getByRole("link", { name: "By Sam Okafor: clear this filter" }));
     await expect.poll(() => device.location()).toBe(PLANNER_URL);
-    await expect.poll(() => listed().length).toBe(9);
+    await expect.poll(() => listed().length).toBe(8);
   });
 });
 
 describe("the Past tab", () => {
   test("from the Planner tab: past events only, newest first, cancelled ones included, no notes; the Past tab current", async () => {
     const device = await openPlanner();
-    await userEvent.click(tab("Past"));
+    await userEvent.click(view("Past"));
     await expect.poll(() => device.location()).toBe(PAST_URL);
     await expect.element(page.getByText("Hearing test")).toBeInTheDocument();
-    expect(tab("Past").getAttribute("aria-current")).toBe("page");
-    expect(tab("Planner").getAttribute("aria-current")).toBeNull();
+    expect(view("Past").getAttribute("aria-current")).toBe("true");
+    expect(view("Upcoming").getAttribute("aria-current")).toBeNull();
+    expect(tab("Planner").getAttribute("aria-current")).toBe("page");
+    expect(filterButton().query()).toBeNull();
     const rows = listed();
     expect(rows.slice(0, 3).map((r) => r.id)).toEqual([BLOOD_DRAW.id, HEARING.id, PODIATRY.id]);
     expect(rowOf(HEARING.id)).toMatchObject({ cancelled: true, struck: true });
@@ -360,81 +429,37 @@ describe("a non-member", () => {
   });
 });
 
-describe("today's due doses", () => {
-  // At 10:00: a slot at 9:57 (due) and one at 10:20 (later), with an event at 10:10 between them.
+describe("no due doses or passes", () => {
+  // At 10:00: a slot at 9:57 (due) and one at 10:20 (later), and a pass given today.
+  const PASS = medicationPass({ name: "Rounds", time: "09:53", sortOrder: 0 });
   const DONEPEZIL = fx.medication({
     name: "Donepezil",
     strength: "5 mg",
     schedule: { type: "scheduled", slots: [{ time: "09:57" }, { time: "10:20" }] },
   });
+  const XA = fx.medication({
+    name: "Xa",
+    strength: "5 mg",
+    schedule: { type: "scheduled", slots: [{ passId: PASS.id }] },
+  });
+  const GIVEN = fx.dose({ medicationId: XA.id, scheduledFor: "09:53", occurredAt: laTime(0, 9, 55) });
   const BETWEEN = fx.event({ title: "Between doses", occurredAt: laTime(0, 10, 10) });
-  const DUE = `${DONEPEZIL.id}@09:57`;
-  const LATER = `${DONEPEZIL.id}@10:20`;
-  const doseRow = (key: string) => document.querySelector<HTMLElement>(`main [data-upcoming-dose="${key}"]`);
-  const today = () => {
-    const day = [...document.querySelectorAll("main [data-upcoming-list] [data-day]")].find(
-      (d) => d.querySelector("h3")?.textContent?.trim() === "Today",
-    )!;
-    return [...day.querySelectorAll<HTMLElement>("li[data-upcoming-dose], li[data-upcoming-item]")].map(
-      (li) => li.dataset.upcomingDose ?? li.dataset.upcomingItem,
-    );
-  };
-  const doses = [DONEPEZIL, BETWEEN];
 
-  test("they show under Today in time order around an event between them; the due one says Due, the later one nothing, both named", async () => {
-    await openPlanner({ extra: doses });
-    expect(today()).toEqual([DUE, BETWEEN.id, LATER, THERAPY.id]);
-    const due = doseRow(DUE)!;
-    const later = doseRow(LATER)!;
-    expect(due.dataset.slotState).toBe("due");
-    expect(due.querySelector("[data-dose-state]")?.textContent).toBe("Due");
-    expect(later.dataset.slotState).toBe("upcoming");
-    expect(later.querySelector("[data-dose-state]")).toBeNull();
-    for (const row of [due, later]) expect(row.textContent).toContain("Donepezil 5 mg dose");
-    expect(due.querySelector("a")?.getAttribute("aria-label")).toMatch(/^Log .* dose, due$/);
-  });
-
-  test("a viewer sees the doses, with no link", async () => {
-    await openPlanner({ extra: doses, role: "viewer" });
-    expect(doseRow(DUE)).not.toBeNull();
-    expect(doseRow(LATER)).not.toBeNull();
-    expect(doseRow(DUE)!.querySelectorAll("a")).toHaveLength(0);
-    expect(doseRow(LATER)!.querySelectorAll("a")).toHaveLength(0);
-  });
-
-  test("a kind filter hides them", async () => {
-    await openPlanner({ extra: doses, url: `${PLANNER_URL}?kind=event` });
-    expect(listed().length).toBeGreaterThan(0);
+  test("the Planner lists the appointment and no dose or pass row", async () => {
+    await openPlanner({ extra: [PASS, DONEPEZIL, XA, GIVEN, BETWEEN] });
+    expect(listed().map((r) => r.id)).toContain(BETWEEN.id);
     expect(document.querySelector("main [data-upcoming-dose]")).toBeNull();
+    expect(document.querySelector("main [data-upcoming-list]")?.textContent).not.toMatch(/Donepezil|Rounds/);
   });
+});
 
-  test("the due one opens the Dose sheet on its medication and slot; logging it comes back to the Planner without it, the later one kept, one dose queued", async () => {
-    const device = await openPlanner({ extra: doses });
-    await userEvent.click(doseRow(DUE)!.querySelector("a")!);
-    await expect.poll(() => device.location()).toMatch(/\/timeline\/new\/dose\?/);
-    const search = new URLSearchParams(device.location().split("?")[1]);
-    expect(search.get("slot")).toBe("09:57");
-    expect(device.location()).toContain(DONEPEZIL.id);
-    const sheet = page.getByRole("dialog");
-    await expect
-      .poll(
-        () =>
-          sheet.element().querySelector<HTMLInputElement>(`input[name="medicationId"][value="${DUE}"]`)
-            ?.checked,
-      )
-      .toBe(true);
-    const submits = sheet.element().querySelectorAll<HTMLButtonElement>("button[type=submit]");
-    await userEvent.click(submits[submits.length - 1]!);
-    await expect.poll(() => device.location(), { timeout: 5000 }).toBe(PLANNER_URL);
-    await device.settle();
-    await expect.poll(() => doseRow(DUE)).toBeNull();
-    expect(doseRow(LATER)).not.toBeNull();
-    const queued = (await device.queued()).filter((w) => w.type === "timeline_entry");
-    expect(queued).toHaveLength(1);
-    expect(queued[0]!.data).toMatchObject({ kind: "dose" });
-    expect(JSON.parse(queued[0]!.data!.details as string)).toMatchObject({
-      medicationId: DONEPEZIL.id,
-      scheduledFor: "09:57",
-    });
+describe("a stored future note", () => {
+  test("shows in no Planner row, while the appointments do", async () => {
+    const FUTURE_NOTE = fx.note({ title: "Call the pharmacy", occurredAt: laTime(1, 9), text: "Refill." });
+    await openPlanner({ extra: [FUTURE_NOTE] });
+    await expect.poll(() => listed().length).toBeGreaterThan(0);
+    expect(listed().map((r) => r.id)).not.toContain(FUTURE_NOTE.id);
+    expect(listed().map((r) => r.id)).toContain(NURSE.id);
+    expect(document.body.textContent).not.toContain("Call the pharmacy");
   });
 });

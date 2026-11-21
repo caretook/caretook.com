@@ -203,6 +203,9 @@ export const MODEL_ERRORS = {
   "todoModel:remove": {
     message: "Failed to delete the todo",
   },
+  "todoModel:restore": {
+    message: "Failed to restore the todo",
+  },
   "adminAuditLogModel:insert": {
     message: "Failed to record the audit entry",
   },

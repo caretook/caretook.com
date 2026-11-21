@@ -16,6 +16,8 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
+  SYSTEM_USER,
+  timelineEntryModel,
   todoService,
   timelineEntryService,
   userContactService,
@@ -485,7 +487,7 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(JSON.stringify(result)).not.toContain("Elsewhere");
   });
 
-  it("upcoming: appointments and reminders soonest first, in the offset, 30 days by default and 90 at most", async () => {
+  it("upcoming: appointments soonest first, in the offset, 30 days by default and 90 at most", async () => {
     const handler = handlerAt();
     const w = await world();
     ok(
@@ -501,13 +503,6 @@ describe("read tools", { timeout: 60_000 }, () => {
         kind: "event",
         title: "Dentist",
         occurredAt: hoursAhead(30),
-      }),
-    );
-    ok(
-      await addEntry(w.caretaker.ctx, w.group.id, {
-        kind: "note",
-        title: "Refill reminder",
-        occurredAt: hoursAhead(100),
       }),
     );
     ok(
@@ -547,8 +542,8 @@ describe("read tools", { timeout: 60_000 }, () => {
       startsAt: string;
       place: string | null;
     }[];
-    expect(items.map((i) => i.title)).toEqual(["Dentist", "Cardiology", "Refill reminder"]);
-    expect(items.map((i) => i.kind)).toEqual(["appointment", "appointment", "reminder"]);
+    expect(items.map((i) => i.title)).toEqual(["Dentist", "Cardiology"]);
+    expect(items.map((i) => i.kind)).toEqual(["appointment", "appointment"]);
     expect(items[1]?.place).toBe("Heart Clinic");
     for (const i of items) expect(i.startsAt).toMatch(OFFSET);
 
@@ -556,11 +551,85 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect((quarter.structuredContent.items as { title: string }[]).map((i) => i.title)).toEqual([
       "Dentist",
       "Cardiology",
-      "Refill reminder",
       "In 45 days",
     ]);
     expect((await callTool(handler, token, "upcoming", { days: 91 })).isError).toBe(true);
     expect(JSON.stringify(quarter)).not.toContain("Elsewhere");
+  });
+
+  it("upcoming: lists open todos with a due day, overdue first, and no stored future note", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const day = (offset: number) =>
+      new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(
+        new Date(Date.now() + offset * 24 * 60 * 60 * 1000),
+      );
+    const todo = async (title: string, extra: Record<string, unknown> = {}) =>
+      ok(await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title, ...extra }))!;
+    ok(
+      await addEntry(w.caretaker.ctx, w.group.id, {
+        kind: "event",
+        title: "Dentist",
+        occurredAt: hoursAhead(30),
+      }),
+    );
+    await todo("Late call", { dueOn: day(-3) });
+    await todo("Order supplies", { dueOn: day(5), assigneeId: w.viewer.user.id });
+    await todo("Too far", { dueOn: day(60) });
+    await todo("No day");
+    await todo("Weekly bins", {
+      dueOn: day(2),
+      dueTime: "19:00",
+      repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO",
+    });
+    const finished = await todo("Done already", { dueOn: day(1) });
+    ok(await todoService.complete(w.caretaker.ctx, finished.id));
+    // A note stored ahead, from before notes were past-only, is never listed.
+    ok(
+      await timelineEntryModel.create({
+        authUser: SYSTEM_USER,
+        data: {
+          groupId: w.group.id,
+          recipientId: w.recipient.id,
+          kind: "note",
+          title: "Old reminder",
+          occurredAt: hoursAhead(40),
+          timeZone: "America/Los_Angeles",
+        },
+      }),
+    );
+    const token = await w.connect(w.viewer);
+
+    const res = await callTool(handler, token, "upcoming");
+    const items = res.structuredContent.items as {
+      kind: string;
+      title: string;
+      overdue?: boolean;
+      repeats?: string | null;
+      dueOn?: string;
+      assignee?: { id: string | null; name: string | null } | null;
+    }[];
+    expect(items.map((i) => i.title)).toEqual(["Late call", "Dentist", "Weekly bins", "Order supplies"]);
+    expect(items.map((i) => i.kind)).toEqual(["todo", "appointment", "todo", "todo"]);
+    expect(items[0]).toMatchObject({ overdue: true, dueOn: day(-3) });
+    expect(items[2]?.repeats).toMatch(/^Every Mon/);
+    expect(items[3]).toMatchObject({ overdue: false, repeats: null, assignee: { id: w.viewer.user.id } });
+    const text = res.content.map((c) => c.text).join("\n");
+    expect(text).toMatch(/- overdue .* todo: Late call/);
+    expect(text).toMatch(/ appointment: Dentist/);
+    expect(text).toMatch(/ todo: Weekly bins \(repeats: Every Mon/);
+    for (const hidden of ["Too far", "No day", "Done already", "Old reminder"])
+      expect(JSON.stringify(res)).not.toContain(hidden);
+
+    const listed = await callTool(handler, token, "list_todos");
+    const byTitle = new Map(
+      (listed.structuredContent.todos as { title: string; repeats: string | null }[]).map((t) => [
+        t.title,
+        t,
+      ]),
+    );
+    expect(byTitle.get("Weekly bins")?.repeats).toMatch(/^Every Mon/);
+    expect(byTitle.get("Late call")?.repeats).toBeNull();
   });
 
   it("list_todos: open by default in the app's order, done on request, paged, mine, never another group's", async () => {

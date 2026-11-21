@@ -16,13 +16,14 @@ export const appointmentUrls = {
   plannerPast: (groupId: string, search?: Search) =>
     `${groupHome(groupId)}/planner/past${searchString(search)}`,
   /**
-   * A new appointment (an event) or reminder (a note) that opens the time
-   * picker first (`?when=pick`): a draft like `newEntry`. An unknown kind is dropped.
+   * A new appointment (an event) that opens the time picker first
+   * (`?when=pick`): a draft like `newEntry`. Only events are dated ahead, so
+   * a note gets no picker (an ordinary new note); an unknown kind is dropped.
    */
   newPlannerEntry: (groupId: string, kind: LiveEntryKind) =>
     `${groupHome(groupId)}/entries/${NEW_ENTRY}${searchString({
       kind: isLiveEntryKind(kind) ? kind : null,
-      [WHEN_PARAM]: WHEN_PICK,
+      [WHEN_PARAM]: kind === "event" ? WHEN_PICK : null,
     })}`,
   /** A new appointment with a provider (the time picker first, like `newPlannerEntry`): linked once it's saved. */
   newAppointmentWith: (groupId: string, providerId: string) =>

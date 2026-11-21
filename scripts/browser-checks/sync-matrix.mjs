@@ -309,7 +309,7 @@ export const SYNC_MATRIX = [
         ...audit(ctx),
       }),
   ),
-  // A reminder series (appointments-2) long ago, with one visit and
+  // An appointment series long ago (series are events only, planner-2), with
   // `topped_up_through` set, so the server writes no visits of its own and
   // nothing shows in Upcoming.
   device(
@@ -320,7 +320,7 @@ export const SYNC_MATRIX = [
         id: ctx.ids.series,
         group_id: ctx.groupId,
         recipient_id: ctx.recipientId,
-        kind: "note",
+        kind: "event",
         rule: "FREQ=DAILY;INTERVAL=1;COUNT=1",
         starts_on: "2000-01-01",
         start_time: null,

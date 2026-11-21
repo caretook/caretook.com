@@ -4,21 +4,31 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/planner-2` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------ |
-| 1     | 1    | not started |                                            |
-| 2     | 1    | not started |                                            |
-| 3     | 2    | not started |                                            |
-| 4     | 2    | not started |                                            |
-| 5     | 2    | not started |                                            |
-| 6     | 2    | not started |                                            |
-| 7     | 2    | not started |                                            |
+| Slice | Wave       | State                                                                                           | Merge into `prd/planner-2` (slice commits)         |
+| ----- | ---------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 1     | 1 (landed) | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)            |
+| 2     | 1 (landed) | merged (opus); worktree removed                                                                 | 7267ab9f (3ff6ccb2, 46ddd08f)                      |
+| 3     | 2          | merged; worktree removed                                                                        | a662c833 (3e98776f)                                |
+| 4     | 2          | merged; worktree removed                                                                        | 262f3dc0 (d42513b8, 30995550)                      |
+| 5     | 2          | merged; worktree removed                                                                        | c0153854 (ceb78315)                                |
+| 6     | 2          | merged; worktree removed                                                                        | aeb00ba8 (2a3980fd, c20c1ce7, 26a49dd8 + 2 merges) |
+| 7     | 2          | merged; worktree removed                                                                        | c29fc769 (02f7f95b)                                |
+| 8     | 2          | merged; worktree removed; B-247, B-251, B-284 done                                              | 43846e09 (ee441db0, c0d508f0)                      |
+| 9     | 2          | merged; worktree removed; B-246 done                                                            | fef8b119 (c3f1481c)                                |
 
-**Start conditions:** slices 1 and 2 can start at once. **Slice 5 waits for `quick-entry` (B-220, the smarter quick entry box) in `dev`**; **slice 3 waits for B-247 in `dev`** (Planner: Past becomes an Upcoming | Past toggle, with the All / Events / Todos chips; a `quick-fixes` item). `pnpm prd sync` before each.
+**Wave 1: landed** in dev through PR #22 (8069cf9, 2026-11-21; full check on 9d08fdd5, quick on 3f4456e0, the lean suite with roundtrip fixed and passing alone, Codex clean after 2 rounds). Codex follow-ups filed: B-382–B-387 (repeat-chain edge cases; B-382, an offline Undo deleting an edited successor, is the P1). Wave 1's docs are folded (appointments, timeline, todos, data-layer). The user still needs to run `pnpm datastore:reset` and `docker compose restart powersync` in the main checkout. Filed B-381 (the readTools birth-year flake, quick-fixes).
 
-**Landing:** slice 2 adds a migration (additive: three nullable columns on `todo`); no new dependencies. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. If the rest of wave 2 is merged and B-247 or `quick-entry` still isn't in `dev`, ask the user: wait, or land without that slice and file it as a follow-up. Never `--suite` without asking. After the deploy to staging the user reseeds it (no data migration).
+**Wave 2:** all slices merged: 4, 5, 7, 8 (after wave 1 landed), then 3 (a662c833), 9 (fef8b119; I resolved a comment-only conflict in plannerTodos.ts) and 6 (aeb00ba8; it went after 9, since they share no file). B-246, B-247, B-251, B-284 and B-248 marked done. Synced with dev (docs and tooling only). Next: fold the docs (a helper), the full check (seeds changed, and a conflict was resolved in code), `datastore:reset`, serve, the lean `--suite` once (the user said yes for wave 2), the PR and Codex, then land. The user chose to land without fixing B-382–B-387 (follow-ups).
 
-**Backlog:** claim B-248 when slice 1 starts; `done B-248` after the last slice merges.
+**Landing mode: run everything through** (queued with `pnpm prd queue planner-2`): start every ready slice, land each green wave through the PR + Codex, clean up; ask only real questions. B-248 claimed by prd/planner-2 (2026-11-21). At the wave 1 boundary: `quick-entry` (B-220) is in `dev`. The Planner items B-247, B-251, B-284 and B-246 moved from `quick-fixes` into planner-2 at the user's word (via the backlog session, 2026-11-21) as slices 8 and 9; slice 3 is now blocked by slice 8, not by another PRD.
+
+**Other PRDs:** list-filters wave 1 landed in dev (PR #18, f48c0f5; no migration, seed, sync-config or dependency change): `pnpm prd sync` at the wave 1 boundary, before wave 2 starts. list-filters wave 2 changes the Todos tab (TodoChips become a Filter menu; no `?who=` means Everyone; `defaultWho` gives way to `whoOf`/`clearWho`) and one Planner test: it overlaps slice 6 (`routes/app/groups/todos/`). Whichever comes second syncs first.
+
+**Start conditions:** slices 1 and 2 can start at once. **Slice 5 waits for `quick-entry` (B-220, the smarter quick entry box) in `dev`**; **slice 3 is blocked by slice 8** (the Planner's tabs, Upcoming | Past and the Filter menu); slice 9 too. `pnpm prd sync` before each.
+
+**Landing:** slice 2 adds a migration (additive: three nullable columns on `todo`); no new dependencies. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking. After the deploy to staging the user reseeds it (no data migration).
+
+**Backlog:** claim B-248 when slice 1 starts; `done B-248` after the last of slices 1–7 merges. Claim B-247, B-251, B-284 when slice 8 starts and B-246 when slice 9 starts; `done` each when its slice merges.
 
 Fold into the area docs at landing:
 
@@ -29,6 +39,8 @@ Fold into the area docs at landing:
 - **Slice 5:** [assistant](../docs/domain/assistant.md): the future-note reading.
 - **Slice 6:** [todos](../docs/domain/todos.md): the form, rows, page, the delete dialog, seeds, the `roundtrip` step.
 - **Slice 7:** [connectors](../docs/domain/connectors.md): `upcoming`, the refusal, `repeats`.
+- **Slice 8:** [appointments](../docs/domain/appointments.md) (the Planner's tabs, toggle and filter lines; the tests line), [todos](../docs/domain/todos.md) (Todos in the Planner: the Todos filter), [components](../docs/domain/components.md) only if a `ui/` primitive changed.
+- **Slice 9:** [appointments](../docs/domain/appointments.md): delete "Due doses in the Planner".
 
 ## Architectural decisions
 
@@ -46,16 +58,17 @@ Fold into the area docs at landing:
 ## How to run this plan
 
 - **Wave 1: slices 1 and 2** together. Slice 1 owns the entry timing rule, the timeline entry and series services, the entry page's time chip and `seeds/appointments.ts`. Slice 2 owns the `todo` schema and migration, `todoRepeat`, `todoService`, `lib/todos/todos.sync.ts`, the device schema and `todoOp`. They share no file.
-- **Wave 2: slices 3 to 7** together, each when its start condition holds.
+- **Wave 2: slices 3 to 9**, each when its start condition holds: slice 8 first, then slices 3 and 9 (side by side), alongside slices 4–7.
   - Slice 3 owns `routes/app/groups/planner/`, `lib/appointments/upcoming*.ts` and the timeline's Today card and simple Next files.
   - Slice 4 owns `db/schema/calendars/`, the calendar services, `packages/notifications`' reminders, `lib/calendars/` and `RemindMeSheet`.
   - Slice 5 owns `lib/assistant/` and `db/schema/assistant/`.
   - Slice 6 owns `routes/app/groups/todos/`, `routes/app/groups/todo/`, `components/todos/`, `lib/todos/` display files, `seeds/todos.ts` and the `roundtrip` step.
   - Slice 7 owns `packages/api/src/connectors/`.
+  - Slice 8 owns `PlannerHeader.tsx`, the Planner's filter row and `upcomingFilters`; slice 3 then removes what is left of the reminder kind, and slice 9 the dose rows (`useUpcomingData.ts`, `UpcomingDoseRow`, `upcomingDoses.ts`).
   - `entryActionItems.ts` ("Remind me" on events only) is slice 4's; slice 3 doesn't touch it.
 - **Stacks:** slice 6 needs one (the `roundtrip` step); the rest are stackless (unit, integration on the shared test Postgres, component tests).
 - **Checks:** every slice runs `pnpm check` and `pnpm test:components --changed prd/planner-2`, and `pnpm prd browser --changed` once before hand-off, reporting what it named. Component tests use the Planner's fixed clock and read after render with polling.
-- **Running beside other PRDs:** `quick-fixes` (B-246 removes due doses from the Planner, B-247 reworks its tabs and chips, B-251 moves its tabs to `TabNav`): slice 3 starts after B-247 and syncs first. `list-filters` slice 4 changes the Planner's filter row: not alongside slice 3; whichever comes second syncs first. `quick-entry` must be in `dev` before slice 5.
+- **Running beside other PRDs:** `quick-fixes` (B-246 removes due doses from the Planner, B-247 reworks its tabs and chips, B-251 moves its tabs to `TabNav`): B-246, B-247, B-251 and B-284 are now slices 8 and 9 here. `list-filters` slice 4 changes the Planner's filter row: not alongside slice 3; whichever comes second syncs first. `quick-entry` must be in `dev` before slice 5.
 - Every slice ends with a hand-off ([loop](../docs/agents/loop.md)), plus a _Docs_ section listing what the orchestrator should fold into the area docs.
 
 ---
@@ -116,7 +129,7 @@ Stack: no · Reads: docs/domain/appointments.md, docs/domain/timeline.md, docs/d
 
 ### What to build
 
-`PlannerHeader`'s Add menu is Appointment and Todo. Remove what is left of the reminder kind after B-247: the note label in `upcomingLabels` ("Reminder"), the Reminders wording and note kind in `upcomingFilters`, comments and fixtures (`plannerWorld`). `upcomingQuery` already reads events only (slice 1); the Today card (`useTodayCard`, `todayStatus`), `SimpleNext` and `useSimpleUpcoming` drop their reminder wording and any note branch. `plannerTodos`' merge is appointments and todos.
+`PlannerHeader`'s Add menu is Appointment and Todo. Remove what is left of the reminder kind after slice 8: the note label in `upcomingLabels` ("Reminder"), the Reminders wording and note kind in `upcomingFilters`, comments and fixtures (`plannerWorld`). `upcomingQuery` already reads events only (slice 1); the Today card (`useTodayCard`, `todayStatus`), `SimpleNext` and `useSimpleUpcoming` drop their reminder wording and any note branch. `plannerTodos`' merge is appointments and todos.
 
 ### Acceptance criteria
 
@@ -126,7 +139,7 @@ Stack: no · Reads: docs/domain/appointments.md, docs/domain/timeline.md, docs/d
 - [ ] No "Reminder" text is left in the Planner, the Today card or simple mode.
 - [ ] `pnpm check` passes.
 
-**Blocked by:** slice 1; B-247 in `dev`. **Blocks:** none.
+**Blocked by:** slices 1 and 8. **Blocks:** none.
 
 ---
 
@@ -216,3 +229,50 @@ Stack: no · Reads: docs/domain/connectors.md, docs/domain/todos.md, docs/domain
 - [ ] `pnpm check` passes.
 
 **Blocked by:** slices 1 and 2. **Blocks:** none.
+
+---
+
+## Slice 8: The Planner's tabs, Upcoming | Past and the Filter menu
+
+Backlog: B-247, B-251, B-284 (moved from `quick-fixes` at the user's word, 2026-11-21).
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/appointments.md, docs/domain/todos.md · Tests: unit, component
+
+### What to build
+
+UI only; one pass over `PlannerHeader.tsx` and the filter row.
+
+- **Tabs (B-251):** `PlannerHeader`'s hand-rolled nav becomes `ui/TabNav` with two tabs, Planner and Todos. Past is no longer a tab; the Planner tab stays current on `/planner/past` (TabNav's default claim covers paths below `/planner`; check sheets opened over each tab). Tab links keep carrying the filters each reads (`tabSearch`, `listSearch`).
+- **Upcoming | Past (B-247):** the `/planner/past` route and URL stay (Back, deep links, sheets closing back). At the left of the filter row on both views: two link chips (`ChipGroup`, a nav named "Upcoming or past"), the current one marked; each link carries the author filter. Past stays events only (done todos stay under Todos). The user wants no more design on this control: chips, nothing new in `ui/`.
+- **Filter (B-284):** on Upcoming, `FilterMenu` at the row's right end with one section "Show": All (default), Events (`?kind=event`), Todos (a new todos-only value, not a timeline kind; the slice picks the parameter in `upcomingFilters` and names it in its hand-off). `FilterMenuChips` beneath, with the author filter ("By Ann") as an extra chip that clears only the author and is not counted. On Past: no Filter button, only the author chip when it is on. `PlannerFilterChips` and the All / Appointments / Reminders chips go.
+- **Filter meaning:** All lists events and dated todos; Events lists events only; Todos lists todos only (`showsTodos` in `lib/todos/plannerTodos.ts`, `useUpcomingData`). An author filter hides todos as it does today. Empty texts name what is on (no "reminders" wording).
+- **Spec history:** B-247's and B-284's backlog notes; `plans/list-filters-plan.md` slice 4 (on `prd/list-filters` or in git history).
+
+### Acceptance criteria
+
+- [ ] `upcomingFilters.test.ts` covers the parsed filters (a kind the Planner doesn't list reads as All), the tab and toggle searches, and the empty texts.
+- [ ] `planner.browser.test.tsx`: two tabs, Planner current on both `/planner` and `/planner/past`; Upcoming | Past switches and keeps the author filter; choosing Events or Todos in the Filter menu narrows the list, shows its chip and "Filter, 1 on", and ✕ returns to All; "By <name>" shows as a chip on both views and clears only the author; Past shows no Filter button.
+- [ ] Other specs that tap the Planner's tabs or chips are updated.
+- [ ] `pnpm check` passes.
+
+**Blocked by:** slice 1. **Blocks:** slices 3, 9.
+
+---
+
+## Slice 9: The Planner without due doses and passes
+
+Backlog: B-246 (moved from `quick-fixes` at the user's word, 2026-11-21).
+
+Stack: no · Reads: docs/domain/appointments.md, docs/domain/medications.md · Tests: unit, component
+
+### What to build
+
+UI only: the Planner is for appointments and todos. Remove due doses and pass rows from the Planner tab: `withDueDoses`, `showsDoses` and `upcomingDoses` in `useUpcomingData`, `UpcomingDoseRow`, and `lib/appointments/upcomingDoses.ts` with its test if nothing else uses it (check the Today card first; it and the Medications Schedule tab keep their doses, unchanged). `plannerPasses.browser.test.tsx` goes or shrinks to "no dose or pass rows". The connector's `upcoming` tool does not list doses (checked 2026-11-21 in `packages/api/src/connectors/tools/upcoming.ts`): no change there.
+
+### Acceptance criteria
+
+- [ ] `planner.browser.test.tsx`: with doses due and a pass given today, the Planner shows no dose or pass row; appointments and todos show as before; the Today card still shows the doses.
+- [ ] No unused exports left behind.
+- [ ] `pnpm check` passes.
+
+**Blocked by:** slice 8 (shared `useUpcomingData.ts` and Planner tests; may run beside slice 3). **Blocks:** none.

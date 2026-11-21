@@ -12,7 +12,6 @@ import { localTime } from "../todos/todoRules";
 
 const NOUNS: Record<CalendarItemKind, string> = {
   appointment: "Appointment",
-  reminder: "Reminder",
   todo: "Todo",
 };
 
@@ -40,7 +39,7 @@ const clock = (instant: string, timeZone: string) => {
 
 /**
  * When it is, in `timeZone`: "Thu 19 Nov · 9:00–10:00", "Thu 19 Nov · All
- * day", "Thu 19 Nov · 9:00" (a reminder or todo: its end is made up, so it
+ * day", "Thu 19 Nov · 9:00" (a todo: its end is made up, so it
  * isn't shown), or "Thu 19 Nov 22:00 – Fri 20 Nov 1:00" across midnight.
  */
 export const calendarWhen = (
