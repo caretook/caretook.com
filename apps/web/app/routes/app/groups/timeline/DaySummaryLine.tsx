@@ -58,6 +58,7 @@ export function DaySummaryLine({
         aria-label={`Day summary: ${summaryLabel(parts)}`}
         onClick={() => setExpanded((e) => !e)}
       >
+        <ChevronRight aria-hidden="true" className={`size-4 shrink-0 ${expanded ? "rotate-90" : ""}`} />
         <span className="min-w-0 flex-1 truncate">
           {parts.map((part, i) => (
             <Fragment key={i}>
@@ -67,9 +68,8 @@ export function DaySummaryLine({
             </Fragment>
           ))}
         </span>
-        <ChevronRight aria-hidden="true" className={`size-4 shrink-0 ${expanded ? "rotate-90" : ""}`} />
       </button>
-      <ul id={id} hidden={!expanded} className="text-base-content/80 mt-1 space-y-0.5 text-sm">
+      <ul id={id} hidden={!expanded} className="text-base-content/80 mt-1 space-y-0.5 pl-5 text-sm">
         {summary.lines.map((line) => (
           <li key={line.label}>
             <span className="text-base-content/60">{line.label}:</span>{" "}
