@@ -11,6 +11,10 @@
 | 3     | 2    | planned |                                              |
 | 4     | 2    | planned |                                              |
 
+**Landing mode (2026-11-21): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions.
+
+**Now (2026-11-21):** waiting on `tasks-2` (B-222 is `ready` on `prd/tasks-2`, not in `dev`); `timeline-ux-2` is in `dev`. Asked `tasks-2-20` to message `quick-entry-e3` on landing; a background loop watches `pnpm backlog list` for B-222 `landed`. Then `pnpm prd sync`, claim B-220, start slice 1 (opus: design-heavy parser work). B-231 (a timeline empty-state box) isn't ours.
+
 **Start conditions:** wait for **both** `timeline-ux-2` in `dev` (its quick-entry slices: B-215, B-216, B-219 reshape `components/quick-entry/`) **and** `tasks-2` in `dev` (it renames the to-do action, `actionPreview`, the parser's to-do reading and the connector's tools; last item B-222). `pnpm prd sync` before slice 1.
 
 **Landing:** no migration, no dependencies, no browser check. Land when all four slices are merged; run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
