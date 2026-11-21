@@ -25,7 +25,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `appointments-2` | [PRD](appointments-2-prd.md), [plan](appointments-2-plan.md): **done** (`f49aa958`) | — | none now |
 | `connectors-2` | [PRD](connectors-2-prd.md), [plan](connectors-2-plan.md): **done** (`017a9b29`) | — | none now |
 | `medications-3` | [PRD](medications-3-prd.md), [plan](medications-3-plan.md): **done** (`82221a92`) | — | none now |
-| `medications-4` | to write (B-213: a mobile redesign of Today's schedule: passes, scheduled, as needed) | `medications-3` landed | the medications Today view and its schedule rows, the Dose sheet (`new-dose/`, `DoseForm.tsx`), `TodayCard`'s dose items |
+| `list-filters` | [PRD](list-filters-prd.md), [plan](list-filters-plan.md): 4 slices, waves 1 → (2, 3) → 4: a shared `FilterMenu` (round sliders button, count badge, a dropdown of single-choice sections, removable chips) on the medications list, then the providers directory and the Todos tab, then the Planner (B-249). No migration, no deps, stackless. Replaces `medications-4` (B-213 was resolved by the tab split, B-226). **Ready to start**; slice 4 waits for B-247 | slices 1–3: (none); slice 4: B-247 in `dev` (a `quick-fixes` item) | `components/ui/` (index, `styles.ts`, the new `FilterMenu` and its model), `timeline/TimelineFilters.tsx` and `TimelineViewMenu.tsx` (an import only), `medications/MedicationFilters.tsx` and the list route, `providers/DirectoryFilters.tsx` and its route, `todos/TodoChips.tsx` and its route, the Planner's filter row (`PlannerHeader.tsx`), those screens' component tests |
 | `medications-tabs` | [PRD](medications-tabs-prd.md), [plan](medications-tabs-plan.md): **done** (`07a6b59a`, PR #14) | — | none now |
 | `conditions` | [PRD](conditions-prd.md), [plan](conditions-plan.md): **done** (`a95acb73`) | — | none now |
 | `github-review` | [PRD](github-review-prd.md), [plan](github-review-plan.md): **done** (`63e225fb`, PR #12); follow-ups B-239 to B-242, B-244 | — | none now |
@@ -107,7 +107,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-210 | bug | staging | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | staging | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
 | B-212 | bug | staging | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
-| B-213 | bug | triaged | medications-tabs |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
+| B-213 | bug | landed | medications-tabs |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
 | B-214 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
 | B-215 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
 | B-216 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
@@ -618,7 +618,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-213 · bug · medications today schedule layout is confusing especially on mobile. Plan an improved layout for…
 
-- status: triaged
+- status: landed
 - prd: medications-tabs
 - owner:
 - commit: 07a6b59a
