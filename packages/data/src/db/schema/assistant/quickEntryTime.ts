@@ -1,7 +1,7 @@
 import { addDays, localDate } from "../core/entryTiming";
 
 // Time phrases in quick entry ("at 8am", "30 min ago", "yesterday 9pm",
-// "last night", "tue 2pm", "nov 20"), found among a line's words and
+// "last night", "tue 2pm", "nov 20", "the 25th"), found among a line's words and
 // resolved in the recipient's time zone. Pure and client-safe; the parser
 // (quickEntry.ts) uses it. English only.
 
@@ -9,7 +9,9 @@ export type Clock = { hour: number; minute: number; meridiem?: "am" | "pm" };
 export type DaySpec =
   | { offset: number }
   | { weekday: number; modifier?: "next" | "last" | "this" }
-  | { month: number; date: number };
+  | { month: number; date: number }
+  /** A day of the month alone ("the 25th"): this month's or the next (or last) one that has it. */
+  | { date: number };
 export type Period = "morning" | "afternoon" | "evening" | "night";
 
 /** What a phrase says: minutes from now, or a day and/or a time of day. */
@@ -174,6 +176,33 @@ const dayCount = (words: readonly string[], i: number): { days: number; length: 
   return { days: n, length: 2 };
 };
 
+/** Words after an ordinal that make it a count, not a day of the month ("the 2nd dose"). */
+const NOT_A_DATE_AFTER = new Set([
+  "dose",
+  "doses",
+  "time",
+  "times",
+  "day",
+  "days",
+  "week",
+  "weeks",
+  "floor",
+  "visit",
+  "round",
+  "try",
+  "attempt",
+  "shift",
+  "pill",
+  "tablet",
+]);
+
+/** A day of the month as an ordinal ("25th", "1st"), or null. */
+const ordinalDate = (word: string | undefined) => {
+  const m = word ? /^(\d{1,2})(st|nd|rd|th)$/.exec(word) : null;
+  const n = m ? Number(m[1]) : NaN;
+  return n >= 1 && n <= 31 ? n : null;
+};
+
 /** "o2 sat 95" is oxygen, not Saturday: a short weekday before a bare number, or after "o2", isn't one. */
 const notAWeekday = (words: readonly string[], i: number) => {
   const word = words[i]!;
@@ -301,6 +330,15 @@ export const findTime = (words: readonly string[]): FoundTime | null => {
           take(i, 2);
           continue;
         }
+      }
+      // "25th", "the 25th", "on the 25th", "on 25th"
+      const lead = word === "on" && next === "the" ? 2 : word === "on" || word === "the" ? 1 : 0;
+      const ordinal = ordinalDate(words[i + lead]);
+      const after = words[i + lead + 1] ?? "";
+      if (ordinal !== null && !NOT_A_DATE_AFTER.has(after) && !(after in MONTHS) && after !== "of") {
+        day = { date: ordinal };
+        take(i, lead + 1);
+        continue;
       }
     }
 
@@ -455,11 +493,30 @@ const dayDate = (
     }
     return addDays(today, -(behind === 0 && laterToday === true ? 7 : behind));
   }
-  const [year] = today.split("-").map(Number);
+  const [year, month, date] = today.split("-").map(Number) as [number, number, number];
   const pad = (n: number) => String(n).padStart(2, "0");
+  if (!("month" in day)) {
+    // A day of the month: ahead, this month's unless it has passed (then the
+    // next month that has it); back, this month's unless it's still to come.
+    const step = direction === "future" ? 1 : -1;
+    const passed =
+      direction === "future"
+        ? day.date < date || (day.date === date && laterToday === false)
+        : day.date > date || (day.date === date && laterToday === true);
+    let y = year;
+    let m = month;
+    const move = () => {
+      m += step;
+      if (m > 12) [y, m] = [y + 1, 1];
+      if (m < 1) [y, m] = [y - 1, 12];
+    };
+    if (passed) move();
+    while (day.date > new Date(Date.UTC(y, m, 0)).getUTCDate()) move();
+    return `${y}-${pad(m)}-${pad(day.date)}`;
+  }
   const thisYear = `${year}-${pad(day.month)}-${pad(day.date)}`;
-  if (direction === "future" && thisYear < today) return `${year! + 1}-${pad(day.month)}-${pad(day.date)}`;
-  if (direction === "past" && thisYear > today) return `${year! - 1}-${pad(day.month)}-${pad(day.date)}`;
+  if (direction === "future" && thisYear < today) return `${year + 1}-${pad(day.month)}-${pad(day.date)}`;
+  if (direction === "past" && thisYear > today) return `${year - 1}-${pad(day.month)}-${pad(day.date)}`;
   return thisYear;
 };
 

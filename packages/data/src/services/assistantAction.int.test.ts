@@ -250,6 +250,10 @@ describe("assistantActionService.run", () => {
         "assistantActionService:providerGone",
       ],
       [
+        { type: "addNote", text: "Called", occurredAt: minutesAgo(1), providerIds: [randomUUID()] },
+        "assistantActionService:providerGone",
+      ],
+      [
         {
           type: "logVital",
           readings: [{ type: "bloodPressure", systolic: 80, diastolic: 120 }],
