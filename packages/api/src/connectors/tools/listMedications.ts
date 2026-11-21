@@ -3,6 +3,7 @@ import {
   medicationPassService,
   medicationService,
   medicationTitle,
+  medicationTypeLabel,
   normalizeSchedule,
   providerService,
   scheduleText,
@@ -25,7 +26,7 @@ const input = z.object({
 export const listMedications = defineTool({
   name: "list_medications",
   title: "List medications",
-  description: `The care recipient's medications by name: strength, form, dose, directions, why, the schedule as it reads ("Morning and Evening", "As needed, up to 4 a day"), prescriber and pharmacy. Current ones by default; includePast adds completed and discontinued. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
+  description: `The care recipient's medications by name: strength, form, type (prescription, otc, supplement, other, or null when not set), dose, directions, why, the schedule as it reads ("Morning and Evening", "As needed, up to 4 a day"), prescriber and pharmacy. Current ones by default; includePast adds completed and discontinued. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
@@ -66,6 +67,7 @@ export const listMedications = defineTool({
         name: m.name,
         strength: m.strength,
         form: m.form,
+        type: m.type ?? null,
         dose: m.dose,
         directions: m.directions,
         reason: m.reason,
@@ -86,7 +88,7 @@ export const listMedications = defineTool({
     });
 
     const line = (m: (typeof medications)[number]) =>
-      `- ${[m.title, m.dose, m.schedule, m.stopped].filter(Boolean).join(" · ")}${m.reason ? ` (for ${m.reason})` : ""}`;
+      `- ${[m.title, m.type ? medicationTypeLabel(m.type) : null, m.dose, m.schedule, m.stopped].filter(Boolean).join(" · ")}${m.reason ? ` (for ${m.reason})` : ""}`;
     const text = medications.length
       ? [
           `${medications.length} medication${medications.length === 1 ? "" : "s"}:`,
