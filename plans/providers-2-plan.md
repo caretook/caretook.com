@@ -10,7 +10,7 @@
 | 2     | 2    | merged (opus)   | 680de235 (4952a984)                                  |
 | 3     | 1    | merged (opus)   | 0de633e1 (eeb1218a, fd7e1deb)                        |
 | 4     | 2    | merged (sonnet) | 2a3f4f66 (bab7192d); conflict fix in the next commit |
-| 5     | 3    | started (opus)  |                                                      |
+| 5     | 3    | merged (opus)   | fc0d2e20 (cd6b09a8)                                  |
 
 **Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per _Landing_, land when every slice is merged.
 
@@ -36,7 +36,13 @@ Slice 4 handed off (pnpm check green; `prd browser --changed` ran ui.spec on a t
 
 **Docs to fold (slice 2):** providers.md: mentions in every document, only notes and events link; add row (`mentionChoices`, last, writers, hidden when a live provider has the exact folded name; `createAndLinkProvider` on entries, else `createProvider` clinician); spaces in the query and when the popup closes (`mentionQueryOpen`); renamed / deleted / unknown chips; `useMentionProviders` (`lib/providers/mentionProviders.sync.ts`).
 
-**Pending sync:** `medications-3` landed in `dev` (82221a92): migration 0030, seeds, `medication.type` in sync-config / device schema, SEARCH_INDEX_VERSION 4, NameField moved to `components/medications`. We have no migration. Sync after slice 5 merges, then `pnpm datastore:reset`, before the full check.
+Slice 5 handed off (pnpm check green; `--changed` names **roundtrip, live-notes, ui**; it changed the shared `ui/ComboBox.tsx` to static children with optional `sections`: if `ui` fails, look there). Merged as fc0d2e20, conflict-free; B-48 done (ready); worktree removed. **All five slices merged.**
+
+**Synced** `dev` (medications-3, 82221a92: migration 0030, seeds) as 57dce7e2; one conflict in the frozen export list `packages/data/src/db/schema/index.test.ts` (MEDICATION_TYPE* and MENTION_NODE, both kept in order; test passes). `pnpm install`, `datastore:reset`.
+
+**Landing:** full `pnpm prd check` (code conflicts resolved; sync brought a migration and seeds). Browser checks (screens change; slice 1's deps already ran the lean set on its branch): `pnpm prd browser --changed --base dev` covers roundtrip, layout-offline, first-sync, live-notes, ui. Per _Landing_, no `--suite` without asking.
+
+**Docs to fold (slice 5):** providers.md: "From <group>" sections in both pickers once typed (up to 5 per group, live matches minus already here by type + folded name, after this group's options, before the add row); a pick copies the provider and its practice, on an entry linked in one transaction (`importAndLinkProvider`), elsewhere mentioned without a link (`LiveNotesEditor`'s default `onImport`); `lib/providers/fromGroups.ts`, `otherGroupProviders.sync.ts`. components.md: `ComboBox`'s optional `sections` (heading + options, between options and create row; the caller filters).
 
 **Start conditions:** none for wave 1, but before slice 1 check the open `appointments-2` and `quick-fixes` slices for changes to `LiveNotesEditor`, the entry page or the With row. Slice 4 waits for `conditions` in `dev` (it changes the provider page); `pnpm prd sync` before it.
 
