@@ -18,7 +18,6 @@ import {
   PAST_NOTE,
   PAST_URL,
   PODIATRY,
-  REFILL,
   RIDE,
   rowOf,
   SAM,
@@ -155,7 +154,6 @@ describe("the list", () => {
       NURSE.id,
       THERAPY.id,
       CARDIOLOGY.id,
-      REFILL.id,
       HOSPICE.id,
       RIDE.id,
       DENTIST.id,
@@ -195,14 +193,6 @@ describe("the list", () => {
     ).toEqual(UPCOMING_LIVE.map((e) => e.id));
   });
 
-  test("the reminder note is listed with the appointments as a note, and opens its page", async () => {
-    await openPlanner();
-    const refill = rowOf(REFILL.id)!;
-    expect(refill.kindLink).toBe("Show only notes");
-    expect(refill.open).toBe(`/app/groups/${TEST_GROUP.id}/entries/${REFILL.id}`);
-    expect(rowOf(CARDIOLOGY.id)!.kindLink).toBe("Show only events");
-  });
-
   test("call and map on a row with a provider and a place; a call alone with only a phone; nothing on a row with neither", async () => {
     await openPlanner();
     const cardiology = rowOf(CARDIOLOGY.id)!.actions;
@@ -240,7 +230,7 @@ describe("adding", () => {
   const items = () =>
     [...document.querySelectorAll("[role=menu] [role=menuitem]")].map((m) => m.textContent?.trim());
 
-  test("a writer's Add menu has Appointment, Reminder and Todo; Appointment and Reminder are drafts that pick the time first", async () => {
+  test("a writer's Add menu has Appointment, Reminder and Todo; Appointment is a draft that picks the time first, a Reminder (slice 3 removes it) a plain new note", async () => {
     const device = await openPlanner({ role: "caretaker" });
     await userEvent.click(addButton());
     await expect.poll(items).toEqual(["Appointment", "Reminder", "Todo"]);
@@ -252,7 +242,7 @@ describe("adding", () => {
     const again = await openPlanner({ role: "caretaker" });
     await userEvent.click(addButton());
     await userEvent.click(page.getByRole("menuitem", { name: "Reminder" }));
-    await expect.poll(() => again.location()).toBe(`${base}?kind=note&when=pick`);
+    await expect.poll(() => again.location()).toBe(`${base}?kind=note`);
   });
 
   for (const [name, url] of [
@@ -292,7 +282,6 @@ describe("filters", () => {
     expect(chip("All")!.getAttribute("aria-current")).toBe("true");
     await userEvent.click(chip("Appointments")!);
     await expect.poll(() => device.location()).toBe(`${PLANNER_URL}?kind=event`);
-    await expect.poll(() => listed().some((r) => r.id === REFILL.id)).toBe(false);
     expect(listed().every((r) => r.kindLink === "Show only events")).toBe(true);
     // A reload: the screen opened at that URL.
     await device.screen.unmount();
@@ -314,7 +303,7 @@ describe("filters", () => {
     await expect.element(by).toHaveAttribute("aria-current", "true");
     await userEvent.click(by);
     await expect.poll(() => device.location()).toBe(PLANNER_URL);
-    await expect.poll(() => listed().length).toBe(9);
+    await expect.poll(() => listed().length).toBe(8);
   });
 });
 

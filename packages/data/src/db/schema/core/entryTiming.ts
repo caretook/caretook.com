@@ -3,12 +3,12 @@
 // and the web's time rules (`lib/appointments/upcoming`) all use it.
 
 /**
- * The kinds that may be dated in the future: a future event is an
- * appointment, a future note a reminder. Symptoms and vitals are felt or
- * measured, and a dose is given (or skipped) when it happens, so none of
- * them can be ahead of now; neither can a medication change.
+ * The kinds that may be dated in the future: only an event (an appointment).
+ * A note is what happened (something to do later is a todo); symptoms and
+ * vitals are felt or measured, and a dose is given (or skipped) when it
+ * happens, so none of them can be ahead of now; neither can a medication change.
  */
-export const FUTURE_KINDS = ["note", "event"] as const;
+export const FUTURE_KINDS = ["event"] as const;
 export type FutureKind = (typeof FUTURE_KINDS)[number];
 
 export const isFutureKind = (kind: string | null | undefined): kind is FutureKind =>

@@ -33,7 +33,7 @@ describe("appointment seeds", () => {
     expect(pastCancelled).toHaveLength(2);
     expect(devFamily!.rows.some((r) => r.content.allDay)).toBe(true);
     expect(devFamily!.rows.some((r) => r.content.endsAt)).toBe(true);
-    expect(devFamily!.rows.some((r) => r.content.kind === "note")).toBe(true);
+    expect(devFamily!.rows.every((r) => r.content.kind === "event")).toBe(true);
     expect(devFamily!.links.length).toBeGreaterThanOrEqual(2);
   });
 

@@ -6,6 +6,7 @@ import {
   DEFAULT_START,
   defaultEnd,
   endError,
+  startError,
   withAllDay,
   withEnd,
   withStart,
@@ -15,7 +16,8 @@ import {
  * When a note or event is: its start (or day, all day), All day, and for
  * events an optional end ("Add an end time", "No end time"). Controlled: the
  * caller holds the schedule and gets each edit. An end before the start
- * shows the field's error (`endError`), which the caller checks before it
+ * shows the field's error (`endError`), and a note's start ahead of now
+ * shows `startError` (the field maxes at now); the caller checks both before it
  * saves. Used by the entry page's time chip and the reschedule sheet.
  */
 export function ScheduleFields({
@@ -43,6 +45,10 @@ export function ScheduleFields({
   const [version, setVersion] = useState(0);
   const [endVersion, setEndVersion] = useState(0);
   const error = endError(schedule);
+  // A note is what happened: its start maxes at now (fixed at mount) and shows the message past it.
+  const [now] = useState(() => new Date());
+  const past = kind === "note";
+  const futureError = startError(kind, schedule, now);
 
   const edit = (next: Schedule, remount = false) => {
     onChange(next);
@@ -58,6 +64,8 @@ export function ScheduleFields({
         defaultValue={schedule.occurredAt}
         dayPickTime={pickDay && version === 0 && !schedule.allDay ? DEFAULT_START : undefined}
         calendarOpen={pickDay && version === 0}
+        max={past ? now.toISOString() : undefined}
+        error={futureError ?? undefined}
         // A moved start can move the end too: remount the end field to show it.
         onChange={(iso) => {
           const next = moveStart(schedule, iso, timeZone);

@@ -29,7 +29,7 @@ describe("aheadQueries with a search", () => {
     const { next } = aheadQueries(GROUP, filters, CUTOFF);
     expect(next).toEqual(upcomingQuery(GROUP, { kind: null, author: null, match }, AT));
     expect(next.sql).toContain("(timeline_entry.id IN (SELECT 1))");
-    expect(next.params.slice(0, 5)).toEqual([GROUP, "note", "event", "fall*", GROUP]);
+    expect(next.params.slice(0, 4)).toEqual([GROUP, "event", "fall*", GROUP]);
   });
 
   it("no search is no condition", () => {

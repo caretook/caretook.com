@@ -417,6 +417,40 @@ describe("the header: time and Delete", () => {
     await expect.poll(async () => Date.parse((await stored(device, note.id))!.occurred_at)).toBe(moved);
   });
 
+  test("a note's time can't go past now: the day can't be picked, a typed later day shows the message and Done stays open", async () => {
+    const note = fx.note({ text: "An hour ago", occurredAt: hoursAgo(1) });
+    const device = await open(entryPath(note.id), { fixtures: [base(), note] });
+    await waitUntil(() => !!TIME_CHIP());
+    const was = Date.parse(note.row.occurred_at as string);
+    await userEvent.click(await found(TIME_CHIP));
+    await waitUntil(() => !!PICK_DATE());
+
+    // The calendar leaves every later day disabled.
+    await userEvent.click(await found(PICK_DATE));
+    await waitUntil(() => !!GRID(), 4000, "the calendar");
+    const tomorrow = new Date(Date.now() + DAY_MS);
+    const cell = [...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find(
+      (c) => c.textContent?.trim() === String(tomorrow.getDate()) && !c.hasAttribute("data-outside-month"),
+    );
+    if (cell)
+      expect(cell.hasAttribute("data-disabled") || cell.getAttribute("aria-disabled") === "true").toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !GRID(), 3000, "the calendar to close");
+
+    // Typing a later day marks it and keeps the chip open.
+    seg("day")!.focus();
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+    await waitUntil(
+      () => !!CHIP_DIALOG()?.textContent.includes("Can't be in the future"),
+      4000,
+      "the message",
+    );
+    await userEvent.click(button("Done")!);
+    await pause(300);
+    expect(CHIP_DIALOG()).toBeTruthy();
+    expect(Date.parse((await stored(device, note.id))!.occurred_at)).toBe(was);
+  });
+
   test("Delete asks first; Cancel keeps it; Delete goes back to the timeline, soft-deleted, without its row", async () => {
     const note = fx.note({ text: "To delete", occurredAt: hoursAgo(1) });
     const device = await open(entryPath(note.id), { fixtures: [base(), note] });

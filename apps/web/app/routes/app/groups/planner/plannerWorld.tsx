@@ -75,7 +75,6 @@ export const CARDIOLOGY = fx.event({
   occurredAt: laTime(1, 10, 30),
   endsAt: laTime(1, 11, 15),
 });
-export const REFILL = fx.note({ title: "Call the pharmacy about the refill", occurredAt: laTime(1, 15) });
 export const RIDE = fx.event({
   title: "Ride to the senior center",
   occurredAt: laTime(2, 9),
@@ -101,7 +100,7 @@ export const EYES_OLD = fx.event({
   rescheduledTo: EYES_NEW.id,
 });
 /** Live (not cancelled) upcoming items, soonest first, as the Planner tab lists them. */
-export const UPCOMING_LIVE = [NURSE, THERAPY, CARDIOLOGY, REFILL, HOSPICE, RIDE, EYES_NEW];
+export const UPCOMING_LIVE = [NURSE, THERAPY, CARDIOLOGY, HOSPICE, RIDE, EYES_NEW];
 
 // The past: events (two cancelled), and a note the Past tab leaves out.
 export const BLOOD_DRAW = fx.event({ title: "Blood draw", occurredAt: laTime(-1, 8) });
@@ -132,7 +131,6 @@ export const world = (): Fixture[] => [
   fx.link(THERAPY.id, AIDE.id),
   CARDIOLOGY,
   fx.link(CARDIOLOGY.id, TRAN.id),
-  REFILL,
   RIDE,
   HOSPICE,
   DENTIST,

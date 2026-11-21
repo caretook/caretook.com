@@ -7,10 +7,10 @@ import { fx, series, TEST_GROUP } from "../../../../../test/fixtures";
 import { fixClock, laTime, PLANNER_ROUTES } from "../planner/plannerWorld";
 import { renderWithDevice } from "../../../../../test/device";
 
-// Repeating appointments and reminders on the test device (appointments-2,
+// Repeating appointments on the test device (appointments-2,
 // slice 1): the repeat field and its preview in a new appointment's sheet,
 // saving a draft as a series offline (the series and every visit in one
-// local transaction, queued for upload), a reminder series, the repeat text
+// local transaction, queued for upload), no Repeat on a note, the repeat text
 // on a visit's page (viewers too), and the repeat mark in the Planner, the
 // timeline and the Today card. The rules themselves are repeatRule.test.ts's
 // and seriesVisits.test.ts's; the upload is syncAppointmentSeries.int.test.ts's.
@@ -212,36 +212,11 @@ describe("saving a series", () => {
     expect(fridayRow.querySelector("[data-repeat-mark]")).not.toBeNull();
   });
 
-  test("a reminder series: monthly on the nth weekday, all day, notes with no end or place", async () => {
-    const device = await open(NEW_NOTE);
-    // All day, through the time chip.
-    await userEvent.click(await found(() => $('main header button[aria-label="Change when it happened"]')));
-    await userEvent.click(await found(() => $<HTMLInputElement>('[role=dialog] input[type="checkbox"]')));
-    await userEvent.click(await found(() => sheetButton("Done") ?? null));
-    await openRepeat();
-    await choose("monthly");
-    await userEvent.click(radio("On the 3rd Wednesday")!);
-    expect(PREVIEW_TEXT()).toBe("Monthly on the 3rd Wednesday");
-    expect(PREVIEW_NEXT()).toEqual(["Wed, Nov 18", "Wed, Dec 16", "Wed, Jan 20"]);
-    await userEvent.click(sheetButton("Done")!);
-
-    (await found(TITLE)).focus();
-    await userEvent.keyboard("Order refills{Enter}");
-    await expect.poll(async () => (await seriesRows(device)).length, { timeout: 5000 }).toBe(1);
-    const [stored] = (await seriesRows(device)) as Record<string, unknown>[];
-    expect(stored).toMatchObject({
-      kind: "note",
-      rule: "FREQ=MONTHLY;INTERVAL=1;BYDAY=3WE",
-      all_day: 1,
-      start_time: null,
-    });
-    const visits = await visitRows(device, stored!.id as string);
-    expect(visits.map((v) => [v.kind, v.series_day, v.ends_at])).toEqual([
-      ["note", "2026-11-18", null],
-      ["note", "2026-12-16", null],
-      ["note", "2027-01-20", null],
-    ]);
-    await expect.poll(ENTRY_REPEAT_TEXT).toBe("RepeatsMonthly on the 3rd Wednesday");
+  test("a note has no Repeat (a reminder is a todo)", async () => {
+    await open(NEW_NOTE);
+    await found(() => $('main header button[aria-label="Change when it happened"]'));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(REPEAT_BUTTON()).toBeNull();
   });
 });
 

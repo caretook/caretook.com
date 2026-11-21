@@ -86,7 +86,8 @@ export async function loadEntry(
         : [];
     return {
       isNew: true,
-      pickDay: when === WHEN_PICK,
+      // Only events are dated ahead, so only they open the picker.
+      pickDay: when === WHEN_PICK && kind === "event",
       withProviders: provider ? [provider.id] : [],
       entry: {
         id: crypto.randomUUID(),

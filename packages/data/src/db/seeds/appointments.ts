@@ -15,7 +15,7 @@ import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
 import { SECOND_GROUP_ID, SECOND_RECIPIENT_ID } from "./secondGroup";
 import { occurredAtOf } from "./timelineEntries";
 
-// Fictional appointments and reminders (future events and notes), placed
+// Fictional appointments (future events), placed
 // relative to the seeding time so they stay in the future after a reset:
 // about three weeks ahead for Grandma Pat (Dev Family), with a couple of
 // cancelled visits in the past, and one appointment for Grandpa Lou.
@@ -40,7 +40,7 @@ export type SeedAppointment = {
   minutes?: number;
   allDay?: boolean;
   author: Author;
-  kind: "event" | "note";
+  kind: "event";
   title?: string;
   place?: string;
   /** The live document's text (one paragraph per line, "• " for bullets). */
@@ -102,16 +102,6 @@ export const DEV_FAMILY_APPOINTMENTS: SeedAppointment[] = [
     kind: "event",
     title: "Hospice intake visit",
     text: "They'll call in the morning with a time window.",
-  },
-  {
-    key: "refill",
-    daysAhead: 3,
-    time: "09:00",
-    author: "caretaker@example.com",
-    kind: "note",
-    title: "Call the pharmacy about the refill",
-    with: ["cornerstone"],
-    text: "Latanoprost runs out on the weekend.",
   },
   {
     key: "dentist",

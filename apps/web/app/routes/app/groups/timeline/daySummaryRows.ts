@@ -1,11 +1,8 @@
 import type { EntryFilters, LocalQuery } from "~/lib/timeline/timeline.sync";
 
-import { FUTURE_KINDS } from "@caretook/data/schema";
-import { SHOWN_KINDS_SQL, toLocalTimestamp } from "~/lib/timeline/timeline.sync";
+import { HISTORY_ENDS_SQL, SHOWN_KINDS_SQL, toLocalTimestamp } from "~/lib/timeline/timeline.sync";
 import { baselineStart } from "./daySummary";
 import { dayKeyIn } from "./timelineDays";
-
-const FUTURE_KINDS_SQL = `kind IN (${FUTURE_KINDS.map((k) => `'${k}'`).join(", ")})`;
 
 /** Where the summaries' rows start: the baseline of the oldest loaded day (today's when nothing is loaded). */
 export const summarySince = (oldestLoaded: string | null, cutoff: string, timeZone: string) =>
@@ -25,7 +22,7 @@ export const daySummaryQuery = (
 ): LocalQuery => ({
   sql: `SELECT * FROM timeline_entry
         WHERE group_id = ? AND deleted_at IS NULL AND ${SHOWN_KINDS_SQL} ${off ? "AND 0" : ""}
-          AND occurred_at >= ? AND (NOT ${FUTURE_KINDS_SQL} OR occurred_at <= ?)
+          AND occurred_at >= ? AND (NOT ${HISTORY_ENDS_SQL} OR occurred_at <= ?)
         ORDER BY occurred_at DESC, id DESC`,
   params: [groupId, toLocalTimestamp(since), toLocalTimestamp(cutoff)],
 });

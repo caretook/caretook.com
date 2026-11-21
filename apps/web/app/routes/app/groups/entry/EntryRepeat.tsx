@@ -29,8 +29,7 @@ export function EntryRepeat({ live }: { live: LiveEntry }) {
   const [open, setOpen] = useState(false);
   const query = seriesQuery(entry.seriesId);
   const rows = useLiveQuery<SeriesRow>(query.sql, query.params, NO_ROWS);
-  const kind = entry.kind === "event" || entry.kind === "note" ? entry.kind : null;
-  if (deleted || !kind) return null;
+  if (deleted || (entry.kind !== "event" && entry.kind !== "note")) return null;
 
   if (entry.seriesId) {
     const series = toRepeatInput(rows[0]);
@@ -41,7 +40,9 @@ export function EntryRepeat({ live }: { live: LiveEntry }) {
       </p>
     );
   }
-  if (!canWrite || !isNew) return null;
+  // Series are events only: a note has no Repeat.
+  if (!canWrite || !isNew || entry.kind !== "event") return null;
+  const kind = "event";
 
   const schedule = { occurredAt: entry.occurredAt, endsAt: entry.endsAt, allDay: entry.allDay };
   const timing = draftTiming(schedule, {
