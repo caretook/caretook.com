@@ -9,10 +9,11 @@ import {
   providerService,
   SYSTEM_USER,
   todoService,
+  timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../../data/test/fixtures";
+import { createGroup, createUser, ok, system } from "../../../data/test/fixtures";
 import { router } from "..";
 import { createRateLimiter, memoryStore } from "../rateLimit";
 import { createFeedHandler, FEED_MAX_AGE } from "./feed";
@@ -256,6 +257,20 @@ describe("GET /api/calendar/<token>.ics", () => {
       endsAt: null,
       occurredAt: daysFrom(-1),
     });
+    // A stored future note (left from before notes were past-only) is no item either.
+    const planned = ok(
+      await timelineEntryModel.create({
+        ...system,
+        data: {
+          groupId: s.group.id,
+          recipientId: s.recipient.id,
+          kind: "note",
+          title: "Call the pharmacy",
+          occurredAt: daysFrom(2),
+          timeZone: "America/Los_Angeles",
+        },
+      }),
+    )!;
     const cancelled = await s.entry({ occurredAt: daysFrom(3), endsAt: null });
     ok(
       await timelineEntryService.update(s.ctx("caretaker"), cancelled.id, { cancelledAt: NOW.toISOString() }),
@@ -288,7 +303,7 @@ describe("GET /api/calendar/<token>.ics", () => {
     expect(has(`entry:${inside.id}`)).toBe(true);
     expect(has(`entry:${cancelled.id}`)).toBe(true);
     expect(has(`todo:${due.id}`)).toBe(true);
-    for (const left of [early, far, logged, deleted]) expect(has(`entry:${left.id}`)).toBe(false);
+    for (const left of [early, far, logged, planned, deleted]) expect(has(`entry:${left.id}`)).toBe(false);
     for (const left of [undated, done]) expect(has(`todo:${left.id}`)).toBe(false);
     // Only the cancelled appointment is marked cancelled.
     expect(ics.match(/STATUS:CANCELLED/g)).toHaveLength(1);

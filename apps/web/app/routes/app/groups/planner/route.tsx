@@ -5,17 +5,17 @@ import { TodoUndoStatus } from "~/components/todos";
 import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { loadUpcoming } from "./loadUpcoming";
-import { PlannerFilterChips, PlannerHeader } from "./PlannerHeader";
+import { PlannerFilterRow, PlannerHeader } from "./PlannerHeader";
 import { emptyUpcomingText, parseUpcomingFilters } from "./upcomingFilters";
 import { UpcomingList } from "./UpcomingList";
 import { useUpcomingData } from "./useUpcomingData";
 
-// Shared by web + native. The Planner section's Planner tab: appointments
-// (future events) and reminders (future notes), with due doses and dated
+// Shared by web + native. The Planner section's Planner tab (Upcoming):
+// appointments (future events), with due doses and dated
 // todos merged in by day, read from the device's local
 // copy (live, so it works offline and follows other members' changes). What
 // counts as upcoming is worked out from the clock (`lib/appointments/upcoming`), never
-// stored. `?kind=` (event or note) and `?author=` filter it, as on the timeline.
+// stored. `?kind=event` (events only), `?show=todos` (todos only) and `?author=` filter it.
 
 export const meta = () => [{ title: "Planner · Caretook" }];
 
@@ -33,16 +33,17 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 }
 
 export default function Planner({ loaderData, params }: Route.ComponentProps) {
-  const { kind, author } = loaderData;
+  const { kind, author, show, todosOnly } = loaderData;
   const { groupId } = params;
-  const data = useUpcomingData({ groupId, filters: { kind, author }, initial: loaderData });
+  const data = useUpcomingData({ groupId, filters: { kind, author }, todosOnly, initial: loaderData });
   const authorName = author ? data.nameOf(author) : null;
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-planner>
-      <PlannerHeader tab="planner" />
-      <PlannerFilterChips
-        kind={kind}
+      <PlannerHeader />
+      <PlannerFilterRow
+        view="upcoming"
+        show={show}
         author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}
       />
       {/* Undo after ticking a todo in the list. */}
@@ -51,7 +52,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
         data={data}
         groupId={groupId}
         label="Upcoming"
-        empty={emptyUpcomingText(kind, authorName)}
+        empty={emptyUpcomingText(show, authorName)}
       />
     </main>
   );
