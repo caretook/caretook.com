@@ -20,7 +20,11 @@ type Props<T extends string> = {
   /** Classes for the wrapper (the outer element). */
   className?: string;
 } & (
-  | { /** Controlled. */ value: T; onChange: (value: T) => void; defaultValue?: never }
+  | {
+      /** Controlled; null is none chosen yet. */ value: T | null;
+      onChange: (value: T) => void;
+      defaultValue?: never;
+    }
   | {
       /** Uncontrolled: read from the form when it posts. */ defaultValue: T;
       value?: never;

@@ -1,5 +1,5 @@
 {
-  "id": "91ca2f6f-334e-41b5-96c0-a0977651db8b",
+  "id": "6644e01e-44e9-4284-a47a-b3f21d1b182c",
   "prevId": "d2d40666-ba90-4cd0-a457-d8c105cfcaee",
   "version": "7",
   "dialect": "postgresql",
@@ -4205,128 +4205,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.assistant_request": {
-      "name": "assistant_request",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "requested_at": {
-          "name": "requested_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "assistant_request_group_user_idx": {
-          "name": "assistant_request_group_user_idx",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "requested_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "assistant_request_group_id_care_group_id_fk": {
-          "name": "assistant_request_group_id_care_group_id_fk",
-          "tableFrom": "assistant_request",
-          "tableTo": "care_group",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "assistant_request_member_fk": {
-          "name": "assistant_request_member_fk",
-          "tableFrom": "assistant_request",
-          "tableTo": "care_group_member",
-          "columnsFrom": [
-            "group_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "group_id",
-            "user_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.connector_grant": {
       "name": "connector_grant",
       "schema": "",
@@ -5267,6 +5145,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "deleted_at": {
           "name": "deleted_at",
           "type": "timestamp(3) with time zone",
@@ -5407,6 +5291,10 @@
         "medication_stop_reason_check": {
           "name": "medication_stop_reason_check",
           "value": "\"medication\".\"stop_reason\" IN ('sideEffects', 'ineffective', 'prescriberStopped', 'other')"
+        },
+        "medication_type_check": {
+          "name": "medication_type_check",
+          "value": "\"medication\".\"type\" IN ('prescription', 'otc', 'supplement', 'other')"
         }
       },
       "isRLSEnabled": false

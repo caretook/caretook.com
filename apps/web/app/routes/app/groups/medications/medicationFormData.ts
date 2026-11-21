@@ -1,8 +1,8 @@
-import type { MedicationForm, MedicationSchedule, ScheduleSlot } from "@caretook/data/schema";
+import type { MedicationForm, MedicationSchedule, MedicationType, ScheduleSlot } from "@caretook/data/schema";
 import type { FieldIssue } from "../../../../lib/core/api";
 import type { NewMedicationProviders } from "../../../../lib/medications/medications.sync";
 
-import { MEDICATION_FORMS } from "@caretook/data/schema";
+import { MEDICATION_FORMS, MEDICATION_TYPES } from "@caretook/data/schema";
 
 // The medication sheet's form as a medication: the fields `MedicationForm`
 // posts, read into the shape the device writes (`createMedication`,
@@ -12,6 +12,8 @@ import { MEDICATION_FORMS } from "@caretook/data/schema";
 /** The form's field names. */
 export const FIELD = {
   name: "name",
+  /** Prescription, otc, supplement or other (required on save). */
+  type: "type",
   strength: "strength",
   form: "form",
   dose: "dose",
@@ -43,6 +45,8 @@ export const passAmountField = (passId: string) => `passAmount:${passId}`;
 /** What the form edits: every content field but the status ones. */
 export type MedicationFormInput = {
   name: string;
+  /** None chosen (an old medication) is null: the save refuses it. */
+  type: MedicationType | null;
   strength: string;
   form: MedicationForm | null;
   dose: string;
@@ -85,6 +89,9 @@ const number = (form: FormData, name: string) => {
 const isForm = (value: string): value is MedicationForm =>
   (MEDICATION_FORMS as readonly string[]).includes(value);
 
+const isType = (value: string): value is MedicationType =>
+  (MEDICATION_TYPES as readonly string[]).includes(value);
+
 /**
  * The medication in a submitted form. A scheduled medication's slots are the
  * ticked passes (each with its amount, if typed), then the time rows with a
@@ -126,10 +133,12 @@ export const medicationFromForm = (form: FormData): MedicationFormData => {
     ...(newPharmacy && { pharmacy: newPharmacy }),
   };
   const rawForm = text(form, FIELD.form);
+  const rawType = text(form, FIELD.type);
 
   return {
     input: {
       name: text(form, FIELD.name),
+      type: isType(rawType) ? rawType : null,
       strength: text(form, FIELD.strength),
       form: isForm(rawForm) ? rawForm : null,
       dose: text(form, FIELD.dose),
@@ -175,6 +184,7 @@ export const issuesForSlotRows = (issues: FieldIssue[], slotRows: SlotRow[]): Fi
 /** The fields the form shows issues on; an issue on anything else is shown above the buttons. */
 const SHOWN = new Set([
   "name",
+  "type",
   "strength",
   "form",
   "dose",

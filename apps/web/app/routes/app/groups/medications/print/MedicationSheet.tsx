@@ -62,53 +62,58 @@ export function MedicationSheet({ sheet, allergies }: { sheet: PrintSheet; aller
         {sheet.current.length === 0 ? (
           <Empty>No current medications.</Empty>
         ) : (
-          <table className={TABLE}>
-            <colgroup>
-              <col className="w-[27%]" />
-              <col className="w-[31%]" />
-              <col className="w-[16%]" />
-              <col className="w-[14%]" />
-              <col className="w-[12%]" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th scope="col" className={TH}>
-                  Medication
-                </th>
-                <th scope="col" className={TH}>
-                  How it's taken
-                </th>
-                <th scope="col" className={TH}>
-                  For
-                </th>
-                <th scope="col" className={TH}>
-                  Prescriber
-                </th>
-                <th scope="col" className={TH}>
-                  Started
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sheet.current.map((m) => (
-                <tr key={m.id} data-print-medication={m.id}>
-                  <th scope="row" className={`${TD} font-semibold`} data-print-title>
-                    {m.title}
-                    {m.form && <Muted>{m.form}</Muted>}
-                  </th>
-                  <td className={TD}>
-                    {[m.dose, m.schedule].filter(Boolean).join(" · ")}
-                    {m.directions && <Muted>{m.directions}</Muted>}
-                  </td>
-                  <td className={TD}>{m.reason}</td>
-                  <td className={TD} data-print-prescriber>
-                    {m.prescriber}
-                  </td>
-                  <td className={TD}>{m.started}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          sheet.currentGroups.map((group) => (
+            <div key={group.type ?? "none"} className="space-y-1" data-print-group={group.type ?? "none"}>
+              <h3 className="text-sm font-semibold">{group.heading}</h3>
+              <table className={TABLE}>
+                <colgroup>
+                  <col className="w-[27%]" />
+                  <col className="w-[31%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[12%]" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col" className={TH}>
+                      Medication
+                    </th>
+                    <th scope="col" className={TH}>
+                      How it's taken
+                    </th>
+                    <th scope="col" className={TH}>
+                      For
+                    </th>
+                    <th scope="col" className={TH}>
+                      Prescriber
+                    </th>
+                    <th scope="col" className={TH}>
+                      Started
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.rows.map((m) => (
+                    <tr key={m.id} data-print-medication={m.id}>
+                      <th scope="row" className={`${TD} font-semibold`} data-print-title>
+                        {m.title}
+                        {m.form && <Muted>{m.form}</Muted>}
+                      </th>
+                      <td className={TD}>
+                        {[m.dose, m.schedule].filter(Boolean).join(" · ")}
+                        {m.directions && <Muted>{m.directions}</Muted>}
+                      </td>
+                      <td className={TD}>{m.reason}</td>
+                      <td className={TD} data-print-prescriber>
+                        {m.prescriber}
+                      </td>
+                      <td className={TD}>{m.started}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))
         )}
       </Section>
 

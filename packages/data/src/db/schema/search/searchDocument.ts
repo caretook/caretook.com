@@ -1,3 +1,5 @@
+import type { MedicationType } from "../medications/medication";
+import { medicationTypeLabel } from "../medications/medicationTypeDisplay";
 import { VITALS } from "../timeline/vitals";
 
 // What each searchable thing's text is: one pure builder, used by the
@@ -63,6 +65,8 @@ export type MedicationSearchSource = {
   groupId: string;
   name?: Text;
   strength?: Text;
+  /** The stored type; its label is searchable. Anything unknown or unset adds nothing. */
+  type?: Text;
   reason?: Text;
   directions?: Text;
   documentText?: Text;
@@ -163,7 +167,13 @@ export const medicationSearchDocument = (medication: MedicationSearchSource): Se
     type: "medication",
     groupId: medication.groupId,
     title: join([medication.name, medication.strength]),
-    body: join([medication.reason, medication.directions, medication.documentText]),
+    body: join([
+      // The type reads as its label ("Over the counter"); a medication with no type says nothing.
+      medication.type ? medicationTypeLabel(medication.type as MedicationType) : null,
+      medication.reason,
+      medication.directions,
+      medication.documentText,
+    ]),
   };
 };
 

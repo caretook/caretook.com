@@ -47,7 +47,7 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
   const { input, newProviders, slotRows, conditionIds } = medicationFromForm(await request.formData());
   const badConditions = await checkMedicationConditions(db, group.id, conditionIds);
   if (badConditions) return badConditions;
-  const result = await createMedication(db, group.id, input, newProviders);
+  const result = await createMedication(db, group.id, input, newProviders, { requireType: true });
   if (!result.ok) return { ...result, issues: issuesForSlotRows(result.issues, slotRows) };
   if (conditionIds.length) return setMedicationConditions(db, result.id, conditionIds);
   return { ok: true };

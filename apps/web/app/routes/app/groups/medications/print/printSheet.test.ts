@@ -30,6 +30,7 @@ const med = (patch: Partial<PrintMedicationInput> & { name: string }): PrintMedi
   stopNote: null,
   prescriberId: null,
   pharmacyId: null,
+  type: null,
   ...patch,
 });
 
@@ -168,6 +169,66 @@ describe("current medications", () => {
       [provider({ id: "gone", name: "Dr. Former", deletedAt: "2026-10-01T00:00:00Z" })],
     );
     expect(s.current.map((r) => r.prescriber)).toEqual(["Dr. Former", null]);
+  });
+});
+
+describe("current medications by type", () => {
+  const groups = (medications: PrintMedicationInput[]) =>
+    sheet(medications).currentGroups.map((g) => [g.type, g.heading, g.rows.map((r) => r.title)]);
+  it("group in the order Prescription, Over the counter, Supplement, Other, Type not set", () => {
+    expect(
+      groups([
+        med({ name: "Zinc cream", type: "other" }),
+        med({ name: "Old tablet", type: null }),
+        med({ name: "Vitamin D", type: "supplement" }),
+        med({ name: "Ibuprofen", type: "otc" }),
+        med({ name: "Lisinopril", type: "prescription" }),
+      ]),
+    ).toEqual([
+      ["prescription", "Prescriptions", ["Lisinopril"]],
+      ["otc", "Over the counter", ["Ibuprofen"]],
+      ["supplement", "Supplements", ["Vitamin D"]],
+      ["other", "Other", ["Zinc cream"]],
+      [null, "Type not set", ["Old tablet"]],
+    ]);
+  });
+  it("leave out empty groups", () => {
+    expect(
+      groups([med({ name: "Vitamin D", type: "supplement" }), med({ name: "Old", type: null })]).map(
+        (g) => g[0],
+      ),
+    ).toEqual(["supplement", null]);
+    expect(groups([])).toEqual([]);
+  });
+  it("keep no type last even when it is the only other group, and read an undefined type as none", () => {
+    const s = sheet([
+      med({ name: "A", type: null }),
+      med({ name: "B", type: "prescription" }),
+      med({ name: "C", type: undefined }),
+    ]);
+    expect(s.currentGroups.map((g) => g.type)).toEqual(["prescription", null]);
+    expect(s.currentGroups[1]!.rows.map((r) => r.title)).toEqual(["A", "C"]);
+  });
+  it("sort each group by name and flatten to current in group order", () => {
+    const s = sheet([
+      med({ name: "b-otc", type: "otc" }),
+      med({ name: "metformin", type: "prescription" }),
+      med({ name: "a-otc", type: "otc" }),
+      med({ name: "Amoxicillin", type: "prescription" }),
+    ]);
+    expect(s.currentGroups.map((g) => g.rows.map((r) => r.title))).toEqual([
+      ["Amoxicillin", "metformin"],
+      ["a-otc", "b-otc"],
+    ]);
+    expect(s.current.map((r) => r.title)).toEqual(["Amoxicillin", "metformin", "a-otc", "b-otc"]);
+  });
+  it("leave stopped medications as one list, whatever their type", () => {
+    const s = sheet([
+      med({ name: "Old rx", type: "prescription", status: "completed", stoppedOn: "2026-11-04" }),
+      med({ name: "Old vit", type: "supplement", status: "discontinued", stoppedOn: "2026-11-10" }),
+    ]);
+    expect(s.currentGroups).toEqual([]);
+    expect(s.stopped.map((r) => r.title)).toEqual(["Old vit", "Old rx"]);
   });
 });
 

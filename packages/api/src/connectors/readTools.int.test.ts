@@ -243,6 +243,7 @@ describe("read tools", { timeout: 60_000 }, () => {
     const morning = passes.find((p) => p.name === "Morning")!;
     await addMedication(w.caretaker.ctx, w.group.id, {
       name: "Aspirin",
+      type: "otc",
       schedule: { type: "scheduled", slots: [{ passId: morning.id }] },
       pharmacyId: pharmacy.id,
       reason: "Heart",
@@ -268,10 +269,16 @@ describe("read tools", { timeout: 60_000 }, () => {
       schedule: string;
       pharmacy: { name: string } | null;
       maxPerDay: number | null;
+      type: string | null;
     }[];
     expect(meds.map((m) => m.title)).toEqual(["Aspirin 10 mg", "Ibuprofen 10 mg"]);
     expect(meds[0]).toMatchObject({ schedule: "Morning", pharmacy: { name: "Corner Pharmacy" } });
     expect(meds[1]).toMatchObject({ schedule: "As needed, up to 4 a day", maxPerDay: 4 });
+    // The type: the stored value (null when not set) in the data, its label in the text line.
+    expect(meds.map((m) => m.type)).toEqual(["otc", null]);
+    const lines = current.content[0]!.text.split("\n");
+    expect(lines.find((l: string) => l.includes("Aspirin"))).toContain("Aspirin 10 mg · Over the counter ·");
+    expect(lines.find((l: string) => l.includes("Ibuprofen"))).not.toMatch(/Over the counter|Type not set/);
 
     const all = await callTool(handler, token, "list_medications", { includePast: true, limit: 2 });
     const first = all.structuredContent as { medications: { title: string }[]; nextCursor: string };
