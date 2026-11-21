@@ -25,7 +25,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `appointments-2` | [PRD](appointments-2-prd.md), [plan](appointments-2-plan.md): **done** (`f49aa958`) | — | none now |
 | `connectors-2` | [PRD](connectors-2-prd.md), [plan](connectors-2-plan.md): **done** (`017a9b29`) | — | none now |
 | `medications-3` | [PRD](medications-3-prd.md), [plan](medications-3-plan.md): **done** (`82221a92`) | — | none now |
-| `medications-4` | to write (B-213: a mobile redesign of Today's schedule: passes, scheduled, as needed) | `medications-3` landed | the medications Today view and its schedule rows, the Dose sheet (`new-dose/`, `DoseForm.tsx`), `TodayCard`'s dose items |
+| `list-filters` | [PRD](list-filters-prd.md), [plan](list-filters-plan.md): 4 slices, waves 1 → (2, 3) → 4: a shared `FilterMenu` (round sliders button, count badge, a dropdown of single-choice sections, removable chips) on the medications list, then the providers directory and the Todos tab, then the Planner (B-249). No migration, no deps, stackless. Replaces `medications-4` (B-213 was resolved by the tab split, B-226). **Ready to start**; slice 4 waits for B-247 | slices 1–3: (none); slice 4: B-247 in `dev` (a `quick-fixes` item) | `components/ui/` (index, `styles.ts`, the new `FilterMenu` and its model), `timeline/TimelineFilters.tsx` and `TimelineViewMenu.tsx` (an import only), `medications/MedicationFilters.tsx` and the list route, `providers/DirectoryFilters.tsx` and its route, `todos/TodoChips.tsx` and its route, the Planner's filter row (`PlannerHeader.tsx`), those screens' component tests |
 | `medications-tabs` | [PRD](medications-tabs-prd.md), [plan](medications-tabs-plan.md): **done** (`07a6b59a`, PR #14) | — | none now |
 | `conditions` | [PRD](conditions-prd.md), [plan](conditions-plan.md): **done** (`a95acb73`) | — | none now |
 | `github-review` | [PRD](github-review-prd.md), [plan](github-review-plan.md): **done** (`63e225fb`, PR #12); follow-ups B-239 to B-242, B-244 | — | none now |
@@ -54,6 +54,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `timeline-ux-2` | [PRD](timeline-ux-2-prd.md), [plan](timeline-ux-2-plan.md): **done** (`f1fc883e`) | — | none now |
 | `quick-entry` | [PRD](quick-entry-prd.md), [plan](quick-entry-plan.md): 4 slices, waves 1 → (2, 3, 4): one vocabulary table of kind-picking words (falls, seizures and the like are symptoms; 911, ER and urgent care are notes; visit verbs make events, contact verbs make notes), provider lines as events (titles, places), "the 25th" and month dates, forward for events and back for past-only kinds; notes that @-mention named providers (`addNote.providerIds`, both runners, the connector's `add_note`); a provider event's Save opens a prefilled new-event draft (mixed lines save the rest with Undo); kind chips on the cards (B-220). No migration, no deps, stackless. **Ready to start** once `timeline-ux-2` and `tasks-2` are in `dev` | `timeline-ux-2` in `dev` (last item B-224); `tasks-2` in `dev` (the to-do rename in actions, `actionPreview`, connector tools; last item B-222) | `packages/data` assistant schema (`quickEntry.ts`, `quickEntryTime.ts`, the new `quickEntryVocabulary.ts`, `assistantActions.ts`, `quickEntryPreview.ts`), `noteYjs.ts` (`noteDocFromText`), `assistantActionService`, the connector's `add_note`, `lib/assistant/` (`quickEntry.sync.ts`, `quickEntryDraft.ts`, `openAfterSave`), `components/quick-entry/` (`useQuickEntry`, `quickEntryCards.ts`, the card), the entry page's new-event draft |
 | `planner-2` | to write (B-248: remove reminders, notes become past-only, todos take their place; no data migration; B-245 attach a todo to a note is the later follow-up) | `quick-entry` in `dev` (the same date rules; last item B-220) | the note time rules on the device and server (`timelineEntryService`), the Planner (+ menu, rows, `upcomingFilters`), the Today card and `SimpleNext`, `calendarItems` and `calendarText` (the reminder kind: feed, Google push and pull, `reminderPlan`, Remind me), quick entry (`quickEntryTime`, the note action), the connector's `upcoming` and `add_note`, seeds |
+| `planner-3` | to write (B-245: a note can carry a todo with its own due day and assignee, the replacement for reminders) | `planner-2` in `dev` (last item B-248) | the note editor and entry page, `todoService` and the todo schema (a link to its note), the Planner's todo rows, the Today card, the connector's `add_note` and `add_todo` |
 | `simple-mode` | to write (B-221: locked simple mode, a new member type or a nit pass) | (none) | `@caretook/data/permissions`, `careGroupMemberService`, group settings Members, `SimpleTimeline`, the `/app` layout |
 | `tasks-2` | [PRD](tasks-2-prd.md), [plan](tasks-2-plan.md): **done** (`2db975a7`) | — | none now |
 
@@ -106,7 +107,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-210 | bug | staging | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | staging | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
 | B-212 | bug | staging | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
-| B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
+| B-213 | bug | landed | medications-tabs |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
 | B-214 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
 | B-215 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
 | B-216 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
@@ -121,27 +122,31 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-225 | bug | staging | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
 | B-226 | change | landed | medications-tabs | prd/medications-tabs | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | dropped | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
-| B-228 | bug | triaged | quick-fixes |  | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
+| B-228 | bug | in-progress | quick-fixes | prd/quick-fixes | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
 | B-229 | bug | triaged | quick-fixes |  | on timeline page, header and Today section should be in same column width as the rest of the… |
-| B-230 | bug | triaged | quick-fixes |  | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
+| B-230 | bug | in-progress | quick-fixes | prd/quick-fixes | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
 | B-231 | bug | triaged | quick-fixes |  | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
-| B-232 | bug | triaged | quick-fixes |  | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
-| B-233 | bug | triaged | quick-fixes |  | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
-| B-234 | bug | triaged | quick-fixes |  | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
-| B-235 | bug | triaged | quick-fixes |  | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
+| B-232 | bug | in-progress | quick-fixes | prd/quick-fixes | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
+| B-233 | bug | in-progress | quick-fixes | prd/quick-fixes | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
+| B-234 | bug | in-progress | quick-fixes | prd/quick-fixes | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
+| B-235 | bug | in-progress | quick-fixes | prd/quick-fixes | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
 | B-236 | bug | triaged | simple-mode |  | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
-| B-237 | bug | triaged | quick-fixes |  | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
-| B-238 | bug | triaged | quick-fixes |  | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
+| B-237 | bug | ready | quick-fixes | prd/quick-fixes | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
+| B-238 | bug | ready | quick-fixes | prd/quick-fixes | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
 | B-239 | bug | triaged | github-review |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | github-review |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | github-review |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
 | B-242 | bug | triaged | github-review |  | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
 | B-243 | bug | landed | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
 | B-244 | chore | triaged | github-review |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
-| B-245 | plan | inbox |  |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
+| B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-246 | change | triaged | quick-fixes |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
 | B-247 | change | triaged | quick-fixes |  | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
 | B-248 | change | triaged | planner-2 |  | Remove reminders: notes can no longer be dated in the future; use todos instead |
+| B-249 | change | in-progress | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
+| B-250 | bug | triaged | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
+| B-251 | bug | triaged | quick-fixes |  | convert planner tabs to TabNav component. |
+| B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 
 ## Items
 
@@ -616,13 +621,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-213 · bug · medications today schedule layout is confusing especially on mobile. Plan an improved layout for…
 
-- status: triaged
-- prd: medications-4
+- status: landed
+- prd: medications-tabs
 - owner:
-- commit:
+- commit: 07a6b59a
 
 - 2026-11-21 (prd/medications-3): From the inbox: medications today schedule layout is confusing especially on mobile. Plan an improved layout for passes, scheduled, and as needed.
 - 2026-11-21 (prd/medications-3): Proposed for a follow-up PRD, medications-4: a redesign of Today's schedule (passes, scheduled, as needed) on mobile needs a PRD and plan, not a slice in medications-3.
+- 2026-11-21 (backlog agent): Resolved by the Schedule | Medications tab split (B-226, 07a6b59a): the user, 2026-11-21, finds Today's schedule fine since. No redesign; medications-4 is not needed. The list's filters move under a Filter dropdown in list-filters instead.
 
 ### B-214 · bug · don't need patient name on the providers, medications, upcoming, or tasks page page, just need it…
 
@@ -785,9 +791,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-228 · bug · Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute|value|dataset|checked|placeholder|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (prd/quick-fixes): Found by quick-fixes slice 59 (B-180), 2026-11-21: same fix (await expect.poll / found()); proposed for a later quick-fixes wave. -- quick-fixes orchestrator
@@ -805,9 +811,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-230 · bug · reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (prd/quick-fixes): Seen in quick-fixes wave 15's third full check (2026-11-21 05:18, a 1523 s run under contention); 6/6 alone 3x. Likely a longer per-test timeout or less setup per test; the second failure looks like a knock-on. -- quick-fixes orchestrator
@@ -824,9 +830,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-232 · bug · Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P1, a data-access gap. accountAdminService.disable keeps the Google connection; calendarFeedService.resolve and calendarPullService.memberContext both refuse disabled users. Fix: join user and skip disabledAt in connectionsFor (or disconnect on disable), with an int test. Proposed first in the next quick-fixes wave, or a hotfix before the staging PR merges.
@@ -834,27 +840,27 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-233 · bug · A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2. timelineEntryService update (the 'A series edit never rewrites a started visit' check) should call the shared isPastVisit from packages/data/src/db/schema/appointments/seriesEdit.ts with the group's time zone. One slice with an int test.
 
 ### B-234 · bug · Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR)
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2, confirmed in apps/web/app/lib/appointments/repeatChoice.ts. Keep the stored ordinal and weekday unless the user changes the repeat; a unit test round-tripping -1FR.
 
 ### B-235 · bug · After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2, an edge case. useTimelineData passes restored?.medicationRows with no loader fallback (links fall back to initial.linkRows, and useLiveRows keeps rows on a same-key initial change). Fix: a stable fallback, or have useLiveQuery keep rows when the key is unchanged.
@@ -870,19 +876,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-237 · bug · An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 7f84efb1
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 11 (dev → staging, cadadd63), checked against dev 2026-11-21: Codex P2, a follow-up (nothing live). In apps/web/app/components/notes/useMentionPopup.ts pick(): (live.current.open ?? current).insert. Fix: tie the insert to the original suggestion and map its range through the edits since, or drop the insert when that suggestion has closed; a component test with a slow add.
 
 ### B-238 · bug · Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets')
 
-- status: triaged
+- status: ready
 - prd: quick-fixes
-- owner:
-- commit:
+- owner: prd/quick-fixes
+- commit: 8fd57267
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 11 (dev → staging, cadadd63), checked against dev 2026-11-21: Codex P2, a follow-up (nothing live). In DoseForm.tsx, QuickAddFields remounts on the switch and resets while the parent's newDose stays. Fix: keep the draft across switches, or reset newDose with the fields. DoseForm is in medications-4's hot files (not written yet), so not alongside it.
 
@@ -944,13 +950,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-245 · plan · Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: planner-3
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the backlog session, 2026-11-21, at the user's request: the future replacement for reminders (future-dated notes), which are to be removed from the Planner. Not triaged; no PRD yet.
 - 2026-11-21 (Robert Bo Davis): Follows planner-2 (B-248 remove reminders).
+- 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, proposed: its own PRD to write, planner-3 (a note carries a todo with its own due day and assignee), after planner-2 (B-248 remove reminders) is in dev, since it builds on notes being past-only. PRD table row added. For the user to check.
 
 ### B-246 · change · Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab)
 
@@ -979,3 +986,40 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, the user's decision: a reminder (a future-dated note) goes away in favour of todos. Notes become past-only on the device and the server; remove Reminder from the Planner's + menu, the Planner rows and kind filter, the Today card and simple mode's next, the calendar projection's reminder kind (feed, Google push and pull, reminder emails, Remind me), quick entry's future-note reading and the connector's upcoming and add_note. No data migration (nothing live): seeds change, existing future notes are not converted. Starts after quick-entry (B-220) is in dev: it rewrites the same date rules. B-245 (attach a todo to a note) is the later follow-up.
+
+### B-249 · change · Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner
+
+- status: in-progress
+- prd: list-filters
+- owner: prd/list-filters
+- commit:
+
+- 2026-11-21 (backlog agent): Backlog session 2026-11-21, the user's request while planning B-213: the medications list's status and type chips collapse under a Filter icon styled like the timeline's round controls; a shared ui/ component; also the providers directory, todos and the Planner (its slice waits for B-247). The search boxes stay visible; the timeline keeps its Filter sheet.
+
+### B-250 · bug · lint tests seem to be failing regularly because types haven't been generated. Maybe regression…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: lint tests seem to be failing regularly because types haven't been generated. Maybe regression introduced by reordering the steps in check?
+- 2026-11-21 (Robert Bo Davis): Triage: tooling bug in the check pipeline (lint needs React Router's generated types; suspect the reordered steps in pnpm check). Small and self-contained, so quick-fixes next wave; if it blocks checks now, a hotfix on dev is the faster path.
+
+### B-251 · bug · convert planner tabs to TabNav component.
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Triage: small UI change next to the other Planner tab items (B-246, B-247) in quick-fixes; do it with or after B-247, which changes the same tabs.
+
+### B-252 · feature · Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming
+
+- status: triaged
+- prd: connectors-3
+- owner:
+- commit:
+
+- 2026-11-21 (plan/planner-2): From the planner-2 planning interview, 2026-11-21, the user's request: upcoming returns appointments and dated todos only; the dosing schedule gets its own read tool (a new one, or a day parameter on todays_doses). Proposed topic connectors-3, a PRD to write; for the user to check.
