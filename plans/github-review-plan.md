@@ -4,23 +4,36 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                  | Merge into `prd/github-review` (slice commits)                       |
-| ----- | ---- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| 1     | 1    | merged; worktree removed                                                               | 46b76b00 (a8bc173b, 719012d1); opus; throwaway PR #7 closed unmerged |
-| 2     | 2    | started (opus; `.loops/github-review-2`)                                               |                                                                      |
-| 3     | 2    | handed off (76641328; throwaway PR #8 closed), waits on slice 2 to merge in plan order |                                                                      |
+**Where it stands (2026-11-20, overnight, orchestrator stopped):** every slice is merged into `prd/github-review` and synced with `dev` (086ace6f). **Nothing has landed**, and the real PR isn't open. B-203 is `ready`. No worktree is left: the PRD worktree was removed with `pnpm prd rm github-review` to free the PRD slot for the queue; the branch `prd/github-review` stays (local only, never pushed).
 
-**Overnight (2026-11-20), the user's word:** don't prompt and **don't land**. Finish wave 2's slices, merge them into `prd/github-review`, don't open the real PR or push `dev`/`prd/` to origin, then `pnpm prd rm github-review` (the unmerged branch stays) to free the PRD slot for the queue. Resume with `pnpm prd start github-review`.
+| Slice | Wave | State                    | Merge into `prd/github-review` (slice commits)                       |
+| ----- | ---- | ------------------------ | -------------------------------------------------------------------- |
+| 1     | 1    | merged; worktree removed | 46b76b00 (a8bc173b, 719012d1); opus; throwaway PR #7 closed unmerged |
+| 2     | 2    | merged; worktree removed | 2a2c3c43 (b85eae0c); opus; throwaway PR #10 closed unmerged          |
+| 3     | 2    | merged; worktree removed | 6ece6441 (76641328); sonnet; throwaway PR #8 closed unmerged         |
+
+Checks on the merged tip: `vitest --project scripts:unit scripts/loops` 17 files, 207 tests pass; `bash -n` clean on every changed script; **shellcheck isn't installed** (never run). Gate: "none needed" (`dev...` touches only `scripts/loops/`, `.claude/settings.json`?, Markdown; confirm `pnpm prd ready` agrees, since `.claude/settings.json` isn't in the none-needed list: if it refuses, run `pnpm prd check --quick "tooling and settings only"`).
+
+**Wave 1 never landed on its own:** with the user's push rules in late, all three slices ran overnight, so the whole PRD lands at once, through the new PR path (its first real run).
+
+**Resume (the morning):**
+
+1. `pnpm prd start github-review` (checks out the existing branch), then the orchestrator prompt with `--resume`.
+2. `pnpm backlog ingest` / `list`; answer the open questions below.
+3. Fold the docs (the plan's _Docs at landing_), plus: the throwaway seam `CARETOOK_PR_THROWAWAY=1` (pr.sh, land.sh), `pnpm prd dev-sync [branch]` (new, rerun after a stopped dev-sync), `ready`'s `READY_PR_BRANCH`, `review`'s exit 3, and that the orchestrator resolves fixed threads too. Commit.
+4. `pnpm prd pr github-review` (pushes `dev` fast-forward and the branch: the user's first push of `prd/`), `pnpm prd review github-review --wait` in the background, triage, `--again` until clean (about three rounds).
+5. Land only on the user's word: `pnpm prd land github-review -m "feat(github-review): Codex review on PRs into dev (B-203)"`, then `pnpm prd rm github-review`.
 
 **Open for the user:**
 
 - Codex doesn't resolve its own threads when a fix lands (they go outdated, and its summary says `has_unresolved_findings:false`). The module keeps the PRD's rule that any unresolved Codex thread blocks, so the orchestrator resolves fixed threads as well as declined ones. Or trust Codex's clean summary over outdated threads (a one-line change in `openFindings`, `codex-review.mjs`).
-- `.claude/settings.json` (d5c4c621, by the user): the blanket `git push *` deny is gone and no narrow push denies replaced it (force pushes to `prd/`/`hotfix/` aren't blocked by a rule; the pre-push hook still guards main/staging). Add narrow denies?
-- Slice 1 changes from the plan: `review --wait` waits through `stale` too; `--again --wait` first waits up to 5 min for Codex's summary to change; exit 3 for errors (no PR).
+- `.claude/settings.json` (d5c4c621, the user's edit, committed on this branch): the blanket `git push *` deny is gone and no narrow push denies replaced it (force pushes to `prd/`/`hotfix/` aren't blocked by a rule; the pre-push hook still guards main/staging). Add narrow denies?
+- Beyond the plan, keep or drop: `pnpm prd dev-sync`; `land --local` on a `prd/` branch as a warned fallback; backlog-tool commits may also touch `plans/inbox.md` (matches `backlog.mjs`); `review --wait` waits through `stale` too; `--again --wait` first waits up to 5 min for Codex's summary to change.
+- `origin/dev` was pushed at 23:37 on 2026-11-20 (not by this PRD) while slice 2 tested.
 
-**Landing mode:** run everything through (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions. Wave 1 lands locally (no `--force` unless the user says so); wave 2 through the new PR path.
+**Landing mode:** queued run-through, **overridden overnight by the user: don't prompt, don't land.** Ask before landing in the morning.
 
-**Backlog:** B-203 is all three slices; claimed by `prd/github-review` (2026-11-20). No other items for this topic at wave 1.
+**Backlog:** B-203 (all three slices), claimed by `prd/github-review`, `ready` at 6ece6441. No other items for this topic.
 
 ## Architectural decisions
 
