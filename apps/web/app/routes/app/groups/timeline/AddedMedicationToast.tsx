@@ -45,7 +45,7 @@ export function AddedMedicationToast({ groupId }: { groupId: string }) {
         actionLabel="Add details"
         onAction={() => {
           clearAddedNotice(shown.key);
-          void navigate(appUrls.editMedication(groupId, shown.medicationId));
+          void navigate(appUrls.editMedication(groupId, shown.medicationId, "list"));
         }}
       />
     </div>

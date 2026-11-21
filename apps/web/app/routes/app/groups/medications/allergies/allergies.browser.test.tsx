@@ -11,6 +11,7 @@ import {
   FORM,
   LISINOPRIL,
   LIST,
+  MEDS,
   MEDICATION_ROUTES,
   medicationUrl,
   RECIPIENT,
@@ -69,10 +70,10 @@ afterEach(async () => {
 });
 
 describe("the region and the sheet", () => {
-  test("the list starts with the region: not recorded, with Add allergies for a writer", async () => {
+  test("the list tab starts with the region, under the tabs: not recorded, with Add allergies for a writer", async () => {
     await open(LIST);
     await waitUntil(() => !!REGION()?.querySelector("[data-edit-allergies]"), 4000, "the region");
-    expect($("main > header")?.nextElementSibling).toBe(REGION());
+    expect($("main > header + nav")?.nextElementSibling).toBe(REGION());
     expect(region()).toEqual({
       state: "notRecorded",
       text: "Allergies not recorded",
@@ -161,7 +162,7 @@ describe("the printed list", () => {
   test.each([420, 1280])(
     "at %i in print media, the allergies are at the top, above the medications",
     async (width) => {
-      await open(`${LIST}/print`, { width, frame: true, fixtures: [world(), PENICILLIN] });
+      await open(`${MEDS}/print`, { width, frame: true, fixtures: [world(), PENICILLIN] });
       await waitUntil(() => !!$("main [data-print-allergies]"), 4000, "the print block");
       await commands.media("print");
       const block = $("main [data-print-allergies]")!;

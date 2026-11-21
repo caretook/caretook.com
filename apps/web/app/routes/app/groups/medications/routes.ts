@@ -1,15 +1,28 @@
 import { type RouteConfigEntry, route } from "@react-router/dev/routes";
 
-// The medication list (its sheets come as its children), a medication's page
-// and the print and passes pages (children of `groups/:groupId`).
+// Sheets over a tab, which stays mounted underneath (`new` is static, so it
+// ranks above `:medicationId/edit`). The same modules serve both tabs, so
+// each gets an id of its own.
+const sheets = (tab: "schedule" | "list"): RouteConfigEntry[] => [
+  route("new", "routes/app/groups/medications/new/route.tsx", { id: `medications-${tab}-new` }),
+  route(":medicationId/edit", "routes/app/groups/medications/edit/route.tsx", {
+    id: `medications-${tab}-edit`,
+  }),
+  // The recipient's allergies (writers), opened from the list and from a medication's page.
+  route("allergies", "routes/app/groups/medications/allergies/route.tsx", {
+    id: `medications-${tab}-allergies`,
+  }),
+];
+
+// The Medications page (the header and its two tabs, Schedule and the list,
+// each with the sheets as children), a medication's page and the print and
+// passes pages (children of `groups/:groupId`). Plain `medications` has no
+// index and no redirect: every link goes to a tab.
 export const medicationRoutes: RouteConfigEntry[] = [
   route("medications", "routes/app/groups/medications/route.tsx", [
-    // Sheets over the list, which stays mounted underneath (`new` is
-    // static, so it ranks above the page's `:medicationId`).
-    route("new", "routes/app/groups/medications/new/route.tsx"),
-    route(":medicationId/edit", "routes/app/groups/medications/edit/route.tsx"),
-    // The recipient's allergies (writers), opened from the list and from a medication's page.
-    route("allergies", "routes/app/groups/medications/allergies/route.tsx"),
+    // Static segments, so they rank above `medications/:medicationId`.
+    route("schedule", "routes/app/groups/medications/schedule/route.tsx", sheets("schedule")),
+    route("list", "routes/app/groups/medications/list/route.tsx", sheets("list")),
   ]),
   route("medications/:medicationId", "routes/app/groups/medication/route.tsx"),
   // The printable sheet (a static segment, so it ranks above `:medicationId`).

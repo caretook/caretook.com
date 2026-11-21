@@ -45,13 +45,18 @@ const WEB = [
   "/api/reminders/unsubscribe/:token|routes/api/reminders/unsubscribe.ts|",
   "/api/webhooks/resend|routes/api/webhooks/resend.ts|",
   "/app/groups/:groupId/entries/:entryId|routes/app/groups/entry/route.tsx|",
-  "/app/groups/:groupId/medications/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|",
   "/app/groups/:groupId/medications/:medicationId|routes/app/groups/medication/route.tsx|",
-  "/app/groups/:groupId/medications/allergies|routes/app/groups/medications/allergies/route.tsx|",
-  "/app/groups/:groupId/medications/new|routes/app/groups/medications/new/route.tsx|",
+  "/app/groups/:groupId/medications/list/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|medications-list-edit",
+  "/app/groups/:groupId/medications/list/allergies|routes/app/groups/medications/allergies/route.tsx|medications-list-allergies",
+  "/app/groups/:groupId/medications/list/new|routes/app/groups/medications/new/route.tsx|medications-list-new",
+  "/app/groups/:groupId/medications/list|routes/app/groups/medications/list/route.tsx|",
   "/app/groups/:groupId/medications/passes|routes/app/groups/medications/passes/route.tsx|",
   "/app/groups/:groupId/medications/print/week|routes/app/groups/medications/print/week/route.tsx|",
   "/app/groups/:groupId/medications/print|routes/app/groups/medications/print/route.tsx|",
+  "/app/groups/:groupId/medications/schedule/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|medications-schedule-edit",
+  "/app/groups/:groupId/medications/schedule/allergies|routes/app/groups/medications/allergies/route.tsx|medications-schedule-allergies",
+  "/app/groups/:groupId/medications/schedule/new|routes/app/groups/medications/new/route.tsx|medications-schedule-new",
+  "/app/groups/:groupId/medications/schedule|routes/app/groups/medications/schedule/route.tsx|",
   "/app/groups/:groupId/medications|routes/app/groups/medications/route.tsx|",
   "/app/groups/:groupId/periods/:periodId/edit|routes/app/groups/periods/edit/route.tsx|",
   "/app/groups/:groupId/periods/:periodId|routes/app/groups/period/route.tsx|",
@@ -129,13 +134,18 @@ const WEB = [
 
 const NATIVE = [
   "/app/groups/:groupId/entries/:entryId|routes/app/groups/entry/route.tsx|",
-  "/app/groups/:groupId/medications/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|",
   "/app/groups/:groupId/medications/:medicationId|routes/app/groups/medication/route.tsx|",
-  "/app/groups/:groupId/medications/allergies|routes/app/groups/medications/allergies/route.tsx|",
-  "/app/groups/:groupId/medications/new|routes/app/groups/medications/new/route.tsx|",
+  "/app/groups/:groupId/medications/list/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|medications-list-edit",
+  "/app/groups/:groupId/medications/list/allergies|routes/app/groups/medications/allergies/route.tsx|medications-list-allergies",
+  "/app/groups/:groupId/medications/list/new|routes/app/groups/medications/new/route.tsx|medications-list-new",
+  "/app/groups/:groupId/medications/list|routes/app/groups/medications/list/route.tsx|",
   "/app/groups/:groupId/medications/passes|routes/app/groups/medications/passes/route.tsx|",
   "/app/groups/:groupId/medications/print/week|routes/app/groups/medications/print/week/route.tsx|",
   "/app/groups/:groupId/medications/print|routes/app/groups/medications/print/route.tsx|",
+  "/app/groups/:groupId/medications/schedule/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|medications-schedule-edit",
+  "/app/groups/:groupId/medications/schedule/allergies|routes/app/groups/medications/allergies/route.tsx|medications-schedule-allergies",
+  "/app/groups/:groupId/medications/schedule/new|routes/app/groups/medications/new/route.tsx|medications-schedule-new",
+  "/app/groups/:groupId/medications/schedule|routes/app/groups/medications/schedule/route.tsx|",
   "/app/groups/:groupId/medications|routes/app/groups/medications/route.tsx|",
   "/app/groups/:groupId/periods/:periodId/edit|routes/app/groups/periods/edit/route.tsx|",
   "/app/groups/:groupId/periods/:periodId|routes/app/groups/period/route.tsx|",
@@ -203,13 +213,14 @@ describe("route config", () => {
     expect(flatten(composeRoutes(true)).sort()).toEqual(NATIVE);
   });
 
-  it("has no path, id or file twice", () => {
+  it("has no path or id twice, and a file twice only with an id on each route", () => {
     for (const native of [false, true]) {
       const flat = flatten(composeRoutes(native));
       expect(new Set(flat).size).toBe(flat.length);
       const ids = flat.map((f) => f.split("|")[2]).filter((id) => id);
       expect(new Set(ids).size).toBe(ids.length);
-      const files = flat.map((f) => f.split("|")[1]);
+      // The medication sheets serve both tabs, each route with its own id.
+      const files = flat.filter((f) => !f.split("|")[2]).map((f) => f.split("|")[1]);
       expect(new Set(files).size).toBe(files.length);
     }
   });

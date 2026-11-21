@@ -48,7 +48,7 @@ const ROUTES: DeviceRoute[] = [
   },
   { path: "/app/groups/:groupId/entries/:entryId", module: { default: Probe } },
   { path: "/app/groups/:groupId/upcoming", module: { default: Probe } },
-  { path: "/app/groups/:groupId/medications", module: { default: Probe } },
+  { path: "/app/groups/:groupId/medications/schedule", module: { default: Probe } },
   { path: "/app/groups/:groupId/tasks", module: { default: Probe } },
 ];
 
@@ -185,7 +185,7 @@ describe("the Today card's rows", () => {
     }));
     expect(links.map(({ name, text, href }) => ({ name, text, href }))).toEqual([
       { name: "See all upcoming", text: "See all", href: `/app/groups/${G}/upcoming` },
-      { name: "See all medications", text: "See all", href: `/app/groups/${G}/medications` },
+      { name: "See all medications", text: "See all", href: `/app/groups/${G}/medications/schedule` },
       { name: "See all tasks", text: "See all", href: `/app/groups/${G}/tasks?who=everyone` },
     ]);
     expect(new Set(links.map((l) => l.look)).size).toBe(1);
