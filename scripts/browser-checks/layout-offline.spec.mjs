@@ -64,7 +64,8 @@ const rowsShown = (page, timeline) =>
   });
 
 async function setView(page, view) {
-  await page.locator(`[aria-label="${view}"]`).first().click();
+  await page.getByRole("button", { name: "View options" }).click();
+  await page.getByRole("menuitemradio", { name: view, exact: true }).click();
   await waitFor(page, (cards) => (document.querySelector("ol")?.dataset.view === "cards") === cards, {
     arg: view === "Cards",
     timeout: 5000,
