@@ -4,20 +4,22 @@
 
 ## Status
 
-**Where it stands:** wave 1 merged (2026-11-21); docs folded (loop.md, orchestrator.md, the core's _Checks_); next: sync, full `pnpm prd check` + `pnpm test:tooling`, PR, Codex, land. The merge of slice 2 moved `check-times.test.mjs` into `scripts:unit` (a pure-module test, per the PRD).
+**Where it stands:** wave 1 merged and green (2026-11-21): full `pnpm prd check` passed on 4f2ba971 after a dev sync (planner-2 seeds), `pnpm test:tooling` passed; then a conflict-free sync of quick-fixes wave 16 (no shared files) → quick check, then PR + Codex. Docs folded (loop.md, orchestrator.md, the core's _Checks_). The merge of slice 2 moved `check-times.test.mjs` into `scripts:unit` (a pure-module test, per the PRD). First full check failed once on the MCP `list_timeline` 5 s timeout under load (passed alone 3x): filed B-394 for quick-fixes.
 
-**Wave 1 gate:** full `pnpm prd check` + `pnpm test:tooling` running on the merged tip. Browser checks skipped on the user's word (2026-11-21): `--changed` asks for the lean set only because `vitest.config.ts`/`package.json` changed.
+**Wave 1 gate:** browser checks skipped on the user's word (2026-11-21): `--changed` asks for the lean set only because `vitest.config.ts`/`package.json` changed.
 
-**Wave 2 started early** (slices 1 and 2 merged): slice 3 (sonnet) and slice 4 (opus) each have a worktree and an agent; they land in a second PR after wave 1's.
+**Other PRDs:** `orchestration-2` waits on us: message `orchestration-2-d2` when wave 1 lands (unblocks its wave 1) and when wave 2 lands (unblocks its slices 4–6, which edit `prompt.sh`/`prd.sh`).
+
+**Wave 2:** slices 3 and 4 handed off and reviewed; merge them (3 then 4) after wave 1 lands, so wave 1's PR head stays put. Slice 3's own gate record is stale (a demo run overwrote it): irrelevant, the wave tip is checked. Slice 4 measured integration at 68–101 s on 3 workers vs 272 s on 1. Fold at wave 2: data-layer.md worker databases, loop.md's "runs files one at a time".
 
 **Landing mode: run everything through** (queued with `pnpm prd queue check-speed`): start every ready slice, land each green wave through its PR, clean up; ask only real questions.
 
-| Slice | Wave | State                                  | Merge into `prd/check-speed` (slice commits) |
-| ----- | ---- | -------------------------------------- | -------------------------------------------- |
-| 1     | 1    | merged (sonnet)                        | 4d4a760f (571cc9f6)                          |
-| 2     | 1    | merged (sonnet)                        | 4bb31f7f (8b68de30)                          |
-| 3     | 2    | started: worktree made, agent (sonnet) |                                              |
-| 4     | 2    | started: worktree made, agent (opus)   |                                              |
+| Slice | Wave | State                        | Merge into `prd/check-speed` (slice commits) |
+| ----- | ---- | ---------------------------- | -------------------------------------------- |
+| 1     | 1    | merged (sonnet)              | 4d4a760f (571cc9f6)                          |
+| 2     | 1    | merged (sonnet)              | 4bb31f7f (8b68de30)                          |
+| 3     | 2    | handed off a7c94b21 (sonnet) |                                              |
+| 4     | 2    | handed off b5b1e9de (opus)   |                                              |
 
 **Backlog:** B-271 closes with slice 1, B-273 with slice 2, B-272 with slice 3, B-278 with slice 4 (`pnpm backlog done` when each merges).
 
