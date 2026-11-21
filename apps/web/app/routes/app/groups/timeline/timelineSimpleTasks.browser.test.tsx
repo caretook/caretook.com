@@ -79,7 +79,7 @@ describe("My tasks in simple mode", () => {
       (li) => li.dataset.taskState,
     );
     expect(states).toEqual(["overdue", "overdue", "today", "upcoming", "upcoming"]);
-    expect(card()!.querySelector("[data-task-due]")?.textContent).toBe("Overdue · 2 days");
+    await expect.poll(() => card()?.querySelector("[data-task-due]")?.textContent).toBe("Overdue · 2 days");
     expect(seeAll()?.textContent).toBe("See all 7 tasks");
     expect(seeAll()?.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/tasks?who=mine`);
     // Big ticks, one per task.
