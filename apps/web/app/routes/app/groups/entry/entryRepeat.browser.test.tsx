@@ -192,14 +192,15 @@ describe("saving a series", () => {
     expect(REPEAT_BUTTON()).toBeNull();
 
     // Back to the timeline, whose Today card has this series' next visit; then on to Upcoming.
-    const visible = (href: string) => () =>
-      [...document.querySelectorAll<HTMLAnchorElement>(`main a[href="${href}"]`)].find(
-        (a) => a.offsetParent,
-      ) ?? null;
-    await userEvent.click(await found(visible(TIMELINE)));
-    const next = await found(() => $("main [data-next]"));
+    const shown = (sel: string) => () =>
+      [...document.querySelectorAll<HTMLElement>(sel)].find((el) => el.offsetParent) ?? null;
+    const link = (href: string) => shown(`main a[href="${href}"]`);
+    await userEvent.click(await found(link(TIMELINE)));
+    // The card starts collapsed on every load: open it to reach its rows.
+    await userEvent.click(await found(() => $('main [data-today-toggle][aria-expanded="false"]')));
+    const next = await found(shown("main [data-next]"));
     expect(next.parentElement!.querySelector("[data-repeat-mark]")).not.toBeNull();
-    await userEvent.click(await found(visible(UPCOMING)));
+    await userEvent.click(await found(link(UPCOMING)));
     await expect.poll(() => device.location()).toBe(UPCOMING);
     await expect
       .poll(() => document.querySelectorAll("main [data-upcoming-item] [data-repeat-mark]").length, {
