@@ -35,8 +35,9 @@ const ONLINE = {
   "me.contact": () => null,
 };
 
-const open = (role: GroupRole, api?: Record<string, (input: unknown) => unknown>) =>
+const open = (role: GroupRole, api?: Record<string, (input: unknown) => unknown>, width?: number) =>
   renderWithDevice({
+    width,
     route: ROUTES,
     url: MEMBERS,
     role,
@@ -173,5 +174,19 @@ describe("the Locked switch on Members", () => {
     await expect
       .poll(() => document.querySelector("[data-simple-mode-badge]")?.textContent)
       .toBe("Simple mode, locked");
+  });
+});
+
+describe("the switches' layout on Members", () => {
+  test("at 320px no row overflows, and the two switches are stacked", async () => {
+    await open("owner", {}, 320);
+    await ready();
+    for (const row of document.querySelectorAll<HTMLElement>("main li[data-member]")) {
+      expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
+    }
+    const sam = document.querySelector(`li[data-member="${SAM_ID}"]`)!;
+    const first = sam.querySelector("[data-simple-mode-switch]")!.closest("label")!.getBoundingClientRect();
+    const second = sam.querySelector("[data-simple-lock-switch]")!.closest("label")!.getBoundingClientRect();
+    expect(second.top).toBeGreaterThanOrEqual(first.bottom);
   });
 });
