@@ -12,9 +12,19 @@ import type { TimelineSearchState } from "./timelineSearch";
 import { parseSearch } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } from "~/components/entry";
+import {
+  CancelEventDialog,
+  OlderEntries,
+  useEventCancel,
+  useEventReschedule,
+  useRemindMe,
+  useSeriesScope,
+} from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
+import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { canRemind } from "~/lib/calendars/remindMe";
+import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
 import { dayLabel, localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
 import { emptyTimelineText } from "./entryLabels";
@@ -126,15 +136,27 @@ export function TimelineEntryList({
   const removal = useEntryRemoval();
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
+  const remind = useRemindMe(groupId);
+  // A series visit's Edit, Reschedule, Cancel and Delete ask Only this visit or This and later first.
+  const scope = useSeriesScope(canWrite);
   // Writers reschedule or cancel an event (or undo the cancel) from its ⋯ menu.
   const cancelOf = (entry: TimelineEntry) =>
     canWrite && entry.kind === "event"
       ? {
           cancelled: !!entry.cancelledAt,
-          onCancel: () => cancelling.ask(entry.id),
+          onCancel: () => scope.ask(entry, "cancel", { only: () => cancelling.ask(entry.id) }),
           onUncancel: () => cancelling.undo(entry.id),
-          onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
+          onReschedule: canReschedule(entry)
+            ? () => scope.ask(entry, "reschedule", { only: () => rescheduling.ask(entry) })
+            : undefined,
         }
+      : undefined;
+  const editSeriesOf = (entry: TimelineEntry) =>
+    canWrite && asksScope(entry, new Date())
+      ? () =>
+          scope.ask(entry, "edit", {
+            only: () => void navigate(appUrls.entry(groupId, entry.id), { state: ONLY_THIS_VISIT_STATE }),
+          })
       : undefined;
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
@@ -210,10 +232,23 @@ export function TimelineEntryList({
         onEdit={
           open?.sheet
             ? () => void navigate(open.to, { state: SHEET_LINK_STATE, preventScrollReset: true })
+            : editSeriesOf(entry)
+        }
+        onDelete={
+          canWrite
+            ? () =>
+                scope.ask(entry, "delete", {
+                  only: () => removal.ask(entry),
+                  onlyChosen: () => removal.removeNow(entry),
+                })
             : undefined
         }
-        onDelete={canWrite ? () => removal.ask(entry) : undefined}
         cancel={cancelOf(entry)}
+        onRemind={
+          canRemind(entry, new Date())
+            ? () => remind.ask({ id: entry.id, title: upcomingTitle(entry) })
+            : undefined
+        }
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
         search={marked ? parsed : undefined}
@@ -233,9 +268,9 @@ export function TimelineEntryList({
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
-        {cancelling.error && (
+        {(cancelling.error || scope.error) && (
           <p role="alert" className="text-error text-sm">
-            {cancelling.error}
+            {cancelling.error ?? scope.error}
           </p>
         )}
         {/* Always there, so a search's first result is announced too. */}
@@ -314,6 +349,8 @@ export function TimelineEntryList({
       />
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
       {rescheduling.sheet}
+      {remind.sheet}
+      {scope.element}
     </>
   );
 }

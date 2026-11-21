@@ -47,6 +47,20 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
   },
   accessCodeExistingAccount: {},
   signInEmail: { token: "magicTokenABC", code: "135790", next: "/app/groups/x/timeline" },
+  appointmentReminder: {
+    summary: "Appointment for Pat",
+    when: "Thu 19 Nov · 9:00–10:00",
+    recipientName: "Pat",
+    itemPath: "/app/groups/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001/entries/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0002",
+    unsubscribePath: "/api/reminders/unsubscribe/tok.en.sig",
+  },
+  taskDue: {
+    summary: "Task for Pat",
+    when: "Thu 19 Nov · 9:00",
+    recipientName: "Pat",
+    itemPath: "/app/groups/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001/tasks/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0003",
+    unsubscribePath: "/api/reminders/unsubscribe/tok.en.sig",
+  },
 };
 
 // Notifications whose email carries no link.

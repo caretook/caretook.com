@@ -347,6 +347,7 @@ describe("in Upcoming", () => {
       "Prepare for this visit",
       "Reschedule",
       "Cancel event",
+      "Remind me",
       "Print",
       "Delete",
     ]);
@@ -356,13 +357,14 @@ describe("in Upcoming", () => {
     await expect.poll(() => device.location()).toBe(entryPath(APPT.id));
   });
 
-  test("a viewer's ⋯ is Print alone", async () => {
+  test("a viewer's ⋯ is Remind me and Print", async () => {
     await open(`/app/groups/${GROUP}/upcoming`, { role: "viewer" });
     const actions = () =>
       $<HTMLButtonElement>(`[data-upcoming-item="${APPT.id}"] button[aria-label^="Actions for"]`);
     await userEvent.click((await waitFor(actions))!);
     await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
+      "Remind me",
       "Print",
     ]);
   });

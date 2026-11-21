@@ -4,6 +4,7 @@ import { dbMayFail } from "../client";
 import * as accessCodes from "./accessCodes";
 import * as accounts from "./accounts";
 import * as appointments from "./appointments";
+import * as appointmentSeries from "./appointmentSeries";
 import * as careGroups from "./careGroups";
 import * as carePeriods from "./carePeriods";
 import * as connectors from "./connectors";
@@ -58,6 +59,7 @@ export const seed = async () => {
     await conditions.seed();
     await medicationConditions.seed();
     await conditionManagers.seed();
+    await appointmentSeries.seed();
     // Last, once every seed has made its accounts.
     const { updated } = await accounts.rotateStagingPasswords();
     if (updated) console.log(`Set ${updated} seeded account(s) to the current SEED_USER_PASSWORD`);

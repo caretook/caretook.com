@@ -180,7 +180,10 @@ describe("vercel.json", () => {
 
   it("keeps the region, the outbox cron and the headers", () => {
     expect(config.regions).toEqual(["cle1"]);
-    expect(config.crons).toEqual([{ path: "/api/cron/outbox", schedule: "* * * * *" }]);
+    expect(config.crons).toEqual([
+      { path: "/api/cron/outbox", schedule: "* * * * *" },
+      { path: "/api/cron/calendar", schedule: "* * * * *" },
+    ]);
     expect(config.headers.length).toBeGreaterThanOrEqual(2);
   });
 });

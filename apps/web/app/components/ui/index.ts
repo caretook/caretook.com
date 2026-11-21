@@ -24,3 +24,4 @@ export type { ComboBoxOption } from "./ComboBox";
 export { Highlight, MARK_CLASS } from "./Highlight";
 export { Toast } from "./Toast";
 export { ViaTag } from "./ViaTag";
+export { useShowModal } from "./useShowModal";

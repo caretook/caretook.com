@@ -112,7 +112,7 @@ describe("group settings → Assistants", () => {
     await open({ api: groupServer([]).api, width: 1024 });
     await expect.element(heading()).toBeVisible();
     const links = [...document.querySelectorAll("nav[data-settings-nav] a")].map((a) => a.textContent.trim());
-    expect(links.at(-1)).toMatch(/^Assistants/);
+    expect(links[2]).toMatch(/^Assistants/);
   });
 
   test("an owner, off by default, turns it on at once", async () => {

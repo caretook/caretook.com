@@ -6,16 +6,87 @@
 
 | Slice | Wave | State           | Merge into `prd/appointments-2` (slice commits) |
 | ----- | ---- | --------------- | ----------------------------------------------- |
-| 1     | 1    | not started     |                                                 |
-| 2     | 2    | blocked by 1    |                                                 |
-| 3     | 2    | blocked by 1    |                                                 |
-| 4     | 2    | blocked by 1    |                                                 |
-| 5     | 3    | blocked by 4    |                                                 |
-| 6     | 3    | blocked by 3, 4 |                                                 |
-| 7     | 3    | blocked by 3, 4 |                                                 |
-| 8     | 4    | blocked by 6    |                                                 |
-| 9     | 4    | blocked by 2, 7 |                                                 |
-| 10    | 4    | blocked by 2    |                                                 |
+| 1     | 1    | merged (opus)   | a589f8fa (716e20cd, 2b37171b)                   |
+| 2     | 2    | merged (opus)   | 20b816d5 (0b254449, 3990c7ec)                   |
+| 3     | 2    | merged (sonnet) | 8b41d9c8 (da53f874, 160c7ee3)                   |
+| 4     | 2    | merged (opus)   | 9f79243e (f2073aaa, 537c6236)                   |
+| 5     | 3    | merged (sonnet) | 6e343bd8 (6c228c9c)                             |
+| 6     | 3    | merged (opus)   | 4d8f9364 (24b03329)                             |
+| 7     | 3    | merged (opus)   | ca95085a (b5ea3fef, 91cdc5f2)                   |
+| 8     | 4    | merged (sonnet) | edfcedf0 (0f814ca5)                             |
+| 9     | 4    | merged (opus)   | 1cf45362 (7284a2d4, db846edf)                   |
+| 10    | 4    | merged (opus)   | f1cc1dbc (4bdf82e8)                             |
+
+**Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per this plan's _Landing_, landing waits until every slice is merged.
+
+**Log:** 2026-11-20: start condition met (B-169 live, 127670af in `prd/appointments-2`). Backlog ingest: B-188–B-190 (connectors bugs), none for this PRD. Slice 1 worktree made, agent spawned (opus).
+
+Slice 1 merged as a589f8fa; worktree removed. Wave 2 (slices 2, 3, 4) worktrees made, agents spawned.
+
+**Synced** dev into prd/appointments-2 as 230722a0 (TodayCard import conflict resolved in code: the landing check must be full). Was: quick-fixes wave 13 landed in dev (bf0891df): rewrites TimelineFilters, the Today card (TodayCard/TodayRow/todayStatus/useTodayCard*) and phase2.spec.mjs; no migration. `pnpm prd sync` after wave 2 merges; expect a conflict on slice 1's RepeatMark in the Today card (keep it as one added element).
+
+Slices 2 and 3 merged (20b816d5, 8b41d9c8); worktrees removed. Slice 10 is now unblocked: start it after slice 4 merges and the pending sync (it needs `dev`'s harness).
+
+Slice 4 merged (9f79243e); wave 2 done. Next: sync dev, then wave 3 (5, 6, 7) and slice 10.
+
+Wave 3 (5, 6, 7) and slice 10 (ready since slice 2) worktrees made, agents spawned; B-61, B-62, B-63 claimed. Load was 59 at start.
+
+Slice 5 merged (6e343bd8); B-62 done (ready).
+
+**Open issue (not ours):** `packages/api/src/connectors/mcpWrites.int.test.ts` "log vitals, a symptom, a dose and a pass's Given all" fails by time of day: in the evening, its Metformin dose a minute earlier fills the Evening pass, so `give_pass` says "Nothing is left to give in Evening today". No connectors diff on this branch. It will fail `pnpm prd check` in the evening; filed as B-206, a duplicate of B-205; quick-fixes slice 58 fixes it (test-only) and its orchestrator messages us when it lands in dev. Also known on dev: `timelineSimpleTiles.browser.test.tsx` "all four share one row at phone width" fails every run since hotfix/design (76375c07); fixed on prd/quick-fixes (5d1c76b0), lands with its wave 14. Sync both before the landing check, or treat those two as known.
+
+Slice 6 merged (4d8f9364; registry conflicts with slice 5 resolved by keeping both, frozen-list tests pass). Slice 8 now waits only on itself: start it.
+
+Slice 7 merged (ca95085a; 12 additive conflicts with 5 and 6 resolved, incl. `linkToken.ts` = seal.ts + `createHmac` for `linkSubkey`, cron test expects [reminders, googlePush, seriesTopUp], routes.test.ts re-sorted). Wave 3 done. Slice 9 started. Slice 10 handed off; held for plan order (worktree `.loops/appointments-2-10` with a stack).
+
+**All 10 slices merged** (9: 1cf45362, 10: f1cc1dbc); worktrees removed; B-60, B-61, B-62, B-63 done (ready). Next: sync dev, datastore reset, full `pnpm prd check`, serve, browser checks (whole lean set: ask the user before `--suite`), ready, land, fold docs, `pnpm prd rm appointments-2`.
+
+**Carried from slice 9's hand-off:** `interpretGoogleChange` in `packages/data/src/google/pullPlan.ts` takes `now` and `timeZone` too; only times come back from Google (title, place, description ignored); viewers get `overwrite` (a viewer's new event is removed by the next push via a `google:<eventId>` placeholder link); a started series visit gets `overwrite` (`pastVisit`). `calendarPullService` (`pullConnection`, `pullDue` with SKIP LOCKED; `lastPulledAt` now means "last pull started"); overwrite clears `pushedHash` and queues `enqueue(..., "daily")`; a passing failure keeps the sync token; cancel reason "Deleted in Google Calendar". Cron order `[reminders, googlePush, googlePull, seriesTopUp]`. Smoke script `packages/data/scripts/googleSmoke.ts` (`pnpm calendar:google-smoke`, `--keep`, `--disconnect`), not run against Google. Runbook 5a.5, 5a.6 and the Vercel cron sentence done. Docs: calendars.md (pull, rules, overwrite, token, smoke); notifications.md (`googlePull`); layout.md (`packages/data/scripts/googleSmoke.ts`).
+
+**Synced** (dev incl. quick-fixes wave 14, clean; no migration from dev). Migration 0027 renamed to `0027_google_calendar.sql`. Datastore reset. Running the full `pnpm prd check`. Was pending: quick-fixes wave 14 in dev (fa9ad005): fixes B-205/B-206 (mcpWrites) and the stale `timelineSimpleTiles` test; touches DayHeader, SimpleNow/SimpleTimeline, useTimelineData. Sync after wave 4 merges, before the landing check.
+
+Slice 8 merged (edfcedf0); B-61 done.
+
+**User's answers (2026-11-20):** skip browser checks for this landing; raise the lean ceiling to 257 s (done: `lean-ceiling 257`, roundtrip 29, from slice 10's ~0.9–1.4 s; reset from a suite median later); "Also remind me" with reminders off keeps sending nothing.
+
+**Landing (2026-11-21):** full check passed on cde74ffb (5095 tests). Then synced dev's B-207 hotfix only (compose healthchecks, `scripts/loops/recover.sh`; no shared files) as abce2bc3; landed with `--force` on the user's word ("do not recheck on the tooling change from hotfix; you can force land if you feel like it is safe"). No browser checks (the user's choice). After landing: `pnpm prd rm appointments-2`.
+
+**Synced conditions** (72fb9164): dev gained conditions' migrations 0025–0028, so our 0025–0027 are regenerated as one, `0029_appointments_calendars.sql` (same statements; hand edits re-applied: series FK `ON DELETE SET NULL ("series_id")` and `ALTER PUBLICATION powersync ADD TABLE appointment_series` at the end). Registry conflicts merged as whole blocks (conditions first). Datastore reset. Full check running.
+
+**Synced dev again** (944cbbc6, B-208: simple mode gets the full ⋯ menus; TimelineEntryList conflict resolved in code: series scope, series Edit, Delete and Remind me no longer exclude simple mode). Third full check (eb60e151) failed only on a load flake in `scripts/loops/browser.test.mjs` (passed 2/2 alone). Synced dev again (78566531: B-210 spec fixes; took dev's device test). Fourth full check running.
+
+**Second full check passed on 3f716478** (4933 tests; build budget). Fixes: a0bbd910 (entryRepeat test opens the collapsed Today card), 3f716478 (device fixtures test scoped to the timeline list; a dev flake since a31c54a6). Docs folded (a1ffd328 + the owners' switch location fix). Server restarted. Next: `pnpm prd ready`, land, `pnpm prd rm appointments-2`.
+
+**First full check (ca4270a1) failed** on two component tests, both failing alone: `entryRepeat.browser.test.tsx` "offline: the series and every visit…" (3/3; `main a[href=…]` not visible after going to the Timeline, likely quick-fixes wave 14's Today card / simple timeline changes) and `test/device.browser.test.tsx` "fixtures render on a real route…" (2/3, toBeVisible timeout). Fix agent (opus) working in this worktree.
+
+**Was: question for the user at landing (product):** "Also remind me" from a member whose reminder emails are off sends nothing (the planner only sends to members with reminders on); the sheet says so and points to Calendar & reminders. PRD doesn't settle it; kept as is unless the user wants extras to send anyway.
+
+**Carried from slice 8's hand-off:** `reminderOverrideService` (`get`, `set` with `default` deleting the row, `mute`, `extra`); errors `reminderOverrideService:notFound` (404), `:invalid` (400); `calendars.overrides.get|set` in `overrideProcedures.ts`; "Remind me" before Print in `entryActionItems` for upcoming, uncancelled, unmoved events and notes, every role; `RemindMeSheet`, `useRemindMe` (`components/entry/`); `lib/calendars/remindMe.ts` (`canRemind`, `remindSummary`; summary lists lead labels, doesn't drop passed ones). The timeline list holds only past or started entries, so its wiring has no component test. Browser check to run at landing: roundtrip. Docs: calendars.md (service, procedures, item, sheet, reminders-off behaviour); api.md (procedures); components.md tests line (`upcoming/upcomingRemind.browser.test.tsx`); data-layer.md (service).
+
+**Question for the user at landing:** the lean budget. Slice 10's series step adds ~0.9–1.4 s to `roundtrip`; the lean set already sums to exactly the 255 s ceiling, so it'd be 256–257 s. `roundtrip` stays 28 in `scripts/loops/checks` until the landing suite's median; raising the ceiling is the user's call.
+
+**Carried from slice 10's hand-off:** the step is in `roundtrip.spec.mjs`, inside step 5's offline window; drives `series.createSeries` and `series.applySeriesEdit` (scope later on the 3rd visit); logs `series: its steps added N ms`. `apps/web/app/lib/sync/index.ts` gains `series` in `caretookModules` (check builds only). Browser checks it ran: roundtrip, live-notes, first-sync pass. Load flakes seen: `entryRepeat.browser.test.tsx` offline series, `medicationList.browser.test.tsx` Discontinued chip (3/3 alone). Docs: appointments.md tests line (roundtrip covers series); loop.md (roundtrip gains "a series and its split"); wherever `caretookModules` is documented.
+
+**Carried from slice 7's hand-off:** migration `0027_google_calendar.sql` (renamed from drizzle's name at landing; no hand edits): `google_calendar_connection`, `google_event_link`, `calendar_sync_job`, `google_oauth_state` (a 4th table for state + sealed PKCE). `packages/data/src/google/` (`client.ts`, `real.ts`, `fake.ts` with `user.move/delete/create`, `revokeAccess`, `expireSyncTokens`, `failCalls`; `pushPlan.ts`; `getGoogleCalendarClient`). `googleConnectionService`, `calendarSyncService` (`runDue` with SKIP LOCKED and outbox backoff, `sweep` also queues a daily push). `withTransaction` gains `afterCommit`; `utils/seal.ts`. Scope `calendar.app.created` confirmed (2026-11-20). Cancelled appointments stay visible in Google as "Cancelled: …", free. Provider link changes don't queue a push (daily push catches them). Account deletion doesn't revoke at Google (no deletion flow yet). For slice 9: `listChanges` → `{ events, syncToken }` or `{ fullSyncRequired: true }`; our uid and status in `privateProperties` (`caretookUid`, `caretookStatus`); `eventUid(event)` null for Google-made; `connection.syncToken`, `lastPulledAt` unused yet; its cron step goes after `googlePush`. Smoke test not run against Google. Runbook's Vercel step 5 cron sentence still says "series top-up so far": fix at landing. Docs: calendars.md (client seam, scope, tables, services, push rules, card, `?google=` outcomes); data-layer.md (`afterCommit`, `seal.ts`, personal-access exclusions, 0000–0027); care-groups.md (removal disconnects Google, 4 permission rows); api.md (`calendars.google.*`, the two handlers); notifications.md (`googlePush` step); security-headers.md (Connect is a GET link; no CSP change); layout.md (`packages/data/src/google/`, `routes/api/google/`); runbook (done, except the cron sentence); AGENTS.md stack (the two Google packages).
+
+**Carried from slice 6's hand-off:** `planReminders` in `db/schema/calendars/reminderPlan.ts` (honours overrides already; `reminderLeadLabel`, `reminderSendAt`, `TASK_LEADS` for slice 8's summary). **Deviations:** lookahead 48 h, not 25 h (an evening-before send can be ~31 h ahead); members use the recipient's zone (no member zone exists); task reminders need the assignee's reminders on. `sweepReminders` is the cron's first step, one transaction, `calendars.lastReminderRunAt` locked in `app_setting`. Unsubscribe token HMAC under `linkSubkey(purpose)` of `INVITE_LINK_KEY` (sweep returns `noKey` without it); route `api/reminders/unsubscribe/:token`, GET asks, POST acts. Definitions gain optional `headers` (outbox builds them at send; Resend passes them). Browser checks to run at landing: layout-offline, first-sync. Docs: calendars.md (reminders, sweep, `calendarReminderService`, unsubscribe, card, `reminderChoices.ts`); notifications.md (two notifications, `headers`, `List-Unsubscribe`); care-groups.md (`linkSubkey`); layout.md (`routes/api/reminders/unsubscribe.ts`); components.md tests line (`settings/calendarReminders.browser.test.tsx`).
+
+**Carried from slice 5's hand-off:** `ical-generator` 11.1.4 in `packages/api`. `calendarFeedService` (`create` refuses a second feed, 409; `rotate`, `revoke`, `resolve`, `load`); `renderIcs` in `packages/api/src/calendars/renderIcs.ts` with golden files; `GET /api/calendar/:file` (handler `packages/api/src/calendars/feed.ts`, door `.server/calendarFeed.ts`; 404 bodyless, 405, rate limits 60/min/IP and 30/min/token keyed by hash); `calendars.feed.*` in `feedProcedures.ts`; `FeedCard` + `feedActions.ts` (intents `feedCreate`, `feedRotate`, `feedRevoke`); `lib/calendars/feedLinks.ts`. Feed URL from `APP_URL`. Frozen lists `routes.test.ts`, `routerPaths.test.ts` likely conflict with 6 and 7. Docs: calendars.md (service, renderIcs, route, procedures, card); AGENTS.md stack (`ical-generator`); api.md (route, procedures); care-groups.md (removal revokes the feed, tested); security-headers.md (web layout middleware, no CSP change); layout.md (`routes/api/calendar/feed.ts`, `.server/calendarFeed.ts`).
+
+**Carried from slice 4's hand-off:** migration `0026_calendar_settings.sql` (no hand edits). **Deviation:** `care_group.details_outside_allowed` is synced (care_group stream + device schema; `rolesSql.test` refuses a partly synced table) so the owners' switch shows offline and live; PowerSync needs a restart. Settings page `routes/app/groups/settings/calendar/` with card files `RemindersCard`, `FeedCard`, `GoogleCard` (not on native), `DetailsCard`; cards take `CalendarCardProps`, posts go through `CARD_ACTIONS` (`cardActions.ts`) by `intent`; `useCalendarSave`/`CalendarSaveLine` for own settings. Item uids `entry:<id>`/`task:<id>`; notes count as reminders when a series visit or created before due; default lengths 60 min (appointment), 30 (reminder, timed task). Slice 7 enqueues its Google job in `calendarSettingService.update` and `setDetailsAllowed`. Stub `docs/domain/calendars.md` exists (libLayout.test needs it). Docs: calendars.md (replace stub) + Area index; care-groups.md (column, removal clears rows, permission rows); app-shell.md (subpage, owners' card on Details); sync.md (care_group column); data-layer.md (0000–0026, feed hash in personal-access exclusions).
+
+**Carried from slice 2's hand-off:** `@caretook/data/series` now points at `appointments/series.ts` (re-exports `seriesVisits`, `seriesEdit`), so `--changed` names the whole lean set: run `--suite` at landing only after asking the user. "This and later" takes time of day and length only (a day change goes through the rule); not offered on a started visit; the series sheet doesn't edit providers. A split uploads: new series PUT, old series PATCH, entry PATCHes, entry DELETEs, then new visit PUTs (for slice 10). New error `timelineEntryService:pastVisit` (409). `ui/useShowModal` extracted from ConfirmDialog. Docs: appointments.md (`planSeriesEdit` scope rules, `applySeriesEdit`, `updateEntry` `{ detach }`, cancel/reschedule detach, `SeriesScopeDialog`/`useSeriesScope`, `editSeries` item, `SeriesEditSheet`, entry page asks on title/time/place, `ONLY_THIS_VISIT_STATE`); components.md (`ui/useShowModal`); tests line (`upcoming/upcomingSeries.browser.test.tsx`). `timelineSimpleNow` flake seen again (load 57), 3/3 alone.
+
+**Carried from slice 3's hand-off:** steps go in `CALENDAR_STEPS` (`packages/notifications/src/calendarCron.ts`) before `seriesTopUp`; a returned error value counts as a failure. topUp starts at max(topped_up_through + 1, today in zone) and passes over failing series. Browser checks to run at landing: layout-offline, sign-in, first-sync, marketing. Its last fix ran related tests only (load 19), so the landing check must be full. Docs: appointments.md (topUp), notifications.md (`/api/cron/calendar`, `calendarCron.ts`, two crons), api.md (`cron-locked` covers both), layout.md (`routes/api/cron/calendar.ts`). Flake seen: `timelineSimpleNow.browser.test.tsx` "no Upcoming heading", 3/3 alone.
+
+**Carried from slice 1's hand-off:**
+
+- Migration `0025_appointment_series.sql` has two hand edits to keep on regenerate: FK `ON DELETE SET NULL ("series_id")`, and `ALTER PUBLICATION powersync ADD TABLE appointment_series` at the end.
+- rrule lives only in `packages/data/src/db/schema/appointments/seriesVisits.ts`, exported as `@caretook/data/series` (not the schema index); `budget.json` forbids rrule in first load.
+- The server writes visits only for a series without `toppedUpThrough`; the first visit keeps the draft's id (not v5), so top-up must skip by `(series_id, series_day)`.
+- Edits after creation touch one visit only (title, time chip) — slice 2's job.
+- Flake seen under load: `layout/staff.browser.test.tsx` (offline cached banner), passed 3/3 alone.
+- Docs to fold at landing: appointments.md (table, columns, visit ids, seriesVisits, repeatText, device writes + draft adoption, RepeatField, RepeatMark, seeds, `@caretook/data/series`); sync.md (stream, device schema, op, matrix row); care-groups.md (permission row); data-layer.md (`/series` entry); components.md (`repeat/`, `RepeatMark`); AGENTS.md stack line (rrule 2.8.1).
 
 **Start condition:** `timeline-ux` slice 5 (the Today card, B-169) in `dev`, since slice 1 puts the repeat mark there. Check `pnpm backlog show B-169` says landed. If it isn't, slice 1 may start and leave the Today card's mark to whichever slice runs after it lands (say so in the hand-off).
 

@@ -77,6 +77,7 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
       condition,
       medicationCondition: medicationConditionId(medication, condition),
       conditionManager: conditionManagerId(condition, provider),
+      series: randomUUID(),
     },
   };
 };
@@ -306,6 +307,32 @@ export const SYNC_MATRIX = [
         ...audit(ctx),
       }),
   ),
+  // A reminder series (appointments-2) long ago, with one visit and
+  // `topped_up_through` set, so the server writes no visits of its own and
+  // nothing shows in Upcoming.
+  device(
+    "appointment_series",
+    (ctx) => ctx.ids.series,
+    (ctx) =>
+      insert("appointment_series", {
+        id: ctx.ids.series,
+        group_id: ctx.groupId,
+        recipient_id: ctx.recipientId,
+        kind: "note",
+        rule: "FREQ=DAILY;INTERVAL=1;COUNT=1",
+        starts_on: "2000-01-01",
+        start_time: null,
+        all_day: 1,
+        time_zone: "America/Los_Angeles",
+        title: `${ctx.tag} matrix series`,
+        duration_minutes: null,
+        place: null,
+        provider_ids: "[]",
+        topped_up_through: "2000-01-01",
+        deleted_at: null,
+        ...audit(ctx),
+      }),
+  ),
   // Patched, not inserted: see RECIPIENT_PATCH.
   { table: "care_recipient", by: "patch" },
   server("care_group", (ctx) => `SELECT '${ctx.groupId}'`),
@@ -357,9 +384,17 @@ export const cleanupSql = (ctx, recordedAt) =>
     `DELETE FROM note_document WHERE id = '${ctx.ids.provider}'`,
     // The note, and the medication's "started" entry the service wrote with it.
     `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND (id = '${ctx.ids.entry}' OR details->>'medicationId' = '${ctx.ids.medication}' OR details->>'conditionId' = '${ctx.ids.condition}')`,
-    ...["provider", "medication", "medication_pass", "recipient_allergy", "care_period", "task"].map(
+    ...[
+      "provider",
+      "medication",
+      "medication_pass",
+      "recipient_allergy",
+      "care_period",
+      "task",
+      "appointment_series",
+    ].map(
       (t) =>
-        `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.task}')`,
+        `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.task}', '${ctx.ids.series}')`,
     ),
     `UPDATE recipient_condition SET deleted_at = now() WHERE deleted_at IS NULL AND id = '${ctx.ids.condition}'`,
     `UPDATE care_recipient SET no_known_allergies_at = ${recordedAt ? `'${recordedAt}'` : "NULL"} WHERE id = '${ctx.recipientId}' AND no_known_allergies_at IS DISTINCT FROM ${recordedAt ? `'${recordedAt}'::timestamptz` : "NULL"}`,

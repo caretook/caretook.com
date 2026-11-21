@@ -1,6 +1,6 @@
 # Appointments 2 PRD (B-60, B-61, B-62, B-63)
 
-Status: planned (2026-11-20). Plan: [`appointments-2-plan.md`](appointments-2-plan.md). Follows the [appointments PRD](appointments-prd.md) (B-47, done), whose rules stay: a future event is an appointment, a future note a reminder, and "upcoming" is worked out, never stored.
+Status: done (2026-11-20): all ten slices landed in `dev`; decisions in [`docs/domain/appointments.md`](../docs/domain/appointments.md) and [`docs/domain/calendars.md`](../docs/domain/calendars.md). Plan: [`appointments-2-plan.md`](appointments-2-plan.md). Follows the [appointments PRD](appointments-prd.md) (B-47, done), whose rules stay: a future event is an appointment, a future note a reminder, and "upcoming" is worked out, never stored.
 
 ## Problem Statement
 
