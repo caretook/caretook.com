@@ -53,8 +53,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `i18n` | to write (B-209: translations for all text; needs a dependency approved) | best after the feature PRDs settle; runs alone | every user-facing string: routes, `ui/`, emails, MCP text, date formatting |
 | `timeline-ux-2` | [PRD](timeline-ux-2-prd.md), [plan](timeline-ux-2-plan.md): **done** (`f1fc883e`) | — | none now |
 | `quick-entry` | [PRD](quick-entry-prd.md), [plan](quick-entry-plan.md): 4 slices, waves 1 → (2, 3, 4): one vocabulary table of kind-picking words (falls, seizures and the like are symptoms; 911, ER and urgent care are notes; visit verbs make events, contact verbs make notes), provider lines as events (titles, places), "the 25th" and month dates, forward for events and back for past-only kinds; notes that @-mention named providers (`addNote.providerIds`, both runners, the connector's `add_note`); a provider event's Save opens a prefilled new-event draft (mixed lines save the rest with Undo); kind chips on the cards (B-220). No migration, no deps, stackless. **Ready to start** once `timeline-ux-2` and `tasks-2` are in `dev` | `timeline-ux-2` in `dev` (last item B-224); `tasks-2` in `dev` (the to-do rename in actions, `actionPreview`, connector tools; last item B-222) | `packages/data` assistant schema (`quickEntry.ts`, `quickEntryTime.ts`, the new `quickEntryVocabulary.ts`, `assistantActions.ts`, `quickEntryPreview.ts`), `noteYjs.ts` (`noteDocFromText`), `assistantActionService`, the connector's `add_note`, `lib/assistant/` (`quickEntry.sync.ts`, `quickEntryDraft.ts`, `openAfterSave`), `components/quick-entry/` (`useQuickEntry`, `quickEntryCards.ts`, the card), the entry page's new-event draft |
-| `planner-2` | to write (B-248: remove reminders, notes become past-only, todos take their place; no data migration; B-245 attach a todo to a note is the later follow-up) | `quick-entry` in `dev` (the same date rules; last item B-220) | the note time rules on the device and server (`timelineEntryService`), the Planner (+ menu, rows, `upcomingFilters`), the Today card and `SimpleNext`, `calendarItems` and `calendarText` (the reminder kind: feed, Google push and pull, `reminderPlan`, Remind me), quick entry (`quickEntryTime`, the note action), the connector's `upcoming` and `add_note`, seeds |
-| `planner-3` | to write (B-245: a note can carry a todo with its own due day and assignee, the replacement for reminders) | `planner-2` in `dev` (last item B-248) | the note editor and entry page, `todoService` and the todo schema (a link to its note), the Planner's todo rows, the Today card, the connector's `add_note` and `add_todo` |
+| `planner-2` | [PRD](planner-2-prd.md), [plan](planner-2-plan.md): 7 slices, waves (1, 2) → (3, 4, 5, 6, 7): notes become past-only and reminders go (the rule, series are events only, the Planner, Today card and simple Next, the calendar projection's reminder kind, quick entry's future note becomes a todo, the connector's `upcoming` lists appointments and dated todos and `add_note` refuses a future time); todos can repeat (one open todo, the next made on tick; the form only) (B-248). Slice 2 adds a migration (three nullable `todo` columns); no deps; no data migration (staging is reseeded). **Ready to start**: `quick-entry` is in `dev` | `quick-entry` in `dev` (done); slice 3 waits for B-247 in `dev` (`quick-fixes`: the Planner's Upcoming / Past toggle); not alongside `list-filters` slice 4 (the Planner's filter row) | `entryTiming.ts`, `timelineEntryService`, the series service, `timeline.sync.ts`; the `todo` schema, `todoService`, `todos.sync.ts`, `todoOp`; `routes/app/groups/planner/`, `lib/appointments/upcoming*.ts`, the Today card and `SimpleNext`; `db/schema/calendars/` and the calendar services; `lib/assistant/` and the assistant schema; the todo form, list and page; `packages/api/src/connectors/`; seeds |
+| `planner-3` | to write (B-245: a note can carry a todo with its own due day and assignee, the replacement for reminders; B-254: quick entry reads a repeating todo) | `planner-2` in `dev` (last item B-248) | the note editor and entry page, `todoService` and the todo schema (a link to its note), the Planner's todo rows, the Today card, the connector's `add_note` and `add_todo`; quick entry (B-254) |
+| `connectors-3` | to write (B-252: a connector tool to read the dosing schedule beyond today; B-253: `add_todo` can make a repeating todo) | B-253 after `planner-2` in `dev` (last item B-248); B-252 has none | `packages/api/src/connectors/tools/` (`todaysDoses.ts` or a new schedule tool, `writes.ts`), the server instructions |
 | `simple-mode` | to write (B-221: locked simple mode, a new member type or a nit pass) | (none) | `@caretook/data/permissions`, `careGroupMemberService`, group settings Members, `SimpleTimeline`, the `/app` layout |
 | `tasks-2` | [PRD](tasks-2-prd.md), [plan](tasks-2-plan.md): **done** (`2db975a7`) | — | none now |
 
@@ -114,7 +115,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-217 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
 | B-218 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
 | B-219 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
-| B-220 | change | ready | quick-entry | prd/quick-entry | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
+| B-220 | change | landed | quick-entry | prd/quick-entry | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
 | B-221 | feature | triaged | simple-mode |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
 | B-222 | feature | staging | tasks-2 | prd/tasks-2 | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
 | B-223 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
@@ -147,6 +148,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-250 | bug | triaged | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
 | B-251 | bug | triaged | quick-fixes |  | convert planner tabs to TabNav component. |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
+| B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
+| B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
 
 ## Items
 
@@ -701,7 +704,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-220 · change · Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,…
 
-- status: ready
+- status: landed
 - prd: quick-entry
 - owner: prd/quick-entry
 - commit: b5252045
@@ -986,6 +989,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, the user's decision: a reminder (a future-dated note) goes away in favour of todos. Notes become past-only on the device and the server; remove Reminder from the Planner's + menu, the Planner rows and kind filter, the Today card and simple mode's next, the calendar projection's reminder kind (feed, Google push and pull, reminder emails, Remind me), quick entry's future-note reading and the connector's upcoming and add_note. No data migration (nothing live): seeds change, existing future notes are not converted. Starts after quick-entry (B-220) is in dev: it rewrites the same date rules. B-245 (attach a todo to a note) is the later follow-up.
+- 2026-11-21 (plan/planner-2): Planning session 2026-11-21: PRD and plan written (plans/planner-2-prd.md, planner-2-plan.md), 7 slices in 2 waves. The user's decisions: quick entry's future note becomes a todo due that day; repeating todos are added here (one open todo, the next made on tick, next rule day after today, same repeat choices as appointments, Delete asks skip or stop; form only); the connector's upcoming lists appointments and dated todos and add_note refuses a future time with a pointer to add_todo; no data migration, staging is reseeded after the deploy. Follow-ups filed: B-252 and the two repeat entry points.
 
 ### B-249 · change · Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner
 
@@ -1023,3 +1027,21 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (plan/planner-2): From the planner-2 planning interview, 2026-11-21, the user's request: upcoming returns appointments and dated todos only; the dosing schedule gets its own read tool (a new one, or a day parameter on todays_doses). Proposed topic connectors-3, a PRD to write; for the user to check.
+
+### B-253 · feature · Connector: add_todo can make a repeating todo (daily, weekly on days, monthly)
+
+- status: triaged
+- prd: connectors-3
+- owner:
+- commit:
+
+- 2026-11-21 (plan/planner-2): From the planner-2 planning interview, 2026-11-21: repeating todos are created from the todo form only in planner-2; the connector's add_todo taking a repeat is this follow-up, after planner-2 (B-248 remove reminders) is in dev. Proposed with B-252 in connectors-3; for the user to check.
+
+### B-254 · feature · Quick entry: 'bins out every monday' makes a repeating todo
+
+- status: triaged
+- prd: planner-3
+- owner:
+- commit:
+
+- 2026-11-21 (plan/planner-2): From the planner-2 planning interview, 2026-11-21: repeating todos are created from the todo form only in planner-2; reading a repeat in quick entry is this follow-up, after planner-2 (B-248 remove reminders) is in dev. Proposed alongside B-245 (attach a todo to a note) in planner-3; for the user to check.
