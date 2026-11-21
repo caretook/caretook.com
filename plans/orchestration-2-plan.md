@@ -4,20 +4,20 @@
 
 ## Status
 
-**Where it stands:** orchestrator started (2026-11-21). Waiting on `check-speed`: its wave 1 (B-271, B-273: `pnpm test:tooling`, the check lease) is at its landing gate; its wave 2 (B-272, B-278: slices 3 and 4, which touch `prd.sh` and `prompt.sh`) is running. **Wave 1 here starts once check-speed's wave 1 is in `dev`** (after `pnpm prd sync`); slices 4–6 (`prompt.sh`, `prd.sh`) start only once all of check-speed is in `dev`. A background check watches `pnpm log dev`, and the check-speed orchestrator was asked to message on each landing.
+**Where it stands:** check-speed's wave 1 landed in `dev` (e34bf68, PR #24) and is synced in (297037b8). **Wave 1 started** (2026-11-21): slices 1, 2, 3 each have a worktree and a background agent (opus); B-389, B-390, B-391 claimed. Slices 4–6 (`prompt.sh`, `prd.sh`) wait for check-speed's wave 2 (B-272, B-278: it rewrites `prd.sh`'s `check` block and `prompt.sh`'s check lines); its orchestrator (`check-speed-28`) will message when it lands. Slice agents were told to stay out of those regions.
 
 **Landing mode: run everything through** (queued with `pnpm prd queue orchestration-2`): start every ready slice, land each green wave through its PR (Codex-reviewed), clean up; ask only real questions.
 
 **Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical) — the plan gives no model, these are the handbook's _Models_.
 
-| Slice | Wave | State       | Merge into `prd/orchestration-2` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------------ |
-| 1     | 1    | not started |                                                  |
-| 2     | 1    | not started |                                                  |
-| 3     | 1    | not started |                                                  |
-| 4     | 2    | not started |                                                  |
-| 5     | 3    | not started |                                                  |
-| 6     | 4    | not started |                                                  |
+| Slice | Wave | State                                | Merge into `prd/orchestration-2` (slice commits) |
+| ----- | ---- | ------------------------------------ | ------------------------------------------------ |
+| 1     | 1    | started: worktree made, agent (opus) |                                                  |
+| 2     | 1    | started: worktree made, agent (opus) |                                                  |
+| 3     | 1    | started: worktree made, agent (opus) |                                                  |
+| 4     | 2    | not started                          |                                                  |
+| 5     | 3    | not started                          |                                                  |
+| 6     | 4    | not started                          |                                                  |
 
 **Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 and the split after it (`pnpm backlog done` when each merges).
 
