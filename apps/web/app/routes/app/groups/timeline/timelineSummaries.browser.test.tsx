@@ -105,6 +105,7 @@ describe("the day summary", () => {
     const details = document.getElementById(button.getAttribute("aria-controls")!)!;
     expect(button.getAttribute("aria-expanded")).toBe("false");
     expect(details.hidden).toBe(true);
+    expect(button.firstElementChild?.tagName.toLowerCase()).toBe("svg");
 
     await userEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("true");

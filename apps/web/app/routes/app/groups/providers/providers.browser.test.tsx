@@ -3,6 +3,7 @@ import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_USER } from "../../../../../test/fixtures";
+import { pageHeader } from "../../../../../test/pageHeader";
 import {
   $,
   $$,
@@ -179,14 +180,19 @@ describe("contact details on each row (B-44)", () => {
 });
 
 describe("who sees what", () => {
-  test("a writer gets Add provider; a viewer sees the same list, marked view-only, with no Add", async () => {
+  test("a writer gets Add provider; a viewer sees the same list with no Add; the header is just “Providers” for both", async () => {
     const device = await open({ role: "caretaker" });
     await expect.poll(() => ADD_PROVIDER()?.textContent.trim()).toBe("Add provider");
+    await expect
+      .poll(() => pageHeader())
+      .toEqual({ h1: "Providers", namesRecipient: false, viewerNote: false });
     await device.screen.unmount();
 
     await open({ role: "viewer" });
     await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
-    await expect.poll(() => $("main header p")?.textContent).toContain("You can view this directory");
+    await expect
+      .poll(() => pageHeader())
+      .toEqual({ h1: "Providers", namesRecipient: false, viewerNote: false });
     expect(ADD_PROVIDER()).toBeNull();
   });
 

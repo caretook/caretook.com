@@ -12,7 +12,7 @@ import { rememberGroup } from "~/lib/app-shell/lastGroup";
 import { useLiveQuery } from "~/lib/sync";
 import { myGroupsQuery, toMyGroup } from "~/lib/timeline/timeline.sync";
 import { NEW_GROUP_LINK_STATE } from "~/lib/care-groups/newGroupLink";
-import { menuNowText, periodName, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
+import { periodName, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
 import { useCurrentCarePeriod } from "~/lib/care-periods/currentPeriod.sync";
 
 /** What a group is called in the header: its recipient (preferred name first), then the group's name. */
@@ -25,15 +25,13 @@ const NO_ROWS: GroupRow[] = [];
  * The header's `group` region on `/app/groups/:groupId/*`: the current
  * group's display name as a menu listing every group on this device (live,
  * so it works offline), the current one checked. Choosing one opens its
- * timeline; "<Name>'s profile" opens the recipient's profile, "Group settings"
- * the current group's settings, and "New
- * care group" the New care group sheet (closing it comes back). Loading a
- * group route also remembers it for `/app`.
+ * timeline; "New care group" opens the New care group sheet (closing it
+ * comes back); then, after a separator, "<Name>'s profile", "Care periods"
+ * and "Group settings" (last). Loading a group route also remembers it for
+ * `/app`.
  *
  * With a care period, the button shows the current period's type icon after
- * the name (the period's name as its text and hover hint), and the menu opens
- * with "Now: In hospital · day 4", linking to the period; "Care periods"
- * opens the group's periods page.
+ * the name (the period's name as its text and hover hint).
  *
  * Until the device's list answers (a moment after the page renders), the
  * group route's own copy of the current group stands in, so the header never
@@ -93,17 +91,14 @@ export function GroupMenu({ groupId }: { groupId: string }) {
           })),
           selection: { selected: groupId, onChange: (id) => void navigate(appUrls.timeline(id)) },
         },
+        {
+          id: "new-group",
+          label: "New care group",
+          icon: Plus,
+          href: appUrls.newGroup(),
+          state: NEW_GROUP_LINK_STATE,
+        },
         SEPARATOR,
-        ...(period && PeriodIcon
-          ? [
-              {
-                id: "period-now",
-                label: menuNowText(period.span.period, period.day),
-                icon: PeriodIcon,
-                href: appUrls.period(groupId, period.span.period.id),
-              },
-            ]
-          : []),
         ...(current.recipient
           ? [
               {
@@ -115,23 +110,16 @@ export function GroupMenu({ groupId }: { groupId: string }) {
             ]
           : []),
         {
-          id: "group-settings",
-          label: "Group settings",
-          icon: Settings,
-          href: appUrls.groupSettings(groupId),
-        },
-        {
           id: "care-periods",
           label: "Care periods",
           icon: History,
           href: appUrls.periods(groupId),
         },
         {
-          id: "new-group",
-          label: "New care group",
-          icon: Plus,
-          href: appUrls.newGroup(),
-          state: NEW_GROUP_LINK_STATE,
+          id: "group-settings",
+          label: "Group settings",
+          icon: Settings,
+          href: appUrls.groupSettings(groupId),
         },
       ]}
     >

@@ -16,6 +16,7 @@ import {
 } from "../../../../../test/fixtures";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { clearUndo } from "~/lib/medications/passUndo";
+import { forgetRecentLines, recordLine } from "~/lib/assistant/recentLines";
 import { dayInZone, timeInZone } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
 import { waitUntil } from "./timelineWorld";
@@ -65,7 +66,30 @@ const undo = () => now()?.querySelector<HTMLButtonElement>("[data-pass-undo-butt
 const doses = async (device: Awaited<ReturnType<typeof open>>) =>
   device.query<{ id: string }>("SELECT id FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL");
 
-afterEach(() => clearUndo());
+afterEach(() => {
+  clearUndo();
+  forgetRecentLines();
+});
+
+describe("the quick-entry box", () => {
+  test("its Suggestions button opens the same popover, with no Due now row", async () => {
+    recordLine(TEST_USER.id, TEST_GROUP.id, "pain 4 left knee");
+    await open("caretaker");
+    await waitUntil(() => give().length === 1, 4000, "the due pass");
+    const button = page.getByRole("button", { name: "Suggestions", exact: true });
+    await expect.element(button).toBeVisible();
+    expect(document.querySelector("[data-quick-entry]")!.contains(button.element())).toBe(true);
+    await userEvent.click(button);
+    const dialog = page.getByRole("dialog", { name: "Suggestions" });
+    await expect.element(dialog.getByRole("list", { name: "Your recent lines" })).toBeVisible();
+    expect(dialog.element().querySelector('[data-quick-row="due"]')).toBeNull();
+    await userEvent.click(dialog.getByRole("button", { name: "pain 4 left knee" }));
+    await expect
+      .element(page.getByRole("textbox", { name: "What happened?" }))
+      .toHaveValue("pain 4 left knee");
+    await expect.element(dialog).not.toBeInTheDocument();
+  });
+});
 
 describe("the Upcoming block", () => {
   test("a writer: the due pass as one big Given all, with Undo there, and the next appointment", async () => {
@@ -81,8 +105,8 @@ describe("the Upcoming block", () => {
     // It comes before the quick-entry box.
     const box = document.querySelector("[data-quick-entry]")!;
     expect(now()!.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The box offers no due-pass chip of its own: Given all is here (passChips={false}).
-    expect(box.querySelectorAll('[data-quick-row="due"] button')).toHaveLength(0);
+    // The box offers no due pass of its own: Given all is here (passChips={false}).
+    expect(box.querySelector('button[aria-label^="Suggestions"]')).toBeNull();
 
     await userEvent.click(give()[0]!);
     await expect.poll(async () => (await doses(device)).length).toBe(2);

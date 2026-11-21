@@ -286,7 +286,7 @@ describe("the group menu and the last group", () => {
     await expect.element(groupButton()).toHaveTextContent("Grandpa Lou");
   });
 
-  test("ends with a separator, the recipient's profile, Group settings, Care periods and New care group; Group settings opens the group's settings", async () => {
+  test("has New care group after the groups, then a separator, the recipient's profile, Care periods and Group settings last; Group settings opens the group's settings", async () => {
     const device = await open();
     await userEvent.click(groupButton());
     await expect.element(page.getByRole("menu")).toBeVisible();
@@ -295,11 +295,11 @@ describe("the group menu and the last group", () => {
       .slice(-5)
       .map((el) => `${el.getAttribute("role")}:${el.textContent?.trim()}`);
     expect(tail).toEqual([
+      "menuitem:New care group",
       "separator:",
       "menuitem:Grandma June's profile",
-      "menuitem:Group settings",
       "menuitem:Care periods",
-      "menuitem:New care group",
+      "menuitem:Group settings",
     ]);
     await userEvent.click(page.getByRole("menuitem", { name: "Group settings" }));
     await expect.poll(device.location).toBe(`/app/groups/${TEST_GROUP.id}/settings`);
