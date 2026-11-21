@@ -3,7 +3,10 @@ import type { ApiOutputs } from "~/lib/core/rpc";
 import type { DeviceRow } from "./devices";
 
 import { ORPCError } from "@orpc/client";
+import { ConnectGuide } from "~/components/connectors";
 import { SettingsCard, SettingsPage } from "~/components/settings";
+import { sessionContext } from "~/lib/auth/session";
+import { loadMyAssistantsGroups, useMyAssistantsGroups } from "~/lib/care-groups/assistantsSwitch.sync";
 import { load } from "~/lib/core/api";
 import { rpc } from "~/lib/core/rpc";
 import { currentSession, listSessions, OFFLINE, revokeOtherSessions, revokeSession } from "./authCalls";
@@ -27,7 +30,9 @@ import {
 //
 // After the sessions, the member's connected AI assistants (connectors
 // slice 5): `connector.listMine` and `connector.revoke`, online too. Their
-// tokens never reach the page either.
+// tokens never reach the page either. Then the connect guide (connectors-2
+// slice 1), by the member's groups on the device: the off note while none
+// allows assistants.
 
 export const meta = () => [{ title: "Devices · Settings · Caretook" }];
 
@@ -43,18 +48,28 @@ const listConnections = (request: Request): Promise<MyConnection[] | typeof OFFL
     throw e;
   });
 
-export async function clientLoader({ request }: Route.ClientLoaderArgs) {
-  const [sessions, current, connections] = await Promise.all([
+export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
+  const { user, db } = context.get(sessionContext);
+  const [sessions, current, connections, groupRows] = await Promise.all([
     listSessions(request),
     currentSession(request),
     listConnections(request),
+    loadMyAssistantsGroups(db, user.id),
   ]);
   if (sessions === OFFLINE || current === OFFLINE || connections === OFFLINE)
-    return { online: false as const, devices: [] as DeviceRow[], connections: [] as MyConnection[] };
+    return {
+      online: false as const,
+      devices: [] as DeviceRow[],
+      connections: [] as MyConnection[],
+      userId: user.id,
+      groupRows,
+    };
   return {
     online: true as const,
     devices: deviceRows(sessions ?? [], current?.session.id ?? null),
     connections,
+    userId: user.id,
+    groupRows,
   };
 }
 
@@ -91,7 +106,8 @@ const disconnectAssistant = async (grantId: string): Promise<DevicesActionResult
 };
 
 export default function DevicesSettings({ loaderData }: Route.ComponentProps) {
-  const { online, devices, connections } = loaderData;
+  const { online, devices, connections, userId, groupRows } = loaderData;
+  const groups = useMyAssistantsGroups(userId, groupRows);
   return (
     <SettingsPage id="devices" title="Devices" offlineNotice={online ? undefined : OFFLINE_DEVICES}>
       {online && (
@@ -103,6 +119,7 @@ export default function DevicesSettings({ loaderData }: Route.ComponentProps) {
         </SettingsCard>
       )}
       {online && <ConnectedAssistants connections={connections} />}
+      {online && <ConnectGuide place="account" groups={groups} />}
     </SettingsPage>
   );
 }

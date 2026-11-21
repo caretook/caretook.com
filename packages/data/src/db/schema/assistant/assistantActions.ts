@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  recipientConditionContentZSchema,
+  recipientConditionUpdateZSchema,
+} from "../profiles/recipientCondition";
 import { doseDetailsZSchema, scheduleTimeZSchema } from "../medications/medication";
 import { TASK_LIMITS, TIME_NEEDS_DAY_ISSUE } from "../tasks/task";
 import { symptomDetailsZSchema, TIMELINE_LIMITS } from "../timeline/timelineEntry";
@@ -131,3 +135,98 @@ export const ACTION_KINDS = {
   addTask: "task",
 } as const satisfies Record<AssistantActionType, string>;
 export type ActionKind = (typeof ACTION_KINDS)[AssistantActionType];
+
+// ---------------------------------------------------------------------------
+// Edits (connectors-2): a connected assistant adding to, or retitling or
+// moving, a note or event that already exists. Carried out only on the
+// server (`assistantActionService.run`), so they aren't quick entry's
+// actions (`assistantActionZSchema`). Each names its entry; whoever carries
+// it out checks the entry is a live note or event in the group.
+// ---------------------------------------------------------------------------
+
+/** How much one append may add. */
+export const ENTRY_APPEND_LIMITS = { lines: 50, characters: 5_000 } as const;
+
+/** One line an append adds: a paragraph (the default) or a bullet (runs of them make one list). */
+export const appendLineZSchema = z.strictObject({
+  text: z.string().trim().min(1).max(ENTRY_APPEND_LIMITS.characters),
+  style: z.enum(["paragraph", "bullet"]).optional(),
+});
+
+/** Lines added at the end of a note's or event's live document, leaving what's there alone. */
+export const appendToEntryActionZSchema = z
+  .strictObject({
+    type: z.literal("appendToEntry"),
+    entryId: z.uuid(),
+    lines: z.array(appendLineZSchema).min(1).max(ENTRY_APPEND_LIMITS.lines),
+  })
+  .refine((a) => a.lines.reduce((sum, line) => sum + line.text.length, 0) <= ENTRY_APPEND_LIMITS.characters, {
+    path: ["lines"],
+    message: `At most ${ENTRY_APPEND_LIMITS.characters.toLocaleString("en-US")} characters at a time`,
+  });
+
+/** A note's or event's new title or time (at least one). */
+export const updateEntryActionZSchema = z
+  .strictObject({
+    type: z.literal("updateEntry"),
+    entryId: z.uuid(),
+    title: z.string().trim().min(1).max(TIMELINE_LIMITS.title).optional(),
+    occurredAt: occurredAt.optional(),
+  })
+  .refine((a) => a.title !== undefined || a.occurredAt !== undefined, {
+    message: "Give a new title, a new time or both",
+  });
+
+/** Every edit. */
+export const entryEditActionZSchema = z.discriminatedUnion("type", [
+  appendToEntryActionZSchema,
+  updateEntryActionZSchema,
+]);
+export type EntryEditAction = z.output<typeof entryEditActionZSchema>;
+
+// ---------------------------------------------------------------------------
+// Conditions (connectors-2): adding, updating and resolving one of the care
+// recipient's conditions, through `recipientConditionService` (its rules and
+// change entries apply). Server only, like the edits. Who manages a
+// condition (provider links) isn't an assistant's to change.
+// ---------------------------------------------------------------------------
+
+const conditionContent = recipientConditionContentZSchema.shape;
+
+/** A new, active condition: a name, optionally since when, a note and who diagnosed it. */
+export const addConditionActionZSchema = z.strictObject({
+  type: z.literal("addCondition"),
+  name: conditionContent.name,
+  sinceYear: conditionContent.sinceYear,
+  sinceMonth: conditionContent.sinceMonth,
+  note: conditionContent.note,
+  diagnosedById: conditionContent.diagnosedById,
+});
+
+/** A condition's new name, status, since, note or diagnosing provider (at least one; null clears an optional one). */
+export const updateConditionActionZSchema = z
+  .strictObject({
+    type: z.literal("updateCondition"),
+    conditionId: z.uuid(),
+    ...recipientConditionUpdateZSchema.shape,
+  })
+  .refine(
+    (a) => Object.entries(a).some(([key, v]) => key !== "type" && key !== "conditionId" && v !== undefined),
+    {
+      message: "Give at least one thing to change",
+    },
+  );
+
+/** A condition no longer active: it moves to Past. */
+export const resolveConditionActionZSchema = z.strictObject({
+  type: z.literal("resolveCondition"),
+  conditionId: z.uuid(),
+});
+
+/** Every condition action. */
+export const conditionActionZSchema = z.discriminatedUnion("type", [
+  addConditionActionZSchema,
+  updateConditionActionZSchema,
+  resolveConditionActionZSchema,
+]);
+export type ConditionAction = z.output<typeof conditionActionZSchema>;

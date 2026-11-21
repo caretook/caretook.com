@@ -139,3 +139,7 @@ export type * from "./memberCalendarSetting/types";
 import * as reminderOverrideModel from "./reminderOverride";
 export { reminderOverrideModel };
 export type * from "./reminderOverride/types";
+
+import * as assistantRequestModel from "./assistantRequest";
+export { assistantRequestModel };
+export type * from "./assistantRequest/types";

@@ -28,6 +28,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - you should be able to edit all entries, search, and filter in simple mode. (B-208)
 - link to group details edit page from the edit profile screen for editing the care recipient's timezone. (B-211)
 - Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event, providers do suggest like they should, but creates a note instead of an appointment. "Dr. Elena Alvarez on the 25th" creates a note as do most provider auto completes when it should be an event. Need to improve the logic for this. (B-220)
+- Medications page should be tabbed into Schedule and Medications (B-226)
 
 ## Feature requests
 
