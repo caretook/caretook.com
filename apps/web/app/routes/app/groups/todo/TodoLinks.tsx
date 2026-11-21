@@ -1,0 +1,193 @@
+import type { MedicationRow } from "~/lib/medications/medications.sync";
+import type { ProviderRow } from "~/lib/providers/providers.sync";
+import type { EntryRow } from "~/lib/timeline/timeline.sync";
+import type { LocalTodo } from "~/lib/todos/todos.sync";
+import type { loadTodo } from "./loadTodo";
+
+import { CalendarClock, Pill } from "lucide-react";
+import { useMemo } from "react";
+import { Link } from "react-router";
+import { ContactActions, ProviderTypeIcon } from "~/components/providers";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { quickActions } from "~/lib/providers/contactActions";
+import { formatDate, medicationTitle } from "~/lib/medications/medicationDisplay";
+import { useLiveQuery } from "~/lib/sync";
+import { medicationQuery, toMedication } from "~/lib/medications/medications.sync";
+import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
+import { linkedEventQuery } from "~/lib/todos/todos.sync";
+import { toTimelineEntry } from "~/lib/timeline/timeline.sync";
+import { linkLabel } from "~/lib/todos/todoDisplay";
+import { cancelledLabel, timeRange, upcomingTitle } from "~/lib/appointments/upcomingLabels";
+
+type Loaded = Awaited<ReturnType<typeof loadTodo>>["linkRows"];
+
+const NO_ROWS: never[] = [];
+
+/** The loader's rows when they're for this id (stable), else none. */
+const rowsFor = <R extends { id: string }>(rows: R[], id: string | null): R[] =>
+  id && rows[0]?.id === id ? rows : NO_ROWS;
+
+const ROW = "hover:bg-base-200/50 relative isolate flex items-center gap-3 px-3 py-2.5";
+const STRETCHED =
+  "block truncate font-medium outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2";
+
+function IconDot({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="bg-primary/15 text-primary grid size-8 shrink-0 place-items-center rounded-full"
+    >
+      {children}
+    </span>
+  );
+}
+
+/** The provider: its name linking to its page, and its quick contact actions; greyed "(removed)" once deleted. */
+function ProviderLink({ groupId, id, loaded }: { groupId: string; id: string; loaded: ProviderRow[] }) {
+  const q = providerQuery(id);
+  const rows = useLiveQuery<ProviderRow>(q.sql, q.params, loaded);
+  const provider = rows[0] ? toProvider(rows[0]) : null;
+  if (!provider || provider.groupId !== groupId) return null;
+  const removed = !!provider.deletedAt;
+  return (
+    <li className={ROW} data-todo-link="provider">
+      <ProviderTypeIcon type={provider.type} past={removed || provider.status === "past"} />
+      <div className="min-w-0 flex-1">
+        <p className="text-base-content/70 text-sm">Provider</p>
+        {removed ? (
+          <p className="text-base-content/50 truncate" data-todo-link-name>
+            {linkLabel(provider.name, true)}
+          </p>
+        ) : (
+          <Link to={appUrls.provider(groupId, provider.id)} className={STRETCHED} data-todo-link-name>
+            {provider.name}
+          </Link>
+        )}
+      </div>
+      {!removed && <ContactActions actions={quickActions(provider)} />}
+    </li>
+  );
+}
+
+/**
+ * The appointment: its title linking to its page, and when it is; struck
+ * through and labelled when cancelled. A deleted one isn't shown (its link
+ * is cleared with it).
+ */
+function EventLink({ groupId, id, loaded }: { groupId: string; id: string; loaded: EntryRow[] }) {
+  const q = linkedEventQuery(id);
+  const rows = useLiveQuery<EntryRow>(q.sql, q.params, loaded);
+  const event = rows[0] ? toTimelineEntry(rows[0]) : null;
+  if (!event || event.groupId !== groupId) return null;
+  const cancelled = cancelledLabel(event);
+  // Its day where it happens (an all-day one's own zone), with the time.
+  const zone = event.allDay ? event.timeZone : Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const day = new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: zone,
+  }).format(new Date(event.occurredAt));
+  return (
+    <li className={ROW} data-todo-link="event" data-cancelled={cancelled ? "" : undefined}>
+      <IconDot>
+        <CalendarClock className="size-4" />
+      </IconDot>
+      <div className="min-w-0 flex-1">
+        <p className="text-base-content/70 text-sm">Appointment</p>
+        <Link
+          to={appUrls.entry(groupId, event.id)}
+          className={`${STRETCHED} ${cancelled ? "text-base-content/60 line-through" : ""}`}
+          data-todo-link-name
+        >
+          {upcomingTitle(event)}
+        </Link>
+        <p className="text-base-content/70 text-sm" data-todo-link-when>
+          <span className={cancelled ? "line-through" : ""}>{`${day} · ${timeRange(event)}`}</span>
+          {cancelled && <span className="badge badge-sm badge-ghost ms-2 no-underline">{cancelled}</span>}
+        </p>
+      </div>
+    </li>
+  );
+}
+
+/** The medication: its name linking to its page; greyed "(removed)" once deleted. */
+function MedicationLink({ groupId, id, loaded }: { groupId: string; id: string; loaded: MedicationRow[] }) {
+  const q = medicationQuery(id);
+  const rows = useLiveQuery<MedicationRow>(q.sql, q.params, loaded);
+  const medication = rows[0] ? toMedication(rows[0]) : null;
+  if (!medication || medication.groupId !== groupId) return null;
+  const removed = !!medication.deletedAt;
+  const title = medicationTitle(medication);
+  return (
+    <li className={ROW} data-todo-link="medication">
+      <IconDot>
+        <Pill className="size-4" />
+      </IconDot>
+      <div className="min-w-0 flex-1">
+        <p className="text-base-content/70 text-sm">Medication</p>
+        {removed ? (
+          <p className="text-base-content/50 truncate" data-todo-link-name>
+            {linkLabel(title, true)}
+          </p>
+        ) : (
+          <Link to={appUrls.medication(groupId, medication.id)} className={STRETCHED} data-todo-link-name>
+            {title}
+          </Link>
+        )}
+        {medication.status !== "current" && medication.stoppedOn && !removed && (
+          <p className="text-base-content/70 text-sm">Stopped {formatDate(medication.stoppedOn)}</p>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/**
+ * What the todo is about: its provider (with call and map actions), its
+ * appointment and its medication, each opening its page. Nothing when it
+ * has no links. Live: a provider deleted or an appointment cancelled on
+ * another device shows at once.
+ */
+export function TodoLinks({
+  groupId,
+  todo,
+  loaded,
+}: {
+  groupId: string;
+  todo: Pick<LocalTodo, "providerId" | "eventId" | "medicationId">;
+  /** The loader's rows for the links (stable). */
+  loaded: Loaded;
+}) {
+  const { providerId, eventId, medicationId } = todo;
+  const initial = useMemo(
+    () => ({
+      provider: rowsFor(loaded.provider, providerId),
+      event: rowsFor(loaded.event, eventId),
+      medication: rowsFor(loaded.medication, medicationId),
+    }),
+    [loaded, providerId, eventId, medicationId],
+  );
+  if (!providerId && !eventId && !medicationId) return null;
+  return (
+    <section aria-labelledby="todo-links-heading" className="space-y-2" data-todo-links>
+      <h2 id="todo-links-heading" className="font-semibold">
+        Linked to
+      </h2>
+      <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
+        {providerId && (
+          <ProviderLink key={providerId} groupId={groupId} id={providerId} loaded={initial.provider} />
+        )}
+        {eventId && <EventLink key={eventId} groupId={groupId} id={eventId} loaded={initial.event} />}
+        {medicationId && (
+          <MedicationLink
+            key={medicationId}
+            groupId={groupId}
+            id={medicationId}
+            loaded={initial.medication}
+          />
+        )}
+      </ul>
+    </section>
+  );
+}

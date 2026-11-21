@@ -3,14 +3,16 @@ import type { RecipientProfile } from "~/lib/profiles/profile.sync";
 import type { BasicsField } from "./basicsFormData";
 
 import { useEffect, useRef } from "react";
-import { useFetcher } from "react-router";
+import { Link, useFetcher } from "react-router";
 import { BLOOD_TYPES, CODE_STATUSES, RECIPIENT_LIMITS } from "@caretook/data/schema";
 import { ChoiceGroup, Field } from "~/components/ui";
+import { careGroupUrls } from "~/lib/care-groups/urls";
 import {
   bloodTypeLabel,
   CODE_STATUS_LABELS,
   PROFILE_NEEDS_CONNECTION,
 } from "~/lib/profiles/recipientDisplay";
+import { groupSettingsAccess, timeZoneLabel } from "../settings/groupSettings";
 import { useOnline } from "./profileSheet";
 
 const NOT_SET = "Not set";
@@ -28,10 +30,12 @@ const CODE_STATUS_OPTIONS = [
  */
 export function BasicsForm({
   profile,
+  role,
   onDone,
   onCancel,
 }: {
   profile: RecipientProfile;
+  role: string | null;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -133,6 +137,8 @@ export function BasicsForm({
         )}
       </Field>
 
+      <TimeZoneLine groupId={profile.groupId} groupRole={role} timeZone={profile.timeZone} />
+
       {!online && (
         <p className="text-base-content/70 text-sm" data-needs-connection="">
           {PROFILE_NEEDS_CONNECTION}
@@ -188,5 +194,35 @@ function TextInput({
         />
       )}
     </Field>
+  );
+}
+
+/**
+ * Where the time zone is: it lives in group settings, not on this sheet. Those
+ * who can edit it get a link there; others see the zone alone.
+ */
+export function TimeZoneLine({
+  groupId,
+  groupRole,
+  timeZone,
+}: {
+  groupId: string;
+  groupRole: string | null;
+  timeZone: string | null;
+}) {
+  const canChange = groupSettingsAccess(groupId, groupRole).editRecipient;
+  if (!timeZone && !canChange) return null;
+  return (
+    <p className="text-base-content/70 text-sm" data-time-zone-line="">
+      Time zone: {timeZone ? timeZoneLabel(timeZone) : "Not set"}
+      {canChange && (
+        <>
+          {" · "}
+          <Link to={careGroupUrls.groupSettings(groupId, "details")} className="link link-primary">
+            Change in group settings
+          </Link>
+        </>
+      )}
+    </p>
   );
 }

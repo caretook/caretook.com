@@ -17,7 +17,7 @@ import * as profiles from "./profiles";
 import * as providers from "./providers";
 import * as secondGroup from "./secondGroup";
 import * as staff from "./staff";
-import * as tasks from "./tasks";
+import * as todos from "./todos";
 import * as timelineEntries from "./timelineEntries";
 import * as users from "./users";
 import * as conditions from "./conditions";
@@ -54,7 +54,7 @@ export const seed = async () => {
     await carePeriods.seed();
     await moreGroups.seed();
     await staff.seed();
-    await tasks.seed();
+    await todos.seed();
     await connectors.seed();
     await conditions.seed();
     await medicationConditions.seed();

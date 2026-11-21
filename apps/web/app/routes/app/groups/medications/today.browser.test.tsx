@@ -118,7 +118,7 @@ describe("times of their own", () => {
     const device = await open([DONEPEZIL]);
     expect(slotState(DONEPEZIL.id, T1)).toBe("due");
     expect(slotState(DONEPEZIL.id, T2)).toBe("due");
-    expect(TODAY()!.textContent).not.toContain("Times are");
+    await expect.poll(() => TODAY()?.textContent).not.toContain("Times are");
     await userEvent.click(slot(DONEPEZIL.id, T1)!.querySelector("[data-give]")!);
     await expect.poll(() => slotState(DONEPEZIL.id, T1), { timeout: 5000 }).toBe("given");
     expect(slotState(DONEPEZIL.id, T2)).toBe("due");
@@ -150,15 +150,15 @@ describe("times of their own", () => {
     expect(slotState(NY.id, "12:57")).toBe("due");
     // 09:54 New York time was three hours ago here: overdue.
     expect(slotState(NY.id, T1)).toBe("overdue");
-    expect(TODAY()!.textContent).toContain("Times are New York time");
+    await expect.poll(() => TODAY()?.textContent).toContain("Times are New York time");
   });
 
   test("a viewer sees Today and each slot's state, with no logging controls", async () => {
     await open([DONEPEZIL, ONDANSETRON, ROUNDS, XA], "viewer");
     expect(slotState(DONEPEZIL.id, T1)).toBe("due");
-    expect(TODAY()!.querySelector("[data-as-needed]")).toBeTruthy();
+    await expect.poll(() => TODAY()?.querySelector("[data-as-needed]")).toBeTruthy();
     // A pass's expand isn't a logging control.
-    expect(TODAY()!.querySelectorAll("button:not([data-pass-expand])")).toHaveLength(0);
+    await expect.poll(() => TODAY()?.querySelectorAll("button:not([data-pass-expand])")).toHaveLength(0);
   });
 });
 

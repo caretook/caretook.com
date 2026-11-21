@@ -9,7 +9,7 @@ import {
   at,
   fx,
   medicationPass,
-  task,
+  todo,
   TEST_GROUP,
   TEST_TIME_ZONE,
   TEST_USER,
@@ -32,8 +32,8 @@ const probe = (name: string) => ({ default: () => <h1>{name} page</h1> });
 const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/timeline", module: timeline },
   { path: "/app/groups/:groupId/entries/:entryId", module: probe("Entry") },
-  { path: "/app/groups/:groupId/tasks/:taskId", module: probe("Task") },
-  { path: "/app/groups/:groupId/upcoming", module: probe("Upcoming") },
+  { path: "/app/groups/:groupId/todos/:todoId", module: probe("Todo") },
+  { path: "/app/groups/:groupId/planner", module: probe("Planner") },
 ];
 const URL = `/app/groups/${TEST_GROUP.id}/timeline`;
 
@@ -99,7 +99,9 @@ describe("the Upcoming block", () => {
     await expect.element(block).toBeVisible();
     await expect.element(block.getByRole("heading", { name: "Upcoming" })).toBeVisible();
     expect(give()[0]!.textContent).toBe("Give evening meds (2)");
-    expect(now()!.querySelector("[data-simple-next]")?.textContent).toMatch(/^Next: Visit with Dr\. Lark · /);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-next]")?.textContent)
+      .toMatch(/^Next: Visit with Dr\. Lark · /);
     // It comes before the quick-entry box.
     const box = document.querySelector("[data-quick-entry]")!;
     expect(now()!.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -109,7 +111,9 @@ describe("the Upcoming block", () => {
     await userEvent.click(give()[0]!);
     await expect.poll(async () => (await doses(device)).length).toBe(2);
     await waitUntil(() => !!undo(), 4000, "Undo");
-    expect(now()!.querySelector("[data-pass-undo-label]")?.textContent).toBe("Evening logged");
+    await expect
+      .poll(() => now()?.querySelector("[data-pass-undo-label]")?.textContent)
+      .toBe("Evening logged");
     await waitUntil(() => give().length === 0, 4000, "the pass to be done");
 
     await userEvent.click(undo()!);
@@ -120,10 +124,12 @@ describe("the Upcoming block", () => {
   test("a viewer: the due pass and the next appointment as text, no Given all", async () => {
     await open("viewer");
     await waitUntil(() => !!now()?.querySelector("[data-simple-due]"), 4000, "the due pass");
-    expect(now()!.querySelector("[data-simple-due]")!.textContent).toMatch(
-      /^(Due now|Overdue): Evening · 2 medications$/,
-    );
-    expect(now()!.querySelector("[data-simple-next]")?.textContent).toMatch(/^Next: Visit with Dr\. Lark/);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-due]")?.textContent)
+      .toMatch(/^(Due now|Overdue): Evening · 2 medications$/);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-next]")?.textContent)
+      .toMatch(/^Next: Visit with Dr\. Lark/);
     // No Given all: the one button is the next appointment's, which opens the list (B-191).
     expect([...now()!.querySelectorAll("button")].map((b) => b.getAttribute("aria-expanded"))).toEqual([
       "false",
@@ -131,18 +137,19 @@ describe("the Upcoming block", () => {
   });
 
   test("nothing due and nothing ahead: no Upcoming heading", async () => {
-    await open("caretaker", []);
+    const device = await open("caretaker", []);
     await waitUntil(() => !!document.querySelector("[data-simple-timeline]"), 4000, "the simple view");
+    await device.settle();
     expect(now()?.querySelector("h2") ?? null).toBeNull();
     expect(give()).toHaveLength(0);
   });
 });
 
 describe("the next appointment opens the next five upcoming items", () => {
-  // Seven upcoming items. Upcoming's order: the all-day task due today
+  // Seven upcoming items. Upcoming's order: the all-day todo due today
   // first (before today's timed items, or in today's section before
   // tomorrow's), then the rest by time; the last two are past the five.
-  const FAX = task({ title: "Fax the form", dueOn: localDate(new Date(), TEST_TIME_ZONE) });
+  const FAX = todo({ title: "Fax the form", dueOn: localDate(new Date(), TEST_TIME_ZONE) });
   const CALL = fx.note({ title: "Call about the walker", occurredAt: hoursAhead(3) });
   const THERAPY = fx.event({ title: "Physical therapy", occurredAt: hoursAhead(50) });
   const EYE = fx.event({ title: "Eye exam", occurredAt: hoursAhead(74) });
@@ -192,15 +199,15 @@ describe("the next appointment opens the next five upcoming items", () => {
     expect(list()!.hidden).toBe(true);
     expect(items()).toHaveLength(0);
 
-    // Open again: See all goes to Upcoming.
+    // Open again: See all goes to the Planner.
     await userEvent.click(toggle());
     await waitUntil(() => items().length === 5, 4000, "the list again");
     await userEvent.click(page.getByRole("link", { name: "See all" }).last());
-    await expect.element(page.getByRole("heading", { name: "Upcoming page" })).toBeVisible();
-    expect(device.location()).toBe(appUrls.upcoming(TEST_GROUP.id));
+    await expect.element(page.getByRole("heading", { name: "Planner page" })).toBeVisible();
+    expect(device.location()).toBe(appUrls.planner(TEST_GROUP.id));
   });
 
-  test("a tap on an item opens its page: an entry's, or a task's", async () => {
+  test("a tap on an item opens its page: an entry's, or a todo's", async () => {
     const device = await open("caretaker", SEVEN);
     await userEvent.click(toggle());
     await waitUntil(() => items().length === 5, 4000, "the list");
@@ -209,13 +216,13 @@ describe("the next appointment opens the next five upcoming items", () => {
     expect(device.location()).toBe(appUrls.entry(TEST_GROUP.id, VISIT.id));
   });
 
-  test("a task in the list opens the task's page", async () => {
+  test("a todo in the list opens the todo's page", async () => {
     const device = await open("viewer", SEVEN);
     await userEvent.click(toggle());
     await waitUntil(() => items().length === 5, 4000, "the list");
     await userEvent.click(itemLink("Fax the form"));
-    await expect.element(page.getByRole("heading", { name: "Task page" })).toBeVisible();
-    expect(device.location()).toBe(appUrls.task(TEST_GROUP.id, FAX.id));
+    await expect.element(page.getByRole("heading", { name: "Todo page" })).toBeVisible();
+    expect(device.location()).toBe(appUrls.todo(TEST_GROUP.id, FAX.id));
   });
 
   test("with one upcoming item: that item, then See all", async () => {
@@ -223,6 +230,6 @@ describe("the next appointment opens the next five upcoming items", () => {
     await userEvent.click(toggle());
     await waitUntil(() => items().length > 0, 4000, "the list");
     expect(titles()).toEqual(["Visit with Dr. Lark"]);
-    expect(list()!.querySelector("[data-simple-upcoming-all]")?.textContent).toBe("See all");
+    await expect.poll(() => list()?.querySelector("[data-simple-upcoming-all]")?.textContent).toBe("See all");
   });
 });

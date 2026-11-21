@@ -38,11 +38,11 @@ const item = (over: Partial<CalendarItem> = {}): CalendarItem => ({
 const reminder = (over: Partial<CalendarItem> = {}) =>
   item({ kind: "reminder", end: "2026-11-19T17:30:00.000Z", ...over });
 
-const task = (over: Partial<CalendarItem> = {}) =>
+const todo = (over: Partial<CalendarItem> = {}) =>
   item({
-    uid: "task:t1",
-    source: { type: "task", id: "t1" },
-    kind: "task",
+    uid: "todo:t1",
+    source: { type: "todo", id: "t1" },
+    kind: "todo",
     end: "2026-11-19T17:30:00.000Z",
     ...over,
   });
@@ -94,8 +94,8 @@ describe("echoes and no-ops", () => {
     });
   });
 
-  it("ignores a reminder's or task's end alone (their end is made up)", () => {
-    for (const it_ of [reminder(), task()]) {
+  it("ignores a reminder's or todo's end alone (their end is made up)", () => {
+    for (const it_ of [reminder(), todo()]) {
       const change = eventFor(it_, movedEnd);
       expect(run({ change, link: linkFor(it_), item: it_, role: "owner" })).toEqual({
         type: "ignore",
@@ -309,39 +309,39 @@ describe("a reminder", () => {
   });
 });
 
-describe("a task", () => {
+describe("a todo", () => {
   it.each(WRITERS)("moved in Google changes its due day and time in the recipient's zone, as %s", (role) => {
-    const it_ = task();
+    const it_ = todo();
     // Fri 20 Nov, 7:30 in Los Angeles.
     const change = eventFor(it_, { start: { dateTime: "2026-11-20T15:30:00.000Z", timeZone: LA } });
     expect(run({ change, link: linkFor(it_), item: it_, role })).toEqual({
-      type: "updateTask",
-      taskId: "t1",
+      type: "updateTodo",
+      todoId: "t1",
       dueOn: "2026-11-20",
       dueTime: "07:30",
     });
   });
 
   it("made all-day in Google keeps only the day", () => {
-    const it_ = task();
+    const it_ = todo();
     const change = eventFor(it_, { start: { date: "2026-11-21" }, end: { date: "2026-11-22" } });
     expect(run({ change, link: linkFor(it_), item: it_, role: "owner" })).toEqual({
-      type: "updateTask",
-      taskId: "t1",
+      type: "updateTodo",
+      todoId: "t1",
       dueOn: "2026-11-21",
       dueTime: null,
     });
   });
 
   it.each(ROLES)("deleted in Google is completed, as %s (the service decides a viewer's)", (role) => {
-    const it_ = task({ allDay: true, start: "2026-11-19", end: "2026-11-20" });
+    const it_ = todo({ allDay: true, start: "2026-11-19", end: "2026-11-20" });
     expect(
       run({ change: eventFor(it_, { status: "cancelled" }), link: linkFor(it_), item: it_, role }),
-    ).toEqual({ type: "completeTask", taskId: "t1" });
+    ).toEqual({ type: "completeTodo", todoId: "t1" });
   });
 
   it("a viewer's move is overwritten", () => {
-    const it_ = task();
+    const it_ = todo();
     expect(run({ change: eventFor(it_, moved), link: linkFor(it_), item: it_, role: "viewer" })).toEqual({
       type: "overwrite",
       reason: "role",

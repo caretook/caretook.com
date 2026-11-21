@@ -1,0 +1,15 @@
+# check-areas: todos (todos PRD). The list and its sheets, the todo page,
+# links and backlinks, the shared tick and Undo pieces, simple mode's My todos
+# card (timeline/*) and quick entry's todo card are component tests
+# (todos/, todo/, components/todos/ and timeline/timelineSimpleTodos,
+# timelineQuickEntryTodos browser tests); the pure wording, list, links and
+# Undo store have unit tests; the service and upload are integration tests.
+apps/web/app/routes/app/groups/todos/*   -
+apps/web/app/routes/app/groups/todo/*    -
+apps/web/app/components/todos/*          -
+apps/web/app/lib/todos/*.sync.ts        -
+# The todo sheets' link state lives in lib/ so quick entry can open them.
+apps/web/app/lib/todos/todoSheetLink.ts  -
+# No browser check reads them; seeds/todos.test.ts checks them.
+packages/data/src/db/seeds/todos.ts      -
+apps/web/app/lib/todos/todoDisplay.ts -

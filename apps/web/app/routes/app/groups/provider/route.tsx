@@ -6,7 +6,7 @@ import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { LinkedTasks } from "~/components/tasks";
+import { LinkedTodos } from "~/components/todos";
 import { BackLink } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
@@ -119,7 +119,7 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
             <ProviderVisitPrep groupId={groupId} providerId={providerId} providerName={provider.name} />
           )}
 
-          <LinkedTasks link={{ providerId }} />
+          <LinkedTodos link={{ providerId }} />
 
           <section aria-labelledby="provider-notes-heading" className="space-y-2">
             <div>

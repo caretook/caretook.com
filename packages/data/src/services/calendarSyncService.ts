@@ -25,7 +25,7 @@ import {
   memberCalendarSettingSchema,
   providerSchema,
   shareLevel,
-  taskSchema,
+  todoSchema,
   timelineEntryProviderSchema,
   timelineEntrySchema,
 } from "../db/schema";
@@ -38,7 +38,7 @@ export const serviceName = "calendarSync";
 
 // Pushing Caretook's calendar to members' Google calendars (appointments-2,
 // slice 7). A write that can change a calendar item (an appointment or
-// reminder, a task, a series, a member's consent) queues a job in its own
+// reminder, a todo, a series, a member's consent) queues a job in its own
 // transaction (`enqueue`), only when the group has a live connection. Once
 // that commits, the job runs in the background (`waitUntil` on Vercel), and
 // the calendar cron's `googlePush` step sweeps whatever is left, with the
@@ -75,7 +75,7 @@ export type SyncTarget =
   | { groupId: string }
   | { connectionId: string }
   | { entryId: string }
-  | { taskId: string }
+  | { todoId: string }
   /** One member's connection in a group (their consent changed). */
   | { memberId: string; inGroup: string };
 
@@ -103,8 +103,8 @@ const enqueueStatement = (target: SyncTarget, reason: CalendarSyncReason) => {
     return sql`${insert("group_id")} SELECT ${timelineEntrySchema.groupId}, ${audit} FROM ${timelineEntrySchema}
       WHERE ${timelineEntrySchema.id} = ${target.entryId} AND ${timelineEntrySchema.kind} IN ('event', 'note')
       AND ${liveConnectionIn(timelineEntrySchema.groupId)} ON CONFLICT DO NOTHING`;
-  return sql`${insert("group_id")} SELECT ${taskSchema.groupId}, ${audit} FROM ${taskSchema}
-    WHERE ${taskSchema.id} = ${target.taskId} AND ${liveConnectionIn(taskSchema.groupId)} ON CONFLICT DO NOTHING`;
+  return sql`${insert("group_id")} SELECT ${todoSchema.groupId}, ${audit} FROM ${todoSchema}
+    WHERE ${todoSchema.id} = ${target.todoId} AND ${liveConnectionIn(todoSchema.groupId)} ON CONFLICT DO NOTHING`;
 };
 
 /**
@@ -205,27 +205,27 @@ export const groupItems = async (groupId: string, now: Date): Promise<CalendarIt
           .where(inArray(timelineEntryProviderSchema.entryId, ids))
           .orderBy(providerSchema.name)
       : [];
-    const tasks = await db
+    const todos = await db
       .select()
-      .from(taskSchema)
+      .from(todoSchema)
       .where(
         and(
-          eq(taskSchema.groupId, groupId),
-          isNull(taskSchema.deletedAt),
-          isNull(taskSchema.doneAt),
-          isNotNull(taskSchema.dueOn),
+          eq(todoSchema.groupId, groupId),
+          isNull(todoSchema.deletedAt),
+          isNull(todoSchema.doneAt),
+          isNotNull(todoSchema.dueOn),
         ),
       );
-    return { recipient, entries, providers, tasks };
+    return { recipient, entries, providers, todos };
   });
   if (isError(loaded)) return loaded;
-  const { recipient, entries, providers, tasks } = loaded;
+  const { recipient, entries, providers, todos } = loaded;
   if (!recipient) return [];
   const names = new Map<string, string[]>();
   for (const p of providers) names.set(p.entryId, [...(names.get(p.entryId) ?? []), p.name]);
   return calendarItems({
     entries: entries.map((e): CalendarEntryInput => ({ ...e, providers: names.get(e.id) ?? [] })),
-    tasks,
+    todos,
     recipient: {
       displayName: recipient.preferredName?.trim() || recipient.name,
       timeZone: recipient.timeZone,

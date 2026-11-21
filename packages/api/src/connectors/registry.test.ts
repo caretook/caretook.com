@@ -16,6 +16,13 @@ describe("the connector tools", () => {
     for (const name of names) expect(name).toMatch(/^[a-z][a-z_]{2,40}$/);
   });
 
+  it("name the todo tools, and no task tool", () => {
+    const names = described.map((t) => t.name);
+    expect(names).toEqual(expect.arrayContaining(["add_todo", "list_todos"]));
+    expect(names.filter((n) => /task/.test(n))).toEqual([]);
+    expect(JSON.stringify(described)).not.toMatch(/task/i);
+  });
+
   it("describe their inputs as JSON Schema objects", () => {
     for (const tool of described) {
       expect(tool.inputSchema).toMatchObject({ type: "object" });

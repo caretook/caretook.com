@@ -6,7 +6,7 @@ import { redirect } from "react-router";
 import { canEditRecipient } from "@caretook/data/schema";
 import { Sheet } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { getGroup } from "~/lib/app-shell/group";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { rpc } from "~/lib/core/rpc";
 import { sessionContext } from "~/lib/auth/session";
 import {
@@ -60,9 +60,10 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 
 export default function BasicsSheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseProfileSheet(params.groupId);
+  const group = useGroup();
   return (
     <Sheet isOpen onOpenChange={(open) => !open && close()} title="Edit profile">
-      <BasicsForm profile={loaderData.profile} onDone={close} onCancel={close} />
+      <BasicsForm profile={loaderData.profile} role={group.role} onDone={close} onCancel={close} />
     </Sheet>
   );
 }

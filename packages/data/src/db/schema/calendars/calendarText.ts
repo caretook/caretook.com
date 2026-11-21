@@ -2,7 +2,7 @@ import type { CalendarItem, CalendarItemKind } from "./calendarItems";
 import type { ShareLevel } from "./calendarRules";
 
 import { localDate } from "../core/entryTiming";
-import { localTime } from "../tasks/taskRules";
+import { localTime } from "../todos/todoRules";
 
 // What a calendar item says outside Caretook (appointments-2): the email's
 // subject and body, the feed's and Google's event. Generic by default:
@@ -13,7 +13,7 @@ import { localTime } from "../tasks/taskRules";
 const NOUNS: Record<CalendarItemKind, string> = {
   appointment: "Appointment",
   reminder: "Reminder",
-  task: "Task",
+  todo: "Todo",
 };
 
 const dayFormats = new Map<string, Intl.DateTimeFormat>();
@@ -40,7 +40,7 @@ const clock = (instant: string, timeZone: string) => {
 
 /**
  * When it is, in `timeZone`: "Thu 19 Nov · 9:00–10:00", "Thu 19 Nov · All
- * day", "Thu 19 Nov · 9:00" (a reminder or task: its end is made up, so it
+ * day", "Thu 19 Nov · 9:00" (a reminder or todo: its end is made up, so it
  * isn't shown), or "Thu 19 Nov 22:00 – Fri 20 Nov 1:00" across midnight.
  */
 export const calendarWhen = (

@@ -153,7 +153,7 @@ describe("places", () => {
       type: "hospital",
       placeProviderId: RIVERSIDE.id,
       placeDetail: "Room 412, bed B",
-      startedAt: at(new Date(Date.now() - 60 * 60_000)),
+      startedAt: at(new Date(Date.now() - 10 * 60_000)),
     });
     await open("", { fixtures: [...world(10), RIVERSIDE, stay] });
     await ready();

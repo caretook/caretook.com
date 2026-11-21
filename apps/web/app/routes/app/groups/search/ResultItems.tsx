@@ -2,7 +2,7 @@ import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { EntryResult, ProviderResult } from "./loadSearch";
 import type { ParsedSearch, Snippet, UnitChoices } from "@caretook/data/schema";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
-import type { LocalTask } from "~/lib/tasks/tasks.sync";
+import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 
 import { highlightRanges, notesSnippet } from "@caretook/data/schema";
@@ -17,7 +17,7 @@ import { entryOpen, SHEET_LINK_STATE } from "~/lib/timeline/entryOpen";
 import { dayLabel, formatTime, localTimeZone } from "~/lib/core/format";
 import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
-import { dueText } from "~/lib/tasks/taskDisplay";
+import { dueText } from "~/lib/todos/todoDisplay";
 import { CONDITION_STATUS_LABELS, sinceText } from "~/lib/profiles/conditions";
 import { PROFILE_SHEET_STATE } from "../profile/profileSheet";
 
@@ -212,33 +212,33 @@ export function MedicationResultItem({
 }
 
 /**
- * A task as a result: its title and its due line, or a "Done" marker for a
- * done one. It opens the task's page. Matches are marked, and a match only
+ * A todo as a result: its title and its due line, or a "Done" marker for a
+ * done one. It opens the todo's page. Matches are marked, and a match only
  * in its notes shows a line from them.
  */
-export function TaskResultItem({
-  task,
+export function TodoResultItem({
+  todo,
   notes,
   now,
   timeZone,
   search,
 }: {
-  task: LocalTask;
+  todo: LocalTodo;
   notes?: string;
   now: Date;
   /** The recipient's zone: due days and times are theirs. */
   timeZone: string;
   search: ParsedSearch;
 }) {
-  const done = !!task.doneAt;
-  const due = dueText(task, now, timeZone);
-  const snippet = notesSnippet([task.title], notes, search);
+  const done = !!todo.doneAt;
+  const due = dueText(todo, now, timeZone);
+  const snippet = notesSnippet([todo.title], notes, search);
   const Icon = done ? CircleCheck : ListTodo;
   return (
     <li
       className={`${ROW} hover:bg-base-200/50`}
-      data-result="task"
-      data-result-id={task.id}
+      data-result="todo"
+      data-result-id={todo.id}
       data-done={done ? "" : undefined}
     >
       <span
@@ -250,10 +250,10 @@ export function TaskResultItem({
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 items-center gap-1.5">
           <Link
-            to={appUrls.task(task.groupId, task.id)}
+            to={appUrls.todo(todo.groupId, todo.id)}
             className={`font-medium wrap-break-word ${STRETCHED} ${done ? "text-base-content/70" : ""}`}
           >
-            <Marked text={task.title} search={search} />
+            <Marked text={todo.title} search={search} />
           </Link>
           {done && (
             <span className="badge badge-ghost badge-sm shrink-0" data-marker>

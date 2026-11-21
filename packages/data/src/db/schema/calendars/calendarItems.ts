@@ -1,12 +1,12 @@
 import type { TimelineEntry } from "../timeline/timelineEntry";
-import type { Task } from "../tasks/task";
+import type { Todo } from "../todos/todo";
 
 import { addDays, dayStart, localDate } from "../core/entryTiming";
 import { zonedInstant } from "../core/zonedDay";
 
 // One projection of a care group's calendar (appointments-2), shared by the
 // iCal feed, reminder emails and Google Calendar: appointments (events),
-// reminders (notes planned ahead) and open tasks with a due day, as neutral
+// reminders (notes planned ahead) and open todos with a due day, as neutral
 // `CalendarItem`s. Pure and client-safe. Wording is `calendarText`'s, and how
 // much of an item may leave is `shareLevel`'s; nothing here reads a note's
 // body or live notes, so no note content can leave through it.
@@ -25,19 +25,19 @@ export const calendarWindow = (now: Date) => ({
 
 /**
  * How long an item lasts when nothing says: an appointment without an end
- * an hour, a reminder or a timed task half an hour (calendars need an end).
+ * an hour, a reminder or a timed todo half an hour (calendars need an end).
  */
-export const DEFAULT_ITEM_MINUTES = { appointment: 60, reminder: 30, task: 30 } as const;
+export const DEFAULT_ITEM_MINUTES = { appointment: 60, reminder: 30, todo: 30 } as const;
 
-export const CALENDAR_ITEM_KINDS = ["appointment", "reminder", "task"] as const;
+export const CALENDAR_ITEM_KINDS = ["appointment", "reminder", "todo"] as const;
 export type CalendarItemKind = (typeof CALENDAR_ITEM_KINDS)[number];
 
 export type CalendarItemStatus = "confirmed" | "cancelled";
 
 export type CalendarItem = {
-  /** Stable per entry or task: `entry:<id>` or `task:<id>`. */
+  /** Stable per entry or todo: `entry:<id>` or `todo:<id>`. */
   uid: string;
-  source: { type: "entry" | "task"; id: string };
+  source: { type: "entry" | "todo"; id: string };
   groupId: string;
   kind: CalendarItemKind;
   /**
@@ -47,7 +47,7 @@ export type CalendarItem = {
   allDay: boolean;
   start: string;
   end: string;
-  /** The zone its day and times are read in: the entry's own, or the recipient's for a task. */
+  /** The zone its day and times are read in: the entry's own, or the recipient's for a todo. */
   timeZone: string;
   status: CalendarItemStatus;
   /** The care recipient's name ("Pat"), for the generic wording. */
@@ -82,15 +82,15 @@ export type CalendarEntryInput = Pick<
   | "seriesDetached"
 > & { providers?: readonly string[] };
 
-export type CalendarTaskInput = Pick<
-  Task,
+export type CalendarTodoInput = Pick<
+  Todo,
   "id" | "groupId" | "title" | "dueOn" | "dueTime" | "doneAt" | "deletedAt"
 >;
 
 export type CalendarItemsArgs = {
   entries: readonly CalendarEntryInput[];
-  tasks: readonly CalendarTaskInput[];
-  /** The care recipient: their name for the wording, and their zone for tasks' due days and times. */
+  todos: readonly CalendarTodoInput[];
+  /** The care recipient: their name for the wording, and their zone for todos' due days and times. */
   recipient: { displayName: string; timeZone: string };
   from: Date;
   to: Date;
@@ -146,10 +146,10 @@ const entrySpan = (entry: CalendarEntryInput, kind: CalendarItemKind): Span => {
   return timedSpan(start, end, entry.timeZone);
 };
 
-const taskSpan = (task: CalendarTaskInput & { dueOn: string }, timeZone: string): Span => {
-  if (!task.dueTime) return daySpan(task.dueOn, timeZone);
-  const start = zonedInstant(task.dueOn, task.dueTime, timeZone).getTime();
-  return timedSpan(start, start + DEFAULT_ITEM_MINUTES.task * MINUTE_MS, timeZone);
+const todoSpan = (todo: CalendarTodoInput & { dueOn: string }, timeZone: string): Span => {
+  if (!todo.dueTime) return daySpan(todo.dueOn, timeZone);
+  const start = zonedInstant(todo.dueOn, todo.dueTime, timeZone).getTime();
+  return timedSpan(start, start + DEFAULT_ITEM_MINUTES.todo * MINUTE_MS, timeZone);
 };
 
 /** The instants a span covers, `[from, to)`. */
@@ -162,13 +162,13 @@ const trimSlash = (url: string) => url.replace(/\/+$/, "");
 
 /**
  * A group's calendar between `from` and `to`: appointments (cancelled ones
- * kept, marked cancelled), reminders, and open tasks with a due day, each
- * overlapping the window. Deleted entries and tasks, done tasks and undated
- * tasks are left out. Soonest first.
+ * kept, marked cancelled), reminders, and open todos with a due day, each
+ * overlapping the window. Deleted entries and todos, done todos and undated
+ * todos are left out. Soonest first.
  */
 export const calendarItems = ({
   entries,
-  tasks,
+  todos,
   recipient,
   from,
   to,
@@ -209,25 +209,25 @@ export const calendarItems = ({
     });
   }
 
-  for (const task of tasks) {
-    if (task.deletedAt || task.doneAt || !task.dueOn) continue;
-    const span = taskSpan({ ...task, dueOn: task.dueOn }, recipient.timeZone);
+  for (const todo of todos) {
+    if (todo.deletedAt || todo.doneAt || !todo.dueOn) continue;
+    const span = todoSpan({ ...todo, dueOn: todo.dueOn }, recipient.timeZone);
     if (!inWindow(span)) continue;
     items.push({
       at: spanBounds(span).from,
       item: {
-        uid: `task:${task.id}`,
-        source: { type: "task", id: task.id },
-        groupId: task.groupId,
-        kind: "task",
+        uid: `todo:${todo.id}`,
+        source: { type: "todo", id: todo.id },
+        groupId: todo.groupId,
+        kind: "todo",
         ...span,
         status: "confirmed",
         recipientName: recipient.displayName,
-        title: task.title.trim() || null,
+        title: todo.title.trim() || null,
         place: null,
         providers: [],
         series: null,
-        appUrl: `${base}/app/groups/${task.groupId}/tasks/${task.id}`,
+        appUrl: `${base}/app/groups/${todo.groupId}/todos/${todo.id}`,
       },
     });
   }

@@ -26,7 +26,7 @@ import { MEDICATIONS_PERMISSIONS } from "./medications";
 import { NOTIFICATIONS_PERMISSIONS } from "./notifications";
 import { PROFILES_PERMISSIONS } from "./profiles";
 import { PROVIDERS_PERMISSIONS } from "./providers";
-import { TASKS_PERMISSIONS } from "./tasks";
+import { TODOS_PERMISSIONS } from "./todos";
 import { TIMELINE_PERMISSIONS } from "./timeline";
 
 // The building blocks live in blocks.ts, and the tables' permissions in one part per
@@ -58,7 +58,7 @@ export const PERMISSIONS: Permissions = {
   ...NOTIFICATIONS_PERMISSIONS,
   ...PROFILES_PERMISSIONS,
   ...PROVIDERS_PERMISSIONS,
-  ...TASKS_PERMISSIONS,
+  ...TODOS_PERMISSIONS,
   ...TIMELINE_PERMISSIONS,
 };
 

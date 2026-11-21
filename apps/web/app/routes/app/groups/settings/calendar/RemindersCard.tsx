@@ -3,13 +3,13 @@ import type { CalendarCardProps } from "./calendarPage";
 import { useId } from "react";
 import { SettingsCard } from "~/components/settings";
 import { CalendarSaveLine } from "./CalendarSaveLine";
-import { LEADS_CAP_NOTE, leadChoices, REMINDERS_EXPLAINED, TASKS_NOTE, withLead } from "./reminderChoices";
+import { LEADS_CAP_NOTE, leadChoices, REMINDERS_EXPLAINED, TODOS_NOTE, withLead } from "./reminderChoices";
 import { useCalendarSave } from "./useCalendarSave";
 
 /**
  * Reminder emails for this group: on or off, and up to three lead times
  * (the preset is the evening before and 1 h before), with a note that
- * tasks reach their assignee. The member's own, viewers included; saved as
+ * todos reach their assignee. The member's own, viewers included; saved as
  * soon as it's changed, and kept on this device offline (useCalendarSave).
  */
 export function RemindersCard({ groupId, userId, settings }: CalendarCardProps) {
@@ -58,8 +58,8 @@ export function RemindersCard({ groupId, userId, settings }: CalendarCardProps) 
               </p>
             </fieldset>
           )}
-          <p className="text-base-content/70 text-sm" data-reminders-tasks="">
-            {TASKS_NOTE}
+          <p className="text-base-content/70 text-sm" data-reminders-todos="">
+            {TODOS_NOTE}
           </p>
         </>
       )}

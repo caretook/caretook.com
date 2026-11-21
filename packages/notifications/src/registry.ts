@@ -4,7 +4,7 @@ import { contactMessage } from "./templates/contactMessage";
 import { groupInvite } from "./templates/groupInvite";
 import { joinApproved, joinDeclined, joinRequested } from "./templates/joinRequests";
 import { ownerInvite } from "./templates/ownerInvite";
-import { appointmentReminder, taskDue } from "./templates/reminders";
+import { appointmentReminder, todoDue } from "./templates/reminders";
 import { resetPassword } from "./templates/resetPassword";
 import { signInEmail } from "./templates/signInEmail";
 import { testMessage } from "./templates/testMessage";
@@ -26,7 +26,7 @@ export const NOTIFICATIONS = {
   accessCodeExistingAccount,
   signInEmail,
   appointmentReminder,
-  taskDue,
+  todoDue,
   assistantsRequested,
 } as const;
 

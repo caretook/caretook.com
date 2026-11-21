@@ -200,7 +200,9 @@ describe("on the timeline", () => {
   test("a change opens nothing and its ⋯ is Delete only; Delete removes it and the medication stays; its edit URL is the timeline, filters kept", async () => {
     const device = await open({ query: "?kind=medicationChange" });
     const row = () => rowWith("Changed strength 5 mg → 10 mg");
-    expect(row()!.querySelector('a[aria-label^="Edit "], a[aria-label^="Open "]')).toBeNull();
+    await expect
+      .poll(() => row()?.querySelector('a[aria-label^="Edit "], a[aria-label^="Open "]'))
+      .toBeNull();
     await userEvent.click(row()!.querySelector('button[aria-label^="Actions for"]')!);
     await expect.poll(menuItems).toEqual(["Delete"]);
     await userEvent.click(menuItem("Delete")!);
@@ -312,7 +314,7 @@ describe("the Dose sheet", () => {
     await expect
       .poll(() => SHEET()?.querySelector("[data-dose-medication]")?.textContent?.trim())
       .toBe(LABEL);
-    expect(SHEET()!.querySelector('input[name="medicationId"]')).toBeNull();
+    await expect.poll(() => SHEET()?.querySelector('input[name="medicationId"]')).toBeNull();
     await userEvent.click(status("skipped"));
     await userEvent.click(SUBMIT());
     await expect.poll(SHEET).toBeNull();
@@ -385,8 +387,10 @@ describe("the Dose sheet on a fixed clock", () => {
     });
     const card = () => SHEET()?.querySelector<HTMLElement>(`[data-pass="pass:${ROUND_2.id}"]`) ?? null;
     await expect.poll(card).toBeTruthy();
-    expect(card()!.querySelector("[data-given-all]")).toBeTruthy();
-    expect(SHEET()!.querySelector(`input[name="medicationId"][value="${WD.id}@${R2}"]`)).toBeNull();
+    await expect.poll(() => card()?.querySelector("[data-given-all]")).toBeTruthy();
+    await expect
+      .poll(() => SHEET()?.querySelector(`input[name="medicationId"][value="${WD.id}@${R2}"]`))
+      .toBeNull();
     // Through the sheet: Today's card behind it has a Given all with the same name.
     await userEvent.click(page.getByRole("dialog").getByRole("button", { name: /^Given all/ }));
     await expect.poll(() => card()?.dataset.passState, { timeout: 5000 }).toBe("done");
@@ -530,9 +534,15 @@ describe("the Dose sheet's + New medication", () => {
       empty: true,
     });
     await expect.poll(() => SHEET()?.querySelector<HTMLInputElement>('input[name="name"]')).toBeTruthy();
-    expect(SHEET()!.querySelectorAll('input[name="medicationId"][type="radio"]').length).toBe(0);
-    expect(SHEET()!.querySelector<HTMLInputElement>('input[name="medicationId"]')?.value).toBe(NEW);
-    expect(SHEET()!.querySelector("[data-no-medications]")?.textContent).toContain("no current medications");
+    await expect
+      .poll(() => SHEET()?.querySelectorAll('input[name="medicationId"][type="radio"]').length)
+      .toBe(0);
+    await expect
+      .poll(() => SHEET()?.querySelector<HTMLInputElement>('input[name="medicationId"]')?.value)
+      .toBe(NEW);
+    await expect
+      .poll(() => SHEET()?.querySelector("[data-no-medications]")?.textContent)
+      .toContain("no current medications");
     await userEvent.fill(NAME()!, "Ibuprofen");
     await userEvent.click(SUBMIT());
     await expect.poll(SHEET).toBeNull();
