@@ -102,15 +102,16 @@ describe("the tabs", () => {
 
   test("a tap switches tabs, the URL and the marked tab following; each tab links to its own path", async () => {
     const device = await open(SCHEDULE);
-    expect(tabLink("Schedule")?.getAttribute("href")).toBe(SCHEDULE);
-    expect(tabLink("Medications")?.getAttribute("href")).toBe(LIST);
+    // The tabs render after the first rows: wait on them, never read them at once.
+    await expect.poll(() => tabLink("Schedule")?.getAttribute("href")).toBe(SCHEDULE);
+    await expect.poll(() => tabLink("Medications")?.getAttribute("href")).toBe(LIST);
     await userEvent.click(await found(() => tabLink("Medications")));
     await expect.poll(device.location).toBe(LIST);
     await expect.poll(currentTab).toEqual(["Medications"]);
     await expect.poll(() => parts().list).toBe(true);
     expect(parts().today).toBe(false);
 
-    await userEvent.click(tabLink("Schedule")!);
+    await userEvent.click(await found(() => tabLink("Schedule")));
     await expect.poll(device.location).toBe(SCHEDULE);
     await expect.poll(currentTab).toEqual(["Schedule"]);
     await expect.poll(() => parts().today).toBe(true);

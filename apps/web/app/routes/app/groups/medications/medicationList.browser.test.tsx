@@ -34,12 +34,14 @@ import {
 const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: MEDICATION_ROUTES, url: LIST, fixtures: world(), ...options });
 
-const TAB_BAR = 'nav.dock[aria-label="Group sections"]';
+const TAB_BAR = 'nav[data-tab-bar][aria-label="Group sections"]';
+/** A section link's accessible name (the bar's are icons, named by `aria-label`). */
+const nameOf = (a: Element) => a.getAttribute("aria-label") ?? a.textContent?.trim();
 const HEADER_NAV = 'header [data-region="sections"] nav[aria-label="Group sections"]';
 const current = (nav: string) =>
   $$(`${nav} a`)
     .filter((a) => a.hasAttribute("aria-current"))
-    .map((a) => a.textContent?.trim());
+    .map(nameOf);
 const CURRENT = "Current medications";
 const STOPPED = "Completed and discontinued medications";
 const SEARCH = () => $<HTMLInputElement>('main input[type="search"]')!;
@@ -63,7 +65,7 @@ describe("the list", () => {
     const device = await open({ frame: true });
     await expect.element(page.getByRole("heading", { name: "Medications", level: 1 })).toBeVisible();
     expect(current(TAB_BAR)).toEqual(["Medications"]);
-    const tab = $$<HTMLAnchorElement>(`${TAB_BAR} a`).find((a) => a.textContent?.trim() === "Medications")!;
+    const tab = $$<HTMLAnchorElement>(`${TAB_BAR} a`).find((a) => nameOf(a) === "Medications")!;
     expect(tab.getAttribute("href")).toBe(SCHEDULE);
     await device.screen.unmount();
 

@@ -43,11 +43,17 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
 }
 
 /**
- * The phone tab bar under the outlet (hidden on the entry page). It's fixed
- * to the bottom, so it also renders a spacer of its height (`--tab-bar-height`)
- * in the page flow: the last thing on any group screen scrolls clear of it,
- * with no screen needing to know the bar exists. It sits under modals
- * (`z-40`; `Sheet`'s overlay is `z-50`), so a bottom sheet covers it.
+ * The phone tab bar under the outlet (hidden on the entry page): a rounded
+ * bar floating clear of the screen's edges and the home indicator, on a
+ * surface of its own (`--tab-bar-surface`: near-black `neutral` in light,
+ * `base-300` in dark), one icon per section, the current one a solid
+ * `primary` circle. Each link is named by its section (`aria-label`, and the
+ * same `title`). It's fixed, so it also renders a spacer of
+ * `--tab-bar-height` (the bar, its gap and the safe area) in the page flow:
+ * the last thing on any group screen scrolls clear of it, with no screen
+ * needing to know the bar exists. It sits under modals (`z-40`; `Sheet`'s
+ * overlay is `z-50`), so a bottom sheet covers it. Tests select it by
+ * `data-tab-bar`.
  */
 export function TabBar({ groupId, pathname }: { groupId: string; pathname: string }) {
   const target = useTargetPathname(pathname);
@@ -55,7 +61,11 @@ export function TabBar({ groupId, pathname }: { groupId: string; pathname: strin
   return (
     <>
       <div aria-hidden="true" data-tab-bar-spacer className="h-(--tab-bar-height) sm:hidden print:hidden" />
-      <nav aria-label="Group sections" className="dock z-40 h-(--tab-bar-height) sm:hidden print:hidden">
+      <nav
+        aria-label="Group sections"
+        data-tab-bar
+        className="fixed inset-x-4 bottom-[calc(var(--tab-bar-gap)+env(safe-area-inset-bottom))] z-40 mx-auto flex h-14 max-w-xs items-center justify-around rounded-full bg-(--tab-bar-surface) px-2 text-(--tab-bar-content) shadow-lg sm:hidden print:hidden"
+      >
         {GROUP_SECTIONS.map((section) => {
           const current = sectionCurrent(section, target, groupId);
           const Icon = section.icon;
@@ -65,10 +75,13 @@ export function TabBar({ groupId, pathname }: { groupId: string; pathname: strin
               to={section.path(groupId)}
               prefetch="render"
               aria-current={current}
-              className={current ? "text-primary" : undefined}
+              aria-label={section.label}
+              title={section.label}
+              className={`flex size-11 items-center justify-center rounded-full ${
+                current ? "bg-primary text-primary-content" : "text-(--tab-bar-content)/75"
+              }`}
             >
               <Icon className="size-5" aria-hidden="true" />
-              <span className="dock-label">{section.label}</span>
             </Link>
           );
         })}
