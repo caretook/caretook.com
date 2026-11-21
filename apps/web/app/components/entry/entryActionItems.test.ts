@@ -83,4 +83,20 @@ describe("entryActionItems", () => {
     expect(entryActionItems("note", { canEdit: false, canPrint: true, canDelete: false })).toEqual(["print"]);
     expect(entryActionItems("symptom", { canEdit: false, canDelete: false })).toEqual([]);
   });
+
+  it("gives a series visit Edit first (notes and events only)", () => {
+    expect(
+      entryActionItems("event", {
+        canEdit: false,
+        canEditSeries: true,
+        canCancel: true,
+        canReschedule: true,
+      }),
+    ).toEqual(["editSeries", "reschedule", "cancel", "delete"]);
+    expect(entryActionItems("note", { canEdit: false, canEditSeries: true })).toEqual([
+      "editSeries",
+      "delete",
+    ]);
+    expect(entryActionItems("symptom", { canEdit: true, canEditSeries: true })).toEqual(["edit", "delete"]);
+  });
 });

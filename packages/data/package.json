@@ -8,7 +8,7 @@
     "./schema": "./src/db/schema/index.ts",
     "./errors": "./src/errors/index.ts",
     "./permissions": "./src/permissions/index.ts",
-    "./series": "./src/db/schema/appointments/seriesVisits.ts"
+    "./series": "./src/db/schema/appointments/series.ts"
   },
   "scripts": {
     "typecheck": "tsc",

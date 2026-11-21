@@ -367,7 +367,12 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
  * Edit an entry's content. Group, recipient and kind are fixed. The merged
  * entry must still be valid for its kind (a note can't lose its body).
  */
-export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpdateInput) =>
+export const update = (
+  ctx: ServiceContext,
+  id: string,
+  input: TimelineEntryUpdateInput,
+  opts: { now?: Date } = {},
+) =>
   withTransaction(async (tx) => {
     const parsed = timelineEntryUpdateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -428,6 +433,19 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
       });
       if (series) return series;
     }
+
+    // A series edit ("This and later") moves visits onto the new series; it
+    // never rewrites one that has already started.
+    if (
+      existing.seriesId &&
+      content.seriesId &&
+      content.seriesId !== existing.seriesId &&
+      new Date(existing.occurredAt).getTime() < (opts.now ?? new Date()).getTime()
+    )
+      return newError({
+        code: "timelineEntryService:pastVisit",
+        meta: { issues: [{ path: "seriesId", message: "A past visit stays as it was" }] },
+      });
 
     const updated = await timelineEntryModel.update({
       ...ctx,

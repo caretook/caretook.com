@@ -27,6 +27,10 @@ export const APPOINTMENTS_ERRORS = {
     message: "A visit must belong to a series of its kind in this care group",
     statusCode: 400,
   },
+  "timelineEntryService:pastVisit": {
+    message: "A series edit can't change a past visit",
+    statusCode: 409,
+  },
   "timelineEntryService:seriesDayTaken": {
     message: "This series already has a visit that day",
     statusCode: 409,

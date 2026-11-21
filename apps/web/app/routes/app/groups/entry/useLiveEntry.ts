@@ -1,5 +1,6 @@
 import type * as Y from "yjs";
 import type { TimelineEntryKind } from "@caretook/data/schema";
+import type { SeriesEditChange, SeriesScope } from "@caretook/data/series";
 import type { ActionResult } from "~/lib/core/api";
 import type { Schedule } from "~/lib/appointments/entrySchedule";
 import type { RepeatChoice } from "~/lib/appointments/repeatChoice";
@@ -9,14 +10,15 @@ import type { EntryPageData } from "./loadEntry";
 
 import { canHaveNoteDocument, noteText } from "@caretook/data/schema";
 import { useCallback, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { isLiveEntryKind, savedTitle, shouldMaterialize } from "~/lib/live-notes/liveEntry";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { cancelEvent, uncancelEvent } from "~/lib/appointments/appointments.sync";
 import { draftTiming } from "~/lib/appointments/repeatChoice";
-import { createSeries } from "~/lib/appointments/series.sync";
+import { applySeriesEdit, createSeries } from "~/lib/appointments/series.sync";
+import { asksScopeOnEdit, openedForOnlyThisVisit } from "~/lib/appointments/seriesScope";
 import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
 import { linkProvider } from "~/lib/providers/providers.sync";
 import { removeEntry, toTimelineEntry, updateEntry } from "~/lib/timeline/timeline.sync";
@@ -43,6 +45,10 @@ export type LiveEntry = {
     via: string | null;
     /** The repeating series it's a visit of (appointments-2), or null. */
     seriesId: string | null;
+    /** The local day the series made it for. */
+    seriesDay: string | null;
+    /** Changed on its own: later series edits leave it as it is. */
+    seriesDetached: boolean;
   };
   /** Whether the entry is stored (false while it's a draft). */
   stored: boolean;
@@ -77,6 +83,17 @@ export type LiveEntry = {
    * saved as a series; an entry already saved becomes the series' first visit now.
    */
   applyRepeat: (choice: RepeatChoice, rule: string | null) => void;
+  /**
+   * A title, time or place change to an upcoming series visit waits for
+   * Only this visit or This and later visits (true while it's asked).
+   */
+  scopeAsked: boolean;
+  /** Answers it; null (Cancel) drops the change and puts the fields back. */
+  chooseScope: (scope: SeriesScope | null) => void;
+  /** Bumped when a change is dropped: the fields remount with the stored values. */
+  editRevision: number;
+  /** "Only this visit" chosen from the ⋯ menu: this page's edits stop asking. */
+  onlyThisVisit: () => void;
 };
 
 /**
@@ -89,6 +106,7 @@ export type LiveEntry = {
 export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const { canWrite, recipient } = useGroup();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // The draft's fields, read when it's saved.
   const [draft] = useState(data.entry);
@@ -212,6 +230,36 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const kind = live?.kind ?? draft.kind;
   const reportWrite = (res: ActionResult) => setSaveError(res.ok ? null : res.error);
 
+  // A stored series visit's own edits ask the scope (opened by "Only this visit": they don't).
+  const onlyRef = useRef(openedForOnlyThisVisit(location.state));
+  const [scopeAsk, setScopeAsk] = useState<{
+    change: SeriesEditChange;
+    only: () => Promise<ActionResult>;
+  } | null>(null);
+  const [editRevision, setEditRevision] = useState(0);
+  /** Write a stored entry's change: at once (detaching a series visit), or after the scope is chosen. */
+  const scoped = (change: SeriesEditChange, patch: Parameters<typeof updateEntry>[2]) => {
+    const only = () => updateEntry(getSync(), draft.id, patch, { detach: true });
+    if (live && !onlyRef.current && asksScopeOnEdit(live, new Date())) setScopeAsk({ change, only });
+    else void only().then(reportWrite);
+  };
+  const chooseScope = (scope: SeriesScope | null) => {
+    const pending = scopeAsk;
+    setScopeAsk(null);
+    if (!pending) return;
+    if (!scope) return setEditRevision((r) => r + 1);
+    if (scope === "only") {
+      onlyRef.current = true;
+      return void pending.only().then(reportWrite);
+    }
+    void applySeriesEdit(getSync(), { visitId: draft.id, scope: "later", change: pending.change }).then(
+      (res) => {
+        setSaveError(res.ok ? null : res.error);
+        if (!res.ok) setEditRevision((r) => r + 1);
+      },
+    );
+  };
+
   const commitTitle = (next: string) => {
     titleRef.current = next;
     // A draft's title is saved with it. (An existing entry is renamed, even one still without its document.)
@@ -220,7 +268,8 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       return;
     }
     if (!isLiveEntryKind(kind)) return;
-    void updateEntry(getSync(), draft.id, { title: savedTitle(kind, next) }).then(reportWrite);
+    const title = savedTitle(kind, next);
+    scoped({ action: "edit", title }, { title });
   };
 
   const changeSchedule = (next: Schedule) => {
@@ -233,11 +282,8 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       return;
     }
     const { occurredAt, allDay, endsAt } = next;
-    void updateEntry(getSync(), draft.id, {
-      occurredAt,
-      allDay,
-      ...(kind === "event" && { endsAt }),
-    }).then(reportWrite);
+    const timing = { occurredAt, allDay, ...(kind === "event" && { endsAt }) };
+    scoped({ action: "edit", ...timing }, timing);
   };
 
   const commitPlace = (next: string | null) => {
@@ -248,7 +294,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       if (next) void save();
       return;
     }
-    void updateEntry(getSync(), draft.id, { place: next }).then(reportWrite);
+    scoped({ action: "edit", place: next }, { place: next });
   };
 
   const cancel = (reason: string) => void cancelEvent(getSync(), draft.id, reason).then(reportWrite);
@@ -289,6 +335,8 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       rescheduledTo: live?.rescheduledTo ?? null,
       via: live?.via ?? null,
       seriesId: live?.seriesId ?? null,
+      seriesDay: live?.seriesDay ?? null,
+      seriesDetached: !!live?.seriesDetached,
     },
     stored: !!live,
     isNew,
@@ -305,5 +353,11 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     saveError,
     repeat,
     applyRepeat,
+    scopeAsked: !!scopeAsk,
+    chooseScope,
+    editRevision,
+    onlyThisVisit: () => {
+      onlyRef.current = true;
+    },
   };
 }

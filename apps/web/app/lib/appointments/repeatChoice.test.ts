@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ruleText } from "@caretook/data/schema";
 import {
+  choiceOfRule,
   choiceRule,
   defaultChoice,
   draftTiming,
@@ -83,5 +84,31 @@ describe("draftTiming", () => {
         { entryTimeZone: "America/New_York", recipientTimeZone: LA },
       ),
     ).toEqual({ startsOn: WED, startTime: null, allDay: true, timeZone: LA, durationMinutes: null });
+  });
+});
+
+describe("choiceOfRule", () => {
+  it("gives back the choice a rule was made from", () => {
+    const start = "2026-11-20";
+    for (const choice of [
+      { ...defaultChoice(start), preset: "weekly" as const, weekdays: ["MO", "WE", "FR"] as const },
+      { ...defaultChoice(start), preset: "daily" as const, end: "after" as const, count: 12 },
+      { ...defaultChoice(start), preset: "monthly" as const, monthlyBy: "weekday" as const },
+      {
+        ...defaultChoice(start),
+        preset: "custom" as const,
+        interval: 4,
+        unit: "weekly" as const,
+        end: "on" as const,
+        until: "2027-03-01",
+      },
+    ]) {
+      const rule = ruleText(choiceRule({ ...choice, weekdays: [...choice.weekdays] }, start)!);
+      expect(ruleText(choiceRule(choiceOfRule(rule, start), start)!)).toBe(rule);
+    }
+  });
+
+  it("starts from the default for an unreadable rule", () => {
+    expect(choiceOfRule("FREQ=YEARLY", "2026-11-20")).toEqual(defaultChoice("2026-11-20"));
   });
 });

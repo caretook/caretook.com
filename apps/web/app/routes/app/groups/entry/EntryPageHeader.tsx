@@ -3,10 +3,18 @@ import type { TitleState } from "./entryPage";
 import type { LiveEntry } from "./useLiveEntry";
 
 import { useState } from "react";
-import { CancelEventDialog, EntryActions, useEventReschedule } from "~/components/entry";
+import { useNavigate } from "react-router";
+import {
+  CancelEventDialog,
+  EntryActions,
+  SeriesScopeDialog,
+  useEventReschedule,
+  useSeriesScope,
+} from "~/components/entry";
 import { ConfirmDialog, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
+import { asksScope } from "~/lib/appointments/seriesScope";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { EntryHeader, EntryTime } from "./EntryHeader";
 import { EntryPlaceRow } from "./EntryPlaceRow";
@@ -25,6 +33,9 @@ import { ShareButton } from "./ShareButton";
  * viewers, Print);
  * who it was with (providers); for writers on an event that says the
  * recipient moved, a care period to start; and, for events, where it is.
+ * On an upcoming series visit, the ⋯ menu's Edit, Reschedule, Cancel and
+ * Delete, and a title, time or place typed here, ask Only this visit or
+ * This and later visits first.
  */
 export function EntryPageHeader({
   live,
@@ -50,6 +61,8 @@ export function EntryPageHeader({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const rescheduling = useEventReschedule(groupId, canWrite && entry.kind === "event");
+  const scope = useSeriesScope(canWrite && !!entry.seriesId);
+  const navigate = useNavigate();
   // The title being typed counts for suggestions until it's saved (or someone else renames it).
   const [typed, setTyped] = useState<{ text: string; over: string | null } | null>(null);
   const currentTitle = typed && typed.over === entry.title ? typed.text : entry.title;
@@ -62,6 +75,7 @@ export function EntryPageHeader({
         kind={entry.kind}
         title={
           <EntryTitleRegion
+            key={live.editRevision}
             state={title}
             heading={heading}
             kind={entry.kind}
@@ -75,6 +89,7 @@ export function EntryPageHeader({
         time={
           canWrite && !deleted && liveKind ? (
             <EntryTimeChip
+              key={live.editRevision}
               kind={liveKind}
               schedule={schedule}
               timeZone={entry.timeZone}
@@ -95,19 +110,35 @@ export function EntryPageHeader({
               <EntryActions
                 kind={entry.kind}
                 label={`Actions for this ${noun}`}
+                onEdit={
+                  canWrite && asksScope(entry, new Date())
+                    ? () => scope.ask(entry, "edit", { only: live.onlyThisVisit })
+                    : undefined
+                }
                 cancel={
                   canWrite && entry.kind === "event"
                     ? {
                         cancelled: !!entry.cancelledAt,
-                        onCancel: () => setConfirmCancel(true),
+                        onCancel: () => scope.ask(entry, "cancel", { only: () => setConfirmCancel(true) }),
                         onUncancel: live.uncancel,
-                        onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
+                        onReschedule: canReschedule(entry)
+                          ? () => scope.ask(entry, "reschedule", { only: () => rescheduling.ask(entry) })
+                          : undefined,
                       }
                     : undefined
                 }
                 // Everyone can print; only writers delete.
                 onPrint={() => window.print()}
-                onDelete={canWrite ? () => setConfirmDelete(true) : undefined}
+                onDelete={
+                  canWrite
+                    ? () =>
+                        scope.ask(entry, "delete", {
+                          only: () => setConfirmDelete(true),
+                          onlyChosen: () => void live.remove(),
+                          done: () => void navigate(appUrls.timeline(groupId)),
+                        })
+                    : undefined
+                }
               />
             </>
           )
@@ -145,6 +176,7 @@ export function EntryPageHeader({
           !deleted &&
           entry.kind === "event" && (
             <EntryPlaceRow
+              key={live.editRevision}
               entryId={entry.id}
               place={entry.place}
               canWrite={canWrite}
@@ -172,6 +204,19 @@ export function EntryPageHeader({
         onClose={() => setConfirmCancel(false)}
       />
       {rescheduling.sheet}
+      {scope.element}
+      <SeriesScopeDialog
+        open={live.scopeAsked}
+        action="edit"
+        kind={entry.kind}
+        onChoose={live.chooseScope}
+        onClose={() => live.chooseScope(null)}
+      />
+      {scope.error && (
+        <p role="alert" className="text-error text-sm">
+          {scope.error}
+        </p>
+      )}
     </>
   );
 }

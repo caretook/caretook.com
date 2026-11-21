@@ -503,11 +503,14 @@ const existingEntry = async (db: SyncDb, id: string) => {
 /**
  * Edit an entry's content. Only content columns are written: group,
  * recipient and kind are fixed, and the server refuses changes to them.
+ * With `detach`, a series visit is also marked as changed on its own
+ * ("Only this visit": later series edits leave it as it is).
  */
 export const updateEntry = async (
   db: SyncDb,
   id: string,
   patch: TimelineEntryUpdateInput,
+  { detach = false }: { detach?: boolean } = {},
 ): Promise<ActionResult> => {
   const entry = await existingEntry(db, id);
   if (!entry) return missing;
@@ -515,6 +518,7 @@ export const updateEntry = async (
   if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden;
 
   const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+  if (detach && entry.seriesId) defined.seriesDetached = true;
   const merged = timelineEntryContentZSchema.safeParse({
     kind: entry.kind,
     title: entry.title,

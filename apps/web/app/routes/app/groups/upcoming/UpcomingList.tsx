@@ -4,11 +4,19 @@ import type { UpcomingListData } from "./useUpcomingData";
 
 import { resolveUnits } from "@caretook/data/schema";
 import { useState } from "react";
-import { CancelEventDialog, EntryActions, useEventCancel, useEventReschedule } from "~/components/entry";
+import { useNavigate } from "react-router";
+import {
+  CancelEventDialog,
+  EntryActions,
+  useEventCancel,
+  useEventReschedule,
+  useSeriesScope,
+} from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
+import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
 import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
@@ -32,7 +40,8 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * tab's paging). Each item has a ⋯ menu: for writers, Prepare for an
  * upcoming appointment, Reschedule, then Cancel or Undo cancel for events,
  * Print, then Delete, with one Cancel and one Delete confirm for the list;
- * for viewers, Print.
+ * for viewers, Print. A series visit's Edit, Reschedule, Cancel and Delete
+ * ask Only this visit or This and later visits first (`useSeriesScope`).
  * Upcoming's sections can also hold today's open dose slots (`UpcomingDoseRow`)
  * and open dated tasks (`UpcomingTaskRow`).
  */
@@ -55,6 +64,8 @@ export function UpcomingList({
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const scope = useSeriesScope(canWrite);
+  const navigate = useNavigate();
   const prep = useVisitPrep(groupId, canWrite, { openAfter: true });
   const preparable = (entry: TimelineEntry) =>
     entry.kind === "event" && !entry.cancelledAt && !entry.rescheduledTo && isUpcoming(entry, data.now);
@@ -62,19 +73,37 @@ export function UpcomingList({
     <EntryActions
       kind={entry.kind}
       label={`Actions for ${upcomingTitle(entry)}`}
+      onEdit={
+        canWrite && asksScope(entry, data.now)
+          ? () =>
+              scope.ask(entry, "edit", {
+                only: () => void navigate(appUrls.entry(groupId, entry.id), { state: ONLY_THIS_VISIT_STATE }),
+              })
+          : undefined
+      }
       onPrepare={canWrite && preparable(entry) ? () => prep.ask(entry) : undefined}
       printHref={appUrls.printEntry(groupId, entry.id)}
       cancel={
         canWrite && entry.kind === "event"
           ? {
               cancelled: !!entry.cancelledAt,
-              onCancel: () => cancelling.ask(entry.id),
+              onCancel: () => scope.ask(entry, "cancel", { only: () => cancelling.ask(entry.id) }),
               onUncancel: () => cancelling.undo(entry.id),
-              onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
+              onReschedule: canReschedule(entry)
+                ? () => scope.ask(entry, "reschedule", { only: () => rescheduling.ask(entry) })
+                : undefined,
             }
           : undefined
       }
-      onDelete={canWrite ? () => setDeleting(entry.id) : undefined}
+      onDelete={
+        canWrite
+          ? () =>
+              scope.ask(entry, "delete", {
+                only: () => setDeleting(entry.id),
+                onlyChosen: () => void removeEntry(getSync(), entry.id),
+              })
+          : undefined
+      }
     />
   );
 
@@ -83,9 +112,9 @@ export function UpcomingList({
       <h2 id="upcoming-list-heading" className="sr-only">
         {label}
       </h2>
-      {cancelling.error && (
+      {(cancelling.error || scope.error) && (
         <p role="alert" className="text-error text-sm">
-          {cancelling.error}
+          {cancelling.error ?? scope.error}
         </p>
       )}
       {data.sections.length === 0 && (
@@ -134,6 +163,7 @@ export function UpcomingList({
       {children}
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
       {rescheduling.sheet}
+      {scope.element}
       {prep.sheet}
       <ConfirmDialog
         open={!!deleting}
