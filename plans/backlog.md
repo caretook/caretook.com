@@ -134,17 +134,17 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-225 | bug | staging | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
 | B-226 | change | staging | medications-tabs | prd/medications-tabs | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | dropped | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
-| B-228 | bug | ready | quick-fixes | prd/quick-fixes | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
+| B-228 | bug | landed | quick-fixes | prd/quick-fixes | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
 | B-229 | bug | triaged | quick-fixes |  | on timeline page, header and Today section should be in same column width as the rest of the… |
-| B-230 | bug | ready | quick-fixes | prd/quick-fixes | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
+| B-230 | bug | landed | quick-fixes | prd/quick-fixes | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
 | B-231 | bug | triaged | quick-fixes |  | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
-| B-232 | bug | ready | quick-fixes | prd/quick-fixes | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
-| B-233 | bug | ready | quick-fixes | prd/quick-fixes | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
-| B-234 | bug | ready | quick-fixes | prd/quick-fixes | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
-| B-235 | bug | ready | quick-fixes | prd/quick-fixes | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
+| B-232 | bug | landed | quick-fixes | prd/quick-fixes | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
+| B-233 | bug | landed | quick-fixes | prd/quick-fixes | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
+| B-234 | bug | landed | quick-fixes | prd/quick-fixes | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
+| B-235 | bug | landed | quick-fixes | prd/quick-fixes | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
 | B-236 | bug | triaged | simple-mode |  | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
-| B-237 | bug | ready | quick-fixes | prd/quick-fixes | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
-| B-238 | bug | ready | quick-fixes | prd/quick-fixes | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
+| B-237 | bug | landed | quick-fixes | prd/quick-fixes | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
+| B-238 | bug | landed | quick-fixes | prd/quick-fixes | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
 | B-239 | bug | triaged | github-review |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | github-review |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | github-review |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
@@ -304,6 +304,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-395 | change | triaged | orchestration-2 |  | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
 | B-396 | change | triaged | ui-kit |  | Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge |
 | B-397 | change | triaged | ui-kit |  | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
+| B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 
 ## Items
 
@@ -950,7 +951,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-228 · bug · Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute|value|dataset|checked|placeholder|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 76ad3e78
@@ -970,7 +971,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-230 · bug · reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: d5701923
@@ -989,7 +990,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-232 · bug · Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 9f47380b
@@ -999,7 +1000,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-233 · bug · A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: c29f863a
@@ -1008,7 +1009,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-234 · bug · Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR)
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: f4c84585
@@ -1017,7 +1018,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-235 · bug · After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 08633433
@@ -1036,7 +1037,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-237 · bug · An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 7f84efb1
@@ -1045,7 +1046,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-238 · bug · Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets')
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 8fd57267
@@ -2534,3 +2535,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-21 (Robert Bo Davis): From the user (2026-11-21): pages read as long blocks of text; split the space vertically in a sensible way. Options proposed to the user, to choose from when the PRD is written: (1) each section a titled card on the base-200 page with a fixed gap; (2) small uppercase section labels with an icon and a one-line summary; (3) a two-step spacing scale, large between sections and small inside; (4) definition rows (label left, value right) instead of paragraphs; (5) collapsible secondary sections (details/summary) showing a summary line; (6) a sticky in-page section bar on long detail pages, using the new pill TabNav; (7) two columns on wide screens (main and side cards), one on phones; (8) summary tiles at the top of detail pages. Triage: ui-kit, with Card (B-260), Page frame (B-263) and DetailHeader (B-264), which this builds on.
 - 2026-11-21 (Robert Bo Davis): User's direction (2026-11-21): full page-width background blocks for sections, i.e. each section is a band across the whole page width with its own background (alternating surfaces), content held to the column inside it; this replaces the titled-card base I recommended. The user gave no preference on the extras for long detail pages (collapsible sections, sticky section bar, two columns, summary tiles): undecided, ask again when the PRD is written.
+
+### B-398 · change · Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame
+
+- status: triaged
+- prd: ui-kit-2
+- owner:
+- commit:
+
+- 2026-11-21 (plan/ui-kit): From the ui-kit plan (2026-11-21): ui-kit builds the primitives and adopts them in settings, sign-in and the five detail pages; this is the rest (about 200 files: btn, alert, card, list, badge, checkbox and toggle class strings, Field control classes, the text opacities and link styles from B-267). Ends with the guard (B-269) so it stays swept.
