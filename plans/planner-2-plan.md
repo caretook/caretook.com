@@ -4,21 +4,21 @@
 
 ## Status
 
-| Slice | Wave       | State                                                                                                      | Merge into `prd/planner-2` (slice commits) |
-| ----- | ---------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| 1     | 1 (landed) | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed            | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)    |
-| 2     | 1 (landed) | merged (opus); worktree removed                                                                            | 7267ab9f (3ff6ccb2, 46ddd08f)              |
-| 3     | 2          | started (worktree `.loops/planner-2-3`, sonnet)                                                            |                                            |
-| 4     | 2          | merged; worktree removed                                                                                   | 262f3dc0 (d42513b8, 30995550)              |
-| 5     | 2          | merged; worktree removed                                                                                   | c0153854 (ceb78315)                        |
-| 6     | 2          | started (worktree `.loops/planner-2-6`, slot 4 stack, opus, 12:50 ET)                                      |                                            |
-| 7     | 2          | merged; worktree removed                                                                                   | c29fc769 (02f7f95b)                        |
-| 8     | 2          | merged; worktree removed; B-247, B-251, B-284 done                                                         | 43846e09 (ee441db0, c0d508f0)              |
-| 9     | 2          | handed off (c3f1481c), reviewed; merges after slice 3 (shared useUpcomingData, plannerTodos, planner test) |                                            |
+| Slice | Wave       | State                                                                                           | Merge into `prd/planner-2` (slice commits)         |
+| ----- | ---------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 1     | 1 (landed) | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)            |
+| 2     | 1 (landed) | merged (opus); worktree removed                                                                 | 7267ab9f (3ff6ccb2, 46ddd08f)                      |
+| 3     | 2          | merged; worktree removed                                                                        | a662c833 (3e98776f)                                |
+| 4     | 2          | merged; worktree removed                                                                        | 262f3dc0 (d42513b8, 30995550)                      |
+| 5     | 2          | merged; worktree removed                                                                        | c0153854 (ceb78315)                                |
+| 6     | 2          | merged; worktree removed                                                                        | aeb00ba8 (2a3980fd, c20c1ce7, 26a49dd8 + 2 merges) |
+| 7     | 2          | merged; worktree removed                                                                        | c29fc769 (02f7f95b)                                |
+| 8     | 2          | merged; worktree removed; B-247, B-251, B-284 done                                              | 43846e09 (ee441db0, c0d508f0)                      |
+| 9     | 2          | merged; worktree removed; B-246 done                                                            | fef8b119 (c3f1481c)                                |
 
 **Wave 1: landed** in dev through PR #22 (8069cf9, 2026-11-21; full check on 9d08fdd5, quick on 3f4456e0, the lean suite with roundtrip fixed and passing alone, Codex clean after 2 rounds). Codex follow-ups filed: B-382–B-387 (repeat-chain edge cases; B-382, an offline Undo deleting an edited successor, is the P1). Wave 1's docs are folded (appointments, timeline, todos, data-layer). The user still needs to run `pnpm datastore:reset` and `docker compose restart powersync` in the main checkout. Filed B-381 (the readTools birth-year flake, quick-fixes).
 
-**Wave 2:** slices 4, 5, 7 and 8 merged after wave 1 landed (no conflicts); B-247, B-251 and B-284 marked done. Slice 6 is still running (told to merge prd/planner-2 before hand-off); slices 3 and 9 started (sonnet), with B-246 claimed. Slice 8's appointments.md lines are already folded.
+**Wave 2:** all slices merged: 4, 5, 7, 8 (after wave 1 landed), then 3 (a662c833), 9 (fef8b119; I resolved a comment-only conflict in plannerTodos.ts) and 6 (aeb00ba8; it went after 9, since they share no file). B-246, B-247, B-251, B-284 and B-248 marked done. Synced with dev (docs and tooling only). Next: fold the docs (a helper), the full check (seeds changed, and a conflict was resolved in code), `datastore:reset`, serve, the lean `--suite` once (the user said yes for wave 2), the PR and Codex, then land. The user chose to land without fixing B-382–B-387 (follow-ups).
 
 **Landing mode: run everything through** (queued with `pnpm prd queue planner-2`): start every ready slice, land each green wave through the PR + Codex, clean up; ask only real questions. B-248 claimed by prd/planner-2 (2026-11-21). At the wave 1 boundary: `quick-entry` (B-220) is in `dev`. The Planner items B-247, B-251, B-284 and B-246 moved from `quick-fixes` into planner-2 at the user's word (via the backlog session, 2026-11-21) as slices 8 and 9; slice 3 is now blocked by slice 8, not by another PRD.
 
