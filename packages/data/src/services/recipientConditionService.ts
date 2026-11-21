@@ -119,7 +119,11 @@ const sourceOf = async (tx: Tx, row: RecipientCondition): Promise<ConditionChang
  * a device passes its row's `updated_at`, so the entry it wrote locally and
  * the one written here get the same derived id; without one, it's now.
  */
-export type ConditionWriteOptions = { changedAt?: string | null };
+export type ConditionWriteOptions = {
+  changedAt?: string | null;
+  /** Server-only, never from a device: the assistant the save came through (connectors); stored on its change entry. */
+  via?: string | null;
+};
 
 const changeTimeOf = (opts: ConditionWriteOptions) =>
   (opts.changedAt ? toChangeTime(opts.changedAt) : null) ?? new Date().toISOString();
@@ -140,6 +144,7 @@ const writeChange = async (
     before,
     source,
     changedAt,
+    via,
   }: {
     /** The condition after the save. */
     condition: RecipientCondition;
@@ -147,6 +152,7 @@ const writeChange = async (
     /** The condition after the save, as a change source (default: its row). */
     source?: ConditionChangeSource;
     changedAt: string;
+    via?: string | null;
   },
 ) => {
   const change = conditionChange(before, source ?? (await sourceOf(tx, after)));
@@ -183,6 +189,7 @@ const writeChange = async (
       title: null,
       body: null,
       details: content.data.details ?? null,
+      ...(via ? { via } : {}),
     },
   });
 };
@@ -246,6 +253,7 @@ export const create = (
       condition: created,
       before: null,
       changedAt: changeTimeOf(opts),
+      via: opts.via,
     });
     if (isError(change)) return change;
     return created;
@@ -297,6 +305,7 @@ export const update = (
       condition: after,
       before: await sourceOf(tx, before),
       changedAt: changeTimeOf(opts),
+      via: opts.via,
     });
     if (isError(change)) return change;
     return after;

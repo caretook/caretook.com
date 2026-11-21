@@ -1,5 +1,6 @@
 import type {
   AssistantAction,
+  ConditionAction,
   DueDose,
   DueMedication,
   EntryEditAction,
@@ -16,6 +17,7 @@ import { withTransaction } from "../db";
 import {
   appendNoteSection,
   assistantActionZSchema,
+  conditionActionZSchema,
   canHaveNoteDocument,
   entryEditActionZSchema,
   DEVICE_FUTURE_SKEW_MS,
@@ -34,6 +36,7 @@ import {
   timelineEntryContentZSchema,
   toBase64,
 } from "../db/schema";
+import { SYSTEM_USER } from "../constants";
 import { isError, newError } from "../errors";
 import {
   careGroupMemberModel,
@@ -41,11 +44,13 @@ import {
   medicationModel,
   medicationPassModel,
   providerModel,
+  recipientConditionModel,
   timelineEntryModel,
 } from "../models";
 import { rejectError } from "../permissions";
 import * as entryProviderService from "./entryProviderService";
 import * as noteDocumentService from "./noteDocumentService";
+import * as recipientConditionService from "./recipientConditionService";
 import * as taskService from "./taskService";
 import * as timelineEntryService from "./timelineEntryService";
 
@@ -67,6 +72,11 @@ import * as timelineEntryService from "./timelineEntryService";
 // the entry service. Either works on any live note or event in the group, as
 // the member can in the app; another group's id reads as not found. Edits
 // don't set `via`: it says who created a row.
+//
+// Conditions (connectors-2) ride it too: `addCondition`, `updateCondition`
+// and `resolveCondition` go through `recipientConditionService` (its rules,
+// refusals and condition change entries; the change entry carries `via`).
+// Another group's condition id reads as not found.
 
 export const serviceName = "assistantAction";
 
@@ -109,19 +119,28 @@ type EntryPlan = {
 type EditPlan =
   | { type: "append"; entryId: string; lines: NoteSectionLine[] }
   | { type: "update"; entryId: string; patch: TimelineEntryUpdateInput };
+type ConditionPlan =
+  | { type: "addCondition"; input: Parameters<typeof recipientConditionService.create>[1] }
+  | { type: "updateCondition"; id: string; patch: Parameters<typeof recipientConditionService.update>[2] }
+  | { type: "resolveCondition"; id: string };
 type TaskPlan = Parameters<typeof taskService.create>[1];
 type Plan =
   | { index: number; rows: EntryPlan[] }
   | { index: number; task: TaskPlan }
-  | { index: number; edit: EditPlan };
+  | { index: number; edit: EditPlan }
+  | { index: number; condition: ConditionPlan };
 
-const isEditPlan = (plan: TaskPlan | EditPlan): plan is EditPlan =>
+const isEditPlan = (plan: TaskPlan | EditPlan | ConditionPlan): plan is EditPlan =>
   "type" in plan && (plan.type === "append" || plan.type === "update");
+const isConditionPlan = (plan: TaskPlan | EditPlan | ConditionPlan): plan is ConditionPlan =>
+  "type" in plan &&
+  (plan.type === "addCondition" || plan.type === "updateCondition" || plan.type === "resolveCondition");
 
 /** What `run` carries out: quick entry's actions, and the edits only the server makes. */
 const runnableActionZSchema = z.discriminatedUnion("type", [
   ...assistantActionZSchema.options,
   ...entryEditActionZSchema.options,
+  ...conditionActionZSchema.options,
 ]);
 
 type Setting = { groupId: string; recipientId: string; timeZone: string; now: Date };
@@ -306,6 +325,51 @@ const editableEntry = async (ctx: ServiceContext, tx: Tx, groupId: string, entry
   return entry;
 };
 
+/** A live condition in the group (read as the system, so another group's reads the same as none), or why not. */
+const editableCondition = async (tx: Tx, groupId: string, id: string) => {
+  const condition = await recipientConditionModel.getById(id, {
+    authUser: SYSTEM_USER,
+    tx,
+    includeDeleted: true,
+  });
+  if (isError(condition)) return condition;
+  if (!condition || condition.groupId !== groupId)
+    return newError({ code: "assistantActionService:conditionNotFound" });
+  if (condition.deletedAt) return newError({ code: "assistantActionService:conditionDeleted" });
+  return condition;
+};
+
+/** A condition action, checked; or why it's refused. The service checks the content and providers as it writes. */
+const planCondition = async (
+  tx: Tx,
+  setting: Setting,
+  action: ConditionAction,
+): Promise<ConditionPlan | AppError> => {
+  const { groupId, recipientId } = setting;
+  if (action.type === "addCondition") {
+    const { type: _type, ...content } = action;
+    return { type: "addCondition", input: { groupId, recipientId, ...content } };
+  }
+  const condition = await editableCondition(tx, groupId, action.conditionId);
+  if (isError(condition)) return condition;
+  if (action.type === "resolveCondition") return { type: "resolveCondition", id: condition.id };
+  const { type: _type, conditionId: _id, ...patch } = action;
+  return { type: "updateCondition", id: condition.id, patch };
+};
+
+/** Carry out a condition action; the condition's id. */
+const writeCondition = async (ctx: ServiceContext, plan: ConditionPlan, via: string) => {
+  const opts = { via };
+  const written =
+    plan.type === "addCondition"
+      ? await recipientConditionService.create(ctx, plan.input, opts)
+      : plan.type === "updateCondition"
+        ? await recipientConditionService.update(ctx, plan.id, plan.patch, opts)
+        : await recipientConditionService.resolve(ctx, plan.id, opts);
+  if (isError(written)) return written;
+  return written ? written.id : rejectError(ctx.authUser);
+};
+
 /** An edit, checked; or why it's refused. */
 const planEdit = async (
   ctx: ServiceContext,
@@ -373,7 +437,7 @@ const planAction = async (
   tx: Tx,
   setting: Setting,
   input: unknown,
-): Promise<EntryPlan[] | TaskPlan | EditPlan | AppError> => {
+): Promise<EntryPlan[] | TaskPlan | EditPlan | ConditionPlan | AppError> => {
   const parsed = runnableActionZSchema.safeParse(input);
   if (!parsed.success) return invalid(issuesOf(parsed.error));
   const action = parsed.data;
@@ -381,6 +445,12 @@ const planAction = async (
 
   if (action.type === "appendToEntry" || action.type === "updateEntry")
     return planEdit(ctx, tx, setting, action);
+  if (
+    action.type === "addCondition" ||
+    action.type === "updateCondition" ||
+    action.type === "resolveCondition"
+  )
+    return planCondition(tx, setting, action);
   if (action.type === "givePass") return passDoses(ctx, tx, setting, action);
   // Checked by taskService as it writes (the assignee, the links).
   if (action.type === "addTask") {
@@ -492,7 +562,9 @@ export const run = (
           ? { index, rows: planned }
           : isEditPlan(planned)
             ? { index, edit: planned }
-            : { index, task: planned },
+            : isConditionPlan(planned)
+              ? { index, condition: planned }
+              : { index, task: planned },
       );
     }
 
@@ -500,6 +572,12 @@ export const run = (
     for (const plan of plans) {
       if ("edit" in plan) {
         const id = await writeEdit(inTx, setting, plan.edit);
+        if (isError(id)) return at(id, plan.index);
+        byAction.push([id]);
+        continue;
+      }
+      if ("condition" in plan) {
+        const id = await writeCondition(inTx, plan.condition, via);
         if (isError(id)) return at(id, plan.index);
         byAction.push([id]);
         continue;

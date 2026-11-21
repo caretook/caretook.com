@@ -1,12 +1,23 @@
-import type { ActionPreview, AppError, AssistantAction, PreviewContext, TimelineEntry } from "@caretook/data";
+import type {
+  ActionPreview,
+  AppError,
+  AssistantAction,
+  ConditionAction,
+  PreviewContext,
+  RecipientCondition,
+  TimelineEntry,
+} from "@caretook/data";
 import type { ToolContext, ToolOutput } from "../registry";
 
 import {
   actionPreview,
+  addConditionActionZSchema,
   addEventActionZSchema,
   addNoteActionZSchema,
   addTaskActionZSchema,
   appendLineZSchema,
+  CONDITION_STATUSES,
+  conditionSinceWords,
   assistantActionService,
   DOSE_STATUSES,
   ENTRY_APPEND_LIMITS,
@@ -20,15 +31,18 @@ import {
   medicationService,
   newError,
   providerService,
+  recipientConditionService,
+  resolveConditionActionZSchema,
   resolveUnits,
   SYSTEM_USER,
   timelineEntryService,
+  updateConditionActionZSchema,
   updateEntryActionZSchema,
   userModel,
   whenText,
 } from "@caretook/data";
 import { z } from "zod";
-import { entryPath, linkTo, passLogPath, taskPath } from "../links";
+import { entryPath, linkTo, passLogPath, profilePath, taskPath } from "../links";
 import { defineTool, WRITE_ANNOTATIONS } from "../registry";
 import { loadGroup, loadMembers } from "./shared";
 
@@ -416,4 +430,101 @@ export const updateEntry = defineTool({
       const text = changes.join(", ");
       return text ? text.charAt(0).toUpperCase() + text.slice(1) : null;
     }),
+});
+
+// ---------------------------------------------------------------------------
+// Conditions (connectors-2)
+// ---------------------------------------------------------------------------
+
+const conditionIdInput = z.uuid().describe("The condition's id, from recipient_profile.");
+
+/** A condition as an answer says it: its name, and what else it has (resolved, since, note, diagnosed by). */
+const conditionPreview = async (ctx: ToolContext, c: RecipientCondition): Promise<ActionPreview> => {
+  let diagnosedBy: string | null = null;
+  if (c.diagnosedById) {
+    const provider = await providerService.getById({ authUser: ctx.authUser }, c.diagnosedById);
+    if (!isError(provider)) diagnosedBy = provider?.name ?? null;
+  }
+  const bits = [
+    c.status === "resolved" ? "Resolved" : "Active",
+    conditionSinceWords(c.sinceYear, c.sinceMonth) &&
+      `since ${conditionSinceWords(c.sinceYear, c.sinceMonth)}`,
+    c.note?.trim() || null,
+    diagnosedBy && `diagnosed by ${diagnosedBy}`,
+  ].filter(Boolean);
+  return { title: c.name, detail: bits.join(", "), when: "Now" };
+};
+
+/** Run one condition action, then answer with the condition as it now stands and a link to the profile. */
+const carryOutCondition = async (
+  ctx: ToolContext,
+  action: ConditionAction,
+  what: string,
+): Promise<ToolOutput | AppError> => {
+  const res = await assistantActionService.run({ authUser: ctx.authUser }, ctx.groupId, [action], {
+    via: ctx.clientName,
+    now: ctx.now,
+  });
+  if (isError(res)) return res;
+  const id = res.byAction[0]?.[0];
+  const condition = id ? await recipientConditionService.getById({ authUser: ctx.authUser }, id) : null;
+  if (isError(condition)) return condition;
+  if (!condition) return newError({ code: "assistantActionService:conditionNotFound" });
+
+  const preview = await conditionPreview(ctx, condition);
+  const url = linkTo(ctx.origin, profilePath(ctx.groupId));
+  const line = [preview.title, preview.detail].filter(Boolean).join(" · ");
+  return {
+    text: [`${what}: ${line}`, url, `Its change shows on the timeline as "via ${ctx.clientName}".`].join(
+      "\n",
+    ),
+    structured: { preview, conditionId: condition.id, url, via: ctx.clientName },
+  };
+};
+
+export const addCondition = defineTool({
+  name: "add_condition",
+  title: "Add a condition",
+  description:
+    'Add an active condition to the care recipient\'s profile: a name ("Type 2 diabetes"), optionally since which year (and month), a short note and the provider who diagnosed it (an id from the provider directory). It also clears "no known conditions" and adds a line to the timeline. Check recipient_profile first so you don\'t add one that\'s already there. Ask the member before calling.',
+  scope: "readWrite",
+  input: z.object({
+    ...shapeOf(addConditionActionZSchema),
+    name: addConditionActionZSchema.shape.name.describe("The condition, in plain words."),
+    sinceYear: addConditionActionZSchema.shape.sinceYear.describe("The year it started, such as 2015."),
+    sinceMonth: addConditionActionZSchema.shape.sinceMonth.describe(
+      "The month it started (1-12); needs a year.",
+    ),
+    diagnosedById: addConditionActionZSchema.shape.diagnosedById.describe("The diagnosing provider's id."),
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: (input, ctx) => carryOutCondition(ctx, { type: "addCondition", ...input }, "Added condition"),
+});
+
+export const updateCondition = defineTool({
+  name: "update_condition",
+  title: "Change a condition",
+  description: `Change an existing condition's name, status (${CONDITION_STATUSES.join(" or ")}: "active" brings a resolved one back), since, note or diagnosing provider. What you leave out stays; null clears an optional one. Use a condition's id from recipient_profile. To mark one over, resolve_condition is simpler. Ask the member before calling.`,
+  scope: "readWrite",
+  input: z.object({
+    ...shapeOf(updateConditionActionZSchema),
+    conditionId: conditionIdInput,
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: (input, ctx) => carryOutCondition(ctx, { type: "updateCondition", ...input }, "Updated condition"),
+});
+
+export const resolveCondition = defineTool({
+  name: "resolve_condition",
+  title: "Resolve a condition",
+  description:
+    "Mark a condition resolved: it moves to Past on the profile, with a line on the timeline. Use a condition's id from recipient_profile. Ask the member before calling.",
+  scope: "readWrite",
+  input: z.object({
+    ...shapeOf(resolveConditionActionZSchema),
+    conditionId: conditionIdInput,
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: (input, ctx) =>
+    carryOutCondition(ctx, { type: "resolveCondition", ...input }, "Resolved condition"),
 });
