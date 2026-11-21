@@ -38,7 +38,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `care-periods` | [PRD](care-periods-prd.md), [plan](care-periods-plan.md): **done** (`f6c4e92`) | — | none now |
 | `data-rights`     | to write (B-52, B-53, B-84)                                  | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
 | `ui-kit` | to write (B-257 to B-270): shared UI primitives from the 2026-11-21 component review (Button, form footer, messages, Card, lists, empty and loading states, page frame, DetailHeader, Badge, check and toggle rows, text tokens), then the sweeps, a guard and a dev gallery | `list-filters` and `planner-2` landed first (both edit the list and Planner screens the sweeps touch); `quick-fixes` between waves | `components/ui/` (its `index.ts`, `styles.ts`, `plain/`), `app.css`, `components/settings/SettingsPage.tsx`; the sweeps touch most route folders, so one area per slice and nothing else running in that area |
-| `test-health` | [PRD](test-health-prd.md), [plan](test-health-plan.md) (B-271 to B-283): 19 slices in 7 waves, landing wave by wave. Waves 1 to 4: how checks run (the check lease and a load gate, quick check at hand-off, tooling tests in their own project, a database per worker, browser-check bookkeeping), the component harness (clock, one timeout, `getByCss`, lint rules as warnings) and the unit, server and Playwright cuts. Then it pauses; waves 5 to 7 are the component cuts, the area-by-area harness migration and the rules becoming errors | (none) for waves 1 to 4; waves 5 to 7 (slices 14 to 19) after `list-filters`, `planner-2` and `ui-kit` (they edit the same screens' tests); `quick-fixes` between waves | `vitest.config.ts`, `package.json`, `eslint.config.js`, `scripts/loops/` (`prd.sh`, `prompt.sh`, `lease.sh`, `checks`, `check-areas.mjs`, `check-areas.d/`, `test-db.sh`), `apps/web/test/` (`setup.ts`, `found.ts`), `packages/data/test/`, `scripts/browser-checks/` (the specs, `fixtures.mjs`), the frozen-list tests; from wave 5 the `*World.tsx` files and component tests in every area, one area per slice |
+| `check-speed` | [PRD](check-speed-prd.md), [plan](check-speed-plan.md) (B-271, B-272, B-273, B-278): 4 slices, waves (1, 2) → (3, 4): every check through two check leases and into a check log (`pnpm prd check --times`), tooling tests in their own Vitest project, quick check at hand-off with the full check once per landing, integration tests on three workers with a database each. No load gate. Measured 2026-11-21: a full test run takes about 11 minutes and five PRDs made 39 of them | (none) | `scripts/loops/` (`prd.sh` `check`, `prompt.sh`, `lease.sh`, `test-db.sh`, `rm.sh`), `vitest.config.ts`, `package.json`, `packages/data/test/`, `testDatabase.ts` |
+| `test-health` | [PRD](test-health-prd.md), [plan](test-health-plan.md) (B-274 to B-277, B-279 to B-283): 15 slices in 7 waves (slices 1, 2, 6 and 7 moved to `check-speed`), landing wave by wave. Waves 1 to 4: browser-check bookkeeping, the component harness (clock, one timeout, `getByCss`, lint rules as warnings) and the unit, server and Playwright cuts. Then it pauses; waves 5 to 7 are the component cuts, the area-by-area harness migration and the rules becoming errors | `check-speed` in `dev` before slice 11 (worker databases; last item B-278), and better before any of it (quick hand-off checks); otherwise (none) for waves 1 to 4; waves 5 to 7 (slices 14 to 19) after `list-filters`, `planner-2` and `ui-kit` (they edit the same screens' tests); `quick-fixes` between waves | `vitest.config.ts`, `package.json`, `eslint.config.js`, `scripts/loops/` (`prd.sh`, `prompt.sh`, `lease.sh`, `checks`, `check-areas.mjs`, `check-areas.d/`, `test-db.sh`), `apps/web/test/` (`setup.ts`, `found.ts`), `packages/data/test/`, `scripts/browser-checks/` (the specs, `fixtures.mjs`), the frozen-list tests; from wave 5 the `*World.tsx` files and component tests in every area, one area per slice |
 | `tasks` | [PRD](tasks-prd.md), [plan](tasks-plan.md): **done** (`1ee7864`) | — | none now |
 | `documents`       | to write (B-56)                                              | hosting (B-33, file storage); `profiles` (soft); `encryption` decision | file storage, its area's `routes.ts`, `urls.ts`, schema and `permissions/` parts, `GROUP_SECTIONS`              |
 | `encryption`      | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 | (none); affects `assistant` and `documents` | none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
@@ -174,14 +175,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-268 | chore | triaged | ui-kit |  | Move SeriesScopeDialog's raw <dialog> into a ui/ choice dialog on useShowModal |
 | B-269 | chore | triaged | ui-kit |  | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
 | B-270 | feature | triaged | ui-kit |  | Dev-only component gallery (/dev/ui): every primitive and its variants in both themes |
-| B-271 | chore | triaged | test-health |  | Checks: slice loops run through the check lease (pnpm prd check, not bare pnpm check), and the lease waits while the machine load is high |
-| B-272 | chore | triaged | test-health |  | Checks: quick check at slice hand-off and the full suite only at landing, with prd.sh forcing a full run on migrations, seeds, sync config, lockfile and package.json, plus a short always-run list |
-| B-273 | chore | triaged | test-health |  | Checks: move the agent-tooling tests (scripts/loops, scripts/backlog, hooks) into their own Vitest project, run only when tooling changes |
+| B-271 | chore | triaged | check-speed |  | Checks: slice loops run through the check lease (pnpm prd check, not bare pnpm check), and the lease waits while the machine load is high |
+| B-272 | chore | triaged | check-speed |  | Checks: quick check at slice hand-off and the full suite only at landing, with prd.sh forcing a full run on migrations, seeds, sync config, lockfile and package.json, plus a short always-run list |
+| B-273 | chore | triaged | check-speed |  | Checks: move the agent-tooling tests (scripts/loops, scripts/backlog, hooks) into their own Vitest project, run only when tooling changes |
 | B-274 | chore | triaged | test-health |  | Component tests: one test clock on a fixed base date, reset per test, with harness deadlines on performance.now(); one shared fixClock |
 | B-275 | chore | triaged | test-health |  | Component tests: one waitUntil in test/found.ts with one central timeout; no per-call milliseconds (lint rule) |
 | B-276 | chore | triaged | test-health |  | Component tests: a retrying getByCss locator and world helpers that return locators, with lint rules against non-null reads in expect and userEvent calls and against fixed sleeps |
 | B-277 | chore | triaged | test-health |  | Browser-check bookkeeping: drop the usual seconds and lean-ceiling test (keep the caps), and give check-areas directory defaults so a new file needs no rule |
-| B-278 | chore | triaged | test-health |  | Integration tests: a database per Vitest worker, so files run in parallel |
+| B-278 | chore | triaged | check-speed |  | Integration tests: a database per Vitest worker, so files run in parallel |
 | B-279 | chore | triaged | test-health |  | Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants |
 | B-280 | chore | triaged | test-health |  | Unit tests: trim change detectors: URL tests that restate a template, marketing copy assertions, exact seed counts and names, label maps |
 | B-281 | chore | triaged | test-health |  | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
@@ -291,6 +292,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-385 | bug | triaged | planner-2 |  | Repeating todos: nextDueDay uses nextVisits' ~5-year search horizon, so a valid long-interval rule (e.g. FREQ=MONTHLY;INTERVAL=99) reads as ended and the chain stops; search to the rule's next occurrence or cap the accepted interval |
 | B-386 | bug | triaged | planner-2 |  | Repeating todos: a successor moved back onto its source's day and ticked gets nextTodoId(repeatId, that next day) = its own id, so insertNext (and the device's planNext) sees the row as the existing next and the chain silently ends; handle ids taken by the source or a done occurrence |
 | B-387 | bug | triaged | planner-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
+| B-388 | bug | triaged | quick-fixes |  | Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it |
 
 ## Items
 
@@ -1346,32 +1348,35 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-271 · chore · Checks: slice loops run through the check lease (pnpm prd check, not bare pnpm check), and the lease waits while the machine load is high
 
 - status: triaged
-- prd: test-health
+- prd: check-speed
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). Loops bypass the lease (loop.md:13,37; prompt.sh:183,211); only prd.sh:212,217 takes it; Vitest runs have no load gate (browser.sh:450 gates only the retry). 38 of 53 logged browser flakes were at load above 30; a threshold near 20 is suggested.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
+- 2026-11-21 (plan/check-speed): Moved from test-health to the small check-speed PRD (2026-11-21) so the check-time fixes run first. B-271 changes: no load gate (the 5-minute load sat at 18 to 23 all afternoon, so a gate at 16 would only add waiting); two check leases and a check log instead.
 
 ### B-272 · chore · Checks: quick check at slice hand-off and the full suite only at landing, with prd.sh forcing a full run on migrations, seeds, sync config, lockfile and package.json, plus a short always-run list
 
 - status: triaged
-- prd: test-health
+- prd: check-speed
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). vitest --changed misses files read by path (SQL migrations, sync-config.yaml, sync-matrix.test.mjs, libLayout, securityHeaders, errors tests), deleted files, the check-areas lint and the budgets. A 3-slice wave runs 3 full suites plus 1 to 5 gate checks today.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
+- 2026-11-21 (plan/check-speed): Moved from test-health to the small check-speed PRD (2026-11-21) so the check-time fixes run first. B-271 changes: no load gate (the 5-minute load sat at 18 to 23 all afternoon, so a gate at 16 would only add waiting); two check leases and a check log instead.
 
 ### B-273 · chore · Checks: move the agent-tooling tests (scripts/loops, scripts/backlog, hooks) into their own Vitest project, run only when tooling changes
 
 - status: triaged
-- prd: test-health
+- prd: check-speed
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 240 of 306 scripts:unit tests guard agent workflow; 17 of 27 files spawn processes, lease and browser tests sleep for real. Keep in the default run: sync-matrix, check-areas, deploy/workflows, scripts/build. Also: check-gate.test.mjs rebuilds a git repo per test; prompt.test.mjs asserts prompt phrases.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
+- 2026-11-21 (plan/check-speed): Moved from test-health to the small check-speed PRD (2026-11-21) so the check-time fixes run first. B-271 changes: no load gate (the 5-minute load sat at 18 to 23 all afternoon, so a gate at 16 would only add waiting); two check leases and a check log instead.
 
 ### B-274 · chore · Component tests: one test clock on a fixed base date, reset per test, with harness deadlines on performance.now(); one shared fixClock
 
@@ -1416,12 +1421,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-278 · chore · Integration tests: a database per Vitest worker, so files run in parallel
 
 - status: triaged
-- prd: test-health
+- prd: check-speed
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 20 files touch global state (app_setting wipes, unscoped sweeps in reminders, outbox, calendarPull, rateLimit, JWKS rotation, todoRename), so parallel files on one database is fragile. Per-worker databases need no test changes (globalSetup, setup, testDatabase.ts:17, test-db.sh, rm.sh, vitest.config.ts:155); estimate 2.5 to 3x wall time with 3 workers.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
+- 2026-11-21 (plan/check-speed): Moved from test-health to the small check-speed PRD (2026-11-21) so the check-time fixes run first. B-271 changes: no load gate (the 5-minute load sat at 18 to 23 all afternoon, so a gate at 16 would only add waiting); two check leases and a check log instead.
 
 ### B-279 · chore · Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants
 
@@ -2410,3 +2416,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, round 2, 2026-11-21); filed as a follow-up. P2.
+
+### B-388 · bug · Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (plan/check-speed): From the check-speed review of session transcripts (planner-2, quick-fixes, quick-entry, list-filters, tasks-2). Not confirmed that the error is what failed them. Triaged to quick-fixes: one contained test fix.
