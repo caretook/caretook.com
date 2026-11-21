@@ -6,7 +6,9 @@
 
 **Where it stands:** **waves 2 and 3 landed** in `dev` (e12d774, PR #29, Codex clean after one fix, 07cf66a6; 2026-11-21); docs folded (orchestrator, machinery, planner, recovery). Earlier: wave 1 landed (77c79ca, PR #26); the table migrated and set (`doctor` leaves 6 findings for the user: B-196, B-239–B-242, B-244 on done topics); the opener's `--background` tried (selected tab kept; the `title` variable bug fixed in 86afe808). check-speed is done (dea0b70). Landing report filed as ask `a1` and pushed. Slices 8 (B-409) and 9 (B-410) added after waves 2 and 3.
 
-**A rotation is being tried** (2026-11-21, the plan's _Trying it_): the old session (started before the wrapper, so no record: the ancestor path) ran `pnpm prd rotate` from this worktree with no slices in flight. **Fresh session: record the result here first** (that you opened, under `prd-orchestration-2`, with `--auto`; whether the old one was ended and its tab closed), then claim B-395 and start slice 6 (sonnet). If the rotation failed, the user is told and asked before slice 6.
+**The rotation worked** (2026-11-21 22:01Z): the fresh session opened under `prd-orchestration-2` with `--auto` (record live, `auto: true`, `rotating` cleared); the old session's process is gone (no other `claude` in this worktree). Whether its tab closed isn't visible from here. **Slice 6 started** (sonnet; B-395 claimed).
+
+**B-411** (session.sh marks a reopened session ended when the first exits) was filed into this topic after waves 2 and 3; it has no slice yet: a candidate to append after slice 9.
 
 **Next after slice 6:** land it (tooling only; the split follows its landing), then slices 7, 8, 9 one after another (opus, sonnet, sonnet) and one landing for the three. Slice 9 adds `to-test/` to `.gitignore`, which isn't tooling: run `pnpm prd check --quick "<why>"` for that landing. B-409's open point was assumed (the PR stays for docs-only `prd/` landings, only the verdict is skipped): say so in the next report.
 
@@ -16,14 +18,14 @@
 
 **Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical) — the plan gives no model, these are the handbook's _Models_.
 
-| Slice | Wave | State           | Merge into `prd/orchestration-2` (slice commits) |
-| ----- | ---- | --------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus)   | 3ba1e77b (9e722505)                              |
-| 2     | 1    | merged (opus)   | a0e66284 (c99d30c2)                              |
-| 3     | 1    | merged (opus)   | dda72b54 (84cdb649)                              |
-| 4     | 2    | merged (opus)   | 4c4a76cc (f5d86cc5)                              |
-| 5     | 3    | merged (sonnet) | 1a92480f (00a19c33)                              |
-| 6     | 4    | not started     |                                                  |
+| Slice | Wave | State            | Merge into `prd/orchestration-2` (slice commits) |
+| ----- | ---- | ---------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus)    | 3ba1e77b (9e722505)                              |
+| 2     | 1    | merged (opus)    | a0e66284 (c99d30c2)                              |
+| 3     | 1    | merged (opus)    | dda72b54 (84cdb649)                              |
+| 4     | 2    | merged (opus)    | 4c4a76cc (f5d86cc5)                              |
+| 5     | 3    | merged (sonnet)  | 1a92480f (00a19c33)                              |
+| 6     | 4    | started (sonnet) |                                                  |
 
 **Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 and the split after it (`pnpm backlog done` when each merges).
 
