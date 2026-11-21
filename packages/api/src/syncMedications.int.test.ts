@@ -501,6 +501,76 @@ describe("sync.upload: medication change entries", () => {
       [SAVED_AT, EDITED_AT, STOPPED_AT].map((at) => medicationChangeId(id, at)),
     );
   });
+
+  it("takes the Dose sheet's quick add (a medication, its Started entry and a dose, offline) as one batch, and a replay", async () => {
+    const { owner, viewer, group, recipient, changesOf } = await setup();
+    const id = randomUUID();
+    const doseId = randomUUID();
+    // As `logDoseOfNewMedication` writes them, in its one transaction's order.
+    const ops = [
+      {
+        op: "PUT" as const,
+        table: "medication",
+        id,
+        data: medicationRow(group.id, recipient.id, {
+          name: "Ibuprofen",
+          strength: null,
+          form: null,
+          dose: "2 tablets",
+          reason: null,
+          schedule: JSON.stringify({ type: "asNeeded" }),
+          started_on: null,
+          refills_left: null,
+          type: "otc",
+        }),
+      },
+      changeRow(group.id, recipient.id, id, SAVED_AT, {
+        change: "started",
+        after: { name: "Ibuprofen", dose: "2 tablets", schedule: { type: "asNeeded" } },
+      }),
+      {
+        op: "PUT" as const,
+        table: "timeline_entry",
+        id: doseId,
+        data: {
+          group_id: group.id,
+          recipient_id: recipient.id,
+          kind: "dose",
+          occurred_at: "2026-11-17T21:40:00.000000Z",
+          time_zone: "America/Los_Angeles",
+          title: null,
+          body: null,
+          details: JSON.stringify({
+            medicationId: id,
+            status: "given",
+            amount: "2 tablets",
+            note: "Headache",
+          }),
+        },
+      },
+    ];
+
+    for (let run = 0; run < 2; run++) {
+      const res = await owner.api.sync.upload({ ops });
+      expect(res.results).toEqual(ops.map((o) => ({ id: o.id, status: "applied" })));
+    }
+    expect(ok(await medicationService.getById(viewer.ctx, id))).toMatchObject({
+      name: "Ibuprofen",
+      dose: "2 tablets",
+      type: "otc",
+      status: "current",
+      schedule: { type: "asNeeded" },
+    });
+    const changes = await changesOf(id);
+    expect(changes.map((c) => [c.id, (c.details as MedicationChangeDetails).change])).toEqual([
+      [medicationChangeId(id, SAVED_AT), "started"],
+    ]);
+    expect(ok(await timelineEntryService.getById(viewer.ctx, doseId))).toMatchObject({
+      kind: "dose",
+      details: { medicationId: id, status: "given", amount: "2 tablets", note: "Headache" },
+      createdBy: owner.user.id,
+    });
+  });
 });
 
 describe("sync.upload: doses and medication notes", () => {
