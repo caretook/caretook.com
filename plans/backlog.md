@@ -121,6 +121,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-226 | change | triaged | medications-tabs |  | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | dropped | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
 | B-228 | bug | triaged | quick-fixes |  | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
+| B-229 | bug | inbox |  |  | on timeline page, header and Today section should be in same column width as the rest of the… |
 
 ## Items
 
@@ -770,3 +771,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/quick-fixes): Found by quick-fixes slice 59 (B-180), 2026-11-21: same fix (await expect.poll / found()); proposed for a later quick-fixes wave. -- quick-fixes orchestrator
+
+### B-229 · bug · on timeline page, header and Today section should be in same column width as the rest of the…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/tasks-2): From the inbox: on timeline page, header and Today section should be in same column width as the rest of the timeline on large screens.
