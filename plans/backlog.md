@@ -93,7 +93,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-204 | feature | triaged | connectors-2 |  | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
 | B-206 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
-| B-207 | bug | in-progress | quick-fixes | hotfix/stack-healthcheck | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
+| B-207 | bug | landed | quick-fixes | hotfix/stack-healthcheck | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
 | B-208 | change | landed | simple-mode |  | you should be able to edit all entries, search, and filter in simple mode. |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
@@ -503,14 +503,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-207 · bug · pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern)
 
-- status: in-progress
+- status: landed
 - prd: quick-fixes
 - owner: hotfix/stack-healthcheck
-- commit:
+- commit: fc373a34
 
 - 2026-11-20 (prd/quick-fixes): Found by quick-fixes slice 56 (failed 4x at low load; -h 127.0.0.1 locally fixed it). Proposed for a later quick-fixes wave.
 - 2026-11-20 (hotfix/pg-healthcheck): Hotfix started and dropped (user's call); back to quick-fixes. Same socket-only race in docker-compose.shared-test.yml:41 (tmpfs, re-inits on every start) and scripts/loops/recover.sh wait_for_pg (docker exec pg_isready, no -h); docker-compose.test.yml inherits via extends. recover.test.mjs:458 matches only the prefix, so adding -h keeps it green.
 - 2026-11-20 (prd/medications-3): medications-3 slice 1 (2026-11-20): `pnpm prd slice` failed at the stack's migrate in packages/data; `pnpm prd stack up` succeeded on retry.
+- 2026-11-21 (hotfix/stack-healthcheck): Landed via hotfix/stack-healthcheck as fc373a34 (--force, no check, user's call): -h 127.0.0.1 on both docker-compose.yml healthchecks, docker-compose.shared-test.yml and recover.sh wait_for_pg.
 
 ### B-208 · change · you should be able to edit all entries, search, and filter in simple mode.
 
