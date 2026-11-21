@@ -116,6 +116,12 @@ describe("medicationFromForm", () => {
     expect(input.refillsLeft).toBeNull();
   });
 
+  it("reads the chosen type, and none chosen or an unknown one as none", () => {
+    expect(medicationFromForm(form([["type", "supplement"]])).input.type).toBe("supplement");
+    expect(medicationFromForm(form([["type", "vitamin"]])).input.type).toBeNull();
+    expect(medicationFromForm(form([])).input.type).toBeNull();
+  });
+
   it("reads a new prescriber or pharmacy by name, in place of a chosen one", () => {
     const { input, newProviders } = medicationFromForm(
       form([
@@ -207,6 +213,7 @@ describe("issuesForSlotRows", () => {
 describe("isFieldIssue", () => {
   it("knows the fields the form shows", () => {
     expect(isFieldIssue("name")).toBe(true);
+    expect(isFieldIssue("type")).toBe(true);
     expect(isFieldIssue("schedule.times.3")).toBe(true);
     expect(isFieldIssue("schedule.times.3.amount")).toBe(true);
     expect(isFieldIssue("schedule.passes")).toBe(true);

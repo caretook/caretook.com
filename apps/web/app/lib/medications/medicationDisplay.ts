@@ -2,6 +2,9 @@
 export type { SchedulePass } from "@caretook/data/schema";
 export {
   FORM_LABELS,
+  MEDICATION_TYPE_BADGES,
+  MEDICATION_TYPE_GROUPS,
+  MEDICATION_TYPE_LABELS,
   STATUS_LABELS,
   STOP_REASON_LABELS,
   asNeededCountText,
@@ -19,6 +22,10 @@ export {
   medicationCountText,
   medicationSummaryLine,
   medicationTitle,
+  medicationTypeBadge,
+  medicationTypeDetail,
+  medicationTypeGroupHeading,
+  medicationTypeLabel,
   missedText,
   passLogText,
   passLoggedLabel,
@@ -31,4 +38,5 @@ export {
   scheduleZoneNote,
   slotStateText,
   stoppedText,
+  TYPE_NOT_SET,
 } from "@caretook/data/schema";

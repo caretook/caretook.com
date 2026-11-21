@@ -12,7 +12,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
 | `orchestration` | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done** (`94e6b80`) | — | none now |
 | `live-notes-ux` | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done** | — | none now |
-| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–46 in `dev` (44–46: B-135, B-134, B-157 in `2d57e70`); wave 13 (slices 47–51: B-184 to B-190) in `dev` (`bf0891df`); wave 14 (slices 52–57: B-192, B-198, B-201, B-191, B-174, B-175) in `dev`; waiting for wave 15: B-180, B-182, B-211, B-215, B-216, B-217, B-219, B-224 (B-207 as a hotfix); new fixes append as slice 58 on |  (none) | varies by slice; none now |
+| `quick-fixes`     | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–46 in `dev` (44–46: B-135, B-134, B-157 in `2d57e70`); wave 13 (slices 47–51: B-184 to B-190) in `dev` (`bf0891df`); wave 14 (slices 52–57: B-192, B-198, B-201, B-191, B-174, B-175) in `dev`; waiting for wave 15: B-180, B-182, B-211 (B-207 landed as hotfix `fc373a34`); new fixes append as slice 58 on |  (none) | varies by slice; none now |
 | `app-shell` | [PRD](app-shell-prd.md), [plan](app-shell-plan.md): **done** | — | none now |
 | `timeline-polish` | [PRD](timeline-polish-prd.md), [plan](timeline-polish-plan.md): **done** | — | none now |
 | `search` | [PRD](search-prd.md), [plan](search-plan.md): **done** (`a5f3d4d`) | — | none now |
@@ -25,6 +25,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `appointments-2` | [PRD](appointments-2-prd.md), [plan](appointments-2-plan.md): 10 slices, waves 1 → (2, 3, 4) → (5, 6, 7) → (8, 9, 10): repeating appointments and reminders (series, 90-day visits, only this / this and later), the calendar cron and top-up, calendar items with generic-by-default sharing and the Calendar & reminders page, the iCal feed, reminder emails (push later), Google Calendar two-way sync (connect and push, then pull), "Remind me" per appointment, a roundtrip step (B-60–B-63). Three migrations; new deps `rrule`, `ical-generator`, `@googleapis/calendar`, `google-auth-library`. **Ready to start** once `timeline-ux` slice 5 is in `dev` | `timeline-ux` slice 5 (the Today card, B-169) in `dev` | `timeline_entry` (series columns), the appointment and reminder sheets, `entryActionItems`, Upcoming and timeline rows and `TodayCard` (the repeat mark), sync and upload registries, the sync matrix, `NOTIFICATIONS`, `timelineEntryService` and `taskService` (calendar jobs), `careGroupMemberService` (removal), group settings, `vercel.json` crons, a new `calendars` area |
 | `connectors-2` | [PRD](connectors-2-prd.md), [plan](connectors-2-plan.md): 5 slices, waves (1, 3, 4) → (2, 5): an in-app connect guide (URL with Copy, short steps and links for Claude and ChatGPT) on Assistants and Devices; members asking owners to turn assistants on (an email, once a week, "Asked on"; also on `/connect`'s empty state); four MCP prompts and a "Connected to <group>" success step; `append_to_entry` and `update_entry` (append and title or time on any live note or event, merged through Yjs); `add_condition`, `update_condition`, `resolve_condition` (B-193, B-194, B-195, B-204, B-197). One migration (`assistant_request`), no new deps. B-196 (directory listings) stays for after launch (B-33, B-54). **Ready to start** | none for wave 1; slice 5 after `conditions` has landed | group settings → Assistants, Settings → Devices, `/connect` (`ConnectConsent.tsx`, `connect.ts`), `protocol.ts` (prompts), `tools/writes.ts` and `tools/index.ts`, `assistantActionService`, `noteYjs.ts` (`appendNoteSection`), `NOTIFICATIONS` (the request email) |
 | `medications-3` | [PRD](medications-3-prd.md), [plan](medications-3-plan.md): 4 slices, waves 1 → (2, 3, 4): medication types (prescription, over the counter, supplement, other; required on new, default Rx; Rx fields collapse for other types; the list badge, `?type=`, the printed list grouped by type, search, `list_medications`; no change entry), then adding a medication from the Log a dose sheet ("+ New medication": name, dose, type, as needed; one local transaction; an "Add details" toast; the empty state) (B-200, B-199). One migration, no new deps. **Ready to start** once `conditions` has landed | `conditions` landed (it changes the medication form and page) | `medication` schema and migration, `sync-config.yaml`, the device schema, the upload switch, the sync matrix, `MedicationForm.tsx`, `medicationList.ts` and `MedicationFilters.tsx`, `printSheet`, `medicationSearchDocument`, the Dose sheet (`new-dose/`, `DoseForm.tsx`, `doseFormData.ts`), the connector `list_medications` |
+| `medications-4` | to write (B-213: a mobile redesign of Today's schedule: passes, scheduled, as needed) | `medications-3` landed | the medications Today view and its schedule rows, the Dose sheet (`new-dose/`, `DoseForm.tsx`), `TodayCard`'s dose items |
 | `conditions` | [PRD](conditions-prd.md), [plan](conditions-plan.md): 6 slices, waves 1 → (2, 4, 5) → 3 → 6: a conditions list on the recipient's profile (status, since, note, suggestions, no known conditions; synced, edited offline), condition changes on the timeline and in search, diagnosed by and managed by providers (the provider page), medications for a condition, the printed sheets, the connector (read only; the writer is B-197). Four migrations, no new deps. **Ready to start** (B-181) | none for slice 1; quick-fixes slice 51 (B-187) before slice 2, slice 48 (B-189) before slice 6 | the profile's card and sheets, `sync-config.yaml`, the device schema, the upload switch, the sync matrix, `TIMELINE_ENTRY_KINDS` and the kind check, `KIND_META`, `TimelineFilters.tsx`, `SEARCH_ITEM_TYPES`, the medication form and page, the provider page, the print sheets, `recipientProfile.ts`, `listTimeline.ts` |
 | `github-review` | [PRD](github-review-prd.md), [plan](github-review-plan.md): 3 slices, waves 1 → (2, 3): Codex's verdict and `pnpm prd review`; `pnpm prd pr`, land's PR path into `dev` (prd/ always, hotfixes `--pr`/`--local`, `--no-review` on the user's word) and dev-sync after a GitHub merge; `ready`, prompts and `rm`. Tooling only, no deps, no migration (B-203). **Ready to start** | none (wave 1 lands locally; wave 2 is the new path's first run) | `scripts/loops/` `land.sh`, `prd.sh`, `lib.sh`, `ready.sh`, `prompt.sh`, `rm.sh`; at landing orchestrator.md, hotfix.md, orchestration.md, `ops/runbook.md`, AGENTS.md |
 | `routing` | [PRD](routing-prd.md), [plan](routing-plan.md): **done** (`ff25ef2`) | — | none now |
@@ -49,8 +50,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `code-layout` | [PRD](code-layout-prd.md), [plan](code-layout-plan.md): **done** (`18e9cf8`) | — | none now |
 | `timeline-ux` | [PRD](timeline-ux-prd.md) (speed half: [app-speed PRD](app-speed-prd.md)), [plan](timeline-ux-plan.md): 10 slices, waves (1, 2, 3) → (4, 5, 6) → (7, 8, 9) → 10: navigation that doesn't wait, tiles that remember (dimmed until fresh), the bundle budget, prefetched tabs, one Today card with status hues, the day header with its summary and rows with the author under the menu and no period places, the service worker, simple mode's order and type scale, quick entry's rotating placeholder, open-after-save and lean recent lines, cheaper `/rpc` auth (B-136–B-140, B-144, B-155, B-156, B-162–B-171). **Done 2026-11-20**: all 10 slices in `dev` (8b3179ab); follow-ups B-174, B-175, B-178, B-179 | wave 1: none; wave 2 on: `code-layout` slice 5 in `dev` (`appUrls`), or coordinate with it | `lib/auth/session.ts`, `lib/auth/sessionRules.ts`, `lib/app-shell/me.ts`, `lib/sync/` (the remembering hook), `recentLines` (at code-layout's paths), `SectionNav`, the `/app` layout (update notice), the timeline route, its strips (replaced by `TodayCard`), `DayHeader`, `DaySummaryLine`, the row components, `PeriodMarkerItem`, `SimpleTimeline`, quick entry, `packages/auth`, `packages/api/src/procedures.ts`, `routes/rpc.ts`, `scripts/loops/prd.sh`, `scripts/loops/check-areas.d/`, new `scripts/build/` |
 | `i18n` | to write (B-209: translations for all text; needs a dependency approved) | best after the feature PRDs settle; runs alone | every user-facing string: routes, `ui/`, emails, MCP text, date formatting |
-| `timeline-ux-2` | to write (B-214, B-218, B-223: page headers without the recipient name, no timeline profile corner, the eye icon by search and filter, the day-summary expand icon on the left, the group dropdown's order) | (none) | the page headers (Providers, Medications, Upcoming, Tasks, timeline), `DayHeader` / `DaySummaryLine`, the group switcher, print sheets (the name stays there) |
-| `quick-entry` | to write (B-220: the parser picks the kind: events, appointments from provider and date mentions) | quick-fixes' quick-entry slices (B-215, B-216, B-219) in `dev` | quick entry and its parser, the suggestion list, `assistant` area |
+| `timeline-ux-2` | [PRD](timeline-ux-2-prd.md), [plan](timeline-ux-2-plan.md): 7 slices, waves (1, 3, 4, 5, 7) → (2, 6): a `PageHeader` primitive, and Providers, Medications, Upcoming and Tasks without the recipient's name or viewer notes (print keeps it); a plain "Timeline" heading instead of the recipient card; one toolbar (search, Filter, View options at the right end, all icon circles, Filter's count badge); the day summary's chevron on the left; the group menu reordered (no period line, New care group under the groups, Group settings last); quick entry's suggestions (Due now, Usual, recent) in a popover behind a Sparkles icon inside the box (a dot when a pass is due; simple mode too), the help ? dropped, Matching names floating over the page; an empty Today's "Nothing logged today yet." and "Add an entry"; Vitals as an inline expandable group in the + menu (`ui/Menu` groups) (B-214, B-218, B-223, B-215, B-216, B-219, B-217, B-224). UI only: no migration, no deps, stackless. **Ready to start**; `quick-entry` (B-220) waits for it | (none) | `components/ui/` (`PageHeader`, `Menu` and `menuModel.ts` groups), the Providers, Medications, Upcoming (`UpcomingHeader`) and Tasks headers, `TimelineHeader`, `RecipientCard` (deleted), `FilterChips` (`TimelineFilters.tsx`), `TimelineViewMenu`, `DaySummaryLine`, `GroupMenu`, `components/quick-entry/` (`QuickEntryBox`, `QuickEntrySuggestions`, `QuickEntryHelp` deleted), `TimelineEntryList` and the timeline route, `QuickAddMenu` |
+| `quick-entry` | to write (B-220: the parser picks the kind: events, appointments from provider and date mentions) | `timeline-ux-2` in `dev` (with B-215, B-216, B-219, its quick-entry changes) | quick entry and its parser, the suggestion list, `assistant` area |
 | `simple-mode` | to write (B-221: locked simple mode, a new member type or a nit pass) | (none) | `@caretook/data/permissions`, `careGroupMemberService`, group settings Members, `SimpleTimeline`, the `/app` layout |
 | `tasks-2` | to write (B-222: tasks become todos, folded into Upcoming, maybe renamed) | (none) | the tasks and Upcoming routes, `appUrls`, `SectionNav`, `taskService`, sync config, connector task tools |
 
@@ -60,11 +61,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-25 | feature | in-progress | providers-2 | prd/providers-2 | @-mentions of providers inside live notes and events |
+| B-25 | feature | ready | providers-2 | prd/providers-2 | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-48 | feature | in-progress | providers-2 | prd/providers-2 | Allow import of providers from other care groups that you have access to. |
+| B-48 | feature | ready | providers-2 | prd/providers-2 | Allow import of providers from other care groups that you have access to. |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
@@ -85,13 +86,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-191 | bug | landed | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
 | B-192 | bug | landed | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
 | B-193 | feature | ready | connectors-2 | prd/connectors-2 | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
-| B-194 | feature | in-progress | connectors-2 | prd/connectors-2 | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
+| B-194 | feature | ready | connectors-2 | prd/connectors-2 | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
 | B-195 | feature | ready | connectors-2 | prd/connectors-2 | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
-| B-197 | feature | in-progress | connectors-2 | prd/connectors-2 | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
+| B-197 | feature | ready | connectors-2 | prd/connectors-2 | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | landed | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
-| B-199 | bug | in-progress | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
-| B-200 | bug | ready | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
+| B-199 | bug | landed | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
+| B-200 | bug | landed | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | ready | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
@@ -102,28 +103,28 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | triaged | quick-fixes |  | link to group details edit page from the edit profile screen for editing the care recipient's… |
-| B-212 | bug | triaged | medications-3 |  | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
+| B-212 | bug | landed | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
 | B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
-| B-214 | bug | triaged | timeline-ux-2 |  | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
-| B-215 | bug | triaged | quick-fixes |  | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
-| B-216 | bug | triaged | quick-fixes |  | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
-| B-217 | bug | triaged | quick-fixes |  | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
-| B-218 | bug | triaged | timeline-ux-2 |  | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
-| B-219 | bug | triaged | quick-fixes |  | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
+| B-214 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
+| B-215 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
+| B-216 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
+| B-217 | bug | triaged | timeline-ux-2 |  | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
+| B-218 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
+| B-219 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
 | B-220 | change | triaged | quick-entry |  | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
 | B-221 | feature | triaged | simple-mode |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
 | B-222 | feature | triaged | tasks-2 |  | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
-| B-223 | bug | triaged | timeline-ux-2 |  | in header care group drop down, we don't need to show the current care period line. New care group… |
-| B-224 | bug | triaged | quick-fixes |  | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
+| B-223 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
+| B-224 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
 
 ## Items
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
-- status: in-progress
+- status: ready
 - prd: providers-2
 - owner: prd/providers-2
-- commit:
+- commit: 680de235
 
 - 2026-11-18 (Robert Bo Davis): Later, after providers' linking lands. Typing @ in a note's or event's text suggests providers; a mention links the provider like the With row. Needs @tiptap/extension-mention and @tiptap/suggestion (new dependencies: the user's approval). Out of scope for the providers PRD.
 - 2026-11-18 (prd/providers): Triaged to providers by its orchestrator: @-mentions need the provider table and links (slices 1 and 5). A follow-up after slice 5, not in the current plan.
@@ -173,14 +174,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
-- status: in-progress
+- status: ready
 - prd: providers-2
 - owner: prd/providers-2
-- commit:
+- commit: fc0d2e20
 
 - 2026-11-18 (Robert Bo Davis): Proposed as a providers follow-up (the PRD is done, like B-25): copy a provider from another group you belong to into this one (a copy, not a shared row, since providers are per group and synced per group). Needs a small PRD addendum or a quick-fixes slice once scoped.
 - 2026-11-20 (Robert Bo Davis): Moved from providers (done) to a new providers-2 PRD, to write (the user, 2026-11-20): B-48's cross-group permission rules want an interview, and B-25 touches the live-notes editor. Same commit: the PRD table's done rows shortened, rows added for providers-2 and appointments-2. -- backlog agent
 - 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): B-25 is slices 1-2 (mentions; deps approved), B-48 slices 3-5 (import as a copy: writer here, any member there; three entry points; notes not copied). -- backlog agent
+- 2026-11-21 (prd/providers-2): slice 3 (import sheet) merged into prd/providers-2 as 0de633e1; slices 4, 5 remain
 
 ### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
 
@@ -395,13 +397,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-194 · feature · A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off
 
-- status: in-progress
+- status: ready
 - prd: connectors-2
 - owner: prd/connectors-2
-- commit:
+- commit: ea3cbc02
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): connectors-2 PRD, to write; touches notifications
 - 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
+- 2026-11-21 (slice/connectors-2/2): Slice 2 built (90383609, eab9dfe4): assistant_request + migration 0030, assistantsRequested email, connector.requestEnable/myRequest, ask button on Assistants and /connect's empty state.
 
 ### B-195 · feature · Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state
 
@@ -425,10 +428,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-197 · feature · Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService
 
-- status: in-progress
+- status: ready
 - prd: connectors-2
 - owner: prd/connectors-2
-- commit:
+- commit: ea3cbc02
 
 - 2026-11-20 (plan/conditions): Conditions planning 2026-11-20 (the user): conditions ship read-only to assistants; the writer is a follow-up, after the conditions PRD lands
 - 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
@@ -446,10 +449,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-199 · bug · ability to add a medication quickly from the log a dose screen.
 
-- status: in-progress
+- status: landed
 - prd: medications-3
 - owner: prd/medications-3
-- commit:
+- commit: b44af440
 
 - 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, wave 14. A small 'new medication' path from the log-a-dose sheet; reuses the medications form. If it needs B-200's type field, run after it.
 - 2026-11-20 (plan/quick-fixes): 2026-11-20 (backlog session, the user): moved to medications-3, out of quick-fixes wave 14. The user's flow: an inline add in the log-a-dose sheet with name, dose and type (B-200's field), a link to add details on the medication's page, and the new medication picked for the dose; also offered in the no-medications empty state. Plan it with B-200.
@@ -457,7 +460,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-200 · bug · medications need a type field: rx, otc, supplement, etc.
 
-- status: ready
+- status: landed
 - prd: medications-3
 - owner: prd/medications-3
 - commit: 26213ec5
@@ -575,13 +578,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-212 · bug · icon order at top of medications page is not great. Add medication button should be a + icon. Print…
 
-- status: triaged
+- status: landed
 - prd: medications-3
-- owner:
-- commit:
+- owner: prd/medications-3
+- commit: a4308e4a
 
 - 2026-11-21 (prd/medications-3): From the inbox: icon order at top of medications page is not great. Add medication button should be a + icon. Print should just be the printer icon. Passes should be labeled between the two.
 - 2026-11-21 (prd/medications-3): Proposed for medications-3 as slice 5 (wave 3, after slice 2: both touch the medications list header). Order the header: + icon (Add medication), the labeled Passes button, then a printer icon only (Print).
+- 2026-11-21 (Robert Bo Davis): 2026-11-21: the user approved it as medications-3 slice 5 (wave 3, after slice 2).
+- 2026-11-21 (prd/medications-3): medications-3 slice 5 started 2026-11-21. Overlap: timeline-ux-2 slice 1 later wraps this header in PageHeader; keep the order: + Add, labeled Passes, printer-only Print.
 
 ### B-213 · bug · medications today schedule layout is confusing especially on mobile. Plan an improved layout for…
 
@@ -595,62 +600,72 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-214 · bug · don't need patient name on the providers, medications, upcoming, or tasks page page, just need it…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: don't need patient name on the providers, medications, upcoming, or tasks page page, just need it in the print version where applicable. it shows in the header all the time. Can also remove entire profile section in top left of the timeline to reduce clutter. Move eyeball icon inline with search and filter icons and size them appropriately.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): timeline-ux-2, a declutter PRD to write: no recipient name in page headers (print only) and no profile corner on the timeline, the eye icon inline with search and filter, the day-summary expand icon on the left, the group dropdown reordered (no care-period line, New care group under the groups, Group settings last).
+- 2026-11-21 (plan/timeline-ux-2): Planned (plans/timeline-ux-2-plan.md): slice 1 PageHeader and page headers without the name, Timeline h1 (B-214); slice 2 one toolbar with the eye at the right, icon circles (B-214); slice 3 chevron left (B-218); slice 4 group menu order (B-223). Waves (1, 3, 4) -> 2.
 
 ### B-215 · bug · move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry…
 
-- status: triaged
-- prd: quick-fixes
-- owner:
+- status: in-progress
+- prd: timeline-ux-2
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry box.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): quick-entry and timeline UI nits, one quick-fixes slice each in wave 15. B-215, B-216 and B-219 touch quick entry, so they share a wave with B-220's quick-entry PRD only if their hot files are coordinated.
+- 2026-11-21 (Robert Bo Davis): 2026-11-21: moved from quick-fixes wave 15 to timeline-ux-2 (user's call): the same timeline and quick-entry files.
+- 2026-11-21 (plan/timeline-ux-2): Planned as timeline-ux-2 slice 5 (wave 1): the three suggestion rows in a popover behind a Sparkles icon inside the box (dot when a pass is due; simple mode too), the help ? and examples dropped, Matching names as an overlay under the field.
 
 ### B-216 · bug · suggestion dropdown for quick entry box should appear above elements instead of pushing elements…
 
-- status: triaged
-- prd: quick-fixes
-- owner:
+- status: in-progress
+- prd: timeline-ux-2
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: suggestion dropdown for quick entry box should appear above elements instead of pushing elements below down the page.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): quick-entry and timeline UI nits, one quick-fixes slice each in wave 15. B-215, B-216 and B-219 touch quick entry, so they share a wave with B-220's quick-entry PRD only if their hot files are coordinated.
+- 2026-11-21 (Robert Bo Davis): 2026-11-21: moved from quick-fixes wave 15 to timeline-ux-2 (user's call): the same timeline and quick-entry files.
+- 2026-11-21 (plan/timeline-ux-2): Planned as timeline-ux-2 slice 5 (wave 1): the three suggestion rows in a popover behind a Sparkles icon inside the box (dot when a pass is due; simple mode too), the help ? and examples dropped, Matching names as an overlay under the field.
 
 ### B-217 · bug · If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page…
 
 - status: triaged
-- prd: quick-fixes
+- prd: timeline-ux-2
 - owner:
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page looks goofy without it.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): quick-entry and timeline UI nits, one quick-fixes slice each in wave 15. B-215, B-216 and B-219 touch quick entry, so they share a wave with B-220's quick-entry PRD only if their hot files are coordinated.
+- 2026-11-21 (Robert Bo Davis): 2026-11-21: moved from quick-fixes wave 15 to timeline-ux-2 (user's call): the same timeline and quick-entry files.
+- 2026-11-21 (plan/timeline-ux-2): Planned as timeline-ux-2 slice 6 (wave 2, after slice 5): "Nothing logged today yet." and "Add an entry" (focuses quick entry), writers in the full view with no filter.
 
 ### B-218 · bug · expand icon for day summary on timeline should be at the left of the day summary, not the right.
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): timeline-ux-2, a declutter PRD to write: no recipient name in page headers (print only) and no profile corner on the timeline, the eye icon inline with search and filter, the day-summary expand icon on the left, the group dropdown reordered (no care-period line, New care group under the groups, Group settings last).
+- 2026-11-21 (plan/timeline-ux-2): Planned (plans/timeline-ux-2-plan.md): slice 1 PageHeader and page headers without the name, Timeline h1 (B-214); slice 2 one toolbar with the eye at the right, icon circles (B-214); slice 3 chevron left (B-218); slice 4 group menu order (B-223). Waves (1, 3, 4) -> 2.
 
 ### B-219 · bug · can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also…
 
-- status: triaged
-- prd: quick-fixes
-- owner:
+- status: in-progress
+- prd: timeline-ux-2
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also not very good.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): quick-entry and timeline UI nits, one quick-fixes slice each in wave 15. B-215, B-216 and B-219 touch quick entry, so they share a wave with B-220's quick-entry PRD only if their hot files are coordinated.
+- 2026-11-21 (Robert Bo Davis): 2026-11-21: moved from quick-fixes wave 15 to timeline-ux-2 (user's call): the same timeline and quick-entry files.
+- 2026-11-21 (plan/timeline-ux-2): Planned as timeline-ux-2 slice 5 (wave 1): the three suggestion rows in a popover behind a Sparkles icon inside the box (dot when a pass is due; simple mode too), the help ? and examples dropped, Matching names as an overlay under the field.
 
 ### B-220 · change · Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,…
 
@@ -661,6 +676,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-21 (prd/medications-3): From the inbox: Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event, providers do suggest like they should, but creates a note instead of an appointment. "Dr. Elena Alvarez on the 25th" creates a note as do most provider auto completes when it should be an event. Need to improve the logic for this.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): its own PRD to write, quick-entry: the parser picks the entry kind ("fell" makes an event, provider autocompletes and dates make appointments, not notes). It runs after quick-fixes' quick-entry slices (B-215, B-216, B-219).
+- 2026-11-21 (Robert Bo Davis): 2026-11-21: now waits for timeline-ux-2 (B-215, B-216, B-219 moved there from quick-fixes).
 
 ### B-221 · feature · locked simple mode is really confusing. We may want to just add a new user type at this point for…
 
@@ -684,20 +700,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-223 · bug · in header care group drop down, we don't need to show the current care period line. New care group…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: in header care group drop down, we don't need to show the current care period line. New care group should be below the care group selector section, not at the bottom of the drop down. group settings should be the last entry in the drop down.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): timeline-ux-2, a declutter PRD to write: no recipient name in page headers (print only) and no profile corner on the timeline, the eye icon inline with search and filter, the day-summary expand icon on the left, the group dropdown reordered (no care-period line, New care group under the groups, Group settings last).
+- 2026-11-21 (plan/timeline-ux-2): Planned (plans/timeline-ux-2-plan.md): slice 1 PageHeader and page headers without the name, Timeline h1 (B-214); slice 2 one toolbar with the eye at the right, icon circles (B-214); slice 3 chevron left (B-218); slice 4 group menu order (B-223). Waves (1, 3, 4) -> 2.
 
 ### B-224 · bug · in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for…
 
-- status: triaged
-- prd: quick-fixes
-- owner:
+- status: in-progress
+- prd: timeline-ux-2
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for each vitals type instead of a separate entry for each vitals type.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): quick-entry and timeline UI nits, one quick-fixes slice each in wave 15. B-215, B-216 and B-219 touch quick entry, so they share a wave with B-220's quick-entry PRD only if their hot files are coordinated.
+- 2026-11-21 (Robert Bo Davis): 2026-11-21: moved from quick-fixes wave 15 to timeline-ux-2 (user's call): the same timeline and quick-entry files.
+- 2026-11-21 (plan/timeline-ux-2): Planned as timeline-ux-2 slice 7 (wave 1): ui/Menu gains inline expandable groups (no flyout: poor on touch); Vitals is one group in the + menu.

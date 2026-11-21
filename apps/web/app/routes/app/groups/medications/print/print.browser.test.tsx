@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
-import { allergy, condition } from "../../../../../../test/fixtures";
-import { $, $$, LIST, MEDICATION_ROUTES, SEEDED_CURRENT, waitUntil, world } from "../medicationWorld";
+import { allergy, condition, fx } from "../../../../../../test/fixtures";
+import { $, $$, LIST, MEDICATION_ROUTES, waitUntil, world } from "../medicationWorld";
 
 // The printable sheets (medications.mjs's print, weekly and their offline
 // steps): the list's Print menu with both sheets; the medication list's
@@ -32,7 +32,10 @@ const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[
     ...options,
   });
 
-const PRINT_MENU = () => $$<HTMLButtonElement>("main button").find((b) => b.textContent?.trim() === "Print");
+const PRINT_MENU = () =>
+  $$<HTMLButtonElement>("main button").find(
+    (b) => (b.getAttribute("aria-label") ?? b.textContent?.trim()) === "Print",
+  );
 /** A Print menu item, by the start of its text (its description follows). */
 const printItem = (label: string) =>
   $$("[role=menuitem]").find((m) => m.textContent?.trim().startsWith(label));
@@ -119,11 +122,42 @@ describe("the medication list sheet", () => {
     expect(sheet.printed).toMatch(/^\w{3} \d{1,2}, \d{4}$/);
   });
 
+  test("current medications are grouped under headings by type, each by name, with Type not set last and stopped ones in one list", async () => {
+    await open(`${LIST}/print`, {
+      fixtures: [
+        world(),
+        fx.medication({ name: "Vitamin D3", strength: "1000 IU", type: "supplement" }),
+        fx.medication({ name: "Aloe gel", strength: null, type: "other" }),
+        fx.medication({ name: "Old tablet", strength: null, type: null }),
+      ],
+    });
+    await waitUntil(() => $$("main [data-print-medication]").length >= 7, 4000, "the sheet");
+    const groups = $$("main [data-print-group]").map((g) => [
+      g.querySelector("h3")?.textContent,
+      [...g.querySelectorAll("tr[data-print-medication]")].map(titleOf),
+    ]);
+    expect(groups).toEqual([
+      ["Prescriptions", ["Latanoprost 0.005%", "Lisinopril 10 mg", "Metformin 500 mg"]],
+      ["Over the counter", ["Acetaminophen 500 mg"]],
+      ["Supplements", ["Vitamin D3 1000 IU"]],
+      ["Other", ["Aloe gel"]],
+      ["Type not set", ["Old tablet"]],
+    ]);
+    expect($$("main tr[data-print-stopped]")).toHaveLength(2);
+    expect($$("main #print-stopped h3")).toHaveLength(0);
+  });
+
   test("current medications by name with their prescriber; the completed and discontinued ones, most recently stopped first, with why; the prescriber's and pharmacy's first phones, once each", async () => {
     await open(`${LIST}/print`);
     await waitUntil(() => $$("main [data-print-medication]").length >= 4, 4000, "the sheet");
     const sheet = sheetState();
-    expect(sheet.current).toEqual(SEEDED_CURRENT);
+    // Grouped by type: the prescriptions, then the over-the-counter one.
+    expect(sheet.current).toEqual([
+      "Latanoprost 0.005%",
+      "Lisinopril 10 mg",
+      "Metformin 500 mg",
+      "Acetaminophen 500 mg",
+    ]);
     expect(sheet.prescribers["Lisinopril 10 mg"]).toBe("Dr. Mira Lark");
     expect(sheet.prescribers["Latanoprost 0.005%"]).toBe("");
     expect(sheet.stopped).toHaveLength(2);
@@ -175,7 +209,7 @@ describe("the medication list sheet", () => {
         header: false,
         tabBar: false,
         controls: [],
-        tables: 3,
+        tables: 4, // a table for each type group (Prescriptions, Over the counter), the stopped ones and the contacts
         fits: true,
         pageFits: true,
         ...BLACK_ON_WHITE,

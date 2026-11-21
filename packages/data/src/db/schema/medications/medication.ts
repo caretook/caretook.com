@@ -47,6 +47,13 @@ export type MedicationForm = (typeof MEDICATION_FORMS)[number];
 export const MEDICATION_STATUSES = ["current", "completed", "discontinued"] as const;
 export type MedicationStatus = (typeof MEDICATION_STATUSES)[number];
 
+/**
+ * What kind of thing a medication is. Null on medications added before types
+ * existed ("Type not set"); the forms that ask require one.
+ */
+export const MEDICATION_TYPES = ["prescription", "otc", "supplement", "other"] as const;
+export type MedicationType = (typeof MEDICATION_TYPES)[number];
+
 export const MEDICATION_STOP_REASONS = ["sideEffects", "ineffective", "prescriberStopped", "other"] as const;
 export type MedicationStopReason = (typeof MEDICATION_STOP_REASONS)[number];
 
@@ -105,6 +112,8 @@ export const medicationSchema = pgTable(
     quantity: text("quantity"),
     refillsLeft: integer("refills_left"),
     rxNumber: text("rx_number"),
+    // Prescription, over the counter, supplement or other; null when not set (no backfill).
+    type: text("type", { enum: MEDICATION_TYPES }),
     deletedAt: timestampColumn("deleted_at"),
     ...timestamps,
     ...audits,
@@ -137,6 +146,7 @@ export const medicationSchema = pgTable(
     enumCheck("medication_form_check", t.form, MEDICATION_FORMS),
     enumCheck("medication_status_check", t.status, MEDICATION_STATUSES),
     enumCheck("medication_stop_reason_check", t.stopReason, MEDICATION_STOP_REASONS),
+    enumCheck("medication_type_check", t.type, MEDICATION_TYPES),
   ],
 );
 
@@ -357,7 +367,12 @@ const medicationFields = {
     .nullish()
     .transform((v) => v ?? null),
   rxNumber: optionalText(MEDICATION_LIMITS.rxNumber),
+  // Nullable here (older rows, uploads from older builds); the forms require it.
+  type: optionalEnum(MEDICATION_TYPES),
 };
+
+/** A type, required: what the medication form (and the Dose sheet's quick add) ask for. */
+export const medicationTypeZSchema = z.enum(MEDICATION_TYPES, { error: "Choose a type" });
 
 type StatusFields = {
   status: MedicationStatus;
@@ -404,6 +419,15 @@ export const medicationContentZSchema = z
 export type MedicationContent = z.output<typeof medicationContentZSchema>;
 export type MedicationContentInput = z.input<typeof medicationContentZSchema>;
 
+/**
+ * A medication's content as the medication form saves it: the same rules,
+ * and a type is required (an old medication with none must be given one).
+ */
+export const medicationFormContentZSchema = z
+  .object({ ...medicationFields, type: medicationTypeZSchema })
+  .superRefine(statusRules)
+  .transform(clearStopFields);
+
 /** Create input. `id` may come from an offline device; `recipientId` defaults to the group's recipient. */
 export const medicationCreateZSchema = z
   .object({
@@ -443,6 +467,7 @@ export const medicationUpdateZSchema = z.strictObject({
   quantity: z.string().nullish(),
   refillsLeft: z.number().nullish(),
   rxNumber: z.string().nullish(),
+  type: z.enum(MEDICATION_TYPES).nullish(),
 });
 export type MedicationUpdateInput = z.input<typeof medicationUpdateZSchema>;
 
@@ -466,6 +491,7 @@ export const medicationContentOf = (medication: MedicationContent): MedicationCo
   quantity: medication.quantity,
   refillsLeft: medication.refillsLeft,
   rxNumber: medication.rxNumber,
+  type: medication.type,
 });
 
 // ---------------------------------------------------------------------------
@@ -511,7 +537,7 @@ export const doseDetailsZSchema = z.strictObject({
 });
 export type DoseDetails = z.infer<typeof doseDetailsZSchema>;
 
-/** The fields whose changes are recorded on the timeline. Refill, reason and provider edits aren't. */
+/** The fields whose changes are recorded on the timeline. Refill, reason, provider and type edits aren't. */
 export const MEDICATION_TRACKED_FIELDS = [
   "name",
   "strength",

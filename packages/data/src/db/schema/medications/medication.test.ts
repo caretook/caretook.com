@@ -7,6 +7,7 @@ import {
   medicationChangeDetailsZSchema,
   medicationChangeId,
   medicationContentZSchema,
+  medicationFormContentZSchema,
   medicationScheduleZSchema,
   medicationUpdateZSchema,
   normalizeSchedule,
@@ -207,9 +208,29 @@ describe("medicationContentZSchema", () => {
       quantity: null,
       refillsLeft: null,
       rxNumber: null,
+      type: null,
     });
     expect(issuePaths(medicationContentZSchema, content({ name: "  " }))).toEqual(["name"]);
     expect(issuePaths(medicationContentZSchema, { name: "Aspirin" })).toEqual(["schedule"]);
+  });
+
+  it("takes a known type or none, and refuses another", () => {
+    for (const type of ["prescription", "otc", "supplement", "other"])
+      expect(parsed({ type }).type).toBe(type);
+    expect(parsed({ type: null }).type).toBeNull();
+    expect(parsed().type).toBeNull();
+    expect(issuePaths(medicationContentZSchema, content({ type: "vitamin" }))).toEqual(["type"]);
+  });
+
+  it("as the medication form saves it, needs a type", () => {
+    expect(medicationFormContentZSchema.parse(content({ type: "otc" })).type).toBe("otc");
+    for (const type of [undefined, null, "vitamin"]) {
+      const res = medicationFormContentZSchema.safeParse(content({ type }));
+      expect(res.success).toBe(false);
+      expect(res.error?.issues.map((i) => [i.path.join("."), i.message])).toEqual([
+        ["type", "Choose a type"],
+      ]);
+    }
   });
 
   it("checks the form, the dates and the refills", () => {
@@ -398,6 +419,12 @@ describe("medicationChange", () => {
       change: "started",
       after: { name: "Lisinopril", schedule: { type: "scheduled", slots: [{ time: "08:00" }] } },
     });
+  });
+
+  it("records nothing for a change of type", () => {
+    expect(medicationChange(parsed({ type: null }), parsed({ type: "supplement" }))).toBeNull();
+    expect(medicationChange(parsed({ type: "otc" }), parsed({ type: "prescription" }))).toBeNull();
+    expect(medicationChange(null, parsed({ type: "otc" }))?.after).not.toHaveProperty("type");
   });
 
   it("is 'changed' with each changed field's before and after", () => {

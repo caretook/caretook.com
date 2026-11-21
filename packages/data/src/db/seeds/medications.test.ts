@@ -50,9 +50,17 @@ describe("medication seeds", () => {
     expect(current.some((m) => m.refillsLeft !== null && m.lastFilledOn && m.quantity)).toBe(true);
     expect(DEV_FAMILY_MEDICATIONS.some((m) => m.notes)).toBe(true);
 
-    expect(SECOND_GROUP_MEDICATIONS).toHaveLength(1);
-    expect(secondGroup?.rows).toHaveLength(1);
-    expect(secondGroup?.rows[0]?.groupId).toBe(SEED_GROUPS[1]?.groupId);
+    expect(SECOND_GROUP_MEDICATIONS).toHaveLength(3);
+    expect(secondGroup?.rows).toHaveLength(3);
+    expect(secondGroup?.rows.every((r) => r.groupId === SEED_GROUPS[1]?.groupId)).toBe(true);
+  });
+
+  it("use every type, and leave one medication's unset", () => {
+    const rows = seedRows(NOON).flatMap((g) => g.rows);
+    expect(new Set(rows.map((r) => r.type))).toEqual(
+      new Set(["prescription", "otc", "supplement", "other", null]),
+    );
+    expect(rows.filter((r) => r.type === null).map((r) => r.name)).toEqual(["Oxybutynin"]);
   });
 
   it("stopped the completed course within the last 90 days", () => {

@@ -157,6 +157,20 @@ describe("medicationSearchDocument", () => {
     });
   });
 
+  it("puts the type's label first in the body; no type adds nothing", () => {
+    expect(
+      medicationSearchDocument({ id: "m1", groupId: "g1", name: "Vitamin D", type: "otc", reason: "Bones" })
+        ?.body,
+    ).toBe("Over the counter\nBones");
+    expect(medicationSearchDocument({ id: "m1", groupId: "g1", name: "X", type: "supplement" })?.body).toBe(
+      "Supplement",
+    );
+    expect(
+      medicationSearchDocument({ id: "m1", groupId: "g1", name: "X", type: null, reason: "R" })?.body,
+    ).toBe("R");
+    expect(medicationSearchDocument({ id: "m1", groupId: "g1", name: "X" })?.body).toBe("");
+  });
+
   it("has no document for a deleted medication", () => {
     expect(
       medicationSearchDocument({ id: "m1", groupId: "g1", name: "X", deletedAt: "2026-11-01" }),
