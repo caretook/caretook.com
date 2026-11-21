@@ -15,7 +15,7 @@
 
 **Slice 1 notes:** its `pnpm check` never passed in one run under load up to 35 (integration, tooling and `timelineSheetUrls` tests timed out; each passed alone); the landing check covers it. `TabNav`'s default claims the tab's path and below; `match` replaces it, so the list tab's `match` must claim `/list…` and `/medications/:medicationId`.
 
-**Sync before landing:** quick-fixes wave 15 landed in `dev` (2152bbed, docs 51742670): `test/setup.ts` pins component tests to today 12:00 (`VITE_TEST_CLOCK`), `test/found.ts` adds `stopsMoving()`, about 30 component tests now poll (medications `today`, `medicationForm` among them). Expect conflicts in slice 2's test edits at `pnpm prd sync`; resolving them in code means a full check.
+**Sync before landing:** quick-fixes wave 15 landed in `dev` (2152bbed, docs 51742670): `test/setup.ts` pins component tests to today 12:00 (`VITE_TEST_CLOCK`), `test/found.ts` adds `stopsMoving()`, about 30 component tests now poll (medications `today`, `medicationForm` among them). Also tasks-2 (B-222, 2db975a7): migration 0032_todos and sync-config changes (so `pnpm datastore:reset` after sync, and the **full** check), `LinkedTasks` → `LinkedTodos` (`components/todos/`), `appUrls.newTask` → `newTodo`, `GROUP_SECTIONS` now Timeline, Providers, Medications, Planner. Expect conflicts in slice 2's test edits at `pnpm prd sync`; resolving them in code means a full check.
 
 **Overlap seen before slice 2 (2026-11-21):** tasks-2 replaces the Upcoming and Tasks `GROUP_SECTIONS` entries with Planner (next to, not on, the Medications entry; a merge may need both kept). quick-fixes adds `expect.poll` to lines in `today`, `medicationForm` and `allergies` browser tests; whichever lands second resolves at sync.
 
