@@ -456,7 +456,8 @@ export const sweep = async ({
   const daily = await dbFails(() =>
     getDb().execute(sql`INSERT INTO ${job} (connection_id, reason, created_by, updated_by)
       SELECT ${connection.id}, 'daily', ${SYSTEM}::uuid, ${SYSTEM}::uuid FROM ${connection}
-      WHERE ${connection.disconnectedAt} IS NULL AND ${connection.lastError} IS NULL
+      INNER JOIN ${userSchema} ON ${userSchema.id} = ${connection.userId}
+      WHERE ${userSchema.disabledAt} IS NULL AND ${connection.disconnectedAt} IS NULL AND ${connection.lastError} IS NULL
         AND (${connection.lastPushedAt} IS NULL OR ${connection.lastPushedAt} < ${new Date(now.getTime() - DAILY_PUSH_HOURS * 3_600_000).toISOString()})
       ORDER BY ${connection.lastPushedAt} NULLS FIRST LIMIT ${SYNC_BATCH_LIMIT}
       ON CONFLICT DO NOTHING`),
