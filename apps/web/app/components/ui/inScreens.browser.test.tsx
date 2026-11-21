@@ -11,6 +11,7 @@ import * as newDose from "~/routes/app/groups/timeline/new-dose/route";
 import * as newSheet from "~/routes/app/groups/timeline/new/route";
 import * as timeline from "~/routes/app/groups/timeline/route";
 import { renderWithDevice } from "../../../test/device";
+import { found } from "../../../test/found";
 import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../test/fixtures";
 
 // The ui/ primitives where the screens use them (ui.mjs's steps): every menu,
@@ -498,5 +499,26 @@ describe.each([360, 390, 420, 1280])("the date field at %i", (width) => {
     await userEvent.click(TIME_CHIP());
     await expect.poll(() => q('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
     await dateFieldFits();
+  });
+});
+
+describe.each([420, 1280])("the page header at %i", (width) => {
+  test.each([
+    { url: PROVIDERS, title: "Providers", action: "Add provider" },
+    { url: TIMELINE, title: "Timeline", action: "View options" },
+  ])("$title: the title is the h1, its action beside it on the right", async ({ url, title, action }) => {
+    await renderWithDevice({ route: ROUTES, url, fixtures: FIXTURES, width });
+    const header = await found(() => q("main header"));
+    const h1 = header.querySelector("h1")!;
+    expect(h1.textContent).toBe(title);
+    const control = [...header.querySelectorAll<HTMLElement>("a, button")].find(
+      (el) => (el.getAttribute("aria-label") ?? el.textContent?.trim()) === action,
+    )!;
+    expect(control).toBeDefined();
+    const [a, b] = [h1.getBoundingClientRect(), control.getBoundingClientRect()];
+    // On the same row, the action at the right.
+    expect(b.left).toBeGreaterThan(a.right);
+    expect(b.top).toBeLessThan(a.bottom);
+    expect(Math.round(header.getBoundingClientRect().right - b.right)).toBeLessThanOrEqual(1);
   });
 });

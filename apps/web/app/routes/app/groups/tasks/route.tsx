@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { useCallback } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { TaskUndoStatus, useTaskTick } from "~/components/tasks";
+import { PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
@@ -79,26 +80,25 @@ export default function Tasks({ loaderData, params }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold">Tasks</h1>
-          <p className="text-base-content/70 text-sm">{group.displayName}</p>
-        </div>
-        {group.canWrite && (
-          <Link
-            to={appUrls.newTask(params.groupId, {}, listSearch(search))}
-            state={TASK_SHEET_STATE}
-            // Loaded ahead, so the sheet opens offline too.
-            prefetch="render"
-            preventScrollReset
-            className="btn btn-primary btn-sm shrink-0"
-            data-add-task
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Add task
-          </Link>
-        )}
-      </header>
+      <PageHeader
+        title="Tasks"
+        actions={
+          group.canWrite && (
+            <Link
+              to={appUrls.newTask(params.groupId, {}, listSearch(search))}
+              state={TASK_SHEET_STATE}
+              // Loaded ahead, so the sheet opens offline too.
+              prefetch="render"
+              preventScrollReset
+              className="btn btn-primary btn-sm shrink-0"
+              data-add-task
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Add task
+            </Link>
+          )
+        }
+      />
 
       <TaskChips who={list.who} />
       <TaskUndoStatus groupId={params.groupId} />

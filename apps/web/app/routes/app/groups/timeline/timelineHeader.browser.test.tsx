@@ -1,7 +1,7 @@
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { at, fx } from "../../../../../test/fixtures";
+import { at, fx, TEST_RECIPIENT } from "../../../../../test/fixtures";
 import { found } from "../../../../../test/found";
 import { frames, openTimeline, rows, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
 
@@ -32,6 +32,23 @@ const pick = async (name: string, button: Parameters<typeof userEvent.click>[0] 
   await expect.element(page.getByRole("menu")).toBeVisible();
   await userEvent.click(page.getByRole("menuitem", { name, exact: true }));
 };
+
+describe("the heading", () => {
+  test("is a plain “Timeline” h1, with no recipient card or profile link in main, and View options still opens", async () => {
+    await openTimeline();
+    await ready();
+    const main = page.getByRole("main");
+    await expect
+      .element(main.getByRole("heading", { level: 1, name: "Timeline", exact: true }))
+      .toBeVisible();
+    expect([...document.querySelectorAll("main h1")].map((h) => h.textContent)).toEqual(["Timeline"]);
+    expect(main.getByRole("link", { name: /profile/i }).query()).toBeNull();
+    expect(document.querySelector("main header")?.textContent).not.toContain(TEST_RECIPIENT.preferredName);
+    await userEvent.click(page.getByRole("button", { name: "View options" }));
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+  });
+});
 
 describe("the + menu", () => {
   test("a writer's + opens every add kind in the bar's order, with each vital type; there's no add bar", async () => {

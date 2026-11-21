@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { fx, TEST_GROUP } from "../../../../../test/fixtures";
+import { pageHeader } from "../../../../../test/pageHeader";
 import {
   BLOOD_DRAW,
   CARDIOLOGY,
@@ -173,6 +174,7 @@ describe("the list", () => {
 describe("adding", () => {
   test("a writer gets Add appointment and Add reminder, drafts that pick the time first; Add appointment opens one", async () => {
     const device = await openUpcoming({ role: "caretaker" });
+    expect(pageHeader()).toEqual({ h1: "Upcoming", namesRecipient: false, viewerNote: false });
     const links = [...document.querySelectorAll("main [data-upcoming-add] a")].map((a) => [
       a.textContent?.trim(),
       a.getAttribute("href"),
@@ -186,9 +188,10 @@ describe("adding", () => {
     await expect.poll(() => device.location()).toBe(`${base}?kind=event&when=pick`);
   });
 
-  test("a viewer sees Upcoming, with no Add appointment or Add reminder", async () => {
+  test("a viewer sees Upcoming, with no Add appointment or Add reminder, and the same header", async () => {
     await openUpcoming({ role: "viewer" });
     expect(listed().map((r) => r.id)).toContain(CARDIOLOGY.id);
+    expect(pageHeader()).toEqual({ h1: "Upcoming", namesRecipient: false, viewerNote: false });
     expect(document.querySelector("main [data-upcoming-add]")).toBeNull();
   });
 });
