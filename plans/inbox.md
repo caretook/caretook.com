@@ -13,6 +13,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - when signing up mcp connector, the oauth request just returns json, not the accept flow (B-188)
 - mcp connector for medication change records on the timeline, it isn't providing information about what what kind of change it was (started, stopped, or a new dose), and there are no before-and-after values. (B-189)
 - mcp connector returning truncated notes on doses, and maybe other things (B-190)
+- clicking the next entry in the upcoming section of the simple timeline should expand the section, not take you to the next entry. once expanded, clicking on any item should take you to the full view of that item.
+- undo when checking off a todo should list all the todos that were checked off, not just the last one that was checked off.
 
 ## Change requests
 
