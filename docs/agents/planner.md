@@ -84,7 +84,7 @@ Acceptance criteria name the tests. Screens get component tests ([components](..
 
 A `plan/<topic>` branch touches no code, so its agent lands it whenever the PRD or plan is ready, without a go-ahead:
 
-1. Commit both files (`docs(<topic>): …`). Through `pnpm backlog`, set the items' `prd=<topic> status=triaged` with a note, and add the topic's row with `pnpm backlog prd add <topic>` and `prd set <topic> after=… hot=…` (path prefixes; never a hand edit). After `pnpm prd rm plan-<topic>` and the report, `pnpm prd end`.
+1. Commit both files (`docs(<topic>): …`). Through `pnpm backlog`, set the items' `prd=<topic> status=triaged` with a note, and add the topic's row with `pnpm backlog prd add <topic>` and `prd set <topic> after=… hot=…` (path prefixes; never a hand edit). After `pnpm prd rm plan-<topic>` and the report, `cd` to the main checkout and `pnpm prd end`.
 2. Check `git diff --stat dev...plan/<topic>` lists only `plans/` and `docs/` files; if anything else changed, it isn't a planning branch: ask first.
 3. `pnpm prd sync` if `dev` moved, then `pnpm prd land plan/<topic> --force -m "docs(<topic>): PRD and plan for … (B-<n>, …)"` and `pnpm prd rm plan-<topic>`.
 4. **Report:** the _Decisions_ table's `assumed` rows (the top five, the costliest first), what the skeptic changed, and how to start it: `pnpm prd start <topic>` or `pnpm prd queue <topic>`. A veto is a docs edit until its slice starts: the user tells any planning or backlog session.
