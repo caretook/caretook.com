@@ -470,4 +470,40 @@ describe("appointmentSeriesService.topUp", () => {
       toppedUpThrough: "2027-02-19",
     });
   });
+
+  it("starts no earlier than today after a gap, so no past visits are invented", async () => {
+    const { u, input } = await setup();
+    const series = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({ startsOn: "2026-10-01", toppedUpThrough: "2026-10-20" }),
+      ),
+    );
+    await topUpAll();
+    const got = await days(series.id);
+    expect(got[0]).toBe("2026-11-18");
+    expect(got.every((d) => d! >= "2026-11-18")).toBe(true);
+  });
+
+  it("goes past failing series instead of stalling on them", async () => {
+    await topUpAll(); // drain other tests' series first
+    const { u, group, input } = await setup();
+    const bad = ok(
+      await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2000-01-01" })),
+    );
+    const good = ok(
+      await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2026-11-17" })),
+    );
+    // An unreadable provider list makes the bad series' visits fail to write.
+    const { getDb, appointmentSeriesSchema } = await import("../db");
+    const { eq } = await import("drizzle-orm");
+    await getDb()
+      .update(appointmentSeriesSchema)
+      .set({ rule: "FREQ=DAILY;INTERVAL=1", providerIds: [randomUUID()] })
+      .where(eq(appointmentSeriesSchema.id, bad.id));
+    void group;
+    const res = ok(await appointmentSeriesService.topUp(NOW, { limit: 1 }));
+    expect(res).toMatchObject({ failed: 1, toppedUp: 1 });
+    expect((await days(good.id)).length).toBeGreaterThan(0);
+  });
 });

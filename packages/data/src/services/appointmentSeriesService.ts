@@ -369,8 +369,9 @@ export const TOP_UP_BATCH = 50;
  * `topped_up_through`. One transaction per series, so a failure leaves that
  * series as it was; a second run writes nothing. A series stops at its
  * UNTIL or COUNT (the expansion has no later days) and a deleted one is
- * left alone. A series that has never been topped up starts from its first
- * day or today, whichever is later.
+ * left alone. Writing starts after `topped_up_through` and no earlier than
+ * today (in the series' zone), so a gap never invents past visits. A run
+ * does at most `limit` series (default 50) and goes past failing ones.
  */
 export const topUp = async (
   now: Date = new Date(),
@@ -380,30 +381,38 @@ export const topUp = async (
   // Zones are within +/-14 h of UTC, so a series that's due has a
   // `topped_up_through` before the UTC day + 91; each is then checked in its own zone.
   const horizon = addDays(now.toISOString().slice(0, 10), SERIES_AHEAD_DAYS + 1);
-  const candidates = await appointmentSeriesModel.list({
-    ...ctx,
-    filter: { toppedUpThrough: { type: "lte", value: horizon } },
-    orderBy: [
-      { field: "toppedUpThrough", direction: "asc" },
-      { field: "id", direction: "asc" },
-    ],
-    paginate: { limit: Math.min(opts.limit ?? TOP_UP_BATCH, 100), page: 1 },
-  });
-  if (isError(candidates)) return candidates;
+  // Read every candidate first (pages of 100, oldest edge first), so a series
+  // that keeps failing can't starve the rest: the run goes past it until
+  // `limit` series are done or the candidates run out.
+  const candidates: AppointmentSeries[] = [];
+  for (let page = 1; page <= 100; page++) {
+    const res = await appointmentSeriesModel.list({
+      ...ctx,
+      filter: { toppedUpThrough: { type: "lte", value: horizon } },
+      orderBy: [
+        { field: "toppedUpThrough", direction: "asc" },
+        { field: "id", direction: "asc" },
+      ],
+      paginate: { limit: 100, page },
+    });
+    if (isError(res)) return res;
+    candidates.push(...res.data);
+    if (res.data.length < 100) break;
+  }
+  const limit = opts.limit ?? TOP_UP_BATCH;
 
   const result: TopUpResult = { checked: 0, toppedUp: 0, visits: 0, failed: 0 };
-  for (const series of candidates.data) {
+  for (const series of candidates) {
+    if (result.toppedUp >= limit) break;
     const today = dayInZone(now, series.timeZone);
     const through = addDays(today, SERIES_AHEAD_DAYS);
     if (series.toppedUpThrough && series.toppedUpThrough >= through) continue;
     result.checked++;
 
     const done = await withTransaction(async (tx) => {
-      const from = series.toppedUpThrough
-        ? addDays(series.toppedUpThrough, 1)
-        : series.startsOn > today
-          ? series.startsOn
-          : today;
+      // Never invent past visits after a gap: start no earlier than today.
+      const after = series.toppedUpThrough ? addDays(series.toppedUpThrough, 1) : series.startsOn;
+      const from = after > today ? after : today;
       const written = await writeVisits(ctx, tx, series, from, through);
       if (isError(written)) return written;
       const updated = await appointmentSeriesModel.update({
