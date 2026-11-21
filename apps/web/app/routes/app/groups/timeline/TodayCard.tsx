@@ -4,14 +4,13 @@ import type { TimelineData } from "./useTimelineData";
 
 import { formatReading, VITALS } from "@caretook/data/schema";
 import { CalendarClock, ChevronDown, ListTodo } from "lucide-react";
-import { Link, useLocation } from "react-router";
+import { Link } from "react-router";
 import { RepeatMark } from "~/components/entry";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatAgo } from "~/lib/core/format";
 import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { taskStripText, taskStripWho } from "~/lib/tasks/taskStrip";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
-import { setKind } from "~/lib/timeline/timelineFilters";
 import { STRIP_CAP } from "./layout";
 import { TodayMedicationsRow } from "./TodayMedicationsRow";
 import { TodayRow, TodayRowSkeleton } from "./TodayRow";
@@ -23,9 +22,11 @@ const VitalsIcon = KIND_META.vital.Icon;
  * The Today card (B-169), above the full timeline: one row each for the
  * latest vitals, the next appointment, the medications due and the tasks
  * overdue (or due today), each hidden when it has nothing, each tinted by its
- * status (`todayStatus`) and ending in "See all ›" to its full view. Its
- * header collapses it to one line ("BP 130/85 mmHg · 1 appt · 2 meds due"),
- * remembered on this device. Viewers see it too (without Given all). The
+ * status (`todayStatus`) and ending in "See all ›" to its full view (the
+ * vitals row instead shows all its readings in place when they don't fit,
+ * B-186). Its header collapses it to one line ("BP 130/85 mmHg · 1 appt · 2
+ * meds due"): collapsed unless something needs attention (B-185), a tap
+ * remembered on this device until what needs attention changes. Viewers see it too (without Given all). The
  * whole card hides once every row is known to be empty.
  */
 export function TodayCard({
@@ -45,7 +46,6 @@ export function TodayCard({
   units: UnitChoices;
 }) {
   const today = useTodayCard({ groupId, latestVitals, next, units });
-  const { search } = useLocation();
   if (today.empty) return null;
   const { collapsed, status, tasks } = today;
   const nextText = nextStripText(next, now);
@@ -90,8 +90,7 @@ export function TodayCard({
             status={status.vitals}
             Icon={VitalsIcon}
             iconClass="text-secondary"
-            seeAll={appUrls.timeline(groupId, setKind(search, "vital"))}
-            seeAllLabel="See all vitals"
+            expandable
           >
             <span className="sr-only">Latest vitals: </span>
             {today.vitals.map(({ reading, occurredAt }, i) => (
