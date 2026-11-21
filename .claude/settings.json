@@ -31,15 +31,33 @@
       "Bash(git ls-files *)",
       "Bash(git blame *)",
       "Bash(git worktree list *)",
-      "Bash(git worktree list)"
+      "Bash(git worktree list)",
+      "Bash(git push origin dev)",
+      "Bash(git -C * push origin dev)",
+      "Bash(git push origin prd/*)",
+      "Bash(git push -u origin prd/*)",
+      "Bash(git push origin --delete prd/*)",
+      "Bash(git push origin hotfix/*)",
+      "Bash(git push -u origin hotfix/*)",
+      "Bash(git push origin --delete hotfix/*)",
+      "Bash(git push origin *:refs/heads/throwaway/*)",
+      "Bash(git -C * push origin *:refs/heads/throwaway/*)",
+      "Bash(git push origin --delete throwaway/*)",
+      "Bash(git -C * push origin --delete throwaway/*)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr close *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh api *)"
     ],
     "deny": [
       "Read(**/.env)",
       "Read(**/.env.local)",
       "Read(**/.env.*.local)",
       "Read(packages/data/src/db/migrations/meta/**)",
-      "Bash(git push *)",
-      "Bash(git push)",
       "Bash(*CARETOOK_ALLOW_PROTECTED=*)"
     ]
   }
