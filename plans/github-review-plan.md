@@ -4,11 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                                                                                                      | Merge into `prd/github-review` (slice commits) |
-| ----- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | resumed: the user dropped the blanket push deny (d5c4c621, committed here, lands with the PRD); capturing fixtures; module + `review` built (a8bc173b), needs live capture |                                                |
-| 2     | 2    | not started                                                                                                                                                                |                                                |
-| 3     | 2    | not started                                                                                                                                                                |                                                |
+| Slice | Wave | State                                      | Merge into `prd/github-review` (slice commits)                       |
+| ----- | ---- | ------------------------------------------ | -------------------------------------------------------------------- |
+| 1     | 1    | merged; worktree removed                   | 46b76b00 (a8bc173b, 719012d1); opus; throwaway PR #7 closed unmerged |
+| 2     | 2    | started (opus; `.loops/github-review-2`)   |                                                                      |
+| 3     | 2    | started (sonnet; `.loops/github-review-3`) |                                                                      |
+
+**Overnight (2026-11-20), the user's word:** don't prompt and **don't land**. Finish wave 2's slices, merge them into `prd/github-review`, don't open the real PR or push `dev`/`prd/` to origin, then `pnpm prd rm github-review` (the unmerged branch stays) to free the PRD slot for the queue. Resume with `pnpm prd start github-review`.
+
+**Open for the user:**
+
+- Codex doesn't resolve its own threads when a fix lands (they go outdated, and its summary says `has_unresolved_findings:false`). The module keeps the PRD's rule that any unresolved Codex thread blocks, so the orchestrator resolves fixed threads as well as declined ones. Or trust Codex's clean summary over outdated threads (a one-line change in `openFindings`, `codex-review.mjs`).
+- `.claude/settings.json` (d5c4c621, by the user): the blanket `git push *` deny is gone and no narrow push denies replaced it (force pushes to `prd/`/`hotfix/` aren't blocked by a rule; the pre-push hook still guards main/staging). Add narrow denies?
+- Slice 1 changes from the plan: `review --wait` waits through `stale` too; `--again --wait` first waits up to 5 min for Codex's summary to change; exit 3 for errors (no PR).
 
 **Landing mode:** run everything through (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions. Wave 1 lands locally (no `--force` unless the user says so); wave 2 through the new PR path.
 
