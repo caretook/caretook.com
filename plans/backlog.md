@@ -106,10 +106,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-211 | change | ready | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
 | B-212 | bug | landed | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
 | B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
-| B-214 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
+| B-214 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
 | B-215 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
 | B-216 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
-| B-217 | bug | ready | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
+| B-217 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
 | B-218 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
 | B-219 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
 | B-220 | change | triaged | quick-entry |  | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
@@ -118,7 +118,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-223 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
 | B-224 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
 | B-225 | bug | ready | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
-| B-226 | change | triaged | medications-tabs |  | Medications page should be tabbed into Schedule and Medications |
+| B-226 | change | in-progress | medications-tabs | prd/medications-tabs | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | dropped | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
 | B-228 | bug | triaged | quick-fixes |  | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
 | B-229 | bug | inbox |  |  | on timeline page, header and Today section should be in same column width as the rest of the… |
@@ -606,7 +606,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-214 · bug · don't need patient name on the providers, medications, upcoming, or tasks page page, just need it…
 
-- status: ready
+- status: landed
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: f58cd4b9
@@ -641,7 +641,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-217 · bug · If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page…
 
-- status: ready
+- status: landed
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: f58cd4b9
@@ -742,9 +742,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-226 · change · Medications page should be tabbed into Schedule and Medications
 
-- status: triaged
+- status: in-progress
 - prd: medications-tabs
-- owner:
+- owner: prd/medications-tabs
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Triaged to medications-4: splitting the page into Schedule and Medications tabs is part of B-213's redesign of the Today schedule, and the two touch the same files.
@@ -771,6 +771,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/quick-fixes): Found by quick-fixes slice 59 (B-180), 2026-11-21: same fix (await expect.poll / found()); proposed for a later quick-fixes wave. -- quick-fixes orchestrator
+- 2026-11-21 (prd/quick-fixes): The tasks Undo test's sync reads after undoing were fixed in prd/quick-fixes 71dfbde4 (failed the wave 15 full check under load). -- quick-fixes orchestrator
 
 ### B-229 · bug · on timeline page, header and Today section should be in same column width as the rest of the…
 
