@@ -80,13 +80,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-191 | bug | landed | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
 | B-192 | bug | landed | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
-| B-193 | feature | in-progress | connectors-2 | prd/connectors-2 | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
-| B-194 | feature | triaged | connectors-2 |  | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
-| B-195 | feature | in-progress | connectors-2 | prd/connectors-2 | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
+| B-193 | feature | ready | connectors-2 | prd/connectors-2 | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
+| B-194 | feature | in-progress | connectors-2 | prd/connectors-2 | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
+| B-195 | feature | ready | connectors-2 | prd/connectors-2 | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-197 | feature | triaged | connectors-2 |  | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | landed | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
-| B-199 | bug | triaged | medications-3 |  | ability to add a medication quickly from the log a dose screen. |
+| B-199 | bug | in-progress | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | in-progress | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
@@ -98,6 +98,17 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | triaged | quick-fixes |  | link to group details edit page from the edit profile screen for editing the care recipient's… |
+| B-212 | bug | triaged | medications-3 |  | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
+| B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
+| B-214 | bug | inbox |  |  | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
+| B-215 | bug | inbox |  |  | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
+| B-216 | bug | inbox |  |  | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
+| B-217 | bug | inbox |  |  | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
+| B-218 | bug | inbox |  |  | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
+| B-219 | bug | inbox |  |  | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
+| B-220 | change | inbox |  |  | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
+| B-221 | feature | inbox |  |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
+| B-222 | feature | inbox |  |  | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
 
 ## Items
 
@@ -368,19 +379,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-193 · feature · In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states
 
-- status: in-progress
+- status: ready
 - prd: connectors-2
 - owner: prd/connectors-2
-- commit:
+- commit: c691be06
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): today nothing in the app tells a member the URL or where to add it; connectors-2 PRD, to write
 - 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
 
 ### B-194 · feature · A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off
 
-- status: triaged
+- status: in-progress
 - prd: connectors-2
-- owner:
+- owner: prd/connectors-2
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): connectors-2 PRD, to write; touches notifications
@@ -388,10 +399,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-195 · feature · Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state
 
-- status: in-progress
+- status: ready
 - prd: connectors-2
 - owner: prd/connectors-2
-- commit:
+- commit: 0b8c30f7
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): MCP prompts were out of scope in connectors; connectors-2 PRD, to write
 - 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
@@ -429,9 +440,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-199 · bug · ability to add a medication quickly from the log a dose screen.
 
-- status: triaged
+- status: in-progress
 - prd: medications-3
-- owner:
+- owner: prd/medications-3
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, wave 14. A small 'new medication' path from the log-a-dose sheet; reuses the medications form. If it needs B-200's type field, run after it.
@@ -555,3 +566,102 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: link to group details edit page from the edit profile screen for editing the care recipient's timezone.
 - 2026-11-20 (Robert Bo Davis): Triage: one link on the profile edit screen to group settings' details: a quick-fixes slice.
+
+### B-212 · bug · icon order at top of medications page is not great. Add medication button should be a + icon. Print…
+
+- status: triaged
+- prd: medications-3
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: icon order at top of medications page is not great. Add medication button should be a + icon. Print should just be the printer icon. Passes should be labeled between the two.
+- 2026-11-21 (prd/medications-3): Proposed for medications-3 as slice 5 (wave 3, after slice 2: both touch the medications list header). Order the header: + icon (Add medication), the labeled Passes button, then a printer icon only (Print).
+
+### B-213 · bug · medications today schedule layout is confusing especially on mobile. Plan an improved layout for…
+
+- status: triaged
+- prd: medications-4
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: medications today schedule layout is confusing especially on mobile. Plan an improved layout for passes, scheduled, and as needed.
+- 2026-11-21 (prd/medications-3): Proposed for a follow-up PRD, medications-4: a redesign of Today's schedule (passes, scheduled, as needed) on mobile needs a PRD and plan, not a slice in medications-3.
+
+### B-214 · bug · don't need patient name on the providers, medications, upcoming, or tasks page page, just need it…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: don't need patient name on the providers, medications, upcoming, or tasks page page, just need it in the print version where applicable. it shows in the header all the time. Can also remove entire profile section in top left of the timeline to reduce clutter. Move eyeball icon inline with search and filter icons and size them appropriately.
+
+### B-215 · bug · move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry box.
+
+### B-216 · bug · suggestion dropdown for quick entry box should appear above elements instead of pushing elements…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: suggestion dropdown for quick entry box should appear above elements instead of pushing elements below down the page.
+
+### B-217 · bug · If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page looks goofy without it.
+
+### B-218 · bug · expand icon for day summary on timeline should be at the left of the day summary, not the right.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-219 · bug · can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also not very good.
+
+### B-220 · change · Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event, providers do suggest like they should, but creates a note instead of an appointment. "Dr. Elena Alvarez on the 25th" creates a note as do most provider auto completes when it should be an event. Need to improve the logic for this.
+
+### B-221 · feature · locked simple mode is really confusing. We may want to just add a new user type at this point for…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: locked simple mode is really confusing. We may want to just add a new user type at this point for locked simple mode. Or just review and fix all of the nits.
+
+### B-222 · feature · Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (prd/medications-3): From the inbox: Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to the Upcoming section... and maybe rename the upcoming page to something that covers both.
