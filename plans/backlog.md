@@ -86,12 +86,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-191 | bug | landed | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
 | B-192 | bug | landed | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
 | B-193 | feature | ready | connectors-2 | prd/connectors-2 | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
-| B-194 | feature | in-progress | connectors-2 | prd/connectors-2 | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
+| B-194 | feature | ready | connectors-2 | prd/connectors-2 | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
 | B-195 | feature | ready | connectors-2 | prd/connectors-2 | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
-| B-197 | feature | in-progress | connectors-2 | prd/connectors-2 | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
+| B-197 | feature | ready | connectors-2 | prd/connectors-2 | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | landed | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
-| B-199 | bug | in-progress | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
+| B-199 | bug | ready | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | ready | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
@@ -103,7 +103,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | triaged | quick-fixes |  | link to group details edit page from the edit profile screen for editing the care recipient's… |
-| B-212 | bug | triaged | medications-3 |  | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
+| B-212 | bug | in-progress | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
 | B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
 | B-214 | bug | triaged | timeline-ux-2 |  | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
 | B-215 | bug | triaged | timeline-ux-2 |  | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
@@ -182,6 +182,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Proposed as a providers follow-up (the PRD is done, like B-25): copy a provider from another group you belong to into this one (a copy, not a shared row, since providers are per group and synced per group). Needs a small PRD addendum or a quick-fixes slice once scoped.
 - 2026-11-20 (Robert Bo Davis): Moved from providers (done) to a new providers-2 PRD, to write (the user, 2026-11-20): B-48's cross-group permission rules want an interview, and B-25 touches the live-notes editor. Same commit: the PRD table's done rows shortened, rows added for providers-2 and appointments-2. -- backlog agent
 - 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): B-25 is slices 1-2 (mentions; deps approved), B-48 slices 3-5 (import as a copy: writer here, any member there; three entry points; notes not copied). -- backlog agent
+- 2026-11-21 (prd/providers-2): slice 3 (import sheet) merged into prd/providers-2 as 0de633e1; slices 4, 5 remain
 
 ### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
 
@@ -396,13 +397,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-194 · feature · A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off
 
-- status: in-progress
+- status: ready
 - prd: connectors-2
 - owner: prd/connectors-2
-- commit:
+- commit: ea3cbc02
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): connectors-2 PRD, to write; touches notifications
 - 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
+- 2026-11-21 (slice/connectors-2/2): Slice 2 built (90383609, eab9dfe4): assistant_request + migration 0030, assistantsRequested email, connector.requestEnable/myRequest, ask button on Assistants and /connect's empty state.
 
 ### B-195 · feature · Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state
 
@@ -426,10 +428,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-197 · feature · Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService
 
-- status: in-progress
+- status: ready
 - prd: connectors-2
 - owner: prd/connectors-2
-- commit:
+- commit: ea3cbc02
 
 - 2026-11-20 (plan/conditions): Conditions planning 2026-11-20 (the user): conditions ship read-only to assistants; the writer is a follow-up, after the conditions PRD lands
 - 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
@@ -447,10 +449,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-199 · bug · ability to add a medication quickly from the log a dose screen.
 
-- status: in-progress
+- status: ready
 - prd: medications-3
 - owner: prd/medications-3
-- commit:
+- commit: b44af440
 
 - 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, wave 14. A small 'new medication' path from the log-a-dose sheet; reuses the medications form. If it needs B-200's type field, run after it.
 - 2026-11-20 (plan/quick-fixes): 2026-11-20 (backlog session, the user): moved to medications-3, out of quick-fixes wave 14. The user's flow: an inline add in the log-a-dose sheet with name, dose and type (B-200's field), a link to add details on the medication's page, and the new medication picked for the dose; also offered in the no-medications empty state. Plan it with B-200.
@@ -576,14 +578,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-212 · bug · icon order at top of medications page is not great. Add medication button should be a + icon. Print…
 
-- status: triaged
+- status: in-progress
 - prd: medications-3
-- owner:
+- owner: prd/medications-3
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: icon order at top of medications page is not great. Add medication button should be a + icon. Print should just be the printer icon. Passes should be labeled between the two.
 - 2026-11-21 (prd/medications-3): Proposed for medications-3 as slice 5 (wave 3, after slice 2: both touch the medications list header). Order the header: + icon (Add medication), the labeled Passes button, then a printer icon only (Print).
 - 2026-11-21 (Robert Bo Davis): 2026-11-21: the user approved it as medications-3 slice 5 (wave 3, after slice 2).
+- 2026-11-21 (prd/medications-3): medications-3 slice 5 started 2026-11-21. Overlap: timeline-ux-2 slice 1 later wraps this header in PageHeader; keep the order: + Add, labeled Passes, printer-only Print.
 
 ### B-213 · bug · medications today schedule layout is confusing especially on mobile. Plan an improved layout for…
 
