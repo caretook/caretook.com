@@ -8,7 +8,7 @@
 | ----- | ---- | --------------- | ----------------------------------------------- |
 | 1     | 1    | merged (opus)   | a589f8fa (716e20cd, 2b37171b)                   |
 | 2     | 2    | started (opus)  |                                                 |
-| 3     | 2    | started (sonnet)|                                                 |
+| 3     | 2    | ready to merge after 2 (sonnet; da53f874, 160c7ee3) |                                                 |
 | 4     | 2    | started (opus)  |                                                 |
 | 5     | 3    | blocked by 4    |                                                 |
 | 6     | 3    | blocked by 3, 4 |                                                 |
@@ -24,6 +24,8 @@
 Slice 1 merged as a589f8fa; worktree removed. Wave 2 (slices 2, 3, 4) worktrees made, agents spawned.
 
 **Pending sync:** quick-fixes wave 13 landed in dev (bf0891df): rewrites TimelineFilters, the Today card (TodayCard/TodayRow/todayStatus/useTodayCard*) and phase2.spec.mjs; no migration. `pnpm prd sync` after wave 2 merges; expect a conflict on slice 1's RepeatMark in the Today card (keep it as one added element).
+
+**Carried from slice 3's hand-off:** steps go in `CALENDAR_STEPS` (`packages/notifications/src/calendarCron.ts`) before `seriesTopUp`; a returned error value counts as a failure. topUp starts at max(topped_up_through + 1, today in zone) and passes over failing series. Browser checks to run at landing: layout-offline, sign-in, first-sync, marketing. Its last fix ran related tests only (load 19), so the landing check must be full. Docs: appointments.md (topUp), notifications.md (`/api/cron/calendar`, `calendarCron.ts`, two crons), api.md (`cron-locked` covers both), layout.md (`routes/api/cron/calendar.ts`). Flake seen: `timelineSimpleNow.browser.test.tsx` "no Upcoming heading", 3/3 alone.
 
 **Carried from slice 1's hand-off:**
 - Migration `0025_appointment_series.sql` has two hand edits to keep on regenerate: FK `ON DELETE SET NULL ("series_id")`, and `ALTER PUBLICATION powersync ADD TABLE appointment_series` at the end.
