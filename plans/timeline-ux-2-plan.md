@@ -25,7 +25,9 @@
 - Wave 1 merged (no conflicts); B-215, B-216, B-218, B-219, B-223, B-224 done (ready); B-214 waits for slice 2. Slice worktrees removed.
 - `pnpm prd sync` 9fd694a8 (providers-2): resolved a code conflict in `providers/route.tsx` (PageHeader + dev's Import action); providers test 15/15. Lockfile changed → full `pnpm prd check` for wave 1's landing.
 - Wave 2 started from 9fd694a8: `.loops/timeline-ux-2-{2,6}`; B-217 claimed. Wave 1 lands while wave 2 runs.
-- Open issues: none.
+- Docs folded for wave 1 (eed9341f).
+- Full check #1 on eed9341f failed 14 tests (`timelineSummaries`, `entryPrint`, `timelineCarePeriods`, `timelineSimple` period header): run at 00:20 America/Los_Angeles, the tests' zone, where `minutesAgo(40)` fixtures fall on yesterday. Clock-window failures, not this wave. Rerunning after 01:05 LA.
+- Open issues: clock-dependent component tests fail in the first ~40 min after midnight LA (outside this PRD; tell the user).
 
 ## Backlog map
 
